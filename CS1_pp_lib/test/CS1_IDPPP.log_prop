@@ -1,0 +1,33 @@
+#
+# setup the right levels for logging and tracing
+#
+log4cplus.rootLogger=DEBUG, STDOUT
+log4cplus.logger.TRC=DEBUG, STDOUT
+log4cplus.additivity.TRC=FALSE
+
+#
+# define the output channels
+#
+log4cplus.appender.STDOUT=log4cplus::ConsoleAppender
+log4cplus.appender.STDOUT.layout=log4cplus::PatternLayout
+log4cplus.appender.STDOUT.layout.ConversionPattern=%D{%d-%m-%y %H:%M:%S} %-5p %c{3} - %m [%.25l]%n
+
+#log4cplus.appender.MACSTDERR=log4cplus::ConsoleAppender
+#log4cplus.appender.MACSTDERR.layout=log4cplus::PatternLayout
+#log4cplus.appender.MACSTDERR.layout.ConversionPattern=%x %D{%d-%m %H:%M:%S.%q} %-5p %c{4} - %m [%.25l]%n
+#log4cplus.appender.MACSTDERR.logToStdErr=true
+
+#log4cplus.appender.MACCLP=log4cplus::SocketAppender
+#log4cplus.appender.MACCLP.port=23999
+#log4cplus.appender.MACCLP.host=mcu001t
+#log4cplus.appender.MACCLP.Threshold=INFO
+
+#log4cplus.appender.FILE=log4cplus::RollingFileAppender
+#log4cplus.appender.FILE.File=./test.log
+#log4cplus.appender.FILE.MaxFileSize=10MB
+#log4cplus.appender.FILE.MaxBackupIndex=9
+#log4cplus.appender.FILE.layout=log4cplus::PatternLayout
+#log4cplus.appender.FILE.layout.ConversionPattern=%x %D{%d-%m-%y %H:%M:%S} %-5p %c{3} - %m [%.25l]%n
+
+#log4cplus.appender.DUMP=log4cplus::NullAppender
+

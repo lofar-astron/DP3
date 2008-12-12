@@ -1,0 +1,17 @@
+fixed=5
+freqwindow=1
+timewindow=7
+treshold=1.0
+min=10
+max=12
+existing=False
+nchan=128
+start=32
+step=16
+skipflags=True
+allcolumns=False
+msin=test.MS
+msout=test_out.MS
+bandpass=1
+flagger=1
+squasher=1
