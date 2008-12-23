@@ -21,7 +21,7 @@
 #define LOFARCOMBINERPROCESSCONTROL_H
 
 #include <PLC/ProcessControl.h>
-#include <APS/ParameterSet.h>
+#include <Common/ParameterSet.h>
 #include <vector>
 
 /**

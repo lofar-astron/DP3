@@ -44,8 +44,8 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL(1)
 lofar_AIPSPP(1)
+lofar_INTERNAL(LCS/Common,Common,,1,Common/LofarTypes.h)
 lofar_INTERNAL(LCS/ACC/PLC,PLC,,1,PLC/ProcessControl.h)
-lofar_INTERNAL(LCS/ACC/APS,APS,,1,APS/ParameterSet.h)
 
 dnl
 dnl Output Makefiles

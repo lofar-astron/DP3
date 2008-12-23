@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
   details.FreqWindow = 9;
   details.TimeWindow = SIZE;
   details.Existing = false;
-  details.Treshold = 4.5;
+  details.Threshold = 4.5;
   DataBuffer data(&info, details.TimeWindow, false);
 
   ACG gen(11, 20);

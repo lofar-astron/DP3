@@ -56,7 +56,7 @@ namespace LOFAR
     //===============>>> CombinerProcessControl::define  <<<==============================
     tribool CombinerProcessControl::define()
     {
-      LOFAR::ACC::APS::ParameterSet* ParamSet = LOFAR::ACC::APS::globalParameterSet();
+      ParameterSet* ParamSet = globalParameterSet();
       itsInMS  = ParamSet->getStringVector("inms");
       itsOutMS = ParamSet->getString("outms");
       return true;

@@ -21,7 +21,7 @@
 #define LOFARPIPELINEPROCESSCONTROL_H
 
 #include <PLC/ProcessControl.h>
-#include <APS/ParameterSet.h>
+#include <Common/ParameterSet.h>
 
 /**
 @author Adriaan Renting

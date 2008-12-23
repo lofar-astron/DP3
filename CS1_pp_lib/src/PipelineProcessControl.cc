@@ -65,7 +65,7 @@ namespace LOFAR
     //===============>>> PipelineProcessControl::define  <<<==============================
     tribool PipelineProcessControl::define()
     {
-      LOFAR::ACC::APS::ParameterSet* ParamSet = LOFAR::ACC::APS::globalParameterSet();
+      ParameterSet* ParamSet = globalParameterSet();
       myDetails  = new RunDetails();
       myDetails->Fixed        = ParamSet->getUint32("fixed", 0);         // BandpassCorrector
       myDetails->FreqWindow   = ParamSet->getUint32("freqwindow", 1);    // FrequencyFlagger, MADFlagger
