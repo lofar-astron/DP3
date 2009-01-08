@@ -22,6 +22,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <limits>
 #include <tables/Tables.h>
 #include <tables/Tables/TableParse.h>
 #include <ms/MeasurementSets.h>
@@ -67,7 +68,7 @@ namespace LOFAR
     {
       try{
         std::cout << "Creating " << itsOutMS << ", please wait..." << std::endl;
-        unsigned int min_nrow = MAXINT;
+        unsigned int min_nrow = std::numeric_limits<unsigned int>::max();
         int sourceMS = 0;
         for (unsigned int i = 0; i < itsInMS.size(); i++) // to search the shortest MS
         {
