@@ -1,6 +1,6 @@
 SUBDIRS=src test include
 
-ACLOCAL_AMFLAGS = -I $(top_srcdir)/autoconf_share
+ACLOCAL_AMFLAGS = -I autoconf_share
 
 pkgextdir     = $(prefix)/config/$(PACKAGE)
 pkgext_DATA   = pkgext pkgextcppflags pkgextcxxflags pkgextldflags
