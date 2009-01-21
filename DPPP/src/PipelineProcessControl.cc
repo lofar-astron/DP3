@@ -23,19 +23,19 @@
 #include <casa/Inputs/Input.h>
 #include <ms/MeasurementSets.h>
 
-#include <CS1_pp_lib/PipelineProcessControl.h>
-#include <CS1_pp_lib/MsInfo.h>
-#include <CS1_pp_lib/MsFile.h>
-#include <CS1_pp_lib/RunDetails.h>
-#include <CS1_pp_lib/Pipeline.h>
+#include <DPPP/PipelineProcessControl.h>
+#include <DPPP/MsInfo.h>
+#include <DPPP/MsFile.h>
+#include <DPPP/RunDetails.h>
+#include <DPPP/Pipeline.h>
 
-#include <CS1_pp_lib/BandpassCorrector.h>
-#include <CS1_pp_lib/Flagger.h>
-#include <CS1_pp_lib/ComplexMedianFlagger.h>
-#include <CS1_pp_lib/ComplexMedianFlagger2.h>
-#include <CS1_pp_lib/FrequencyFlagger.h>
-#include <CS1_pp_lib/MADFlagger.h>
-#include <CS1_pp_lib/DataSquasher.h>
+#include <DPPP/BandpassCorrector.h>
+#include <DPPP/Flagger.h>
+#include <DPPP/ComplexMedianFlagger.h>
+#include <DPPP/ComplexMedianFlagger2.h>
+#include <DPPP/FrequencyFlagger.h>
+#include <DPPP/MADFlagger.h>
+#include <DPPP/DataSquasher.h>
 
 #define PIPELINE_VERSION "0.23"
 // 0.23 Added AbsoluteThreshold for MADFlagger

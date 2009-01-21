@@ -17,54 +17,40 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef __FLAGGER_FREQUENCYFLAGGER_H__
-#define __FLAGGER_FREQUENCYFLAGGER_H__
+#ifndef __CS1_PP_FLAGGER_STATISTICS_H__
+#define __CS1_PP_FLAGGER_STATISTICS_H__
 
 #include <casa/Arrays.h>
-#include <utility>
+#include <iostream>
 #include <vector>
-#include <list>
-#include <map>
-#include <CS1_pp_lib/Flagger.h>
+#include <DPPP/MsInfo.h>
 
 /// @file
-/// @brief Class to hold code for FrequencyFlagger in IDPPP
+/// @brief Class to hold code for holding the statistics of a Flagger pass in IDPPP
 /// @author Adriaan Renting (renting AT astron nl)
 
 namespace LOFAR
 {
   namespace CS1
   {
-    ///Foreward declarations
-    class DataBuffer;
-    class MsInfo;
-    class RunDetails;
-    class FlaggerStatistics;
-
-    class FrequencyFlagger: public Flagger
+    class FlaggerStatistics
     {
       public:
-        FrequencyFlagger();
-        ~FrequencyFlagger();
-
-        /// All processing of one integration time happens in one go.
-        void ProcessTimeslot(DataBuffer& data,
-                             MsInfo& info,
-                             RunDetails& details,
-                             FlaggerStatistics& stats);
+        FlaggerStatistics(MsInfo& info);
+        ~FlaggerStatistics();
+        /// Will output formatted statistics to the output stream (usually cout)
+        void PrintStatistics(std::ostream& output);
+        int& operator()(int x, int y, int z); ///< for quick indexing of the internal data
 
       protected:
       private:
-        int FlagBaselineBand(casa::Matrix<casa::Bool>& Flags,
-                             casa::Matrix<casa::Complex>& Data,
-                             int flagCounter,
-                             double FlagThreshold,
-                             bool Existing,
-                             int Algorithm);
-        int NumChannels;
-        int NumPolarizations;
-    }; // FrequencyFlagger
-  }; // namespace CS1
+        int                       NumAntennae;
+        int                       NumBands;
+        casa::Cube< int >         Statistics; ///< A cube of antenna x antenna x bands
+        int                       Normalizer; ///< the total count of antenna x antenna x bands
+        std::vector<casa::String> AntennaNames;
+    }; // FlaggerStatistics
+  }; // CS1
 }; // namespace LOFAR
 
-#endif //  __FLAGGER_FREQUENCYFLAGGER_H__
+#endif //  __CS1_PP_FLAGGER_STATISTICS_H__

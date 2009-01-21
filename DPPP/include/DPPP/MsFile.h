@@ -23,8 +23,8 @@
 #include <ms/MeasurementSets.h>
 #include <tables/Tables.h>
 #include <tables/Tables/TableIter.h>
-#include <CS1_pp_lib/MsInfo.h>
-#include <CS1_pp_lib/DataBuffer.h>
+#include <DPPP/MsInfo.h>
+#include <DPPP/DataBuffer.h>
 
 /// @file
 /// @brief Class to hold code for access to MeasurementSet in IDPPP

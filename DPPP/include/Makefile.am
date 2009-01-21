@@ -1,3 +1,3 @@
-SUBDIRS	= CS1_pp_lib
+SUBDIRS	= DPPP
 
 include $(top_srcdir)/Makefile.common

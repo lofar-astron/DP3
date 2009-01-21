@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-#include <CS1_pp_lib/MsInfo.h>
+#include <DPPP/MsInfo.h>
 
 using namespace LOFAR::CS1;
 using namespace casa;

@@ -20,15 +20,15 @@
 #include <lofar_config.h>
 #include <iostream>
 
-#include <CS1_pp_lib/Pipeline.h>
-#include <CS1_pp_lib/MsInfo.h>
-#include <CS1_pp_lib/MsFile.h>
-#include <CS1_pp_lib/RunDetails.h>
-#include <CS1_pp_lib/BandpassCorrector.h>
-#include <CS1_pp_lib/Flagger.h>
-#include <CS1_pp_lib/DataSquasher.h>
-#include <CS1_pp_lib/DataBuffer.h>
-#include <CS1_pp_lib/FlaggerStatistics.h>
+#include <DPPP/Pipeline.h>
+#include <DPPP/MsInfo.h>
+#include <DPPP/MsFile.h>
+#include <DPPP/RunDetails.h>
+#include <DPPP/BandpassCorrector.h>
+#include <DPPP/Flagger.h>
+#include <DPPP/DataSquasher.h>
+#include <DPPP/DataBuffer.h>
+#include <DPPP/FlaggerStatistics.h>
 
 using namespace LOFAR::CS1;
 using namespace casa;

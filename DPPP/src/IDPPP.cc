@@ -23,7 +23,7 @@
 #include <libgen.h>
 #include <PLC/ACCmain.h>
 #include <casa/Exceptions.h>
-#include <CS1_pp_lib/PipelineProcessControl.h>
+#include <DPPP/PipelineProcessControl.h>
 #include <Common/LofarLogger.h>
 
 int main(int argc, char *argv[])

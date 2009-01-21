@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2006-8 by ASTRON, Adriaan Renting                       *
+ *   Copyright (C) 2008 by ASTRON, Adriaan Renting                         *
  *   renting@astron.nl                                                     *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,40 +17,47 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef __CS1_PP_FLAGGER_STATISTICS_H__
-#define __CS1_PP_FLAGGER_STATISTICS_H__
+#ifndef __CS1_PP_DATABUFFER_H__
+#define __CS1_PP_DATABUFFER_H__
 
 #include <casa/Arrays.h>
-#include <iostream>
-#include <vector>
-#include <CS1_pp_lib/MsInfo.h>
+
+#include <DPPP/MsInfo.h>
 
 /// @file
-/// @brief Class to hold code for holding the statistics of a Flagger pass in IDPPP
+/// @brief Class to hold code for DataBuffer in IDPPP
 /// @author Adriaan Renting (renting AT astron nl)
 
+/// The class maintains a buffer withe NumSlots Cubes of size:
+/// [myInfo->NumPolarizations, myInfo->NumChannels, WindowSize]
+/// ModelData and CorrectedData are only used if Colums==true
 namespace LOFAR
 {
   namespace CS1
   {
-    class FlaggerStatistics
+    class DataBuffer
     {
       public:
-        FlaggerStatistics(MsInfo& info);
-        ~FlaggerStatistics();
-        /// Will output formatted statistics to the output stream (usually cout)
-        void PrintStatistics(std::ostream& output);
-        int& operator()(int x, int y, int z); ///< for quick indexing of the internal data
+         DataBuffer(MsInfo* info, int TimeWindow, bool Columns);
+         ~DataBuffer();
+        int Position; ///< Position just updated in the buffer, -1 when it's uninitialised
+        int NumSlots; ///< Number fo baselines X number of Spectral Windows
+        int WindowSize;
 
-      protected:
+        std::vector< bool >                      PolarizationsToCheck;
+        std::vector< casa::Cube<casa::Complex> > Data;
+        std::vector< casa::Cube<casa::Complex> > ModelData;
+        std::vector< casa::Cube<casa::Complex> > CorrectedData;
+        std::vector< casa::Cube<casa::Bool> >    Flags;
+        std::vector< casa::Cube<casa::Float> >   Weights;
+        void DeterminePolarizationsToCheck(bool UseOnlyXpolarizations); ///< Not used right now
+        void PrintInfo(void);
+
       private:
-        int                       NumAntennae;
-        int                       NumBands;
-        casa::Cube< int >         Statistics; ///< A cube of antenna x antenna x bands
-        int                       Normalizer; ///< the total count of antenna x antenna x bands
-        std::vector<casa::String> AntennaNames;
-    }; // FlaggerStatistics
-  }; // CS1
+        MsInfo* myInfo;
+        void    Init(bool Columns);
+    }; // DataBuffer
+  }; //CS1
 }; // namespace LOFAR
 
-#endif //  __CS1_PP_FLAGGER_STATISTICS_H__
+#endif // __CS1_PP_DATABUFFER_H__

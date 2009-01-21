@@ -25,7 +25,7 @@
 #include <vector>
 #include <list>
 #include <map>
-#include <CS1_pp_lib/Flagger.h>
+#include <DPPP/Flagger.h>
 
 /// @file
 /// @brief Class to hold code for first variant of ComplexMedianFlagger in IDPPP

@@ -1,6 +1,6 @@
-lib_LTLIBRARIES         = libcs1_pp_lib.la
+lib_LTLIBRARIES         = libdppp.la
 
-libcs1_pp_lib_la_SOURCES = Package__Version.cc  \
+libdppp_la_SOURCES = Package__Version.cc  \
 		FlaggerStatistics.cc \
 		MsInfo.cc \
 		MsFile.cc \
@@ -15,18 +15,18 @@ libcs1_pp_lib_la_SOURCES = Package__Version.cc  \
 		Pipeline.cc 
 
 
-bin_PROGRAMS = versioncs1_pp_lib CS1_IDPPP
+bin_PROGRAMS = versiondppp CS1_IDPPP
 
 CS1_IDPPP_SOURCES	= IDPPP.cc PipelineProcessControl.cc
-CS1_IDPPP_LDADD		= libcs1_pp_lib.la
-CS1_IDPPP_DEPENDENCIES	= libcs1_pp_lib.la $(LOFAR_DEPEND)
+CS1_IDPPP_LDADD		= libdppp.la
+CS1_IDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 
 pythondir = $(bindir)
 dist_python_SCRIPTS = 
 
 
-versioncs1_pp_lib_SOURCES      = versioncs1_pp_lib.cc
-versioncs1_pp_lib_LDADD        = libcs1_pp_lib.la
-versioncs1_pp_lib_DEPENDENCIES = libcs1_pp_lib.la $(LOFAR_DEPEND)
+versiondppp_SOURCES      = versiondppp.cc
+versiondppp_LDADD        = libdppp.la
+versiondppp_DEPENDENCIES = libdppp.la $(LOFAR_DEPEND)
 
 include $(top_srcdir)/Makefile.common

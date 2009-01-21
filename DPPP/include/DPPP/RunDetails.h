@@ -28,7 +28,7 @@ namespace LOFAR
 {
   namespace CS1
   {
-    /// @ingroup CS1_pp_lib
+    /// @ingroup DPPP
     ///
     /// This class is basically a fancy struct of the variables that need to be set
     /// in the parameterset for IDPPP for the various steps.

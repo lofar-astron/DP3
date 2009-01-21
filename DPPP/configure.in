@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_INIT
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(CS1_pp_lib, 1.0, no-define)
+AM_INIT_AUTOMAKE(DPPP, 1.0, no-define)
 
 dnl Initialize for LOFAR (may set compilers)
 lofar_INIT
@@ -58,9 +58,9 @@ dnl Output Makefiles
 dnl
 AC_OUTPUT(
 include/Makefile
-include/CS1_pp_lib/Makefile
+include/DPPP/Makefile
 src/Makefile
 test/Makefile
 Makefile
-CS1_pp_lib.spec
+DPPP.spec
 )
