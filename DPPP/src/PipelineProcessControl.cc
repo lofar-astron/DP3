@@ -23,6 +23,8 @@
 #include <casa/Inputs/Input.h>
 #include <ms/MeasurementSets.h>
 
+#include <MS/VdsMaker.h>
+
 #include <DPPP/PipelineProcessControl.h>
 #include <DPPP/MsInfo.h>
 #include <DPPP/MsFile.h>
@@ -39,6 +41,7 @@
 
 #define PIPELINE_VERSION "0.23"
 // 0.23 Added AbsoluteThreshold for MADFlagger
+// 0.24 Added writing VDS file
 
 namespace LOFAR
 {
@@ -83,6 +86,7 @@ namespace LOFAR
       myDetails->TimeStep     = ParamSet->getUint32("timestep", 1);     //DataSquasher
       itsInMS                 = ParamSet->getString("msin");
       itsOutMS                = ParamSet->getString("msout");
+      itsClusterDesc          = ParamSet->getString("clusterdesc");
       itsBandpass             = ParamSet->getUint32("bandpass", 0);
       itsFlagger              = ParamSet->getUint32("flagger", 0);
       itsSquasher             = ParamSet->getUint32("squasher", 0);
@@ -98,12 +102,15 @@ namespace LOFAR
     {
       try{
       std::cout << "Runnning pipeline please wait..." << std::endl;
-        myFile->Init(*myInfo, *myDetails);
+        myFile->Init(*myInfo, *myDetails, itsSquasher);
         MsInfo* outInfo = new MsInfo(itsOutMS);
         outInfo->Update();
         outInfo->PrintInfo();
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
+        if (!itsClusterDesc.empty())
+        { LOFAR::VdsMaker::create (itsClusterDesc, itsOutMS + ".vds", itsOutMS, "", true);
+        }
       }
       catch(casa::AipsError& err)
       {

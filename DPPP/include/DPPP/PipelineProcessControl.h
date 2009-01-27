@@ -48,6 +48,7 @@ namespace LOFAR
     private:
       std::string  itsInMS; ///< Name and location of input MS
       std::string  itsOutMS; ///< Name and location of output MS
+      std::string  itsClusterDesc; ///< Name and location of ClusterDesc file
       unsigned int itsBandpass; ///< from ParameterSet
       unsigned int itsFlagger; ///< From ParameterSet
       unsigned int itsSquasher; ///< From ParameterSet

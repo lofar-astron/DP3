@@ -92,7 +92,7 @@ void MsFile::TableResize(TableDesc tdesc, IPosition ipos, string name, Table& ta
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============
-void MsFile::Init(MsInfo& Info, RunDetails& Details)
+void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
   cout << "Please wait, preparing output MS" << endl;
   Block<String> tempblock(SELECTblock);
@@ -115,8 +115,17 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details)
   Vector<Int> temp_pos = ipos.asVector();
   std::cout << "Old shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
   int old_nchan = temp_pos(1);
-  int new_nchan = Details.NChan/Details.Step;
-  temp_pos(1)   = new_nchan;
+  int new_nchan;
+  if (Squashing)
+  { new_nchan     = Details.NChan/Details.Step;
+    temp_pos(1)   = new_nchan;
+  }
+  else
+  { new_nchan     = old_nchan;
+    Details.NChan = old_nchan;
+    Details.Step  = 1;
+    Details.Start = 0;
+  }
   std::cout << "New shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
   IPosition data_ipos(temp_pos);
 
