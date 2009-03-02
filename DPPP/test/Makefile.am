@@ -17,8 +17,8 @@ EXTRA_DIST            = $(TESTSCRIPTS)
 
 # Lines to build a test program testprg
 test_flaggers_SOURCES                = test_flaggers.cc
-test_flaggers_LDADD                  = ../src/libcs1_pp_lib.la
-test_flaggers_DEPENDENCIES           = ../src/libcs1_pp_lib.la $(LOFAR_DEPEND)
+test_flaggers_LDADD                  = ../src/libdppp.la
+test_flaggers_DEPENDENCIES           = ../src/libdppp.la $(LOFAR_DEPEND)
 
 
 include $(top_srcdir)/Makefile.common
