@@ -50,6 +50,8 @@ lofar_INTERNAL(LCS/ACC/PLC,PLC,,1,PLC/ProcessControl.h)
 dnl
 dnl Output Makefiles
 dnl
+AC_CONFIG_FILES([test/runctest.sh:$lofar_sharedir/runctest.sh.in],
+                [chmod +x test/runctest.sh])
 AC_OUTPUT(
 include/Makefile
 include/CS1_SPWCombine/Makefile
