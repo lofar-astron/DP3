@@ -54,7 +54,7 @@ lofar_INTERNAL(LCS/Common,Common,,1,Common/LofarTypes.h,,)
 lofar_INTERNAL(LCS/ACC/PLC,PLC,,1,PLC/ProcessControl.h,,)
 lofar_INTERNAL(LCS/Blob,Blob,,1,Blob/BlobHeader.h,,)
 lofar_INTERNAL(LCS/Transport,Transport,,1,Transport/DataHolder.h,,)
-lofar_INTERNAL(CEP/Imager/MWCommon,MWCommon,,1,MWCommon/ClusterDesc.h,,)
+lofar_INTERNAL(CEP/MWCommon,MWCommon,,1,MWCommon/ClusterDesc.h,,)
 lofar_INTERNAL(CEP/MS,MS,,1,MS/VdsMaker.h,bbms,)
 
 dnl
