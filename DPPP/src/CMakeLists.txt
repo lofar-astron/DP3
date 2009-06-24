@@ -20,7 +20,7 @@
 
 include(LofarPackageVersion)
 
-set(dppp_LIB_SRCS
+lofar_add_library(dppp
   Package__Version.cc
   FlaggerStatistics.cc
   MsInfo.cc
@@ -35,12 +35,5 @@ set(dppp_LIB_SRCS
   RunDetails.cc
   Pipeline.cc)
 
-set(dppp_PROGRAMS
-  versioncs1_pp_lib
-  CS1_IDPPP
-)
-
-lofar_add_library(dppp ${dppp_LIB_SRCS})
-
-lofar_add_executable(CS1_IDPPP IDPPP.cc PipelineProcessControl.cc)
-lofar_add_executable(versioncs1_pp_lib versiondppp.cc)
+lofar_add_bin_program(CS1_IDPPP IDPPP.cc PipelineProcessControl.cc)
+lofar_add_bin_program(versiondppp versiondppp.cc)

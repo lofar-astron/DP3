@@ -32,7 +32,7 @@ project(DPPP)
 include(LofarGeneral)
 
 include(LofarAddPackage)
-lofar_add_package(${PROJECT_NAME} 1.0 DEPENDS Common PLC)
+lofar_add_package(${PROJECT_NAME} 1.0 DEPENDS Common MS PLC)
 
 ## ---------------------------------------------------------------------------
 ## External packages
@@ -48,6 +48,6 @@ include(LofarConfig)
 ## ---------------------------------------------------------------------------
 ## Subdirectories
 ## ---------------------------------------------------------------------------
-add_subdirectory(include/CS1_pp_lib)
+add_subdirectory(include/DPPP)
 add_subdirectory(src)
 add_subdirectory(test)

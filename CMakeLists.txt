@@ -34,8 +34,8 @@ include(LofarGeneral)
 ## ---------------------------------------------------------------------------
 ## Subdirectories
 ## ---------------------------------------------------------------------------
-add_subdirectory(DPPP)
-add_subdirectory(SPWCombine)
+lofar_add_subdirectory(DPPP)
+lofar_add_subdirectory(SPWCombine)
 
 ## ---------------------------------------------------------------------------
 ## Generate configuration header file.
