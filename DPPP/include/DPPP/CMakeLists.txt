@@ -41,6 +41,3 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
 
 # Install header files.
 install(FILES ${inst_HEADERS} DESTINATION include/${PROJECT_NAME})
-
-set(${PROJECT_NAME}_INCLUDE_PATH_SUFFIX ${PROJECT_NAME} 
-  CACHE INTERNAL "Include path suffix for package \"${PROJECT_NAME}\"")
