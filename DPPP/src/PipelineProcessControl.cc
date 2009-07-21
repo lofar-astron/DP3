@@ -103,8 +103,8 @@ namespace LOFAR
     tribool PipelineProcessControl::run()
     {
       try{
-      std::cout << "Runnning pipeline please wait..." << std::endl;
-        myDetails->Columns = myFile->Init(*myInfo, *myDetails, itsSquasher);
+        std::cout << "Runnning pipeline please wait..." << std::endl;
+        myFile->Init(*myInfo, *myDetails, itsSquasher);
         myFile->PrintInfo();
         MsInfo* outInfo = new MsInfo(itsOutMS);
         outInfo->Update();

@@ -93,7 +93,7 @@ void MsFile::TableResize(TableDesc tdesc, IPosition ipos, string name, Table& ta
 }
 
 //===============>>> MsFile::Init  <<<===============
-bool MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
+void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
   cout << "Please wait, preparing output MS" << endl;
   Block<String> tempblock(SELECTblock);
@@ -140,20 +140,13 @@ bool MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   TableResize(tdesc, data_ipos, "WEIGHT_SPECTRUM", *OutMS);
 
   //if present handle the CORRECTED_DATA column
-  if (tdesc.isColumn("CORRECTED_DATA"))
+  if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
   {
     if (Details.Columns)
     {
       cout << "CORRECTED_DATA detected for processing" << endl;
       TableResize(tdesc, data_ipos, "CORRECTED_DATA", *OutMS);
-    }
-  }
 
-  //if present handle the MODEL_DATA column
-  if (tdesc.isColumn("MODEL_DATA"))
-  {
-    if (Details.Columns)
-    {
       cout << "MODEL_DATA detected for processing" << endl;
       desc = tdesc.rwColumnDesc("MODEL_DATA");
       desc.setOptions(0);
@@ -167,8 +160,12 @@ bool MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       desc.rwKeywordSet().define("CHANNEL_SELECTION", selection); // #spw x [startChan, NumberChan] for the VisBuf in the Imager
       // see code/msvis/implement/MSVis/VisSet.cc
       OutMS->addColumn(desc);
-      OutMS->addColumn(ArrayColumnDesc<Float>("IMAGING_WEIGHT","imaging weight", 1));
+      TableResize(tdesc, data_ipos, "IMAGING_WEIGHT", *OutMS);
+      //OutMS->addColumn(ArrayColumnDesc<Float>("IMAGING_WEIGHT","imaging weight", data_ipos, ColumnDesc::FixedShape));
     }
+  }
+  else
+  { Details.Columns = false;
   }
 
   //fix the FLAGS column
@@ -235,7 +232,6 @@ bool MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   }
   OutMS->flush(true);
   cout << "Finished preparing output MS" << endl;
-  return (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"));
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============
