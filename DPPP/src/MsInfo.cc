@@ -96,15 +96,19 @@ void MsInfo::Update(void)
   NoiseLevel                       = 1.0 / sqrt(bandwidth * exposure);
 
   //calculate number of timeslots
-  ROScalarColumn<Double>           INTERVAL_col(MS, "INTERVAL");
-  Double Interval                  = INTERVAL_col(0);
+/*  ROScalarColumn<Double>           INTERVAL_col(MS, "INTERVAL");
+  Double Interval                  = INTERVAL_col(0);*/
 
   //Number of timeslots
-  ROScalarColumn<Double>            TIME_CENTROID_col(MS, "TIME_CENTROID");
-  Double firstdate                 = TIME_CENTROID_col(0);
+  ROScalarColumn<Double>            TIME_col(MS, "TIME");
+/*  Double firstdate                 = TIME_CENTROID_col(0);
   Double lastdate                  = TIME_CENTROID_col(NumSamples-1);
 
-  NumTimeslots                     = (int)((lastdate-firstdate)/Interval) + 1;
+  NumTimeslots                     = (int)((lastdate-firstdate)/Interval) + 1;*/
+  Vector<double> temptime = TIME_col.getColumn();
+  Vector<uInt>   tempindex;
+  NumTimeslots = GenSortIndirect<double>::sort (tempindex, temptime, Sort::Ascending, Sort::InsSort+Sort::NoDuplicates);
+
 
   //calculate number of baselines.
   NumPairs = (NumAntennae) * (NumAntennae + 1) / 2; //Triangular numbers formula
@@ -139,7 +143,12 @@ void MsInfo::PrintInfo(void)
   std::cout << "NumAntennae:      " << NumAntennae << std::endl;
   std::cout << "NumChannels:      " << NumChannels << std::endl;
   std::cout << "NumPolarizations: " << NumPolarizations << std::endl;
-  std::cout << "Noiselevel:       " << NoiseLevel << std::endl;
+  if(NoiseLevel < 1000)
+  { std::cout << "NoiseLevel:       " << NoiseLevel << std::endl;
+  }
+  else
+  { std::cout << "NoiseLevel:       " << "undetermined" << std::endl;
+  }
   std::cout << "Numtimeslots:     " << NumTimeslots << std::endl;
   std::cout << "NumPairs:         " << NumPairs << std::endl;
   std::cout << "NumBands:         " << NumBands << std::endl;

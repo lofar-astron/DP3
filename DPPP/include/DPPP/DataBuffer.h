@@ -44,12 +44,13 @@ namespace LOFAR
         int NumSlots; ///< Number fo baselines X number of Spectral Windows
         int WindowSize;
 
-        std::vector< bool >                      PolarizationsToCheck;
-        std::vector< casa::Cube<casa::Complex> > Data;
-        std::vector< casa::Cube<casa::Complex> > ModelData;
-        std::vector< casa::Cube<casa::Complex> > CorrectedData;
-        std::vector< casa::Cube<casa::Bool> >    Flags;
-        std::vector< casa::Cube<casa::Float> >   Weights;
+        std::vector< bool >                       PolarizationsToCheck;
+        std::vector< casa::Cube<casa::Complex> >  Data;
+        std::vector< casa::Cube<casa::Complex> >  ModelData;
+        std::vector< casa::Cube<casa::Complex> >  CorrectedData;
+        std::vector< casa::Cube<casa::Bool> >     Flags;
+        std::vector< casa::Cube<casa::Float> >    Weights;
+        std::vector< casa::Matrix<casa::Double> > Uvw;
         void DeterminePolarizationsToCheck(bool UseOnlyXpolarizations); ///< Not used right now
         void PrintInfo(void);
 

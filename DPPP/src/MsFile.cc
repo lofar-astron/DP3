@@ -255,7 +255,7 @@ void MsFile::PrintInfo(void)
 TableIterator MsFile::TimeIterator()
 {
   Block<String> ms_iteration_variables(1);
-  ms_iteration_variables[0] = "TIME_CENTROID";
+  ms_iteration_variables[0] = "TIME";
 
   return TableIterator((*InMS), ms_iteration_variables, TableIterator::Ascending);
 }
@@ -269,18 +269,26 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   Table         TimeslotTable = Data_iter.table();
   int           rowcount      = TimeslotTable.nrow();
 //  bool          columns       = Buffer.ModelData.size() > 0;
-  ROTableVector<Int>            antenna1     (TimeslotTable, "ANTENNA1");
-  ROTableVector<Int>            antenna2     (TimeslotTable, "ANTENNA2");
-  ROTableVector<Int>            bandnr       (TimeslotTable, "DATA_DESC_ID");
-  ROArrayColumn<Complex>        data         (TimeslotTable, "DATA");
-  ROTableVector<Double>         time         (TimeslotTable, "TIME_CENTROID");
-//  ROArrayColumn<Complex>        modeldata    (TimeslotTable, "MODEL_DATA");
-//  ROArrayColumn<Complex>        correcteddata(TimeslotTable, "CORRECTED_DATA");
-  ROArrayColumn<Bool>           flags        (TimeslotTable, "FLAG");
+  ROTableVector<Int>            antenna1      (TimeslotTable, "ANTENNA1");
+  ROTableVector<Int>            antenna2      (TimeslotTable, "ANTENNA2");
+  ROTableVector<Int>            bandnr        (TimeslotTable, "DATA_DESC_ID");
+  ROArrayColumn<Complex>        data          (TimeslotTable, "DATA");
+  ROArrayColumn<Double>         uvw           (TimeslotTable, "UVW");
+  ROTableVector<Double>         time_centroid (TimeslotTable, "TIME_CENTROID");
+  ROTableVector<Double>         time          (TimeslotTable, "TIME");
+  ROTableVector<Double>         interval      (TimeslotTable, "INTERVAL");
+  ROTableVector<Double>         exposure      (TimeslotTable, "EXPOSURE");
+//  ROArrayColumn<Complex>        modeldata     (TimeslotTable, "MODEL_DATA");
+//  ROArrayColumn<Complex>        correcteddata (TimeslotTable, "CORRECTED_DATA");
+  ROArrayColumn<Bool>           flags         (TimeslotTable, "FLAG");
   Cube<Complex>                 tempData(Info.NumPolarizations, Info.NumChannels, rowcount);
   Cube<Bool>                    tempFlags(Info.NumPolarizations, Info.NumChannels, rowcount);
 
   data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
+//  if (columns)
+//  { modeldata.getColumn();
+//    correcteddata.getColumn();
+//  }
   flags.getColumn(tempFlags);
   TimeData.push_back(time(0));
 
@@ -291,6 +299,10 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
     Buffer.Data[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
     Buffer.Flags[index].xyPlane(Buffer.Position) = tempFlags.xyPlane(i);
+//    if (columns)
+//    { Buffer.ModelData[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
+//      Buffer.CorrectedData[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
+//    }
   }
 }
 
@@ -314,7 +326,10 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   ROTableVector<Int>        antenna1     (DataTable, "ANTENNA1");
   ROTableVector<Int>        antenna2     (DataTable, "ANTENNA2");
   ROTableVector<Int>        bandnr       (DataTable, "DATA_DESC_ID");
-  TableVector<Double>       time         (DataTable, "TIME_CENTROID");
+  TableVector<Double>       time         (DataTable, "TIME");
+  TableVector<Double>       time_centroid(DataTable, "TIME_CENTROID");
+  TableVector<Double>       exposure     (DataTable, "EXPOSURE");
+  TableVector<Double>       interval     (DataTable, "INTERVAL");
   ArrayColumn  <Complex>    data         (DataTable, "DATA");
 //  ArrayColumn  <Complex>    modeldata    (DataTable, "MODEL_DATA");
 //  ArrayColumn  <Complex>    correcteddata(DataTable, "CORRECTED_DATA");

@@ -114,6 +114,7 @@ void DataBuffer::Init(bool Columns)
   Data.resize(NumSlots);
   Flags.resize(NumSlots);
   Weights.resize(NumSlots);
+  Uvw.resize(NumSlots);
   if (Columns)
   {
     ModelData.resize(NumSlots);
@@ -124,6 +125,7 @@ void DataBuffer::Init(bool Columns)
     Data[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
     Flags[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
     Weights[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
+    Uvw[i].resize(3, WindowSize);
     if (Columns)
     {
       ModelData[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);

@@ -11,18 +11,19 @@ libdppp_la_SOURCES = Package__Version.cc  \
 		BandpassCorrector.cc \
 		DataSquasher.cc \
 		DataBuffer.cc \
+		TimeBuffer.cc \
 		RunDetails.cc \
-		Pipeline.cc 
+		Pipeline.cc
 
 
-bin_PROGRAMS = versiondppp CS1_IDPPP
+bin_PROGRAMS = versiondppp IDPPP
 
-CS1_IDPPP_SOURCES	= IDPPP.cc PipelineProcessControl.cc
-CS1_IDPPP_LDADD		= libdppp.la
-CS1_IDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
+IDPPP_SOURCES	= IDPPP.cc PipelineProcessControl.cc
+IDPPP_LDADD		= libdppp.la
+IDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 
 pythondir = $(bindir)
-dist_python_SCRIPTS = 
+dist_python_SCRIPTS =
 
 
 versiondppp_SOURCES      = versiondppp.cc
