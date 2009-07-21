@@ -47,8 +47,8 @@ namespace LOFAR
 
       /// Iterator to process all data from one integration time at the same time
       casa::TableIterator TimeIterator();
-      /// creates a new measurement set
-      void Init(MsInfo& Info, RunDetails& Details, int Squashing);
+      /// creates a new measurement set, returns if the input has imaging columns
+      bool Init(MsInfo& Info, RunDetails& Details, int Squashing);
       void PrintInfo(void); ///< prints some numbers for debug purposes
       /// processes the tables from TimeIterator to fill the next timeslot to be processed in DataBuffer
       void UpdateTimeslotData(casa::TableIterator& Data_iter,

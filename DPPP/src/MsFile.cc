@@ -92,8 +92,8 @@ void MsFile::TableResize(TableDesc tdesc, IPosition ipos, string name, Table& ta
   table.addColumn(desc);
 }
 
-//===============>>> MsFile::PrintInfo  <<<===============
-void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
+//===============>>> MsFile::Init  <<<===============
+bool MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
   cout << "Please wait, preparing output MS" << endl;
   Block<String> tempblock(SELECTblock);
@@ -144,11 +144,8 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   {
     if (Details.Columns)
     {
-      cout << "Processing CORRECTED_DATA" << endl;
+      cout << "CORRECTED_DATA detected for processing" << endl;
       TableResize(tdesc, data_ipos, "CORRECTED_DATA", *OutMS);
-    }
-    else
-    { OutMS->removeColumn("CORRECTED_DATA");
     }
   }
 
@@ -157,7 +154,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   {
     if (Details.Columns)
     {
-      cout << "Processing MODEL_DATA" << endl;
+      cout << "MODEL_DATA detected for processing" << endl;
       desc = tdesc.rwColumnDesc("MODEL_DATA");
       desc.setOptions(0);
       desc.setShape(data_ipos);
@@ -171,10 +168,6 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       // see code/msvis/implement/MSVis/VisSet.cc
       OutMS->addColumn(desc);
       OutMS->addColumn(ArrayColumnDesc<Float>("IMAGING_WEIGHT","imaging weight", 1));
-    }
-    else
-    { OutMS->removeColumn("MODEL_DATA");
-      OutMS->removeColumn("IMAGING_WEIGHT");
     }
   }
 
@@ -242,6 +235,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   }
   OutMS->flush(true);
   cout << "Finished preparing output MS" << endl;
+  return (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"));
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============
@@ -269,7 +263,7 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
 {
   Table         TimeslotTable = Data_iter.table();
   int           rowcount      = TimeslotTable.nrow();
-//  bool          columns       = Buffer.ModelData.size() > 0;
+  bool          columns       = Buffer.ModelData.size() > 0;
   ROTableVector<Int>            antenna1      (TimeslotTable, "ANTENNA1");
   ROTableVector<Int>            antenna2      (TimeslotTable, "ANTENNA2");
   ROTableVector<Int>            bandnr        (TimeslotTable, "DATA_DESC_ID");
@@ -279,17 +273,23 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   ROTableVector<Double>         time          (TimeslotTable, "TIME");
   ROTableVector<Double>         interval      (TimeslotTable, "INTERVAL");
   ROTableVector<Double>         exposure      (TimeslotTable, "EXPOSURE");
-//  ROArrayColumn<Complex>        modeldata     (TimeslotTable, "MODEL_DATA");
-//  ROArrayColumn<Complex>        correcteddata (TimeslotTable, "CORRECTED_DATA");
   ROArrayColumn<Bool>           flags         (TimeslotTable, "FLAG");
+  ROArrayColumn<Complex>        modeldata;
+  ROArrayColumn<Complex>        correcteddata;
+  if (columns)
+  { modeldata.attach(TimeslotTable, "MODEL_DATA");
+    correcteddata.attach(TimeslotTable, "CORRECTED_DATA");
+  }
   Cube<Complex>                 tempData(Info.NumPolarizations, Info.NumChannels, rowcount);
+  Cube<Complex>                 tempModelData(Info.NumPolarizations, Info.NumChannels, rowcount);
+  Cube<Complex>                 tempCorrectedData(Info.NumPolarizations, Info.NumChannels, rowcount);
   Cube<Bool>                    tempFlags(Info.NumPolarizations, Info.NumChannels, rowcount);
 
   data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
-//  if (columns)
-//  { modeldata.getColumn();
-//    correcteddata.getColumn();
-//  }
+  if (columns)
+  { modeldata.getColumn(tempModelData);
+    correcteddata.getColumn(tempCorrectedData);
+  }
   flags.getColumn(tempFlags);
   TimeData.Time.push_back(time(0));
   TimeData.TimeCentroid.push_back(time_centroid(0));
@@ -304,10 +304,10 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
     Buffer.Data[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
     Buffer.Flags[index].xyPlane(Buffer.Position) = tempFlags.xyPlane(i);
-//    if (columns)
-//    { Buffer.ModelData[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
-//      Buffer.CorrectedData[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
-//    }
+    if (columns)
+    { Buffer.ModelData[index].xyPlane(Buffer.Position)     = tempData.xyPlane(i);
+      Buffer.CorrectedData[index].xyPlane(Buffer.Position) = tempData.xyPlane(i);
+    }
   }
 }
 
@@ -322,7 +322,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   int   rowcount  = Data_iter.table().nrow();
   int   nrows     = DataTable.nrow();
   int   pos       = (Buffer.Position+1) % Buffer.WindowSize;
-//  bool  columns   = Buffer.ModelData.size() > 0;
+  bool  columns   = Buffer.ModelData.size() > 0;
   Table temptable = Data_iter.table().project(SELECTblock);
 
   DataTable.addRow(rowcount);
@@ -337,10 +337,14 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   TableVector<Double>       interval     (DataTable, "INTERVAL");
   ArrayColumn  <Double>     uvw          (DataTable, "UVW");
   ArrayColumn  <Complex>    data         (DataTable, "DATA");
-//  ArrayColumn  <Complex>    modeldata    (DataTable, "MODEL_DATA");
-//  ArrayColumn  <Complex>    correcteddata(DataTable, "CORRECTED_DATA");
   ArrayColumn  <Bool>       flags        (DataTable, "FLAG");
   ArrayColumn  <Float>      weights      (DataTable, "WEIGHT_SPECTRUM");
+  ArrayColumn  <Complex>    modeldata;
+  ArrayColumn  <Complex>    correcteddata;
+  if (columns)
+  { modeldata.attach(DataTable, "MODEL_DATA");
+    correcteddata.attach(DataTable, "CORRECTED_DATA");
+  }
   //cout << "Processing: " << MVTime(temp(0)/(24*3600)).string(MVTime::YMD) << endl; //for testing purposes
 
   TimeData.Squash();
@@ -358,11 +362,11 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
     time_centroid.set(nrows + i, TimeData.TimeCentroid[0]);
     exposure.set(nrows + i, TimeData.Exposure[0]);
     interval.set(nrows + i, TimeData.Interval[0]);
-//    if (columns)
-//    {
-//      data.put(i, Buffer.Data[index].xyPlane(Buffer.Position));
-//      data.put(i, Buffer.Data[index].xyPlane(Buffer.Position));
-//    }
+    if (columns)
+    {
+      modeldata.put(nrows + i, Buffer.ModelData[index].xyPlane(pos));
+      correcteddata.put(nrows + i, Buffer.CorrectedData[index].xyPlane(pos));
+    }
   }
   TimeData.Clear();
 }

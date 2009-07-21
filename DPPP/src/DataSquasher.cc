@@ -100,6 +100,7 @@ void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
   //Data.Position is the last filled timeslot, we need to process the one just in front of it.
   int inpos  = (InData.Position + 1) % InData.WindowSize;
   int outpos = 0;
+  bool columns = InData.ModelData.size() > 0;
   Matrix<Complex> myOldData;
   Matrix<Complex> myNewData;
   Matrix<Bool>    myOldFlags;
@@ -127,18 +128,18 @@ void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
         }
         Squash(myOldData, myNewData, myOldFlags, myNewFlags, NewWeights,
                Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);
-/*        if (Details.Columns)
+        if (columns)
         {
-          myOldData.reference(InData.ModelData[index].xyPlane(pos));
-          myNewData.reference(OutData.ModelData[index].xyPlane(pos));
+          myOldData.reference(InData.ModelData[index].xyPlane(inpos));
+          myNewData.reference(OutData.ModelData[index].xyPlane(outpos));
           Squash(myOldData, myNewData, myOldFlags, myNewFlags, NewWeights,
                  Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);
 
-          myOldData.reference(InData.CorrectedData[index].xyPlane(pos));
-          myNewData.reference(OutData.CorrectedData[index].xyPlane(pos));
+          myOldData.reference(InData.CorrectedData[index].xyPlane(inpos));
+          myNewData.reference(OutData.CorrectedData[index].xyPlane(outpos));
           Squash(myOldData, myNewData, myOldFlags, myNewFlags, NewWeights,
                  Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);
-        }*/
+        }
       }
     }
   }

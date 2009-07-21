@@ -108,10 +108,11 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   { SquasherData = FlaggerData;
   }
 
-  TableIterator time_iter   = (*myFile).TimeIterator();
-  int           TimeCounter = 0;
-  int           step        = myInfo->NumTimeslots / 100 + 1; //not exact but it'll do
-  int           row         = 0;
+  TableIterator time_iter    = (*myFile).TimeIterator();
+  int           TimeCounter  = 0;
+  int           WriteCounter = 0;
+  int           step         = myInfo->NumTimeslots / 100 + 1; //not exact but it'll do
+  int           row          = 0;
   while (!time_iter.pastEnd())
   { BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
     myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData);
@@ -133,6 +134,7 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
       if ((TimeCounter+1) % myDetails->TimeStep == 0)
       { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
         TimeData->Clear();
+        WriteCounter++;
       }
     }
     time_iter++;
@@ -155,13 +157,15 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
     if ((TimeCounter+1) % myDetails->TimeStep == 0)
     { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
       TimeData->Clear();
+      WriteCounter++;
     }
     TimeCounter++;
     if (row++ % step == 0) // to tell the user how much % we have processed,
     { cout << (row/step) << "%" << endl; //not very accurate for low numbers of timeslots, but it'll do for now
     }
   }
-  cout << "Written timeslots: " << TimeCounter - FlaggerData->WindowSize - 1 << endl;
+  cout << "Written timeslots: " << WriteCounter << endl;
+  cout << "Processed timeslots: " << TimeCounter - FlaggerData->WindowSize + 1 << endl;
   myStatistics->PrintStatistics(std::cout);
 }
 

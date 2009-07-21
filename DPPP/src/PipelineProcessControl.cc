@@ -104,7 +104,7 @@ namespace LOFAR
     {
       try{
       std::cout << "Runnning pipeline please wait..." << std::endl;
-        myFile->Init(*myInfo, *myDetails, itsSquasher);
+        myDetails->Columns = myFile->Init(*myInfo, *myDetails, itsSquasher);
         myFile->PrintInfo();
         MsInfo* outInfo = new MsInfo(itsOutMS);
         outInfo->Update();
