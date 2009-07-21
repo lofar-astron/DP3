@@ -25,6 +25,7 @@
 #include <tables/Tables/TableIter.h>
 #include <DPPP/MsInfo.h>
 #include <DPPP/DataBuffer.h>
+#include <DPPP/TimeBuffer.h>
 
 /// @file
 /// @brief Class to hold code for access to MeasurementSet in IDPPP
@@ -53,12 +54,12 @@ namespace LOFAR
       void UpdateTimeslotData(casa::TableIterator& Data_iter,
                               MsInfo& Info,
                               DataBuffer& Buffer,
-                              std::vector<double>& TimeData);
+                              TimeBuffer& TimeData);
       /// Writes the data in DataBuffer->Position+1 to the file
       void WriteData(casa::TableIterator& Data_iter,
                      MsInfo& Info,
                      DataBuffer& Buffer,
-                     std::vector<double>& TimeData);
+                     TimeBuffer& TimeData);
 
 
     protected:

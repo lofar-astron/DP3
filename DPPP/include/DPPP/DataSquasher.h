@@ -41,6 +41,7 @@ namespace LOFAR
   namespace CS1
   {
     class DataBuffer;
+    class TimeBuffer;
     class MsInfo;
     class RunDetails;
 
@@ -53,7 +54,7 @@ namespace LOFAR
       /// All processing of one integration time happens in one go.
       void ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
                            MsInfo& Info, RunDetails& Details,
-                           std::vector<double>& TimeData);
+                           TimeBuffer& TimeData);
     private:
       /// This will squash every Step Channels starting from Start into one channel, until NChan have been processed.
       /// newWeights will reflect how many values were unflagged. Only unflagged values are retained

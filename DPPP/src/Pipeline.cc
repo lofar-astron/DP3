@@ -28,6 +28,7 @@
 #include <DPPP/Flagger.h>
 #include <DPPP/DataSquasher.h>
 #include <DPPP/DataBuffer.h>
+#include <DPPP/TimeBuffer.h>
 #include <DPPP/FlaggerStatistics.h>
 
 using namespace LOFAR::CS1;
@@ -46,7 +47,8 @@ Pipeline::Pipeline(MsInfo* info, MsFile* msfile, RunDetails* details,
   BandpassData(NULL),
   FlaggerData(NULL),
   SquasherData(NULL),
-  myStatistics(NULL)
+  myStatistics(NULL),
+  TimeData(NULL)
 {
   myStatistics = new FlaggerStatistics(*myInfo);
 }
@@ -55,6 +57,7 @@ Pipeline::Pipeline(MsInfo* info, MsFile* msfile, RunDetails* details,
 
 Pipeline::~Pipeline()
 {
+  delete TimeData;
   delete myStatistics;
   delete BandpassData;
   if (FlaggerData != BandpassData)
@@ -87,6 +90,8 @@ void Pipeline::MirrorBuffer(DataBuffer& buffer, MsInfo& info, int step)
 //===============>>> ComplexMedianFlagger::UpdateTimeslotData  <<<===============
 void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
 {
+  TimeData = new TimeBuffer();
+  TimeData->Clear();
   BandpassData = new DataBuffer(myInfo, myDetails->TimeWindow, Columns);
   // Not needed unless Flagger starts altering data, or Bandpass starts altering flags
   //  if (myFlagger && myBandpass)
@@ -109,7 +114,7 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   int           row         = 0;
   while (!time_iter.pastEnd())
   { BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
-    myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, TimeData);
+    myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData);
     if (myBandpass)
     { myBandpass->ProcessTimeslot(*BandpassData, *myInfo, *myDetails);
     }
@@ -123,11 +128,11 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
     }
     if (TimeCounter >= (FlaggerData->WindowSize - 1))
     { if (mySquasher)
-      { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, TimeData);
+      { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, *TimeData);
       }
       if ((TimeCounter+1) % myDetails->TimeStep == 0)
-      { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, TimeData);
-        TimeData.resize(0);
+      { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
+        TimeData->Clear();
       }
     }
     time_iter++;
@@ -145,18 +150,18 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
       myFlagger->ProcessTimeslot(*FlaggerData, *myInfo, *myDetails, *myStatistics);
     }
     if (mySquasher)
-    { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, TimeData);
+    { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, *TimeData);
     }
     if ((TimeCounter+1) % myDetails->TimeStep == 0)
-    { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, TimeData);
-      TimeData.resize(0);
+    { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
+      TimeData->Clear();
     }
     TimeCounter++;
     if (row++ % step == 0) // to tell the user how much % we have processed,
     { cout << (row/step) << "%" << endl; //not very accurate for low numbers of timeslots, but it'll do for now
     }
   }
-  cout << "Written timeslots: " << TimeCounter << endl;
+  cout << "Written timeslots: " << TimeCounter - FlaggerData->WindowSize - 1 << endl;
   myStatistics->PrintStatistics(std::cout);
 }
 

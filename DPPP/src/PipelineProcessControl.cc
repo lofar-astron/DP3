@@ -39,9 +39,11 @@
 #include <DPPP/MADFlagger.h>
 #include <DPPP/DataSquasher.h>
 
-#define PIPELINE_VERSION "0.23"
+#define PIPELINE_VERSION "0.31"
 // 0.23 Added AbsoluteThreshold for MADFlagger
 // 0.24 Added writing VDS file
+// 0.30 Changed Time handling and interval calculation
+// 0.31 Some other bug fixes
 
 namespace LOFAR
 {

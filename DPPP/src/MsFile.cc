@@ -29,6 +29,7 @@
 #include <DPPP/MsFile.h>
 #include <DPPP/MsInfo.h>
 #include <DPPP/RunDetails.h>
+#include <DPPP/TimeBuffer.h>
 
 using namespace LOFAR::CS1;
 using namespace casa;
@@ -264,7 +265,7 @@ TableIterator MsFile::TimeIterator()
 void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
                                 MsInfo& Info,
                                 DataBuffer& Buffer,
-                                std::vector<double>& TimeData)
+                                TimeBuffer& TimeData)
 {
   Table         TimeslotTable = Data_iter.table();
   int           rowcount      = TimeslotTable.nrow();
@@ -290,7 +291,11 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
 //    correcteddata.getColumn();
 //  }
   flags.getColumn(tempFlags);
-  TimeData.push_back(time(0));
+  TimeData.Time.push_back(time(0));
+  TimeData.TimeCentroid.push_back(time_centroid(0));
+  TimeData.Interval.push_back(interval(0));
+  TimeData.Exposure.push_back(exposure(0));
+  TimeData.Uvw.push_back(uvw(0));
 
   for (int i = 0; i < rowcount; i++)
   {
@@ -311,7 +316,7 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
 void MsFile::WriteData(casa::TableIterator& Data_iter,
                        MsInfo& Info,
                        DataBuffer& Buffer,
-                       std::vector<double>& TimeData)
+                       TimeBuffer& TimeData)
 {
   Table DataTable = *OutMS;
   int   rowcount  = Data_iter.table().nrow();
@@ -330,6 +335,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   TableVector<Double>       time_centroid(DataTable, "TIME_CENTROID");
   TableVector<Double>       exposure     (DataTable, "EXPOSURE");
   TableVector<Double>       interval     (DataTable, "INTERVAL");
+  ArrayColumn  <Double>     uvw          (DataTable, "UVW");
   ArrayColumn  <Complex>    data         (DataTable, "DATA");
 //  ArrayColumn  <Complex>    modeldata    (DataTable, "MODEL_DATA");
 //  ArrayColumn  <Complex>    correcteddata(DataTable, "CORRECTED_DATA");
@@ -337,11 +343,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   ArrayColumn  <Float>      weights      (DataTable, "WEIGHT_SPECTRUM");
   //cout << "Processing: " << MVTime(temp(0)/(24*3600)).string(MVTime::YMD) << endl; //for testing purposes
 
-  Double temp = 0.0;
-  for (unsigned int i = 0; i < TimeData.size(); i++)
-  { temp += TimeData[i];
-  }
-  temp = temp / TimeData.size();
+  TimeData.Squash();
 
   for (int i = 0; i < rowcount; i++)
   {
@@ -352,13 +354,17 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
     data.put(nrows + i, Buffer.Data[index].xyPlane(pos));
     flags.put(nrows + i, Buffer.Flags[index].xyPlane(pos));
     weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
-    time.set(nrows + i, temp);
+    time.set(nrows + i, TimeData.Time[0]);
+    time_centroid.set(nrows + i, TimeData.TimeCentroid[0]);
+    exposure.set(nrows + i, TimeData.Exposure[0]);
+    interval.set(nrows + i, TimeData.Interval[0]);
 //    if (columns)
 //    {
 //      data.put(i, Buffer.Data[index].xyPlane(Buffer.Position));
 //      data.put(i, Buffer.Data[index].xyPlane(Buffer.Position));
 //    }
   }
+  TimeData.Clear();
 }
 
 //===============>>> MsFile  <<<===============

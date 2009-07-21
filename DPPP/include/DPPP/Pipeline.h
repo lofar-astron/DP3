@@ -66,7 +66,7 @@ namespace LOFAR
       DataBuffer*         FlaggerData; ///< data after bandpass correction to be flagged
       DataBuffer*         SquasherData; ///< output of the squasher
       FlaggerStatistics*  myStatistics; ///< Stores the statistics of the flaggers
-      TimeBuffer*         myTime; ///< remmber what timeslots we are processing
+      TimeBuffer*         TimeData; ///< remember what timeslots we are processing
       void MirrorBuffer(DataBuffer& buffer, MsInfo& info, int step); ///< for handling the start and stop edges of the data
 
     }; // class Pipeline

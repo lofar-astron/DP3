@@ -24,6 +24,7 @@
 #include <DPPP/MsInfo.h>
 #include <DPPP/RunDetails.h>
 #include <DPPP/DataBuffer.h>
+#include <DPPP/TimeBuffer.h>
 
 
 using namespace LOFAR::CS1;
@@ -94,7 +95,7 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
 
 void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
                                    MsInfo& Info, RunDetails& Details,
-                                   std::vector<double>& TimeData)
+                                   TimeBuffer& TimeData)
 {
   //Data.Position is the last filled timeslot, we need to process the one just in front of it.
   int inpos  = (InData.Position + 1) % InData.WindowSize;
@@ -118,7 +119,7 @@ void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
         myOldFlags.reference(InData.Flags[index].xyPlane(inpos));
         myNewFlags.reference(OutData.Flags[index].xyPlane(outpos));
         NewWeights.reference(OutData.Weights[index].xyPlane(outpos));
-        if (TimeData.size() == 1)
+        if (TimeData.Time.size() == 1)
         {
           myNewData  = 0.0;
           myNewFlags = false;
