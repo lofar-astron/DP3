@@ -32,6 +32,7 @@ lofar_add_library(dppp
   BandpassCorrector.cc
   DataSquasher.cc
   DataBuffer.cc
+  TimeBuffer.cc
   RunDetails.cc
   Pipeline.cc)
 

@@ -30,6 +30,7 @@ set(inst_HEADERS
   BandpassCorrector.h
   DataSquasher.h
   DataBuffer.h
+  TimeBuffer.h
   RunDetails.h
   Pipeline.h)
 
