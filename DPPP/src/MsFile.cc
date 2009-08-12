@@ -93,9 +93,23 @@ void MsFile::TableResize(TableDesc tdesc, IPosition ipos, string name, Table& ta
 }
 
 //===============>>> MsFile::Init  <<<===============
+
+Vector<Int> MsFile::DetermineDATAshape(MeasurementSet& MS)
+{
+  ROArrayColumn<Complex> temp_column(MS, "DATA");
+  Matrix<Complex> temp_cell;
+  temp_column.get(0, temp_cell);
+  IPosition ipos       = temp_cell.shape();
+  Vector<Int> temp_pos = ipos.asVector();
+
+  std::cout << "Old shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
+  return temp_pos;
+}
+
+//===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
-  cout << "Please wait, preparing output MS" << endl;
+  std::cout << "Please wait, preparing output MS" << std::endl;
   Block<String> tempblock(SELECTblock);
   tempblock.resize(21);
   tempblock[20] = "FLAG";
@@ -110,11 +124,8 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   InMS    = new MeasurementSet(InName);
   OutMS   = new MeasurementSet(OutName, Table::Update);
   //some magic to create a new DATA column
-  TableDesc tdesc = InMS->tableDesc();
-  ColumnDesc desc = tdesc.rwColumnDesc("DATA");
-  IPosition ipos  = desc.shape();
-  Vector<Int> temp_pos = ipos.asVector();
-  std::cout << "Old shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
+  Vector<Int> temp_pos = DetermineDATAshape(*InMS);
+
   int old_nchan = temp_pos(1);
   int new_nchan;
   if (Squashing)
@@ -124,12 +135,11 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   else
   { new_nchan     = old_nchan;
     Details.NChan = old_nchan;
-    Details.Step  = 1;
-    Details.Start = 0;
   }
   std::cout << "New shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
   IPosition data_ipos(temp_pos);
 
+  TableDesc tdesc = InMS->tableDesc();
   if (tdesc.isColumn("WEIGHT_SPECTRUM"))
   { tdesc.removeColumn("WEIGHT_SPECTRUM");
   }
@@ -148,7 +158,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       TableResize(tdesc, data_ipos, "CORRECTED_DATA", *OutMS);
 
       cout << "MODEL_DATA detected for processing" << endl;
-      desc = tdesc.rwColumnDesc("MODEL_DATA");
+      ColumnDesc desc = tdesc.rwColumnDesc("MODEL_DATA");
       desc.setOptions(0);
       desc.setShape(data_ipos);
       desc.setOptions(4);

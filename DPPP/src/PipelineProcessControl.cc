@@ -92,10 +92,23 @@ namespace LOFAR
       itsBandpass             = ParamSet->getUint32("bandpass", 0);
       itsFlagger              = ParamSet->getUint32("flagger", 0);
       itsSquasher             = ParamSet->getUint32("squasher", 0);
-      myDetails->PrintInfo();
       if (myDetails->CheckValues())
       { return false;
       }
+      if (itsFlagger == 0
+          && (myDetails->FreqWindow != 1 || myDetails->TimeWindow != 1))
+      { myDetails->FreqWindow = 1;
+        myDetails->TimeWindow = 1;
+        std::cout << "No flagger, time and frequency windows reset to 1x1" << std::endl;
+      }
+      if (itsSquasher == 0
+          && (myDetails->Step != 1 || myDetails->Start != 0 || myDetails->TimeStep != 1))
+      { myDetails->Step     = 1;
+        myDetails->Start    = 0;
+        myDetails->TimeStep = 1;
+        std::cout << "No squasher, step, start and timestep sizes reset" << std::endl;
+      }
+      myDetails->PrintInfo();
       return true;
     }
 

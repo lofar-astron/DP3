@@ -69,6 +69,7 @@ namespace LOFAR
                        casa::IPosition ipos,
                        std::string name,
                        casa::Table& table);
+      casa::Vector<casa::Int> DetermineDATAshape(casa::MeasurementSet& MS);
       casa::Block<casa::String> SELECTblock;
       std::string InName;
       std::string OutName;
