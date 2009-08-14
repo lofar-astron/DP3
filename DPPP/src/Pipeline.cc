@@ -119,8 +119,6 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   TableIterator time_iter    = (*myFile).TimeIterator();
   int           TimeCounter  = 0;
   int           WriteCounter = 0;
-  int           step         = myInfo->NumTimeslots / 100 + 1; //not exact but it'll do
-  int           row          = 0;
   while (!time_iter.pastEnd())
   { BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
     myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData);

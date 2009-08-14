@@ -85,7 +85,7 @@ void MsFile::TableResize(ColumnDesc desc, const IPosition& ipos,
 {
   desc.setOptions(0);
   desc.setShape(ipos);
-  desc.setOptions(ColumnDesc::FixedShape + ColumnDesc::Direct);
+  desc.setOptions(ColumnDesc::FixedShape);
   if (table.tableDesc().isColumn(desc.name())) {
     table.removeColumn(desc.name());
   }
@@ -118,7 +118,7 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
 //===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
-  std::cout << "Please wait, preparing output MS " << OutName << std::endl;
+  std::cout << "Preparing output MS " << OutName << std::endl;
   // Open the MS and obtain the description.
   InMS = new MeasurementSet(InName);
   TableDesc tdesc = InMS->tableDesc();
@@ -153,9 +153,6 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   SetupNewTable newtab(OutName, tempdesc, Table::NewNoReplace);
   newtab.bindCreate (dminfo);
   Table outtable(newtab);
-  // Copy the info and subtables.
-  TableCopy::copyInfo(outtable, temptable);
-  TableCopy::copySubTables(outtable, temptable);
   {
     // Add DATA column using tsm.
     TiledColumnStMan tsm("TiledData", IPosition(3,data_ipos[0], 8, 128));
@@ -166,9 +163,10 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     TiledColumnStMan tsmf("TiledFlag", IPosition(3,data_ipos[0], 8, 128*8));
     TableResize(tdesc["FLAG"], data_ipos, &tsmf, outtable);
   }
-  if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
-    // If present, add WEIGHT_SPECTRUM column using ssm.
-    TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, 0, outtable);
+  {
+    // Add WEIGHT_SPECTRUM column using tsm.
+    TiledColumnStMan tsmw("TiledWeightSpec", IPosition(3,data_ipos[0], 8, 128));
+    TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
   if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
@@ -200,8 +198,12 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   else
   { Details.Columns = false;
   }
+  cout << " copying info and subtables ..." << endl;
+  // Copy the info and subtables.
+  TableCopy::copyInfo(outtable, temptable);
+  TableCopy::copySubTables(outtable, temptable);
 
-  // All columns are present, so now it can be opened as anMS.
+  // All columns are present, so now it can be opened as an MS.
   outtable.flush();
   OutMS = new MeasurementSet(OutName, Table::Update);
 
@@ -349,7 +351,6 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
                        TimeBuffer& TimeData)
 {
   Table DataTable = *OutMS;
-  bool  doWeights = DataTable.tableDesc().isColumn ("WEIGHT_SPECTRUM");
   int   rowcount  = Data_iter.table().nrow();
   int   nrows     = DataTable.nrow();
   int   pos       = (Buffer.Position+1) % Buffer.WindowSize;
@@ -369,10 +370,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   ArrayColumn  <Double>     uvw          (DataTable, "UVW");
   ArrayColumn  <Complex>    data         (DataTable, "DATA");
   ArrayColumn  <Bool>       flags        (DataTable, "FLAG");
-  ArrayColumn  <Float>      weights;
-  if (doWeights)
-  { weights.attach (DataTable, "WEIGHT_SPECTRUM");
-  }
+  ArrayColumn  <Float>      weights      (DataTable, "WEIGHT_SPECTRUM");
   ArrayColumn  <Complex>    modeldata;
   ArrayColumn  <Complex>    correcteddata;
   if (columns)
@@ -395,9 +393,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
     time_centroid.set(nrows + i, TimeData.TimeCentroid[0]);
     exposure.set(nrows + i, TimeData.Exposure[0]);
     interval.set(nrows + i, TimeData.Interval[0]);
-    if (doWeights)
-    { weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
-    }
+    weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
     if (columns)
     {
       modeldata.put(nrows + i, Buffer.ModelData[index].xyPlane(pos));
