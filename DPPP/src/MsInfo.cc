@@ -87,8 +87,13 @@ void MsInfo::Update(void)
   CORR_TYPE_col.get(0, Polarizations);
 
   //calculate theoretical noise level
-  ROScalarColumn<Double>           EXPOSURE_col(MS, "EXPOSURE");
-  Double exposure                  = EXPOSURE_col(0);
+  // MS might be empty (e.g. when called for output MS).
+  Double exposure                  = 1;
+  if (MS.nrow() > 0)
+  {
+    ROScalarColumn<Double>         EXPOSURE_col(MS, "EXPOSURE");
+    exposure                       = EXPOSURE_col(0);
+  }
 
   ROScalarColumn<Double>           TOTAL_BANDWIDTH_col(spectral_window, "TOTAL_BANDWIDTH");
   Double bandwidth                 = TOTAL_BANDWIDTH_col(0) / NumChannels;

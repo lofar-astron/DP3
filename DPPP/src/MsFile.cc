@@ -80,106 +80,130 @@ MsFile::~MsFile()
 
 //===============>>>  DataSquasher::TableResize  <<<===============
 
-void MsFile::TableResize(TableDesc tdesc, IPosition ipos, string name, Table& table)
+void MsFile::TableResize(ColumnDesc desc, const IPosition& ipos,
+                         TiledColumnStMan* tsm, Table& table)
 {
-  ColumnDesc desc = tdesc.rwColumnDesc(name);
   desc.setOptions(0);
   desc.setShape(ipos);
-  desc.setOptions(4);
-  if (table.tableDesc().isColumn(name))
-  { table.removeColumn(name);
+  desc.setOptions(ColumnDesc::FixedShape + ColumnDesc::Direct);
+  if (table.tableDesc().isColumn(desc.name())) {
+    table.removeColumn(desc.name());
   }
-  table.addColumn(desc);
+  // Use tiled storage manager if given.
+  if (tsm == 0) {
+    table.addColumn (desc);
+  } else {
+    table.addColumn (desc, *tsm);
+  }
 }
 
-//===============>>> MsFile::Init  <<<===============
+//===============>>> MsFile::DetermineDATAshape  <<<===============
 
-Vector<Int> MsFile::DetermineDATAshape(MeasurementSet& MS)
+IPosition MsFile::DetermineDATAshape(const Table& MS)
 {
   ROArrayColumn<Complex> temp_column(MS, "DATA");
-  Matrix<Complex> temp_cell;
-  temp_column.get(0, temp_cell);
-  IPosition ipos       = temp_cell.shape();
-  Vector<Int> temp_pos = ipos.asVector();
-
-  std::cout << "Old shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
-  return temp_pos;
+  // First try to get it as a fixed column shape.
+  IPosition shp = temp_column.shapeColumn();
+  if (shp.empty()  &&  MS.nrow() > 0) {
+    // Not fixed shape, so get shape from first row (if present).
+    shp = temp_column.shape(0);
+  }
+  // Still unknown, so use default [4,1].
+  if (shp.empty()) {
+    shp = IPosition(2,4,1);
+  }
+  return shp;
 }
 
 //===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
-  std::cout << "Please wait, preparing output MS" << std::endl;
-  Block<String> tempblock(SELECTblock);
-  tempblock.resize(21);
-  tempblock[20] = "FLAG";
-  Table temptable = Table(InName).project(tempblock);
-  // NOT copying WEIGHT_SPECTRUM as it only contains dummy data anyway
-  // We do need FLAG to make it a valid MS
-  Table outtable = TableCopy::makeEmptyTable(OutName, Record(), temptable,
-                                             Table::NewNoReplace, Table::AipsrcEndian, true, true);
+  std::cout << "Please wait, preparing output MS " << OutName << std::endl;
+  // Open the MS and obtain the description.
+  InMS = new MeasurementSet(InName);
+  TableDesc tdesc = InMS->tableDesc();
+  // Determine the output data shape.
+  const ColumnDesc& desc = tdesc.columnDesc("DATA");
+  IPosition data_ipos = DetermineDATAshape(*InMS);
+  std::cout << "Old shape: " << data_ipos[0] << ":" <<  data_ipos[1] << std::endl;
+  int old_nchan = data_ipos[1];
+  int new_nchan = old_nchan;
+  if (Squashing)
+    { new_nchan     = Details.NChan/Details.Step;
+      data_ipos[1]  = new_nchan;
+    }
+  else
+    { Details.NChan = old_nchan;
+      Details.Step  = 1;
+      Details.Start = 0;
+    }
+  std::cout << "New shape: " << data_ipos[0] << ":" <<  data_ipos[1] << std::endl;
+
+  // Create the output table without the data columns.
+  Table temptable = InMS->project(SELECTblock);
+  TableDesc tempdesc = temptable.tableDesc();
+  // Remove possible hypercolumn definitions.
+  tempdesc.adjustHypercolumns (SimpleOrderedMap<String,String>(String()));
+  Record dminfo = temptable.dataManagerInfo();
+  // Use TSM for UVW.
+  TableCopy::setTiledStMan (dminfo, Vector<String>(1, "UVW"),
+                            "TiledColumnStMan", "TiledUVW", IPosition(2,3,1024));
+  // Replace all non-writable storage managers by SSM.
+  dminfo = TableCopy::adjustStMan (dminfo);
+  SetupNewTable newtab(OutName, tempdesc, Table::NewNoReplace);
+  newtab.bindCreate (dminfo);
+  Table outtable(newtab);
+  // Copy the info and subtables.
   TableCopy::copyInfo(outtable, temptable);
   TableCopy::copySubTables(outtable, temptable);
-
-  InMS    = new MeasurementSet(InName);
-  OutMS   = new MeasurementSet(OutName, Table::Update);
-  //some magic to create a new DATA column
-  Vector<Int> temp_pos = DetermineDATAshape(*InMS);
-
-  int old_nchan = temp_pos(1);
-  int new_nchan;
-  if (Squashing)
-  { new_nchan     = Details.NChan/Details.Step;
-    temp_pos(1)   = new_nchan;
+  {
+    // Add DATA column using tsm.
+    TiledColumnStMan tsm("TiledData", IPosition(3,data_ipos[0], 8, 128));
+    TableResize(desc, data_ipos, &tsm, outtable);
   }
-  else
-  { new_nchan     = old_nchan;
-    Details.NChan = old_nchan;
+  {
+    // Add FLAG column using tsm.
+    TiledColumnStMan tsmf("TiledFlag", IPosition(3,data_ipos[0], 8, 128*8));
+    TableResize(tdesc["FLAG"], data_ipos, &tsmf, outtable);
   }
-  std::cout << "New shape: " << temp_pos(0) << ":" <<  temp_pos(1) << std::endl;
-  IPosition data_ipos(temp_pos);
-
-  TableDesc tdesc = InMS->tableDesc();
-  if (tdesc.isColumn("WEIGHT_SPECTRUM"))
-  { tdesc.removeColumn("WEIGHT_SPECTRUM");
+  if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
+    // If present, add WEIGHT_SPECTRUM column using ssm.
+    TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, 0, outtable);
   }
-  tdesc.addColumn(ArrayColumnDesc<Float>("WEIGHT_SPECTRUM", "Added by datasquasher",
-                                          data_ipos, ColumnDesc::FixedShape));
-
-  TableResize(tdesc, data_ipos, "DATA", *OutMS);
-  TableResize(tdesc, data_ipos, "WEIGHT_SPECTRUM", *OutMS);
-
-  //if present handle the CORRECTED_DATA column
+  // If both present handle the CORRECTED_DATA and MODEL_DATA column.
   if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
   {
     if (Details.Columns)
     {
-      cout << "CORRECTED_DATA detected for processing" << endl;
-      TableResize(tdesc, data_ipos, "CORRECTED_DATA", *OutMS);
-
       cout << "MODEL_DATA detected for processing" << endl;
-      ColumnDesc desc = tdesc.rwColumnDesc("MODEL_DATA");
-      desc.setOptions(0);
-      desc.setShape(data_ipos);
-      desc.setOptions(4);
-      desc.rwKeywordSet().removeField("CHANNEL_SELECTION"); //messes with the Imager if it's there but has wrong values
-      Matrix<Int> selection;
-      selection.resize(2, Info.NumBands);
-      selection.row(0) = 0; //start in Imager, will therefore only work if imaging whole SPW
+      ColumnDesc mdesc = tdesc.columnDesc("MODEL_DATA");
+      TableRecord& keyset = mdesc.rwKeywordSet();
+      // Redefine possible keywords used by the CASA VisSet classes (in imager).
+      if (keyset.isDefined("CHANNEL_SELECTION")) {
+        keyset.removeField("CHANNEL_SELECTION");
+      }
+      Matrix<Int> selection(2, Info.NumBands);
+      selection.row(0) = 0;
       selection.row(1) = new_nchan;
-      desc.rwKeywordSet().define("CHANNEL_SELECTION", selection); // #spw x [startChan, NumberChan] for the VisBuf in the Imager
-      // see code/msvis/implement/MSVis/VisSet.cc
-      OutMS->addColumn(desc);
-      TableResize(tdesc, data_ipos, "IMAGING_WEIGHT", *OutMS);
-      //OutMS->addColumn(ArrayColumnDesc<Float>("IMAGING_WEIGHT","imaging weight", data_ipos, ColumnDesc::FixedShape));
+      keyset.define("CHANNEL_SELECTION", selection);
+      TiledColumnStMan tsmm("ModelData", IPosition(3,data_ipos[0], 8, 128));
+      TableResize(mdesc, data_ipos, &tsmm, outtable);
+
+      cout << "CORRECTED_DATA detected for processing" << endl;
+      TiledColumnStMan tsmc("CorrectedData", IPosition(3,data_ipos[0], 8, 128));
+      TableResize(tdesc["CORRECTED_DATA"], data_ipos, &tsmc, outtable);
+
+      TiledColumnStMan tsmw("TiledWeight", IPosition(3,data_ipos[0], 8, 128));
+      TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
     }
   }
   else
   { Details.Columns = false;
   }
 
-  //fix the FLAGS column
-  TableResize(tdesc, data_ipos, "FLAG", *OutMS);
+  // All columns are present, so now it can be opened as anMS.
+  outtable.flush();
+  OutMS = new MeasurementSet(OutName, Table::Update);
 
   //Fix the SpectralWindow values
   IPosition spw_ipos(1,new_nchan);
@@ -190,13 +214,13 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   channum.fillColumn(new_nchan);
 
   TableDesc SPWtdesc = inSPW.tableDesc();
-  TableResize(SPWtdesc, spw_ipos, "CHAN_FREQ", outSPW);
+  TableResize(SPWtdesc["CHAN_FREQ"], spw_ipos, 0, outSPW);
 
-  TableResize(SPWtdesc, spw_ipos, "CHAN_WIDTH", outSPW);
+  TableResize(SPWtdesc["CHAN_WIDTH"], spw_ipos, 0, outSPW);
 
-  TableResize(SPWtdesc, spw_ipos, "EFFECTIVE_BW", outSPW);
+  TableResize(SPWtdesc["EFFECTIVE_BW"], spw_ipos, 0, outSPW);
 
-  TableResize(SPWtdesc, spw_ipos, "RESOLUTION", outSPW);
+  TableResize(SPWtdesc["RESOLUTION"], spw_ipos, 0, outSPW);
 
   ROArrayColumn<Double> inFREQ(inSPW, "CHAN_FREQ");
   ROArrayColumn<Double> inWIDTH(inSPW, "CHAN_WIDTH");
@@ -325,6 +349,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
                        TimeBuffer& TimeData)
 {
   Table DataTable = *OutMS;
+  bool  doWeights = DataTable.tableDesc().isColumn ("WEIGHT_SPECTRUM");
   int   rowcount  = Data_iter.table().nrow();
   int   nrows     = DataTable.nrow();
   int   pos       = (Buffer.Position+1) % Buffer.WindowSize;
@@ -344,7 +369,10 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   ArrayColumn  <Double>     uvw          (DataTable, "UVW");
   ArrayColumn  <Complex>    data         (DataTable, "DATA");
   ArrayColumn  <Bool>       flags        (DataTable, "FLAG");
-  ArrayColumn  <Float>      weights      (DataTable, "WEIGHT_SPECTRUM");
+  ArrayColumn  <Float>      weights;
+  if (doWeights)
+  { weights.attach (DataTable, "WEIGHT_SPECTRUM");
+  }
   ArrayColumn  <Complex>    modeldata;
   ArrayColumn  <Complex>    correcteddata;
   if (columns)
@@ -363,11 +391,13 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 
     data.put(nrows + i, Buffer.Data[index].xyPlane(pos));
     flags.put(nrows + i, Buffer.Flags[index].xyPlane(pos));
-    weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
     time.set(nrows + i, TimeData.Time[0]);
     time_centroid.set(nrows + i, TimeData.TimeCentroid[0]);
     exposure.set(nrows + i, TimeData.Exposure[0]);
     interval.set(nrows + i, TimeData.Interval[0]);
+    if (doWeights)
+    { weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
+    }
     if (columns)
     {
       modeldata.put(nrows + i, Buffer.ModelData[index].xyPlane(pos));

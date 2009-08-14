@@ -47,6 +47,9 @@ namespace LOFAR
 
       /// Iterator to process all data from one integration time at the same time
       casa::TableIterator TimeIterator();
+      /// Get nr of rows in input MS.
+      unsigned int nrow() const
+        { return InMS->nrow(); }
       /// creates a new measurement set, returns if the input has imaging columns
       void Init(MsInfo& Info, RunDetails& Details, int Squashing);
       void PrintInfo(void); ///< prints some numbers for debug purposes
@@ -64,12 +67,11 @@ namespace LOFAR
 
     protected:
     private:
-      /// Function for reshaping a table column
-      void TableResize(casa::TableDesc tdesc,
-                       casa::IPosition ipos,
-                       std::string name,
-                       casa::Table& table);
-      casa::Vector<casa::Int> DetermineDATAshape(casa::MeasurementSet& MS);
+      /// Function for adding a table column.
+      void TableResize(casa::ColumnDesc desc, const casa::IPosition& ipos,
+                       casa::TiledColumnStMan* tsm, casa::Table& table);
+
+      casa::IPosition DetermineDATAshape(const casa::Table& MS);
       casa::Block<casa::String> SELECTblock;
       std::string InName;
       std::string OutName;

@@ -11,6 +11,7 @@ INSTHDRS = \
 		DataBuffer.h \
 		TimeBuffer.h \
 		RunDetails.h \
+		ProgressMeter.h \
 		Pipeline.h 
 
 NOINSTHDRS = PipelineProcessControl.h 

@@ -13,6 +13,7 @@ libdppp_la_SOURCES = Package__Version.cc  \
 		DataBuffer.cc \
 		TimeBuffer.cc \
 		RunDetails.cc \
+		ProgressMeter.cc \
 		Pipeline.cc
 
 

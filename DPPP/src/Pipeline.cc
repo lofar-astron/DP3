@@ -31,6 +31,8 @@
 #include <DPPP/TimeBuffer.h>
 #include <DPPP/FlaggerStatistics.h>
 
+#include <DPPP/ProgressMeter.h>
+
 using namespace LOFAR::CS1;
 using namespace casa;
 
@@ -108,6 +110,12 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   { SquasherData = FlaggerData;
   }
 
+  cout << "Processing " << myFile->nrow() << " rows from input MS ..." << endl;
+  ProgressMeter progress(0.0, myFile->nrow(), "DPPP", "Rows processed", "", "",
+                         True, 1);
+  Double nrowProc = 0;
+  progress.update (nrowProc, True);
+
   TableIterator time_iter    = (*myFile).TimeIterator();
   int           TimeCounter  = 0;
   int           WriteCounter = 0;
@@ -137,11 +145,10 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
         WriteCounter++;
       }
     }
+    nrowProc += time_iter.table().nrow();
+    progress.update (nrowProc, True);
     time_iter++;
     TimeCounter++;
-    if (row++ % step == 0) // to tell the user how much % we have processed,
-    { cout << (row/step) << "%" << endl; //not very accurate for low numbers of timeslots, but it'll do for now
-    }
   }
   time_iter.reset(); //we still need a table as a template for writing the data
   for (int i = 1; i <= (FlaggerData->WindowSize - 1); i++) //write the last couple of values
@@ -160,9 +167,6 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
       WriteCounter++;
     }
     TimeCounter++;
-    if (row++ % step == 0) // to tell the user how much % we have processed,
-    { cout << (row/step) << "%" << endl; //not very accurate for low numbers of timeslots, but it'll do for now
-    }
   }
   cout << "Written timeslots: " << WriteCounter << endl;
   cout << "Processed timeslots: " << TimeCounter - FlaggerData->WindowSize + 1 << endl;

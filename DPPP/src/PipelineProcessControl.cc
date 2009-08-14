@@ -52,13 +52,13 @@ namespace LOFAR
     //===============>>> PipelineProcessControl::PipelineProcessControl  <<<===============
     PipelineProcessControl::PipelineProcessControl()
     : ProcessControl(),
-      myPipeline(NULL),
-      myFile(NULL),
-      myInfo(NULL),
-      myBandpass(NULL),
-      myFlagger(NULL),
-      mySquasher(NULL),
-      myDetails(NULL)
+      myPipeline(0),
+      myFile(0),
+      myInfo(0),
+      myBandpass(0),
+      myFlagger(0),
+      mySquasher(0),
+      myDetails(0)
     {
     }
 
@@ -75,7 +75,7 @@ namespace LOFAR
       myDetails->Fixed        = ParamSet->getUint32("fixed", 0);         // BandpassCorrector
       myDetails->FreqWindow   = ParamSet->getUint32("freqwindow", 1);    // FrequencyFlagger, MADFlagger
       myDetails->TimeWindow   = ParamSet->getUint32("timewindow", 1);    // ComplexMedianFlagger, MADFlagger
-      myDetails->Threshold     = ParamSet->getDouble("threshold", 1.0);  // FrequencyFlagger, MADFlagger
+      myDetails->Threshold    = ParamSet->getDouble("threshold", 1.0);   // FrequencyFlagger, MADFlagger
       myDetails->Algorithm    = ParamSet->getUint32("algorithm", 0);     // FrequencyFlagger
       myDetails->MinThreshold = ParamSet->getDouble("min", 0.0);        // ComplexMedianFlagger
       myDetails->MaxThreshold = ParamSet->getDouble("max", 0.0);        // ComplexMedianFlagger, MADFlagger
@@ -125,12 +125,13 @@ namespace LOFAR
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
         if (!itsClusterDesc.empty())
-        { LOFAR::VdsMaker::create (itsClusterDesc, itsOutMS + ".vds", itsOutMS, "", true);
+        { LOFAR::VdsMaker::create (itsOutMS, itsOutMS + ".vds",
+                                   itsClusterDesc, "", true);
         }
       }
       catch(casa::AipsError& err)
       {
-        std::cerr << "Aips++ error detected: " << err.getMesg() << std::endl;
+        std::cerr << "casacore error detected: " << err.getMesg() << std::endl;
         return false;
       }
       return true;
@@ -172,7 +173,7 @@ namespace LOFAR
       }
       catch(casa::AipsError& err)
       {
-        std::cerr << "Aips++ error detected: " << err.getMesg() << std::endl;
+        std::cerr << "casacore error detected: " << err.getMesg() << std::endl;
         return false;
       }
       return true;
@@ -205,6 +206,8 @@ namespace LOFAR
       myFlagger = 0;
       delete mySquasher;
       mySquasher = 0;
+      delete myDetails;
+      myDetails = 0;
       return true;
     }
 
@@ -220,7 +223,7 @@ namespace LOFAR
 
     //===============>>> PipelineProcessControl::askInfo  <<<=============================
     std::string PipelineProcessControl::askInfo(const std::string&)
-    { return std::string("");
+    { return std::string();
     }
 
     //===============>>> PipelineProcessControl::snapshot  <<<============================
