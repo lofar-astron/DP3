@@ -155,6 +155,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   Table outtable(newtab);
   {
     // Add DATA column using tsm.
+    // Use a tilesize of 32 KB (4*8*128 values * 8 bytes).
     TiledColumnStMan tsm("TiledData", IPosition(3,data_ipos[0], 8, 128));
     TableResize(desc, data_ipos, &tsm, outtable);
   }
