@@ -20,6 +20,7 @@
 #ifndef __CS1_PP_MS_FILE_H__
 #define __CS1_PP_MS_FILE_H__
 
+#include <Common/Exception.h>
 #include <ms/MeasurementSets.h>
 #include <tables/Tables.h>
 #include <tables/Tables/TableIter.h>
@@ -35,6 +36,8 @@ namespace LOFAR
 {
   namespace CS1
   {
+    EXCEPTION_CLASS(PipelineException, LOFAR::Exception);
+
     ///Foreward declaration
     class MsInfo;
     class RunDetails;

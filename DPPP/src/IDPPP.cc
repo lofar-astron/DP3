@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   } //try
   catch(casa::AipsError& err)
   {
-    std::cerr << "Aips++ error detected: " << err.getMesg() << std::endl;
+    std::cerr << "AIPS++/Casa(core) error detected: " << err.getMesg() << std::endl;
     return -2;
   }
   catch(...)

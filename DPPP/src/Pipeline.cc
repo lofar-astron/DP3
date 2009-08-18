@@ -111,8 +111,7 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   }
 
   cout << "Processing " << myFile->nrow() << " rows from input MS ..." << endl;
-  ProgressMeter progress(0.0, myFile->nrow(), "DPPP", "Rows processed", "", "",
-                         True, 1);
+  ProgressMeter progress(0.0, myFile->nrow(), "DPPP", "Rows processed", "", "", True, 1);
   Double nrowProc = 0;
   progress.update (nrowProc, True);
 
@@ -144,7 +143,7 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
       }
     }
     nrowProc += time_iter.table().nrow();
-    progress.update (nrowProc, True);
+    progress.update(nrowProc, True);
     time_iter++;
     TimeCounter++;
   }

@@ -110,7 +110,7 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
   }
   // Still unknown, so use default [4,1].
   if (shp.empty()) {
-    shp = IPosition(2,4,1);
+    THROW(PipelineException, "Error, can't figure out the shape of the DATA column");
   }
   return shp;
 }
@@ -147,7 +147,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   Record dminfo = temptable.dataManagerInfo();
   // Use TSM for UVW.
   TableCopy::setTiledStMan (dminfo, Vector<String>(1, "UVW"),
-                            "TiledColumnStMan", "TiledUVW", IPosition(2,3,1024));
+                            "TiledColumnStMan", "TiledUVW", IPosition(2, 3, 1024));
   // Replace all non-writable storage managers by SSM.
   dminfo = TableCopy::adjustStMan (dminfo);
   SetupNewTable newtab(OutName, tempdesc, Table::NewNoReplace);
@@ -156,17 +156,18 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   {
     // Add DATA column using tsm.
     // Use a tilesize of 32 KB (4*8*128 values * 8 bytes).
-    TiledColumnStMan tsm("TiledData", IPosition(3,data_ipos[0], 8, 128));
+    TiledColumnStMan tsm("TiledData", IPosition(3, data_ipos[0], 8, 128));
+
     TableResize(desc, data_ipos, &tsm, outtable);
   }
   {
     // Add FLAG column using tsm.
-    TiledColumnStMan tsmf("TiledFlag", IPosition(3,data_ipos[0], 8, 128*8));
+    TiledColumnStMan tsmf("TiledFlag", IPosition(3, data_ipos[0], 8, 128*8));
     TableResize(tdesc["FLAG"], data_ipos, &tsmf, outtable);
   }
   {
     // Add WEIGHT_SPECTRUM column using tsm.
-    TiledColumnStMan tsmw("TiledWeightSpec", IPosition(3,data_ipos[0], 8, 128));
+    TiledColumnStMan tsmw("TiledWeightSpec", IPosition(3, data_ipos[0], 8, 128));
     TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
@@ -185,14 +186,14 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       selection.row(0) = 0;
       selection.row(1) = new_nchan;
       keyset.define("CHANNEL_SELECTION", selection);
-      TiledColumnStMan tsmm("ModelData", IPosition(3,data_ipos[0], 8, 128));
+      TiledColumnStMan tsmm("ModelData", IPosition(3, data_ipos[0], 8, 128));
       TableResize(mdesc, data_ipos, &tsmm, outtable);
 
       cout << "CORRECTED_DATA detected for processing" << endl;
-      TiledColumnStMan tsmc("CorrectedData", IPosition(3,data_ipos[0], 8, 128));
+      TiledColumnStMan tsmc("CorrectedData", IPosition(3, data_ipos[0], 8, 128));
       TableResize(tdesc["CORRECTED_DATA"], data_ipos, &tsmc, outtable);
 
-      TiledColumnStMan tsmw("TiledWeight", IPosition(3,data_ipos[0], 8, 128));
+      TiledColumnStMan tsmw("TiledWeight", IPosition(3, data_ipos[0], 8, 128));
       TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
     }
   }

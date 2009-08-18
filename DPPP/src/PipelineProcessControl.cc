@@ -39,11 +39,13 @@
 #include <DPPP/MADFlagger.h>
 #include <DPPP/DataSquasher.h>
 
-#define PIPELINE_VERSION "0.31"
+#define PIPELINE_VERSION "0.33"
 // 0.23 Added AbsoluteThreshold for MADFlagger
 // 0.24 Added writing VDS file
 // 0.30 Changed Time handling and interval calculation
 // 0.31 Some other bug fixes
+// 0.32 More bugfixes
+// 0.33 Support for lofar storage manager
 
 namespace LOFAR
 {
@@ -52,13 +54,13 @@ namespace LOFAR
     //===============>>> PipelineProcessControl::PipelineProcessControl  <<<===============
     PipelineProcessControl::PipelineProcessControl()
     : ProcessControl(),
-      myPipeline(0),
-      myFile(0),
-      myInfo(0),
-      myBandpass(0),
-      myFlagger(0),
-      mySquasher(0),
-      myDetails(0)
+      myPipeline(NULL),
+      myFile(NULL),
+      myInfo(NULL),
+      myBandpass(NULL),
+      myFlagger(NULL),
+      mySquasher(NULL),
+      myDetails(NULL)
     {
     }
 
@@ -125,13 +127,12 @@ namespace LOFAR
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
         if (!itsClusterDesc.empty())
-        { LOFAR::VdsMaker::create (itsOutMS, itsOutMS + ".vds",
-                                   itsClusterDesc, "", true);
+        { LOFAR::VdsMaker::create (itsOutMS, itsOutMS + ".vds", itsClusterDesc, "", true);
         }
       }
       catch(casa::AipsError& err)
       {
-        std::cerr << "casacore error detected: " << err.getMesg() << std::endl;
+        std::cerr << "AIPS++/Casa(core) error detected: " << err.getMesg() << std::endl;
         return false;
       }
       return true;
@@ -173,7 +174,7 @@ namespace LOFAR
       }
       catch(casa::AipsError& err)
       {
-        std::cerr << "casacore error detected: " << err.getMesg() << std::endl;
+        std::cerr << "AIPS++/Casa(core) error detected: " << err.getMesg() << std::endl;
         return false;
       }
       return true;
@@ -195,19 +196,19 @@ namespace LOFAR
     tribool PipelineProcessControl::release()
     {
       delete myPipeline;
-      myPipeline = 0;
+      myPipeline = NULL;
       delete myFile;
-      myFile = 0;
+      myFile = NULL;
       delete myInfo;
-      myInfo = 0;
+      myInfo = NULL;
       delete myBandpass;
-      myBandpass = 0;
+      myBandpass = NULL;
       delete myFlagger;
-      myFlagger = 0;
+      myFlagger = NULL;
       delete mySquasher;
-      mySquasher = 0;
+      mySquasher = NULL;
       delete myDetails;
-      myDetails = 0;
+      myDetails = NULL;
       return true;
     }
 
