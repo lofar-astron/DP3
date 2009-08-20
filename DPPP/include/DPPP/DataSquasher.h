@@ -52,9 +52,9 @@ namespace LOFAR
       ~DataSquasher(void);
 
       /// All processing of one integration time happens in one go.
-      void ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
-                           MsInfo& Info, RunDetails& Details,
-                           TimeBuffer& TimeData);
+      void ProcessTimeslot(const DataBuffer& InData, DataBuffer& OutData,
+                           MsInfo& Info, const RunDetails& Details,
+                           const TimeBuffer& TimeData);
     private:
       /// This will squash every Step Channels starting from Start into one channel, until NChan have been processed.
       /// newWeights will reflect how many values were unflagged. Only unflagged values are retained

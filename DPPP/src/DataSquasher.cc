@@ -93,9 +93,9 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
 
 //===============>>>  DataSquasher::ProcessTimeslot  <<<===============
 
-void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
-                                   MsInfo& Info, RunDetails& Details,
-                                   TimeBuffer& TimeData)
+void DataSquasher::ProcessTimeslot(const DataBuffer& InData, DataBuffer& OutData,
+                                   MsInfo& Info, const RunDetails& Details,
+                                   const TimeBuffer& TimeData)
 {
   //Data.Position is the last filled timeslot, we need to process the one just in front of it.
   int inpos  = (InData.Position + 1) % InData.WindowSize;
@@ -120,7 +120,7 @@ void DataSquasher::ProcessTimeslot(DataBuffer& InData, DataBuffer& OutData,
         myOldFlags.reference(InData.Flags[index].xyPlane(inpos));
         myNewFlags.reference(OutData.Flags[index].xyPlane(outpos));
         NewWeights.reference(OutData.Weights[index].xyPlane(outpos));
-        if (TimeData.Time.size() == 1)
+        if (TimeData.Time[index].size() == 1)
         {
           myNewData  = 0.0;
           myNewFlags = false;

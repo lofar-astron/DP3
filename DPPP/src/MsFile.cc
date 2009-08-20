@@ -325,11 +325,6 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     correcteddata.getColumn(tempCorrectedData);
   }
   flags.getColumn(tempFlags);
-  TimeData.Time.push_back(time(0));
-  TimeData.TimeCentroid.push_back(time_centroid(0));
-  TimeData.Interval.push_back(interval(0));
-  TimeData.Exposure.push_back(exposure(0));
-  TimeData.Uvw.push_back(uvw(0));
 
   for (int i = 0; i < rowcount; i++)
   {
@@ -342,6 +337,11 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     { Buffer.ModelData[index].xyPlane(Buffer.Position)     = tempData.xyPlane(i);
       Buffer.CorrectedData[index].xyPlane(Buffer.Position) = tempData.xyPlane(i);
     }
+    TimeData.BufTime[index].push_front(time(i));
+    TimeData.BufTimeCentroid[index].push_front(time_centroid(i));
+    TimeData.BufInterval[index].push_front(interval(i));
+    TimeData.BufExposure[index].push_front(exposure(i));
+    TimeData.BufUvw[index].push_front(uvw(i));
   }
 }
 
@@ -376,12 +376,10 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   ArrayColumn  <Complex>    modeldata;
   ArrayColumn  <Complex>    correcteddata;
   if (columns)
-  { modeldata.attach(DataTable, "MODEL_DATA");
-    correcteddata.attach(DataTable, "CORRECTED_DATA");
+  { modeldata.attach(                     DataTable, "MODEL_DATA");
+    correcteddata.attach(                 DataTable, "CORRECTED_DATA");
   }
   //cout << "Processing: " << MVTime(temp(0)/(24*3600)).string(MVTime::YMD) << endl; //for testing purposes
-
-  TimeData.Squash();
 
   for (int i = 0; i < rowcount; i++)
   {
@@ -391,10 +389,11 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 
     data.put(nrows + i, Buffer.Data[index].xyPlane(pos));
     flags.put(nrows + i, Buffer.Flags[index].xyPlane(pos));
-    time.set(nrows + i, TimeData.Time[0]);
-    time_centroid.set(nrows + i, TimeData.TimeCentroid[0]);
-    exposure.set(nrows + i, TimeData.Exposure[0]);
-    interval.set(nrows + i, TimeData.Interval[0]);
+    time.set(nrows + i, TimeData.Time[index][0]);
+    time_centroid.set(nrows + i, TimeData.TimeCentroid[index][0]);
+    exposure.set(nrows + i, TimeData.Exposure[index][0]);
+    interval.set(nrows + i, TimeData.Interval[index][0]);
+    uvw.put(nrows + i, TimeData.Uvw[index][0]);
     weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
     if (columns)
     {

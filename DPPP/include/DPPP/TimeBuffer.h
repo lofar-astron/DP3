@@ -21,6 +21,8 @@
 #define __CS1_PP_TIMEBUFFER_H__
 
 #include <casa/Arrays.h>
+#include <vector>
+#include <list>
 
 /// @file
 /// @brief Class to hold code for TimeBuffer in IDPPP
@@ -35,19 +37,28 @@ namespace LOFAR
     class TimeBuffer
     {
       public:
-         TimeBuffer();
+         TimeBuffer(const int numslots);
          ~TimeBuffer();
 
-        std::vector<casa::Double>                 Time;
-        std::vector<casa::Double>                 TimeCentroid;
-        std::vector<casa::Double>                 Interval;
-        std::vector<casa::Double>                 Exposure;
-        std::vector< casa::Vector<casa::Double> > Uvw;
+        /// We need a buffer for each variable before we can start processing them. This is a fifo buffer and
+        /// thus implemented as a linked list.
+        std::vector< std::list<casa::Double> >                   BufTime;
+        std::vector< std::list<casa::Double> >                   BufTimeCentroid;
+        std::vector< std::list<casa::Double> >                   BufInterval;
+        std::vector< std::list<casa::Double> >                   BufExposure;
+        std::vector< std::list< casa::Vector<casa::Double> > >   BufUvw;
+        std::vector< std::vector<casa::Double> >                 Time;
+        std::vector< std::vector<casa::Double> >                 TimeCentroid;
+        std::vector< std::vector<casa::Double> >                 Interval;
+        std::vector< std::vector<casa::Double> >                 Exposure;
+        std::vector< std::vector< casa::Vector<casa::Double> > > Uvw;
         void Squash(void); ///Does the time compression, uses Time.size() to determine how.
         void Clear(void);  ///Clears after a Squash
+        void ShiftBuffer(void);
         void PrintInfo(void);
 
       private:
+        int NumSlots;
     }; // TimeBuffer
   }; //CS1
 }; // namespace LOFAR

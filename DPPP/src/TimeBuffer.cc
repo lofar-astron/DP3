@@ -32,8 +32,19 @@ using casa::Double;
 
 //===============>>>  TimeBuffer::TimeBuffer  <<<===============
 
-TimeBuffer::TimeBuffer()
+TimeBuffer::TimeBuffer(const int numslots):
+  NumSlots(numslots)
 {
+  BufTime.resize(numslots);
+  BufTimeCentroid.resize(numslots);
+  BufInterval.resize(numslots);
+  BufExposure.resize(numslots);
+  BufUvw.resize(numslots);
+  Time.resize(numslots);
+  TimeCentroid.resize(numslots);
+  Interval.resize(numslots);
+  Exposure.resize(numslots);
+  Uvw.resize(numslots);
 }
 
 //===============>>>  TimeBuffer::~TimeBuffer  <<<===============
@@ -46,43 +57,64 @@ TimeBuffer::~TimeBuffer()
 /* Clears the buffer */
 void TimeBuffer::Clear(void)
 {
-  Time.resize(0);
-  TimeCentroid.resize(0);
-  Interval.resize(0);
-  Exposure.resize(0);
-  Uvw.resize(0);
+  for (int i = 0; i < NumSlots; i++)
+  {
+    Time[i].resize(0);
+    TimeCentroid[i].resize(0);
+    Interval[i].resize(0);
+    Exposure[i].resize(0);
+    Uvw[i].resize(0);
+  }
 }
 
 //===============>>> TimeBuffer::Squash <<<===============
 /* Does the time compression, uses Time.size() to determine how. */
 void TimeBuffer::Squash(void)
 {
-  if (Time.size() > 1)
+  for (int i = 0; i < NumSlots; i++)
   {
-    unsigned int count   = Time.size();
-    Double time          = 0.0;
-    Double time_centroid = 0.0;
-    Double interval      = 0.0;
-    Double exposure      = 0.0;
-    Vector<double> uvw;  //what a cludge, should be able to do this simpler.
-    uvw.resize(3);
-    uvw                  = 0.0;
-    Vector<double> dummy;
-    dummy = uvw;
-    dummy = count;
-    for (unsigned int i = 0; i < count; i++)
+    unsigned int count   = Time[i].size();
+    if (count > 1)
     {
-      time          += Time[i];
-      time_centroid += TimeCentroid[i];
-      interval      += Interval[i];
-      exposure      += Exposure[i];
-      uvw           += Uvw[i];
+      Double time          = 0.0;
+      Double time_centroid = 0.0;
+      Double interval      = 0.0;
+      Double exposure      = 0.0;
+      Vector<double> uvw(3, 0.0);
+      Vector<double> dummy(3, count);
+      for (unsigned int j = 0; j < count; j++)
+      {
+        time          += Time[i][j];
+        time_centroid += TimeCentroid[i][j];
+        interval      += Interval[i][j];
+        exposure      += Exposure[i][j];
+        uvw           += Uvw[i][j];
+      }
+      Time[i][0]         = time / count;
+      TimeCentroid[i][0] = time_centroid / count;
+      Interval[i][0]     = interval;
+      Exposure[i][0]     = exposure;
+      Uvw[i][0]          = uvw / dummy;
     }
-    Time[0]         = time / count;
-    TimeCentroid[0] = time_centroid / count;
-    Interval[0]     = interval;
-    Exposure[0]     = exposure;
-    Uvw[0]          = uvw / dummy;
+  }
+}
+
+//===============>>> TimeBuffer::PrintInfo  <<<===============
+
+void TimeBuffer::ShiftBuffer(void)
+{
+  for (int i = 0; i < NumSlots; i++)
+  {
+    Time[i].push_back(BufTime[i].back());
+    BufTime[i].pop_back();
+    TimeCentroid[i].push_back(BufTimeCentroid[i].back());
+    BufTimeCentroid[i].pop_back();
+    Interval[i].push_back(BufInterval[i].back());
+    BufInterval[i].pop_back();
+    Exposure[i].push_back(BufExposure[i].back());
+    BufExposure[i].pop_back();
+    Uvw[i].push_back(BufUvw[i].back());
+    BufUvw[i].pop_back();
   }
 }
 
@@ -90,11 +122,19 @@ void TimeBuffer::Squash(void)
 
 void TimeBuffer::PrintInfo(void)
 {
-  std::cout << "Time:           " << Time.size() << std::endl;
-  std::cout << "TimeCentroid:   " << TimeCentroid.size() << std::endl;
-  std::cout << "Interval:       " << Interval.size() << std::endl;
-  std::cout << "Exposure:       " << Exposure.size() << std::endl;
-  std::cout << "Uvw:            " << Uvw.size() << std::endl;
+  for (int i = 0; i < NumSlots; i++)
+  {
+    std::cout << "BufTime:        " << BufTime[i].size() << std::endl;
+    std::cout << "BufTimeCentroid:" << BufTimeCentroid[i].size() << std::endl;
+    std::cout << "BufInterval:    " << BufInterval[i].size() << std::endl;
+    std::cout << "BufExposure:    " << BufExposure[i].size() << std::endl;
+    std::cout << "BufUvw:         " << BufUvw[i].size() << std::endl;
+    std::cout << "Time:           " << Time[i].size() << std::endl;
+    std::cout << "TimeCentroid:   " << TimeCentroid[i].size() << std::endl;
+    std::cout << "Interval:       " << Interval[i].size() << std::endl;
+    std::cout << "Exposure:       " << Exposure[i].size() << std::endl;
+    std::cout << "Uvw:            " << Uvw[i].size() << std::endl;
+  }
 }
 
 //===============>>> TimeBuffer  <<<===============

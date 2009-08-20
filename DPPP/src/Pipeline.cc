@@ -92,8 +92,6 @@ void Pipeline::MirrorBuffer(DataBuffer& buffer, MsInfo& info, int step)
 //===============>>> ComplexMedianFlagger::UpdateTimeslotData  <<<===============
 void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
 {
-  TimeData = new TimeBuffer();
-  TimeData->Clear();
   BandpassData = new DataBuffer(myInfo, myDetails->TimeWindow, Columns);
   // Not needed unless Flagger starts altering data, or Bandpass starts altering flags
   //  if (myFlagger && myBandpass)
@@ -103,6 +101,8 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   //  { FlaggerData = BandpassData;
   //  }
   FlaggerData = BandpassData;
+  TimeData = new TimeBuffer(FlaggerData->NumSlots);
+  TimeData->Clear();
   if (mySquasher)
   { SquasherData = new DataBuffer(SquashedInfo, 2, Columns); //two buffers, one for unflagged one for all data
   }
@@ -133,11 +133,13 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
       }
     }
     if (TimeCounter >= (FlaggerData->WindowSize - 1))
-    { if (mySquasher)
+    { TimeData->ShiftBuffer();
+      if (mySquasher)
       { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, *TimeData);
       }
       if ((TimeCounter+1) % myDetails->TimeStep == 0)
-      { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
+      { TimeData->Squash();
+        myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
         TimeData->Clear();
         WriteCounter++;
       }
@@ -155,11 +157,13 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
     { MirrorBuffer(*FlaggerData, *myInfo, i);
       myFlagger->ProcessTimeslot(*FlaggerData, *myInfo, *myDetails, *myStatistics);
     }
+    TimeData->ShiftBuffer();
     if (mySquasher)
     { mySquasher->ProcessTimeslot(*FlaggerData, *SquasherData, *myInfo, *myDetails, *TimeData);
     }
     if ((TimeCounter+1) % myDetails->TimeStep == 0)
-    { myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
+    { TimeData->Squash();
+      myFile->WriteData(time_iter, *SquashedInfo, *SquasherData, *TimeData);
       TimeData->Clear();
       WriteCounter++;
     }
