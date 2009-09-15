@@ -126,6 +126,7 @@ namespace LOFAR
         outInfo->PrintInfo();
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
+        myFile->flush();
         if (!itsClusterDesc.empty())
         { LOFAR::VdsMaker::create (itsOutMS, itsOutMS + ".vds", itsClusterDesc, "", true);
         }

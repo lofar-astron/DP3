@@ -67,6 +67,9 @@ namespace LOFAR
                      DataBuffer& Buffer,
                      TimeBuffer& TimeData);
 
+      /// Flush the data.
+      void flush()
+        { OutMS->flush (true); }
 
     protected:
     private:

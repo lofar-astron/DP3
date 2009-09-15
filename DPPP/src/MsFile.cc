@@ -171,9 +171,9 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
-  if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
+  if (Details.Columns)
   {
-    if (Details.Columns)
+    if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
     {
       cout << "MODEL_DATA detected for processing" << endl;
       ColumnDesc mdesc = tdesc.columnDesc("MODEL_DATA");
@@ -196,9 +196,15 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       TiledColumnStMan tsmw("TiledWeight", IPosition(3, data_ipos[0], 8, 128));
       TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
     }
-  }
-  else
-  { Details.Columns = false;
+    else
+    {
+      if (tdesc.isColumn("CORRECTED_DATA") || tdesc.isColumn("MODEL_DATA"))
+      {
+        cout << "Only one of CORRECTED_DATA and MODEL_DATA columns is present; "
+             << "it is ignored" << endl;
+      }
+      Details.Columns = false;
+    }
   }
   cout << " copying info and subtables ..." << endl;
   // Copy the info and subtables.
@@ -283,10 +289,24 @@ void MsFile::PrintInfo(void)
 
 TableIterator MsFile::TimeIterator()
 {
+  // Usually a needless sort on TIME does not harm so much.
+  // However, for LofarStMan is can be quite costly. As we know its data
+  // is always in time order, we do not sort for LofarStMan.
+  // Determine that by looking at the storage manager type.
+  TableIterator::Option opt = TableIterator::QuickSort;
+  Record dminfo = InMS->dataManagerInfo();
+  for (unsigned i=0; i<dminfo.nfields(); ++i) {
+    Record subrec = dminfo.subRecord(i);
+    if (subrec.asString("TYPE") == "LofarStMan") {
+      opt = TableIterator::NoSort;
+      break;
+    }
+  }
   Block<String> ms_iteration_variables(1);
   ms_iteration_variables[0] = "TIME";
 
-  return TableIterator((*InMS), ms_iteration_variables, TableIterator::Ascending);
+  return TableIterator((*InMS), ms_iteration_variables,
+                       TableIterator::Ascending, opt);
 }
 
 //===============>>> MsFile::UpdateTimeslotData  <<<===============
