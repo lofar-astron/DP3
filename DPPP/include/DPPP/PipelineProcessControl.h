@@ -49,6 +49,7 @@ namespace LOFAR
       std::string  itsInMS; ///< Name and location of input MS
       std::string  itsOutMS; ///< Name and location of output MS
       std::string  itsClusterDesc; ///< Name and location of ClusterDesc file
+      std::string  itsVdsDir; ///< Optional directory where to store VDS files
       unsigned int itsBandpass; ///< from ParameterSet
       unsigned int itsFlagger; ///< From ParameterSet
       unsigned int itsSquasher; ///< From ParameterSet

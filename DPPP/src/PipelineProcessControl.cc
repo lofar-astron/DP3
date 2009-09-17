@@ -22,6 +22,7 @@
 #include <iostream>
 #include <casa/Inputs/Input.h>
 #include <ms/MeasurementSets.h>
+#include <casa/OS/Path.h>
 
 #include <MS/VdsMaker.h>
 
@@ -91,6 +92,7 @@ namespace LOFAR
       itsInMS                 = ParamSet->getString("msin");
       itsOutMS                = ParamSet->getString("msout");
       itsClusterDesc          = ParamSet->getString("clusterdesc");
+      itsVdsDir               = ParamSet->getString("vdsdir", string());
       itsBandpass             = ParamSet->getUint32("bandpass", 0);
       itsFlagger              = ParamSet->getUint32("flagger", 0);
       itsSquasher             = ParamSet->getUint32("squasher", 0);
@@ -128,7 +130,18 @@ namespace LOFAR
         delete outInfo;
         myFile->flush();
         if (!itsClusterDesc.empty())
-        { LOFAR::VdsMaker::create (itsOutMS, itsOutMS + ".vds", itsClusterDesc, "", true);
+        {
+          string vdsName = itsOutMS + ".vds";
+          if (! itsVdsDir.empty())
+          {
+            if (itsVdsDir[itsVdsDir.size() - 1] != '/')
+            {
+              itsVdsDir.append ("/");
+            }
+            vdsName = itsVdsDir + string(casa::Path(vdsName).baseName());
+          }
+          // Create VDS file without detailed time info.
+          LOFAR::VdsMaker::create (itsOutMS, vdsName, itsClusterDesc, "", false);
         }
       }
       catch(casa::AipsError& err)
