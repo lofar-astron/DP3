@@ -32,6 +32,7 @@ set(inst_HEADERS
   DataBuffer.h
   TimeBuffer.h
   RunDetails.h
+  ProgressMeter.h
   Pipeline.h)
 
 # Create symbolic link to include directory.
