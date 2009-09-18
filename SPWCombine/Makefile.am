@@ -11,7 +11,7 @@ DISTCHECK_CONFIGURE_FLAGS= \
 
 EXTRA_DIST = \
       Makefile.common \
-      CS1_SPWCombine.spec \
+      SPWCombine.spec \
       autoconf_share/compiletool
 
 include $(top_srcdir)/Makefile.common

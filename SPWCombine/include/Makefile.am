@@ -1,3 +1,3 @@
-SUBDIRS	= CS1_SPWCombine
+SUBDIRS	= SPWCombine
 
 include $(top_srcdir)/Makefile.common

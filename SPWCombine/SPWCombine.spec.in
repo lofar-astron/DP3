@@ -1,5 +1,5 @@
 # -*- Mode:rpm-spec -*-
-# CS1_SPWCombine.spec.in
+# SPWCombine.spec.in
 #
 
 ##############################################################################
@@ -8,7 +8,7 @@
 #
 ##############################################################################
 
-Summary: CS1_SPWCombine
+Summary: SPWCombine
 
 %define release @RPM_RELEASE@
 %define version @VERSION@
@@ -37,7 +37,7 @@ AutoReqProv: no
 
 %description
 
-CS1_SPWCombine More detailed desciprion will follow.
+SPWCombine More detailed desciption will follow.
 
 ##############################################################################
 #

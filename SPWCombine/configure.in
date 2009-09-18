@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_INIT
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(CS1_SPWCombine, 1.0, no-define)
+AM_INIT_AUTOMAKE(SPWCombine, 1.0, no-define)
 
 dnl Initialize for LOFAR (may set compilers)
 lofar_INIT
@@ -54,9 +54,9 @@ AC_CONFIG_FILES([test/runctest.sh:autoconf_share/runctest.sh.in],
                 [chmod +x test/runctest.sh])
 AC_OUTPUT(
 include/Makefile
-include/CS1_SPWCombine/Makefile
+include/SPWCombine/Makefile
 src/Makefile
 test/Makefile
 Makefile
-CS1_SPWCombine.spec
+SPWCombine.spec
 )
