@@ -53,8 +53,8 @@ namespace LOFAR
   namespace CS1
   {
     //===============>>> PipelineProcessControl::PipelineProcessControl  <<<===============
-    PipelineProcessControl::PipelineProcessControl(const string&	myProcessID)
-    : ProcessControl(myProcessID),
+    PipelineProcessControl::PipelineProcessControl()
+    : ProcessControl(),
       myPipeline(NULL),
       myFile(NULL),
       myInfo(NULL),

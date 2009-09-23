@@ -62,7 +62,7 @@ namespace LOFAR
       DataSquasher*      mySquasher;
       RunDetails*        myDetails;
     public:
-      PipelineProcessControl(const string&	myProcesID);
+      PipelineProcessControl();
 
       ~PipelineProcessControl(void);
       /// \name Command to control the processes.
