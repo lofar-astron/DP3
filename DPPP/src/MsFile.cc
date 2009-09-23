@@ -1,22 +1,24 @@
-/***************************************************************************
- *   Copyright (C) 2007-8 by ASTRON, Adriaan Renting                       *
- *   renting@astron.nl                                                     *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//# Copyright (C) 2006-8
+//# ASTRON (Netherlands Institute for Radio Astronomy)
+//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//#
+//# This file is part of the LOFAR software suite.
+//# The LOFAR software suite is free software: you can redistribute it and/or
+//# modify it under the terms of the GNU General Public License as published
+//# by the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The LOFAR software suite is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License along
+//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//#
+//# $Id$
+//#
+//# @author Adriaan Renting
 
 #include <lofar_config.h>
 #include <casa/BasicMath/Math.h>
@@ -145,9 +147,22 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   // Remove possible hypercolumn definitions.
   tempdesc.adjustHypercolumns (SimpleOrderedMap<String,String>(String()));
   Record dminfo = temptable.dataManagerInfo();
+  // Determine the DATA tile shape. Use all pols and the given #channels.
+  // The nr of rows in a tile is determined by the given tile size (in kbytes).
+  IPosition tileShape(3, data_ipos[0], Details.TileNChan, 1);
+  tileShape[2] = Details.TileSize * 1024 / (8 * tileShape[0] * tileShape[1]);
+  if (tileShape[2] < 1) {
+    tileShape[2] = 1;
+  }
   // Use TSM for UVW.
+  // Use a many rows as used for the DATA columns, but minimal 1024.
+  int tsmnrow = tileShape[2];
+  if (tsmnrow < 1024) {
+    tsmnrow = 1024;
+  }
   TableCopy::setTiledStMan (dminfo, Vector<String>(1, "UVW"),
-                            "TiledColumnStMan", "TiledUVW", IPosition(2, 3, 1024));
+                            "TiledColumnStMan", "TiledUVW",
+                            IPosition(2, 3, tsmnrow));
   // Replace all non-writable storage managers by SSM.
   dminfo = TableCopy::adjustStMan (dminfo);
   SetupNewTable newtab(OutName, tempdesc, Table::NewNoReplace);
@@ -155,19 +170,20 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   Table outtable(newtab);
   {
     // Add DATA column using tsm.
-    // Use a tilesize of 32 KB (4*8*128 values * 8 bytes).
-    TiledColumnStMan tsm("TiledData", IPosition(3, data_ipos[0], 8, 128));
-
+    TiledColumnStMan tsm("TiledData", tileShape);
     TableResize(desc, data_ipos, &tsm, outtable);
   }
   {
     // Add FLAG column using tsm.
-    TiledColumnStMan tsmf("TiledFlag", IPosition(3, data_ipos[0], 8, 128*8));
+    // Use larger tile shape because flags are stored as bits.
+    IPosition tileShapeF(tileShape);
+    tileShapeF[2] *= 8;
+    TiledColumnStMan tsmf("TiledFlag", tileShapeF);
     TableResize(tdesc["FLAG"], data_ipos, &tsmf, outtable);
   }
   {
     // Add WEIGHT_SPECTRUM column using tsm.
-    TiledColumnStMan tsmw("TiledWeightSpec", IPosition(3, data_ipos[0], 8, 128));
+    TiledColumnStMan tsmw("TiledWeightSpec", tileShape);
     TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
@@ -186,14 +202,14 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       selection.row(0) = 0;
       selection.row(1) = new_nchan;
       keyset.define("CHANNEL_SELECTION", selection);
-      TiledColumnStMan tsmm("ModelData", IPosition(3, data_ipos[0], 8, 128));
+      TiledColumnStMan tsmm("ModelData", tileShape);
       TableResize(mdesc, data_ipos, &tsmm, outtable);
 
       cout << "CORRECTED_DATA detected for processing" << endl;
-      TiledColumnStMan tsmc("CorrectedData", IPosition(3, data_ipos[0], 8, 128));
+      TiledColumnStMan tsmc("CorrectedData", tileShape);
       TableResize(tdesc["CORRECTED_DATA"], data_ipos, &tsmc, outtable);
 
-      TiledColumnStMan tsmw("TiledWeight", IPosition(3, data_ipos[0], 8, 128));
+      TiledColumnStMan tsmw("TiledWeight", tileShape);
       TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
     }
     else
@@ -381,7 +397,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 
   DataTable.addRow(rowcount);
   Table dummy = DataTable.project(SELECTblock);
-  TableCopy::copyRows(dummy, temptable, nrows, 0, rowcount);
+  TableCopy::copyRows(dummy, temptable, nrows, 0, rowcount, False);
   ROTableVector<Int>        antenna1     (DataTable, "ANTENNA1");
   ROTableVector<Int>        antenna2     (DataTable, "ANTENNA2");
   ROTableVector<Int>        bandnr       (DataTable, "DATA_DESC_ID");
