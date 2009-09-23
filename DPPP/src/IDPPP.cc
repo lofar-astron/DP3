@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
   try
   {
     INIT_LOGGER(basename(argv[0]));
-    LOFAR::CS1::PipelineProcessControl myProcess;
+    LOFAR::CS1::PipelineProcessControl myProcess("MY_NAME_SHOULD_BE_IN_HERE");
     return LOFAR::ACC::PLC::ACCmain(argc, argv, &myProcess);
   } //try
   catch(casa::AipsError& err)
