@@ -50,7 +50,7 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
                           Matrix<Bool>& oldFlags, Matrix<Bool>& newFlags,
                           Matrix<Float>& newWeights, int itsNumPolarizations,
                           int Start, int Step, int NChan)
-{
+{ //We only add to weight as it can have multiple timesteps integrated
   int incounter  = 0;
   int outcounter = 0;
   bool flagnew   = true;
@@ -64,8 +64,9 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
       allvalues(i) += oldData(i, Start + incounter);
       if (!oldFlags(i, Start + incounter))
       { //existing weight <> 1 is not handled here, maybe sometime in the future?
+        //On new data WEIGHT_SPECTRUM does not exist, only WEIGHT
         values(i) += oldData(i, Start + incounter);
-        weights(i) += 1;
+        weights(i) += 1.0; //should be += old Weight?
         flagnew = false;
       }
     }
@@ -73,12 +74,12 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
     if ((incounter) % Step == 0)
     {
       for (int i = 0; i < itsNumPolarizations; i++)
-      { if (flagnew)
-        { values(i) = allvalues(i);
-          newWeights(i, outcounter) += 1.0;
+      { if (flagnew) //Everything is flagged
+        { values(i) = allvalues(i); //we take all values and put weight at 1.0
+          newWeights(i, outcounter) += 1.0; //should be += old Weight * Step?
         }
-        else
-        { values(i) = values(i) / weights(i);
+        else //Not everything is flagged
+        { values(i) = values(i) / weights(i); //We only take unflagged values and adjust weight betweem 1/step and 1.0
           newWeights(i, outcounter) += abs(weights(i)) / Step;
         }
       }
@@ -126,7 +127,7 @@ void DataSquasher::ProcessTimeslot(const DataBuffer& InData, DataBuffer& OutData
         {
           myNewData  = 0.0;
           myNewFlags = false;
-          NewWeights = 1.0;
+          NewWeights = 0.0;
         }
         Squash(myOldData, myNewData, myOldFlags, myNewFlags, NewWeights,
                Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);

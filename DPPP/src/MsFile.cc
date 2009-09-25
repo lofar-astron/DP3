@@ -122,7 +122,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
   std::cout << "Preparing output MS " << OutName << std::endl;
   // Open the MS and obtain the description.
-  InMS = new MeasurementSet(InName);
+  InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
   TableDesc tdesc = InMS->tableDesc();
   // Determine the output data shape.
   const ColumnDesc& desc = tdesc.columnDesc("DATA");
