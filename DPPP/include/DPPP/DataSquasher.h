@@ -63,7 +63,8 @@ namespace LOFAR
       /// newWeights will reflect how many values were unflagged. Only unflagged values are retained
       void Squash(casa::Matrix<casa::Complex>& oldData, casa::Matrix<casa::Complex>& newData,
                   casa::Matrix<casa::Bool>& oldFlags, casa::Matrix<casa::Bool>& newFlags,
-                  casa::Matrix<casa::Float>& newWeights, int itsNumPolarizations,
+                  casa::Matrix<casa::Float>& oldWeights, casa::Matrix<casa::Float>& newWeights,
+                  int itsNumPolarizations,
                   int Start, int Step, int NChan);
 
     }; //DataSquasher

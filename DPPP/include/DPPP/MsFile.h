@@ -86,6 +86,7 @@ namespace LOFAR
       std::string OutName;
       casa::MeasurementSet* InMS;
       casa::MeasurementSet* OutMS;
+      bool itsHasWeightSpectrum;
     }; // class MsFile
   }; // CS1
 }; // namespace LOFAR

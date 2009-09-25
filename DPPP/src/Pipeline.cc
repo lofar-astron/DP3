@@ -122,7 +122,8 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   int           TimeCounter  = 0;
   int           WriteCounter = 0;
   while (!time_iter.pastEnd())
-  { BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
+  {
+    BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
     myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData);
     if (myBandpass)
     { myBandpass->ProcessTimeslot(*BandpassData, *myInfo, *myDetails);

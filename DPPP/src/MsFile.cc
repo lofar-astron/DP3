@@ -41,7 +41,8 @@ using namespace casa;
 MsFile::MsFile(const std::string& msin, const std::string& msout):
   SELECTblock(20),
   InMS(NULL),
-  OutMS(NULL)
+  OutMS(NULL),
+  itsHasWeightSpectrum(false)
 {
   InName  = msin;
   OutName = msout;
@@ -124,6 +125,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   // Open the MS and obtain the description.
   InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
   TableDesc tdesc = InMS->tableDesc();
+  itsHasWeightSpectrum = tdesc.isColumn("WEIGHT_SPECTRUM");
   // Determine the output data shape.
   const ColumnDesc& desc = tdesc.columnDesc("DATA");
   IPosition data_ipos = DetermineDATAshape(*InMS);
@@ -155,7 +157,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     tileShape[2] = 1;
   }
   // Use TSM for UVW.
-  // Use a many rows as used for the DATA columns, but minimal 1024.
+  // Use as many rows as used for the DATA columns, but minimal 1024.
   int tsmnrow = tileShape[2];
   if (tsmnrow < 1024) {
     tsmnrow = 1024;
@@ -183,8 +185,10 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   }
   {
     // Add WEIGHT_SPECTRUM column using tsm.
-    TiledColumnStMan tsmw("TiledWeightSpec", tileShape);
-    TableResize(tdesc["WEIGHT_SPECTRUM"], data_ipos, &tsmw, outtable);
+    TiledColumnStMan tsmw("TiledWeightSpectrum", tileShape);
+    ArrayColumnDesc<Float> wsdesc("WEIGHT_SPECTRUM", "weight per pol/chan",
+                                  data_ipos, ColumnDesc::FixedShape);
+    TableResize(wsdesc, data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
   if (Details.Columns)
@@ -209,7 +213,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       TiledColumnStMan tsmc("CorrectedData", tileShape);
       TableResize(tdesc["CORRECTED_DATA"], data_ipos, &tsmc, outtable);
 
-      TiledColumnStMan tsmw("TiledWeight", tileShape);
+      TiledColumnStMan tsmw("TiledImagingWeight", tileShape);
       TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
     }
     else
@@ -346,14 +350,22 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   ROArrayColumn<Bool>           flags         (TimeslotTable, "FLAG");
   ROArrayColumn<Complex>        modeldata;
   ROArrayColumn<Complex>        correcteddata;
+  ROArrayColumn<Float>          weights;
   if (columns)
   { modeldata.attach(TimeslotTable, "MODEL_DATA");
     correcteddata.attach(TimeslotTable, "CORRECTED_DATA");
+  }
+  if (itsHasWeightSpectrum) {
+    weights.attach(TimeslotTable, "WEIGHT_SPECTRUM");
+  } else {
+    weights.attach(TimeslotTable, "WEIGHT");
   }
   Cube<Complex>                 tempData(Info.NumPolarizations, Info.NumChannels, rowcount);
   Cube<Complex>                 tempModelData(Info.NumPolarizations, Info.NumChannels, rowcount);
   Cube<Complex>                 tempCorrectedData(Info.NumPolarizations, Info.NumChannels, rowcount);
   Cube<Bool>                    tempFlags(Info.NumPolarizations, Info.NumChannels, rowcount);
+  Matrix<Float>                 tempWeights(Info.NumPolarizations, rowcount);
+  Cube<Float>                   tempWeightSpectrum(Info.NumPolarizations, Info.NumChannels, rowcount);
 
   data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
   if (columns)
@@ -361,6 +373,11 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     correcteddata.getColumn(tempCorrectedData);
   }
   flags.getColumn(tempFlags);
+  if (itsHasWeightSpectrum) {
+    weights.getColumn(tempWeightSpectrum);
+  } else {
+    weights.getColumn(tempWeights);
+  }
 
   for (int i = 0; i < rowcount; i++)
   {
@@ -373,6 +390,21 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     { Buffer.ModelData[index].xyPlane(Buffer.Position)     = tempData.xyPlane(i);
       Buffer.CorrectedData[index].xyPlane(Buffer.Position) = tempData.xyPlane(i);
     }
+    if (itsHasWeightSpectrum) {
+      Buffer.Weights[index].xyPlane(Buffer.Position) = tempWeightSpectrum.xyPlane(i);
+    } else {
+      // Only a weight per polarization, so copy for all channels
+      Cube<Float>& dst = Buffer.Weights[index];
+      AlwaysAssert (dst.contiguousStorage(), AipsError);
+      Float* dstp = dst.data();
+      const Float* srcp = tempWeights.data() + i*Info.NumPolarizations;
+      for (int j=0; j<Info.NumChannels; ++j) {
+        for (int k=0; k<Info.NumPolarizations; ++k) {
+          *dstp++ = srcp[k];
+        }
+      }
+    }
+      
     TimeData.BufTime[index].push_front(time(i));
     TimeData.BufTimeCentroid[index].push_front(time_centroid(i));
     TimeData.BufInterval[index].push_front(interval(i));
