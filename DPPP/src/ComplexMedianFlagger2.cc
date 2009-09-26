@@ -50,7 +50,7 @@ ComplexMedianFlagger2::~ComplexMedianFlagger2()
 
 //===============>>> ComplexMedianFlagger2::ComputeThreshold  <<<============
 /*Compute Thresholds */
-vector<double> ComplexMedianFlagger2::ComputeThreshold(Matrix<Complex> Values)
+vector<double> ComplexMedianFlagger2::ComputeThreshold(const Matrix<Complex>& Values)
 {
   vector<double> RMS(NumPolarizations, 0.0);
   for (int j = NumPolarizations-1; j >= 0; j--)
@@ -77,7 +77,7 @@ vector<double> ComplexMedianFlagger2::ComputeThreshold(Matrix<Complex> Values)
 and flags on complexe distance, then determines to flag the entire baseline-band
 based on the RMS of the points it didn't flag.*/
 int ComplexMedianFlagger2::FlagBaselineBand(Matrix<Bool>& Flags,
-                                            Cube<Complex>& Data,
+                                            const Cube<Complex>& Data,
                                             int flagCounter,
                                             double Level,
                                             int Position, bool Existing,

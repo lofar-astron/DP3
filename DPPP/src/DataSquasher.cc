@@ -44,6 +44,69 @@ DataSquasher::~DataSquasher(void)
 {
 }
 
+void DataSquasher::add (Matrix<Complex>& sumData,
+                        Matrix<Complex>& allData,
+                        Matrix<Int>& sumNPoint,
+                        Matrix<Float>& sumWeight,
+                        const Matrix<Complex>& inData,
+                        const Matrix<Bool>& inFlag,
+                        const Matrix<Float>& inWeight,
+                        int npol, int stchan, int step, int nchan)
+{
+  const Complex* pinData   = inData.data()   + stchan*npol;
+  const Bool*    pinFlag   = inFlag.data()   + stchan*npol;
+  const Float*   pinWeight = inWeight.data() + stchan*npol;
+  Complex* psumData   = sumData.data();
+  Complex* pallData   = allData.data();
+  Float*   psumWeight = sumWeight.data();
+  Int*     psumNP     = sumNPoint.data();
+  for (int i=0; i<nchan; ++i) {
+    for (int j=0; j<npol; ++j) {
+      pallData[j] += *pinData;
+      if (! *pinFlag) {
+        psumData[j]   += *pinData * *pinWeight;
+        psumWeight[j] += *pinWeight;
+        psumNP[j]     += 1;
+      }
+      ++pinData;
+      ++pinFlag;
+      ++pinWeight;
+    }
+    if (i%step == 0  ||  i == nchan-1) {
+      pallData   += npol;
+      psumData   += npol;
+      psumWeight += npol;
+      psumNP     += npol;
+    }
+  }
+}
+
+Matrix<Bool> DataSquasher::average (Matrix<Complex>& sumData,
+                                    Matrix<Float>& sumWeight,
+                                    const Matrix<Complex>& allData,
+                                    const Matrix<Int>& sumNPoint)
+{
+  Matrix<Bool> flags(sumData.shape());
+  Complex* pData   = sumData.data();
+  Float*   pWeight = sumWeight.data();
+  Bool*    pFlag   = flags.data();
+  const Complex* pallData = allData.data();
+  const Int*     pNP      = sumNPoint.data();
+  int n = sumData.size();
+  for (int i=0; i<n; ++i) {
+    if (pNP[i] == 0  ||  pWeight[i] == 0) {
+      pData[i]   = pallData[i];
+      pWeight[i] = 0;
+      pFlag[i]   = True;
+    } else {
+      pData[i]   /= pWeight[i];
+      pWeight[i] /= pNP[i];
+      pFlag[i]   = False;
+    }      
+  }
+  return flags;
+}
+
 //===============>>>  DataSquasher::Squash  <<<===============
 
 void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
@@ -54,7 +117,7 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
 { //We only add to weight as it can have multiple timesteps integrated
   int incounter  = 0;
   int outcounter = 0;
-  bool flagnew   = true;
+  Vector<bool> flagnew(itsNumPolarizations, true);
   Vector<Complex> values(itsNumPolarizations, 0);
   Vector<Complex> allvalues(itsNumPolarizations, 0);
   Vector<Float>   weights(itsNumPolarizations, 0);
@@ -68,14 +131,14 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
         //On new data WEIGHT_SPECTRUM does not exist, only WEIGHT
         values(i) += oldData(i, Start + incounter);
         weights(i) += 1.0; //should be += old Weight?
-        flagnew = false;
+        flagnew[i] = false;
       }
     }
     incounter++;
     if ((incounter) % Step == 0)
     {
       for (int i = 0; i < itsNumPolarizations; i++)
-      { if (flagnew) //Everything is flagged
+      { if (flagnew[i]) //Everything is flagged
         { values(i) = allvalues(i); //we take all values and put weight at 1.0
           newWeights(i, outcounter) += 1.0; //should be += old Weight * Step?
         }

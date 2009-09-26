@@ -59,7 +59,7 @@ namespace LOFAR
       protected:
       private:
         int FlagBaselineBand(casa::Matrix<casa::Bool>& Flags,
-                             casa::Matrix<casa::Complex>& Data,
+                             const casa::Matrix<casa::Complex>& Data,
                              int flagCounter,
                              double FlagThreshold,
                              bool Existing,

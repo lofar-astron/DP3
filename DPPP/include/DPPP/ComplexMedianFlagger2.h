@@ -63,9 +63,9 @@ namespace LOFAR
 
       protected:
       private:
-        std::vector<double> ComputeThreshold(casa::Matrix<casa::Complex> Values);
+        std::vector<double> ComputeThreshold(const casa::Matrix<casa::Complex>& Values);
         int FlagBaselineBand(casa::Matrix<casa::Bool>& Flags,
-                             casa::Cube<casa::Complex>& Data,
+                             const casa::Cube<casa::Complex>& Data,
                              int flagCounter,
                              double Level,
                              int Position, bool Existing,

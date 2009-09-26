@@ -67,6 +67,22 @@ namespace LOFAR
                   int itsNumPolarizations,
                   int Start, int Step, int NChan);
 
+      // Add the input buffers to the sum buffers.
+      // It takes flags and weights into account.
+      void add (casa::Matrix<casa::Complex>& sumData,
+                casa::Matrix<casa::Complex>& allData,
+                casa::Matrix<casa::Int>& sumNPoint,
+                casa::Matrix<casa::Float>& sumWeight,
+                const casa::Matrix<casa::Complex>& inData,
+                const casa::Matrix<casa::Bool>& inFlag,
+                const casa::Matrix<casa::Float>& inWeight,
+                int npol, int stchan, int step, int nchan);
+
+      casa::Matrix<casa::Bool> average (casa::Matrix<casa::Complex>& sumData,
+                                        casa::Matrix<casa::Float>& sumWeight,
+                                        const casa::Matrix<casa::Complex>& allData,
+                                        const casa::Matrix<casa::Int>& sumNPoint);
+
     }; //DataSquasher
   }; //namespace CS1
 }; //namespace LOFAR

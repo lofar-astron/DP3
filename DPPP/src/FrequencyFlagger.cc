@@ -53,7 +53,7 @@ FrequencyFlagger::~FrequencyFlagger()
 and flags on complexe distance, then determines to flag the entire baseline-band
 based on the RMS of the points it didn't flag.*/
 int FrequencyFlagger::FlagBaselineBand(casa::Matrix<casa::Bool>& Flags,
-                                       casa::Matrix<casa::Complex>& Data,
+                                       const casa::Matrix<casa::Complex>& Data,
                                        int flagCounter,
                                        double FlagThreshold,
                                        bool Existing,
