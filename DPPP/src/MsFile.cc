@@ -125,7 +125,10 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   // Open the MS and obtain the description.
   InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
   TableDesc tdesc = InMS->tableDesc();
-  itsHasWeightSpectrum = tdesc.isColumn("WEIGHT_SPECTRUM");
+  if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
+    // The column is there, but it might not contain values. Test row 0.
+    itsHasWeightSpectrum = ROArrayColumn<Float>(*InMS, "WEIGHT_SPECTRUM").isDefined(0);
+  }
   // Determine the output data shape.
   const ColumnDesc& desc = tdesc.columnDesc("DATA");
   IPosition data_ipos = DetermineDATAshape(*InMS);
@@ -390,13 +393,16 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     { Buffer.ModelData[index].xyPlane(Buffer.Position)     = tempData.xyPlane(i);
       Buffer.CorrectedData[index].xyPlane(Buffer.Position) = tempData.xyPlane(i);
     }
+    // Create reference to slice in weigth array.
+    // Fill it with the input weight-spectrum if given.
+    // Otherwise use the weight per pol and copy for all channels.
+    Array<Float> curWeight (Buffer.Weights[index].xyPlane(Buffer.Position));
     if (itsHasWeightSpectrum) {
-      Buffer.Weights[index].xyPlane(Buffer.Position) = tempWeightSpectrum.xyPlane(i);
+      curWeight = tempWeightSpectrum.xyPlane(i);
     } else {
       // Only a weight per polarization, so copy for all channels
-      Cube<Float>& dst = Buffer.Weights[index];
-      AlwaysAssert (dst.contiguousStorage(), AipsError);
-      Float* dstp = dst.data();
+      AlwaysAssert (curWeight.contiguousStorage(), AipsError);
+      Float* dstp = curWeight.data();
       const Float* srcp = tempWeights.data() + i*Info.NumPolarizations;
       for (int j=0; j<Info.NumChannels; ++j) {
         for (int k=0; k<Info.NumPolarizations; ++k) {
