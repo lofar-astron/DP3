@@ -93,7 +93,7 @@ int FrequencyFlagger::FlagBaselineBand(casa::Matrix<casa::Bool>& Flags,
       { RMS[j] = sqrt(MS[j] /RMSCounter[j]);
       }
       else
-      { RMS[j] = medianInPlace(MedianArray.row(j).operator()(Slice(0, RMSCounter[j]-1,1)));
+      { RMS[j] = medianInPlace(MedianArray.row(j).operator()(Slice(0, RMSCounter[j],1)));
       }
       for (int i = NumChannels-1; i >= 0; i--)
       {
