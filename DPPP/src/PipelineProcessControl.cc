@@ -42,13 +42,16 @@
 #include <DPPP/MADFlagger.h>
 #include <DPPP/DataSquasher.h>
 
-#define PIPELINE_VERSION "0.33"
+#define PIPELINE_VERSION "0.41"
 // 0.23 Added AbsoluteThreshold for MADFlagger
 // 0.24 Added writing VDS file
 // 0.30 Changed Time handling and interval calculation
 // 0.31 Some other bug fixes
 // 0.32 More bugfixes
 // 0.33 Support for lofar storage manager
+// 0.34 Fixed bugs in WEIGHT_SPECTRUM stuff
+// 0.40 changed order of flaggers to be as in documentation!
+// 0.41 allow flagger to use other columns
 
 namespace LOFAR
 {
