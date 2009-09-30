@@ -44,6 +44,8 @@ DataSquasher::~DataSquasher(void)
 {
 }
 
+//===============>>>  DataSquasher::add  <<<===============
+
 void DataSquasher::add (Matrix<Complex>& sumData,
                         Matrix<Complex>& allData,
                         Matrix<Int>& sumNPoint,
@@ -81,6 +83,8 @@ void DataSquasher::add (Matrix<Complex>& sumData,
   }
 }
 
+//===============>>>  DataSquasher::average  <<<===============
+
 Matrix<Bool> DataSquasher::average (Matrix<Complex>& sumData,
                                     Matrix<Float>& sumWeight,
                                     const Matrix<Complex>& allData,
@@ -102,7 +106,7 @@ Matrix<Bool> DataSquasher::average (Matrix<Complex>& sumData,
       pData[i]   /= pWeight[i];
       pWeight[i] /= pNP[i];
       pFlag[i]   = False;
-    }      
+    }
   }
   return flags;
 }
@@ -123,7 +127,7 @@ void DataSquasher::Squash(Matrix<Complex>& oldData, Matrix<Complex>& newData,
   Vector<Float>   weights(itsNumPolarizations, 0);
   while (incounter < NChan)
   {
-    for (int i = 0; i < itsNumPolarizations; i++) 
+    for (int i = 0; i < itsNumPolarizations; i++)
     {
       allvalues(i) += oldData(i, Start + incounter);
       if (!oldFlags(i, Start + incounter))

@@ -70,6 +70,7 @@ void RunDetails::PrintInfo(void)
   std::cout << "TimeStep:          " << TimeStep << std::endl;     // DataSquasher
   std::cout << "TileSize:          " << TileSize << std::endl;     // DataSquasher
   std::cout << "TileNChan:         " << TileNChan << std::endl;     // DataSquasher
+  std::cout << "DataColumn:        " << DataColumn << std::endl;     // all flaggers
 }
 
 //===============>>> RunDetails  <<<===============

@@ -47,7 +47,7 @@ namespace LOFAR
       unsigned int Fixed;        ///< BandpassCorrector
       unsigned int FreqWindow;   ///< FrequencyFlagger, MADFlagger
       unsigned int TimeWindow;   ///< ComplexMedianFlagger, MADFlagger
-      double       Threshold;    ///< FrequencyFlagger, MADFlagger
+      double       Threshold;    ///< FrequencyFlagger, MADFlagger, ComplexFlagger2
       double       MinThreshold; ///< ComplexMedianFlagger
       double       MaxThreshold; ///< ComplexMedianFlagger, MADFlagger
       unsigned int Algorithm;    ///< FrequencyFlagger
@@ -60,6 +60,7 @@ namespace LOFAR
       unsigned int TimeStep;     ///< DataSquasher
       unsigned int TileNChan;    ///< Nr of channels per tile for the DATA columns
       unsigned int TileSize;     ///< Tile size (in kbytes) for the DATA columns
+      std::string  DataColumn;   ///< Column to flag for all flaggers
       bool CheckValues(void);    ///< Method to do some validity checks on the values
       void PrintInfo(void);      ///< Prints all values to cout, mainly for debugging purposes
 

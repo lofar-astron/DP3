@@ -53,8 +53,8 @@ namespace LOFAR
         std::vector< casa::Cube<casa::Complex> >  CorrectedData;
         std::vector< casa::Cube<casa::Bool> >     Flags;
         std::vector< casa::Cube<casa::Float> >    Weights;
-        std::vector< casa::Matrix<casa::Double> > Uvw;
         void DeterminePolarizationsToCheck(bool UseOnlyXpolarizations); ///< Not used right now
+        std::vector<casa::Cube<casa::Complex> >& GetRightDataColumn(std::string DataColumn); ///< determine data column for the flagger
         void PrintInfo(void);
 
       private:

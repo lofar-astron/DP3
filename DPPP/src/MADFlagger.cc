@@ -178,7 +178,7 @@ void MADFlagger::ProcessTimeslot(DataBuffer& data,
       {
         index    = i * info.NumPairs + info.BaselineIndex[baseline_t(j, k)];
 //        if ((BaselineLengths[BaselineIndex[pairii(j, k)]] < 3000000))//radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243 m
-        Cube<Float> RealData = amplitude(data.Data[index]);
+        Cube<Float> RealData = amplitude(data.GetRightDataColumn(details.DataColumn)[index]);
         Cube<Bool> Mask      = MakeMask(RealData, data.Flags[index], details.MaxThreshold,
                                         data.WindowSize, pos, details.Existing);
         stats(i, j, k) = FlagBaselineBand(data.Flags[index],

@@ -134,6 +134,19 @@ void DataBuffer::Init(bool Columns)
   }
 }
 
+//===============>>> DataBuffer::GetRightDataColumn <<<===============
+
+std::vector< casa::Cube<casa::Complex> >& DataBuffer::GetRightDataColumn(std::string DataColumn)
+{
+  if (DataColumn == "CORRECTED_DATA")
+  { return CorrectedData;
+  }
+  if (DataColumn == "MODEL_DATA")
+  { return ModelData;
+  }
+  return Data;
+}
+
 //===============>>> DataBuffer::PrintInfo  <<<===============
 
 void DataBuffer::PrintInfo(void)
