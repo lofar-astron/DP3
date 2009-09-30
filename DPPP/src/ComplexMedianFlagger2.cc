@@ -115,7 +115,7 @@ int ComplexMedianFlagger2::FlagBaselineBand(Matrix<Bool>& Flags,
       else
       { if (!Existing) { Flags(j, i) = false;}
       }
-      cout << j << "," << "," << i << "," << Flags(j, i) << "," << FlagAllPolarizations << endl;
+      //cout << j << "," << "," << i << "," << Flags(j, i) << "," << FlagAllPolarizations << endl;
     }
   }
   return flagCounter + flagcount;
