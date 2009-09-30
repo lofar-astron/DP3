@@ -179,9 +179,9 @@ namespace LOFAR
         }
         switch (itsFlagger)
         {
-          case 1:  myFlagger = new ComplexMedianFlagger(); break;
-          case 2:  myFlagger = new ComplexMedianFlagger2(); break;
-          case 3:  myFlagger = new FrequencyFlagger(); break;
+          case 1:  myFlagger = new FrequencyFlagger(); break;
+          case 2:  myFlagger = new ComplexMedianFlagger(); break;
+          case 3:  myFlagger = new ComplexMedianFlagger2(); break;
           case 4:  myFlagger = new MADFlagger(); break;
         }
         switch (itsSquasher)
