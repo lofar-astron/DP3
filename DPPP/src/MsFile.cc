@@ -273,7 +273,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     for (int j = 0; j < new_nchan; j++)
     { inFREQ.get(i, old_temp);
       if (Details.Step % 2) //odd number of channels in step
-      { new_temp(j) = old_temp(Details.Start + j*Details.Step + (Details.Step + 1)/2);
+      { new_temp(j) = old_temp(Details.Start + j*Details.Step + (Details.Step - 1)/2);
       }
       else //even number of channels in step
       { new_temp(j) = 0.5 * (old_temp(Details.Start + j*Details.Step + Details.Step/2 -1)
@@ -410,7 +410,7 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
         }
       }
     }
-      
+
     TimeData.BufTime[index].push_front(time(i));
     TimeData.BufTimeCentroid[index].push_front(time_centroid(i));
     TimeData.BufInterval[index].push_front(interval(i));
