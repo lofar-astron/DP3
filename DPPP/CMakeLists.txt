@@ -31,8 +31,8 @@ include(LofarInit)
 project(DPPP)
 include(LofarGeneral)
 
-include(LofarAddPackage)
-lofar_add_package(${PROJECT_NAME} 1.0 DEPENDS Common MS PLC)
+include(LofarPackage)
+lofar_package(${PROJECT_NAME} 1.0 DEPENDS Common MS PLC)
 
 ## ---------------------------------------------------------------------------
 ## External packages
