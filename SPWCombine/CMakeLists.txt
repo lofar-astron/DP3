@@ -28,16 +28,26 @@ include(LofarInit)
 ## ---------------------------------------------------------------------------
 ## Project characteristics
 ## ---------------------------------------------------------------------------
-project(DP3)
+project(SPW_Combine)
 include(LofarGeneral)
 
+include(LofarPackage)
+lofar_package(${PROJECT_NAME} 1.0 DEPENDS Common PLC)
+
 ## ---------------------------------------------------------------------------
-## Subdirectories
+## External packages
 ## ---------------------------------------------------------------------------
-lofar_add_package(DPPP)
-lofar_add_package(SPW_Combine SPWCombine)
+include(LofarFindPackage)
+lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)
 
 ## ---------------------------------------------------------------------------
 ## Generate configuration header file.
 ## ---------------------------------------------------------------------------
 include(LofarConfig)
+
+## ---------------------------------------------------------------------------
+## Subdirectories
+## ---------------------------------------------------------------------------
+add_subdirectory(include/SPWCombine)
+add_subdirectory(src)
+#add_subdirectory(test)
