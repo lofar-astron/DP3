@@ -28,12 +28,14 @@
 
 #include <DPPP/MsInfo.h>
 
+#include <Common/LofarLogger.h>
+
 using namespace LOFAR::CS1;
 using namespace casa;
 
 //===============>>>  Ms_Info::Ms_Info  <<<===============
 
-MsInfo::MsInfo(const std::string& msname):
+MsInfo::MsInfo():
   NumSamples(0),
   NumAntennae(0),
   NumFields(0),
@@ -43,25 +45,24 @@ MsInfo::MsInfo(const std::string& msname):
   NumPairs(0),
   NumTimeslots(0),
   NoiseLevel(0.0),
-  MaxBaselineLength(0.0),
-  MsName(msname)
+  MaxBaselineLength(0.0)
+{}
+
+MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable,
+               bool checkRegularity):
+  NumSamples(0),
+  NumAntennae(0),
+  NumFields(0),
+  NumBands(0),
+  NumChannels(0),
+  NumPolarizations(0),
+  NumPairs(0),
+  NumTimeslots(0),
+  NoiseLevel(0.0),
+  MaxBaselineLength(0.0)
 {
-}
-
-//===============>>>  Ms_Info::~Ms_Info  <<<===============
-
-MsInfo::~MsInfo()
-{
-}
-
-//===============>>> Ms_Info::update  <<<===============
-
-void MsInfo::Update(void)
-{
-  MeasurementSet MS(MsName);
-
   //Number of samples
-  NumSamples                       = MS.nrow();
+  NumSamples                       = orderedMainTable.nrow();
   //Number of Fields
   MSField fields                   = MS.field();
   NumFields                        = fields.nrow();
@@ -91,9 +92,9 @@ void MsInfo::Update(void)
   //calculate theoretical noise level
   // MS might be empty (e.g. when called for output MS).
   Double exposure                  = 1;
-  if (MS.nrow() > 0)
+  if (orderedMainTable.nrow() > 0)
   {
-    ROScalarColumn<Double>         EXPOSURE_col(MS, "EXPOSURE");
+    ROScalarColumn<Double>         EXPOSURE_col(orderedMainTable, "EXPOSURE");
     exposure                       = EXPOSURE_col(0);
   }
 
@@ -103,21 +104,18 @@ void MsInfo::Update(void)
   NoiseLevel                       = 1.0 / sqrt(bandwidth * exposure);
 
   //calculate number of timeslots
-/*  ROScalarColumn<Double>           INTERVAL_col(MS, "INTERVAL");
-  Double Interval                  = INTERVAL_col(0);*/
-
-  //Number of timeslots
-  ROScalarColumn<Double>            TIME_col(MS, "TIME");
-/*  Double firstdate                 = TIME_CENTROID_col(0);
-  Double lastdate                  = TIME_CENTROID_col(NumSamples-1);
-
-  NumTimeslots                     = (int)((lastdate-firstdate)/Interval) + 1;*/
-  Vector<double> temptime = TIME_col.getColumn();
-  Vector<uInt>   tempindex;
-  NumTimeslots = GenSortIndirect<double>::sort (tempindex, temptime, Sort::Ascending, Sort::InsSort+Sort::NoDuplicates);
-
+  if (orderedMainTable.nrow() > 0) {
+    ROScalarColumn<Double>         INTERVAL_col(orderedMainTable, "INTERVAL");
+    Double Interval                = INTERVAL_col(0);
+    //Number of timeslots
+    ROScalarColumn<Double>         TIME_col(orderedMainTable, "TIME");
+    Double firstdate               = TIME_col(0);
+    Double lastdate                = TIME_col(NumSamples-1);
+    NumTimeslots                   = 1 + int((lastdate-firstdate)/Interval + 0.5);
+  }
 
   //calculate number of baselines.
+  // It assumes auto-correlations are present.
   NumPairs = (NumAntennae) * (NumAntennae + 1) / 2; //Triangular numbers formula
 
   //calculate number of Bands
@@ -127,7 +125,13 @@ void MsInfo::Update(void)
   else
   { NumBands                       = spectral_window.nrow();
   }
-
+  if (checkRegularity) {
+    ASSERTSTR (NumBands*NumTimeslots*NumPairs == NumSamples,
+               "The MS cannot be handled by DPPP; it should contain:\n"
+               " - cross and auto-correlations for all antennae in ANTENNA table\n"
+               " - no missing time slots\n"
+               " - the same interval length for each time slot");
+  }
   PairsIndex.resize(NumPairs);
 
   int index = 0;
@@ -139,6 +143,12 @@ void MsInfo::Update(void)
   }
 
   ComputeBaselineLengths(MS);
+}
+
+//===============>>>  Ms_Info::~Ms_Info  <<<===============
+
+MsInfo::~MsInfo()
+{
 }
 
 //===============>>> MS_Info::PrintInfo  <<<===============
@@ -164,7 +174,7 @@ void MsInfo::PrintInfo(void)
 //===============>>> MS_Info::ComputeBaselineLengths  <<<===============
 /* compute baseline lengths, and determine the longest one.*/
 
-void MsInfo::ComputeBaselineLengths(casa::MeasurementSet& MS)
+void MsInfo::ComputeBaselineLengths(const casa::MeasurementSet& MS)
 {
   BaselineLengths.resize(NumPairs);
   //Antenna positions

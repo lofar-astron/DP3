@@ -41,7 +41,7 @@ namespace LOFAR
   {
     EXCEPTION_CLASS(PipelineException, LOFAR::Exception);
 
-    ///Foreward declaration
+    //# Forward declaration
     class MsInfo;
     class RunDetails;
 
@@ -50,6 +50,16 @@ namespace LOFAR
     public:
       MsFile(const std::string& msin, const std::string& msout);
       ~MsFile();
+
+      // Get the input MS.
+      const casa::MeasurementSet& getInMS() const
+        { return *InMS; }
+      // Get the ordered input main table.
+      const casa::Table& getOrderedInTable() const
+        { return itsOrderedTable; }
+      // Get the output MS.
+      const casa::MeasurementSet& getOutMS() const
+        { return *OutMS; }
 
       /// Iterator to process all data from one integration time at the same time
       casa::TableIterator TimeIterator();
@@ -86,6 +96,7 @@ namespace LOFAR
       std::string OutName;
       casa::MeasurementSet* InMS;
       casa::MeasurementSet* OutMS;
+      casa::Table           itsOrderedTable;
       bool itsHasWeightSpectrum;
     }; // class MsFile
   }; // CS1

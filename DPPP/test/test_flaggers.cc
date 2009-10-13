@@ -33,9 +33,9 @@ using namespace LOFAR::CS1;
 using namespace casa;
 #define SIZE 7;
 
-int main(int argc, char *argv[])
+int main()
 {
-  MsInfo  info("TEST.MS");
+  MsInfo info;
   info.NumSamples       = 1;
   info.NumAntennae      = 1;
   info.NumFields        = 1;

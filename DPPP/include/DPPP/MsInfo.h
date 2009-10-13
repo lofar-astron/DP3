@@ -43,7 +43,16 @@ namespace LOFAR
     class MsInfo
     {
     public:
-      MsInfo(const std::string& msname);
+      // Default constructor initializes to zero values.
+      MsInfo();
+
+      // Create from the MeasurementSet.
+      // The orderedMainTable is the main table in time order. It can be the same
+      // as the MeasurementSet if it is already in time order.
+      // If \c check is set, it is checked if the data in the MS are regular.
+      MsInfo(const casa::MeasurementSet& ms, const casa::Table& orderedMainTable,
+             bool checkRegularity);
+
       ~MsInfo();
 
       int                       NumSamples;
@@ -62,13 +71,13 @@ namespace LOFAR
       std::map<baseline_t, int> BaselineIndex;
       std::vector<double>       BaselineLengths;
 
-      void                      Update(void); ///< reread the info from the MeasurementSet
-      void                      PrintInfo(void); ///< prints info to cout, for debugging
+      // print info to cout, for debugging.
+      void                      PrintInfo(void);
 
     protected:
     private:
-      std::string MsName;
-      void        ComputeBaselineLengths(casa::MeasurementSet& MS); ///< for baseline dependent flagging or filtering
+      // Calculate baseline length for baseline dependent flagging or filtering.
+      void        ComputeBaselineLengths(const casa::MeasurementSet& MS);
     }; // class MsInfo
   }; // CS1
 }; // namespace LOFAR

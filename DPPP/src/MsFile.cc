@@ -40,12 +40,12 @@ using namespace casa;
 
 MsFile::MsFile(const std::string& msin, const std::string& msout):
   SELECTblock(20),
-  InMS(NULL),
-  OutMS(NULL),
+  InName  (msin),
+  OutName (msout),
+  InMS    (NULL),
+  OutMS   (NULL),
   itsHasWeightSpectrum(false)
 {
-  InName  = msin;
-  OutName = msout;
 /* tableCommand(string("SELECT UVW,FLAG_CATEGORY,WEIGHT,SIGMA,ANTENNA1,ANTENNA2,ARRAY_ID,DATA_DESC_ID,") +
                 string("EXPOSURE,FEED1,FEED2,FIELD_ID,FLAG_ROW,INTERVAL,OBSERVATION_ID,PROCESSOR_ID,") +
                 string("SCAN_NUMBER,STATE_ID,TIME,TIME_CENTROID FROM $1"),
@@ -71,6 +71,24 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
   SELECTblock[17] = "STATE_ID";
   SELECTblock[18] = "TIME";
   SELECTblock[19] = "TIME_CENTROID";
+  // Open the MS and obtain the description.
+  InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
+  // Get the main table in TIME order.
+  // Determine if stored using LofarStMan; If so, we know it is in time order.
+  {
+    Record dminfo = InMS->dataManagerInfo();
+    for (unsigned i=0; i<dminfo.nfields(); ++i) {
+      Record subrec = dminfo.subRecord(i);
+      if (subrec.asString("TYPE") == "LofarStMan") {
+        itsOrderedTable = *InMS;
+        break;
+      }
+    }
+    // If not in time order, sort the main table.
+    if (itsOrderedTable.isNull()) {
+      itsOrderedTable = InMS->sort ("TIME");
+    }
+  }
 }
 
 //===============>>>  MsFile::~MsFile  <<<===============
@@ -122,9 +140,9 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
   std::cout << "Preparing output MS " << OutName << std::endl;
-  // Open the MS and obtain the description.
-  InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
+  // Obtain the MS description.
   TableDesc tdesc = InMS->tableDesc();
+  // Test if WEIGHT_SPECTRUM is present.
   if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
     // The column is there, but it might not contain values. Test row 0.
     itsHasWeightSpectrum = ROArrayColumn<Float>(*InMS, "WEIGHT_SPECTRUM").isDefined(0);
@@ -312,24 +330,10 @@ void MsFile::PrintInfo(void)
 
 TableIterator MsFile::TimeIterator()
 {
-  // Usually a needless sort on TIME does not harm so much.
-  // However, for LofarStMan is can be quite costly. As we know its data
-  // is always in time order, we do not sort for LofarStMan.
-  // Determine that by looking at the storage manager type.
-  TableIterator::Option opt = TableIterator::QuickSort;
-  Record dminfo = InMS->dataManagerInfo();
-  for (unsigned i=0; i<dminfo.nfields(); ++i) {
-    Record subrec = dminfo.subRecord(i);
-    if (subrec.asString("TYPE") == "LofarStMan") {
-      opt = TableIterator::NoSort;
-      break;
-    }
-  }
   Block<String> ms_iteration_variables(1);
   ms_iteration_variables[0] = "TIME";
-
-  return TableIterator((*InMS), ms_iteration_variables,
-                       TableIterator::Ascending, opt);
+  return TableIterator(itsOrderedTable, ms_iteration_variables,
+                       TableIterator::Ascending, TableIterator::NoSort);
 }
 
 //===============>>> MsFile::UpdateTimeslotData  <<<===============
