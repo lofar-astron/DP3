@@ -49,9 +49,7 @@ namespace LOFAR
       // Create from the MeasurementSet.
       // The orderedMainTable is the main table in time order. It can be the same
       // as the MeasurementSet if it is already in time order.
-      // If \c check is set, it is checked if the data in the MS are regular.
-      MsInfo(const casa::MeasurementSet& ms, const casa::Table& orderedMainTable,
-             bool checkRegularity);
+      MsInfo(const casa::MeasurementSet& ms, const casa::Table& orderedMainTable);
 
       ~MsInfo();
 

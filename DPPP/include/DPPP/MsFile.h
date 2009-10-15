@@ -73,7 +73,9 @@ namespace LOFAR
       void UpdateTimeslotData(casa::TableIterator& Data_iter,
                               MsInfo& Info,
                               DataBuffer& Buffer,
-                              TimeBuffer& TimeData);
+                              TimeBuffer& TimeData,
+			      bool missingTime,
+			      double timeValue);
       /// Writes the data in DataBuffer->Position+1 to the file
       void WriteData(casa::TableIterator& Data_iter,
                      MsInfo& Info,
@@ -89,6 +91,9 @@ namespace LOFAR
       /// Function for adding a table column.
       void TableResize(casa::ColumnDesc desc, const casa::IPosition& ipos,
                        casa::TiledColumnStMan* tsm, casa::Table& table);
+
+      // Check for time gaps.
+      void checkGaps() const;
 
       casa::IPosition DetermineDATAshape(const casa::Table& MS);
       casa::Block<casa::String> SELECTblock;

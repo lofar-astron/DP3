@@ -121,10 +121,26 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   TableIterator time_iter    = (*myFile).TimeIterator();
   int           TimeCounter  = 0;
   int           WriteCounter = 0;
+  double lastTime = 0;
+  double interval = -1;
   while (!time_iter.pastEnd())
   {
+    double time = ROScalarColumn<Double>(time_iter.table(), "TIME")(0);
+    // If first time, fill in interval size.
+    // Otherwise check if there are missing time slots.
+    bool missingTime = false;
+    if (interval < 0) {
+      interval = ROScalarColumn<Double>(time_iter.table(), "INTERVAL")(0);
+    } else {
+      if (lastTime + interval + 0.1 < time) {
+        time = lastTime + interval;
+        missingTime = true;
+      }
+    }
+    lastTime = time;
     BandpassData->Position = ++(BandpassData->Position) % BandpassData->WindowSize;
-    myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData);
+    myFile->UpdateTimeslotData(time_iter, *myInfo, *BandpassData, *TimeData,
+                               missingTime, time);
     if (myBandpass)
     { myBandpass->ProcessTimeslot(*BandpassData, *myInfo, *myDetails);
     }
@@ -150,8 +166,10 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
     }
     nrowProc += time_iter.table().nrow();
     progress.update(nrowProc, True);
-    time_iter++;
     TimeCounter++;
+    if (!missingTime) {
+      time_iter++;
+    }
   }
   time_iter.reset(); //we still need a table as a template for writing the data
   for (int i = 1; i <= (FlaggerData->WindowSize - 1); i++) //write the last couple of values

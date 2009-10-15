@@ -48,8 +48,7 @@ MsInfo::MsInfo():
   MaxBaselineLength(0.0)
 {}
 
-MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable,
-               bool checkRegularity):
+MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   NumSamples(0),
   NumAntennae(0),
   NumFields(0),
@@ -119,19 +118,13 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable,
   NumPairs = (NumAntennae) * (NumAntennae + 1) / 2; //Triangular numbers formula
 
   //calculate number of Bands
+  // Take care of possible missing time slots.
   if (NumSamples)
-  { NumBands                       = NumSamples / (NumPairs * NumTimeslots);
+  { NumBands  = int(double(NumSamples) / (NumPairs * NumTimeslots) + 0.9);
   }
   else
-  { NumBands                       = spectral_window.nrow();
+  { NumBands = spectral_window.nrow();
   }
-  ///  if (checkRegularity) {
-  ///    ASSERTSTR (NumBands*NumTimeslots*NumPairs == NumSamples,
-  ///               "The MS cannot be handled by DPPP; it should contain:\n"
-  ///               " - cross and auto-correlations for all antennae in ANTENNA table\n"
-  ///               " - no missing time slots\n"
-  ///               " - the same interval length for each time slot");
-///  }
   PairsIndex.resize(NumPairs);
 
   int index = 0;

@@ -32,6 +32,7 @@
 #include <DPPP/MsInfo.h>
 #include <DPPP/RunDetails.h>
 #include <DPPP/TimeBuffer.h>
+#include <Common/LofarLogger.h>
 
 using namespace LOFAR::CS1;
 using namespace casa;
@@ -73,6 +74,12 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
   SELECTblock[19] = "TIME_CENTROID";
   // Open the MS and obtain the description.
   InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
+  // Test if WEIGHT_SPECTRUM is present.
+  TableDesc tdesc = InMS->tableDesc();
+  if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
+    // The column is there, but it might not contain values. Test row 0.
+    itsHasWeightSpectrum = ROArrayColumn<Float>(*InMS, "WEIGHT_SPECTRUM").isDefined(0);
+  }
   // Get the main table in TIME order.
   // Determine if stored using LofarStMan; If so, we know it is in time order.
   {
@@ -87,6 +94,7 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
     // If not in time order, sort the main table.
     if (itsOrderedTable.isNull()) {
       itsOrderedTable = InMS->sort ("TIME");
+      checkGaps();
     }
   }
 }
@@ -142,11 +150,6 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   std::cout << "Preparing output MS " << OutName << std::endl;
   // Obtain the MS description.
   TableDesc tdesc = InMS->tableDesc();
-  // Test if WEIGHT_SPECTRUM is present.
-  if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
-    // The column is there, but it might not contain values. Test row 0.
-    itsHasWeightSpectrum = ROArrayColumn<Float>(*InMS, "WEIGHT_SPECTRUM").isDefined(0);
-  }
   // Determine the output data shape.
   const ColumnDesc& desc = tdesc.columnDesc("DATA");
   IPosition data_ipos = DetermineDATAshape(*InMS);
@@ -340,7 +343,9 @@ TableIterator MsFile::TimeIterator()
 void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
                                 MsInfo& Info,
                                 DataBuffer& Buffer,
-                                TimeBuffer& TimeData)
+                                TimeBuffer& TimeData,
+                                bool missingTime,
+                                double timeValue)
 {
   Table         TimeslotTable = Data_iter.table();
   int           rowcount      = TimeslotTable.nrow();
@@ -351,7 +356,6 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   ROArrayColumn<Complex>        data          (TimeslotTable, "DATA");
   ROArrayColumn<Double>         uvw           (TimeslotTable, "UVW");
   ROTableVector<Double>         time_centroid (TimeslotTable, "TIME_CENTROID");
-  ROTableVector<Double>         time          (TimeslotTable, "TIME");
   ROTableVector<Double>         interval      (TimeslotTable, "INTERVAL");
   ROTableVector<Double>         exposure      (TimeslotTable, "EXPOSURE");
   ROArrayColumn<Bool>           flags         (TimeslotTable, "FLAG");
@@ -374,16 +378,23 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   Matrix<Float>                 tempWeights(Info.NumPolarizations, rowcount);
   Cube<Float>                   tempWeightSpectrum(Info.NumPolarizations, Info.NumChannels, rowcount);
 
-  data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
-  if (columns)
-  { modeldata.getColumn(tempModelData);
-    correcteddata.getColumn(tempCorrectedData);
-  }
-  flags.getColumn(tempFlags);
-  if (itsHasWeightSpectrum) {
-    weights.getColumn(tempWeightSpectrum);
+  if (missingTime) {
+    // Clear the array; note that tempData is already initialized tovComplex().
+    tempFlags = True;
+    tempWeights = 0;
+    tempWeightSpectrum = 0;
   } else {
-    weights.getColumn(tempWeights);
+    data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
+    if (columns)
+      { modeldata.getColumn(tempModelData);
+        correcteddata.getColumn(tempCorrectedData);
+      }
+    flags.getColumn(tempFlags);
+    if (itsHasWeightSpectrum) {
+      weights.getColumn(tempWeightSpectrum);
+    } else {
+      weights.getColumn(tempWeights);
+    }
   }
 
   for (int i = 0; i < rowcount; i++)
@@ -415,7 +426,7 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
       }
     }
 
-    TimeData.BufTime[index].push_front(time(i));
+    TimeData.BufTime[index].push_front(timeValue);
     TimeData.BufTimeCentroid[index].push_front(time_centroid(i));
     TimeData.BufInterval[index].push_front(interval(i));
     TimeData.BufExposure[index].push_front(exposure(i));
@@ -480,6 +491,96 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
     }
   }
   TimeData.Clear();
+}
+
+
+void MsFile::checkGaps() const
+{
+  Vector<Double> times = ROScalarColumn<Double>(itsOrderedTable,"TIME").getColumn();
+  // Make unique; use insertion sort, because it is already in time order.
+  int nrtim = genSort (times, Sort::InsSort + Sort::NoDuplicates);
+  // Now check if data set is regular.
+  int nrant = InMS->antenna().nrow();
+  int nrbasel = nrant * (nrant+1) / 2;    // includes auto-correlations
+  int nrsample = InMS->nrow();
+  int nrband = nrsample / (nrbasel * nrtim);
+  ASSERTSTR (nrband * nrtim * nrbasel == nrsample,
+             "The MS cannot be handled by DPPP; it should contain:\n"
+             " - cross and auto-correlations for all antennae in ANTENNA table\n"
+             " - no missing time slots\n"
+             " - the same interval length for each time slot\n"
+             " #bands=" << nrband << " #timeslots=" << nrtim
+             << " #baselines=" << nrbasel << " #samples=" << nrsample);
+  // Now test if times are regular.
+  ROScalarColumn<Double> intvCol(itsOrderedTable, "INTERVAL");
+  Double intv = intvCol(0);
+  bool correct = false;
+  for (int i=1; i<nrtim-1; ++i) {
+    Double diff = times[i] - times[i-1];
+    if (!near (diff, intv, 1e-3)) {
+      if (!correct) {
+        cout << "Normal time interval is " << intv << " seconds" << endl;
+      }
+      cout << "Time slot " << i << " is " << diff
+           << " seconds after previous; will add "
+           << int(diff/intv + 0.1)-1
+           << " flagged time slots" << endl;
+    }
+  }
+/*
+  if (!correct) {
+    return;
+  }
+  // We have to add rows, so reopen for write.
+  InMS->reopenRW();
+  ArrayColumn<Complex> dataCol(*InMS, "DATA");
+  ArrayColumn<Bool>    flagCol(*InMS, "FLAG");
+  ScalarColumn<Double> timeCol(*InMS, "TIME");
+  // Set the data and flag array to put (all zeroes and True flags).
+  Array<Complex> data = dataCol(0);
+  Array<Bool> flags   = flagCol(0);
+  data  = Complex();
+  flags = True;
+  // Determine #rows per time slot.
+  int nrrowTime = nrbasel * nrband;
+  // Create a TableRow object for the data to copy.
+  // All cells from another time slot can be copied except a few columns.
+  Vector<String> skipColumns(3);
+  skipColumns[0] = "TIME";
+  skipColumns[1] = "DATA";
+  skipColumns[2] = "FLAG";
+  TableRow tabrow(*InMS, skipColumns, True);
+  // Now loop over all times and determine which time slots to add.
+  for (int i=1; i<nrtim-1; ++i) {
+    Double diff = times[i] - times[i-1];
+    if (!near (diff, intv, 1e-3)) {
+      // Add one or more time slots.
+      int nrtimeInsert = int(diff/intv + 0.1) - 1;
+      // Add at the end of the table.
+      int outRownr = InMS->nrow();
+      InMS->addRow (nrtimeInsert * nrrowTime);
+      // Get the time stamp.
+      Double time = times[i-1] + intv;
+      // Add all time slots.
+      for (int j=0; j<nrtimeInsert; ++j) {
+        // Copy the data from the previous time slot.
+        int inRownr = (i-1) * nrrowTime;
+        for (int k=0; k<nrrowTime; ++k) {
+          tabrow.get (inRownr);
+          tabrow.put (outRownr);
+          timeCol.put (outRownr, time);
+          dataCol.put (outRownr, data);
+          flagCol.put (outRownr, flags);
+          ++inRownr;
+          ++outRownr;
+        }
+        time += intv;
+      }
+    }
+  }
+  InMS->flush();
+  itsOrderedTable = InMS->sort ("TIME");
+*/
 }
 
 //===============>>> MsFile  <<<===============

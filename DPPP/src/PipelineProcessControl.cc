@@ -133,7 +133,7 @@ namespace LOFAR
         std::cout << "Runnning pipeline please wait..." << std::endl;
         myFile->Init(*myInfo, *myDetails, itsSquasher);
         myFile->PrintInfo();
-        MsInfo* outInfo = new MsInfo(myFile->getOutMS(), myFile->getOutMS(), false);
+        MsInfo* outInfo = new MsInfo(myFile->getOutMS(), myFile->getOutMS());
         outInfo->PrintInfo();
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
@@ -174,7 +174,7 @@ namespace LOFAR
                 string("Documentation can be found at: www.lofar.org/operations\n");
 
         myFile     = new MsFile(itsInMS, itsOutMS);
-        myInfo     = new MsInfo(myFile->getInMS(), myFile->getOrderedInTable(), true);
+        myInfo     = new MsInfo(myFile->getInMS(), myFile->getOrderedInTable());
         myInfo->PrintInfo();
         switch (itsBandpass)
         {
