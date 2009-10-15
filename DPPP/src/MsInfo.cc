@@ -125,13 +125,13 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable,
   else
   { NumBands                       = spectral_window.nrow();
   }
-  if (checkRegularity) {
-    ASSERTSTR (NumBands*NumTimeslots*NumPairs == NumSamples,
-               "The MS cannot be handled by DPPP; it should contain:\n"
-               " - cross and auto-correlations for all antennae in ANTENNA table\n"
-               " - no missing time slots\n"
-               " - the same interval length for each time slot");
-  }
+  ///  if (checkRegularity) {
+  ///    ASSERTSTR (NumBands*NumTimeslots*NumPairs == NumSamples,
+  ///               "The MS cannot be handled by DPPP; it should contain:\n"
+  ///               " - cross and auto-correlations for all antennae in ANTENNA table\n"
+  ///               " - no missing time slots\n"
+  ///               " - the same interval length for each time slot");
+///  }
   PairsIndex.resize(NumPairs);
 
   int index = 0;
