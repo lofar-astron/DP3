@@ -1,0 +1,116 @@
+#!/bin/sh
+
+# mwflagger: Script to start a distributed rfiflagger process
+#
+# Copyright (C) 2009
+# ASTRON (Netherlands Institute for Radio Astronomy)
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+#
+# This file is part of the LOFAR software suite.
+# The LOFAR software suite is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The LOFAR software suite is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+#
+# @author Ger van Diepen <diepen AT astron nl>
+#
+# $Id$
+
+
+# Find the path used to start the script.
+pgmpath=`dirname $0`
+pgmpath=`cd $pgmpath > /dev/null 2>&1  &&  pwd`
+
+# Check if LOFARROOT is set.
+if test "$LOFARROOT" = ""; then
+  echo "LOFARROOT is undefined; source lofarinit.(c)sh first"
+  exit 1
+fi
+
+# First argument must be ms-name.
+if test $# = 0; then
+  echo "run as:   mwflagger parset-file [clusterdesc] [wd] [logfile] [dry] [hfn]"
+  echo "       parset-file   name of parset file"
+  echo "       clusterdesc   name of clusterdesc file"
+  echo "                     default is $HOME/CEP.clusterdesc"
+  echo "       wd            working directory in subprocesses which will get"
+  echo "                     the log files"
+  echo "                     default is same directory as MS"
+  echo "       logfile       root name of logfile of each subprocess"
+  echo "                     A sequence number gets appended to it"
+  echo "                     default is mwflagger.log"
+  echo "       dry           dry = do a dry run, i.e. only print commands"
+  echo "       hfn           name of the hostfile (machinefile) created"
+  echo "                     by startdistproc"
+  echo "                     Only needed for test purposes"
+  exit 1
+fi
+
+psn=$1
+shift
+cdn=
+if test $# != 0; then
+  cdn=$1
+  shift
+fi
+if test "$cdn" = ""; then
+  cdn=$HOME/CEP.clusterdesc
+fi
+wd=
+if test $# != 0; then
+  wd=$1
+  shift
+fi
+if test "$wd" = ""; then
+  wd="..."         # an empty wd fails in startdistproc
+fi
+logfile=
+if test $# != 0; then
+  logfile=$1
+  shift
+fi
+dry=
+if test $# != 0; then
+  dry=$1
+  shift
+fi
+if test "$dry" = ""; then
+  dry="nodry"
+fi
+hfn=
+if test $# != 0; then
+  hfn=$1
+  shift
+fi
+
+# Make all file names absolute.
+dn=`dirname $psn`
+psn=`cd $dn > /dev/null; pwd`/`basename $psn`
+dn=`dirname $cdn`
+cdn=`cd $dn > /dev/null; pwd`/`basename $cdn`
+if test "$hfn" != ""; then
+  dn=`dirname $hfn`
+  hfn=`cd $dn > /dev/null; pwd`/`basename $hfn`
+fi
+
+# Get dataset name from the parset.
+# If it is an MS, operate directly on it (as rank 0).
+msvds=`getparsetvalue $psn dataset` || exit 1
+if test -d "$msvds"  -a  -e "$msvds/table.dat"; then
+  echo "mwflagger-part '' '' '' '$msvds' 0 '' '' '$psn' '$wd' '$dry'"
+  mwflagger-part "" "" "" "$msvds" 0 "" "" "$psn" "$wd" "$dry" 
+
+else
+  # Start the imager processes on the various machines.
+  echo "startdistproc -useenv -mode 0 -nomasterhost -dsn '$msvds' -hfn '$hfn' -cdn '$cdn' -logfile '$logfile' $pgmpath/mwflagger-part '$psn' '$wd' '$dry'"
+  startdistproc -useenv -mode 0 -nomasterhost -dsn "$msvds" -hfn "$hfn" -cdn "$cdn" -logfile "$logfile" $pgmpath/mwflagger-part "$psn" "$wd" "$dry"
+fi
+

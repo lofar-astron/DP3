@@ -5,7 +5,7 @@ CHECKTOOLPROGS        = $(CHECK_PROGRAMS)
 #ENDCHECKTOOLPROGS
 
 # scripts used to run tests
-TESTSCRIPTS           = test_flaggers.sh
+TESTSCRIPTS           = test_flaggers.sh tmwflagger.sh
 
 # scripts and possible programs to run tests
 TESTS                 = $(TESTSCRIPTS)

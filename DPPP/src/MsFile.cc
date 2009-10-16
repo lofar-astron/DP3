@@ -527,60 +527,6 @@ void MsFile::checkGaps() const
            << " flagged time slots" << endl;
     }
   }
-/*
-  if (!correct) {
-    return;
-  }
-  // We have to add rows, so reopen for write.
-  InMS->reopenRW();
-  ArrayColumn<Complex> dataCol(*InMS, "DATA");
-  ArrayColumn<Bool>    flagCol(*InMS, "FLAG");
-  ScalarColumn<Double> timeCol(*InMS, "TIME");
-  // Set the data and flag array to put (all zeroes and True flags).
-  Array<Complex> data = dataCol(0);
-  Array<Bool> flags   = flagCol(0);
-  data  = Complex();
-  flags = True;
-  // Determine #rows per time slot.
-  int nrrowTime = nrbasel * nrband;
-  // Create a TableRow object for the data to copy.
-  // All cells from another time slot can be copied except a few columns.
-  Vector<String> skipColumns(3);
-  skipColumns[0] = "TIME";
-  skipColumns[1] = "DATA";
-  skipColumns[2] = "FLAG";
-  TableRow tabrow(*InMS, skipColumns, True);
-  // Now loop over all times and determine which time slots to add.
-  for (int i=1; i<nrtim-1; ++i) {
-    Double diff = times[i] - times[i-1];
-    if (!near (diff, intv, 1e-3)) {
-      // Add one or more time slots.
-      int nrtimeInsert = int(diff/intv + 0.1) - 1;
-      // Add at the end of the table.
-      int outRownr = InMS->nrow();
-      InMS->addRow (nrtimeInsert * nrrowTime);
-      // Get the time stamp.
-      Double time = times[i-1] + intv;
-      // Add all time slots.
-      for (int j=0; j<nrtimeInsert; ++j) {
-        // Copy the data from the previous time slot.
-        int inRownr = (i-1) * nrrowTime;
-        for (int k=0; k<nrrowTime; ++k) {
-          tabrow.get (inRownr);
-          tabrow.put (outRownr);
-          timeCol.put (outRownr, time);
-          dataCol.put (outRownr, data);
-          flagCol.put (outRownr, flags);
-          ++inRownr;
-          ++outRownr;
-        }
-        time += intv;
-      }
-    }
-  }
-  InMS->flush();
-  itsOrderedTable = InMS->sort ("TIME");
-*/
 }
 
 //===============>>> MsFile  <<<===============
