@@ -28,11 +28,10 @@ include(LofarInit)
 ## ---------------------------------------------------------------------------
 ## Project characteristics
 ## ---------------------------------------------------------------------------
-project(DPPP)
 include(LofarGeneral)
 
 include(LofarPackage)
-lofar_package(${PROJECT_NAME} 1.0 DEPENDS Common MS PLC)
+lofar_package(DPPP 1.0 DEPENDS Common MS PLC)
 
 ## ---------------------------------------------------------------------------
 ## External packages

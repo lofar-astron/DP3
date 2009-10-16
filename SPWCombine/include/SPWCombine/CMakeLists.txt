@@ -25,8 +25,8 @@ set(inst_HEADERS
 
 # Add definition of include path suffix definition, because the header files
 # reside in a non-standard location.
-set(${PROJECT_NAME}_INCLUDE_PATH_SUFFIX SPWCombine
-  CACHE INTERNAL "Include path suffix for package \"${PROJECT_NAME}\"")
+set(${PACKAGE_NAME}_INCLUDE_PATH_SUFFIX SPWCombine
+  CACHE INTERNAL "Include path suffix for package \"${PACKAGE_NAME}\"")
 
 # Create symbolic link to include directory.
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink 
@@ -34,4 +34,4 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
   ${CMAKE_BINARY_DIR}/include/SPWCombine)
 
 # Install header files.
-install(FILES ${inst_HEADERS} DESTINATION include/${PROJECT_NAME})
+install(FILES ${inst_HEADERS} DESTINATION include/${PACKAGE_NAME})

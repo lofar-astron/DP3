@@ -28,11 +28,10 @@ include(LofarInit)
 ## ---------------------------------------------------------------------------
 ## Project characteristics
 ## ---------------------------------------------------------------------------
-project(SPW_Combine)
 include(LofarGeneral)
 
 include(LofarPackage)
-lofar_package(${PROJECT_NAME} 1.0 DEPENDS Common PLC)
+lofar_package(SPW_Combine 1.0 DEPENDS Common PLC)
 
 ## ---------------------------------------------------------------------------
 ## External packages
