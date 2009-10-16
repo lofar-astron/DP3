@@ -26,6 +26,8 @@ IDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 pythondir = $(bindir)
 dist_python_SCRIPTS =
 
+scriptdir = $(bindir)
+dist_script_SCRIPTS = mwflagger mwflagger-part
 
 versiondppp_SOURCES      = versiondppp.cc
 versiondppp_LDADD        = libdppp.la

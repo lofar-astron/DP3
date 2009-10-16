@@ -13,7 +13,10 @@ TESTS                 = $(TESTSCRIPTS)
 XFAIL_TESTS           =
 
 # all files (.run, .stdout, .in, .log_prop, etc.) needed to run tests
-EXTRA_DIST            = $(TESTSCRIPTS)
+EXTRA_DIST            = $(TESTSCRIPTS) \
+			  tmwflagger.run \
+			  tmwflagger.in_cd tmwflagger.in_vd \
+			  tmwflagger.parset tmwflagger.stdout
 
 # Lines to build a test program testprg
 test_flaggers_SOURCES                = test_flaggers.cc

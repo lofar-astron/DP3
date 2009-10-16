@@ -21,3 +21,8 @@ lofar_add_library(dppp
 
 lofar_add_bin_program(CS1_IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
+
+install(PROGRAMS
+  mwflagger
+  mwflagger-part
+  DESTINATION bin)
