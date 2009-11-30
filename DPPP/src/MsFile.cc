@@ -156,8 +156,16 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   std::cout << "Old shape: " << data_ipos[0] << ":" <<  data_ipos[1] << std::endl;
   int old_nchan = data_ipos[1];
   int new_nchan = old_nchan;
+  int nchan = Details.NChan;
+  if (nchan <= 0) {
+    nchan = old_nchan - Details.Start;
+  }
+  if (nchan <= 0) {
+    THROW(PipelineException, "Error, no channels left (incorrect Start or NChan)");
+  }    
   if (Squashing)
-    { new_nchan     = Details.NChan/Details.Step;
+    { Details.NChan = nchan;
+      new_nchan     = std::max(1u, nchan/Details.Step);
       data_ipos[1]  = new_nchan;
     }
   else

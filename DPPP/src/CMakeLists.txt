@@ -19,7 +19,7 @@ lofar_add_library(dppp
   ProgressMeter.cc
   Pipeline.cc)
 
-lofar_add_bin_program(CS1_IDPPP IDPPP.cc PipelineProcessControl.cc)
+lofar_add_bin_program(IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 
 install(PROGRAMS

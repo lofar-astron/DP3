@@ -27,6 +27,11 @@
 #include <DPPP/PipelineProcessControl.h>
 #include <Common/LofarLogger.h>
 
+// IDPPP is under control of ACC.
+// It can be run outside ACC as:
+//      IDPPP parsetfile 1
+// where 1 is the nr of runs.
+
 int main(int argc, char *argv[])
 {
   try

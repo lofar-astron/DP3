@@ -90,9 +90,9 @@ namespace LOFAR
       myDetails->MinThreshold = ParamSet->getDouble("min", 0.0);           // ComplexMedianFlagger
       myDetails->MaxThreshold = ParamSet->getDouble("max", 0.0);           // ComplexMedianFlagger, MADFlagger
       myDetails->Existing     = ParamSet->getBool("existing", false);      // all flaggers
-      myDetails->NChan        = ParamSet->getUint32("nchan");              // DataSquasher
-      myDetails->Start        = ParamSet->getUint32("start");              // DataSquasher
-      myDetails->Step         = ParamSet->getUint32("step");               // DataSquasher
+      myDetails->NChan        = ParamSet->getUint32("nchan", 0);           // DataSquasher
+      myDetails->Start        = ParamSet->getUint32("start", 0);           // DataSquasher
+      myDetails->Step         = ParamSet->getUint32("step", 1);            // DataSquasher
       myDetails->Skip         = ParamSet->getBool("skipflags", false);     // DataSquasher
       myDetails->Columns      = ParamSet->getBool("allcolumns", false);    // DataSquasher
       myDetails->TimeStep     = ParamSet->getUint32("timestep", 1);        // DataSquasher
@@ -158,6 +158,11 @@ namespace LOFAR
         std::cerr << "AIPS++/Casa(core) error detected: " << err.getMesg() << std::endl;
         return false;
       }
+      catch(std::exception& err)
+      {
+        std::cerr << "std::exception detected: " << err.what() << std::endl;
+        return false;
+      }
       return true;
     }
 
@@ -169,7 +174,7 @@ namespace LOFAR
         using std::cerr;
         using std::endl;
 
-        cout  << string(PIPELINE_VERSION) + string(" Integrated Data Post Processing Pipeline by Adriaan Renting and others for LOFAR CS1 data\n") +
+        cout  << string(PIPELINE_VERSION) + string(" Integrated Data Post Processing Pipeline by Adriaan Renting and others for LOFAR data\n") +
                 string("This is experimental software, please report errors or requests to renting@astron.nl\n") +
                 string("Documentation can be found at: www.lofar.org/operations\n");
 
