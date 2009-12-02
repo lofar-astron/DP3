@@ -157,15 +157,27 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   int old_nchan = data_ipos[1];
   int new_nchan = old_nchan;
   int nchan = Details.NChan;
-  if (nchan <= 0) {
-    nchan = old_nchan - Details.Start;
+  int nchanmax = old_nchan - Details.Start;
+  if (nchan <= 0  ||  nchan > nchanmax) {
+    nchan = nchanmax;
   }
   if (nchan <= 0) {
     THROW(PipelineException, "Error, no channels left (incorrect Start or NChan)");
-  }    
+  }
   if (Squashing)
     { Details.NChan = nchan;
-      new_nchan     = std::max(1u, nchan/Details.Step);
+      new_nchan     = (nchan + Details.Step - 1) / Details.Step;
+      if (new_nchan == 1) {
+        Details.Step = nchan;
+      }
+      // For the time being throw an exception if not divisible.
+      // If not divisible, it works fine in the CHAN_FREQ averaging below,
+      // but averaging in DataSquasher might fail.
+      // I do not have time to investigate that.
+      // Furthermore people may not like channels of unequal size.
+      if (nchan != new_nchan*int(Details.Step)) {
+        THROW(PipelineException, "Error: Step does not evenly divide nchan");
+      }
       data_ipos[1]  = new_nchan;
     }
   else
@@ -245,8 +257,10 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       TiledColumnStMan tsmc("CorrectedData", tileShape);
       TableResize(tdesc["CORRECTED_DATA"], data_ipos, &tsmc, outtable);
 
-      TiledColumnStMan tsmw("TiledImagingWeight", tileShape);
-      TableResize(tdesc["IMAGING_WEIGHT"], data_ipos, &tsmw, outtable);
+      IPosition iwShape(1, data_ipos[1]);
+      IPosition iwShapeTile(2, tileShape[1], tileShape[2]);
+      TiledColumnStMan tsmw("TiledImagingWeight", iwShapeTile);
+      TableResize(tdesc["IMAGING_WEIGHT"], iwShape, &tsmw, outtable);
     }
     else
     {
@@ -293,38 +307,46 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
   ArrayColumn<Double> outWIDTH(outSPW, "CHAN_WIDTH");
   ArrayColumn<Double> outBW(outSPW, "EFFECTIVE_BW");
   ArrayColumn<Double> outRESOLUTION(outSPW, "RESOLUTION");
+  ScalarColumn<Double> outTOTALBW(outSPW, "TOTAL_BANDWIDTH");
 
-  Vector<Double> old_temp(old_nchan, 0.0);
-  Vector<Double> new_temp(new_nchan, 0.0);
+  Vector<Double> old_freq(old_nchan, 0.0);
+  Vector<Double> new_freq(new_nchan, 0.0);
+  Vector<Double> old_width(old_nchan, 0.0);
+  Vector<Double> new_width(new_nchan, 0.0);
+  Vector<Double> old_bw(old_nchan, 0.0);
+  Vector<Double> new_bw(new_nchan, 0.0);
+  Vector<Double> old_res(old_nchan, 0.0);
+  Vector<Double> new_res(new_nchan, 0.0);
 
   for (unsigned int i = 0; i < inSPW.nrow(); i++)
   {
+    inFREQ.get(i, old_freq);
+    inWIDTH.get(i, old_width);
+    inBW.get(i, old_bw);
+    inRESOLUTION.get(i, old_res);
+    double totalbw = 0;
+    uint first = Details.Start;
+    uint last  = first + Details.Step;
+    // This loops assumes regularly spaced, adjacent frequency channels.
     for (int j = 0; j < new_nchan; j++)
-    { inFREQ.get(i, old_temp);
-      if (Details.Step % 2) //odd number of channels in step
-      { new_temp(j) = old_temp(Details.Start + j*Details.Step + (Details.Step - 1)/2);
+    { 
+      if (last > old_freq.size()) {
+        last = old_freq.size();
       }
-      else //even number of channels in step
-      { new_temp(j) = 0.5 * (old_temp(Details.Start + j*Details.Step + Details.Step/2 -1)
-                              + old_temp(Details.Start + j*Details.Step + Details.Step/2));
-      }
-      outFREQ.put(i, new_temp);
+      int nrch = last-first;
+      new_freq[j]  = 0.5 * (old_freq[first] + old_freq[last-1]);
+      new_width[j] = nrch * old_width[0];
+      new_bw[j]    = nrch * old_bw[0];
+      new_res[j]   = nrch * old_res[0];
+      totalbw += new_bw[j];
+      first = last;
+      last += Details.Step;
     }
-    for (int j = 0; j < new_nchan; j++)
-    { inWIDTH.get(i, old_temp);
-      new_temp(j) = old_temp(0) * Details.Step;
-      outWIDTH.put(i, new_temp);
-    }
-    for (int j = 0; j < new_nchan; j++)
-    { inBW.get(i, old_temp);
-      new_temp(j) = old_temp(0) * Details.Step;
-      outBW.put(i, new_temp);
-    }
-    for (int j = 0; j < new_nchan; j++)
-    { inRESOLUTION.get(i, old_temp);
-      new_temp(j) = old_temp(0) * Details.Step;
-      outRESOLUTION.put(i, new_temp);
-    }
+    outFREQ.put(i, new_freq);
+    outWIDTH.put(i, new_width);
+    outBW.put(i, new_bw);
+    outRESOLUTION.put(i, new_res);
+    outTOTALBW.put(i, totalbw);
   }
   OutMS->flush(true);
   cout << "Finished preparing output MS" << endl;

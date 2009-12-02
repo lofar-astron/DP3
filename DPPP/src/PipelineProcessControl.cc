@@ -1,4 +1,4 @@
-//# Copyright (C) 2006-8
+//# Copyright (C) 2006-9
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -42,7 +42,7 @@
 #include <DPPP/MADFlagger.h>
 #include <DPPP/DataSquasher.h>
 
-#define PIPELINE_VERSION "0.43"
+#define PIPELINE_VERSION "0.45"
 // 0.23 Added AbsoluteThreshold for MADFlagger
 // 0.24 Added writing VDS file
 // 0.30 Changed Time handling and interval calculation
@@ -52,8 +52,10 @@
 // 0.34 Fixed bugs in WEIGHT_SPECTRUM stuff
 // 0.40 changed order of flaggers to be as in documentation!
 // 0.41 allow flagger to use other columns
-// 0.42 small change to handle odd number of input columns when writing CHAN_FREQ
+// 0.42 small change to handle odd number of channels when writing CHAN_FREQ
 // 0.43 check data regularity
+// 0.44 fixed IMAGING_WEIGHT (is 1-dim array); nchan=0 means till end
+// 0.45 check nchan%Step != 0; update TOTAL_BANDWIDTH
 
 namespace LOFAR
 {
