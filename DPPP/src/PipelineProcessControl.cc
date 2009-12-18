@@ -42,7 +42,6 @@
 #include <DPPP/MADFlagger.h>
 #include <DPPP/DataSquasher.h>
 
-#define PIPELINE_VERSION "0.45"
 // 0.23 Added AbsoluteThreshold for MADFlagger
 // 0.24 Added writing VDS file
 // 0.30 Changed Time handling and interval calculation
@@ -56,6 +55,8 @@
 // 0.43 check data regularity
 // 0.44 fixed IMAGING_WEIGHT (is 1-dim array); nchan=0 means till end
 // 0.45 check nchan%Step != 0; update TOTAL_BANDWIDTH
+// 0.46 added updating of flags instead of always copying an MS
+#define PIPELINE_VERSION "0.46"
 
 namespace LOFAR
 {
@@ -111,6 +112,10 @@ namespace LOFAR
       if (myDetails->CheckValues())
       { return false;
       }
+      if (itsOutMS.empty()  &&  itsSquasher != 0) {
+        std::cout <<"Squashing can only be done if an output MS is given" << std::endl;
+        return false;
+      }
       if (itsFlagger == 0
           && (myDetails->FreqWindow != 1 || myDetails->TimeWindow != 1))
       { myDetails->FreqWindow = 1;
@@ -132,7 +137,7 @@ namespace LOFAR
     tribool PipelineProcessControl::run()
     {
       try{
-        std::cout << "Runnning pipeline please wait..." << std::endl;
+        std::cout << "Running pipeline please wait..." << std::endl;
         myFile->Init(*myInfo, *myDetails, itsSquasher);
         myFile->PrintInfo();
         MsInfo* outInfo = new MsInfo(myFile->getOutMS(), myFile->getOutMS());
@@ -140,7 +145,7 @@ namespace LOFAR
         myPipeline->Run(outInfo, myDetails->Columns);
         delete outInfo;
         myFile->flush();
-        if (!itsClusterDesc.empty())
+        if (!(itsOutMS.empty()  ||  itsClusterDesc.empty()))
         {
           string vdsName = itsOutMS + ".vds";
           if (! itsVdsDir.empty())

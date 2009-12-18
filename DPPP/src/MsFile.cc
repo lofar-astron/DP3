@@ -47,11 +47,6 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
   OutMS   (NULL),
   itsHasWeightSpectrum(false)
 {
-/* tableCommand(string("SELECT UVW,FLAG_CATEGORY,WEIGHT,SIGMA,ANTENNA1,ANTENNA2,ARRAY_ID,DATA_DESC_ID,") +
-                string("EXPOSURE,FEED1,FEED2,FIELD_ID,FLAG_ROW,INTERVAL,OBSERVATION_ID,PROCESSOR_ID,") +
-                string("SCAN_NUMBER,STATE_ID,TIME,TIME_CENTROID FROM $1"),
-                Data_iter.table());*/
-
   SELECTblock[0]  = "UVW";
   SELECTblock[1]  = "FLAG_CATEGORY";
   SELECTblock[2]  = "WEIGHT";
@@ -73,7 +68,9 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
   SELECTblock[18] = "TIME";
   SELECTblock[19] = "TIME_CENTROID";
   // Open the MS and obtain the description.
-  InMS = new MeasurementSet(InName); //DPPP assumes the input file is read only!
+  // If no output MS, open it for update.
+  InMS = new MeasurementSet(InName,
+                            OutName.empty() ? Table::Update : Table::Old);
   // Test if WEIGHT_SPECTRUM is present.
   TableDesc tdesc = InMS->tableDesc();
   if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
@@ -94,7 +91,7 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
     // If not in time order, sort the main table.
     if (itsOrderedTable.isNull()) {
       itsOrderedTable = InMS->sort ("TIME");
-      checkGaps();
+      checkGaps(OutName.empty());
     }
   }
 }
@@ -147,6 +144,14 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
 //===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
+  if (OutName.empty()) {
+    std::cout << "No output MS; "
+              << "flags will be updated in input MS" << std::endl;
+    OutMS = new MeasurementSet(*InMS);
+    // Create a TableIterator to have the correct input part.
+    itsIterator = TimeIterator();
+    return;
+  }
   std::cout << "Preparing output MS " << OutName << std::endl;
   // Obtain the MS description.
   TableDesc tdesc = InMS->tableDesc();
@@ -471,16 +476,24 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
                        DataBuffer& Buffer,
                        TimeBuffer& TimeData)
 {
-  Table DataTable = *OutMS;
-  int   rowcount  = Data_iter.table().nrow();
-  int   nrows     = DataTable.nrow();
+  uint  rowcount  = Data_iter.table().nrow();
   int   pos       = (Buffer.Position+1) % Buffer.WindowSize;
+  Table DataTable = *OutMS;
+  uint  strow     = DataTable.nrow();
   bool  columns   = Buffer.ModelData.size() > 0;
-  Table temptable = Data_iter.table().project(SELECTblock);
+  if (OutName.empty()) {
+    ASSERT (! itsIterator.pastEnd());
+    DataTable = itsIterator.table();
+    itsIterator.next();
+    ASSERT (DataTable.nrow() == rowcount);
+    strow = 0;
+  } else {
+    Table temptable = Data_iter.table().project(SELECTblock);
+    DataTable.addRow(rowcount);
+    Table dummy = DataTable.project(SELECTblock);
+    TableCopy::copyRows(dummy, temptable, strow, 0, rowcount, False);
+  }
 
-  DataTable.addRow(rowcount);
-  Table dummy = DataTable.project(SELECTblock);
-  TableCopy::copyRows(dummy, temptable, nrows, 0, rowcount, False);
   ROTableVector<Int>        antenna1     (DataTable, "ANTENNA1");
   ROTableVector<Int>        antenna2     (DataTable, "ANTENNA2");
   ROTableVector<Int>        bandnr       (DataTable, "DATA_DESC_ID");
@@ -488,43 +501,49 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   TableVector<Double>       time_centroid(DataTable, "TIME_CENTROID");
   TableVector<Double>       exposure     (DataTable, "EXPOSURE");
   TableVector<Double>       interval     (DataTable, "INTERVAL");
-  ArrayColumn  <Double>     uvw          (DataTable, "UVW");
-  ArrayColumn  <Complex>    data         (DataTable, "DATA");
   ArrayColumn  <Bool>       flags        (DataTable, "FLAG");
-  ArrayColumn  <Float>      weights      (DataTable, "WEIGHT_SPECTRUM");
+  ArrayColumn  <Complex>    data         (DataTable, "DATA");
+  ArrayColumn  <Double>     uvw;
+  ArrayColumn  <Float>      weights;
   ArrayColumn  <Complex>    modeldata;
   ArrayColumn  <Complex>    correcteddata;
-  if (columns)
-  { modeldata.attach(                     DataTable, "MODEL_DATA");
-    correcteddata.attach(                 DataTable, "CORRECTED_DATA");
+  if (! OutName.empty()) {
+    uvw.attach     (DataTable, "UVW");
+    weights.attach (DataTable, "WEIGHT_SPECTRUM");
+    if (columns) {
+      modeldata.attach     (DataTable, "MODEL_DATA");
+      correcteddata.attach (DataTable, "CORRECTED_DATA");
+    }
   }
   //cout << "Processing: " << MVTime(temp(0)/(24*3600)).string(MVTime::YMD) << endl; //for testing purposes
 
-  for (int i = 0; i < rowcount; i++)
+  for (uint i = 0; i < rowcount; i++)
   {
     int bi    = Info.BaselineIndex[baseline_t(antenna1(i), antenna2(i))];
     int band  = bandnr(i);
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
 
-    data.put(nrows + i, Buffer.Data[index].xyPlane(pos));
-    flags.put(nrows + i, Buffer.Flags[index].xyPlane(pos));
-    time.set(nrows + i, TimeData.Time[index][0]);
-    time_centroid.set(nrows + i, TimeData.TimeCentroid[index][0]);
-    exposure.set(nrows + i, TimeData.Exposure[index][0]);
-    interval.set(nrows + i, TimeData.Interval[index][0]);
-    uvw.put(nrows + i, TimeData.Uvw[index][0]);
-    weights.put(nrows + i, Buffer.Weights[index].xyPlane(pos));
-    if (columns)
-    {
-      modeldata.put(nrows + i, Buffer.ModelData[index].xyPlane(pos));
-      correcteddata.put(nrows + i, Buffer.CorrectedData[index].xyPlane(pos));
+    flags.put(strow + i, Buffer.Flags[index].xyPlane(pos));
+    if (! OutName.empty()) {
+      data.put(strow + i, Buffer.Data[index].xyPlane(pos));
+      time.set(strow + i, TimeData.Time[index][0]);
+      time_centroid.set(strow + i, TimeData.TimeCentroid[index][0]);
+      exposure.set(strow + i, TimeData.Exposure[index][0]);
+      interval.set(strow + i, TimeData.Interval[index][0]);
+      uvw.put(strow + i, TimeData.Uvw[index][0]);
+      weights.put(strow + i, Buffer.Weights[index].xyPlane(pos));
+      if (columns)
+      {
+        modeldata.put(strow + i, Buffer.ModelData[index].xyPlane(pos));
+        correcteddata.put(strow + i, Buffer.CorrectedData[index].xyPlane(pos));
+      }
     }
   }
   TimeData.Clear();
 }
 
 
-void MsFile::checkGaps() const
+void MsFile::checkGaps(bool updateMS) const
 {
   Vector<Double> times = ROScalarColumn<Double>(itsOrderedTable,"TIME").getColumn();
   // Make unique; use insertion sort, because it is already in time order.
@@ -552,9 +571,12 @@ void MsFile::checkGaps() const
         cout << "Normal time interval is " << intv << " seconds" << endl;
       }
       cout << "Time slot " << i << " is " << diff
-           << " seconds after previous; will add "
-           << int(diff/intv + 0.1)-1
-           << " flagged time slots" << endl;
+           << " seconds after previous";
+      if (!updateMS) {
+        cout << "; will add " << int(diff/intv + 0.1)-1
+             << " flagged time slots";
+      }
+      cout << endl;
     }
   }
 }
