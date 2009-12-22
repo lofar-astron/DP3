@@ -87,15 +87,18 @@ void Pipeline::MirrorBuffer(DataBuffer& buffer, MsInfo& info, int step)
   { from_pos = buffer.Position;
     to_pos   = (buffer.WindowSize - buffer.Position) % buffer.WindowSize;
   }
-  for (int i = 0; i < info.NumBands * info.NumPairs; i++)
-  { buffer.Data[i].xyPlane(to_pos) = buffer.Data[i].xyPlane(from_pos);
+  for (int i = 0; i < info.NumBands * info.NumPairs; i++) {
+    for (uint j=0; j<buffer.Data.size(); ++j) {
+      buffer.Data[j][i].xyPlane(to_pos) = buffer.Data[j][i].xyPlane(from_pos);
+    }
   }
 }
 
 //===============>>> ComplexMedianFlagger::UpdateTimeslotData  <<<===============
-void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
+void Pipeline::Run(MsInfo* SquashedInfo)
 {
-  BandpassData = new DataBuffer(myInfo, myDetails->TimeWindow, Columns);
+  BandpassData = new DataBuffer(myInfo, myDetails->TimeWindow,
+                                myDetails->DataColumns);
   // Not needed unless Flagger starts altering data, or Bandpass starts altering flags
   //  if (myFlagger && myBandpass)
   //  { FlaggerData = new DataBuffer(info, myDetails->TimeWindow);
@@ -107,7 +110,9 @@ void Pipeline::Run(MsInfo* SquashedInfo, bool Columns)
   TimeData = new TimeBuffer(FlaggerData->NumSlots);
   TimeData->Clear();
   if (mySquasher)
-  { SquasherData = new DataBuffer(SquashedInfo, 2, Columns); //two buffers, one for unflagged one for all data
+    //two buffers, one for unflagged, one for all data
+  { SquasherData = new DataBuffer(SquashedInfo, 2,
+                                  myDetails->DataColumns);
   }
   else
   { SquasherData = FlaggerData;

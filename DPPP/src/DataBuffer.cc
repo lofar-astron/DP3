@@ -25,6 +25,8 @@
 
 #include <DPPP/DataBuffer.h>
 #include <DPPP/MsInfo.h>
+#include <Common/StreamUtil.h>
+#include <Common/LofarLogger.h>
 
 using namespace LOFAR::CS1;
 using namespace casa;
@@ -43,14 +45,20 @@ enum CorrelationTypes {None=0,I=1,Q=2,U=3,V=4,RR=5,RL=6,LR=7,LL=8,XX=9,XY=10,YX=
 
 //===============>>>  DataBuffer::DataBuffer  <<<===============
 
-DataBuffer::DataBuffer(MsInfo* info, int TimeWindow, bool Columns):
+DataBuffer::DataBuffer(MsInfo* info, int TimeWindow,
+                       const vector<string>& dataColumns):
   Position(-1),
   NumSlots(0),
   WindowSize(TimeWindow),
-  myInfo(info)
+  myInfo(info),
+  itsDataColumns (dataColumns)
 {
-  NumSlots   = myInfo->NumPairs * myInfo->NumBands;
-  Init(Columns);
+  if (itsDataColumns.empty()) {
+    itsDataColumns.resize (1);
+    itsDataColumns[0] = "DATA";
+  }
+  NumSlots = myInfo->NumPairs * myInfo->NumBands;
+  Init();
 }
 
 //===============>>>  DataBuffer::~DataBuffer  <<<===============
@@ -108,43 +116,43 @@ void DataBuffer::DeterminePolarizationsToCheck(bool UseOnlyXpolarizations)
 
 //===============>>> DataBuffer::Init  <<<===============
 
-void DataBuffer::Init(bool Columns)
+void DataBuffer::Init()
 {
   PolarizationsToCheck.resize(myInfo->NumPolarizations);
 //  DeterminePolarizationsToCheck(UseOnlyXpolarizations);
 
-  Data.resize(NumSlots);
+  Data.resize (itsDataColumns.size());
+  for (uint j=0; j<Data.size(); ++j) {
+    Data[j].resize(NumSlots);
+    for (int i = 0; i < NumSlots; i++) {
+      Data[j][i].resize(myInfo->NumPolarizations, myInfo->NumChannels,
+                        WindowSize);
+    }
+  }
   Flags.resize(NumSlots);
   Weights.resize(NumSlots);
-  if (Columns)
-  {
-    ModelData.resize(NumSlots);
-    CorrectedData.resize(NumSlots);
-  }
   for (int i = 0; i < NumSlots; i++)
   {
-    Data[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
-    Flags[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
-    Weights[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
-    if (Columns)
-    {
-      ModelData[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
-      CorrectedData[i].resize(myInfo->NumPolarizations, myInfo->NumChannels, WindowSize);
-    }
+    Flags[i].resize(myInfo->NumPolarizations, myInfo->NumChannels,
+                    WindowSize);
+    Weights[i].resize(myInfo->NumPolarizations, myInfo->NumChannels,
+                      WindowSize);
   }
 }
 
 //===============>>> DataBuffer::GetRightDataColumn <<<===============
 
-std::vector< casa::Cube<casa::Complex> >& DataBuffer::GetRightDataColumn(std::string DataColumn)
+std::vector< casa::Cube<casa::Complex> >& DataBuffer::GetRightDataColumn
+(const std::string& DataColumn)
 {
-  if (DataColumn == "CORRECTED_DATA")
-  { return CorrectedData;
+  uint i;
+  for (i=0; i<itsDataColumns.size(); ++i) {
+    if (DataColumn == itsDataColumns[i]) {
+      break;
+    }
   }
-  if (DataColumn == "MODEL_DATA")
-  { return ModelData;
-  }
-  return Data;
+  ASSERTSTR (i<itsDataColumns.size(), "Column " << DataColumn << " not found");
+  return Data[i];
 }
 
 //===============>>> DataBuffer::PrintInfo  <<<===============
@@ -153,14 +161,10 @@ void DataBuffer::PrintInfo(void)
 {
   std::cout << "Position        " << Position << std::endl;
   std::cout << "Baselines:      " << Data.size() << std::endl;
-  std::cout << "Data:           " << Data[0].shape() << std::endl;
+  std::cout << "Data:           " << itsDataColumns << ' '
+            << Data[0][0].shape() << std::endl;
   std::cout << "Flags:          " << Flags[0].shape() << std::endl;
   std::cout << "Weights:        " << Weights[0].shape() << std::endl;
-  if (ModelData.size())
-  {
-    std::cout << "ModelData:      " << ModelData[0].shape() << std::endl;
-    std::cout << "CorrectedData:  " << CorrectedData[0].shape() << std::endl;
-  }
 }
 
 //===============>>> DataBuffer  <<<===============

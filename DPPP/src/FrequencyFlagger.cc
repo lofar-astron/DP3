@@ -141,7 +141,7 @@ void FrequencyFlagger::ProcessTimeslot(DataBuffer& data,
       {
         index = i * info.NumPairs + info.BaselineIndex[baseline_t(j, k)];
         flags.reference(data.Flags[index].xyPlane(pos));
-        tempdata.reference(data.GetRightDataColumn(details.DataColumn)[index].xyPlane(pos));
+        tempdata.reference(data.GetRightDataColumn(details.FlagColumn)[index].xyPlane(pos));
 //        if ((BaselineLengths[BaselineIndex[pairii(j, k)]] < 3000000))//radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243 m
         stats(i, j, k) = FlagBaselineBand(flags,
                                           tempdata,

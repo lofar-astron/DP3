@@ -54,7 +54,7 @@ namespace LOFAR
                BandpassCorrector* bandpass, Flagger* flagger, DataSquasher* squasher);
       ~Pipeline();
       ///run the pipeline until there are no more timeslots in the input MeasurementSet.
-      void Run(MsInfo* SquashedInfo, bool Columns);
+      void Run(MsInfo* SquashedInfo);
 
     protected:
     private:
@@ -65,10 +65,10 @@ namespace LOFAR
       Flagger*            myFlagger;
       DataSquasher*       mySquasher;
       DataBuffer*         BandpassData; ///< initial data read from MS
-      DataBuffer*         FlaggerData; ///< data after bandpass correction to be flagged
+      DataBuffer*         FlaggerData;  ///< data after bandpass correction to be flagged
       DataBuffer*         SquasherData; ///< output of the squasher
       FlaggerStatistics*  myStatistics; ///< Stores the statistics of the flaggers
-      TimeBuffer*         TimeData; ///< remember what timeslots we are processing
+      TimeBuffer*         TimeData;     ///< remember what timeslots we are processing
       void MirrorBuffer(DataBuffer& buffer, MsInfo& info, int step); ///< for handling the start and stop edges of the data
 
     }; // class Pipeline

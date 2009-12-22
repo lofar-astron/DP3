@@ -33,7 +33,7 @@
 
 /// The class maintains a buffer withe NumSlots Cubes of size:
 /// [myInfo->NumPolarizations, myInfo->NumChannels, WindowSize]
-/// ModelData and CorrectedData are only used if Colums==true
+/// The data columns to be handled are given in the constructor.
 namespace LOFAR
 {
   namespace CS1
@@ -41,25 +41,30 @@ namespace LOFAR
     class DataBuffer
     {
       public:
-         DataBuffer(MsInfo* info, int TimeWindow, bool Columns);
+         DataBuffer(MsInfo* info, int TimeWindow,
+                    const std::vector<std::string>& dataColumns);
          ~DataBuffer();
-        int Position; ///< Position just updated in the buffer, -1 when it's uninitialised
-        int NumSlots; ///< Number fo baselines X number of Spectral Windows
-        int WindowSize;
 
         std::vector< bool >                       PolarizationsToCheck;
-        std::vector< casa::Cube<casa::Complex> >  Data;
-        std::vector< casa::Cube<casa::Complex> >  ModelData;
-        std::vector< casa::Cube<casa::Complex> >  CorrectedData;
+        std::vector<std::vector< casa::Cube<casa::Complex> > > Data;
         std::vector< casa::Cube<casa::Bool> >     Flags;
         std::vector< casa::Cube<casa::Float> >    Weights;
         void DeterminePolarizationsToCheck(bool UseOnlyXpolarizations); ///< Not used right now
-        std::vector<casa::Cube<casa::Complex> >& GetRightDataColumn(std::string DataColumn); ///< determine data column for the flagger
+        ///< get data column for the flagger
+        std::vector<casa::Cube<casa::Complex> >& GetRightDataColumn
+          (const std::string& DataColumn);
         void PrintInfo(void);
+        /// Get data column names.
+        const std::vector<std::string>& dataColumns() const
+          { return itsDataColumns; }
 
+        int Position; ///< Position just updated in the buffer, -1 when it's uninitialised
+        int NumSlots; ///< Number fo baselines X number of Spectral Windows
+        int WindowSize;
       private:
         MsInfo* myInfo;
-        void    Init(bool Columns);
+        void    Init();
+        std::vector<std::string> itsDataColumns;
     }; // DataBuffer
   }; //CS1
 }; // namespace LOFAR

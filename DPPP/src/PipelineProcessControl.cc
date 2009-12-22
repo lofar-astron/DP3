@@ -97,11 +97,11 @@ namespace LOFAR
       myDetails->Start        = ParamSet->getUint32("start", 0);           // DataSquasher
       myDetails->Step         = ParamSet->getUint32("step", 1);            // DataSquasher
       myDetails->Skip         = ParamSet->getBool("skipflags", false);     // DataSquasher
-      myDetails->Columns      = ParamSet->getBool("allcolumns", false);    // DataSquasher
+      myDetails->AllColumns   = ParamSet->getBool("allcolumns", false);    // DataSquasher
       myDetails->TimeStep     = ParamSet->getUint32("timestep", 1);        // DataSquasher
       myDetails->TileNChan    = ParamSet->getUint32("tilenfreq", 8);       // default 8 chan
       myDetails->TileSize     = ParamSet->getUint32("tilesize", 1024);     // default 1024 KB
-      myDetails->DataColumn   = ParamSet->getString("datacolumn", "DATA"); // column to flag, all flaggers
+      myDetails->FlagColumn   = ParamSet->getString("datacolumn", "DATA"); // column to flag, all flaggers
       itsInMS                 = ParamSet->getString("msin");
       itsOutMS                = ParamSet->getString("msout");
       itsClusterDesc          = ParamSet->getString("clusterdesc");
@@ -129,6 +129,10 @@ namespace LOFAR
         myDetails->TimeStep = 1;
         std::cout << "No squasher, step, start and timestep sizes reset" << std::endl;
       }
+      // If no flagging, set flagColumn to the DATA column for MsFile.
+      if (itsFlagger == 0) {
+        myDetails->FlagColumn = "DATA";
+      }
       myDetails->PrintInfo();
       return true;
     }
@@ -142,7 +146,7 @@ namespace LOFAR
         myFile->PrintInfo();
         MsInfo* outInfo = new MsInfo(myFile->getOutMS(), myFile->getOutMS());
         outInfo->PrintInfo();
-        myPipeline->Run(outInfo, myDetails->Columns);
+        myPipeline->Run(outInfo);
         delete outInfo;
         myFile->flush();
         if (!(itsOutMS.empty()  ||  itsClusterDesc.empty()))

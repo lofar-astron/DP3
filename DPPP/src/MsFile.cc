@@ -144,17 +144,30 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
 //===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
+  // Obtain the MS description.
+  TableDesc tdesc = InMS->tableDesc();
   if (OutName.empty()) {
     std::cout << "No output MS; "
               << "flags will be updated in input MS" << std::endl;
+    // The only DATA column to handle is the one used for flagging.
+    // Check it exists.
+    Details.DataColumns.resize (1);
+    Details.DataColumns[0] = Details.FlagColumn;
+    ASSERT (tdesc.isColumn(Details.FlagColumn));
     OutMS = new MeasurementSet(*InMS);
     // Create a TableIterator to have the correct input part.
     itsIterator = TimeIterator();
     return;
   }
+  // A new MS will be created.
   std::cout << "Preparing output MS " << OutName << std::endl;
-  // Obtain the MS description.
-  TableDesc tdesc = InMS->tableDesc();
+  // At least the DATA column needs to be handled.
+  // All columns are needed if not flagging on DATA.
+  Details.DataColumns.resize (1);
+  Details.DataColumns[0] = "DATA";
+  if (Details.FlagColumn != "DATA") {
+    Details.AllColumns = True;
+  }
   // Determine the output data shape.
   const ColumnDesc& desc = tdesc.columnDesc("DATA");
   IPosition data_ipos = DetermineDATAshape(*InMS);
@@ -240,10 +253,14 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     TableResize(wsdesc, data_ipos, &tsmw, outtable);
   }
   // If both present handle the CORRECTED_DATA and MODEL_DATA column.
-  if (Details.Columns)
+  if (Details.AllColumns)
   {
     if (tdesc.isColumn("CORRECTED_DATA") && tdesc.isColumn("MODEL_DATA"))
     {
+      // Add them to the columns to handle.
+      Details.DataColumns.resize (3);
+      Details.DataColumns[1] = "CORRECTED_DATA";
+      Details.DataColumns[2] = "MODEL_DATA";
       cout << "MODEL_DATA detected for processing" << endl;
       ColumnDesc mdesc = tdesc.columnDesc("MODEL_DATA");
       TableRecord& keyset = mdesc.rwKeywordSet();
@@ -274,9 +291,11 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
         cout << "Only one of CORRECTED_DATA and MODEL_DATA columns is present; "
              << "it is ignored" << endl;
       }
-      Details.Columns = false;
     }
   }
+  ASSERTSTR (Details.FlagColumn == "DATA"  ||  Details.DataColumns.size() > 1,
+             "DataColumn " << Details.FlagColumn
+             << " to be used in flagging does not exist");
   cout << " copying info and subtables ..." << endl;
   // Copy the info and subtables.
   TableCopy::copyInfo(outtable, temptable);
@@ -384,46 +403,41 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
 {
   Table         TimeslotTable = Data_iter.table();
   int           rowcount      = TimeslotTable.nrow();
-  bool          columns       = Buffer.ModelData.size() > 0;
+  const vector<string>& dataColumns = Buffer.dataColumns();
   ROTableVector<Int>            antenna1      (TimeslotTable, "ANTENNA1");
   ROTableVector<Int>            antenna2      (TimeslotTable, "ANTENNA2");
   ROTableVector<Int>            bandnr        (TimeslotTable, "DATA_DESC_ID");
-  ROArrayColumn<Complex>        data          (TimeslotTable, "DATA");
   ROArrayColumn<Double>         uvw           (TimeslotTable, "UVW");
   ROTableVector<Double>         time_centroid (TimeslotTable, "TIME_CENTROID");
   ROTableVector<Double>         interval      (TimeslotTable, "INTERVAL");
   ROTableVector<Double>         exposure      (TimeslotTable, "EXPOSURE");
   ROArrayColumn<Bool>           flags         (TimeslotTable, "FLAG");
-  ROArrayColumn<Complex>        modeldata;
-  ROArrayColumn<Complex>        correcteddata;
   ROArrayColumn<Float>          weights;
-  if (columns)
-  { modeldata.attach(TimeslotTable, "MODEL_DATA");
-    correcteddata.attach(TimeslotTable, "CORRECTED_DATA");
-  }
   if (itsHasWeightSpectrum) {
     weights.attach(TimeslotTable, "WEIGHT_SPECTRUM");
   } else {
     weights.attach(TimeslotTable, "WEIGHT");
   }
-  Cube<Complex>                 tempData(Info.NumPolarizations, Info.NumChannels, rowcount);
-  Cube<Complex>                 tempModelData(Info.NumPolarizations, Info.NumChannels, rowcount);
-  Cube<Complex>                 tempCorrectedData(Info.NumPolarizations, Info.NumChannels, rowcount);
+  vector<ROArrayColumn<Complex> > data(dataColumns.size());
+  vector<Cube<Complex> >        tempData(dataColumns.size());
+  for (uint i=0; i<data.size(); ++i) {
+    data[i].attach(TimeslotTable, dataColumns[i]);
+    tempData[i].resize (Info.NumPolarizations, Info.NumChannels, rowcount);
+  }
   Cube<Bool>                    tempFlags(Info.NumPolarizations, Info.NumChannels, rowcount);
   Matrix<Float>                 tempWeights(Info.NumPolarizations, rowcount);
   Cube<Float>                   tempWeightSpectrum(Info.NumPolarizations, Info.NumChannels, rowcount);
 
   if (missingTime) {
-    // Clear the array; note that tempData is already initialized tovComplex().
+    // Clear the array; note that tempData is already initialized to Complex().
     tempFlags = True;
     tempWeights = 0;
     tempWeightSpectrum = 0;
   } else {
-    data.getColumn(tempData); //We're not checking Data.nrow() Data.ncolumn(), assuming all data is the same size.
-    if (columns)
-      { modeldata.getColumn(tempModelData);
-        correcteddata.getColumn(tempCorrectedData);
-      }
+    // Get all DATA columns
+    for (uint i=0; i<data.size(); ++i) {
+      data[i].getColumn(tempData[i]);
+    }
     flags.getColumn(tempFlags);
     if (itsHasWeightSpectrum) {
       weights.getColumn(tempWeightSpectrum);
@@ -437,12 +451,10 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
     int bi    = Info.BaselineIndex[baseline_t(antenna1(i), antenna2(i))];
     int band  = bandnr(i);
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
-    Buffer.Data[index].xyPlane(Buffer.Position)  = tempData.xyPlane(i);
-    Buffer.Flags[index].xyPlane(Buffer.Position) = tempFlags.xyPlane(i);
-    if (columns)
-    { Buffer.ModelData[index].xyPlane(Buffer.Position)     = tempData.xyPlane(i);
-      Buffer.CorrectedData[index].xyPlane(Buffer.Position) = tempData.xyPlane(i);
+    for (uint j=0; j<data.size(); ++j) {
+      Buffer.Data[j][index].xyPlane(Buffer.Position) = tempData[j].xyPlane(i);
     }
+    Buffer.Flags[index].xyPlane(Buffer.Position) = tempFlags.xyPlane(i);
     // Create reference to slice in weigth array.
     // Fill it with the input weight-spectrum if given.
     // Otherwise use the weight per pol and copy for all channels.
@@ -469,7 +481,7 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
   }
 }
 
-//===============>>> MsFile::WriteFlags  <<<===============
+//===============>>> MsFile::WriteData  <<<===============
 
 void MsFile::WriteData(casa::TableIterator& Data_iter,
                        MsInfo& Info,
@@ -480,7 +492,7 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   int   pos       = (Buffer.Position+1) % Buffer.WindowSize;
   Table DataTable = *OutMS;
   uint  strow     = DataTable.nrow();
-  bool  columns   = Buffer.ModelData.size() > 0;
+  const vector<string>& dataColumns = Buffer.dataColumns();
   if (OutName.empty()) {
     ASSERT (! itsIterator.pastEnd());
     DataTable = itsIterator.table();
@@ -502,17 +514,14 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
   TableVector<Double>       exposure     (DataTable, "EXPOSURE");
   TableVector<Double>       interval     (DataTable, "INTERVAL");
   ArrayColumn  <Bool>       flags        (DataTable, "FLAG");
-  ArrayColumn  <Complex>    data         (DataTable, "DATA");
+  vector<ArrayColumn<Complex> > data(dataColumns.size());
   ArrayColumn  <Double>     uvw;
   ArrayColumn  <Float>      weights;
-  ArrayColumn  <Complex>    modeldata;
-  ArrayColumn  <Complex>    correcteddata;
   if (! OutName.empty()) {
     uvw.attach     (DataTable, "UVW");
     weights.attach (DataTable, "WEIGHT_SPECTRUM");
-    if (columns) {
-      modeldata.attach     (DataTable, "MODEL_DATA");
-      correcteddata.attach (DataTable, "CORRECTED_DATA");
+    for (uint i=0; i<data.size(); ++i) {
+      data[i].attach (DataTable, dataColumns[i]);
     }
   }
   //cout << "Processing: " << MVTime(temp(0)/(24*3600)).string(MVTime::YMD) << endl; //for testing purposes
@@ -525,18 +534,15 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 
     flags.put(strow + i, Buffer.Flags[index].xyPlane(pos));
     if (! OutName.empty()) {
-      data.put(strow + i, Buffer.Data[index].xyPlane(pos));
+      for (uint j=0; j<data.size(); ++j) {
+        data[j].put(strow + i, Buffer.Data[j][index].xyPlane(pos));
+      }
       time.set(strow + i, TimeData.Time[index][0]);
       time_centroid.set(strow + i, TimeData.TimeCentroid[index][0]);
       exposure.set(strow + i, TimeData.Exposure[index][0]);
       interval.set(strow + i, TimeData.Interval[index][0]);
       uvw.put(strow + i, TimeData.Uvw[index][0]);
       weights.put(strow + i, Buffer.Weights[index].xyPlane(pos));
-      if (columns)
-      {
-        modeldata.put(strow + i, Buffer.ModelData[index].xyPlane(pos));
-        correcteddata.put(strow + i, Buffer.CorrectedData[index].xyPlane(pos));
-      }
     }
   }
   TimeData.Clear();

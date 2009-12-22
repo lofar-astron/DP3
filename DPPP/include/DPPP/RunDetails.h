@@ -27,6 +27,9 @@
 /// @brief Class to hold parameter settings for the steps in IDPPP
 /// @author Adriaan Renting (renting AT astron nl)
 
+#include <vector>
+#include <string>
+
 namespace LOFAR
 {
   namespace CS1
@@ -56,11 +59,12 @@ namespace LOFAR
       unsigned int Start;        ///< DataSquasher
       unsigned int Step;         ///< DataSquasher
       bool         Skip;         ///< DataSquasher
-      bool         Columns;      ///< DataSquasher
+      bool         AllColumns;   ///< DataSquasher
       unsigned int TimeStep;     ///< DataSquasher
       unsigned int TileNChan;    ///< Nr of channels per tile for the DATA columns
       unsigned int TileSize;     ///< Tile size (in kbytes) for the DATA columns
-      std::string  DataColumn;   ///< Column to flag for all flaggers
+      std::string  FlagColumn;   ///< Data column to use in all flaggers
+      std::vector<std::string> DataColumns; ///< Data columns to handle
       bool CheckValues(void);    ///< Method to do some validity checks on the values
       void PrintInfo(void);      ///< Prints all values to cout, mainly for debugging purposes
 

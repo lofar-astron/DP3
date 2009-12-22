@@ -61,7 +61,9 @@ int main()
   details.TimeWindow = SIZE;
   details.Existing = false;
   details.Threshold = 4.5;
-  DataBuffer data(&info, details.TimeWindow, false);
+  details.FlagColumn = "DATA";
+  vector<string> dataColumns(1, "DATA");
+  DataBuffer data(&info, details.TimeWindow, dataColumns);
 
   ACG gen(11, 20);
   Normal norm(&gen, 0.0, 0.00001);
@@ -71,34 +73,34 @@ int main()
     {
     for (int k=0; k < info.NumPolarizations;k++)
       { Complex c(norm() *(10 + j) / 10, norm());
-        data.Data[0](k, i, j) = c;
+        data.Data[0][0](k, i, j) = c;
       }
     }
   }
 
-  data.Data[0](0, 30, 0) = Complex(1.0, 0.0);
-  data.Data[0](0, 31, 1) = Complex(2.0, 0.0);
-  data.Data[0](0, 32, 2) = Complex(4.0, 0.0);
-  data.Data[0](0, 33, 3) = Complex(8.0, 0.0);
-  data.Data[0](0, 34, 4) = Complex(16.0, 0.0);
-  data.Data[0](0, 35, 5) = Complex(32.0, 0.0);
-  data.Data[0](0, 36, 6) = Complex(64.0, 0.0);
-  data.Data[0](0, 37, 5) = Complex(1.0, 0.0);
-  data.Data[0](0, 38, 4) = Complex(0.5, 0.0);
-  data.Data[0](0, 39, 3) = Complex(0.25, 0.0);
-  data.Data[0](0, 40, 2) = Complex(0.125, 0.0);
-  data.Data[0](0, 41, 1) = Complex(0.0625, 0.0);
-  data.Data[0](0, 42, 0) = Complex(0.03125, 0.0);
-  data.Data[0](0, 43, 1) = Complex(0.015625, 0.0);
-  data.Data[0](0, 44, 2) = Complex(0.0078125, 0.0);
-  data.Data[0](0, 45, 3) = Complex(0.00390625, 0.0);
-  data.Data[0](0, 46, 4) = Complex(0.001953125, 0.0);
-  data.Data[0](0, 47, 5) = Complex(0.0009765625, 0.0);
-  data.Data[0](0, 48, 6) = Complex(0.00048828125, 0.0);
+  data.Data[0][0](0, 30, 0) = Complex(1.0, 0.0);
+  data.Data[0][0](0, 31, 1) = Complex(2.0, 0.0);
+  data.Data[0][0](0, 32, 2) = Complex(4.0, 0.0);
+  data.Data[0][0](0, 33, 3) = Complex(8.0, 0.0);
+  data.Data[0][0](0, 34, 4) = Complex(16.0, 0.0);
+  data.Data[0][0](0, 35, 5) = Complex(32.0, 0.0);
+  data.Data[0][0](0, 36, 6) = Complex(64.0, 0.0);
+  data.Data[0][0](0, 37, 5) = Complex(1.0, 0.0);
+  data.Data[0][0](0, 38, 4) = Complex(0.5, 0.0);
+  data.Data[0][0](0, 39, 3) = Complex(0.25, 0.0);
+  data.Data[0][0](0, 40, 2) = Complex(0.125, 0.0);
+  data.Data[0][0](0, 41, 1) = Complex(0.0625, 0.0);
+  data.Data[0][0](0, 42, 0) = Complex(0.03125, 0.0);
+  data.Data[0][0](0, 43, 1) = Complex(0.015625, 0.0);
+  data.Data[0][0](0, 44, 2) = Complex(0.0078125, 0.0);
+  data.Data[0][0](0, 45, 3) = Complex(0.00390625, 0.0);
+  data.Data[0][0](0, 46, 4) = Complex(0.001953125, 0.0);
+  data.Data[0][0](0, 47, 5) = Complex(0.0009765625, 0.0);
+  data.Data[0][0](0, 48, 6) = Complex(0.00048828125, 0.0);
 
   for (int i= 0; i < info.NumChannels; i ++)
   { for (unsigned int j = 0; j < details.TimeWindow; j++)
-    { std::cout << data.Data[0](0, i, j) << " ";
+    { std::cout << data.Data[0][0](0, i, j) << " ";
     }
     std::cout << std::endl;
   }

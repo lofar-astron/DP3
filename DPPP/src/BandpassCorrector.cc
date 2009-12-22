@@ -425,8 +425,8 @@ void BandpassCorrector::ProcessTimeslot(DataBuffer& data, MsInfo& info, RunDetai
 
   for (int i = 0; i < info.NumBands * info.NumPairs; i++)
   {
-    In.reference(data.Data[i].xyPlane(data.Position));
-    Out.reference(data.Data[i].xyPlane(data.Position));
+    In.reference(data.Data[0][i].xyPlane(data.Position));
+    Out.reference(data.Data[0][i].xyPlane(data.Position));
     ProcessBaselineBand(In, Out, details.Fixed);
   }
 }

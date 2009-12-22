@@ -61,12 +61,16 @@ namespace LOFAR
     private:
       /// This will squash every Step Channels starting from Start into one channel, until NChan have been processed.
       /// newWeights will reflect how many values were unflagged. Only unflagged values are retained
-      void Squash(casa::Matrix<casa::Complex>& oldData, casa::Matrix<casa::Complex>& newData,
-                  casa::Matrix<casa::Bool>& oldFlags, casa::Matrix<casa::Bool>& newFlags,
-                  casa::Matrix<casa::Float>& oldWeights, casa::Matrix<casa::Float>& newWeights,
+      void Squash(std::vector<casa::Matrix<casa::Complex> >& oldData,
+                  std::vector<casa::Matrix<casa::Complex> >& newData,
+                  casa::Matrix<casa::Bool>& oldFlags,
+                  casa::Matrix<casa::Bool>& newFlags,
+                  casa::Matrix<casa::Float>& oldWeights,
+                  casa::Matrix<casa::Float>& newWeights,
                   int itsNumPolarizations,
                   int Start, int Step, int NChan);
 
+      /*
       // Add the input buffers to the sum buffers.
       // It takes flags and weights into account.
       void add (casa::Matrix<casa::Complex>& sumData,
@@ -78,10 +82,11 @@ namespace LOFAR
                 const casa::Matrix<casa::Float>& inWeight,
                 int npol, int stchan, int step, int nchan);
 
-      casa::Matrix<casa::Bool> average (casa::Matrix<casa::Complex>& sumData,
+      //      casa::Matrix<casa::Bool> average (casa::Matrix<casa::Complex>& sumData,
                                         casa::Matrix<casa::Float>& sumWeight,
                                         const casa::Matrix<casa::Complex>& allData,
                                         const casa::Matrix<casa::Int>& sumNPoint);
+      */
 
     }; //DataSquasher
   }; //namespace CS1

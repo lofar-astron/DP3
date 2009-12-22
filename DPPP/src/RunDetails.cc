@@ -66,11 +66,11 @@ void RunDetails::PrintInfo(void)
   std::cout << "Start:             " << Start << std::endl;        // DataSquasher
   std::cout << "Step:              " << Step << std::endl;         // DataSquasher
   std::cout << "Skip:              " << Skip << std::endl;         // DataSquasher
-  std::cout << "Columns:           " << Columns << std::endl;      // DataSquasher
+  std::cout << "AllColumns:        " << AllColumns << std::endl;   // DataSquasher
   std::cout << "TimeStep:          " << TimeStep << std::endl;     // DataSquasher
   std::cout << "TileSize:          " << TileSize << std::endl;     // DataSquasher
-  std::cout << "TileNChan:         " << TileNChan << std::endl;     // DataSquasher
-  std::cout << "DataColumn:        " << DataColumn << std::endl;     // all flaggers
+  std::cout << "TileNChan:         " << TileNChan << std::endl;    // DataSquasher
+  std::cout << "FlagColumn:        " << FlagColumn << std::endl;   // all flaggers
 }
 
 //===============>>> RunDetails  <<<===============
