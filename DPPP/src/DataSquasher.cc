@@ -123,39 +123,42 @@ void DataSquasher::Squash(vector<Matrix<Complex> >& oldData,
                           int Start, int Step, int NChan)
 { //We only add to weight as it can have multiple timesteps integrated
   int nDataCol   = oldData.size();
-  int incounter  = 0;
-  int outcounter = 0;
   bool flagnew = true;
   Vector<Complex> values(nDataCol);
   Vector<Complex> allvalues(nDataCol);
+  Vector<Complex> tmpvalues(nDataCol);
+  // Use raw pointer as it is faster.
+  Complex* tmpval = tmpvalues.data();
   Float weight = 0;
   for (int i = 0; i < itsNumPolarizations; i++)
   {
+    int incounter  = 0;
+    int outcounter = 0;
+    int nstep = 0;
     while (incounter < NChan)
     {
+      ++nstep;
       for (int j=0; j<nDataCol; ++j) {
-        allvalues[j] += oldData[j](i, Start + incounter);
+        tmpval[j] = oldData[j](i, Start + incounter);
       }
-      if (!oldFlags(i, Start + incounter))
-      {
-        for (int j=0; j<nDataCol; ++j) {
-          values[j] += oldData[j](i, Start + incounter);
-        }
+      allvalues += tmpvalues;
+      if (!oldFlags(i, Start + incounter)) {
+        values += tmpvalues;
         weight += 1.0; //should be += old Weight?
         flagnew = false;
       }
       incounter++;
-      if ((incounter) % Step == 0)
+      if (incounter == NChan-1  ||  incounter%Step == 0)
       {
         if (flagnew) {
           // Everything is flagged
           // take all values and set weight to 1.0
           values = allvalues;
-          newWeights(i, outcounter) += 1.0; //should be += old Weight * Step?
+          newWeights(i, outcounter) += 1.0; //should be += old Weight * nstep?
         } else {
           //Not everything is flagged
           values /= weight;
-          newWeights(i, outcounter) += abs(weight) / Step;
+          newWeights(i, outcounter) += abs(weight) / nstep;
         }
         for (int j=0; j<nDataCol; ++j) {
           newData[j](i, outcounter) += values[j];
@@ -166,6 +169,7 @@ void DataSquasher::Squash(vector<Matrix<Complex> >& oldData,
         weight    = 0.;
         outcounter++;
         flagnew = true;
+        nstep = 0;
       }
     }
   }
