@@ -27,7 +27,7 @@ pythondir = $(bindir)
 dist_python_SCRIPTS =
 
 scriptdir = $(bindir)
-dist_script_SCRIPTS = mwflagger mwflagger-part
+dist_script_SCRIPTS = mwflagger mwflagger-part taqlflagger
 
 versiondppp_SOURCES      = versiondppp.cc
 versiondppp_LDADD        = libdppp.la

@@ -1,0 +1,88 @@
+#!/bin/sh
+
+# Skip first argument if it is a rank (a numeric value).
+res=`echo $1 | sed 's/[0-9]*//'`
+test "$res" = "" && shift
+
+# Test if an MS name is given.
+err=1
+ms=$1
+if test "$ms" != ""; then
+    shift
+    err=0
+
+    # Test if -dry or dry is given.
+    dry=0
+    if test "$1" = "-dry"  -o  "$1" = "dry"; then
+        dry=1
+    fi
+    # Test if flag or unflag is given. flag means use value T, otherwise F.
+    val=T
+    if test "$1" = "flag"; then
+        shift
+    elif test "$1" = "unflag"; then
+        val=F
+        shift
+    fi
+
+    pol=
+    chan=
+    where=
+    while test $# != 0  -a  $err = 0
+    do
+        sel=$1
+        # Check if a pol or chan selection is given.
+        case $sel in
+            chan=*)
+                test "$chan" = ""  ||  err=1
+                chan=`echo $sel | sed -e 's/chan=//'`
+                cmd="update $ms set FLAG[$chan,]=T"
+                ;;
+            pol=*)
+                test "$pol" = ""  ||  err=1
+                pol=`echo $sel | sed -e 's/pol=//'`
+                cmd="update $ms set FLAG[,$pol]=T"
+                ;;
+            *)
+                if test "$where" = ""; then
+                    where="$sel"
+                else
+                    where="($where) && ($sel)"
+                fi
+                ;;
+        esac
+        shift
+    done
+fi
+
+if test $err = 0; then
+    cmd="update $ms set FLAG[$chan,$pol]=$val"
+    if test "$where" != ""; then
+        cmd="$cmd where $where"
+    fi
+    echo "taql '$cmd'"
+    if test $dry = 0; then
+        taql "$cmd"  ||  err=1
+    fi
+fi
+
+if test $err != 0; then
+    echo ""
+    echo "Run as:    taqlflagger [rank] ms [-dry] [flag|unflag] [selection1 ...]"
+    echo "The rank is a dummy argument meant for rundist."
+    echo "ms is the name of the MS to be (un)flagged."
+    echo "dry tells to do a dry run; it only shows the command to execute."
+    echo "flag or unflag tells what to do (default is flag)."
+    echo "The selections must be a TaQL WHERE part like"
+    echo "      ANTENNA1=1"
+    echo "  where multiple such parts are anded"
+    echo "or a polarization or channel selection like"
+    echo "    pol=0    or    chan=0:4"
+    echo "  where the end is exclusive (a la python)"
+    echo "E.g."
+    echo "    taqlflagger unflag ~/my.ms chan=0:32 pol=0 ANTENNA1=1 'ANTENNA2 in [1:4]'"
+    echo "unflags XX for channel 0 till 31 for baseline 1,1, 1,2 and 1,3"
+    echo ""
+    exit 1
+fi
+exit 0
