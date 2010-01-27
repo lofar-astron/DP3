@@ -95,6 +95,9 @@ namespace LOFAR
       // Check for time gaps.
       void checkGaps(const MsInfo&, bool updateMS) const;
 
+      // Write a line with parset info into the MS history.
+      void writeHistory (casa::MeasurementSet& ms, const RunDetails& details);
+
       casa::IPosition DetermineDATAshape(const casa::Table& MS);
       casa::Block<casa::String> SELECTblock;
       std::string InName;

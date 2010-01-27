@@ -86,6 +86,7 @@ namespace LOFAR
     {
       ParameterSet* ParamSet = globalParameterSet();
       myDetails  = new RunDetails();
+      ParamSet->writeBuffer (myDetails->AllParms);
       myDetails->Fixed        = ParamSet->getUint32("fixed", 0);           // BandpassCorrector
       myDetails->FreqWindow   = ParamSet->getUint32("freqwindow", 1);      // FrequencyFlagger, MADFlagger
       myDetails->TimeWindow   = ParamSet->getUint32("timewindow", 1);      // ComplexMedianFlagger, MADFlagger

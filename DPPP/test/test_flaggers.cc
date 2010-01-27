@@ -52,8 +52,7 @@ int main()
   info.Polarizations(0) = 11; // YX, see DataBuffer.cc
   info.Polarizations(0) = 12; // YY, see DataBuffer.cc
   info.MaxBaselineLength = 30000.0;
-  info.PairsIndex.push_back(baseline_t(0, 0));
-  info.BaselineIndex[baseline_t(0,0)] = 0;
+  info.BaselineIndex.push_back (0);
   info.BaselineLengths.push_back(30000.0);
 
   RunDetails details;

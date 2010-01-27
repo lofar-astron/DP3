@@ -65,6 +65,8 @@ namespace LOFAR
       unsigned int TileSize;     ///< Tile size (in kbytes) for the DATA columns
       std::string  FlagColumn;   ///< Data column to use in all flaggers
       std::vector<std::string> DataColumns; ///< Data columns to handle
+      std::string  AllParms;     ///< All parameters and their values
+
       bool CheckValues(void);    ///< Method to do some validity checks on the values
       void PrintInfo(void);      ///< Prints all values to cout, mainly for debugging purposes
 

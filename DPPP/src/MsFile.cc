@@ -32,6 +32,7 @@
 #include <DPPP/MsInfo.h>
 #include <DPPP/RunDetails.h>
 #include <DPPP/TimeBuffer.h>
+#include <DPPP/Package__Version.h>
 #include <Common/LofarLogger.h>
 
 using namespace LOFAR::CS1;
@@ -159,6 +160,8 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     Details.DataColumns[0] = Details.FlagColumn;
     ASSERT (tdesc.isColumn(Details.FlagColumn));
     OutMS = new MeasurementSet(*InMS);
+    // Write the parset info into the history.
+    writeHistory (*OutMS, Details);
     // Create a TableIterator to have the correct input part.
     itsIterator = TimeIterator();
     return;
@@ -382,8 +385,28 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
     outRESOLUTION.put(i, new_res);
     outTOTALBW.put(i, totalbw);
   }
+  // Write the parset info into the history.
+  writeHistory (*OutMS, Details);
   OutMS->flush(true);
   cout << "Finished preparing output MS" << endl;
+}
+
+void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
+{
+  MSHistory histtab(ms.history());
+  cout << "iswritable: " << ms.isWritable()<<' '<<histtab.isWritable()<<' '<<ms.history().isWritable()<<endl;
+  histtab.reopenRW();
+  cout << "iswritable: " << ms.isWritable()<<' '<<histtab.isWritable()<<' '<<ms.history().isWritable()<<endl;
+  uInt rownr = histtab.nrow();
+  histtab.addRow();
+  MSHistoryColumns histcols(histtab);
+  histcols.observationId().put (rownr, 0);
+  histcols.application().put   (rownr, "DPPP");
+  histcols.message().put       (rownr, details.AllParms);
+  histcols.priority().put      (rownr, "NORMAL");
+  histcols.time().put          (rownr, Time().modifiedJulianDay()*24.*3600.);
+  histcols.origin().put        (rownr, Version::getInfo<DPPPVersion>("IDPPP",
+                                                                     "full"));
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============
