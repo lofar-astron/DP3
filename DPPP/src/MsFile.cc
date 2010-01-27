@@ -45,7 +45,8 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
   OutName (msout),
   InMS    (NULL),
   OutMS   (NULL),
-  itsHasWeightSpectrum(false)
+  itsHasWeightSpectrum(false),
+  itsIsOrdered        (false)
 {
   SELECTblock[0]  = "UVW";
   SELECTblock[1]  = "FLAG_CATEGORY";
@@ -85,13 +86,13 @@ MsFile::MsFile(const std::string& msin, const std::string& msout):
       Record subrec = dminfo.subRecord(i);
       if (subrec.asString("TYPE") == "LofarStMan") {
         itsOrderedTable = *InMS;
+        itsIsOrdered = true;
         break;
       }
     }
     // If not in time order, sort the main table.
-    if (itsOrderedTable.isNull()) {
+    if (!itsIsOrdered) {
       itsOrderedTable = InMS->sort ("TIME");
-      checkGaps(OutName.empty());
     }
   }
 }
@@ -144,6 +145,9 @@ IPosition MsFile::DetermineDATAshape(const Table& MS)
 //===============>>> MsFile::Init  <<<===============
 void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 {
+  if (! itsIsOrdered) {
+    checkGaps (Info, OutName.empty());
+  }
   // Obtain the MS description.
   TableDesc tdesc = InMS->tableDesc();
   if (OutName.empty()) {
@@ -191,8 +195,8 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       // For the time being throw an exception if not divisible.
       // If not divisible, it works fine in the CHAN_FREQ averaging below,
       // but averaging in DataSquasher might fail.
-      // I do not have time to investigate that.
-      // Furthermore people may not like channels of unequal size.
+      // I (Ger) do not have time to investigate that.
+      // Another consideration: people may not like channels of unequal size.
       if (nchan != new_nchan*int(Details.Step)) {
         THROW(PipelineException, "Error: Step does not evenly divide nchan");
       }
@@ -204,6 +208,11 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       Details.Start = 0;
     }
   std::cout << "New shape: " << data_ipos[0] << ":" <<  data_ipos[1] << std::endl;
+
+  // Check FreqWindow size.
+  if (int(Details.FreqWindow) > old_nchan) {
+    Details.FreqWindow = old_nchan;
+  }
 
   // Create the output table without the data columns.
   Table temptable = InMS->project(SELECTblock);
@@ -282,7 +291,8 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
       IPosition iwShape(1, data_ipos[1]);
       IPosition iwShapeTile(2, tileShape[1], tileShape[2]);
       TiledColumnStMan tsmw("TiledImagingWeight", iwShapeTile);
-      TableResize(tdesc["IMAGING_WEIGHT"], iwShape, &tsmw, outtable);
+      ColumnDesc iwdesc(ArrayColumnDesc<float>("IMAGING_WEIGHT"));
+      TableResize(iwdesc, iwShape, &tsmw, outtable);
     }
     else
     {
@@ -448,7 +458,8 @@ void MsFile::UpdateTimeslotData(casa::TableIterator& Data_iter,
 
   for (int i = 0; i < rowcount; i++)
   {
-    int bi    = Info.BaselineIndex[baseline_t(antenna1(i), antenna2(i))];
+    int bi    = Info.getBaselineIndex(antenna1(i), antenna2(i));
+    ASSERT (bi>=0);
     int band  = bandnr(i);
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
     for (uint j=0; j<data.size(); ++j) {
@@ -528,7 +539,8 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 
   for (uint i = 0; i < rowcount; i++)
   {
-    int bi    = Info.BaselineIndex[baseline_t(antenna1(i), antenna2(i))];
+    int bi    = Info.getBaselineIndex(antenna1(i), antenna2(i));
+    ASSERT (bi>=0);
     int band  = bandnr(i);
     int index = (band % Info.NumBands) * Info.NumPairs + bi;
 
@@ -549,14 +561,13 @@ void MsFile::WriteData(casa::TableIterator& Data_iter,
 }
 
 
-void MsFile::checkGaps(bool updateMS) const
+void MsFile::checkGaps(const MsInfo& info, bool updateMS) const
 {
   Vector<Double> times = ROScalarColumn<Double>(itsOrderedTable,"TIME").getColumn();
   // Make unique; use insertion sort, because it is already in time order.
   int nrtim = genSort (times, Sort::InsSort + Sort::NoDuplicates);
   // Now check if data set is regular.
-  int nrant = InMS->antenna().nrow();
-  int nrbasel = nrant * (nrant+1) / 2;    // includes auto-correlations
+  int nrbasel = info.NumPairs;
   int nrsample = InMS->nrow();
   int nrband = nrsample / (nrbasel * nrtim);
   ASSERTSTR (nrband * nrtim * nrbasel == nrsample,

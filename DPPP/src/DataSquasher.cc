@@ -199,26 +199,27 @@ void DataSquasher::ProcessTimeslot(const DataBuffer& InData,
     {
       for(int k = j; k < Info.NumAntennae; k++)
       {
-        int index = i * Info.NumPairs + Info.BaselineIndex[baseline_t(j, k)];
-        for (int ic=0; ic<nDataCol; ++ic)
-        {
-          myOldData[ic].reference(InData.Data[ic][index].xyPlane(inpos));
-          myNewData[ic].reference(OutData.Data[ic][index].xyPlane(outpos));
-        }
-        myOldFlags.reference(InData.Flags[index].xyPlane(inpos));
-        myNewFlags.reference(OutData.Flags[index].xyPlane(outpos));
-        OldWeights.reference(InData.Weights[index].xyPlane(inpos));
-        NewWeights.reference(OutData.Weights[index].xyPlane(outpos));
-        if (TimeData.Time[index].size() == 1)
-        {
+        int inx = Info.getBaselineIndex(j, k);
+        if (inx >= 0) {
+          int index = i * Info.NumPairs + inx;
           for (int ic=0; ic<nDataCol; ++ic) {
-            myNewData[ic] = 0.0;
+            myOldData[ic].reference(InData.Data[ic][index].xyPlane(inpos));
+            myNewData[ic].reference(OutData.Data[ic][index].xyPlane(outpos));
           }
-          myNewFlags = false;
-          NewWeights = 0.0;
+          myOldFlags.reference(InData.Flags[index].xyPlane(inpos));
+          myNewFlags.reference(OutData.Flags[index].xyPlane(outpos));
+          OldWeights.reference(InData.Weights[index].xyPlane(inpos));
+          NewWeights.reference(OutData.Weights[index].xyPlane(outpos));
+          if (TimeData.Time[index].size() == 1) {
+            for (int ic=0; ic<nDataCol; ++ic) {
+              myNewData[ic] = 0.0;
+            }
+            myNewFlags = false;
+            NewWeights = 0.0;
+          }
+          Squash(myOldData, myNewData, myOldFlags, myNewFlags, OldWeights, NewWeights,
+                 Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);
         }
-        Squash(myOldData, myNewData, myOldFlags, myNewFlags, OldWeights, NewWeights,
-               Info.NumPolarizations, Details.Start, Details.Step, Details.NChan);
       }
     }
   }

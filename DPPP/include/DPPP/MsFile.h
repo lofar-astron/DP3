@@ -93,7 +93,7 @@ namespace LOFAR
                        casa::TiledColumnStMan* tsm, casa::Table& table);
 
       // Check for time gaps.
-      void checkGaps(bool updateMS) const;
+      void checkGaps(const MsInfo&, bool updateMS) const;
 
       casa::IPosition DetermineDATAshape(const casa::Table& MS);
       casa::Block<casa::String> SELECTblock;
@@ -104,6 +104,7 @@ namespace LOFAR
       casa::Table           itsOrderedTable;
       casa::TableIterator   itsIterator;
       bool itsHasWeightSpectrum;
+      bool itsIsOrdered;
     }; // class MsFile
   }; // CS1
 }; // namespace LOFAR

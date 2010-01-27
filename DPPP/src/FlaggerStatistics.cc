@@ -89,7 +89,7 @@ void FlaggerStatistics::PrintStatistics(ostream& output)
   }
   for (int i = 0; i < NumBands; i++)
   {
-    output << "Band: " << i+1 << endl;
+    output << "Band: " << i << endl;
     output << string(namelength+1,' ');
     for(int j = 0; j < NumAntennae; j++)
     {

@@ -38,8 +38,6 @@ namespace LOFAR
 {
   namespace CS1
   {
-    typedef std::pair<int, int> baseline_t;
-
     class MsInfo
     {
     public:
@@ -53,6 +51,11 @@ namespace LOFAR
 
       ~MsInfo();
 
+      // Get the baseline index of an antenna pair.
+      // A negative value means that the baseline is not present.
+      int getBaselineIndex (int ant1, int ant2) const
+        { return BaselineIndex[ant1*NumAntennae + ant2]; }
+
       int                       NumSamples;
       int                       NumAntennae;
       int                       NumFields;
@@ -65,9 +68,11 @@ namespace LOFAR
       std::vector<casa::String> AntennaNames;
       casa::Vector<casa::Int>   Polarizations;
       double                    MaxBaselineLength;
-      std::vector<baseline_t>   PairsIndex;
-      std::map<baseline_t, int> BaselineIndex;
+      std::vector<int>          BaselineIndex;
       std::vector<double>       BaselineLengths;
+
+      // Update the info for an output MS.
+      void update (const casa::MeasurementSet& ms, int timestep);
 
       // print info to cout, for debugging.
       void                      PrintInfo(void);

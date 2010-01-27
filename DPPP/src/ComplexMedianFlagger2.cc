@@ -142,16 +142,19 @@ void ComplexMedianFlagger2::ProcessTimeslot(DataBuffer& data,
     {
       for(int k = j; k < info.NumAntennae; k++)
       {
-        index    = i * info.NumPairs + info.BaselineIndex[baseline_t(j, k)];
-        flags.reference(data.Flags[index].xyPlane(pos));
+        int inx = info.getBaselineIndex(j, k);
+        if (inx >= 0) {
+          index    = i * info.NumPairs + inx;
+          flags.reference(data.Flags[index].xyPlane(pos));
 //        if ((BaselineLengths[BaselineIndex[pairii(j, k)]] < 3000000))//radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243 m
-        stats(i, j, k) = FlagBaselineBand(flags,
-                                          data.GetRightDataColumn(details.FlagColumn)[index],
-                                          stats(i,j,k),
-                                          details.Threshold,
-                                          pos,
-                                          details.Existing,
-                                          data.WindowSize);
+          stats(i, j, k) = FlagBaselineBand(flags,
+                                            data.GetRightDataColumn(details.FlagColumn)[index],
+                                            stats(i,j,k),
+                                            details.Threshold,
+                                            pos,
+                                            details.Existing,
+                                            data.WindowSize);
+        }
       }
     }
   }

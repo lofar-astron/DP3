@@ -176,19 +176,22 @@ void MADFlagger::ProcessTimeslot(DataBuffer& data,
     {
       for(int k = j; k < info.NumAntennae; k++)
       {
-        index    = i * info.NumPairs + info.BaselineIndex[baseline_t(j, k)];
-//        if ((BaselineLengths[BaselineIndex[pairii(j, k)]] < 3000000))//radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243 m
-        Cube<Float> RealData = amplitude(data.GetRightDataColumn(details.FlagColumn)[index]);
-        Cube<Bool> Mask      = MakeMask(RealData, data.Flags[index], details.MaxThreshold,
-                                        data.WindowSize, pos, details.Existing);
-        stats(i, j, k) = FlagBaselineBand(data.Flags[index],
-                                          RealData, Mask,
-                                          stats(i,j,k),
-                                          details.Threshold,
-                                          pos,
-                                          details.Existing,
-                                          details.TimeWindow,
-                                          details.FreqWindow);
+        int inx = info.getBaselineIndex(j, k);
+        if (inx >= 0) {
+          index    = i * info.NumPairs + inx;
+          //        if ((BaselineLengths[BaselineIndex[pairii(j, k)]] < 3000000))//radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243 m
+          Cube<Float> RealData = amplitude(data.GetRightDataColumn(details.FlagColumn)[index]);
+          Cube<Bool> Mask      = MakeMask(RealData, data.Flags[index], details.MaxThreshold,
+                                          data.WindowSize, pos, details.Existing);
+          stats(i, j, k) = FlagBaselineBand(data.Flags[index],
+                                            RealData, Mask,
+                                            stats(i,j,k),
+                                            details.Threshold,
+                                            pos,
+                                            details.Existing,
+                                            details.TimeWindow,
+                                            details.FreqWindow);
+        }
       }
     }
   }

@@ -23,6 +23,7 @@
 #include <lofar_config.h>
 #include <casa/BasicMath/Math.h>
 #include <casa/Arrays.h>
+#include <tables/Tables/TableIter.h>
 
 #include <iostream>
 
@@ -66,9 +67,8 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   MSField fields                   = MS.field();
   NumFields                        = fields.nrow();
 
-  //Number of Antennae
+  //Max number of Antennae
   MSAntenna antennae               = MS.antenna();
-  NumAntennae                      = antennae.nrow();
 
   //Antenna Names
   ROScalarColumn<String>           ANT_NAME_col(antennae, "NAME");
@@ -114,8 +114,28 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   }
 
   //calculate number of baselines.
-  // It assumes auto-correlations are present.
-  NumPairs = (NumAntennae) * (NumAntennae + 1) / 2; //Triangular numbers formula
+  //Get the first time slot and retrieve the unique antennae from it.
+  Block<String> ms_iteration_variables(1);
+  ms_iteration_variables[0] = "TIME";
+  TableIterator iter(orderedMainTable, ms_iteration_variables,
+                     TableIterator::Ascending, TableIterator::NoSort);
+  Block<String> sort_cols(2);
+  sort_cols[0] = "ANTENNA1";
+  sort_cols[1] = "ANTENNA2";
+  Table sortab = iter.table().sort (sort_cols, Sort::Ascending,
+                                    Sort::QuickSort+Sort::NoDuplicates);
+  NumPairs = sortab.nrow();
+
+  // Create the index for all baselines.
+  Vector<Int> ant1 = ROScalarColumn<Int>(sortab, "ANTENNA1").getColumn();
+  Vector<Int> ant2 = ROScalarColumn<Int>(sortab, "ANTENNA2").getColumn();
+  NumAntennae = std::max (max(ant1), max(ant2));
+  int index = 0;
+  BaselineIndex.resize (NumAntennae*NumAntennae);
+  std::fill (BaselineIndex.begin(), BaselineIndex.end(), -1);
+  for (uInt i=0; i<ant1.size(); ++i) {
+    BaselineIndex[ant1[i] * NumAntennae + ant2[i]] = index++;
+  }
 
   //calculate number of Bands
   // Take care of possible missing time slots.
@@ -125,17 +145,10 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   else
   { NumBands = spectral_window.nrow();
   }
-  PairsIndex.resize(NumPairs);
-
-  int index = 0;
-  for (int i = 0; i < NumAntennae; i++)
-  { for(int j = i; j < NumAntennae; j++)
-    { PairsIndex[index]               = baseline_t(i, j);
-      BaselineIndex[baseline_t(i, j)] = index++;
-    }
-  }
 
   ComputeBaselineLengths(MS);
+
+  cout << "Info: " <<NumSamples<<' '<<NumPairs<<' '<<NumAntennae<<' '<<index<<endl;
 }
 
 //===============>>>  Ms_Info::~Ms_Info  <<<===============
@@ -143,6 +156,18 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
 MsInfo::~MsInfo()
 {
 }
+
+
+void MsInfo::update (const MeasurementSet& MS, int timestep)
+{
+  //Number of channels in the Band
+  MSSpectralWindow spectral_window = MS.spectralWindow();
+  ROScalarColumn<Int>              NUM_CHAN_col(spectral_window, "NUM_CHAN");
+  NumChannels                      = NUM_CHAN_col(0);
+  NumTimeslots = (NumTimeslots + timestep - 1) / timestep;
+  NumSamples = NumTimeslots * NumPairs * NumBands;
+}
+
 
 //===============>>> MS_Info::PrintInfo  <<<===============
 
@@ -177,11 +202,15 @@ void MsInfo::ComputeBaselineLengths(const casa::MeasurementSet& MS)
   {
     for (int j = i; j < NumAntennae; j++)
     {
-      Vector<Double> p(position(i) - position(j));
-      double temp   = sqrt(p(0)*p(0) + p(1)*p(1) + p(2)*p(2));
-      BaselineLengths[BaselineIndex[baseline_t(i, j)]] = temp;
-      if (temp > MaxBaselineLength && temp < 3000000) //radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243
-      { MaxBaselineLength = temp;                     // non-existent antenna's can have position (0,0,0)
+      int inx = getBaselineIndex (i, j);
+      if (inx >= 0) {
+        Vector<Double> p(position(i) - position(j));
+        double temp   = sqrt(p(0)*p(0) + p(1)*p(1) + p(2)*p(2));
+        BaselineLengths[inx] = temp;
+        if (temp > MaxBaselineLength && temp < 3000000) {
+          //radius of the Earth in meters? WSRT sometimes has fake telescopes at 3854243
+          MaxBaselineLength = temp;   // non-existent antenna's can have position (0,0,0)
+        }
       }
     }
   }

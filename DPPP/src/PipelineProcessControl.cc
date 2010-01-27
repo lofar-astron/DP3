@@ -56,7 +56,8 @@
 // 0.44 fixed IMAGING_WEIGHT (is 1-dim array); nchan=0 means till end
 // 0.45 check nchan%Step != 0; update TOTAL_BANDWIDTH
 // 0.46 added updating of flags instead of always copying an MS
-#define PIPELINE_VERSION "0.46"
+// 0.47 determine baselines from main table instead of ANTENNA table
+#define PIPELINE_VERSION "0.47"
 
 namespace LOFAR
 {
@@ -144,7 +145,8 @@ namespace LOFAR
         std::cout << "Running pipeline please wait..." << std::endl;
         myFile->Init(*myInfo, *myDetails, itsSquasher);
         myFile->PrintInfo();
-        MsInfo* outInfo = new MsInfo(myFile->getOutMS(), myFile->getOutMS());
+        MsInfo* outInfo = new MsInfo(*myInfo);
+        outInfo->update (myFile->getOutMS(), myDetails->TimeStep);
         outInfo->PrintInfo();
         myPipeline->Run(outInfo);
         delete outInfo;
