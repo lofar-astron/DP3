@@ -129,7 +129,7 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   // Create the index for all baselines.
   Vector<Int> ant1 = ROScalarColumn<Int>(sortab, "ANTENNA1").getColumn();
   Vector<Int> ant2 = ROScalarColumn<Int>(sortab, "ANTENNA2").getColumn();
-  NumAntennae = std::max (max(ant1), max(ant2));
+  NumAntennae = std::max (max(ant1), max(ant2)) + 1;
   int index = 0;
   BaselineIndex.resize (NumAntennae*NumAntennae);
   std::fill (BaselineIndex.begin(), BaselineIndex.end(), -1);

@@ -394,9 +394,7 @@ void MsFile::Init(MsInfo& Info, RunDetails& Details, int Squashing)
 void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
 {
   MSHistory histtab(ms.history());
-  cout << "iswritable: " << ms.isWritable()<<' '<<histtab.isWritable()<<' '<<ms.history().isWritable()<<endl;
   histtab.reopenRW();
-  cout << "iswritable: " << ms.isWritable()<<' '<<histtab.isWritable()<<' '<<ms.history().isWritable()<<endl;
   uInt rownr = histtab.nrow();
   histtab.addRow();
   MSHistoryColumns histcols(histtab);
