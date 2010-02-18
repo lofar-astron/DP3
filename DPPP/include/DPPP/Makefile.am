@@ -1,4 +1,9 @@
 INSTHDRS = \
+		DPStep.h DPInput.h DPBuffer.h AverageInfo.h \
+		ProgressMeter.h FlagCounter.h \
+		UVWCalculator.h \
+		MSReader.h MSWriter.h MSUpdater.h \
+		Averager.h MedFlagger.h \
 		FlaggerStatistics.h \
 		MsInfo.h \
 		MsFile.h \
@@ -11,7 +16,6 @@ INSTHDRS = \
 		DataBuffer.h \
 		TimeBuffer.h \
 		RunDetails.h \
-		ProgressMeter.h \
 		Pipeline.h 
 
 NOINSTHDRS = PipelineProcessControl.h 

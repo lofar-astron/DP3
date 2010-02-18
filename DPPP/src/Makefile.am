@@ -1,6 +1,11 @@
 lib_LTLIBRARIES         = libdppp.la
 
 libdppp_la_SOURCES = Package__Version.cc  \
+		DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc \
+		ProgressMeter.cc FlagCounter.cc \
+		UVWCalculator.cc \
+		MSReader.cc MSWriter.cc MSUpdater.cc \
+		Averager.cc MedFlagger.cc \
 		FlaggerStatistics.cc \
 		MsInfo.cc \
 		MsFile.cc \
@@ -13,13 +18,20 @@ libdppp_la_SOURCES = Package__Version.cc  \
 		DataBuffer.cc \
 		TimeBuffer.cc \
 		RunDetails.cc \
-		ProgressMeter.cc \
 		Pipeline.cc
 
 
-bin_PROGRAMS = versiondppp IDPPP
+bin_PROGRAMS = versiondppp DPPP IDPPP
 
-IDPPP_SOURCES	= IDPPP.cc PipelineProcessControl.cc
+versiondppp_SOURCES      = versiondppp.cc
+versiondppp_LDADD        = libdppp.la
+versiondppp_DEPENDENCIES = libdppp.la $(LOFAR_DEPEND)
+
+DPPP_SOURCES		= DPPP.cc
+DPPP_LDADD		= libdppp.la
+DPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
+
+IDPPP_SOURCES		= IDPPP.cc PipelineProcessControl.cc
 IDPPP_LDADD		= libdppp.la
 IDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 
@@ -29,8 +41,5 @@ dist_python_SCRIPTS =
 scriptdir = $(bindir)
 dist_script_SCRIPTS = mwflagger mwflagger-part taqlflagger
 
-versiondppp_SOURCES      = versiondppp.cc
-versiondppp_LDADD        = libdppp.la
-versiondppp_DEPENDENCIES = libdppp.la $(LOFAR_DEPEND)
 
 include $(top_srcdir)/Makefile.common

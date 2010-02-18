@@ -1,4 +1,4 @@
-//# ProgressMeter.h: Visual indication of a tasks progress.
+//# ProgressMeter.cc: Visual indication of a task's progress.
 //# Copyright (C) 1997,2000,2001,2002
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands

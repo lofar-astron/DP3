@@ -2,6 +2,11 @@
 
 # List of header files that will be installed.
 set(inst_HEADERS
+  DPStep.h DPInput.h DPBuffer.h AverageInfo.h
+  ProgressMeter.h FlagCounter.h
+  UVWCalculator.h
+  MSReader.h MSWriter.h MSUpdater.h
+  Averager.h MedFlagger.h
   FlaggerStatistics.h
   MsInfo.h
   MsFile.h
@@ -14,7 +19,6 @@ set(inst_HEADERS
   DataBuffer.h
   TimeBuffer.h
   RunDetails.h
-  ProgressMeter.h
   Pipeline.h)
 
 # Create symbolic link to include directory.
