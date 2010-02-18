@@ -27,9 +27,9 @@
 #include <DPPP/AverageInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
-#include <tables/tables/TableRecord.h>
-#include <tables/tables/ScalarColumn.h>
-#include <tables/tables/ArrayColumn.h>
+#include <tables/Tables/TableRecord.h>
+#include <tables/Tables/ScalarColumn.h>
+#include <tables/Tables/ArrayColumn.h>
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <casa/Containers/Record.h>
