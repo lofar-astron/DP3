@@ -97,6 +97,8 @@ namespace LOFAR {
         { itsUVW.reference (uvw); }
       const casa::Matrix<double>& getUVW() const
         { return itsUVW; }
+      casa::Matrix<double>& getUVW()
+        { return itsUVW; }
 
       bool hasNoFlags() const
         { return itsFlags.empty(); }

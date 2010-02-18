@@ -67,93 +67,79 @@ namespace LOFAR {
     bool Averager::process (const DPBuffer& buf)
     {
       RefRows rowNrs(buf.getRowNrs());
-      // If first time, resize and clear the buffer.
       if (itsNTimes == 0) {
         // The first time we assign because that is faster than first clearing
         // and adding thereafter.
+        itsBuf.getUVW()     = itsInput->fetchUVW (buf, rowNrs);
         itsBuf.getWeights() = itsInput->fetchWeights (buf, rowNrs);
         itsBuf.getData()    = buf.getData();
-        IPosition shapeIn = buf.getData().shape();
+        IPosition shapeIn   = buf.getData().shape();
         itsNPoints.resize (shapeIn);
         // Take care of the preAvg flags.
-        // If not averaging in time, we can simply use them from the input.
-        // Note that this is possible because we do not keep nChanAvg in the
-        // preAvgFlags cube and because AverageInfo.cc checks if averaging
-        // in channel fits integrally.
-        if (itsNTimeAvg == 1) {
-          itsBuf.setPreAvgFlags (itsInput->fetchPreAvgFlags (buf, rowNrs));
-        } else {
-          // We have to shape the output array and copy to a part of it.
-          Array<bool> preAvgFlags(itsInput->fetchPreAvgFlags (buf, rowNrs));
-          IPosition ofShape = preAvgFlags.shape();
-          ofShape[1] *= itsNTimeAvg;      // more time entries, same chan and bl
-          // Make it unique in case PreAvg is referenced elsewhere.
-          itsBuf.getPreAvgFlags().unique();
-          itsBuf.getPreAvgFlags().resize (ofShape);
-          itsBuf.getPreAvgFlags() = true; // initialize for times missing at end
-          copyPreAvgFlags (preAvgFlags, 0);
-        }
+        // We have to shape the output array and copy to a part of it.
+        Cube<bool> preAvgFlags(itsInput->fetchPreAvgFlags (buf, rowNrs));
+        IPosition ofShape = preAvgFlags.shape();
+        ofShape[1] *= itsNTimeAvg;      // more time entries, same chan and bl
+        // Make it unique in case PreAvg is referenced elsewhere.
+        itsBuf.getPreAvgFlags().unique();
+        itsBuf.getPreAvgFlags().resize (ofShape);
+        itsBuf.getPreAvgFlags() = true; // initialize for times missing at end
+        copyPreAvgFlags (preAvgFlags, buf.getFlags(), 0);
         // Set middle of new interval.
         double time = buf.getTime() + 0.5*(itsNTimeAvg-1)*itsTimeInterval;
         itsBuf.setTime (time);
         // Only set.
         itsNPoints = 1;
-        if (! buf.hasNoFlags()) {
-          Array<bool>::const_contiter infIter = buf.getFlags().cbegin();
-          Array<Complex>::contiter    dataIter = itsBuf.getData().cbegin();
-          Array<float>::contiter      wghtIter = itsBuf.getWeights().cbegin();
-          Array<int>::contiter        outnIter = itsNPoints.cbegin();
-          Array<int>::contiter        outnIterEnd = itsNPoints.cend();
-          while (outnIter != outnIterEnd) {
-            if (*infIter) {
-              // Flagged data point
-              *outnIter = 0;
-              *dataIter = Complex();
-              *wghtIter = 0;
-            } else {
-              // Weight the data point
-              *dataIter *= *wghtIter;
-            }
-            ++infIter;
-            ++dataIter;
-            ++wghtIter;
-            ++outnIter;
+        // Set flagged points to zero.
+        Array<bool>::const_contiter infIter = buf.getFlags().cbegin();
+        Array<Complex>::contiter    dataIter = itsBuf.getData().cbegin();
+        Array<float>::contiter      wghtIter = itsBuf.getWeights().cbegin();
+        Array<int>::contiter        outnIter = itsNPoints.cbegin();
+        Array<int>::contiter        outnIterEnd = itsNPoints.cend();
+        while (outnIter != outnIterEnd) {
+          if (*infIter) {
+            // Flagged data point
+            *outnIter = 0;
+            *dataIter = Complex();
+            *wghtIter = 0;
+          } else {
+            // Weigh the data point
+            *dataIter *= *wghtIter;
           }
+          ++infIter;
+          ++dataIter;
+          ++wghtIter;
+          ++outnIter;
         }
       } else {
         // Not the first time.
         // For now we assume that all timeslots have the same nr of baselines,
         // so check if the buffer sizes are the same.
         ASSERT (itsBuf.getData().shape() == buf.getData().shape());
-        copyPreAvgFlags (itsInput->fetchPreAvgFlags(buf, rowNrs), itsNTimes);
+        itsBuf.getUVW() += itsInput->fetchUVW (buf, rowNrs);
+        copyPreAvgFlags (itsInput->fetchPreAvgFlags(buf, rowNrs),
+                         buf.getFlags(), itsNTimes);
         Cube<float> weights(itsInput->fetchWeights(buf, rowNrs));
-        if (buf.hasNoFlags()) {
-          // No flags, so we can simply add.
-          itsBuf.getData()    += buf.getData() * weights;
-          itsBuf.getWeights() += weights;
-          itsNPoints += 1;
-        } else {
-          // Ignore flagged points.
-          Array<Complex>::const_contiter indIter = buf.getData().cbegin();
-          Array<float>::const_contiter   inwIter = weights.cbegin();
-          Array<bool>::const_contiter    infIter = buf.getFlags().cbegin();
-          Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
-          Array<float>::contiter   outwIter = itsBuf.getWeights().cbegin();
-          Array<int>::contiter outnIter = itsNPoints.cbegin();
-          Array<int>::contiter outnIterEnd = itsNPoints.cend();
-          while (outnIter != outnIterEnd) {
-            if (!*infIter) {
-              *outdIter += *indIter * *inwIter;
-              *outwIter += *inwIter;
-              (*outnIter)++;
-            }
-            ++indIter;
-            ++inwIter;
-            ++infIter;
-            ++outdIter;
-            ++outwIter;
-            ++outnIter;
+        // Ignore flagged points.
+        Array<Complex>::const_contiter indIter = buf.getData().cbegin();
+        Array<float>::const_contiter   inwIter = weights.cbegin();
+        Array<bool>::const_contiter    infIter = buf.getFlags().cbegin();
+        Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+        Array<float>::contiter   outwIter = itsBuf.getWeights().cbegin();
+        Array<int>::contiter outnIter = itsNPoints.cbegin();
+        Array<int>::contiter outnIterEnd = itsNPoints.cend();
+        while (outnIter != outnIterEnd) {
+          if (!*infIter) {
+            *outdIter += *indIter * *inwIter;
+            *outwIter += *inwIter;
+            (*outnIter)++;
           }
+          ++indIter;
+          ++inwIter;
+          ++infIter;
+          ++outdIter;
+          ++outwIter;
+          ++outnIter;
         }
       }
       // Do the averaging if enough time steps have been processed.
@@ -168,11 +154,13 @@ namespace LOFAR {
 
     void Averager::finish()
     {
+      // Average remaining entries.
       if (itsNTimes > 0) {
         DPBuffer buf = average();
         getNextStep()->process (buf);
         itsNTimes = 0;
       }
+      // Let the next steps finish.
       getNextStep()->finish();
     }
 
@@ -233,31 +221,59 @@ namespace LOFAR {
       // Make sure the loops ended correctly.
       DBGASSERT (indata == itsBuf.getData().data() + itsBuf.getData().size());
       DBGASSERT (outdata == buf.getData().data() + buf.getData().size());
+      // Set the remaining values in the output buffer.
       buf.setTime (itsBuf.getTime());
       buf.setPreAvgFlags (itsBuf.getPreAvgFlags());
-      DPBuffer::mergePreAvgFlags (buf.getPreAvgFlags(), itsBuf.getFlags());
+      // The result UVWs are the average of the input.
+      // If ever needed, UVWCalculator can be used to calculate the UVWs.
+      buf.setUVW (itsBuf.getUVW() / double(itsNTimes));
       return buf;
     }
 
     void Averager::copyPreAvgFlags (const Cube<bool>& preAvgFlags,
+                                    const Cube<bool>& flags,
                                     int timeIndex)
     {
-      // Copy the preAvg flags.
+      // Copy the preAvg flags to the given index.
+      // Furthermore the appropriate PreAvg flags are set for a
+      // flagged data point. It can be the case that an input data point
+      // has been averaged before, thus has fewer channels than PreAvgFlags.
       // nrchan and nrbl are the same for in and out.
-      // nrtimout is a multiple of nrtimin.
-      IPosition shapeIn = preAvgFlags.shape();
+      // nrtimout is a multiple of nrtimavg.
+      IPosition shapeIn  = preAvgFlags.shape();
       IPosition shapeOut = itsBuf.getPreAvgFlags().shape();
-      uint nrchan = shapeIn[0];
-      uint nrtimin= shapeIn[1];
-      uint nrtimout = shapeOut[1];
-      uint nrbl = shapeIn[2];
+      IPosition shapeFlg = flags.shape();
+      uint nchan    = shapeIn[0];    // original nr of channels
+      uint ntimavg  = shapeIn[1];    // nr of averaged times in input data
+      uint nchanavg = nchan / shapeFlg[1]; // nr of avg chan in input data
+      uint ntimout  = shapeOut[1];   // nr of averaged times in output data
+      uint nbl      = shapeIn[2];    // nr of baselines
+      uint ncorr    = shapeFlg[0];   // nr of correlations (in FLAG)
       // in has to be copied to the correct time index in out.
-      bool* outPtr = itsBuf.getPreAvgFlags().data() + nrchan*nrtimin*timeIndex;
-      const bool* inPtr = preAvgFlags.data();
-      for (uint i=0; i<nrbl; ++i) {
-        memcpy (outPtr, inPtr, nrchan*nrtimin*sizeof(bool));
-        outPtr += nrchan*nrtimout;
-        inPtr  += nrchan*nrtimin;
+      bool* outPtr = itsBuf.getPreAvgFlags().data() + nchan*ntimavg*timeIndex;
+      const bool* inPtr   = preAvgFlags.data();
+      const bool* flagPtr = flags.data();
+      for (uint k=0; k<nbl; ++k) {
+        memcpy (outPtr, inPtr, nchan*ntimavg*sizeof(bool));
+        // Applying the flags only needs to be done if the input data
+        // was already averaged before.
+        if (ntimavg > 1  &&  nchanavg > 1) {
+          for (int j=0; j<shapeFlg[1]; ++j) {
+            // If a data point is flagged, the flags in the corresponding
+            // PreAvg window have to be set.
+            // Only look at the flags of the first correlation.
+            if (*flagPtr) {
+              bool* avgPtr = outPtr + j*nchanavg;
+              for (uint i=0; i<ntimavg; ++i) {
+                std::fill (avgPtr, avgPtr+nchanavg, true);
+                avgPtr += nchan;
+              }
+            }
+            flagPtr += ncorr;
+          }
+        }
+        outPtr += nchan*ntimout;
+        inPtr  += nchan*ntimavg;
       }
     }
 

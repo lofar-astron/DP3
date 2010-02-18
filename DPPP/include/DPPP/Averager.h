@@ -65,7 +65,10 @@ namespace LOFAR {
 
       // Copy the preAvg flags in the input buffer to the correct
       // time index in the output buffer.
-      void copyPreAvgFlags (const casa::Cube<bool>&, int timeIndex);
+      // If a flag is set, set all flags in corresponding PreAvg window.
+      void copyPreAvgFlags (const casa::Cube<bool>& preAvgFlags,
+                            const casa::Cube<bool>& flags,
+                            int timeIndex);
 
       //# Data members.
       DPInput*        itsInput;

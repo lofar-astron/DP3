@@ -45,6 +45,7 @@ namespace LOFAR {
         itsAmpl.reference (that.itsAmpl);
         itsFlags.reference (that.itsFlags);
         itsWeights.reference (that.itsWeights);
+        itsUVW.reference (that.itsUVW);
         itsPreAvgFlags.reference (that.itsPreAvgFlags);
       }
       return *this;

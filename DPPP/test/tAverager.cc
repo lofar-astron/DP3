@@ -37,6 +37,7 @@ using namespace LOFAR::DPPP;
 using namespace casa;
 using namespace std;
 
+
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
 // Weights are always 1.
@@ -73,6 +74,9 @@ private:
     Cube<bool> preAvgFlags(itsNChan, 1, itsNBl);
     preAvgFlags = itsFlag;
     buf.setPreAvgFlags (preAvgFlags);
+    Matrix<double> uvw(3,itsNBl);
+    indgen (uvw, double(itsCount*100));
+    buf.setUVW (uvw);
     getNextStep()->process (buf);
     ++itsCount;
     return true;
@@ -145,6 +149,11 @@ private:
     ASSERT (near(buf.getTime(),
                  2+5*(itsCount*itsNAvgTime + (itsNAvgTime-1)/2.)));
     ASSERT (allNear(buf.getWeights(), resultw, 1e-5));
+    if (navgtime == itsNAvgTime) {
+      Matrix<double> uvw(3,itsNBl);
+      indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
+      ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    }
     ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
     ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
     ++itsCount;
@@ -171,10 +180,10 @@ private:
 
 
 // More elaborate class which can set different flags and weights.
-class TestInput2: public DPInput
+class TestInput3: public DPInput
 {
 public:
-  TestInput2(int nrtime, int nrbl, int nrchan, int nrcorr)
+  TestInput3(int nrtime, int nrbl, int nrchan, int nrcorr)
     : itsCount(0),
       itsNrTime(nrtime), itsNrBl(nrbl), itsNrChan(nrchan), itsNrCorr(nrcorr)
   {
@@ -214,6 +223,12 @@ private:
     return true;
   }
 
+  virtual casa::Matrix<double> getUVW (const casa::RefRows&)
+  {
+    Matrix<double> uvw(3,itsNrBl);
+    indgen (uvw);
+    return uvw;
+  }
   virtual casa::Cube<bool> getPreAvgFlags (const casa::RefRows&)
   {
     return itsPreAvgFlags;
@@ -228,13 +243,13 @@ private:
   Cube<bool> itsPreAvgFlags;
 };
 
-// Class to check result of averaging TestInput2.
+// Class to check result of averaging TestInput3.
 // All input must be averaged (in one or more steps) to a single value
 // per corr/baseline.
-class TestOutput2: public DPStep
+class TestOutput3: public DPStep
 {
 public:
-  TestOutput2(int nrtime, int nrbl, int nrchan, int nrcorr)
+  TestOutput3(int nrtime, int nrbl, int nrchan, int nrcorr)
     : itsNrTime(nrtime), itsNrBl(nrbl), itsNrChan(nrchan), itsNrCorr(nrcorr)
   {}
 private:
@@ -247,7 +262,7 @@ private:
     weights = float(0);
     flags = true;
     preAvgFlags = true;
-    // Create data in the same way as in TestInput2.
+    // Create data in the same way as in TestInput3.
     for (int it=0; it<itsNrTime; ++it) {
       int i = 0;
       for (int ib=0; ib<itsNrBl; ++ib) {
@@ -276,6 +291,9 @@ private:
     ASSERT (allEQ(buf.getFlags(), flags));
     ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
     ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    Matrix<double> uvw(3,itsNrBl);
+    indgen (uvw);
+    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
     ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
     ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
     return true;
@@ -295,6 +313,121 @@ private:
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
+};
+
+// Simple class to flag every step-th XX point.
+class TestFlagger: public DPStep
+{
+public:
+  TestFlagger(int step)
+    : itsCount(0), itsStep(step)
+  {}
+private:
+  virtual bool process (const DPBuffer& buf)
+  {
+    DPBuffer buf2(buf);
+    int ncorr = buf2.getFlags().shape()[0];
+    int np = buf2.getFlags().size() / ncorr;
+    bool* flagPtr = buf2.getFlags().data();
+    for (int i=0; i<np; ++i) {
+      if ((i+itsCount)%itsStep == 0) {
+        ///cout << "flagged " <<itsCount <<' '<<  i << endl;
+        for (int j=0; j<ncorr; ++j) {
+          flagPtr[i*ncorr + j] = true;
+        }
+      }
+    }
+    getNextStep()->process (buf2);
+    ++itsCount;
+    return true;
+  }
+
+  virtual void finish() {getNextStep()->finish();}
+  virtual void show (std::ostream&) {}
+
+  int itsCount, itsStep;
+};
+
+// Class to check result of averaging and flagging TestInput3.
+// First the data are averaged from 8,4 to 4,2, then every step-th point
+// is flagged, and finally it is averaged to 1,1.
+class TestOutput4: public DPStep
+{
+public:
+  TestOutput4(int nrtime, int nrbl, int nrchan, int nrcorr, int step)
+    : itsNrTime(nrtime), itsNrBl(nrbl), itsNrChan(nrchan), itsNrCorr(nrcorr),
+      itsStep(step)
+  {}
+private:
+  virtual bool process (const DPBuffer& buf)
+  {
+    Cube<Complex> result(itsNrCorr,1,itsNrBl);
+    Cube<float> weights(itsNrCorr,1,itsNrBl);
+    Cube<bool> flags(itsNrCorr,1,itsNrBl);
+    Cube<bool> preAvgFlags(itsNrChan,itsNrTime,itsNrBl);
+    weights = float(0);
+    flags = true;
+    preAvgFlags = true;
+    // Create data in the same way as in TestInput3.
+    for (int it=0; it<itsNrTime; ++it) {
+      int i = 0;
+      for (int ib=0; ib<itsNrBl; ++ib) {
+        for (int ic=0; ic<itsNrChan; ++ic) {
+          // TestFlagger flags every step-th point of 2x2 averaged data.
+          int tf = it/2;    // same as itsCount in testFlagger
+          if (((ib*itsNrChan + ic)/2 + tf) % itsStep == 0) {
+            ///cout << "out4 flagged "<< tf<<' '<< i/itsNrCorr<<' ' <<ib<<' '<<ic/2 << endl;
+            i += itsNrCorr;
+          } else {
+            for (int ip=0; ip<itsNrCorr; ++ip) {
+              if ((it+2*ib+3*ic) % 7 != 0) {
+                float weight = (1 + (it+ib+ic)%5) / 5.;
+                result(ip,0,ib) += weight * Complex(i+it*10,i-1000+it*6);
+                weights(ip,0,ib) += weight;
+                ///  cout << result(ip,0,ib)  << weight << endl;
+                flags(ip,0,ib) = false;
+                preAvgFlags(ic,it,ib) = false;
+              }
+              i++;
+            }
+          }
+        }
+      }
+    }
+    for (uint i=0; i<result.size(); ++i) {
+      if (!flags.data()[i]) {
+        result.data()[i] /= weights.data()[i];
+      }
+    }
+    // Check the averaged result.
+    ///cout << real(buf.getData()) << endl<<real(result);
+    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
+    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
+    ASSERT (allEQ(buf.getFlags(), flags));
+    ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    Matrix<double> uvw(3,itsNrBl);
+    indgen (uvw);
+    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
+    ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
+    return true;
+  }
+
+  virtual void finish() {}
+  virtual void show (std::ostream&) {}
+  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  {
+    ASSERT (avgInfo.startChan()==0);
+    ASSERT (int(avgInfo.origNChan())==itsNrChan);
+    ASSERT (avgInfo.nchan()==1);
+    ASSERT (avgInfo.ntime()==1);
+    ASSERT (avgInfo.timeInterval()==5*itsNrTime);
+    ASSERT (int(avgInfo.nchanAvg())==itsNrChan);
+    ASSERT (int(avgInfo.ntimeAvg())==itsNrTime);
+  }
+
+  int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
 };
 
 
@@ -359,25 +492,28 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 // Do tests with weighting and some flagged points.
 void test3(int nrbl, int nrcorr)
 {
-  cout << "test3: ntime=2 nrbl=" << nrbl << " nchan=2 ncorr=" << nrcorr << endl;
   {
+    cout << "test3: ntime=2 nrbl=" << nrbl << " nchan=2 ncorr=" << nrcorr
+         << endl;
     cout << "  navgtime=2 navgchan=2" << endl;
     // Create the steps.
-    TestInput2* in = new TestInput2(2, nrbl, 2, nrcorr);
+    TestInput3* in = new TestInput3(2, nrbl, 2, nrcorr);
     DPStep::ShPtr step1(in);
     ParameterSet parset1;
     parset1.add ("freqstep", "2");
     parset1.add ("timestep", "2");
     DPStep::ShPtr step2a(new Averager(in, parset1, ""));
-    DPStep::ShPtr step3(new TestOutput2(2, nrbl, 2, nrcorr));
+    DPStep::ShPtr step3(new TestOutput3(2, nrbl, 2, nrcorr));
     step1->setNextStep (step2a);
     step2a->setNextStep (step3);
     execute (step1);
   }
   {
+    cout << "test3: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
+         << endl;
     cout << "  [navgtime=2 navgchan=4], [navgtime=2 navgchan=2]" << endl;
     // Create the steps.
-    TestInput2* in = new TestInput2(4, nrbl, 8, nrcorr);
+    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
     DPStep::ShPtr step1(in);
     ParameterSet parset1, parset2;
     parset1.add ("freqstep", "4");
@@ -386,10 +522,39 @@ void test3(int nrbl, int nrcorr)
     parset2.add ("timestep", "2");
     DPStep::ShPtr step2a(new Averager(in, parset1, ""));
     DPStep::ShPtr step2b(new Averager(in, parset2, ""));
-    DPStep::ShPtr step3(new TestOutput2(4, nrbl, 8, nrcorr));
+    DPStep::ShPtr step3(new TestOutput3(4, nrbl, 8, nrcorr));
     step1->setNextStep (step2a);
     step2a->setNextStep (step2b);
     step2b->setNextStep (step3);
+    execute (step1);
+  }
+}
+
+// Do tests with averaging and flagging steps to see if the flags are
+// promoted to the PREAVG flags.
+void test4(int nrbl, int nrcorr, int flagstep)
+{
+  {
+    cout << "test4: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
+         << endl;
+    cout << "  [navgtime=2 navgchan=2], [flagstep=" << flagstep
+         << "] [navgtime=2 navgchan=4]" << endl;
+    // Create the steps.
+    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
+    DPStep::ShPtr step1(in);
+    ParameterSet parset1, parset2;
+    parset1.add ("freqstep", "2");
+    parset1.add ("timestep", "2");
+    parset2.add ("freqstep", "4");
+    parset2.add ("timestep", "2");
+    DPStep::ShPtr step2a(new Averager(in, parset1, ""));
+    DPStep::ShPtr step2b(new TestFlagger(flagstep));
+    DPStep::ShPtr step2c(new Averager(in, parset2, ""));
+    DPStep::ShPtr step3(new TestOutput4(4, nrbl, 8, nrcorr, flagstep));
+    step1->setNextStep (step2a);
+    step2a->setNextStep (step2b);
+    step2b->setNextStep (step2c);
+    step2c->setNextStep (step3);
     execute (step1);
   }
 }
@@ -406,7 +571,9 @@ int main()
     test2(10, 3, 32, 2, true);
     test2(10, 3, 32, 2, false);
     test3(1, 1);
-    test3(4, 10);
+    test3(10, 4);
+    test4(1, 4, 3);
+    test4(20, 4, 5);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
