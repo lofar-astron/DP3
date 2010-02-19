@@ -54,14 +54,14 @@ namespace LOFAR {
     void Averager::updateAverageInfo (AverageInfo& info)
     {
       itsTimeInterval = info.timeInterval();
-      info.update (itsNChanAvg, itsNTimeAvg);
+      itsNChanAvg = info.update (itsNChanAvg, itsNTimeAvg);
     }
 
     void Averager::show (std::ostream& os)
     {
       os << "Averager " << itsName << std::endl;
-      os << "  freqstep        " << itsNChanAvg << std::endl;
-      os << "  timestep        " << itsNTimeAvg << std::endl;
+      os << "  freqstep:       " << itsNChanAvg << std::endl;
+      os << "  timestep:       " << itsNTimeAvg << std::endl;
     }
 
     bool Averager::process (const DPBuffer& buf)

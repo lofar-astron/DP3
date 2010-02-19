@@ -410,12 +410,38 @@ namespace LOFAR {
       dataCol.putColumn (buf.getData());
       flagCol.putColumn (buf.getFlags());
       if (itsWritePreAvgFlags) {
-        ArrayColumn<bool> preavgCol(out, "LOFAR_FULL_RES_FLAG");
-        preavgCol.putColumn(itsReader->fetchPreAvgFlags (buf, buf.getRowNrs()));
+        writePreAvgFlags (out, buf);
       }
       ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
       weightCol.putColumn (itsReader->fetchWeights (buf, buf.getRowNrs()));
     }
+
+    void MSWriter::writePreAvgFlags (Table& out, const DPBuffer& buf)
+    {
+      // Get the flags.
+      Cube<bool> flags (itsReader->fetchPreAvgFlags (buf, buf.getRowNrs()));
+      const IPosition& ofShape = flags.shape();
+      // Convert the bools to uChar bits.
+      IPosition chShape(ofShape);
+      chShape[0] = (ofShape[0] + 7) / 8;
+      Cube<uChar> chars(chShape);
+      // If their sizes match, do it all in one go.
+      // Otherwise we have to iterate.
+      if (ofShape[0] == chShape[0]*8) {
+        Conversion::boolToBit (chars.data(), flags.data(), flags.size());
+      } else {
+        ASSERT (ofShape[0] < chShape[0]*8);
+        const bool* flagsPtr = flags.data();
+        uChar* charsPtr = chars.data();
+        for (int i=0; i<ofShape[2]*ofShape[3]; ++i) {
+          Conversion::bitToBool (charsPtr, flagsPtr, ofShape[0]);
+          flagsPtr += ofShape[0];
+          charsPtr += chShape[0];
+        }
+      }
+      ArrayColumn<uChar> preAvgCol(out, "LOFAR_FULL_RES_FLAG");
+      preAvgCol.putColumn (chars);
+    } 
 
     void MSWriter::copyMeta (const Table& in, Table& out, bool copyTimeInfo)
     {

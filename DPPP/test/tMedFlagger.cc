@@ -58,7 +58,7 @@ private:
     }
     Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
     }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
@@ -82,7 +82,8 @@ private:
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
-    { avgInfo.init (0, itsNChan, itsNTime, 5); }//startchan,nchan,ntime,interval
+    // Use startchan=0 and timeInterval=5
+    { avgInfo.init (itsNCorr, 0, itsNChan, itsNTime, 5); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -104,7 +105,7 @@ private:
     // Fill expected result in similar way as TestInput.
     Cube<Complex> result(itsNCorr,itsNChan,itsNBl);
     for (int i=0; i<int(result.size()); ++i) {
-      result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      result.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
     }
     // Check the result.
     ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
@@ -151,17 +152,17 @@ void execute (const DPStep::ShPtr& step1)
 }
 
 // Test simple flagging without preflagged points.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
+void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, int threshold)
 {
   cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
+       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqwindow", "1");
   parset.add ("timewindow", "1");
-  parset.add ("threshold", "1");
+  parset.add ("threshold", toString(threshold));
   DPStep::ShPtr step2(new MedFlagger(parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
@@ -174,8 +175,9 @@ int main()
 {
   INIT_LOGGER ("tMedFlagger");
   try {
-    test1(10, 3, 32, 4, false);
-    test1(10, 3, 32, 4, true);
+
+    test1(10, 3, 32, 4, false, 1);
+    test1(10, 3, 32, 4, true, 1);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;

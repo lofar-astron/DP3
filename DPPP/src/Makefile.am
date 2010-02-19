@@ -21,15 +21,15 @@ libdppp_la_SOURCES = Package__Version.cc  \
 		Pipeline.cc
 
 
-bin_PROGRAMS = versiondppp DPPP IDPPP
+bin_PROGRAMS = versiondppp NDPPP IDPPP
 
 versiondppp_SOURCES      = versiondppp.cc
 versiondppp_LDADD        = libdppp.la
 versiondppp_DEPENDENCIES = libdppp.la $(LOFAR_DEPEND)
 
-DPPP_SOURCES		= DPPP.cc
-DPPP_LDADD		= libdppp.la
-DPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
+NDPPP_SOURCES		= DPPP.cc
+NDPPP_LDADD		= libdppp.la
+NDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 
 IDPPP_SOURCES		= IDPPP.cc PipelineProcessControl.cc
 IDPPP_LDADD		= libdppp.la

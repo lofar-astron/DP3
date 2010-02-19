@@ -48,7 +48,7 @@ namespace LOFAR {
         // No preAvg flags in input; form them from the flags in the buffer.
         // Only use the XX flags; no averaging done, thus navgtime=1.
         IPosition shp(buf.getFlags().shape());
-        IPosition ofShape(shp[1], 1, shp[2]);    // nchan,navgtime,nbl
+        IPosition ofShape(3, shp[1], 1, shp[2]);    // nchan,navgtime,nbl
         preAvgFlags.resize (ofShape);
         objcopy (preAvgFlags.data(), buf.getFlags().data(),
                  preAvgFlags.size(), shp[0], 1);    // only copy XX.

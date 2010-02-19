@@ -218,7 +218,7 @@ namespace LOFAR {
 
     void MSReader::updateAverageInfo (AverageInfo& info)
     {
-      info.init (itsStartChan, itsNrChan,
+      info.init (itsNrCorr, itsStartChan, itsNrChan,
                  int((itsLastTime - itsFirstTime)/itsInterval + 1.5),
                  itsInterval);
     }
@@ -331,7 +331,7 @@ namespace LOFAR {
     Matrix<double> MSReader::getUVW (const RefRows& rowNrs)
     {
       ROArrayColumn<double> dataCol(itsMS, "UVW");
-      return dataCol.getColumnCells (rowNrs, itsSlicer);
+      return dataCol.getColumnCells (rowNrs);
     }
 
     Cube<float> MSReader::getWeights (const RefRows& rowNrs)
@@ -366,31 +366,31 @@ namespace LOFAR {
       }
       ROArrayColumn<uChar> preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
       int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHAN_ORIGINAL");
-      Array<uChar> flags = preAvgFlagCol.getColumnCells (rowNrs);
+      Array<uChar> chars = preAvgFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
       // Per row the flags are stored as uchar[nchar,navgtime].
       // Each char contains a bit per channel, thus nchan/8 chars are needed.
       // ntimeavg is the nr of times used when averaging.
       // Return it as Cube<bool>[norigchan,ntimeavg,nrbl].
-      IPosition chShape = flags.shape();
+      IPosition chShape = chars.shape();
       IPosition ofShape(3, norigchan, chShape[1], chShape[2]);
-      Cube<bool> out(ofShape);
+      Cube<bool> flags(ofShape);
       // Now expand the bits to bools.
       // If their sizes match, do it all in one go.
       // Otherwise we have to iterate.
       if (ofShape[0] == chShape[0]*8) {
-        Conversion::bitToBool (out.data(), flags.data(), flags.size());
+        Conversion::bitToBool (flags.data(), chars.data(), chars.size());
       } else {
         ASSERT (ofShape[0] < chShape[0]*8);
-        const uChar* inPtr = flags.data();
-        bool* outPtr = out.data();
+        const uChar* charsPtr = chars.data();
+        bool* flagsPtr = flags.data();
         for (int i=0; i<ofShape[2]*ofShape[3]; ++i) {
-          Conversion::bitToBool (outPtr, inPtr, ofShape[0]);
-          outPtr += ofShape[0];
-          inPtr  += chShape[0];
+          Conversion::bitToBool (flagsPtr, charsPtr, ofShape[0]);
+          flagsPtr += ofShape[0];
+          charsPtr += chShape[0];
         }
       }
-      return out(itsFullSlicer);
+      return flags(itsFullSlicer);
     }
 
     Cube<Complex> MSReader::getData (const String& columnName,

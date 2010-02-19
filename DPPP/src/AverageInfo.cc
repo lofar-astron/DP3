@@ -29,7 +29,8 @@ namespace LOFAR {
   namespace DPPP {
 
     AverageInfo::AverageInfo()
-      : itsStartChan    (0),
+      : itsNCorr        (0),
+        itsStartChan    (0),
         itsOrigNChan    (0),
         itsNChan        (0),
         itsChanAvg      (1),
@@ -38,9 +39,10 @@ namespace LOFAR {
         itsTimeInterval (0)
     {}
 
-    void AverageInfo::init (uint startChan, uint nchan, uint ntime,
-                            double timeInterval)
+    void AverageInfo::init (uint ncorr, uint startChan, uint nchan,
+                            uint ntime, double timeInterval)
     {
+      itsNCorr        = ncorr;
       itsStartChan    = startChan;
       itsOrigNChan    = nchan;
       itsNChan        = nchan;
@@ -48,15 +50,20 @@ namespace LOFAR {
       itsTimeInterval = timeInterval;
     }
 
-    void AverageInfo::update (uint chanAvg, uint timeAvg)
+    uint AverageInfo::update (uint chanAvg, uint timeAvg)
     {
+      if (chanAvg > itsNChan) {
+        chanAvg = itsNChan;
+      }
       ASSERTSTR (itsNChan % chanAvg == 0,
-                 "When averaging, nr of channels must divide integrally");
+                 "When averaging, nr of channels must divide integrally; "
+                 "itsNChan=" << itsNChan << " chanAvg=" << chanAvg);
       itsChanAvg *= chanAvg;
       itsNChan = (itsNChan + chanAvg - 1) / chanAvg;
       itsTimeAvg *= timeAvg;
       itsNTime = (itsNTime + timeAvg - 1) / timeAvg;
       itsTimeInterval *= timeAvg;
+      return chanAvg;
     }
 
   } //# end namespace

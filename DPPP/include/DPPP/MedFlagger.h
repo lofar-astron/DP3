@@ -52,10 +52,13 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
+      // Update the average info.
+      // It is used to adjust the parms if needed.
+      virtual void updateAverageInfo (AverageInfo&);
+
       // Show the step parameters.
       virtual void show (std::ostream&);
 
-    private:
       // Flag for the entry at the given index.
       // Use the given time entries for the medians.
       // Process the result in the next step.
@@ -69,6 +72,7 @@ namespace LOFAR {
                            float& Z1, float& Z2,
                            float* tempBuf);
 
+    private:
       //# Data members.
       string           itsName;
       float            itsThreshold;
@@ -76,6 +80,7 @@ namespace LOFAR {
       uint             itsTimeWindow;
       uint             itsNTimes;
       uint             itsNTimesDone;
+      vector<uint>     itsFlagCorr;
       vector<DPBuffer> itsBuf;
     };
 

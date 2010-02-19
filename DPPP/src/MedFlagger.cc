@@ -24,9 +24,10 @@
 #include <lofar_config.h>
 #include <DPPP/MedFlagger.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/AverageInfo.h>
 #include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
+#include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <iostream>
 #include <algorithm>
@@ -46,6 +47,7 @@ namespace LOFAR {
     {
       ASSERT (itsFreqWindow > 0  &&  itsTimeWindow > 0);
       itsBuf.resize (itsTimeWindow);
+      itsFlagCorr = parset.getUintVector (prefix+"flagcorr", vector<uint>());
     }
 
     MedFlagger::~MedFlagger()
@@ -54,24 +56,50 @@ namespace LOFAR {
     void MedFlagger::show (std::ostream& os)
     {
       os << "MADFlagger " << itsName << std::endl;
-      os << "  freqwindow      " << itsFreqWindow << std::endl;
-      os << "  timewindow      " << itsTimeWindow << std::endl;
-      os << "  threshold       " << itsThreshold << std::endl;
+      os << "  freqwindow:     " << itsFreqWindow << std::endl;
+      os << "  timewindow:     " << itsTimeWindow << std::endl;
+      os << "  threshold:      " << itsThreshold << std::endl;
+      os << "  flagcorr:       " << itsFlagCorr << std::endl;
+    }
+
+    void MedFlagger::updateAverageInfo (AverageInfo& info)
+    {
+      // Check if frequency window is not too large.
+      // Check if window sizes are odd.
+      itsFreqWindow = std::min(itsFreqWindow, info.nchan());
+      if (itsFreqWindow%2 == 0) {
+        itsFreqWindow -= 1;
+      }
+      if (itsTimeWindow%2 == 0) {
+        itsTimeWindow -= 1;
+      }
+      // Set or check the correlations to flag on.
+      vector<uint> flagCorr;
+      uint ncorr = info.ncorr();
+      if (itsFlagCorr.empty()) {
+        // No correlations given means use them all.
+        for (uint i=0; i<ncorr; ++i) {
+          flagCorr.push_back (i);
+        }
+      } else {
+        for (uint i=0; i<itsFlagCorr.size(); ++i) {
+          // Only take valid corrrelations.
+          if (itsFlagCorr[i] < ncorr) {
+            flagCorr.push_back (itsFlagCorr[i]);
+          }
+        }
+        // If no valid left, use first one.
+        if (flagCorr.empty()) {
+          LOG_INFO_STR ("No valid correlations given in MedFlagger "
+                        << itsName << "; first one will be used");
+          flagCorr.push_back (0);
+        }
+      }
+      itsFlagCorr = flagCorr;
     }
 
     bool MedFlagger::process (const DPBuffer& buf)
     {
-      // If first time, maximize freqwindow if needed.
-      // Make window sizes odd.
-      if (itsNTimes == 0) {
-        itsFreqWindow = std::min(itsFreqWindow, uint(buf.getData().shape()[1]));
-        if (itsFreqWindow%2 == 0) {
-          itsFreqWindow -= 1;
-        }
-        if (itsTimeWindow%2 == 0) {
-          itsTimeWindow -= 1;
-        }
-      }
       // Accumulate in the time window.
       // The buffer is wrapped, thus oldest entries are overwritten.
       uint index = itsNTimes % itsTimeWindow;
@@ -175,7 +203,10 @@ namespace LOFAR {
       for (uint ib=0; ib<nrbl; ++ib) {
         for (uint ic=0; ic<nchan; ++ic) {
           bool corrIsFlagged = false;
-          for (uint ip=0; ip<ncorr; ++ip) {
+          // Iterate over given correlations.
+          for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
+               iter != itsFlagCorr.end(); ++iter) {
+            uint ip = *iter;
             // If one correlation is flagged, all of them will be flagged.
             // So no need to check others.
             if (flagPtr[ip]) {

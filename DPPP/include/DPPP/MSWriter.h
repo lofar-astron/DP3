@@ -84,6 +84,9 @@ namespace LOFAR {
       // Write the data, flags, etc.
       void writeData (casa::Table& out, const DPBuffer& buf);
 
+      // Write the full resolution flags (flags before any averaging).
+      void writePreAvgFlags (casa::Table& out, const DPBuffer& buf);
+
       // Write the time info (TIME, TIME_CENTROID, INTERVAL, EXPOSURE).
       void writeTimeInfo (casa::Table& out, double time);
 
