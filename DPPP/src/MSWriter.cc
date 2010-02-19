@@ -60,7 +60,7 @@ namespace LOFAR {
       uint tileNChan      = parset.getUint (prefix+"tilenchan", 8);
       itsCopyCorrData     = parset.getBool (prefix+"copycorrecteddata", false);
       itsCopyModelData    = parset.getBool (prefix+"copymodeldata", false);
-      itsWritePreAvgFlags = parset.getBool (prefix+"writepreavgflags", true);
+      itsWritePreAvgFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
       // Create the MS.
       createMS (outName, avgInfo, tileSize, tileNChan);
@@ -248,7 +248,7 @@ namespace LOFAR {
         // Add LOFAR_FULL_RES_FLAG column using tsm.
         IPosition dataShapeF(2, itsOrigNrChan/8, itsNTimeAvg);
         IPosition tileShapeF(2, itsOrigNrChan/8, 1024);
-        TiledColumnStMan tsmf("TiledPreAvgFlag", tileShapeF);
+        TiledColumnStMan tsmf("TiledFullResFlag", tileShapeF);
         ArrayColumnDesc<uChar> padesc("LOFAR_FULL_RES_FLAG",
                                       "flags in original full resolution",
                                       dataShapeF, ColumnDesc::FixedShape);

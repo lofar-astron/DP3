@@ -47,7 +47,8 @@ namespace LOFAR {
     {
       ASSERT (itsFreqWindow > 0  &&  itsTimeWindow > 0);
       itsBuf.resize (itsTimeWindow);
-      itsFlagCorr = parset.getUintVector (prefix+"flagcorr", vector<uint>());
+      itsFlagCorr = parset.getUintVector (prefix+"correlations",
+                                          vector<uint>());
     }
 
     MedFlagger::~MedFlagger()

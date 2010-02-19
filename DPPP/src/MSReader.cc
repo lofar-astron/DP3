@@ -53,9 +53,9 @@ namespace LOFAR {
       uint nrChan         = parset.getUint   (prefix+"nchan", 0);
       string startTimeStr = parset.getString (prefix+"starttime", "");
       string endTimeStr   = parset.getString (prefix+"endtime", "");
-      itsUseFlags         = parset.getBool   (prefix+"existing", true);
+      itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
-      itsCountFlags       = parset.getBool   (prefix+"countflags", false);
+      itsCountFlags       = parset.getBool   (prefix+"countflag", false);
       // Prepare the MS access and get time info.
       double startTime, endTime;
       prepare (startTime, endTime, itsInterval);
@@ -330,12 +330,21 @@ namespace LOFAR {
 
     Matrix<double> MSReader::getUVW (const RefRows& rowNrs)
     {
+      // Empty rownrs cannot happen for data, because in that case the buffer
+      // should contain UVW for a missing time slot.
+      ASSERT (! rowNrs.rowVector().empty());
       ROArrayColumn<double> dataCol(itsMS, "UVW");
       return dataCol.getColumnCells (rowNrs);
     }
 
     Cube<float> MSReader::getWeights (const RefRows& rowNrs)
     {
+      if (rowNrs.rowVector().empty()) {
+        // rowNrs can be empty if a time slot was inserted.
+        Cube<float> weights(itsNrCorr, itsNrChan, itsNrBl);
+        weights = 0;
+        return weights;
+      }
       // Get weights for entire spectrum if pesent.
       if (itsHasWeightSpectrum) {
         ROArrayColumn<float> wsCol(itsMS, "WEIGHT_SPECTRUM");
@@ -361,7 +370,7 @@ namespace LOFAR {
     Cube<bool> MSReader::getPreAvgFlags (const RefRows& rowNrs)
     {
       // Return empty array if no preAvg flags.
-      if (!itsHasPreAvgFlags) {
+      if (!itsHasPreAvgFlags  ||  rowNrs.rowVector().empty()) {
         return Cube<bool>();
       }
       ROArrayColumn<uChar> preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
@@ -396,6 +405,9 @@ namespace LOFAR {
     Cube<Complex> MSReader::getData (const String& columnName,
                                      const RefRows& rowNrs)
     {
+      // Empty rownrs cannot happen for data, because in that case the buffer
+      // should contain data for a missing time slot.
+      ASSERT (! rowNrs.rowVector().empty());
       ROArrayColumn<Complex> dataCol(itsMS, columnName);
       return dataCol.getColumnCells (rowNrs, itsSlicer);
     }
@@ -403,9 +415,11 @@ namespace LOFAR {
     void MSReader::putFlags (const RefRows& rowNrs,
                              const Cube<bool>& flags)
     {
-      itsMS.reopenRW();
-      ArrayColumn<bool> flagCol(itsMS, "FLAG");
-      flagCol.putColumnCells (rowNrs, itsSlicer, flags);
+      if (! rowNrs.rowVector().empty()) {
+        itsMS.reopenRW();
+        ArrayColumn<bool> flagCol(itsMS, "FLAG");
+        flagCol.putColumnCells (rowNrs, itsSlicer, flags);
+      }
     }
 
   } //# end namespace

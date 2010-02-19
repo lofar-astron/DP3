@@ -51,7 +51,7 @@ namespace LOFAR {
         IPosition ofShape(3, shp[1], 1, shp[2]);    // nchan,navgtime,nbl
         preAvgFlags.resize (ofShape);
         objcopy (preAvgFlags.data(), buf.getFlags().data(),
-                 preAvgFlags.size(), shp[0], 1);    // only copy XX.
+                 preAvgFlags.size(), 1, shp[0]);    // only copy XX.
         return preAvgFlags;
       }
       // There are preAvg flags.
