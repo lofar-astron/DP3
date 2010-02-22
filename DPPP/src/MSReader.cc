@@ -150,7 +150,7 @@ namespace LOFAR {
         itsNrInserted++;
       } else {
         // Get from the MS.
-        itsBuffer.setRowNrs (itsIter.table().rowNumbers());
+        itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
         ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
         itsBuffer.getData().reference (dataCol.getColumn(itsSlicer));
         if (itsUseFlags) {
@@ -231,8 +231,7 @@ namespace LOFAR {
       os << "  nchan:          " << itsNrChan << std::endl;
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
       os << "  nbaselines:     " << itsNrBl << std::endl;
-      os << "  ntimes:         "
-         << int((itsLastTime - itsFirstTime)/itsInterval + 1.5) << endl;
+      os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
     }
@@ -293,6 +292,9 @@ namespace LOFAR {
       // Get the baselines.
       ROScalarColumn<int>(sortab, "ANTENNA1").getColumn (itsAnt1);
       ROScalarColumn<int>(sortab, "ANTENNA2").getColumn (itsAnt2);
+      // Keep the row numbers of the first part to be used for the meta info
+      // of possibly missing time slots.
+      itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
     }
 
     void MSReader::calcUVW()
@@ -303,7 +305,8 @@ namespace LOFAR {
       }
       Matrix<double> uvws(3, itsNrBl);
       for (uint i=0; i<itsAnt1.size(); ++i) {
-        uvws.row(i) = itsUVWCalc.getUVW (itsAnt1[i], itsAnt2[i], itsNextTime);
+        uvws.column(i) = itsUVWCalc.getUVW (itsAnt1[i], itsAnt2[i],
+                                            itsNextTime);
       }
       itsBuffer.setUVW (uvws);
     }

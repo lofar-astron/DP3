@@ -26,7 +26,7 @@
 #include <Common/LofarLogger.h>
 #include <iostream>
 
-void doChan (uint windowSize, int nchan, int chan)
+void doChan (int windowSize, int nchan, int chan)
 {
   // At the beginning or end of the window the values are wrapped.
   // So we might need to move in two parts.

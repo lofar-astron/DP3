@@ -89,8 +89,7 @@ namespace LOFAR {
       Table in;
       bool copyTimeInfo = itsCopyTimeInfo;
       if (buf.getRowNrs().empty()) {
-        indgen (rownrs);
-        in = itsReader->table()(rownrs);
+        in = itsReader->table()(itsReader->getBaseRowNrs());
         copyTimeInfo = false;
       } else {
         in = itsReader->table()(buf.getRowNrs());
@@ -117,6 +116,7 @@ namespace LOFAR {
       os << "  output MS:      " << itsMS.tableName() << std::endl;
       os << "  nchan:          " << itsNrChan << std::endl;
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
+      os << "  nbaselines:     " << itsNrBl << std::endl;
       os << "  ntimes:         " << itsNrTimes << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;

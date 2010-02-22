@@ -89,6 +89,10 @@ namespace LOFAR {
       casa::Table& table()
         { return itsMS; }
 
+      // Get the rownrs for meta info of missing time slots.
+      const casa::Vector<uint> getBaseRowNrs() const
+        { return itsBaseRowNrs; }
+
       // Get the name of the MS.
       const std::string& msName() const
         { return itsMS.tableName(); }
@@ -124,6 +128,7 @@ namespace LOFAR {
       casa::Slicer        itsFullSlicer;    //# slice in corr,chan,bl
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
+      casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
       bool                itsCountFlags;
       FlagCounter         itsFlagCounter;
     };
