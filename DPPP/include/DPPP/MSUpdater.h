@@ -55,7 +55,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
 
     private:
       MSReader* itsReader;

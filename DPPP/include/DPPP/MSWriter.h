@@ -60,7 +60,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
 
       // Write the parset info into the HISTORY table of the MS.
       static void writeHistory (casa::Table& ms,
@@ -88,7 +88,8 @@ namespace LOFAR {
       void writePreAvgFlags (casa::Table& out, const DPBuffer& buf);
 
       // Write the time info (TIME, TIME_CENTROID, INTERVAL, EXPOSURE).
-      void writeTimeInfo (casa::Table& out, double time);
+      void writeTimeInfo (casa::Table& out, double time,
+                          const casa::Matrix<double>& uvws);
 
       // Copy meta data columns for a time slot (ANTENNA1, etc.)
       // It also copies all time info if possible.
@@ -130,6 +131,8 @@ namespace LOFAR {
       uint            itsNrTimes;
       uint            itsOrigNrChan;    //# original nr of chan before averaging
       uint            itsNTimeAvg;      //# nr of times averaged to 1
+      bool            itsCountFlags;
+      FlagCounter     itsFlagCounter;
     };
 
   } //# end namespace

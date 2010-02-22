@@ -41,7 +41,7 @@ namespace LOFAR {
       AverageInfo();
 
       // Set the initial info from the input.
-      void init (uint ncorr, uint startChan, uint nchan,
+      void init (uint ncorr, uint startChan, uint nchan, uint nbaselines,
                  uint ntime, double timeInterval);
 
       // Update the info from the given average factors.
@@ -60,6 +60,8 @@ namespace LOFAR {
         { return itsNChan; }
       uint nchanAvg() const
         { return itsChanAvg; }
+      uint nbaselines() const
+        { return itsNBl; }
       uint ntime() const
         { return itsNTime; }
       uint ntimeAvg() const
@@ -73,6 +75,7 @@ namespace LOFAR {
       uint   itsOrigNChan;
       uint   itsNChan;
       uint   itsChanAvg;
+      uint   itsNBl;
       uint   itsNTime;
       uint   itsTimeAvg;
       double itsTimeInterval;

@@ -34,18 +34,20 @@ namespace LOFAR {
         itsOrigNChan    (0),
         itsNChan        (0),
         itsChanAvg      (1),
+        itsNBl          (0),
         itsNTime        (0),
         itsTimeAvg      (1),
         itsTimeInterval (0)
     {}
 
     void AverageInfo::init (uint ncorr, uint startChan, uint nchan,
-                            uint ntime, double timeInterval)
+                            uint nbaselines, uint ntime, double timeInterval)
     {
       itsNCorr        = ncorr;
       itsStartChan    = startChan;
       itsOrigNChan    = nchan;
       itsNChan        = nchan;
+      itsNBl          = nbaselines;
       itsNTime        = ntime;
       itsTimeInterval = timeInterval;
     }

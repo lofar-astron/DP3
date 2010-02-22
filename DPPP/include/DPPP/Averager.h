@@ -57,7 +57,7 @@ namespace LOFAR {
       virtual void updateAverageInfo (AverageInfo&);
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
 
     private:
       // Average and return the result.

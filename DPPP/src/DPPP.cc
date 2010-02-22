@@ -128,23 +128,30 @@ int main(int argc, char *argv[])
     // Process until the end.
     uint ntodo = avgInfo.ntime() * avgInfo.ntimeAvg();
     std::cout << "Processing " << ntodo << " time slots ..." << std::endl;
-    ProgressMeter progress(0.0, ntodo, "DPPP", "Time slots processed",
-                           "", "", true, 1);
-    double ndone = 0;
-    if (showProgress  &&  ntodo > 0) {
-      progress.update (ndone, true);
-    }
-    DPBuffer buf;
-    while (firstStep->process (buf))
-      {
+    {
+      ProgressMeter progress(0.0, ntodo, "DPPP", "Time slots processed",
+                             "", "", true, 1);
+      double ndone = 0;
+      if (showProgress  &&  ntodo > 0) {
+        progress.update (ndone, true);
+      }
+      DPBuffer buf;
+      while (firstStep->process (buf)) {
         ++ndone;
         if (showProgress  &&  ntodo > 0) {
           progress.update (ndone, true);
         }
       }
+    }
     // Finish the processing.
     std::cout << "Finishing processing ..." << std::endl;
     firstStep->finish();
+    // Show the counts where needed.
+    step = firstStep;
+    while (step) {
+      step->showCounts (std::cout);
+      step = step->getNextStep();
+    }
     // The destructors are called automatically at this point.
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;

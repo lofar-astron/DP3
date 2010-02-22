@@ -138,6 +138,7 @@ namespace LOFAR {
       }
       // Fill the buffer.
       itsBuffer.setTime (itsNextTime);
+        cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
       if (!useIter) {
         // Need to insert a fully flagged time slot.
         itsBuffer.setRowNrs (Vector<uint>());
@@ -152,10 +153,10 @@ namespace LOFAR {
         // Get from the MS.
         itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
         ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
-        itsBuffer.getData().reference (dataCol.getColumn(itsSlicer));
+        itsBuffer.setData (dataCol.getColumn(itsSlicer));
         if (itsUseFlags) {
           ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
-          itsBuffer.getFlags().reference (flagCol.getColumn(itsSlicer));
+          itsBuffer.setFlags (flagCol.getColumn(itsSlicer));
           // Set flags if FLAG_ROW is set.
           ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
           for (uint i=0; i<itsIter.table().nrow(); ++i) {
@@ -200,8 +201,8 @@ namespace LOFAR {
         for (uint i=0; i<itsNrBl; ++i) {
           for (uint j=0; j<itsNrChan; ++j) {
             if (*flagPtr) {
-              itsFlagCounter.baseline(i)++;
-              itsFlagCounter.channel(j)++;
+              itsFlagCounter.incrBaseline(i);
+              itsFlagCounter.incrChannel(j);
             }
             flagPtr += itsNrCorr;    // only count 1st corr
           }
@@ -218,12 +219,12 @@ namespace LOFAR {
 
     void MSReader::updateAverageInfo (AverageInfo& info)
     {
-      info.init (itsNrCorr, itsStartChan, itsNrChan,
+      info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
                  int((itsLastTime - itsFirstTime)/itsInterval + 1.5),
                  itsInterval);
     }
 
-    void MSReader::show (std::ostream& os)
+    void MSReader::show (std::ostream& os) const
     {
       os << "MSReader" << std::endl;
       os << "  input MS:       " << msName() << std::endl;
@@ -234,6 +235,14 @@ namespace LOFAR {
       os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
+    }
+
+    void MSReader::showCounts (std::ostream& os) const
+    {
+      if (itsCountFlags) {
+        int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
+        itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
+      }
     }
 
     void MSReader::prepare (double& firstTime, double& lastTime,

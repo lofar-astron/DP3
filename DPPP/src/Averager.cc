@@ -57,7 +57,7 @@ namespace LOFAR {
       itsNChanAvg = info.update (itsNChanAvg, itsNTimeAvg);
     }
 
-    void Averager::show (std::ostream& os)
+    void Averager::show (std::ostream& os) const
     {
       os << "Averager " << itsName << std::endl;
       os << "  freqstep:       " << itsNChanAvg << std::endl;
@@ -81,6 +81,7 @@ namespace LOFAR {
         IPosition ofShape = preAvgFlags.shape();
         ofShape[1] *= itsNTimeAvg;      // more time entries, same chan and bl
         // Make it unique in case PreAvg is referenced elsewhere.
+        // (itsBuf.PreAvg is referenced when set in buf by average())
         itsBuf.getPreAvgFlags().unique();
         itsBuf.getPreAvgFlags().resize (ofShape);
         itsBuf.getPreAvgFlags() = true; // initialize for times missing at end

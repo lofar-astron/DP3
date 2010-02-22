@@ -103,20 +103,6 @@ namespace LOFAR {
       bool hasNoFlags() const
         { return itsFlags.empty(); }
 
-      // Resize the data and flag arrays to the other buffer sizes.
-      void resize (const DPBuffer& other)
-      {
-        itsData.resize (other.getData().shape());
-        itsFlags.resize (other.getFlags().shape());
-      }
-
-      // Take care that the arrays are unique (not referenced elsewhere).
-      void makeUnique()
-      {
-        itsData.unique();
-        itsFlags.unique();
-      }
-
       // Merge the flags into the pre-average flags.
       // For each flagged point, the corresponding pre-average flags are set.
       static void mergePreAvgFlags (casa::Cube<bool>& preAvgFlags,

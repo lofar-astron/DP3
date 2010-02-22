@@ -33,6 +33,9 @@ namespace LOFAR {
     void DPStep::updateAverageInfo (AverageInfo&)
     {}
 
+    void DPStep::showCounts (std::ostream&) const
+    {}
+
 
     NullStep::~NullStep()
     {}
@@ -43,7 +46,7 @@ namespace LOFAR {
     void NullStep::finish()
     {}
 
-    void NullStep::show (std::ostream&)
+    void NullStep::show (std::ostream&) const
     {}
 
   } //# end namespace

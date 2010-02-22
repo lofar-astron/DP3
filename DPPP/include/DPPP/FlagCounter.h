@@ -30,6 +30,7 @@
 #include <Common/lofar_vector.h>
 #include <Common/lofar_string.h>
 #include <Common/LofarTypes.h>
+#include <casa/Arrays/Vector.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -49,16 +50,16 @@ namespace LOFAR {
       void init (uint nbaselines, uint nchan, uint ncorr);
 
       // Increment the count per baseline.
-      int64& baseline (uint bl)
-        { return itsBLCounts[bl]; }
+      void incrBaseline (uint bl)
+        { itsBLCounts[bl]++; }
 
       // Increment the count per channel.
-      int64& channel (uint chan)
-        { return itsChanCounts[chan]; }
+      void incrChannel (uint chan)
+        { itsChanCounts[chan]++; }
 
       // Increment the count per correlation.
-      int64& correlation (uint corr)
-        { return itsCorrCounts[corr]; }
+      void incrCorrelation (uint corr)
+        { itsCorrCounts[corr]++; }
 
       // Get the counts.
       const vector<int64>& baselineCounts() const
@@ -67,6 +68,13 @@ namespace LOFAR {
         { return itsChanCounts; }
       const vector<int64>& correlationCounts() const
         { return itsCorrCounts; }
+
+      // Print the counts.
+      void showBaseline (ostream& os, const casa::Vector<int>& ant1,
+                         const casa::Vector<int>& ant2,
+                         int64 npointsPerBaseline) const;
+      void showChannel (ostream& os, int64 npointsPerChannel) const;
+      void showCorrelation (ostream& os) const;
 
     private:
       vector<int64> itsBLCounts;

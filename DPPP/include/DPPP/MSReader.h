@@ -64,7 +64,10 @@ namespace LOFAR {
       virtual void updateAverageInfo (AverageInfo&);
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
+
+      // If needed, show the flag counts.
+      virtual void showCounts (std::ostream& os) const;
 
       // Read the UVW at the given row numbers.
       virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);

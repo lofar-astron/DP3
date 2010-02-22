@@ -80,10 +80,10 @@ private:
   }
 
   virtual void finish() {getNextStep()->finish();}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
     // Use startchan=0 and timeInterval=5
-    { avgInfo.init (itsNCorr, 0, itsNChan, itsNTime, 5); }
+    { avgInfo.init (itsNCorr, 0, itsNChan, itsNBl, itsNTime, 5); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -117,7 +117,7 @@ private:
   }
 
   virtual void finish() {}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
   {
     ASSERT (avgInfo.startChan()==0);

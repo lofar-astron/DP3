@@ -29,6 +29,7 @@
 
 #include <DPPP/DPStep.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -41,7 +42,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      explicit MedFlagger (const ParameterSet&, const string& prefix);
+      MedFlagger (const ParameterSet&, const string& prefix);
 
       virtual ~MedFlagger();
 
@@ -57,7 +58,10 @@ namespace LOFAR {
       virtual void updateAverageInfo (AverageInfo&);
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
+
+      // Show the flagger counts.
+      virtual void showCounts (std::ostream&) const;
 
       // Flag for the entry at the given index.
       // Use the given time entries for the medians.
@@ -82,6 +86,7 @@ namespace LOFAR {
       uint             itsNTimesDone;
       vector<uint>     itsFlagCorr;
       vector<DPBuffer> itsBuf;
+      FlagCounter      itsFlagCounter;
     };
 
   } //# end namespace

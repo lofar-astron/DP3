@@ -43,7 +43,8 @@ namespace LOFAR {
         itsFreqWindow (parset.getUint (prefix+"freqwindow", 1)),
         itsTimeWindow (parset.getUint (prefix+"timewindow", 1)),
         itsNTimes     (0),
-        itsNTimesDone (0)
+        itsNTimesDone (0),
+        itsFlagCounter("MedFlagger " + prefix)
     {
       ASSERT (itsFreqWindow > 0  &&  itsTimeWindow > 0);
       itsBuf.resize (itsTimeWindow);
@@ -54,13 +55,17 @@ namespace LOFAR {
     MedFlagger::~MedFlagger()
     {}
 
-    void MedFlagger::show (std::ostream& os)
+    void MedFlagger::show (std::ostream& os) const
     {
       os << "MADFlagger " << itsName << std::endl;
       os << "  freqwindow:     " << itsFreqWindow << std::endl;
       os << "  timewindow:     " << itsTimeWindow << std::endl;
       os << "  threshold:      " << itsThreshold << std::endl;
       os << "  flagcorr:       " << itsFlagCorr << std::endl;
+    }
+
+    void MedFlagger::showCounts (std::ostream& os) const
+    {
     }
 
     void MedFlagger::updateAverageInfo (AverageInfo& info)
@@ -97,6 +102,8 @@ namespace LOFAR {
         }
       }
       itsFlagCorr = flagCorr;
+      // Initialize the flag counters.
+      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
     }
 
     bool MedFlagger::process (const DPBuffer& buf)
@@ -219,6 +226,9 @@ namespace LOFAR {
                             Z1, Z2, tempBuf.storage());
             if (dataPtr[ip] > Z1 + itsThreshold * Z2 * MAD) {
               corrIsFlagged = true;
+              itsFlagCounter.incrBaseline(ib);
+              itsFlagCounter.incrChannel(ic);
+              itsFlagCounter.incrCorrelation(ip);
               break;
             }
           }

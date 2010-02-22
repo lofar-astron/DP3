@@ -83,10 +83,10 @@ private:
   }
 
   virtual void finish() {getNextStep()->finish();}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
     // Use startchan=8 and timeInterval=5
-    { avgInfo.init (itsNCorr, 8, itsNChan, itsNTime, 5); }
+    { avgInfo.init (itsNCorr, 8, itsNChan, itsNBl, itsNTime, 5); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -162,7 +162,7 @@ private:
   }
 
   virtual void finish() {}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
   {
     ASSERT (avgInfo.startChan()==8);
@@ -236,10 +236,10 @@ private:
   }
 
   virtual void finish() {getNextStep()->finish();}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
     // Use startchan=0 and timeInterval=5
-    { avgInfo.init (itsNrCorr, 0, itsNrChan, itsNrTime, 5); }
+    { avgInfo.init (itsNrCorr, 0, itsNrChan, itsNrBl, itsNrTime, 5); }
 
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
   Cube<bool> itsPreAvgFlags;
@@ -302,7 +302,7 @@ private:
   }
 
   virtual void finish() {}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
   {
     ASSERT (avgInfo.startChan()==0);
@@ -345,7 +345,7 @@ private:
   }
 
   virtual void finish() {getNextStep()->finish();}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
 
   int itsCount, itsStep;
 };
@@ -417,7 +417,7 @@ private:
   }
 
   virtual void finish() {}
-  virtual void show (std::ostream&) {}
+  virtual void show (std::ostream&) const {}
   virtual void updateAverageInfo (AverageInfo& avgInfo)
   {
     ASSERT (avgInfo.startChan()==0);

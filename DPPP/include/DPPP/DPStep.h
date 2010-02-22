@@ -61,14 +61,18 @@ namespace LOFAR {
       virtual void updateAverageInfo (AverageInfo&);
 
       // Show the step parameters.
-      virtual void show (std::ostream&) = 0;
+      virtual void show (std::ostream&) const = 0;
+
+      // Show the flag counts if needed.
+      // The default implementation does nothing.
+      virtual void showCounts (std::ostream&) const;
 
       // Set the next step.
       void setNextStep (DPStep::ShPtr& nextStep)
         { itsNextStep = nextStep; }
 
       // Get the next step.
-      DPStep::ShPtr& getNextStep()
+      const DPStep::ShPtr& getNextStep() const
         { return itsNextStep; }
 
     private:
@@ -95,7 +99,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Show the step parameters.
-      virtual void show (std::ostream&);
+      virtual void show (std::ostream&) const;
     };
 
   } //# end namespace

@@ -53,7 +53,8 @@ namespace LOFAR {
         itsNrBl         (reader->nbaselines()),
         itsNrTimes      (avgInfo.ntime()),
         itsOrigNrChan   (avgInfo.origNChan()),
-        itsNTimeAvg     (avgInfo.ntimeAvg())
+        itsNTimeAvg     (avgInfo.ntimeAvg()),
+        itsFlagCounter  ("MSWriter")
     {
       // Get tilesize (default 1024 KBytes).
       uint tileSize       = parset.getUint (prefix+"tilesize", 1024);
@@ -62,12 +63,16 @@ namespace LOFAR {
       itsCopyModelData    = parset.getBool (prefix+"copymodeldata", false);
       itsWritePreAvgFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
+      itsCountFlags       = parset.getBool (prefix+"countflags", false);
       // Create the MS.
       createMS (outName, avgInfo, tileSize, tileNChan);
       // Write the parset info into the history.
       writeHistory (itsMS, parset);
       itsMS.flush (true, true);
       cout << "Finished preparing output MS" << endl;
+      if (itsCountFlags) {
+        itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
+      }
     }
 
     MSWriter::~MSWriter()
@@ -97,11 +102,26 @@ namespace LOFAR {
       // Copy the input columns that do not change.
       copyMeta (in, out, copyTimeInfo);
       // Write the time related values if not already copied.
+      // UVWs should be in the buffer; otherwise they were copied in CopyMeta.
       if (!copyTimeInfo) {
-        writeTimeInfo (out, buf.getTime());
+        ASSERT (! buf.getUVW().empty());
+        writeTimeInfo (out, buf.getTime(), buf.getUVW());
       }
       // Now write the data and flags.
       writeData (out, buf);
+      // Count the flags if needed.
+      if (itsCountFlags) {
+        const bool* flagPtr = buf.getFlags().data();
+        for (uint i=0; i<itsNrBl; ++i) {
+          for (uint j=0; j<itsNrChan; ++j) {
+            if (*flagPtr) {
+              itsFlagCounter.incrBaseline(i);
+              itsFlagCounter.incrChannel(j);
+            }
+            flagPtr += itsNrCorr;    // only count 1st corr
+          }
+        }
+      }
       return true;
     }
 
@@ -110,7 +130,7 @@ namespace LOFAR {
       itsMS.flush();
     }
 
-    void MSWriter::show (std::ostream& os)
+    void MSWriter::show (std::ostream& os) const
     {
       os << "MSWriter" << std::endl;
       os << "  output MS:      " << itsMS.tableName() << std::endl;
@@ -388,19 +408,21 @@ namespace LOFAR {
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
     }
 
-    void MSWriter::writeTimeInfo (Table& out, double time)
+    void MSWriter::writeTimeInfo (Table& out, double time,
+                                  const Matrix<double>& uvws)
     {
-      ScalarColumn<double> timeCol (itsMS, "TIME");
-      ScalarColumn<double> tcenCol (itsMS, "TIME_CENTROID");
-      ScalarColumn<double> intvCol (itsMS, "INTERVAL");
-      ScalarColumn<double> expoCol (itsMS, "EXPOSURE");
-      ArrayColumn<double>  uvwCol  (itsMS, "UVW");
+      ScalarColumn<double> timeCol (out, "TIME");
+      ScalarColumn<double> tcenCol (out, "TIME_CENTROID");
+      ScalarColumn<double> intvCol (out, "INTERVAL");
+      ScalarColumn<double> expoCol (out, "EXPOSURE");
+      ArrayColumn<double>  uvwCol  (out, "UVW");
       for (uint i=0; i<out.nrow(); ++i) {
         timeCol.put (i, time);
         tcenCol.put (i, time);
         intvCol.put (i, itsInterval);
         expoCol.put (i, itsInterval);
       }
+      uvwCol.putColumn (uvws);
     }
 
     void MSWriter::writeData (Table& out, const DPBuffer& buf)

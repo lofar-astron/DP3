@@ -53,7 +53,7 @@ namespace LOFAR {
     void MSUpdater::finish()
     {}
 
-    void MSUpdater::show (std::ostream& os)
+    void MSUpdater::show (std::ostream& os) const
     {
       os << "MSUpdater" << std::endl;
       os << "  MS:             " << itsReader->msName() << std::endl;
