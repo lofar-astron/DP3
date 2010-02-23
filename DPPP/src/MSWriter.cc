@@ -462,6 +462,9 @@ namespace LOFAR {
         }
       }
       ArrayColumn<uChar> preAvgCol(out, "LOFAR_FULL_RES_FLAG");
+      if (! preAvgCol.keywordSet().isDefined ("NCHANNELS")) {
+        preAvgCol.rwKeywordSet().define ("NCHANNELS", int(ofShape[1]));
+      }
       preAvgCol.putColumn (chars);
     } 
 

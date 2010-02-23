@@ -43,6 +43,33 @@ namespace LOFAR {
 
     // @ingroup DPPP
 
+    // This class is an input step reading the data from a MeasurementSet.
+    // At the beginning it finds out the shape of the data; i.e., the
+    // number of correlations, channels, baselines, and time slots.
+    // It requires the data to be regularly shaped.
+    //
+    // The object is constructed from the 'msin' keywords in the parset file.
+    // Currently the following can be given:
+    // <ul>
+    //  <li> msin: name of the MS
+    //  <li> msin.startchan: first channel to use [0]
+    //  <li> msin.nchan: number of channels to use [all]
+    //  <li> msin.useflag: use the existing flags? [yes]
+    //  <li> msin.datacolumn: the data column to use [DATA]
+    //  <li> msin.starttime: first time to use [first time in MS]
+    //  <li> msin.endtime: last time to use [last time in MS]
+    // </ul>
+    //
+    // If a time slot is missing, it is inserted with flagged data set to zero.
+    // Missing time slots can also be detected at the beginning or end of the
+    // MS by giving the correct starttime and endtime.
+    // The correct UVW coordinates are calculated for inserted time slots.
+    //
+    // The process function only reads the data and flags to avoid that
+    // too much data is kept in memory.
+    // Other columns (like WEIGHT, UVW) can be read when needed by using the
+    // appropriate DPInput::fetch function.
+
     class MSReader: public DPInput
     {
     public:
@@ -120,15 +147,14 @@ namespace LOFAR {
       bool                itsHasPreAvgFlags;
       bool                itsUseFlags;
       uint                itsStartChan;
-      uint                itsNrInserted;
+      uint                itsNrInserted;    //# nr of inserted time slots
       double              itsInterval;
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;
       casa::String        itsDataColName;
-      vector<int>         itsFlagChannels;
       casa::Slicer        itsSlicer;        //# slice in corr,chan
-      casa::Slicer        itsFullSlicer;    //# slice in corr,chan,bl
+      casa::Slicer        itsPreAvgSlicer;  //# slice in chan,timeavg,bl
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
       casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times

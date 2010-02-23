@@ -38,7 +38,24 @@ namespace LOFAR {
     class AverageInfo;
 
     // @ingroup DPPP
+
     // This class defines a step in the DPPP pipeline.
+    // It is an abstract class from which all steps should be derived.
+    // A few functions can or must be implemented. They are called by
+    // the NDPPP program in the following order.
+    // <ul>
+    //  <li> 'updateAverageInfo' should update itself and/or the AverageInfo
+    //       object with the information it has. In that way it is known
+    //       in all steps how the data are averaged amd what the shape is.
+    //  <li> 'show' can be used to show the attributes.
+    //  <li> 'process' is called continously to process the next time slot.
+    //        When processed, it should call 'process' of the next step.
+    //        When done (i.e. at the end of the input), it should return False.
+    //  <li> 'finish' finishes the processing which could mean that 'process'
+    //       of the next step has to be called several times. When done,
+    //       it should call 'finish' of the next step.
+    //  <li> showCounts can be used to show possible counts of flags, etc.
+    // </ul>
 
     class DPStep
     {

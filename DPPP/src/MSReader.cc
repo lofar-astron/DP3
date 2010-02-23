@@ -85,22 +85,31 @@ namespace LOFAR {
       }
       ASSERT (itsLastTime > itsFirstTime);
       itsNextTime = itsFirstTime;
+      uint nAllChan = itsNrChan;
       // nchan=0 means until the last channel.
-      ASSERTSTR (itsStartChan < itsNrChan,
+      ASSERTSTR (itsStartChan < nAllChan,
                  "startchan " << itsStartChan
                  << " exceeds nr of channels in MS");
-      uint maxNrChan = itsNrChan - itsStartChan;
+      uint maxNrChan = nAllChan - itsStartChan;
       if (nrChan == 0) {
         itsNrChan = maxNrChan;
       } else {
         itsNrChan = std::min (nrChan, maxNrChan);
       }
-      // Form the slicer to get the channels and correlations per row
-      // and for the full array.
+      // Form the slicer to get the channels and correlations per row.
       itsSlicer = Slicer(IPosition(2, 0, itsStartChan),
                          IPosition(2, itsNrCorr, itsNrChan));
-      itsFullSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
-                             IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
+      // Form the slicer to get the full resolution channels.
+      // Note that the data might have been averaged already, so the
+      // average factor has to be taken into account.
+      if (itsHasPreAvgFlags) {
+        ROTableColumn preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+        int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHANNELS");
+        uint avg = norigchan / nAllChan;
+        itsPreAvgSlicer = Slicer(IPosition(3, itsStartChan*avg, 0, 0),
+                                 IPosition(3, itsNrChan*avg,
+                                           Slicer::MimicSource, itsNrBl));
+      }
       // Initialize the flag counters.
       if (itsCountFlags) {
         itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
@@ -138,7 +147,7 @@ namespace LOFAR {
       }
       // Fill the buffer.
       itsBuffer.setTime (itsNextTime);
-        cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
+      ///cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
       if (!useIter) {
         // Need to insert a fully flagged time slot.
         itsBuffer.setRowNrs (Vector<uint>());
@@ -386,7 +395,7 @@ namespace LOFAR {
         return Cube<bool>();
       }
       ROArrayColumn<uChar> preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-      int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHAN_ORIGINAL");
+      int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHANNELS");
       Array<uChar> chars = preAvgFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
       // Per row the flags are stored as uchar[nchar,navgtime].
@@ -411,7 +420,7 @@ namespace LOFAR {
           charsPtr += chShape[0];
         }
       }
-      return flags(itsFullSlicer);
+      return flags(itsPreAvgSlicer);
     }
 
     Cube<Complex> MSReader::getData (const String& columnName,
