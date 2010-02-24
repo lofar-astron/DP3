@@ -32,7 +32,13 @@
 namespace LOFAR {
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class contains the information about the number of correlations,
+    // channels, baselines, and times.
+    // It is initialized by the first step and updated by steps like
+    // Averager that change the number of channels or times.
+    // Steps can take information from it to know about shapes.
 
     class AverageInfo
     {

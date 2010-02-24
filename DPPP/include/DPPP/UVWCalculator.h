@@ -38,7 +38,14 @@
 namespace LOFAR {
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class calculates the UVW coordinates for a given baseline and
+    // time stamp in the same way as done in LofarStMan.
+    //
+    // It calculates and caches the UVW coordinates per antenna and combines
+    // them to get the baseline UVW coordinates. This is much faster than
+    // calculating baseline UVW coordinates directly.
 
     class UVWCalculator
     {

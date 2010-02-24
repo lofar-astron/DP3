@@ -37,7 +37,14 @@ namespace LOFAR {
     //# Forward Declarations.
     class MSReader;
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class updates the flags in an existing MeasurementSet.
+    // Hardly anything is done in this class.
+    // It uses function putFlags in MSReader to do the actual write.
+    //
+    // Like MSWriter it adds an entry to the HISTORY table of the MS
+    // containing the parset values and DPPP version.
 
     class MSUpdater: public DPStep
     {

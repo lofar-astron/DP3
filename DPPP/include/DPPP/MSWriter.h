@@ -41,7 +41,23 @@ namespace LOFAR {
   namespace DPPP {
     class AverageInfo;
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class is a DPStep creating a new MeasurementSet and writing
+    // all data in it.
+    // Most meta information (subtables and meta columns in main table) is
+    // copied from the input MeasurementSet given by the MSReader object.
+    // <br>
+    // In principle the new MS uses the same storage managers as used in the
+    // input MS, but in case of an MS stored with LofarStMan it will use the
+    // optimal storage managers (ISM for slowly varying meta data, TSM for
+    // bulk data, SSM for others).
+    //
+    // The SPECTRAL_WINDOW table will be changed to reflect the channels
+    // being used or averaged.
+    // The OBSERVATION table will be updated for the correct start and end time.
+    // The HISTORY table gets an entry containing the parset values and the
+    // DPPP version.
 
     class MSWriter: public DPStep
     {
@@ -80,6 +96,9 @@ namespace LOFAR {
 
       // Update the SPECTRAL_WINDOW table for averaged channels.
       void updateSpw (const string& outName, const AverageInfo& avgInfo);
+
+      // Update the OBSERVATION table with the correct start and end time.
+      void updateObs (const string& outName);
 
       // Write the data, flags, etc.
       void writeData (casa::Table& out, const DPBuffer& buf);

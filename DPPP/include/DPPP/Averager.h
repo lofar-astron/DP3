@@ -36,6 +36,20 @@ namespace LOFAR {
 
   namespace DPPP {
 
+    // @ingroup NDPPP
+
+    // This class is a DPStep class calculating the weighted average of
+    // data in time and/or frequency.
+    // <br>
+    // Only unflagged data points are used. The average is calculated as
+    // <src>sum(data*weight) / sum(weight)</src> and the sum of the weights
+    // is the weight of the new data point. If all data point to use are
+    // flagged, the resulting data point and weight are set to zero and flagged.
+    //
+    // It keeps track of the PreAvgFlags. It sets them if the corresponding
+    // data point is flagged. Note that multiple PreAvgFlags elements map to
+    // a single data point if some averaging was done before.
+
     class Averager: public DPStep
     {
     public:

@@ -39,7 +39,21 @@
 namespace LOFAR {
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class is the abstract base class for a DPStep object that
+    // handles the input. A concrete example is MSReader that reads the
+    // data from a MeasurementSet. However, it is also possible to have
+    // input steps generating data on the fly as done in test programs
+    // like tAverager.cc.
+    //
+    // A particular task of the class is to fetch the input for various
+    // data items like weight, uvw, etc.. This is done by testing if the
+    // item's data array is in the DPBuffer. If so, it will be returned.
+    // Otherwise the appropriate 'get' function will be called to read the
+    // data array from the input.
+    // The derived classes should implement those 'get' functions, unless
+    // they are sure the data arrays are always put in the buffer.
 
     class DPInput: public DPStep
     {

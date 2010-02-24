@@ -306,7 +306,7 @@ namespace LOFAR {
         if (keyset.isDefined("CHANNEL_SELECTION")) {
           keyset.removeField("CHANNEL_SELECTION");
         }
-        Matrix<Int> selection(2, 1);
+        Matrix<int> selection(2, 1);
         selection(0, 0) = 0;
         selection(1, 0) = itsNrChan;
         keyset.define("CHANNEL_SELECTION", selection);
@@ -317,7 +317,10 @@ namespace LOFAR {
       // Copy the info and subtables.
       TableCopy::copyInfo(itsMS, temptable);
       TableCopy::copySubTables(itsMS, temptable);
+      // Adjust the SPECTRAL_WINDOW table as needed.
       updateSpw (outName, avgInfo);
+      // Adjust the OBSERVATION table as needed.
+      updateObs (outName);
     }
 
     void MSWriter::updateSpw (const string& outName, const AverageInfo& avgInfo)
@@ -327,7 +330,7 @@ namespace LOFAR {
       Table inSPW  = itsReader->table().keywordSet().asTable("SPECTRAL_WINDOW");
       Table outSPW = Table(outName + "/SPECTRAL_WINDOW", Table::Update);
       // Set nr of channels.
-      ScalarColumn<Int> channum(outSPW, "NUM_CHAN");
+      ScalarColumn<int> channum(outSPW, "NUM_CHAN");
       channum.fillColumn (itsNrChan);
       // Change the column shapes.
       TableDesc tdesc = inSPW.tableDesc();
@@ -386,26 +389,46 @@ namespace LOFAR {
       }
     }
 
+    void MSWriter::updateObs (const string& outName)
+    {
+      Table outObs = Table(outName + "/OBSERVATION", Table::Update);
+      // Set nr of channels.
+      ArrayColumn<double> timeRange(outObs, "TIME_RANGE");
+      Vector<double> times(2);
+      times[0] = itsReader->startTime() - 0.5 * itsReader->timeInterval();
+      times[1] = itsReader->endTime()   + 0.5 * itsReader->timeInterval();
+      // There should be one row, but loop in case of.
+      for (uint i=0; i<outObs.nrow(); ++i) {
+        timeRange.put (i, times);
+      }
+    }
+
     void MSWriter::writeHistory (Table& ms, const ParameterSet& parset)
     {
       Table histtab(ms.keywordSet().asTable("HISTORY"));
       histtab.reopenRW();
       ostringstream allParms;
       parset.writeStream (allParms);
-      uInt rownr = histtab.nrow();
+      uint rownr = histtab.nrow();
       histtab.addRow();
       ScalarColumn<double> time        (histtab, "TIME");
-      ScalarColumn<Int>    obsId       (histtab, "OBSERVATION_ID");
+      ScalarColumn<int>    obsId       (histtab, "OBSERVATION_ID");
       ScalarColumn<String> message     (histtab, "MESSAGE");
       ScalarColumn<String> priority    (histtab, "PRIORITY");
       ScalarColumn<String> origin      (histtab, "ORIGIN");
       ScalarColumn<String> application (histtab, "APPLICATION");
+      ArrayColumn<String>  cli         (histtab, "CLI_COMMAND");
+      ArrayColumn<String>  parms       (histtab, "APP_PARAMS");
       time.put        (rownr, Time().modifiedJulianDay()*24.*3600.);
       obsId.put       (rownr, 0);
-      application.put (rownr, "DPPP");
+      application.put (rownr, "NDPPP");
       message.put     (rownr, allParms.str());
       priority.put    (rownr, "NORMAL");
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
+      // CASA cannot handle empty cells, so put empty arrays in them.
+      Array<String> arr;
+      cli.put   (rownr, arr);
+      parms.put (rownr, arr);
     }
 
     void MSWriter::writeTimeInfo (Table& out, double time,

@@ -34,21 +34,70 @@
 namespace LOFAR {
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
 
     // This class holds the data for one time slot in Array variables.
     // It makes heavy use of reference semantics to avoid data copying
     // when data are pushed from one step to another.
-    // This means that data array can be shared between DPStep objects. 
+    // This means that a data array can be shared between DPStep objects. 
     // So if a DPStep object changes data in a buffer, it has to be sure
     // it can do it. If needed, Array::unique should be called to ensure
-    // that the array is not shared.
-
+    // the array is not shared.
+    //
+    // The following data can be kept in a DPBuffer object.
+    // <table>
+    //  <tr>
+    //   <td>TIME</td>
+    //   <td>The time slot center of the current data (in MJD seconds).</td>
+    //  </tr>
+    //  <tr>
+    //   <td>ROWNRS</td>
+    //   <td>The row numbers of the current time slot. It can be empty
+    //       when e.g. a time slot is inserted or if data are averaged.</td>
+    //  </tr>
+    //  <tr>
+    //   <td>DATA</td>
+    //   <td>The visibility data as [ncorr,nchan,nbaseline].</td>
+    //  </tr>
+    //  <tr>
+    //   <td>FLAG</td>
+    //   <td>The data flags as [ncorr,nchan,nbaseline] (True is bad).
+    //       Note that the ncorr axis is redundant because NDPPP will always
+    //       have the same flag for all correlations. The reason all
+    //       correlations are there is because the MS expects them.</td>
+    //  </tr>
+    //  <tr>
+    //   <td>AMPLITUDE</td>
+    //   <td>The amplitudes of the visibility data. It is used by the
+    //       MedFlagger to avoid having to recalculate amplitudes.</td>
+    //  </tr>
+    //  <tr>
+    //   <td>WEIGHT</td>
+    //   <td>The data weights as [ncorr,nchan,nbaseline].
+    //       Similarly to FLAG the ncorr axis is redundant because the
+    //       same weight is used for all correlations.</td>
+    //  </tr>
+    //  <tr>
+    //   <td>UVW</td>
+    //   <td>The UVW coordinates in meters as [3,nbaseline].</td>
+    //  </tr>
+    //  <tr>
+    //   <td>PREAVGFLAG</td>
+    //   <td>The flags before any averaging was done. In the MS they are kept
+    //       in column LOFAR_FULL_RES_FLAG. They are used to deal in BBS
+    //       in a smart way with bandwidth and time smearing.
+    //       The shape of the array is [nchan, ntimeavg, nbaseline], where
+    //       ntimeavg is the number of time slots averaged to a single one.
+    //       The number of channels averaged to a single one can be determined
+    //       by dividing nchan by the number of channels in the data (or flags).
+    //   </td>
+    //  </tr>
+    // </table>
     // The DATA and FLAG data members should always filled in, so each DPStep
     // should do that. Other data members do not need to be filled.
-    // The DPInput::fetch functions should be used to get data for other
-    // members. It takes care that the buffer's data is used if available,
-    // otherwise it will get it from the DPInput object.
+    // The DPInput::fetch functions should be used to get data for those
+    // members. They take care that the buffer's data is used if available,
+    // otherwise they get it from the DPInput object.
     // In that way as little memory as needed is used. Note that e.g. the
     // MedFlagger can use a lot of memory if a large time window is used.
 

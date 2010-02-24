@@ -1,4 +1,5 @@
-//# Copyright (C) 2006-8
+//# NDPPP.cc: Program to execute steps like averaging and flagging on an MS
+//# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -18,7 +19,7 @@
 //#
 //# $Id$
 //#
-//# @author Adriaan Renting
+//# @author Ger van Diepen
 
 #include <lofar_config.h>
 #include <DPPP/DPStep.h>

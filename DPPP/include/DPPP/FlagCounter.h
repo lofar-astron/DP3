@@ -35,7 +35,12 @@
 namespace LOFAR {
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
+    // This class contains counts the number of flags.
+    // The flags can be counted per baseline, channel, and correlation.
+    // Once the counting is completed, they can be printed using the 'show'
+    // functions. When printing, the baselines counts are shown per antenna.
 
     class FlagCounter
     {

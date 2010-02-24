@@ -37,7 +37,7 @@ namespace LOFAR {
     class DPBuffer;
     class AverageInfo;
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
 
     // This class defines a step in the DPPP pipeline.
     // It is an abstract class from which all steps should be derived.
@@ -98,9 +98,10 @@ namespace LOFAR {
 
 
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
+
     // This class defines a null step in the DPPP pipeline.
-    // It is used as the last step in the pipeline, so other steps
+    // It can be used as the last step in the pipeline, so other steps
     // do not need to test if there is a next step.
 
     class NullStep: public DPStep
@@ -116,6 +117,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Show the step parameters.
+      // It does nothing.
       virtual void show (std::ostream&) const;
     };
 

@@ -41,9 +41,9 @@ namespace LOFAR {
 
   namespace DPPP {
 
-    // @ingroup DPPP
+    // @ingroup NDPPP
 
-    // This class is an input step reading the data from a MeasurementSet.
+    // This class is a DPInput step reading the data from a MeasurementSet.
     // At the beginning it finds out the shape of the data; i.e., the
     // number of correlations, channels, baselines, and time slots.
     // It requires the data to be regularly shaped.
@@ -69,6 +69,60 @@ namespace LOFAR {
     // too much data is kept in memory.
     // Other columns (like WEIGHT, UVW) can be read when needed by using the
     // appropriate DPInput::fetch function.
+    //
+    // The data columns are handled in the following way:
+    // <table>
+    //  <tr>
+    //   <td>TIME</td>
+    //   <td>The time slot center of the current data (in MJD seconds).
+    //       It is assumed that all data have the same interval, which is
+    //       used to find missing time slots.
+    //   </td>
+    //  </tr>
+    //  <tr>
+    //   <td>DATA</td>
+    //   <td>The visibility data as [ncorr,nchan,nbaseline]. Only the
+    //       part given by startchan and nchan is read. If a time slot is
+    //       inserted, all its data are zero.
+    //   </td>
+    //  </tr>
+    //  <tr>
+    //   <td>FLAG</td>
+    //   <td>The data flags as [ncorr,nchan,nbaseline] (True is bad).
+    //       They are read from the FLAG column. If a FLAG_ROW is set, all
+    //       flags for that baseline will be set. Also the flag of data
+    //       containing NaN or infinite numbers will be set.
+    //       All flags of an inserted time slot are set.
+    //   </td>
+    //  </tr>
+    //  <tr>
+    //   <td>WEIGHT</td>
+    //   <td>The data weights as [ncorr,nchan,nbaseline]. Column
+    //       WEIGHT_SPECTRUM is used if present and containing valid data,
+    //       otherwise column WEIGHT is used. The weights of an inserted
+    //       time slot are set to 0.
+    //   </td>
+    //  </tr>
+    //  <tr>
+    //   <td>UVW</td>
+    //   <td>The UVW coordinates in meters as [3,nbaseline].
+    //       They are calculated for a missing time slot.
+    //   </td>
+    //  </tr>
+    //  <tr>
+    //   <td>PREAVGFLAG</td>
+    //   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
+    //       a uChar array with shape [orignchan/8, ntimeavg]. The bits
+    //       represent the flags. They are converted to a Bool array with shape
+    //       [orignchan, ntimeavg, nbaseline].
+    //       Note that orignchan is given by the NCHANNELS keyword in the
+    //       LOFAR_FULL_RES_FLAG column.
+    //       If column LOFAR_FULL_RES_FLAG is not present, the flags are used
+    //       and it is assumed that no averaging was done yet (thus ntimeavg=1
+    //       and orignchan=nchan).
+    //   </td>
+    //  </tr>
+    // </table>
 
     class MSReader: public DPInput
     {
@@ -112,6 +166,7 @@ namespace LOFAR {
                                                  const casa::RefRows& rowNrs);
 
       // Write the flags at the given row numbers.
+      // It is used by MSUpdater.
       void putFlags (const casa::RefRows& rowNrs,
                      const casa::Cube<bool>& flags);
 
@@ -120,12 +175,21 @@ namespace LOFAR {
         { return itsMS; }
 
       // Get the rownrs for meta info of missing time slots.
+      // It uses the rows of the first time slot.
       const casa::Vector<uint> getBaseRowNrs() const
         { return itsBaseRowNrs; }
 
       // Get the name of the MS.
       const std::string& msName() const
         { return itsMS.tableName(); }
+
+      // Get the time information.
+      double startTime() const
+        { return itsFirstTime; }
+      double endTime() const
+        { return itsLastTime; }
+      double timeInterval() const
+        { return itsInterval; }
 
     private:
       // Prepare the access to the MS.
