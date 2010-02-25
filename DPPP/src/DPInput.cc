@@ -34,32 +34,32 @@ namespace LOFAR {
     DPInput::~DPInput()
     {}
 
-    Cube<bool> DPInput::fetchPreAvgFlags (const DPBuffer& buf,
-                                          const RefRows& rowNrs,
-                                          bool merge)
+    Cube<bool> DPInput::fetchFullResFlags (const DPBuffer& buf,
+                                           const RefRows& rowNrs,
+                                           bool merge)
     {
-      // If already defined in the buffer, return those preAvg flags.
-      if (! buf.getPreAvgFlags().empty()) {
-        return buf.getPreAvgFlags();
+      // If already defined in the buffer, return those fullRes flags.
+      if (! buf.getFullResFlags().empty()) {
+        return buf.getFullResFlags();
       }
-      // No preAvg flags in buffer, so get them from the input.
-      Cube<bool> preAvgFlags (getPreAvgFlags(rowNrs));
-      if (preAvgFlags.empty()) {
-        // No preAvg flags in input; form them from the flags in the buffer.
+      // No fullRes flags in buffer, so get them from the input.
+      Cube<bool> fullResFlags (getFullResFlags(rowNrs));
+      if (fullResFlags.empty()) {
+        // No fullRes flags in input; form them from the flags in the buffer.
         // Only use the XX flags; no averaging done, thus navgtime=1.
         IPosition shp(buf.getFlags().shape());
         IPosition ofShape(3, shp[1], 1, shp[2]);    // nchan,navgtime,nbl
-        preAvgFlags.resize (ofShape);
-        objcopy (preAvgFlags.data(), buf.getFlags().data(),
-                 preAvgFlags.size(), 1, shp[0]);    // only copy XX.
-        return preAvgFlags;
+        fullResFlags.resize (ofShape);
+        objcopy (fullResFlags.data(), buf.getFlags().data(),
+                 fullResFlags.size(), 1, shp[0]);    // only copy XX.
+        return fullResFlags;
       }
-      // There are preAvg flags.
+      // There are fullRes flags.
       // If needed, merge them with the buffer's flags.
       if (merge) {
-        DPBuffer::mergePreAvgFlags (preAvgFlags, buf.getFlags());
+        DPBuffer::mergeFullResFlags (fullResFlags, buf.getFlags());
       }
-      return preAvgFlags;
+      return fullResFlags;
     }
 
     Cube<float> DPInput::fetchWeights (const DPBuffer& buf,
@@ -90,8 +90,8 @@ namespace LOFAR {
     Cube<float> DPInput::getWeights (const RefRows&)
       { throw Exception ("DPInput::getWeights not implemented"); }
 
-    Cube<bool> DPInput::getPreAvgFlags (const RefRows&)
-      { throw Exception ("DPInput::getPreAvgFlags not implemented"); }
+    Cube<bool> DPInput::getFullResFlags (const RefRows&)
+      { throw Exception ("DPInput::getFullResFlags not implemented"); }
 
     Cube<Complex> DPInput::getData (const String&, const RefRows&)
       { throw Exception ("DPInput::getData not implemented"); }

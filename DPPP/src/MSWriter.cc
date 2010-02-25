@@ -52,18 +52,19 @@ namespace LOFAR {
         itsNrChan       (avgInfo.nchan()),
         itsNrBl         (reader->nbaselines()),
         itsNrTimes      (avgInfo.ntime()),
-        itsOrigNrChan   (avgInfo.origNChan()),
-        itsNTimeAvg     (avgInfo.ntimeAvg()),
+        // Input can already be averaged, so take that into account.
+        itsNChanAvg     (avgInfo.nchanAvg() * itsReader->nchanAvg()),
+        itsNTimeAvg     (avgInfo.ntimeAvg() * itsReader->ntimeAvg()),
         itsFlagCounter  ("MSWriter")
     {
       // Get tilesize (default 1024 KBytes).
-      uint tileSize       = parset.getUint (prefix+"tilesize", 1024);
-      uint tileNChan      = parset.getUint (prefix+"tilenchan", 8);
-      itsCopyCorrData     = parset.getBool (prefix+"copycorrecteddata", false);
-      itsCopyModelData    = parset.getBool (prefix+"copymodeldata", false);
-      itsWritePreAvgFlags = parset.getBool (prefix+"writefullresflag", true);
-      itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
-      itsCountFlags       = parset.getBool (prefix+"countflags", false);
+      uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
+      uint tileNChan       = parset.getUint (prefix+"tilenchan", 8);
+      itsCopyCorrData      = parset.getBool (prefix+"copycorrecteddata", false);
+      itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
+      itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
+      itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
+      itsCountFlags        = parset.getBool (prefix+"countflags", false);
       // Create the MS.
       createMS (outName, avgInfo, tileSize, tileNChan);
       // Write the parset info into the history.
@@ -264,10 +265,13 @@ namespace LOFAR {
         TiledColumnStMan tsmf("TiledFlag", tileShapeF);
         makeArrayColumn(tdesc["FLAG"], dataShape, &tsmf, itsMS);
       }
-      if (itsWritePreAvgFlags) {
+      if (itsWriteFullResFlags) {
         // Add LOFAR_FULL_RES_FLAG column using tsm.
-        IPosition dataShapeF(2, itsOrigNrChan/8, itsNTimeAvg);
-        IPosition tileShapeF(2, itsOrigNrChan/8, 1024);
+        // The input can already be averaged and averaging can be done in
+        // this run, so the full resolution is the combination of both.
+        uint orignchan = itsNrChan * itsNChanAvg;
+        IPosition dataShapeF(2, orignchan/8, itsNTimeAvg);
+        IPosition tileShapeF(2, orignchan/8, 1024);
         TiledColumnStMan tsmf("TiledFullResFlag", tileShapeF);
         ArrayColumnDesc<uChar> padesc("LOFAR_FULL_RES_FLAG",
                                       "flags in original full resolution",
@@ -425,8 +429,8 @@ namespace LOFAR {
       message.put     (rownr, allParms.str());
       priority.put    (rownr, "NORMAL");
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
-      // CASA cannot handle empty cells, so put empty arrays in them.
-      Array<String> arr;
+      // CASA cannot handle empty cells, so put an empty vector in them.
+      Vector<String> arr;
       cli.put   (rownr, arr);
       parms.put (rownr, arr);
     }
@@ -454,18 +458,20 @@ namespace LOFAR {
       ArrayColumn<bool>    flagCol(out, "FLAG");
       dataCol.putColumn (buf.getData());
       flagCol.putColumn (buf.getFlags());
-      if (itsWritePreAvgFlags) {
-        writePreAvgFlags (out, buf);
+      if (itsWriteFullResFlags) {
+        writeFullResFlags (out, buf);
       }
       ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
       weightCol.putColumn (itsReader->fetchWeights (buf, buf.getRowNrs()));
     }
 
-    void MSWriter::writePreAvgFlags (Table& out, const DPBuffer& buf)
+    void MSWriter::writeFullResFlags (Table& out, const DPBuffer& buf)
     {
       // Get the flags.
-      Cube<bool> flags (itsReader->fetchPreAvgFlags (buf, buf.getRowNrs()));
+      Cube<bool> flags (itsReader->fetchFullResFlags (buf, buf.getRowNrs()));
       const IPosition& ofShape = flags.shape();
+      ASSERT (uint(ofShape[0]) == itsNChanAvg * itsNrChan);
+      ASSERT (uint(ofShape[1]) == itsNTimeAvg);
       // Convert the bools to uChar bits.
       IPosition chShape(ofShape);
       chShape[0] = (ofShape[0] + 7) / 8;
@@ -484,11 +490,12 @@ namespace LOFAR {
           charsPtr += chShape[0];
         }
       }
-      ArrayColumn<uChar> preAvgCol(out, "LOFAR_FULL_RES_FLAG");
-      if (! preAvgCol.keywordSet().isDefined ("NCHANNELS")) {
-        preAvgCol.rwKeywordSet().define ("NCHANNELS", int(ofShape[1]));
+      ArrayColumn<uChar> fullResCol(out, "LOFAR_FULL_RES_FLAG");
+      if (! fullResCol.keywordSet().isDefined ("NCHAN_AVG")) {
+        fullResCol.rwKeywordSet().define ("NCHAN_AVG", int(itsNChanAvg));
+        fullResCol.rwKeywordSet().define ("NTIME_AVG", int(itsNTimeAvg));
       }
-      preAvgCol.putColumn (chars);
+      fullResCol.putColumn (chars);
     } 
 
     void MSWriter::copyMeta (const Table& in, Table& out, bool copyTimeInfo)

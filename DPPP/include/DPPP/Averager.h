@@ -46,8 +46,8 @@ namespace LOFAR {
     // is the weight of the new data point. If all data point to use are
     // flagged, the resulting data point and weight are set to zero and flagged.
     //
-    // It keeps track of the PreAvgFlags. It sets them if the corresponding
-    // data point is flagged. Note that multiple PreAvgFlags elements map to
+    // It keeps track of the FullResFlags. It sets them if the corresponding
+    // data point is flagged. Note that multiple FullResFlags elements map to
     // a single data point if some averaging was done before.
 
     class Averager: public DPStep
@@ -77,12 +77,12 @@ namespace LOFAR {
       // Average and return the result.
       DPBuffer average() const;
 
-      // Copy the preAvg flags in the input buffer to the correct
+      // Copy the fullRes flags in the input buffer to the correct
       // time index in the output buffer.
-      // If a flag is set, set all flags in corresponding PreAvg window.
-      void copyPreAvgFlags (const casa::Cube<bool>& preAvgFlags,
-                            const casa::Cube<bool>& flags,
-                            int timeIndex);
+      // If a flag is set, set all flags in corresponding FullRes window.
+      void copyFullResFlags (const casa::Cube<bool>& fullResFlags,
+                             const casa::Cube<bool>& flags,
+                             int timeIndex);
 
       //# Data members.
       DPInput*        itsInput;

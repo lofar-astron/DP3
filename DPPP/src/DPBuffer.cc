@@ -46,46 +46,46 @@ namespace LOFAR {
         itsFlags.reference (that.itsFlags);
         itsWeights.reference (that.itsWeights);
         itsUVW.reference (that.itsUVW);
-        itsPreAvgFlags.reference (that.itsPreAvgFlags);
+        itsFullResFlags.reference (that.itsFullResFlags);
       }
       return *this;
     }
 
-    void DPBuffer::mergePreAvgFlags (Cube<bool>& preAvgFlags,
-                                     const Cube<bool>& flags)
+    void DPBuffer::mergeFullResFlags (Cube<bool>& fullResFlags,
+                                      const Cube<bool>& flags)
     {
       // Flag shape is [ncorr, newnchan, nbl].
-      // PreAvg shape is [orignchan, navgtime, nbl]
+      // FullRes shape is [orignchan, navgtime, nbl]
       // where orignchan = navgchan * newnchan.
-      const IPosition& preAvgShape = preAvgFlags.shape();
-      const IPosition& flagShape   = flags.shape();
-      int orignchan = preAvgShape[0];
+      const IPosition& fullResShape = fullResFlags.shape();
+      const IPosition& flagShape    = flags.shape();
+      int orignchan = fullResShape[0];
       int newnchan  = flagShape[1];
       int navgchan  = orignchan / newnchan;
-      int navgtime  = preAvgShape[1];
-      int nbl       = preAvgShape[2];
+      int navgtime  = fullResShape[1];
+      int nbl       = fullResShape[2];
       int ncorr     = flagShape[0];
-      bool* preAvgPtr = preAvgFlags.data();
+      bool* fullResPtr = fullResFlags.data();
       const bool* flagPtr = flags.data();
       // Loop over all baselines and new channels.
       // Only use the first correlation in the loop.
       for (int j=0; j<nbl; ++j) {
         for (int i=0; i<newnchan; ++i) {
           // If ta data point is flagged, the flags in the corresponding
-          // PreAvg window have to be set.
+          // FullRes window have to be set.
           // This is needed in case a data point is further averaged.
           if (*flagPtr) {
             for (int i=0; i<navgtime; ++i) {
-              std::fill (preAvgPtr, preAvgPtr+navgchan, true);
-              preAvgPtr += orignchan;
+              std::fill (fullResPtr, fullResPtr+navgchan, true);
+              fullResPtr += orignchan;
             }
-            preAvgPtr -= navgtime*orignchan;
+            fullResPtr -= navgtime*orignchan;
           }
           flagPtr   += ncorr;
-          preAvgPtr += navgchan;
+          fullResPtr += navgchan;
         }
         // Set pointer to next baseline.
-        preAvgPtr += (navgtime-1)*orignchan;
+        fullResPtr += (navgtime-1)*orignchan;
       }
     }
 

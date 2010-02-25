@@ -69,11 +69,11 @@ private:
     Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
-    // The preAvg flags are a copy of the XX flags, but differently shaped.
+    // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> preAvgFlags(itsNChan, 1, itsNBl);
-    preAvgFlags = itsFlag;
-    buf.setPreAvgFlags (preAvgFlags);
+    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    fullResFlags = itsFlag;
+    buf.setFullResFlags (fullResFlags);
     Matrix<double> uvw(3,itsNBl);
     indgen (uvw, double(itsCount*100));
     buf.setUVW (uvw);
@@ -110,8 +110,8 @@ private:
     // Fill expected result in similar way as TestInput.
     Cube<Complex>  data(itsNCorr,itsNChan,itsNBl);
     Cube<float> weights(itsNCorr,itsNChan,itsNBl);
-    Cube<bool> preAvgFlags(itsNChan,itsNAvgTime,itsNBl);
-    preAvgFlags = true;   // takes care of missing times at the end
+    Cube<bool> fullResFlags(itsNChan,itsNAvgTime,itsNBl);
+    fullResFlags = true;   // takes care of missing times at the end
     weights = 0;
     if (!itsFlag) {
       for (int j=itsCount*itsNAvgTime; j<itsCount*itsNAvgTime+navgtime; ++j) {
@@ -122,8 +122,8 @@ private:
           }
         }
       }
-      preAvgFlags(Slicer(IPosition(3,0,0,0),
-                         IPosition(3,itsNChan,navgtime,itsNBl))) = itsFlag;
+      fullResFlags(Slicer(IPosition(3,0,0,0),
+                          IPosition(3,itsNChan,navgtime,itsNBl))) = itsFlag;
     }
     Cube<Complex> result(itsNCorr,nchan,itsNBl);
     Cube<float> resultw(itsNCorr,nchan,itsNBl);
@@ -155,8 +155,8 @@ private:
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
       ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
-    ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
+    ///cout <<buf.getFullResFlags()<< fullResFlags;
+    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }
@@ -188,7 +188,7 @@ public:
     : itsCount(0),
       itsNrTime(nrtime), itsNrBl(nrbl), itsNrChan(nrchan), itsNrCorr(nrcorr)
   {
-    itsPreAvgFlags.resize (itsNrChan,1,nrbl);
+    itsFullResFlags.resize (itsNrChan,1,nrbl);
   }
 private:
   virtual bool process (const DPBuffer&)
@@ -209,7 +209,7 @@ private:
           flags.data()[i] = ((itsCount+2*ib+3*ic) % 7 == 0);
           i++;
         }
-        itsPreAvgFlags(ic,0,ib) = ((itsCount+2*ib+3*ic) % 7 == 0);
+        itsFullResFlags(ic,0,ib) = ((itsCount+2*ib+3*ic) % 7 == 0);
       }
     }
     DPBuffer buf;
@@ -230,9 +230,9 @@ private:
     indgen (uvw);
     return uvw;
   }
-  virtual casa::Cube<bool> getPreAvgFlags (const casa::RefRows&)
+  virtual casa::Cube<bool> getFullResFlags (const casa::RefRows&)
   {
-    return itsPreAvgFlags;
+    return itsFullResFlags;
   }
 
   virtual void finish() {getNextStep()->finish();}
@@ -242,7 +242,7 @@ private:
     { avgInfo.init (itsNrCorr, 0, itsNrChan, itsNrBl, itsNrTime, 5); }
 
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
-  Cube<bool> itsPreAvgFlags;
+  Cube<bool> itsFullResFlags;
 };
 
 // Class to check result of averaging TestInput3.
@@ -260,10 +260,10 @@ private:
     Cube<Complex> result(itsNrCorr,1,itsNrBl);
     Cube<float> weights(itsNrCorr,1,itsNrBl);
     Cube<bool> flags(itsNrCorr,1,itsNrBl);
-    Cube<bool> preAvgFlags(itsNrChan,itsNrTime,itsNrBl);
+    Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
     weights = float(0);
     flags = true;
-    preAvgFlags = true;
+    fullResFlags = true;
     // Create data in the same way as in TestInput3.
     for (int it=0; it<itsNrTime; ++it) {
       int i = 0;
@@ -276,7 +276,7 @@ private:
               weights(ip,0,ib) += weight;
               ///  cout << result(ip,0,ib)  << weight << endl;
               flags(ip,0,ib) = false;
-              preAvgFlags(ic,it,ib) = false;
+              fullResFlags(ic,it,ib) = false;
             }
             i++;
           }
@@ -296,8 +296,8 @@ private:
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
-    ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
+    ///cout <<buf.getFullResFlags()<< fullResFlags;
+    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -366,10 +366,10 @@ private:
     Cube<Complex> result(itsNrCorr,1,itsNrBl);
     Cube<float> weights(itsNrCorr,1,itsNrBl);
     Cube<bool> flags(itsNrCorr,1,itsNrBl);
-    Cube<bool> preAvgFlags(itsNrChan,itsNrTime,itsNrBl);
+    Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
     weights = float(0);
     flags = true;
-    preAvgFlags = true;
+    fullResFlags = true;
     // Create data in the same way as in TestInput3.
     for (int it=0; it<itsNrTime; ++it) {
       int i = 0;
@@ -388,7 +388,7 @@ private:
                 weights(ip,0,ib) += weight;
                 ///  cout << result(ip,0,ib)  << weight << endl;
                 flags(ip,0,ib) = false;
-                preAvgFlags(ic,it,ib) = false;
+                fullResFlags(ic,it,ib) = false;
               }
               i++;
             }
@@ -411,8 +411,8 @@ private:
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getPreAvgFlags()<< preAvgFlags;
-    ASSERT (allEQ(buf.getPreAvgFlags(), preAvgFlags));
+    ///cout <<buf.getFullResFlags()<< fullResFlags;
+    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -533,7 +533,7 @@ void test3(int nrbl, int nrcorr)
 }
 
 // Do tests with averaging and flagging steps to see if the flags are
-// promoted to the PREAVG flags.
+// promoted to the FULLRES flags.
 void test4(int nrbl, int nrcorr, int flagstep)
 {
   {

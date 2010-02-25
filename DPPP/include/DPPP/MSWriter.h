@@ -104,7 +104,7 @@ namespace LOFAR {
       void writeData (casa::Table& out, const DPBuffer& buf);
 
       // Write the full resolution flags (flags before any averaging).
-      void writePreAvgFlags (casa::Table& out, const DPBuffer& buf);
+      void writeFullResFlags (casa::Table& out, const DPBuffer& buf);
 
       // Write the time info (TIME, TIME_CENTROID, INTERVAL, EXPOSURE).
       void writeTimeInfo (casa::Table& out, double time,
@@ -143,13 +143,13 @@ namespace LOFAR {
       bool            itsCopyTimeInfo;
       bool            itsCopyCorrData;
       bool            itsCopyModelData;
-      bool            itsWritePreAvgFlags;
+      bool            itsWriteFullResFlags;
       uint            itsNrCorr;
       uint            itsNrChan;
       uint            itsNrBl;
       uint            itsNrTimes;
-      uint            itsOrigNrChan;    //# original nr of chan before averaging
-      uint            itsNTimeAvg;      //# nr of times averaged to 1
+      uint            itsNChanAvg;   //# nr of channels in input averaged to 1
+      uint            itsNTimeAvg;   //# nr of times in input averaged to 1
       bool            itsCountFlags;
       FlagCounter     itsFlagCounter;
     };

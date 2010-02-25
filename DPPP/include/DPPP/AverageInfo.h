@@ -52,6 +52,7 @@ namespace LOFAR {
 
       // Update the info from the given average factors.
       // If chanAvg is higher than the actual nr of channels, it is reset.
+      // The same is true for timeAvg.
       // It returns the possibly reset nr of channels to average.
       uint update (uint chanAvg, uint timeAvg);
 

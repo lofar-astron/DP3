@@ -57,6 +57,9 @@ namespace LOFAR {
       if (chanAvg > itsNChan) {
         chanAvg = itsNChan;
       }
+      if (timeAvg > itsNTime) {
+        timeAvg = itsNTime;
+      }
       ASSERTSTR (itsNChan % chanAvg == 0,
                  "When averaging, nr of channels must divide integrally; "
                  "itsNChan=" << itsNChan << " chanAvg=" << chanAvg);

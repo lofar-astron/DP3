@@ -82,7 +82,7 @@ namespace LOFAR {
     //   <td>The UVW coordinates in meters as [3,nbaseline].</td>
     //  </tr>
     //  <tr>
-    //   <td>PREAVGFLAG</td>
+    //   <td>FULLRESFLAG</td>
     //   <td>The flags before any averaging was done. In the MS they are kept
     //       in column LOFAR_FULL_RES_FLAG. They are used to deal in BBS
     //       in a smart way with bandwidth and time smearing.
@@ -148,12 +148,12 @@ namespace LOFAR {
         { return itsWeights; }
 
       // Set or get the flags at the full resolution per chan,timeavg,baseline.
-      void setPreAvgFlags (const casa::Cube<bool>& flags)
-        { itsPreAvgFlags.reference (flags); }
-      const casa::Cube<bool>& getPreAvgFlags() const
-        { return itsPreAvgFlags; }
-      casa::Cube<bool>& getPreAvgFlags()
-        { return itsPreAvgFlags; }
+      void setFullResFlags (const casa::Cube<bool>& flags)
+        { itsFullResFlags.reference (flags); }
+      const casa::Cube<bool>& getFullResFlags() const
+        { return itsFullResFlags; }
+      casa::Cube<bool>& getFullResFlags()
+        { return itsFullResFlags; }
 
       // Get or set the time.
       void setTime (double time)
@@ -178,8 +178,8 @@ namespace LOFAR {
 
       // Merge the flags into the pre-average flags.
       // For each flagged point, the corresponding pre-average flags are set.
-      static void mergePreAvgFlags (casa::Cube<bool>& preAvgFlags,
-                                    const casa::Cube<bool>& flags);
+      static void mergeFullResFlags (casa::Cube<bool>& fullResFlags,
+                                     const casa::Cube<bool>& flags);
 
     private:
       double                    itsTime;
@@ -189,7 +189,7 @@ namespace LOFAR {
       casa::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
       casa::Matrix<double>      itsUVW;         //# 3,nbasel
       casa::Cube<float>         itsWeights;     //# nchan,nbasel
-      casa::Cube<bool>          itsPreAvgFlags; //# preavg_nchan,ntimeavg,nbasel
+      casa::Cube<bool>          itsFullResFlags; //# fullres_nchan,ntimeavg,nbl
     };
 
   } //# end namespace

@@ -405,6 +405,10 @@ void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
   histcols.time().put          (rownr, Time().modifiedJulianDay()*24.*3600.);
   histcols.origin().put        (rownr, Version::getInfo<DPPPVersion>("IDPPP",
                                                                      "full"));
+  // CASA cannot handle empty cells, so put an empty vector in them.
+  Vector<String> arr;
+  histcols.cliCommand().put    (rownr, arr);
+  histcols.appParams().put     (rownr, arr);
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============

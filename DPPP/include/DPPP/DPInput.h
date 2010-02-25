@@ -68,9 +68,9 @@ namespace LOFAR {
       // The default implementation throws an exception.
       virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs);
 
-      // Read the preAvg flags (LOFAR_PREAVG_FLAG) at the given row numbers.
+      // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // The default implementation throws an exception.
-      virtual casa::Cube<bool> getPreAvgFlags (const casa::RefRows& rowNrs);
+      virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
 
       // Read the given data column at the given row numbers.
       // The default implementation throws an exception.
@@ -85,17 +85,17 @@ namespace LOFAR {
       uint nbaselines() const
         { return itsNrBl; }
 
-      // Fetch the PreAvg flags.
+      // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.
       // Otherwise there are read from the input.
       // If not defined in the input, they are filled using the flags in the
       // buffer assuming that no averaging has been done so far.
       // If defined, they can be merged with the buffer's flags which means
-      // that if an averaged channel is flagged, the corresponding PreAvg
+      // that if an averaged channel is flagged, the corresponding FullRes
       // flags are set.
-      casa::Cube<bool> fetchPreAvgFlags (const DPBuffer& buf,
-                                         const casa::RefRows& rowNrs,
-                                         bool merge=false);
+      casa::Cube<bool> fetchFullResFlags (const DPBuffer& buf,
+                                          const casa::RefRows& rowNrs,
+                                          bool merge=false);
 
       // Fetch the weights.
       // If defined in the buffer, they are taken from there.

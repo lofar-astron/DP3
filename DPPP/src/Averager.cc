@@ -75,17 +75,17 @@ namespace LOFAR {
         itsBuf.getData()    = buf.getData();
         IPosition shapeIn   = buf.getData().shape();
         itsNPoints.resize (shapeIn);
-        // Take care of the preAvg flags.
+        // Take care of the fullRes flags.
         // We have to shape the output array and copy to a part of it.
-        Cube<bool> preAvgFlags(itsInput->fetchPreAvgFlags (buf, rowNrs));
-        IPosition ofShape = preAvgFlags.shape();
+        Cube<bool> fullResFlags(itsInput->fetchFullResFlags (buf, rowNrs));
+        IPosition ofShape = fullResFlags.shape();
         ofShape[1] *= itsNTimeAvg;      // more time entries, same chan and bl
-        // Make it unique in case PreAvg is referenced elsewhere.
-        // (itsBuf.PreAvg is referenced when set in buf by average())
-        itsBuf.getPreAvgFlags().unique();
-        itsBuf.getPreAvgFlags().resize (ofShape);
-        itsBuf.getPreAvgFlags() = true; // initialize for times missing at end
-        copyPreAvgFlags (preAvgFlags, buf.getFlags(), 0);
+        // Make it unique in case FullRes is referenced elsewhere.
+        // (itsBuf.FullRes is referenced when set in buf by average())
+        itsBuf.getFullResFlags().unique();
+        itsBuf.getFullResFlags().resize (ofShape);
+        itsBuf.getFullResFlags() = true; // initialize for times missing at end
+        copyFullResFlags (fullResFlags, buf.getFlags(), 0);
         // Set middle of new interval.
         double time = buf.getTime() + 0.5*(itsNTimeAvg-1)*itsTimeInterval;
         itsBuf.setTime (time);
@@ -118,8 +118,8 @@ namespace LOFAR {
         // so check if the buffer sizes are the same.
         ASSERT (itsBuf.getData().shape() == buf.getData().shape());
         itsBuf.getUVW() += itsInput->fetchUVW (buf, rowNrs);
-        copyPreAvgFlags (itsInput->fetchPreAvgFlags(buf, rowNrs),
-                         buf.getFlags(), itsNTimes);
+        copyFullResFlags (itsInput->fetchFullResFlags(buf, rowNrs),
+                          buf.getFlags(), itsNTimes);
         Cube<float> weights(itsInput->fetchWeights(buf, rowNrs));
         // Ignore flagged points.
         Array<Complex>::const_contiter indIter = buf.getData().cbegin();
@@ -224,25 +224,25 @@ namespace LOFAR {
       DBGASSERT (outdata == buf.getData().data() + buf.getData().size());
       // Set the remaining values in the output buffer.
       buf.setTime (itsBuf.getTime());
-      buf.setPreAvgFlags (itsBuf.getPreAvgFlags());
+      buf.setFullResFlags (itsBuf.getFullResFlags());
       // The result UVWs are the average of the input.
       // If ever needed, UVWCalculator can be used to calculate the UVWs.
       buf.setUVW (itsBuf.getUVW() / double(itsNTimes));
       return buf;
     }
 
-    void Averager::copyPreAvgFlags (const Cube<bool>& preAvgFlags,
-                                    const Cube<bool>& flags,
-                                    int timeIndex)
+    void Averager::copyFullResFlags (const Cube<bool>& fullResFlags,
+                                     const Cube<bool>& flags,
+                                     int timeIndex)
     {
-      // Copy the preAvg flags to the given index.
-      // Furthermore the appropriate PreAvg flags are set for a
+      // Copy the fullRes flags to the given index.
+      // Furthermore the appropriate FullRes flags are set for a
       // flagged data point. It can be the case that an input data point
-      // has been averaged before, thus has fewer channels than PreAvgFlags.
+      // has been averaged before, thus has fewer channels than FullResFlags.
       // nrchan and nrbl are the same for in and out.
       // nrtimout is a multiple of nrtimavg.
-      IPosition shapeIn  = preAvgFlags.shape();
-      IPosition shapeOut = itsBuf.getPreAvgFlags().shape();
+      IPosition shapeIn  = fullResFlags.shape();
+      IPosition shapeOut = itsBuf.getFullResFlags().shape();
       IPosition shapeFlg = flags.shape();
       uint nchan    = shapeIn[0];    // original nr of channels
       uint ntimavg  = shapeIn[1];    // nr of averaged times in input data
@@ -251,8 +251,8 @@ namespace LOFAR {
       uint nbl      = shapeIn[2];    // nr of baselines
       uint ncorr    = shapeFlg[0];   // nr of correlations (in FLAG)
       // in has to be copied to the correct time index in out.
-      bool* outPtr = itsBuf.getPreAvgFlags().data() + nchan*ntimavg*timeIndex;
-      const bool* inPtr   = preAvgFlags.data();
+      bool* outPtr = itsBuf.getFullResFlags().data() + nchan*ntimavg*timeIndex;
+      const bool* inPtr   = fullResFlags.data();
       const bool* flagPtr = flags.data();
       for (uint k=0; k<nbl; ++k) {
         memcpy (outPtr, inPtr, nchan*ntimavg*sizeof(bool));
@@ -261,7 +261,7 @@ namespace LOFAR {
         if (ntimavg > 1  &&  nchanavg > 1) {
           for (int j=0; j<shapeFlg[1]; ++j) {
             // If a data point is flagged, the flags in the corresponding
-            // PreAvg window have to be set.
+            // FullRes window have to be set.
             // Only look at the flags of the first correlation.
             if (*flagPtr) {
               bool* avgPtr = outPtr + j*nchanavg;

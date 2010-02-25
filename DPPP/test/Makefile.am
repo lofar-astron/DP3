@@ -6,7 +6,8 @@ CHECKTOOLPROGS        = $(CHECK_PROGRAMS)
 #ENDCHECKTOOLPROGS
 
 # scripts used to run tests
-TESTSCRIPTS           = tMirror.sh tAverager.sh tMedFlagger.sh \
+TESTSCRIPTS           = tMedian.sh tMirror.sh tAverager.sh tMedFlagger.sh \
+			tNDPPP.sh \
 			test_flaggers.sh tmwflagger.sh
 
 # scripts and possible programs to run tests

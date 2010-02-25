@@ -99,16 +99,13 @@ namespace LOFAR {
       // Form the slicer to get the channels and correlations per row.
       itsSlicer = Slicer(IPosition(2, 0, itsStartChan),
                          IPosition(2, itsNrCorr, itsNrChan));
-      // Form the slicer to get the full resolution channels.
-      // Note that the data might have been averaged already, so the
-      // average factor has to be taken into account.
-      if (itsHasPreAvgFlags) {
-        ROTableColumn preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-        int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHANNELS");
-        uint avg = norigchan / nAllChan;
-        itsPreAvgSlicer = Slicer(IPosition(3, itsStartChan*avg, 0, 0),
-                                 IPosition(3, itsNrChan*avg,
-                                           Slicer::MimicSource, itsNrBl));
+      // Form the slicer to get the full resolution flags
+      // for the start channel and nr of channels given.
+      if (itsHasFullResFlags) {
+        itsFullResSlicer = Slicer(IPosition(3, itsStartChan*itsFullResNChanAvg,
+                                            0, 0),
+                                  IPosition(3, itsNrChan*itsFullResNChanAvg,
+                                            itsFullResNTimeAvg, itsNrBl));
       }
       // Initialize the flag counters.
       if (itsCountFlags) {
@@ -266,7 +263,15 @@ namespace LOFAR {
         itsHasWeightSpectrum =
           ROArrayColumn<float>(itsMS, "WEIGHT_SPECTRUM").isDefined(0);
       }
-      itsHasPreAvgFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
+      itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
+      if (itsHasFullResFlags) {
+        ROTableColumn fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+        itsFullResNChanAvg  = fullResFlagCol.keywordSet().asInt ("NCHAN_AVG");
+        itsFullResNTimeAvg  = fullResFlagCol.keywordSet().asInt ("NTIME_AVG");
+      } else {
+        itsFullResNChanAvg = 1;
+        itsFullResNTimeAvg = 1;
+      }
       // Get the main table in the correct order.
       // Determine if the data are stored using LofarStMan.
       // If so, we know it is in time order.
@@ -388,15 +393,15 @@ namespace LOFAR {
       return outArr;
     }
 
-    Cube<bool> MSReader::getPreAvgFlags (const RefRows& rowNrs)
+    Cube<bool> MSReader::getFullResFlags (const RefRows& rowNrs)
     {
-      // Return empty array if no preAvg flags.
-      if (!itsHasPreAvgFlags  ||  rowNrs.rowVector().empty()) {
+      // Return empty array if no fullRes flags.
+      if (!itsHasFullResFlags  ||  rowNrs.rowVector().empty()) {
         return Cube<bool>();
       }
-      ROArrayColumn<uChar> preAvgFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-      int norigchan = preAvgFlagCol.keywordSet().asInt ("NCHANNELS");
-      Array<uChar> chars = preAvgFlagCol.getColumnCells (rowNrs);
+      ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+      int norigchan = itsNrChan * itsFullResNChanAvg;
+      Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
       // Per row the flags are stored as uchar[nchar,navgtime].
       // Each char contains a bit per channel, thus nchan/8 chars are needed.
@@ -414,13 +419,13 @@ namespace LOFAR {
         ASSERT (ofShape[0] < chShape[0]*8);
         const uChar* charsPtr = chars.data();
         bool* flagsPtr = flags.data();
-        for (int i=0; i<ofShape[2]*ofShape[3]; ++i) {
+        for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {
           Conversion::bitToBool (flagsPtr, charsPtr, ofShape[0]);
           flagsPtr += ofShape[0];
           charsPtr += chShape[0];
         }
       }
-      return flags(itsPreAvgSlicer);
+      return flags(itsFullResSlicer);
     }
 
     Cube<Complex> MSReader::getData (const String& columnName,

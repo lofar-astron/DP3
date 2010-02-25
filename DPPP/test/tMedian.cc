@@ -38,7 +38,7 @@ void testCasa (size_t sz, size_t n)
     vector<float> vec(sz);
     uint j=0;
     for (vector<float>::iterator iter=vec.begin(); iter!=vec.end(); ++iter) {
-      *iter == j++;
+      *iter = j++;
     }
     GenSort<float>::kthLargest (&(vec[0]), sz, sz/2);
   }
@@ -52,16 +52,20 @@ void testStl (size_t sz, size_t n)
     vector<float> vec(sz);
     uint j=0;
     for (vector<float>::iterator iter=vec.begin(); iter!=vec.end(); ++iter) {
-      *iter == j++;
+      *iter = j++;
     }
     nth_element (vec.begin(), vec.end(), vec.begin()+sz/2);
   }
   timer.show ("stl ");
 }
 
-int main()
+int main (int argc, char* argv[])
 {
-  testCasa (155, 10000000);
-  testStl  (155, 10000000);
+  size_t window = 155;
+  size_t ntimes = 1000;
+  if (argc > 1) window = atoi(argv[1]);
+  if (argc > 2) ntimes = atoi(argv[2]);
+  testCasa (window, ntimes);
+  testStl  (window, ntimes);
   return 0;
 }

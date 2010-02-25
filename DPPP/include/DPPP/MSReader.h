@@ -110,7 +110,7 @@ namespace LOFAR {
     //   </td>
     //  </tr>
     //  <tr>
-    //   <td>PREAVGFLAG</td>
+    //   <td>FULLRESFLAG</td>
     //   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
     //       a uChar array with shape [orignchan/8, ntimeavg]. The bits
     //       represent the flags. They are converted to a Bool array with shape
@@ -156,10 +156,10 @@ namespace LOFAR {
       // Read the weights at the given row numbers.
       virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs);
 
-      // Read the preAvg flags (LOFAR_PREAVG_FLAG) at the given row numbers.
+      // Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
       // If undefined, an empty array is returned.
-      virtual casa::Cube<bool> getPreAvgFlags (const casa::RefRows& rowNrs);
+      virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
 
       // Read the given data column at the given row numbers.
       virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
@@ -191,6 +191,13 @@ namespace LOFAR {
       double timeInterval() const
         { return itsInterval; }
 
+      // Get the nr of averaged full resolution channels.
+      uint nchanAvg() const
+        { return itsFullResNChanAvg; }
+      // Get the nr of averaged full resolution time slots.
+      uint ntimeAvg() const
+        { return itsFullResNTimeAvg; }
+
     private:
       // Prepare the access to the MS.
       // Return the first and last time and the interval.
@@ -207,18 +214,20 @@ namespace LOFAR {
       casa::TableIterator itsIter;
       casa::Vector<int>   itsAnt1;
       casa::Vector<int>   itsAnt2;
+      casa::String        itsDataColName;
       bool                itsHasWeightSpectrum;
-      bool                itsHasPreAvgFlags;
       bool                itsUseFlags;
       uint                itsStartChan;
-      uint                itsNrInserted;    //# nr of inserted time slots
       double              itsInterval;
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;
-      casa::String        itsDataColName;
+      uint                itsNrInserted;    //# nr of inserted time slots
       casa::Slicer        itsSlicer;        //# slice in corr,chan
-      casa::Slicer        itsPreAvgSlicer;  //# slice in chan,timeavg,bl
+      bool                itsHasFullResFlags;
+      uint                itsFullResNChanAvg;
+      uint                itsFullResNTimeAvg;
+      casa::Slicer        itsFullResSlicer; //# slice in chan,timeavg,bl
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
       casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
