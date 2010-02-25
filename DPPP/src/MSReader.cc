@@ -414,7 +414,7 @@ namespace LOFAR {
       // If their sizes match, do it all in one go.
       // Otherwise we have to iterate.
       if (ofShape[0] == chShape[0]*8) {
-        Conversion::bitToBool (flags.data(), chars.data(), chars.size());
+        Conversion::bitToBool (flags.data(), chars.data(), flags.size());
       } else {
         ASSERT (ofShape[0] < chShape[0]*8);
         const uChar* charsPtr = chars.data();
