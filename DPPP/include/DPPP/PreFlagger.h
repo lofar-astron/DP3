@@ -38,41 +38,30 @@ namespace LOFAR {
 
     // @ingroup NDPPP
 
-    // This class is a DPStep class flagging data points based on the median
-    // of the absolute difference of the data and the median of the data.
-    // Both medians are taken in a time/frequency window around the data point.
-    // Only unflagged data points in the window are taken into account.
-    // The size of the window is given in the parset file.
-    // 
-    // The window around data points at the edges is formed by mirroring the
-    // data at the edge. For example, for channel 0 and a window size of 7
-    // the data are mirrored, thus channels 3,2,1,0,1,2,3 will be used.
-    // For channel 1 the channels 2,1,0,1,2,3,4 will be used.
-    // The test program tMirror.cc can be used to check the correctness of
-    // the alogorithm to determine the channels to use.
-    //
-    // Taking the median is an O(N) operation, thus doing it for all data
-    // points is an O(N^2) operation. The test program tMedian.cc can be
-    // used to test the performance of the algorithms to determine the median.
-    // It shows that casacore's kthLargest outperforms STL's nth_element.
-    // <br>
-    // Shuffling the data around to be able to determine the medians is also
-    // an expensive operation and takes as much time as the medians themselves.
-    //
-    // When a correlation is flagged, all correlations for that data point
-    // are flagged. It is possible to specify which correlations have to be
-    // taken into account when flagging. Using, say, only XX may boost
-    // performance with a factor 4, but miss points to be flagged.
-    // It is also possible to specify the order in which the correlations
-    // have to be tested.
+    // This class is a DPStep class flagging data points based on data
+    // selections given in the parset file.
+    // The following selections can be given:
+    // <ul>
+    //  <li> minimum and/or maximum UV distance
+    //  <li> autocorrelations
+    //  <li> baselines using names for antenna 1 and 2
+    //  <li> antennae using antenna names
+    //  <li> channel numbers
+    //  <li> frequency ranges
+    // </ul>
+    // The antenna names can contain shell-style wildcards (* ? [] {}).
 
     class PreFlagger: public DPStep
     {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      PreFlagger (const ParameterSet&, const string& prefix,
-                  const casa::Vector<casa::String>& antNames);
+      // The antenna names are used to find antenna numbers.
+      // The channel frequencies as they are in the input step must be given
+      // starting at the start-channel.
+      PreFlagger (DPInput*, const ParameterSet&, const string& prefix,
+                  const casa::Vector<casa::String>& antNames,
+                  const casa::Vector<double>& inputChanFreqs);
 
       virtual ~PreFlagger();
 
@@ -106,18 +95,33 @@ namespace LOFAR {
       // Fill the baseline matrix; set true for baselines to flag.
       void fillBLMatrix (const casa::Vector<casa::String>& antNames);
 
+      // Handle the frequency ranges given and determine which channels
+      // have to be flagged.
+      void handleFreqRanges (uint nchanAvg);
+
+      // Get the value and possible unit.
+      // If no unit is given, the argument is left untouched.
+      void getValue (const string& str, double& value, casa::String& unit);
+
+      // Get the frequency in Hz using the value and unit.
+      double getFreqHz (double value, const casa::String& unit);
+
       //# Data members.
-      DPInput*           itsInput;
-      string             itsName;
-      bool               itsFlagOnUV; //# true = do uv distance based flagging
-      bool               itsFlagOnBL; //# true = do ant/bl based flagging
-      double             itsMinUV;    //# minimum UV distance; <0 means ignore
-      double             itsMaxUV;    //# maximum UV distance; <0 means ignore
-      vector<string>     itsFlagAnt1; //# ant1 patterns of baseline flagging
-      vector<string>     itsFlagAnt2; //# ant2 patterns of baseline flagging
-      vector<string>     itsFlagAnt;  //# antennae patterns to flag
-      casa::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
-      vector<uint>       itsChannels; //# channels to be flagged.
+      DPInput*             itsInput;
+      string               itsName;
+      casa::Vector<double> itsFreqs;    //# frequencies of the input (MS)
+      bool                 itsFlagOnUV; //# true = do uv distance based flagging
+      bool                 itsFlagOnBL; //# true = do ant/bl based flagging
+      double               itsMinUV;    //# minimum UV distance; <0 means ignore
+      double               itsMaxUV;    //# maximum UV distance; <0 means ignore
+      bool                 itsAutoCorr; //# flag autocorrelations?
+      vector<string>       itsFlagAnt1; //# ant1 patterns of baseline flagging
+      vector<string>       itsFlagAnt2; //# ant2 patterns of baseline flagging
+      vector<string>       itsFlagAnt;  //# antennae patterns to flag
+      casa::Matrix<bool>   itsFlagBL;   //# true = flag baseline [i,j]
+      vector<uint>         itsFlagChan; //# channels given to be flagged.
+      vector<string>       itsFlagFreq; //# frequency ranges to be flagged
+      vector<uint>         itsChannels; //# channels to be flagged.
     };
 
   } //# end namespace

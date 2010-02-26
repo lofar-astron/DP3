@@ -201,6 +201,9 @@ namespace LOFAR {
       // Get the antenna names.
       casa::Vector<casa::String> antennaNames() const;
 
+      // Get the channel frequencies for the channel selection.
+      casa::Vector<double> chanFreqs() const;
+
     private:
       // Prepare the access to the MS.
       // Return the first and last time and the interval.

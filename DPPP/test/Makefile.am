@@ -1,4 +1,5 @@
-check_PROGRAMS        = tMedian tMirror tAverager tMedFlagger tNDPPP \
+check_PROGRAMS        = tMedian tMirror tAverager tMedFlagger \
+			tPreFlagger tNDPPP \
 			test_flaggers
 
 # programs to run through supplied checktools
@@ -7,7 +8,7 @@ CHECKTOOLPROGS        = $(CHECK_PROGRAMS)
 
 # scripts used to run tests
 TESTSCRIPTS           = tMedian.sh tMirror.sh tAverager.sh tMedFlagger.sh \
-			tNDPPP.sh \
+			tPreFlagger.sh tNDPPP.sh \
 			test_flaggers.sh tmwflagger.sh
 
 # scripts and possible programs to run tests
@@ -37,6 +38,10 @@ tAverager_DEPENDENCIES         = ../src/libdppp.la $(LOFAR_DEPEND)
 tMedFlagger_SOURCES            = tMedFlagger.cc
 tMedFlagger_LDADD              = ../src/libdppp.la
 tMedFlagger_DEPENDENCIES       = ../src/libdppp.la $(LOFAR_DEPEND)
+
+tPreFlagger_SOURCES            = tPreFlagger.cc
+tPreFlagger_LDADD              = ../src/libdppp.la
+tPreFlagger_DEPENDENCIES       = ../src/libdppp.la $(LOFAR_DEPEND)
 
 tNDPPP_SOURCES                 = tNDPPP.cc
 tNDPPP_LDADD                   = ../src/libdppp.la

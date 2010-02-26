@@ -468,5 +468,14 @@ namespace LOFAR {
       return nameCol.getColumn();
     }
 
+    Vector<double> MSReader::chanFreqs() const
+    {
+      Table tab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
+      ROArrayColumn<double> freqCol (tab, "CHANFREQ");
+      // Take only the channels used in the input.
+      Vector<double> freqs(freqCol(0));
+      return freqs(Slice(itsStartChan, itsNrChan));
+    }
+
   } //# end namespace
 }

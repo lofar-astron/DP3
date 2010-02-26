@@ -30,6 +30,7 @@
 #include <DPPP/MSUpdater.h>
 #include <DPPP/Averager.h>
 #include <DPPP/MedFlagger.h>
+#include <DPPP/PreFlagger.h>
 #include <DPPP/ProgressMeter.h>
 #include <Common/ParameterSet.h>
 
@@ -110,6 +111,10 @@ namespace LOFAR {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));
         } else if (type == "madflagger") {
           step = DPStep::ShPtr(new MedFlagger (parset, prefix));
+        } else if (type == "preflagger") {
+          step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix,
+                                               reader->antennaNames(),
+                                               reader->chanFreqs()));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
