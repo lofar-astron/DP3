@@ -1,4 +1,4 @@
-//# MedFlagger.h: DPPP step class to flag data based on median filtering
+//# PreFlagger.h: DPPP step class to average in time and/or freq
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -21,15 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_MEDFLAGGER_H
-#define DPPP_MEDFLAGGER_H
+#ifndef DPPP_PREFLAGGER_H
+#define DPPP_PREFLAGGER_H
 
 // @file
 // @brief DPPP step class to average in time and/or freq
 
-#include <DPPP/DPStep.h>
+#include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -67,14 +66,15 @@ namespace LOFAR {
     // It is also possible to specify the order in which the correlations
     // have to be tested.
 
-    class MedFlagger: public DPStep
+    class PreFlagger: public DPStep
     {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      MedFlagger (const ParameterSet&, const string& prefix);
+      PreFlagger (const ParameterSet&, const string& prefix,
+                  const casa::Vector<casa::String>& antNames);
 
-      virtual ~MedFlagger();
+      virtual ~PreFlagger();
 
       // Process the data.
       // When processed, it invokes the process function of the next step.
@@ -90,33 +90,34 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the flagger counts.
-      virtual void showCounts (std::ostream&) const;
-
-      // Flag for the entry at the given index.
-      // Use the given time entries for the medians.
-      // Process the result in the next step.
-      void flag (uint index, const vector<uint>& timeEntries);
-
-      // Compute the median factors for given baseline, channel, and
-      // correlation.
-      void computeFactors (const vector<uint>& timeEntries,
-                           uint bl, int chan, int corr,
-                           int nchan, int ncorr,
-                           float& Z1, float& Z2,
-                           float* tempBuf);
-
     private:
+      // Set the flags for baselines with mismatching UV distances.
+      void flagUV (const casa::Matrix<double>& uvw,
+                   casa::Cube<bool>& flags);
+
+      // Set the flags for matching baselines.
+      void flagBL (const casa::Vector<int>& ant1,
+                   const casa::Vector<int>& ant2,
+                   casa::Cube<bool>& flags);
+
+      // Flag the channels given in itsChannels.
+      void flagChannels (casa::Cube<bool>& flags);
+
+      // Fill the baseline matrix; set true for baselines to flag.
+      void fillBLMatrix (const casa::Vector<casa::String>& antNames);
+
       //# Data members.
-      string           itsName;
-      float            itsThreshold;
-      uint             itsFreqWindow;
-      uint             itsTimeWindow;
-      uint             itsNTimes;
-      uint             itsNTimesDone;
-      vector<uint>     itsFlagCorr;
-      vector<DPBuffer> itsBuf;
-      FlagCounter      itsFlagCounter;
+      DPInput*           itsInput;
+      string             itsName;
+      bool               itsFlagOnUV; //# true = do uv distance based flagging
+      bool               itsFlagOnBL; //# true = do ant/bl based flagging
+      double             itsMinUV;    //# minimum UV distance; <0 means ignore
+      double             itsMaxUV;    //# maximum UV distance; <0 means ignore
+      vector<string>     itsFlagAnt1; //# ant1 patterns of baseline flagging
+      vector<string>     itsFlagAnt2; //# ant2 patterns of baseline flagging
+      vector<string>     itsFlagAnt;  //# antennae patterns to flag
+      casa::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
+      vector<uint>       itsChannels; //# channels to be flagged.
     };
 
   } //# end namespace

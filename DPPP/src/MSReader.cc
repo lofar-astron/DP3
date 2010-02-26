@@ -96,17 +96,17 @@ namespace LOFAR {
       } else {
         itsNrChan = std::min (nrChan, maxNrChan);
       }
+      // Are all channels used?
+      itsUseAllChan = itsStartChan==0 && itsNrChan==nAllChan;
       // Form the slicer to get the channels and correlations per row.
       itsSlicer = Slicer(IPosition(2, 0, itsStartChan),
                          IPosition(2, itsNrCorr, itsNrChan));
       // Form the slicer to get the full resolution flags
       // for the start channel and nr of channels given.
-      if (itsHasFullResFlags) {
-        itsFullResSlicer = Slicer(IPosition(3, itsStartChan*itsFullResNChanAvg,
-                                            0, 0),
-                                  IPosition(3, itsNrChan*itsFullResNChanAvg,
-                                            itsFullResNTimeAvg, itsNrBl));
-      }
+      itsFullResSlicer = Slicer(IPosition(3, itsStartChan*itsFullResNChanAvg,
+                                          0, 0),
+                                IPosition(3, itsNrChan*itsFullResNChanAvg,
+                                          itsFullResNTimeAvg, itsNrBl));
       // Initialize the flag counters.
       if (itsCountFlags) {
         itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
@@ -159,10 +159,18 @@ namespace LOFAR {
         // Get from the MS.
         itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
         ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
-        itsBuffer.setData (dataCol.getColumn(itsSlicer));
+        if (itsUseAllChan) {
+          itsBuffer.setData (dataCol.getColumn());
+        } else {
+          itsBuffer.setData (dataCol.getColumn(itsSlicer));
+        }
         if (itsUseFlags) {
           ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
-          itsBuffer.setFlags (flagCol.getColumn(itsSlicer));
+          if (itsUseAllChan) {
+            itsBuffer.setFlags (flagCol.getColumn());
+          } else {
+            itsBuffer.setFlags (flagCol.getColumn(itsSlicer));
+          }
           // Set flags if FLAG_ROW is set.
           ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
           for (uint i=0; i<itsIter.table().nrow(); ++i) {
@@ -374,7 +382,10 @@ namespace LOFAR {
       // Get weights for entire spectrum if pesent.
       if (itsHasWeightSpectrum) {
         ROArrayColumn<float> wsCol(itsMS, "WEIGHT_SPECTRUM");
-        return wsCol.getColumnCells (rowNrs, itsSlicer);
+        // Using getColumnCells(rowNrs,itsSlicer) fails for LofarStMan.
+        // Hence work around it.
+        Cube<float> weights = wsCol.getColumnCells (rowNrs);
+        return (itsUseAllChan ? weights : weights(itsSlicer));
       }
       // No spectrum present, so get global weights and assign to each channel.
       ROArrayColumn<float> wCol(itsMS, "WEIGHT");
@@ -435,7 +446,9 @@ namespace LOFAR {
       // should contain data for a missing time slot.
       ASSERT (! rowNrs.rowVector().empty());
       ROArrayColumn<Complex> dataCol(itsMS, columnName);
-      return dataCol.getColumnCells (rowNrs, itsSlicer);
+      // Also work around LofarStMan/getColumnCells problem.
+      Cube<Complex> data = dataCol.getColumnCells (rowNrs);
+      return (itsUseAllChan ? data : data(itsSlicer));
     }
 
     void MSReader::putFlags (const RefRows& rowNrs,
@@ -446,6 +459,13 @@ namespace LOFAR {
         ArrayColumn<bool> flagCol(itsMS, "FLAG");
         flagCol.putColumnCells (rowNrs, itsSlicer, flags);
       }
+    }
+
+    Vector<String> MSReader::antennaNames() const
+    {
+      Table tab(itsMS.keywordSet().asTable("ANTENNA"));
+      ROScalarColumn<String> nameCol (tab, "NAME");
+      return nameCol.getColumn();
     }
 
   } //# end namespace

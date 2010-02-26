@@ -198,6 +198,9 @@ namespace LOFAR {
       uint ntimeAvg() const
         { return itsFullResNTimeAvg; }
 
+      // Get the antenna names.
+      casa::Vector<casa::String> antennaNames() const;
+
     private:
       // Prepare the access to the MS.
       // Return the first and last time and the interval.
@@ -212,11 +215,10 @@ namespace LOFAR {
 
       casa::Table         itsMS;
       casa::TableIterator itsIter;
-      casa::Vector<int>   itsAnt1;
-      casa::Vector<int>   itsAnt2;
       casa::String        itsDataColName;
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;
+      bool                itsUseAllChan;    //# all channels (i.e. no slicer)?
       uint                itsStartChan;
       double              itsInterval;
       double              itsFirstTime;

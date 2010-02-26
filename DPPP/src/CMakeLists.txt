@@ -4,11 +4,11 @@ include(LofarPackageVersion)
 
 lofar_add_library(dppp
   Package__Version.cc
-  DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc
+  DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc
   ProgressMeter.cc FlagCounter.cc
   UVWCalculator.cc
   MSReader.cc MSWriter.cc MSUpdater.cc
-  Averager.cc MedFlagger.cc
+  Averager.cc MedFlagger.cc PreFlagger.cc
   FlaggerStatistics.cc
   MsInfo.cc
   MsFile.cc
@@ -23,7 +23,7 @@ lofar_add_library(dppp
   RunDetails.cc
   Pipeline.cc)
 
-lofar_add_bin_program(NDPPP DPPP.cc)
+lofar_add_bin_program(DPPP NDPPP.cc)
 lofar_add_bin_program(IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 

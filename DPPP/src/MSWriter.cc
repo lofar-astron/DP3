@@ -27,6 +27,7 @@
 #include <DPPP/MSUpdater.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/AverageInfo.h>
+#include <MS/VdsMaker.h>
 #include <Common/ParameterSet.h>
 #include <tables/Tables/TableCopy.h>
 #include <tables/Tables/DataManInfo.h>
@@ -35,6 +36,7 @@
 #include <tables/Tables/StandardStMan.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Containers/Record.h>
+#include <casa/OS/Path.h>
 #include <iostream>
 
 using namespace casa;
@@ -65,6 +67,8 @@ namespace LOFAR {
       itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
       itsCountFlags        = parset.getBool (prefix+"countflags", false);
+      itsVdsDir            = parset.getString (prefix+"vdsdir", string());
+      itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       // Create the MS.
       createMS (outName, avgInfo, tileSize, tileNChan);
       // Write the parset info into the history.
@@ -129,6 +133,19 @@ namespace LOFAR {
     void MSWriter::finish()
     {
       itsMS.flush();
+      // Create the VDS file.
+      if (! itsClusterDesc.empty()) {
+        string vdsName = itsMS.tableName() + ".vds";
+        if (! itsVdsDir.empty()) {
+          if (itsVdsDir[itsVdsDir.size() - 1] != '/') {
+            itsVdsDir.append ("/");
+          }
+          vdsName = itsVdsDir + string(casa::Path(vdsName).baseName());
+        }
+        // Create VDS file without detailed time info.
+        LOFAR::VdsMaker::create (itsMS.tableName(), vdsName,
+                                 itsClusterDesc, "", false);
+      }
     }
 
     void MSWriter::show (std::ostream& os) const

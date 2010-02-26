@@ -149,7 +149,9 @@ void testAvg1()
   {
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msin.countflags = true" << endl;
     ostr << "msout=tNDPPP_tmp.MS2" << endl;
+    ostr << "msout.countflags = true" << endl;
     ostr << "steps=[avg]" << endl;
     ostr << "avg.type=average" << endl;
     ostr << "avg.timestep=20" << endl;

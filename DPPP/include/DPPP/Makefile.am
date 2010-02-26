@@ -1,9 +1,9 @@
 INSTHDRS = \
-		DPStep.h DPInput.h DPBuffer.h AverageInfo.h \
+		DPRun.h DPStep.h DPInput.h DPBuffer.h AverageInfo.h \
 		ProgressMeter.h FlagCounter.h \
 		UVWCalculator.h \
 		MSReader.h MSWriter.h MSUpdater.h \
-		Averager.h MedFlagger.h \
+		Averager.h MedFlagger.h PreFlagger.h \
 		FlaggerStatistics.h \
 		MsInfo.h \
 		MsFile.h \

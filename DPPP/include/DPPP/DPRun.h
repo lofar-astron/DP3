@@ -1,4 +1,4 @@
-//# DPPP.cc: Program to execute steps like averaging and flagging on an MS
+//# DPRun.h: Class to run steps like averaging and flagging on an MS
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -22,32 +22,28 @@
 //# @author Ger van Diepen
 
 #include <lofar_config.h>
-#include <DPPP/DPRun.h>
-#include <Common/LofarLogger.h>
-#include <iostream>
-#include <stdexcept>
-#include <libgen.h>
+#include <DPPP/DPStep.h>
+#include <Common/ParameterSet.h>
 
-using namespace LOFAR::DPPP;
-using namespace LOFAR;
+namespace LOFAR {
+  namespace DPPP {
 
-int main(int argc, char *argv[])
-{
-  try
-  {
-    INIT_LOGGER(basename(argv[0]));
-    // Get the name of the parset file.
-    string parsetName("NDPPP.parset");
-    if (argc > 1) {
-      parsetName = argv[1];
-    }
-    // Execute the parset file.
-    DPRun::execute (parsetName);
-  } catch (std::exception& err) {
-    std::cerr << "Error detected: " << err.what() << std::endl;
-    return 1;
-  } catch (...) {
-    std::cerr << "** PROBLEM **: Unhandled exception caught." << std::endl;
-    return 2;
-  }
+    // @ingroup NDPPP
+
+    // This class contains a single static function that creates and executes
+    // the steps defined in the parset file.
+    // The parset file is documented on the LOFAR wiki.
+
+    class DPRun
+    {
+    public:
+      // Execute the stps defined in the parset file.
+      static void execute (const std::string& parsetName);
+
+    private:
+      // Create the step objects.
+      static DPStep::ShPtr makeSteps (const ParameterSet& parset);
+    };
+
+  } //# end namespace
 }

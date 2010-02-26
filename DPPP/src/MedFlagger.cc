@@ -1,4 +1,4 @@
-//# MedFlagger.h: DPPP step class to average in time and/or freq
+//# MedFlagger.cc: DPPP step class to flag data based on median filtering
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands

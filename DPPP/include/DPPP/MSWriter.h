@@ -151,6 +151,8 @@ namespace LOFAR {
       uint            itsNChanAvg;   //# nr of channels in input averaged to 1
       uint            itsNTimeAvg;   //# nr of times in input averaged to 1
       bool            itsCountFlags;
+      std::string     itsVdsDir;      //# directory where to put VDS file
+      std::string     itsClusterDesc; //# name of clusterdesc file
       FlagCounter     itsFlagCounter;
     };
 

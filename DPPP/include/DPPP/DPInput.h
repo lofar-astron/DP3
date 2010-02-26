@@ -33,6 +33,7 @@
 #include <DPPP/FlagCounter.h>
 #include <tables/Tables/TableIter.h>
 #include <tables/Tables/RefRows.h>
+#include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Slicer.h>
 #include <Common/lofar_vector.h>
 
@@ -84,6 +85,10 @@ namespace LOFAR {
         { return itsNrChan; }
       uint nbaselines() const
         { return itsNrBl; }
+      const casa::Vector<int>& getAnt1() const
+        { return itsAnt1; }
+      const casa::Vector<int>& getAnt2() const
+        { return itsAnt2; }
 
       // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.
@@ -113,6 +118,8 @@ namespace LOFAR {
       uint itsNrChan;
       uint itsNrCorr;
       uint itsNrBl;
+      casa::Vector<int> itsAnt1;
+      casa::Vector<int> itsAnt2;
     };
 
   } //# end namespace

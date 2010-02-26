@@ -1,11 +1,11 @@
 lib_LTLIBRARIES         = libdppp.la
 
 libdppp_la_SOURCES = Package__Version.cc  \
-		DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc \
+		DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc \
 		ProgressMeter.cc FlagCounter.cc \
 		UVWCalculator.cc \
 		MSReader.cc MSWriter.cc MSUpdater.cc \
-		Averager.cc MedFlagger.cc \
+		Averager.cc MedFlagger.cc PreFlagger.cc \
 		FlaggerStatistics.cc \
 		MsInfo.cc \
 		MsFile.cc \
