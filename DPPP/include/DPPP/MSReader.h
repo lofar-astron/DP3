@@ -228,7 +228,8 @@ namespace LOFAR {
       double              itsLastTime;
       double              itsNextTime;
       uint                itsNrInserted;    //# nr of inserted time slots
-      casa::Slicer        itsSlicer;        //# slice in corr,chan
+      casa::Slicer        itsColSlicer;     //# slice in corr,chan column
+      casa::Slicer        itsArrSlicer;     //# slice in corr,chan,bl array
       bool                itsHasFullResFlags;
       uint                itsFullResNChanAvg;
       uint                itsFullResNTimeAvg;

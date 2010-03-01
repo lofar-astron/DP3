@@ -98,9 +98,12 @@ namespace LOFAR {
       }
       // Are all channels used?
       itsUseAllChan = itsStartChan==0 && itsNrChan==nAllChan;
-      // Form the slicer to get the channels and correlations per row.
-      itsSlicer = Slicer(IPosition(2, 0, itsStartChan),
-                         IPosition(2, itsNrCorr, itsNrChan));
+      // Form the slicer to get channels and correlations from column.
+      itsColSlicer = Slicer(IPosition(2, 0, itsStartChan),
+                            IPosition(2, itsNrCorr, itsNrChan));
+      // Form the slicer to get channels, corrs, and baselines from array.
+      itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
+                            IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
       // Form the slicer to get the full resolution flags
       // for the start channel and nr of channels given.
       itsFullResSlicer = Slicer(IPosition(3, itsStartChan*itsFullResNChanAvg,
@@ -162,14 +165,14 @@ namespace LOFAR {
         if (itsUseAllChan) {
           itsBuffer.setData (dataCol.getColumn());
         } else {
-          itsBuffer.setData (dataCol.getColumn(itsSlicer));
+          itsBuffer.setData (dataCol.getColumn(itsColSlicer));
         }
         if (itsUseFlags) {
           ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
           if (itsUseAllChan) {
             itsBuffer.setFlags (flagCol.getColumn());
           } else {
-            itsBuffer.setFlags (flagCol.getColumn(itsSlicer));
+            itsBuffer.setFlags (flagCol.getColumn(itsColSlicer));
           }
           // Set flags if FLAG_ROW is set.
           ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
@@ -382,10 +385,10 @@ namespace LOFAR {
       // Get weights for entire spectrum if pesent.
       if (itsHasWeightSpectrum) {
         ROArrayColumn<float> wsCol(itsMS, "WEIGHT_SPECTRUM");
-        // Using getColumnCells(rowNrs,itsSlicer) fails for LofarStMan.
+        // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
         // Hence work around it.
         Cube<float> weights = wsCol.getColumnCells (rowNrs);
-        return (itsUseAllChan ? weights : weights(itsSlicer));
+        return (itsUseAllChan ? weights : weights(itsArrSlicer));
       }
       // No spectrum present, so get global weights and assign to each channel.
       ROArrayColumn<float> wCol(itsMS, "WEIGHT");
@@ -448,7 +451,7 @@ namespace LOFAR {
       ROArrayColumn<Complex> dataCol(itsMS, columnName);
       // Also work around LofarStMan/getColumnCells problem.
       Cube<Complex> data = dataCol.getColumnCells (rowNrs);
-      return (itsUseAllChan ? data : data(itsSlicer));
+      return (itsUseAllChan ? data : data(itsArrSlicer));
     }
 
     void MSReader::putFlags (const RefRows& rowNrs,
@@ -457,7 +460,7 @@ namespace LOFAR {
       if (! rowNrs.rowVector().empty()) {
         itsMS.reopenRW();
         ArrayColumn<bool> flagCol(itsMS, "FLAG");
-        flagCol.putColumnCells (rowNrs, itsSlicer, flags);
+        flagCol.putColumnCells (rowNrs, itsColSlicer, flags);
       }
     }
 
