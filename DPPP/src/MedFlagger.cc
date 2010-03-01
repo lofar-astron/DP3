@@ -37,8 +37,11 @@ using namespace casa;
 namespace LOFAR {
   namespace DPPP {
 
-    MedFlagger::MedFlagger (const ParameterSet& parset, const string& prefix)
-      : itsName       (prefix),
+    MedFlagger::MedFlagger (DPInput* input,
+                            const ParameterSet& parset, const string& prefix)
+
+      : itsInput      (input),
+        itsName       (prefix),
         itsThreshold  (parset.getFloat (prefix+"threshold", 1)),
         itsFreqWindow (parset.getUint  (prefix+"freqwindow", 1)),
         itsTimeWindow (parset.getUint  (prefix+"timewindow", 1)),
@@ -61,11 +64,17 @@ namespace LOFAR {
       os << "  freqwindow:     " << itsFreqWindow << std::endl;
       os << "  timewindow:     " << itsTimeWindow << std::endl;
       os << "  threshold:      " << itsThreshold << std::endl;
-      os << "  flagcorr:       " << itsFlagCorr << std::endl;
+      os << "  correlations:   " << itsFlagCorr << std::endl;
     }
 
     void MedFlagger::showCounts (std::ostream& os) const
     {
+      os << endl << "Flag statistics of MADFlagger " << itsName;
+      os << endl << "=============================" << endl;
+      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
+                                   itsInput->getAnt2(), itsNTimes);
+      itsFlagCounter.showChannel  (os, itsNTimes);
+      itsFlagCounter.showCorrelation (os);
     }
 
     void MedFlagger::updateAverageInfo (AverageInfo& info)

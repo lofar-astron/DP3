@@ -77,8 +77,8 @@ namespace LOFAR {
       // Print the counts.
       void showBaseline (ostream& os, const casa::Vector<int>& ant1,
                          const casa::Vector<int>& ant2,
-                         int64 npointsPerBaseline) const;
-      void showChannel (ostream& os, int64 npointsPerChannel) const;
+                         int64 ntimes) const;
+      void showChannel (ostream& os, int64 ntimes) const;
       void showCorrelation (ostream& os) const;
 
     private:

@@ -78,6 +78,9 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // If needed, show the flag counts.
+      virtual void showCounts (std::ostream& os) const;
+
       // Write the parset info into the HISTORY table of the MS.
       static void writeHistory (casa::Table& ms,
                                 const ParameterSet& parset);

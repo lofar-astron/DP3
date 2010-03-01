@@ -23,6 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/FlagCounter.h>
+#include <Common/StreamUtil.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <iomanip>
@@ -44,9 +45,11 @@ namespace LOFAR {
 
     void FlagCounter::showBaseline (ostream& os, const casa::Vector<int>& ant1,
                                     const casa::Vector<int>& ant2,
-                                    int64 npoints) const
+                                    int64 ntimes) const
     {
-      os << endl << "Percentage of points flagged per baseline:" << endl;
+      int64 npoints = ntimes * itsChanCounts.size();
+      os << endl << "Percentage of points flagged per baseline"
+         " (antenna pair):" << endl;
       uint nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
       Vector<int64> nusedAnt(nrant, 0);
@@ -63,54 +66,101 @@ namespace LOFAR {
         nusedAnt[ant1[i]]++;
         nusedAnt[ant2[i]]++;
       }
-      // Print the header for the antennae being used.
+      // Determine nr of antennae used.
+      int nrused = 0;
       for (uint i=0; i<nrant; ++i) {
         if (nusedAnt[i] > 0) {
-          os << std::setw(5) << i;
+          nrused++;
         }
       }
-      // Print the percentages per antenna pair.
-      for (uint i=0; i<nrant; ++i) {
-        if (nusedAnt[i] > 0) {
-          os << std::setw(4) << i << "  ";
-          for (uint j=0; j<nrant; ++j) {
-            if (nusedBL(j,i) > 0) {
-              os << std::setw(4)
-                 << int(100. * countBL(j,i) / (nusedBL(j,i) * npoints)) << '%';
-            } else {
-              os << "     ";
+      // Print 15 antennae per line.
+      const int nantpl = 15;
+      int nrl = (nrused + nantpl - 1) / nantpl;
+      int ant = 0;
+      int ia = ant;
+      // Loop over nr of lines needed for the antennae.
+      for (int i=0; i<nrl; ++i) {
+        // Determine nrant per line
+        int nra = std::min(nantpl, nrused - i*nantpl);
+        // Print the header for the antennae being used.
+        os << endl << " ant";
+        for (int j=0; j<nra;) {
+          if (nusedAnt[ia] > 0) {
+            os << std::setw(5) << ia;
+            j++;
+          }
+          ia++;
+        }
+        os << endl;
+        // Print the percentages per antenna pair.
+        for (uint k=0; k<nrant; ++k) {
+          if (nusedAnt[k] > 0) {
+            os << std::setw(4) << k << " ";
+            ia = ant;
+            for (int j=0; j<nra;) {
+              if (nusedAnt[ia] > 0) {
+                if (nusedBL(k,ia) > 0) {
+                  os << std::setw(4)
+                     << int((100. * countBL(k,ia)) / (nusedBL(k,ia) * npoints))
+                     << '%';
+                } else {
+                  os << "     ";
+                }
+                j++;
+              }
+              ia++;
             }
+            os << endl;
           }
         }
-      }
-      // Print the percentages per antenna.
-      os << "TOTAL";
-      for (uint i=0; i<nrant; ++i) {
-        if (nusedAnt[i] > 0) {
-          os << std::setw(4)
-             << int(100. * countAnt[i] / (nusedAnt[i] * npoints)) << '%';
-        } else {
-          os << "     ";
+        // Print the percentages per antenna.
+        os << "TOTAL";
+        ia = ant;
+        for (int j=0; j<nra;) {
+          if (nusedAnt[ia] > 0) {
+            os << std::setw(4)
+               << int((100. * countAnt[ia]) / (nusedAnt[ia] * npoints)) << '%';
+            j++;
+          }
+          ia++;
         }
+        os << endl;
       }
+      ant = ia;
     }
 
-    void FlagCounter::showChannel (ostream& os, int64 npoints) const
+    void FlagCounter::showChannel (ostream& os, int64 ntimes) const
     {
+      int64 npoints = ntimes * itsBLCounts.size();
       os << endl << "Percentage of points flagged per channel:" << endl;
-      for (uint i=0; i<itsChanCounts.size(); ++i) {
-        os << "Channel " << std::setw(4) << i << ":   "
-           << std::setw(4) << int(100. * itsChanCounts[i] / npoints)
-           << '%' << endl;
+      if (npoints == 0) {
+        return;
+      }
+      // Print 10 channels per line.
+      const int nchpl = 10;
+      os << " channels    ";
+      for (int i=0; i<std::min(nchpl, int(itsChanCounts.size())); ++i) {
+        os << std::setw(5) << i;
+      }
+      os << endl;
+      int nrl = (itsChanCounts.size() + nchpl - 1) / nchpl;
+      int ch = 0;
+      for (int i=0; i<nrl; ++i) {
+        int nrc = std::min(nchpl, int(itsChanCounts.size() - i*nchpl));
+        os << std::setw(4) << ch << '-' << std::setw(4) << ch+nrc-1 << ":    ";
+        for (int j=0; j<nrc; ++j) {
+          os << std::setw(4) << int((100. * itsChanCounts[ch]) / npoints)
+             << '%';
+          ch++;
+        }
+        os << endl;
       }
     }
 
     void FlagCounter::showCorrelation (ostream& os) const
     {
-      os << endl << "Points flagged by correlation:" << endl;
-      for (uint i=0; i<itsCorrCounts.size(); ++i) {
-        os << "Correlation " << i << ": " << itsCorrCounts[i] << endl;
-      }
+      os << endl << "Number of points flagged per correlation:  " << endl
+         << "    " << itsCorrCounts << endl;
     }
 
   } //# end namespace

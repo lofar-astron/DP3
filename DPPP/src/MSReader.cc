@@ -257,6 +257,8 @@ namespace LOFAR {
     void MSReader::showCounts (std::ostream& os) const
     {
       if (itsCountFlags) {
+        os << endl << "Flag statistics of data read";
+        os << endl << "============================" << endl;
         int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
         itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
       }

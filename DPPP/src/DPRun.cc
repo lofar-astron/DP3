@@ -110,7 +110,7 @@ namespace LOFAR {
         if (type == "average"  ||  type == "squash") {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));
         } else if (type == "madflagger") {
-          step = DPStep::ShPtr(new MedFlagger (parset, prefix));
+          step = DPStep::ShPtr(new MedFlagger (reader, parset, prefix));
         } else if (type == "preflagger") {
           step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix,
                                                reader->antennaNames(),

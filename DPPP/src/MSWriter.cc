@@ -161,6 +161,16 @@ namespace LOFAR {
       os << "  DATA column:    " << itsDataColName << std::endl;
     }
 
+    void MSWriter::showCounts (std::ostream& os) const
+    {
+      if (itsCountFlags) {
+        os << endl << "Flag statistics of data written";
+        os << endl << "===============================" << endl;
+        itsFlagCounter.showBaseline (os, itsReader->getAnt1(),
+                                     itsReader->getAnt2(), itsNrTimes);
+      }
+    }
+
     void MSWriter::makeArrayColumn (ColumnDesc desc, const IPosition& ipos,
                                     TiledColumnStMan* tsm, Table& table)
     {

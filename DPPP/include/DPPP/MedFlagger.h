@@ -27,7 +27,7 @@
 // @file
 // @brief DPPP step class to average in time and/or freq
 
-#include <DPPP/DPStep.h>
+#include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
@@ -72,7 +72,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      MedFlagger (const ParameterSet&, const string& prefix);
+      MedFlagger (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~MedFlagger();
 
@@ -108,6 +108,7 @@ namespace LOFAR {
 
     private:
       //# Data members.
+      DPInput*         itsInput;
       string           itsName;
       float            itsThreshold;
       uint             itsFreqWindow;

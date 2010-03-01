@@ -45,10 +45,21 @@ using namespace std;
 class TestInput: public DPInput
 {
 public:
-  TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+  TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
+    : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
-  {}
+  {
+    itsAnt1.resize (itsNBl);
+    itsAnt2.resize (itsNBl);
+    int i=0;
+    for (int st1=0; st1<nant; ++st1) {
+      for (int st2=st1; st2<nant; ++st2) {
+        itsAnt1[i] = st1;
+        itsAnt2[i] = st2;
+        i++;
+      }
+    }
+}
 private:
   virtual bool process (const DPBuffer&)
   {
@@ -93,9 +104,9 @@ private:
 class TestOutput: public DPStep
 {
 public:
-  TestOutput(int ntime, int nbl, int nchan, int ncorr,
+  TestOutput(int ntime, int nant, int nchan, int ncorr,
              bool flag)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+    : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr),
       itsFlag(flag)
   {}
@@ -149,22 +160,27 @@ void execute (const DPStep::ShPtr& step1)
   DPBuffer buf;
   while (step1->process(buf));
   step1->finish();
+  step = step1;
+  while (step) {
+    step->showCounts (cout);
+    step = step->getNextStep();
+  }
 }
 
-// Test simple flagging without preflagged points.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, int threshold)
+// Test simple flagging with or without preflagged points.
+void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+  cout << "test1: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
        << " ncorr=" << ncorr << " threshold=" << threshold << endl;
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqwindow", "1");
   parset.add ("timewindow", "1");
   parset.add ("threshold", toString(threshold));
-  DPStep::ShPtr step2(new MedFlagger(parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -176,8 +192,8 @@ int main()
   INIT_LOGGER ("tMedFlagger");
   try {
 
-    test1(10, 3, 32, 4, false, 1);
-    test1(10, 3, 32, 4, true, 1);
+    test1(10, 2, 32, 4, false, 1);
+    test1(10, 5, 32, 4, true, 1);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
