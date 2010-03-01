@@ -39,9 +39,9 @@ namespace LOFAR {
 
     MedFlagger::MedFlagger (const ParameterSet& parset, const string& prefix)
       : itsName       (prefix),
-        itsThreshold  (parset.getUint (prefix+"threshold", 1)),
-        itsFreqWindow (parset.getUint (prefix+"freqwindow", 1)),
-        itsTimeWindow (parset.getUint (prefix+"timewindow", 1)),
+        itsThreshold  (parset.getFloat (prefix+"threshold", 1)),
+        itsFreqWindow (parset.getUint  (prefix+"freqwindow", 1)),
+        itsTimeWindow (parset.getUint  (prefix+"timewindow", 1)),
         itsNTimes     (0),
         itsNTimesDone (0),
         itsFlagCounter("MedFlagger " + prefix)

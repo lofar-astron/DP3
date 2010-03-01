@@ -140,6 +140,7 @@ namespace LOFAR {
       casa::Table     itsMS;
       casa::String    itsDataColName;
       double          itsInterval;
+      bool            itsOverwrite;   //# Overwrite an existing output MS?
       bool            itsCopyTimeInfo;
       bool            itsCopyCorrData;
       bool            itsCopyModelData;
@@ -148,8 +149,8 @@ namespace LOFAR {
       uint            itsNrChan;
       uint            itsNrBl;
       uint            itsNrTimes;
-      uint            itsNChanAvg;   //# nr of channels in input averaged to 1
-      uint            itsNTimeAvg;   //# nr of times in input averaged to 1
+      uint            itsNChanAvg;    //# nr of channels in input averaged to 1
+      uint            itsNTimeAvg;    //# nr of times in input averaged to 1
       bool            itsCountFlags;
       std::string     itsVdsDir;      //# directory where to put VDS file
       std::string     itsClusterDesc; //# name of clusterdesc file

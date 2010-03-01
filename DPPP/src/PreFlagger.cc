@@ -30,6 +30,7 @@
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Quanta/Quantum.h>
+#include <casa/Utilities/GenSort.h>
 #include <iostream>
 #include <algorithm>
 
@@ -52,10 +53,11 @@ namespace LOFAR {
                                             vector<string>());
       itsFlagAnt  = parset.getStringVector (prefix+"antenna",
                                             vector<string>());
-      itsAutoCorr = parset.getBool   (prefix+"autocorr", false);
-      itsMinUV    = parset.getDouble (prefix+"uvmin", -1);
-      itsMaxUV    = parset.getDouble (prefix+"uvmax", -1);
-      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>());
+      itsAutoCorr = parset.getBool         (prefix+"autocorr", false);
+      itsMinUV    = parset.getDouble       (prefix+"uvmin", -1);
+      itsMaxUV    = parset.getDouble       (prefix+"uvmax", -1);
+      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
+                                            true);   // expand .. etc.
       itsFlagFreq = parset.getStringVector (prefix+"freqrange",
                                             vector<string>());
       fillBLMatrix (antNames);
@@ -104,6 +106,11 @@ namespace LOFAR {
       if (! itsFlagFreq.empty()) {
         handleFreqRanges (info.nchanAvg());
       }
+      // Sort uniquely and resize as needed.
+      uint nr = GenSort<uint>::sort (&(itsChannels[0]), itsChannels.size(),
+                                     Sort::Ascending,
+                                     Sort::QuickSort + Sort::NoDuplicates);
+      itsChannels.resize (nr);
     }
 
     bool PreFlagger::process (const DPBuffer& buf)

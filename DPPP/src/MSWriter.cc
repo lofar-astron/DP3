@@ -59,9 +59,10 @@ namespace LOFAR {
         itsNTimeAvg     (avgInfo.ntimeAvg() * itsReader->ntimeAvg()),
         itsFlagCounter  ("MSWriter")
     {
-      // Get tilesize (default 1024 KBytes).
+      // Get tile size (default 1024 KBytes).
       uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
       uint tileNChan       = parset.getUint (prefix+"tilenchan", 8);
+      itsOverwrite         = parset.getBool (prefix+"overwrite", false);
       itsCopyCorrData      = parset.getBool (prefix+"copycorrecteddata", false);
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
       itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
@@ -260,7 +261,8 @@ namespace LOFAR {
                                   "TiledColumnStMan", "TiledUVW",
                                   IPosition(2, 3, tsmnrow));
       // Setup table creation. Exception is thrown if it exists already.
-      SetupNewTable newtab(outName, newdesc, Table::NewNoReplace);
+      Table::TableOption opt = itsOverwrite ? Table::New : Table::NewNoReplace;
+      SetupNewTable newtab(outName, newdesc, opt);
       // First bind all column to SSM.
       // For all columns defined in dminfo the bindings will be overwritten.
       // In this way variable columns like ANTENNA1/2 are bound to SSM.
