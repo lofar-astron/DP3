@@ -23,7 +23,7 @@ lofar_add_library(dppp
   RunDetails.cc
   Pipeline.cc)
 
-lofar_add_bin_program(NDPPP DPPP.cc)
+lofar_add_bin_program(NDPPP NDPPP.cc)
 lofar_add_bin_program(IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 

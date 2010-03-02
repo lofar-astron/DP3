@@ -22,6 +22,7 @@
 //# @author Ger van Diepen
 
 #include <lofar_config.h>
+#include <DPPP/DPRun.h>
 #include <tables/Tables.h>
 #include <tables/Tables/TableIter.h>
 #include <casa/Arrays/ArrayLogical.h>
@@ -30,6 +31,7 @@
 #include <iostream>
 #include <stdexcept>
 
+using namespace LOFAR::DPPP;
 using namespace casa;
 
 void testCopy()
@@ -38,9 +40,10 @@ void testCopy()
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
     ostr << "msout=tNDPPP_tmp.MS1" << endl;
+    ostr << "msout.overwrite=true" << endl;
     ostr << "steps=[]" << endl;
   }
-  system ("rm -rf tNDPPP_tmp.MS1; ../src/NDPPP tNDPPP_tmp.parset");
+  DPRun::execute ("tNDPPP_tmp.parset");
   Table tin("tNDPPP_tmp.MS");
   Table tout("tNDPPP_tmp.MS1");
   ASSERT (tout.nrow() == 6*20);
@@ -151,13 +154,14 @@ void testAvg1()
     ostr << "msin=tNDPPP_tmp.MS" << endl;
     ostr << "msin.countflags = true" << endl;
     ostr << "msout=tNDPPP_tmp.MS2" << endl;
+    ostr << "msout.overwrite=true" << endl;
     ostr << "msout.countflags = true" << endl;
     ostr << "steps=[avg]" << endl;
     ostr << "avg.type=average" << endl;
     ostr << "avg.timestep=20" << endl;
     ostr << "avg.freqstep=100" << endl;
   }
-  system ("rm -rf tNDPPP_tmp.MS2; ../src/NDPPP tNDPPP_tmp.parset");
+  DPRun::execute ("tNDPPP_tmp.parset");
   checkAvg ("tNDPPP_tmp.MS2");
 }
 
@@ -168,6 +172,7 @@ void testAvg2()
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
     ostr << "msout=tNDPPP_tmp.MS3" << endl;
+    ostr << "msout.overwrite=true" << endl;
     ostr << "steps=[avg1,avg2,avg3,avg4]" << endl;
     ostr << "avg1.type=average" << endl;
     ostr << "avg1.timestep=5" << endl;
@@ -182,7 +187,7 @@ void testAvg2()
     ostr << "avg4.timestep=2" << endl;
     ostr << "avg4.freqstep=4" << endl;
   }
-  system ("rm -rf tNDPPP_tmp.MS3; ../src/NDPPP tNDPPP_tmp.parset");
+  DPRun::execute ("tNDPPP_tmp.parset");
   checkAvg ("tNDPPP_tmp.MS3");
 }
 
@@ -197,34 +202,37 @@ void testAvg3()
     ofstream ostr4("tNDPPP_tmp.parset4");
     ostr1 << "msin=tNDPPP_tmp.MS" << endl;
     ostr1 << "msout=tNDPPP_tmp.MS4a" << endl;
+    ostr1 << "msout.overwrite=true" << endl;
     ostr1 << "steps=[avg1]" << endl;
     ostr1 << "avg1.type=average" << endl;
     ostr1 << "avg1.timestep=5" << endl;
     ostr1 << "avg1.freqstep=2" << endl;
     ostr2 << "msin=tNDPPP_tmp.MS4a" << endl;
     ostr2 << "msout=tNDPPP_tmp.MS4b" << endl;
+    ostr2 << "msout.overwrite=true" << endl;
     ostr2 << "steps=[avg2]" << endl;
     ostr2 << "avg2.type=average" << endl;
     ostr2 << "avg2.timestep=1" << endl;
     ostr2 << "avg2.freqstep=2" << endl;
     ostr3 << "msin=tNDPPP_tmp.MS4b" << endl;
     ostr3 << "msout=tNDPPP_tmp.MS4c" << endl;
+    ostr3 << "msout.overwrite=true" << endl;
     ostr3 << "steps=[avg3]" << endl;
     ostr3 << "avg3.type=average" << endl;
     ostr3 << "avg3.timestep=2" << endl;
     ostr3 << "avg3.freqstep=1" << endl;
     ostr4 << "msin=tNDPPP_tmp.MS4c" << endl;
     ostr4 << "msout=tNDPPP_tmp.MS4d" << endl;
+    ostr4 << "msout.overwrite=true" << endl;
     ostr4 << "steps=[avg4]" << endl;
     ostr4 << "avg4.type=average" << endl;
     ostr4 << "avg4.timestep=2" << endl;
     ostr4 << "avg4.freqstep=4" << endl;
   }
-  system ("rm -rf tNDPPP_tmp.MS4[abcd]; "
-          "../src/NDPPP tNDPPP_tmp.parset1  && "
-          "../src/NDPPP tNDPPP_tmp.parset2  && "
-          "../src/NDPPP tNDPPP_tmp.parset3  && "
-          "../src/NDPPP tNDPPP_tmp.parset4");
+  DPRun::execute ("tNDPPP_tmp.parset1");
+  DPRun::execute ("tNDPPP_tmp.parset2");
+  DPRun::execute ("tNDPPP_tmp.parset3");
+  DPRun::execute ("tNDPPP_tmp.parset4");
   checkAvg ("tNDPPP_tmp.MS4d");
 }
 

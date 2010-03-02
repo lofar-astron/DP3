@@ -27,7 +27,7 @@ versiondppp_SOURCES      = versiondppp.cc
 versiondppp_LDADD        = libdppp.la
 versiondppp_DEPENDENCIES = libdppp.la $(LOFAR_DEPEND)
 
-NDPPP_SOURCES		= DPPP.cc
+NDPPP_SOURCES		= NDPPP.cc
 NDPPP_LDADD		= libdppp.la
 NDPPP_DEPENDENCIES	= libdppp.la $(LOFAR_DEPEND)
 
