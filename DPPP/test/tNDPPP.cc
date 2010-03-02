@@ -236,6 +236,28 @@ void testAvg3()
   checkAvg ("tNDPPP_tmp.MS4d");
 }
 
+void testUpdate()
+{
+  // Test if update works fine.
+  // In fact, it does not do anything apart from rewriting the current flags.
+  // However, it should ignore the inserted time slots.
+  Array<bool> flags;
+  {
+    Table tab("tNDPPP_tmp.MS");
+    flags = ROArrayColumn<bool>(tab,"FLAG").getColumn();
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msout=''" << endl;
+    ostr << "steps=[]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  // Check that the flags did not change.
+  {
+    Table tab("tNDPPP_tmp.MS");
+    ASSERT (allEQ(ROArrayColumn<bool>(tab,"FLAG").getColumn(), flags));
+  }
+}
+
 int main()
 {
   try
@@ -244,6 +266,7 @@ int main()
     testAvg1();
     testAvg2();
     testAvg3();
+    testUpdate();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;
     return 1;
