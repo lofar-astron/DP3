@@ -400,10 +400,16 @@ namespace LOFAR {
           if (last > avgInfo.startChan() + avgInfo.origNChan()) {
             last = avgInfo.startChan() + avgInfo.origNChan();
           }
-          double sf = oldFreq[first]  - 0.5*oldWidth[first];
-          double ef = oldFreq[last-1] + 0.5*oldWidth[last-1];
+          double sf, ef;
+          if (oldFreq[first] < oldFreq[last-1]) {
+            sf = oldFreq[first]  - 0.5*oldWidth[first];
+            ef = oldFreq[last-1] + 0.5*oldWidth[last-1];
+          } else {
+            sf = oldFreq[first]  + 0.5*oldWidth[first];
+            ef = oldFreq[last-1] - 0.5*oldWidth[last-1];
+          }
           newFreq[j]  = 0.5 * (sf + ef);
-          newWidth[j] = ef - sf;
+          newWidth[j] = abs(ef - sf);
           double newbw = 0;
           double newres = 0;
           for (uint k=first; k<last; ++k) {

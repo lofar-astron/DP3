@@ -36,9 +36,14 @@ using namespace casa;
 
 void testCopy()
 {
+  cout << endl << "** testCopy **" << endl;
   {
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
+    // Give starttime 30 sec before actual, hence 1 missing timeslot.
+    ostr << "msin.starttime=03-Aug-2000/13:21:50" << endl;
+    // Give endtime 90 sec after actual, hence 3 missing timeslots.
+    ostr << "msin.endtime=03-Aug-2000/13:33:15" << endl;
     ostr << "msout=tNDPPP_tmp.MS1" << endl;
     ostr << "msout.overwrite=true" << endl;
     ostr << "steps=[]" << endl;
@@ -46,12 +51,13 @@ void testCopy()
   DPRun::execute ("tNDPPP_tmp.parset");
   Table tin("tNDPPP_tmp.MS");
   Table tout("tNDPPP_tmp.MS1");
-  ASSERT (tout.nrow() == 6*20);
+  ASSERT (tout.nrow() == 6*24);
   {
-    // Two dummy time slots were inserted, so ignore those.
+    // A few dummy time slots were inserted, so ignore those.
     Table t1 = tableCommand
       ("using style python "
-       "select from $1 where rownumber() not between 3*6 and 5*6-1", tout);
+       "select from $1 where rownumber() not in [0:6, 4*6:6*6, 21*6:24*6]",
+       tout);
     ROArrayColumn<Complex> data(t1, "DATA");
     ROArrayColumn<Bool> flag(t1, "FLAG");
     ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
@@ -79,7 +85,8 @@ void testCopy()
     // Check the inserted time slots.
     Table t1 = tableCommand
       ("using style python "
-       "select from $1 where rownumber() between 3*6 and 5*6-1", tout);
+       "select from $1 where rownumber() in [0:6, 4*6:6*6, 21*6:24*6]",
+       tout);
     ROArrayColumn<Complex> data(t1, "DATA");
     ROArrayColumn<Bool> flag(t1, "FLAG");
     ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
@@ -93,13 +100,46 @@ void testCopy()
                   float(0)));
     ASSERT (allEQ(ROScalarColumn<double>(t1,"INTERVAL").getColumn(), 30.));
     ASSERT (allEQ(ROScalarColumn<double>(t1,"EXPOSURE").getColumn(), 30.));
-    double time = ROScalarColumn<double>(tin,"TIME")(2*6);
-    for (uint i=0; i<12; ++i) {
-      double timec = time + (1 + i/6)*30.;
+    double time = ROScalarColumn<double>(tin,"TIME")(0);
+    for (uint i=0; i<6; ++i) {
+      double timec = time - 30;
+      ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
+      ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
+    }
+    time = ROScalarColumn<double>(tin,"TIME")(2*6);
+    for (uint i=6; i<18; ++i) {
+      double timec = time + (i/6)*30.;
+      ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
+      ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
+    }
+    time = ROScalarColumn<double>(tin,"TIME")(17*6);
+    for (uint i=18; i<36; ++i) {
+      double timec = time + (i/6-2)*30.;
       ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
       ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
     }
   }
+  // Now check if the SPECTRAL_WINDOW table is fine.
+  Table spwin(tin.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwout(tout.keywordSet().asTable("SPECTRAL_WINDOW"));
+  ASSERT (allEQ (ROArrayColumn<double>(spwin, "CHAN_FREQ").getColumn(),
+                 ROArrayColumn<double>(spwout,"CHAN_FREQ").getColumn()));
+  ASSERT (allEQ (ROArrayColumn<double>(spwin, "CHAN_WIDTH").getColumn(),
+                 ROArrayColumn<double>(spwout,"CHAN_WIDTH").getColumn()));
+  ASSERT (allEQ (ROArrayColumn<double>(spwin, "EFFECTIVE_BW").getColumn(),
+                 ROArrayColumn<double>(spwout,"EFFECTIVE_BW").getColumn()));
+  ASSERT (allEQ (ROArrayColumn<double>(spwin, "RESOLUTION").getColumn(),
+                 ROArrayColumn<double>(spwout,"RESOLUTION").getColumn()));
+  ASSERT (allEQ (ROScalarColumn<double>(spwin, "TOTAL_BANDWIDTH").getColumn(),
+                 ROScalarColumn<double>(spwout,"TOTAL_BANDWIDTH").getColumn()));
+  ASSERT (allEQ (ROScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
+                 ROScalarColumn<double>(spwout,"REF_FREQUENCY").getColumn()));
+  // Check the TIME_RANGE in the OBSERVATION table.
+  Table obsout(tout.keywordSet().asTable("OBSERVATION"));
+  Vector<double> timeRange
+    (ROArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
+  ASSERT (near(timeRange(0), ROScalarColumn<double>(tout,"TIME")(0) - 15));
+  ASSERT (near(timeRange(1), ROScalarColumn<double>(tout,"TIME")(143) + 15));
 }
 
 void checkAvg (const String& outName)
@@ -145,17 +185,46 @@ void checkAvg (const String& outName)
     iterin.next();
     iterout.next();
   }
+  // Now check if the SPECTRAL_WINDOW table is fine.
+  Table spwin(tin.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwout(tout.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Matrix<double> cw = ROArrayColumn<double>(spwout, "CHAN_WIDTH").getColumn();
+  ASSERT (cw.size() == 1);
+  ASSERT (near(cw(0,0),
+               sum(ROArrayColumn<double>(spwin, "CHAN_WIDTH").getColumn())));
+  Matrix<double> cfi = ROArrayColumn<double>(spwin,  "CHAN_FREQ").getColumn();
+  Matrix<double> cfo = ROArrayColumn<double>(spwout, "CHAN_FREQ").getColumn();
+  ASSERT (near(cfo(0,0), 0.5*(cfi(0,0) + cfi(15,0))));
+  Matrix<double> ce = ROArrayColumn<double>(spwout, "EFFECTIVE_BW").getColumn();
+  ASSERT (ce.size() == 1);
+  ASSERT (near(ce(0,0), cw(0,0)));
+  Matrix<double> cr = ROArrayColumn<double>(spwout, "RESOLUTION").getColumn();
+  ASSERT (cr.size() == 1);
+  ASSERT (near(cr(0,0), cw(0,0)));
+  ASSERT (near(ROScalarColumn<double>(spwin, "TOTAL_BANDWIDTH")(0),
+               cw(0,0)));
+  ASSERT (allEQ (ROScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
+                 ROScalarColumn<double>(spwout,"REF_FREQUENCY").getColumn()));
+  // Check the TIME_RANGE in the OBSERVATION table.
+  Table obsout(tout.keywordSet().asTable("OBSERVATION"));
+  Vector<double> timeRange
+    (ROArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
+  ASSERT (near(timeRange(0), ROScalarColumn<double>(tout,"TIME")(0) - 300));
+  ASSERT (near(timeRange(1), ROScalarColumn<double>(tout,"TIME")(0) + 295));
 }
 
 void testAvg1()
 {
+  cout << endl << "** testAvg1 **" << endl;
   {
+    // Average in a single step.
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
-    ostr << "msin.countflags = true" << endl;
+    // Give start and end time as actual, hence no missing timeslots.
+    ostr << "msin.starttime=03-Aug-2000/13:22:20" << endl;
+    ostr << "msin.endtime=03-Aug-2000/13:31:45" << endl;
     ostr << "msout=tNDPPP_tmp.MS2" << endl;
     ostr << "msout.overwrite=true" << endl;
-    ostr << "msout.countflags = true" << endl;
     ostr << "steps=[avg]" << endl;
     ostr << "avg.type=average" << endl;
     ostr << "avg.timestep=20" << endl;
@@ -167,6 +236,7 @@ void testAvg1()
 
 void testAvg2()
 {
+  cout << endl << "** testAvg2 **" << endl;
   // Averaging in multiple steps should be the same as above.
   {
     ofstream ostr("tNDPPP_tmp.parset");
@@ -193,6 +263,7 @@ void testAvg2()
 
 void testAvg3()
 {
+  cout << endl << "** testAvg3 **" << endl;
   // Averaging in multiple steps with multiple outputs should be the same
   // as above.
   {
@@ -238,6 +309,7 @@ void testAvg3()
 
 void testUpdate()
 {
+  cout << endl << "** testUpdate **" << endl;
   // Test if update works fine.
   // In fact, it does not do anything apart from rewriting the current flags.
   // However, it should ignore the inserted time slots.

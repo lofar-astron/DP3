@@ -68,7 +68,7 @@ namespace LOFAR {
         if (!MVTime::read (qtime, startTimeStr)) {
           THROW (LOFAR::Exception, startTimeStr << " is an invalid date/time");
         }
-        itsFirstTime = qtime.getValue("sec");
+        itsFirstTime = qtime.getValue("s");
         ASSERT (itsFirstTime < endTime);
         // Round to integer nr of intervals.
         if (itsFirstTime < startTime) {
@@ -81,7 +81,7 @@ namespace LOFAR {
         if (!MVTime::read (qtime, endTimeStr)) {
           THROW (LOFAR::Exception, endTimeStr << " is an invalid date/time");
         }
-        itsLastTime = qtime.getValue("sec");
+        itsLastTime = qtime.getValue("s");
       }
       ASSERT (itsLastTime > itsFirstTime);
       itsNextTime = itsFirstTime;
@@ -231,7 +231,8 @@ namespace LOFAR {
     void MSReader::finish()
     {
       getNextStep()->finish();
-      cout << itsNrInserted << " missing time slots were inserted" << endl;
+      cout << "MSReader inserted " << itsNrInserted << " missing time slots"
+           << endl;
     }
 
     void MSReader::updateAverageInfo (AverageInfo& info)
