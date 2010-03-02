@@ -67,7 +67,7 @@ namespace LOFAR {
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
       itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
-      itsCountFlags        = parset.getBool (prefix+"countflags", false);
+      itsCountFlags        = parset.getBool (prefix+"countflag", false);
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       // Create the MS.
@@ -168,6 +168,7 @@ namespace LOFAR {
         os << endl << "===============================" << endl;
         itsFlagCounter.showBaseline (os, itsReader->getAnt1(),
                                      itsReader->getAnt2(), itsNrTimes);
+        itsFlagCounter.showChannel  (os, itsNrTimes);
       }
     }
 

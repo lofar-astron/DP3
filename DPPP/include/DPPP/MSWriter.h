@@ -79,7 +79,7 @@ namespace LOFAR {
       virtual void show (std::ostream&) const;
 
       // If needed, show the flag counts.
-      virtual void showCounts (std::ostream& os) const;
+      virtual void showCounts (std::ostream&) const;
 
       // Write the parset info into the HISTORY table of the MS.
       static void writeHistory (casa::Table& ms,

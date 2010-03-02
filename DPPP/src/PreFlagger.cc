@@ -60,6 +60,15 @@ namespace LOFAR {
                                             true);   // expand .. etc.
       itsFlagFreq = parset.getStringVector (prefix+"freqrange",
                                             vector<string>());
+      if (parset.isDefined(prefix+"station1")) {
+        itsFlagAnt1 = parset.getStringVector (prefix+"station1");
+      }
+      if (parset.isDefined(prefix+"station2")) {
+        itsFlagAnt2 = parset.getStringVector (prefix+"station2");
+      }
+      if (parset.isDefined(prefix+"station")) {
+        itsFlagAnt  = parset.getStringVector (prefix+"station");
+      }
       fillBLMatrix (antNames);
       // Determine if the flag on UV distance.
       // If so, square the distances to avoid having to take the sqrt in flagUV.

@@ -261,6 +261,7 @@ namespace LOFAR {
         os << endl << "============================" << endl;
         int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
         itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
+        itsFlagCounter.showChannel  (os, nrtim);
       }
     }
 

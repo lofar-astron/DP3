@@ -35,10 +35,19 @@ namespace LOFAR {
   namespace DPPP {
 
     MSUpdater::MSUpdater (MSReader* reader, const ParameterSet& parset,
-                          const string&)
-      : itsReader (reader)
+                          const string& prefix)
+      : itsReader      (reader),
+        itsNrCorr      (reader->ncorr()),
+        itsNrChan      (reader->nchan()),
+        itsNrBl        (reader->nbaselines()),
+        itsNrTimes     (0),
+        itsFlagCounter ("MSUpdater")
     {
+      itsCountFlags = parset.getBool (prefix+"countflag", false);
       MSWriter::writeHistory (reader->table(), parset);
+      if (itsCountFlags) {
+        itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
+      }
     }
 
     MSUpdater::~MSUpdater()
@@ -47,6 +56,20 @@ namespace LOFAR {
     bool MSUpdater::process (const DPBuffer& buf)
     {
       itsReader->putFlags (buf.getRowNrs(), buf.getFlags());
+      // Count the flags if needed.
+      if (itsCountFlags) {
+        const bool* flagPtr = buf.getFlags().data();
+        for (uint i=0; i<itsNrBl; ++i) {
+          for (uint j=0; j<itsNrChan; ++j) {
+            if (*flagPtr) {
+              itsFlagCounter.incrBaseline(i);
+              itsFlagCounter.incrChannel(j);
+            }
+            flagPtr += itsNrCorr;    // only count 1st corr
+          }
+        }
+      }
+      itsNrTimes++;
       return true;
     }
 
@@ -57,6 +80,17 @@ namespace LOFAR {
     {
       os << "MSUpdater" << std::endl;
       os << "  MS:             " << itsReader->msName() << std::endl;
+    }
+
+    void MSUpdater::showCounts (std::ostream& os) const
+    {
+      if (itsCountFlags) {
+        os << endl << "Flag statistics of data updated";
+        os << endl << "===============================" << endl;
+        itsFlagCounter.showBaseline (os, itsReader->getAnt1(),
+                                     itsReader->getAnt2(), itsNrTimes);
+        itsFlagCounter.showChannel  (os, itsNrTimes);
+      }
     }
 
   } //# end namespace

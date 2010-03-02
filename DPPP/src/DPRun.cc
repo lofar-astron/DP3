@@ -107,11 +107,11 @@ namespace LOFAR {
         string prefix(*iter + '.');
         string type = toLower(parset.getString (prefix+"type"));
         DPStep::ShPtr step;
-        if (type == "average"  ||  type == "squash") {
+        if (type == "averager"  ||  type == "average"  ||  type == "squash") {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));
-        } else if (type == "madflagger") {
+        } else if (type == "madflagger"  ||  type == "madflag") {
           step = DPStep::ShPtr(new MedFlagger (reader, parset, prefix));
-        } else if (type == "preflagger") {
+        } else if (type == "preflagger"  ||  type == "preflag") {
           step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix,
                                                reader->antennaNames(),
                                                reader->chanFreqs()));
@@ -136,7 +136,7 @@ namespace LOFAR {
       if (outName.empty()) {
         ASSERTSTR (avgInfo.nchanAvg() == 1  &&  avgInfo.ntimeAvg() == 1,
                    "A new MS has to be given in msout if averaging is done");
-        step = DPStep::ShPtr(new MSUpdater (reader, parset, ""));
+        step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
       } else {
         step = DPStep::ShPtr(new MSWriter (reader, outName, avgInfo,
                                            parset, "msout."));

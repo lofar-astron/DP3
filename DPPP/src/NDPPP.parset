@@ -1,0 +1,28 @@
+#msin = ~/SB0.MS
+msin = ~/3C343.MS
+#msin = ~/tDPPP.MS
+#msin.startchan = 16
+#msin.nchan = 224
+
+msout = "a.c"
+
+#steps = [avg1,avg2,flag]
+#steps = [flag,avg]
+steps=[flag]
+
+avg1.type = squash
+avg1.freqstep = 4
+avg1.timestep = 2
+
+avg2.type = squash
+avg2.freqstep = 4
+avg2.timestep = 5
+
+flag.type=madflagger
+flag.threshold=1
+flag.freqwindow=31
+flag.timewindow=5
+
+avg.type = squash
+avg.freqstep = 1024
+avg.timestep = 1

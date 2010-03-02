@@ -148,7 +148,7 @@ namespace LOFAR {
       virtual void show (std::ostream&) const;
 
       // If needed, show the flag counts.
-      virtual void showCounts (std::ostream& os) const;
+      virtual void showCounts (std::ostream&) const;
 
       // Read the UVW at the given row numbers.
       virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
