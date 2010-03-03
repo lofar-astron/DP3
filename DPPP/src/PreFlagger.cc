@@ -45,20 +45,18 @@ namespace LOFAR {
                             const Vector<double>& inputChanFreqs)
       : itsInput (input),
         itsName  (prefix),
-        itsFreqs (inputChanFreqs)
+        itsFreqs (inputChanFreqs),
+        itsFlagOnUV   (false),
+        itsFlagOnBL   (false),
+        itsFlagOnAmpl (false)
     {
+      itsAutoCorr = parset.getBool         (prefix+"autocorr", false);
+      // station is a synonym for antenna.
       itsFlagAnt1 = parset.getStringVector (prefix+"antenna1",
                                             vector<string>());
       itsFlagAnt2 = parset.getStringVector (prefix+"antenna2",
                                             vector<string>());
       itsFlagAnt  = parset.getStringVector (prefix+"antenna",
-                                            vector<string>());
-      itsAutoCorr = parset.getBool         (prefix+"autocorr", false);
-      itsMinUV    = parset.getDouble       (prefix+"uvmin", -1);
-      itsMaxUV    = parset.getDouble       (prefix+"uvmax", -1);
-      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
-                                            true);   // expand .. etc.
-      itsFlagFreq = parset.getStringVector (prefix+"freqrange",
                                             vector<string>());
       if (parset.isDefined(prefix+"station1")) {
         itsFlagAnt1 = parset.getStringVector (prefix+"station1");
@@ -69,18 +67,22 @@ namespace LOFAR {
       if (parset.isDefined(prefix+"station")) {
         itsFlagAnt  = parset.getStringVector (prefix+"station");
       }
+      itsFlagFreq = parset.getStringVector (prefix+"freqrange",
+                                            vector<string>());
+      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
+                                            true);   // expand .. etc.
+      itsAmplMin  = fillAmpl
+        (ParameterValue (parset.getString  (prefix+"amplmin", "")), 0.);
+      itsAmplMax  = fillAmpl
+        (ParameterValue (parset.getString  (prefix+"amplmax", "")), 1e30);
+      itsRangeUVm = fillUV (parset, prefix, "uvm", true);
+      itsRangeUm  = fillUV (parset, prefix, "um", false);
+      itsRangeVm  = fillUV (parset, prefix, "vm", false);
+      itsRangeUVl = fillUV (parset, prefix, "uvlambda", true);
+      itsRangeUl  = fillUV (parset, prefix, "ulambda", false);
+      itsRangeVl  = fillUV (parset, prefix, "vlambda", false);
+      // Fill the matrix with the baselines to flag.
       fillBLMatrix (antNames);
-      // Determine if the flag on UV distance.
-      // If so, square the distances to avoid having to take the sqrt in flagUV.
-      itsFlagOnUV = itsMinUV > 0;
-      itsMinUV   *= itsMinUV;
-      if (itsMaxUV > 0) {
-        itsFlagOnUV = true;
-        itsMaxUV   *= itsMaxUV;
-      } else {
-        // Make it a very high number.
-        itsMaxUV = 1e30;
-      }
     }
 
     PreFlagger::~PreFlagger()
@@ -93,8 +95,6 @@ namespace LOFAR {
       os << "  antenna2:       " << itsFlagAnt2 << std::endl;
       os << "  antenna:        " << itsFlagAnt  << std::endl;
       os << "  autocorr:       " << itsAutoCorr << std::endl;
-      os << "  uvmin:          " << sqrt(itsMinUV) << std::endl;
-      os << "  uvmax:          " << sqrt(itsMaxUV) << std::endl;
       os << "  chan:           " << itsFlagChan << std::endl;
       os << "  freqrange:      " << itsFlagFreq << std::endl;
       if (! itsChannels.empty()) {
@@ -104,16 +104,19 @@ namespace LOFAR {
 
     void PreFlagger::updateAverageInfo (AverageInfo& info)
     {
+      // Convert the given frequencies to possibly averaged frequencies.
+      averageFreqs (info.startChan(), info.nchanAvg());
       // Check for channels exceeding nr of channels.
-      itsChannels = itsFlagChan;
-      for (uint i=0; i<itsChannels.size(); ++i) {
-        ASSERTSTR (itsChannels[i] < info.nchan(),
-                   "PreFlagger: flag channel " << itsChannels[i]
-                   << "  exceeds nr of channels (=" << info.nchan() << ')');
+      itsChannels.reserve (itsFlagChan.size());
+      for (uint i=0; i<itsFlagChan.size(); ++i) {
+        if (itsFlagChan[i] < info.nchan()) {
+          itsChannels.push_back (itsFlagChan[i]);
+        }
       }
-      // Now handle the possibly given frequency ranges.
+      // Now handle the possibly given frequency ranges and add the
+      // resulting channels to itsChannels.
       if (! itsFlagFreq.empty()) {
-        handleFreqRanges (info.nchanAvg());
+        handleFreqRanges();
       }
       // Sort uniquely and resize as needed.
       uint nr = GenSort<uint>::sort (&(itsChannels[0]), itsChannels.size(),
@@ -162,10 +165,10 @@ namespace LOFAR {
         // UV-distance is sqrt(u^2 + v^2).
         // The sqrt is not needed because minuv and maxuv are squared.
         double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-        if (uvdist < itsMinUV  ||  uvdist > itsMaxUV) {
-          // UV-dist mismatches, so flag entire baseline.
-          std::fill (flagPtr, flagPtr+nr, true);
-        }
+        ///        if (uvdist < itsMinUV  ||  uvdist > itsMaxUV) {
+        ///          // UV-dist mismatches, so flag entire baseline.
+        ///          std::fill (flagPtr, flagPtr+nr, true);
+        ///        }
         uvwPtr  += 3;
         flagPtr += nr;
       }
@@ -208,6 +211,82 @@ namespace LOFAR {
         }
         flagPtr += nr;
       }
+    }
+
+    vector<float> PreFlagger::fillAmpl (const ParameterValue& value,
+                                        float defVal)
+    {
+      // Initialize with the default value per correlation.
+      vector<float> result(4);
+      std::fill (result.begin(), result.end(), defVal);
+      if (! value.get().empty()) {
+        // It contains a value, so set that flagging on amplitude is done.
+        itsFlagOnAmpl = true;
+        if (value.isVector()) {
+          // Defined as a vector, take the values given.
+          vector<float> vals = value.getFloatVector();
+          uint sz = std::min(vals.size(), result.size());
+          for (uint i=0; i<sz; ++i) {
+            result[i] = vals[i];
+          }
+        } else {
+          // A single value means use it for all correlations.
+          std::fill (result.begin(), result.end(), value.getFloat());
+        }
+      }
+      return result;
+    }
+
+    vector<double> PreFlagger::fillUV (const ParameterSet& parset,
+                                       const string& prefix,
+                                       const string& name,
+                                       bool square)
+    {
+      // Get possible range, minimum, and maximum.
+      vector<string> uvs = parset.getStringVector (prefix + name + "range",
+                                                   vector<string>());
+      double minuv = parset.getDouble (prefix + name + "min", 0.);
+      double maxuv = parset.getDouble (prefix + name + "max", 0.);
+      // Process the ranges.
+      vector<double> vals;
+      vals.reserve (2*uvs.size());
+      for (vector<string>::const_iterator str = uvs.begin();
+           str != uvs.end(); ++str) {
+        // Each range can be given as st..end or val+-halfwidth.
+        // Find the .. or +- token.
+        bool usepm = false;
+        string::size_type pos;
+        pos = str->find ("..");
+        if (pos == string::npos) {
+          usepm = true;
+          pos = str->find ("+-");
+          ASSERTSTR (pos != string::npos, "PreFlagger " << name << "range '"
+                     << *str << "' should be range using .. or +-");
+        }
+        string str1 = str->substr (0, pos);
+        string str2 = str->substr (pos+2);
+        vals.push_back (strToDouble(str1));
+        vals.push_back (strToDouble(str2));
+      }
+      // If minimum or maximum is given, add them as a range as well.
+      if (minuv > 0) {
+        vals.push_back (0.);
+        vals.push_back (minuv);
+      }
+      if (maxuv > 0) {
+        vals.push_back (maxuv);
+        vals.push_back (1e15);
+      }
+      if (! vals.empty()) {
+        itsFlagOnUV = true;
+      }
+      if (square) {
+        for (vector<double>::iterator iter = vals.begin();
+             iter != vals.end(); ++iter) {
+          *iter = *iter * *iter;
+        }
+      }
+      return vals;
     }
 
     void PreFlagger::fillBLMatrix (const Vector<String>& antNames)
@@ -256,18 +335,20 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::handleFreqRanges (uint nchanAvg)
+    void PreFlagger::averageFreqs (uint startChan, uint nchanAvg)
     {
-      // The data channel frequencies are given as they are in the input,
-      // so first average them as needed.
-      vector<double> freqs;
-      uint nchan = itsFreqs.size() / nchanAvg;
-      freqs.reserve (nchan);
-      // Get middle frequency of averaged channels.a
+      uint nchan = (itsFreqs.size() - startChan) / nchanAvg;
+      Vector<double> freqs(nchan); 
       for (uint i=0; i<nchan; ++i) {
-        freqs.push_back
-          (0.5 * (itsFreqs[i*nchanAvg] + itsFreqs[(i+1)*nchanAvg-1]));
+        freqs[i] = 0.5 * (itsFreqs[startChan + i*nchanAvg] +
+                          itsFreqs[startChan + (i+1)*nchanAvg-1]);
       }
+      // Replace the original freqs by the averaged ones.
+      itsFreqs.reference (freqs);
+    }
+
+    void PreFlagger::handleFreqRanges()
+    {
       // A frequency range can be given as  value..value or value+-value.
       // Units can be given for each value; if one is given it applies to both.
       // Default unit is MHz.
@@ -280,8 +361,8 @@ namespace LOFAR {
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");
-          ASSERTSTR (pos != string::npos, "freqrange '" << *str
-                     << "' should b range using .. or +-");
+          ASSERTSTR (pos != string::npos, "PreFlagger freqrange '" << *str
+                     << "' should be range using .. or +-");
         }
         string str1 = str->substr (0, pos);
         string str2 = str->substr (pos+2);
@@ -307,8 +388,8 @@ namespace LOFAR {
           v1 -= pm;
         }
         // Add any channel inside this range.
-        for (uint i=0; i<freqs.size(); ++i) {
-          if (freqs[i] > v1  &&  freqs[i] < v2) {
+        for (uint i=0; i<itsFreqs.size(); ++i) {
+          if (itsFreqs[i] > v1  &&  itsFreqs[i] < v2) {
             itsChannels.push_back (i);
           }
         }
