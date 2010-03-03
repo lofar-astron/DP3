@@ -104,12 +104,6 @@ namespace LOFAR {
       // Form the slicer to get channels, corrs, and baselines from array.
       itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
                             IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
-      // Form the slicer to get the full resolution flags
-      // for the start channel and nr of channels given.
-      itsFullResSlicer = Slicer(IPosition(3, itsStartChan*itsFullResNChanAvg,
-                                          0, 0),
-                                IPosition(3, itsNrChan*itsFullResNChanAvg,
-                                          itsFullResNTimeAvg, itsNrBl));
       // Initialize the flag counters.
       if (itsCountFlags) {
         itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
@@ -419,6 +413,7 @@ namespace LOFAR {
       }
       ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
       int norigchan = itsNrChan * itsFullResNChanAvg;
+      int origstart = itsStartChan * itsFullResNChanAvg;
       Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
       // Per row the flags are stored as uchar[nchar,navgtime].
@@ -429,7 +424,7 @@ namespace LOFAR {
       IPosition ofShape(3, norigchan, chShape[1], chShape[2]);
       Cube<bool> flags(ofShape);
       // Now expand the bits to bools.
-      // If their sizes match, do it all in one go.
+      // If all bits to convert are contiguous, do it all in one go.
       // Otherwise we have to iterate.
       if (ofShape[0] == chShape[0]*8) {
         Conversion::bitToBool (flags.data(), chars.data(), flags.size());
@@ -438,12 +433,12 @@ namespace LOFAR {
         const uChar* charsPtr = chars.data();
         bool* flagsPtr = flags.data();
         for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {
-          Conversion::bitToBool (flagsPtr, charsPtr, ofShape[0]);
+          Conversion::bitToBool (flagsPtr, charsPtr, origstart, ofShape[0]);
           flagsPtr += ofShape[0];
           charsPtr += chShape[0];
         }
       }
-      return flags(itsFullResSlicer);
+      return flags;
     }
 
     Cube<Complex> MSReader::getData (const String& columnName,

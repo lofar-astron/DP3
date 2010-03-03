@@ -233,7 +233,6 @@ namespace LOFAR {
       bool                itsHasFullResFlags;
       uint                itsFullResNChanAvg;
       uint                itsFullResNTimeAvg;
-      casa::Slicer        itsFullResSlicer; //# slice in chan,timeavg,bl
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
       casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
