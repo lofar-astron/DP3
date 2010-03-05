@@ -6,7 +6,7 @@ set(inst_HEADERS
   ProgressMeter.h FlagCounter.h
   UVWCalculator.h
   MSReader.h MSWriter.h MSUpdater.h
-  Averager.h MedFlagger.h PreFlagger.h
+  Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h
   FlaggerStatistics.h
   MsInfo.h
   MsFile.h

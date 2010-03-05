@@ -46,8 +46,7 @@ namespace LOFAR {
         itsFreqWindow (parset.getUint  (prefix+"freqwindow", 1)),
         itsTimeWindow (parset.getUint  (prefix+"timewindow", 1)),
         itsNTimes     (0),
-        itsNTimesDone (0),
-        itsFlagCounter("MedFlagger " + prefix)
+        itsNTimesDone (0)
     {
       ASSERT (itsFreqWindow > 0  &&  itsTimeWindow > 0);
       itsBuf.resize (itsTimeWindow);
@@ -74,7 +73,21 @@ namespace LOFAR {
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
                                    itsInput->getAnt2(), itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
-      itsFlagCounter.showCorrelation (os);
+      itsFlagCounter.showCorrelation (os, itsNTimes);
+    }
+
+    void MedFlagger::showTimings (std::ostream& os, double duration) const
+    {
+      double flagDur = itsTimer.getElapsed();
+      os << "  ";
+      FlagCounter::showPerc1 (os, flagDur, duration);
+      os << " MADFlagger " << itsName << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsMoveTimer.getElapsed(), flagDur);
+      os << " of it spent in shuffling data" << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsMedianTimer.getElapsed(), flagDur);
+      os << " of it spent in calculating medians" << endl;
     }
 
     void MedFlagger::updateAverageInfo (AverageInfo& info)
@@ -117,6 +130,7 @@ namespace LOFAR {
 
     bool MedFlagger::process (const DPBuffer& buf)
     {
+      itsTimer.start();
       // Accumulate in the time window.
       // The buffer is wrapped, thus oldest entries are overwritten.
       uint index = itsNTimes % itsTimeWindow;
@@ -153,11 +167,13 @@ namespace LOFAR {
         flag (itsNTimesDone%itsTimeWindow, timeEntries);
         itsNTimesDone++;
       }
+      itsTimer.stop();
       return true;
     }
 
     void MedFlagger::finish()
     {
+      itsTimer.start();
       // Adjust window size if there are fewer time entries.
       if (itsNTimes < itsTimeWindow) {
         itsTimeWindow = itsNTimes;
@@ -195,6 +211,7 @@ namespace LOFAR {
         flag (itsNTimesDone%itsTimeWindow, timeEntries);
         itsNTimesDone++;
       }
+      itsTimer.stop();
       // Let the next step finish its processing.
       getNextStep()->finish();
     }
@@ -251,7 +268,9 @@ namespace LOFAR {
         }
       }
       // Process the result in the next step.
+      itsTimer.stop();
       getNextStep()->process (buf);
+      itsTimer.start();
     }
             
     void MedFlagger::computeFactors (const vector<uint>& timeEntries,
@@ -260,6 +279,7 @@ namespace LOFAR {
                                      float& Z1, float& Z2,
                                      float* tempBuf)
     {
+      itsMoveTimer.start();
       // Collect all non-flagged data points for given baseline, channel,
       // and correlation in the window around the channel.
       uint np = 0;
@@ -299,11 +319,13 @@ namespace LOFAR {
           }
         }
       }
+      itsMoveTimer.stop();
       // If only flagged data, don't do anything.
       if (np == 0) {
         Z1 = -1.0;
         Z2 = 0.0;
       } else {
+        itsMedianTimer.start();
         // Get median of data and get median of absolute difference.
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
         ///Z1 = *(tempBuf+np/2);
@@ -314,9 +336,9 @@ namespace LOFAR {
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
         ///Z2 = *(tempBuf+np/2);
         Z2 = GenSort<float>::kthLargest (tempBuf, np, np/2);
+        itsMedianTimer.stop();
       }
     }
-
 
   } //# end namespace
 }

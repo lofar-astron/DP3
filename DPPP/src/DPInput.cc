@@ -34,6 +34,17 @@ namespace LOFAR {
     DPInput::~DPInput()
     {}
 
+    Vector<double> DPInput::chanFreqs (uint nchanAvg) const
+    {
+      uint nchan = itsChanFreqs.size() / nchanAvg;
+      Vector<double> freqs(nchan); 
+      for (uint i=0; i<nchan; ++i) {
+        freqs[i] = 0.5 * (itsChanFreqs[i*nchanAvg] +
+                          itsChanFreqs[(i+1)*nchanAvg - 1]);
+      }
+      return freqs;
+    }
+
     Cube<bool> DPInput::fetchFullResFlags (const DPBuffer& buf,
                                            const RefRows& rowNrs,
                                            bool merge)

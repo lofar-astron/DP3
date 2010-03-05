@@ -1,4 +1,4 @@
-//# PreFlagger.h: DPPP step class to average in time and/or freq
+//# PreFlagger.h: DPPP step class to flag data on channel, baseline, or time
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -47,8 +47,10 @@ namespace LOFAR {
     //  <li> autocorrelations
     //  <li> baselines using names for antenna 1 and 2
     //  <li> antennae using antenna names
+    //  <li> minimum and/or maximum amplitude per correlation
     //  <li> channel numbers
     //  <li> frequency ranges
+    //  <li> sequence nr or time ranges
     // </ul>
     // The antenna names can contain shell-style wildcards (* ? [] {}).
 
@@ -60,9 +62,7 @@ namespace LOFAR {
       // The antenna names are used to find antenna numbers.
       // The channel frequencies as they are in the input step must be given
       // starting at the start-channel.
-      PreFlagger (DPInput*, const ParameterSet&, const string& prefix,
-                  const casa::Vector<casa::String>& antNames,
-                  const casa::Vector<double>& inputChanFreqs);
+      PreFlagger (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~PreFlagger();
 
@@ -80,6 +80,9 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
+
     private:
       // Set the flags for baselines with mismatching UV distances.
       void flagUV (const casa::Matrix<double>& uvw,
@@ -89,6 +92,10 @@ namespace LOFAR {
       void flagBL (const casa::Vector<int>& ant1,
                    const casa::Vector<int>& ant2,
                    casa::Cube<bool>& flags);
+
+      // Set the flags based on amplitude threshold per correlation.
+      void flagAmpl (const casa::Cube<float>& amplitudes,
+                     casa::Cube<bool>& flags);
 
       // Flag the channels given in itsChannels.
       void flagChannels (casa::Cube<bool>& flags);
@@ -104,25 +111,9 @@ namespace LOFAR {
       // <br>If an amplitude is given, itsFlagOnAmpl is set.
       vector<float> fillAmpl (const ParameterValue& value, float defVal);
 
-      // Return a vector with UV ranges.
-      // If an UV value is given, itsFlagOnUV is set.
-      // It looks for the named parameter suffixed with 'range', 'min', and
-      // 'max'. The returned vector contains 2 subsequent values for each range
-      // (min and max are also turned into a range).
-      // Optionally the values are squared to avoid having to take a sqrt
-      // of the data's UV coordinates.
-      // <br>If a UV value is given, itsFlagOnUV is set.
-      vector<double> fillUV (const ParameterSet& parset,
-                             const string& prefix,
-                             const string& name,
-                             bool square);
-
-      // Update itsFreqs by averaging them as needed.
-      void averageFreqs (uint startChan, uint inchanAvg);
-
       // Handle the frequency ranges given and determine which channels
       // have to be flagged.
-      void handleFreqRanges();
+      void handleFreqRanges (const casa::Vector<double>& chanFreqs);
 
       // Get the value and possible unit.
       // If no unit is given, the argument is left untouched.
@@ -134,18 +125,13 @@ namespace LOFAR {
       //# Data members.
       DPInput*             itsInput;
       string               itsName;
-      casa::Vector<double> itsFreqs;    //# frequencies of the input (MS)
       bool                 itsFlagOnUV; //# true = do uv distance based flagging
       bool                 itsFlagOnBL; //# true = do ant/bl based flagging
       bool                 itsFlagOnAmpl; //# true = do amplitude based flagging
+      double               itsMinUV;    //# minimum UV distance; <0 means ignore
+      double               itsMaxUV;    //# maximum UV distance; <0 means ignore
       bool                 itsAutoCorr; //# flag autocorrelations?
       casa::Matrix<bool>   itsFlagBL;   //# true = flag baseline [i,j]
-      vector<double>       itsRangeUVm; //# strings of UV (in m) to be flagged
-      vector<double>       itsRangeUm;  //# strings of U (in m) to be flagged
-      vector<double>       itsRangeVm;  //# strings of V (in m) to be flagged
-      vector<double>       itsRangeUVl; //# strings of UV (in wl) to be flagged
-      vector<double>       itsRangeUl;  //# strings of U (in wl) to be flagged
-      vector<double>       itsRangeVl;  //# strings of V (in wl) to be flagged
       vector<float>        itsAmplMin;  //# minimum amplitude for each corr
       vector<float>        itsAmplMax;  //# maximum amplitude for each corr
       vector<uint>         itsChannels; //# channels to be flagged.
@@ -154,6 +140,7 @@ namespace LOFAR {
       vector<string>       itsFlagAnt1; //# ant1 patterns of baseline flagging
       vector<string>       itsFlagAnt2; //# ant2 patterns of baseline flagging
       vector<string>       itsFlagAnt;  //# antennae patterns to flag
+      NSTimer              itsTimer;
     };
 
   } //# end namespace

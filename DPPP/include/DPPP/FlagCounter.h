@@ -46,8 +46,7 @@ namespace LOFAR {
     {
     public:
       // The default constructor creates an empty object.
-      explicit FlagCounter (const string& comment)
-        : itsComment (comment)
+      FlagCounter()
       {}
 
       // Setup 
@@ -79,13 +78,16 @@ namespace LOFAR {
                          const casa::Vector<int>& ant2,
                          int64 ntimes) const;
       void showChannel (ostream& os, int64 ntimes) const;
-      void showCorrelation (ostream& os) const;
+      void showCorrelation (ostream& os, int64 ntimes) const;
+
+      // Show percentage with 1 decimal.
+      static void showPerc1 (std::ostream&, double value, double total);
+
 
     private:
       vector<int64> itsBLCounts;
       vector<int64> itsChanCounts;
       vector<int64> itsCorrCounts;
-      string        itsComment;
     };
 
   } //# end namespace

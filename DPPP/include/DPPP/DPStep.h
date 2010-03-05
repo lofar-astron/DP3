@@ -28,6 +28,7 @@
 // @brief Class to hold code for virtual base class for Flaggers in IDPPP
 
 #include <Common/lofar_smartptr.h>
+#include <Common/Timer.h>
 #include <iosfwd>
 
 namespace LOFAR {
@@ -83,6 +84,10 @@ namespace LOFAR {
       // Show the flag counts if needed.
       // The default implementation does nothing.
       virtual void showCounts (std::ostream&) const;
+
+      // Show the timings.
+      // The default implementation does nothing.
+      virtual void showTimings (std::ostream&, double duration) const;
 
       // Set the next step.
       void setNextStep (DPStep::ShPtr& nextStep)

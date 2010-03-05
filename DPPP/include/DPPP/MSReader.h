@@ -115,8 +115,6 @@ namespace LOFAR {
     //       a uChar array with shape [orignchan/8, ntimeavg]. The bits
     //       represent the flags. They are converted to a Bool array with shape
     //       [orignchan, ntimeavg, nbaseline].
-    //       Note that orignchan is given by the NCHANNELS keyword in the
-    //       LOFAR_FULL_RES_FLAG column.
     //       If column LOFAR_FULL_RES_FLAG is not present, the flags are used
     //       and it is assumed that no averaging was done yet (thus ntimeavg=1
     //       and orignchan=nchan).
@@ -149,6 +147,9 @@ namespace LOFAR {
 
       // If needed, show the flag counts.
       virtual void showCounts (std::ostream&) const;
+
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
 
       // Read the UVW at the given row numbers.
       virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
@@ -198,12 +199,6 @@ namespace LOFAR {
       uint ntimeAvg() const
         { return itsFullResNTimeAvg; }
 
-      // Get the antenna names.
-      casa::Vector<casa::String> antennaNames() const;
-
-      // Get the channel frequencies for the channel selection.
-      casa::Vector<double> chanFreqs() const;
-
     private:
       // Prepare the access to the MS.
       // Return the first and last time and the interval.
@@ -213,9 +208,7 @@ namespace LOFAR {
       // Calculate the UVWs for a missing time slot.
       void calcUVW();
 
-      // Setup the UVW calculator.
-      void setupUVWCalc();
-
+      //# Data members.
       casa::Table         itsMS;
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
@@ -238,6 +231,7 @@ namespace LOFAR {
       casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
       bool                itsCountFlags;
       FlagCounter         itsFlagCounter;
+      NSTimer             itsTimer;
     };
 
   } //# end namespace

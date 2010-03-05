@@ -45,9 +45,9 @@ namespace LOFAR {
     MSReader::MSReader (const string& msName,
                         const ParameterSet& parset, const string& prefix)
       : itsMS         (msName),
-        itsNrInserted (0),
-        itsFlagCounter("MSReader")
+        itsNrInserted (0)
     {
+      NSTimer::StartStop sstime(itsTimer);
       // Get info from parset.
       itsStartChan        = parset.getUint   (prefix+"startchan", 0);
       uint nrChan         = parset.getUint   (prefix+"nchan", 0);
@@ -115,110 +115,113 @@ namespace LOFAR {
 
     bool MSReader::process (const DPBuffer&)
     {
-      // Use time from the current time slot in the MS.
-      bool useIter = false;
-      while (!itsIter.pastEnd()) {
-        // Take time from row 0 in subset.
-        double time = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
-        // Use the time slot if near or < nexttime, but > starttime.
-        // In this way we cater for irregular times in some WSRT MSs.
-        if (near(time, itsNextTime)  ||
-            (time > itsFirstTime  &&  time < itsNextTime)) {
-          itsNextTime = time;
-          useIter = true;
-          break;
-        }
-        if (time > itsNextTime) {
-          // A time slot seems to be missing; insert one.
-          break;
-        }
-        // Skip this time slot.
-        itsIter.next();
-      }
-      // Stop if at the end.
-      if (itsNextTime > itsLastTime  &&  !near(itsNextTime, itsLastTime)) {
-        return false;
-      }
-      // Fill the buffer.
-      itsBuffer.setTime (itsNextTime);
-      ///cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
-      if (!useIter) {
-        // Need to insert a fully flagged time slot.
-        itsBuffer.setRowNrs (Vector<uint>());
-        itsBuffer.getData().resize  (itsNrCorr, itsNrChan, itsNrBl);
-        itsBuffer.getFlags().resize (itsNrCorr, itsNrChan, itsNrBl);
-        itsBuffer.getData() = Complex();
-        itsBuffer.getFlags() = true;
-        // Calculate UVWs for them. Setup UVW object if not done yet.
-        calcUVW();
-        itsNrInserted++;
-      } else {
-        // Get from the MS.
-        itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
-        ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
-        if (itsUseAllChan) {
-          itsBuffer.setData (dataCol.getColumn());
-        } else {
-          itsBuffer.setData (dataCol.getColumn(itsColSlicer));
-        }
-        if (itsUseFlags) {
-          ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
-          if (itsUseAllChan) {
-            itsBuffer.setFlags (flagCol.getColumn());
-          } else {
-            itsBuffer.setFlags (flagCol.getColumn(itsColSlicer));
+      {
+        NSTimer::StartStop sstime(itsTimer);
+        // Use time from the current time slot in the MS.
+        bool useIter = false;
+        while (!itsIter.pastEnd()) {
+          // Take time from row 0 in subset.
+          double time = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+          // Use the time slot if near or < nexttime, but > starttime.
+          // In this way we cater for irregular times in some WSRT MSs.
+          if (near(time, itsNextTime)  ||
+              (time > itsFirstTime  &&  time < itsNextTime)) {
+            itsNextTime = time;
+            useIter = true;
+            break;
           }
-          // Set flags if FLAG_ROW is set.
-          ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
-          for (uint i=0; i<itsIter.table().nrow(); ++i) {
-            if (flagrowCol(i)) {
-              itsBuffer.getFlags()
-                (IPosition(3,0,0,i),
-                 IPosition(3,itsNrCorr-1,itsNrChan-1,i)) = true;
-            }
+          if (time > itsNextTime) {
+            // A time slot seems to be missing; insert one.
+            break;
           }
-        } else {
-          // Do not use FLAG from the MS.
+          // Skip this time slot.
+          itsIter.next();
+        }
+        // Stop if at the end.
+        if (itsNextTime > itsLastTime  &&  !near(itsNextTime, itsLastTime)) {
+          return false;
+        }
+        // Fill the buffer.
+        itsBuffer.setTime (itsNextTime);
+        ///cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
+        if (!useIter) {
+          // Need to insert a fully flagged time slot.
+          itsBuffer.setRowNrs (Vector<uint>());
+          itsBuffer.getData().resize  (itsNrCorr, itsNrChan, itsNrBl);
           itsBuffer.getFlags().resize (itsNrCorr, itsNrChan, itsNrBl);
-          itsBuffer.getFlags() = false;
-        }
-        // Flag invalid data (NaN, infinite).
-        const Complex* dataPtr = itsBuffer.getData().data();
-        bool* flagPtr = itsBuffer.getFlags().data();
-        for (uint i=0; i<itsBuffer.getData().size();) {
-          for (uint j=i; j<i+itsNrCorr; ++j) {
-            if (!isFinite(dataPtr[j].real())  ||  !isFinite(dataPtr[j].imag())
-                ||  flagPtr[j]) {
-              // Flag all correlations if a single one is flagged.
-              for (uint k=i; k<i+itsNrCorr; ++k) {
-                flagPtr[k] = true;
+          itsBuffer.getData() = Complex();
+          itsBuffer.getFlags() = true;
+          // Calculate UVWs for them. Setup UVW object if not done yet.
+          calcUVW();
+          itsNrInserted++;
+        } else {
+          // Get from the MS.
+          itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
+          ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
+          if (itsUseAllChan) {
+            itsBuffer.setData (dataCol.getColumn());
+          } else {
+            itsBuffer.setData (dataCol.getColumn(itsColSlicer));
+          }
+          if (itsUseFlags) {
+            ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
+            if (itsUseAllChan) {
+              itsBuffer.setFlags (flagCol.getColumn());
+            } else {
+              itsBuffer.setFlags (flagCol.getColumn(itsColSlicer));
+            }
+            // Set flags if FLAG_ROW is set.
+            ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
+            for (uint i=0; i<itsIter.table().nrow(); ++i) {
+              if (flagrowCol(i)) {
+                itsBuffer.getFlags()
+                  (IPosition(3,0,0,i),
+                   IPosition(3,itsNrCorr-1,itsNrChan-1,i)) = true;
               }
-              break;
+            }
+          } else {
+            // Do not use FLAG from the MS.
+            itsBuffer.getFlags().resize (itsNrCorr, itsNrChan, itsNrBl);
+            itsBuffer.getFlags() = false;
+          }
+          // Flag invalid data (NaN, infinite).
+          const Complex* dataPtr = itsBuffer.getData().data();
+          bool* flagPtr = itsBuffer.getFlags().data();
+          for (uint i=0; i<itsBuffer.getData().size();) {
+            for (uint j=i; j<i+itsNrCorr; ++j) {
+              if (!isFinite(dataPtr[j].real())  ||  !isFinite(dataPtr[j].imag())
+                  ||  flagPtr[j]) {
+                // Flag all correlations if a single one is flagged.
+                for (uint k=i; k<i+itsNrCorr; ++k) {
+                  flagPtr[k] = true;
+                }
+                break;
+              }
+            }
+            i += itsNrCorr;
+          }
+          itsIter.next();
+        }
+        ASSERTSTR (itsBuffer.getData().shape()[2] == int(itsNrBl),
+                   "#baselines is not the same for all time slots in the MS");
+        // Count the flags if needed.
+        if (itsCountFlags) {
+          const bool* flagPtr = itsBuffer.getFlags().data();
+          for (uint i=0; i<itsNrBl; ++i) {
+            for (uint j=0; j<itsNrChan; ++j) {
+              if (*flagPtr) {
+                itsFlagCounter.incrBaseline(i);
+                itsFlagCounter.incrChannel(j);
+              }
+              flagPtr += itsNrCorr;    // only count 1st corr
             }
           }
-          i += itsNrCorr;
         }
-        itsIter.next();
-      }
+      }   // end of scope stops the timer.
       // Let the next step in the pipeline process this time slot.
-      ASSERTSTR (itsBuffer.getData().shape()[2] == int(itsNrBl),
-                 "#baselines is not the same for all time slots in the MS");
       getNextStep()->process (itsBuffer);
       ///      cout << "Reader: " << itsNextTime-4.75e9<<endl;
       itsNextTime += itsInterval;
-      // Count the flags if needed.
-      if (itsCountFlags) {
-        const bool* flagPtr = itsBuffer.getFlags().data();
-        for (uint i=0; i<itsNrBl; ++i) {
-          for (uint j=0; j<itsNrChan; ++j) {
-            if (*flagPtr) {
-              itsFlagCounter.incrBaseline(i);
-              itsFlagCounter.incrChannel(j);
-            }
-            flagPtr += itsNrCorr;    // only count 1st corr
-          }
-        }
-      }
       return true;
     }
 
@@ -258,6 +261,13 @@ namespace LOFAR {
         itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
         itsFlagCounter.showChannel  (os, nrtim);
       }
+    }
+
+    void MSReader::showTimings (std::ostream& os, double duration) const
+    {
+      os << "  ";
+      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      os << " MSReader" << endl;
     }
 
     void MSReader::prepare (double& firstTime, double& lastTime,
@@ -327,40 +337,41 @@ namespace LOFAR {
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
+      {
+        // Get the antenna names and positions.
+        Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
+        ROScalarColumn<String> nameCol (anttab, "NAME");
+        nameCol.getColumn (itsAntNames);
+        uint nant = anttab.nrow();
+        ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
+        itsAntPos.reserve (nant);
+        for (uint i=0; i<nant; ++i) {
+          itsAntPos.push_back (antcol(i));
+        }
+        // Read the phase reference position from the FIELD subtable.
+        // Only use the main value from the PHASE_DIR array.
+        Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
+        AlwaysAssert (fldtab.nrow() == 1, AipsError);
+        ROArrayMeasColumn<MDirection> fldcol (fldtab, "PHASE_DIR");
+        itsPhaseCenter = *(fldcol(0).data());
+        // Read the center frequencies of all channels.
+        Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
+        ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
+        // Take only the channels used in the input.
+        itsChanFreqs = freqCol(0)(Slice(itsStartChan, itsNrChan));
+      }        
+      // Create the UVW calculator.
+      itsUVWCalc = UVWCalculator (itsPhaseCenter, itsAntPos);
     }
 
     void MSReader::calcUVW()
     {
-      // Setup calculator object if not done yet.
-      if (itsUVWCalc.empty()) {
-        setupUVWCalc();
-      }
       Matrix<double> uvws(3, itsNrBl);
       for (uint i=0; i<itsAnt1.size(); ++i) {
         uvws.column(i) = itsUVWCalc.getUVW (itsAnt1[i], itsAnt2[i],
                                             itsNextTime);
       }
       itsBuffer.setUVW (uvws);
-    }
-
-    void MSReader::setupUVWCalc()
-    {
-      // Read the station positions from the ANTENNA subtable.
-      Table anttab = itsMS.keywordSet().asTable("ANTENNA");
-      uint nant = anttab.nrow();
-      ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
-      vector<MPosition> statPos;
-      statPos.reserve (nant);
-      for (uint i=0; i<nant; ++i) {
-        statPos.push_back (antcol(i));
-      }
-      // Read the phase reference position from the FIELD subtable.
-      // Only use the main value from the PHASE_DIR array.
-      Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
-      AlwaysAssert (fldtab.nrow() == 1, AipsError);
-      ROArrayMeasColumn<MDirection> fldcol (fldtab, "PHASE_DIR");
-      // Create the UVW calculator.
-      itsUVWCalc = UVWCalculator (*(fldcol(0).data()), statPos);
     }
 
     Matrix<double> MSReader::getUVW (const RefRows& rowNrs)
@@ -461,22 +472,6 @@ namespace LOFAR {
         ArrayColumn<bool> flagCol(itsMS, "FLAG");
         flagCol.putColumnCells (rowNrs, itsColSlicer, flags);
       }
-    }
-
-    Vector<String> MSReader::antennaNames() const
-    {
-      Table tab(itsMS.keywordSet().asTable("ANTENNA"));
-      ROScalarColumn<String> nameCol (tab, "NAME");
-      return nameCol.getColumn();
-    }
-
-    Vector<double> MSReader::chanFreqs() const
-    {
-      Table tab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
-      ROArrayColumn<double> freqCol (tab, "CHANFREQ");
-      // Take only the channels used in the input.
-      Vector<double> freqs(freqCol(0));
-      return freqs(Slice(itsStartChan, itsNrChan));
     }
 
   } //# end namespace

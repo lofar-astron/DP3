@@ -5,7 +5,7 @@ libdppp_la_SOURCES = Package__Version.cc  \
 		ProgressMeter.cc FlagCounter.cc \
 		UVWCalculator.cc \
 		MSReader.cc MSWriter.cc MSUpdater.cc \
-		Averager.cc MedFlagger.cc PreFlagger.cc \
+		Averager.cc MedFlagger.cc PreFlagger.cc UVWFlagger.cc \
 		FlaggerStatistics.cc \
 		MsInfo.cc \
 		MsFile.cc \

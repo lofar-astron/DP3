@@ -101,7 +101,8 @@ namespace LOFAR {
               if (nusedAnt[ia] > 0) {
                 if (nusedBL(k,ia) > 0) {
                   os << std::setw(4)
-                     << int((100. * countBL(k,ia)) / (nusedBL(k,ia) * npoints))
+                     << int((100. * countBL(k,ia)) /
+                            (nusedBL(k,ia) * npoints) + 0.5)
                      << '%';
                 } else {
                   os << "     ";
@@ -119,7 +120,8 @@ namespace LOFAR {
         for (int j=0; j<nra;) {
           if (nusedAnt[ia] > 0) {
             os << std::setw(4)
-               << int((100. * countAnt[ia]) / (nusedAnt[ia] * npoints)) << '%';
+               << int((100. * countAnt[ia]) /
+                      (nusedAnt[ia] * npoints) + 0.5) << '%';
             j++;
           }
           ia++;
@@ -149,7 +151,7 @@ namespace LOFAR {
         int nrc = std::min(nchpl, int(itsChanCounts.size() - i*nchpl));
         os << std::setw(4) << ch << '-' << std::setw(4) << ch+nrc-1 << ":    ";
         for (int j=0; j<nrc; ++j) {
-          os << std::setw(4) << int((100. * itsChanCounts[ch]) / npoints)
+          os << std::setw(4) << int((100. * itsChanCounts[ch]) / npoints + 0.5)
              << '%';
           ch++;
         }
@@ -157,11 +159,26 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::showCorrelation (ostream& os) const
+    void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
     {
-      os << endl << "Number of points flagged per correlation:  " << endl
-         << "    " << itsCorrCounts << endl;
+      int64 ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
+      os << endl << "Percentage of points flagged per correlation:" << endl;
+      os << "  " << itsCorrCounts << " out of " << ntotal << " points   [";
+      for (uint i=0; i<itsCorrCounts.size(); ++i) {
+        if (i > 0) {
+          os << ", ";
+        }
+        os << int(100. * itsCorrCounts[i] / ntotal + 0.5) << '%';
+      }
+      os << ']' << endl;
     }
+
+    void FlagCounter::showPerc1 (ostream& os, double value, double total)
+    {
+      int perc = int(1000. * value / total + 0.5);
+      os << std::setw(3) << perc/10 << '.' << perc%10 << '%';
+    }
+
 
   } //# end namespace
 }

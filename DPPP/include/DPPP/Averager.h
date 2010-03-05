@@ -73,6 +73,9 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
+
     private:
       // Average and return the result.
       DPBuffer average() const;
@@ -93,6 +96,7 @@ namespace LOFAR {
       uint            itsNTimeAvg;
       uint            itsNTimes;
       double          itsTimeInterval;
+      NSTimer         itsTimer;
     };
 
   } //# end namespace

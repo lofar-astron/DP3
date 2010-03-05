@@ -35,6 +35,8 @@
 #include <tables/Tables/RefRows.h>
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Slicer.h>
+#include <measures/Measures/MDirection.h>
+#include <measures/Measures/MPosition.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -90,6 +92,25 @@ namespace LOFAR {
       const casa::Vector<int>& getAnt2() const
         { return itsAnt2; }
 
+      // Get the antenna names.
+      const casa::Vector<casa::String>& antennaNames() const
+        { return itsAntNames; }
+
+      // Get the antenna positions.
+      const vector<casa::MPosition>& antennaPos() const
+        { return itsAntPos; }
+
+      // Get the phase reference direction.
+      const casa::MDirection& phaseCenter() const
+        { return itsPhaseCenter; }
+
+      // Get the channel frequencies.
+      const casa::Vector<double>& chanFreqs() const
+        { return itsChanFreqs; }
+
+      // Get averaged channel frequencies.
+      casa::Vector<double> chanFreqs (uint nchanAvg) const;
+
       // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.
       // Otherwise there are read from the input.
@@ -118,8 +139,12 @@ namespace LOFAR {
       uint itsNrChan;
       uint itsNrCorr;
       uint itsNrBl;
-      casa::Vector<int> itsAnt1;
-      casa::Vector<int> itsAnt2;
+      casa::Vector<int>          itsAnt1;        //# ant1 of all baselines
+      casa::Vector<int>          itsAnt2;        //# ant2 of all baselines
+      casa::Vector<casa::String> itsAntNames;
+      vector<casa::MPosition>    itsAntPos;
+      casa::MDirection           itsPhaseCenter;
+      casa::Vector<double>       itsChanFreqs;
     };
 
   } //# end namespace

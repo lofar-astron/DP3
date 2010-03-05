@@ -40,8 +40,7 @@ namespace LOFAR {
         itsNrCorr      (reader->ncorr()),
         itsNrChan      (reader->nchan()),
         itsNrBl        (reader->nbaselines()),
-        itsNrTimes     (0),
-        itsFlagCounter ("MSUpdater")
+        itsNrTimes     (0)
     {
       itsCountFlags = parset.getBool (prefix+"countflag", false);
       MSWriter::writeHistory (reader->table(), parset);

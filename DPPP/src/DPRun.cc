@@ -31,18 +31,26 @@
 #include <DPPP/Averager.h>
 #include <DPPP/MedFlagger.h>
 #include <DPPP/PreFlagger.h>
+#include <DPPP/UVWFlagger.h>
 #include <DPPP/ProgressMeter.h>
 #include <Common/ParameterSet.h>
+#include <Common/Timer.h>
+#include <casa/OS/Timer.h>
 
 namespace LOFAR {
   namespace DPPP {
 
     void DPRun::execute (const string& parsetName)
     {
+      casa::Timer timer;
+      NSTimer nstimer;
+      nstimer.start();
       ParameterSet parset(parsetName);
       bool showProgress = parset.getBool ("showprogress", true);
+      bool showTimings  = parset.getBool ("showtimings", true);
       DPStep::ShPtr firstStep = makeSteps (parset);
-      // Show the steps and determine AverageInfo again to get #times to process.
+      // Show the steps and determine AverageInfo again to get #times
+      // to process.
       AverageInfo avgInfo;
       DPStep::ShPtr step = firstStep;
       while (step) {
@@ -82,6 +90,19 @@ namespace LOFAR {
         step->showCounts (std::cout);
         step = step->getNextStep();
       }
+      // Show the overall timer.
+      nstimer.stop();
+      double duration = nstimer.getElapsed();
+      cout << endl;
+      timer.show ("Total NDPPP time");
+      if (showTimings) {
+        // Show the timings per step.
+        step = firstStep;
+        while (step) {
+          step->showTimings (std::cout, duration);
+          step = step->getNextStep();
+        }
+      }
       // The destructors are called automatically at this point.
     }
 
@@ -112,9 +133,9 @@ namespace LOFAR {
         } else if (type == "madflagger"  ||  type == "madflag") {
           step = DPStep::ShPtr(new MedFlagger (reader, parset, prefix));
         } else if (type == "preflagger"  ||  type == "preflag") {
-          step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix,
-                                               reader->antennaNames(),
-                                               reader->chanFreqs()));
+          step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix));
+        } else if (type == "uvwflagger"  ||  type == "uvwflag") {
+          step = DPStep::ShPtr(new UVWFlagger (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }

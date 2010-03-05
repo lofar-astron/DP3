@@ -64,8 +64,15 @@ namespace LOFAR {
       os << "  timestep:       " << itsNTimeAvg << std::endl;
     }
 
+    void Averager::showTimings (std::ostream& os, double duration) const
+    {
+      os << "  Averager " << itsName << ": " << std::setprecision(1)
+         << 100. * itsTimer.getElapsed() / duration << '%' << endl;
+    }
+
     bool Averager::process (const DPBuffer& buf)
     {
+      itsTimer.start();
       RefRows rowNrs(buf.getRowNrs());
       if (itsNTimes == 0) {
         // The first time we assign because that is faster than first clearing
@@ -147,8 +154,11 @@ namespace LOFAR {
       itsNTimes += 1;
       if (itsNTimes >= itsNTimeAvg) {
         DPBuffer buf = average();
+        itsTimer.stop();
         getNextStep()->process (buf);
         itsNTimes = 0;
+      } else {
+        itsTimer.stop();
       }
       return true;
     }
@@ -157,7 +167,9 @@ namespace LOFAR {
     {
       // Average remaining entries.
       if (itsNTimes > 0) {
+        itsTimer.start();
         DPBuffer buf = average();
+        itsTimer.stop();
         getNextStep()->process (buf);
         itsNTimes = 0;
       }

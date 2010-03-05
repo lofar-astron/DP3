@@ -65,6 +65,13 @@ public:
         }
       }
     }
+    itsAntNames.resize(4);
+    itsAntNames[0] = "rs01.s01";
+    itsAntNames[1] = "rs02.s01";
+    itsAntNames[2] = "cs01.s01";
+    itsAntNames[3] = "cs01.s02";
+    itsChanFreqs.resize (10);
+    indgen (itsChanFreqs, 1050000., 100000.);
   }
 private:
   virtual bool process (const DPBuffer&)
@@ -233,15 +240,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("antenna", "[rs01.*, *s*.*2]");
-  Vector<double> chanFreqs(10);
-  indgen (chanFreqs, 1050000., 100000.);
-  Vector<String> stations(4);
-  stations[0] = "rs01.s01";
-  stations[1] = "rs02.s02";
-  stations[2] = "cs01.s01";
-  stations[3] = "cs01.s02";
-  DPStep::ShPtr step2(new PreFlagger(in, parset, "", stations, chanFreqs));
+  parset.add ("antenna", "[rs01.*, *s*.*2, rs02.s01]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
@@ -261,14 +261,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   parset.add ("chan", "[11..13, 4, 11]");
   parset.add ("antenna1", "[rs01.*, *s*.*2, *s*.*2]");
   parset.add ("antenna2", "[rs01.*, *s*.*2, rs02.*]");
-  Vector<double> chanFreqs(10);
-  indgen (chanFreqs, 1050000., 100000.);
-  Vector<String> stations(4);
-  stations[0] = "rs01.s01";
-  stations[1] = "rs02.s01";
-  stations[2] = "cs01.s01";
-  stations[3] = "cs01.s02";
-  DPStep::ShPtr step2(new PreFlagger(in, parset, "", stations, chanFreqs));
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
   step1->setNextStep (step2);
   step2->setNextStep (step3);

@@ -1,4 +1,4 @@
-//# PreFlagger.cc: DPPP step class to flag data based on median filtering
+//# PreFlagger.cc: DPPP step class to flag data on channel, baseline, or time
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -40,12 +40,9 @@ namespace LOFAR {
   namespace DPPP {
 
     PreFlagger::PreFlagger (DPInput* input,
-                            const ParameterSet& parset, const string& prefix,
-                            const Vector<String>& antNames,
-                            const Vector<double>& inputChanFreqs)
+                            const ParameterSet& parset, const string& prefix)
       : itsInput (input),
         itsName  (prefix),
-        itsFreqs (inputChanFreqs),
         itsFlagOnUV   (false),
         itsFlagOnBL   (false),
         itsFlagOnAmpl (false)
@@ -67,6 +64,8 @@ namespace LOFAR {
       if (parset.isDefined(prefix+"station")) {
         itsFlagAnt  = parset.getStringVector (prefix+"station");
       }
+      itsMinUV    = parset.getDouble       (prefix+"uvmin", -1);
+      itsMaxUV    = parset.getDouble       (prefix+"uvmax", -1);
       itsFlagFreq = parset.getStringVector (prefix+"freqrange",
                                             vector<string>());
       itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
@@ -75,14 +74,19 @@ namespace LOFAR {
         (ParameterValue (parset.getString  (prefix+"amplmin", "")), 0.);
       itsAmplMax  = fillAmpl
         (ParameterValue (parset.getString  (prefix+"amplmax", "")), 1e30);
-      itsRangeUVm = fillUV (parset, prefix, "uvm", true);
-      itsRangeUm  = fillUV (parset, prefix, "um", false);
-      itsRangeVm  = fillUV (parset, prefix, "vm", false);
-      itsRangeUVl = fillUV (parset, prefix, "uvlambda", true);
-      itsRangeUl  = fillUV (parset, prefix, "ulambda", false);
-      itsRangeVl  = fillUV (parset, prefix, "vlambda", false);
       // Fill the matrix with the baselines to flag.
-      fillBLMatrix (antNames);
+      fillBLMatrix (itsInput->antennaNames());
+      // Determine if the flag on UV distance.
+      // If so, square the distances to avoid having to take the sqrt in flagUV.
+      itsFlagOnUV = itsMinUV > 0;
+      itsMinUV   *= itsMinUV;
+      if (itsMaxUV > 0) {
+        itsFlagOnUV = true;
+        itsMaxUV   *= itsMaxUV;
+      } else {
+        // Make it a very high number.
+        itsMaxUV = 1e30;
+      }
     }
 
     PreFlagger::~PreFlagger()
@@ -95,6 +99,8 @@ namespace LOFAR {
       os << "  antenna2:       " << itsFlagAnt2 << std::endl;
       os << "  antenna:        " << itsFlagAnt  << std::endl;
       os << "  autocorr:       " << itsAutoCorr << std::endl;
+      os << "  uvmin:          " << sqrt(itsMinUV) << std::endl;
+      os << "  uvmax:          " << sqrt(itsMaxUV) << std::endl;
       os << "  chan:           " << itsFlagChan << std::endl;
       os << "  freqrange:      " << itsFlagFreq << std::endl;
       if (! itsChannels.empty()) {
@@ -102,10 +108,15 @@ namespace LOFAR {
       }
     }
 
+    void PreFlagger::showTimings (std::ostream& os, double duration) const
+    {
+      os << "  ";
+      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      os << " MSWriter " << itsName << endl;
+    }
+
     void PreFlagger::updateAverageInfo (AverageInfo& info)
     {
-      // Convert the given frequencies to possibly averaged frequencies.
-      averageFreqs (info.startChan(), info.nchanAvg());
       // Check for channels exceeding nr of channels.
       itsChannels.reserve (itsFlagChan.size());
       for (uint i=0; i<itsFlagChan.size(); ++i) {
@@ -116,7 +127,8 @@ namespace LOFAR {
       // Now handle the possibly given frequency ranges and add the
       // resulting channels to itsChannels.
       if (! itsFlagFreq.empty()) {
-        handleFreqRanges();
+        // Convert the given frequencies to possibly averaged frequencies.
+        handleFreqRanges (itsInput->chanFreqs (info.nchanAvg()));
       }
       // Sort uniquely and resize as needed.
       uint nr = GenSort<uint>::sort (&(itsChannels[0]), itsChannels.size(),
@@ -127,6 +139,7 @@ namespace LOFAR {
 
     bool PreFlagger::process (const DPBuffer& buf)
     {
+      itsTimer.start();
       DPBuffer out(buf);
       // The flags will be changed, so make sure we have a unique array.
       out.getFlags().unique();
@@ -138,10 +151,16 @@ namespace LOFAR {
       if (itsFlagOnBL) {
         flagBL (itsInput->getAnt1(), itsInput->getAnt2(), out.getFlags());
       }
+      // Flag on amplitude if necessary.
+      if (itsFlagOnAmpl) {
+        out.setAmplitudes (amplitude(out.getData()));
+        flagAmpl (out.getAmplitudes(), out.getFlags());
+      }
       // Flag on channel if necessary.
       if (! itsChannels.empty()) {
         flagChannels (out.getFlags());
       }
+      itsTimer.stop();
       // Let the next step do its processing.
       getNextStep()->process (out);
       return true;
@@ -165,10 +184,10 @@ namespace LOFAR {
         // UV-distance is sqrt(u^2 + v^2).
         // The sqrt is not needed because minuv and maxuv are squared.
         double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-        ///        if (uvdist < itsMinUV  ||  uvdist > itsMaxUV) {
-        ///          // UV-dist mismatches, so flag entire baseline.
-        ///          std::fill (flagPtr, flagPtr+nr, true);
-        ///        }
+        if (uvdist < itsMinUV  ||  uvdist > itsMaxUV) {
+          // UV-dist mismatches, so flag entire baseline.
+          std::fill (flagPtr, flagPtr+nr, true);
+        }
         uvwPtr  += 3;
         flagPtr += nr;
       }
@@ -192,6 +211,25 @@ namespace LOFAR {
         ant1Ptr++;
         ant2Ptr++;
         flagPtr += nr;
+      }
+    }
+
+    void PreFlagger::flagAmpl (const Cube<float>& amplitudes,
+                               Cube<bool>& flags)
+    {
+      const IPosition& shape = flags.shape();
+      uint nrcorr = shape[0];
+      uint nr = shape[1] * shape[2];
+      const float* amplPtr = amplitudes.data();
+      bool* flagPtr = flags.data();
+      for (uint i=0; i<nr; ++i) {
+        for (uint j=0; j<nrcorr; ++j) {
+          if (*amplPtr < itsAmplMin[j]  ||  *amplPtr > itsAmplMax[j]) {
+            *flagPtr = true;
+          }
+          amplPtr++;
+          flagPtr++;
+        }
       }
     }
 
@@ -235,58 +273,6 @@ namespace LOFAR {
         }
       }
       return result;
-    }
-
-    vector<double> PreFlagger::fillUV (const ParameterSet& parset,
-                                       const string& prefix,
-                                       const string& name,
-                                       bool square)
-    {
-      // Get possible range, minimum, and maximum.
-      vector<string> uvs = parset.getStringVector (prefix + name + "range",
-                                                   vector<string>());
-      double minuv = parset.getDouble (prefix + name + "min", 0.);
-      double maxuv = parset.getDouble (prefix + name + "max", 0.);
-      // Process the ranges.
-      vector<double> vals;
-      vals.reserve (2*uvs.size());
-      for (vector<string>::const_iterator str = uvs.begin();
-           str != uvs.end(); ++str) {
-        // Each range can be given as st..end or val+-halfwidth.
-        // Find the .. or +- token.
-        bool usepm = false;
-        string::size_type pos;
-        pos = str->find ("..");
-        if (pos == string::npos) {
-          usepm = true;
-          pos = str->find ("+-");
-          ASSERTSTR (pos != string::npos, "PreFlagger " << name << "range '"
-                     << *str << "' should be range using .. or +-");
-        }
-        string str1 = str->substr (0, pos);
-        string str2 = str->substr (pos+2);
-        vals.push_back (strToDouble(str1));
-        vals.push_back (strToDouble(str2));
-      }
-      // If minimum or maximum is given, add them as a range as well.
-      if (minuv > 0) {
-        vals.push_back (0.);
-        vals.push_back (minuv);
-      }
-      if (maxuv > 0) {
-        vals.push_back (maxuv);
-        vals.push_back (1e15);
-      }
-      if (! vals.empty()) {
-        itsFlagOnUV = true;
-      }
-      if (square) {
-        for (vector<double>::iterator iter = vals.begin();
-             iter != vals.end(); ++iter) {
-          *iter = *iter * *iter;
-        }
-      }
-      return vals;
     }
 
     void PreFlagger::fillBLMatrix (const Vector<String>& antNames)
@@ -335,19 +321,7 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::averageFreqs (uint startChan, uint nchanAvg)
-    {
-      uint nchan = (itsFreqs.size() - startChan) / nchanAvg;
-      Vector<double> freqs(nchan); 
-      for (uint i=0; i<nchan; ++i) {
-        freqs[i] = 0.5 * (itsFreqs[startChan + i*nchanAvg] +
-                          itsFreqs[startChan + (i+1)*nchanAvg-1]);
-      }
-      // Replace the original freqs by the averaged ones.
-      itsFreqs.reference (freqs);
-    }
-
-    void PreFlagger::handleFreqRanges()
+    void PreFlagger::handleFreqRanges (const Vector<double>& chanFreqs)
     {
       // A frequency range can be given as  value..value or value+-value.
       // Units can be given for each value; if one is given it applies to both.
@@ -388,8 +362,8 @@ namespace LOFAR {
           v1 -= pm;
         }
         // Add any channel inside this range.
-        for (uint i=0; i<itsFreqs.size(); ++i) {
-          if (itsFreqs[i] > v1  &&  itsFreqs[i] < v2) {
+        for (uint i=0; i<chanFreqs.size(); ++i) {
+          if (chanFreqs[i] > v1  &&  chanFreqs[i] < v2) {
             itsChannels.push_back (i);
           }
         }

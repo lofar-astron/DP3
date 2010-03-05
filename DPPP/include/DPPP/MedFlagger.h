@@ -93,6 +93,9 @@ namespace LOFAR {
       // Show the flagger counts.
       virtual void showCounts (std::ostream&) const;
 
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
+
       // Flag for the entry at the given index.
       // Use the given time entries for the medians.
       // Process the result in the next step.
@@ -118,6 +121,9 @@ namespace LOFAR {
       vector<uint>     itsFlagCorr;
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
+      NSTimer          itsTimer;
+      NSTimer          itsMoveTimer;
+      NSTimer          itsMedianTimer;
     };
 
   } //# end namespace

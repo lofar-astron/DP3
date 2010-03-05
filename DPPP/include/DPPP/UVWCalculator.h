@@ -57,10 +57,6 @@ namespace LOFAR {
       UVWCalculator (const casa::MDirection& phaseDir,
                      const vector<casa::MPosition>& stationPositions);
 
-      // Has the object been initialized?
-      bool empty() const
-        { return itsAntMB.empty(); }
-
       // get the UVW coordinates for the given baseline and time.
       casa::Vector<double> getUVW (uint ant1, uint ant2, double time);
 

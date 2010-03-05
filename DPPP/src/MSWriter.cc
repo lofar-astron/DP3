@@ -56,9 +56,9 @@ namespace LOFAR {
         itsNrTimes      (avgInfo.ntime()),
         // Input can already be averaged, so take that into account.
         itsNChanAvg     (avgInfo.nchanAvg() * itsReader->nchanAvg()),
-        itsNTimeAvg     (avgInfo.ntimeAvg() * itsReader->ntimeAvg()),
-        itsFlagCounter  ("MSWriter")
+        itsNTimeAvg     (avgInfo.ntimeAvg() * itsReader->ntimeAvg())
     {
+      NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).
       uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
       uint tileNChan       = parset.getUint (prefix+"tilenchan", 8);
@@ -86,6 +86,7 @@ namespace LOFAR {
 
     bool MSWriter::process (const DPBuffer& buf)
     {
+      NSTimer::StartStop sstime(itsTimer);
       // Form the vector of the output table containing new rows.
       Vector<uint> rownrs(itsNrBl);
       indgen (rownrs, itsMS.nrow());
@@ -133,6 +134,7 @@ namespace LOFAR {
 
     void MSWriter::finish()
     {
+      NSTimer::StartStop sstime(itsTimer);
       itsMS.flush();
       // Create the VDS file.
       if (! itsClusterDesc.empty()) {
@@ -170,6 +172,13 @@ namespace LOFAR {
                                      itsReader->getAnt2(), itsNrTimes);
         itsFlagCounter.showChannel  (os, itsNrTimes);
       }
+    }
+
+    void MSWriter::showTimings (std::ostream& os, double duration) const
+    {
+      os << "  ";
+      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      os << " MSWriter" << endl;
     }
 
     void MSWriter::makeArrayColumn (ColumnDesc desc, const IPosition& ipos,
@@ -447,13 +456,17 @@ namespace LOFAR {
     {
       Table histtab(ms.keywordSet().asTable("HISTORY"));
       histtab.reopenRW();
-      ostringstream allParms;
-      parset.writeStream (allParms);
+      // Put all parset entries in a Vector<String>.
+      Vector<String> vec(parset.size());
+      Array<String>::contiter viter = vec.cbegin();
+      for (ParameterSet::const_iterator iter = parset.begin();
+           iter != parset.end(); ++iter, ++viter) {
+        *viter = iter->first + '=' + iter->second.get();
+      }
       uint rownr = histtab.nrow();
       histtab.addRow();
       ScalarColumn<double> time        (histtab, "TIME");
       ScalarColumn<int>    obsId       (histtab, "OBSERVATION_ID");
-      ScalarColumn<String> message     (histtab, "MESSAGE");
       ScalarColumn<String> priority    (histtab, "PRIORITY");
       ScalarColumn<String> origin      (histtab, "ORIGIN");
       ScalarColumn<String> application (histtab, "APPLICATION");
@@ -462,13 +475,12 @@ namespace LOFAR {
       time.put        (rownr, Time().modifiedJulianDay()*24.*3600.);
       obsId.put       (rownr, 0);
       application.put (rownr, "NDPPP");
-      message.put     (rownr, allParms.str());
       priority.put    (rownr, "NORMAL");
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
-      // CASA cannot handle empty cells, so put an empty vector in them.
+      parms.put       (rownr, vec);
+      // CASA cannot handle empty cells, so put an empty vector in it.
       Vector<String> arr;
       cli.put   (rownr, arr);
-      parms.put (rownr, arr);
     }
 
     void MSWriter::writeTimeInfo (Table& out, double time,
