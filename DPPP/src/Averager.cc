@@ -29,6 +29,7 @@
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <iostream>
+#include <iomanip>
 
 using namespace casa;
 
