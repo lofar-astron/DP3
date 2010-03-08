@@ -84,6 +84,9 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      // Read and handle the Time parset parameters.
+      void readTimeParms (const ParameterSet& parset);
+
       // Set the flags for baselines with mismatching UV distances.
       void flagUV (const casa::Matrix<double>& uvw,
                    casa::Cube<bool>& flags);

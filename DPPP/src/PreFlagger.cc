@@ -76,6 +76,8 @@ namespace LOFAR {
         (ParameterValue (parset.getString  (prefix+"amplmax", "")), 1e30);
       // Fill the matrix with the baselines to flag.
       fillBLMatrix (itsInput->antennaNames());
+      // Get the possible times and other info to flag on.
+      readTimeParms (parset);
       // Determine if the flag on UV distance.
       // If so, square the distances to avoid having to take the sqrt in flagUV.
       itsFlagOnUV = itsMinUV > 0;
@@ -91,6 +93,10 @@ namespace LOFAR {
 
     PreFlagger::~PreFlagger()
     {}
+
+    void PreFlagger::readTimeParms (const ParameterSet& parset)
+    {
+    }
 
     void PreFlagger::show (std::ostream& os) const
     {
