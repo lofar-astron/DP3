@@ -59,6 +59,8 @@
 // 0.47 determine baselines from main table instead of ANTENNA table
 #define PIPELINE_VERSION "0.47"
 
+using namespace casa;
+
 namespace LOFAR
 {
   namespace CS1
@@ -86,7 +88,15 @@ namespace LOFAR
     {
       ParameterSet* ParamSet = globalParameterSet();
       myDetails  = new RunDetails();
-      ParamSet->writeBuffer (myDetails->AllParms);
+      // Put all parset entries in a Vector<String>.
+      cout << "size=" << myDetails->AllParms.size() << endl;
+      myDetails->AllParms.resize (ParamSet->size());
+      Array<String>::contiter viter = myDetails->AllParms.cbegin();
+      for (ParameterSet::const_iterator iter = ParamSet->begin();
+           iter != ParamSet->end(); ++iter, ++viter) {
+        *viter = iter->first + '=' + iter->second.get();
+      }
+      // Get the parameters.
       myDetails->Fixed        = ParamSet->getUint32("fixed", 0);           // BandpassCorrector
       myDetails->FreqWindow   = ParamSet->getUint32("freqwindow", 1);      // FrequencyFlagger, MADFlagger
       myDetails->TimeWindow   = ParamSet->getUint32("timewindow", 1);      // ComplexMedianFlagger, MADFlagger

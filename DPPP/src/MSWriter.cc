@@ -467,13 +467,15 @@ namespace LOFAR {
       histtab.addRow();
       ScalarColumn<double> time        (histtab, "TIME");
       ScalarColumn<int>    obsId       (histtab, "OBSERVATION_ID");
+      ScalarColumn<String> message     (histtab, "MESSAGE");
+      ScalarColumn<String> application (histtab, "APPLICATION");
       ScalarColumn<String> priority    (histtab, "PRIORITY");
       ScalarColumn<String> origin      (histtab, "ORIGIN");
-      ScalarColumn<String> application (histtab, "APPLICATION");
-      ArrayColumn<String>  cli         (histtab, "CLI_COMMAND");
       ArrayColumn<String>  parms       (histtab, "APP_PARAMS");
+      ArrayColumn<String>  cli         (histtab, "CLI_COMMAND");
       time.put        (rownr, Time().modifiedJulianDay()*24.*3600.);
       obsId.put       (rownr, 0);
+      message.put     (rownr, "parameters");
       application.put (rownr, "NDPPP");
       priority.put    (rownr, "NORMAL");
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));

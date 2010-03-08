@@ -399,16 +399,16 @@ void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
   histtab.addRow();
   MSHistoryColumns histcols(histtab);
   histcols.observationId().put (rownr, 0);
-  histcols.application().put   (rownr, "DPPP");
-  histcols.message().put       (rownr, details.AllParms);
+  histcols.application().put   (rownr, "IDPPP");
+  histcols.message().put       (rownr, "parameters");
   histcols.priority().put      (rownr, "NORMAL");
   histcols.time().put          (rownr, Time().modifiedJulianDay()*24.*3600.);
   histcols.origin().put        (rownr, Version::getInfo<DPPPVersion>("IDPPP",
                                                                      "full"));
-  // CASA cannot handle empty cells, so put an empty vector in them.
+  histcols.appParams().put     (rownr, details.AllParms);
+  // CASA cannot handle empty cells, so put an empty vector in it.
   Vector<String> arr;
   histcols.cliCommand().put    (rownr, arr);
-  histcols.appParams().put     (rownr, arr);
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============

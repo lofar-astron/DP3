@@ -27,6 +27,7 @@
 /// @brief Class to hold parameter settings for the steps in IDPPP
 /// @author Adriaan Renting (renting AT astron nl)
 
+#include <casa/Arrays/Vector.h>
 #include <vector>
 #include <string>
 
@@ -64,8 +65,8 @@ namespace LOFAR
       unsigned int TileNChan;    ///< Nr of channels per tile for the DATA columns
       unsigned int TileSize;     ///< Tile size (in kbytes) for the DATA columns
       std::string  FlagColumn;   ///< Data column to use in all flaggers
-      std::vector<std::string> DataColumns; ///< Data columns to handle
-      std::string  AllParms;     ///< All parameters and their values
+      std::vector<std::string>  DataColumns; ///< Data columns to handle
+      casa::Vector<casa::String> AllParms;  ///< All parameters and their values
 
       bool CheckValues(void);    ///< Method to do some validity checks on the values
       void PrintInfo(void);      ///< Prints all values to cout, mainly for debugging purposes

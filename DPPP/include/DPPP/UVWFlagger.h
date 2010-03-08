@@ -78,19 +78,18 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the flagger counts.
-      virtual void showCounts (std::ostream&) const;
-
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      // Set the flags for baselines with mismatching UV distances.
-      void flagUV (const casa::Matrix<double>& uvw,
-                   casa::Cube<bool>& flags);
+      // Test if uvw matches a range.
+      bool testUVWm (double uvw, const vector<double>& ranges);
+
+      // Set flags for channels where uvw (in m) matches a range in wavelengths.
+      void testUVWl (double uvw, const vector<double>& ranges,
+                     bool* flagPtr, uint nrcorr);
 
       // Return a vector with UVW ranges.
-      // If an UVW value is given, itsFlagOnUVW is set.
       // It looks for the named parameter suffixed with 'range', 'min', and
       // 'max'. The returned vector contains 2 subsequent values for each range
       // (min and max are also turned into a range).
@@ -113,18 +112,18 @@ namespace LOFAR {
       DPInput*             itsInput;
       string               itsName;
       uint                 itsNTimes;
-      casa::Vector<double> itsFreqs;    //# frequencies of the input (MS)
+      bool                 itsFlagOnWl; //# Flag on wavelengths?
+      casa::Vector<double> itsRecWavel; //# reciprokes of wavelengths
       vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
       vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged
       vector<double>       itsRangeVm;  //# V  ranges (in m) to be flagged
       vector<double>       itsRangeWm;  //# W  ranges (in m) to be flagged
-      vector<double>       itsRangeUVl; //# UV ranges (in wl) to be flagged
-      vector<double>       itsRangeUl;  //# U  ranges (in wl) to be flagged
-      vector<double>       itsRangeVl;  //# V  ranges (in wl) to be flagged
-      vector<double>       itsRangeWl;  //# W  ranges (in wl) to be flagged
+      vector<double>       itsRangeUVl; //# UV ranges (in wavel) to be flagged
+      vector<double>       itsRangeUl;  //# U  ranges (in wavel) to be flagged
+      vector<double>       itsRangeVl;  //# V  ranges (in wavel) to be flagged
+      vector<double>       itsRangeWl;  //# W  ranges (in wavel) to be flagged
       UVWCalculator        itsUVWCalc;
       vector<string>       itsCenter;
-      FlagCounter          itsFlagCounter;
       NSTimer              itsTimer;
     };
 

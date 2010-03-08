@@ -147,8 +147,6 @@ MsInfo::MsInfo(const MeasurementSet& MS, const Table& orderedMainTable):
   }
 
   ComputeBaselineLengths(MS);
-
-  cout << "Info: " <<NumSamples<<' '<<NumPairs<<' '<<NumAntennae<<' '<<index<<endl;
 }
 
 //===============>>>  Ms_Info::~Ms_Info  <<<===============

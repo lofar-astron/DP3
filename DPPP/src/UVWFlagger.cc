@@ -50,14 +50,14 @@ namespace LOFAR {
       itsRangeUm  = fillUVW (parset, prefix, "um", false);
       itsRangeVm  = fillUVW (parset, prefix, "vm", false);
       itsRangeWm  = fillUVW (parset, prefix, "wm", false);
-      itsRangeUVl = fillUVW (parset, prefix, "uvlambda", true);
+      itsRangeUVl = fillUVW (parset, prefix, "uvlambda", false);
       itsRangeUl  = fillUVW (parset, prefix, "ulambda", false);
       itsRangeVl  = fillUVW (parset, prefix, "vlambda", false);
       itsRangeWl  = fillUVW (parset, prefix, "wlambda", false);
       ASSERTSTR (itsRangeUVm.size() + itsRangeUVl.size() +
                  itsRangeUm.size() + itsRangeVm.size() + itsRangeWm.size() +
                  itsRangeUl.size() + itsRangeVl.size() + itsRangeWl.size() > 0,
-                 "One or more ranges in UVWFlagger has to be filled in");
+                 "One or more u,v,w ranges in UVWFlagger has to be filled in");
       itsCenter = parset.getStringVector (prefix+"phasecenter",
                                           vector<string>());
       if (! itsCenter.empty()) {
@@ -73,15 +73,6 @@ namespace LOFAR {
       os << "UVWFlagger " << itsName << std::endl;
     }
 
-    void UVWFlagger::showCounts (std::ostream& os) const
-    {
-      os << endl << "Flag statistics of UVWFlagger " << itsName;
-      os << endl << "=============================" << endl;
-      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsNTimes);
-      itsFlagCounter.showChannel  (os, itsNTimes);
-    }
-
     void UVWFlagger::showTimings (std::ostream& os, double duration) const
     {
       os << "  ";
@@ -92,14 +83,75 @@ namespace LOFAR {
     void UVWFlagger::updateAverageInfo (AverageInfo& info)
     {
       // Convert the given frequencies to possibly averaged frequencies.
-      averageFreqs (info.startChan(), info.nchanAvg());
+      // Divide it by light of speed to get reciproke of wavelengths.
+      itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / C::c;
     }
 
     bool UVWFlagger::process (const DPBuffer& buf)
     {
       DPBuffer out(buf);
       // The flags will be changed, so make sure we have a unique array.
-      out.getFlags().unique();
+      Cube<bool>& flags = out.getFlags();
+      flags.unique();
+      // Loop over the baselines and flag as needed.
+      const IPosition& shape = flags.shape();
+      uint nrcorr = shape[0];
+      uint nrchan = shape[1];
+      uint nr = nrcorr * nrchan;
+      uint nrbl = shape[2];
+      ASSERT (nrchan == itsRecWavel.size());
+      // Input uvw coordinates are only needed if no new phase center is used.
+      Matrix<double> uvws;
+      if (itsCenter.empty()) {
+        uvws.reference (itsInput->fetchUVW(buf, buf.getRowNrs()));
+      }
+      const double* uvwPtr = uvws.data();
+      bool* flagPtr = flags.data();
+      for (uint i=0; i<nrbl; ++i) {
+        if (! itsCenter.empty()) {
+          // A different phase center is given, so calculate UVW for it.
+          Vector<double> uvw = itsUVWCalc.getUVW (itsInput->getAnt1()[i],
+                                                  itsInput->getAnt2()[i],
+                                                  buf.getTime());
+          uvwPtr = uvw.data();
+        }
+        double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
+        bool flagBL = false;
+        if (! itsRangeUVm.empty()) {
+          // UV-distance is sqrt(u^2 + v^2).
+          // The sqrt is not needed because itsRangeUVm is squared.
+          flagBL = testUVWm (uvdist, itsRangeUVm);
+        }
+        if (!(flagBL || itsRangeUm.empty())) {
+          flagBL = testUVWm (uvwPtr[0], itsRangeUm);
+        }
+        if (!(flagBL || itsRangeVm.empty())) {
+          flagBL = testUVWm (uvwPtr[1], itsRangeVm);
+        }
+        if (!(flagBL || itsRangeWm.empty())) {
+          flagBL = testUVWm (uvwPtr[2], itsRangeWm);
+        }
+        if (flagBL) {
+          // Flag entire baseline.
+          std::fill (flagPtr, flagPtr+nr, true);
+        } else {
+          if (! itsRangeUVl.empty()) {
+            // UV-distance is sqrt(u^2 + v^2).
+            testUVWl (sqrt(uvdist), itsRangeUVl, flagPtr, nrcorr);
+          }
+          if (! itsRangeUl.empty()) {
+            testUVWl (uvwPtr[0], itsRangeUl, flagPtr, nrcorr);
+          }
+          if (! itsRangeVl.empty()) {
+            testUVWl (uvwPtr[1], itsRangeVl, flagPtr, nrcorr);
+          }
+          if (! itsRangeWl.empty()) {
+            testUVWl (uvwPtr[2], itsRangeWl, flagPtr, nrcorr);
+          }
+        }
+        uvwPtr  += 3;
+        flagPtr += nr;
+      }
       // Let the next step do its processing.
       itsNTimes++;
       getNextStep()->process (out);
@@ -112,20 +164,32 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
-    void UVWFlagger::flagUV (const Matrix<double>& uvw,
-                             Cube<bool>& flags)
+    bool UVWFlagger::testUVWm (double uvw, const vector<double>& ranges)
     {
-      const IPosition& shape = flags.shape();
-      uint nr = shape[0] * shape[1];
-      uint nrbl = shape[2];
-      const double* uvwPtr = uvw.data();
-      bool* flagPtr = flags.data();
-      for (uint i=0; i<nrbl; ++i) {
-        // UV-distance is sqrt(u^2 + v^2).
-        // The sqrt is not needed because minuv and maxuv are squared.
-        double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-        uvwPtr  += 3;
-        flagPtr += nr;
+      for (size_t i=0; i<ranges.size(); i+=2) {
+        if (uvw > ranges[i]  &&  uvw < ranges[i+1]) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    void UVWFlagger::testUVWl (double uvw, const vector<double>& ranges,
+                               bool* flagPtr, uint nrcorr)
+    {
+      // This loop could be made more efficient if it is guaranteed that
+      // itsRecWavel is in strict ascending or descending order.
+      // It is expected that the nr of ranges is so small that it is not
+      // worth the trouble, but it could be done if ever needed.
+      for (uint j=0; j<itsRecWavel.size(); ++j) {
+        double uvwl = uvw * itsRecWavel[j];
+        for (size_t i=0; i<ranges.size(); i+=2) {
+          if (uvwl > ranges[i]  &&  uvwl < ranges[i+1]) {
+            std::fill (flagPtr, flagPtr+nrcorr, true);
+            break;
+          }
+        }
+        flagPtr += nrcorr;
       }
     }
 
@@ -186,12 +250,11 @@ namespace LOFAR {
                  "Up to 3 values can be given in UVWFlagger phasecenter");
       MDirection phaseCenter;
       if (itsCenter.size() == 1) {
-        string type = toLower(itsCenter[0]);
-        if (type == "sun") {
-          phaseCenter = MDirection(MDirection::SUN);
-        } else {
-          ASSERTSTR (false, itsCenter[0] << " is an unknown source");
-        }
+        string str = toUpper(itsCenter[0]);
+        MDirection::Types tp;
+        ASSERTSTR (MDirection::getType(tp, str),
+                   str << " is an invalid direction type in UVWFlagger");
+        phaseCenter = MDirection(tp);
       } else {
         Quantity q0, q1;
         ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
@@ -200,23 +263,15 @@ namespace LOFAR {
                    itsCenter[1] << " is an invalid DEC or latitude");
         MDirection::Types type = MDirection::J2000;
         if (itsCenter.size() > 2) {
+          string str = toUpper(itsCenter[0]);
+          MDirection::Types tp;
+          ASSERTSTR (MDirection::getType(tp, str),
+                     str << " is an invalid direction type in UVWFlagger");
         }
-        phaseCenter = MDirection(MVDirection(q0, q1), type);
+        phaseCenter = MDirection(q0, q1, type);
       }
       // Create the UVW calculator.
       itsUVWCalc = UVWCalculator (phaseCenter, itsInput->antennaPos());
-    }
-
-    void UVWFlagger::averageFreqs (uint startChan, uint nchanAvg)
-    {
-      uint nchan = (itsFreqs.size() - startChan) / nchanAvg;
-      Vector<double> freqs(nchan); 
-      for (uint i=0; i<nchan; ++i) {
-        freqs[i] = 0.5 * (itsFreqs[startChan + i*nchanAvg] +
-                          itsFreqs[startChan + (i+1)*nchanAvg-1]);
-      }
-      // Replace the original freqs by the averaged ones.
-      itsFreqs.reference (freqs);
     }
 
   } //# end namespace
