@@ -61,7 +61,9 @@ namespace LOFAR {
       casa::Vector<double> getUVW (uint ant1, uint ant2, double time);
 
     private:
+      casa::MDirection              itsOrigPhaseDir;
       casa::MDirection              itsPhaseDir;
+      bool                          itsMovingPhaseDir;  
       casa::MeasFrame               itsFrame;
       vector<casa::MBaseline>       itsAntMB;
       vector<casa::Vector<double> > itsAntUvw;

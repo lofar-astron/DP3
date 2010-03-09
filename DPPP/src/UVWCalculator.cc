@@ -64,8 +64,15 @@ namespace LOFAR {
                          (pos[2] - pos0[2]));
         itsAntMB.push_back (MBaseline (MVBaseline(mvpos), MBaseline::ITRF));
       }
-      // Use the PHASE_DIR in J2000.
-      itsPhaseDir = MDirection::Convert (phaseDir, MDirection::J2000)();
+      // Try to use the PHASE_DIR in J2000.
+      // It fails if a moving source (e.g. SUN) is used.
+      itsMovingPhaseDir = false;
+      itsOrigPhaseDir   = phaseDir;
+      try {
+        itsPhaseDir = MDirection::Convert (phaseDir, MDirection::J2000)();
+      } catch (...) {
+        itsMovingPhaseDir = true;
+      }
       // Create a reference frame. Use the middle antenna as array position.
       itsFrame.set (arrayPos);
       itsFrame.set (itsPhaseDir);
@@ -86,6 +93,11 @@ namespace LOFAR {
         Quantum<Double> tm(time, "s");
         itsFrame.set (MEpoch(MVEpoch(tm.get("d").getValue()), MEpoch::UTC));
         itsUvwFilled = false;
+        // If phase dir is moving, calculate it for this time.
+        if (itsMovingPhaseDir) {
+          itsPhaseDir = MDirection::Convert (itsOrigPhaseDir,
+                                             MDirection::J2000)();
+        }
       }
       // Calculate the UVWs for this timestamp if not done yet.
       int ant = ant1;

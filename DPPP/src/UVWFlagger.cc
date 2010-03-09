@@ -29,6 +29,7 @@
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/ArrayIO.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Quanta/MVAngle.h>
 #include <casa/Utilities/GenSort.h>
@@ -137,6 +138,7 @@ namespace LOFAR {
                                                   itsInput->getAnt2()[i],
                                                   buf.getTime());
           uvwPtr = uvw.data();
+          ///cout << "uvw = " << uvw << endl;
         }
         double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
         bool flagBL = false;

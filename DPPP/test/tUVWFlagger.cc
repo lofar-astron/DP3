@@ -403,6 +403,20 @@ void test3(int ntime, int nbl, int nchan, int ncorr)
   execute (step1);
 }
 
+// Test constructing with the Sun as phase center.
+void test4()
+{
+  cout << "test4" << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(1,1,1,1);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("uvmrange", "[5.5..8.5]");
+  parset.add ("phasecenter", "Sun");
+  DPStep::ShPtr step2(new UVWFlagger(in, parset, ""));
+  step2->show (cout);
+}
+
 
 int main()
 {
@@ -416,6 +430,7 @@ int main()
     test2( 10,  16, 32, 4);
     test2(100, 105, 32, 4);
     test3(  2,  16, 32, 4);
+    test4();
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
