@@ -70,7 +70,7 @@ public:
     itsAntNames[1] = "rs02.s01";
     itsAntNames[2] = "cs01.s01";
     itsAntNames[3] = "cs01.s02";
-    itsChanFreqs.resize (10);
+    itsChanFreqs.resize (nchan);
     indgen (itsChanFreqs, 1050000., 100000.);
   }
 private:

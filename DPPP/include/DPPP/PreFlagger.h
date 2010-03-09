@@ -25,7 +25,7 @@
 #define DPPP_PREFLAGGER_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP step class to flag data on channel, baseline, or time
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>

@@ -1,4 +1,4 @@
-//# UVWFlagger.cc: DPPP step class to flag data on channel, baseline, or time
+//# UVWFlagger.cc: DPPP step class to flag data on UVW coordinates
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -71,24 +71,46 @@ namespace LOFAR {
     void UVWFlagger::show (std::ostream& os) const
     {
       os << "UVWFlagger " << itsName << std::endl;
+      vector<double> uvm(itsRangeUVm);
+      for (uint i=0; i<uvm.size(); ++i) {
+        if (uvm[i] > 0) {
+          uvm[i] = sqrt(uvm[i]);
+        }
+      }
+      os << "  uvm:            " << uvm << std::endl;
+      os << "  um:             " << itsRangeUm << std::endl;
+      os << "  vm:             " << itsRangeVm << std::endl;
+      os << "  wm:             " << itsRangeWm << std::endl;
+      os << "  uvlambda:       " << itsRangeUVl << std::endl;
+      os << "  ulambda:        " << itsRangeUl << std::endl;
+      os << "  vlambda:        " << itsRangeVl << std::endl;
+      os << "  wlambda:        " << itsRangeWl << std::endl;
+      os << "  phasecenter:    " << itsCenter << std::endl;
     }
 
     void UVWFlagger::showTimings (std::ostream& os, double duration) const
     {
+      double flagDur = itsTimer.getElapsed();
       os << "  ";
-      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      FlagCounter::showPerc1 (os, flagDur, duration);
       os << " UVWFlagger " << itsName << endl;
+      if (! itsCenter.empty()) {
+        os << "          ";
+        FlagCounter::showPerc1 (os, itsUVWTimer.getElapsed(), flagDur);
+        os << " of it spent in calculating UVW coordinates" << endl;
+      }
     }
 
     void UVWFlagger::updateAverageInfo (AverageInfo& info)
     {
       // Convert the given frequencies to possibly averaged frequencies.
-      // Divide it by light of speed to get reciproke of wavelengths.
-      itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / C::c;
+      // Divide it by speed of light to get reciproke of wavelengths.
+      itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / casa::C::c;
     }
 
     bool UVWFlagger::process (const DPBuffer& buf)
     {
+      itsTimer.start();
       DPBuffer out(buf);
       // The flags will be changed, so make sure we have a unique array.
       Cube<bool>& flags = out.getFlags();
@@ -110,6 +132,7 @@ namespace LOFAR {
       for (uint i=0; i<nrbl; ++i) {
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
+          NSTimer::StartStop ssuvwtimer(itsUVWTimer);
           Vector<double> uvw = itsUVWCalc.getUVW (itsInput->getAnt1()[i],
                                                   itsInput->getAnt2()[i],
                                                   buf.getTime());
@@ -153,6 +176,7 @@ namespace LOFAR {
         flagPtr += nr;
       }
       // Let the next step do its processing.
+      itsTimer.stop();
       itsNTimes++;
       getNextStep()->process (out);
       return true;
@@ -221,12 +245,19 @@ namespace LOFAR {
         }
         string str1 = str->substr (0, pos);
         string str2 = str->substr (pos+2);
-        vals.push_back (strToDouble(str1));
-        vals.push_back (strToDouble(str2));
+        double v1 = strToDouble(str1);
+        double v2 = strToDouble(str2);
+        if (usepm) {
+          double hw = v2;
+          v2 = v1 + hw;
+          v1 -= hw;
+        }
+        vals.push_back (v1);
+        vals.push_back (v2);
       }
       // If minimum or maximum is given, add them as a range as well.
       if (minuv > 0) {
-        vals.push_back (0.);
+        vals.push_back (-1e15);
         vals.push_back (minuv);
       }
       if (maxuv > 0) {
@@ -236,7 +267,9 @@ namespace LOFAR {
       if (square) {
         for (vector<double>::iterator iter = vals.begin();
              iter != vals.end(); ++iter) {
-          *iter = *iter * *iter;
+          if (*iter != -1e15) {
+            *iter = *iter * *iter;
+          }
         }
       }
       return vals;
@@ -253,20 +286,24 @@ namespace LOFAR {
         string str = toUpper(itsCenter[0]);
         MDirection::Types tp;
         ASSERTSTR (MDirection::getType(tp, str),
-                   str << " is an invalid direction type in UVWFlagger");
+                   str << " is an invalid source type"
+                   " in UVWFlagger phasecenter");
         phaseCenter = MDirection(tp);
       } else {
         Quantity q0, q1;
         ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
-                   itsCenter[0] << " is an invalid RA or longitude");
+                   itsCenter[0] << " is an invalid RA or longitude"
+                   " in UVWFlagger phasecenter");
         ASSERTSTR (MVAngle::read (q1, itsCenter[1]),
-                   itsCenter[1] << " is an invalid DEC or latitude");
+                   itsCenter[1] << " is an invalid DEC or latitude"
+                   " in UVWFlagger phasecenter");
         MDirection::Types type = MDirection::J2000;
         if (itsCenter.size() > 2) {
-          string str = toUpper(itsCenter[0]);
+          string str = toUpper(itsCenter[2]);
           MDirection::Types tp;
           ASSERTSTR (MDirection::getType(tp, str),
-                     str << " is an invalid direction type in UVWFlagger");
+                     str << " is an invalid direction type in UVWFlagger"
+                     " in UVWFlagger phasecenter");
         }
         phaseCenter = MDirection(q0, q1, type);
       }

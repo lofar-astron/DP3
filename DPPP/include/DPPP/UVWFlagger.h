@@ -25,7 +25,7 @@
 #define DPPP_UVWFLAGGER_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP step class to flag data on UVW coordinates
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
@@ -82,7 +82,7 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      // Test if uvw matches a range.
+      // Test if uvw matches a range in meters.
       bool testUVWm (double uvw, const vector<double>& ranges);
 
       // Set flags for channels where uvw (in m) matches a range in wavelengths.
@@ -95,7 +95,6 @@ namespace LOFAR {
       // (min and max are also turned into a range).
       // Optionally the values are squared to avoid having to take a sqrt
       // of the data's UVW coordinates.
-      // <br>If a UVW value is given, itsFlagOnUVW is set.
       vector<double> fillUVW (const ParameterSet& parset,
                               const string& prefix,
                               const string& name,
@@ -104,9 +103,6 @@ namespace LOFAR {
       // Handle the specification of a phase center.
       // It setups the UVWCalculator.
       void handleCenter();
-
-      // Update itsFreqs by averaging them as needed.
-      void averageFreqs (uint startChan, uint inchanAvg);
 
       //# Data members.
       DPInput*             itsInput;
@@ -125,6 +121,7 @@ namespace LOFAR {
       UVWCalculator        itsUVWCalc;
       vector<string>       itsCenter;
       NSTimer              itsTimer;
+      NSTimer              itsUVWTimer;
     };
 
   } //# end namespace
