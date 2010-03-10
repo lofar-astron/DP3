@@ -113,7 +113,7 @@ private:
   bool itsFlag;
 };
 
-// Class to check result of flagged, unaveraged TestInput run by test1.
+// Class to check result of flagged, unaveraged TestInput run by test1/3.
 class TestOutput: public DPStep
 {
 public:
@@ -126,15 +126,17 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    // All baselines except 22 should be flagged.
-    // Furthermore channel 1,4,5 are flagged.
+    // All baselines except 2-2 should be flagged.
+    // Of them only channel 1,4,5 are flagged.
     Cube<bool> result(itsNCorr,itsNChan,itsNBl);
-    result = true;
-    for (int i=10; i<itsNBl; i+=16) {
-      for (int j=0; j<itsNChan; ++j) {
-        if (j!=1 && j!=4 && j!=5) {
-          for (int k=0; k<itsNCorr; ++k) {
-            result(k,j,i) = itsFlag;
+    result = itsFlag;
+    for (int i=0; i<itsNBl; ++i) {
+      if (i%16 != 10) {
+        for (int j=0; j<itsNChan; ++j) {
+          if (j==1 || j==4 || j==5) {
+            for (int k=0; k<itsNCorr; ++k) {
+              result(k,j,i) = true;
+            }
           }
         }
       }
@@ -177,13 +179,13 @@ private:
     // A few baselines should be flagged (0, 13, 15, ...)
     // Furthermore channel 1,4,5,11,12,13 are flagged.
     Cube<bool> result(itsNCorr,itsNChan,itsNBl);
-    result = true;
+    result = false;
     for (int i=0; i<itsNBl; ++i) {
-      if (i%16 != 0  &&  i%16 != 13  &&  i%16 != 15) {
+      if (i%16 == 0  ||  i%16 == 13  ||  i%16 == 15) {
         for (int j=0; j<itsNChan; ++j) {
-          if (j!=1 && j!=4 && j!=5 && j!=11 && j!=12 && j!=13) {
+          if (j==1 || j==4 || j==5 || j==11 || j==12 || j==13) {
             for (int k=0; k<itsNCorr; ++k) {
-              result(k,j,i) = false;
+              result(k,j,i) = true;
             }
           }
         }
@@ -210,6 +212,58 @@ private:
 
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+};
+
+// Class to check result of flagged, unaveraged TestInput run by test4.
+class TestOutput4: public DPStep
+{
+public:
+  TestOutput4(int ntime, int nbl, int nchan, int ncorr,
+              bool flag)
+    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+      itsNCorr(ncorr),
+      itsFlag(flag)
+  {}
+private:
+  virtual bool process (const DPBuffer& buf)
+  {
+    // All baselines except 2-2 should be flagged.
+    // Furthermore channel 1,4,5 are flagged.
+    Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+    result = true;
+    for (int i=0; i<itsNBl; ++i) {
+      if (i%16 == 10) {
+        for (int j=0; j<itsNChan; ++j) {
+          if (j!=1 && j!=4 && j!=5) {
+            for (int k=0; k<itsNCorr; ++k) {
+              result(k,j,i) = itsFlag;
+            }
+          }
+        }
+      }
+    }
+    ///cout << buf.getFlags() << endl << result << endl;
+    ASSERT (allEQ(buf.getFlags(), result));
+    itsCount++;
+    return true;
+  }
+
+  virtual void finish() {}
+  virtual void show (std::ostream&) const {}
+  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  {
+    ASSERT (avgInfo.startChan()==0);
+    ASSERT (int(avgInfo.origNChan())==itsNChan);
+    ASSERT (int(avgInfo.nchan())==itsNChan);
+    ASSERT (int(avgInfo.ntime())==itsNTime);
+    ASSERT (avgInfo.timeInterval()==5);
+    ASSERT (int(avgInfo.nchanAvg())==1);
+    ASSERT (int(avgInfo.ntimeAvg())==1);
+  }
+
+  int itsCount;
+  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+  bool itsFlag;
 };
 
 
@@ -240,7 +294,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("antenna", "[rs01.*, *s*.*2, rs02.s01]");
+  parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
@@ -259,10 +313,48 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("chan", "[11..13, 4, 11]");
-  parset.add ("antenna1", "[rs01.*, *s*.*2, *s*.*2]");
-  parset.add ("antenna2", "[rs01.*, *s*.*2, rs02.*]");
+  parset.add ("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+// Test flagging a few antennae or freqs by using multiple steps.
+void test3(int ntime, int nbl, int nchan, int ncorr, bool flag)
+{
+  cout << "test3: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("sets", "[s1]");
+  parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+  parset.add ("s1.sets", "s2");
+  parset.add ("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+// Test flagging a few antennae and freqs by using multiple steps.
+void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
+{
+  cout << "test4: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("sets", "[s1,s2]");
+  parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+  parset.add ("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -278,6 +370,9 @@ int main()
     test1(10, 16, 32, 4, true);
     test2( 2, 16, 32, 4);
     test2( 2, 36, 16, 2);
+    test3( 3, 16, 32, 4, false);
+    test3( 4, 16,  4, 2, true);
+    test4( 3, 16, 32, 4, false);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;

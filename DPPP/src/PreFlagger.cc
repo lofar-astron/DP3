@@ -1,4 +1,4 @@
-//# PreFlagger.cc: DPPP step class to flag data on channel, baseline, or time
+//# PreFlagger.cc: DPPP step class to flag data on channel, baseline, time
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -29,10 +29,12 @@
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/ArrayLogical.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Utilities/GenSort.h>
 #include <iostream>
 #include <algorithm>
+#include <functional>
 
 using namespace casa;
 
@@ -41,77 +43,16 @@ namespace LOFAR {
 
     PreFlagger::PreFlagger (DPInput* input,
                             const ParameterSet& parset, const string& prefix)
-      : itsInput (input),
-        itsName  (prefix),
-        itsFlagOnUV   (false),
-        itsFlagOnBL   (false),
-        itsFlagOnAmpl (false)
-    {
-      itsAutoCorr = parset.getBool         (prefix+"autocorr", false);
-      // station is a synonym for antenna.
-      itsFlagAnt1 = parset.getStringVector (prefix+"antenna1",
-                                            vector<string>());
-      itsFlagAnt2 = parset.getStringVector (prefix+"antenna2",
-                                            vector<string>());
-      itsFlagAnt  = parset.getStringVector (prefix+"antenna",
-                                            vector<string>());
-      if (parset.isDefined(prefix+"station1")) {
-        itsFlagAnt1 = parset.getStringVector (prefix+"station1");
-      }
-      if (parset.isDefined(prefix+"station2")) {
-        itsFlagAnt2 = parset.getStringVector (prefix+"station2");
-      }
-      if (parset.isDefined(prefix+"station")) {
-        itsFlagAnt  = parset.getStringVector (prefix+"station");
-      }
-      itsMinUV    = parset.getDouble       (prefix+"uvmin", -1);
-      itsMaxUV    = parset.getDouble       (prefix+"uvmax", -1);
-      itsFlagFreq = parset.getStringVector (prefix+"freqrange",
-                                            vector<string>());
-      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
-                                            true);   // expand .. etc.
-      itsAmplMin  = fillAmpl
-        (ParameterValue (parset.getString  (prefix+"amplmin", "")), 0.);
-      itsAmplMax  = fillAmpl
-        (ParameterValue (parset.getString  (prefix+"amplmax", "")), 1e30);
-      // Fill the matrix with the baselines to flag.
-      fillBLMatrix (itsInput->antennaNames());
-      // Get the possible times and other info to flag on.
-      readTimeParms (parset);
-      // Determine if the flag on UV distance.
-      // If so, square the distances to avoid having to take the sqrt in flagUV.
-      itsFlagOnUV = itsMinUV > 0;
-      itsMinUV   *= itsMinUV;
-      if (itsMaxUV > 0) {
-        itsFlagOnUV = true;
-        itsMaxUV   *= itsMaxUV;
-      } else {
-        // Make it a very high number.
-        itsMaxUV = 1e30;
-      }
-    }
+      : itsName (prefix),
+        itsPSet (input, parset, prefix)
+    {}
 
     PreFlagger::~PreFlagger()
     {}
 
-    void PreFlagger::readTimeParms (const ParameterSet& parset)
-    {
-    }
-
     void PreFlagger::show (std::ostream& os) const
     {
-      os << "PreFlagger " << itsName << std::endl;
-      os << "  antenna1:       " << itsFlagAnt1 << std::endl;
-      os << "  antenna2:       " << itsFlagAnt2 << std::endl;
-      os << "  antenna:        " << itsFlagAnt  << std::endl;
-      os << "  autocorr:       " << itsAutoCorr << std::endl;
-      os << "  uvmin:          " << sqrt(itsMinUV) << std::endl;
-      os << "  uvmax:          " << sqrt(itsMaxUV) << std::endl;
-      os << "  chan:           " << itsFlagChan << std::endl;
-      os << "  freqrange:      " << itsFlagFreq << std::endl;
-      if (! itsChannels.empty()) {
-        os << "   chan to flag:  " << itsChannels << std::endl;
-      }
+      itsPSet.show (os);
     }
 
     void PreFlagger::showTimings (std::ostream& os, double duration) const
@@ -123,6 +64,110 @@ namespace LOFAR {
 
     void PreFlagger::updateAverageInfo (AverageInfo& info)
     {
+      itsPSet.updateInfo (info);
+    }
+
+    bool PreFlagger::process (const DPBuffer& buf)
+    {
+      itsTimer.start();
+      DPBuffer out(buf);
+      // The flags will be changed, so make sure we have a unique array.
+      out.getFlags().unique();
+      // Do the PSet steps and OR the resul with the current flags.
+      const Cube<bool>& flags = itsPSet.process (out, Block<bool>());
+      transformInPlace (out.getFlags().cbegin(), out.getFlags().cend(),
+                        flags.cbegin(), std::logical_or<bool>());
+      itsTimer.stop();
+      // Let the next step do its processing.
+      getNextStep()->process (out);
+      return true;
+    }
+
+    void PreFlagger::finish()
+    {
+      // Let the next step finish its processing.
+      getNextStep()->finish();
+    }
+
+
+    PreFlagger::PSet::PSet (DPInput* input,
+                            const ParameterSet& parset, const string& prefix)
+      : itsInput (input),
+        itsName  (prefix),
+        itsFlagOnUV    (false),
+        itsFlagOnBL    (false),
+        itsFlagOnAmpl  (false),
+        itsFlagOnPhase (false),
+        itsFlagOnRI    (false),
+        itsFlagOnAzEl  (false),
+        itsFlagOnLST   (false)
+    {
+      itsCorrType = parset.getString       (prefix+"corrtype", string());
+      itsStrBL    = parset.getString       (prefix+"baseline", string());
+      itsMinUV    = parset.getDouble       (prefix+"uvmmin", -1);
+      itsMaxUV    = parset.getDouble       (prefix+"uvmmax", -1);
+      itsFlagFreq = parset.getStringVector (prefix+"freqrange",
+                                            vector<string>());
+      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
+                                            true);   // expand .. etc.
+      itsAmplMin = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"amplmin", string())), 0.,
+         itsFlagOnAmpl);
+      itsAmplMax  = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"amplmax", string())), 1e30,
+         itsFlagOnAmpl);
+      itsPhaseMin = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"phasemin", string())), 0.,
+         itsFlagOnPhase);
+      itsPhaseMax  = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"phasemax", string())), 1e30,
+         itsFlagOnPhase);
+      itsRealMin = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"realmin", string())), 0.,
+         itsFlagOnRI);
+      itsRealMax  = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"realmax", string())), 1e30,
+         itsFlagOnRI);
+      itsImagMin = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"imagmin", string())), 0.,
+         itsFlagOnRI);
+      itsImagMax  = fillValuePerCorr
+        (ParameterValue (parset.getString  (prefix+"imagmax", string())), 1e30,
+         itsFlagOnRI);
+      // Fill the matrix with the baselines to flag.
+      fillBLMatrix (itsInput->antennaNames());
+      // Get the possible times and other info to flag on.
+      readTimeParms (parset);
+      // Determine if to flag on UV distance.
+      // If so, square the distances to avoid having to take the sqrt in flagUV.
+      itsFlagOnUV = itsMinUV > 0;
+      itsMinUV   *= itsMinUV;
+      if (itsMaxUV > 0) {
+        itsFlagOnUV = true;
+        itsMaxUV   *= itsMaxUV;
+      } else {
+        // Make it a very high number.
+        itsMaxUV = 1e30;
+      }
+      // Read the possible child steps.
+      vector<string> psets = parset.getStringVector (prefix+"sets",
+                                                     vector<string>());
+      for (uint i=0; i<psets.size(); ++i) {
+        itsPSets.push_back
+          (PSet::ShPtr(new PSet(itsInput, parset, prefix+psets[i]+'.')));
+      }
+    }
+
+    void PreFlagger::PSet::readTimeParms (const ParameterSet& parset)
+    {
+    }
+
+    void PreFlagger::PSet::updateInfo (const AverageInfo& info)
+    {
+      uint nrcorr = info.ncorr();
+      uint nrchan = info.nchan();
+      itsFlags.resize (nrcorr, nrchan, info.nbaselines());
+      itsMatchBL.resize (info.nbaselines());
       // Check for channels exceeding nr of channels.
       itsChannels.reserve (itsFlagChan.size());
       for (uint i=0; i<itsFlagChan.size(); ++i) {
@@ -141,131 +186,254 @@ namespace LOFAR {
                                      Sort::Ascending,
                                      Sort::QuickSort + Sort::NoDuplicates);
       itsChannels.resize (nr);
+      // Turn the channels into a mask.
+      itsChanFlags.resize (nrcorr, nrchan);
+      itsChanFlags = false;
+      for (uint i=0; i<nr; ++i) {
+        uint chan = itsChannels[i];
+        for (uint j=0; j<nrcorr; ++j) {
+          itsChanFlags(j,chan) = true;
+        }
+      }
+      // Do it for the child steps.
+      for (uint i=0; i<itsPSets.size(); ++i) {
+        itsPSets[i]->updateInfo (info);
+      }
     }
 
-    bool PreFlagger::process (const DPBuffer& buf)
+    void PreFlagger::PSet::show (std::ostream& os) const
     {
-      itsTimer.start();
-      DPBuffer out(buf);
-      // The flags will be changed, so make sure we have a unique array.
-      out.getFlags().unique();
+      os << "PreFlagger set " << itsName << std::endl;
+      os << "  baseline:       " << itsStrBL << std::endl;
+      os << "  corrtype:       " << itsCorrType << std::endl;
+      os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
+      os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
+      os << "  chan:           " << itsFlagChan << std::endl;
+      os << "  freqrange:      " << itsFlagFreq << std::endl;
+      if (! itsChannels.empty()) {
+        os << "   chan to flag:  " << itsChannels << std::endl;
+      }
+      // Do it for the child steps.
+      for (uint i=0; i<itsPSets.size(); ++i) {
+        itsPSets[i]->show (os);
+      }
+    }
+
+    const Cube<bool>& PreFlagger::PSet::process (DPBuffer& out,
+                                                 const Block<bool>& matchBL)
+    {
+      const IPosition& shape = out.getFlags().shape();
+      uint nr = shape[0] * shape[1];
+      // Take over the baseline info from the parent. Default is all.
+      if (matchBL.empty()) {
+        itsMatchBL = true;
+      } else{
+        itsMatchBL = matchBL;
+      }
+      // The PSet tree is a combination of ORs and ANDs.
+      // Depth is AND, breadth is OR.
+      // In each pset flagging is done in two stages.
+      // First it is determined which baselines are not flagged. It is kept
+      // in the itsMatchBL block.
+      // This is passed to the children who do their flagging. In this way
+      // a child can minimize the amount of work to do.
+      // Each child passes back its flags; the flags are or-ed.
+
+      // First flag on baseline if necessary.
+      if (itsFlagOnBL) {
+        flagBL (itsInput->getAnt1(), itsInput->getAnt2());
+      }
       // Flag on UV distance if necessary.
       if (itsFlagOnUV) {
-        flagUV (itsInput->fetchUVW(buf, buf.getRowNrs()), out.getFlags());
+        flagUV (itsInput->fetchUVW(out, out.getRowNrs()));
       }
-      // Flag on baseline if necessary.
-      if (itsFlagOnBL) {
-        flagBL (itsInput->getAnt1(), itsInput->getAnt2(), out.getFlags());
+      // Flag on AzEl is necessary.
+      if (itsFlagOnAzEl) {
+        flagAzEl ();
       }
-      // Flag on amplitude if necessary.
-      if (itsFlagOnAmpl) {
-        out.setAmplitudes (amplitude(out.getData()));
-        flagAmpl (out.getAmplitudes(), out.getFlags());
+      // Convert each baseline flag to a flag per correlation/channel.
+      bool* flagPtr = itsFlags.data();
+      for (uint i=0; i<itsMatchBL.size(); ++i) {
+        std::fill (flagPtr, flagPtr+nr, itsMatchBL[i]);
+        flagPtr += nr;
       }
       // Flag on channel if necessary.
       if (! itsChannels.empty()) {
-        flagChannels (out.getFlags());
+        flagChannels();
       }
-      itsTimer.stop();
-      // Let the next step do its processing.
-      getNextStep()->process (out);
-      return true;
-    }
-
-    void PreFlagger::finish()
-    {
-      // Let the next step finish its processing.
-      getNextStep()->finish();
-    }
-
-    void PreFlagger::flagUV (const Matrix<double>& uvw,
-                             Cube<bool>& flags)
-    {
-      const IPosition& shape = flags.shape();
-      uint nr = shape[0] * shape[1];
-      uint nrbl = shape[2];
-      const double* uvwPtr = uvw.data();
-      bool* flagPtr = flags.data();
-      for (uint i=0; i<nrbl; ++i) {
-        // UV-distance is sqrt(u^2 + v^2).
-        // The sqrt is not needed because minuv and maxuv are squared.
-        double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-        if (uvdist < itsMinUV  ||  uvdist > itsMaxUV) {
-          // UV-dist mismatches, so flag entire baseline.
-          std::fill (flagPtr, flagPtr+nr, true);
+      // Flag on amplitude, phase or real/imaginary if necessary.
+      if (itsFlagOnAmpl) {
+        if (out.getAmplitudes().empty()) {
+          out.setAmplitudes (amplitude(out.getData()));
         }
-        uvwPtr  += 3;
-        flagPtr += nr;
+        flagAmpl (out.getAmplitudes());
+      }
+      if (itsFlagOnRI) {
+        flagComplex (out.getData());
+      }
+      if (itsFlagOnPhase) {
+        flagPhase (out.getData());
+      }
+      // Let the lower psets do their flagging and combine their flags.
+      // Use the result of the first one as the buffer to OR in.
+      // This buffer can be used without any problem, because the child
+      // will reinitialize it when used again.
+      if (! itsPSets.empty()) {
+        Cube<bool> mflags (itsPSets[0]->process (out, itsMatchBL));
+        for (uint i=1; i<itsPSets.size(); ++i) {
+          const Cube<bool>& flags = itsPSets[i]->process (out, itsMatchBL);
+          // No ||= operator exists, so use the transform function.
+          transformInPlace (mflags.cbegin(), mflags.cend(),
+                            flags.cbegin(), std::logical_or<bool>());
+        }
+        // Finally AND the children's flags with the flags of this pset.
+        transformInPlace (itsFlags.cbegin(), itsFlags.cend(),
+                          mflags.cbegin(), std::logical_and<bool>());
+      }
+      return itsFlags;
+    }
+
+    void PreFlagger::PSet::flagUV (const Matrix<double>& uvw)
+    {
+      uint nrbl = itsMatchBL.size();
+      const double* uvwPtr = uvw.data();
+      for (uint i=0; i<nrbl; ++i) {
+        if (itsMatchBL[i]) {
+          // UV-distance is sqrt(u^2 + v^2).
+          // The sqrt is not needed because minuv and maxuv are squared.
+          double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
+          if (uvdist >= itsMinUV  ||  uvdist <= itsMaxUV) {
+            // UV-dist mismatches, so do not flag baseline.
+            itsMatchBL[i] = false;
+          }
+        }
+        uvwPtr += 3;
       }
     }
 
-    void PreFlagger::flagBL (const Vector<int>& ant1,
-                             const Vector<int>& ant2,
-                             Cube<bool>& flags)
+    void PreFlagger::PSet::flagBL (const Vector<int>& ant1,
+                                   const Vector<int>& ant2)
     {
-      const IPosition& shape = flags.shape();
-      uint nr = shape[0] * shape[1];
-      uint nrbl = shape[2];
+      uint nrbl = itsMatchBL.size();
       const int* ant1Ptr = ant1.data();
       const int* ant2Ptr = ant2.data();
-      bool* flagPtr = flags.data();
       for (uint i=0; i<nrbl; ++i) {
-        if (itsFlagBL(*ant1Ptr, *ant2Ptr)) {
-          // Flag all correlations and channels for this baseline.
-          std::fill (flagPtr, flagPtr+nr, true);
+        if (itsMatchBL[i]) {
+          if (! itsFlagBL(*ant1Ptr, *ant2Ptr)) {
+            // do not flag this baseline
+            itsMatchBL[i] = false;
+          }
         }
         ant1Ptr++;
         ant2Ptr++;
-        flagPtr += nr;
       }
     }
 
-    void PreFlagger::flagAmpl (const Cube<float>& amplitudes,
-                               Cube<bool>& flags)
+    void PreFlagger::PSet::flagAzEl ()
     {
-      const IPosition& shape = flags.shape();
+    }
+
+    void PreFlagger::PSet::flagAmpl (const Cube<float>& values)
+    {
+      const IPosition& shape = values.shape();
       uint nrcorr = shape[0];
       uint nr = shape[1] * shape[2];
-      const float* amplPtr = amplitudes.data();
-      bool* flagPtr = flags.data();
+      const float* valPtr = values.data();
+      bool* flagPtr = itsFlags.data();
       for (uint i=0; i<nr; ++i) {
+        bool flag = false;
         for (uint j=0; j<nrcorr; ++j) {
-          if (*amplPtr < itsAmplMin[j]  ||  *amplPtr > itsAmplMax[j]) {
-            *flagPtr = true;
+          if (*valPtr < itsAmplMin[j]  ||  *valPtr > itsAmplMax[j]) {
+            flag = true;
+            break;
           }
-          amplPtr++;
-          flagPtr++;
         }
+        if (!flag) {
+          for (uint j=0; j<nrcorr; ++j) {
+            flagPtr[j] = false;
+          }
+        }
+        valPtr  += nrcorr;
+        flagPtr += nrcorr;
       }
     }
 
-    void PreFlagger::flagChannels (Cube<bool>& flags)
+    void PreFlagger::PSet::flagPhase (const Cube<Complex>& values)
     {
-      const IPosition& shape = flags.shape();
+      const IPosition& shape = values.shape();
       uint nrcorr = shape[0];
-      uint nr     = nrcorr * shape[1];
-      uint nrbl   = shape[2];
-      bool* flagPtr = flags.data();
-      for (uint i=0; i<nrbl; ++i) {
-        for (vector<uint>::const_iterator iter = itsChannels.begin();
-             iter != itsChannels.end(); ++iter) {
-          // Flag this channel.
-          bool* ptr = flagPtr + *iter * nrcorr;
-          std::fill (ptr, ptr+nrcorr, true);
+      uint nr = shape[1] * shape[2];
+      const Complex* valPtr = values.data();
+      bool* flagPtr = itsFlags.data();
+      for (uint i=0; i<nr; ++i) {
+        bool flag = false;
+        for (uint j=0; j<nrcorr; ++j) {
+          float phase = arg(valPtr[j]);
+          if (phase < itsPhaseMin[j]  ||  phase > itsPhaseMax[j]) {
+            flag = true;
+            break;
+          }
         }
+        if (!flag) {
+          for (uint j=0; j<nrcorr; ++j) {
+            flagPtr[j] = false;
+          }
+        }
+        valPtr  += nrcorr;
+        flagPtr += nrcorr;
+      }
+    }
+
+    void PreFlagger::PSet::flagComplex (const Cube<Complex>& values)
+    {
+      const IPosition& shape = values.shape();
+      uint nrcorr = shape[0];
+      uint nr = shape[1] * shape[2];
+      const Complex* valPtr = values.data();
+      bool* flagPtr = itsFlags.data();
+      for (uint i=0; i<nr; ++i) {
+        bool flag = false;
+        for (uint j=0; j<nrcorr; ++j) {
+          if (valPtr[j].real() < itsRealMin[j]  ||
+              valPtr[j].real() > itsRealMax[j]  ||
+              valPtr[j].imag() < itsImagMin[j]  ||
+              valPtr[j].imag() > itsImagMax[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) {
+          for (uint j=0; j<nrcorr; ++j) {
+            flagPtr[j] = false;
+          }
+        }
+        valPtr  += nrcorr;
+        flagPtr += nrcorr;
+      }
+    }
+
+    void PreFlagger::PSet::flagChannels()
+    {
+      const IPosition& shape = itsFlags.shape();
+      uint nr   = shape[0] * shape[1];
+      uint nrbl = shape[2];
+      bool* flagPtr = itsFlags.data();
+      for (uint i=0; i<nrbl; ++i) {
+        transformInPlace (flagPtr, flagPtr+nr,
+                          itsChanFlags.cbegin(), std::logical_and<bool>());
         flagPtr += nr;
       }
     }
 
-    vector<float> PreFlagger::fillAmpl (const ParameterValue& value,
-                                        float defVal)
+    vector<float> PreFlagger::PSet::fillValuePerCorr
+    (const ParameterValue& value, float defVal, bool& doFlag)
     {
       // Initialize with the default value per correlation.
       vector<float> result(4);
       std::fill (result.begin(), result.end(), defVal);
       if (! value.get().empty()) {
-        // It contains a value, so set that flagging on amplitude is done.
-        itsFlagOnAmpl = true;
+        // It contains a value, so set that flagging is done.
+        doFlag = true;
         if (value.isVector()) {
           // Defined as a vector, take the values given.
           vector<float> vals = value.getFloatVector();
@@ -281,53 +449,76 @@ namespace LOFAR {
       return result;
     }
 
-    void PreFlagger::fillBLMatrix (const Vector<String>& antNames)
+    void PreFlagger::PSet::fillBLMatrix (const Vector<String>& antNames)
     {
       // Initialize the matrix.
       itsFlagBL.resize (antNames.size(), antNames.size());
       itsFlagBL = false;
       // Set to true if autocorrelations.
-      if (itsAutoCorr) {
+      string corrType = toLower(itsCorrType);
+      if (corrType == "auto") {
+        itsFlagOnBL = true;
         itsFlagBL.diagonal() = true;
+      } else if (corrType == "cross") {
+        itsFlagOnBL = true;
+        itsFlagBL   = true;
+        itsFlagBL.diagonal() = false;
+      } else {
+        ASSERTSTR (corrType.empty(), "PreFlagger corrType " << itsCorrType
+                   << " is invalid; must be auto, cross or ''");
       }
-      ASSERTSTR (itsFlagAnt1.size() == itsFlagAnt2.size(),
-                 "PreFlagger parameters antenna1/2 must have equal length");
-      itsFlagOnBL = itsFlagAnt1.size() > 0  ||  itsFlagAnt.size() > 0;
-      // Set matrix flags for matching baselines.
-      for (uint i=0; i<itsFlagAnt1.size(); ++i) {
-        // Turn the given antenna name pattern into a regex.
-        Regex regex1(Regex::fromPattern (itsFlagAnt1[i]));
-        Regex regex2(Regex::fromPattern (itsFlagAnt2[i]));
-        // Loop through all antenna names and set matrix for matching ones.
-        for (uint i2=0; i2<antNames.size(); ++i2) {
-          if (antNames[i2].matches (regex2)) {
-            // Antenna2 matches, now try Antenna1.
-            for (uint i1=0; i1<antNames.size(); ++i1) {
-              if (antNames[i1].matches (regex1)) {
-                itsFlagBL(i1,i2) = true;
+      // Loop through all values in the baseline string.
+      if (! itsStrBL.empty()) {
+        itsFlagOnBL = true;
+        vector<ParameterValue> pairs = ParameterValue(itsStrBL).getVector();
+        // Each ParameterValue can be a single value (antenna) or a pair of
+        // values (a baseline).
+        // Note that [ant1,ant2] is somewhat ambiguous; it means two antennae,
+        // but one might think it means a baseline [[ant1,ant2]].
+        if (pairs.size() == 2  &&
+            !(pairs[0].isVector()  ||  pairs[1].isVector())) {
+          LOG_WARN_STR ("PreFlagger baseline " << itsStrBL
+                        << " means two antennae, but is somewhat ambigious; "
+                        << "it's more clear to use [[ant1],[ant2]]");
+        }
+        for (uint i=0; i<pairs.size(); ++i) {
+          vector<string> bl = pairs[i].getStringVector();
+          if (bl.size() == 1) {
+            // Turn the given antenna name pattern into a regex.
+            Regex regex(Regex::fromPattern (bl[0]));
+            // Loop through all antenna names and set matrix for matching ones.
+            for (uint i2=0; i2<antNames.size(); ++i2) {
+              if (antNames[i2].matches (regex)) {
+                // Antenna matches, so set all corresponding flags.
+                for (uint j=0; j<antNames.size(); ++j) {
+                  itsFlagBL(i2,j) = true;
+                  itsFlagBL(j,i2) = true;
+                }
               }
             }
-          }
-        }
-      }
-      // Set matrix flags for matching antennae.
-      for (uint i=0; i<itsFlagAnt.size(); ++i) {
-        // Turn the given antenna name pattern into a regex.
-        Regex regex(Regex::fromPattern (itsFlagAnt[i]));
-        // Loop through all antenna names and set matrix for matching ones.
-        for (uint i2=0; i2<antNames.size(); ++i2) {
-          if (antNames[i2].matches (regex)) {
-            // Antenna matches, so set all corresponding flags.
-            for (uint j=0; j<antNames.size(); ++j) {
-              itsFlagBL(i2,j) = true;
-              itsFlagBL(j,i2) = true;
+          } else {
+            ASSERTSTR (bl.size() == 2, "PreFlagger baseline " << bl <<
+                       " should contain 1 or 2 antenna name patterns");
+            // Turn the given antenna name pattern into a regex.
+            Regex regex1(Regex::fromPattern (bl[0]));
+            Regex regex2(Regex::fromPattern (bl[1]));
+            // Loop through all antenna names and set matrix for matching ones.
+            for (uint i2=0; i2<antNames.size(); ++i2) {
+              if (antNames[i2].matches (regex2)) {
+                // Antenna2 matches, now try Antenna1.
+                for (uint i1=0; i1<antNames.size(); ++i1) {
+                  if (antNames[i1].matches (regex1)) {
+                    itsFlagBL(i1,i2) = true;
+                  }
+                }
+              }
             }
           }
         }
       }
     }
 
-    void PreFlagger::handleFreqRanges (const Vector<double>& chanFreqs)
+    void PreFlagger::PSet::handleFreqRanges (const Vector<double>& chanFreqs)
     {
       // A frequency range can be given as  value..value or value+-value.
       // Units can be given for each value; if one is given it applies to both.
@@ -376,7 +567,8 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::getValue (const string& str, double& value, String& unit)
+    void PreFlagger::PSet::getValue (const string& str, double& value,
+                                     String& unit)
     {
       // See if a unit is given at the end.
       String v(str);
@@ -392,7 +584,7 @@ namespace LOFAR {
       value = strToDouble(v);
     }
 
-    double PreFlagger::getFreqHz (double value, const String& unit)
+    double PreFlagger::PSet::getFreqHz (double value, const String& unit)
     {
       Quantity q(value, unit);
       return q.getValue ("Hz");
