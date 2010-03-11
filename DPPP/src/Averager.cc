@@ -38,15 +38,17 @@ namespace LOFAR {
 
     Averager::Averager (DPInput* input,
                         const ParameterSet& parset, const string& prefix)
-      : itsInput    (input),
-        itsName     (prefix),
-        itsNChanAvg (parset.getUint (prefix+"freqstep", 1)),
-        itsNTimeAvg (parset.getUint (prefix+"timestep", 1)),
-        itsNTimes   (0),
+      : itsInput     (input),
+        itsName      (prefix),
+        itsNChanAvg  (parset.getUint  (prefix+"freqstep", 1)),
+        itsNTimeAvg  (parset.getUint  (prefix+"timestep", 1)),
+        itsMinNPoint (parset.getUint  (prefix+"minpoints", 1)),
+        itsMinPerc   (parset.getFloat (prefix+"minperc", 10.) / 100.),
+        itsNTimes    (0),
         itsTimeInterval (0)
     {
       ASSERTSTR (itsNChanAvg > 1  ||  itsNTimeAvg > 1,
-                 "freqstep and/or timestep has to be specified when averaging");
+                 "freqstep and/or timestep must be specified when averaging");
     }
 
     Averager::~Averager()
@@ -63,6 +65,8 @@ namespace LOFAR {
       os << "Averager " << itsName << std::endl;
       os << "  freqstep:       " << itsNChanAvg << std::endl;
       os << "  timestep:       " << itsNTimeAvg << std::endl;
+      os << "  minpoints:      " << itsMinNPoint << std::endl;
+      os << "  minperc:        " << 100*itsMinPerc << std::endl;
     }
 
     void Averager::showTimings (std::ostream& os, double duration) const
@@ -213,11 +217,13 @@ namespace LOFAR {
               np   += innp[inxi];
               inxi += ncorr;
             }
-            if (sumw == 0) {
-              outdata[inxo] = Complex();
+            // Flag the point if insufficient data.
+            if (sumw == 0  ||  np < itsMinNPoint  ||
+                np < nch*itsNTimeAvg*itsMinPerc) {
+              outdata[inxo]  = Complex();
               outflags[inxo] = true;
             } else {
-              outdata[inxo] = sumd / sumw;
+              outdata[inxo]  = sumd / sumw;
               outflags[inxo] = false;
             }
             outwght[inxo] = sumw;

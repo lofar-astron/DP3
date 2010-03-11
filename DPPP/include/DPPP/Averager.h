@@ -94,6 +94,8 @@ namespace LOFAR {
       casa::Cube<int> itsNPoints;
       uint            itsNChanAvg;
       uint            itsNTimeAvg;
+      uint            itsMinNPoint;
+      float           itsMinPerc;
       uint            itsNTimes;
       double          itsTimeInterval;
       NSTimer         itsTimer;

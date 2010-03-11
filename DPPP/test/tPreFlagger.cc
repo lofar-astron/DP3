@@ -176,12 +176,12 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    // A few baselines should be flagged (0, 13, 15, ...)
+    // A few baselines should be flagged (0, 7, 13, 15)
     // Furthermore channel 1,4,5,11,12,13 are flagged.
     Cube<bool> result(itsNCorr,itsNChan,itsNBl);
     result = false;
     for (int i=0; i<itsNBl; ++i) {
-      if (i%16 == 0  ||  i%16 == 13  ||  i%16 == 15) {
+      if (i%16 == 0  ||  i%16 == 7  ||  i%16 == 13  ||  i%16 == 15) {
         for (int j=0; j<itsNChan; ++j) {
           if (j==1 || j==4 || j==5 || j==11 || j==12 || j==13) {
             for (int k=0; k<itsNCorr; ++k) {
