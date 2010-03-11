@@ -165,8 +165,10 @@ namespace LOFAR {
       itsFlagOnAzEl = !(itsAzimuth.empty() && itsElevation.empty());
       // Determine if to flag on UV distance.
       // If so, square the distances to avoid having to take the sqrt in flagUV.
-      itsFlagOnUV = itsMinUV > 0;
-      itsMinUV   *= itsMinUV;
+      if (itsMinUV >= 0) {
+        itsFlagOnUV = true;
+        itsMinUV   *= itsMinUV;
+      }
       if (itsMaxUV > 0) {
         itsFlagOnUV = true;
         itsMaxUV   *= itsMaxUV;
@@ -233,7 +235,11 @@ namespace LOFAR {
       os << "  timeslot        " << itsTimeSlot << std::endl;
       os << "  baseline:       " << itsStrBL << std::endl;
       os << "  corrtype:       " << itsCorrType << std::endl;
-      os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
+      if (itsMinUV >= 0) {
+        os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
+      } else {
+        os << "  uvmmin:         " << itsMinUV << std::endl;
+      }
       os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
       os << "  chan:           " << itsFlagChan << std::endl;
       os << "  freqrange:      " << itsStrFreq << std::endl;

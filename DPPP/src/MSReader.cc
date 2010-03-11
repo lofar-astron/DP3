@@ -99,6 +99,13 @@ namespace LOFAR {
       }
       // Are all channels used?
       itsUseAllChan = itsStartChan==0 && itsNrChan==nAllChan;
+      // Take subset of channel frequencies if needed.
+      // Make sure to copy the subset to get a proper Vector.
+      if (!itsUseAllChan) {
+        Vector<double> chanFreqs;
+        chanFreqs = itsChanFreqs(Slice(itsStartChan, itsNrChan));
+        itsChanFreqs.reference (chanFreqs);
+      }
       // Form the slicer to get channels and correlations from column.
       itsColSlicer = Slicer(IPosition(2, 0, itsStartChan),
                             IPosition(2, itsNrCorr, itsNrChan));
@@ -359,7 +366,7 @@ namespace LOFAR {
         Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
         ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
         // Take only the channels used in the input.
-        itsChanFreqs = freqCol(0)(Slice(itsStartChan, itsNrChan));
+        itsChanFreqs = freqCol(0);
       }        
       // Create the UVW calculator.
       itsUVWCalc = UVWCalculator (itsPhaseCenter, itsAntPos);

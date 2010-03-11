@@ -343,7 +343,7 @@ void TestPSet::testMinMax()
     parset.add ("uvmmax", "23");
     PreFlagger::PSet pset (in, parset, "");
     ASSERT (pset.itsFlagOnUV);
-    ASSERT (near(pset.itsMinUV, 0.));
+    ASSERT (pset.itsMinUV < 0.);
     ASSERT (near(pset.itsMaxUV, 23.*23.));
   }
   {
