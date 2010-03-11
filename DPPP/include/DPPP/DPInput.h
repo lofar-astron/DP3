@@ -81,6 +81,8 @@ namespace LOFAR {
       (const casa::String& columnName, const casa::RefRows& rowNrs);
 
       // Get info.
+      double startTime() const
+        { return itsStartTime; }
       uint ncorr() const
         { return itsNrCorr; }
       uint nchan() const
@@ -136,9 +138,10 @@ namespace LOFAR {
                                      const casa::RefRows& rowNrs);
 
     protected:
-      uint itsNrChan;
-      uint itsNrCorr;
-      uint itsNrBl;
+      double itsStartTime;
+      uint   itsNrChan;
+      uint   itsNrCorr;
+      uint   itsNrBl;
       casa::Vector<int>          itsAnt1;        //# ant1 of all baselines
       casa::Vector<int>          itsAnt2;        //# ant2 of all baselines
       casa::Vector<casa::String> itsAntNames;

@@ -84,7 +84,8 @@ namespace LOFAR {
         itsLastTime = qtime.getValue("s");
       }
       ASSERT (itsLastTime > itsFirstTime);
-      itsNextTime = itsFirstTime;
+      itsNextTime  = itsFirstTime;
+      itsStartTime = itsFirstTime - 0.5*itsInterval;
       uint nAllChan = itsNrChan;
       // nchan=0 means until the last channel.
       ASSERTSTR (itsStartChan < nAllChan,

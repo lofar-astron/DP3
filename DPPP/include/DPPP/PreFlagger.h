@@ -56,6 +56,9 @@ namespace LOFAR {
 
     class PreFlagger: public DPStep
     {
+    // Make this Test class a friend, so it can access private code.
+    friend class TestPSet;
+
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
@@ -83,6 +86,9 @@ namespace LOFAR {
     private:
       class PSet
       {
+      // Make this Test class a friend, so it can access private code.
+      friend class TestPSet;
+
       public:
         // Define the shared pointer for this type.
         typedef shared_ptr<PSet> ShPtr;
@@ -91,7 +97,7 @@ namespace LOFAR {
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 
         // Set and return the flags.
-        const casa::Cube<bool>& process (DPBuffer&,
+        const casa::Cube<bool>& process (DPBuffer&, uint timeSlot,
                                          const casa::Block<bool>& matchBL);
 
         // Update the average info.
@@ -102,17 +108,20 @@ namespace LOFAR {
         void show (std::ostream&) const;
 
       private:
-        // Read and handle the Time parset parameters.
-        void readTimeParms (const ParameterSet& parset);
+        // Test if the time matches the time ranges.
+        bool matchTime (double time, uint timeSlot) const;
 
-        // Clear matchBL for mismatching baselines.
+        // Test if the value matches one of the ranges in the vector.
+        bool matchRange (double v, const vector<double>& ranges) const;
+
+        // Clear itsMatchBL for mismatching baselines.
         void flagBL (const casa::Vector<int>& ant1,
                      const casa::Vector<int>& ant2);
 
-        // Clear matchBL for baselines with mismatching UV distances.
+        // Clear itsMatchBL for baselines with mismatching UV distances.
         void flagUV (const casa::Matrix<double>& uvw);
 
-        // Clear matchBL for baselines with mismatching AzEl.
+        // Clear itsMatchBL for baselines with mismatching AzEl.
         void flagAzEl ();
 
         // Set the flags based on amplitude threshold per correlation.
@@ -126,6 +135,18 @@ namespace LOFAR {
 
         // Flag the channels given in itsChannels.
         void flagChannels();
+
+        // Convert a string of (date)time ranges to double. Each range
+        // must be given with .. or +-.
+        // <src>asTime=true</src> means that the strings should contain times,
+        // otherwise date/times.
+        vector<double> fillTimes (const vector<string>& str, bool asTime,
+                                  bool canEndBeforeStart);
+
+        // Read the string as time or date/time and convert to seconds.
+        // usepm indicates if the value is a plusminus value. If so, the
+        // value must be a positive time.
+        double getSeconds (const string& str, bool asTime, bool usepm);
 
         // Fill the baseline matrix; set true for baselines to flag.
         void fillBLMatrix (const casa::Vector<casa::String>& antNames);
@@ -159,14 +180,16 @@ namespace LOFAR {
         bool               itsFlagOnPhase;//# true = do phase based flagging
         bool               itsFlagOnRI;   //# true = do real/imag based flagging
         bool               itsFlagOnAzEl; //# true = do Az/El based flagging
-        bool               itsFlagOnLST;  //# true = do LST based flagging
         double             itsMinUV;    //# minimum UV distance; <0 means ignore
         double             itsMaxUV;    //# maximum UV distance; <0 means ignore
         casa::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
-        vector<double>     itsElevation;//# elevation ranges to be flagged
         vector<double>     itsAzimuth;  //# azimuth ranges to be flagged
-        vector<double>     itsTimes;    //# time ranges to be flagged
+        vector<double>     itsElevation;//# elevation ranges to be flagged
+        vector<double>     itsTimes;    //# time of day ranges to be flagged
         vector<double>     itsLST;      //# sidereal time ranges to be flagged
+        vector<double>     itsATimes;   //# absolute time ranges to be flagged
+        vector<double>     itsRTimes;   //# relative time ranges to be flagged
+        vector<uint>       itsTimeSlot; //# time slots to be flagged
         vector<float>      itsAmplMin;  //# minimum amplitude for each corr
         vector<float>      itsAmplMax;  //# maximum amplitude for each corr
         vector<float>      itsPhaseMin; //# minimum phase for each corr
@@ -177,7 +200,13 @@ namespace LOFAR {
         vector<float>      itsImagMax;  //# maximum imaginary for each corr
         vector<uint>       itsChannels; //# channels to be flagged.
         vector<uint>       itsFlagChan; //# channels given to be flagged.
-        vector<string>     itsFlagFreq; //# frequency ranges to be flagged
+        vector<string>     itsStrFreq;  //# frequency ranges to be flagged
+        vector<string>     itsStrTime;  //# time ranges to be flagged
+        vector<string>     itsStrLST;   //# LST ranges to be flagged
+        vector<string>     itsStrATime; //# absolute time ranges to be flagged
+        vector<string>     itsStrRTime; //# relative time ranges to be flagged
+        vector<string>     itsStrAzim;  //# azimuth ranges to be flagged
+        vector<string>     itsStrElev;  //# elevation ranges to be flagged
         string             itsCorrType; //# auto, cross, or all
         string             itsStrBL;    //# the baseline string
         vector<PSet::ShPtr> itsPSets;
@@ -190,6 +219,7 @@ namespace LOFAR {
       string  itsName;
       NSTimer itsTimer;
       PSet    itsPSet;
+      uint    itsCount;
     };
       
   } //# end namespace
