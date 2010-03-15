@@ -30,6 +30,7 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <Common/lofar_vector.h>
+#include <measures/Measures/MDirection.h>
 
 namespace LOFAR {
   class ParameterSet;
@@ -90,6 +91,15 @@ namespace LOFAR {
       friend class TestPSet;
 
       public:
+        // Define the operators in pset expressions.
+        // They have to have negative values in order of precedence.
+        enum Oper {
+          OpParen = -1,
+          OpOr    = -2,
+          OpAnd   = -3,
+          OpNot   = -4
+        };
+
         // Define the shared pointer for this type.
         typedef shared_ptr<PSet> ShPtr;
 
@@ -97,8 +107,8 @@ namespace LOFAR {
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 
         // Set and return the flags.
-        const casa::Cube<bool>& process (DPBuffer&, uint timeSlot,
-                                         const casa::Block<bool>& matchBL);
+        casa::Cube<bool>* process (DPBuffer&, uint timeSlot,
+                                   const casa::Block<bool>& matchBL);
 
         // Update the average info.
         // It is used to adjust the parms if needed.
@@ -115,14 +125,22 @@ namespace LOFAR {
         bool matchRange (double v, const vector<double>& ranges) const;
 
         // Clear itsMatchBL for mismatching baselines.
-        void flagBL (const casa::Vector<int>& ant1,
-                     const casa::Vector<int>& ant2);
+        // If returns false if no matches were found.
+        bool flagBL();
 
         // Clear itsMatchBL for baselines with mismatching UV distances.
-        void flagUV (const casa::Matrix<double>& uvw);
+        // If returns false if no matches were found.
+        bool flagUV (const casa::Matrix<double>& uvw);
 
         // Clear itsMatchBL for baselines with mismatching AzEl.
-        void flagAzEl ();
+        // If returns false if no matches were found.
+        bool flagAzEl (double time);
+
+        // Test if azimuth or elevation of given antenna mismatches.
+        // If so, clear itsMatchBL for all baselines containing the antenna.
+        void testAzEl (casa::MDirection::Convert& converter,
+                       uint blnr, int ant,
+                       const int* ant1, const int* ant2);
 
         // Set the flags based on amplitude threshold per correlation.
         void flagAmpl (const casa::Cube<float>& amplitudes);
@@ -162,7 +180,8 @@ namespace LOFAR {
 
         // Handle the frequency ranges given and determine which channels
         // have to be flagged.
-        void handleFreqRanges (const casa::Vector<double>& chanFreqs);
+        casa::Vector<bool> handleFreqRanges
+        (const casa::Vector<double>& chanFreqs);
 
         // Get the value and possible unit.
         // If no unit is given, the argument is left untouched.
@@ -170,6 +189,10 @@ namespace LOFAR {
 
         // Get the frequency in Hz using the value and unit.
         double getFreqHz (double value, const casa::String& unit);
+
+        // Convert a PSet expression to Reversed Polish Notation in itsRpn.
+        // It returns the names of all PSets.
+        vector<string> exprToRpn (const string& expr);
 
         //# Data members of PreFlagger::PSet.
         DPInput*           itsInput;
@@ -209,7 +232,8 @@ namespace LOFAR {
         vector<string>     itsStrElev;  //# elevation ranges to be flagged
         string             itsCorrType; //# auto, cross, or all
         string             itsStrBL;    //# the baseline string
-        vector<PSet::ShPtr> itsPSets;
+        vector<int>         itsRpn;     //# PSet expression in RPN form
+        vector<PSet::ShPtr> itsPSets;   //# PSets used in itsRpn
         casa::Matrix<bool>  itsChanFlags; //# flags for channels to be flagged
         casa::Cube<bool>    itsFlags;
         casa::Block<bool>   itsMatchBL; //# true = baseline in buffer matches 

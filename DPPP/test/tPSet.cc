@@ -23,6 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/PreFlagger.h>
+#include <DPPP/AverageInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayIO.h>
@@ -191,13 +192,50 @@ void TestPSet::testBL()
 
 void TestPSet::testChan()
 {
-  TestInput* in = new TestInput(16, 8, 4);
+  TestInput* in = new TestInput(16, 32, 4);
   DPStep::ShPtr step1(in);
+  AverageInfo info;
+  info.init (4, 0, 32, 16, 10, 1.);
   {
     cout << "testChan 1" << endl;
     ParameterSet parset;
-    parset.add ("baseline", "[rs01.*, rs02.s01]");
+    parset.add ("chan", "[11..13, 4]");
     PreFlagger::PSet pset (in, parset, "");
+    pset.updateInfo (info);
+    ASSERT (pset.itsChannels.size() == 4);
+    ASSERT (pset.itsChannels[0] == 4);
+    ASSERT (pset.itsChannels[1] == 11);
+    ASSERT (pset.itsChannels[2] == 12);
+    ASSERT (pset.itsChannels[3] == 13);
+    ASSERT (pset.itsChanFlags.shape() == IPosition(2,4,32));
+    for (uint i=0; i<32; ++i) {
+      if (i==4 || i==11 || i==12 || i==13) {
+        ASSERT (allEQ(pset.itsChanFlags.column(i), true));
+      } else {
+        ASSERT (allEQ(pset.itsChanFlags.column(i), false));
+      }
+    }
+  }
+  {
+    cout << "testChan 2" << endl;
+    ParameterSet parset;
+    parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+    PreFlagger::PSet pset (in, parset, "");
+    pset.updateInfo (info);
+    ASSERT (pset.itsChannels.size() == 3);
+    ASSERT (pset.itsChannels[0] == 1);
+    ASSERT (pset.itsChannels[1] == 4);
+    ASSERT (pset.itsChannels[2] == 5);
+  }
+  {
+    cout << "testChan 3" << endl;
+    ParameterSet parset;
+    parset.add ("chan", "[11..13, 4]");
+    parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+    PreFlagger::PSet pset (in, parset, "");
+    pset.updateInfo (info);
+    ASSERT (pset.itsChannels.size() == 1);
+    ASSERT (pset.itsChannels[0] == 4);
   }
 }
 
@@ -296,7 +334,7 @@ void TestPSet::testMinMax()
   {
     cout << "testMinMax 1" << endl;
     ParameterSet parset;
-    parset.add ("amplmin", "[23]");
+    parset.add ("amplmin", "[23,,,45]");
     parset.add ("amplmax", "112.5");
     PreFlagger::PSet pset (in, parset, "");
     ASSERT (pset.itsFlagOnAmpl);
@@ -305,7 +343,7 @@ void TestPSet::testMinMax()
     ASSERT (near(pset.itsAmplMin[0], 23.));
     ASSERT (near(pset.itsAmplMin[1], -1e30));
     ASSERT (near(pset.itsAmplMin[2], -1e30));
-    ASSERT (near(pset.itsAmplMin[3], -1e30));
+    ASSERT (near(pset.itsAmplMin[3], 45.));
     ASSERT (near(pset.itsAmplMax[0], 112.5));
     ASSERT (near(pset.itsAmplMax[1], 112.5));
     ASSERT (near(pset.itsAmplMax[2], 112.5));

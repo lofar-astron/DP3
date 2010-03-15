@@ -43,7 +43,7 @@ namespace LOFAR {
         itsNChanAvg  (parset.getUint  (prefix+"freqstep", 1)),
         itsNTimeAvg  (parset.getUint  (prefix+"timestep", 1)),
         itsMinNPoint (parset.getUint  (prefix+"minpoints", 1)),
-        itsMinPerc   (parset.getFloat (prefix+"minperc", 10.) / 100.),
+        itsMinPerc   (parset.getFloat (prefix+"minperc", 0.) / 100.),
         itsNTimes    (0),
         itsTimeInterval (0)
     {

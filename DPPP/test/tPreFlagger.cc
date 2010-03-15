@@ -183,7 +183,7 @@ private:
     for (int i=0; i<itsNBl; ++i) {
       if (i%16 == 0  ||  i%16 == 7  ||  i%16 == 13  ||  i%16 == 15) {
         for (int j=0; j<itsNChan; ++j) {
-          if (j==1 || j==4 || j==5 || j==11 || j==12 || j==13) {
+          if (j==4) {
             for (int k=0; k<itsNCorr; ++k) {
               result(k,j,i) = true;
             }
@@ -330,9 +330,9 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag)
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("sets", "[s1]");
+  parset.add ("expr", "s1");
   parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("s1.sets", "s2");
+  parset.add ("s1.expr", "s2");
   parset.add ("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
@@ -350,7 +350,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("sets", "[s1,s2]");
+  parset.add ("expr", "s1,s2");
   parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
