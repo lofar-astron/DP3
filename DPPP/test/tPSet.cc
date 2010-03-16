@@ -102,8 +102,9 @@ void TestPSet::testNone()
   cout << "testNone" << endl;
   ParameterSet parset;
   PreFlagger::PSet pset (in, parset, "");
-  ASSERT (!(pset.itsFlagOnBL || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
-            pset.itsFlagOnRI || pset.itsFlagOnAzEl || pset.itsFlagOnUV));
+  ASSERT (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
+            pset.itsFlagOnReal || pset.itsFlagOnImag ||
+            pset.itsFlagOnAzEl || pset.itsFlagOnUV));
 }
 
 void TestPSet::testBL()
@@ -115,8 +116,8 @@ void TestPSet::testBL()
     ParameterSet parset;
     parset.add ("baseline", "[rs01.*, rs02.s01]");
     PreFlagger::PSet pset (in, parset, "");
-    ASSERT (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
-              pset.itsFlagOnRI   || pset.itsFlagOnAzEl || pset.itsFlagOnUV) &&
+    ASSERT (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
+              pset.itsFlagOnImag || pset.itsFlagOnAzEl  || pset.itsFlagOnUV) &&
             pset.itsFlagOnBL);
     // Make sure the matrix is correct.
     const Matrix<bool>& mat = pset.itsFlagBL;

@@ -106,7 +106,8 @@ namespace LOFAR {
         itsFlagOnBL    (false),
         itsFlagOnAmpl  (false),
         itsFlagOnPhase (false),
-        itsFlagOnRI    (false),
+        itsFlagOnReal  (false),
+        itsFlagOnImag  (false),
         itsFlagOnAzEl  (false)
     {
       // Read all possible parameters.
@@ -133,29 +134,29 @@ namespace LOFAR {
       itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
                                             true);   // expand .. etc.
       itsAmplMin = fillValuePerCorr
-        (ParameterValue (parset.getString  (prefix+"amplmin", string())), -1e30,
+        (ParameterValue (parset.getString  (prefix+"amplmin", string())),-1e30,
          itsFlagOnAmpl);
       itsAmplMax  = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"amplmax", string())), 1e30,
          itsFlagOnAmpl);
       itsPhaseMin = fillValuePerCorr
-        (ParameterValue (parset.getString  (prefix+"phasemin", string())), -1e30,
+        (ParameterValue (parset.getString  (prefix+"phasemin", string())),-1e30,
          itsFlagOnPhase);
       itsPhaseMax  = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"phasemax", string())), 1e30,
          itsFlagOnPhase);
       itsRealMin = fillValuePerCorr
-        (ParameterValue (parset.getString  (prefix+"realmin", string())), -1e30,
-         itsFlagOnRI);
+        (ParameterValue (parset.getString  (prefix+"realmin", string())),-1e30,
+         itsFlagOnReal);
       itsRealMax  = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"realmax", string())), 1e30,
-         itsFlagOnRI);
+         itsFlagOnReal);
       itsImagMin = fillValuePerCorr
-        (ParameterValue (parset.getString  (prefix+"imagmin", string())), -1e30,
-         itsFlagOnRI);
+        (ParameterValue (parset.getString  (prefix+"imagmin", string())),-1e30,
+         itsFlagOnImag);
       itsImagMax  = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"imagmax", string())), 1e30,
-         itsFlagOnRI);
+         itsFlagOnImag);
       string psetExpr = parset.getString   (prefix+"expr", string());
       // Fill the matrix with the baselines to flag.
       fillBLMatrix (itsInput->antennaNames());
@@ -254,11 +255,19 @@ namespace LOFAR {
         os << "  uvmmin:         " << itsMinUV << std::endl;
       }
       os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
-      os << "  chan:           " << itsFlagChan << std::endl;
+      os << "  channel:        " << itsFlagChan << std::endl;
       os << "  freqrange:      " << itsStrFreq << std::endl;
       if (! itsChannels.empty()) {
         os << "   chan to flag:  " << itsChannels << std::endl;
       }
+      os << "  amplmin         " << itsAmplMin << std::endl;
+      os << "  amplmax         " << itsAmplMax << std::endl;
+      os << "  phasemin        " << itsPhaseMin << std::endl;
+      os << "  phasemax        " << itsPhaseMax << std::endl;
+      os << "  realmin         " << itsRealMin << std::endl;
+      os << "  realmax         " << itsRealMax << std::endl;
+      os << "  imagmin         " << itsImagMin << std::endl;
+      os << "  imagmax         " << itsImagMax << std::endl;
       // Do it for the child steps.
       for (uint i=0; i<itsPSets.size(); ++i) {
         itsPSets[i]->show (os);
@@ -324,8 +333,11 @@ namespace LOFAR {
         }
         flagAmpl (out.getAmplitudes());
       }
-      if (itsFlagOnRI) {
-        flagComplex (out.getData());
+      if (itsFlagOnReal) {
+        flagReal (out.getData());
+      }
+      if (itsFlagOnImag) {
+        flagImag (out.getData());
       }
       if (itsFlagOnPhase) {
         flagPhase (out.getData());
@@ -523,7 +535,7 @@ namespace LOFAR {
       for (uint i=0; i<nr; ++i) {
         bool flag = false;
         for (uint j=0; j<nrcorr; ++j) {
-          if (*valPtr < itsAmplMin[j]  ||  *valPtr > itsAmplMax[j]) {
+          if (valPtr[j] < itsAmplMin[j]  ||  valPtr[j] > itsAmplMax[j]) {
             flag = true;
             break;
           }
@@ -564,7 +576,7 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::PSet::flagComplex (const Cube<Complex>& values)
+    void PreFlagger::PSet::flagReal (const Cube<Complex>& values)
     {
       const IPosition& shape = values.shape();
       uint nrcorr = shape[0];
@@ -575,8 +587,32 @@ namespace LOFAR {
         bool flag = false;
         for (uint j=0; j<nrcorr; ++j) {
           if (valPtr[j].real() < itsRealMin[j]  ||
-              valPtr[j].real() > itsRealMax[j]  ||
-              valPtr[j].imag() < itsImagMin[j]  ||
+               valPtr[j].real() > itsRealMax[j]) {
+            flag = true;
+            break;
+          }
+        }
+        if (!flag) {
+          for (uint j=0; j<nrcorr; ++j) {
+            flagPtr[j] = false;
+          }
+        }
+        valPtr  += nrcorr;
+        flagPtr += nrcorr;
+      }
+    }
+
+    void PreFlagger::PSet::flagImag (const Cube<Complex>& values)
+    {
+      const IPosition& shape = values.shape();
+      uint nrcorr = shape[0];
+      uint nr = shape[1] * shape[2];
+      const Complex* valPtr = values.data();
+      bool* flagPtr = itsFlags.data();
+      for (uint i=0; i<nr; ++i) {
+        bool flag = false;
+        for (uint j=0; j<nrcorr; ++j) {
+          if (valPtr[j].imag() < itsImagMin[j]  ||
               valPtr[j].imag() > itsImagMax[j]) {
             flag = true;
             break;

@@ -149,7 +149,8 @@ namespace LOFAR {
         void flagPhase (const casa::Cube<casa::Complex>& data);
 
         // Set the flags based on real/imaginary threshold per correlation.
-        void flagComplex (const casa::Cube<casa::Complex>& data);
+        void flagReal (const casa::Cube<casa::Complex>& data);
+        void flagImag (const casa::Cube<casa::Complex>& data);
 
         // Flag the channels given in itsChannels.
         void flagChannels();
@@ -201,7 +202,8 @@ namespace LOFAR {
         bool               itsFlagOnBL; //# true = do ant/bl based flagging
         bool               itsFlagOnAmpl; //# true = do amplitude based flagging
         bool               itsFlagOnPhase;//# true = do phase based flagging
-        bool               itsFlagOnRI;   //# true = do real/imag based flagging
+        bool               itsFlagOnReal; //# true = do real based flagging
+        bool               itsFlagOnImag; //# true = do imag based flagging
         bool               itsFlagOnAzEl; //# true = do Az/El based flagging
         double             itsMinUV;    //# minimum UV distance; <0 means ignore
         double             itsMaxUV;    //# maximum UV distance; <0 means ignore

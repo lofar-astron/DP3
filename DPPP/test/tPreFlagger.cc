@@ -38,6 +38,23 @@ using namespace LOFAR::DPPP;
 using namespace casa;
 using namespace std;
 
+// Execute steps.
+void execute (const DPStep::ShPtr& step1)
+{
+  // Set AverageInfo.
+  AverageInfo avgInfo;
+  DPStep::ShPtr step = step1;
+  while (step) {
+    step->updateAverageInfo (avgInfo);
+    step->show (cout);
+    step = step->getNextStep();
+  }
+  // Execute the steps.
+  DPBuffer buf;
+  while (step1->process(buf));
+  step1->finish();
+}
+
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
 // Weights are always 1.
@@ -165,6 +182,25 @@ private:
   bool itsFlag;
 };
 
+// Test flagging a few antennae and freqs.
+void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
+{
+  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+  parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+
 // Class to check result of flagged, unaveraged TestInput run by test2.
 class TestOutput2: public DPStep
 {
@@ -213,6 +249,46 @@ private:
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
 };
+
+// Test flagging a few baselines, freqs, and channels.
+void test2(int ntime, int nbl, int nchan, int ncorr)
+{
+  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, false);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+  parset.add ("chan", "[11..13, 4, 11]");
+  parset.add ("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+// Test flagging a few antennae or freqs by using multiple steps.
+void test3(int ntime, int nbl, int nchan, int ncorr, bool flag)
+{
+  cout << "test3: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("expr", "s1");
+  parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+  parset.add ("s1.expr", "s2");
+  parset.add ("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
 
 // Class to check result of flagged, unaveraged TestInput run by test4.
 class TestOutput4: public DPStep
@@ -266,81 +342,6 @@ private:
   bool itsFlag;
 };
 
-
-// Execute steps.
-void execute (const DPStep::ShPtr& step1)
-{
-  // Set AverageInfo.
-  AverageInfo avgInfo;
-  DPStep::ShPtr step = step1;
-  while (step) {
-    step->updateAverageInfo (avgInfo);
-    step->show (cout);
-    step = step->getNextStep();
-  }
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf));
-  step1->finish();
-}
-
-// Test flagging a few antennae and freqs.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
-{
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " flag=" << flag << endl;
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
-  parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
-  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
-  step1->setNextStep (step2);
-  step2->setNextStep (step3);
-  execute (step1);
-}
-
-// Test flagging a few baselines, freqs, and channels.
-void test2(int ntime, int nbl, int nchan, int ncorr)
-{
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, false);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
-  parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("chan", "[11..13, 4, 11]");
-  parset.add ("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
-  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
-  step1->setNextStep (step2);
-  step2->setNextStep (step3);
-  execute (step1);
-}
-
-// Test flagging a few antennae or freqs by using multiple steps.
-void test3(int ntime, int nbl, int nchan, int ncorr, bool flag)
-{
-  cout << "test3: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " flag=" << flag << endl;
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
-  parset.add ("expr", "s1");
-  parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("s1.expr", "s2");
-  parset.add ("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
-  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
-  step1->setNextStep (step2);
-  step2->setNextStep (step3);
-  execute (step1);
-}
-
 // Test flagging a few antennae and freqs by using multiple steps.
 void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
@@ -360,6 +361,88 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
+typedef bool CheckFunc (Complex value);
+
+// Class to check result of flagged, unaveraged TestInput run by test5.
+class TestOutput5: public DPStep
+{
+public:
+  TestOutput5 (CheckFunc* cfunc)
+    : itsCount(0),
+      itsCFunc (cfunc)
+  {}
+private:
+  virtual bool process (const DPBuffer& buf)
+  {
+    const Cube<Complex>& data = buf.getData();
+    Cube<bool> result(4,5,6);
+    for (int i=0; i<int(data.size()); i+=4) {
+      bool flag = false;
+      for (int j=i; j<i+4; ++j) {
+        if (!flag) flag = itsCFunc(data.data()[j]);
+      }
+      for (int j=i; j<i+4; ++j) {
+        result.data()[j] = flag;
+      }
+    }
+    ASSERT (allEQ(buf.getFlags(), result));
+    itsCount++;
+    return true;
+  }
+
+  virtual void finish() {}
+  virtual void show (std::ostream&) const {}
+  virtual void updateAverageInfo (AverageInfo&) {}
+
+  int itsCount;
+  CheckFunc* itsCFunc;
+};
+
+// Test flagging a few antennae and freqs by using multiple steps.
+void test5(const string& key, const string& value, CheckFunc* cfunc)
+{
+  cout << "test5: " << key << '=' << value << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(2, 6, 5, 4, false);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add (key, value);
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput5(cfunc));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+bool checkAmplMin (Complex data)
+  { return abs(data) < 9.5; }
+bool checkAmplMax (Complex data)
+  { return abs(data) > 31.5; }
+bool checkPhaseMin (Complex data)
+  { return arg(data) < 1.4; }
+bool checkPhaseMax (Complex data)
+  { return arg(data) > 2.1; }
+bool checkRealMin (Complex data)
+  { return real(data) < 5.5; }
+bool checkRealMax (Complex data)
+  { return real(data) > 29.4; }
+bool checkImagMin (Complex data)
+  { return imag(data) < -1.4; }
+bool checkImagMax (Complex data)
+  { return imag(data) > 20.5; }
+
+// Test flagging on various fields.
+void testMany()
+{
+  test5("amplmin", "9.5", &checkAmplMin);
+  test5("amplmax", "31.5", &checkAmplMax);
+  test5("phasemin", "1.4", &checkPhaseMin);
+  test5("phasemax", "2.1", &checkPhaseMax);
+  test5("realmin", "5.5", &checkRealMin);
+  test5("realmax", "29.4", &checkRealMax);
+  test5("imagmin", "-1.4", &checkImagMin);
+  test5("imagmax", "20.5", &checkImagMax);
+}
 
 int main()
 {
@@ -373,6 +456,7 @@ int main()
     test3( 3, 16, 32, 4, false);
     test3( 4, 16,  4, 2, true);
     test4( 3, 16, 32, 4, false);
+    testMany();
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
