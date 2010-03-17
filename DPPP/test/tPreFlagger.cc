@@ -369,7 +369,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("expr", "s1,s2");
+  parset.add ("expr", "(s1&s1),(s2|s2)");
   parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));

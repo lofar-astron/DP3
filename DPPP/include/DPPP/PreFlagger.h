@@ -103,6 +103,10 @@ namespace LOFAR {
         // Define the shared pointer for this type.
         typedef shared_ptr<PSet> ShPtr;
 
+        // Default constructor (for test purposes).
+        PSet()
+        {}
+
         // Construct from the parset parameters.
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 

@@ -684,6 +684,8 @@ namespace LOFAR {
       bool hadName = false;    // the last token was a name.
       while (i < expr.size()) {
         int oper = 0;
+        // skip whitespace.
+        // Look for parenthesis or operator.
         if (expr[i] == ' '  ||  expr[i] == '\t') {
           i++;
         } else if (expr[i] == '(') {
@@ -733,12 +735,13 @@ namespace LOFAR {
           oper = OpNot;
           i+=3;
         } else if (expr[i] == ')') {
+          // Closing parenthesis. Push till opening parenthesis found.
           ASSERTSTR (hadName, "no set name before closing parenthesis at pos. "
                      << i << " in expression: " << origExpr);
           while (true) {
             ASSERTSTR (!tokens.empty(), "mismatched parentheses at pos. "
                        << i << " in expression: " << origExpr);
-            if (tokens.top() == 0) {
+            if (tokens.top() == OpParen) {
               tokens.pop();
               break;
             }
@@ -747,20 +750,22 @@ namespace LOFAR {
           }
           i++;
         } else {
+          // No operator, thus it must be an operand (a set name).
           int st=i;
+          ASSERTSTR (!hadName, "No operator between set names at pos. "
+                     << i << " in expression: " << origExpr);
           while (i < expr.size() && 
                  expr[i] != ' ' && expr[i] != '\t' &&
                  expr[i] != '(' && expr[i] != ')' && expr[i] != '!' &&
                  expr[i] != ',' && expr[i] != '&' && expr[i] != '|') {
             i++;
           }
-          ASSERTSTR (!hadName, "No operator between set names at pos. "
-                     << i << " in expression: " << origExpr);
           hadName = true;
           itsRpn.push_back (names.size());
           names.push_back (origExpr.substr(st, i-st));
         }
-        if (oper < 0) {
+        if (oper < OpParen) {
+          // Check if an operator was preceeded correctly.
           if (oper == OpNot) {
             ASSERTSTR (!hadName, "No set name before operator ! at pos. "
                        << i << " in expression: " << origExpr);
@@ -769,7 +774,8 @@ namespace LOFAR {
                        << i << " in expression: " << origExpr);
           }
           hadName = false;
-          while (!tokens.empty()  &&  tokens.top() <= oper) {
+          // Push till lower precedence found.
+          while (!tokens.empty()  &&  tokens.top() < oper) {
             itsRpn.push_back (tokens.top());
             tokens.pop();
           }
@@ -779,8 +785,8 @@ namespace LOFAR {
       ASSERTSTR (hadName, "no set name after last operator in expression: "
                  << origExpr);
       while (!tokens.empty()) {
-        ASSERTSTR (tokens.top()<0, "mismatched parentheses in expression: "
-                   << origExpr);
+        ASSERTSTR (tokens.top()<OpParen,
+                   "mismatched parentheses in expression: " << origExpr);
         itsRpn.push_back (tokens.top());
         tokens.pop();
       }

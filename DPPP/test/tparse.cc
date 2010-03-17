@@ -1,126 +1,69 @@
-#include <stack>
-#include <vector>
-#include <iostream>
+//# tparse.cc: Test program for function PreFlagger::PSet::exprToRpn
+//# Copyright (C) 2010
+//# ASTRON (Netherlands Institute for Radio Astronomy)
+//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//#
+//# This file is part of the LOFAR software suite.
+//# The LOFAR software suite is free software: you can redistribute it and/or
+//# modify it under the terms of the GNU General Public License as published
+//# by the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The LOFAR software suite is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License along
+//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//#
+//# $Id$
+//#
+//# @author Ger van Diepen
+
+#include <lofar_config.h>
+#include <DPPP/PreFlagger.h>
 #include <Common/StringUtil.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
+#include <iostream>
 
 using namespace LOFAR;
+using namespace LOFAR::DPPP;
 using namespace std;
 
-    void parse (const string& origExpr)
+namespace LOFAR {
+  namespace DPPP {
+    // This class name should match the friend in PreFlagger.
+    class TestPSet
     {
-      string expr = toUpper(origExpr);
-      stack<int> tokens;
-      vector<int> rpn;
-      vector<string> names;
-      unsigned i=0;
-      bool hadName = false;    // the last token was a name.
-      while (i < expr.size()) {
-        int oper = 1;
-        if (expr[i] == ' '  ||  expr[i] == '\t') {
-          i++;
-        } else if (expr[i] == '(') {
-          ASSERTSTR (!hadName, "no operator before opening parenthesis at pos. "
-                     << i << " in expression: " << origExpr);
-          oper = 0;
-          tokens.push (oper);
-          i++;
-        } else if (expr[i] == '|') {
-          oper = -1;
-          i++;
-          if (i < expr.size()  &&  expr[i] == '|') i++;
-        } else if (expr[i] == ',') {
-          oper = -1;
-          i++;
-        } else if (expr[i] == '&') {
-          oper = -2;
-          i++;
-          if (i < expr.size()  &&  expr[i] == '&') i++;
-        } else if (expr[i] == '!') {
-          oper = -3;
-          i++;
-        } else if (expr.size()-i >= 3  &&  (expr.substr(i,3) == "OR "  ||
-                                            expr.substr(i,3) == "OR\t" ||
-                                            expr.substr(i,3) == "OR!"  ||
-                                            expr.substr(i,3) == "OR(")) {
-          oper = -1;
-          i+=2;
-        } else if (expr.size()-i >= 4  &&  (expr.substr(i,4) == "AND "  ||
-                                            expr.substr(i,4) == "AND\t" ||
-                                            expr.substr(i,4) == "AND!"  ||
-                                            expr.substr(i,4) == "AND(")) {
-          oper = -2;
-          i+=3;
-        } else if (expr.size()-i >= 4  &&  (expr.substr(i,4) == "NOT "  ||
-                                            expr.substr(i,4) == "NOT\t" ||
-                                            expr.substr(i,4) == "NOT(")) {
-          oper = -3;
-          i+=3;
-        } else if (expr[i] == ')') {
-          ASSERTSTR (hadName, "no set name before closing parenthesis at pos. "
-                     << i << " in expression: " << origExpr);
-          while (true) {
-            ASSERTSTR (!tokens.empty(), "mismatched parentheses at pos. "
-                       << i << " in expression: " << origExpr);
-            if (tokens.top() == 0) {
-              tokens.pop();
-              break;
-            }
-            rpn.push_back (tokens.top());
-            tokens.pop();
-          }
-          i++;
-        } else {
-          int st=i;
-          while (i < expr.size() && 
-                 expr[i] != ' ' && expr[i] != '\t' &&
-                 expr[i] != '(' && expr[i] != ')' && expr[i] != '!' &&
-                 expr[i] != ',' && expr[i] != '&' && expr[i] != '|') {
-            i++;
-          }
-          ASSERTSTR (!hadName, "No operator between set names at pos. "
-                     << i << " in expression: " << origExpr);
-          hadName = true;
-          rpn.push_back (names.size());
-          names.push_back (origExpr.substr(st, i-st));
-        }
-        if (oper < 0) {
-          if (oper == -3) {
-            ASSERTSTR (!hadName, "No set name before operator ! at pos. "
-                       << i << " in expression: " << origExpr);
-          } else {
-            ASSERTSTR (hadName, "No set name before operator at pos. "
-                       << i << " in expression: " << origExpr);
-          }
-          hadName = false;
-          while (!tokens.empty()  &&  tokens.top() <= oper) {
-            rpn.push_back (tokens.top());
-            tokens.pop();
-          }
-          tokens.push (oper);
-        }
-      }
-      ASSERTSTR (hadName, "no set name after last operator in expression: "
-                 << origExpr);
-      while (!tokens.empty()) {
-        ASSERTSTR (tokens.top()<0, "mismatched parentheses in expression: "
-                   << origExpr);
-        rpn.push_back (tokens.top());
-        tokens.pop();
-      }
+    public:
+      static void testParse (const string&);
+    };
+  }
+}
 
-      cout << rpn << endl;
-      cout << names << endl;
-    }
+void TestPSet::testParse (const string& expr)
+{
+  PreFlagger::PSet pset;
+  vector<string> names = pset.exprToRpn (expr);
+  cout << pset.itsRpn << endl;
+  cout << names << endl;
+}
+
 
 int main(int argc, char* argv[])
 {
+  INIT_LOGGER ("tPSet");
   try {
     if (argc > 1) {
-      parse (argv[1]);
+      TestPSet::testParse (argv[1]);
+    } else {
+      TestPSet::testParse ("(s1&s_1)|!(!!s2&s2)");
     }
   } catch (std::exception& x) {
     cout << x.what() << endl;
+    return 1;
   }
+  return 0;
 }
