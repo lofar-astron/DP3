@@ -113,9 +113,7 @@ namespace LOFAR {
       itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
                             IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
       // Initialize the flag counters.
-      if (itsCountFlags) {
-        itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
-      }
+      itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
     }
 
     MSReader::~MSReader()
@@ -197,8 +195,12 @@ namespace LOFAR {
           bool* flagPtr = itsBuffer.getFlags().data();
           for (uint i=0; i<itsBuffer.getData().size();) {
             for (uint j=i; j<i+itsNrCorr; ++j) {
-              if (!isFinite(dataPtr[j].real())  ||  !isFinite(dataPtr[j].imag())
-                  ||  flagPtr[j]) {
+              bool flag = (!isFinite(dataPtr[j].real())  ||
+                           !isFinite(dataPtr[j].imag()));
+              if (flag) {
+                itsFlagCounter.incrCorrelation(j-i);
+              }
+              if (flag  ||  flagPtr[j]) {
                 // Flag all correlations if a single one is flagged.
                 for (uint k=i; k<i+itsNrCorr; ++k) {
                   flagPtr[k] = true;
@@ -262,13 +264,15 @@ namespace LOFAR {
 
     void MSReader::showCounts (std::ostream& os) const
     {
+      os << endl << "Flag statistics of data read";
+      os << endl << "============================" << endl;
+      int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
       if (itsCountFlags) {
-        os << endl << "Flag statistics of data read";
-        os << endl << "============================" << endl;
-        int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
         itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
         itsFlagCounter.showChannel  (os, nrtim);
       }
+      os <<endl << "NaN/infinite data flagging";
+      itsFlagCounter.showCorrelation (os, nrtim);
     }
 
     void MSReader::showTimings (std::ostream& os, double duration) const

@@ -125,7 +125,7 @@ namespace LOFAR {
                                             vector<string>());
       itsStrElev  = parset.getStringVector (prefix+"elevation",
                                             vector<string>());
-      itsCorrType = parset.getString       (prefix+"corrtype", "all");
+      itsCorrType = parset.getString       (prefix+"corrtype", "");
       itsStrBL    = parset.getString       (prefix+"baseline", string());
       itsMinUV    = parset.getDouble       (prefix+"uvmmin", -1);
       itsMaxUV    = parset.getDouble       (prefix+"uvmmax", -1);
@@ -965,8 +965,8 @@ namespace LOFAR {
         itsFlagOnBL = true;
         itsFlagBL.diagonal() = false;
       } else {
-        ASSERTSTR (corrType == "all", "PreFlagger corrType " << itsCorrType
-                   << " is invalid; must be auto, cross, or all");
+        ASSERTSTR (corrType == "", "PreFlagger corrType " << itsCorrType
+                   << " is invalid; must be auto, cross, or empty string");
       }
     }
 

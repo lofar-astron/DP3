@@ -98,6 +98,9 @@ namespace LOFAR {
       if (itsFreqWindow%2 == 0) {
         itsFreqWindow -= 1;
       }
+      if (info.ntime() > 0) {
+        itsTimeWindow = std::min(itsTimeWindow, info.ntime());
+      }
       if (itsTimeWindow%2 == 0) {
         itsTimeWindow -= 1;
       }

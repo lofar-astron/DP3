@@ -162,7 +162,8 @@ namespace LOFAR {
     void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
     {
       int64 ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
-      os << endl << "Percentage of points flagged per correlation:" << endl;
+      os << endl << "Percentage of flagged points detected per correlation:"
+         << endl;
       os << "  " << itsCorrCounts << " out of " << ntotal << " points   [";
       for (uint i=0; i<itsCorrCounts.size(); ++i) {
         if (i > 0) {
