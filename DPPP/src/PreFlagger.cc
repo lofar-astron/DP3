@@ -203,14 +203,27 @@ namespace LOFAR {
       itsFlags.resize (nrcorr, nrchan, info.nbaselines());
       itsMatchBL.resize (info.nbaselines());
       // Determine the channels to be flagged.
+      if (!(itsFlagChan.empty() && itsStrFreq.empty())) {
+        fillChannels (info);
+      }
+      // Do the same for the child steps.
+      for (uint i=0; i<itsPSets.size(); ++i) {
+        itsPSets[i]->updateInfo (info);
+      }
+    }
+
+    void PreFlagger::PSet::fillChannels (const AverageInfo& info)
+    {
+      uint nrcorr = info.ncorr();
+      uint nrchan = info.nchan();
       Vector<bool> selChan(nrchan);
       if (itsFlagChan.empty()) {
         selChan = true;
       } else {
-      // Set selChan for channels not exceeding nr of channels.
+        // Set selChan for channels not exceeding nr of channels.
         selChan = false;
         for (uint i=0; i<itsFlagChan.size(); ++i) {
-          if (itsFlagChan[i] < info.nchan()) {
+          if (itsFlagChan[i] < nrchan) {
             selChan[itsFlagChan[i]] = true;
           }
         }
@@ -233,41 +246,53 @@ namespace LOFAR {
           }
         }
       }
-      // Do the same for the child steps.
-      for (uint i=0; i<itsPSets.size(); ++i) {
-        itsPSets[i]->updateInfo (info);
-      }
     }
 
     void PreFlagger::PSet::show (std::ostream& os) const
     {
       os << "PreFlagger set " << itsName << std::endl;
-      os << "  timeofday       " << itsStrTime << std::endl;
       os << "  lst             " << itsStrLST << std::endl;
+      os << "  timeofday       " << itsStrTime << std::endl;
       os << "  abstime         " << itsStrATime << std::endl;
       os << "  reltime         " << itsStrRTime << std::endl;
       os << "  timeslot        " << itsTimeSlot << std::endl;
-      os << "  baseline:       " << itsStrBL << std::endl;
-      os << "  corrtype:       " << itsCorrType << std::endl;
-      if (itsMinUV >= 0) {
-        os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
-      } else {
-        os << "  uvmmin:         " << itsMinUV << std::endl;
+      if (itsFlagOnBL) {
+        os << "  baseline:       " << itsStrBL << std::endl;
+        os << "  corrtype:       " << itsCorrType << std::endl;
       }
-      os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
-      os << "  channel:        " << itsFlagChan << std::endl;
-      os << "  freqrange:      " << itsStrFreq << std::endl;
+      if (itsFlagOnUV) {
+        if (itsMinUV >= 0) {
+          os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
+        } else {
+          os << "  uvmmin:         " << itsMinUV << std::endl;
+        }
+        os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
+      }
+      if (itsFlagOnAzEl) {
+        os << "  azimuth:        " << itsStrAzim << std::endl;
+        os << "  elevation:      " << itsStrElev << std::endl;
+      }
       if (! itsChannels.empty()) {
+        os << "  channel:        " << itsFlagChan << std::endl;
+        os << "  freqrange:      " << itsStrFreq << std::endl;
         os << "   chan to flag:  " << itsChannels << std::endl;
       }
-      os << "  amplmin         " << itsAmplMin << std::endl;
-      os << "  amplmax         " << itsAmplMax << std::endl;
-      os << "  phasemin        " << itsPhaseMin << std::endl;
-      os << "  phasemax        " << itsPhaseMax << std::endl;
-      os << "  realmin         " << itsRealMin << std::endl;
-      os << "  realmax         " << itsRealMax << std::endl;
-      os << "  imagmin         " << itsImagMin << std::endl;
-      os << "  imagmax         " << itsImagMax << std::endl;
+      if (itsFlagOnAmpl) {
+        os << "  amplmin         " << itsAmplMin << std::endl;
+        os << "  amplmax         " << itsAmplMax << std::endl;
+      }
+      if (itsFlagOnPhase) {
+        os << "  phasemin        " << itsPhaseMin << std::endl;
+        os << "  phasemax        " << itsPhaseMax << std::endl;
+      }
+      if (itsFlagOnReal) {
+        os << "  realmin         " << itsRealMin << std::endl;
+        os << "  realmax         " << itsRealMax << std::endl;
+      }
+      if (itsFlagOnImag) {
+        os << "  imagmin         " << itsImagMin << std::endl;
+        os << "  imagmax         " << itsImagMax << std::endl;
+      }
       // Do it for the child steps.
       for (uint i=0; i<itsPSets.size(); ++i) {
         itsPSets[i]->show (os);
@@ -468,11 +493,11 @@ namespace LOFAR {
       const int* ant2Ptr = itsInput->getAnt2().data();
       // Calculate AzEl for each flagged antenna for this time slot.
       MeasFrame frame;
-      MEpoch epoch(MVEpoch(time*86400));
+      Quantity qtime(time, "s");
+      MEpoch epoch(MVEpoch(qtime), MEpoch::UTC);
       frame.set (epoch);
-      MDirection::Convert converter
-        (itsInput->phaseCenter(),
-         casa::MDirection::Ref(casa::MDirection::AZEL, frame));
+      MDirection::Convert converter (itsInput->phaseCenter(),
+                                     MDirection::Ref(MDirection::AZEL, frame));
       uint nrant = itsInput->antennaNames().size();
       Block<bool> done(nrant, false);
       for (uint i=0; i<nrbl; ++i) {
@@ -505,17 +530,19 @@ namespace LOFAR {
                                      uint blnr, int ant,
                                      const int* ant1, const int* ant2)
     {
-      // Calculate AzEl.
+      // Calculate AzEl (n seconds because ranges are in seconds too).
       MVDirection mvAzel (converter().getValue());
       Vector<double> azel = mvAzel.getAngle("s").getValue();
       double az = azel[0];
       double el = azel[1];
+      if (az < 0) az += 86400;
+      if (el < 0) el += 86400;
       // If outside the ranges, there is no match.
       // Set no match for all baselines containing this antenna.
       // It needs to be done from this baseline on, because the earlier
       // baselines have already been handled.
-      bool res = ((!itsAzimuth.empty()   && !matchRange(az, itsAzimuth)) ||
-                  (!itsElevation.empty() && !matchRange(el, itsElevation)));
+      bool res = ((itsAzimuth.empty()   || matchRange(az, itsAzimuth)) &&
+                  (itsElevation.empty() || matchRange(el, itsElevation)));
       if (!res) {
         for (uint i=blnr; i<itsMatchBL.size(); ++i) {
           if (ant1[i] == ant  ||  ant2[i] == ant) {
@@ -780,7 +807,7 @@ namespace LOFAR {
                      << "' should be range using .. or +-");
         }
         // Get the time or datetime in seconds. The values must be positive.
-        double v1 = getSeconds (str->substr(0, pos), asTime, usepm);
+        double v1 = getSeconds (str->substr(0, pos), asTime, false);
         double v2 = getSeconds (str->substr(pos+2),  asTime, usepm);
         ASSERTSTR (v1>=0 && v2>=0, "PreFlagger time range " << *str
                    << " must have positive values");

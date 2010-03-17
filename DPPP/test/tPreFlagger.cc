@@ -87,8 +87,26 @@ public:
     itsAntNames[1] = "rs02.s01";
     itsAntNames[2] = "cs01.s01";
     itsAntNames[3] = "cs01.s02";
+    // Define their positions (more or less WSRT RT0-3).
+    itsAntPos.resize (4);
+    Vector<double> vals(3);
+    vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
+    itsAntPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
+    itsAntPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
+    itsAntPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
+    itsAntPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    // Define the frequencies.
     itsChanFreqs.resize (nchan);
     indgen (itsChanFreqs, 1050000., 100000.);
+    // Define start time.
+    itsStartTime = 0.5;     // 3 - 0.5*5
   }
 private:
   virtual bool process (const DPBuffer&)
@@ -102,7 +120,7 @@ private:
       data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
     }
     DPBuffer buf;
-    buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
+    buf.setTime (itsCount*5 + 3);   //same interval as in updateAveragInfo
     buf.setData (data);
     Cube<float> weights(data.shape());
     weights = 1.;
@@ -361,7 +379,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
-typedef bool CheckFunc (Complex value);
+typedef bool CheckFunc (Complex value, double time);
 
 // Class to check result of flagged, unaveraged TestInput run by test5.
 class TestOutput5: public DPStep
@@ -375,14 +393,17 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     const Cube<Complex>& data = buf.getData();
-    Cube<bool> result(4,5,6);
-    for (int i=0; i<int(data.size()); i+=4) {
-      bool flag = false;
-      for (int j=i; j<i+4; ++j) {
-        if (!flag) flag = itsCFunc(data.data()[j]);
-      }
-      for (int j=i; j<i+4; ++j) {
-        result.data()[j] = flag;
+    const IPosition& shp = data.shape();
+    Cube<bool> result(shp);
+    for (int i=0; i<shp[2]; ++i) {
+      for (int j=0; j<shp[1]; ++j) {
+        bool flag = false;
+        for (int k=0; k<shp[0]; ++k) {
+          if (!flag) flag = itsCFunc(data(k,j,i), buf.getTime());
+        }
+        for (int k=0; k<shp[0]; ++k) {
+          result(k,j,i) = flag;
+        }
       }
     }
     ASSERT (allEQ(buf.getFlags(), result));
@@ -398,7 +419,7 @@ private:
   CheckFunc* itsCFunc;
 };
 
-// Test flagging a few antennae and freqs by using multiple steps.
+// Test flagging on a single parameter.
 void test5(const string& key, const string& value, CheckFunc* cfunc)
 {
   cout << "test5: " << key << '=' << value << endl;
@@ -414,22 +435,47 @@ void test5(const string& key, const string& value, CheckFunc* cfunc)
   execute (step1);
 }
 
-bool checkAmplMin (Complex data)
+// Test flagging on multiple parameters.
+void test6(const string& key1, const string& value1,
+           const string& key2, const string& value2, CheckFunc* cfunc)
+{
+  cout << "test6: " << key1 << '=' << value1 << ' '
+       << key2 << '=' << value2 << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(6, 10, 8, 4, false);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add (key1, value1);
+  parset.add (key2, value2);
+  DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput5(cfunc));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+bool checkAmplMin (Complex data, double)
   { return abs(data) < 9.5; }
-bool checkAmplMax (Complex data)
+bool checkAmplMax (Complex data, double)
   { return abs(data) > 31.5; }
-bool checkPhaseMin (Complex data)
+bool checkPhaseMin (Complex data, double)
   { return arg(data) < 1.4; }
-bool checkPhaseMax (Complex data)
+bool checkPhaseMax (Complex data, double)
   { return arg(data) > 2.1; }
-bool checkRealMin (Complex data)
+bool checkRealMin (Complex data, double)
   { return real(data) < 5.5; }
-bool checkRealMax (Complex data)
+bool checkRealMax (Complex data, double)
   { return real(data) > 29.4; }
-bool checkImagMin (Complex data)
+bool checkImagMin (Complex data, double)
   { return imag(data) < -1.4; }
-bool checkImagMax (Complex data)
+bool checkImagMax (Complex data, double)
   { return imag(data) > 20.5; }
+bool checkTimeSlot (Complex, double time)
+  { return time<5; }
+bool checkNone (Complex, double)
+  { return false; }
+bool checkAll (Complex, double)
+  { return true; }
 
 // Test flagging on various fields.
 void testMany()
@@ -442,6 +488,27 @@ void testMany()
   test5("realmax", "29.4", &checkRealMax);
   test5("imagmin", "-1.4", &checkImagMin);
   test5("imagmax", "20.5", &checkImagMax);
+  test5("timeslot", "0", &checkTimeSlot);
+  test5("abstime", "17-nov-1858/0:0:2..17nov1858/0:0:4", &checkTimeSlot);
+  test5("abstime", "17-nov-1858/0:0:3+-1s", &checkTimeSlot);
+  test5("reltime", "0:0:0..0:0:6", &checkTimeSlot);
+  test5("reltime", "0:0:2+-1s", &checkTimeSlot);
+  test5("reltime", "0:0:2+-20s", &checkAll);
+  test6("abstime", "17-nov-1858/0:0:20+-19s",
+        "reltime", "0:0:20+-20s", &checkAll);
+  test6("abstime", "17-nov-1858/0:0:3+-2s",
+        "reltime", "0:0:20+-20s", &checkTimeSlot);
+  test6("abstime", "17-nov-1858/0:0:20+-19s",
+        "reltime", "0:0:3+-2s", &checkTimeSlot);
+  test6("abstime", "17-nov-1858/0:0:20+-9s",
+        "reltime", "0:0:3+-2s", &checkNone);
+  // Elevation is 12738s; azimuth=86121s
+  test5("elevation", "180deg..190deg", &checkNone);
+  test5("elevation", "12730s..12740s", &checkAll);
+  test5("azimuth", "180deg..190deg", &checkNone);
+  test5("azimuth", "86120s..86125s", &checkAll);
+  test6("azimuth", "86120s..86125s", "elevation", "180deg..190deg", &checkNone);
+  test6("azimuth", "86120s..86125s", "elevation", "12730s..12740s", &checkAll);
 }
 
 int main()

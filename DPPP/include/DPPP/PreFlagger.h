@@ -170,6 +170,9 @@ namespace LOFAR {
         // Fill the baseline matrix; set true for baselines to flag.
         void fillBLMatrix (const casa::Vector<casa::String>& antNames);
 
+        // Fill itsChannels if channel/freq selection is done.
+        void fillChannels (const AverageInfo&);
+
         // Return a vector with a value per correlation.
         // If no parm value given use the default.
         // If the parm value is a vector, use the given values. Use the
