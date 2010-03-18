@@ -398,6 +398,22 @@ void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
   uInt rownr = histtab.nrow();
   histtab.addRow();
   MSHistoryColumns histcols(histtab);
+  // All parset entries are in a Vector<String>.
+  // Some WSRT MSs have a FixedShape APP_PARAMS and CLI_COMMAND column.
+  // For them, put all params in a single vector element (with newlines).
+  bool fixedShaped = 
+    (histcols.appParams().columnDesc().options() & ColumnDesc::FixedShape) != 0;
+  Vector<String> appvec;
+  Vector<String> clivec;
+  if (fixedShaped) {
+    appvec.resize (1);
+    clivec.resize (1);
+    for (uint i=0; i<details.AllParms.size(); ++i) {
+      appvec[0] += details.AllParms[i] + '\n';
+    }
+  } else {
+    appvec.reference (details.AllParms);
+  }
   histcols.observationId().put (rownr, 0);
   histcols.application().put   (rownr, "IDPPP");
   histcols.message().put       (rownr, "parameters");
@@ -405,10 +421,8 @@ void MsFile::writeHistory (MeasurementSet& ms, const RunDetails& details)
   histcols.time().put          (rownr, Time().modifiedJulianDay()*24.*3600.);
   histcols.origin().put        (rownr, Version::getInfo<DPPPVersion>("IDPPP",
                                                                      "full"));
-  histcols.appParams().put     (rownr, details.AllParms);
-  // CASA cannot handle empty cells, so put an empty vector in it.
-  Vector<String> arr;
-  histcols.cliCommand().put    (rownr, arr);
+  histcols.appParams().put     (rownr, appvec);
+  histcols.cliCommand().put    (rownr, clivec);
 }
 
 //===============>>> MsFile::PrintInfo  <<<===============
