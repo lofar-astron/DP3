@@ -321,12 +321,12 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    // All baselines except 2-2 should be flagged.
+    // All baselines except autocorr should be flagged.
     // Furthermore channel 1,4,5 are flagged.
     Cube<bool> result(itsNCorr,itsNChan,itsNBl);
     result = true;
     for (int i=0; i<itsNBl; ++i) {
-      if (i%16 == 10) {
+      if (i%16==0 || i%16==5 || i%16==10 || i%16==15) {
         for (int j=0; j<itsNChan; ++j) {
           if (j!=1 && j!=4 && j!=5) {
             for (int k=0; k<itsNCorr; ++k) {
@@ -372,6 +372,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   parset.add ("expr", "(s1&s1),(s2|s2)");
   parset.add ("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  parset.add ("s2.corrtype", "cross");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
@@ -379,7 +380,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
-typedef bool CheckFunc (Complex value, double time);
+typedef bool CheckFunc (Complex value, double time, int ant1, int ant2);
 
 // Class to check result of flagged, unaveraged TestInput run by test5.
 class TestOutput5: public DPStep
@@ -396,16 +397,19 @@ private:
     const IPosition& shp = data.shape();
     Cube<bool> result(shp);
     for (int i=0; i<shp[2]; ++i) {
+      int a1 = i/4;
+      int a2 = i%4;
       for (int j=0; j<shp[1]; ++j) {
         bool flag = false;
         for (int k=0; k<shp[0]; ++k) {
-          if (!flag) flag = itsCFunc(data(k,j,i), buf.getTime());
+          if (!flag) flag = itsCFunc(data(k,j,i), buf.getTime(), a1, a2);
         }
         for (int k=0; k<shp[0]; ++k) {
           result(k,j,i) = flag;
         }
       }
     }
+    ///cout << buf.getFlags() << endl << result << endl;
     ASSERT (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -454,32 +458,35 @@ void test6(const string& key1, const string& value1,
   execute (step1);
 }
 
-bool checkAmplMin (Complex data, double)
+bool checkBL(Complex, double, int a1, int a2)
+  { return a1==a2; }
+bool checkAmplMin (Complex data, double, int, int)
   { return abs(data) < 9.5; }
-bool checkAmplMax (Complex data, double)
+bool checkAmplMax (Complex data, double, int, int)
   { return abs(data) > 31.5; }
-bool checkPhaseMin (Complex data, double)
+bool checkPhaseMin (Complex data, double, int, int)
   { return arg(data) < 1.4; }
-bool checkPhaseMax (Complex data, double)
+bool checkPhaseMax (Complex data, double, int, int)
   { return arg(data) > 2.1; }
-bool checkRealMin (Complex data, double)
+bool checkRealMin (Complex data, double, int, int)
   { return real(data) < 5.5; }
-bool checkRealMax (Complex data, double)
+bool checkRealMax (Complex data, double, int, int)
   { return real(data) > 29.4; }
-bool checkImagMin (Complex data, double)
+bool checkImagMin (Complex data, double, int, int)
   { return imag(data) < -1.4; }
-bool checkImagMax (Complex data, double)
+bool checkImagMax (Complex data, double, int, int)
   { return imag(data) > 20.5; }
-bool checkTimeSlot (Complex, double time)
+bool checkTimeSlot (Complex, double time, int, int)
   { return time<5; }
-bool checkNone (Complex, double)
+bool checkNone (Complex, double, int, int)
   { return false; }
-bool checkAll (Complex, double)
+bool checkAll (Complex, double, int, int)
   { return true; }
 
 // Test flagging on various fields.
 void testMany()
 {
+  test5("corrtype", "auto", &checkBL);
   test5("amplmin", "9.5", &checkAmplMin);
   test5("amplmax", "31.5", &checkAmplMax);
   test5("phasemin", "1.4", &checkPhaseMin);

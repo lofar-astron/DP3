@@ -902,9 +902,11 @@ namespace LOFAR {
     {
       // Initialize the matrix.
       itsFlagBL.resize (antNames.size(), antNames.size());
-      itsFlagBL = false;
       // Loop through all values in the baseline string.
-      if (! itsStrBL.empty()) {
+      if (itsStrBL.empty()) {
+        itsFlagBL = true;
+      } else {
+        itsFlagBL = false;
         itsFlagOnBL = true;
         vector<ParameterValue> pairs = ParameterValue(itsStrBL).getVector();
         // Each ParameterValue can be a single value (antenna) or a pair of
@@ -963,7 +965,7 @@ namespace LOFAR {
         itsFlagBL = itsFlagBL && flags;
       } else if (corrType == "cross") {
         itsFlagOnBL = true;
-        itsFlagBL.diagonal() = false;
+        itsFlagBL.diagonal() = false;   // no autocorr
       } else {
         ASSERTSTR (corrType == "", "PreFlagger corrType " << itsCorrType
                    << " is invalid; must be auto, cross, or empty string");
