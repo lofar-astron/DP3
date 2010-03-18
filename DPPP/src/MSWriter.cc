@@ -456,15 +456,6 @@ namespace LOFAR {
     {
       Table histtab(ms.keywordSet().asTable("HISTORY"));
       histtab.reopenRW();
-      // Put all parset entries in a Vector<String>.
-      Vector<String> vec(parset.size());
-      Array<String>::contiter viter = vec.cbegin();
-      for (ParameterSet::const_iterator iter = parset.begin();
-           iter != parset.end(); ++iter, ++viter) {
-        *viter = iter->first + '=' + iter->second.get();
-      }
-      uint rownr = histtab.nrow();
-      histtab.addRow();
       ScalarColumn<double> time        (histtab, "TIME");
       ScalarColumn<int>    obsId       (histtab, "OBSERVATION_ID");
       ScalarColumn<String> message     (histtab, "MESSAGE");
@@ -473,16 +464,37 @@ namespace LOFAR {
       ScalarColumn<String> origin      (histtab, "ORIGIN");
       ArrayColumn<String>  parms       (histtab, "APP_PARAMS");
       ArrayColumn<String>  cli         (histtab, "CLI_COMMAND");
+      // Put all parset entries in a Vector<String>.
+      // Some WSRT MSs have a FixedShape APP_PARAMS and CLI_COMMAND column.
+      // For them, put all params in a single vector element (with newlines).
+      bool fixedShaped = 
+        (parms.columnDesc().options() & ColumnDesc::FixedShape) != 0;
+      Vector<String> appvec;
+      Vector<String> clivec;
+      if (fixedShaped) {
+        appvec.resize(1);
+        clivec.resize(1);
+        ostringstream ostr;
+        parset.writeStream (ostr);
+        appvec[0] = ostr.str();
+      } else {
+        appvec.resize (parset.size());
+        Array<String>::contiter viter = appvec.cbegin();
+        for (ParameterSet::const_iterator iter = parset.begin();
+             iter != parset.end(); ++iter, ++viter) {
+          *viter = iter->first + '=' + iter->second.get();
+        }
+      }
+      uint rownr = histtab.nrow();
+      histtab.addRow();
       time.put        (rownr, Time().modifiedJulianDay()*24.*3600.);
       obsId.put       (rownr, 0);
       message.put     (rownr, "parameters");
       application.put (rownr, "NDPPP");
       priority.put    (rownr, "NORMAL");
       origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
-      parms.put       (rownr, vec);
-      // CASA cannot handle empty cells, so put an empty vector in it.
-      Vector<String> arr;
-      cli.put   (rownr, arr);
+      parms.put       (rownr, appvec);
+      cli.put         (rownr, clivec);
     }
 
     void MSWriter::writeTimeInfo (Table& out, double time,
