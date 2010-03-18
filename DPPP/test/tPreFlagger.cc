@@ -516,6 +516,7 @@ void testMany()
   test5("azimuth", "86120s..86125s", &checkAll);
   test6("azimuth", "86120s..86125s", "elevation", "180deg..190deg", &checkNone);
   test6("azimuth", "86120s..86125s", "elevation", "12730s..12740s", &checkAll);
+  test5("lst", "0.154d..0.155d", &checkAll);
 }
 
 int main()

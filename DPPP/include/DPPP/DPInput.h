@@ -102,6 +102,10 @@ namespace LOFAR {
       const vector<casa::MPosition>& antennaPos() const
         { return itsAntPos; }
 
+      // Get the array position.
+      const casa::MPosition& arrayPos() const
+        { return itsArrayPos; }
+      
       // Get the phase reference direction.
       const casa::MDirection& phaseCenter() const
         { return itsPhaseCenter; }
@@ -146,6 +150,7 @@ namespace LOFAR {
       casa::Vector<int>          itsAnt2;        //# ant2 of all baselines
       casa::Vector<casa::String> itsAntNames;
       vector<casa::MPosition>    itsAntPos;
+      casa::MPosition            itsArrayPos;
       casa::MDirection           itsPhaseCenter;
       casa::Vector<double>       itsChanFreqs;
     };

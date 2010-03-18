@@ -30,6 +30,7 @@
 #include <tables/Tables/TableRecord.h>
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/ArrayColumn.h>
+#include <measures/Measures/MeasTable.h>
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <casa/Containers/Record.h>
@@ -371,6 +372,14 @@ namespace LOFAR {
         ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
         // Take only the channels used in the input.
         itsChanFreqs = freqCol(0);
+        // Get the array position using the telescope name from the OBSERVATION
+        // subtable. 
+        Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
+        ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
+        if (! MeasTable::Observatory(itsArrayPos, telCol(0))) {
+          // If not found, use the position of the middle antenna.
+          itsArrayPos = itsAntPos[itsAntPos.size() / 2];
+        }
       }        
       // Create the UVW calculator.
       itsUVWCalc = UVWCalculator (itsPhaseCenter, itsAntPos);

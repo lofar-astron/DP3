@@ -1,4 +1,4 @@
-//# FlagCounter.cc: Class to keep counts of nr of flagged points
+//# FlagCounter.cc: Class to keep counts of nr of flagged visibilities
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -48,7 +48,7 @@ namespace LOFAR {
                                     int64 ntimes) const
     {
       int64 npoints = ntimes * itsChanCounts.size();
-      os << endl << "Percentage of points flagged per baseline"
+      os << endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):" << endl;
       uint nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
@@ -134,7 +134,7 @@ namespace LOFAR {
     void FlagCounter::showChannel (ostream& os, int64 ntimes) const
     {
       int64 npoints = ntimes * itsBLCounts.size();
-      os << endl << "Percentage of points flagged per channel:" << endl;
+      os << endl << "Percentage of visibilities flagged per channel:" << endl;
       if (npoints == 0) {
         return;
       }
@@ -162,9 +162,11 @@ namespace LOFAR {
     void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
     {
       int64 ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
-      os << endl << "Percentage of flagged points detected per correlation:"
+      os << endl
+         << "Percentage of flagged visibilities detected per correlation:"
          << endl;
-      os << "  " << itsCorrCounts << " out of " << ntotal << " points   [";
+      os << "  " << itsCorrCounts << " out of " << ntotal
+         << " visibilities   [";
       for (uint i=0; i<itsCorrCounts.size(); ++i) {
         if (i > 0) {
           os << ", ";

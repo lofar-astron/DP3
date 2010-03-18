@@ -37,6 +37,7 @@
 #include <measures/Measures/MeasFrame.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/MCDirection.h>
+#include <measures/Measures/MCEpoch.h>
 #include <iostream>
 #include <algorithm>
 #include <functional>
@@ -250,12 +251,22 @@ namespace LOFAR {
 
     void PreFlagger::PSet::show (std::ostream& os) const
     {
-      os << "PreFlagger set " << itsName << std::endl;
-      os << "  lst             " << itsStrLST << std::endl;
-      os << "  timeofday       " << itsStrTime << std::endl;
-      os << "  abstime         " << itsStrATime << std::endl;
-      os << "  reltime         " << itsStrRTime << std::endl;
-      os << "  timeslot        " << itsTimeSlot << std::endl;
+      os << "PreFlagger pset " << itsName << std::endl;
+      if (! itsStrLST.empty()) {
+        os << "  lst             " << itsStrLST << std::endl;
+      }
+      if (! itsStrTime.empty()) {
+        os << "  timeofday       " << itsStrTime << std::endl;
+      }
+      if (! itsStrATime.empty()) {
+        os << "  abstime         " << itsStrATime << std::endl;
+      }
+      if (! itsStrRTime.empty()) {
+        os << "  reltime         " << itsStrRTime << std::endl;
+      }
+      if (! itsTimeSlot.empty()) {
+        os << "  timeslot        " << itsTimeSlot << std::endl;
+      }
       if (itsFlagOnBL) {
         os << "  baseline:       " << itsStrBL << std::endl;
         os << "  corrtype:       " << itsCorrType << std::endl;
@@ -427,6 +438,19 @@ namespace LOFAR {
       if (!itsTimeSlot.empty()) {
         if (std::find (itsTimeSlot.begin(), itsTimeSlot.end(), timeSlot) ==
             itsTimeSlot.end()) {
+          return false;
+        }
+      }
+      if (!itsLST.empty()) {
+        // Convert time from UTC to Local Apparent Sidereal Time.
+        MeasFrame frame;
+        frame.set (itsInput->arrayPos());
+        Quantity qtime(time, "s");
+        MEpoch lst = MEpoch::Convert (MEpoch(MVEpoch(qtime), MEpoch::UTC),
+                                      MEpoch::Ref(MEpoch::LAST, frame))();
+        double lstSec = lst.getValue().get();        // in days
+        lstSec -= int(lstSec);                       // time of day
+        if (!matchRange (lstSec*86400, itsLST)) {    // use seconds
           return false;
         }
       }
