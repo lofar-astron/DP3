@@ -32,6 +32,7 @@
 #include <DPPP/MedFlagger.h>
 #include <DPPP/PreFlagger.h>
 #include <DPPP/UVWFlagger.h>
+#include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
 #include <Common/ParameterSet.h>
 #include <Common/Timer.h>
@@ -136,6 +137,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new PreFlagger (reader, parset, prefix));
         } else if (type == "uvwflagger"  ||  type == "uvwflag") {
           step = DPStep::ShPtr(new UVWFlagger (reader, parset, prefix));
+        } else if (type == "counter"  ||  type == "count") {
+          step = DPStep::ShPtr(new Counter (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }

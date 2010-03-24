@@ -23,6 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/PreFlagger.h>
+#include <DPPP/Counter.h>
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/AverageInfo.h>
@@ -213,11 +214,14 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add ("countflag", "true");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step3(new Counter(in, parset, "cnt"));
+  DPStep::ShPtr step4(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
+  step3->setNextStep (step4);
   execute (step1);
   step2->showCounts (cout);
+  step3->showCounts (cout);
 }
 
 

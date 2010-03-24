@@ -5,7 +5,7 @@ set(inst_HEADERS
   DPRun.h DPStep.h DPInput.h DPBuffer.h AverageInfo.h
   ProgressMeter.h FlagCounter.h
   UVWCalculator.h
-  MSReader.h MSWriter.h MSUpdater.h
+  MSReader.h MSWriter.h MSUpdater.h Counter.h
   Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h
   FlaggerStatistics.h
   MsInfo.h

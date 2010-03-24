@@ -7,7 +7,7 @@ lofar_add_library(dppp
   DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc AverageInfo.cc
   ProgressMeter.cc FlagCounter.cc
   UVWCalculator.cc
-  MSReader.cc MSWriter.cc MSUpdater.cc
+  MSReader.cc MSWriter.cc MSUpdater.cc Counter.cc
   Averager.cc MedFlagger.cc PreFlagger.cc UVWFlagger.cc
   FlaggerStatistics.cc
   MsInfo.cc
