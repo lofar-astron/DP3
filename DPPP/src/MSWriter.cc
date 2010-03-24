@@ -67,7 +67,6 @@ namespace LOFAR {
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
       itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
-      itsCountFlags        = parset.getBool (prefix+"countflag", false);
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       // Create the MS.
@@ -76,9 +75,6 @@ namespace LOFAR {
       writeHistory (itsMS, parset);
       itsMS.flush (true, true);
       cout << "Finished preparing output MS" << endl;
-      if (itsCountFlags) {
-        itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
-      }
     }
 
     MSWriter::~MSWriter()
@@ -116,19 +112,6 @@ namespace LOFAR {
       }
       // Now write the data and flags.
       writeData (out, buf);
-      // Count the flags if needed.
-      if (itsCountFlags) {
-        const bool* flagPtr = buf.getFlags().data();
-        for (uint i=0; i<itsNrBl; ++i) {
-          for (uint j=0; j<itsNrChan; ++j) {
-            if (*flagPtr) {
-              itsFlagCounter.incrBaseline(i);
-              itsFlagCounter.incrChannel(j);
-            }
-            flagPtr += itsNrCorr;    // only count 1st corr
-          }
-        }
-      }
       return true;
     }
 
@@ -161,17 +144,6 @@ namespace LOFAR {
       os << "  ntimes:         " << itsNrTimes << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
-    }
-
-    void MSWriter::showCounts (std::ostream& os) const
-    {
-      if (itsCountFlags) {
-        os << endl << "Flag statistics of data written";
-        os << endl << "===============================" << endl;
-        itsFlagCounter.showBaseline (os, itsReader->getAnt1(),
-                                     itsReader->getAnt2(), itsNrTimes);
-        itsFlagCounter.showChannel  (os, itsNrTimes);
-      }
     }
 
     void MSWriter::showTimings (std::ostream& os, double duration) const

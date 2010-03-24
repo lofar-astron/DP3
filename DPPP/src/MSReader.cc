@@ -56,7 +56,6 @@ namespace LOFAR {
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
-      itsCountFlags       = parset.getBool   (prefix+"countflag", false);
       // Prepare the MS access and get time info.
       double startTime, endTime;
       prepare (startTime, endTime, itsInterval);
@@ -215,19 +214,6 @@ namespace LOFAR {
         }
         ASSERTSTR (itsBuffer.getData().shape()[2] == int(itsNrBl),
                    "#baselines is not the same for all time slots in the MS");
-        // Count the flags if needed.
-        if (itsCountFlags) {
-          const bool* flagPtr = itsBuffer.getFlags().data();
-          for (uint i=0; i<itsNrBl; ++i) {
-            for (uint j=0; j<itsNrChan; ++j) {
-              if (*flagPtr) {
-                itsFlagCounter.incrBaseline(i);
-                itsFlagCounter.incrChannel(j);
-              }
-              flagPtr += itsNrCorr;    // only count 1st corr
-            }
-          }
-        }
       }   // end of scope stops the timer.
       // Let the next step in the pipeline process this time slot.
       getNextStep()->process (itsBuffer);
@@ -265,14 +251,9 @@ namespace LOFAR {
 
     void MSReader::showCounts (std::ostream& os) const
     {
-      os << endl << "Flag statistics of data read";
-      os << endl << "============================" << endl;
+      os << endl << "NaN/infinite data flagged in reader";
+      os << endl << "===================================" << endl;
       int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
-      if (itsCountFlags) {
-        itsFlagCounter.showBaseline (os, itsAnt1, itsAnt2, nrtim*itsNrChan);
-        itsFlagCounter.showChannel  (os, nrtim);
-      }
-      os <<endl << "NaN/infinite data flagging";
       itsFlagCounter.showCorrelation (os, nrtim);
     }
 

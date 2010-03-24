@@ -89,6 +89,15 @@ namespace LOFAR {
       os << "  phasecenter:    " << itsCenter << std::endl;
     }
 
+    void UVWFlagger::showCounts (std::ostream& os) const
+    {
+      os << endl << "Flags set by UVWFlagger " << itsName;
+      os << endl << "=======================" << endl;
+      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
+                                   itsInput->getAnt2(), itsNTimes);
+      itsFlagCounter.showChannel  (os, itsNTimes);
+    }
+
     void UVWFlagger::showTimings (std::ostream& os, double duration) const
     {
       double flagDur = itsTimer.getElapsed();
@@ -107,6 +116,8 @@ namespace LOFAR {
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.
       itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / casa::C::c;
+      // Initialize the flag counters.
+      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
     }
 
     bool UVWFlagger::process (const DPBuffer& buf)
@@ -120,8 +131,8 @@ namespace LOFAR {
       const IPosition& shape = flags.shape();
       uint nrcorr = shape[0];
       uint nrchan = shape[1];
-      uint nr = nrcorr * nrchan;
       uint nrbl = shape[2];
+      uint nr = nrcorr*nrchan;
       ASSERT (nrchan == itsRecWavel.size());
       // Input uvw coordinates are only needed if no new phase center is used.
       Matrix<double> uvws;
@@ -130,6 +141,7 @@ namespace LOFAR {
       }
       const double* uvwPtr = uvws.data();
       bool* flagPtr = flags.data();
+      const bool* origPtr = buf.getFlags().data();
       for (uint i=0; i<nrbl; ++i) {
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
@@ -174,8 +186,16 @@ namespace LOFAR {
             testUVWl (uvwPtr[2], itsRangeWl, flagPtr, nrcorr);
           }
         }
+        // Count the flags set newly.
+        for (uint j=0; j<nrchan; ++j) {
+          if (*flagPtr  &&  !*origPtr) {
+            itsFlagCounter.incrBaseline(i);
+            itsFlagCounter.incrChannel(j);
+          }
+          flagPtr += nrcorr;
+          origPtr += nrcorr;
+        }
         uvwPtr  += 3;
-        flagPtr += nr;
       }
       // Let the next step do its processing.
       itsTimer.stop();

@@ -229,7 +229,6 @@ namespace LOFAR {
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
       casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
-      bool                itsCountFlags;
       FlagCounter         itsFlagCounter;
       NSTimer             itsTimer;
     };

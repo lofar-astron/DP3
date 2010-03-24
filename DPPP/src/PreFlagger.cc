@@ -28,7 +28,6 @@
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
-#include <casa/Arrays/ArrayMath.h>
 #include <casa/Arrays/ArrayLogical.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Quanta/MVTime.h>
@@ -39,8 +38,6 @@
 #include <measures/Measures/MCDirection.h>
 #include <measures/Measures/MCEpoch.h>
 #include <iostream>
-#include <algorithm>
-#include <functional>
 #include <stack>
 
 using namespace casa;
@@ -54,9 +51,7 @@ namespace LOFAR {
         itsInput (input),
         itsPSet  (input, parset, prefix),
         itsCount (0)
-    {
-      itsCountFlags = parset.getBool (prefix+"countflag", false);
-    }
+    {}
 
     PreFlagger::~PreFlagger()
     {}
@@ -68,13 +63,11 @@ namespace LOFAR {
 
     void PreFlagger::showCounts (std::ostream& os) const
     {
-      if (itsCountFlags) {
-        os << endl << "Flags set by PreFlagger " << itsName;
-        os << endl << "=======================" << endl;
-        itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                     itsInput->getAnt2(), itsCount);
-        itsFlagCounter.showChannel  (os, itsCount);
-      }
+      os << endl << "Flags set by PreFlagger " << itsName;
+      os << endl << "=======================" << endl;
+      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
+                                   itsInput->getAnt2(), itsCount);
+      itsFlagCounter.showChannel  (os, itsCount);
     }
 
     void PreFlagger::showTimings (std::ostream& os, double duration) const
@@ -87,10 +80,8 @@ namespace LOFAR {
     void PreFlagger::updateAverageInfo (AverageInfo& info)
     {
       itsPSet.updateInfo (info);
-      if (itsCountFlags) {
-        // Initialize the flag counters.
-        itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
-      }
+      // Initialize the flag counters.
+      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
     }
 
     bool PreFlagger::process (const DPBuffer& buf)
@@ -100,31 +91,26 @@ namespace LOFAR {
       // The flags will be changed, so make sure we have a unique array.
       out.getFlags().unique();
       // Do the PSet steps and OR the result with the current flags.
-      // When counting the flags, count and OR in the same loop.
+      // Only count if the flag was not set yet.
       Cube<bool>* flags = itsPSet.process (out, itsCount, Block<bool>());
-      if (itsCountFlags) {
-        const IPosition& shape = flags->shape();
-        uint nrcorr = shape[0];
-        uint nrchan = shape[1];
-        uint nrbl   = shape[2];
-        const bool* inPtr = flags->data();
-        bool* outPtr = out.getFlags().data();
-        for (uint i=0; i<nrbl; ++i) {
-          for (uint j=0; j<nrchan; ++j) {
-            if (*inPtr  &&  !*outPtr) {
-              itsFlagCounter.incrBaseline(i);
-              itsFlagCounter.incrChannel(j);
-              for (uint i=0; i<nrcorr; ++i) {
-                outPtr[i] = true;
-              }
+      const IPosition& shape = flags->shape();
+      uint nrcorr = shape[0];
+      uint nrchan = shape[1];
+      uint nrbl   = shape[2];
+      const bool* inPtr = flags->data();
+      bool* outPtr = out.getFlags().data();
+      for (uint i=0; i<nrbl; ++i) {
+        for (uint j=0; j<nrchan; ++j) {
+          if (*inPtr  &&  !*outPtr) {
+            itsFlagCounter.incrBaseline(i);
+            itsFlagCounter.incrChannel(j);
+            for (uint i=0; i<nrcorr; ++i) {
+              outPtr[i] = true;
             }
-            inPtr  += nrcorr;    // only count 1st corr
-            outPtr += nrcorr;
           }
+          inPtr  += nrcorr;    // only count 1st corr
+          outPtr += nrcorr;
         }
-      } else {
-        transformInPlace (out.getFlags().cbegin(), out.getFlags().cend(),
-                          flags->cbegin(), std::logical_or<bool>());
       }
       itsTimer.stop();
       // Let the next step do its processing.

@@ -379,6 +379,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
+  step2->showCounts (cout);
 }
 
 // Test flagging a few baselines on UV in m with a different phase center.

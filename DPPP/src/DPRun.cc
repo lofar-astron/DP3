@@ -127,7 +127,8 @@ namespace LOFAR {
       for (vector<string>::const_iterator iter = steps.begin();
            iter != steps.end(); ++iter) {
         string prefix(*iter + '.');
-        string type = toLower(parset.getString (prefix+"type"));
+        // The name is the default step type.
+        string type = toLower(parset.getString (prefix+"type", *iter));
         DPStep::ShPtr step;
         if (type == "averager"  ||  type == "average"  ||  type == "squash") {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));

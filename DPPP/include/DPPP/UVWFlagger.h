@@ -30,7 +30,6 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
-#include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -78,6 +77,9 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // Show the flag counts.
+      virtual void showCounts (std::ostream&) const;
+
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
@@ -122,6 +124,7 @@ namespace LOFAR {
       vector<string>       itsCenter;
       NSTimer              itsTimer;
       NSTimer              itsUVWTimer;
+      FlagCounter          itsFlagCounter;
     };
 
   } //# end namespace

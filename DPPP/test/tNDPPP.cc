@@ -225,7 +225,7 @@ void testAvg1()
     ostr << "msin.endtime=03-Aug-2000/13:31:45" << endl;
     ostr << "msout=tNDPPP_tmp.MS2" << endl;
     ostr << "msout.overwrite=true" << endl;
-    ostr << "steps=[avg]" << endl;
+    ostr << "steps=[avg,count]" << endl;
     ostr << "avg.type=average" << endl;
     ostr << "avg.timestep=20" << endl;
     ostr << "avg.freqstep=100" << endl;

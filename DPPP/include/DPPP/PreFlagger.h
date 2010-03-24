@@ -81,7 +81,7 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // If needed, show the flag counts.
+      // Show the flag counts.
       virtual void showCounts (std::ostream&) const;
 
       // Show the timings.
@@ -257,7 +257,6 @@ namespace LOFAR {
       NSTimer     itsTimer;
       PSet        itsPSet;
       uint        itsCount;
-      bool        itsCountFlags;
       FlagCounter itsFlagCounter;
     };
       

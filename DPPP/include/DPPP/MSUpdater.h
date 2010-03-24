@@ -28,7 +28,6 @@
 // @brief DPPP step writing to an MS
 
 #include <DPPP/DPStep.h>
-#include <DPPP/FlagCounter.h>
 
 namespace LOFAR {
   class ParameterSet;
@@ -65,17 +64,12 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // If needed, show the flag counts.
-      virtual void showCounts (std::ostream&) const;
-
     private:
       MSReader*   itsReader;
       uint        itsNrCorr;
       uint        itsNrChan;
       uint        itsNrBl;
       uint        itsNrTimes;
-      bool        itsCountFlags;
-      FlagCounter itsFlagCounter;
     };
 
   } //# end namespace

@@ -78,9 +78,6 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // If needed, show the flag counts.
-      virtual void showCounts (std::ostream&) const;
-
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
@@ -157,10 +154,8 @@ namespace LOFAR {
       uint            itsNrTimes;
       uint            itsNChanAvg;    //# nr of channels in input averaged to 1
       uint            itsNTimeAvg;    //# nr of times in input averaged to 1
-      bool            itsCountFlags;
       std::string     itsVdsDir;      //# directory where to put VDS file
       std::string     itsClusterDesc; //# name of clusterdesc file
-      FlagCounter     itsFlagCounter;
       NSTimer         itsTimer;
     };
 
