@@ -51,9 +51,12 @@ namespace LOFAR {
     PreFlagger::PreFlagger (DPInput* input,
                             const ParameterSet& parset, const string& prefix)
       : itsName  (prefix),
+        itsInput (input),
         itsPSet  (input, parset, prefix),
         itsCount (0)
-    {}
+    {
+      itsCountFlags = parset.getBool (prefix+"countflag", false);
+    }
 
     PreFlagger::~PreFlagger()
     {}
@@ -63,16 +66,31 @@ namespace LOFAR {
       itsPSet.show (os);
     }
 
+    void PreFlagger::showCounts (std::ostream& os) const
+    {
+      if (itsCountFlags) {
+        os << endl << "Flag statistics of PreFlagger " << itsName;
+        os << endl << "=============================" << endl;
+        itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
+                                     itsInput->getAnt2(), itsCount);
+        itsFlagCounter.showChannel  (os, itsCount);
+      }
+    }
+
     void PreFlagger::showTimings (std::ostream& os, double duration) const
     {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
-      os << " MSWriter " << itsName << endl;
+      os << " PreFlagger " << itsName << endl;
     }
 
     void PreFlagger::updateAverageInfo (AverageInfo& info)
     {
       itsPSet.updateInfo (info);
+      if (itsCountFlags) {
+        // Initialize the flag counters.
+        itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
+      }
     }
 
     bool PreFlagger::process (const DPBuffer& buf)
@@ -82,9 +100,32 @@ namespace LOFAR {
       // The flags will be changed, so make sure we have a unique array.
       out.getFlags().unique();
       // Do the PSet steps and OR the result with the current flags.
+      // When counting the flags, count and OR in the same loop.
       Cube<bool>* flags = itsPSet.process (out, itsCount, Block<bool>());
-      transformInPlace (out.getFlags().cbegin(), out.getFlags().cend(),
-                        flags->cbegin(), std::logical_or<bool>());
+      if (itsCountFlags) {
+        const IPosition& shape = flags->shape();
+        uint nrcorr = shape[0];
+        uint nrchan = shape[1];
+        uint nrbl   = shape[2];
+        const bool* inPtr = flags->data();
+        bool* outPtr = out.getFlags().data();
+        for (uint i=0; i<nrbl; ++i) {
+          for (uint j=0; j<nrchan; ++j) {
+            if (*inPtr  &&  !*outPtr) {
+              itsFlagCounter.incrBaseline(i);
+              itsFlagCounter.incrChannel(j);
+              for (uint i=0; i<nrcorr; ++i) {
+                outPtr[i] = true;
+              }
+            }
+            inPtr  += nrcorr;    // only count 1st corr
+            outPtr += nrcorr;
+          }
+        }
+      } else {
+        transformInPlace (out.getFlags().cbegin(), out.getFlags().cend(),
+                          flags->cbegin(), std::logical_or<bool>());
+      }
       itsTimer.stop();
       // Let the next step do its processing.
       getNextStep()->process (out);

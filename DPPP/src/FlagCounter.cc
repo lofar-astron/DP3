@@ -49,7 +49,7 @@ namespace LOFAR {
     {
       int64 npoints = ntimes * itsChanCounts.size();
       os << endl << "Percentage of visibilities flagged per baseline"
-         " (antenna pair):" << endl;
+         " (antenna pair):";
       uint nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
       Vector<int64> nusedAnt(nrant, 0);

@@ -211,11 +211,13 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
+  parset.add ("countflag", "true");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
+  step2->showCounts (cout);
 }
 
 

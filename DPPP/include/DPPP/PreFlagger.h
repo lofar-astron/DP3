@@ -81,6 +81,9 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // If needed, show the flag counts.
+      virtual void showCounts (std::ostream&) const;
+
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
@@ -249,10 +252,13 @@ namespace LOFAR {
       };
         
       //# Data members of PreFlagger.
-      string  itsName;
-      NSTimer itsTimer;
-      PSet    itsPSet;
-      uint    itsCount;
+      string      itsName;
+      DPInput*    itsInput;
+      NSTimer     itsTimer;
+      PSet        itsPSet;
+      uint        itsCount;
+      bool        itsCountFlags;
+      FlagCounter itsFlagCounter;
     };
       
   } //# end namespace
