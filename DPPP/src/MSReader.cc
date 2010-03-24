@@ -424,9 +424,15 @@ namespace LOFAR {
       ROArrayColumn<float> wCol(itsMS, "WEIGHT");
       Matrix<float> inArr = wCol.getColumnCells (rowNrs);
       Cube<float> outArr(itsNrCorr, itsNrChan, itsNrBl);
-      const float* inPtr = inArr.data();
+      float* inPtr  = inArr.data();
       float* outPtr = outArr.data();
       for (uint i=0; i<itsNrBl; ++i) {
+        // If global weights are zero, set them to 1. Some old MSs need that.
+        for (uint k=0; k<itsNrCorr; ++k) {
+          if (inPtr[k] == 0.) {
+            inPtr[k] = 1.;
+          }
+        }
         for (uint j=0; j<itsNrChan; ++j) {
           for (uint k=0; k<itsNrCorr; ++k) {
             *outPtr++ = inPtr[k];
