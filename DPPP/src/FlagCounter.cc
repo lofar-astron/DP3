@@ -134,6 +134,7 @@ namespace LOFAR {
     void FlagCounter::showChannel (ostream& os, int64 ntimes) const
     {
       int64 npoints = ntimes * itsBLCounts.size();
+      int64 nflagged = 0;
       os << endl << "Percentage of visibilities flagged per channel:" << endl;
       if (npoints == 0) {
         return;
@@ -151,12 +152,18 @@ namespace LOFAR {
         int nrc = std::min(nchpl, int(itsChanCounts.size() - i*nchpl));
         os << std::setw(4) << ch << '-' << std::setw(4) << ch+nrc-1 << ":    ";
         for (int j=0; j<nrc; ++j) {
+          nflagged += itsChanCounts[ch];
           os << std::setw(4) << int((100. * itsChanCounts[ch]) / npoints + 0.5)
              << '%';
           ch++;
         }
         os << endl;
       }
+      npoints *= itsChanCounts.size();
+      os << "Total flagged: ";
+      showPerc1 (os, nflagged, npoints);
+      os << "   (" << nflagged << " out of " << npoints
+         << " visibilities)" << endl;
     }
 
     void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const

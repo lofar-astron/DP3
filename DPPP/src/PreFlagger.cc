@@ -69,8 +69,8 @@ namespace LOFAR {
     void PreFlagger::showCounts (std::ostream& os) const
     {
       if (itsCountFlags) {
-        os << endl << "Flag statistics of PreFlagger " << itsName;
-        os << endl << "=============================" << endl;
+        os << endl << "Flags set by PreFlagger " << itsName;
+        os << endl << "=======================" << endl;
         itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
                                      itsInput->getAnt2(), itsCount);
         itsFlagCounter.showChannel  (os, itsCount);
