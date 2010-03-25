@@ -281,8 +281,8 @@ namespace LOFAR {
         // The input can already be averaged and averaging can be done in
         // this run, so the full resolution is the combination of both.
         uint orignchan = itsNrChan * itsNChanAvg;
-        IPosition dataShapeF(2, orignchan/8, itsNTimeAvg);
-        IPosition tileShapeF(2, orignchan/8, 1024);
+        IPosition dataShapeF(2, (orignchan+7)/8, itsNTimeAvg);
+        IPosition tileShapeF(2, (orignchan+7)/8, 1024);
         TiledColumnStMan tsmf("TiledFullResFlag", tileShapeF);
         ArrayColumnDesc<uChar> padesc("LOFAR_FULL_RES_FLAG",
                                       "flags in original full resolution",
@@ -518,7 +518,7 @@ namespace LOFAR {
         ASSERT (ofShape[0] < chShape[0]*8);
         const bool* flagsPtr = flags.data();
         uChar* charsPtr = chars.data();
-        for (int i=0; i<ofShape[2]*ofShape[3]; ++i) {
+        for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {
           Conversion::bitToBool (charsPtr, flagsPtr, ofShape[0]);
           flagsPtr += ofShape[0];
           charsPtr += chShape[0];
