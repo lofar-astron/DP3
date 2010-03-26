@@ -519,7 +519,7 @@ namespace LOFAR {
         const bool* flagsPtr = flags.data();
         uChar* charsPtr = chars.data();
         for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {
-          Conversion::bitToBool (charsPtr, flagsPtr, ofShape[0]);
+          Conversion::boolToBit (charsPtr, flagsPtr, ofShape[0]);
           flagsPtr += ofShape[0];
           charsPtr += chShape[0];
         }

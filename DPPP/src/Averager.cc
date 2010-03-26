@@ -71,8 +71,9 @@ namespace LOFAR {
 
     void Averager::showTimings (std::ostream& os, double duration) const
     {
-      os << "  Averager " << itsName << ": " << std::setprecision(1)
-         << 100. * itsTimer.getElapsed() / duration << '%' << endl;
+      os << "  ";
+      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      os << " Averager " << itsName << endl;
     }
 
     bool Averager::process (const DPBuffer& buf)
@@ -277,7 +278,7 @@ namespace LOFAR {
         memcpy (outPtr, inPtr, nchan*ntimavg*sizeof(bool));
         // Applying the flags only needs to be done if the input data
         // was already averaged before.
-        if (ntimavg > 1  &&  nchanavg > 1) {
+        if (ntimavg > 1  ||  nchanavg > 1) {
           for (int j=0; j<shapeFlg[1]; ++j) {
             // If a data point is flagged, the flags in the corresponding
             // FullRes window have to be set.

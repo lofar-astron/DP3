@@ -208,6 +208,8 @@ namespace LOFAR {
         //# Data members of PreFlagger::PSet.
         DPInput*           itsInput;
         string             itsName;
+        bool               itsFlagOnTimeOnly; //# true = only flag on time info
+        bool               itsFlagOnTime; //# true = do time based flagging
         bool               itsFlagOnUV; //# true = do uv distance based flagging
         bool               itsFlagOnBL; //# true = do ant/bl based flagging
         bool               itsFlagOnAmpl; //# true = do amplitude based flagging

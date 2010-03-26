@@ -34,6 +34,10 @@
 using namespace LOFAR::DPPP;
 using namespace casa;
 
+// This test program uses the MS in tNDPPP.in_MS.tgz.
+// The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.
+// Two time slots are missing between time slot 2 and 3.
+
 void testCopy()
 {
   cout << endl << "** testCopy **" << endl;
@@ -83,6 +87,7 @@ void testCopy()
   }
   {
     // Check the inserted time slots.
+    // The MS misses a few time slots (3 and 4).
     Table t1 = tableCommand
       ("using style python "
        "select from $1 where rownumber() in [0:6, 4*6:6*6, 21*6:24*6]",
@@ -330,6 +335,164 @@ void testUpdate()
   }
 }
 
+void checkFlags (const string& outName)
+{
+  // Only check the FULL_RES_FLAGS and table size.
+  // The flags are created in various ways, but should be the same in all cases.
+  // 3 time slots are averaged to 1.
+  Table tout(outName);
+  ASSERT (tout.nrow() == 6*4);
+  // Check the full-res-flags.
+  // Channels 0,2,6,7,8 are flagged everywhere.
+  {
+  // Input time slots 3,4 are inserted, thus flagged.
+    Table t1 = tableCommand
+      ("using style python "
+       "select from $1 where rownumber() in [0:6]",
+       tout);
+    ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
+    ASSERT (oflag(0).shape() == IPosition(2,2,6));
+    Array<uChar> flags = oflag.getColumn();
+    ASSERT (allEQ(flags(IPosition(3,0,0,0), IPosition(3,0,2,5)), uChar(0xc5)));
+    ASSERT (allEQ(flags(IPosition(3,1,0,0), IPosition(3,1,2,5)), uChar(0x01)));
+    ASSERT (allEQ(flags(IPosition(3,0,3,0), IPosition(3,0,4,5)), uChar(0xff)));
+    ASSERT (allEQ(flags(IPosition(3,1,3,0), IPosition(3,1,4,5)), uChar(0x0f)));
+    ASSERT (allEQ(flags(IPosition(3,0,5,0), IPosition(3,0,5,5)), uChar(0xc5)));
+    ASSERT (allEQ(flags(IPosition(3,1,5,0), IPosition(3,1,5,5)), uChar(0x01)));
+  }
+  {
+  // Input time slots 10,11 are flagged.
+    Table t1 = tableCommand
+      ("using style python "
+       "select from $1 where rownumber() in [6:12]",
+       tout);
+    ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
+    ASSERT (oflag(0).shape() == IPosition(2,2,6));
+    Array<uChar> flags = oflag.getColumn();
+    cout << flags<<endl;
+    ASSERT (allEQ(flags(IPosition(3,0,0,0), IPosition(3,0,3,5)), uChar(0xc5)));
+    ASSERT (allEQ(flags(IPosition(3,1,0,0), IPosition(3,1,3,5)), uChar(0x01)));
+    ASSERT (allEQ(flags(IPosition(3,0,4,0), IPosition(3,0,5,5)), uChar(0xff)));
+    ASSERT (allEQ(flags(IPosition(3,1,4,0), IPosition(3,1,5,5)), uChar(0x0f)));
+  }
+  {
+    // Input time slots 12-17 are not flagged.
+    Table t1 = tableCommand
+      ("using style python "
+       "select from $1 where rownumber() in [12:18]",
+       tout);
+    ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
+    ASSERT (oflag(0).shape() == IPosition(2,2,6));
+    Array<uChar> flags = oflag.getColumn();
+    ASSERT (allEQ(flags(IPosition(3,0,0,0), IPosition(3,0,5,5)), uChar(0xc5)));
+    ASSERT (allEQ(flags(IPosition(3,1,0,0), IPosition(3,1,5,5)), uChar(0x01)));
+  }
+  {
+    // Input time slot 20-23 did not exist, thus flagged in average.
+    Table t1 = tableCommand
+      ("using style python "
+       "select from $1 where rownumber() in [18:24]",
+       tout);
+    ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
+    ASSERT (oflag(0).shape() == IPosition(2,2,6));
+    Array<uChar> flags = oflag.getColumn();
+    ASSERT (allEQ(flags(IPosition(3,0,0,0), IPosition(3,0,1,5)), uChar(0xc5)));
+    ASSERT (allEQ(flags(IPosition(3,1,0,0), IPosition(3,1,1,5)), uChar(0x01)));
+    ASSERT (allEQ(flags(IPosition(3,0,2,0), IPosition(3,0,5,5)), uChar(0xff)));
+    ASSERT (allEQ(flags(IPosition(3,1,2,0), IPosition(3,1,5,5)), uChar(0x0f)));
+  }
+}
+
+void testFlags1()
+{
+  cout << endl << "** testFlags1 **" << endl;
+  {
+    // Most simple case.
+    // Just flag some channels and time stamps.
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msin.startchan=1" << endl;
+    ostr << "msin.nchan=12" << endl;
+    ostr << "msout=tNDPPP_tmp.MS5" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[preflag,average]" << endl;
+    ostr << "preflag.expr='flag1 or flag2'" << endl;
+    ostr << "preflag.flag1.timeslot=[10,11]" << endl;
+    ostr << "preflag.flag2.chan=[0,2,6..8]" << endl;
+    ostr << "average.timestep=6" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  checkFlags ("tNDPPP_tmp.MS5");
+}
+
+void testFlags2()
+{
+  cout << endl << "** testFlags2 **" << endl;
+  {
+    // A more advanced case in two NDPPP steps.
+    // Flag the channels, but shifted 2. In the next step the first 2 channels
+    // are skipped, thus the channel numbers shift back 2.
+    // An averaged time slot is flagged, so the original time slots should
+    // come out flagged.
+    ofstream ostr1("tNDPPP_tmp.parset1");
+    ostr1 << "msin=tNDPPP_tmp.MS" << endl;
+    ostr1 << "msin.nchan=15" << endl;
+    ostr1 << "msout=tNDPPP_tmp.MS6a" << endl;
+    ostr1 << "msout.overwrite=true" << endl;
+    ostr1 << "steps=[preflag,average]" << endl;
+    ostr1 << "preflag.chan=[2,4,8..10]" << endl;
+    ostr1 << "average.timestep=2" << endl;
+    ofstream ostr2("tNDPPP_tmp.parset2");
+    ostr2 << "msin=tNDPPP_tmp.MS6a" << endl;
+    ostr2 << "msin.startchan=2" << endl;    // output chan 0,2 are now flagged
+    ostr2 << "msin.nchan=12" << endl;
+    ostr2 << "msout=tNDPPP_tmp.MS6b" << endl;
+    ostr2 << "msout.overwrite=true" << endl;
+    ostr2 << "steps=[preflag,average]" << endl;
+    ostr2 << "preflag.timeslot=5" << endl;  // is 10,11 in input
+    ostr2 << "average.timestep=3" << endl;
+    ostr2 << "average.freqstep=2" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset1");
+  DPRun::execute ("tNDPPP_tmp.parset2");
+  checkFlags ("tNDPPP_tmp.MS6b");
+}
+
+void testFlags3()
+{
+  cout << endl << "** testFlags3 **" << endl;
+  {
+    // Even a bit more advanced, also in two NDPPP runs.
+    // Input channels 6,7,8 are flagged by flagging their avergaed channel.
+    // This is done at the end of run 1, so the averager of run 2 should pick
+    // up those flags.
+    ofstream ostr1("tNDPPP_tmp.parset1");
+    ostr1 << "msin=tNDPPP_tmp.MS" << endl;
+    ostr1 << "msin.nchan=15" << endl;
+    ostr1 << "msout=tNDPPP_tmp.MS7a" << endl;
+    ostr1 << "msout.overwrite=true" << endl;
+    ostr1 << "steps=[preflag,average,pre2]" << endl;
+    ostr1 << "preflag.chan=[0,2]" << endl;
+    ostr1 << "average.timestep=2" << endl;
+    ostr1 << "average.freqstep=3" << endl;
+    ostr1 << "pre2.type=preflag" << endl;
+    ostr1 << "pre2.chan=2" << endl;         // is input channel 6,7,8
+    ofstream ostr2("tNDPPP_tmp.parset2");
+    ostr2 << "msin=tNDPPP_tmp.MS7a" << endl;
+    ostr2 << "msin.nchan=4" << endl;
+    ostr2 << "msout=tNDPPP_tmp.MS7b" << endl;
+    ostr2 << "msout.overwrite=true" << endl;
+    ostr2 << "steps=[preflag,average]" << endl;
+    ostr2 << "preflag.timeslot=5" << endl;  // is 10,11 in input
+    ostr2 << "average.timestep=3" << endl;
+    ostr2 << "average.freqstep=2" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset1");
+  DPRun::execute ("tNDPPP_tmp.parset2");
+  checkFlags ("tNDPPP_tmp.MS7b");
+}
+
+
 int main()
 {
   try
@@ -339,6 +502,8 @@ int main()
     testAvg2();
     testAvg3();
     testUpdate();
+    testFlags1();
+    testFlags2();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;
     return 1;

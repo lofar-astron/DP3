@@ -193,6 +193,9 @@ namespace LOFAR {
       itsLST    = fillTimes (itsStrLST,   true,  true);
       itsATimes = fillTimes (itsStrATime, false, false);
       itsRTimes = fillTimes (itsStrRTime, true,  false);
+      itsFlagOnTime = !(itsTimeSlot.empty() && itsTimes.empty() &&
+                        itsLST.empty() && itsATimes.empty() &&
+                        itsRTimes.empty());
       // Handle possible azimuth/elevation ranges.
       itsAzimuth    = fillTimes (itsStrAzim, true, true);
       itsElevation  = fillTimes (itsStrElev, true, true);
@@ -221,6 +224,11 @@ namespace LOFAR {
             (PSet::ShPtr(new PSet(itsInput, parset, prefix+names[i]+'.')));
         }
       }
+      // Determine if only flagging on time info is done.
+      itsFlagOnTimeOnly = ( !(itsFlagOnUV || itsFlagOnBL || itsFlagOnAzEl ||
+                              itsFlagOnAmpl || itsFlagOnPhase ||
+                              itsFlagOnReal || itsFlagOnImag) &&
+                            itsPSets.empty());
     }
 
     void PreFlagger::PSet::updateInfo (const AverageInfo& info)
@@ -233,6 +241,9 @@ namespace LOFAR {
       // Determine the channels to be flagged.
       if (!(itsFlagChan.empty() && itsStrFreq.empty())) {
         fillChannels (info);
+        if (! itsChannels.empty()) {
+          itsFlagOnTimeOnly = false;
+        }
       }
       // Do the same for the child steps.
       for (uint i=0; i<itsPSets.size(); ++i) {
@@ -341,12 +352,19 @@ namespace LOFAR {
                                            uint timeSlot,
                                            const Block<bool>& matchBL)
     {
-      // Initialize the flags.
-      itsFlags = false;
-      // No need to process it if the time mismatches.
-      if (! matchTime (out.getTime(), timeSlot)) {
+      // No need to process it if the time mismatches or if only time selection.
+      if (itsFlagOnTime) {
+        if (! matchTime (out.getTime(), timeSlot)) {
+          itsFlags = false;
+          return &itsFlags;
+        }
+      }
+      if (itsFlagOnTimeOnly) {
+        itsFlags = itsFlagOnTime;
         return &itsFlags;
       }
+      // Initialize the flags.
+      itsFlags = false;
       const IPosition& shape = out.getFlags().shape();
       uint nr = shape[0] * shape[1];
       // Take over the baseline info from the parent. Default is all.
