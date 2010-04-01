@@ -123,6 +123,7 @@ namespace LOFAR {
     {
       {
         NSTimer::StartStop sstime(itsTimer);
+        itsBuffer.clear();
         // Use time from the current time slot in the MS.
         bool useIter = false;
         while (!itsIter.pastEnd()) {

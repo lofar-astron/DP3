@@ -51,6 +51,17 @@ namespace LOFAR {
       return *this;
     }
 
+    void DPBuffer::clear()
+    {
+      itsRowNrs.resize();
+      itsData.resize();
+      itsAmpl.resize();
+      itsFlags.resize();
+      itsWeights.resize();
+      itsUVW.resize();
+      itsFullResFlags.resize();
+    }
+
     void DPBuffer::mergeFullResFlags (Cube<bool>& fullResFlags,
                                       const Cube<bool>& flags)
     {

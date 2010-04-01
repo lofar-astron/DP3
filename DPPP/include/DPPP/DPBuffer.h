@@ -113,6 +113,9 @@ namespace LOFAR {
       // Assignment uses reference copies.
       DPBuffer& operator= (const DPBuffer&);
 
+      // Remove all arrays from the buffer.
+      void clear();
+
       // Set or get the visibility data per corr,chan,baseline.
       void setData (const casa::Cube<casa::Complex>& data)
         { itsData.reference (data); }
