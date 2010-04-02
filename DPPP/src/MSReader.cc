@@ -327,8 +327,8 @@ namespace LOFAR {
       ASSERTSTR (sortab.nrow() == itsNrBl,
                  "The MS appears to have multiple subbands");
       // Get the baselines.
-      ROScalarColumn<int>(sortab, "ANTENNA1").getColumn (itsAnt1);
-      ROScalarColumn<int>(sortab, "ANTENNA2").getColumn (itsAnt2);
+      ROScalarColumn<int>(itsIter.table(), "ANTENNA1").getColumn (itsAnt1);
+      ROScalarColumn<int>(itsIter.table(), "ANTENNA2").getColumn (itsAnt2);
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
@@ -358,19 +358,20 @@ namespace LOFAR {
         // subtable. 
         Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
         ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
-        if (! MeasTable::Observatory(itsArrayPos, telCol(0))) {
+        if (obstab.nrow() ==0  ||
+            ! MeasTable::Observatory(itsArrayPos, telCol(0))) {
           // If not found, use the position of the middle antenna.
           itsArrayPos = itsAntPos[itsAntPos.size() / 2];
         }
       }        
       // Create the UVW calculator.
-      itsUVWCalc = UVWCalculator (itsPhaseCenter, itsAntPos);
+      itsUVWCalc = UVWCalculator (itsPhaseCenter, itsArrayPos, itsAntPos);
     }
 
     void MSReader::calcUVW()
     {
       Matrix<double> uvws(3, itsNrBl);
-      for (uint i=0; i<itsAnt1.size(); ++i) {
+      for (uint i=0; i<itsNrBl; ++i) {
         uvws.column(i) = itsUVWCalc.getUVW (itsAnt1[i], itsAnt2[i],
                                             itsNextTime);
       }

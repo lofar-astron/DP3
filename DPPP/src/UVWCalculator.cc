@@ -41,11 +41,11 @@ namespace LOFAR {
     {}
 
     UVWCalculator::UVWCalculator (const MDirection& phaseDir,
+                                  const MPosition& arrayPos,
                                   const vector<MPosition>& stationPositions)
     {
       // Convert the station positions to a baseline in ITRF.
       int nrant = stationPositions.size();
-      MPosition arrayPos;
       Vector<Double> pos0;
       for (int i=0; i<nrant; ++i) {
         // Get antenna positions and convert to ITRF.
@@ -53,10 +53,6 @@ namespace LOFAR {
                                              MPosition::ITRF)();
         if (i == 0) {
           pos0 = mpos.getValue().getVector();
-        }
-        // Use position of middle station as array position.
-        if (i == nrant/2) {
-          arrayPos = mpos;
         }
         Vector<Double> pos = mpos.getValue().getVector();
         MVPosition mvpos((pos[0] - pos0[0]),

@@ -330,7 +330,8 @@ namespace LOFAR {
         phaseCenter = MDirection(q0, q1, type);
       }
       // Create the UVW calculator.
-      itsUVWCalc = UVWCalculator (phaseCenter, itsInput->antennaPos());
+      itsUVWCalc = UVWCalculator (phaseCenter, itsInput->arrayPos(),
+                                  itsInput->antennaPos());
     }
 
   } //# end namespace

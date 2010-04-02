@@ -53,8 +53,10 @@ namespace LOFAR {
       // The default constructor creates an empty object.
       UVWCalculator();
 
-      // Construct the object for the given phase direction and stations.
+      // Construct the object for the given phase direction, array position,
+      // and station positions.
       UVWCalculator (const casa::MDirection& phaseDir,
+                     const casa::MPosition& arrayPosition,
                      const vector<casa::MPosition>& stationPositions);
 
       // get the UVW coordinates for the given baseline and time.
