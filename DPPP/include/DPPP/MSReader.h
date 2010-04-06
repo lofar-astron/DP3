@@ -220,6 +220,8 @@ namespace LOFAR {
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;
+      double              itsLastMSTime;
+      uint                itsNrRead;        //# nr of time slots read from MS
       uint                itsNrInserted;    //# nr of inserted time slots
       casa::Slicer        itsColSlicer;     //# slice in corr,chan column
       casa::Slicer        itsArrSlicer;     //# slice in corr,chan,bl array

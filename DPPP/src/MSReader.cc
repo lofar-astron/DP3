@@ -46,6 +46,8 @@ namespace LOFAR {
     MSReader::MSReader (const string& msName,
                         const ParameterSet& parset, const string& prefix)
       : itsMS         (msName),
+        itsLastMSTime (0),
+        itsNrRead     (0),
         itsNrInserted (0)
     {
       NSTimer::StartStop sstime(itsTimer);
@@ -128,20 +130,28 @@ namespace LOFAR {
         bool useIter = false;
         while (!itsIter.pastEnd()) {
           // Take time from row 0 in subset.
-          double time = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
-          // Use the time slot if near or < nexttime, but > starttime.
-          // In this way we cater for irregular times in some WSRT MSs.
-          if (near(time, itsNextTime)  ||
-              (time > itsFirstTime  &&  time < itsNextTime)) {
-            itsNextTime = time;
-            useIter = true;
-            break;
-          }
-          if (time > itsNextTime) {
-            // A time slot seems to be missing; insert one.
-            break;
+          double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+          // Skip time slot and give warning if MS data is not in time order.
+          if (mstime < itsLastMSTime) {
+            LOG_WARN_STR ("Time at rownr " << itsIter.table().rowNumbers()[0]
+                          << " of MS " << itsMS.tableName()
+                          << " is less than previous time slot");
+          } else {
+            // Use the time slot if near or < nexttime, but > starttime.
+            // In this way we cater for irregular times in some WSRT MSs.
+            if (near(mstime, itsNextTime)  ||
+                (mstime > itsFirstTime  &&  mstime < itsNextTime)) {
+              itsNextTime = mstime;
+              useIter = true;
+              break;
+            }
+            if (mstime > itsNextTime) {
+              // A time slot seems to be missing; insert one.
+              break;
+            }
           }
           // Skip this time slot.
+          itsLastMSTime = mstime;
           itsIter.next();
         }
         // Stop if at the end.
@@ -211,6 +221,8 @@ namespace LOFAR {
             }
             i += itsNrCorr;
           }
+          itsLastMSTime = itsNextTime;
+          itsNrRead++;
           itsIter.next();
         }
         ASSERTSTR (itsBuffer.getData().shape()[2] == int(itsNrBl),
@@ -226,8 +238,6 @@ namespace LOFAR {
     void MSReader::finish()
     {
       getNextStep()->finish();
-      cout << "MSReader inserted " << itsNrInserted << " missing time slots"
-           << endl;
     }
 
     void MSReader::updateAverageInfo (AverageInfo& info)
@@ -254,8 +264,9 @@ namespace LOFAR {
     {
       os << endl << "NaN/infinite data flagged in reader";
       os << endl << "===================================" << endl;
-      int64 nrtim = int((itsLastTime - itsFirstTime)/itsInterval + 1.5);
+      int64 nrtim = itsNrRead;
       itsFlagCounter.showCorrelation (os, nrtim);
+      cout << itsNrInserted << " missing time slots were inserted" << endl;
     }
 
     void MSReader::showTimings (std::ostream& os, double duration) const
