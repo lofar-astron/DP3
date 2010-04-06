@@ -1,10 +1,12 @@
 #msin = ~/SB0.MS
-msin = ~/3C343.MS
+#msin = ~/3C343.MS
+msin = a.b
 #msin = ~/tDPPP.MS
 #msin.startchan = 16
 #msin.nchan = 224
 
 msout = "a.c"
+msout.overwrite=True
 
 #steps = [avg1,avg2,flag]
 #steps = [flag,avg]

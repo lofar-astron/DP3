@@ -47,6 +47,7 @@ namespace LOFAR {
                                     const casa::Vector<int>& ant2,
                                     int64 ntimes) const
     {
+      os << "newshow"<<endl;
       int64 npoints = ntimes * itsChanCounts.size();
       os << endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";
@@ -77,26 +78,27 @@ namespace LOFAR {
       const int nantpl = 15;
       int nrl = (nrused + nantpl - 1) / nantpl;
       int ant = 0;
-      int ia = ant;
       // Loop over nr of lines needed for the antennae.
       for (int i=0; i<nrl; ++i) {
+        int oldant = ant;
         // Determine nrant per line
         int nra = std::min(nantpl, nrused - i*nantpl);
         // Print the header for the antennae being used.
+        // It also updates ant for the next iteration.
         os << endl << " ant";
         for (int j=0; j<nra;) {
-          if (nusedAnt[ia] > 0) {
-            os << std::setw(5) << ia;
+          if (nusedAnt[ant] > 0) {
+            os << std::setw(5) << ant;
             j++;
           }
-          ia++;
+          ant++;
         }
         os << endl;
         // Print the percentages per antenna pair.
         for (uint k=0; k<nrant; ++k) {
           if (nusedAnt[k] > 0) {
             os << std::setw(4) << k << " ";
-            ia = ant;
+            int ia = oldant;
             for (int j=0; j<nra;) {
               if (nusedAnt[ia] > 0) {
                 if (nusedBL(k,ia) > 0) {
@@ -116,7 +118,7 @@ namespace LOFAR {
         }
         // Print the percentages per antenna.
         os << "TOTAL";
-        ia = ant;
+        int ia = oldant;
         for (int j=0; j<nra;) {
           if (nusedAnt[ia] > 0) {
             os << std::setw(4)
@@ -128,7 +130,6 @@ namespace LOFAR {
         }
         os << endl;
       }
-      ant = ia;
     }
 
     void FlagCounter::showChannel (ostream& os, int64 ntimes) const
