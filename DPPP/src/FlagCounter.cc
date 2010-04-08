@@ -47,7 +47,6 @@ namespace LOFAR {
                                     const casa::Vector<int>& ant2,
                                     int64 ntimes) const
     {
-      os << "newshow"<<endl;
       int64 npoints = ntimes * itsChanCounts.size();
       os << endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";

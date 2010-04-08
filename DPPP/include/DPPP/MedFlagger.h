@@ -119,6 +119,9 @@ namespace LOFAR {
       uint             itsNTimes;
       uint             itsNTimesDone;
       vector<uint>     itsFlagCorr;
+      bool             itsApplyAutoCorr;
+      vector<int>      itsAutoCorrIndex; //# baseline index of autocorrelations
+      uint             itsNrAutoCorr;
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;

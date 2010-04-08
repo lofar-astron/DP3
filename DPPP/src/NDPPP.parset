@@ -12,6 +12,8 @@ msout.overwrite=True
 #steps = [flag,avg]
 steps=[flag]
 
+preflag.corrtype = auto
+
 avg1.type = squash
 avg1.freqstep = 4
 avg1.timestep = 2
@@ -24,6 +26,7 @@ flag.type=madflagger
 flag.threshold=1
 flag.freqwindow=31
 flag.timewindow=5
+flag.applyautocorr = True
 
 avg.type = squash
 avg.freqstep = 1024

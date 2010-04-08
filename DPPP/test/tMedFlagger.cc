@@ -49,17 +49,46 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {
+    // Fill the baseline stations; use 4 stations.
+    // So they are called 00 01 02 03 10 11 12 13 20, etc.
     itsAnt1.resize (itsNBl);
     itsAnt2.resize (itsNBl);
-    int i=0;
-    for (int st1=0; st1<nant; ++st1) {
-      for (int st2=st1; st2<nant; ++st2) {
-        itsAnt1[i] = st1;
-        itsAnt2[i] = st2;
-        i++;
+    int st1 = 0;
+    int st2 = 0;
+    for (int i=0; i<itsNBl; ++i) {
+      itsAnt1[i] = st1;
+      itsAnt2[i] = st2;
+      if (++st2 == 4) {
+        st2 = 0;
+        if (++st1 == 4) {
+          st1 = 0;
+        }
       }
     }
-}
+    itsAntNames.resize(4);
+    itsAntNames[0] = "rs01.s01";
+    itsAntNames[1] = "rs02.s01";
+    itsAntNames[2] = "cs01.s01";
+    itsAntNames[3] = "cs01.s02";
+    // Define their positions (more or less WSRT RT0-3).
+    itsAntPos.resize (4);
+    Vector<double> vals(3);
+    vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
+    itsAntPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
+    itsAntPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
+    itsAntPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
+    itsAntPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
+                             MPosition::ITRF);
+    // Define the frequencies.
+    itsChanFreqs.resize (nchan);
+    indgen (itsChanFreqs, 1050000., 100000.);
+  }
 private:
   virtual bool process (const DPBuffer&)
   {
@@ -100,15 +129,16 @@ private:
   bool itsFlag;
 };
 
-// Class to check result of flagged, unaveraged TestInput.
+// Class to check result.
 class TestOutput: public DPStep
 {
 public:
   TestOutput(int ntime, int nant, int nchan, int ncorr,
-             bool flag)
+             bool flag, bool flagged)
     : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr),
-      itsFlag(flag)
+      itsFlag(flag),
+      itsFlagged(flagged)
   {}
 private:
   virtual bool process (const DPBuffer& buf)
@@ -121,7 +151,16 @@ private:
     // Check the result.
     ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
     ASSERT (allNear(imag(buf.getData()), imag(result), 1e-10));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
+    Cube<bool> expFlag(itsNCorr,itsNChan,itsNBl);
+    expFlag = itsFlag;
+    if (itsFlagged) {
+      for (int i=0; i<itsNBl; ++i) {
+        for (int j=0; j<itsNCorr; ++j) {
+          expFlag(j,0,i) = itsFlag || itsCount==0;
+          expFlag(j,itsNChan-1,i) = true;
+        }
+      }
+    }
     ASSERT (near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
@@ -142,7 +181,7 @@ private:
 
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
-  bool itsFlag;
+  bool itsFlag, itsFlagged;
 };
 
 
@@ -180,7 +219,27 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   parset.add ("timewindow", "1");
   parset.add ("threshold", toString(threshold));
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
+// Test applyautocorr flagging with or without preflagged points.
+void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
+{
+  cout << "test2: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
+       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("freqwindow", "3");
+  parset.add ("timewindow", "1");
+  parset.add ("threshold", toString(threshold));
+  parset.add ("applyautocorr", "True");
+  DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -194,6 +253,9 @@ int main()
 
     test1(10, 2, 32, 4, false, 1);
     test1(10, 5, 32, 4, true, 1);
+    test2( 4, 2,  8, 4, false, 100);
+    test2(10, 5, 32, 4, true, 1);
+    test2( 4, 2,  8, 4, false, 100);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;

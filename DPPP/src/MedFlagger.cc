@@ -52,6 +52,24 @@ namespace LOFAR {
       itsBuf.resize (itsTimeWindow);
       itsFlagCorr = parset.getUintVector (prefix+"correlations",
                                           vector<uint>());
+      itsApplyAutoCorr = parset.getBool  (prefix+"applyautocorr", false);
+      // Determine baseline indices of autocorrelations.
+      const Vector<int>& ant1 = itsInput->getAnt1();
+      const Vector<int>& ant2 = itsInput->getAnt2();
+      int nant = 1 + std::max (max(ant1), max(ant2));
+      itsAutoCorrIndex.resize (nant);
+      std::fill (itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
+      itsNrAutoCorr = 0;
+      for (uint i=0; i<ant1.size(); ++i) {
+        if (ant1[i] == ant2[i]) {
+          itsAutoCorrIndex[ant1[i]] = i;
+          itsNrAutoCorr++;
+        }
+      }
+      if (itsApplyAutoCorr) {
+        ASSERTSTR (itsNrAutoCorr > 0, "applyautocorr=True cannot be used if "
+                   "the data does not contain autocorrelations");
+      }
     }
 
     MedFlagger::~MedFlagger()
@@ -64,6 +82,8 @@ namespace LOFAR {
       os << "  timewindow:     " << itsTimeWindow << std::endl;
       os << "  threshold:      " << itsThreshold << std::endl;
       os << "  correlations:   " << itsFlagCorr << std::endl;
+      os << "  applyautocorr:  " << itsApplyAutoCorr
+         << "   (nautocorr = " << itsNrAutoCorr << ')' << std::endl;
     }
 
     void MedFlagger::showCounts (std::ostream& os) const
@@ -222,6 +242,9 @@ namespace LOFAR {
     void MedFlagger::flag (uint index, const vector<uint>& timeEntries)
     {
       ///cout << "flag: " <<itsNTimes<<' '<<itsNTimesDone<<' ' <<index << timeEntries << endl;
+      // Get antenna numbers in case applyautocorr is true.
+      const Vector<int>& ant1 = itsInput->getAnt1();
+      const Vector<int>& ant2 = itsInput->getAnt2();
       // Result is 'copy' of the entry at the given time index.
       DPBuffer buf (itsBuf[index]);
       IPosition shp = buf.getData().shape();
@@ -238,36 +261,80 @@ namespace LOFAR {
       float MAD = 1.4826;   //# constant determined by Pandey
       // Now flag each baseline, channel and correlation for this time window.
       for (uint ib=0; ib<nrbl; ++ib) {
-        for (uint ic=0; ic<nchan; ++ic) {
-          bool corrIsFlagged = false;
-          // Iterate over given correlations.
-          for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
-               iter != itsFlagCorr.end(); ++iter) {
-            uint ip = *iter;
-            // If one correlation is flagged, all of them will be flagged.
-            // So no need to check others.
-            if (flagPtr[ip]) {
-              corrIsFlagged = true;
-              break;
+        // Do only autocorrelations if told so.
+        if (!itsApplyAutoCorr  ||  ant1[ib] == ant2[ib]) {
+          for (uint ic=0; ic<nchan; ++ic) {
+            bool corrIsFlagged = false;
+            // Iterate over given correlations.
+            for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
+                 iter != itsFlagCorr.end(); ++iter) {
+              uint ip = *iter;
+              // If one correlation is flagged, all of them will be flagged.
+              // So no need to check others.
+              if (flagPtr[ip]) {
+                corrIsFlagged = true;
+                break;
+              }
+              // Calculate values from the median.
+              computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
+                              Z1, Z2, tempBuf.storage());
+              if (dataPtr[ip] > Z1 + itsThreshold * Z2 * MAD) {
+                corrIsFlagged = true;
+                itsFlagCounter.incrBaseline(ib);
+                itsFlagCounter.incrChannel(ic);
+                itsFlagCounter.incrCorrelation(ip);
+                break;
+              }
             }
-            // Calculate values from the median.
-            computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
-                            Z1, Z2, tempBuf.storage());
-            if (dataPtr[ip] > Z1 + itsThreshold * Z2 * MAD) {
-              corrIsFlagged = true;
-              itsFlagCounter.incrBaseline(ib);
-              itsFlagCounter.incrChannel(ic);
-              itsFlagCounter.incrCorrelation(ip);
-              break;
+            if (corrIsFlagged) {
+              for (uint ip=0; ip<ncorr; ++ip) {
+                flagPtr[ip] = true;
+              }
             }
+            dataPtr += ncorr;
+            flagPtr += ncorr;
           }
-          if (corrIsFlagged) {
-            for (uint ip=0; ip<ncorr; ++ip) {
-              flagPtr[ip] = true;
+        } else {
+          dataPtr += nchan*ncorr;
+          flagPtr += nchan*ncorr;
+        }
+      }
+      // Apply autocorrelations flags if needed.
+      if (itsApplyAutoCorr) {
+        flagPtr = buf.getFlags().data();
+        for (uint ib=0; ib<nrbl; ++ib) {
+          // Flag crosscorr if at least one autocorr is present.
+          if (ant1[ib] != ant2[ib]) {
+            int inx1 = itsAutoCorrIndex[ant1[ib]];
+            int inx2 = itsAutoCorrIndex[ant2[ib]];
+            if (inx1 >= 0  ||  inx2 >= 0) {
+              // Find flags of the autocorrelations of both antennae.
+              // Use other autocorr if one autocorr does not exist.
+              // In this way inx does not need to be tested in the inner loop.
+              if (inx1 < 0) {
+                inx1 = inx2;
+              } else if (inx2 < 0) {
+                inx2 = inx1;
+              }
+              bool* flagAnt1 = buf.getFlags().data() + inx1*nchan*ncorr;
+              bool* flagAnt2 = buf.getFlags().data() + inx2*nchan*ncorr;
+              // Flag if not flagged yet and if one of autocorr is flagged.
+              for (uint ic=0; ic<nchan; ++ic) {
+                if (!*flagPtr  &&  (*flagAnt1 || *flagAnt2)) {
+                  for (uint ip=0; ip<ncorr; ++ip) {
+                    flagPtr[ip] = true;
+                  }
+                  itsFlagCounter.incrBaseline(ib);
+                  itsFlagCounter.incrChannel(ic);
+                }
+                flagPtr  += ncorr;
+                flagAnt1 += ncorr;
+                flagAnt2 += ncorr;
+              }
             }
+          } else {
+            flagPtr += nchan*ncorr;
           }
-          dataPtr += ncorr;
-          flagPtr += ncorr;
         }
       }
       // Process the result in the next step.
