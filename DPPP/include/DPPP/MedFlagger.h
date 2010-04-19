@@ -58,7 +58,7 @@ namespace LOFAR {
     // It shows that casacore's kthLargest outperforms STL's nth_element.
     // <br>
     // Shuffling the data around to be able to determine the medians is also
-    // an expensive operation and takes as much time as the medians themselves.
+    // an expensive operation, but takes less time than the medians themselves.
     //
     // When a correlation is flagged, all correlations for that data point
     // are flagged. It is possible to specify which correlations have to be
@@ -66,6 +66,12 @@ namespace LOFAR {
     // performance with a factor 4, but miss points to be flagged.
     // It is also possible to specify the order in which the correlations
     // have to be tested.
+    //
+    // It is possible to flag specific baselines only using a selection on
+    // baseline length.
+    // <br>Furthermore it is possible to only flag the autocorrelations and
+    // apply the resulting flags to the crosscorrelations, possibly selected
+    // on baseline length.
 
     class MedFlagger: public DPStep
     {
@@ -109,10 +115,19 @@ namespace LOFAR {
                            float& Z1, float& Z2,
                            float* tempBuf);
 
+      // Get the values of the expressions for each baseline.
+      void getExprValues (int maxNChan, int maxNTime);
+
     private:
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
+      string           itsThresholdStr;
+      string           itsFreqWindowStr;
+      string           itsTimeWindowStr;
+      vector<float>    itsThresholdArr;  //# threshold per baseline
+      vector<uint>     itsFreqWindowArr; //# freq window size per baseline
+      vector<uint>     itsTimeWindowArr; //# time window size per baseline
       float            itsThreshold;
       uint             itsFreqWindow;
       uint             itsTimeWindow;
@@ -122,6 +137,9 @@ namespace LOFAR {
       bool             itsApplyAutoCorr;
       vector<int>      itsAutoCorrIndex; //# baseline index of autocorrelations
       uint             itsNrAutoCorr;
+      double           itsMinBLength;    //# minimum baseline length
+      double           itsMaxBLength;    //# maximum baseline length
+      vector<double>   itsBLength;       //# length of each baseline
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;

@@ -43,11 +43,13 @@ namespace LOFAR
 {
   namespace CS1
   {
-    ///Foreward declarations
+    ///Forward declarations
     class DataBuffer;
     class MsInfo;
     class RunDetails;
     class FlaggerStatistics;
+
+    // @ingroup IDPPP
 
     class ComplexMedianFlagger2: public Flagger
     {

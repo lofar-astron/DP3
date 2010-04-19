@@ -48,6 +48,8 @@ namespace LOFAR
     class MsInfo;
     class RunDetails;
 
+    // @ingroup IDPPP
+
     class DataSquasher
     {
     public:

@@ -37,7 +37,7 @@ namespace LOFAR
 {
   namespace CS1
   {
-    ///Foreward declarations
+    ///Forward declarations
     class BandpassCorrector;
     class Flagger;
     class DataSquasher;
@@ -45,6 +45,8 @@ namespace LOFAR
     class MsInfo;
     class RunDetails;
     class Pipeline;
+
+    // @ingroup IDPPP
 
     class PipelineProcessControl : public LOFAR::ACC::PLC::ProcessControl
     {

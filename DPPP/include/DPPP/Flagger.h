@@ -37,6 +37,8 @@ namespace LOFAR
     class DataBuffer;
     class FlaggerStatistics;
 
+    // @ingroup IDPPP
+
     class Flagger
     {
       public:

@@ -245,7 +245,8 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     // These are the UVW coordinates as calculated by UVWFlagger for the
-    // station positions and phase center defined in TestInput.
+    // station positions and times defined in TestInput and phase center
+    // defined in test3.
     double uvwvals[] = {
       0, 0, 0,
       0.423756, -127.372, 67.1947,

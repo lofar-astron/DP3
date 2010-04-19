@@ -34,7 +34,7 @@ namespace LOFAR
 {
   namespace CS1
   {
-    ///Foreward declarations
+    ///Forward declarations
     class MsInfo;
     class MsFile;
     class RunDetails;
@@ -44,6 +44,8 @@ namespace LOFAR
     class DataBuffer;
     class TimeBuffer;
     class FlaggerStatistics;
+
+    // @ingroup IDPPP
 
     class Pipeline
     {

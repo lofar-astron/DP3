@@ -27,17 +27,11 @@
 
 namespace LOFAR {
 
-// <summary>
-// Visual indication of a tasks progress.
-// </summary>
+// @ingroup NDPPP
 
-// <use visibility=export>
-
-// <reviewed reviewer="" date="yyyy/mm/dd" tests="" demos="">
-// </reviewed>
-
-// <synopsis>
-// This class is used to provide a visual indication to the user of the progress
+// This class is copied from casacore.
+//
+// It can be used to provide a visual indication to the user of the progress
 // of his task. If the process is not connected to the DO system, calls to the
 // progress meter are NO-OP's, so you can safely use this class in general
 // library code and it won't cause problems for processes which are not
@@ -51,7 +45,6 @@ namespace LOFAR {
 //
 // While the "min" is usually less than "max", if in fact it is greater than
 // "max" the progress meter will count down correctly.
-// </synopsis>
 //
 // <example>
 // <srcblock>
@@ -65,17 +58,6 @@ namespace LOFAR {
 // }
 // </srcblock>
 // </example>
-//
-// <motivation>
-// Give the user visual indication of a long-running tasks progress.
-// </motivation>
-//
-// <todo asof="1997/03/03">
-//   <li> When the upper bound isn't known, it might be useful to have a busy
-//        bar that just moves back and forth to show that activity is happening.
-//   <li> We should probably have some way to suppress progress bars for tasks
-//        that are only going to take a few seconds.
-// </todo>
 
 class ProgressMeter
 {

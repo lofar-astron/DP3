@@ -40,10 +40,12 @@ namespace LOFAR
 {
   namespace CS1
   {
-    //Foreward declarations
+    //Forward declarations
     class MsInfo;
     class RunDetails;
     class DataBuffer;
+
+    // @ingroup IDPPP
 
     class BandpassCorrector
     {

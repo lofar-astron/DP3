@@ -45,6 +45,8 @@ namespace LOFAR
     class MsInfo;
     class RunDetails;
 
+    // @ingroup IDPPP
+
     class MsFile
     {
     public:

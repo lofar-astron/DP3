@@ -38,6 +38,9 @@ namespace LOFAR
 {
   namespace CS1
   {
+
+    // @ingroup IDPPP
+
     class DataBuffer
     {
       public:

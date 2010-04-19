@@ -1,9 +1,20 @@
 // \ingroup DP3
 //
-// \defgroup IDPPP Integrated Default Pre-Processing Pipeline
+// \defgroup DPPP Default Pre-Processing Pipeline
 //
-// Library for post processing data
+// This package contains classes and programs to do the pre-processing
+// of the visibility data. Currently it consists of various flaggers
+// and a class to average the data in frequency and/or time.
 //
-// It contains a couple of Python files I don't know how to add to doxygen and
-// it contains the files for constructing CS1_IDPPP - the integrated
-// Bandpass/flagger/datasquasher tool.
+// The package consists of two part:
+// <ul>
+// <li> NDPPP is the new program to do flagging/averaging. It is
+// easily extendible with new classes for future handling of clock errors or
+// subtracting the A-team.
+//
+// <li> IDPPP is the old program. It has a few special flag options
+// not found in the new version, which might be useful for WSRT data.
+// </ul>
+//
+//   \defgroup NDPPP New version
+//   \defgroup IDPPP Old version

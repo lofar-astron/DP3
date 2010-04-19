@@ -44,6 +44,8 @@ namespace LOFAR
     class RunDetails;
     class FlaggerStatistics;
 
+    // @ingroup IDPPP
+
     class FrequencyFlagger: public Flagger
     {
       public:

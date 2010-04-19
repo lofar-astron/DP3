@@ -235,7 +235,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqwindow", "3");
-  parset.add ("timewindow", "1");
+  parset.add ("timewindow", "min(1,max(1,bl))");
   parset.add ("threshold", toString(threshold));
   parset.add ("applyautocorr", "True");
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
