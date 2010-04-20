@@ -60,7 +60,6 @@ namespace LOFAR {
       itsMinBLength    = parset.getDouble(prefix+"minbaselength", -1);
       itsMaxBLength    = parset.getDouble(prefix+"maxbaselength", 1e30);
       // Determine baseline indices of autocorrelations.
-      // Also fill in the baseline lengths.
       const Vector<int>& ant1 = itsInput->getAnt1();
       const Vector<int>& ant2 = itsInput->getAnt2();
       int nant = 1 + std::max (max(ant1), max(ant2));
@@ -111,8 +110,8 @@ namespace LOFAR {
       os << "  correlations:   " << itsFlagCorr << std::endl;
       os << "  applyautocorr:  " << itsApplyAutoCorr
          << "   (nautocorr = " << itsNrAutoCorr << ')' << std::endl;
-      os << "  minbaselength   " << itsMinBLength << std::endl;
-      os << "  maxbaselength   " << itsMaxBLength << std::endl;
+      os << "  minbaselength:  " << itsMinBLength << std::endl;
+      os << "  maxbaselength:  " << itsMaxBLength << std::endl;
     }
 
     void MedFlagger::showCounts (std::ostream& os) const

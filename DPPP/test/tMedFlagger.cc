@@ -134,11 +134,12 @@ class TestOutput: public DPStep
 {
 public:
   TestOutput(int ntime, int nant, int nchan, int ncorr,
-             bool flag, bool flagged)
+             bool flag, bool useAutoCorr, bool shortbl)
     : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr),
       itsFlag(flag),
-      itsFlagged(flagged)
+      itsUseAutoCorr(useAutoCorr),
+      itsShortBL(shortbl)
   {}
 private:
   virtual bool process (const DPBuffer& buf)
@@ -151,16 +152,25 @@ private:
     // Check the result.
     ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
     ASSERT (allNear(imag(buf.getData()), imag(result), 1e-10));
+    // Check the flags.
+    // If autocorrs are used, only the last channel is flagged, but the first
+    // channel also for the first time stamp. Thus is only true for a limited
+    // nr of baselines (thus do not use nant>2 in test2 with flag=false).
+    // If short baselines are used, bl 2,3,7,8,12,13 are not flagged.
+    // The others have length 0 or 144.
     Cube<bool> expFlag(itsNCorr,itsNChan,itsNBl);
     expFlag = itsFlag;
-    if (itsFlagged) {
+    if (itsUseAutoCorr) {
       for (int i=0; i<itsNBl; ++i) {
-        for (int j=0; j<itsNCorr; ++j) {
-          expFlag(j,0,i) = itsFlag || itsCount==0;
-          expFlag(j,itsNChan-1,i) = true;
+        if (!itsShortBL || !(i==2 || i==3 | i==7 || i==8 || i==12 || i==13)) {
+          for (int j=0; j<itsNCorr; ++j) {
+            expFlag(j,0,i) = itsFlag || itsCount==0;
+            expFlag(j,itsNChan-1,i) = true;
+          }
         }
       }
     }
+    ASSERT (allEQ(buf.getFlags(), expFlag));
     ASSERT (near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
@@ -181,7 +191,7 @@ private:
 
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
-  bool itsFlag, itsFlagged;
+  bool itsFlag, itsUseAutoCorr, itsShortBL;
 };
 
 
@@ -207,10 +217,12 @@ void execute (const DPStep::ShPtr& step1)
 }
 
 // Test simple flagging with or without preflagged points.
-void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
+void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
+           bool shortbl)
 {
   cout << "test1: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
+       << " ncorr=" << ncorr << " threshold=" << threshold
+       << " shortbl=" << shortbl << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -218,18 +230,26 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   parset.add ("freqwindow", "1");
   parset.add ("timewindow", "1");
   parset.add ("threshold", toString(threshold));
+  if (shortbl) {
+    parset.add ("minbaselength", "0");
+    parset.add ("maxbaselength", "145");
+  }
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false,
+                                     shortbl));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
+  step2->show (cout);
   execute (step1);
 }
 
 // Test applyautocorr flagging with or without preflagged points.
-void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
+void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
+           bool shortbl)
 {
   cout << "test2: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
+       << " ncorr=" << ncorr << " threshold=" << threshold
+       << " shortbl=" << shortbl << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -238,8 +258,12 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   parset.add ("timewindow", "min(1,max(1,bl))");
   parset.add ("threshold", toString(threshold));
   parset.add ("applyautocorr", "True");
+  if (shortbl) {
+    parset.add ("maxbaselength", "145");
+  }
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true,
+                                     shortbl));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -251,11 +275,13 @@ int main()
   INIT_LOGGER ("tMedFlagger");
   try {
 
-    test1(10, 2, 32, 4, false, 1);
-    test1(10, 5, 32, 4, true, 1);
-    test2( 4, 2,  8, 4, false, 100);
-    test2(10, 5, 32, 4, true, 1);
-    test2( 4, 2,  8, 4, false, 100);
+    for (uint i=0; i<2; ++i) {
+      test1(10, 2, 32, 4, false, 1, i>0);
+      test1(10, 5, 32, 4, true, 1, i>0);
+      test2( 4, 2,  8, 4, false, 100, i>0);
+      test2(10, 5, 32, 4, true, 1, i>0);
+      test2( 4, 2,  8, 4, false, 100, i>0);
+    }
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
