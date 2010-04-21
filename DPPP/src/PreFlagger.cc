@@ -523,7 +523,7 @@ namespace LOFAR {
           // UV-distance is sqrt(u^2 + v^2).
           // The sqrt is not needed because minuv and maxuv are squared.
           double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-          if (uvdist >= itsMinUV  ||  uvdist <= itsMaxUV) {
+          if (uvdist >= itsMinUV  &&  uvdist <= itsMaxUV) {
             // UV-dist mismatches, so do not flag baseline.
             itsMatchBL[i] = false;
           } else {

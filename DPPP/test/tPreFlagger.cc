@@ -120,9 +120,16 @@ private:
     for (int i=0; i<int(data.size()); ++i) {
       data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
     }
+    Matrix<double> uvw(3, itsNBl);
+    for (int i=0; i<itsNBl; ++i) {
+      uvw(0,i) = 1 + itsCount + i;
+      uvw(1,i) = 2 + itsCount + i;
+      uvw(2,i) = 3 + itsCount + i;
+    }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 3);   //same interval as in updateAveragInfo
     buf.setData (data);
+    buf.setUVW  (uvw);
     Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
@@ -386,7 +393,8 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
-typedef bool CheckFunc (Complex value, double time, int ant1, int ant2);
+typedef bool CheckFunc (Complex value, double time, int ant1, int ant2,
+                        const double* uvw);
 
 // Class to check result of flagged, unaveraged TestInput run by test5.
 class TestOutput5: public DPStep
@@ -400,6 +408,7 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     const Cube<Complex>& data = buf.getData();
+    const double* uvw = buf.getUVW().data();
     const IPosition& shp = data.shape();
     Cube<bool> result(shp);
     for (int i=0; i<shp[2]; ++i) {
@@ -408,7 +417,8 @@ private:
       for (int j=0; j<shp[1]; ++j) {
         bool flag = false;
         for (int k=0; k<shp[0]; ++k) {
-          if (!flag) flag = itsCFunc(data(k,j,i), buf.getTime(), a1, a2);
+          if (!flag) flag = itsCFunc(data(k,j,i), buf.getTime(), a1, a2,
+                                     uvw+3*i);
         }
         for (int k=0; k<shp[0]; ++k) {
           result(k,j,i) = flag;
@@ -464,29 +474,33 @@ void test6(const string& key1, const string& value1,
   execute (step1);
 }
 
-bool checkBL(Complex, double, int a1, int a2)
+bool checkBL(Complex, double, int a1, int a2, const double*)
   { return a1==a2; }
-bool checkAmplMin (Complex data, double, int, int)
+bool checkAmplMin (Complex data, double, int, int, const double*)
   { return abs(data) < 9.5; }
-bool checkAmplMax (Complex data, double, int, int)
+bool checkAmplMax (Complex data, double, int, int, const double*)
   { return abs(data) > 31.5; }
-bool checkPhaseMin (Complex data, double, int, int)
+bool checkPhaseMin (Complex data, double, int, int, const double*)
   { return arg(data) < 1.4; }
-bool checkPhaseMax (Complex data, double, int, int)
+bool checkPhaseMax (Complex data, double, int, int, const double*)
   { return arg(data) > 2.1; }
-bool checkRealMin (Complex data, double, int, int)
+bool checkRealMin (Complex data, double, int, int, const double*)
   { return real(data) < 5.5; }
-bool checkRealMax (Complex data, double, int, int)
+bool checkRealMax (Complex data, double, int, int, const double*)
   { return real(data) > 29.4; }
-bool checkImagMin (Complex data, double, int, int)
+bool checkImagMin (Complex data, double, int, int, const double*)
   { return imag(data) < -1.4; }
-bool checkImagMax (Complex data, double, int, int)
+bool checkImagMax (Complex data, double, int, int, const double*)
   { return imag(data) > 20.5; }
-bool checkTimeSlot (Complex, double time, int, int)
+bool checkUVMin (Complex, double, int, int, const double* uvw)
+  { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) <= 30; }
+bool checkUVBL (Complex, double, int a1, int a2, const double* uvw)
+  { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) >= 30 && (a1==0 || a2==0); }
+bool checkTimeSlot (Complex, double time, int, int, const double*)
   { return time<5; }
-bool checkNone (Complex, double, int, int)
+bool checkNone (Complex, double, int, int, const double*)
   { return false; }
-bool checkAll (Complex, double, int, int)
+bool checkAll (Complex, double, int, int, const double*)
   { return true; }
 
 // Test flagging on various fields.
@@ -501,6 +515,8 @@ void testMany()
   test5("realmax", "29.4", &checkRealMax);
   test5("imagmin", "-1.4", &checkImagMin);
   test5("imagmax", "20.5", &checkImagMax);
+  test5("uvmmin", "30", &checkUVMin);
+  test6("uvmmax", "30", "baseline", "[rs01.s01]", &checkUVBL);
   test5("timeslot", "0", &checkTimeSlot);
   test5("abstime", "17-nov-1858/0:0:2..17nov1858/0:0:4", &checkTimeSlot);
   test5("abstime", "17-nov-1858/0:0:3+-1s", &checkTimeSlot);

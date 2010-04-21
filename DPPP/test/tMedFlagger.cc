@@ -231,8 +231,8 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   parset.add ("timewindow", "1");
   parset.add ("threshold", toString(threshold));
   if (shortbl) {
-    parset.add ("minbaselength", "0");
-    parset.add ("maxbaselength", "145");
+    parset.add ("blmin", "0");
+    parset.add ("blmax", "145");
   }
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false,
@@ -259,7 +259,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   parset.add ("threshold", toString(threshold));
   parset.add ("applyautocorr", "True");
   if (shortbl) {
-    parset.add ("maxbaselength", "145");
+    parset.add ("blmax", "145");
   }
   DPStep::ShPtr step2(new MedFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true,
