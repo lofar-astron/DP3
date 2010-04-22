@@ -44,16 +44,25 @@ namespace LOFAR {
     // selections given in the parset file.
     // The following selections can be given:
     // <ul>
-    //  <li> minimum and/or maximum UV distance
-    //  <li> autocorrelations
+    //  <li> minimum and/or maximum UV distance (projected baseline length)
+    //  <li> minimum and/or maximum baseline length (intrinsic)
+    //  <li> autocorrelations or crosscorrelations
     //  <li> baselines using names for antenna 1 and 2
     //  <li> antennae using antenna names
-    //  <li> minimum and/or maximum amplitude per correlation
+    //  <li> minimum and/or maximum amplitude/phase/real/imag per correlation
     //  <li> channel numbers
     //  <li> frequency ranges
     //  <li> sequence nr or time ranges
+    //  <li> LST
+    //  <li> azimuth/elevation
     // </ul>
     // The antenna names can contain shell-style wildcards (* ? [] {}).
+    //
+    // All selections are ANDed, thus only the data points matching all
+    // selections are flagged. It is however, possible to specify a logical
+    // expression of selections by means of the internal PSet class.
+    // A PSet objects contains a set of ANDed selections. The PSets can
+    // be logically combined by the user using the normal logical operators.
 
     class PreFlagger: public DPStep
     {
@@ -88,6 +97,8 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      // This internal class represents a single set of ANDed selections.
+      // PSets can be logically combined by the PreFlagger class.
       class PSet
       {
       // Make this Test class a friend, so it can access private code.
@@ -164,7 +175,7 @@ namespace LOFAR {
 
         // Convert a string of (date)time ranges to double. Each range
         // must be given with .. or +-.
-        // <src>asTime=true</src> means that the strings should contain times,
+        // <tt>asTime=true</tt> means that the strings should contain times,
         // otherwise date/times.
         vector<double> fillTimes (const vector<string>& str, bool asTime,
                                   bool canEndBeforeStart);
@@ -219,6 +230,8 @@ namespace LOFAR {
         bool               itsFlagOnAzEl; //# true = do Az/El based flagging
         double             itsMinUV;    //# minimum UV distance; <0 means ignore
         double             itsMaxUV;    //# maximum UV distance; <0 means ignore
+        double             itsMinBL;    //# minimum baseline ln; <0 means ignore
+        double             itsMaxBL;    //# maximum baseline ln; <0 means ignore
         casa::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
         vector<double>     itsAzimuth;  //# azimuth ranges to be flagged
         vector<double>     itsElevation;//# elevation ranges to be flagged

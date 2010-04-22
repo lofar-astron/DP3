@@ -29,14 +29,13 @@ namespace LOFAR {
 
 // @ingroup NDPPP
 
-// This class is copied from casacore.
+// This class shows the progress of a task.
+// It is copied from casacore.
 //
-// It can be used to provide a visual indication to the user of the progress
-// of his task. If the process is not connected to the DO system, calls to the
-// progress meter are NO-OP's, so you can safely use this class in general
-// library code and it won't cause problems for processes which are not
-// attached to the distributed object system. It also won't cause any extra
-// stuff to be linked in to your executable in this case.
+// It shows the progress on stdout using a line with dots and percentages.
+//
+// It is possible to attach the progressmeter to function in, say, a GUI
+// that can show the progress in a more visual way.
 //
 // The progress meter will usually be removed from the screen once the maximum
 // value is set, so you should not reuse the ProgressMeter after that has
@@ -46,7 +45,7 @@ namespace LOFAR {
 // While the "min" is usually less than "max", if in fact it is greater than
 // "max" the progress meter will count down correctly.
 //
-// <example>
+// For example:
 // <srcblock>
 // void calculate(uint n) {
 //   int skip = n / 200;
@@ -57,7 +56,6 @@ namespace LOFAR {
 //   }
 // }
 // </srcblock>
-// </example>
 
 class ProgressMeter
 {
@@ -67,19 +65,19 @@ public:
     ProgressMeter();
 
     // Create a progress meter with the given min and max values and labels.
-    // if <src>estimateTime</src> is <src>true</src>, an estimate of the
+    // if <tt>estimateTime=true</tt>, an estimate of the
     // time remaining will be made for the user. This estimate assumes that
     // the remaining portion will compute at the same rate as the portion
     // completed so far, so the time should not be estimated for processes
     // which are non-linear.
     //
     // Any labels which are set to the empty string will have sensible defaults
-    // supplied. In particular, <src>minlabel</src> and <src>maxlabel</src>
+    // supplied. In particular, <tt>minlabel</tt> and <tt>maxlabel</tt>
     // will be set to the display the minimum and maximum values.
     //
     // Normally the progress bar will be updated with every call to
-    // <src>update()</src>. If however you will be sending many events
-    // then you might want to update the GUI every <src>updateEvery</src>'th
+    // <tt>update()</tt>. If however you will be sending many events
+    // then you might want to update the GUI every <tt>updateEvery</tt>'th
     // event for efficiency. Generally there's no point updating more than
     // a couple of hundred times since the eye can't distinguish differences
     // in the progress bar position at that level. If updateEvery is <=0, it

@@ -1,6 +1,7 @@
 // \ingroup CEP
 
-// \defgroup DP3 Default Pre-Processing Pipeline
+// \defgroup DP3 DP3
 // DP3 contains the packages for the pre-processing pipeline. It consists of
 // a collection of flaggers, and a data squasher.
-
+// Furthermore it contains a program to combine multiple spectral
+// windows and MeasurementSets into a single one.

@@ -1,6 +1,6 @@
 // \ingroup DP3
 //
-// \defgroup DPPP Default Pre-Processing Pipeline
+// \defgroup DPPP DPPP (Default Pre-Processing Pipeline)
 //
 // This package contains classes and programs to do the pre-processing
 // of the visibility data. Currently it consists of various flaggers
@@ -16,5 +16,7 @@
 // not found in the new version, which might be useful for WSRT data.
 // </ul>
 //
-//   \defgroup NDPPP New version
-//   \defgroup IDPPP Old version
+// @{
+//   \defgroup NDPPP NDPPP (new version)
+//   \defgroup IDPPP IDPPP (old version)
+// @}

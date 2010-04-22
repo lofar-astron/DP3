@@ -33,8 +33,6 @@
 #include <casa/Containers/RecordField.h>
 #include <tables/Tables/ExprNode.h>
 #include <tables/Tables/RecordGram.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCPosition.h>
 #include <iostream>
 #include <algorithm>
 
@@ -77,22 +75,7 @@ namespace LOFAR {
                    "the data does not contain autocorrelations");
       }
       // Calculate the baseline lengths.
-      // First get the antenna positions.
-      const vector<MPosition>& antPos = itsInput->antennaPos();
-      vector<Vector<double> > antVec;
-      antVec.reserve (antPos.size());
-      for (vector<MPosition>::const_iterator iter = antPos.begin();
-           iter != antPos.end(); ++iter) {
-        // Convert to ITRF and keep as x,y,z in m.
-        antVec.push_back
-          (MPosition::Convert(*iter, MPosition::ITRF)().getValue().getValue());
-      }
-      // Fill in the length of each baseline.
-      itsBLength.reserve (ant1.size());
-      for (uint i=0; i<ant1.size(); ++i) {
-        Array<double> diff(antVec[ant2[i]] - antVec[ant1[i]]);
-        itsBLength.push_back (sqrt(sum(diff*diff)));
-      }
+      itsBLength = itsInput->getBaselineLengths();
     }
 
     MedFlagger::~MedFlagger()

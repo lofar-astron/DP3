@@ -496,6 +496,10 @@ bool checkUVMin (Complex, double, int, int, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) <= 30; }
 bool checkUVBL (Complex, double, int a1, int a2, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) >= 30 && (a1==0 || a2==0); }
+bool checkBLMax (Complex, double, int a1, int a2, const double*)
+  { return abs(a1-a2) < 2; }   // adjacent ant have bl<145
+bool checkBLMinMax (Complex, double, int a1, int a2, const double*)
+  { return abs(a1-a2) == 1; }  // adjacent ant have bl<145
 bool checkTimeSlot (Complex, double time, int, int, const double*)
   { return time<5; }
 bool checkNone (Complex, double, int, int, const double*)
@@ -539,6 +543,8 @@ void testMany()
   test6("azimuth", "86120s..86125s", "elevation", "180deg..190deg", &checkNone);
   test6("azimuth", "86120s..86125s", "elevation", "12730s..12740s", &checkAll);
   test5("lst", "0.154d..0.155d", &checkAll);
+  test5("blmax", "145", &checkBLMax);
+  test6("blmax", "145", "blmin", "10", &checkBLMinMax);
 }
 
 int main()

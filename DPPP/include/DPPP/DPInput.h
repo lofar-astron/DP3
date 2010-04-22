@@ -94,6 +94,9 @@ namespace LOFAR {
       const casa::Vector<int>& getAnt2() const
         { return itsAnt2; }
 
+      // Get the lengths of the baselines (in meters).
+      const vector<double>& getBaselineLengths() const;
+
       // Get the antenna names.
       const casa::Vector<casa::String>& antennaNames() const
         { return itsAntNames; }
@@ -148,6 +151,7 @@ namespace LOFAR {
       uint   itsNrBl;
       casa::Vector<int>          itsAnt1;        //# ant1 of all baselines
       casa::Vector<int>          itsAnt2;        //# ant2 of all baselines
+      mutable vector<double>     itsBLength;     //# baseline lengths
       casa::Vector<casa::String> itsAntNames;
       vector<casa::MPosition>    itsAntPos;
       casa::MPosition            itsArrayPos;

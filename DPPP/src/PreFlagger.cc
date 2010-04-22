@@ -155,6 +155,8 @@ namespace LOFAR {
                                             vector<string>());
       itsCorrType = parset.getString       (prefix+"corrtype", "");
       itsStrBL    = parset.getString       (prefix+"baseline", string());
+      itsMinBL    = parset.getDouble       (prefix+"blmin", -1);
+      itsMaxBL    = parset.getDouble       (prefix+"blmax", -1);
       itsMinUV    = parset.getDouble       (prefix+"uvmmin", -1);
       itsMaxUV    = parset.getDouble       (prefix+"uvmmax", -1);
       itsStrFreq  = parset.getStringVector (prefix+"freqrange",
@@ -308,6 +310,8 @@ namespace LOFAR {
       if (itsFlagOnBL) {
         os << "  baseline:       " << itsStrBL << std::endl;
         os << "  corrtype:       " << itsCorrType << std::endl;
+        os << "  blmin           " << itsMinBL << std::endl;
+        os << "  blmax           " << itsMaxBL << std::endl;
       }
       if (itsFlagOnUV) {
         if (itsMinUV >= 0) {
@@ -971,12 +975,12 @@ namespace LOFAR {
     {
       // Initialize the matrix.
       itsFlagBL.resize (antNames.size(), antNames.size());
+      itsFlagBL = true;
+      Matrix<bool> tmpflags(itsFlagBL.shape());
       // Loop through all values in the baseline string.
-      if (itsStrBL.empty()) {
-        itsFlagBL = true;
-      } else {
-        itsFlagBL = false;
+      if (! itsStrBL.empty()) {
         itsFlagOnBL = true;
+        tmpflags    = false;
         vector<ParameterValue> pairs = ParameterValue(itsStrBL).getVector();
         // Each ParameterValue can be a single value (antenna) or a pair of
         // values (a baseline).
@@ -998,8 +1002,8 @@ namespace LOFAR {
               if (antNames[i2].matches (regex)) {
                 // Antenna matches, so set all corresponding flags.
                 for (uint j=0; j<antNames.size(); ++j) {
-                  itsFlagBL(i2,j) = true;
-                  itsFlagBL(j,i2) = true;
+                  tmpflags(i2,j) = true;
+                  tmpflags(j,i2) = true;
                 }
               }
             }
@@ -1015,29 +1019,50 @@ namespace LOFAR {
                 // Antenna2 matches, now try Antenna1.
                 for (uint i1=0; i1<antNames.size(); ++i1) {
                   if (antNames[i1].matches (regex1)) {
-                    itsFlagBL(i1,i2) = true;
-                    itsFlagBL(i2,i1) = true;
+                    tmpflags(i1,i2) = true;
+                    tmpflags(i2,i1) = true;
                   }
                 }
               }
             }
           }
         }
+        itsFlagBL = itsFlagBL && tmpflags;
       }
       // Process corrtype if given.
       string corrType = toLower(itsCorrType);
       if (corrType == "auto") {
         itsFlagOnBL = true;
-        Matrix<bool> flags(itsFlagBL.shape());
-        flags = false;
-        flags.diagonal() = true;
-        itsFlagBL = itsFlagBL && flags;
+        tmpflags = false;
+        tmpflags.diagonal() = true;
+        itsFlagBL = itsFlagBL && tmpflags;
       } else if (corrType == "cross") {
         itsFlagOnBL = true;
         itsFlagBL.diagonal() = false;   // no autocorr
       } else {
         ASSERTSTR (corrType == "", "PreFlagger corrType " << itsCorrType
                    << " is invalid; must be auto, cross, or empty string");
+      }
+      // Process min or max baseline length if given.
+      if (itsMinBL > 0  ||  itsMaxBL > 0) {
+        if (itsMaxBL < 0) {
+          itsMaxBL = 1e30;
+        }
+        itsFlagOnBL = true;
+        tmpflags = false;
+        // Get baseline lengths.
+        const vector<double>& blength = itsInput->getBaselineLengths();
+        const Vector<int>& ant1 = itsInput->getAnt1();
+        const Vector<int>& ant2 = itsInput->getAnt2();
+        for (uint i=0; i<ant1.size(); ++i) {
+          if (blength[i] > itsMinBL  &&  blength[i] < itsMaxBL) {
+            int a1 = ant1[i];
+            int a2 = ant2[i];
+            tmpflags(a1,a2) = true;
+            tmpflags(a2,a1) = true;
+          }
+        }
+        itsFlagBL = itsFlagBL && tmpflags;
       }
     }
 

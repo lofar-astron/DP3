@@ -24,6 +24,9 @@
 #include <lofar_config.h>
 #include <DPPP/DPInput.h>
 #include <Common/Exception.h>
+#include <measures/Measures/MeasConvert.h>
+#include <measures/Measures/MPosition.h>
+#include <measures/Measures/MCPosition.h>
 #include <casa/Utilities/Copy.h>
 
 using namespace casa;
@@ -43,6 +46,31 @@ namespace LOFAR {
                           itsChanFreqs[(i+1)*nchanAvg - 1]);
       }
       return freqs;
+    }
+
+    const vector<double>& DPInput::getBaselineLengths() const
+    {
+      // Calculate the baseline lengths if not done yet.
+      if (itsBLength.empty()) {
+        // First get the antenna positions.
+        const vector<MPosition>& antPos = antennaPos();
+        vector<Vector<double> > antVec;
+        antVec.reserve (antPos.size());
+        for (vector<MPosition>::const_iterator iter = antPos.begin();
+             iter != antPos.end(); ++iter) {
+          // Convert to ITRF and keep as x,y,z in m.
+          antVec.push_back
+           (MPosition::Convert(*iter, MPosition::ITRF)().getValue().getValue());
+        }
+        // Fill in the length of each baseline.
+        vector<double> blength;
+        itsBLength.reserve (itsAnt1.size());
+        for (uint i=0; i<itsAnt1.size(); ++i) {
+          Array<double> diff(antVec[itsAnt2[i]] - antVec[itsAnt1[i]]);
+          itsBLength.push_back (sqrt(sum(diff*diff)));
+        }
+      }
+      return itsBLength;
     }
 
     Cube<bool> DPInput::fetchFullResFlags (const DPBuffer& buf,

@@ -42,7 +42,7 @@ namespace LOFAR {
     // data in time and/or frequency.
     // <br>
     // Only unflagged data points are used. The average is calculated as
-    // <src>sum(data*weight) / sum(weight)</src> and the sum of the weights
+    // <tt>sum(data*weight) / sum(weight)</tt> and the sum of the weights
     // is the weight of the new data point. If all data point to use are
     // flagged, the resulting data point and weight are set to zero and flagged.
     //
