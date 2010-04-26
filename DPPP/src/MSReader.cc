@@ -73,10 +73,10 @@ namespace LOFAR {
         itsFirstTime = qtime.getValue("s");
         ASSERT (itsFirstTime < endTime);
         // Round to integer nr of intervals.
-        if (itsFirstTime < startTime) {
-          int nrt = int((startTime - itsFirstTime) / itsInterval + 0.5);
-          itsFirstTime = startTime - nrt*itsInterval;
-        }
+        ///        if (itsFirstTime < startTime) {
+        ///          int nrt = int((startTime - itsFirstTime) / itsInterval + 0.5);
+        ///          itsFirstTime = startTime - nrt*itsInterval;
+        ///        }
       }
       itsLastTime = endTime;
       if (!endTimeStr.empty()) {
@@ -86,10 +86,13 @@ namespace LOFAR {
         itsLastTime = qtime.getValue("s");
       }
       ASSERT (itsLastTime > itsFirstTime);
+      // If needed, skip the first times in the MS.
+      // It also sets itsFirstTime properly (round to time/interval in MS).
+      skipFirstTimes();
       itsNextTime  = itsFirstTime;
       itsStartTime = itsFirstTime - 0.5*itsInterval;
-      uint nAllChan = itsNrChan;
       // nchan=0 means until the last channel.
+      uint nAllChan = itsNrChan;
       ASSERTSTR (itsStartChan < nAllChan,
                  "startchan " << itsStartChan
                  << " exceeds nr of channels in MS");
@@ -133,7 +136,8 @@ namespace LOFAR {
           double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
-            LOG_WARN_STR ("Time at rownr " << itsIter.table().rowNumbers()[0]
+            LOG_WARN_STR ("Time at rownr "
+                          << itsIter.table().rowNumbers(itsMS)[0]
                           << " of MS " << itsMS.tableName()
                           << " is less than previous time slot");
           } else {
@@ -377,6 +381,42 @@ namespace LOFAR {
       }        
       // Create the UVW calculator.
       itsUVWCalc = UVWCalculator (itsPhaseCenter, itsArrayPos, itsAntPos);
+    }
+
+    void MSReader::skipFirstTimes()
+    {
+      while (!itsIter.pastEnd()) {
+        // Take time from row 0 in subset.
+        double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+        // Skip time slot and give warning if MS data is not in time order.
+        if (mstime < itsLastMSTime) {
+          LOG_WARN_STR ("Time at rownr "
+                        << itsIter.table().rowNumbers(itsMS)[0]
+                        << " of MS " << itsMS.tableName()
+                        << " is less than previous time slot");
+        } else {
+          // Stop skipping if time equal to itsFirstTime.
+          if (near(mstime, itsFirstTime)) {
+            break;
+          }
+          // Also stop if time > itsFirstTime.
+          // In that case determine the true first time, because itsFirstTime
+          // can be a time value that does not coincide with a true time.
+          // Note that a time stamp might be missing at this point,
+          // so do not simply assume that mstime can be used.
+          if (mstime > itsFirstTime) {
+            int nrt = int((mstime - itsFirstTime) / itsInterval);
+            mstime -= (nrt+1) * itsInterval;    // Add 1 for rounding errors
+            if (! near(mstime, itsFirstTime)) {
+              itsFirstTime = mstime + itsInterval;
+            }
+            break;
+          }
+        }
+        // Skip this time slot.
+        itsLastMSTime = mstime;
+        itsIter.next();
+      }
     }
 
     void MSReader::calcUVW()
