@@ -44,8 +44,8 @@ void testCopy()
   {
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS" << endl;
-    // Give starttime 30 sec before actual, hence 1 missing timeslot.
-    ostr << "msin.starttime=03-Aug-2000/13:21:50" << endl;
+    // Give starttime 35 sec before actual, hence 1 missing timeslot.
+    ostr << "msin.starttime=03-Aug-2000/13:21:45" << endl;
     // Give endtime 90 sec after actual, hence 3 missing timeslots.
     ostr << "msin.endtime=03-Aug-2000/13:33:15" << endl;
     ostr << "msout=tNDPPP_tmp.MS1" << endl;
@@ -312,6 +312,39 @@ void testAvg3()
   checkAvg ("tNDPPP_tmp.MS4d");
 }
 
+// This function tests if the correct start time is used when selecting times.
+void testAvg4()
+{
+  cout << endl << "** testAvg4 **" << endl;
+  {
+    // Average in a single step.
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    // Give start a few seconds after first one, hence skip first time slot.
+    ostr << "msin.starttime=03-Aug-2000/13:22:25" << endl;
+    ostr << "msout=tNDPPP_tmp.MS5" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[avg]" << endl;
+    ostr << "avg.type=average" << endl;
+    ostr << "avg.timestep=2" << endl;
+    ostr << "avg.freqstep=100" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  {
+    // Only check the times;
+    Table tab ("tNDPPP_tmp.MS");
+    // First time to be used.
+    double time = ROScalarColumn<double>(tab, "TIME")(6) + 15;
+    Table t2 ("tNDPPP_tmp.MS5");
+    ASSERT (t2.nrow() == 6*10);
+    ROScalarColumn<double> timeCol(t2, "TIME");
+    for (uint i=0; i<t2.nrow(); ++i) {
+      ASSERT (near(timeCol(i), time));
+      if (i%6 == 5) time += 60;
+    }
+  }
+}
+
 void testUpdate()
 {
   cout << endl << "** testUpdate **" << endl;
@@ -501,6 +534,7 @@ int main()
     testAvg1();
     testAvg2();
     testAvg3();
+    testAvg4();
     testUpdate();
     testFlags1();
     testFlags2();

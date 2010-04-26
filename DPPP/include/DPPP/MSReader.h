@@ -205,6 +205,10 @@ namespace LOFAR {
       void prepare (double& firstTime, double& lastTime,
                     double& interval);
 
+      // Skip the first times in the MS in case a start time was given.
+      // If needed, it sets itsFirstTime properly.
+      void skipFirstTimes();
+
       // Calculate the UVWs for a missing time slot.
       void calcUVW();
 
