@@ -252,14 +252,25 @@ namespace LOFAR {
       DataManInfo::setTiledStMan (dminfo, Vector<String>(1, "UVW"),
                                   "TiledColumnStMan", "TiledUVW",
                                   IPosition(2, 3, tsmnrow));
+      // Test if SSMVar already exists.
+      bool hasSSMVar = false;
+      for (uint i=0; i<dminfo.nfields(); ++i) {
+        if (dminfo.subRecord(i).asString("NAME") == "SSMVar") {
+          hasSSMVar = true;
+          break;
+        }
+      }
       // Setup table creation. Exception is thrown if it exists already.
       Table::TableOption opt = itsOverwrite ? Table::New : Table::NewNoReplace;
       SetupNewTable newtab(outName, newdesc, opt);
-      // First bind all column to SSM.
+      // First bind all columns to SSM.
       // For all columns defined in dminfo the bindings will be overwritten.
       // In this way variable columns like ANTENNA1/2 are bound to SSM.
-      StandardStMan ssm("SSMVar", 32768);
-      newtab.bindAll (ssm);
+      // Only do it if SSMVar does not exist (otherwise duplicate StMan name).
+      if (!hasSSMVar) {
+        StandardStMan ssm("SSMVar", 32768);
+        newtab.bindAll (ssm);
+      }
       // Bind all columns according to dminfo.
       newtab.bindCreate (dminfo);
       itsMS = Table(newtab);
