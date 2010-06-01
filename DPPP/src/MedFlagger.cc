@@ -50,7 +50,9 @@ namespace LOFAR {
         itsFreqWindowStr (parset.getString (prefix+"freqwindow", "1")),
         itsTimeWindowStr (parset.getString (prefix+"timewindow", "1")),
         itsNTimes        (0),
-        itsNTimesDone    (0)
+        itsNTimesDone    (0),
+        itsMoveTime      (0),
+        itsMedianTime    (0)
     {
       itsFlagCorr = parset.getUintVector (prefix+"correlations",
                                           vector<uint>());
@@ -114,10 +116,14 @@ namespace LOFAR {
       FlagCounter::showPerc1 (os, flagDur, duration);
       os << " MADFlagger " << itsName << endl;
       os << "          ";
-      FlagCounter::showPerc1 (os, itsMoveTimer.getElapsed(), flagDur);
+      // move time and median time are sum of all threads.
+      // Scale them to a single elapsed time.
+      double factor = (itsComputeTimer.getElapsed() /
+                       (itsMoveTime + itsMedianTime));
+      FlagCounter::showPerc1 (os, itsMoveTime*factor, flagDur);
       os << " of it spent in shuffling data" << endl;
       os << "          ";
-      FlagCounter::showPerc1 (os, itsMedianTimer.getElapsed(), flagDur);
+      FlagCounter::showPerc1 (os, itsMedianTime*factor, flagDur);
       os << " of it spent in calculating medians" << endl;
     }
 
@@ -265,17 +271,30 @@ namespace LOFAR {
       IPosition shp = buf.getData().shape();
       uint ncorr = shp[0];
       uint nchan = shp[1];
+      uint blsize = ncorr*nchan;
       uint nrbl  = shp[2];
       uint ntime = timeEntries.size();
-      // Create a temporary buffer to hold data for determining medians.
-      Block<float> tempBuf(itsFreqWindow*ntime);
       // Get pointers to data and flags.
-      const float* dataPtr = buf.getAmplitudes().data();
-      bool* flagPtr = buf.getFlags().data();
+      const float* bufDataPtr = buf.getAmplitudes().data();
+      bool* bufFlagPtr = buf.getFlags().data();
       float Z1, Z2;
       float MAD = 1.4826;   //# constant determined by Pandey
+      itsComputeTimer.start();
       // Now flag each baseline, channel and correlation for this time window.
+      // This can be done in parallel.
+#pragma omp parallel
+      // Create a temporary buffer (per thread) to hold data for determining
+      // the medians.
+      // Also create a thread-private counter object.
+      Block<float> tempBuf(itsFreqWindow*ntime);
+      FlagCounter counter;
+      NSTimer moveTimer;
+      NSTimer medianTimer;
+#pragma omp for
       for (uint ib=0; ib<nrbl; ++ib) {
+        counter.init (itsFlagCounter);
+        const float* dataPtr = bufDataPtr + ib*blsize;
+        bool* flagPtr = bufFlagPtr + ib*blsize;
         double threshold = itsThresholdArr[ib];
         // Do only autocorrelations if told so.
         // Otherwise do baseline only if length within min-max.
@@ -296,12 +315,13 @@ namespace LOFAR {
               }
               // Calculate values from the median.
               computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
-                              Z1, Z2, tempBuf.storage());
+                              Z1, Z2, tempBuf.storage(),
+                              moveTimer, medianTimer);
               if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
                 corrIsFlagged = true;
-                itsFlagCounter.incrBaseline(ib);
-                itsFlagCounter.incrChannel(ic);
-                itsFlagCounter.incrCorrelation(ip);
+                counter.incrBaseline(ib);
+                counter.incrChannel(ic);
+                counter.incrCorrelation(ip);
                 break;
               }
             }
@@ -317,12 +337,19 @@ namespace LOFAR {
           dataPtr += nchan*ncorr;
           flagPtr += nchan*ncorr;
         }
+#pragma omp atomic
+        // Add the counters to the overall object.
+        itsFlagCounter.add (counter);
+        // Add the timings.
+        itsMoveTime   += moveTimer.getElapsed();
+        itsMedianTime += medianTimer.getElapsed();
       }
+      itsComputeTimer.stop();
       // Apply autocorrelations flags if needed.
       // Only to baselines with length within min-max.
       if (itsApplyAutoCorr) {
-        flagPtr = buf.getFlags().data();
         for (uint ib=0; ib<nrbl; ++ib) {
+          bool* flagPtr = bufFlagPtr + ib*blsize;
           // Flag crosscorr if at least one autocorr is present.
           // Only if baseline length within min-max.
           if (ant1[ib] != ant2[ib]  &&  itsBLength[ib] >= itsMinBLength  &&
@@ -369,9 +396,10 @@ namespace LOFAR {
                                      uint bl, int chan, int corr,
                                      int nchan, int ncorr,
                                      float& Z1, float& Z2,
-                                     float* tempBuf)
+                                     float* tempBuf,
+                                     NSTimer& moveTimer, NSTimer& medianTimer)
     {
-      itsMoveTimer.start();
+      moveTimer.start();
       // Collect all non-flagged data points for given baseline, channel,
       // and correlation in the window around the channel.
       uint np = 0;
@@ -412,13 +440,13 @@ namespace LOFAR {
           }
         }
       }
-      itsMoveTimer.stop();
+      moveTimer.stop();
       // If only flagged data, don't do anything.
       if (np == 0) {
         Z1 = -1.0;
         Z2 = 0.0;
       } else {
-        itsMedianTimer.start();
+        medianTimer.start();
         // Get median of data and get median of absolute difference.
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
         ///Z1 = *(tempBuf+np/2);
@@ -429,7 +457,7 @@ namespace LOFAR {
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
         ///Z2 = *(tempBuf+np/2);
         Z2 = GenSort<float>::kthLargest (tempBuf, np, np/2);
-        itsMedianTimer.stop();
+        medianTimer.stop();
       }
     }
 

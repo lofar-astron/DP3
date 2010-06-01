@@ -49,9 +49,12 @@ namespace LOFAR {
       FlagCounter()
       {}
 
-      // Setup 
-      // Construct the object for the given phase direction and stations.
+      // Size all counters and initialize them to zero.
       void init (uint nbaselines, uint nchan, uint ncorr);
+
+      // Size all counters to that's sizes and initialize them to zero.
+      // and all counters initialized to zero.
+      void init (const FlagCounter& that);
 
       // Increment the count per baseline.
       void incrBaseline (uint bl)
@@ -64,6 +67,9 @@ namespace LOFAR {
       // Increment the count per correlation.
       void incrCorrelation (uint corr)
         { itsCorrCounts[corr]++; }
+
+      // Add the contents of that to this.
+      void add (const FlagCounter& that);
 
       // Get the counts.
       const vector<int64>& baselineCounts() const

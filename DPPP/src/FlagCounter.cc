@@ -24,6 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/FlagCounter.h>
 #include <Common/StreamUtil.h>
+#include <Common/LofarLogger.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <iomanip>
@@ -41,6 +42,29 @@ namespace LOFAR {
       std::fill (itsBLCounts.begin(), itsBLCounts.end(), 0);
       std::fill (itsChanCounts.begin(),itsChanCounts.end(), 0);
       std::fill (itsCorrCounts.begin(),itsCorrCounts.end(), 0);
+    }
+
+    void FlagCounter::init (const FlagCounter& that)
+    {
+      init (that.itsBLCounts.size(), that.itsChanCounts.size(),
+            that.itsCorrCounts.size());
+    }
+
+    void FlagCounter::add (const FlagCounter& that)
+    {
+      // Add that to this after checking for equal sizes.
+      ASSERT (itsBLCounts.size()   == that.itsBLCounts.size());
+      ASSERT (itsChanCounts.size() == that.itsChanCounts.size());
+      ASSERT (itsCorrCounts.size() == that.itsCorrCounts.size());
+      std::transform (itsBLCounts.begin(), itsBLCounts.end(),
+                      that.itsBLCounts.begin(), itsBLCounts.begin(),
+                      std::plus<int64>());
+      std::transform (itsChanCounts.begin(), itsChanCounts.end(),
+                      that.itsChanCounts.begin(), itsChanCounts.begin(),
+                      std::plus<int64>());
+      std::transform (itsCorrCounts.begin(), itsCorrCounts.end(),
+                      that.itsCorrCounts.begin(), itsCorrCounts.begin(),
+                      std::plus<int64>());
     }
 
     void FlagCounter::showBaseline (ostream& os, const casa::Vector<int>& ant1,

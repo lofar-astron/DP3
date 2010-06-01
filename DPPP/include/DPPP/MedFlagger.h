@@ -113,7 +113,8 @@ namespace LOFAR {
                            uint bl, int chan, int corr,
                            int nchan, int ncorr,
                            float& Z1, float& Z2,
-                           float* tempBuf);
+                           float* tempBuf,
+                           NSTimer& moveTimer, NSTimer& medianTimer);
 
       // Get the values of the expressions for each baseline.
       void getExprValues (int maxNChan, int maxNTime);
@@ -143,8 +144,9 @@ namespace LOFAR {
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
-      NSTimer          itsMoveTimer;
-      NSTimer          itsMedianTimer;
+      NSTimer          itsComputeTimer;  //# move/median timer
+      double           itsMoveTime;      //# data move timer (sum all threads)
+      double           itsMedianTime;    //# median timer (sum of all threads)
     };
 
   } //# end namespace
