@@ -277,7 +277,6 @@ namespace LOFAR {
       // Get pointers to data and flags.
       const float* bufDataPtr = buf.getAmplitudes().data();
       bool* bufFlagPtr = buf.getFlags().data();
-      float Z1, Z2;
       float MAD = 1.4826;   //# constant determined by Pandey
       itsComputeTimer.start();
       // Now flag each baseline, channel and correlation for this time window.
@@ -291,6 +290,7 @@ namespace LOFAR {
 	FlagCounter counter;
 	NSTimer moveTimer;
 	NSTimer medianTimer;
+	float Z1, Z2;
 	// The for loop can be parallellized. This must be done dynamically,
 	// because the execution time of each iteration can vary a lot.
 #pragma omp for schedule(dynamic)
