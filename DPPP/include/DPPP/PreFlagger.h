@@ -70,6 +70,8 @@ namespace LOFAR {
     friend class TestPSet;
 
     public:
+      enum Mode {SetFlag, ClearFlag, SetComp, ClearComp};
+
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       PreFlagger (DPInput*, const ParameterSet&, const string& prefix);
@@ -133,7 +135,7 @@ namespace LOFAR {
         void updateInfo (const AverageInfo&);
 
         // Show the pset parameters.
-        void show (std::ostream&) const;
+        void show (std::ostream&, bool showName) const;
 
       private:
         // Test if the time matches the time ranges.
@@ -219,6 +221,7 @@ namespace LOFAR {
         //# Data members of PreFlagger::PSet.
         DPInput*           itsInput;
         string             itsName;
+        string             itsStrExpr;
         bool               itsFlagOnTimeOnly; //# true = only flag on time info
         bool               itsFlagOnTime; //# true = do time based flagging
         bool               itsFlagOnUV; //# true = do uv distance based flagging
@@ -265,10 +268,22 @@ namespace LOFAR {
         casa::Cube<bool>    itsFlags;
         casa::Block<bool>   itsMatchBL; //# true = baseline in buffer matches 
       };
-        
+
+      // Set the flags in outPtr where inPtr matches mode.
+      void setFlags (const bool* inPtr, bool* outPtr,
+                     uint nrcorr, uint nrchan, uint nrbl, bool mode);
+
+      // Clear the flags in outPtr where inPtr matches mode.
+      // If the corresponding data point of a flag is invalid
+      // (non-finite or zero), it is always flagged.
+      void clearFlags (const bool* inPtr, bool* outPtr,
+                       uint nrcorr, uint nrchan, uint nrbl, bool mode,
+                       const DPBuffer& buf);
+
       //# Data members of PreFlagger.
       string      itsName;
       DPInput*    itsInput;
+      Mode        itsMode;
       NSTimer     itsTimer;
       PSet        itsPSet;
       uint        itsCount;

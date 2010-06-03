@@ -496,7 +496,7 @@ void testFlags3()
   cout << endl << "** testFlags3 **" << endl;
   {
     // Even a bit more advanced, also in two NDPPP runs.
-    // Input channels 6,7,8 are flagged by flagging their avergaed channel.
+    // Input channels 6,7,8 are flagged by flagging their averaged channel.
     // This is done at the end of run 1, so the averager of run 2 should pick
     // up those flags.
     ofstream ostr1("tNDPPP_tmp.parset1");
@@ -525,6 +525,50 @@ void testFlags3()
   checkFlags ("tNDPPP_tmp.MS7b");
 }
 
+void testClear()
+{
+  cout << endl << "** testClear **" << endl;
+  Array<bool> flags;
+  // First flag in the same way as testFlags1.
+  testFlags1();
+  // Get the resulting flags.
+  {
+    Table tab("tNDPPP_tmp.MS5");
+    flags.reference (ROArrayColumn<bool>(tab, "FLAG").getColumn());
+  }
+  // Flag all data.
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS5" << endl;
+    ostr << "msout=tNDPPP_tmp.MS5a" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[preflag]" << endl;
+    ostr << "preflag.baseline=[[*]]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  checkFlags ("tNDPPP_tmp.MS5a");
+  {
+    Table tab("tNDPPP_tmp.MS5a");
+    ASSERT (allEQ(ROArrayColumn<bool>(tab, "FLAG").getColumn(), True));
+  }
+  // Clear the flags.
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS5a" << endl;
+    ostr << "msout=tNDPPP_tmp.MS5b" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[preflag]" << endl;
+    ostr << "preflag.mode=clear" << endl;
+    ostr << "preflag.baseline=[[*]]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  checkFlags ("tNDPPP_tmp.MS5b");
+  {
+    Table tab("tNDPPP_tmp.MS5b");
+    ASSERT (allEQ(ROArrayColumn<bool>(tab, "FLAG").getColumn(), flags));
+  }
+}
+
 
 int main()
 {
@@ -538,6 +582,8 @@ int main()
     testUpdate();
     testFlags1();
     testFlags2();
+    testFlags3();
+    testClear();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;
     return 1;

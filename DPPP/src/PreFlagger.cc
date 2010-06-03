@@ -1,4 +1,4 @@
-//# PreFlagger.cc: DPPP step class to flag data on channel, baseline, time
+//# PreFlagger.cc: DPPP step class to (un)flag data on channel, baseline, time
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -49,16 +49,47 @@ namespace LOFAR {
                             const ParameterSet& parset, const string& prefix)
       : itsName  (prefix),
         itsInput (input),
+        itsMode  (SetFlag),
         itsPSet  (input, parset, prefix),
         itsCount (0)
-    {}
+    {
+      string mode = toLower(parset.getString(prefix+"mode", "set"));
+      if (mode == "clear") {
+        itsMode = ClearFlag;
+      } else if (mode == "setcomplement"  ||  mode == "setother") {
+        itsMode = SetComp;
+      } else if (mode == "clearcomplement"  ||  mode == "clearother") {
+        itsMode = ClearComp;
+      } else {
+        ASSERTSTR (mode=="set",
+                   "invalid preflagger mode: "
+                   "only set, clear, and set/clearcomplement/other are valid");
+      }
+    }
 
     PreFlagger::~PreFlagger()
     {}
 
     void PreFlagger::show (std::ostream& os) const
     {
-      itsPSet.show (os);
+      os << "PreFlagger " << itsName << std::endl;
+      os << "  mode:           ";
+      switch (itsMode) {
+      case SetFlag:
+        os << "set";
+        break;
+      case ClearFlag:
+        os << "clear";
+        break;
+      case SetComp:
+        os << "setcomplement";
+        break;
+      case ClearComp:
+        os << "clearcomplement";
+        break;
+      }
+      os << endl;
+      itsPSet.show (os, false);
     }
 
     void PreFlagger::showCounts (std::ostream& os) const
@@ -90,8 +121,8 @@ namespace LOFAR {
       DPBuffer out(buf);
       // The flags will be changed, so make sure we have a unique array.
       out.getFlags().unique();
-      // Do the PSet steps and OR the result with the current flags.
-      // Only count if the flag was not set yet.
+      // Do the PSet steps and combine the result with the current flags.
+      // Only count if the flag changes.
       Cube<bool>* flags = itsPSet.process (out, itsCount, Block<bool>());
       const IPosition& shape = flags->shape();
       uint nrcorr = shape[0];
@@ -99,18 +130,19 @@ namespace LOFAR {
       uint nrbl   = shape[2];
       const bool* inPtr = flags->data();
       bool* outPtr = out.getFlags().data();
-      for (uint i=0; i<nrbl; ++i) {
-        for (uint j=0; j<nrchan; ++j) {
-          if (*inPtr  &&  !*outPtr) {
-            itsFlagCounter.incrBaseline(i);
-            itsFlagCounter.incrChannel(j);
-            for (uint i=0; i<nrcorr; ++i) {
-              outPtr[i] = true;
-            }
-          }
-          inPtr  += nrcorr;    // only count 1st corr
-          outPtr += nrcorr;
-        }
+      switch (itsMode) {
+      case SetFlag:
+        setFlags (inPtr, outPtr, nrcorr, nrchan, nrbl, true);
+        break;
+      case ClearFlag:
+        clearFlags (inPtr, outPtr, nrcorr, nrchan, nrbl, true, buf);
+        break;
+      case SetComp:
+        setFlags (inPtr, outPtr, nrcorr, nrchan, nrbl, false);
+        break;
+      case ClearComp:
+        clearFlags (inPtr, outPtr, nrcorr, nrchan, nrbl, false, buf);
+        break;
       }
       itsTimer.stop();
       // Let the next step do its processing.
@@ -118,6 +150,123 @@ namespace LOFAR {
       itsCount++;
       return true;
     }
+
+    void PreFlagger::setFlags (const bool* inPtr, bool* outPtr,
+                               uint nrcorr, uint nrchan, uint nrbl,
+                               bool mode)
+    {
+      for (uint i=0; i<nrbl; ++i) {
+        for (uint j=0; j<nrchan; ++j) {
+          if (*inPtr == mode  &&  !*outPtr) {
+            // Only 1st corr is counted.
+            itsFlagCounter.incrBaseline(i);
+            itsFlagCounter.incrChannel(j);
+            for (uint k=0; k<nrcorr; ++k) {
+              outPtr[k] = true;
+            }
+          }
+          inPtr  += nrcorr;
+          outPtr += nrcorr;
+        }
+      }
+    }
+
+    void PreFlagger::clearFlags (const bool* inPtr, bool* outPtr,
+                                 uint nrcorr, uint nrchan, uint nrbl,
+                                 bool mode, const DPBuffer& buf)
+    {
+      const Complex* dataPtr = buf.getData().data();
+      for (uint i=0; i<nrbl; ++i) {
+        for (uint j=0; j<nrchan; ++j) {
+          if (*inPtr == mode) {
+            bool flag = false;
+            for (uint k=0; k<nrcorr; ++k) {
+              if (!isFinite(dataPtr[k].real())  ||
+                  !isFinite(dataPtr[k].imag())  ||
+                  dataPtr[k] == Complex()) {
+                flag = true;
+                break;
+              }
+            }
+            if (*outPtr != flag) {
+              itsFlagCounter.incrBaseline(i);
+              itsFlagCounter.incrChannel(j);
+              for (uint k=0; k<nrcorr; ++k) {
+                outPtr[k] = flag;
+              }
+            }
+          }
+          inPtr   += nrcorr;
+          outPtr  += nrcorr;
+          dataPtr += nrcorr;
+        }
+      }
+    }
+
+//     void PreFlagger::resetFlags (const bool* inPtr, bool* outPtr,
+//                                  uint nrcorr, uint nrchan, uint nrbl,
+//                                  const DPBuffer& buf)
+//     {
+//       // The DPBuffer might contain the FullResFlags.
+//       Cube<bool> origFlags(buf.getFullResFlags());
+//       uint nOrigAllChan = 0;
+//       uint nOrigChan = 0;
+//       uint nOrigTime = 0;
+//       if (! origFlags.empty()) {
+//         // Determine nr of original flags in chan and time per point.
+//         nOrigAllChan = origFlags.shape()[0];
+//         nOrigChan = nOrigAllChan / nrchan;
+//         nOrigTime = origFlags.shape()[1];
+//       }
+//       // Now loop through all flags.
+//       // Only handle if selected (thus if set).
+//       for (uint i=0; i<nrbl; ++i) {
+//         for (uint j=0; j<nrchan; ++j) {
+//           if (*inPtr) {
+//             // Get the original flags if needed.
+//             // It is done here, so reading is only done if really necessary.
+//             if (nOrigTime == 0) {
+//               origFlags.reference (itsInput->getFullResFlags(buf.getRowNrs()));
+//               if (origFlags.empty()) {
+//                 // No original flags, so the only thing that can be done
+//                 // is unsetting the flags.
+//                 unsetFlags (inFlagPtr, outFlagPtr, nrcorr, nrchan, nrbl);
+//                 return;
+//               }
+//               nOrigAllChan = origFlags.shape()[0];
+//               nOrigChan = nOrigAllChan / nrchan;
+//               nOrigTime = origFlags.shape()[1];
+//             }
+//             // Determine if all original flags were set for this point.
+//             const bool* origPtr = (origFlags.data() +
+//                                    i*nOrigAllChan*nOrigTime + j*nOrigChan);
+//             bool flag = true;
+//             for (uint it=0; it<nOrigTime; ++it) {
+//               for (uint ic=0; ic<nOrigChan; ++ic) {
+//                 if (! *origPtr) {
+//                   flag = false;
+//                   break;
+//                 }
+//                 origPtr++;
+//               }
+//               if (!flag) {
+//                 break;
+//               }
+//               origPtr += nOrigAllChan-nOrigChan;  // to get to next time
+//             }
+//             if (flag != *outPtr) {
+//               itsFlagCounter.incrBaseline(i);
+//               itsFlagCounter.incrChannel(j);
+//               for (uint k=0; k<nrcorr; ++k) {
+//                 outPtr[k] = flag;
+//               }
+//             }
+//           }
+//           inPtr  += nrcorr;
+//           outPtr += nrcorr;
+//         }
+//       }
+//     }
 
     void PreFlagger::finish()
     {
@@ -187,7 +336,7 @@ namespace LOFAR {
       itsImagMax  = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"imagmax", string())), 1e30,
          itsFlagOnImag);
-      string psetExpr = parset.getString   (prefix+"expr", string());
+      itsStrExpr = parset.getString   (prefix+"expr", string());
       // Fill the matrix with the baselines to flag.
       fillBLMatrix (itsInput->antennaNames());
       // Handle the possible date/time parameters.
@@ -217,8 +366,8 @@ namespace LOFAR {
       }
       ASSERTSTR (itsMinUV<itsMaxUV, "PreFlagger uvmmin should be < uvmmax");
       // Parse the possible pset expression and convert to RPN form.
-      if (! psetExpr.empty()) {
-        vector<string> names = exprToRpn (psetExpr);
+      if (! itsStrExpr.empty()) {
+        vector<string> names = exprToRpn (itsStrExpr);
         // Create PSet objects for all operands.
         itsPSets.reserve (names.size());
         for (uint i=0; i<names.size(); ++i) {
@@ -289,66 +438,71 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::PSet::show (std::ostream& os) const
+    void PreFlagger::PSet::show (std::ostream& os, bool showName) const
     {
-      os << "PreFlagger pset " << itsName << std::endl;
+      if (showName) {
+        os << "  pset " << itsName << endl;
+      }
+      if (! itsStrExpr.empty()) {
+        os << "   expr:          " << itsStrExpr << std::endl;
+      }
       if (! itsStrLST.empty()) {
-        os << "  lst             " << itsStrLST << std::endl;
+        os << "   lst:           " << itsStrLST << std::endl;
       }
       if (! itsStrTime.empty()) {
-        os << "  timeofday       " << itsStrTime << std::endl;
+        os << "   timeofday:     " << itsStrTime << std::endl;
       }
       if (! itsStrATime.empty()) {
-        os << "  abstime         " << itsStrATime << std::endl;
+        os << "   abstime:       " << itsStrATime << std::endl;
       }
       if (! itsStrRTime.empty()) {
-        os << "  reltime         " << itsStrRTime << std::endl;
+        os << "   reltime:       " << itsStrRTime << std::endl;
       }
       if (! itsTimeSlot.empty()) {
-        os << "  timeslot        " << itsTimeSlot << std::endl;
+        os << "   timeslot:      " << itsTimeSlot << std::endl;
       }
       if (itsFlagOnBL) {
-        os << "  baseline:       " << itsStrBL << std::endl;
-        os << "  corrtype:       " << itsCorrType << std::endl;
-        os << "  blmin           " << itsMinBL << std::endl;
-        os << "  blmax           " << itsMaxBL << std::endl;
+        os << "   baseline:      " << itsStrBL << std::endl;
+        os << "   corrtype:      " << itsCorrType << std::endl;
+        os << "   blmin:         " << itsMinBL << std::endl;
+        os << "   blmax:         " << itsMaxBL << std::endl;
       }
       if (itsFlagOnUV) {
         if (itsMinUV >= 0) {
-          os << "  uvmmin:         " << sqrt(itsMinUV) << std::endl;
+          os << "   uvmmin:        " << sqrt(itsMinUV) << std::endl;
         } else {
-          os << "  uvmmin:         " << itsMinUV << std::endl;
+          os << "   uvmmin:        " << itsMinUV << std::endl;
         }
-        os << "  uvmmax:         " << sqrt(itsMaxUV) << std::endl;
+        os << "   uvmmax:        " << sqrt(itsMaxUV) << std::endl;
       }
       if (itsFlagOnAzEl) {
-        os << "  azimuth:        " << itsStrAzim << std::endl;
-        os << "  elevation:      " << itsStrElev << std::endl;
+        os << "   azimuth:       " << itsStrAzim << std::endl;
+        os << "   elevation:     " << itsStrElev << std::endl;
       }
       if (! itsChannels.empty()) {
-        os << "  channel:        " << itsFlagChan << std::endl;
-        os << "  freqrange:      " << itsStrFreq << std::endl;
-        os << "   chan to flag:  " << itsChannels << std::endl;
+        os << "   channel:       " << itsFlagChan << std::endl;
+        os << "   freqrange:     " << itsStrFreq << std::endl;
+        os << "    chan to flag: " << itsChannels << std::endl;
       }
       if (itsFlagOnAmpl) {
-        os << "  amplmin         " << itsAmplMin << std::endl;
-        os << "  amplmax         " << itsAmplMax << std::endl;
+        os << "   amplmin:       " << itsAmplMin << std::endl;
+        os << "   amplmax:       " << itsAmplMax << std::endl;
       }
       if (itsFlagOnPhase) {
-        os << "  phasemin        " << itsPhaseMin << std::endl;
-        os << "  phasemax        " << itsPhaseMax << std::endl;
+        os << "   phasemin:      " << itsPhaseMin << std::endl;
+        os << "   phasemax:      " << itsPhaseMax << std::endl;
       }
       if (itsFlagOnReal) {
-        os << "  realmin         " << itsRealMin << std::endl;
-        os << "  realmax         " << itsRealMax << std::endl;
+        os << "   realmin:       " << itsRealMin << std::endl;
+        os << "   realmax:       " << itsRealMax << std::endl;
       }
       if (itsFlagOnImag) {
-        os << "  imagmin         " << itsImagMin << std::endl;
-        os << "  imagmax         " << itsImagMax << std::endl;
+        os << "   imagmin:       " << itsImagMin << std::endl;
+        os << "   imagmax:       " << itsImagMax << std::endl;
       }
       // Do it for the child steps.
       for (uint i=0; i<itsPSets.size(); ++i) {
-        itsPSets[i]->show (os);
+        itsPSets[i]->show (os, true);
       }
     }
 

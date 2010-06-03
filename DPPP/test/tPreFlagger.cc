@@ -161,30 +161,50 @@ class TestOutput: public DPStep
 {
 public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr,
-             bool flag)
+             bool flag, bool clear, bool useComplement)
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr),
-      itsFlag(flag)
+      itsFlag(flag),
+      itsClear(clear),
+      itsUseComplement(useComplement)
   {}
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    // All baselines except 2-2 should be flagged.
-    // Of them only channel 1,4,5 are flagged.
+    // The result of the selected and complement data depends on the
+    // settings of itsFlag, itsClear, and itsUseComplement as follows:
+    //    itsFlag itsUseComp itsClear     sel  comp
+    //      T         T         T          T    F  *
+    //      F         T         T          F    F
+    //      T         F         T          F    T
+    //      F         F         T          F    F
+    //      T         T         F          T    T
+    //      F         T         F          F    T  *
+    //      T         F         F          T    T
+    //      F         F         F          T    F
+    // The lines marked with * are the cases in the if below.
     Cube<bool> result(itsNCorr,itsNChan,itsNBl);
-    result = itsFlag;
+    bool compFlag = itsFlag;
+    bool selFlag  = !itsClear;
+    if (itsUseComplement && itsFlag == itsClear) {
+      compFlag = !itsFlag;
+      selFlag  = itsClear;
+    }
+    result = compFlag;
+    // All baselines except 2-2 should be selected.
+    // Of them only channel 1,4,5 are selected.
     for (int i=0; i<itsNBl; ++i) {
       if (i%16 != 10) {
         for (int j=0; j<itsNChan; ++j) {
           if (j==1 || j==4 || j==5) {
             for (int k=0; k<itsNCorr; ++k) {
-              result(k,j,i) = true;
+              result(k,j,i) = selFlag;
             }
           }
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
+    ///    cout << buf.getFlags() << endl << result << endl;
     ASSERT (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -205,24 +225,34 @@ private:
 
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
-  bool itsFlag;
+  bool itsFlag, itsClear, itsUseComplement;
 };
 
 // Test flagging a few antennae and freqs.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
+void test1(int ntime, int nbl, int nchan, int ncorr, bool flag,
+           bool clear, bool useComplement)
 {
   cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " flag=" << flag << endl;
+       << " ncorr=" << ncorr << " flag=" << flag
+       << " clear=" << clear << " useComplement=" << useComplement << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
+  string mode;
+  if (clear) {
+    mode = (useComplement ? "clearComplement" : "clear");
+  } else {
+    mode = (useComplement ? "setComplement" : "set");
+  }
+  parset.add ("mode", mode);
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add ("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add ("countflag", "true");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new Counter(in, parset, "cnt"));
-  DPStep::ShPtr step4(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step4(new TestOutput(ntime, nbl, nchan, ncorr, flag,
+                                     clear, useComplement));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   step3->setNextStep (step4);
@@ -314,7 +344,8 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag)
   parset.add ("s1.expr", "s2");
   parset.add ("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag,
+                                     false, false));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -552,8 +583,14 @@ int main()
   INIT_LOGGER ("tPreFlagger");
   try {
 
-    test1(10, 16, 32, 4, false);
-    test1(10, 16, 32, 4, true);
+    test1(10, 16, 32, 4, false, true, false);
+    test1(10, 16, 32, 4, true, true, false);
+    test1(10, 16, 32, 4, false, false, false);
+    test1(10, 16, 32, 4, true, false, false);
+    test1(10, 16, 32, 4, false, true, true);
+    test1(10, 16, 32, 4, true, true, true);
+    test1(10, 16, 32, 4, false, false, true);
+    test1(10, 16, 32, 4, true, false, true);
     test2( 2, 16, 32, 4);
     test2( 2, 36, 16, 2);
     test3( 3, 16, 32, 4, false);

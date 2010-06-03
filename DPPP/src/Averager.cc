@@ -223,11 +223,12 @@ namespace LOFAR {
                 np < nch*itsNTimeAvg*itsMinPerc) {
               outdata[inxo]  = Complex();
               outflags[inxo] = true;
+              outwght[inxo]  = 0;
             } else {
               outdata[inxo]  = sumd / sumw;
               outflags[inxo] = false;
+              outwght[inxo]  = sumw;
             }
-            outwght[inxo] = sumw;
             inxo += ncorr;
           }
         }
