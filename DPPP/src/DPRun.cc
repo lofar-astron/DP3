@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/DPRun.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <DPPP/MSReader.h>
 #include <DPPP/MSWriter.h>
 #include <DPPP/MSUpdater.h>
@@ -50,17 +50,17 @@ namespace LOFAR {
       bool showProgress = parset.getBool ("showprogress", true);
       bool showTimings  = parset.getBool ("showtimings", true);
       DPStep::ShPtr firstStep = makeSteps (parset);
-      // Show the steps and determine AverageInfo again to get #times
+      // Show the steps and determine DPInfo again to get #times
       // to process.
-      AverageInfo avgInfo;
+      DPInfo info;
       DPStep::ShPtr step = firstStep;
       while (step) {
-        step->updateAverageInfo (avgInfo);
+        step->updateInfo (info);
         step->show (std::cout);
         step = step->getNextStep();
       }
       // Process until the end.
-      uint ntodo = avgInfo.ntime() * avgInfo.ntimeAvg();
+      uint ntodo = info.ntime() * info.ntimeAvg();
       std::cout << "Processing " << ntodo << " time slots ..." << std::endl;
       {
         ProgressMeter* progress = 0;
@@ -151,19 +151,19 @@ namespace LOFAR {
         }
       }
       // Find out how the data are averaged.
-      AverageInfo avgInfo;
+      DPInfo info;
       DPStep::ShPtr step = firstStep;
       while (step) {
-        step->updateAverageInfo (avgInfo);
+        step->updateInfo (info);
         step = step->getNextStep();
       }
       // Create an updater step if an input MS was given; otherwise a writer.
       if (outName.empty()) {
-        ASSERTSTR (avgInfo.nchanAvg() == 1  &&  avgInfo.ntimeAvg() == 1,
+        ASSERTSTR (info.nchanAvg() == 1  &&  info.ntimeAvg() == 1,
                    "A new MS has to be given in msout if averaging is done");
         step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
       } else {
-        step = DPStep::ShPtr(new MSWriter (reader, outName, avgInfo,
+        step = DPStep::ShPtr(new MSWriter (reader, outName, info,
                                            parset, "msout."));
       }
       lastStep->setNextStep (step);

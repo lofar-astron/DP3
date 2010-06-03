@@ -23,7 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/Counter.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <iostream>
 
@@ -56,7 +56,7 @@ namespace LOFAR {
       itsFlagCounter.showChannel  (os, itsCount);
     }
 
-    void Counter::updateAverageInfo (AverageInfo& info)
+    void Counter::updateInfo (DPInfo& info)
     {
       // Initialize the flag counters.
       itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());

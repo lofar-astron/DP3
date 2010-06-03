@@ -1,4 +1,4 @@
-//# AverageInfo.cc: Info how the data are averaged in time and frequency
+//# DPInfo.cc: General info about DPPP data processing attributes like averaging
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -22,13 +22,13 @@
 //# @author Ger van Diepen
 
 #include <lofar_config.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/LofarLogger.h>
 
 namespace LOFAR {
   namespace DPPP {
 
-    AverageInfo::AverageInfo()
+    DPInfo::DPInfo()
       : itsNCorr        (0),
         itsStartChan    (0),
         itsOrigNChan    (0),
@@ -40,8 +40,8 @@ namespace LOFAR {
         itsTimeInterval (0)
     {}
 
-    void AverageInfo::init (uint ncorr, uint startChan, uint nchan,
-                            uint nbaselines, uint ntime, double timeInterval)
+    void DPInfo::init (uint ncorr, uint startChan, uint nchan,
+                       uint nbaselines, uint ntime, double timeInterval)
     {
       itsNCorr        = ncorr;
       itsStartChan    = startChan;
@@ -52,7 +52,7 @@ namespace LOFAR {
       itsTimeInterval = timeInterval;
     }
 
-    uint AverageInfo::update (uint chanAvg, uint timeAvg)
+    uint DPInfo::update (uint chanAvg, uint timeAvg)
     {
       if (chanAvg > itsNChan) {
         chanAvg = itsNChan;

@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/Averager.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -54,7 +54,7 @@ namespace LOFAR {
     Averager::~Averager()
     {}
 
-    void Averager::updateAverageInfo (AverageInfo& info)
+    void Averager::updateInfo (DPInfo& info)
     {
       itsTimeInterval = info.timeInterval();
       itsNChanAvg = info.update (itsNChanAvg, itsNTimeAvg);

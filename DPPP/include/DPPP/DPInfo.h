@@ -1,4 +1,4 @@
-//# AverageInfo.h: Info how the data are averaged in time and frequency
+//# DPInfo.h: General info about DPPP data processing attributes like averaging
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -21,11 +21,11 @@
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_AVERAGEINFO_H
-#define DPPP_AVERAGEINFO_H
+#ifndef DPPP_DPINFO_H
+#define DPPP_DPINFO_H
 
 // @file
-// @brief Info how the data are averaged in time and frequency.
+// @brief General info about DPPP data processing attributes like averaging
 
 #include <Common/LofarTypes.h>
 
@@ -40,11 +40,11 @@ namespace LOFAR {
     // Averager that change the number of channels or times.
     // Steps can take information from it to know about shapes.
 
-    class AverageInfo
+    class DPInfo
     {
     public:
       // Default constructor.
-      AverageInfo();
+      DPInfo();
 
       // Set the initial info from the input.
       void init (uint ncorr, uint startChan, uint nchan, uint nbaselines,

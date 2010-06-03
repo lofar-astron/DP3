@@ -23,7 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/PreFlagger.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayIO.h>
@@ -74,7 +74,7 @@ private:
   virtual bool process (const DPBuffer&) { return false; }
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo&) {}
+  virtual void updateInfo (DPInfo&) {}
 
   int itsNBl, itsNChan, itsNCorr;
 };
@@ -195,7 +195,7 @@ void TestPSet::testChan()
 {
   TestInput* in = new TestInput(16, 32, 4);
   DPStep::ShPtr step1(in);
-  AverageInfo info;
+  DPInfo info;
   info.init (4, 0, 32, 16, 10, 1.);
   {
     cout << "testChan 1" << endl;

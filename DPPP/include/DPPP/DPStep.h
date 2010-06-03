@@ -36,7 +36,7 @@ namespace LOFAR {
 
     //# Forward Declarations
     class DPBuffer;
-    class AverageInfo;
+    class DPInfo;
 
     // @ingroup NDPPP
 
@@ -45,9 +45,9 @@ namespace LOFAR {
     // A few functions can or must be implemented. They are called by
     // the NDPPP program in the following order.
     // <ul>
-    //  <li> 'updateAverageInfo' should update itself and/or the AverageInfo
-    //       object with the information it has. In that way it is known
-    //       in all steps how the data are averaged amd what the shape is.
+    //  <li> 'updateInfo' should update itself and/or the DPInfo object
+    //       with the information it has. For example, in this way it is known
+    //       in all steps how the data are averaged and what the shape is.
     //  <li> 'show' can be used to show the attributes.
     //  <li> 'process' is called continously to process the next time slot.
     //        When processed, it should call 'process' of the next step.
@@ -55,7 +55,7 @@ namespace LOFAR {
     //  <li> 'finish' finishes the processing which could mean that 'process'
     //       of the next step has to be called several times. When done,
     //       it should call 'finish' of the next step.
-    //  <li> showCounts can be used to show possible counts of flags, etc.
+    //  <li> 'showCounts' can be used to show possible counts of flags, etc.
     // </ul>
 
     class DPStep
@@ -74,9 +74,9 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish() = 0;
 
-      // Update the average info.
-      // The default implementation does no*thing.
-      virtual void updateAverageInfo (AverageInfo&);
+      // Update the general info.
+      // The default implementation does nothing.
+      virtual void updateInfo (DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const = 0;

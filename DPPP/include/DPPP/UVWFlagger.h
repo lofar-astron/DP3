@@ -70,9 +70,9 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the average info.
+      // Update the general info.
       // It is used to adjust the parms if needed.
-      virtual void updateAverageInfo (AverageInfo&);
+      virtual void updateInfo (DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;

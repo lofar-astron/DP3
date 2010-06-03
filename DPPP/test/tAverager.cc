@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/Averager.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -84,9 +84,9 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
     // Use startchan=8 and timeInterval=5
-    { avgInfo.init (itsNCorr, 8, itsNChan, itsNBl, itsNTime, 5); }
+    { info.init (itsNCorr, 8, itsNChan, itsNBl, itsNTime, 5); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -163,15 +163,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==8);
-    ASSERT (int(avgInfo.origNChan())==itsNChan);
-    ASSERT (int(avgInfo.nchan())==1+(itsNChan-1)/itsNAvgChan);
-    ASSERT (int(avgInfo.ntime())==1+(itsNTime-1)/itsNAvgTime);
-    ASSERT (avgInfo.timeInterval()==5*itsNAvgTime);
-    ASSERT (int(avgInfo.nchanAvg())==itsNAvgChan);
-    ASSERT (int(avgInfo.ntimeAvg())==itsNAvgTime);
+    ASSERT (info.startChan()==8);
+    ASSERT (int(info.origNChan())==itsNChan);
+    ASSERT (int(info.nchan())==1+(itsNChan-1)/itsNAvgChan);
+    ASSERT (int(info.ntime())==1+(itsNTime-1)/itsNAvgTime);
+    ASSERT (info.timeInterval()==5*itsNAvgTime);
+    ASSERT (int(info.nchanAvg())==itsNAvgChan);
+    ASSERT (int(info.ntimeAvg())==itsNAvgTime);
   }
 
   int itsCount;
@@ -237,9 +237,9 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
     // Use startchan=0 and timeInterval=5
-    { avgInfo.init (itsNrCorr, 0, itsNrChan, itsNrBl, itsNrTime, 5); }
+    { info.init (itsNrCorr, 0, itsNrChan, itsNrBl, itsNrTime, 5); }
 
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
   Cube<bool> itsFullResFlags;
@@ -303,15 +303,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==0);
-    ASSERT (int(avgInfo.origNChan())==itsNrChan);
-    ASSERT (avgInfo.nchan()==1);
-    ASSERT (avgInfo.ntime()==1);
-    ASSERT (avgInfo.timeInterval()==5*itsNrTime);
-    ASSERT (int(avgInfo.nchanAvg())==itsNrChan);
-    ASSERT (int(avgInfo.ntimeAvg())==itsNrTime);
+    ASSERT (info.startChan()==0);
+    ASSERT (int(info.origNChan())==itsNrChan);
+    ASSERT (info.nchan()==1);
+    ASSERT (info.ntime()==1);
+    ASSERT (info.timeInterval()==5*itsNrTime);
+    ASSERT (int(info.nchanAvg())==itsNrChan);
+    ASSERT (int(info.ntimeAvg())==itsNrTime);
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
@@ -418,15 +418,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==0);
-    ASSERT (int(avgInfo.origNChan())==itsNrChan);
-    ASSERT (avgInfo.nchan()==1);
-    ASSERT (avgInfo.ntime()==1);
-    ASSERT (avgInfo.timeInterval()==5*itsNrTime);
-    ASSERT (int(avgInfo.nchanAvg())==itsNrChan);
-    ASSERT (int(avgInfo.ntimeAvg())==itsNrTime);
+    ASSERT (info.startChan()==0);
+    ASSERT (int(info.origNChan())==itsNrChan);
+    ASSERT (info.nchan()==1);
+    ASSERT (info.ntime()==1);
+    ASSERT (info.timeInterval()==5*itsNrTime);
+    ASSERT (int(info.nchanAvg())==itsNrChan);
+    ASSERT (int(info.ntimeAvg())==itsNrTime);
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
@@ -436,11 +436,11 @@ private:
 // Execute steps.
 void execute (const DPStep::ShPtr& step1)
 {
-  // Set AverageInfo.
-  AverageInfo avgInfo;
+  // Set DPInfo.
+  DPInfo info;
   DPStep::ShPtr step = step1;
   while (step) {
-    step->updateAverageInfo (avgInfo);
+    step->updateInfo (info);
     step = step->getNextStep();
   }
   // Execute the steps.

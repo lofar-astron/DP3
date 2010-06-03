@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/MSReader.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <tables/Tables/TableRecord.h>
@@ -244,7 +244,7 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
-    void MSReader::updateAverageInfo (AverageInfo& info)
+    void MSReader::updateInfo (DPInfo& info)
     {
       info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
                  int((itsLastTime - itsFirstTime)/itsInterval + 1.5),

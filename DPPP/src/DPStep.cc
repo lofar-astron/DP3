@@ -30,7 +30,7 @@ namespace LOFAR {
     DPStep::~DPStep()
     {}
 
-    void DPStep::updateAverageInfo (AverageInfo&)
+    void DPStep::updateInfo (DPInfo&)
     {}
 
     void DPStep::showCounts (std::ostream&) const

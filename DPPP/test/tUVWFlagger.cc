@@ -25,7 +25,7 @@
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -120,9 +120,9 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
     // Use startchan=0 and timeInterval=5
-    { avgInfo.init (itsNCorr, 0, itsNChan, itsNBl, itsNTime, 5); }
+    { info.init (itsNCorr, 0, itsNChan, itsNBl, itsNTime, 5); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
@@ -163,15 +163,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==0);
-    ASSERT (int(avgInfo.origNChan())==itsNChan);
-    ASSERT (int(avgInfo.nchan())==itsNChan);
-    ASSERT (int(avgInfo.ntime())==itsNTime);
-    ASSERT (avgInfo.timeInterval()==5);
-    ASSERT (int(avgInfo.nchanAvg())==1);
-    ASSERT (int(avgInfo.ntimeAvg())==1);
+    ASSERT (info.startChan()==0);
+    ASSERT (int(info.origNChan())==itsNChan);
+    ASSERT (int(info.nchan())==itsNChan);
+    ASSERT (int(info.ntime())==itsNTime);
+    ASSERT (info.timeInterval()==5);
+    ASSERT (int(info.nchanAvg())==1);
+    ASSERT (int(info.ntimeAvg())==1);
   }
 
   int itsCount;
@@ -215,15 +215,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==0);
-    ASSERT (int(avgInfo.origNChan())==itsNChan);
-    ASSERT (int(avgInfo.nchan())==itsNChan);
-    ASSERT (int(avgInfo.ntime())==itsNTime);
-    ASSERT (avgInfo.timeInterval()==5);
-    ASSERT (int(avgInfo.nchanAvg())==1);
-    ASSERT (int(avgInfo.ntimeAvg())==1);
+    ASSERT (info.startChan()==0);
+    ASSERT (int(info.origNChan())==itsNChan);
+    ASSERT (int(info.nchan())==itsNChan);
+    ASSERT (int(info.ntime())==itsNTime);
+    ASSERT (info.timeInterval()==5);
+    ASSERT (int(info.nchanAvg())==1);
+    ASSERT (int(info.ntimeAvg())==1);
   }
 
   int itsCount;
@@ -307,15 +307,15 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateAverageInfo (AverageInfo& avgInfo)
+  virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (avgInfo.startChan()==0);
-    ASSERT (int(avgInfo.origNChan())==itsNChan);
-    ASSERT (int(avgInfo.nchan())==itsNChan);
-    ASSERT (int(avgInfo.ntime())==itsNTime);
-    ASSERT (avgInfo.timeInterval()==5);
-    ASSERT (int(avgInfo.nchanAvg())==1);
-    ASSERT (int(avgInfo.ntimeAvg())==1);
+    ASSERT (info.startChan()==0);
+    ASSERT (int(info.origNChan())==itsNChan);
+    ASSERT (int(info.nchan())==itsNChan);
+    ASSERT (int(info.ntime())==itsNTime);
+    ASSERT (info.timeInterval()==5);
+    ASSERT (int(info.nchanAvg())==1);
+    ASSERT (int(info.ntimeAvg())==1);
   }
 
   int itsCount;
@@ -326,11 +326,11 @@ private:
 // Execute steps.
 void execute (const DPStep::ShPtr& step1)
 {
-  // Set AverageInfo.
-  AverageInfo avgInfo;
+  // Set DPInfo.
+  DPInfo info;
   DPStep::ShPtr step = step1;
   while (step) {
-    step->updateAverageInfo (avgInfo);
+    step->updateInfo (info);
     step->show (cout);
     step = step->getNextStep();
   }

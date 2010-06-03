@@ -26,7 +26,7 @@
 #include <DPPP/MSWriter.h>
 #include <DPPP/MSUpdater.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <MS/VdsMaker.h>
 #include <Common/ParameterSet.h>
 #include <tables/Tables/TableCopy.h>
@@ -45,18 +45,18 @@ namespace LOFAR {
   namespace DPPP {
 
     MSWriter::MSWriter (MSReader* reader, const std::string& outName,
-                        const AverageInfo& avgInfo,
+                        const DPInfo& info,
                         const ParameterSet& parset, const string& prefix)
       : itsReader       (reader),
-        itsInterval     (avgInfo.timeInterval()),
-        itsCopyTimeInfo (avgInfo.ntimeAvg() == 1),
+        itsInterval     (info.timeInterval()),
+        itsCopyTimeInfo (info.ntimeAvg() == 1),
         itsNrCorr       (reader->ncorr()),
-        itsNrChan       (avgInfo.nchan()),
+        itsNrChan       (info.nchan()),
         itsNrBl         (reader->nbaselines()),
-        itsNrTimes      (avgInfo.ntime()),
+        itsNrTimes      (info.ntime()),
         // Input can already be averaged, so take that into account.
-        itsNChanAvg     (avgInfo.nchanAvg() * itsReader->nchanAvg()),
-        itsNTimeAvg     (avgInfo.ntimeAvg() * itsReader->ntimeAvg())
+        itsNChanAvg     (info.nchanAvg() * itsReader->nchanAvg()),
+        itsNTimeAvg     (info.ntimeAvg() * itsReader->ntimeAvg())
     {
       NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).
@@ -70,7 +70,7 @@ namespace LOFAR {
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       // Create the MS.
-      createMS (outName, avgInfo, tileSize, tileNChan);
+      createMS (outName, info, tileSize, tileNChan);
       // Write the parset info into the history.
       writeHistory (itsMS, parset);
       itsMS.flush (true, true);
@@ -170,7 +170,7 @@ namespace LOFAR {
       }
     }
 
-    void MSWriter::createMS (const string& outName, const AverageInfo& avgInfo,
+    void MSWriter::createMS (const string& outName, const DPInfo& info,
                              uint tileSize, uint tileNChan)
     {
       // Determine the data shape.
@@ -344,12 +344,12 @@ namespace LOFAR {
       TableCopy::copyInfo(itsMS, temptable);
       TableCopy::copySubTables(itsMS, temptable);
       // Adjust the SPECTRAL_WINDOW table as needed.
-      updateSpw (outName, avgInfo);
+      updateSpw (outName, info);
       // Adjust the OBSERVATION table as needed.
       updateObs (outName);
     }
 
-    void MSWriter::updateSpw (const string& outName, const AverageInfo& avgInfo)
+    void MSWriter::updateSpw (const string& outName, const DPInfo& info)
     {
       // Fix the SPECTRAL_WINDOW values by updating the values in the subtable.
       IPosition shape(1,itsNrChan);
@@ -385,12 +385,12 @@ namespace LOFAR {
         Vector<double> oldBW = inBW(i);
         Vector<double> oldRes = inRESOLUTION(i);
         double totalBW = 0;
-        uint first = avgInfo.startChan();
+        uint first = info.startChan();
         // This loops assumes regularly spaced, adjacent frequency channels.
         for (uint j=0; j<itsNrChan; ++j) { 
-          uint last  = first + avgInfo.nchanAvg();
-          if (last > avgInfo.startChan() + avgInfo.origNChan()) {
-            last = avgInfo.startChan() + avgInfo.origNChan();
+          uint last  = first + info.nchanAvg();
+          if (last > info.startChan() + info.origNChan()) {
+            last = info.startChan() + info.origNChan();
           }
           double sf, ef;
           if (oldFreq[first] < oldFreq[last-1]) {

@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/PreFlagger.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
@@ -108,7 +108,7 @@ namespace LOFAR {
       os << " PreFlagger " << itsName << endl;
     }
 
-    void PreFlagger::updateAverageInfo (AverageInfo& info)
+    void PreFlagger::updateInfo (DPInfo& info)
     {
       itsPSet.updateInfo (info);
       // Initialize the flag counters.
@@ -382,7 +382,7 @@ namespace LOFAR {
                             itsPSets.empty());
     }
 
-    void PreFlagger::PSet::updateInfo (const AverageInfo& info)
+    void PreFlagger::PSet::updateInfo (const DPInfo& info)
     {
       // Size the object's buffers (used in process) correctly.
       uint nrcorr = info.ncorr();
@@ -402,7 +402,7 @@ namespace LOFAR {
       }
     }
 
-    void PreFlagger::PSet::fillChannels (const AverageInfo& info)
+    void PreFlagger::PSet::fillChannels (const DPInfo& info)
     {
       uint nrcorr = info.ncorr();
       uint nrchan = info.nchan();

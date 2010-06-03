@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
@@ -111,7 +111,7 @@ namespace LOFAR {
       }
     }
 
-    void UVWFlagger::updateAverageInfo (AverageInfo& info)
+    void UVWFlagger::updateInfo (DPInfo& info)
     {
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.

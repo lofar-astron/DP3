@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/MedFlagger.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/AverageInfo.h>
+#include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
@@ -127,7 +127,7 @@ namespace LOFAR {
       os << " of it spent in calculating medians" << endl;
     }
 
-    void MedFlagger::updateAverageInfo (AverageInfo& info)
+    void MedFlagger::updateInfo (DPInfo& info)
     {
       // Evaluate the window size expressions.
       getExprValues (info.nchan(), info.ntime());

@@ -39,7 +39,6 @@ namespace LOFAR {
   class ParameterSet;
 
   namespace DPPP {
-    class AverageInfo;
 
     // @ingroup NDPPP
 
@@ -63,7 +62,7 @@ namespace LOFAR {
     {
     public:
       explicit MSWriter (MSReader* reader, const std::string& outName,
-                         const AverageInfo&,
+                         const DPInfo&,
                          const ParameterSet&, const string& prefix);
 
       virtual ~MSWriter();
@@ -93,12 +92,12 @@ namespace LOFAR {
 
       // Create the MS by cloning all subtables from the input MS.
       // All output columns in the main table are using normal storage managers.
-      // The SPECTRAL_WINDOW table is adapated as needed.
-      void createMS (const std::string& outName, const AverageInfo& avgInfo,
+      // The SPECTRAL_WINDOW table is adapted as needed.
+      void createMS (const std::string& outName, const DPInfo& info,
                      uint tileSize, uint tileNChan);
 
       // Update the SPECTRAL_WINDOW table for averaged channels.
-      void updateSpw (const string& outName, const AverageInfo& avgInfo);
+      void updateSpw (const string& outName, const DPInfo& info);
 
       // Update the OBSERVATION table with the correct start and end time.
       void updateObs (const string& outName);

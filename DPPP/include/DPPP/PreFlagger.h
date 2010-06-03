@@ -87,7 +87,7 @@ namespace LOFAR {
 
       // Update the average info.
       // It is used to adjust the parms if needed.
-      virtual void updateAverageInfo (AverageInfo&);
+      virtual void updateInfo (DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;
@@ -130,9 +130,9 @@ namespace LOFAR {
         casa::Cube<bool>* process (DPBuffer&, uint timeSlot,
                                    const casa::Block<bool>& matchBL);
 
-        // Update the average info.
+        // Update the general info.
         // It is used to adjust the parms if needed.
-        void updateInfo (const AverageInfo&);
+        void updateInfo (const DPInfo&);
 
         // Show the pset parameters.
         void show (std::ostream&, bool showName) const;
@@ -191,7 +191,7 @@ namespace LOFAR {
         void fillBLMatrix (const casa::Vector<casa::String>& antNames);
 
         // Fill itsChannels if channel/freq selection is done.
-        void fillChannels (const AverageInfo&);
+        void fillChannels (const DPInfo&);
 
         // Return a vector with a value per correlation.
         // If no parm value given use the default.
