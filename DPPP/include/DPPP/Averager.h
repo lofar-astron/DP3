@@ -32,9 +32,9 @@
 #include <casa/Arrays/Cube.h>
 
 namespace LOFAR {
-  class ParameterSet;
 
   namespace DPPP {
+    class ParSet;
 
     // @ingroup NDPPP
 
@@ -55,7 +55,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      Averager (DPInput*, const ParameterSet&, const string& prefix);
+      Averager (DPInput*, const ParSet&, const string& prefix);
 
       virtual ~Averager();
 

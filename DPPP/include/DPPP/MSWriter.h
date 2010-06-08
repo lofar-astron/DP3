@@ -39,6 +39,7 @@ namespace LOFAR {
   class ParameterSet;
 
   namespace DPPP {
+    class ParSet;
 
     // @ingroup NDPPP
 
@@ -63,7 +64,7 @@ namespace LOFAR {
     public:
       explicit MSWriter (MSReader* reader, const std::string& outName,
                          const DPInfo&,
-                         const ParameterSet&, const string& prefix);
+                         const ParSet&, const string& prefix);
 
       virtual ~MSWriter();
 

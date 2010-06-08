@@ -34,8 +34,9 @@
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/Timer.h>
+#include <Common/StreamUtil.h>
 #include <casa/OS/Timer.h>
 
 namespace LOFAR {
@@ -46,7 +47,8 @@ namespace LOFAR {
       casa::Timer timer;
       NSTimer nstimer;
       nstimer.start();
-      ParameterSet parset(parsetName);
+      ParSet parset ((ParameterSet(parsetName)));
+      bool checkparset  = parset.getBool ("checkparset", false);
       bool showProgress = parset.getBool ("showprogress", true);
       bool showTimings  = parset.getBool ("showtimings", true);
       DPStep::ShPtr firstStep = makeSteps (parset);
@@ -58,6 +60,17 @@ namespace LOFAR {
         step->updateInfo (info);
         step->show (std::cout);
         step = step->getNextStep();
+      }
+      // Show unused parameters (might be misspelled).
+      vector<string> unused = parset.unusedKeys();
+      if (! unused.empty()) {
+        cout << endl
+             << "*** WARNING: the following parset keywords were not used ***"
+             << endl
+             << "             maybe they are misspelled"
+             << endl;
+        cout << "    " << unused << endl << endl;
+        ASSERTSTR (!checkparset, "Unused parset keywords found");
       }
       // Process until the end.
       uint ntodo = info.ntime() * info.ntimeAvg();
@@ -107,7 +120,7 @@ namespace LOFAR {
       // The destructors are called automatically at this point.
     }
 
-    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset)
+    DPStep::ShPtr DPRun::makeSteps (const ParSet& parset)
     {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;

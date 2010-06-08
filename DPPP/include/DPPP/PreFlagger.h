@@ -33,10 +33,10 @@
 #include <measures/Measures/MDirection.h>
 
 namespace LOFAR {
-  class ParameterSet;
   class ParameterValue;
 
   namespace DPPP {
+    class ParSet;
 
     // @ingroup NDPPP
 
@@ -74,7 +74,7 @@ namespace LOFAR {
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      PreFlagger (DPInput*, const ParameterSet&, const string& prefix);
+      PreFlagger (DPInput*, const ParSet&, const string& prefix);
 
       virtual ~PreFlagger();
 
@@ -124,7 +124,7 @@ namespace LOFAR {
         {}
 
         // Construct from the parset parameters.
-        PSet (DPInput*, const ParameterSet& parset, const string& prefix);
+        PSet (DPInput*, const ParSet& parset, const string& prefix);
 
         // Set and return the flags.
         casa::Cube<bool>* process (DPBuffer&, uint timeSlot,
@@ -189,6 +189,12 @@ namespace LOFAR {
 
         // Fill the baseline matrix; set true for baselines to flag.
         void fillBLMatrix (const casa::Vector<casa::String>& antNames);
+
+        // Convert a baseline vector specification to a matrix telling
+        // which baselines are specified.
+        void handleBLVector (const ParameterValue& pvBL,
+                             const casa::Vector<casa::String>& antNames,
+                             casa::Matrix<bool>& flags);
 
         // Fill itsChannels if channel/freq selection is done.
         void fillChannels (const DPInfo&);

@@ -80,6 +80,10 @@ namespace LOFAR {
       virtual casa::Cube<casa::Complex> getData
       (const casa::String& columnName, const casa::RefRows& rowNrs);
 
+      // Get the MS name.
+      // The default implementation returns an empty string.
+      virtual casa::String msName() const;
+
       // Get info.
       double startTime() const
         { return itsStartTime; }

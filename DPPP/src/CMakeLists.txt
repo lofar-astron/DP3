@@ -5,7 +5,7 @@ include(LofarPackageVersion)
 lofar_add_library(dppp
   Package__Version.cc
   DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc DPInfo.cc
-  ProgressMeter.cc FlagCounter.cc
+  ParSet.cc ProgressMeter.cc FlagCounter.cc
   UVWCalculator.cc
   MSReader.cc MSWriter.cc MSUpdater.cc Counter.cc
   Averager.cc MedFlagger.cc PreFlagger.cc UVWFlagger.cc

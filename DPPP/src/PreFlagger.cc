@@ -25,7 +25,8 @@
 #include <DPPP/PreFlagger.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
+#include <MS/BaselineSelect.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayLogical.h>
@@ -46,7 +47,7 @@ namespace LOFAR {
   namespace DPPP {
 
     PreFlagger::PreFlagger (DPInput* input,
-                            const ParameterSet& parset, const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsName  (prefix),
         itsInput (input),
         itsMode  (SetFlag),
@@ -203,71 +204,6 @@ namespace LOFAR {
       }
     }
 
-//     void PreFlagger::resetFlags (const bool* inPtr, bool* outPtr,
-//                                  uint nrcorr, uint nrchan, uint nrbl,
-//                                  const DPBuffer& buf)
-//     {
-//       // The DPBuffer might contain the FullResFlags.
-//       Cube<bool> origFlags(buf.getFullResFlags());
-//       uint nOrigAllChan = 0;
-//       uint nOrigChan = 0;
-//       uint nOrigTime = 0;
-//       if (! origFlags.empty()) {
-//         // Determine nr of original flags in chan and time per point.
-//         nOrigAllChan = origFlags.shape()[0];
-//         nOrigChan = nOrigAllChan / nrchan;
-//         nOrigTime = origFlags.shape()[1];
-//       }
-//       // Now loop through all flags.
-//       // Only handle if selected (thus if set).
-//       for (uint i=0; i<nrbl; ++i) {
-//         for (uint j=0; j<nrchan; ++j) {
-//           if (*inPtr) {
-//             // Get the original flags if needed.
-//             // It is done here, so reading is only done if really necessary.
-//             if (nOrigTime == 0) {
-//               origFlags.reference (itsInput->getFullResFlags(buf.getRowNrs()));
-//               if (origFlags.empty()) {
-//                 // No original flags, so the only thing that can be done
-//                 // is unsetting the flags.
-//                 unsetFlags (inFlagPtr, outFlagPtr, nrcorr, nrchan, nrbl);
-//                 return;
-//               }
-//               nOrigAllChan = origFlags.shape()[0];
-//               nOrigChan = nOrigAllChan / nrchan;
-//               nOrigTime = origFlags.shape()[1];
-//             }
-//             // Determine if all original flags were set for this point.
-//             const bool* origPtr = (origFlags.data() +
-//                                    i*nOrigAllChan*nOrigTime + j*nOrigChan);
-//             bool flag = true;
-//             for (uint it=0; it<nOrigTime; ++it) {
-//               for (uint ic=0; ic<nOrigChan; ++ic) {
-//                 if (! *origPtr) {
-//                   flag = false;
-//                   break;
-//                 }
-//                 origPtr++;
-//               }
-//               if (!flag) {
-//                 break;
-//               }
-//               origPtr += nOrigAllChan-nOrigChan;  // to get to next time
-//             }
-//             if (flag != *outPtr) {
-//               itsFlagCounter.incrBaseline(i);
-//               itsFlagCounter.incrChannel(j);
-//               for (uint k=0; k<nrcorr; ++k) {
-//                 outPtr[k] = flag;
-//               }
-//             }
-//           }
-//           inPtr  += nrcorr;
-//           outPtr += nrcorr;
-//         }
-//       }
-//     }
-
     void PreFlagger::finish()
     {
       // Let the next step finish its processing.
@@ -276,7 +212,7 @@ namespace LOFAR {
 
 
     PreFlagger::PSet::PSet (DPInput* input,
-                            const ParameterSet& parset, const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsInput (input),
         itsName  (prefix),
         itsFlagOnUV    (false),
@@ -1135,51 +1071,15 @@ namespace LOFAR {
       if (! itsStrBL.empty()) {
         itsFlagOnBL = true;
         tmpflags    = false;
-        vector<ParameterValue> pairs = ParameterValue(itsStrBL).getVector();
-        // Each ParameterValue can be a single value (antenna) or a pair of
-        // values (a baseline).
-        // Note that [ant1,ant2] is somewhat ambiguous; it means two antennae,
-        // but one might think it means a baseline [[ant1,ant2]].
-        if (pairs.size() == 2  &&
-            !(pairs[0].isVector()  ||  pairs[1].isVector())) {
-          LOG_WARN_STR ("PreFlagger baseline " << itsStrBL
-                        << " means two antennae, but is somewhat ambigious; "
-                        << "it's more clear to use [[ant1],[ant2]]");
-        }
-        for (uint i=0; i<pairs.size(); ++i) {
-          vector<string> bl = pairs[i].getStringVector();
-          if (bl.size() == 1) {
-            // Turn the given antenna name pattern into a regex.
-            Regex regex(Regex::fromPattern (bl[0]));
-            // Loop through all antenna names and set matrix for matching ones.
-            for (uint i2=0; i2<antNames.size(); ++i2) {
-              if (antNames[i2].matches (regex)) {
-                // Antenna matches, so set all corresponding flags.
-                for (uint j=0; j<antNames.size(); ++j) {
-                  tmpflags(i2,j) = true;
-                  tmpflags(j,i2) = true;
-                }
-              }
-            }
-          } else {
-            ASSERTSTR (bl.size() == 2, "PreFlagger baseline " << bl <<
-                       " should contain 1 or 2 antenna name patterns");
-            // Turn the given antenna name pattern into a regex.
-            Regex regex1(Regex::fromPattern (bl[0]));
-            Regex regex2(Regex::fromPattern (bl[1]));
-            // Loop through all antenna names and set matrix for matching ones.
-            for (uint i2=0; i2<antNames.size(); ++i2) {
-              if (antNames[i2].matches (regex2)) {
-                // Antenna2 matches, now try Antenna1.
-                for (uint i1=0; i1<antNames.size(); ++i1) {
-                  if (antNames[i1].matches (regex1)) {
-                    tmpflags(i1,i2) = true;
-                    tmpflags(i2,i1) = true;
-                  }
-                }
-              }
-            }
-          }
+        ParameterValue pvBL(itsStrBL);
+        if (pvBL.isVector()) {
+          // Specified as a vector of antenna name patterns.
+          handleBLVector (pvBL, antNames, tmpflags);
+        } else {
+          // Specified in casacore's MSSelection format.
+          String msName = itsInput->msName();
+          ASSERT (! msName.empty());
+          tmpflags = BaselineSelect::convert (msName, itsStrBL);
         }
         itsFlagBL = itsFlagBL && tmpflags;
       }
@@ -1217,6 +1117,76 @@ namespace LOFAR {
           }
         }
         itsFlagBL = itsFlagBL && tmpflags;
+      }
+    }
+
+    void PreFlagger::PSet::handleBLVector (const ParameterValue& pvBL,
+                                           const Vector<String>& antNames,
+                                           Matrix<bool>& tmpflags)
+    {
+      vector<ParameterValue> pairs = pvBL.getVector();
+      // Each ParameterValue can be a single value (antenna) or a pair of
+      // values (a baseline).
+      // Note that [ant1,ant2] is somewhat ambiguous; it means two antennae,
+      // but one might think it means a baseline [[ant1,ant2]].
+      if (pairs.size() == 2  &&
+          !(pairs[0].isVector()  ||  pairs[1].isVector())) {
+        LOG_WARN_STR ("PreFlagger baseline " << itsStrBL
+                      << " means two antennae, but is somewhat ambigious; "
+                      << "it's more clear to use [[ant1],[ant2]]");
+      }
+      for (uint i=0; i<pairs.size(); ++i) {
+        vector<string> bl = pairs[i].getStringVector();
+        if (bl.size() == 1) {
+          // Turn the given antenna name pattern into a regex.
+          Regex regex(Regex::fromPattern (bl[0]));
+          int nmatch = 0;
+          // Loop through all antenna names and set matrix for matching ones.
+          for (uint i2=0; i2<antNames.size(); ++i2) {
+            if (antNames[i2].matches (regex)) {
+              nmatch++;
+              // Antenna matches, so set all corresponding flags.
+              for (uint j=0; j<antNames.size(); ++j) {
+                tmpflags(i2,j) = true;
+                tmpflags(j,i2) = true;
+              }
+            }
+          }
+          if (nmatch == 0) {
+            cerr << endl << "** Preflagger warning: "
+                 << "no matches for antenna name pattern ["
+                 << bl[0] << "]" << endl << endl;
+            LOG_WARN_STR ("PreFlagger: no matches for antenna name pattern ["
+                          << bl[0] << "]");
+          }
+        } else {
+          ASSERTSTR (bl.size() == 2, "PreFlagger baseline " << bl <<
+                     " should contain 1 or 2 antenna name patterns");
+          // Turn the given antenna name pattern into a regex.
+          Regex regex1(Regex::fromPattern (bl[0]));
+          Regex regex2(Regex::fromPattern (bl[1]));
+          int nmatch = 0;
+          // Loop through all antenna names and set matrix for matching ones.
+          for (uint i2=0; i2<antNames.size(); ++i2) {
+            if (antNames[i2].matches (regex2)) {
+              // Antenna2 matches, now try Antenna1.
+              for (uint i1=0; i1<antNames.size(); ++i1) {
+                if (antNames[i1].matches (regex1)) {
+                  nmatch++;
+                  tmpflags(i1,i2) = true;
+                  tmpflags(i2,i1) = true;
+                }
+              }
+            }
+          }
+          if (nmatch == 0) {
+            cerr << endl << "** Preflagger warning: "
+                 << "no matches for baseline name pattern ["
+                 << bl[0] << ',' << bl[1] << "]" << endl << endl;
+            LOG_WARN_STR ("PreFlagger: no matches for baseline name pattern ["
+                          << bl[0] << ',' << bl[1] << "]");
+          }
+        }
       }
     }
 

@@ -37,6 +37,11 @@ namespace LOFAR {
     DPInput::~DPInput()
     {}
 
+    casa::String DPInput::msName() const
+    {
+      return String();
+    }
+
     Vector<double> DPInput::chanFreqs (uint nchanAvg) const
     {
       uint nchan = itsChanFreqs.size() / nchanAvg;

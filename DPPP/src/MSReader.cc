@@ -25,7 +25,7 @@
 #include <DPPP/MSReader.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
 #include <tables/Tables/TableRecord.h>
 #include <tables/Tables/ScalarColumn.h>
@@ -44,7 +44,7 @@ namespace LOFAR {
   namespace DPPP {
 
     MSReader::MSReader (const string& msName,
-                        const ParameterSet& parset, const string& prefix)
+                        const ParSet& parset, const string& prefix)
       : itsMS         (msName),
         itsLastMSTime (0),
         itsNrRead     (0),
@@ -72,11 +72,6 @@ namespace LOFAR {
         }
         itsFirstTime = qtime.getValue("s");
         ASSERT (itsFirstTime < endTime);
-        // Round to integer nr of intervals.
-        ///        if (itsFirstTime < startTime) {
-        ///          int nrt = int((startTime - itsFirstTime) / itsInterval + 0.5);
-        ///          itsFirstTime = startTime - nrt*itsInterval;
-        ///        }
       }
       itsLastTime = endTime;
       if (!endTimeStr.empty()) {
@@ -123,6 +118,11 @@ namespace LOFAR {
 
     MSReader::~MSReader()
     {}
+
+    casa::String MSReader::msName() const
+    {
+      return itsMS.tableName();
+    }
 
     bool MSReader::process (const DPBuffer&)
     {

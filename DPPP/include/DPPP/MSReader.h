@@ -37,9 +37,9 @@
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
-  class ParameterSet;
 
   namespace DPPP {
+    class ParSet;
 
     // @ingroup NDPPP
 
@@ -128,7 +128,7 @@ namespace LOFAR {
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
       MSReader (const std::string& msName,
-                const ParameterSet&, const string& prefix);
+                const ParSet&, const string& prefix);
 
       virtual ~MSReader();
 
@@ -181,8 +181,7 @@ namespace LOFAR {
         { return itsBaseRowNrs; }
 
       // Get the name of the MS.
-      const std::string& msName() const
-        { return itsMS.tableName(); }
+      virtual casa::String msName() const;
 
       // Get the time information.
       double startTime() const
