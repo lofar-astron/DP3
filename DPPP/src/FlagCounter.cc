@@ -185,7 +185,7 @@ namespace LOFAR {
       }
       npoints *= itsChanCounts.size();
       os << "Total flagged: ";
-      showPerc1 (os, nflagged, npoints);
+      showPerc3 (os, nflagged, npoints);
       os << "   (" << nflagged << " out of " << npoints
          << " visibilities)" << endl;
     }
@@ -211,6 +211,17 @@ namespace LOFAR {
     {
       int perc = int(1000. * value / total + 0.5);
       os << std::setw(3) << perc/10 << '.' << perc%10 << '%';
+    }
+
+    void FlagCounter::showPerc3 (ostream& os, double value, double total)
+    {
+      int perc = int(100000. * value / total + 0.5);
+      os << std::setw(5) << perc/1000 << '.';
+      // It looks as if std::setfill keeps the fill character, so use
+      // ios.fill to be able to reset it.
+      char prev = os.fill ('0');
+      os << std::setw(3) << perc%1000 << '%';
+      os.fill (prev);
     }
 
 

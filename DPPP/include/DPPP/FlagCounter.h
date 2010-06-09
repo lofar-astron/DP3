@@ -89,6 +89,9 @@ namespace LOFAR {
       // Show percentage with 1 decimal.
       static void showPerc1 (std::ostream&, double value, double total);
 
+      // Show percentage with 3 decimals.
+      static void showPerc3 (std::ostream&, double value, double total);
+
 
     private:
       vector<int64> itsBLCounts;

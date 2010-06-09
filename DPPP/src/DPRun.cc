@@ -64,12 +64,12 @@ namespace LOFAR {
       // Show unused parameters (might be misspelled).
       vector<string> unused = parset.unusedKeys();
       if (! unused.empty()) {
-        cout << endl
+        cerr << endl
              << "*** WARNING: the following parset keywords were not used ***"
              << endl
              << "             maybe they are misspelled"
-             << endl;
-        cout << "    " << unused << endl << endl;
+             << endl
+             << "    " << unused << endl << endl;
         ASSERTSTR (!checkparset, "Unused parset keywords found");
       }
       // Process until the end.
