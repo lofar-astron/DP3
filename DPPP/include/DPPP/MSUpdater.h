@@ -28,6 +28,7 @@
 // @brief DPPP step writing to an MS
 
 #include <DPPP/DPStep.h>
+#include <Common/LofarTypes.h>
 
 namespace LOFAR {
 
