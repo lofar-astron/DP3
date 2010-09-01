@@ -10,7 +10,9 @@ msout.overwrite=True
 
 #steps = [avg1,avg2,flag]
 #steps = [flag,avg]
-steps=[flag]
+steps=[flag,count]
+
+uselogger = True
 
 preflag.corrtype = auto
 
@@ -27,6 +29,8 @@ flag.threshold=1
 flag.freqwindow=31
 flag.timewindow=5
 flag.applyautocorr = True
+
+count.showfullyflagged = True
 
 avg.type = squash
 avg.freqstep = 1024

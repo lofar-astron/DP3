@@ -270,7 +270,7 @@ namespace LOFAR {
       os << endl << "===================================" << endl;
       int64 nrtim = itsNrRead;
       itsFlagCounter.showCorrelation (os, nrtim);
-      cout << itsNrInserted << " missing time slots were inserted" << endl;
+      os << itsNrInserted << " missing time slots were inserted" << endl;
     }
 
     void MSReader::showTimings (std::ostream& os, double duration) const

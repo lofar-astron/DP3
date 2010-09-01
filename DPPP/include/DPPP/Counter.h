@@ -73,6 +73,7 @@ namespace LOFAR {
       DPInput*    itsInput;
       string      itsName;
       uint        itsCount;
+      bool        itsShowFF;         //# show fully flagged baselines?
       FlagCounter itsFlagCounter;
     };
 

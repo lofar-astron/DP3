@@ -27,6 +27,8 @@
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <vector>
+#include <map>
 #include <iomanip>
 
 using namespace casa;
@@ -69,8 +71,10 @@ namespace LOFAR {
 
     void FlagCounter::showBaseline (ostream& os, const casa::Vector<int>& ant1,
                                     const casa::Vector<int>& ant2,
-                                    int64 ntimes) const
+                                    int64 ntimes, bool showFullyFlagged) const
     {
+      // Keep track of fully flagged baselines.
+      std::vector<std::pair<int,int> > fullyFlagged;
       int64 npoints = ntimes * itsChanCounts.size();
       os << endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";
@@ -129,6 +133,13 @@ namespace LOFAR {
                      << int((100. * countBL(k,ia)) /
                             (nusedBL(k,ia) * npoints) + 0.5)
                      << '%';
+                  // Determine if baseline is fully flagged.
+                  // Do it only for ANT1<=ANT2
+                  if (int(k) <= ia) {
+                    if (countBL(k,ia) == nusedBL(k,ia) * npoints) {
+                      fullyFlagged.push_back (std::pair<int,int>(k,ia));
+                    }
+                  }
                 } else {
                   os << "     ";
                 }
@@ -150,6 +161,14 @@ namespace LOFAR {
             j++;
           }
           ia++;
+        }
+        os << endl;
+      }
+      if (showFullyFlagged) {
+        os << "Fully flagged baselines: ";
+        for (uint i=0; i<fullyFlagged.size(); ++i) {
+          if (i>0) os << "; ";
+          os << fullyFlagged[i].first << '&' << fullyFlagged[i].second;
         }
         os << endl;
       }

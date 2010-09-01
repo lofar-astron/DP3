@@ -33,8 +33,9 @@
 #include <DPPP/PreFlagger.h>
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/Counter.h>
-#include <DPPP/ProgressMeter.h>
 #include <DPPP/ParSet.h>
+#include <DPPP/ProgressMeter.h>
+#include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
 #include <Common/StreamUtil.h>
 #include <casa/OS/Timer.h>
@@ -48,9 +49,10 @@ namespace LOFAR {
       NSTimer nstimer;
       nstimer.start();
       ParSet parset ((ParameterSet(parsetName)));
-      bool checkparset  = parset.getBool ("checkparset", false);
-      bool showProgress = parset.getBool ("showprogress", true);
-      bool showTimings  = parset.getBool ("showtimings", true);
+      DPLogger::useLogger = parset.getBool ("uselogger", false);
+      bool checkparset    = parset.getBool ("checkparset", false);
+      bool showProgress   = parset.getBool ("showprogress", true);
+      bool showTimings    = parset.getBool ("showtimings", true);
       DPStep::ShPtr firstStep = makeSteps (parset);
       // Show the steps and determine DPInfo again to get #times
       // to process.
@@ -58,23 +60,26 @@ namespace LOFAR {
       DPStep::ShPtr step = firstStep;
       while (step) {
         step->updateInfo (info);
-        step->show (std::cout);
+        ostringstream os;
+        step->show (os);
+        DPLOG_INFO (os.str(), true);
         step = step->getNextStep();
       }
       // Show unused parameters (might be misspelled).
       vector<string> unused = parset.unusedKeys();
       if (! unused.empty()) {
-        cerr << endl
-             << "*** WARNING: the following parset keywords were not used ***"
-             << endl
-             << "             maybe they are misspelled"
-             << endl
-             << "    " << unused << endl << endl;
+        DPLOG_WARN_STR
+          (endl
+           << "*** WARNING: the following parset keywords were not used ***"
+           << endl
+           << "             maybe they are misspelled"
+           << endl
+           << "    " << unused << endl);
         ASSERTSTR (!checkparset, "Unused parset keywords found");
       }
       // Process until the end.
       uint ntodo = info.ntime() * info.ntimeAvg();
-      std::cout << "Processing " << ntodo << " time slots ..." << std::endl;
+      DPLOG_INFO_STR ("Processing " << ntodo << " time slots ...");
       {
         ProgressMeter* progress = 0;
         if (showProgress) {
@@ -96,24 +101,30 @@ namespace LOFAR {
         delete progress;
       }
       // Finish the processing.
-      std::cout << "Finishing processing ..." << std::endl;
+      DPLOG_INFO_STR ("Finishing processing ...");
       firstStep->finish();
       // Show the counts where needed.
       step = firstStep;
       while (step) {
-        step->showCounts (std::cout);
+        ostringstream os;
+        step->showCounts (os);
+        DPLOG_INFO (os.str(), true);
         step = step->getNextStep();
       }
       // Show the overall timer.
       nstimer.stop();
       double duration = nstimer.getElapsed();
-      cout << endl;
-      timer.show ("Total NDPPP time");
+      ostringstream ostr;
+      ostr << endl;
+      timer.show (ostr, "Total NDPPP time");
+      DPLOG_INFO (ostr.str(), true);
       if (showTimings) {
         // Show the timings per step.
         step = firstStep;
         while (step) {
-          step->showTimings (std::cout, duration);
+          ostringstream os;
+          step->showTimings (os, duration);
+          DPLOG_INFO (os.str(), true);
           step = step->getNextStep();
         }
       }

@@ -1,4 +1,4 @@
-//# DPRun.h: Class to run steps like averaging and flagging on an MS
+//# DPLogger.cc: Log on cout/cerr or through the logging system
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -21,37 +21,11 @@
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_DPRUN_H
-#define DPPP_DPRUN_H
-
-// @file
-// @brief Class to run steps like averaging and flagging on an MS
-
 #include <lofar_config.h>
-#include <DPPP/DPStep.h>
-#include <DPPP/ParSet.h>
+#include <DPPP/DPLogger.h>
 
 namespace LOFAR {
   namespace DPPP {
-
-    // @ingroup NDPPP
-
-    // This class contains a single static function that creates and executes
-    // the steps defined in the parset file.
-    // The parset file is documented on the LOFAR wiki.
-
-    class DPRun
-    {
-    public:
-      // Execute the stps defined in the parset file.
-      static void execute (const std::string& parsetName);
-
-    private:
-      // Create the step objects.
-      static DPStep::ShPtr makeSteps (const ParSet& parset);
-    };
-
-  } //# end namespace
+    bool DPLogger::useLogger = false;
+  }
 }
-
-#endif

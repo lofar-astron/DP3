@@ -33,11 +33,14 @@ namespace LOFAR {
   namespace DPPP {
 
     Counter::Counter (DPInput* input,
-                      const ParSet&, const string& prefix)
-      : itsInput (input),
-        itsName  (prefix),
-        itsCount (0)
-    {}
+                      const ParSet& parset, const string& prefix)
+      : itsInput  (input),
+        itsName   (prefix),
+        itsCount  (0),
+        itsShowFF (false)
+    {
+      itsShowFF = parset.getBool(prefix+"showfullyflagged", false);
+    }
 
     Counter::~Counter()
     {}
@@ -52,7 +55,7 @@ namespace LOFAR {
       os << endl << "Cumulative flag counts in Counter " << itsName;
       os << endl << "=================================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsCount);
+                                   itsInput->getAnt2(), itsCount, itsShowFF);
       itsFlagCounter.showChannel  (os, itsCount);
     }
 

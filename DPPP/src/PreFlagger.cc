@@ -26,6 +26,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
+#include <DPPP/DPLogger.h>
 #include <MS/BaselineSelect.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
@@ -98,7 +99,7 @@ namespace LOFAR {
       os << endl << "Flags set by PreFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsCount);
+                                   itsInput->getAnt2(), itsCount, false);
       itsFlagCounter.showChannel  (os, itsCount);
     }
 
@@ -1153,11 +1154,8 @@ namespace LOFAR {
             }
           }
           if (nmatch == 0) {
-            cerr << endl << "** Preflagger warning: "
-                 << "no matches for antenna name pattern ["
-                 << bl[0] << "]" << endl << endl;
-            LOG_WARN_STR ("PreFlagger: no matches for antenna name pattern ["
-                          << bl[0] << "]");
+            DPLOG_WARN_STR ("PreFlagger: no matches for antenna name pattern ["
+                            << bl[0] << "]");
           }
         } else {
           ASSERTSTR (bl.size() == 2, "PreFlagger baseline " << bl <<
@@ -1180,11 +1178,8 @@ namespace LOFAR {
             }
           }
           if (nmatch == 0) {
-            cerr << endl << "** Preflagger warning: "
-                 << "no matches for baseline name pattern ["
-                 << bl[0] << ',' << bl[1] << "]" << endl << endl;
-            LOG_WARN_STR ("PreFlagger: no matches for baseline name pattern ["
-                          << bl[0] << ',' << bl[1] << "]");
+            DPLOG_WARN_STR ("PreFlagger: no matches for baseline name pattern ["
+                            << bl[0] << ',' << bl[1] << "]");
           }
         }
       }
