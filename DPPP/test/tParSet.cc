@@ -21,6 +21,7 @@
 //#
 //# @author Ger van Diepen
 
+#include <lofar_config.h>
 #include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
 

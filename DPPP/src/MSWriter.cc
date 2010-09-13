@@ -69,6 +69,8 @@ namespace LOFAR {
       itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
+      ASSERTSTR (itsDataColName == "DATA", "Currently only the DATA column"
+                 " can be used as output");
       // Create the MS.
       createMS (outName, info, tileSize, tileNChan);
       // Write the parset info into the history.
