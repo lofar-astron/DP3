@@ -86,13 +86,15 @@ namespace LOFAR {
       Matrix<int64> countBL (nrant, nrant, 0);
       for (uint i=0; i<itsBLCounts.size(); ++i) {
         countBL(ant1[i], ant2[i]) += itsBLCounts[i];
-        countBL(ant2[i], ant1[i]) += itsBLCounts[i];
         nusedBL(ant1[i], ant2[i])++;
-        nusedBL(ant2[i], ant1[i])++;
         countAnt[ant1[i]] += itsBLCounts[i];
-        countAnt[ant2[i]] += itsBLCounts[i];
         nusedAnt[ant1[i]]++;
-        nusedAnt[ant2[i]]++;
+        if (ant1[i] != ant2[i]) {
+          countBL(ant2[i], ant1[i]) += itsBLCounts[i];
+          nusedBL(ant2[i], ant1[i])++;
+          countAnt[ant2[i]] += itsBLCounts[i];
+          nusedAnt[ant2[i]]++;
+        }
       }
       // Determine nr of antennae used.
       int nrused = 0;
