@@ -219,13 +219,13 @@ namespace LOFAR {
       itsTimer.start();
       // Adjust window size if there are fewer time entries.
       if (itsNTimes < itsTimeWindow) {
-        itsTimeWindow = itsNTimes;
+        itsTimeWindow = 1 + ((itsNTimes-1)/2)*2;   // make sure it is odd
       }
       uint halfWindow = itsTimeWindow/2;
       vector<uint> timeEntries(itsTimeWindow);
       // Process possible leading entries.
       // This can happen if the window was larger than number of times.
-      while (itsNTimesDone <= halfWindow) {
+      while (itsNTimesDone < itsNTimes-halfWindow) {
         // Process in the same way as in process.
         uint inx = 0;
         timeEntries[inx++] = itsNTimesDone % itsTimeWindow;   // center
