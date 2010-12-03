@@ -52,6 +52,7 @@ namespace LOFAR {
     // Currently the following can be given:
     // <ul>
     //  <li> msin: name of the MS
+    //  <li> msin.autoweight: calculate weights from autocorrelations? [no]
     //  <li> msin.startchan: first channel to use [0]
     //  <li> msin.nchan: number of channels to use [all]
     //  <li> msin.useflag: use the existing flags? [yes]
@@ -101,6 +102,8 @@ namespace LOFAR {
     //       WEIGHT_SPECTRUM is used if present and containing valid data,
     //       otherwise column WEIGHT is used. The weights of an inserted
     //       time slot are set to 0.
+    //       If autoweight is on, the autocorrelations are used to
+    //       calculate proper weights.
     //   </td>
     //  </tr>
     //  <tr>
@@ -211,10 +214,14 @@ namespace LOFAR {
       // Calculate the UVWs for a missing time slot.
       void calcUVW();
 
+      // Calculate the weights from the autocorrelations.
+      void autoWeight (casa::Cube<float>& weights);
+
       //# Data members.
       casa::Table         itsMS;
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
+      bool                itsAutoWeight;    //# calculate weights from autocorr?
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;
       bool                itsUseAllChan;    //# all channels (i.e. no slicer)?

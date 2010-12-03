@@ -165,7 +165,7 @@ namespace LOFAR {
         { return itsTime; }
 
       // Get or set the row numbers used by the DPInput class.
-      // It can be empty (e.g. when MSReader inserted an dummy time slot).
+      // It can be empty (e.g. when MSReader inserted a dummy time slot).
       void setRowNrs (const casa::Vector<uint>& rownrs)
         { itsRowNrs.reference (rownrs); }
       const casa::Vector<uint>& getRowNrs() const

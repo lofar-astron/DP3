@@ -117,9 +117,7 @@ private:
       for (int j=itsCount*itsNAvgTime; j<itsCount*itsNAvgTime+navgtime; ++j) {
         for (int i=0; i<int(data.size()); ++i) {
           data.data()[i] += Complex(i+j*10,i-1000+j*6);
-          if (!itsFlag) {
-            weights.data()[i] += float(1);
-          }
+          weights.data()[i] += float(1);
         }
       }
       fullResFlags(Slicer(IPosition(3,0,0,0),

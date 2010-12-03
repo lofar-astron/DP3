@@ -98,6 +98,10 @@ namespace LOFAR {
       const casa::Vector<int>& getAnt2() const
         { return itsAnt2; }
 
+      // Get the baseline table index of the autocorrelations.
+      // A negative value means there are no autocorrelations for that antenna.
+      const vector<int>& getAutoCorrIndex() const;
+
       // Get the lengths of the baselines (in meters).
       const vector<double>& getBaselineLengths() const;
 
@@ -153,14 +157,16 @@ namespace LOFAR {
       uint   itsNrChan;
       uint   itsNrCorr;
       uint   itsNrBl;
-      casa::Vector<int>          itsAnt1;        //# ant1 of all baselines
-      casa::Vector<int>          itsAnt2;        //# ant2 of all baselines
-      mutable vector<double>     itsBLength;     //# baseline lengths
+      casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
+      casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
+      mutable vector<double>     itsBLength;       //# baseline lengths
+      mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
       casa::Vector<casa::String> itsAntNames;
       vector<casa::MPosition>    itsAntPos;
       casa::MPosition            itsArrayPos;
       casa::MDirection           itsPhaseCenter;
       casa::Vector<double>       itsChanFreqs;
+      casa::Vector<double>       itsChanWidths;
     };
 
   } //# end namespace

@@ -78,6 +78,22 @@ namespace LOFAR {
       return itsBLength;
     }
 
+    const vector<int>& DPInput::getAutoCorrIndex() const
+    {
+      if (itsAutoCorrIndex.empty()) {
+        int nant = 1 + std::max(max(itsAnt1), max(itsAnt2));
+        itsAutoCorrIndex.resize (nant);
+        std::fill (itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
+        // Keep the baseline table index for the autocorrelations.
+        for (uint i=0; i<itsAnt1.size(); ++i) {
+          if (itsAnt1[i] == itsAnt2[i]) {
+            itsAutoCorrIndex[itsAnt1[i]] = i;
+          }
+        }
+      }
+      return itsAutoCorrIndex;
+    }
+
     Cube<bool> DPInput::fetchFullResFlags (const DPBuffer& buf,
                                            const RefRows& rowNrs,
                                            bool merge)

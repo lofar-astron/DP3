@@ -213,7 +213,7 @@ namespace LOFAR {
             float   sumw=0;
             uint np = 0;
             for (uint j=0; j<nch; ++j) {
-              sumd += indata[inxi];
+              sumd += indata[inxi];  // Note: weight is accounted for in process
               sumw += inwght[inxi];
               np   += innp[inxi];
               inxi += ncorr;

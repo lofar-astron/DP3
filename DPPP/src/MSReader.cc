@@ -58,6 +58,7 @@ namespace LOFAR {
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
+      itsAutoWeight       = parset.getBool   (prefix+"autoweight", False);
       // Prepare the MS access and get time info.
       double startTime, endTime;
       prepare (startTime, endTime, itsInterval);
@@ -262,6 +263,7 @@ namespace LOFAR {
       os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
+      os << "  autoweight:     " << itsAutoWeight << std::endl;
     }
 
     void MSReader::showCounts (std::ostream& os) const
@@ -342,8 +344,8 @@ namespace LOFAR {
       ASSERTSTR (sortab.nrow() == itsNrBl,
                  "The MS appears to have multiple subbands");
       // Get the baselines.
-      ROScalarColumn<int>(itsIter.table(), "ANTENNA1").getColumn (itsAnt1);
-      ROScalarColumn<int>(itsIter.table(), "ANTENNA2").getColumn (itsAnt2);
+      ROScalarColumn<Int>(itsIter.table(), "ANTENNA1").getColumn (itsAnt1);
+      ROScalarColumn<Int>(itsIter.table(), "ANTENNA2").getColumn (itsAnt2);
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
@@ -367,8 +369,10 @@ namespace LOFAR {
         // Read the center frequencies of all channels.
         Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
         ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
+        ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
         // Take only the channels used in the input.
-        itsChanFreqs = freqCol(0);
+        itsChanFreqs  = freqCol(0);
+        itsChanWidths = widthCol(0);
         // Get the array position using the telescope name from the OBSERVATION
         // subtable. 
         Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
@@ -446,35 +450,79 @@ namespace LOFAR {
         weights = 0;
         return weights;
       }
-      // Get weights for entire spectrum if pesent.
+      Cube<float> weights;
+      // Get weights for entire spectrum if present.
       if (itsHasWeightSpectrum) {
         ROArrayColumn<float> wsCol(itsMS, "WEIGHT_SPECTRUM");
         // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
         // Hence work around it.
-        Cube<float> weights = wsCol.getColumnCells (rowNrs);
-        return (itsUseAllChan ? weights : weights(itsArrSlicer));
-      }
-      // No spectrum present, so get global weights and assign to each channel.
-      ROArrayColumn<float> wCol(itsMS, "WEIGHT");
-      Matrix<float> inArr = wCol.getColumnCells (rowNrs);
-      Cube<float> outArr(itsNrCorr, itsNrChan, itsNrBl);
-      float* inPtr  = inArr.data();
-      float* outPtr = outArr.data();
-      for (uint i=0; i<itsNrBl; ++i) {
-        // If global weights are zero, set them to 1. Some old MSs need that.
-        for (uint k=0; k<itsNrCorr; ++k) {
-          if (inPtr[k] == 0.) {
-            inPtr[k] = 1.;
-          }
+        weights.reference (wsCol.getColumnCells (rowNrs));
+        if (!itsUseAllChan) {
+          weights.reference (weights(itsArrSlicer));
         }
-        for (uint j=0; j<itsNrChan; ++j) {
+      } else {
+        // No spectrum present; get global weights and assign to each channel.
+        ROArrayColumn<float> wCol(itsMS, "WEIGHT");
+        Matrix<float> inArr = wCol.getColumnCells (rowNrs);
+        Cube<float> outArr(itsNrCorr, itsNrChan, itsNrBl);
+        float* inPtr  = inArr.data();
+        float* outPtr = outArr.data();
+        for (uint i=0; i<itsNrBl; ++i) {
+          // If global weights are zero, set them to 1. Some old MSs need that.
           for (uint k=0; k<itsNrCorr; ++k) {
-            *outPtr++ = inPtr[k];
+            if (inPtr[k] == 0.) {
+              inPtr[k] = 1.;
+            }
           }
+          for (uint j=0; j<itsNrChan; ++j) {
+            for (uint k=0; k<itsNrCorr; ++k) {
+              *outPtr++ = inPtr[k];
+            }
+          }
+          inPtr += itsNrCorr;
         }
-        inPtr += itsNrCorr;
+        weights.reference (outArr);
       }
-      return outArr;
+      if (itsAutoWeight) {
+        // Adapt weights using autocorrelations.
+        autoWeight (weights);
+      }
+      return weights;
+    }
+
+    void MSReader::autoWeight (Cube<float>& weights)
+    {
+      const double* chanWidths = itsChanWidths.data();
+      uint npol  = weights.shape()[0];
+      uint nchan = weights.shape()[1];
+      uint nbl   = weights.shape()[2];
+      // Get the autocorrelations indices.
+      const vector<int>& autoInx = getAutoCorrIndex();
+      // Calculate the weight for each cross-correlation data point.
+      const Complex* data = itsBuffer.getData().data();
+      float* weight = weights.data();
+      for (uint i=0; i<nbl; ++i) {
+        // Can only be done if both autocorrelations are present.
+        if (itsAnt1[i] != itsAnt2[i]  &&
+            autoInx[itsAnt1[i]] >= 0  &&  autoInx[itsAnt2[i]] >= 0) {
+          // Get offset of both autocorr in data array.
+          const Complex* auto1 = data + autoInx[itsAnt1[i]]*nchan*npol;
+          const Complex* auto2 = data + autoInx[itsAnt2[i]]*nchan*npol;
+          for (uint j=0; j<nchan; ++j) {
+            double w = chanWidths[j] * itsInterval;
+            *weight++ *= w / (auto1[0].real() * auto2[0].real());      // XX
+            if (npol == 4) {
+              *weight++ *= w / (auto1[0].real() * auto2[1].real());    // XY
+              *weight++ *= w / (auto1[1].real() * auto2[0].real());    // YX
+              *weight++ *= w / (auto1[1].real() * auto2[1].real());    // YY
+            } else if (npol == 2) {
+              *weight++ *= w / (auto1[1].real() * auto2[1].real());    // YY
+            }
+          }
+        } else {
+          weight += nchan*npol;
+        }
+      }
     }
 
     Cube<bool> MSReader::getFullResFlags (const RefRows& rowNrs)
