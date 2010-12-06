@@ -518,6 +518,8 @@ namespace LOFAR {
             } else if (npol == 2) {
               *weight++ *= w / (auto1[1].real() * auto2[1].real());    // YY
             }
+            auto1 += npol;
+            auto2 += npol;
           }
         } else {
           weight += nchan*npol;
