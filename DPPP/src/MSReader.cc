@@ -500,28 +500,53 @@ namespace LOFAR {
       const vector<int>& autoInx = getAutoCorrIndex();
       // Calculate the weight for each cross-correlation data point.
       const Complex* data = itsBuffer.getData().data();
+      bool* flags = itsBuffer.getFlags().data();
       float* weight = weights.data();
       for (uint i=0; i<nbl; ++i) {
         // Can only be done if both autocorrelations are present.
         if (itsAnt1[i] != itsAnt2[i]  &&
             autoInx[itsAnt1[i]] >= 0  &&  autoInx[itsAnt2[i]] >= 0) {
-          // Get offset of both autocorr in data array.
+          // Get offset of both autocorrelations in data array.
           const Complex* auto1 = data + autoInx[itsAnt1[i]]*nchan*npol;
           const Complex* auto2 = data + autoInx[itsAnt2[i]]*nchan*npol;
           for (uint j=0; j<nchan; ++j) {
-            double w = chanWidths[j] * itsInterval;
-            *weight++ *= w / (auto1[0].real() * auto2[0].real());      // XX
-            if (npol == 4) {
-              *weight++ *= w / (auto1[0].real() * auto2[3].real());    // XY
-              *weight++ *= w / (auto1[3].real() * auto2[0].real());    // YX
-              *weight++ *= w / (auto1[3].real() * auto2[3].real());    // YY
-            } else if (npol == 2) {
-              *weight++ *= w / (auto1[1].real() * auto2[1].real());    // YY
+            bool flag = *flags;
+            if (!flag) {
+              if (auto1[0].real() == 0  ||  auto2[0].real() == 0) {
+                flag = true;
+              } else {
+                double w = chanWidths[j] * itsInterval;
+                weight[0] *= w / (auto1[0].real() * auto2[0].real());      // XX
+                if (npol == 4) {
+                  if (auto1[3].real() == 0  ||  auto2[3].real() == 0) {
+                    flag = true;
+                  } else {
+                    weight[1] *= w / (auto1[0].real() * auto2[3].real());  // XY
+                    weight[2] *= w / (auto1[3].real() * auto2[0].real());  // YX
+                    weight[3] *= w / (auto1[3].real() * auto2[3].real());  // YY
+                  }
+                } else if (npol == 2) {
+                  if (auto1[1].real() == 0  ||  auto2[1].real() == 0) {
+                    flag = true;
+                  } else {
+                    weight[1] *= w / (auto1[1].real() * auto2[1].real());  // YY
+                  }
+                }
+              }
+              if (flag) {
+                for (uint k=0; k<npol; ++k) {
+                  flags[k] = true;
+                }
+              }
             }
-            auto1 += npol;
-            auto2 += npol;
+            // Set pointers to next channel.
+            weight += npol;
+            flags  += npol;
+            auto1  += npol;
+            auto2  += npol;
           }
         } else {
+          // No autocorrelations for this baseline, so skip it.
           weight += nchan*npol;
         }
       }
