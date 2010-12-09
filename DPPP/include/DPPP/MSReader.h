@@ -158,7 +158,8 @@ namespace LOFAR {
       virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
 
       // Read the weights at the given row numbers.
-      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs);
+      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs,
+                                            const DPBuffer& buf);
 
       // Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
@@ -215,7 +216,7 @@ namespace LOFAR {
       void calcUVW();
 
       // Calculate the weights from the autocorrelations.
-      void autoWeight (casa::Cube<float>& weights);
+      void autoWeight (casa::Cube<float>& weights, const DPBuffer& buf);
 
       //# Data members.
       casa::Table         itsMS;

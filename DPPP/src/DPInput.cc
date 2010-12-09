@@ -130,7 +130,8 @@ namespace LOFAR {
         return buf.getWeights();
       }
       // No weights in buffer, so get them from the input.
-      return getWeights(rowNrs);
+      // It might need the data and flags in the buffer.
+      return getWeights(rowNrs, buf);
     }
 
     Matrix<double> DPInput::fetchUVW (const DPBuffer& buf,
@@ -147,7 +148,7 @@ namespace LOFAR {
     Matrix<double> DPInput::getUVW (const RefRows&)
       { throw Exception ("DPInput::getUVW not implemented"); }
 
-    Cube<float> DPInput::getWeights (const RefRows&)
+    Cube<float> DPInput::getWeights (const RefRows&, const DPBuffer&)
       { throw Exception ("DPInput::getWeights not implemented"); }
 
     Cube<bool> DPInput::getFullResFlags (const RefRows&)

@@ -442,7 +442,8 @@ namespace LOFAR {
       return dataCol.getColumnCells (rowNrs);
     }
 
-    Cube<float> MSReader::getWeights (const RefRows& rowNrs)
+    Cube<float> MSReader::getWeights (const RefRows& rowNrs,
+                                      const DPBuffer& buf)
     {
       if (rowNrs.rowVector().empty()) {
         // rowNrs can be empty if a time slot was inserted.
@@ -485,12 +486,12 @@ namespace LOFAR {
       }
       if (itsAutoWeight) {
         // Adapt weights using autocorrelations.
-        autoWeight (weights);
+        autoWeight (weights, buf);
       }
       return weights;
     }
 
-    void MSReader::autoWeight (Cube<float>& weights)
+    void MSReader::autoWeight (Cube<float>& weights, const DPBuffer& buf)
     {
       const double* chanWidths = itsChanWidths.data();
       uint npol  = weights.shape()[0];
@@ -499,8 +500,7 @@ namespace LOFAR {
       // Get the autocorrelations indices.
       const vector<int>& autoInx = getAutoCorrIndex();
       // Calculate the weight for each cross-correlation data point.
-      const Complex* data = itsBuffer.getData().data();
-      bool* flags = itsBuffer.getFlags().data();
+      const Complex* data = buf.getData().data();
       float* weight = weights.data();
       for (uint i=0; i<nbl; ++i) {
         // Can only be done if both autocorrelations are present.
@@ -510,38 +510,23 @@ namespace LOFAR {
           const Complex* auto1 = data + autoInx[itsAnt1[i]]*nchan*npol;
           const Complex* auto2 = data + autoInx[itsAnt2[i]]*nchan*npol;
           for (uint j=0; j<nchan; ++j) {
-            bool flag = *flags;
-            if (!flag) {
-              if (auto1[0].real() == 0  ||  auto2[0].real() == 0) {
-                flag = true;
-              } else {
-                double w = chanWidths[j] * itsInterval;
-                weight[0] *= w / (auto1[0].real() * auto2[0].real());      // XX
-                if (npol == 4) {
-                  if (auto1[3].real() == 0  ||  auto2[3].real() == 0) {
-                    flag = true;
-                  } else {
-                    weight[1] *= w / (auto1[0].real() * auto2[3].real());  // XY
-                    weight[2] *= w / (auto1[3].real() * auto2[0].real());  // YX
-                    weight[3] *= w / (auto1[3].real() * auto2[3].real());  // YY
-                  }
-                } else if (npol == 2) {
-                  if (auto1[1].real() == 0  ||  auto2[1].real() == 0) {
-                    flag = true;
-                  } else {
-                    weight[1] *= w / (auto1[1].real() * auto2[1].real());  // YY
-                  }
+            if (auto1[0].real() != 0  &&  auto2[0].real() != 0) {
+              double w = chanWidths[j] * itsInterval;
+              weight[0] *= w / (auto1[0].real() * auto2[0].real());      // XX
+              if (npol == 4) {
+                if (auto1[3].real() != 0  &&  auto2[3].real() != 0) {
+                  weight[1] *= w / (auto1[0].real() * auto2[3].real());  // XY
+                  weight[2] *= w / (auto1[3].real() * auto2[0].real());  // YX
+                  weight[3] *= w / (auto1[3].real() * auto2[3].real());  // YY
                 }
-              }
-              if (flag) {
-                for (uint k=0; k<npol; ++k) {
-                  flags[k] = true;
+              } else if (npol == 2) {
+                if (auto1[1].real() != 0  &&  auto2[1].real() != 0) {
+                  weight[1] *= w / (auto1[1].real() * auto2[1].real());  // YY
                 }
               }
             }
             // Set pointers to next channel.
             weight += npol;
-            flags  += npol;
             auto1  += npol;
             auto2  += npol;
           }

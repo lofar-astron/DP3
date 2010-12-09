@@ -69,7 +69,8 @@ namespace LOFAR {
 
       // Read the weights at the given row numbers.
       // The default implementation throws an exception.
-      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs);
+      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs,
+                                            const DPBuffer&);
 
       // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // The default implementation throws an exception.
