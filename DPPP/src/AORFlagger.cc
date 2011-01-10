@@ -108,8 +108,8 @@ namespace LOFAR {
       double memory = HostInfo::memoryTotal() * 1024.;
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
-      double timeSize = 9. * (nthread + info.nbaselines()) *
-        info.nchan() * info.ncorr();
+      double timeSize = (sizeof(Complex) + sizeof(bool)) *
+        (info.nbaselines() + 3*nthread) * info.nchan() * info.ncorr();
       // If no overlap is given, set it to 10.
       if (itsOverlap == 0  &&  itsOverlapPerc == 0) {
         itsOverlap = 10;
