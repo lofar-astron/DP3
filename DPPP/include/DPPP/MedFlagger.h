@@ -25,7 +25,7 @@
 #define DPPP_MEDFLAGGER_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP step class to flag data based on median filtering
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
@@ -119,7 +119,7 @@ namespace LOFAR {
       // Get the values of the expressions for each baseline.
       void getExprValues (int maxNChan, int maxNTime);
 
-    private:
+    protected:
       //# Data members.
       DPInput*         itsInput;
       string           itsName;

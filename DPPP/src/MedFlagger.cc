@@ -43,7 +43,6 @@ namespace LOFAR {
 
     MedFlagger::MedFlagger (DPInput* input,
                             const ParSet& parset, const string& prefix)
-
       : itsInput         (input),
         itsName          (prefix),
         itsThresholdStr  (parset.getString (prefix+"threshold", "1")),

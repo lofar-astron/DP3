@@ -230,13 +230,13 @@ namespace LOFAR {
 
     void FlagCounter::showPerc1 (ostream& os, double value, double total)
     {
-      int perc = int(1000. * value / total + 0.5);
+      int perc = (total==0  ?  0 : int(1000. * value / total + 0.5));
       os << std::setw(3) << perc/10 << '.' << perc%10 << '%';
     }
 
     void FlagCounter::showPerc3 (ostream& os, double value, double total)
     {
-      int perc = int(100000. * value / total + 0.5);
+      int perc = (total==0  ?  0 : int(100000. * value / total + 0.5));
       os << std::setw(5) << perc/1000 << '.';
       // It looks as if std::setfill keeps the fill character, so use
       // ios.fill to be able to reset it.
