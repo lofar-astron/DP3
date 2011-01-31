@@ -69,7 +69,7 @@ namespace LOFAR {
     void PhaseShift::show (std::ostream& os) const
     {
       os << "PhaseShift " << itsName << std::endl;
-      os << "  center:         " << itsCenter << std::endl;
+      os << "  phasecenter:    " << itsCenter << std::endl;
     }
 
     void PhaseShift::showTimings (std::ostream& os, double duration) const

@@ -103,6 +103,9 @@ namespace LOFAR {
       // Update the OBSERVATION table with the correct start and end time.
       void updateObs (const string& outName);
 
+      // Update the FIELD table with the new phase center.
+      void updateField (const string& outName, const DPInfo& info);
+
       // Write the data, flags, etc.
       void writeData (casa::Table& out, const DPBuffer& buf);
 

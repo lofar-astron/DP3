@@ -34,6 +34,8 @@
 #include <tables/Tables/SetupNewTab.h>
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/StandardStMan.h>
+#include <measures/TableMeasures/ArrayMeasColumn.h>
+#include <measures/Measures/MCDirection.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Containers/Record.h>
 #include <casa/OS/Path.h>
@@ -349,6 +351,10 @@ namespace LOFAR {
       updateSpw (outName, info);
       // Adjust the OBSERVATION table as needed.
       updateObs (outName);
+      // ADjust the FIELD table as needed.
+      if (! info.phaseCenterIsOriginal()) {
+        updateField (outName, info);
+      }
     }
 
     void MSWriter::updateSpw (const string& outName, const DPInfo& info)
@@ -435,6 +441,17 @@ namespace LOFAR {
       for (uint i=0; i<outObs.nrow(); ++i) {
         timeRange.put (i, times);
       }
+    }
+
+    void MSWriter::updateField (const string& outName, const DPInfo& info)
+    {
+      Table outField = Table(outName + "/FIELD", Table::Update);
+      // Set phase center.
+      ArrayMeasColumn<MDirection> delayCol (outField, "DELAY_DIR");
+      ArrayMeasColumn<MDirection> phaseCol (outField, "PHASE_DIR");
+      Vector<MDirection> dir(1, info.phaseCenter());
+      delayCol.put (0, dir);
+      phaseCol.put (0, dir);
     }
 
     void MSWriter::writeHistory (Table& ms, const ParameterSet& parset)
