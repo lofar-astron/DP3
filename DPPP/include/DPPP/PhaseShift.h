@@ -79,7 +79,7 @@ namespace LOFAR {
     private:
       // Interpret the phase center specification.
       // Currently only J2000 RA and DEC can be given.
-      casa::MDirection PhaseShift::handleCenter();
+      casa::MDirection handleCenter();
       
       //# Data members.
       DPInput*          itsInput;
