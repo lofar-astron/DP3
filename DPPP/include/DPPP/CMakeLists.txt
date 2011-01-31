@@ -6,7 +6,7 @@ set(inst_HEADERS
   ParSet.h DPLogger.h ProgressMeter.h FlagCounter.h
   UVWCalculator.h
   MSReader.h MSWriter.h MSUpdater.h Counter.h
-  Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h
+  Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h PhaseShift.h
   FlaggerStatistics.h
   MsInfo.h
   MsFile.h

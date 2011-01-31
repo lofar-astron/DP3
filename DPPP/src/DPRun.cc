@@ -33,6 +33,7 @@
 #include <DPPP/AORFlagger.h>
 #include <DPPP/PreFlagger.h>
 #include <DPPP/UVWFlagger.h>
+#include <DPPP/PhaseShift.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ParSet.h>
 #include <DPPP/ProgressMeter.h>
@@ -168,6 +169,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new UVWFlagger (reader, parset, prefix));
         } else if (type == "counter"  ||  type == "count") {
           step = DPStep::ShPtr(new Counter (reader, parset, prefix));
+        } else if (type == "phaseshifter"  ||  type == "phaseshift") {
+          step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
@@ -189,6 +192,8 @@ namespace LOFAR {
       if (outName.empty()) {
         ASSERTSTR (info.nchanAvg() == 1  &&  info.ntimeAvg() == 1,
                    "A new MS has to be given in msout if averaging is done");
+        ASSERTSTR (info.phaseCenterIsOriginal(),
+                   "A new MS has to be given in msout if a phase shift is done");
         step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
       } else {
         step = DPStep::ShPtr(new MSWriter (reader, outName, info,

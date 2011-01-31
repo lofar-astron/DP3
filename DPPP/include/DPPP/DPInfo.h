@@ -28,6 +28,7 @@
 // @brief General info about DPPP data processing attributes like averaging
 
 #include <Common/LofarTypes.h>
+#include <measures/Measures/MDirection.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -56,6 +57,11 @@ namespace LOFAR {
       // It returns the possibly reset nr of channels to average.
       uint update (uint chanAvg, uint timeAvg);
 
+      // Set the phase center.
+      // If original=true, it is set to the original phase center.
+      void setPhaseCenter (const casa::MDirection& phaseCenter, bool original)
+        { itsPhaseCenter=phaseCenter; itsPhaseCenterIsOriginal = original; }
+
       // Get the info.
       uint ncorr() const
         { return itsNCorr; }
@@ -76,6 +82,12 @@ namespace LOFAR {
       double timeInterval() const
         { return itsTimeInterval; }
 
+      // Get the phase center info.
+      const casa::MDirection& phaseCenter() const
+        { return itsPhaseCenter; }
+      bool phaseCenterIsOriginal() const
+        { return itsPhaseCenterIsOriginal; }
+
     private:
       uint   itsNCorr;
       uint   itsStartChan;
@@ -86,6 +98,8 @@ namespace LOFAR {
       uint   itsNTime;
       uint   itsTimeAvg;
       double itsTimeInterval;
+      casa::MDirection itsPhaseCenter;
+      bool             itsPhaseCenterIsOriginal;
     };
 
   } //# end namespace

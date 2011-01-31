@@ -27,7 +27,11 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
+#include <Common/StreamUtil.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/VectorIter.h>
+#include <casa/Quanta/Quantum.h>
+#include <casa/Quanta/MVAngle.h>
 #include <iostream>
 #include <iomanip>
 
@@ -38,33 +42,34 @@ namespace LOFAR {
 
     PhaseShift::PhaseShift (DPInput* input,
                             const ParSet& parset, const string& prefix)
-      : itsInput  (input),
-        itsName   (prefix),
-        itsRaStr  (parset.getString(prefix+"ra", "")),
-        itsDecStr (parset.getString(prefix+"dec", ""))
+      : itsInput   (input),
+        itsName    (prefix),
+        itsCenter  (parset.getStringVector(prefix+"center")),
+        itsMachine (0)
     {}
 
     PhaseShift::~PhaseShift()
-    {}
+    {
+      delete itsMachine;
+    }
 
     void PhaseShift::updateInfo (DPInfo& info)
     {
       // Default phase center is the original one.
-      MDirection newDir(info.originalPhaseCenter());
-      if (itsRaStr.empty() && itsDecStr.empty()) {
-        itsRa  = MVTime::read (itsRaStr);
-        itsDec = MVTime::read (itsDecStr);
-        newDir = MDirection(itsRa, itsDec, MDirection::J2000);
+      MDirection newDir(itsInput->phaseCenter());
+      bool original = true;
+      if (! itsCenter.empty()) {
+        newDir = handleCenter();
+        original = false;
       }
-      new casa::UVWMachine(info.phaseCentre(), newDir, false, true);
-      info.setNewPhaseCenter (newDir);
+      itsMachine = new casa::UVWMachine(info.phaseCenter(), newDir, false, true);
+      info.setPhaseCenter (newDir, original);
     }
 
     void PhaseShift::show (std::ostream& os) const
     {
       os << "PhaseShift " << itsName << std::endl;
-      os << "  ra:             " << itsRaStr << std::endl;
-      os << "  dec:            " << itsDecStr << std::endl;
+      os << "  center:         " << itsCenter << std::endl;
     }
 
     void PhaseShift::showTimings (std::ostream& os, double duration) const
@@ -77,29 +82,31 @@ namespace LOFAR {
     bool PhaseShift::process (const DPBuffer& buf)
     {
       itsTimer.start();
-      RefRows rowNrs(buf.getRowNrs());
-      itsBuf.getUVW()  = itsInput->fetchUVW (buf, rowNrs);
-      itsBuf.getData().resize (buf.getData().shape());
-      const Complex* indata = buf.getData().data();
-      Complex* outdata = itsBuf.getData().data();
-      uint ncorr = buf.getData().shape()[0];
-      uint nchan = buf.getData().shape()[1];
-      uint ntime = buf.getData().shape()[2];
-      VectorIterator uvwIter(itsBuf.getUVW());
-      for (uint i=0; i<ntime; ++i) {
+      DPBuffer newBuf(buf);
+      RefRows rowNrs(newBuf.getRowNrs());
+      if (newBuf.getUVW().empty()) {
+        newBuf.getUVW().reference (itsInput->fetchUVW (newBuf, rowNrs));
+      }
+      newBuf.getData().unique();
+      Complex* data = newBuf.getData().data();
+      uint np  = newBuf.getData().shape()[0] * newBuf.getData().shape()[1];
+      uint nbl = newBuf.getData().shape()[2];
+      VectorIterator<double> uvwIter(newBuf.getUVW(), 0);
+      double phase;
+      //# If ever later a time dependent phase center is used, the machine must be reset
+      //# for each new time, thus each new call to process.
+      for (uint i=0; i<nbl; ++i) {
         // Convert the uvw coordinates and get the phase shift term.
-        itsMachine.convertUVW (phase, uvwIter.vector());
+        itsMachine->convertUVW (phase, uvwIter.vector());
         Complex phasor(cos(phase), sin(phase));
-        // Shift the phase of the data.
-        for (uint j=0; j<nchan; ++j) {
-          for (uint k=0; j<ncorr; ++k) {
-            *outdata = *indata * phasor;
-          }
+        // Shift the phase of the data of this baseline.
+        for (uint j=0; j<np; ++j) {
+          *data++ *= phasor;
         }
         uvwIter.next();
      }
      itsTimer.stop();
-     getNextStep()->process (buf);
+     getNextStep()->process (newBuf);
      return true;
     }
 
@@ -107,6 +114,41 @@ namespace LOFAR {
     {
       // Let the next steps finish.
       getNextStep()->finish();
+    }
+
+    MDirection PhaseShift::handleCenter()
+    {
+      // The phase center must be given in J2000 as two values (ra,dec).
+      // In the future time dependent frames can be done as in UVWFlagger.
+      ASSERTSTR (itsCenter.size() == 2,
+                 "2 values must be given in PhaseShift phasecenter");
+      ///ASSERTSTR (itsCenter.size() < 4,
+      ///"Up to 3 values can be given in UVWFlagger phasecenter");
+      MDirection phaseCenter;
+      if (itsCenter.size() == 1) {
+        string str = toUpper(itsCenter[0]);
+        MDirection::Types tp;
+        ASSERTSTR (MDirection::getType(tp, str),
+                   str << " is an invalid source type"
+                   " in UVWFlagger phasecenter");
+        return MDirection(tp);
+      }
+      Quantity q0, q1;
+      ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
+                 itsCenter[0] << " is an invalid RA or longitude"
+                 " in UVWFlagger phasecenter");
+      ASSERTSTR (MVAngle::read (q1, itsCenter[1]),
+                 itsCenter[1] << " is an invalid DEC or latitude"
+                 " in UVWFlagger phasecenter");
+      MDirection::Types type = MDirection::J2000;
+      if (itsCenter.size() > 2) {
+        string str = toUpper(itsCenter[2]);
+        MDirection::Types tp;
+        ASSERTSTR (MDirection::getType(tp, str),
+                   str << " is an invalid direction type in UVWFlagger"
+                   " in UVWFlagger phasecenter");
+      }
+      return MDirection(q0, q1, type);
     }
 
   } //# end namespace

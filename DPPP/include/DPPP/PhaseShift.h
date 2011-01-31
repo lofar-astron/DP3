@@ -77,14 +77,16 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      // Interpret the phase center specification.
+      // Currently only J2000 RA and DEC can be given.
+      casa::MDirection PhaseShift::handleCenter();
+      
       //# Data members.
-      DPInput*         itsInput;
-      string           itsName;
-      DPBuffer         itsBuf;
-      string           itsRaStr;
-      string           itsDecStr;
-      casa::UVWMachine itsMachine;
-      NSTimer          itsTimer;
+      DPInput*          itsInput;
+      string            itsName;
+      vector<string>    itsCenter;
+      casa::UVWMachine* itsMachine;
+      NSTimer           itsTimer;
     };
 
   } //# end namespace

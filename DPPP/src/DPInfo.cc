@@ -37,7 +37,8 @@ namespace LOFAR {
         itsNBl          (0),
         itsNTime        (0),
         itsTimeAvg      (1),
-        itsTimeInterval (0)
+        itsTimeInterval (0),
+        itsPhaseCenterIsOriginal (true)
     {}
 
     void DPInfo::init (uint ncorr, uint startChan, uint nchan,

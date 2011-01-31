@@ -250,6 +250,7 @@ namespace LOFAR {
       info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
                  int((itsLastTime - itsFirstTime)/itsInterval + 1.5),
                  itsInterval);
+      info.setPhaseCenter (itsPhaseCenter, true);
     }
 
     void MSReader::show (std::ostream& os) const
