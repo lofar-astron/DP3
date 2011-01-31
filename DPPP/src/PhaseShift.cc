@@ -44,7 +44,7 @@ namespace LOFAR {
                             const ParSet& parset, const string& prefix)
       : itsInput   (input),
         itsName    (prefix),
-        itsCenter  (parset.getStringVector(prefix+"center")),
+        itsCenter  (parset.getStringVector(prefix+"phasecenter")),
         itsMachine (0)
     {}
 

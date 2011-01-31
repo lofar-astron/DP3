@@ -48,7 +48,10 @@ public:
   TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
-  {}
+  {
+    itsPhaseCenter = MDirection(Quantity(45,"deg"), Quantity(30,"deg"),
+                                MDirection::J2000);
+  }
 private:
   virtual bool process (const DPBuffer&)
   {
@@ -96,7 +99,7 @@ private:
   bool itsFlag;
 };
 
-// Class to check result of averaging TestInput.
+// Class to check result of null phase-shifted TestInput.
 class TestOutput: public DPStep
 {
 public:
@@ -142,6 +145,54 @@ private:
   bool itsFlag;
 };
 
+// Class to check result of null phase-shifted TestInput.
+class TestOutput1: public DPStep
+{
+public:
+  TestOutput1(int ntime, int nbl, int nchan, int ncorr, bool flag)
+    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+      itsNCorr(ncorr), itsFlag(flag)
+  {}
+private:
+  virtual bool process (const DPBuffer& buf)
+  {
+    // Stop when all times are done.
+    if (itsCount == itsNTime) {
+      return false;
+    }
+    Cube<Complex> result(itsNCorr, itsNChan, itsNBl);
+    for (int i=0; i<int(result.size()); ++i) {
+      result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+    }
+    Matrix<double> uvw(3,itsNBl);
+    indgen (uvw, double(itsCount*100));
+    // Check the result.
+    ASSERT (! allNear(real(buf.getData()), real(result), 1e-5));
+    ASSERT (allNE(real(buf.getData()), real(result)));
+    ///cout << imag(buf.getData()) << endl<<imag(result);
+    ASSERT (! allNear(imag(buf.getData()), imag(result), 1e-5));
+    ASSERT (allNE(imag(buf.getData()), imag(result)));
+    ASSERT (allEQ(buf.getFlags(), itsFlag));
+    ASSERT (near(buf.getTime(), 2.+5*itsCount));
+    ASSERT (! allNear(buf.getUVW(), uvw, 1e-5));
+    ++itsCount;
+    return true;
+  }
+
+  virtual void finish() {}
+  virtual void show (std::ostream&) const {}
+  virtual void updateInfo (DPInfo& info)
+  {
+    MVDirection dir = info.phaseCenter().getValue();
+    ASSERT (near(dir.getLong("deg").getValue(), 45.));
+    ASSERT (near(dir.getLat("deg").getValue(), 31.));
+  }
+
+  int itsCount;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  bool itsFlag;
+};
+
 
 // Execute steps.
 void execute (const DPStep::ShPtr& step1)
@@ -159,7 +210,7 @@ void execute (const DPStep::ShPtr& step1)
   step1->finish();
 }
 
-// Test simple averaging without flagged points.
+// Test with a shift to the original center.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
   cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
@@ -169,11 +220,35 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   // Keep phase center the same to be able to check if data are correct.
-  parset.add ("center", "[45deg, 30deg]");
+  parset.add ("phasecenter", "[45deg, 30deg]");
   DPStep::ShPtr step2(new PhaseShift(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
+  execute (step1);
+}
+
+// Test with a shift to another and then to the original phase center.
+void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
+{
+  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  // First shift to another center, then back to original.
+  ParameterSet parset;
+  parset.add ("phasecenter", "[45deg, 31deg]");
+  ParameterSet parset1;
+  parset1.add ("phasecenter", "[]");
+  DPStep::ShPtr step2(new PhaseShift(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput1(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step4(new PhaseShift(in, parset1, ""));
+  DPStep::ShPtr step5(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  step3->setNextStep (step4);
+  step4->setNextStep (step5);
   execute (step1);
 }
 
@@ -183,6 +258,8 @@ int main()
   try {
     test1(10, 3, 32, 4, false);
     test1(10, 3, 30, 1, true);
+    test2(10, 6, 32, 4, false);
+    test2(10, 6, 30, 1, true);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
