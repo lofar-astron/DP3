@@ -51,7 +51,7 @@ namespace LOFAR {
                         const ParSet& parset, const string& prefix)
       : itsReader       (reader),
         itsInterval     (info.timeInterval()),
-        itsCopyTimeInfo (info.ntimeAvg() == 1),
+        itsCopyTimeInfo (info.ntimeAvg() == 1  &&  info.phaseCenterIsOriginal()),
         itsNrCorr       (reader->ncorr()),
         itsNrChan       (info.nchan()),
         itsNrBl         (reader->nbaselines()),
