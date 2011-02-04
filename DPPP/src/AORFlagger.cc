@@ -57,6 +57,10 @@
 #include <iostream>
 #include <algorithm>
 
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
 using namespace casa;
 using namespace rfiStrategy;
 
@@ -80,7 +84,7 @@ namespace LOFAR {
       itsPedantic    = parset.getBool   (prefix+"pedantic", false);
       itsDoAutoCorr  = parset.getBool   (prefix+"autocorr", false);
       // Fill the strategy.
-      fillStrategy();
+      fillStrategy (itsStrategy);
     }
 
     AORFlagger::~AORFlagger()
@@ -94,13 +98,19 @@ namespace LOFAR {
       os << "  pulsar:         " << itsPulsarMode << std::endl;
       os << "  pedantic:       " << itsPedantic << std::endl;
       os << "  autocorr:       " << itsDoAutoCorr << std::endl;
+#ifdef _OPENMP
+      uint nthread = omp_get_max_threads();
+#else
+      uint nthread = 1;
+#endif
+      os << "  nthreads (omp)  " << nthread << std::endl;
     }
 
     void AORFlagger::updateInfo (DPInfo& info)
     {
       // Get nr of threads.
 #ifdef _OPENMP
-      uint nthread = omp_get_num_threads();
+      uint nthread = omp_get_max_threads();
 #else
       uint nthread = 1;
 #endif
@@ -110,22 +120,36 @@ namespace LOFAR {
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(Complex) + sizeof(bool)) *
         (info.nbaselines() + 3*nthread) * info.nchan() * info.ncorr();
-      // If no overlap is given, set it to 10.
+      // If no overlap is given, set it to 1%.
       if (itsOverlap == 0  &&  itsOverlapPerc == 0) {
-        itsOverlap = 10;
+        itsOverlapPerc = 1;
       }
       // If no time window given, determine it from the available memory.
-      // Set 1 GB aside for other purposes.
+      // Set 2 GB aside for other purposes.
       if (itsWindowSize == 0) {
-        double nt = (memory - 1024.*1024*1024) / timeSize;
+        double nt = (memory - 2.*1024*1024*1024) / timeSize;
         if (itsOverlapPerc > 0) {
+	  // Determine the overlap (add 0.5 for rounding).
+	  // If itsOverLap is also given, it is the maximum.
           double tw = nt / (1 + 2*itsOverlapPerc/100);
-          uint overlap = uint(itsOverlapPerc*tw/100);
+          uint overlap = uint(itsOverlapPerc*tw/100 + 0.5);
           if (itsOverlap == 0  ||  overlap < itsOverlap) {
             itsOverlap = overlap;
           }
         }
         itsWindowSize = uint(std::max(1., nt-2*itsOverlap));
+	// Make the window size divide the nr of times nicely (if known).
+	// In that way we cannot have a very small last window.
+	if (info.ntime() > 0) {
+	  uint nwindow = 1 + (info.ntime() - 1) / itsWindowSize;
+	  itsWindowSize = 1 + (info.ntime() - 1) / nwindow;
+	  if (itsOverlapPerc > 0) {
+	    uint overlap = uint(itsOverlapPerc*itsWindowSize/100 + 0.5);
+	    if (overlap < itsOverlap) {
+	      itsOverlap = overlap;
+	    }
+	  }
+	}
       }
       if (itsOverlap == 0) {
         itsOverlap = uint(itsOverlapPerc*itsWindowSize/100);
@@ -230,6 +254,9 @@ namespace LOFAR {
       {
 	// Create thread-private counter object.
 	FlagCounter counter;
+	// Create thread-private strategy object.
+	rfiStrategy::Strategy strategy;
+	fillStrategy (strategy);
 	// The for loop can be parallellized. This must be done dynamically,
 	// because the execution times of iterations can vary.
 #pragma omp for schedule(dynamic)
@@ -241,11 +268,11 @@ namespace LOFAR {
           if (ant1[ib] == ant2[ib]) {
             if (itsDoAutoCorr) {
               flagBaseline (leftOverlap, itsWindowSize, rightOverlap, ib,
-                            counter);
+                            counter, strategy);
             }
           } else {
             flagBaseline (leftOverlap, itsWindowSize, rightOverlap, ib,
-                          counter);
+                          counter, strategy);
           }
         } // end of OMP for
       } // end of OMP parallel
@@ -281,7 +308,8 @@ namespace LOFAR {
 
     void AORFlagger::flagBaseline (uint leftOverlap, uint windowSize,
                                    uint rightOverlap, uint bl,
-                                   FlagCounter& counter)
+                                   FlagCounter& counter,
+				   rfiStrategy::Strategy& strategy)
     {
       NSTimer moveTimer, flagTimer;
       moveTimer.start();
@@ -340,7 +368,7 @@ namespace LOFAR {
       // Execute the strategy to do the flagging.
       moveTimer.stop();
       flagTimer.start();
-      itsStrategy.Perform (artifacts, itsProgressListener);
+      strategy.Perform (artifacts, itsProgressListener);
       flagTimer.stop();
       // Put back the true flags and count newly set flags.
       moveTimer.start();
@@ -389,11 +417,11 @@ namespace LOFAR {
       } // end of OMP critical
     }
 
-    void AORFlagger::fillStrategy()
+    void AORFlagger::fillStrategy (rfiStrategy::Strategy& strategy)
     {
-      itsStrategy.Add(new SetFlaggingAction());
+      strategy.Add(new SetFlaggingAction());
       ForEachPolarisationBlock* fepBlock = new ForEachPolarisationBlock();
-      itsStrategy.Add(fepBlock);
+      strategy.Add(fepBlock);
       ActionBlock* current = fepBlock;
 
       ForEachComplexComponentAction* focAction =
@@ -461,19 +489,19 @@ namespace LOFAR {
       setFlagsInAllPolarizations->SetNewFlagging
         (SetFlaggingAction::PolarisationsEqual);
 
-      itsStrategy.Add(setFlagsInAllPolarizations);
-      itsStrategy.Add(new StatisticalFlagAction());
+      strategy.Add(setFlagsInAllPolarizations);
+      strategy.Add(new StatisticalFlagAction());
 
       if (itsPedantic) {
         CombineFlagResults* cfr3 = new CombineFlagResults();
-        itsStrategy.Add(cfr3);
+        strategy.Add(cfr3);
         cfr3->Add(new FrequencySelectionAction());
         if (!itsPulsarMode) {
           cfr3->Add(new TimeSelectionAction());
         }
       } else {
         if (!itsPulsarMode) {
-          itsStrategy.Add(new TimeSelectionAction());
+          strategy.Add(new TimeSelectionAction());
         }
       }
     }

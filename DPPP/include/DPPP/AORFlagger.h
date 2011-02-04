@@ -100,10 +100,11 @@ namespace LOFAR {
       // Flag a single baseline using the rfistrategy.
       void flagBaseline (uint leftOverlap, uint windowSize,
                          uint rightOverlap, uint bl,
-                         FlagCounter& counter);
+                         FlagCounter& counter,
+			 rfiStrategy::Strategy&);
 
       // Fill the rfi strategy.
-      void fillStrategy();
+      void fillStrategy (rfiStrategy::Strategy&);
 
       //# Data members.
       DPInput*         itsInput;

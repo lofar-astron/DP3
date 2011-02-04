@@ -63,7 +63,7 @@ namespace LOFAR {
       NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).
       uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
-      uint tileNChan       = parset.getUint (prefix+"tilenchan", 8);
+      uint tileNChan       = parset.getUint (prefix+"tilenchan", info.nchan());
       itsOverwrite         = parset.getBool (prefix+"overwrite", false);
       itsCopyCorrData      = parset.getBool (prefix+"copycorrecteddata", false);
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
