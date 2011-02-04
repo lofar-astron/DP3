@@ -37,4 +37,4 @@ install(PROGRAMS
 # Python modules.
 python_install(
   __init__.py 
-  DESTINATION lofar/mv dppp)
+  DESTINATION lofar/dppp)
