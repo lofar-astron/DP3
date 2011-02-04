@@ -201,6 +201,8 @@ namespace LOFAR {
                    "A new MS has to be given in msout if a phase shift is done");
         if (info.needWrite()) {
           step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
+        } else {
+          step = DPStep::ShPtr(new NullStep());
         }
       } else {
         step = DPStep::ShPtr(new MSWriter (reader, outName, info,

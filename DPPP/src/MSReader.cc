@@ -233,7 +233,7 @@ namespace LOFAR {
           itsNrRead++;
           itsIter.next();
         }
-        ASSERTSTR (itsBuffer.getData().shape()[2] == int(itsNrBl),
+        ASSERTSTR (itsBuffer.getFlags().shape()[2] == int(itsNrBl),
                    "#baselines is not the same for all time slots in the MS");
       }   // end of scope stops the timer.
       // Let the next step in the pipeline process this time slot.

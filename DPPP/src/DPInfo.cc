@@ -29,7 +29,9 @@ namespace LOFAR {
   namespace DPPP {
 
     DPInfo::DPInfo()
-      : itsNCorr        (0),
+      : itsNeedVisData  (false),
+        itsNeedWrite    (false),
+        itsNCorr        (0),
         itsStartChan    (0),
         itsOrigNChan    (0),
         itsNChan        (0),
