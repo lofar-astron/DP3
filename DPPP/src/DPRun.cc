@@ -181,23 +181,31 @@ namespace LOFAR {
           firstStep = step;
         }
       }
-      // Find out how the data are averaged.
+      // Let all steps update their info.
       DPInfo info;
       DPStep::ShPtr step = firstStep;
       while (step) {
         step->updateInfo (info);
         step = step->getNextStep();
       }
+      // Tell the reader if visibility data needs to be read.
+      reader->setReadVisData (info.needVisData());
       // Create an updater step if an input MS was given; otherwise a writer.
+      // Create an updater step only if needed (e.g. not if only count is done).
+      // A writer is always created (because the user specified an output name).
+      // For a writer the reader needs to read the visibility data.
       if (outName.empty()) {
         ASSERTSTR (info.nchanAvg() == 1  &&  info.ntimeAvg() == 1,
                    "A new MS has to be given in msout if averaging is done");
         ASSERTSTR (info.phaseCenterIsOriginal(),
                    "A new MS has to be given in msout if a phase shift is done");
-        step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
+        if (info.needWrite()) {
+          step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
+        }
       } else {
         step = DPStep::ShPtr(new MSWriter (reader, outName, info,
                                            parset, "msout."));
+        reader->setReadVisData (true);
       }
       lastStep->setNextStep (step);
       lastStep = step;

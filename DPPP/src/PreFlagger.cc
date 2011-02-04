@@ -49,11 +49,12 @@ namespace LOFAR {
 
     PreFlagger::PreFlagger (DPInput* input,
                             const ParSet& parset, const string& prefix)
-      : itsName  (prefix),
-        itsInput (input),
-        itsMode  (SetFlag),
-        itsPSet  (input, parset, prefix),
-        itsCount (0)
+      : itsName        (prefix),
+        itsInput       (input),
+        itsMode        (SetFlag),
+        itsPSet        (input, parset, prefix),
+        itsCount       (0),
+        itsFlagCounter (input, parset, prefix+"counter.")
     {
       string mode = toLower(parset.getString(prefix+"mode", "set"));
       if (mode == "clear") {
@@ -99,7 +100,7 @@ namespace LOFAR {
       os << endl << "Flags set by PreFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsCount, false);
+                                   itsInput->getAnt2(), itsCount);
       itsFlagCounter.showChannel  (os, itsCount);
     }
 
@@ -112,6 +113,7 @@ namespace LOFAR {
 
     void PreFlagger::updateInfo (DPInfo& info)
     {
+      info.setNeedWrite();
       itsPSet.updateInfo (info);
       // Initialize the flag counters.
       itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());

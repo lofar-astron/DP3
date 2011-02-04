@@ -50,6 +50,7 @@ namespace LOFAR {
         itsTimeWindowStr (parset.getString (prefix+"timewindow", "1")),
         itsNTimes        (0),
         itsNTimesDone    (0),
+        itsFlagCounter   (input, parset, prefix+"counter."),
         itsMoveTime      (0),
         itsMedianTime    (0)
     {
@@ -103,7 +104,7 @@ namespace LOFAR {
       os << endl << "Flags set by MADFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsNTimes, false);
+                                   itsInput->getAnt2(), itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
       itsFlagCounter.showCorrelation (os, itsNTimes);
     }
@@ -128,6 +129,8 @@ namespace LOFAR {
 
     void MedFlagger::updateInfo (DPInfo& info)
     {
+      info.setNeedVisData();
+      info.setNeedWrite();
       // Evaluate the window size expressions.
       getExprValues (info.nchan(), info.ntime());
       itsBuf.resize (itsTimeWindow);

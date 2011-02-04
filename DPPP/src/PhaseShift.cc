@@ -55,9 +55,12 @@ namespace LOFAR {
 
     void PhaseShift::updateInfo (DPInfo& info)
     {
+      info.setNeedVisData();
+      info.setNeedWrite();
       // Default phase center is the original one.
       MDirection newDir(itsInput->phaseCenter());
-      bool original = true;
+      ////      bool original = true;
+      bool original = false;
       if (! itsCenter.empty()) {
         newDir = handleCenter();
         original = false;

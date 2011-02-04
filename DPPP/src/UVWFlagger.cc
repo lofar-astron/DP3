@@ -43,9 +43,10 @@ namespace LOFAR {
 
     UVWFlagger::UVWFlagger (DPInput* input,
                             const ParSet& parset, const string& prefix)
-      : itsInput  (input),
-        itsName   (prefix),
-        itsNTimes (0)
+      : itsInput       (input),
+        itsName        (prefix),
+        itsNTimes      (0),
+        itsFlagCounter (input, parset, prefix+"counter.")
     {
       itsRangeUVm = fillUVW (parset, prefix, "uvm", true);
       itsRangeUm  = fillUVW (parset, prefix, "um", false);
@@ -94,7 +95,7 @@ namespace LOFAR {
       os << endl << "Flags set by UVWFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsNTimes, false);
+                                   itsInput->getAnt2(), itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
     }
 
@@ -113,6 +114,7 @@ namespace LOFAR {
 
     void UVWFlagger::updateInfo (DPInfo& info)
     {
+      info.setNeedWrite();
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.
       itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / casa::C::c;

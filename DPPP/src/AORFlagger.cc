@@ -69,13 +69,14 @@ namespace LOFAR {
 
     AORFlagger::AORFlagger (DPInput* input,
                             const ParSet& parset, const string& prefix)
-      : itsInput      (input),
-        itsName       (prefix),
-        itsBufIndex   (0),
-        itsNTimes     (0),
-        itsNTimesToDo (0),
-        itsMoveTime   (0),
-        itsFlagTime   (0)
+      : itsInput       (input),
+        itsName        (prefix),
+        itsBufIndex    (0),
+        itsNTimes      (0),
+        itsNTimesToDo  (0),
+        itsFlagCounter (input, parset, prefix+"counter."),
+        itsMoveTime    (0),
+        itsFlagTime    (0)
     {
       itsWindowSize  = parset.getUint   (prefix+"timewindow", 0);
       itsOverlap     = parset.getUint   (prefix+"overlap", 0);
@@ -108,6 +109,8 @@ namespace LOFAR {
 
     void AORFlagger::updateInfo (DPInfo& info)
     {
+      info.setNeedVisData();
+      info.setNeedWrite();
       // Get nr of threads.
 #ifdef _OPENMP
       uint nthread = omp_get_max_threads();
@@ -171,7 +174,7 @@ namespace LOFAR {
       os << endl << "Flags set by AOFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsNTimes, false);
+                                   itsInput->getAnt2(), itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
       itsFlagCounter.showCorrelation (os, itsNTimes);
     }
@@ -194,14 +197,19 @@ namespace LOFAR {
       os << " of it spent in calculating flags" << endl;
     }
 
+    // Alternative strategy is to flag in windows
+    //  0 ..  n+2m
+    //  n .. 2n+2m
+    // 2n .. 3n+2m  etc.
+    // and also update the flags in the overlaps
     bool AORFlagger::process (const DPBuffer& buf)
     {
       itsTimer.start();
-      // Accumulate in the time window until the window and overlap are full 
+      // Accumulate in the time window until the window and overlap are full. 
       itsNTimes++;
       itsBuf[itsBufIndex++] = buf;
       if (itsBufIndex == itsWindowSize+2*itsOverlap) {
-        flag (itsOverlap);
+        flag (2*itsOverlap);
       }
       itsTimer.stop();
       return true;
@@ -211,13 +219,7 @@ namespace LOFAR {
     {
       itsTimer.start();
       // Set window size to all entries left.
-      if (itsNTimes < itsWindowSize+2*itsOverlap) {
-        // Nothing done yet, so use entire window.
-        itsWindowSize = itsNTimes;
-      } else {
-        // Left overlap has already been done.
-        itsWindowSize = itsBufIndex - itsOverlap;
-      }
+      itsWindowSize = itsBufIndex;
       if (itsWindowSize > 0) {
         // Flag the remaining time slots (without right overlap).
         flag (0);
@@ -230,15 +232,6 @@ namespace LOFAR {
 
     void AORFlagger::flag (uint rightOverlap)
     {
-      // Get index of first buffer in main window to remain for left overlap in
-      // next flag step.
-      uint firstRemain = itsWindowSize - rightOverlap;
-      // If first time, there is no left overlap and twice the right overlap.
-      uint leftOverlap = itsOverlap;
-      if (itsBufIndex==itsNTimes) {
-        leftOverlap = 0;
-        rightOverlap *= 2;
-      }
       // Get the sizes of the axes.
       // Note: OpenMP 2.5 needs signed iteration variables.
       int  nrbl   = itsBuf[0].getData().shape()[2];
@@ -253,7 +246,7 @@ namespace LOFAR {
 #pragma omp parallel
       {
 	// Create thread-private counter object.
-	FlagCounter counter;
+        FlagCounter counter;
 	// Create thread-private strategy object.
 	rfiStrategy::Strategy strategy;
 	fillStrategy (strategy);
@@ -267,43 +260,33 @@ namespace LOFAR {
 	  // Do autocorrelations only if told so.
           if (ant1[ib] == ant2[ib]) {
             if (itsDoAutoCorr) {
-              flagBaseline (leftOverlap, itsWindowSize, rightOverlap, ib,
+              flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
                             counter, strategy);
             }
           } else {
-            flagBaseline (leftOverlap, itsWindowSize, rightOverlap, ib,
+            flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
                           counter, strategy);
           }
         } // end of OMP for
       } // end of OMP parallel
       itsComputeTimer.stop();
-      // Discard the leftoverlap buffers that are not needed anymore.
-      for (uint i=0; i<leftOverlap; ++i) {
-        ///        cout << "discard " << itsBuf[i].getTime() << endl;
-        itsBuf[i] = DPBuffer();
-      }
       itsTimer.stop();
       // Let the next step process the buffers.
       // If possible, discard the buffer processed to minimize memory usage.
       for (uint i=0; i<itsWindowSize; ++i) {
-        uint inx = i+leftOverlap;
-        getNextStep()->process (itsBuf[inx]);
-        if (i < firstRemain) {
-          ///          cout << "discard " << itsBuf[inx].getTime() << endl;
-          itsBuf[inx] = DPBuffer();
-        }
+        getNextStep()->process (itsBuf[i]);
+        cout << "discard " << itsBuf[i].getTime() << endl;
+        itsBuf[i] = DPBuffer();
       }
       itsTimer.start();
       // Shift the buffers still needed to the beginning of the vector.
       // This is a bit easier than keeping a wrapped vector.
       // Note it is a cheap operation, because shallow copies are made.
-      uint inx = 0;
-      for (uint i=leftOverlap+firstRemain;
-           i<itsWindowSize+leftOverlap+rightOverlap; ++i) {
-        ///        cout << "move "<<i<<" to "<<inx<<endl;
-        itsBuf[inx++] = itsBuf[i];
+      for (uint i=0; i<rightOverlap; ++i) {
+        cout << "move "<<i+itsWindowSize<<" to "<<i<<endl;
+        itsBuf[i] = itsBuf[i+itsWindowSize];
       }
-      itsBufIndex = inx;
+      itsBufIndex = rightOverlap;
     }
 
     void AORFlagger::flagBaseline (uint leftOverlap, uint windowSize,

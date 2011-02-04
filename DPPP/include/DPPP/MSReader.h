@@ -175,6 +175,10 @@ namespace LOFAR {
       void putFlags (const casa::RefRows& rowNrs,
                      const casa::Cube<bool>& flags);
 
+      // Tell if the visibility data are to be read.
+      void setReadVisData (bool readVisData)
+        { itsReadVisData = readVisData; }
+
       // Get the main MS table.
       casa::Table& table()
         { return itsMS; }
@@ -222,6 +226,8 @@ namespace LOFAR {
       casa::Table         itsMS;
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
+      bool                itsReadVisData;   //# read visibility data?
+      bool                itsNeedSort;      //# sort needed on time,baseline?
       bool                itsAutoWeight;    //# calculate weights from autocorr?
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;

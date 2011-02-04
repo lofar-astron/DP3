@@ -82,6 +82,20 @@ namespace LOFAR {
       double timeInterval() const
         { return itsTimeInterval; }
 
+      // Are the visibility data needed?
+      bool needVisData() const
+        { return itsNeedVisData; }
+      // Does the last step need to write?
+      bool needWrite() const
+        { return itsNeedWrite; }
+
+      // Set if visibility data needs to be read.
+      void setNeedVisData()
+        { itsNeedVisData = true; } 
+      // Set if the last step needs to write.
+      void setNeedWrite()
+        { itsNeedWrite = true; }
+
       // Get the phase center info.
       const casa::MDirection& phaseCenter() const
         { return itsPhaseCenter; }
@@ -89,6 +103,8 @@ namespace LOFAR {
         { return itsPhaseCenterIsOriginal; }
 
     private:
+      bool   itsNeedVisData;    //# Are the visibility data needed?
+      bool   itsNeedWrite;      //# Does the last step need to write?
       uint   itsNCorr;
       uint   itsStartChan;
       uint   itsOrigNChan;

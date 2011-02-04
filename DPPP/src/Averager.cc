@@ -56,6 +56,8 @@ namespace LOFAR {
 
     void Averager::updateInfo (DPInfo& info)
     {
+      info.setNeedVisData();
+      info.setNeedWrite();
       itsTimeInterval = info.timeInterval();
       itsNChanAvg = info.update (itsNChanAvg, itsNTimeAvg);
     }

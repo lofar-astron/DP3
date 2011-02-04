@@ -23,10 +23,18 @@
 
 #include <lofar_config.h>
 #include <DPPP/FlagCounter.h>
+#include <DPPP/DPInput.h>
+#include <DPPP/ParSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
+#include <tables/Tables/Table.h>
+#include <tables/Tables/TableDesc.h>
+#include <tables/Tables/SetupNewTab.h>
+#include <tables/Tables/ScaColDesc.h>
+#include <tables/Tables/ScalarColumn.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/ArrayIO.h>
 #include <vector>
 #include <map>
 #include <iomanip>
@@ -35,6 +43,46 @@ using namespace casa;
 
 namespace LOFAR {
   namespace DPPP {
+
+    FlagCounter::FlagCounter()
+      : itsInput  (0),
+        itsShowFF (false)
+    {}
+
+    FlagCounter::FlagCounter (DPInput* input,
+                              const ParSet& parset, const string& prefix)
+      : itsInput (input)
+    {
+      itsShowFF = parset.getBool (prefix+"showfullyflagged", false);
+      bool save = parset.getBool (prefix+"save", false);
+      if (save) {
+        // Percentages have to be saved, so form the table name to use.
+        string path = parset.getString (prefix+"path", "");
+        // Use the step name (without dot) as a name suffix.
+        string suffix = prefix;
+        string::size_type pos = suffix.find ('.');
+        if (pos != string::npos) {
+          suffix = suffix.substr(0, pos);
+        }
+        // Use the MS name as the name.
+        // If no path is given, use the path of the MS (use . if no path).
+        string name = input->msName();
+        pos = name.rfind ('/');
+        if (path.empty()) {
+          if (pos == string::npos) {
+            path = '.';
+          } else {
+            path = name.substr(0, pos);
+          }
+        }
+        name = name.substr(pos+1);
+        pos = name.find ('.');
+        if (pos != string::npos) {
+          name = name.substr(0, pos);
+        }
+        itsSaveName = path + '/' + name + '_' + suffix + ".flag";
+      }
+    }
 
     void FlagCounter::init (uint nbaselines, uint nchan, uint ncorr)
     {
@@ -70,8 +118,7 @@ namespace LOFAR {
     }
 
     void FlagCounter::showBaseline (ostream& os, const casa::Vector<int>& ant1,
-                                    const casa::Vector<int>& ant2,
-                                    int64 ntimes, bool showFullyFlagged) const
+                                    const casa::Vector<int>& ant2, int64 ntimes) const
     {
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;
@@ -166,13 +213,16 @@ namespace LOFAR {
         }
         os << endl;
       }
-      if (showFullyFlagged) {
+      if (itsShowFF) {
         os << "Fully flagged baselines: ";
         for (uint i=0; i<fullyFlagged.size(); ++i) {
           if (i>0) os << "; ";
           os << fullyFlagged[i].first << '&' << fullyFlagged[i].second;
         }
         os << endl;
+      }
+      if (! itsSaveName.empty()) {
+        saveStation (npoints, nusedAnt, countAnt);
       }
     }
 
@@ -209,6 +259,9 @@ namespace LOFAR {
       showPerc3 (os, nflagged, npoints);
       os << "   (" << nflagged << " out of " << npoints
          << " visibilities)" << endl;
+      if (! itsSaveName.empty()) {
+        saveChannel (npoints, itsChanCounts);
+      }
     }
 
     void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
@@ -245,6 +298,50 @@ namespace LOFAR {
       os.fill (prev);
     }
 
+    void FlagCounter::saveStation (int64 npoints, const Vector<int64>& nused,
+                                   const Vector<int64>& count) const
+    {
+      // Create the table.
+      TableDesc td;
+      td.addColumn (ScalarColumnDesc<String>("Station"));
+      td.addColumn (ScalarColumnDesc<float> ("Percentage"));
+      SetupNewTable newtab(itsSaveName+"stat", td, Table::New);
+      Table tab(newtab);
+      ScalarColumn<String> statCol(tab, "Station");
+      ScalarColumn<float>  percCol(tab, "Percentage");
+      const Vector<String>& antNames = itsInput->antennaNames();
+      // Write if an antenna is used.
+      for (uint i=0; i<nused.size(); ++i) {
+        if (nused[i] > 0) {
+          int rownr = tab.nrow();
+          tab.addRow();
+          statCol.put (rownr, antNames[i]);
+          percCol.put (rownr, (100. * count[i]) / (nused[i] * npoints));
+        }
+      }
+    }
+
+    void FlagCounter::saveChannel (int64 npoints,
+                                   const Vector<int64>& count) const
+    {
+      // Create the table.
+      TableDesc td;
+      td.addColumn (ScalarColumnDesc<double>("Frequency"));
+      td.addColumn (ScalarColumnDesc<float> ("Percentage"));
+      SetupNewTable newtab(itsSaveName+"freq", td, Table::New);
+      Table tab(newtab);
+      ScalarColumn<double> freqCol(tab, "Frequency");
+      ScalarColumn<float>  percCol(tab, "Percentage");
+      // Get the channel frequencies. Note that averaging might have been done.
+      int navg = itsInput->chanFreqs().size() / count.size();
+      Vector<double> chanFreqs = itsInput->chanFreqs(navg);
+      for (uint i=0; i<count.size(); ++i) {
+        int rownr = tab.nrow();
+        tab.addRow();
+        freqCol.put (rownr, chanFreqs[i]);
+        percCol.put (rownr, (100. * count[i]) / npoints);
+      }
+    }
 
   } //# end namespace
 }

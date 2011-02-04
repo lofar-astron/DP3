@@ -45,7 +45,7 @@ namespace LOFAR {
 
     MSReader::MSReader (const string& msName,
                         const ParSet& parset, const string& prefix)
-      : itsMS         (msName),
+      : itsMS         (msName, TableLock::AutoNoReadLocking),
         itsLastMSTime (0),
         itsNrRead     (0),
         itsNrInserted (0)
@@ -58,7 +58,8 @@ namespace LOFAR {
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
-      itsAutoWeight       = parset.getBool   (prefix+"autoweight", False);
+      itsAutoWeight       = parset.getBool   (prefix+"autoweight", false);
+      itsNeedSort         = parset.getBool   (prefix+"sort", false);
       // Prepare the MS access and get time info.
       double startTime, endTime;
       prepare (startTime, endTime, itsInterval);
@@ -179,11 +180,13 @@ namespace LOFAR {
         } else {
           // Get from the MS.
           itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
-          ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
-          if (itsUseAllChan) {
-            itsBuffer.setData (dataCol.getColumn());
-          } else {
-            itsBuffer.setData (dataCol.getColumn(itsColSlicer));
+          if (itsReadVisData) {
+            ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
+            if (itsUseAllChan) {
+              itsBuffer.setData (dataCol.getColumn());
+            } else {
+              itsBuffer.setData (dataCol.getColumn(itsColSlicer));
+            }
           }
           if (itsUseFlags) {
             ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
@@ -308,13 +311,15 @@ namespace LOFAR {
       // Determine if the data are stored using LofarStMan.
       // If so, we know it is in time order.
       // (sorting on TIME with LofarStMan can be expensive).
-      bool ordered = false;
-      Record dminfo = itsMS.dataManagerInfo();
-      for (unsigned i=0; i<dminfo.nfields(); ++i) {
-        Record subrec = dminfo.subRecord(i);
-        if (subrec.asString("TYPE") == "LofarStMan") {
-          ordered = true;
-          break;
+      bool needSort = itsNeedSort;
+      if (needSort) {
+        Record dminfo = itsMS.dataManagerInfo();
+        for (unsigned i=0; i<dminfo.nfields(); ++i) {
+          Record subrec = dminfo.subRecord(i);
+          if (subrec.asString("TYPE") == "LofarStMan") {
+            needSort = false;
+            break;
+          }
         }
       }
       // If not in order, sort the main table (also on baseline).
@@ -323,7 +328,7 @@ namespace LOFAR {
       sortCols[0] = "TIME";
       sortCols[1] = "ANTENNA1";
       sortCols[2] = "ANTENNA2";
-      if (!ordered) {
+      if (needSort) {
         sortms = itsMS.sort(sortCols);
       }
       // Get first and last time and interval from MS.
