@@ -74,7 +74,7 @@ namespace LOFAR {
         itsBufIndex    (0),
         itsNTimes      (0),
         itsNTimesToDo  (0),
-        itsFlagCounter (input, parset, prefix+"counter."),
+        itsFlagCounter (input, parset, prefix+"count."),
         itsMoveTime    (0),
         itsFlagTime    (0)
     {

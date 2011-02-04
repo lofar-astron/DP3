@@ -303,11 +303,13 @@ namespace LOFAR {
     {
       // Create the table.
       TableDesc td;
-      td.addColumn (ScalarColumnDesc<String>("Station"));
+      td.addColumn (ScalarColumnDesc<Int>   ("Station"));
+      td.addColumn (ScalarColumnDesc<String>("Name"));
       td.addColumn (ScalarColumnDesc<float> ("Percentage"));
       SetupNewTable newtab(itsSaveName+"stat", td, Table::New);
       Table tab(newtab);
-      ScalarColumn<String> statCol(tab, "Station");
+      ScalarColumn<Int>    statCol(tab, "Station");
+      ScalarColumn<String> nameCol(tab, "Name");
       ScalarColumn<float>  percCol(tab, "Percentage");
       const Vector<String>& antNames = itsInput->antennaNames();
       // Write if an antenna is used.
@@ -315,7 +317,8 @@ namespace LOFAR {
         if (nused[i] > 0) {
           int rownr = tab.nrow();
           tab.addRow();
-          statCol.put (rownr, antNames[i]);
+          statCol.put (rownr, i);
+          nameCol.put (rownr, antNames[i]);
           percCol.put (rownr, (100. * count[i]) / (nused[i] * npoints));
         }
       }

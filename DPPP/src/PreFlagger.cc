@@ -54,7 +54,7 @@ namespace LOFAR {
         itsMode        (SetFlag),
         itsPSet        (input, parset, prefix),
         itsCount       (0),
-        itsFlagCounter (input, parset, prefix+"counter.")
+        itsFlagCounter (input, parset, prefix+"count.")
     {
       string mode = toLower(parset.getString(prefix+"mode", "set"));
       if (mode == "clear") {

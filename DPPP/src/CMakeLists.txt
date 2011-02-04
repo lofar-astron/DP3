@@ -1,6 +1,7 @@
 # $Id$
 
 include(LofarPackageVersion)
+include(PythonInstall)
 
 lofar_add_library(dppp
   Package__Version.cc
@@ -32,3 +33,8 @@ install(PROGRAMS
   mwflagger-part
   taqlflagger
   DESTINATION bin)
+
+# Python modules.
+python_install(
+  __init__.py 
+  DESTINATION lofar/mv dppp)

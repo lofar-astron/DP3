@@ -46,7 +46,7 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsNTimes      (0),
-        itsFlagCounter (input, parset, prefix+"counter.")
+        itsFlagCounter (input, parset, prefix+"count.")
     {
       itsRangeUVm = fillUVW (parset, prefix, "uvm", true);
       itsRangeUm  = fillUVW (parset, prefix, "um", false);

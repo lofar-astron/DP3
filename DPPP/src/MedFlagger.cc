@@ -50,7 +50,7 @@ namespace LOFAR {
         itsTimeWindowStr (parset.getString (prefix+"timewindow", "1")),
         itsNTimes        (0),
         itsNTimesDone    (0),
-        itsFlagCounter   (input, parset, prefix+"counter."),
+        itsFlagCounter   (input, parset, prefix+"count."),
         itsMoveTime      (0),
         itsMedianTime    (0)
     {
@@ -131,6 +131,7 @@ namespace LOFAR {
     {
       info.setNeedVisData();
       info.setNeedWrite();
+
       // Evaluate the window size expressions.
       getExprValues (info.nchan(), info.ntime());
       itsBuf.resize (itsTimeWindow);
