@@ -80,7 +80,7 @@ namespace LOFAR {
     {
       itsWindowSize  = parset.getUint   (prefix+"timewindow", 0);
       itsOverlap     = parset.getUint   (prefix+"overlap", 0);
-      itsOverlapPerc = parset.getDouble (prefix+"overlapperc", 0);
+      itsOverlapPerc = parset.getDouble (prefix+"overlapperc", -1);
       itsPulsarMode  = parset.getBool   (prefix+"pulsar", false);
       itsPedantic    = parset.getBool   (prefix+"pedantic", false);
       itsDoAutoCorr  = parset.getBool   (prefix+"autocorr", false);
@@ -123,9 +123,9 @@ namespace LOFAR {
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(Complex) + sizeof(bool)) *
         (info.nbaselines() + 3*nthread) * info.nchan() * info.ncorr();
-      // If no overlap is given, set it to 1%.
-      if (itsOverlap == 0  &&  itsOverlapPerc == 0) {
-        itsOverlapPerc = 1;
+      // If no overlap percentage is given, set it to 1%.
+      if (itsOverlapPerc < 0  &&  itsOverlap == 0) {
+	itsOverlapPerc = 1;
       }
       // If no time window given, determine it from the available memory.
       // Set 2 GB aside for other purposes.
@@ -275,7 +275,6 @@ namespace LOFAR {
       // If possible, discard the buffer processed to minimize memory usage.
       for (uint i=0; i<itsWindowSize; ++i) {
         getNextStep()->process (itsBuf[i]);
-        cout << "discard " << itsBuf[i].getTime() << endl;
         itsBuf[i] = DPBuffer();
       }
       itsTimer.start();
@@ -283,7 +282,6 @@ namespace LOFAR {
       // This is a bit easier than keeping a wrapped vector.
       // Note it is a cheap operation, because shallow copies are made.
       for (uint i=0; i<rightOverlap; ++i) {
-        cout << "move "<<i+itsWindowSize<<" to "<<i<<endl;
         itsBuf[i] = itsBuf[i+itsWindowSize];
       }
       itsBufIndex = rightOverlap;

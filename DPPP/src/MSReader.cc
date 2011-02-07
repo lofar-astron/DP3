@@ -586,7 +586,7 @@ namespace LOFAR {
       // should contain data for a missing time slot.
       ASSERT (! rowNrs.rowVector().empty());
       ROArrayColumn<Complex> dataCol(itsMS, columnName);
-      // Also work around LofarStMan/getColumnCells problem.
+      // Also work around LofarStMan/getColumnCells slice problem.
       Cube<Complex> data = dataCol.getColumnCells (rowNrs);
       return (itsUseAllChan ? data : data(itsArrSlicer));
     }
@@ -597,7 +597,21 @@ namespace LOFAR {
       if (! rowNrs.rowVector().empty()) {
         itsMS.reopenRW();
         ArrayColumn<bool> flagCol(itsMS, "FLAG");
-        flagCol.putColumnCells (rowNrs, itsColSlicer, flags);
+	bool succ = true;
+	try {
+	  flagCol.putColumnCells (rowNrs, itsColSlicer, flags);
+	} catch (std::exception&) {
+	  succ = false;
+	}
+	// Work around StandardStMan putCol with RefRows problem.
+	if (!succ) {
+	  Vector<uint> rows = rowNrs.convert();
+	  ReadOnlyArrayIterator<bool> flagIter (flags, 2);
+	  for (uint i=0; i<rows.size(); ++i) {
+	    flagCol.putSlice (rows[i], itsColSlicer, flagIter.array());
+	    flagIter.next();
+	  }
+	}
       }
     }
 
