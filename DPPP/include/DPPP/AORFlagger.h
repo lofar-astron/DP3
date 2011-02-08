@@ -31,7 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
-#include <AOFlagger/rfi/strategy/strategy.h>
+#include <AOFlagger/strategy/actions/strategyaction.h>
 #include <AOFlagger/util/progresslistener.h>
 
 namespace LOFAR {
