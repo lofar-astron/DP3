@@ -51,6 +51,9 @@ public:
   {
     itsPhaseCenter = MDirection(Quantity(45,"deg"), Quantity(30,"deg"),
                                 MDirection::J2000);
+    // Define the frequencies.
+    itsChanFreqs.resize (nchan);
+    indgen (itsChanFreqs, 1050000., 100000.);
   }
 private:
   virtual bool process (const DPBuffer&)
