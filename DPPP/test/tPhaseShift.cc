@@ -171,10 +171,10 @@ private:
     indgen (uvw, double(itsCount*100));
     // Check the result.
     ASSERT (! allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (allNE(real(buf.getData()), real(result)));
+    ASSERT (! allEQ(real(buf.getData()), real(result)));
     ///cout << imag(buf.getData()) << endl<<imag(result);
     ASSERT (! allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allNE(imag(buf.getData()), imag(result)));
+    ASSERT (! allEQ(imag(buf.getData()), imag(result)));
     ASSERT (allEQ(buf.getFlags(), itsFlag));
     ASSERT (near(buf.getTime(), 2.+5*itsCount));
     ASSERT (! allNear(buf.getUVW(), uvw, 1e-5));
