@@ -85,6 +85,7 @@ namespace LOFAR {
       DPInput*          itsInput;
       string            itsName;
       vector<string>    itsCenter;
+      vector<double>    itsFreqC;      //# freq/C
       casa::UVWMachine* itsMachine;
       NSTimer           itsTimer;
     };

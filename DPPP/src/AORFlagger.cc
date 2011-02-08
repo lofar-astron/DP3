@@ -238,8 +238,8 @@ namespace LOFAR {
       uint ncorr  = itsBuf[0].getData().shape()[0];
       ASSERTSTR (ncorr==4, "AOFlagger can only handle all 4 correlations");
       // Get antenna numbers in case applyautocorr is true.
-      const Vector<int>& ant1 = itsInput->getAnt1();
-      const Vector<int>& ant2 = itsInput->getAnt2();
+      const Vector<Int>& ant1 = itsInput->getAnt1();
+      const Vector<Int>& ant2 = itsInput->getAnt2();
       itsComputeTimer.start();
       // Now flag each baseline for this time window.
       // The baselines can be processed in parallel.

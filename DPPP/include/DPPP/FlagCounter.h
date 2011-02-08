@@ -90,8 +90,10 @@ namespace LOFAR {
         { return itsCorrCounts; }
 
       // Print the counts and optionally save percentages in a table.
-      void showBaseline (ostream& os, const casa::Vector<int>& ant1,
-                         const casa::Vector<int>& ant2, int64 ntimes) const;
+      void showBaseline (ostream& os,
+                         const casa::Vector<casa::Int>& ant1,
+                         const casa::Vector<casa::Int>& ant2,
+                         int64 ntimes) const;
       void showChannel (ostream& os, int64 ntimes) const;
       void showCorrelation (ostream& os, int64 ntimes) const;
 

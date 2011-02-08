@@ -60,8 +60,8 @@ namespace LOFAR {
       itsMinBLength    = parset.getDouble(prefix+"blmin", -1);
       itsMaxBLength    = parset.getDouble(prefix+"blmax", 1e30);
       // Determine baseline indices of autocorrelations.
-      const Vector<int>& ant1 = itsInput->getAnt1();
-      const Vector<int>& ant2 = itsInput->getAnt2();
+      const Vector<Int>& ant1 = itsInput->getAnt1();
+      const Vector<Int>& ant2 = itsInput->getAnt2();
       int nant = 1 + std::max (max(ant1), max(ant2));
       itsAutoCorrIndex.resize (nant);
       std::fill (itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
@@ -267,8 +267,8 @@ namespace LOFAR {
     {
       ///cout << "flag: " <<itsNTimes<<' '<<itsNTimesDone<<' ' <<index << timeEntries << endl;
       // Get antenna numbers in case applyautocorr is true.
-      const Vector<int>& ant1 = itsInput->getAnt1();
-      const Vector<int>& ant2 = itsInput->getAnt2();
+      const Vector<Int>& ant1 = itsInput->getAnt1();
+      const Vector<Int>& ant2 = itsInput->getAnt2();
       // Result is 'copy' of the entry at the given time index.
       DPBuffer buf (itsBuf[index]);
       IPosition shp = buf.getData().shape();

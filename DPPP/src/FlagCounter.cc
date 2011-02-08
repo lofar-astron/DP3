@@ -117,8 +117,8 @@ namespace LOFAR {
                       std::plus<int64>());
     }
 
-    void FlagCounter::showBaseline (ostream& os, const casa::Vector<int>& ant1,
-                                    const casa::Vector<int>& ant2, int64 ntimes) const
+    void FlagCounter::showBaseline (ostream& os, const Vector<Int>& ant1,
+                                    const Vector<Int>& ant2, int64 ntimes) const
     {
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;

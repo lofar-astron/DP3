@@ -636,8 +636,8 @@ namespace LOFAR {
     {
       bool match = false;
       uint nrbl = itsMatchBL.size();
-      const int* ant1Ptr = itsInput->getAnt1().data();
-      const int* ant2Ptr = itsInput->getAnt2().data();
+      const Int* ant1Ptr = itsInput->getAnt1().data();
+      const Int* ant2Ptr = itsInput->getAnt2().data();
       for (uint i=0; i<nrbl; ++i) {
         if (itsMatchBL[i]) {
           if (! itsFlagBL(ant1Ptr[i], ant2Ptr[i])) {
@@ -655,8 +655,8 @@ namespace LOFAR {
     {
       bool match = false;
       uint nrbl = itsMatchBL.size();
-      const int* ant1Ptr = itsInput->getAnt1().data();
-      const int* ant2Ptr = itsInput->getAnt2().data();
+      const Int* ant1Ptr = itsInput->getAnt1().data();
+      const Int* ant2Ptr = itsInput->getAnt2().data();
       // Calculate AzEl for each flagged antenna for this time slot.
       MeasFrame frame;
       Quantity qtime(time, "s");
@@ -1109,8 +1109,8 @@ namespace LOFAR {
         tmpflags = false;
         // Get baseline lengths.
         const vector<double>& blength = itsInput->getBaselineLengths();
-        const Vector<int>& ant1 = itsInput->getAnt1();
-        const Vector<int>& ant2 = itsInput->getAnt2();
+        const Vector<Int>& ant1 = itsInput->getAnt1();
+        const Vector<Int>& ant2 = itsInput->getAnt2();
         for (uint i=0; i<ant1.size(); ++i) {
           if (blength[i] > itsMinBL  &&  blength[i] < itsMaxBL) {
             int a1 = ant1[i];

@@ -94,9 +94,9 @@ namespace LOFAR {
         { return itsNrChan; }
       uint nbaselines() const
         { return itsNrBl; }
-      const casa::Vector<int>& getAnt1() const
+      const casa::Vector<casa::Int>& getAnt1() const
         { return itsAnt1; }
-      const casa::Vector<int>& getAnt2() const
+      const casa::Vector<casa::Int>& getAnt2() const
         { return itsAnt2; }
 
       // Get the baseline table index of the autocorrelations.

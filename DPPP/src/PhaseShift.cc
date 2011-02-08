@@ -32,6 +32,7 @@
 #include <casa/Arrays/VectorIter.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Quanta/MVAngle.h>
+#include <casa/BasicSL/Constants.h>
 #include <iostream>
 #include <iomanip>
 
@@ -67,6 +68,12 @@ namespace LOFAR {
       }
       itsMachine = new casa::UVWMachine(info.phaseCenter(), newDir, false, true);
       info.setPhaseCenter (newDir, original);
+      // Calculate freq/C.
+      const Vector<double>& freq = itsInput->chanFreqs(info.nchanAvg());
+      itsFreqC.reserve (freq.size());
+      for (uint i=0; i<freq.size(); ++i) {
+        itsFreqC.push_back (freq[i] / C::c);
+      }
     }
 
     void PhaseShift::show (std::ostream& os) const
@@ -91,20 +98,60 @@ namespace LOFAR {
         newBuf.getUVW().reference (itsInput->fetchUVW (newBuf, rowNrs));
       }
       newBuf.getData().unique();
+      newBuf.getUVW().unique();
+//       // Get the uvw-s per station, so we can do convertUVW per station
+//       // instead of per baseline. Use the first station as reference.
+//       const Vector<Int>& ant1 = itsInput->getAnt1();
+//       const Vector<Int>& ant2 = itsInput->getAnt2();
+//       vector<Vector<double> > antUVW;
+//       antUVW.resize (1 + std::max (max(ant1), max(ant2)));
+//       uint ndone = 0;
+//       Vector<double> uvw(3, 0.);
+//       antUVW[ant1[0]] = uvw;
+//       const Array<double>& blUVW = newBuf.getUVW();
+//       VectorIterator<double> iterUVW (blUVW, 1);
+//       bool moreTodo = true;
+//       while (moreTodo) {
+//         moreTodo = false;
+//         for (uint i=0; i<ant1.size(); ++i) {
+//           int a1 = ant1[i];
+//           int a2 = ant2[i];
+//           if (antUVW[a1].empty()) {
+//             if (antUVW[a2].empty()) {
+//               moreTodo = true;
+//             } else {
+//               // Get uvw of first station.
+//               uvw = iterUVW.array() - ;
+//             }
+//           } else if (antUVW[a2].empty()) {
+//             uvw = ;
+//           } else {
+//             // UVW should be about the same.
+//             ASSERT (near(uvw));
+//           }
+//           iterUVW.next();
+//         }
+//       }
       Complex* data = newBuf.getData().data();
-      uint np  = newBuf.getData().shape()[0] * newBuf.getData().shape()[1];
-      uint nbl = newBuf.getData().shape()[2];
+      uint ncorr = newBuf.getData().shape()[0];
+      uint nchan = newBuf.getData().shape()[1];
+      uint nbl   = newBuf.getData().shape()[2];
       VectorIterator<double> uvwIter(newBuf.getUVW(), 0);
       double phase;
-      //# If ever later a time dependent phase center is used, the machine must be reset
-      //# for each new time, thus each new call to process.
+      //# If ever later a time dependent phase center is used, the machine
+      //# must be reset for each new time, thus each new call to process.
       for (uint i=0; i<nbl; ++i) {
         // Convert the uvw coordinates and get the phase shift term.
         itsMachine->convertUVW (phase, uvwIter.vector());
-        Complex phasor(cos(phase), sin(phase));
-        // Shift the phase of the data of this baseline.
-        for (uint j=0; j<np; ++j) {
-          *data++ *= phasor;
+        for (uint j=0; j<nchan; ++j) {
+          // Shift the phase of the data of this baseline.
+          // Convert the phase term to wavelengths.
+          // u_wvl = u_m / wvl = u_m * freq / c
+          double phasewvl = phase * itsFreqC[j];
+          Complex phasor(cos(phasewvl), sin(phasewvl));
+          for (uint k=0; k<ncorr; ++k) {
+            *data++ *= phasor;
+          }
         }
         uvwIter.next();
      }
