@@ -132,7 +132,7 @@ namespace LOFAR {
 
         // Update the general info.
         // It is used to adjust the parms if needed.
-        void updateInfo (const DPInfo&);
+        void updateInfo (DPInfo&);
 
         // Show the pset parameters.
         void show (std::ostream&, bool showName) const;

@@ -114,6 +114,7 @@ namespace LOFAR {
     void PreFlagger::updateInfo (DPInfo& info)
     {
       info.setNeedWrite();
+      info.setNeedVisData();
       itsPSet.updateInfo (info);
       // Initialize the flag counters.
       itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
@@ -321,7 +322,7 @@ namespace LOFAR {
                             itsPSets.empty());
     }
 
-    void PreFlagger::PSet::updateInfo (const DPInfo& info)
+    void PreFlagger::PSet::updateInfo (DPInfo& info)
     {
       // Size the object's buffers (used in process) correctly.
       uint nrcorr = info.ncorr();
