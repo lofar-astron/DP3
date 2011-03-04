@@ -113,15 +113,17 @@ namespace LOFAR {
       uint             itsNTimes;
       uint             itsNTimesToDo;
       uint             itsWindowSize;
-      uint             itsOverlap;   // extra time slots on both sides
+      uint             itsOverlap;       //# extra time slots on both sides
       double           itsOverlapPerc;
+      double           itsMemory;        //# Usable memory in GBytes
+      double           itsMemoryPerc;
       bool             itsPulsarMode;
       bool             itsPedantic;
       bool             itsDoAutoCorr;
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
-      NSTimer          itsComputeTimer;  //# move/median timer
+      NSTimer          itsComputeTimer;  //# move/flag timer
       double           itsMoveTime;      //# data move timer (sum all threads)
       double           itsFlagTime;      //# flag timer (sum of all threads)
       rfiStrategy::Strategy itsStrategy;

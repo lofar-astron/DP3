@@ -79,7 +79,13 @@ namespace LOFAR {
         itsFlagTime    (0)
     {
       itsWindowSize  = parset.getUint   (prefix+"timewindow", 0);
-      itsOverlap     = parset.getUint   (prefix+"overlap", 0);
+      itsMemory      = parset.getUint   (prefix+"memorymax", 0);
+      itsMemoryPerc  = parset.getUint   (prefix+"memoryperc", 0);
+      itsOverlap     = parset.getUint   (prefix+"overlapmax", 0);
+      // Also look for keyword overlap for backward compatibility.
+      if (itsOverlap == 0) {
+        itsOverlap   = parset.getUint   (prefix+"overlap", 0);
+      }
       itsOverlapPerc = parset.getDouble (prefix+"overlapperc", -1);
       itsPulsarMode  = parset.getBool   (prefix+"pulsar", false);
       itsPedantic    = parset.getBool   (prefix+"pedantic", false);
@@ -117,8 +123,21 @@ namespace LOFAR {
 #else
       uint nthread = 1;
 #endif
-      // Determine how much memory is available.
-      double memory = HostInfo::memoryTotal() * 1024.;
+      // Determine available memory.
+      double availMemory = HostInfo::memoryTotal() * 1024.;
+      // Determine how much memory can be used.
+      double memoryMax = itsMemory * 1024*1024*1024;
+      double memory    = memoryMax;
+      if (itsMemoryPerc > 0) {
+        memory = itsMemoryPerc * availMemory / 100.;
+        if (memoryMax > 0  &&  memory > memoryMax) {
+          memory = memoryMax;
+        }
+      } else if (itsMemory <= 0) {
+        // Nothing given, so use available memory on this machine.
+        // Set 50% (max 2 GB) aside for other purposes.
+        memory = availMemory - std::min(0.5 * availMemory, 2.*1024*1024*1024);
+      }
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(Complex) + sizeof(bool)) *
@@ -128,9 +147,8 @@ namespace LOFAR {
 	itsOverlapPerc = 1;
       }
       // If no time window given, determine it from the available memory.
-      // Set 2 GB aside for other purposes.
       if (itsWindowSize == 0) {
-        double nt = (memory - 2.*1024*1024*1024) / timeSize;
+        double nt = memory / timeSize;
         if (itsOverlapPerc > 0) {
 	  // Determine the overlap (add 0.5 for rounding).
 	  // If itsOverLap is also given, it is the maximum.
@@ -158,10 +176,11 @@ namespace LOFAR {
         itsOverlap = uint(itsOverlapPerc*itsWindowSize/100);
       }
       // Check if it all fits in memory.
-      ASSERTSTR ((itsWindowSize + 2*itsOverlap) * timeSize < memory,
+      ASSERTSTR ((itsWindowSize + 2*itsOverlap) * timeSize < availMemory,
                  "Timewindow " << itsWindowSize
                  << " and/or overlap " << itsOverlap
-                 << " too large for available memory " << memory);
+                 << ' ' << memory
+                 << " too large for available memory " << availMemory);
       // Size the buffer (need overlap on both sides).
       itsBuf.resize (itsWindowSize + 2*itsOverlap);
       // Initialize the flag counters.
@@ -207,6 +226,7 @@ namespace LOFAR {
       itsTimer.start();
       // Accumulate in the time window until the window and overlap are full. 
       itsNTimes++;
+      ///      cout<<"inserted at " << itsBufIndex<<endl;
       itsBuf[itsBufIndex++] = buf;
       if (itsBufIndex == itsWindowSize+2*itsOverlap) {
         flag (2*itsOverlap);
@@ -276,6 +296,7 @@ namespace LOFAR {
       for (uint i=0; i<itsWindowSize; ++i) {
         getNextStep()->process (itsBuf[i]);
         itsBuf[i] = DPBuffer();
+        ///cout << "cleared buffer " << i << endl;
       }
       itsTimer.start();
       // Shift the buffers still needed to the beginning of the vector.
@@ -283,6 +304,7 @@ namespace LOFAR {
       // Note it is a cheap operation, because shallow copies are made.
       for (uint i=0; i<rightOverlap; ++i) {
         itsBuf[i] = itsBuf[i+itsWindowSize];
+        ///cout << "moved buffer " <<i+itsWindowSize<<" to "<< i << endl;
       }
       itsBufIndex = rightOverlap;
     }

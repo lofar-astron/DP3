@@ -217,13 +217,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("freqwindow", "1");
   parset.add ("timewindow", "1");
-  parset.add ("threshold", toString(threshold));
-  if (shortbl) {
-    parset.add ("blmin", "0");
-    parset.add ("blmax", "145");
-  }
   DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false,
                                      shortbl));
@@ -244,14 +238,8 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("freqwindow", "4");
-  parset.add ("timewindow", "100");
-  parset.add ("padding", "10");
-  parset.add ("threshold", toString(threshold));
-  parset.add ("applyautocorr", "True");
-  if (shortbl) {
-    parset.add ("blmax", "145");
-  }
+  parset.add ("timewindow", "4");
+  parset.add ("overlapmax", "1");
   DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true,
                                      shortbl));

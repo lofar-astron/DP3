@@ -54,7 +54,59 @@ public:
     // Define the frequencies.
     itsChanFreqs.resize (nchan);
     indgen (itsChanFreqs, 1050000., 100000.);
+    // Fill the baseline stations.
+    // Determine nr of stations using:  na*(na+1)/2 = nbl
+    // If many baselines, divide into groups of 6 to test if
+    // PhaseShift disentangles it correctly.
+    int nant = int(-0.5 + sqrt(0.25 + 2*nbl));
+    if (nant*(nant+1)/2 < nbl) ++nant;
+    int grpszant = 3;
+    int grpszbl  = grpszant*(grpszant+1)/2;
+    if (nbl > grpszbl) {
+      nant = grpszant*(nbl+grpszbl-1)/grpszbl;
+    } else {
+      grpszant = nant;
+      grpszbl  = nbl;
+    }
+    itsAnt1.resize (nbl);
+    itsAnt2.resize (nbl);
+    int st1 = 0;
+    int st2 = 0;
+    int lastant = grpszant;
+    for (int i=0; i<nbl; ++i) {
+      itsAnt1[i] = st1;
+      itsAnt2[i] = st2;
+      if (i%grpszbl == grpszbl-1) {
+        st1 = lastant;
+        st2 = lastant;
+        lastant += grpszant;
+      } else {
+        if (++st2 == lastant) {
+          st2 = ++st1;
+        }
+      }
+    }
+    itsStatUVW.resize (3, nant);
+    for (int i=0; i<nant; ++i) {
+      itsStatUVW(0,i) = 0.01 + i*0.02;
+      itsStatUVW(1,i) = 0.05 + i*0.03;
+      itsStatUVW(2,i) = 0.015 + i*0.025;
+    }
   }
+
+  void fillUVW (Matrix<double>& uvw, int count)
+  {
+    for (int i=0; i<itsNBl; ++i) {
+      uvw(0,i) = (itsStatUVW(0,itsAnt2[i]) + count*0.002 -
+                  (itsStatUVW(0,itsAnt1[i]) + count*0.002));
+      uvw(1,i) = (itsStatUVW(1,itsAnt2[i]) + count*0.004 -
+                  (itsStatUVW(1,itsAnt1[i]) + count*0.004));
+      uvw(2,i) = (itsStatUVW(2,itsAnt2[i]) + count*0.006 -
+                  (itsStatUVW(2,itsAnt1[i]) + count*0.006));
+      cout <<itsAnt1[i]<<' '<<itsAnt2[i]<<' '<<uvw(0,i)<<' '<<uvw(1,i)<<' '<<uvw(2,i)<<endl;
+    }
+  }
+
 private:
   virtual bool process (const DPBuffer&)
   {
@@ -81,7 +133,7 @@ private:
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
     Matrix<double> uvw(3,itsNBl);
-    indgen (uvw, double(itsCount*100));
+    fillUVW (uvw, itsCount);
     buf.setUVW (uvw);
     getNextStep()->process (buf);
     ++itsCount;
@@ -100,14 +152,17 @@ private:
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
+  Matrix<double> itsStatUVW;
 };
 
 // Class to check result of null phase-shifted TestInput.
 class TestOutput: public DPStep
 {
 public:
-  TestOutput(int ntime, int nbl, int nchan, int ncorr, bool flag)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+  TestOutput(TestInput* input,
+             int ntime, int nbl, int nchan, int ncorr, bool flag)
+    : itsInput(input),
+      itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {}
 private:
@@ -122,14 +177,14 @@ private:
       result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
     }
     Matrix<double> uvw(3,itsNBl);
-    indgen (uvw, double(itsCount*100));
+    itsInput->fillUVW (uvw, itsCount);
     // Check the result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
+    ASSERT (allNear(real(buf.getData()), real(result), 1e-7));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
+    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-7));
     ASSERT (allEQ(buf.getFlags(), itsFlag));
     ASSERT (near(buf.getTime(), 2.+5*itsCount));
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    ASSERT (allNear(buf.getUVW(), uvw, 1e-7));
     ++itsCount;
     return true;
   }
@@ -143,6 +198,7 @@ private:
     ASSERT (near(dir.getLat("deg").getValue(), 30.));
   }
 
+  TestInput* itsInput;
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -152,8 +208,10 @@ private:
 class TestOutput1: public DPStep
 {
 public:
-  TestOutput1(int ntime, int nbl, int nchan, int ncorr, bool flag)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+  TestOutput1(TestInput* input,
+              int ntime, int nbl, int nchan, int ncorr, bool flag)
+    : itsInput(input),
+      itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {}
 private:
@@ -168,7 +226,7 @@ private:
       result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
     }
     Matrix<double> uvw(3,itsNBl);
-    indgen (uvw, double(itsCount*100));
+    itsInput->fillUVW (uvw, itsCount);
     // Check the result.
     ASSERT (! allNear(real(buf.getData()), real(result), 1e-5));
     ASSERT (! allEQ(real(buf.getData()), real(result)));
@@ -187,10 +245,11 @@ private:
   virtual void updateInfo (DPInfo& info)
   {
     MVDirection dir = info.phaseCenter().getValue();
-    ASSERT (near(dir.getLong("deg").getValue(), 45.));
-    ASSERT (near(dir.getLat("deg").getValue(), 31.));
+    ASSERT (near(dir.getLong("deg").getValue(), 50.));
+    ASSERT (near(dir.getLat("deg").getValue(), 35.));
   }
 
+  TestInput* itsInput;
   int itsCount;
   int itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -225,7 +284,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
   // Keep phase center the same to be able to check if data are correct.
   parset.add ("phasecenter", "[45deg, 30deg]");
   DPStep::ShPtr step2(new PhaseShift(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step3(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -241,13 +300,13 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
   DPStep::ShPtr step1(in);
   // First shift to another center, then back to original.
   ParameterSet parset;
-  parset.add ("phasecenter", "[45deg, 31deg]");
+  parset.add ("phasecenter", "[50deg, 35deg]");
   ParameterSet parset1;
   parset1.add ("phasecenter", "[]");
   DPStep::ShPtr step2(new PhaseShift(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput1(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step3(new TestOutput1(in, ntime, nbl, nchan, ncorr, flag));
   DPStep::ShPtr step4(new PhaseShift(in, parset1, ""));
-  DPStep::ShPtr step5(new TestOutput(ntime, nbl, nchan, ncorr, flag));
+  DPStep::ShPtr step5(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   step3->setNextStep (step4);
@@ -260,7 +319,7 @@ int main()
 {
   try {
     test1(10, 3, 32, 4, false);
-    test1(10, 3, 30, 1, true);
+    test1(10, 10, 30, 1, true);
     test2(10, 6, 32, 4, false);
     test2(10, 6, 30, 1, true);
   } catch (std::exception& x) {
