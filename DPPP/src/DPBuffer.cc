@@ -29,6 +29,7 @@ namespace LOFAR {
   namespace DPPP {
 
     DPBuffer::DPBuffer()
+      : itsTime(0)
     {}
 
     DPBuffer::DPBuffer (const DPBuffer& that)

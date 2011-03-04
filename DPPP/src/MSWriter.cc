@@ -114,6 +114,9 @@ namespace LOFAR {
         ASSERT (! buf.getUVW().empty());
         writeTimeInfo (out, buf.getTime(), buf.getUVW());
       }
+      // Write 0 in the DATA_DESC_ID.
+      ScalarColumn<Int> ddCol (out, "DATA_DESC_ID");
+      ddCol.fillColumn (0);
       // Now write the data and flags.
       writeData (out, buf);
       return true;
@@ -347,7 +350,7 @@ namespace LOFAR {
       // Copy the info and subtables.
       TableCopy::copyInfo(itsMS, temptable);
       TableCopy::copySubTables(itsMS, temptable);
-      // Adjust the SPECTRAL_WINDOW table as needed.
+      // Adjust the SPECTRAL_WINDOW and DATA_DESCRIPTION table as needed.
       updateSpw (outName, info);
       // Adjust the OBSERVATION table as needed.
       updateObs (outName);
@@ -363,6 +366,18 @@ namespace LOFAR {
       IPosition shape(1,itsNrChan);
       Table inSPW  = itsReader->table().keywordSet().asTable("SPECTRAL_WINDOW");
       Table outSPW = Table(outName + "/SPECTRAL_WINDOW", Table::Update);
+      Table outDD  = Table(outName + "/DATA_DESCRIPTION", Table::Update);
+      ASSERT (outSPW.nrow() == outDD.nrow());
+      uint spw = itsReader->spectralWindow();
+      // Remove all rows before and after the selected band.
+      // Do it from the end, otherwise row numbers change.
+      for (uint i=outSPW.nrow(); i>0;) {
+        if (--i != spw) {
+          outSPW.removeRow (i);
+          outDD.removeRow (i);
+        }
+      }
+      ASSERT (outSPW.nrow() == 1);
       // Set nr of channels.
       ScalarColumn<int> channum(outSPW, "NUM_CHAN");
       channum.fillColumn (itsNrChan);
@@ -386,47 +401,47 @@ namespace LOFAR {
       Vector<double> newWidth (itsNrChan);
       Vector<double> newBW    (itsNrChan);
       Vector<double> newRes   (itsNrChan);
-      // Loop through all rows.
-      for (uint i=0; i<inSPW.nrow(); ++i) {
-        Vector<double> oldFreq = inFREQ(i);
-        Vector<double> oldWidth = inWIDTH(i);
-        Vector<double> oldBW = inBW(i);
-        Vector<double> oldRes = inRESOLUTION(i);
-        double totalBW = 0;
-        uint first = info.startChan();
-        // This loops assumes regularly spaced, adjacent frequency channels.
-        for (uint j=0; j<itsNrChan; ++j) { 
-          uint last  = first + info.nchanAvg();
-          if (last > info.startChan() + info.origNChan()) {
-            last = info.startChan() + info.origNChan();
-          }
-          double sf, ef;
-          if (oldFreq[first] < oldFreq[last-1]) {
-            sf = oldFreq[first]  - 0.5*oldWidth[first];
-            ef = oldFreq[last-1] + 0.5*oldWidth[last-1];
-          } else {
-            sf = oldFreq[first]  + 0.5*oldWidth[first];
-            ef = oldFreq[last-1] - 0.5*oldWidth[last-1];
-          }
-          newFreq[j]  = 0.5 * (sf + ef);
-          newWidth[j] = abs(ef - sf);
-          double newbw = 0;
-          double newres = 0;
-          for (uint k=first; k<last; ++k) {
-            newbw  += oldBW[k];
-            newres += oldRes[k];
-          }
-          newBW[j]  = newbw;
-          newRes[j] = newres;
-          totalBW  += newbw;
-          first = last;
+      Vector<double> oldFreq = inFREQ(spw);
+      Vector<double> oldWidth = inWIDTH(spw);
+      Vector<double> oldBW = inBW(spw);
+      Vector<double> oldRes = inRESOLUTION(spw);
+      double totalBW = 0;
+      uint first = info.startChan();
+      // This loops assumes regularly spaced, adjacent frequency channels.
+      for (uint j=0; j<itsNrChan; ++j) { 
+        uint last  = first + info.nchanAvg();
+        if (last > info.startChan() + info.origNChan()) {
+          last = info.startChan() + info.origNChan();
         }
-        outFREQ.put      (i, newFreq);
-        outWIDTH.put     (i, newWidth);
-        outBW.put        (i, newBW);
-        outRESOLUTION.put(i, newRes);
-        outTOTALBW.put   (i, totalBW);
+        double sf, ef;
+        if (oldFreq[first] < oldFreq[last-1]) {
+          sf = oldFreq[first]  - 0.5*oldWidth[first];
+          ef = oldFreq[last-1] + 0.5*oldWidth[last-1];
+        } else {
+          sf = oldFreq[first]  + 0.5*oldWidth[first];
+          ef = oldFreq[last-1] - 0.5*oldWidth[last-1];
+        }
+        newFreq[j]  = 0.5 * (sf + ef);
+        newWidth[j] = abs(ef - sf);
+        double newbw = 0;
+        double newres = 0;
+        for (uint k=first; k<last; ++k) {
+          newbw  += oldBW[k];
+          newres += oldRes[k];
+        }
+        newBW[j]  = newbw;
+        newRes[j] = newres;
+        totalBW  += newbw;
+        first = last;
       }
+      outFREQ.put      (0, newFreq);
+      outWIDTH.put     (0, newWidth);
+      outBW.put        (0, newBW);
+      outRESOLUTION.put(0, newRes);
+      outTOTALBW.put   (0, totalBW);
+      // Adjust the spwid in the DATA_DESCRIPTION.
+      ScalarColumn<Int> spwCol(outDD, "SPECTRAL_WINDOW_ID");
+      spwCol.put (0, 0);
     }
 
     void MSWriter::updateObs (const string& outName)
@@ -569,7 +584,6 @@ namespace LOFAR {
       copySca<int> (in, out, "ANTENNA2");
       copySca<int> (in, out, "FEED1");
       copySca<int> (in, out, "FEED2");
-      copySca<int> (in, out, "DATA_DESC_ID");
       copySca<int> (in, out, "PROCESSOR_ID");
       copySca<int> (in, out, "FIELD_ID");
       copySca<int> (in, out, "SCAN_NUMBER");

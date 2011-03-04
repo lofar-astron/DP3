@@ -199,6 +199,10 @@ namespace LOFAR {
       double timeInterval() const
         { return itsInterval; }
 
+      // Get the selected spectral window.
+      uint spectralWindow() const
+        { return itsSpw; }
+
       // Get the nr of averaged full resolution channels.
       uint nchanAvg() const
         { return itsFullResNChanAvg; }
@@ -232,6 +236,7 @@ namespace LOFAR {
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;
       bool                itsUseAllChan;    //# all channels (i.e. no slicer)?
+      int                 itsSpw;           //# spw (band) to use (<0 no select)
       uint                itsStartChan;
       double              itsInterval;
       double              itsFirstTime;

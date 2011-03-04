@@ -30,6 +30,7 @@
 #include <tables/Tables/TableRecord.h>
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/ArrayColumn.h>
+#include <tables/Tables/ExprNode.h>
 #include <measures/Measures/MeasTable.h>
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
@@ -52,6 +53,7 @@ namespace LOFAR {
     {
       NSTimer::StartStop sstime(itsTimer);
       // Get info from parset.
+      itsSpw              = parset.getInt    (prefix+"band", -1);
       itsStartChan        = parset.getUint   (prefix+"startchan", 0);
       uint nrChan         = parset.getUint   (prefix+"nchan", 0);
       string startTimeStr = parset.getString (prefix+"starttime", "");
@@ -60,6 +62,19 @@ namespace LOFAR {
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
       itsAutoWeight       = parset.getBool   (prefix+"autoweight", false);
       itsNeedSort         = parset.getBool   (prefix+"sort", false);
+      // See if a selection on band needs to be done.
+      // We assume that DATA_DESC_ID and SPW_ID map 1-1.
+      if (itsSpw >= 0) {
+        Table subset = itsMS (itsMS.col("DATA_DESC_ID") == itsSpw);
+        // If not all is selected, use the selection.
+        if (subset.nrow() < itsMS.nrow()) {
+          ASSERTSTR (subset.nrow() > 0, "Band " << itsSpw << " not found in "
+                     << msName);
+          itsMS = subset;
+        }
+      } else {
+        itsSpw = 0;
+      }
       // Prepare the MS access and get time info.
       double startTime, endTime;
       prepare (startTime, endTime, itsInterval);
@@ -260,6 +275,7 @@ namespace LOFAR {
     {
       os << "MSReader" << std::endl;
       os << "  input MS:       " << msName() << std::endl;
+      os << "  band            " << itsSpw << std::endl;
       os << "  startchan:      " << itsStartChan << std::endl;
       os << "  nchan:          " << itsNrChan << std::endl;
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
@@ -301,8 +317,8 @@ namespace LOFAR {
       itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
       if (itsHasFullResFlags) {
         ROTableColumn fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-        itsFullResNChanAvg  = fullResFlagCol.keywordSet().asInt ("NCHAN_AVG");
-        itsFullResNTimeAvg  = fullResFlagCol.keywordSet().asInt ("NTIME_AVG");
+        itsFullResNChanAvg = fullResFlagCol.keywordSet().asInt ("NCHAN_AVG");
+        itsFullResNTimeAvg = fullResFlagCol.keywordSet().asInt ("NTIME_AVG");
       } else {
         itsFullResNChanAvg = 1;
         itsFullResNTimeAvg = 1;
@@ -377,8 +393,8 @@ namespace LOFAR {
         ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
         ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
         // Take only the channels used in the input.
-        itsChanFreqs  = freqCol(0);
-        itsChanWidths = widthCol(0);
+        itsChanFreqs  = freqCol(itsSpw);
+        itsChanWidths = widthCol(itsSpw);
         // Get the array position using the telescope name from the OBSERVATION
         // subtable. 
         Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
@@ -465,7 +481,10 @@ namespace LOFAR {
         // Hence work around it.
         weights.reference (wsCol.getColumnCells (rowNrs));
         if (!itsUseAllChan) {
-          weights.reference (weights(itsArrSlicer));
+          // Make a copy, so the weights are consecutive in memory.
+          Cube<float> w;
+          w = weights(itsArrSlicer);
+          weights.reference (w);
         }
       } else {
         // No spectrum present; get global weights and assign to each channel.
