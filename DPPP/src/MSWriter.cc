@@ -461,11 +461,9 @@ namespace LOFAR {
     void MSWriter::updateField (const string& outName, const DPInfo& info)
     {
       Table outField = Table(outName + "/FIELD", Table::Update);
-      // Set phase center.
-      ArrayMeasColumn<MDirection> delayCol (outField, "DELAY_DIR");
+      // Write new phase center.
       ArrayMeasColumn<MDirection> phaseCol (outField, "PHASE_DIR");
       Vector<MDirection> dir(1, info.phaseCenter());
-      delayCol.put (0, dir);
       phaseCol.put (0, dir);
     }
 
