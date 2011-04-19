@@ -477,8 +477,8 @@ void testFlags2()
     ostr1 << "average.timestep=2" << endl;
     ofstream ostr2("tNDPPP_tmp.parset2");
     ostr2 << "msin=tNDPPP_tmp.MS6a" << endl;
-    ostr2 << "msin.startchan=2" << endl;    // output chan 0,2 are now flagged
-    ostr2 << "msin.nchan=12" << endl;
+    ostr2 << "msin.startchan=2*1" << endl;    // output chan 0,2 are now flagged
+    ostr2 << "msin.nchan=nchan-3" << endl;
     ostr2 << "msout=tNDPPP_tmp.MS6b" << endl;
     ostr2 << "msout.overwrite=true" << endl;
     ostr2 << "steps=[preflag,average]" << endl;

@@ -230,6 +230,8 @@ namespace LOFAR {
       casa::Table         itsMS;
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
+      casa::String        itsStartChanStr;  //# startchan expression
+      casa::String        itsNrChanStr;     //# nchan expression
       bool                itsReadVisData;   //# read visibility data?
       bool                itsNeedSort;      //# sort needed on time,baseline?
       bool                itsAutoWeight;    //# calculate weights from autocorr?

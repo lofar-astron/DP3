@@ -31,6 +31,7 @@
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/ArrayColumn.h>
 #include <tables/Tables/ExprNode.h>
+#include <tables/Tables/RecordGram.h>
 #include <measures/Measures/MeasTable.h>
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
@@ -54,8 +55,8 @@ namespace LOFAR {
       NSTimer::StartStop sstime(itsTimer);
       // Get info from parset.
       itsSpw              = parset.getInt    (prefix+"band", -1);
-      itsStartChan        = parset.getUint   (prefix+"startchan", 0);
-      uint nrChan         = parset.getUint   (prefix+"nchan", 0);
+      itsStartChanStr     = parset.getString (prefix+"startchan", "0");
+      itsNrChanStr        = parset.getString (prefix+"nchan", "0");
       string startTimeStr = parset.getString (prefix+"starttime", "");
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
@@ -103,11 +104,22 @@ namespace LOFAR {
       skipFirstTimes();
       itsNextTime  = itsFirstTime;
       itsStartTime = itsFirstTime - 0.5*itsInterval;
+      // Parse the chan expressions.
+      // Nr of channels can be used as 'nchan' in the expressions.
+      Record rec;
+      rec.define ("nchan", itsNrChan);
+      TableExprNode node1 (RecordGram::parse(rec, itsStartChanStr));
+      TableExprNode node2 (RecordGram::parse(rec, itsNrChanStr));
       // nchan=0 means until the last channel.
+      double result;
+      node1.get (rec, result);
+      itsStartChan = uint(result+0.001);
+      node2.get (rec, result);
+      uint nrChan = uint(result+0.0001);
       uint nAllChan = itsNrChan;
       ASSERTSTR (itsStartChan < nAllChan,
                  "startchan " << itsStartChan
-                 << " exceeds nr of channels in MS");
+                 << " exceeds nr of channels in MS (" << nAllChan << ')');
       uint maxNrChan = nAllChan - itsStartChan;
       if (nrChan == 0) {
         itsNrChan = maxNrChan;
@@ -276,8 +288,10 @@ namespace LOFAR {
       os << "MSReader" << std::endl;
       os << "  input MS:       " << msName() << std::endl;
       os << "  band            " << itsSpw << std::endl;
-      os << "  startchan:      " << itsStartChan << std::endl;
-      os << "  nchan:          " << itsNrChan << std::endl;
+      os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
+         << ')' << std::endl;
+      os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr
+         << ')' << std::endl;
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
       os << "  nbaselines:     " << itsNrBl << std::endl;
       os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
