@@ -224,11 +224,11 @@ void testAvg1()
   {
     // Average in a single step.
     ofstream ostr("tNDPPP_tmp.parset");
-    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msin.name=tNDPPP_tmp.MS" << endl;
     // Give start and end time as actual, hence no missing timeslots.
     ostr << "msin.starttime=03-Aug-2000/13:22:20" << endl;
     ostr << "msin.endtime=03-Aug-2000/13:31:45" << endl;
-    ostr << "msout=tNDPPP_tmp.MS2" << endl;
+    ostr << "msout.name=tNDPPP_tmp.MS2" << endl;
     ostr << "msout.overwrite=true" << endl;
     ostr << "steps=[avg,count]" << endl;
     ostr << "avg.type=average" << endl;

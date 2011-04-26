@@ -138,8 +138,17 @@ namespace LOFAR {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;
       // Get input and output MS name.
-      string inName  = parset.getString ("msin");
-      string outName = parset.getString ("msout");
+      // Those parameters were always called msin and msout.
+      // However, SAS/MAC cannot handle a parameter and a group with the same
+      // name, hence it uses msin.name and msout.name.
+      string inName = parset.getString ("msin.name", "");
+      if (inName.empty()) {
+        inName = parset.getString ("msin");
+      }
+      string outName = parset.getString ("msout.name", "");
+      if (outName.empty()) {
+        outName = parset.getString ("msout");
+      }
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
       // Currently the input MS must be given.
