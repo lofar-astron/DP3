@@ -43,7 +43,7 @@
 #include <AOFlagger/strategy/actions/setimageaction.h>
 #include <AOFlagger/strategy/actions/slidingwindowfitaction.h>
 #include <AOFlagger/strategy/actions/statisticalflagaction.h>
-#include <AOFlagger/strategy/actions/thresholdaction.h>
+#include <AOFlagger/strategy/actions/sumthresholdaction.h>
 #include <AOFlagger/strategy/actions/timeselectionaction.h>
 #include <AOFlagger/strategy/control/artifactset.h>
 
@@ -443,7 +443,7 @@ namespace LOFAR {
       current->Add(iteration);
       current = iteration;
 		
-      ThresholdAction* t2 = new ThresholdAction();
+      SumThresholdAction* t2 = new SumThresholdAction();
       t2->SetBaseSensitivity(1.0);
       if (itsPulsarMode) {
         t2->SetFrequencyDirectionFlagging(false);
@@ -482,7 +482,7 @@ namespace LOFAR {
       current->Add(new SetFlaggingAction());
 
       current = focAction;
-      ThresholdAction* t3 = new ThresholdAction();
+      SumThresholdAction* t3 = new SumThresholdAction();
       if (itsPulsarMode) {
         t3->SetFrequencyDirectionFlagging(false);
       }
