@@ -479,7 +479,12 @@ namespace LOFAR {
       changeResAction2->Add(swfAction2);
 
       current->Add(changeResAction2);
-      current->Add(new SetFlaggingAction());
+			
+			// This action causes iterations not to converge the thresholds towards the
+			// noise, but rather keep using the whole image for threshold calculation.
+			// The result is that strongly RFI contaminated sets are very weakly flagged.
+			// Commented out on june 11, 2011.
+			//current->Add(new SetFlaggingAction());
 
       current = focAction;
       SumThresholdAction* t3 = new SumThresholdAction();
