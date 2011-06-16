@@ -23,7 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/Demixer.h>
-#include <DPPP/Phaseshift.h>
+#include <DPPP/PhaseShift.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
