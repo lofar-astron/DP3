@@ -27,6 +27,7 @@
 // @file
 // @brief Class to hold code for virtual base class for Flaggers in IDPPP
 
+#include <DPPP/DPBuffer.h>
 #include <Common/lofar_smartptr.h>
 #include <Common/Timer.h>
 #include <iosfwd>
@@ -35,7 +36,6 @@ namespace LOFAR {
   namespace DPPP {
 
     //# Forward Declarations
-    class DPBuffer;
     class DPInfo;
 
     // @ingroup NDPPP
@@ -90,7 +90,7 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Set the next step.
-      void setNextStep (DPStep::ShPtr& nextStep)
+      void setNextStep (const DPStep::ShPtr& nextStep)
         { itsNextStep = nextStep; }
 
       // Get the next step.
@@ -124,6 +124,44 @@ namespace LOFAR {
       // Show the step parameters.
       // It does nothing.
       virtual void show (std::ostream&) const;
+    };
+
+
+
+    // @ingroup NDPPP
+
+    // This class defines step in the DPPP pipeline that keeps the result
+    // to make it possible to get the result of another step.
+    // Its default next step is the NullStep.
+
+    class ResultStep: public DPStep
+    {
+    public:
+      // Create the object. By default it sets its next step to the NullStep.
+      ResultStep();
+
+      virtual ~ResultStep();
+
+      // Process the data. It keeps the buffer and sends it to the next step.
+      virtual bool process (const DPBuffer&);
+
+      // Finish the processing of subsequent steps.
+      virtual void finish();
+
+      // Show the step parameters.
+      // It does nothing.
+      virtual void show (std::ostream&) const;
+
+      // Get the result.
+      const DPBuffer& get() const
+        { return itsBuffer; }
+
+      // Clear the buffer.
+      void clear()
+        { itsBuffer.clear(); }
+
+    private:
+      DPBuffer itsBuffer;
     };
 
   } //# end namespace

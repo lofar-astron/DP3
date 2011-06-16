@@ -39,6 +39,7 @@ namespace LOFAR {
     void DPStep::showTimings (std::ostream&, double) const
     {}
 
+
     NullStep::~NullStep()
     {}
 
@@ -49,6 +50,30 @@ namespace LOFAR {
     {}
 
     void NullStep::show (std::ostream&) const
+    {}
+
+
+    ResultStep::ResultStep()
+    {
+      setNextStep (DPStep::ShPtr (new NullStep()));
+    }
+
+    ResultStep::~ResultStep()
+    {}
+
+    bool ResultStep::process (const DPBuffer& buf)
+    {
+      itsBuffer = buf;
+      getNextStep()->process (buf);
+      return true;
+    }
+
+    void ResultStep::finish()
+    {
+      getNextStep()->finish();
+    }
+
+    void ResultStep::show (std::ostream&) const
     {}
 
   } //# end namespace
