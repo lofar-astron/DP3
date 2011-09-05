@@ -322,14 +322,14 @@ namespace LOFAR {
       uint blsize = nchan * itsBuf[0].getData().shape()[0];
       // Fill the rficonsole buffers and flag.
       // Create the objects for the real and imaginary data of all corr.
-      Image2DPtr realXX = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr imagXX = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr realXY = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr imagXY = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr realYX = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr imagYX = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr realYY = Image2D::CreateEmptyImagePtr(ntime, nchan);
-      Image2DPtr imagYY = Image2D::CreateEmptyImagePtr(ntime, nchan);
+      Image2DPtr realXX = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr imagXX = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr realXY = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr imagXY = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr realYX = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr imagYX = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr realYY = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Image2DPtr imagYY = Image2D::CreateUnsetImagePtr(ntime, nchan);
       for (uint i=0; i<ntime; ++i) {
         const Complex* data = itsBuf[i].getData().data() + bl*blsize;
         for (uint j=0; j<nchan; ++j) {
