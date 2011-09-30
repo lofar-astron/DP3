@@ -181,14 +181,17 @@ namespace LOFAR {
                                  bool mode, const DPBuffer& buf)
     {
       const Complex* dataPtr = buf.getData().data();
+      Cube<float> weights = itsInput->fetchWeights (buf, buf.getRowNrs());
+      const float* weightPtr = weights.data();
       for (uint i=0; i<nrbl; ++i) {
         for (uint j=0; j<nrchan; ++j) {
           if (*inPtr == mode) {
             bool flag = false;
+            // Flags for invalid data are not cleared.
             for (uint k=0; k<nrcorr; ++k) {
               if (!isFinite(dataPtr[k].real())  ||
                   !isFinite(dataPtr[k].imag())  ||
-                  dataPtr[k] == Complex()) {
+                  weightPtr[k] == 0) {
                 flag = true;
                 break;
               }
@@ -201,9 +204,10 @@ namespace LOFAR {
               }
             }
           }
-          inPtr   += nrcorr;
-          outPtr  += nrcorr;
-          dataPtr += nrcorr;
+          inPtr     += nrcorr;
+          outPtr    += nrcorr;
+          dataPtr   += nrcorr;
+          weightPtr += nrcorr;
         }
       }
     }

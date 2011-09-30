@@ -82,6 +82,8 @@ namespace LOFAR {
     {
       itsTimer.start();
       RefRows rowNrs(buf.getRowNrs());
+      // Sum the data in time applying the weights.
+      // The summing in channel and the averaging is done in function average.
       if (itsNTimes == 0) {
         // The first time we assign because that is faster than first clearing
         // and adding thereafter.
@@ -90,6 +92,8 @@ namespace LOFAR {
         itsBuf.getData()    = buf.getData();
         IPosition shapeIn   = buf.getData().shape();
         itsNPoints.resize (shapeIn);
+        itsAvgAll.resize (shapeIn);
+        itsAvgAll = buf.getData();
         // Take care of the fullRes flags.
         // We have to shape the output array and copy to a part of it.
         Cube<bool> fullResFlags(itsInput->fetchFullResFlags (buf, rowNrs));
@@ -141,10 +145,12 @@ namespace LOFAR {
         Array<float>::const_contiter   inwIter = weights.cbegin();
         Array<bool>::const_contiter    infIter = buf.getFlags().cbegin();
         Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+        Array<Complex>::contiter allIter  = itsAvgAll.cbegin();
         Array<float>::contiter   outwIter = itsBuf.getWeights().cbegin();
         Array<int>::contiter outnIter = itsNPoints.cbegin();
         Array<int>::contiter outnIterEnd = itsNPoints.cend();
         while (outnIter != outnIterEnd) {
+          *allIter += *indIter;
           if (!*infIter) {
             *outdIter += *indIter * *inwIter;
             *outwIter += *inwIter;
@@ -154,6 +160,7 @@ namespace LOFAR {
           ++inwIter;
           ++infIter;
           ++outdIter;
+          ++allIter;
           ++outwIter;
           ++outnIter;
         }
@@ -203,6 +210,7 @@ namespace LOFAR {
       // GCC-4.3 only supports OpenMP 2.5 needing signed iteration variables.
       for (int k=0; k<nbl; ++k) {
         const Complex* indata = itsBuf.getData().data() + k*npin;
+        const Complex* inall = itsAvgAll.data() + k*npin;
         const float* inwght = itsBuf.getWeights().data() + k*npin;
         const int* innp = itsNPoints.data() + k*npin;
         Complex* outdata = buf.getData().data() + k*npout;
@@ -213,19 +221,21 @@ namespace LOFAR {
           uint inxo = i;
           for (uint ch=0; ch<nchan; ++ch) {
             uint nch = std::min(itsNChanAvg, nchanin - ch*itsNChanAvg);
+            uint navgAll = nch * itsNTimes;
             Complex sumd;
-            float   sumw=0;
-            uint np = 0;
+            Complex suma;
+            float   sumw = 0;
+            uint    np = 0;
             for (uint j=0; j<nch; ++j) {
               sumd += indata[inxi];  // Note: weight is accounted for in process
+              suma += inall[inxi];
               sumw += inwght[inxi];
               np   += innp[inxi];
               inxi += ncorr;
             }
-            // Flag the point if insufficient data.
-            if (sumw == 0  ||  np < itsMinNPoint  ||
-                np < nch*itsNTimeAvg*itsMinPerc) {
-              outdata[inxo]  = Complex();
+            // Flag the point if insufficient unflagged data.
+            if (sumw == 0  ||  np < itsMinNPoint  || np < navgAll*itsMinPerc) {
+              outdata[inxo]  = suma / float(navgAll);
               outflags[inxo] = true;
               outwght[inxo]  = 0;
             } else {
