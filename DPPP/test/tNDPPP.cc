@@ -565,7 +565,7 @@ void testClear()
   checkFlags ("tNDPPP_tmp.MS5b");
   {
     Table tab("tNDPPP_tmp.MS5b");
-    ASSERT (allEQ(ROArrayColumn<bool>(tab, "FLAG").getColumn(), flags));
+    ASSERT (allEQ(ROArrayColumn<bool>(tab, "FLAG").getColumn(), false));
   }
 }
 

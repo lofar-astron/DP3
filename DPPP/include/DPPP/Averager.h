@@ -93,6 +93,7 @@ namespace LOFAR {
       DPBuffer        itsBuf;
       casa::Cube<int> itsNPoints;
       casa::Cube<casa::Complex> itsAvgAll;
+      casa::Cube<float>         itsWeightAll;
       uint            itsNChanAvg;
       uint            itsNTimeAvg;
       uint            itsMinNPoint;
