@@ -279,6 +279,7 @@ private:
         }
       }
     }
+    ASSERT (allNE(weights, float(0.)));
     for (uint i=0; i<result.size(); ++i) {
       result.data()[i] /= weights.data()[i];
     }

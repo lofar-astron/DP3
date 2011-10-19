@@ -92,8 +92,7 @@ namespace LOFAR {
         itsBuf.getData()    = buf.getData();
         IPosition shapeIn   = buf.getData().shape();
         itsNPoints.resize (shapeIn);
-        itsAvgAll.resize (shapeIn);
-        itsAvgAll = buf.getData();
+        itsAvgAll.reference (buf.getData() * itsBuf.getWeights());
         itsWeightAll.resize (shapeIn);
         itsWeightAll = itsBuf.getWeights();
         // Take care of the fullRes flags.
@@ -153,7 +152,7 @@ namespace LOFAR {
         Array<int>::contiter outnIter    = itsNPoints.cbegin();
         Array<int>::contiter outnIterEnd = itsNPoints.cend();
         while (outnIter != outnIterEnd) {
-          *alldIter += *indIter;
+          *alldIter += *indIter * *inwIter;
           *allwIter += *inwIter;
           if (!*infIter) {
             *outdIter += *indIter * *inwIter;
@@ -243,7 +242,7 @@ namespace LOFAR {
             }
             // Flag the point if insufficient unflagged data.
             if (sumw == 0  ||  np < itsMinNPoint  || np < navgAll*itsMinPerc) {
-              outdata[inxo]  = sumad / float(navgAll);
+              outdata[inxo]  = (sumaw==0  ?  Complex() : sumad/sumaw);
               outflags[inxo] = true;
               outwght[inxo]  = sumaw;
             } else {
