@@ -122,6 +122,14 @@ namespace LOFAR {
       const casa::MDirection& phaseCenter() const
         { return itsPhaseCenter; }
 
+      // Get the delay center direction.
+      const casa::MDirection& delayCenter() const
+        { return itsDelayCenter; }
+
+      // Get the tile beam direction.
+      const casa::MDirection& tileBeamDir() const
+        { return itsTileBeamDir; }
+
       // Get the channel frequencies.
       const casa::Vector<double>& chanFreqs() const
         { return itsChanFreqs; }
@@ -166,6 +174,8 @@ namespace LOFAR {
       vector<casa::MPosition>    itsAntPos;
       casa::MPosition            itsArrayPos;
       casa::MDirection           itsPhaseCenter;
+      casa::MDirection           itsDelayCenter;
+      casa::MDirection           itsTileBeamDir;
       casa::Vector<double>       itsChanFreqs;
       casa::Vector<double>       itsChanWidths;
     };

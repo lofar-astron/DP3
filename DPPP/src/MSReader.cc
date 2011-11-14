@@ -174,6 +174,7 @@ namespace LOFAR {
             // In this way we cater for irregular times in some WSRT MSs.
             if (near(mstime, itsNextTime)  ||
                 (mstime > itsFirstTime  &&  mstime < itsNextTime)) {
+              itsFirstTime -= itsNextTime-mstime;
               itsNextTime = mstime;
               useIter = true;
               break;
@@ -266,7 +267,8 @@ namespace LOFAR {
       // Let the next step in the pipeline process this time slot.
       getNextStep()->process (itsBuffer);
       ///      cout << "Reader: " << itsNextTime-4.75e9<<endl;
-      itsNextTime += itsInterval;
+      // Do not add to previous time, because it introduces round-off errors.
+      itsNextTime = itsFirstTime + (itsNrRead+itsNrInserted) * itsInterval;
       return true;
     }
 
@@ -398,10 +400,20 @@ namespace LOFAR {
         }
         // Read the phase reference position from the FIELD subtable.
         // Only use the main value from the PHASE_DIR array.
+        // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
+        // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
         Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
         AlwaysAssert (fldtab.nrow() == 1, AipsError);
-        ROArrayMeasColumn<MDirection> fldcol (fldtab, "PHASE_DIR");
-        itsPhaseCenter = *(fldcol(0).data());
+        ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
+        ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
+        itsPhaseCenter = *(fldcol1(0).data());
+        itsDelayCenter = *(fldcol2(0).data());
+        if (fldtab.tableDesc().isColumn ("LOFAR_TILE_BEAM_DIR")) {
+          ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
+          itsTileBeamDir = *(fldcol3(0).data());
+        } else {
+          itsTileBeamDir = itsDelayCenter;
+        }
         // Read the center frequencies of all channels.
         Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
         ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
@@ -437,6 +449,7 @@ namespace LOFAR {
         } else {
           // Stop skipping if time equal to itsFirstTime.
           if (near(mstime, itsFirstTime)) {
+            itsFirstTime = mstime;
             break;
           }
           // Also stop if time > itsFirstTime.
@@ -447,7 +460,9 @@ namespace LOFAR {
           if (mstime > itsFirstTime) {
             int nrt = int((mstime - itsFirstTime) / itsInterval);
             mstime -= (nrt+1) * itsInterval;    // Add 1 for rounding errors
-            if (! near(mstime, itsFirstTime)) {
+            if (near(mstime, itsFirstTime)) {
+              itsFirstTime = mstime;
+            } else {
               itsFirstTime = mstime + itsInterval;
             }
             break;
