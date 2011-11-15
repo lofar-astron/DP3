@@ -40,6 +40,8 @@
 #include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
 #include <Common/StreamUtil.h>
+
+#include <casa/OS/Path.h>
 #include <casa/OS/Timer.h>
 
 namespace LOFAR {
@@ -149,6 +151,20 @@ namespace LOFAR {
       if (outName.empty()) {
         outName = parset.getString ("msout");
       }
+      // See if a write should always be done.
+      bool needWrite = false;
+      if (! outName.empty()) {
+	needWrite = true;
+	if (outName == ".") {
+	  outName = "";
+	} else {
+	  casa::Path pathIn (inName);
+	  casa::Path pathOut(outName);
+	  if (pathIn.absoluteName() == pathOut.absoluteName()) {
+	    outName = "";
+	  }
+	}
+      }
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
       // Currently the input MS must be given.
@@ -208,7 +224,7 @@ namespace LOFAR {
                    "A new MS has to be given in msout if averaging is done");
         ASSERTSTR (info.phaseCenterIsOriginal(),
                    "A new MS has to be given in msout if a phase shift is done");
-        if (info.needWrite()) {
+        if (needWrite  ||  info.needWrite()) {
           step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
         } else {
           step = DPStep::ShPtr(new NullStep());
