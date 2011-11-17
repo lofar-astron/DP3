@@ -409,8 +409,14 @@ namespace LOFAR {
         itsPhaseCenter = *(fldcol1(0).data());
         itsDelayCenter = *(fldcol2(0).data());
         if (fldtab.tableDesc().isColumn ("LOFAR_TILE_BEAM_DIR")) {
-          ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
-          itsTileBeamDir = *(fldcol3(0).data());
+          ROArrayColumn<Double> fldcol3a (fldtab, "LOFAR_TILE_BEAM_DIR");
+	  // Only read column if it contains data.
+	  if (fldcol3a.isDefined(0)) {
+	    ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
+	    itsTileBeamDir = *(fldcol3(0).data());
+	  } else {
+	    itsTileBeamDir = itsDelayCenter;
+	  }
         } else {
           itsTileBeamDir = itsDelayCenter;
         }
