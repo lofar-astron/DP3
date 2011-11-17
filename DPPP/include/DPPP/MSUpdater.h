@@ -65,12 +65,16 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
+
     private:
       MSReader*   itsReader;
       uint        itsNrCorr;
       uint        itsNrChan;
       uint        itsNrBl;
       uint        itsNrTimes;
+      NSTimer     itsTimer;
     };
 
   } //# end namespace

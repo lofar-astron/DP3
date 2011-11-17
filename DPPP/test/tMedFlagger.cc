@@ -162,7 +162,7 @@ private:
     expFlag = itsFlag;
     if (itsUseAutoCorr) {
       for (int i=0; i<itsNBl; ++i) {
-        if (!itsShortBL || !(i==2 || i==3 | i==7 || i==8 || i==12 || i==13)) {
+        if (!itsShortBL || !(i==2 || i==3 || i==7 || i==8 || i==12 || i==13)) {
           for (int j=0; j<itsNCorr; ++j) {
             expFlag(j,0,i) = itsFlag || itsCount==0;
             expFlag(j,itsNChan-1,i) = true;

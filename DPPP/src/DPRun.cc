@@ -40,6 +40,8 @@
 #include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
 #include <Common/StreamUtil.h>
+
+#include <casa/OS/Path.h>
 #include <casa/OS/Timer.h>
 
 namespace LOFAR {
@@ -149,6 +151,20 @@ namespace LOFAR {
       if (outName.empty()) {
         outName = parset.getString ("msout");
       }
+      // See if a write should always be done.
+      bool needWrite = false;
+      if (! outName.empty()) {
+	needWrite = true;
+	if (outName == ".") {
+	  outName = "";
+	} else {
+	  casa::Path pathIn (inName);
+	  casa::Path pathOut(outName);
+	  if (pathIn.absoluteName() == pathOut.absoluteName()) {
+	    outName = "";
+	  }
+	}
+      }
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
       // Currently the input MS must be given.
@@ -198,7 +214,8 @@ namespace LOFAR {
         step = step->getNextStep();
       }
       // Tell the reader if visibility data needs to be read.
-      reader->setReadVisData (info.needVisData());
+      // We also do that if a forced update is done (to get flags for NaNs).
+      reader->setReadVisData (info.needVisData()  ||  needWrite);
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
       // If the user specified an output name, a writer is always created 
@@ -208,7 +225,7 @@ namespace LOFAR {
                    "A new MS has to be given in msout if averaging is done");
         ASSERTSTR (info.phaseCenterIsOriginal(),
                    "A new MS has to be given in msout if a phase shift is done");
-        if (info.needWrite()) {
+        if (needWrite  ||  info.needWrite()) {
           step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
         } else {
           step = DPStep::ShPtr(new NullStep());

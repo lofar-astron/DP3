@@ -42,6 +42,7 @@ namespace LOFAR {
         itsNrBl        (reader->nbaselines()),
         itsNrTimes     (0)
     {
+      NSTimer::StartStop sstime(itsTimer);
       MSWriter::writeHistory (reader->table(), parset.parameterSet());
     }
 
@@ -50,6 +51,7 @@ namespace LOFAR {
 
     bool MSUpdater::process (const DPBuffer& buf)
     {
+      NSTimer::StartStop sstime(itsTimer);
       itsReader->putFlags (buf.getRowNrs(), buf.getFlags());
       itsNrTimes++;
       return true;
@@ -62,6 +64,13 @@ namespace LOFAR {
     {
       os << "MSUpdater" << std::endl;
       os << "  MS:             " << itsReader->msName() << std::endl;
+    }
+
+    void MSUpdater::showTimings (std::ostream& os, double duration) const
+    {
+      os << "  ";
+      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      os << " MSUpdater" << endl;
     }
 
   } //# end namespace
