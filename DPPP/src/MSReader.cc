@@ -98,7 +98,7 @@ namespace LOFAR {
         }
         itsLastTime = qtime.getValue("s");
       }
-      ASSERT (itsLastTime > itsFirstTime);
+      ASSERT (itsLastTime >= itsFirstTime);
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
