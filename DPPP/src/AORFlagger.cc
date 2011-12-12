@@ -464,11 +464,11 @@ namespace LOFAR {
 
     void AORFlagger::addStats (StatisticsCollection& rfiStats,
                                const Image2DPtr& reals, const Image2DPtr& imags,
-                             const Mask2DCPtr& mask,
-                             int bl, uint polarization)
+			       const Mask2DCPtr& mask,
+			       int bl, uint polarization)
     {
-      uint nchan = reals->Width();
-      uint ntime = reals->Height();
+      uint nchan = reals->Height();
+      uint ntime = reals->Width();
       for (uint i=0; i<itsWindowSize; ++i) {
         rfiStats.Add (itsInput->getAnt1()[bl], itsInput->getAnt2()[bl],
                       itsBuf[i].getTime(), 0, polarization,
@@ -664,21 +664,6 @@ collection.Save(qualityData);
 Dit maakt dan de nieuwe tabellen en vult ze. De stukjes code komen bijna 
 volledig uit AOFlagger/src/aoquality.cpp, dus daar zou je kunnen kijken 
 voor extra info.
-
-Een tweede vraag die ik heb, is dat ik het nu heel eenvoudig wil maken 
-om de statistieken van een volledige observatie te krijgen. Qua grootte 
-is dat geen probleem meer, aangezien de tabellen ~Mb per MS zijn. Ik zou 
-dus iets willen hebben als:
-
-aoqplot <observatienaam>
-
-Wat is de beste manier om een volledige observatie te specificeren, 
-zodat aoqplot daarmee alle MS'es kan benaderen? Ik weet dat er "gds" en 
-clusterdesc achtige bestanden zijn, maar weet niet echt wat ze zijn. Is 
-daar een beschrijven en/of interface voor en kan ik die gebruiken? Ik 
-denk dat een interactieve viewer van de statistieken, waarin een aantal 
-key plotjes van een observatie getoond worden, erg nuttig kan zijn voor 
-quality controle -- we gebruiken hem al op het EoR cluster.
 
 In overleg met verschillende andere mensen kwam ik erachter dat het 
 misschien ook handig is om hier en daar nog wat extra statistieken toe 
