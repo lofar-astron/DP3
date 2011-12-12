@@ -191,7 +191,7 @@ namespace LOFAR {
       casa::Cube<float>         itsAmpl;        //# amplitude of data
       casa::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
       casa::Matrix<double>      itsUVW;         //# 3,nbasel
-      casa::Cube<float>         itsWeights;     //# nchan,nbasel
+      casa::Cube<float>         itsWeights;     //# ncorr,nchan,nbasel
       casa::Cube<bool>          itsFullResFlags; //# fullres_nchan,ntimeavg,nbl
     };
 

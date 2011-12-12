@@ -1,5 +1,5 @@
-//# MSReader.h: DPPP step reading from an MS
-//# Copyright (C) 2010
+//# MultiMSReader.h: DPPP step reading from multiple MSs
+//# Copyright (C) 2011
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -17,17 +17,17 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id$
+//# $Id: MultiMSReader.h 17800 2011-04-19 12:37:59Z diepen $
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_MSREADER_H
-#define DPPP_MSREADER_H
+#ifndef DPPP_MULTIMSREADER_H
+#define DPPP_MULTIMSREADER_H
 
 // @file
-// @brief DPPP step reading from an MS
+// @brief DPPP step reading from multiple MSs
 
-#include <DPPP/DPInput.h>
+#include <DPPP/MSReader.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
 #include <DPPP/FlagCounter.h>
@@ -125,18 +125,15 @@ namespace LOFAR {
     //  </tr>
     // </table>
 
-    class MSReader: public DPInput
+    class MultiMSReader: public MSReader
     {
     public:
-      // Default constructor.
-      MSReader();
-
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
-      MSReader (const std::string& msName,
-                const ParSet&, const string& prefix);
+      MultiMSReader (const vector<string>& msNames,
+                     const ParSet&, const string& prefix);
 
-      virtual ~MSReader();
+      virtual ~MultiMSReader();
 
       // Process the next data chunk.
       // It returns false when at the end.
@@ -173,49 +170,8 @@ namespace LOFAR {
       virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
                                                  const casa::RefRows& rowNrs);
 
-      // Write the flags at the given row numbers.
-      // It is used by MSUpdater.
-      void putFlags (const casa::RefRows& rowNrs,
-                     const casa::Cube<bool>& flags);
-
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
-
-      // Get the main MS table.
-      casa::Table& table()
-        { return itsMS; }
-
-      // Get the rownrs for meta info of missing time slots.
-      // It uses the rows of the first time slot.
-      const casa::Vector<uint>& getBaseRowNrs() const
-        { return itsBaseRowNrs; }
-
-      // Get the name of the MS.
-      virtual casa::String msName() const;
-
-      // Get the time information.
-      double firstTime() const
-        { return itsFirstTime; }
-      double lastTime() const
-        { return itsLastTime; }
-      double timeInterval() const
-        { return itsInterval; }
-
-      // Get the selected spectral window.
-      uint spectralWindow() const
-        { return itsSpw; }
-
-      // Get the baseline selection.
-      const string& baselineSelection() const
-        { return itsSelBL; }
-
-      // Is the data column missing?
-      bool missingData() const
-        { return itsMissingData; }
-
-      // Get the start channel.
-      uint startChan() const
-        { return itsStartChan; }
 
       // Get the frequency information (used by the writer).
       virtual void getFreqInfo (casa::Vector<double>& freq,
@@ -223,72 +179,19 @@ namespace LOFAR {
                                 casa::Vector<double>& effBW,
                                 casa::Vector<double>& resolution) const;
 
-      // Get the nr of averaged full resolution channels.
-      uint nchanAvg() const
-        { return itsFullResNChanAvg; }
-      // Get the nr of averaged full resolution time slots.
-      uint ntimeAvg() const
-        { return itsFullResNTimeAvg; }
-
-      // Tell if the input MS has LOFAR_FULL_RES_FLAG.
-      bool hasFullResFlags() const
-        { return itsHasFullResFlags; }
-
-      // Get access to the buffer.
-      const DPBuffer& getBuffer() const
-        { return itsBuffer; }
-
     private:
-      // Prepare the access to the MS.
-      // Return the first and last time and the interval.
-      void prepare (double& firstTime, double& lastTime,
-                    double& interval);
+      // Combine all cubes in the vector to a single one.
+      void combineFullResFlags (const vector<casa::Cube<bool> >& vec,
+                                casa::Cube<bool>& flags) const;
 
-      // Skip the first times in the MS in case a start time was given.
-      // If needed, it sets itsFirstTime properly.
-      void skipFirstTimes();
+      // Sort the bands (MSs) inorder of frequency.
+      void sortBands();
 
-      // Calculate the UVWs for a missing time slot.
-      void calcUVW();
-
-      // Calculate the weights from the autocorrelations.
-      void autoWeight (casa::Cube<float>& weights, const DPBuffer& buf);
-
-    protected:
       //# Data members.
-      casa::String        itsMSName;
-      casa::Table         itsMS;
-      casa::TableIterator itsIter;
-      casa::String        itsDataColName;
-      casa::String        itsStartChanStr;  //# startchan expression
-      casa::String        itsNrChanStr;     //# nchan expression
-      string              itsSelBL;         //# Baseline selection string
-      bool                itsReadVisData;   //# read visibility data?
-      bool                itsNeedSort;      //# sort needed on time,baseline?
-      bool                itsAutoWeight;    //# calculate weights from autocorr?
-      bool                itsHasWeightSpectrum;
-      bool                itsUseFlags;
-      bool                itsUseAllChan;    //# all channels (i.e. no slicer)?
-      bool                itsMissingData;   //# allow missing data column?
-      int                 itsSpw;           //# spw (band) to use (<0 no select)
-      uint                itsStartChan;
-      double              itsInterval;
-      double              itsFirstTime;
-      double              itsLastTime;
-      double              itsNextTime;
-      double              itsLastMSTime;
-      uint                itsNrRead;        //# nr of time slots read from MS
-      uint                itsNrInserted;    //# nr of inserted time slots
-      casa::Slicer        itsColSlicer;     //# slice in corr,chan column
-      casa::Slicer        itsArrSlicer;     //# slice in corr,chan,bl array
-      bool                itsHasFullResFlags;
-      uint                itsFullResNChanAvg;
-      uint                itsFullResNTimeAvg;
-      DPBuffer            itsBuffer;
-      UVWCalculator       itsUVWCalc;
-      casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
-      FlagCounter         itsFlagCounter;
-      NSTimer             itsTimer;
+      bool                  itsOrderMS;   //# sort multi MS in order of freq?
+      vector<MSReader*>     itsReaders;   //# same as itsSteps
+      vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
+      FlagCounter           itsFlagCounter;
     };
 
   } //# end namespace

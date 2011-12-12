@@ -53,6 +53,21 @@ namespace LOFAR {
       return freqs;
     }
 
+    Vector<double> DPInput::chanWidths (uint nchanAvg) const
+    {
+      uint nchan = itsChanWidths.size() / nchanAvg;
+      Vector<double> widths(nchan);
+      widths = 0.;
+      int inx = 0;
+      for (uint i=0; i<nchan; ++i) {
+        for (uint j=0; j<nchanAvg; ++j) {
+          widths[i] += itsChanWidths[inx];
+          inx++;
+        }
+      }
+      return widths;
+    }
+
     const vector<double>& DPInput::getBaselineLengths() const
     {
       // Calculate the baseline lengths if not done yet.

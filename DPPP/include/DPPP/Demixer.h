@@ -94,8 +94,9 @@ namespace LOFAR {
       vector<string>        itsSources;
       uint                  itsNChanAvg;
       uint                  itsNTimeAvg;
-      uint                  itsHalfWindow;
-      double                itsThreshold;
+      uint                  itsDMChanAvg;
+      uint                  itsDMTimeAvg;
+      uint                  itsTimeWindow;
       NSTimer               itsTimer;
     };
 

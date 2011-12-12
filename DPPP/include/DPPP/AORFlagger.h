@@ -33,6 +33,7 @@
 #include <Common/lofar_vector.h>
 #include <AOFlagger/strategy/actions/strategyaction.h>
 #include <AOFlagger/util/progresslistener.h>
+#include <AOFlagger/quality/statisticscollection.h>
 
 namespace LOFAR {
 
@@ -79,6 +80,9 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
+      // Write the statistics into the MS.
+      virtual void addToMS (const string& msName);
+
       // Update the general info.
       // It is used to adjust the parms if needed.
       virtual void updateInfo (DPInfo&);
@@ -101,7 +105,14 @@ namespace LOFAR {
       void flagBaseline (uint leftOverlap, uint windowSize,
                          uint rightOverlap, uint bl,
                          FlagCounter& counter,
-			 rfiStrategy::Strategy&);
+			 rfiStrategy::Strategy&,
+                         StatisticsCollection& rfiStats);
+
+      // Add the flags to the statistics.
+      void addStats (StatisticsCollection& rfiStats,
+                     const Image2DPtr& reals, const Image2DPtr& imags,
+                     const Mask2DCPtr& mask,
+                     int bl, uint polarization);
 
       // Fill the rfi strategy.
       void fillStrategy (rfiStrategy::Strategy&);
@@ -117,9 +128,11 @@ namespace LOFAR {
       double           itsOverlapPerc;
       double           itsMemory;        //# Usable memory in GBytes
       double           itsMemoryPerc;
+      double           itsMemoryNeeded;  //# Memory needed for data/flags
       bool             itsPulsarMode;
       bool             itsPedantic;
       bool             itsDoAutoCorr;
+      bool             itsDoRfiStats;
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
@@ -128,6 +141,8 @@ namespace LOFAR {
       double           itsFlagTime;      //# flag timer (sum of all threads)
       rfiStrategy::Strategy itsStrategy;
       DummyProgressListener itsProgressListener;
+      StatisticsCollection  itsRfiStats;
+      casa::Vector<double>  itsFreqs;
     };
 
   } //# end namespace

@@ -131,17 +131,22 @@ Estimator::Estimator(DPInput *input, const ParSet &parset, const string &prefix)
     ModelConfig config;
     config.setGain();
     config.setCache();
+    /// config.setBeam();
+    /// beaminfo lezen/toevoegen aan itsInstrument
 
-    try
-    {
-        itsModel =
-            MeasurementExprLOFAR::Ptr(new MeasurementExprLOFAR(*itsSourceDB,
-            config, itsInstrument, itsBaselines, itsPhaseReference,
-            itsReferenceFreq));
-    }
-    catch(Exception &e)
-    {
-        THROW(Exception, "Unable to construct the model expression.");
+    BufferMap bufferMap;   /// how to fill it?
+
+    try {
+      itsModel = MeasurementExprLOFAR::Ptr(new MeasurementExprLOFAR
+                                           (*itsSourceDB, bufferMap,
+                                            config, itsInstrument,
+                                            itsBaselines, itsReferenceFreq,
+                                            itsPhaseReference,
+                                            itsPhaseReference, ///delayref
+                                            itsPhaseReference));  ///tileref
+    } catch(Exception &x) {
+        THROW(Exception, "Unable to construct the BBS model expression; " +
+              string(x.what()));
     }
 
     SolverOptions lsqOptions;

@@ -134,8 +134,15 @@ namespace LOFAR {
       const casa::Vector<double>& chanFreqs() const
         { return itsChanFreqs; }
 
+      // Get the channel widths.
+      const casa::Vector<double>& chanWidths() const
+        { return itsChanWidths; }
+
       // Get averaged channel frequencies.
       casa::Vector<double> chanFreqs (uint nchanAvg) const;
+
+      // Get averaged channel widths.
+      casa::Vector<double> chanWidths (uint nchanAvg) const;
 
       // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.
@@ -168,8 +175,6 @@ namespace LOFAR {
       uint   itsNrBl;
       casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
       casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
-      mutable vector<double>     itsBLength;       //# baseline lengths
-      mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
       casa::Vector<casa::String> itsAntNames;
       vector<casa::MPosition>    itsAntPos;
       casa::MPosition            itsArrayPos;
@@ -178,6 +183,9 @@ namespace LOFAR {
       casa::MDirection           itsTileBeamDir;
       casa::Vector<double>       itsChanFreqs;
       casa::Vector<double>       itsChanWidths;
+    private:
+      mutable vector<double>     itsBLength;       //# baseline lengths
+      mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
     };
 
   } //# end namespace

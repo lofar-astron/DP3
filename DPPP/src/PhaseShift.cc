@@ -33,6 +33,8 @@
 #include <casa/Arrays/ArrayIO.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Quanta/MVAngle.h>
+#include <casa/Arrays/MatrixMath.h>
+#include <casa/Arrays/ArrayIO.h>
 #include <casa/BasicSL/Constants.h>
 #include <iostream>
 #include <iomanip>
@@ -47,6 +49,7 @@ namespace LOFAR {
       : itsInput   (input),
         itsName    (prefix),
         itsCenter  (parset.getStringVector(prefix+"phasecenter")),
+        itsUseMach (parset.getBool(prefix+"usemachine", false)),
         itsMachine (0)
     {}
 
@@ -67,7 +70,49 @@ namespace LOFAR {
         newDir = handleCenter();
         original = false;
       }
-      itsMachine = new casa::UVWMachine(info.phaseCenter(), newDir);
+      double newRa  = newDir.getValue().get()[0];
+      double newDec = newDir.getValue().get()[1];
+      double oldRa  = info.phaseCenter().getValue().get()[0];
+      double oldDec = info.phaseCenter().getValue().get()[1];
+      Matrix<double> oldUVW(3,3);
+      Matrix<double> newUVW(3,3);
+      oldUVW(0,2) = sin(oldRa)*cos(oldDec);
+      oldUVW(1,2) = cos(oldRa)*cos(oldDec);
+      oldUVW(2,2) = sin(oldDec);
+
+      oldUVW(0,1) = -sin(oldRa)*sin(oldDec);
+      oldUVW(1,1) = -cos(oldRa)*sin(oldDec);
+      oldUVW(2,1) = cos(oldDec);
+
+      oldUVW(0,0) = cos(oldRa);
+      oldUVW(1,0) = -sin(oldRa);
+      oldUVW(2,0) = 0;
+
+      newUVW(0,2) = sin(newRa)*cos(newDec);
+      newUVW(1,2) = cos(newRa)*cos(newDec);
+      newUVW(2,2) = sin(newDec);
+
+      newUVW(0,1) = -sin(newRa)*sin(newDec);
+      newUVW(1,1) = -cos(newRa)*sin(newDec);
+      newUVW(2,1) = cos(newDec);
+
+      newUVW(0,0) = cos(newRa);
+      newUVW(1,0) = -sin(newRa);
+      newUVW(2,0) = 0;
+
+      itsMat1.reference (product(transpose(newUVW), oldUVW));
+      cout <<oldRa<<' '<<oldDec<<' '<<newRa<<' '<<newDec<<endl;
+      cout<<oldUVW<<newUVW<<itsMat1;
+      Matrix<double> wold(oldUVW(IPosition(2,0,2),IPosition(2,2,2)));
+      Matrix<double> wnew(newUVW(IPosition(2,0,2),IPosition(2,2,2)));
+      cout <<wold<<endl<<wnew<<endl;
+      Matrix<double> tt= product(transpose(Matrix<double>(wold-wnew)), oldUVW);
+      cout << tt;
+      itsXYZ[0] = tt(0,0);
+      itsXYZ[1] = tt(0,1);
+      itsXYZ[2] = tt(0,2);
+
+      itsMachine = new casa::UVWMachine(newDir, info.phaseCenter());
       info.setPhaseCenter (newDir, original);
       // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
       const Vector<double>& freq = itsInput->chanFreqs(info.nchanAvg());
@@ -160,25 +205,55 @@ namespace LOFAR {
       uint ncorr = newBuf.getData().shape()[0];
       uint nchan = newBuf.getData().shape()[1];
       uint nbl   = newBuf.getData().shape()[2];
+      double* uvw = newBuf.getUVW().data();
       VectorIterator<double> uvwIter(newBuf.getUVW(), 0);
       double phase;
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
       for (uint i=0; i<nbl; ++i) {
-        // Convert the uvw coordinates and get the phase shift term.
-        itsMachine->convertUVW (phase, uvwIter.vector());
-        for (uint j=0; j<nchan; ++j) {
-          // Shift the phase of the data of this baseline.
-          // Convert the phase term to wavelengths (and apply 2*pi).
-          // u_wvl = u_m / wvl = u_m * freq / c
-          double phasewvl = phase * itsFreqC[j];
-          Complex phasor(cos(phasewvl), sin(phasewvl));
-          for (uint k=0; k<ncorr; ++k) {
-            *data++ *= phasor;
+        if (itsUseMach) {
+          // Convert the uvw coordinates and get the phase shift term.
+          itsMachine->convertUVW (phase, uvwIter.vector());
+          for (uint j=0; j<nchan; ++j) {
+            // Shift the phase of the data of this baseline.
+            // Convert the phase term to wavelengths (and apply 2*pi).
+            // u_wvl = u_m / wvl = u_m * freq / c
+            double phasewvl = phase * itsFreqC[j];
+            Complex phasor(cos(phasewvl), sin(phasewvl));
+            for (uint k=0; k<ncorr; ++k) {
+              *data++ *= phasor;
+            }
           }
+          cout << "new uvw=" << uvwIter.vector()<<endl;
+          uvwIter.next();
+        } else {
+          const double* mat1 = itsMat1.data();
+          double u = uvw[0]*mat1[0] + uvw[1]*mat1[1] + uvw[2]*mat1[2];
+          double v = uvw[0]*mat1[3] + uvw[1]*mat1[4] + uvw[2]*mat1[5];
+          double w = uvw[0]*mat1[6] + uvw[1]*mat1[7] + uvw[2]*mat1[8];
+          double phase = 0;
+          for (int i=0; i<3; ++i) {
+            for (int j=0; j<3; ++j) {
+              phase += itsXYZ[j] * uvw[i];
+            }
+          }
+          for (uint j=0; j<nchan; ++j) {
+            // Shift the phase of the data of this baseline.
+            // Convert the phase term to wavelengths (and apply 2*pi).
+            // u_wvl = u_m / wvl = u_m * freq / c
+            double phasewvl = phase * itsFreqC[j];
+            Complex phasor(cos(phasewvl), sin(phasewvl));
+            for (uint k=0; k<ncorr; ++k) {
+              *data++ *= phasor;
+            }
+          }
+          uvw[0] = u;
+          uvw[1] = v;
+          uvw[2] = w;
+          uvw += 3;
+          cout << "new uvw=" << u<<' '<<v<<' '<<w<<endl;
         }
-        uvwIter.next();
      }
      itsTimer.stop();
      getNextStep()->process (newBuf);
@@ -228,3 +303,19 @@ namespace LOFAR {
 
   } //# end namespace
 }
+//[[-0.5505111  -0.62251216  0.55625187]
+// [-0.83482785  0.41050362 -0.36680955]
+// [ 0.          0.66630728  0.74567728]]
+//[[ 0.98727541  0.13604132 -0.08234088]
+// [ 0.15901969 -0.84461397  0.51121423]
+// [ 0.          0.51780306  0.85549985]]
+//[[-0.67626013 -0.54931279  0.49084385]
+// [ 0.630215   -0.08638852  0.77159968]
+// [-0.3814463   0.83113927  0.40460628]]
+//[[ 0.55625187]
+// [-0.36680955]
+// [ 0.74567728]]
+//[[-0.08234088]
+// [ 0.51121423]
+// [ 0.85549985]]
+//[[ 0.3814463  -0.83113927  0.59539372]]

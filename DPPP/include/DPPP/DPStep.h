@@ -55,6 +55,9 @@ namespace LOFAR {
     //  <li> 'finish' finishes the processing which could mean that 'process'
     //       of the next step has to be called several times. When done,
     //       it should call 'finish' of the next step.
+    //  <li> 'addToMS' is called after 'finish'. It gives a step the opportunity
+    //       to add some data to the MS written/updated. It is, for example,
+    //       used by AOFlagger to write its statistics.
     //  <li> 'showCounts' can be used to show possible counts of flags, etc.
     // </ul>
 
@@ -77,6 +80,10 @@ namespace LOFAR {
       // Update the general info.
       // The default implementation does nothing.
       virtual void updateInfo (DPInfo&);
+
+      // Add some data to the MeasurementSet written/updated.
+      // The default implementation does nothing.
+      virtual void addToMS (const string& msName);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const = 0;

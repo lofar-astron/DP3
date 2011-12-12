@@ -23,10 +23,11 @@
 
 #include <lofar_config.h>
 #include <DPPP/DPRun.h>
+#include <DPPP/Package__Version.h>
 #include <Common/LofarLogger.h>
+#include <Common/SystemUtil.h>
 #include <iostream>
 #include <stdexcept>
-#include <libgen.h>
 
 using namespace LOFAR::DPPP;
 using namespace LOFAR;
@@ -38,7 +39,8 @@ int main(int argc, char *argv[])
 {
   try
   {
-    INIT_LOGGER(basename(argv[0]));
+    TEST_SHOW_VERSION (argc, argv, DPPP);
+    INIT_LOGGER(basename(string(argv[0])));
     // Get the name of the parset file.
     string parsetName("NDPPP.parset");
     if (argc > 1) {
