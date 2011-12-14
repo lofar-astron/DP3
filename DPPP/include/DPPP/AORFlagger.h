@@ -111,7 +111,7 @@ namespace LOFAR {
       // Add the flags to the statistics.
       void addStats (StatisticsCollection& rfiStats,
                      const Image2DPtr& reals, const Image2DPtr& imags,
-                     const Mask2DCPtr& mask,
+		     const Mask2DCPtr& mask, const Mask2DPtr& origFlags,
                      int bl, uint polarization);
 
       // Fill the rfi strategy.
@@ -136,9 +136,11 @@ namespace LOFAR {
       vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
+      NSTimer          itsQualityTimer;  //# quality writing timer
       NSTimer          itsComputeTimer;  //# move/flag timer
       double           itsMoveTime;      //# data move timer (sum all threads)
       double           itsFlagTime;      //# flag timer (sum of all threads)
+      double           itsQualTime;      //# quality timer (sum of all threads)
       rfiStrategy::Strategy itsStrategy;
       DummyProgressListener itsProgressListener;
       StatisticsCollection  itsRfiStats;

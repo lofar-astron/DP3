@@ -79,6 +79,7 @@ namespace LOFAR {
         itsFlagCounter (input, parset, prefix+"count."),
         itsMoveTime    (0),
         itsFlagTime    (0),
+        itsQualTime    (0),
         itsRfiStats    (4)
     {
       itsWindowSize  = parset.getUint   (prefix+"timewindow", 0);
@@ -92,7 +93,7 @@ namespace LOFAR {
       itsOverlapPerc = parset.getDouble (prefix+"overlapperc", -1);
       itsPulsarMode  = parset.getBool   (prefix+"pulsar", false);
       itsPedantic    = parset.getBool   (prefix+"pedantic", false);
-      itsDoAutoCorr  = parset.getBool   (prefix+"autocorr", false);
+      itsDoAutoCorr  = parset.getBool   (prefix+"autocorr", true);
       itsDoRfiStats  = parset.getBool   (prefix+"keepstatistics", true);
       // Fill the strategy.
       fillStrategy (itsStrategy);
@@ -222,12 +223,18 @@ namespace LOFAR {
       // move time and flag time are sum of all threads.
       // Scale them to a single elapsed time.
       double factor = (itsComputeTimer.getElapsed() /
-                       (itsMoveTime + itsFlagTime));
+                       (itsMoveTime + itsFlagTime + itsQualTime));
       FlagCounter::showPerc1 (os, itsMoveTime*factor, flagDur);
       os << " of it spent in shuffling data" << endl;
       os << "          ";
       FlagCounter::showPerc1 (os, itsFlagTime*factor, flagDur);
       os << " of it spent in calculating flags" << endl;
+      if (itsDoRfiStats) {
+	os << "          ";
+	FlagCounter::showPerc1 (os, itsQualTime*factor +  itsQualityTimer.getElapsed(),
+				flagDur);
+	os << " of it spent in making quality statistics" << endl;
+      }
     }
 
     // Alternative strategy is to flag in windows
@@ -266,10 +273,14 @@ namespace LOFAR {
 
     void AORFlagger::addToMS (const string& msName)
     {
+      itsTimer.start();
       if (itsDoRfiStats) {
+	itsQualityTimer.start();
         QualityTablesFormatter qualityData(msName);
         itsRfiStats.Save (qualityData);
+	itsQualityTimer.stop();
       }
+      itsTimer.stop();
     }
 
     void AORFlagger::flag (uint rightOverlap)
@@ -318,8 +329,10 @@ namespace LOFAR {
         if (itsDoRfiStats) {
 #pragma omp critical(aorflagger_updaterfistats)
           {
+	    itsQualityTimer.stop();
             // Add the rfi statistics to the global object.
             itsRfiStats.Add (rfiStats);
+	    itsQualityTimer.start();
           }
         }
       } // end of OMP parallel
@@ -349,7 +362,7 @@ namespace LOFAR {
 				   rfiStrategy::Strategy& strategy,
                                    StatisticsCollection& rfiStats)
     {
-      NSTimer moveTimer, flagTimer;
+      NSTimer moveTimer, flagTimer, qualTimer;
       moveTimer.start();
       // Get the sizes of the axes.
       uint ntime  = leftOverlap + windowSize + rightOverlap;
@@ -365,8 +378,10 @@ namespace LOFAR {
       Image2DPtr imagYX = Image2D::CreateUnsetImagePtr(ntime, nchan);
       Image2DPtr realYY = Image2D::CreateUnsetImagePtr(ntime, nchan);
       Image2DPtr imagYY = Image2D::CreateUnsetImagePtr(ntime, nchan);
+      Mask2DPtr origFlags = Mask2D::CreateUnsetMaskPtr(ntime, nchan);
       for (uint i=0; i<ntime; ++i) {
-        const Complex* data = itsBuf[i].getData().data() + bl*blsize;
+        const Complex* data = itsBuf[i].getData().data()  + bl*blsize;
+        const bool*   flags = itsBuf[i].getFlags().data() + bl*blsize;
         for (uint j=0; j<nchan; ++j) {
           realXX->SetValue (i, j, data->real());
           imagXX->SetValue (i, j, data->imag());
@@ -380,7 +395,9 @@ namespace LOFAR {
           realYY->SetValue (i, j, data->real());
           imagYY->SetValue (i, j, data->imag());
           data++;
-        }
+          *(origFlags->ValuePtr(i, j)) = *flags;
+          flags += 4;
+	}
       }
       Mask2DCPtr falseMask = Mask2D::CreateSetMaskPtr<false> (ntime, nchan);
       Image2DCPtr zeroData = Image2D::CreateZeroImagePtr (ntime, nchan);
@@ -447,10 +464,12 @@ namespace LOFAR {
       moveTimer.stop();
       // Update the RFI statistics if needed.
       if (itsDoRfiStats) {
-        addStats (rfiStats, realXX, imagXX, maskXX, bl, 0);
-        addStats (rfiStats, realXY, imagXY, maskXY, bl, 1);
-        addStats (rfiStats, realYX, imagYX, maskYX, bl, 2);
-        addStats (rfiStats, realYY, imagYY, maskYY, bl, 3);
+	qualTimer.start();
+        addStats (rfiStats, realXX, imagXX, maskXX, origFlags, bl, 0);
+        addStats (rfiStats, realXY, imagXY, maskXY, origFlags, bl, 1);
+        addStats (rfiStats, realYX, imagYX, maskYX, origFlags, bl, 2);
+        addStats (rfiStats, realYY, imagYY, maskYY, origFlags, bl, 3);
+	qualTimer.stop();
       }
 #pragma omp critical(aorflagger_updatecounts)
       {
@@ -459,12 +478,13 @@ namespace LOFAR {
         // Add the timings.
         itsMoveTime += moveTimer.getElapsed();
         itsFlagTime += flagTimer.getElapsed();
+        itsQualTime += qualTimer.getElapsed();
       } // end of OMP critical
     }
 
     void AORFlagger::addStats (StatisticsCollection& rfiStats,
                                const Image2DPtr& reals, const Image2DPtr& imags,
-			       const Mask2DCPtr& mask,
+			       const Mask2DCPtr& mask, const Mask2DPtr& origFlags,
 			       int bl, uint polarization)
     {
       uint nchan = reals->Height();
@@ -473,8 +493,8 @@ namespace LOFAR {
         rfiStats.Add (itsInput->getAnt1()[bl], itsInput->getAnt2()[bl],
                       itsBuf[i].getTime(), 0, polarization,
                       reals->ValuePtr (i,0), imags->ValuePtr (i,0),
-                      mask->ValuePtr (i,0),
-                      nchan, ntime, ntime);
+                      mask->ValuePtr (i,0), origFlags->ValuePtr (i,0),
+                      nchan, ntime, ntime, ntime);
       }
     }
 
