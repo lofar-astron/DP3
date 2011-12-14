@@ -142,7 +142,9 @@ namespace LOFAR {
         while (step) {
           ostringstream os;
           step->showTimings (os, duration);
-          DPLOG_INFO (os.str(), true);
+	  if (! os.str().empty()) {
+	    DPLOG_INFO (os.str(), true);
+	  }
           step = step->getNextStep();
         }
       }
