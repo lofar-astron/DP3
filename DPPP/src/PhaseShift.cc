@@ -76,38 +76,34 @@ namespace LOFAR {
       double oldDec = info.phaseCenter().getValue().get()[1];
       Matrix<double> oldUVW(3,3);
       Matrix<double> newUVW(3,3);
-      oldUVW(0,2) = sin(oldRa)*cos(oldDec);
-      oldUVW(1,2) = cos(oldRa)*cos(oldDec);
-      oldUVW(2,2) = sin(oldDec);
+      oldUVW(0,0) = cos(oldRa);
+      oldUVW(1,0) = -sin(oldRa);
+      oldUVW(2,0) = 0;
 
       oldUVW(0,1) = -sin(oldRa)*sin(oldDec);
       oldUVW(1,1) = -cos(oldRa)*sin(oldDec);
       oldUVW(2,1) = cos(oldDec);
 
-      oldUVW(0,0) = cos(oldRa);
-      oldUVW(1,0) = -sin(oldRa);
-      oldUVW(2,0) = 0;
-
-      newUVW(0,2) = sin(newRa)*cos(newDec);
-      newUVW(1,2) = cos(newRa)*cos(newDec);
-      newUVW(2,2) = sin(newDec);
-
-      newUVW(0,1) = -sin(newRa)*sin(newDec);
-      newUVW(1,1) = -cos(newRa)*sin(newDec);
-      newUVW(2,1) = cos(newDec);
+      oldUVW(0,2) = sin(oldRa)*cos(oldDec);
+      oldUVW(1,2) = cos(oldRa)*cos(oldDec);
+      oldUVW(2,2) = sin(oldDec);
 
       newUVW(0,0) = cos(newRa);
       newUVW(1,0) = -sin(newRa);
       newUVW(2,0) = 0;
 
+      newUVW(0,1) = -sin(newRa)*sin(newDec);
+      newUVW(1,1) = -cos(newRa)*sin(newDec);
+      newUVW(2,1) = cos(newDec);
+
+      newUVW(0,2) = sin(newRa)*cos(newDec);
+      newUVW(1,2) = cos(newRa)*cos(newDec);
+      newUVW(2,2) = sin(newDec);
+
       itsMat1.reference (product(transpose(newUVW), oldUVW));
-      cout <<oldRa<<' '<<oldDec<<' '<<newRa<<' '<<newDec<<endl;
-      cout<<oldUVW<<newUVW<<itsMat1;
       Matrix<double> wold(oldUVW(IPosition(2,0,2),IPosition(2,2,2)));
       Matrix<double> wnew(newUVW(IPosition(2,0,2),IPosition(2,2,2)));
-      cout <<wold<<endl<<wnew<<endl;
       Matrix<double> tt= product(transpose(Matrix<double>(wold-wnew)), oldUVW);
-      cout << tt;
       itsXYZ[0] = tt(0,0);
       itsXYZ[1] = tt(0,1);
       itsXYZ[2] = tt(0,2);
@@ -225,19 +221,13 @@ namespace LOFAR {
               *data++ *= phasor;
             }
           }
-          cout << "new uvw=" << uvwIter.vector()<<endl;
           uvwIter.next();
         } else {
           const double* mat1 = itsMat1.data();
-          double u = uvw[0]*mat1[0] + uvw[1]*mat1[1] + uvw[2]*mat1[2];
-          double v = uvw[0]*mat1[3] + uvw[1]*mat1[4] + uvw[2]*mat1[5];
-          double w = uvw[0]*mat1[6] + uvw[1]*mat1[7] + uvw[2]*mat1[8];
-          double phase = 0;
-          for (int i=0; i<3; ++i) {
-            for (int j=0; j<3; ++j) {
-              phase += itsXYZ[j] * uvw[i];
-            }
-          }
+          double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
+          double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
+          double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
+          double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
           for (uint j=0; j<nchan; ++j) {
             // Shift the phase of the data of this baseline.
             // Convert the phase term to wavelengths (and apply 2*pi).
@@ -252,7 +242,6 @@ namespace LOFAR {
           uvw[1] = v;
           uvw[2] = w;
           uvw += 3;
-          cout << "new uvw=" << u<<' '<<v<<' '<<w<<endl;
         }
      }
      itsTimer.stop();

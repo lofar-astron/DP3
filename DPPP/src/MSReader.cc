@@ -406,8 +406,14 @@ namespace LOFAR {
       if (tdesc.isColumn (itsDataColName)) {
         itsMissingData = false;
       } else {
-        ASSERTSTR (itsMissingData, "Data column " << itsDataColName
-                   << " is missing in " << itsMSName);
+        if (itsMissingData) {
+          // Only give warning if a missing data column is allowed.
+          LOG_WARN ("Data column " + itsDataColName +
+                    " is missing in " + itsMSName);
+        } else {
+          THROW (Exception, ("Data column " + itsDataColName +
+                             " is missing in " + itsMSName));
+        }
       }
       // Test if the full resolution flags are present.
       itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
