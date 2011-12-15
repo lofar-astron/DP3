@@ -1,4 +1,4 @@
-//# PhaseShift.h: DPPP step class to average in time and/or freq
+//# PhaseShift.h: DPPP step class to shift the data to another phase center
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -25,11 +25,10 @@
 #define DPPP_PHASESHIFT_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP step class to shift the data to another phase center
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <measures/Measures/UVWMachine.h>
 #include <casa/Arrays/Matrix.h>
 
 namespace LOFAR {
@@ -39,17 +38,11 @@ namespace LOFAR {
 
     // @ingroup NDPPP
 
-    // This class is a DPStep class calculating the weighted average of
-    // data in time and/or frequency.
-    // <br>
-    // Only unflagged data points are used. The average is calculated as
-    // <tt>sum(data*weight) / sum(weight)</tt> and the sum of the weights
-    // is the weight of the new data point. If all data point to use are
-    // flagged, the resulting data point and weight are set to zero and flagged.
+    // This class is a DPStep class to shift the data and UVW coordinates
+    // to another phase center. If no phase center is given, a shift is
+    // done back to the original phase center.
     //
-    // It keeps track of the FullResFlags. It sets them if the corresponding
-    // data point is flagged. Note that multiple FullResFlags elements map to
-    // a single data point if some averaging was done before.
+    // The code is based on the script phaseshift.py by Bas vd Tol.
 
     class PhaseShift: public DPStep
     {
@@ -83,15 +76,13 @@ namespace LOFAR {
       casa::MDirection handleCenter();
       
       //# Data members.
-      DPInput*          itsInput;
-      string            itsName;
-      vector<string>    itsCenter;
-      bool              itsUseMach;
-      vector<double>    itsFreqC;      //# freq/C
-      casa::UVWMachine* itsMachine;
+      DPInput*             itsInput;
+      string               itsName;
+      vector<string>       itsCenter;
+      vector<double>       itsFreqC;      //# freq/C
       casa::Matrix<double> itsMat1;       //# TT in phasehift.py
-      double            itsXYZ[3];     //# numpy.dot((w-w1).T, T)
-      NSTimer           itsTimer;
+      double               itsXYZ[3];     //# numpy.dot((w-w1).T, T)
+      NSTimer              itsTimer;
     };
 
   } //# end namespace
