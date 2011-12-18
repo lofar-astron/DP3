@@ -46,6 +46,9 @@ namespace LOFAR {
         itsDMChanAvg (parset.getUint  (prefix+"demixfreqstep", itsNChanAvg)),
         itsDMTimeAvg (parset.getUint  (prefix+"demixtimestep", itsNTimeAvg)),
         itsTimeWindow(parset.getUint  (prefix+"timewindow", 1))
+        ///itsJointSolve(parset.getBool  (prefix+"jointsolve", true)),
+        ///itsSources   (parset.getStringVector(prefix+"demixsources")),
+        ///itsExtra     (parset.getStringVector(prefix+"extrasources"))
     {
       if (itsSources.empty()) {
         // No sources means that nothing has to be demixed, only averaged.

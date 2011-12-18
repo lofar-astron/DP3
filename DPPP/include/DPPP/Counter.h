@@ -72,6 +72,7 @@ namespace LOFAR {
       //# Data members.
       DPInput*    itsInput;
       string      itsName;
+      bool        itsFlagData;
       uint        itsCount;
       FlagCounter itsFlagCounter;
     };

@@ -207,8 +207,7 @@ namespace LOFAR {
     {
       os << endl << "Flags set by AOFlagger " << itsName;
       os << endl << "=======================" << endl;
-      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsNTimes);
+      itsFlagCounter.showBaseline (os, itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
       itsFlagCounter.showCorrelation (os, itsNTimes);
     }

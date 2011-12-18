@@ -99,8 +99,7 @@ namespace LOFAR {
     {
       os << endl << "Flags set by PreFlagger " << itsName;
       os << endl << "=======================" << endl;
-      itsFlagCounter.showBaseline (os, itsInput->getAnt1(),
-                                   itsInput->getAnt2(), itsCount);
+      itsFlagCounter.showBaseline (os, itsCount);
       itsFlagCounter.showChannel  (os, itsCount);
     }
 

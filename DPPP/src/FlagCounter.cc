@@ -53,8 +53,9 @@ namespace LOFAR {
                               const ParSet& parset, const string& prefix)
       : itsInput (input)
     {
-      itsShowFF = parset.getBool (prefix+"showfullyflagged", false);
-      bool save = parset.getBool (prefix+"save", false);
+      itsWarnPerc = parset.getDouble (prefix+"warnperc", 0);
+      itsShowFF   = parset.getBool   (prefix+"showfullyflagged", false);
+      bool save   = parset.getBool   (prefix+"save", false);
       if (save) {
         // Percentages have to be saved, so form the table name to use.
         string path = parset.getString (prefix+"path", "");
@@ -117,9 +118,11 @@ namespace LOFAR {
                       std::plus<int64>());
     }
 
-    void FlagCounter::showBaseline (ostream& os, const Vector<Int>& ant1,
-                                    const Vector<Int>& ant2, int64 ntimes) const
+    void FlagCounter::showBaseline (ostream& os, int64 ntimes) const
     {
+      const Vector<Int>& ant1 = itsInput->getAnt1();
+      const Vector<Int>& ant2 = itsInput->getAnt2();
+      const Vector<String>& antNames = itsInput->antennaNames();
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;
       int64 npoints = ntimes * itsChanCounts.size();
@@ -204,14 +207,26 @@ namespace LOFAR {
         int ia = oldant;
         for (int j=0; j<nra;) {
           if (nusedAnt[ia] > 0) {
-            os << std::setw(4)
-               << int((100. * countAnt[ia]) /
-                      (nusedAnt[ia] * npoints) + 0.5) << '%';
+            double perc = 100. * countAnt[ia] / (nusedAnt[ia] * npoints);
+            os << std::setw(4) << int(perc + 0.5) << '%';
             j++;
           }
           ia++;
         }
         os << endl;
+      }
+      if (itsWarnPerc > 0) {
+        for (uint i=0; i<nrant; ++i) {
+          if (nusedAnt[i] > 0) {
+            double perc = (100. * countAnt[i]) / (nusedAnt[i] * npoints);
+            if (perc >= itsWarnPerc) {
+              os << "** NOTE: ";
+              showPerc1 (os, perc, 100);
+              os << " of data are flagged for station " << i
+                 << " (" << antNames[i] << ')' << endl;
+            }
+          }
+        }
       }
       if (itsShowFF) {
         os << "Fully flagged baselines: ";
@@ -254,11 +269,21 @@ namespace LOFAR {
         }
         os << endl;
       }
-      npoints *= itsChanCounts.size();
+      int64 totalnpoints = npoints * itsChanCounts.size();
       os << "Total flagged: ";
-      showPerc3 (os, nflagged, npoints);
-      os << "   (" << nflagged << " out of " << npoints
+      showPerc3 (os, nflagged, totalnpoints);
+      os << "   (" << nflagged << " out of " << totalnpoints
          << " visibilities)" << endl;
+      if (itsWarnPerc > 0) {
+        for (uint i=0; i<itsChanCounts.size(); ++i) {
+          double perc = (100. * itsChanCounts[i]) / npoints;
+          if (perc >= itsWarnPerc) {
+            os << "** NOTE: ";
+            showPerc1 (os, perc, 100);
+            os << " of data are flagged for channel " << i << endl;
+          }
+        }
+      }
       if (! itsSaveName.empty()) {
         saveChannel (npoints, itsChanCounts);
       }
