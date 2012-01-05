@@ -133,8 +133,10 @@ namespace LOFAR {
 
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
+      // The missingData argument is for MultiMSReader.
       MSReader (const std::string& msName,
-                const ParSet&, const string& prefix);
+                const ParSet&, const string& prefix,
+                bool missingData = false);
 
       virtual ~MSReader();
 
@@ -221,7 +223,8 @@ namespace LOFAR {
       virtual void getFreqInfo (casa::Vector<double>& freq,
                                 casa::Vector<double>& width,
                                 casa::Vector<double>& effBW,
-                                casa::Vector<double>& resolution) const;
+                                casa::Vector<double>& resolution,
+                                double& refFreq) const;
 
       // Get the nr of averaged full resolution channels.
       uint nchanAvg() const

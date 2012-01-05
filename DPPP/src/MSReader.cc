@@ -55,16 +55,15 @@ namespace LOFAR {
     {}
 
     MSReader::MSReader (const string& msName,
-                        const ParSet& parset, const string& prefix)
-      : itsMS          (msName, TableLock::AutoNoReadLocking),
-        itsReadVisData (False),
+                        const ParSet& parset, const string& prefix,
+                        bool missingData)
+      : itsReadVisData (False),
+        itsMissingData (missingData),
         itsLastMSTime  (0),
         itsNrRead      (0),
         itsNrInserted  (0)
     {
       NSTimer::StartStop sstime(itsTimer);
-      // Get full MS name.
-      itsMSName = itsMS.tableName();
       // Get info from parset.
       itsSpw              = parset.getInt    (prefix+"band", -1);
       itsStartChanStr     = parset.getString (prefix+"startchan", "0");
@@ -73,10 +72,16 @@ namespace LOFAR {
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
-      itsMissingData      = parset.getBool   (prefix+"missingdata", false);
       itsAutoWeight       = parset.getBool   (prefix+"autoweight", false);
       itsNeedSort         = parset.getBool   (prefix+"sort", false);
       itsSelBL            = parset.getString (prefix+"baseline", string());
+      // Try to open the MS and get its full name.
+      if (itsMissingData  &&  !Table::isReadable (msName)) {
+        LOG_WARN ("MeasurementSet " << msName << " not found; dummy data used");
+        return;
+      }
+      itsMS = MeasurementSet (msName, TableLock::AutoNoReadLocking);
+      itsMSName = itsMS.tableName();
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
@@ -191,7 +196,8 @@ namespace LOFAR {
     void MSReader::getFreqInfo (Vector<double>& freq,
                                 Vector<double>& width,
                                 Vector<double>& effBW,
-                                Vector<double>& resolution) const
+                                Vector<double>& resolution,
+                                double& refFreq) const
     {
       freq.resize (itsNrChan);
       width.resize (itsNrChan);
@@ -202,12 +208,14 @@ namespace LOFAR {
       ROArrayColumn<Double> inWIDTH(inSPW, "CHAN_WIDTH");
       ROArrayColumn<Double> inBW(inSPW, "EFFECTIVE_BW");
       ROArrayColumn<Double> inRESOLUTION(inSPW, "RESOLUTION");
+      ROScalarColumn<Double> inREFFREQ(inSPW, "REF_FREQUENCY");
       Slicer slicer(IPosition(1, itsStartChan),
                     IPosition(1, itsNrChan));
       inFREQ.getSlice (itsSpw, slicer, freq);
       inWIDTH.getSlice (itsSpw, slicer, width);
       inBW.getSlice (itsSpw, slicer, effBW);
       inRESOLUTION.getSlice (itsSpw, slicer, resolution);
+      refFreq = inREFFREQ(itsSpw);
     }
 
     bool MSReader::process (const DPBuffer&)
@@ -354,24 +362,28 @@ namespace LOFAR {
     {
       os << "MSReader" << std::endl;
       os << "  input MS:       " << itsMSName << std::endl;
-      if (! itsSelBL.empty()) {
-        os << "  baseline:       " << itsSelBL << std::endl;
+      if (itsMS.isNull()) {
+        os << "    *** MS does not exist ***" << std::endl;
+      } else {
+        if (! itsSelBL.empty()) {
+          os << "  baseline:       " << itsSelBL << std::endl;
+        }
+        os << "  band            " << itsSpw << std::endl;
+        os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
+           << ')' << std::endl;
+        os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr
+           << ')' << std::endl;
+        os << "  ncorrelations:  " << itsNrCorr << std::endl;
+        os << "  nbaselines:     " << itsNrBl << std::endl;
+        os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
+        os << "  time interval:  " << itsInterval << std::endl;
+        os << "  DATA column:    " << itsDataColName;
+        if (itsMissingData) {
+          os << "  (not present)";
+        }
+        os << std::endl;
+        os << "  autoweight:     " << itsAutoWeight << std::endl;
       }
-      os << "  band            " << itsSpw << std::endl;
-      os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
-         << ')' << std::endl;
-      os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr
-         << ')' << std::endl;
-      os << "  ncorrelations:  " << itsNrCorr << std::endl;
-      os << "  nbaselines:     " << itsNrBl << std::endl;
-      os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
-      os << "  time interval:  " << itsInterval << std::endl;
-      os << "  DATA column:    " << itsDataColName;
-      if (itsMissingData) {
-        os << "  (not present)";
-      }
-      os << std::endl;
-      os << "  autoweight:     " << itsAutoWeight << std::endl;
     }
 
     void MSReader::showCounts (std::ostream& os) const

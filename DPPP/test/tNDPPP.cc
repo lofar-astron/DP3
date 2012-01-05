@@ -132,8 +132,10 @@ void checkCopy (const String& in, const String& out, int nms)
   }
   ASSERT (allEQ (double(nms)*ROScalarColumn<double>(spwin, "TOTAL_BANDWIDTH").getColumn(),
                  ROScalarColumn<double>(spwout,"TOTAL_BANDWIDTH").getColumn()));
-  ASSERT (allEQ (ROScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
-                 ROScalarColumn<double>(spwout,"REF_FREQUENCY").getColumn()));
+  if (nms == 1) {
+    ASSERT (allEQ (ROScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
+                   ROScalarColumn<double>(spwout,"REF_FREQUENCY").getColumn()));
+  }
   // Check the TIME_RANGE in the OBSERVATION table.
   Table obsout(tout.keywordSet().asTable("OBSERVATION"));
   Vector<double> timeRange
@@ -184,6 +186,23 @@ void testMulti()
   }
   DPRun::execute ("tNDPPP_tmp.parset");
   Table tab("tNDPPP_tmp.MS1a");
+  ASSERT (tab.nrow() == 48);
+  ASSERT (allEQ (ROArrayColumn<Complex>(tab,"DATA").getColumn(), Complex()));
+  ASSERT (allEQ (ROArrayColumn<Bool>(tab,"FLAG").getColumn(), True));
+  ASSERT (allEQ (ROScalarColumn<Int>(tab,"ANTENNA2").getColumn(), 6));
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=[notexist, tNDPPP_tmp.MS1, notexist, notexist]" << endl;
+    ostr << "msin.datacolumn=CORRECTED_DATA" << endl;
+    ostr << "msin.missingdata=true" << endl;
+    ostr << "msin.orderms=false" << endl;
+    ostr << "msin.baseline=0,2&6" << endl;
+    ostr << "msout=tNDPPP_tmp.MS1b" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  tab = Table("tNDPPP_tmp.MS1b");
   ASSERT (tab.nrow() == 48);
   ASSERT (allEQ (ROArrayColumn<Complex>(tab,"DATA").getColumn(), Complex()));
   ASSERT (allEQ (ROArrayColumn<Bool>(tab,"FLAG").getColumn(), True));

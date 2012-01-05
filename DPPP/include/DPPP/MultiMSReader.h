@@ -177,20 +177,31 @@ namespace LOFAR {
       virtual void getFreqInfo (casa::Vector<double>& freq,
                                 casa::Vector<double>& width,
                                 casa::Vector<double>& effBW,
-                                casa::Vector<double>& resolution) const;
+                                casa::Vector<double>& resolution,
+                                double& refFreq) const;
 
     private:
       // Combine all cubes in the vector to a single one.
       void combineFullResFlags (const vector<casa::Cube<bool> >& vec,
                                 casa::Cube<bool>& flags) const;
 
+      // Handle the info for all bands.
+      void handleBands (uint nmissing);
+
       // Sort the bands (MSs) inorder of frequency.
       void sortBands();
 
+      // Fill the band info where some MSs are missing.
+      void fillBands (uint nmissing);
+
       //# Data members.
       bool                  itsOrderMS;   //# sort multi MS in order of freq?
+      int                   itsFirst;     //# First valid MSReader (<0 = none)
+      vector<string>        itsMSNames;
       vector<MSReader*>     itsReaders;   //# same as itsSteps
       vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
+      uint                  itsFillNChan; //# Nr of chans for missing MSs
+      casa::Cube<bool>      itsFullResCube;  //# FullResFlags for missing MSs
       FlagCounter           itsFlagCounter;
     };
 
