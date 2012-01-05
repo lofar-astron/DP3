@@ -25,6 +25,7 @@
 #include <DPPP/MSReader.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
+#include <DPPP/DPLogger.h>
 #include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
 #include <tables/Tables/TableRecord.h>
@@ -77,7 +78,8 @@ namespace LOFAR {
       itsSelBL            = parset.getString (prefix+"baseline", string());
       // Try to open the MS and get its full name.
       if (itsMissingData  &&  !Table::isReadable (msName)) {
-        LOG_WARN ("MeasurementSet " << msName << " not found; dummy data used");
+        DPLOG_WARN_STR ("MeasurementSet " << msName
+			<< " not found; dummy data used");
         return;
       }
       itsMS = MeasurementSet (msName, TableLock::AutoNoReadLocking);
