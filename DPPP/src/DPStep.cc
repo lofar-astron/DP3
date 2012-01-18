@@ -67,16 +67,35 @@ namespace LOFAR {
     bool ResultStep::process (const DPBuffer& buf)
     {
       itsBuffer = buf;
-      getNextStep()->process (buf);
       return true;
     }
 
     void ResultStep::finish()
-    {
-      getNextStep()->finish();
-    }
+    {}
 
     void ResultStep::show (std::ostream&) const
+    {}
+
+
+    MultiResultStep::MultiResultStep (uint reserveSize)
+    {
+      setNextStep (DPStep::ShPtr (new NullStep()));
+      itsBuffers.reserve (reserveSize);
+    }
+
+    MultiResultStep::~MultiResultStep()
+    {}
+
+    bool MultiResultStep::process (const DPBuffer& buf)
+    {
+      itsBuffers.push_back (buf);
+      return true;
+    }
+
+    void MultiResultStep::finish()
+    {}
+
+    void MultiResultStep::show (std::ostream&) const
     {}
 
   } //# end namespace

@@ -128,7 +128,8 @@ namespace LOFAR {
 
         // Set and return the flags.
         casa::Cube<bool>* process (DPBuffer&, uint timeSlot,
-                                   const casa::Block<bool>& matchBL);
+                                   const casa::Block<bool>& matchBL,
+                                   NSTimer& timer);
 
         // Update the general info.
         // It is used to adjust the parms if needed.

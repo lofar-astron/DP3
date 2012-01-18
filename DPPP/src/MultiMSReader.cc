@@ -87,7 +87,7 @@ namespace LOFAR {
       itsStartTime       = itsReaders[itsFirst]->startTime();
       itsFirstTime       = itsReaders[itsFirst]->firstTime();
       itsLastTime        = itsReaders[itsFirst]->lastTime();
-      itsInterval        = itsReaders[itsFirst]->timeInterval();
+      itsTimeInterval    = itsReaders[itsFirst]->timeInterval();
       itsSelBL           = itsReaders[itsFirst]->baselineSelection();
       itsSpw             = itsReaders[itsFirst]->spectralWindow();
       itsNrCorr          = itsReaders[itsFirst]->ncorr();
@@ -111,7 +111,7 @@ namespace LOFAR {
         if (itsReaders[i]) {
           ASSERTSTR (near(itsStartTime, itsReaders[i]->startTime())  &&
                      near(itsLastTime, itsReaders[i]->lastTime())  &&
-                     near(itsInterval, itsReaders[i]->timeInterval())  &&
+                     near(itsTimeInterval, itsReaders[i]->timeInterval())  &&
                      itsNrCorr == itsReaders[i]->ncorr()  &&
                      itsNrBl   == itsReaders[i]->nbaselines()  &&
                      itsFullResNChanAvg == itsReaders[i]->nchanAvg()  &&
@@ -321,8 +321,8 @@ namespace LOFAR {
     void MultiMSReader::updateInfo (DPInfo& info)
     {
       info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
-                 int((itsLastTime - itsFirstTime)/itsInterval + 1.5),
-                 itsInterval);
+                 int((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5),
+                 itsTimeInterval);
       info.setPhaseCenter (itsPhaseCenter, true);
     }
 
@@ -344,7 +344,7 @@ namespace LOFAR {
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
       os << "  nbaselines:     " << itsNrBl << std::endl;
       os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
-      os << "  time interval:  " << itsInterval << std::endl;
+      os << "  time interval:  " << itsTimeInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {

@@ -49,6 +49,15 @@ namespace LOFAR {
         itsCenter  (parset.getStringVector(prefix+"phasecenter"))
     {}
 
+    PhaseShift::PhaseShift (DPInput* input,
+                            const ParSet& parset, const string& prefix,
+                            const string& defVal)
+      : itsInput   (input),
+        itsName    (prefix),
+        itsCenter  (parset.getStringVector(prefix+"phasecenter",
+                                           vector<string>(1, defVal)))
+    {}
+
     PhaseShift::~PhaseShift()
     {}
 
@@ -70,25 +79,8 @@ namespace LOFAR {
       double oldDec = info.phaseCenter().getValue().get()[1];
       Matrix<double> oldUVW(3,3);
       Matrix<double> newUVW(3,3);
-      oldUVW(0,0) = cos(oldRa);
-      oldUVW(1,0) = -sin(oldRa);
-      oldUVW(2,0) = 0;
-      oldUVW(0,1) = -sin(oldRa)*sin(oldDec);
-      oldUVW(1,1) = -cos(oldRa)*sin(oldDec);
-      oldUVW(2,1) = cos(oldDec);
-      oldUVW(0,2) = sin(oldRa)*cos(oldDec);
-      oldUVW(1,2) = cos(oldRa)*cos(oldDec);
-      oldUVW(2,2) = sin(oldDec);
-
-      newUVW(0,0) = cos(newRa);
-      newUVW(1,0) = -sin(newRa);
-      newUVW(2,0) = 0;
-      newUVW(0,1) = -sin(newRa)*sin(newDec);
-      newUVW(1,1) = -cos(newRa)*sin(newDec);
-      newUVW(2,1) = cos(newDec);
-      newUVW(0,2) = sin(newRa)*cos(newDec);
-      newUVW(1,2) = cos(newRa)*cos(newDec);
-      newUVW(2,2) = sin(newDec);
+      fillTransMatrix (oldUVW, oldRa, oldDec);
+      fillTransMatrix (newUVW, newRa, newDec);
 
       itsMat1.reference (product(transpose(newUVW), oldUVW));
       Matrix<double> wold(oldUVW(IPosition(2,0,2),IPosition(2,2,2)));
@@ -97,6 +89,7 @@ namespace LOFAR {
       itsXYZ[0] = tt(0,0);
       itsXYZ[1] = tt(0,1);
       itsXYZ[2] = tt(0,2);
+      cout << itsXYZ[0]<<' '<<itsXYZ[1]<<' '<<itsXYZ[2]<<" ps"<<endl;
 
       info.setPhaseCenter (newDir, original);
       // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
@@ -105,6 +98,7 @@ namespace LOFAR {
       for (uint i=0; i<freq.size(); ++i) {
         itsFreqC.push_back (2. * C::pi * freq[i] / C::c);
       }
+      itsPhasors.resize (info.nchan(), info.nbaselines());
     }
 
     void PhaseShift::show (std::ostream& os) const
@@ -126,15 +120,18 @@ namespace LOFAR {
       DPBuffer newBuf(buf);
       RefRows rowNrs(newBuf.getRowNrs());
       if (newBuf.getUVW().empty()) {
-        newBuf.getUVW().reference (itsInput->fetchUVW (newBuf, rowNrs));
+        newBuf.getUVW().reference (itsInput->fetchUVW (newBuf, rowNrs,
+                                                       itsTimer));
       }
       newBuf.getData().unique();
       newBuf.getUVW().unique();
-      Complex* data = newBuf.getData().data();
       uint ncorr  = newBuf.getData().shape()[0];
       uint nchan  = newBuf.getData().shape()[1];
       uint nbl    = newBuf.getData().shape()[2];
-      double* uvw = newBuf.getUVW().data();
+      DBGASSERT (itsPhasors.nrow() == nchan  &&  itsPhasors.ncolumn() == nbl);
+      Complex* data     = newBuf.getData().data();
+      double* uvw       = newBuf.getUVW().data();
+      DComplex* phasors = itsPhasors.data();
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
@@ -149,9 +146,11 @@ namespace LOFAR {
           // Convert the phase term to wavelengths (and apply 2*pi).
           // u_wvl = u_m / wvl = u_m * freq / c
           double phasewvl = phase * itsFreqC[j];
-          Complex phasor(cos(phasewvl), sin(phasewvl));
+          DComplex phasor(cos(phasewvl), sin(phasewvl));
+          *phasors++ = phasor;
           for (uint k=0; k<ncorr; ++k) {
-            *data++ *= phasor;
+            *data = DComplex(*data) * phasor;
+            data++;
           }
         }
         uvw[0] = u;
@@ -172,6 +171,11 @@ namespace LOFAR {
 
     MDirection PhaseShift::handleCenter()
     {
+      // A case-insensitive name can be given for a moving source (e.g. SUN)
+      // or a known source (e.g. CygA).
+      if (itsCenter.size() == 1) {
+        return MDirection::makeMDirection (itsCenter[0]);
+      }
       // The phase center must be given in J2000 as two values (ra,dec).
       // In the future time dependent frames can be done as in UVWFlagger.
       ASSERTSTR (itsCenter.size() == 2,
@@ -203,6 +207,25 @@ namespace LOFAR {
                    " in UVWFlagger phasecenter");
       }
       return MDirection(q0, q1, type);
+    }
+
+    void PhaseShift::fillTransMatrix (Matrix<double>& mat,
+                                      double ra, double dec)
+    {
+      DBGASSERT (mat.nrow()==3 && mat.ncolumn()==3);
+      double sinra  = sin(ra);
+      double sindec = sin(dec);
+      double cosra  = cos(ra);
+      double cosdec = cos(dec);
+      mat(0,0) = cosra;
+      mat(1,0) = -sinra;
+      mat(2,0) = 0;
+      mat(0,1) = -sinra*sindec;
+      mat(1,1) = -cosra*sindec;
+      mat(2,1) = cosdec;
+      mat(0,2) = sinra*cosdec;
+      mat(1,2) = cosra*cosdec;
+      mat(2,2) = sindec;
     }
 
   } //# end namespace

@@ -200,8 +200,6 @@ namespace LOFAR {
         { return itsFirstTime; }
       double lastTime() const
         { return itsLastTime; }
-      double timeInterval() const
-        { return itsInterval; }
 
       // Get the selected spectral window.
       uint spectralWindow() const
@@ -275,7 +273,6 @@ namespace LOFAR {
       bool                itsMissingData;   //# allow missing data column?
       int                 itsSpw;           //# spw (band) to use (<0 no select)
       uint                itsStartChan;
-      double              itsInterval;
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;

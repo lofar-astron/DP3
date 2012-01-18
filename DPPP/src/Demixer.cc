@@ -23,11 +23,20 @@
 
 #include <lofar_config.h>
 #include <DPPP/Demixer.h>
+#include <DPPP/Averager.h>
 #include <DPPP/PhaseShift.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
+#include <Common/StreamUtil.h>
+#include <Common/OpenMP.h>
+
+#include <scimath/Mathematics/MatrixMathLA.h>
+#include <casa/Arrays/MatrixIter.h>
+#include <measures/Measures/MeasConvert.h>
+#include <measures/Measures/MCDirection.h>
+
 #include <iostream>
 #include <iomanip>
 
@@ -38,26 +47,34 @@ namespace LOFAR {
 
     Demixer::Demixer (DPInput* input,
                       const ParSet& parset, const string& prefix)
-      : itsInput     (input),
-        itsName      (prefix),
-        itsSources   (parset.getStringVector (prefix+"sources")),
-        itsNChanAvg  (parset.getUint  (prefix+"freqstep", 1)),
-        itsNTimeAvg  (parset.getUint  (prefix+"timestep", 1)),
-        itsDMChanAvg (parset.getUint  (prefix+"demixfreqstep", itsNChanAvg)),
-        itsDMTimeAvg (parset.getUint  (prefix+"demixtimestep", itsNTimeAvg)),
-        itsTimeWindow(parset.getUint  (prefix+"timewindow", 1))
-        ///itsJointSolve(parset.getBool  (prefix+"jointsolve", true)),
-        ///itsSources   (parset.getStringVector(prefix+"demixsources")),
-        ///itsExtra     (parset.getStringVector(prefix+"extrasources"))
+      : itsInput      (input),
+        itsName       (prefix),
+        itsSources    (parset.getStringVector (prefix+"sources")),
+        ///itsExtra     (parset.getStringVector(prefix+"extrasources")),
+        itsJointSolve (parset.getBool  (prefix+"jointsolve", true)),
+        itsNChanAvg   (parset.getUint  (prefix+"freqstep", 1)),
+        itsNTimeAvg   (parset.getUint  (prefix+"timestep", 1)),
+        itsResChanAvg (parset.getUint  (prefix+"avgfreqstep", itsNChanAvg)),
+        itsResTimeAvg (parset.getUint  (prefix+"avgtimestep", itsNTimeAvg)),
+        itsNTimeChunk (parset.getUint  (prefix+"ntimechunk", 0)),
+        itsNTimeIn    (0),
+        itsNTimeOut   (0)
     {
-      if (itsSources.empty()) {
-        // No sources means that nothing has to be demixed, only averaged.
-        itsAverager = DPStep::ShPtr (new Averager(input, prefix,
-                                                  itsNChanAvg, itsNTimeAvg));
-        itsAvgResult = new ResultStep();
-        itsAverager->setNextStep (DPStep::ShPtr(itsAvgResult));
-        return;
+      // Default nr of time chunks is maximum number of threads.
+      if (itsNTimeChunk == 0) {
+        itsNTimeChunk = OpenMP::maxThreads();
       }
+      itsFactors.resize (itsNTimeChunk);
+      itsNrDir = itsSources.size() + 1;
+      // Check that time and freq windows fit nicely.
+      ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsResTimeAvg == 0,
+                 "time window should fit averaging integrally");
+      itsBuf.resize (itsNTimeChunk * itsNTimeAvg);
+      itsPhaseShifts.reserve    (itsSources.size());
+      itsFirstSteps.reserve     (itsNrDir);
+      itsSecondSteps.reserve    (itsNrDir);
+      itsDemixResults.reserve   (itsNrDir);
+      itsSubtractInputs.reserve (itsNrDir);
       // Create the steps for the sources to be removed.
       // Demixing consists of the following steps:
       // - phaseshift data to each demix source
@@ -67,30 +84,44 @@ namespace LOFAR {
       //   predict more directions than to solve (for strong sources in field).
       // - use BBS to subtract the solved sources using the demix factors.
       //   The averaging used here can be smaller than used when solving.
-      itsFirstSteps.reserve     (itsSources.size());
-      itsSecondSteps.reserve    (itsSources.size());
-      itsDemixInputs.reserve    (itsSources.size());
-      itsSubtractInputs.reserve (itsSources.size());
       for (uint i=0; i<itsSources.size(); ++i) {
-        ///DPStep::ShPtr step1 (new PhaseShift(input, parset, prefix));
-        DPStep::ShPtr step1 (new ResultStep());
+        // First make the phaseshift and average steps for each demix source.
+        // The resultstep gets the result.
+        // The phasecenter can be given in a parameter. Its name is the default.
+        // Note the PhaseShift knows about source names CygA, etc.
+        itsPhaseShifts.push_back (new PhaseShift(input, parset,
+                                                 prefix + '.' + itsSources[i],
+                                                 itsSources[i]));
+        DPStep::ShPtr step1 (itsPhaseShifts[i]);
         itsFirstSteps.push_back (step1);
         DPStep::ShPtr step2 (new Averager(input, parset, prefix));
         step1->setNextStep (step2);
         ResultStep* step3 = new ResultStep();
         step2->setNextStep (DPStep::ShPtr(step3));
-        // There is a single demix step needing all sources.
-        itsDemixInputs.push_back (step3);
-        ///DPStep::ShPtr step4 (new BBSStep());
-        DPStep::ShPtr step4 (new ResultStep());
+        // There is a single demix factor step which needs to get all results.
+        itsDemixResults.push_back (step3);
+      }
+      // Now create the step to average the data themselves.
+      DPStep::ShPtr targetAvg(new Averager(input, prefix,
+                                           itsNChanAvg, itsNTimeAvg));
+      itsFirstSteps.push_back (targetAvg);
+      ResultStep* targetAvgRes = new ResultStep();
+      targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
+      itsDemixResults.push_back (targetAvgRes);
+      // Add the steps to solve and subtract.
+      for (uint i=0; i<itsNrDir; ++i) {
+        // Do a BBS solve for all directions.
+        ///DPStep::ShPtr step4 (new BBSStep(, itsJointSolve));
+        DPStep::ShPtr step4 (new ResultStep());///
         itsSecondSteps.push_back (step4);
         ///DPStep::ShPtr step5 (new ParmSmooth());
         /// Smoothing requires a time window; may not be necessary if
         /// BBS is handling outliers correctly.
-        DPStep::ShPtr step5 (new ResultStep());
+        DPStep::ShPtr step5 (new ResultStep());///
         step4->setNextStep (step5);
-        ///DPStep::ShPtr step6 (new BBSStep());
-        DPStep::ShPtr step6 (new ResultStep());
+        // Subtract the demixed sources from the data.
+        ///DPStep::ShPtr step6 (new SubtractStep());
+        DPStep::ShPtr step6 (new ResultStep());///
         step5->setNextStep (step6);
         ResultStep* step7 = new ResultStep();
         step6->setNextStep (DPStep::ShPtr(step7));
@@ -106,13 +137,15 @@ namespace LOFAR {
     {
       info.setNeedVisData();
       info.setNeedWrite();
+      itsNrChanIn = info.nchan();
+      itsNrBl     = info.nbaselines();
+      itsNrCorr   = info.ncorr();
+      itsFactorBuf.resize (IPosition(4, itsNrBl, itsNrChanIn, itsNrCorr,
+                                     itsNrDir*(itsNrDir-1)/2));
       // Let the internal steps update their data.
       // Use a copy of the DPInfo, otherwise it is updated multiple times.
-      DPInfo infocp(info);
-      if (itsSources.empty()) {
-        itsAverager->updateInfo (infocp);
-      }
-      for (uint i=0; i<itsSources.size(); ++i) {
+      DPInfo infocp;
+      for (uint i=0; i<itsFirstSteps.size(); ++i) {
         infocp = info;
         DPStep::ShPtr step = itsFirstSteps[i];
         while (step) {
@@ -126,44 +159,75 @@ namespace LOFAR {
         }
       }
       // Update the info of this object.
-      info.update (itsNChanAvg, itsNTimeAvg);
+      info.update (itsResChanAvg, itsResTimeAvg);
+      itsNrChanOut = info.nchan();
     }
 
     void Demixer::show (std::ostream& os) const
     {
       os << "Demixer " << itsName << std::endl;
+      os << "  sources:        " << itsSources << std::endl;
+      os << "  jointsolve:     " << itsJointSolve << std::endl;
       os << "  freqstep:       " << itsNChanAvg << std::endl;
       os << "  timestep:       " << itsNTimeAvg << std::endl;
-      os << "  demixfreqstep:  " << itsDMChanAvg << std::endl;
-      os << "  demixtimestep:  " << itsDMTimeAvg << std::endl;
+      os << "  avgfreqstep:    " << itsResChanAvg << std::endl;
+      os << "  avgtimestep:    " << itsResTimeAvg << std::endl;
     }
 
     void Demixer::showTimings (std::ostream& os, double duration) const
     {
+      double timing = itsTimer.getElapsed();
       os << "  ";
-      FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
+      FlagCounter::showPerc1 (os, timing, duration);
       os << " Demixer " << itsName << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsTimerPhaseShift.getElapsed(), timing);
+      os << " of it spent in phase shifting data" << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsTimerDemix.getElapsed(), timing);
+      os << " of it spent in calculating demix factors" << endl;
     }
 
     bool Demixer::process (const DPBuffer& buf)
     {
       itsTimer.start();
-      if (itsSources.empty()) {
-        return itsAverager->process (buf);
+      // Keep the buffer.
+      DPBuffer& newBuf = itsBuf[itsNTimeIn++];
+      newBuf = buf;
+      // Make sure all required data arrays are filled in.
+      RefRows refRows(newBuf.getRowNrs());
+      if (newBuf.getUVW().empty()) {
+        newBuf.setUVW (itsInput->fetchUVW(newBuf, refRows, itsTimer));
       }
-      RefRows rowNrs(buf.getRowNrs());
-      for (uint i=0; i<itsSources.size(); ++i) {
-        itsFirstSteps[i]->process (buf);
+      if (newBuf.getWeights().empty()) {
+        newBuf.setWeights (itsInput->fetchWeights(newBuf, refRows, itsTimer));
       }
-      // If the first steps have produced results, demix and process it.
-      if (! itsDemixInputs[0]->get().getData().empty()) {
-        DPBuffer buf1 = demix();
-        for (uint i=0; i<itsSources.size(); ++i) {
-          itsSecondSteps[i]->process (buf1);
-          itsDemixInputs[i]->clear();
-        }
-        DPBuffer buf2 = subtract();
-        getNextStep()->process (buf2);
+      if (newBuf.getFullResFlags().empty()) {
+        newBuf.setFullResFlags (itsInput->fetchFullResFlags(newBuf, refRows,
+                                                            itsTimer));
+      }
+      // Do the initial steps (phaseshift and average).
+      itsTimerPhaseShift.start();
+///#pragma omp parallel for
+      for (int i=0; i<int(itsFirstSteps.size()); ++i) {
+        itsFirstSteps[i]->process (newBuf);
+      }
+      itsTimerPhaseShift.stop();
+      // For each itsNTimeAvg times, calculate the
+      // phase rotation per direction.
+      itsTimerDemix.start();
+      addFactors (newBuf);
+      if (itsNTimeIn % itsNTimeAvg == 0) {
+        averageFactors();
+      }
+      itsTimerDemix.stop();
+      itsTimer.stop();
+      // Do BBS solve, etc. when sufficient time slots have been collected.
+      if (itsNTimeOut == itsNTimeChunk) {
+        cout << "process time chunks" << endl;
+        ///demix();
+        itsNTimeIn  = 0;
+        itsNTimeOut = 0;
       }
       return true;
     }
@@ -172,20 +236,189 @@ namespace LOFAR {
     {
       // Process remaining entries.
       // Let the next steps finish.
-      if (! itsDemixInputs[0]->get().getData().empty()) {
-        DPBuffer buf1 = demix();
-        for (uint i=0; i<itsSecondSteps.size(); ++i) {
-          itsSecondSteps[i]->process (buf1);
+      if (itsNTimeIn > 0) {
+        itsTimer.start();
+        // Finish the initial steps (phaseshift and average).
+        itsTimerPhaseShift.start();
+        ///#pragma omp parallel for
+        for (int i=0; i<int(itsFirstSteps.size()); ++i) {
+          itsFirstSteps[i]->finish();
         }
-        DPBuffer buf2 = subtract();
-        getNextStep()->process (buf2);
+        itsTimerPhaseShift.stop();
+        itsTimerDemix.start();
+        averageFactors();
+        itsTimerDemix.stop();
+        itsTimer.stop();
+        cout << "final process time chunks" << endl;
+        ///demix();
       }
       getNextStep()->finish();
     }
 
-    DPBuffer Demixer::demix() const
+    void Demixer::addFactors (const DPBuffer& newBuf)
     {
-      DPBuffer buf;
+///#pragma omp parallel
+      {
+///#pragma omp for
+        uint ncorr  = newBuf.getData().shape()[0];
+        uint nchan  = newBuf.getData().shape()[1];
+        uint nbl    = newBuf.getData().shape()[2];
+        DComplex* factorPtr = itsFactorBuf.data();
+        //# If ever in the future a time dependent phase center is used,
+        //# the machine must be reset for each new time, thus each new call
+        //# to process.
+        for (uint i1=0; i1<itsNrDir-1; ++i1) {
+          for (uint i0=i1+1; i0<itsNrDir; ++i0) {
+            const double* uvw       = newBuf.getUVW().data();
+            const bool*   flagPtr   = newBuf.getFlags().data();
+            const float*  weightPtr = newBuf.getWeights().data();
+            const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data();
+            if (i0 == itsNrDir-1) {
+              for (uint i=0; i<nbl; ++i) {
+                for (uint j=0; j<nchan; ++j) {
+                  DComplex factor = conj(*phasor1++);
+                  for (uint k=0; k<ncorr; ++k) {
+                    if (! *flagPtr) {
+                      *factorPtr += factor * double(*weightPtr);
+                    }
+                    flagPtr++;
+                    weightPtr++;
+                    factorPtr++;
+                  }
+                }
+                uvw += 3;
+              }
+            } else {
+              const DComplex* phasor0 = itsPhaseShifts[i0]->getPhasors().data();
+              for (uint i=0; i<nbl; ++i) {
+                for (uint j=0; j<nchan; ++j) {
+                  // Probably multiply with conj
+                  DComplex factor = *phasor0++ / *phasor1++;
+                  for (uint k=0; k<ncorr; ++k) {
+                    if (! *flagPtr) {
+                      *factorPtr += factor * double(*weightPtr);
+                    }
+                    flagPtr++;
+                    weightPtr++;
+                    factorPtr++;
+                  }
+                }
+                uvw += 3;
+              }
+            }
+          }
+        }
+      }
+    }
+    /*
+    void Demixer::addFactors (const DPBuffer& newBuf)
+    {
+      if (itsMoving) {
+        calcDirs();
+      }
+///#pragma omp parallel
+      {
+///#pragma omp for
+        uint ncorr  = newBuf.getData().shape()[0];
+        uint nchan  = newBuf.getData().shape()[1];
+        uint nbl    = newBuf.getData().shape()[2];
+        DComplex* factorPtr = itsFactorBuf.data();
+        //# If ever in the future a time dependent phase center is used,
+        //# the machine must be reset for each new time, thus each new call
+        //# to process.
+        for (uint i1=0; i1<itsNrDir; ++i1) {
+          for (uint i0=i1+1; i0<itsNrDir; ++i0) {
+            const double* uvw       = newBuf.getUVW().data();
+            const bool*   flagPtr   = newBuf.getFlags().data();
+            const float*  weightPtr = newBuf.getWeights().data();
+            for (uint i=0; i<nbl; ++i) {
+              double phase = (itsMatd(0,i0,i1) * uvw[0] +
+                              itsMatd(1,i0,i1) * uvw[1] +
+                              itsMatd(2,i0,i1) * uvw[2]);
+              for (uint j=0; j<nchan; ++j) {
+                // Shift the phase of the data of this baseline.
+                // Convert the phase term to wavelengths (and apply 2*pi).
+                // u_wvl = u_m / wvl = u_m * freq / c
+                double phasewvl = phase * itsFreqC[j];
+                DComplex phasor(cos(phasewvl), sin(phasewvl));
+                for (uint k=0; k<ncorr; ++k) {
+                  if (! *flagPtr) {
+                    *factorPtr += phasor * double(*weightPtr);
+                  }
+                  flagPtr++;
+                  weightPtr++;
+                  factorPtr++;
+                }
+              }
+              uvw += 3;
+            }
+          }
+        }
+      }
+    }
+    */
+
+    void Demixer::averageFactors()
+    {
+      const Cube<float>& weightSums = itsDemixResults[0]->get().getWeights();
+      ASSERT (! weightSums.empty());
+      itsFactors[itsNTimeOut].resize (IPosition(5, itsNrDir, itsNrDir,
+                                                itsNrCorr, itsNrChanOut,
+                                                itsNrBl));
+      itsFactors[itsNTimeOut] = DComplex(1,0);
+      const DComplex* phin = itsFactorBuf.data();
+      for (uint d0=0; d0<itsNrDir; ++d0) {
+        for (uint d1=d0+1; d1<itsNrDir; ++d1) {
+          DComplex* ph1 = itsFactors[itsNTimeOut].data() + d0*itsNrDir + d1;
+          DComplex* ph2 = itsFactors[itsNTimeOut].data() + d1*itsNrDir + d0;
+          // Average for all channels and divide by the summed weights.
+          const float* weightPtr = weightSums.data();
+          for (uint k=0; k<itsNrBl; ++k) {
+            for (uint c0=0; c0<itsNrChanOut; ++c0) {
+              DComplex sum[4];
+              uint nch = std::min(itsNChanAvg, itsNrChanIn-c0*itsNChanAvg);
+              for (uint c1=0; c1<nch; ++c1) {
+                for (uint j=0; j<itsNrCorr; ++j) {
+                  sum[j] += *phin++;
+                }
+              }
+              for (uint j=0; j<itsNrCorr; ++j) {
+                *ph1 = sum[j] / double(*weightPtr++);
+                *ph2 = conj(*ph1);
+                ph1 += itsNrDir*itsNrDir;
+                ph2 += itsNrDir*itsNrDir;
+              }
+            }
+          }
+        }
+      }
+      ///      cout << "factor=" <<itsFactors[itsNTimeOut] << endl;
+      // Clear the summation buffer.
+      itsFactorBuf = DComplex();
+      itsNTimeOut++;
+    }
+
+    void Demixer::demix()
+    {
+      // Check that averaging has been done as well.
+      ASSERT (! itsDemixResults[0]->get().getData().empty());
+      // Determine nr of time chunks.
+      // Do the predict/solve iterations.
+      for (uint i=0; i<itsSecondSteps.size(); ++i) {
+        ///        itsSecondSteps[i]->process (buf1);
+      }
+      // Subtract the demixed sources.
+      subtract();
+      // Clear the input buffers (to cut in memory usage).
+      for (uint i=0; i<itsNTimeIn; ++i) {
+        itsBuf[i].clear();
+      }
+      // Let the next steps process the data.
+      for (uint i=0; i<itsNTimeOut*itsNTimeAvg / itsResTimeAvg; ++i) {
+        ///        getNextStep()->process (buf2);
+      }
+    }
+
       // array dim: baseline, time, freq, dir1, dir2
       // NDPPP compares data with predictions in Estimate class
       // Beam Info lezen en aan BBS doorgeven (evt. via BBS class)
@@ -224,43 +457,11 @@ namespace LOFAR {
       //    Bas:   ionosphere
       //    Johan/Stefan: verify beam model
       //    George: is MSMFS needed in awimager?
-      /*
-      // Calculate matrix for field center.
-   x = numpy.sin(ra)*numpy.cos(dec)
-   y = numpy.cos(ra)*numpy.cos(dec)
-   z = numpy.sin(dec)
-   w = numpy.array([[x,y,z]]).T
-   x = -numpy.sin(ra)*numpy.sin(dec)
-   y = -numpy.cos(ra)*numpy.sin(dec)
-   z = numpy.cos(dec)      return itsAvgResult->get();
-   v = numpy.array([[x,y,z]]).T
-   x = numpy.cos(ra)
-   y = -numpy.sin(ra)
-   z = 0
-   u = numpy.array([[x,y,z]]).T
-   T = numpy.concatenate([u,v,w], axis = -1 )
-     // Calculate vector for each demix center.
-      x1 = numpy.sin(ra1)*numpy.cos(dec1)
-      y1 = numpy.cos(ra1)*numpy.cos(dec1)
-      z1 = numpy.sin(dec1)
-      w1 = numpy.array([[x1,y1,z1]]).T
-     // Create demix array.
-     Array<DComplex> a (ndir, ndir, npol, nchan, nbl);
-     Array<DComplex> ainv (ndir, ndir, npol, nchan, nbl);
-     // Read data from all mix directions.
-     Array<Complex> data(ndir, npol, nchan, nbl);
-     for (i=0; i<ndir; ++i) {
-       // Get average weight per 
-       weight = sums(buf.getWeight());
-       */
-      return buf;
-    }
 
     DPBuffer Demixer::subtract() const
     {
       DPBuffer buf;
-      return itsAvgResult->get();
-      ///return buf;
+      return buf;
     }
 
 

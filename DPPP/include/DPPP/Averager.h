@@ -105,7 +105,6 @@ namespace LOFAR {
       uint            itsNTimes;
       double          itsTimeInterval;
       NSTimer         itsTimer;
-      NSTimer         itsTimerGet;
     };
 
   } //# end namespace

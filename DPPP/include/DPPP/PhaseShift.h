@@ -49,7 +49,15 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
+      // This is the standard constructor where the phasecenter must be given.
       PhaseShift (DPInput*, const ParSet&, const string& prefix);
+
+      // Construct the object.
+      // Parameters are obtained from the parset using the given prefix.
+      // This is a constructor for Demixer where the phasecenter has the
+      // given default value.
+      PhaseShift (DPInput*, const ParSet&, const string& prefix,
+                  const string& defVal);
 
       virtual ~PhaseShift();
 
@@ -70,6 +78,15 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Fill the transformation matrix for given ra/dec.
+      static void fillTransMatrix (casa::Matrix<double>& mat,
+                                   double ra, double dec);
+
+      // Get the phasors resulting from the last process step.
+      // This is used in the Demixer.
+      const casa::Matrix<casa::DComplex>& getPhasors() const
+        { return itsPhasors; }
+
     private:
       // Interpret the phase center specification.
       // Currently only J2000 RA and DEC can be given.
@@ -82,6 +99,7 @@ namespace LOFAR {
       vector<double>       itsFreqC;      //# freq/C
       casa::Matrix<double> itsMat1;       //# TT in phasehift.py
       double               itsXYZ[3];     //# numpy.dot((w-w1).T, T)
+      casa::Matrix<casa::DComplex> itsPhasors; //# phase factor per chan,bl
       NSTimer              itsTimer;
     };
 

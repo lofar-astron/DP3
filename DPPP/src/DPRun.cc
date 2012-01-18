@@ -62,18 +62,9 @@ namespace LOFAR {
       bool showProgress   = parset.getBool ("showprogress", true);
       bool showTimings    = parset.getBool ("showtimings", true);
       string msName;
-      DPStep::ShPtr firstStep = makeSteps (parset, msName);
-      // Show the steps and determine DPInfo again to get #times
-      // to process.
       DPInfo info;
-      DPStep::ShPtr step = firstStep;
-      while (step) {
-        step->updateInfo (info);
-        ostringstream os;
-        step->show (os);
-        DPLOG_INFO (os.str(), true);
-        step = step->getNextStep();
-      }
+      // Create the steps and fill the DPInfo object.
+      DPStep::ShPtr firstStep = makeSteps (parset, info, msName);
       // Show unused parameters (might be misspelled).
       vector<string> unused = parset.unusedKeys();
       if (! unused.empty()) {
@@ -114,6 +105,7 @@ namespace LOFAR {
       firstStep->finish();
       // Give all steps the option to add something to the MS written.
       // Currently it is used by the AOFlagger to write its statistics.
+      DPStep::ShPtr step;
       if (! msName.empty()) {
         step = firstStep;
         while (step) {
@@ -151,7 +143,8 @@ namespace LOFAR {
       // The destructors are called automatically at this point.
     }
 
-    DPStep::ShPtr DPRun::makeSteps (const ParSet& parset, string& msName)
+    DPStep::ShPtr DPRun::makeSteps (const ParSet& parset,
+                                    DPInfo& info, string& msName)
     {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;
@@ -255,7 +248,6 @@ namespace LOFAR {
         }
       }
       // Let all steps update their info.
-      DPInfo info;
       DPStep::ShPtr step = firstStep;
       while (step) {
         step->updateInfo (info);

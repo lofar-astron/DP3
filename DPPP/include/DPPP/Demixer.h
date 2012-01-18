@@ -29,8 +29,10 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/Averager.h>
+#include <DPPP/PhaseShift.h>
+
 #include <casa/Arrays/Cube.h>
+#include <measures/Measures/MDirection.h>
 
 namespace LOFAR {
 
@@ -82,22 +84,53 @@ namespace LOFAR {
       // Subtract sources and return the result.
       DPBuffer subtract() const;
 
+      // Fill the direction rotation matrices.
+      void fillMatrices();
+
+      void addFactors (const DPBuffer& newBuf);
+      void averageFactors();
+
+      void calcDirs();
+
+      void demix();
+
+      // Convert dir index to a linear index.
+      int toIndex (int ndir, int i, int j) const
+        { return (ndir + ndir + 1 - i)/2 + j - i; }
+
       //# Data members.
-      DPInput*              itsInput;
-      string                itsName;
-      DPStep::ShPtr         itsAverager;
-      ResultStep*           itsAvgResult;
-      vector<DPStep::ShPtr> itsFirstSteps;
-      vector<DPStep::ShPtr> itsSecondSteps;
-      vector<ResultStep*>   itsDemixInputs;
-      vector<ResultStep*>   itsSubtractInputs;
-      vector<string>        itsSources;
-      uint                  itsNChanAvg;
-      uint                  itsNTimeAvg;
-      uint                  itsDMChanAvg;
-      uint                  itsDMTimeAvg;
-      uint                  itsTimeWindow;
-      NSTimer               itsTimer;
+      DPInput*                 itsInput;
+      string                   itsName;
+      vector<PhaseShift*>      itsPhaseShifts;
+      vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average chain
+      vector<ResultStep*>      itsDemixResults;
+      vector<DPStep::ShPtr>    itsSecondSteps;
+      vector<ResultStep*>      itsSubtractInputs;
+      vector<string>           itsSources;
+      ///      vector<string>        itsFieldSources;
+      ///      vector<string>        itsMovingSources;
+      vector<DPBuffer>         itsBuf;
+      bool                     itsJointSolve;
+      uint                     itsNrDir;
+      uint                     itsNrBl;
+      uint                     itsNrCorr;
+      uint                     itsNrChanIn;
+      uint                     itsNrChanOut;
+      uint                     itsNChanAvg;
+      uint                     itsNTimeAvg;
+      uint                     itsResChanAvg;
+      uint                     itsResTimeAvg;
+      uint                     itsNTimeChunk;
+      uint                     itsNTimeIn;
+      uint                     itsNTimeOut;
+      casa::Array<casa::DComplex> itsFactorBuf; //# ncorr,nchan,nbl,ndir*ndir
+      vector<casa::Array<casa::DComplex> > itsFactors; //# demix factors/time
+      //# each Array is basically cube(ncorr,nchan,nbl) of matrix(ndir,ndir)
+      NSTimer                  itsTimer;
+      NSTimer                  itsTimerPhaseShift;
+      NSTimer                  itsTimerDemix;
+      NSTimer                  itsTimerBBS;
+      NSTimer                  itsTimerSubtract;
     };
 
   } //# end namespace

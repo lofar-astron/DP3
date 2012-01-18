@@ -535,13 +535,17 @@ namespace LOFAR {
         writeFullResFlags (out, buf);
       }
       ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
-      weightCol.putColumn (itsReader->fetchWeights (buf, buf.getRowNrs()));
+      // Do not account for getting the weights in the timings.
+      Array<float> weights (itsReader->fetchWeights (buf, buf.getRowNrs(),
+                                                     itsTimer));
+      weightCol.putColumn (weights);
     }
 
     void MSWriter::writeFullResFlags (Table& out, const DPBuffer& buf)
     {
       // Get the flags.
-      Cube<bool> flags (itsReader->fetchFullResFlags (buf, buf.getRowNrs()));
+      Cube<bool> flags (itsReader->fetchFullResFlags (buf, buf.getRowNrs(),
+                                                      itsTimer));
       const IPosition& ofShape = flags.shape();
       ASSERT (uint(ofShape[0]) == itsNChanAvg * itsNrChan);
       ASSERT (uint(ofShape[1]) == itsNTimeAvg);
