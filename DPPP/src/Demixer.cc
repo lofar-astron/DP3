@@ -28,6 +28,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
+#include <ParmDB/Axis.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
 #include <Common/OpenMP.h>
@@ -41,6 +42,7 @@
 #include <iomanip>
 
 using namespace casa;
+using namespace LOFAR::BBS;
 
 namespace LOFAR {
   namespace DPPP {
@@ -144,10 +146,13 @@ namespace LOFAR {
         itsBBSExpr.push_back (BBSExpr::ShPtr(new BBSExpr(*itsInput, infocp, 
                                                          itsAllSources[i])));
         itsModels.push_back (itsBBSExpr[i]->getModel());
-     }
+      }
+      // Keep the averaged time interval.
+      itsTimeIntervalAvg = infocp.timeInterval();
       // Update the info of this object.
       info.update (itsResChanAvg, itsResTimeAvg);
       itsNrChanOut = info.nchan();
+      itsTimeIntervalRes = info.timeInterval();
     }
 
     void Demixer::show (std::ostream& os) const
@@ -343,12 +348,18 @@ namespace LOFAR {
     void Demixer::demix()
     {
       // Solve for the gains in the various directions.
+      for (uint i=0; i<itsModels.size(); ++i) {
+        /// itsModels[i]->setSolvables();  //What to put in ParmGroup?
+      }
       // Make time axis and grid.
-      /// Grid grid(freqAxis, timeAxis);
+      double startTime = itsBuf[0].getTime() - itsInput->timeInterval() * 0.5;
+      Axis::ShPtr timeAxis (new RegularAxis (startTime, itsTimeIntervalAvg,
+                                             itsNTimeOut));
+      Grid grid(itsBBSExpr[0]->getFreqAxis(), timeAxis);
       // estimate (dpbuffers, exprs, grid, baselineMask, ...);
       // 
       // Subtract the demixed sources.
-      ///subtract();
+      subtract();
       // Clear the input buffers (to cut in memory usage).
       for (uint i=0; i<itsNTimeIn; ++i) {
         itsBuf[i].clear();
@@ -357,7 +368,25 @@ namespace LOFAR {
       for (uint i=0; i<itsNTimeOut*itsNTimeAvg / itsResTimeAvg; ++i) {
         ///        getNextStep()->process (buf2);
       }
+      // Clear the result buffers.
+      for (uint i=0; i<itsAvgResults.size(); ++i) {
+        itsAvgResults[i]->clear();
+      }
     }
+
+    void Demixer::subtract()
+    {
+      // Set expressions to not solvable.
+      for (uint i=0; i<itsModels.size(); ++i) {
+        itsModels[i]->clearSolvables();
+      }
+      // Loop through all time windows.
+      for (uint i=0; i<itsNTimeOut; ++i) {
+        // Subtract data for each time window.
+      }
+    }
+
+
 
       // array dim: baseline, time, freq, dir1, dir2
       // NDPPP compares data with predictions in Estimate class

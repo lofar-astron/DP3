@@ -82,6 +82,9 @@ namespace LOFAR {
       // Solve gains and subtract sources.
       void demix();
 
+      // Do the subtraction.
+      void subtract();
+
       // Add the decorrelation factor contribution for each time slot.
       void addFactors (const DPBuffer& newBuf);
 
@@ -113,6 +116,8 @@ namespace LOFAR {
       uint                     itsNTimeChunk;
       uint                     itsNTimeIn;
       uint                     itsNTimeOut;
+      double                   itsTimeIntervalAvg;
+      double                   itsTimeIntervalRes;
       casa::Array<casa::DComplex> itsFactorBuf; //# ncorr,nchan,nbl,ndir*ndir
       vector<casa::Array<casa::DComplex> > itsFactors; //# demix factors/time
       //# each Array is basically cube(ncorr,nchan,nbl) of matrix(ndir,ndir)
