@@ -30,6 +30,7 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/PhaseShift.h>
+#include <DPPP/BBSExpr.h>
 
 #include <casa/Arrays/Cube.h>
 #include <measures/Measures/MDirection.h>
@@ -78,37 +79,26 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      // Demix and return the result.
-      DPBuffer demix() const;
-
-      // Subtract sources and return the result.
-      DPBuffer subtract() const;
-
-      // Fill the direction rotation matrices.
-      void fillMatrices();
-
-      void addFactors (const DPBuffer& newBuf);
-      void averageFactors();
-
-      void calcDirs();
-
+      // Solve gains and subtract sources.
       void demix();
 
-      // Convert dir index to a linear index.
-      int toIndex (int ndir, int i, int j) const
-        { return (ndir + ndir + 1 - i)/2 + j - i; }
+      // Add the decorrelation factor contribution for each time slot.
+      void addFactors (const DPBuffer& newBuf);
+
+      // Calculate the decorrelation factors by averaging them.
+      void averageFactors();
 
       //# Data members.
       DPInput*                 itsInput;
       string                   itsName;
       vector<PhaseShift*>      itsPhaseShifts;
-      vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average chain
-      vector<ResultStep*>      itsDemixResults;
-      vector<DPStep::ShPtr>    itsSecondSteps;
-      vector<ResultStep*>      itsSubtractInputs;
+      vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average steps
+      vector<MultiResultStep*> itsAvgResults;
+      vector<BBSExpr::ShPtr>   itsBBSExpr;
+      vector<BBS::MeasurementExprLOFAR::Ptr> itsModels;
       vector<string>           itsSources;
-      ///      vector<string>        itsFieldSources;
-      ///      vector<string>        itsMovingSources;
+      vector<string>           itsExtraSources;
+      vector<string>           itsAllSources;
       vector<DPBuffer>         itsBuf;
       bool                     itsJointSolve;
       uint                     itsNrDir;

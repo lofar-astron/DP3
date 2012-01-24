@@ -47,34 +47,41 @@ namespace LOFAR {
 
     Demixer::Demixer (DPInput* input,
                       const ParSet& parset, const string& prefix)
-      : itsInput      (input),
-        itsName       (prefix),
-        itsSources    (parset.getStringVector (prefix+"sources")),
-        ///itsExtra     (parset.getStringVector(prefix+"extrasources")),
-        itsJointSolve (parset.getBool  (prefix+"jointsolve", true)),
-        itsNChanAvg   (parset.getUint  (prefix+"freqstep", 1)),
-        itsNTimeAvg   (parset.getUint  (prefix+"timestep", 1)),
-        itsResChanAvg (parset.getUint  (prefix+"avgfreqstep", itsNChanAvg)),
-        itsResTimeAvg (parset.getUint  (prefix+"avgtimestep", itsNTimeAvg)),
-        itsNTimeChunk (parset.getUint  (prefix+"ntimechunk", 0)),
-        itsNTimeIn    (0),
-        itsNTimeOut   (0)
+      : itsInput        (input),
+        itsName         (prefix),
+        itsSources      (parset.getStringVector (prefix+"sources")),
+        itsExtraSources (parset.getStringVector (prefix+"sources")),
+        itsJointSolve   (parset.getBool  (prefix+"jointsolve", true)),
+        itsNChanAvg     (parset.getUint  (prefix+"freqstep", 1)),
+        itsNTimeAvg     (parset.getUint  (prefix+"timestep", 1)),
+        itsResChanAvg   (parset.getUint  (prefix+"avgfreqstep", itsNChanAvg)),
+        itsResTimeAvg   (parset.getUint  (prefix+"avgtimestep", itsNTimeAvg)),
+        itsNTimeChunk   (parset.getUint  (prefix+"ntimechunk", 0)),
+        itsNTimeIn      (0),
+        itsNTimeOut     (0)
     {
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
         itsNTimeChunk = OpenMP::maxThreads();
       }
-      itsFactors.resize (itsNTimeChunk);
-      itsNrDir = itsSources.size() + 1;
       // Check that time and freq windows fit nicely.
       ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsResTimeAvg == 0,
                  "time window should fit averaging integrally");
+      // Collect all source names.
+      itsNrDir = itsSources.size() + itsExtraSources.size() + 1;
+      itsAllSources.reserve (itsNrDir);
+      itsAllSources.insert (itsAllSources.end(),
+                            itsSources.begin(), itsSources.end());
+      itsAllSources.insert (itsAllSources.end(),
+                            itsExtraSources.begin(), itsExtraSources.end());
+      /// itsAllSources.push_back ("target"); //// probably not needed
+      // Size buffers.
+      itsFactors.resize (itsNTimeChunk);
       itsBuf.resize (itsNTimeChunk * itsNTimeAvg);
-      itsPhaseShifts.reserve    (itsSources.size());
-      itsFirstSteps.reserve     (itsNrDir);
-      itsSecondSteps.reserve    (itsNrDir);
-      itsDemixResults.reserve   (itsNrDir);
-      itsSubtractInputs.reserve (itsNrDir);
+      itsPhaseShifts.reserve (itsNrDir-1);
+      itsFirstSteps.reserve  (itsNrDir);
+      itsAvgResults.reserve  (itsNrDir);
+      itsBBSExpr.reserve     (itsNrDir);
       // Create the steps for the sources to be removed.
       // Demixing consists of the following steps:
       // - phaseshift data to each demix source
@@ -84,50 +91,31 @@ namespace LOFAR {
       //   predict more directions than to solve (for strong sources in field).
       // - use BBS to subtract the solved sources using the demix factors.
       //   The averaging used here can be smaller than used when solving.
-      for (uint i=0; i<itsSources.size(); ++i) {
+      for (uint i=0; i<itsNrDir-1; ++i) {
         // First make the phaseshift and average steps for each demix source.
         // The resultstep gets the result.
         // The phasecenter can be given in a parameter. Its name is the default.
         // Note the PhaseShift knows about source names CygA, etc.
-        itsPhaseShifts.push_back (new PhaseShift(input, parset,
-                                                 prefix + '.' + itsSources[i],
-                                                 itsSources[i]));
+        itsPhaseShifts.push_back (new PhaseShift
+                                  (input, parset,
+                                   prefix + '.' + itsAllSources[i],
+                                   itsAllSources[i]));
         DPStep::ShPtr step1 (itsPhaseShifts[i]);
         itsFirstSteps.push_back (step1);
         DPStep::ShPtr step2 (new Averager(input, parset, prefix));
         step1->setNextStep (step2);
-        ResultStep* step3 = new ResultStep();
+        MultiResultStep* step3 = new MultiResultStep(itsNTimeChunk);
         step2->setNextStep (DPStep::ShPtr(step3));
         // There is a single demix factor step which needs to get all results.
-        itsDemixResults.push_back (step3);
+        itsAvgResults.push_back (step3);
       }
       // Now create the step to average the data themselves.
       DPStep::ShPtr targetAvg(new Averager(input, prefix,
                                            itsNChanAvg, itsNTimeAvg));
       itsFirstSteps.push_back (targetAvg);
-      ResultStep* targetAvgRes = new ResultStep();
+      MultiResultStep* targetAvgRes = new MultiResultStep(itsNTimeChunk);
       targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
-      itsDemixResults.push_back (targetAvgRes);
-      // Add the steps to solve and subtract.
-      for (uint i=0; i<itsNrDir; ++i) {
-        // Do a BBS solve for all directions.
-        ///DPStep::ShPtr step4 (new BBSStep(, itsJointSolve));
-        DPStep::ShPtr step4 (new ResultStep());///
-        itsSecondSteps.push_back (step4);
-        ///DPStep::ShPtr step5 (new ParmSmooth());
-        /// Smoothing requires a time window; may not be necessary if
-        /// BBS is handling outliers correctly.
-        DPStep::ShPtr step5 (new ResultStep());///
-        step4->setNextStep (step5);
-        // Subtract the demixed sources from the data.
-        ///DPStep::ShPtr step6 (new SubtractStep());
-        DPStep::ShPtr step6 (new ResultStep());///
-        step5->setNextStep (step6);
-        ResultStep* step7 = new ResultStep();
-        step6->setNextStep (DPStep::ShPtr(step7));
-        // There is a single subtract step needing all sources.
-        itsSubtractInputs.push_back (step7);
-      }
+      itsAvgResults.push_back (targetAvgRes);
     }
 
     Demixer::~Demixer()
@@ -152,12 +140,11 @@ namespace LOFAR {
           step->updateInfo (infocp);
           step = step->getNextStep();
         }
-        step = itsSecondSteps[i];
-        while (step) {
-          step->updateInfo (infocp);
-          step = step->getNextStep();
-        }
-      }
+        // Create the BBSexpression.
+        itsBBSExpr.push_back (BBSExpr::ShPtr(new BBSExpr(*itsInput, infocp, 
+                                                         itsAllSources[i])));
+        itsModels.push_back (itsBBSExpr[i]->getModel());
+     }
       // Update the info of this object.
       info.update (itsResChanAvg, itsResTimeAvg);
       itsNrChanOut = info.nchan();
@@ -167,6 +154,7 @@ namespace LOFAR {
     {
       os << "Demixer " << itsName << std::endl;
       os << "  sources:        " << itsSources << std::endl;
+      os << "  extrasources:   " << itsExtraSources << std::endl;
       os << "  jointsolve:     " << itsJointSolve << std::endl;
       os << "  freqstep:       " << itsNChanAvg << std::endl;
       os << "  timestep:       " << itsNTimeAvg << std::endl;
@@ -225,7 +213,7 @@ namespace LOFAR {
       // Do BBS solve, etc. when sufficient time slots have been collected.
       if (itsNTimeOut == itsNTimeChunk) {
         cout << "process time chunks" << endl;
-        ///demix();
+        demix();
         itsNTimeIn  = 0;
         itsNTimeOut = 0;
       }
@@ -250,7 +238,7 @@ namespace LOFAR {
         itsTimerDemix.stop();
         itsTimer.stop();
         cout << "final process time chunks" << endl;
-        ///demix();
+        demix();
       }
       getNextStep()->finish();
     }
@@ -310,57 +298,11 @@ namespace LOFAR {
         }
       }
     }
-    /*
-    void Demixer::addFactors (const DPBuffer& newBuf)
-    {
-      if (itsMoving) {
-        calcDirs();
-      }
-///#pragma omp parallel
-      {
-///#pragma omp for
-        uint ncorr  = newBuf.getData().shape()[0];
-        uint nchan  = newBuf.getData().shape()[1];
-        uint nbl    = newBuf.getData().shape()[2];
-        DComplex* factorPtr = itsFactorBuf.data();
-        //# If ever in the future a time dependent phase center is used,
-        //# the machine must be reset for each new time, thus each new call
-        //# to process.
-        for (uint i1=0; i1<itsNrDir; ++i1) {
-          for (uint i0=i1+1; i0<itsNrDir; ++i0) {
-            const double* uvw       = newBuf.getUVW().data();
-            const bool*   flagPtr   = newBuf.getFlags().data();
-            const float*  weightPtr = newBuf.getWeights().data();
-            for (uint i=0; i<nbl; ++i) {
-              double phase = (itsMatd(0,i0,i1) * uvw[0] +
-                              itsMatd(1,i0,i1) * uvw[1] +
-                              itsMatd(2,i0,i1) * uvw[2]);
-              for (uint j=0; j<nchan; ++j) {
-                // Shift the phase of the data of this baseline.
-                // Convert the phase term to wavelengths (and apply 2*pi).
-                // u_wvl = u_m / wvl = u_m * freq / c
-                double phasewvl = phase * itsFreqC[j];
-                DComplex phasor(cos(phasewvl), sin(phasewvl));
-                for (uint k=0; k<ncorr; ++k) {
-                  if (! *flagPtr) {
-                    *factorPtr += phasor * double(*weightPtr);
-                  }
-                  flagPtr++;
-                  weightPtr++;
-                  factorPtr++;
-                }
-              }
-              uvw += 3;
-            }
-          }
-        }
-      }
-    }
-    */
 
     void Demixer::averageFactors()
     {
-      const Cube<float>& weightSums = itsDemixResults[0]->get().getWeights();
+      // The averaged weights are calculated in the Averager, so use those.
+      const Cube<float>& weightSums = itsAvgResults[0]->get()[itsNTimeOut].getWeights();
       ASSERT (! weightSums.empty());
       itsFactors[itsNTimeOut].resize (IPosition(5, itsNrDir, itsNrDir,
                                                 itsNrCorr, itsNrChanOut,
@@ -400,15 +342,13 @@ namespace LOFAR {
 
     void Demixer::demix()
     {
-      // Check that averaging has been done as well.
-      ASSERT (! itsDemixResults[0]->get().getData().empty());
-      // Determine nr of time chunks.
-      // Do the predict/solve iterations.
-      for (uint i=0; i<itsSecondSteps.size(); ++i) {
-        ///        itsSecondSteps[i]->process (buf1);
-      }
+      // Solve for the gains in the various directions.
+      // Make time axis and grid.
+      /// Grid grid(freqAxis, timeAxis);
+      // estimate (dpbuffers, exprs, grid, baselineMask, ...);
+      // 
       // Subtract the demixed sources.
-      subtract();
+      ///subtract();
       // Clear the input buffers (to cut in memory usage).
       for (uint i=0; i<itsNTimeIn; ++i) {
         itsBuf[i].clear();
@@ -458,12 +398,7 @@ namespace LOFAR {
       //    Johan/Stefan: verify beam model
       //    George: is MSMFS needed in awimager?
 
-    DPBuffer Demixer::subtract() const
-    {
-      DPBuffer buf;
-      return buf;
-    }
-
+    // awimager: default channels by MFS is channel 0 only.
 
   } //# end namespace
 }
