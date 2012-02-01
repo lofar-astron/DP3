@@ -36,7 +36,6 @@
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/PhaseShift.h>
 #include <DPPP/Demixer.h>
-///#include <DPPP/Estimator.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ParSet.h>
 #include <DPPP/ProgressMeter.h>
@@ -235,8 +234,6 @@ namespace LOFAR {
           step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
         } else if (type == "demixer"  ||  type == "demix") {
           step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
-          ///        } else if (type == "estimate"  ||  type == "estimator") {
-          ///          step = DPStep::ShPtr(new Estimator (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
@@ -257,7 +254,7 @@ namespace LOFAR {
       reader->setReadVisData (info.needVisData());
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
-      // If the user specified an output name, a writer is always created 
+      // If the user specified an output name, a writer is always created
       // If there is a writer, the reader needs to read the visibility data.
       if (outName.empty()) {
         ASSERTSTR (info.nchanAvg() == 1  &&  info.ntimeAvg() == 1,

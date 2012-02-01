@@ -35,6 +35,14 @@
 #include <casa/Arrays/Cube.h>
 #include <measures/Measures/MDirection.h>
 
+#include <BBSKernel/MeasurementExprLOFAR.h>
+#include <BBSKernel/BaselineMask.h>
+#include <BBSKernel/CorrelationMask.h>
+#include <BBSKernel/ParmManager.h>
+#include <BBSKernel/VisBuffer.h>
+#include <ParmDB/SourceDB.h>
+#include <DPPP/EstimateNDPPP.h>
+
 namespace LOFAR {
 
   namespace DPPP {
@@ -79,11 +87,13 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      casa::MDirection handleCenter(const vector<string> &center) const;
+
       // Solve gains and subtract sources.
       void demix();
 
-      // Do the subtraction.
-      void subtract();
+//      // Do the subtraction.
+//      void subtract();
 
       // Add the decorrelation factor contribution for each time slot.
       void addFactors (const DPBuffer& newBuf);
@@ -98,11 +108,16 @@ namespace LOFAR {
       vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average steps
       vector<MultiResultStep*> itsAvgResults;
       vector<BBSExpr::ShPtr>   itsBBSExpr;
-      vector<BBS::MeasurementExprLOFAR::Ptr> itsModels;
+      vector<BBS::MeasurementExpr::Ptr> itsModels;
+      string                   itsTarget;
       vector<string>           itsSources;
       vector<string>           itsExtraSources;
       vector<string>           itsAllSources;
-      vector<DPBuffer>         itsBuf;
+//      vector<DPBuffer>         itsBuf;
+      double                   itsTimeStart;
+      double                   itsTimeInterval;
+      vector<double>           itsTimeCenters;
+      vector<double>           itsTimeWidths;
       bool                     itsJointSolve;
       uint                     itsNrDir;
       uint                     itsNrBl;
@@ -126,6 +141,16 @@ namespace LOFAR {
       NSTimer                  itsTimerDemix;
       NSTimer                  itsTimerBBS;
       NSTimer                  itsTimerSubtract;
+
+      boost::shared_ptr<BBS::SourceDB> itsSourceDB;
+      vector<BBS::ParmGroup>           itsModelParms;
+      BBS::ParmGroup                   itsParms;
+      BBS::BaselineSeq                 itsBaselines;
+      BBS::BaselineMask                itsBaselineMask;
+      BBS::CorrelationSeq              itsCorrelations;
+      BBS::CorrelationMask             itsCorrelationMask;
+      BBS::Axis::ShPtr                 itsFreqAxisAvg;
+      BBS::EstimateOptions             itsOptions;
     };
 
   } //# end namespace
