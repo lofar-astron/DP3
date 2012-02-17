@@ -176,7 +176,7 @@ namespace LOFAR {
 //        stations.begin(), stations.end()));
 
       MeasurementAIPS ___bla(input->msName());
-      Instrument::Ptr instrument = ___bla.instrument();
+      Instrument::ConstPtr instrument = ___bla.instrument();
 
 
       // Get directions and make sure they are in J2000.
@@ -223,8 +223,7 @@ namespace LOFAR {
       ModelConfig config;
 //      config.setDirectionalGain();
       config.setGain();
-      BeamConfig beamConfig(BeamConfig::DEFAULT, false,
-        casa::Path("$LOFARROOT/share"));
+      BeamConfig beamConfig(BeamConfig::DEFAULT, false);
       config.setBeamConfig(beamConfig);
       config.setCache();
 
