@@ -334,17 +334,18 @@ namespace LOFAR {
         makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
                      itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
                      itsNChanOut);
-        // Deproject sources without a model.
         // If needed, keep the original factors for subtraction.
         if (!itsCalcSubtr) {
           itsFactorsSubtr[itsNTimeOut].reference (itsFactors[itsNTimeOut].copy());
         }
+        // Deproject sources without a model.
         deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
         itsFactorBuf = Complex();   // clear summation buffer
         itsNTimeOut++;
-        itsNTimeIn = 0;
       }
       if (itsCalcSubtr) {
+        // Subtract is done with different averaging parameters, so
+        // calculate the factors for it. 
         addFactors (newBuf, itsFactorBufSubtr);
         if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
           makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
