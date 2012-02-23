@@ -93,7 +93,7 @@ void subtract(vector<DPPP::DPBuffer> &buffer,
     const BBS::CorrelationMask &correlationMask,
     const BBS::Grid &visGrid,
     unsigned int target,
-    const vector<unsigned int> &directions);
+    unsigned int nsources);
 
 // @}
 

@@ -34,7 +34,9 @@
 #include <BBSKernel/CorrelationMask.h>
 #include <BBSKernel/ParmManager.h>
 #include <BBSKernel/VisBuffer.h>
+#include <BBSKernel/Estimate.h>
 #include <ParmDB/SourceDB.h>
+#include <ParmDB/Grid.h>
 
 #include <Common/lofar_vector.h>
 #include <Common/lofar_string.h>
@@ -48,25 +50,32 @@ namespace LOFAR {
     class BBSExpr
     {
     public:
-      // Define the shared pointer for this type.
-      typedef shared_ptr<BBSExpr> ShPtr;
-
-      // Construct the expression for the given source.
-      BBSExpr(const DPInput&, const DPInfo&, const string& sourceName);
+      // Construct the expression for the given sky and instrument
+      // parameter databases.
+      BBSExpr (const DPInput& input, const string& skyName,
+               const string& instrumentName);
 
       ~BBSExpr();
 
-      // Get the resulting expression.
-      BBS::MeasurementExprLOFAR::Ptr getModel()
-        { return itsModel; }
+      // Create a model expression for the given source.
+      void addModel (const DPInput& input, const DPInfo&,
+                     const string& sourceName, double refFreq);
 
-      // Get the frequency axis.
-      const BBS::Axis::ShPtr& getFreqAxis() const
-        { return itsFreqAxis; }
+      // Estimate the model parameters.
+      void estimate (vector<vector<DPBuffer> >& buffers,
+                     const BBS::Grid& visGrid, const BBS::Grid& solveGrid,
+                     const vector<casa::Array<casa::DComplex> >& factors);
 
-      // Get the baseline mask.
-      const BBS::BaselineMask& getBaselineMask() const
-        { return itsBaselineMask; }
+      // Subtract the sources.
+      void subtract (vector<DPBuffer>& buffer, const BBS::Grid& visGrid,
+                     const vector<casa::Array<casa::DComplex> >& factors,
+                     uint target, uint nsources);
+
+      // Clear the solvables in the model expressions.
+      void clearSolvables();
+
+      // Set the solvables in the model expressions to the gains.
+      void setSolvables();
 
     private:
       // For now, forbid copy construction and assignment.
@@ -74,17 +83,18 @@ namespace LOFAR {
       BBSExpr& operator= (const BBSExpr& other);
 
       //# Data members
-      boost::shared_ptr<BBS::SourceDB> itsSourceDB;
-      BBS::MeasurementExprLOFAR::Ptr   itsModel;
-      BBS::ParmGroup                   itsParms;
-      BBS::BaselineMask                itsBaselineMask;
-      casa::MDirection                 itsPhaseReference;
-      double                           itsRefFreq;
-      double                           itsTimeInterval;
-      BBS::Instrument::Ptr             itsInstrument;
-      BBS::BaselineSeq                 itsBaselines;
-      BBS::CorrelationSeq              itsCorrelations;
-      BBS::Axis::ShPtr                 itsFreqAxis;
+      boost::shared_ptr<BBS::SourceDB>  itsSourceDB;
+      vector<BBS::MeasurementExpr::Ptr> itsModels;
+      vector<string>                    itsSources;
+      BBS::BaselineMask                 itsBaselineMask;
+      BBS::Instrument::ConstPtr         itsInstrument;
+      BBS::BaselineSeq                  itsBaselines;
+      BBS::CorrelationSeq               itsCorrelations;
+      BBS::CorrelationMask              itsCorrelationMask;
+      BBS::ModelConfig                  itsConfig;
+      vector<BBS::ParmGroup>            itsModelParms;
+      BBS::ParmGroup                    itsParms;
+      BBS::EstimateOptions              itsOptions;
     };
 
 // @}

@@ -267,6 +267,7 @@ namespace LOFAR {
       bool                itsReadVisData;   //# read visibility data?
       bool                itsNeedSort;      //# sort needed on time,baseline?
       bool                itsAutoWeight;    //# calculate weights from autocorr?
+      bool                itsAutoWeightForce; //# always calculate weights?
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;
       bool                itsUseAllChan;    //# all channels (i.e. no slicer)?

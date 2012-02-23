@@ -22,10 +22,14 @@
 
 #include <lofar_config.h>
 #include <DPPP/BBSExpr.h>
+#include <DPPP/EstimateNDPPP.h>
+
+#include <BBSKernel/MeasurementAIPS.h>
 
 #include <Common/LofarLogger.h>
 #include <Common/lofar_iostream.h>
 #include <Common/lofar_iomanip.h>
+#include <Common/StreamUtil.h>
 
 #include <measures/Measures/MCDirection.h>
 #include <measures/Measures/MCPosition.h>
@@ -37,62 +41,30 @@ using namespace LOFAR::BBS;
 namespace LOFAR {
   namespace DPPP {
 
-    BBSExpr::BBSExpr(const DPInput& input, const DPInfo& info,
-                     const string& sourceName)
-      : itsBaselineMask (True),
-        itsRefFreq      (0),
-        itsTimeInterval (input.timeInterval())
+    BBSExpr::BBSExpr (const DPInput& input, const string& skyName,
+                      const string& instrumentName)
+      : itsBaselineMask    (true),
+        itsCorrelationMask (true)
     {
       // Open ParmDB and SourceDB.
       try {
         itsSourceDB = boost::shared_ptr<SourceDB>
-          (new SourceDB(ParmDBMeta("casa", "sky")));
+          (new SourceDB(ParmDBMeta("casa", skyName)));
         ParmManager::instance().initCategory(SKY, itsSourceDB->getParmDB());
       } catch (Exception &e) {
         THROW(Exception, "Failed to open sky model parameter database: "
-              << "sky");
+              << skyName);
       }
       try {
         ParmManager::instance().initCategory(INSTRUMENT,
                                              ParmDB(ParmDBMeta("casa",
-                                                               "instrument")));
+                                                               instrumentName)));
       } catch (Exception &e) {
         THROW(Exception, "Failed to open instrument model parameter database: "
-              << "instrument");
+              << instrumentName);
       }
       // Create Instrument instance using information present in DPInput.
-      size_t nStations = input.antennaNames().size();
-      vector<Station::Ptr> stations;
-      stations.reserve(nStations);
-      for (size_t i = 0; i < nStations; ++i) {
-        // Get station name and ITRF position.
-        casa::MPosition position = MPosition::Convert(input.antennaPos()[i],
-                                                      MPosition::ITRF)();
-        // Store station information.
-        stations.push_back(Station::Ptr(new Station(input.antennaNames()(i),
-                                                    position)));
-      }
-      MPosition position = MPosition::Convert(input.arrayPos(),
-                                              MPosition::ITRF)();
-      itsInstrument = Instrument::Ptr
-        (new Instrument("LOFAR", position, stations.begin(), stations.end()));
-      // Get directions and make sure they are in J2000.
-      // Note that the phase center has to be taken from the DPInfo object,
-      // because it can be used from a PhaseShift object.
-      /// What to do if phasecenter is moving (e.g. SUN)?
-      itsPhaseReference = MDirection::Convert(info.phaseCenter(),
-                                              MDirection::J2000)();
-      MDirection delayReference = MDirection::Convert(input.delayCenter(),
-                                                      MDirection::J2000)();
-      MDirection tileBeamDir    = MDirection::Convert(input.tileBeamDir(),
-                                                      MDirection::J2000)();
-      // Construct frequency axis (needs channel width information).
-      double chanWidth = input.chanWidths()[0];
-      ASSERT (allEQ (input.chanWidths(), chanWidth));
-      itsFreqAxis = Axis::ShPtr(new RegularAxis
-                                (input.chanFreqs()(0) - chanWidth*0.5,
-                                 chanWidth, input.chanFreqs().size()));
-      // Construct measurement expression.
+      itsInstrument = MeasurementAIPS(input.msName()).instrument();
       // Ignore auto-correlations.
       ASSERT(input.getAnt1().size() == input.getAnt2().size());
       for(size_t i=0; i<input.getAnt1().size(); ++i) {
@@ -103,35 +75,112 @@ namespace LOFAR {
           itsBaselineMask.clear (ant1, ant2);
         }
       }
+      // Use all correlations.
       ASSERT(input.ncorr() == 4);
       itsCorrelations.append(Correlation::XX);
       itsCorrelations.append(Correlation::XY);
       itsCorrelations.append(Correlation::YX);
       itsCorrelations.append(Correlation::YY);
-      ModelConfig config;
-      config.setDirectionalGain();
-      config.setCache();
-      config.setSources (vector<string>(1, sourceName));
-      /// config.setBeam();
-      /// beaminfo lezen/toevoegen aan itsInstrument
-      // Model of this source plus directional gain for this source. How?
-      BufferMap bufferMap;
-      try {
-        itsModel = MeasurementExprLOFAR::Ptr(new MeasurementExprLOFAR
-                                             (*itsSourceDB, bufferMap,
-                                              config, itsInstrument,
-                                              itsBaselines, itsRefFreq,
-                                              itsPhaseReference,
-                                              delayReference,
-                                              tileBeamDir));
-      } catch (Exception &x) {
-        THROW(Exception, "Unable to construct the BBS model expression; " +
-              string(x.what()));
-      }
+      // Define the model configuration.
+      /// itsConfig.setDirectionalGain();
+      itsConfig.setGain();
+      BeamConfig beamConfig(BeamConfig::DEFAULT, false);
+      itsConfig.setBeamConfig(beamConfig);
+      itsConfig.setCache();
     }
 
     BBSExpr::~BBSExpr()
     {}
+
+    void BBSExpr::addModel (const DPInput& input, const DPInfo& info,
+                            const string& sourceName, double refFreq)
+    {
+      // Model of this source plus directional gain for this source. How?
+      // Get directions and make sure they are in J2000.
+      // Note that the phase center has to be taken from the DPInfo object,
+      // because it can be used from a PhaseShift object.
+      /// What to do if phasecenter is moving (e.g. SUN)?
+      MDirection phaseReference = MDirection::Convert(info.phaseCenter(),
+                                                      MDirection::J2000)();
+      MDirection delayReference = MDirection::Convert(input.delayCenter(),
+                                                      MDirection::J2000)();
+      MDirection tileBeamDir    = MDirection::Convert(input.tileBeamDir(),
+                                                      MDirection::J2000)();
+      vector<string> incl, excl;
+      incl.push_back ("Gain.*");
+      /// incl.push_back ("DirectionalGain.*");
+      try {
+        itsConfig.setSources (vector<string>(1, sourceName));
+        itsModels.push_back (MeasurementExpr::Ptr
+          (new MeasurementExprLOFAR (*itsSourceDB, BufferMap(),
+                                     itsConfig, itsInstrument,
+                                     itsBaselines, refFreq,
+                                     phaseReference,
+                                     delayReference,
+                                     tileBeamDir)));
+       } catch (Exception &x) {
+        THROW(Exception, "Unable to construct the BBS model expression; " +
+              string(x.what()));
+      }
+      ParmGroup parms = ParmManager::instance().makeSubset
+        (incl, excl, itsModels.back()->parms());
+      itsModelParms.push_back(parms);
+      itsParms.insert(parms.begin(), parms.end());
+      itsSources.push_back (sourceName);
+      // Set solver options.
+      SolverOptions lsqOptions;
+      lsqOptions.maxIter = 40;
+      lsqOptions.epsValue = 1e-9;
+      lsqOptions.epsDerivative = 1e-9;
+      lsqOptions.colFactor = 1e-9;
+      lsqOptions.lmFactor = 1.0;
+      lsqOptions.balancedEq = false;
+      lsqOptions.useSVD = true;
+      itsOptions = EstimateOptions(EstimateOptions::COMPLEX,
+                                   EstimateOptions::L2, false, 1,
+                                   false, ~flag_t(0), flag_t(4),
+                                   lsqOptions);
+    }
+
+    void BBSExpr::estimate (vector<vector<DPBuffer> >& buffers,
+                            const Grid& visGrid, const Grid& solveGrid,
+                            const vector<Array<DComplex> >& factors)
+    {
+      // Set parameter domain.
+      ParmManager::instance().setDomain(solveGrid.getBoundingBox());
+      DPPP::estimate (buffers, itsModels, factors, itsBaselines,
+                      itsCorrelations, itsBaselineMask, itsCorrelationMask,
+                      visGrid, solveGrid, itsOptions);
+      // Flush solutions to disk.
+      ParmManager::instance().flush();
+    }
+
+    void BBSExpr::subtract (vector<DPBuffer>& buffer,
+                            const Grid& visGrid,
+                            const vector<Array<DComplex> >& factors,
+                            uint target,
+                            uint nsources)
+    {
+      clearSolvables();
+      LOG_DEBUG_STR("nsources: " << nsources << ",  target: " << target);
+      DPPP::subtract (buffer, itsModels, factors, itsBaselines,
+                      itsCorrelations, itsBaselineMask, itsCorrelationMask,
+                      visGrid, target, nsources);
+    }
+
+    void BBSExpr::clearSolvables()
+    {
+      for (uint i=0; i<itsModels.size(); ++i) {
+        itsModels[i]->clearSolvables();
+      }
+    }
+
+    void BBSExpr::setSolvables()
+    {
+      for (uint i=0; i<itsModels.size(); ++i) {
+        itsModels[i]->setSolvables (itsModelParms[i]);
+      }
+    }
 
   } //# namespace DPPP
 } //# namespace LOFAR

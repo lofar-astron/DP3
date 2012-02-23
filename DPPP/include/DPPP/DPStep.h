@@ -162,6 +162,8 @@ namespace LOFAR {
       // Get the result.
       const DPBuffer& get() const
         { return itsBuffer; }
+      DPBuffer& get()
+        { return itsBuffer; }
 
       // Clear the buffer.
       void clear()
@@ -200,6 +202,8 @@ namespace LOFAR {
 
       // Get the result.
       const vector<DPBuffer>& get() const
+        { return itsBuffers; }
+      vector<DPBuffer>& get()
         { return itsBuffers; }
 
       // Clear the buffers.

@@ -34,8 +34,11 @@
 #include <Common/OpenMP.h>
 #include <BBSKernel/MeasurementAIPS.h>
 
+#include <casa/Arrays/Vector.h>
+#include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/MatrixMath.h>
 #include <scimath/Mathematics/MatrixMathLA.h>
-#include <casa/Arrays/MatrixIter.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/MCDirection.h>
 #include <measures/Measures/MCPosition.h>
@@ -52,56 +55,64 @@ namespace LOFAR {
 
     Demixer::Demixer (DPInput* input,
                       const ParSet& parset, const string& prefix)
-      : itsInput        (input),
-        itsName         (prefix),
-        itsTarget       (parset.getString(prefix+"target")),
-        itsSources      (parset.getStringVector (prefix+"sources")),
-//        itsExtraSources (parset.getStringVector (prefix+"sources")),
-        itsJointSolve   (parset.getBool  (prefix+"jointsolve", true)),
-        itsNChanAvg     (parset.getUint  (prefix+"freqstep", 1)),
-        itsNTimeAvg     (parset.getUint  (prefix+"timestep", 1)),
-        itsResChanAvg   (parset.getUint  (prefix+"avgfreqstep", itsNChanAvg)),
-        itsResTimeAvg   (parset.getUint  (prefix+"avgtimestep", itsNTimeAvg)),
-        itsNTimeChunk   (parset.getUint  (prefix+"ntimechunk", 0)),
-        itsNTimeIn      (0),
-        itsNTimeOut     (0),
-
-        itsBaselineMask(True),
-        itsCorrelationMask(True)
+      : itsInput         (input),
+        itsName          (prefix),
+        itsSkyName       (parset.getString(prefix+"skymodel", "sky")),
+        itsInstrumentName(parset.getString(prefix+"instrumentmodel",
+                                           "instrument")),
+        itsBBSExpr       (*input, itsSkyName, itsInstrumentName),
+        itsTarget        (parset.getString(prefix+"target", "target")),
+        itsSubtrSources  (parset.getStringVector (prefix+"subtractsources")),
+        itsModelSources  (parset.getStringVector (prefix+"modelsources",
+                                                  vector<string>())),
+        itsExtraSources  (parset.getStringVector (prefix+"othersources",
+                                                  vector<string>())),
+        itsJointSolve    (parset.getBool  (prefix+"jointsolve", true)),
+        itsNTimeIn       (0),
+        itsNChanAvgSubtr (parset.getUint  (prefix+"freqstep", 1)),
+        itsNTimeAvgSubtr (parset.getUint  (prefix+"timestep", 1)),
+        itsNTimeOutSubtr (0),
+        itsNChanAvg      (parset.getUint  (prefix+"demixfreqstep",
+                                           itsNChanAvgSubtr)),
+        itsNTimeAvg      (parset.getUint  (prefix+"demixtimestep",
+                                           itsNTimeAvgSubtr)),
+        itsNTimeChunk    (parset.getUint  (prefix+"ntimechunk", 0)),
+        itsNTimeOut      (0)
     {
-      cout << "PREFIX: " << prefix << endl;
-
+      /// Maybe optionally a parset parameter directions to give the
+      /// directions of unknown sources.
+      /// Or make sources a vector of vectors like [name, ra, dec] where
+      /// ra and dec are optional.
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
         itsNTimeChunk = OpenMP::maxThreads();
       }
-      cout << "NTIMECHUNK: " << itsNTimeChunk << endl;
-
-      // Check that time and freq windows fit nicely.
-      ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsResTimeAvg == 0,
-                 "time window should fit averaging integrally");
-
-      // JVZ: Added to keep track of time info needed for BBS grid.
-      itsTimeCenters.reserve(itsNTimeChunk);
-      itsTimeWidths.reserve(itsNTimeChunk);
-
+      // Check that time windows fit nicely.
+      ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr == 0,
+                 "time window should fit final averaging integrally");
+      itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
+      // See if averaging in demix and subtract differs.
+      itsCalcSubtr = (itsNChanAvg != itsNChanAvgSubtr  ||
+                      itsNTimeAvg != itsNTimeAvgSubtr);
       // Collect all source names.
-      itsNrDir = itsSources.size() + itsExtraSources.size() + 1;
+      itsNrModel = itsSubtrSources.size() + itsModelSources.size();
+      itsNrDir   = itsNrModel + itsExtraSources.size() + 1;
       itsAllSources.reserve (itsNrDir);
       itsAllSources.insert (itsAllSources.end(),
-                            itsSources.begin(), itsSources.end());
+                            itsModelSources.begin(), itsModelSources.end());
+      itsAllSources.insert (itsAllSources.end(),
+                            itsSubtrSources.begin(), itsSubtrSources.end());
       itsAllSources.insert (itsAllSources.end(),
                             itsExtraSources.begin(), itsExtraSources.end());
 //      itsAllSources.push_back("target"); //// probably not needed
       itsAllSources.push_back(itsTarget);
 
       // Size buffers.
-      itsFactors.resize (itsNTimeChunk);
-//      itsBuf.resize (itsNTimeChunk * itsNTimeAvg);
+      itsFactors.resize      (itsNTimeChunk);
+      itsFactorsSubtr.resize (itsNTimeChunkSubtr);
       itsPhaseShifts.reserve (itsNrDir-1);
       itsFirstSteps.reserve  (itsNrDir);
       itsAvgResults.reserve  (itsNrDir);
-//      itsBBSExpr.reserve     (itsNrDir);
 
       // Create the steps for the sources to be removed.
       // Demixing consists of the following steps:
@@ -117,12 +128,11 @@ namespace LOFAR {
         // The resultstep gets the result.
         // The phasecenter can be given in a parameter. Its name is the default.
         // Note the PhaseShift knows about source names CygA, etc.
-        itsPhaseShifts.push_back (new PhaseShift
-                                  (input, parset,
-                                   prefix + itsAllSources[i] + '.',
-                                   itsAllSources[i]));
-        DPStep::ShPtr step1 (itsPhaseShifts[i]);
-        itsFirstSteps.push_back (step1);
+        PhaseShift* step1 = new PhaseShift (input, parset,
+                                            prefix + '.' + itsAllSources[i],
+                                            itsAllSources[i]);
+        itsFirstSteps.push_back (DPStep::ShPtr(step1));
+        itsPhaseShifts.push_back (step1);
         DPStep::ShPtr step2 (new Averager(input, parset, prefix));
         step1->setNextStep (step2);
         MultiResultStep* step3 = new MultiResultStep(itsNTimeChunk);
@@ -138,171 +148,38 @@ namespace LOFAR {
       targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
       itsAvgResults.push_back (targetAvgRes);
 
-      // Open ParmDB and SourceDB.
-      try {
-        itsSourceDB = boost::shared_ptr<SourceDB>
-          (new SourceDB(ParmDBMeta("casa", "sky")));
-        ParmManager::instance().initCategory(SKY, itsSourceDB->getParmDB());
-      } catch (Exception &e) {
-        THROW(Exception, "Failed to open sky model parameter database: "
-              << "sky");
+      // Do the same for the subtract if it has different averaging.
+      if (itsCalcSubtr) {
+        itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
+                                                  itsNChanAvgSubtr,
+                                                  itsNTimeAvgSubtr));
+        itsAvgResultSubtr = new MultiResultStep(itsNTimeChunk);
+        itsAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
+      } else {
+        // Same averaging, so use demix averaging for the subtract.
+        itsAvgSubtr = DPStep::ShPtr (new NullStep());
+        itsAvgResultSubtr = targetAvgRes;
       }
-
-      try {
-        ParmManager::instance().initCategory(INSTRUMENT,
-                                             ParmDB(ParmDBMeta("casa",
-                                                               "instrument")));
-      } catch (Exception &e) {
-        THROW(Exception, "Failed to open instrument model parameter database: "
-              << "instrument");
-      }
-
-      // Create Instrument instance using information present in DPInput.
-      size_t nStations = input->antennaNames().size();
-
-//      vector<Station::Ptr> stations;
-//      stations.reserve(nStations);
-//      for (size_t i = 0; i < nStations; ++i) {
-//        // Get station name and ITRF position.
-//        casa::MPosition position = MPosition::Convert(input->antennaPos()[i],
-//                                                      MPosition::ITRF)();
-//        // Store station information.
-//        stations.push_back(Station::Ptr(new Station(input->antennaNames()(i),
-//                                                    position)));
-//      }
-//      MPosition position = MPosition::Convert(input->arrayPos(),
-//                                              MPosition::ITRF)();
-//      Instrument::Ptr instrument(new Instrument("LOFAR", position,
-//        stations.begin(), stations.end()));
-
-      MeasurementAIPS ___bla(input->msName());
-      Instrument::ConstPtr instrument = ___bla.instrument();
-
-
-      // Get directions and make sure they are in J2000.
-      MDirection refDelay = MDirection::Convert(input->delayCenter(),
-                                               MDirection::J2000)();
-      MDirection refTile  = MDirection::Convert(input->tileBeamDir(),
-                                               MDirection::J2000)();
-
-      // Construct frequency axis (needs channel width information).
-      double chanWidth = input->chanWidths()[0];
-      ASSERT(allEQ(input->chanWidths(), chanWidth));
-      itsFreqAxisAvg = Axis::ShPtr(new RegularAxis(input->chanFreqs()(0)
-        - 0.5 * chanWidth, chanWidth, input->chanFreqs().size()));
-
-//      double factor = input->chanFreqs().size() / itsNChanAvg;
-//      if(input->chanFreqs().size() % itsNChanAvg > 0)
-//      {
-//        ++factor;
-//      }
-
-//      LOG_DEBUG_STR("factor: " << factor);
-      itsFreqAxisAvg = itsFreqAxisAvg->compress(itsNChanAvg);
-
-      ASSERT(input->getAnt1().size() == input->getAnt2().size());
-      for(size_t i = 0; i < input->getAnt1().size(); ++i)
-      {
-        unsigned int ant1 = input->getAnt1()[i];
-        unsigned int ant2 = input->getAnt2()[i];
-        itsBaselines.append(baseline_t(ant1, ant2));
-      }
-
-      // Deselect auto-correlations.
-      for(size_t i = 0; i < nStations; ++i)
-      {
-          itsBaselineMask.clear(i, i);
-      }
-
-      ASSERT(input->ncorr() == 4);
-      itsCorrelations.append(Correlation::XX);
-      itsCorrelations.append(Correlation::XY);
-      itsCorrelations.append(Correlation::YX);
-      itsCorrelations.append(Correlation::YY);
-
-      ModelConfig config;
-//      config.setDirectionalGain();
-      config.setGain();
-      BeamConfig beamConfig(BeamConfig::DEFAULT, false);
-      config.setBeamConfig(beamConfig);
-      config.setCache();
-
-      vector<string> incl, excl;
-      incl.push_back("Gain:*");
-//      incl.push_back("DirectionalGain:*");
-
-      // TODO: Need to know reference frequency!!!
-      double refFreq = itsFreqAxisAvg->center(itsFreqAxisAvg->size() / 2);
-      for(size_t i = 0; i < itsAllSources.size(); ++i)
-      {
-        try
-        {
-          // TODO: Find sane way to derive phase center.
-//          MDirection refPhase = MDirection::makeMDirection(itsAllSources[i]);
-
-//          MDirection refPhase;
-//          string keyName = prefix+itsAllSources[i]+".phasecenter";
-//          if(parset.parameterSet().isDefined(keyName))
-//          {
-//            refPhase = handleCenter(parset.getStringVector(prefix+itsAllSources[i]+".phasecenter"));
-//          }
-//          else
-//          {
-//            refPhase = handleCenter(vector<string>(1, itsAllSources[i]));
-//          }
-
-          MDirection refPhase = MDirection::Convert(input->phaseCenter(),
-            MDirection::J2000)();
-
-          cout << "PHASE CENTER BBS: " << i << " " << refPhase << endl;
-//          config.setSources(vector<string>(1, itsAllSources[i]));
-          config.setSources(vector<string>(1, "SB000*"));
-          MeasurementExpr::Ptr model(new MeasurementExprLOFAR(*itsSourceDB,
-            BufferMap(), config, instrument, itsBaselines, refFreq, refPhase,
-            refDelay, refTile));
-          itsModels.push_back(model);
-        }
-        catch(Exception &e)
-        {
-          THROW(Exception, "Unable to construct model expression for source: "
-            << itsAllSources[i] << " (" << e.what() << ")");
-        }
-
-        ParmGroup parms = ParmManager::instance().makeSubset(incl, excl,
-          itsModels.back()->parms());
-        itsModelParms.push_back(parms);
-        itsParms.insert(parms.begin(), parms.end());
-      }
-
-//      itsParms = ParmManager::instance().makeSubset(incl, excl);
-
-      SolverOptions lsqOptions;
-//      lsqOptions.maxIter = 200;
-//      lsqOptions.epsValue = 1e-8;
-//      lsqOptions.epsDerivative = 1e-8;
-//      lsqOptions.colFactor = 1e-6;
-//      lsqOptions.lmFactor = 1e-3;
-//      lsqOptions.balancedEq = false;
-//      lsqOptions.useSVD = true;
-
-      lsqOptions.maxIter = 40;
-      lsqOptions.epsValue = 1e-9;
-      lsqOptions.epsDerivative = 1e-9;
-      lsqOptions.colFactor = 1e-9;
-      lsqOptions.lmFactor = 1.0;
-      lsqOptions.balancedEq = false;
-      lsqOptions.useSVD = true;
-
-      itsOptions = EstimateOptions(EstimateOptions::COMPLEX,
-        EstimateOptions::L2, false, 1, false, ~flag_t(0), flag_t(4),
-        lsqOptions);
-
+      // Construct frequency axis for the demix and subtract averaging.
+      itsFreqAxisDemix = makeFreqAxis (itsNChanAvg);
+      itsFreqAxisSubtr = makeFreqAxis (itsNChanAvgSubtr);
     }
 
     Demixer::~Demixer()
     {
     }
 
+    Axis::ShPtr Demixer::makeFreqAxis (uint nchanAvg)
+    {
+      casa::Vector<double> chanw = itsInput->chanWidths(nchanAvg);
+      double chanWidth = chanw[0];
+      ASSERT (allEQ (chanw, chanWidth));
+      return Axis::ShPtr
+        (new RegularAxis (itsInput->chanFreqs(nchanAvg)[0] - chanWidth*0.5,
+                          chanWidth, chanw.size()));
+    }
+
+/*
     MDirection Demixer::handleCenter(const vector<string> &center) const
     {
       // A case-insensitive name can be given for a moving source (e.g. SUN)
@@ -342,20 +219,19 @@ namespace LOFAR {
       }
       return MDirection(q0, q1, type);
     }
+*/
 
     void Demixer::updateInfo (DPInfo& info)
     {
       info.setNeedVisData();
       info.setNeedWrite();
-
-      itsTimeInterval = info.timeInterval();
-      cout << "itsTimeInterval: " << itsTimeInterval << endl;
-
-      itsNrChanIn = info.nchan();
-      itsNrBl     = info.nbaselines();
-      itsNrCorr   = info.ncorr();
-      itsFactorBuf.resize (IPosition(4, itsNrBl, itsNrChanIn, itsNrCorr,
+      itsNChanIn = info.nchan();
+      itsNrBl    = info.nbaselines();
+      itsNrCorr  = info.ncorr();
+      itsFactorBuf.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
                                      itsNrDir*(itsNrDir-1)/2));
+      itsTimeInterval = info.timeInterval();
+      double refFreq = itsFreqAxisDemix->center(itsFreqAxisDemix->size() / 2);
       // Let the internal steps update their data.
       // Use a copy of the DPInfo, otherwise it is updated multiple times.
       DPInfo infocp;
@@ -366,30 +242,35 @@ namespace LOFAR {
           step->updateInfo (infocp);
           step = step->getNextStep();
         }
-        // Create the BBSexpression.
-//        itsBBSExpr.push_back (BBSExpr::ShPtr(new BBSExpr(*itsInput, infocp,
-//                                                         itsAllSources[i])));
-//        itsModels.push_back (itsBBSExpr[i]->getModel());
+        // Create the BBS model expression for sources with a model.
+        if (i < itsNrModel) {
+          itsBBSExpr.addModel (*itsInput, infocp, itsAllSources[i], refFreq);
+        }
       }
       // Keep the averaged time interval.
+      itsNChanOut = infocp.nchan();
       itsTimeIntervalAvg = infocp.timeInterval();
       // Update the info of this object.
-      info.update (itsResChanAvg, itsResTimeAvg);
-      itsNrChanOut = info.nchan();
-      itsTimeIntervalRes = info.timeInterval();
+      info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
+      itsNChanOutSubtr = info.nchan();
+      itsTimeIntervalSubtr = info.timeInterval();
     }
 
     void Demixer::show (std::ostream& os) const
     {
       os << "Demixer " << itsName << std::endl;
+      os << "  skymodel:       " << itsSkyName << std::endl;
+      os << "  instrumentmodel:" << itsInstrumentName << std::endl;
       os << "  target:         " << itsTarget << std::endl;
-      os << "  sources:        " << itsSources << std::endl;
+      os << "  subtractsources:" << itsSubtrSources << std::endl;
+      os << "  modelsources:   " << itsModelSources << std::endl;
       os << "  extrasources:   " << itsExtraSources << std::endl;
       os << "  jointsolve:     " << itsJointSolve << std::endl;
-      os << "  freqstep:       " << itsNChanAvg << std::endl;
-      os << "  timestep:       " << itsNTimeAvg << std::endl;
-      os << "  avgfreqstep:    " << itsResChanAvg << std::endl;
-      os << "  avgtimestep:    " << itsResTimeAvg << std::endl;
+      os << "  freqstep:       " << itsNChanAvgSubtr << std::endl;
+      os << "  timestep:       " << itsNTimeAvgSubtr << std::endl;
+      os << "  demixfreqstep:  " << itsNChanAvg << std::endl;
+      os << "  demixtimestep:  " << itsNTimeAvg << std::endl;
+      os << "  timechunk:      " << itsNTimeChunk << std::endl;
     }
 
     void Demixer::showTimings (std::ostream& os, double duration) const
@@ -402,24 +283,27 @@ namespace LOFAR {
 
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerPhaseShift.getElapsed(), self);
-      os << " Phase shift" << endl;
-
+      os << " of it spent in phase shifting/averaging data" << endl;
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerDemix.getElapsed(), self);
-      os << " Decorrelation factors" << endl;
+      os << " of it spent in calculating decorrelation factors" << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsTimerSolve.getElapsed(), self);
+      os << " of it spent in solving source gains" << endl;
+      os << "          ";
+      FlagCounter::showPerc1 (os, itsTimerSubtract.getElapsed(), self);
+      os << " of it spent in subtracting modeled sources" << endl;
     }
 
     bool Demixer::process (const DPBuffer& buf)
     {
       itsTimer.start();
-
-      if(itsNTimeIn == 0)
-      {
-        itsTimeStart = buf.getTime() - 0.5 * itsTimeInterval;
+      // Set start time of the chunk.
+      if (itsNTimeIn == 0) {
+        itsStartTimeChunk = buf.getTime() - itsInput->timeInterval() * 0.5;
       }
-
-      ++itsNTimeIn;
-
+      // Update the count.
+      itsNTimeIn++;
       // Make sure all required data arrays are filled in.
       DPBuffer newBuf(buf);
       RefRows refRows(newBuf.getRowNrs());
@@ -445,20 +329,39 @@ namespace LOFAR {
       // For each itsNTimeAvg times, calculate the
       // phase rotation per direction.
       itsTimerDemix.start();
-      addFactors(newBuf);
+      addFactors (newBuf, itsFactorBuf);
       if (itsNTimeIn % itsNTimeAvg == 0) {
-        // TODO: NB: This call increases itsNTimeOut as a side effect!!!!
-        averageFactors();
-        itsNTimeIn  = 0;
+        makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
+                     itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
+                     itsNChanOut);
+        // Deproject sources without a model.
+        // If needed, keep the original factors for subtraction.
+        if (!itsCalcSubtr) {
+          itsFactorsSubtr[itsNTimeOut].reference (itsFactors[itsNTimeOut].copy());
+        }
+        deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
+        itsFactorBuf = Complex();   // clear summation buffer
+        itsNTimeOut++;
+        itsNTimeIn = 0;
+      }
+      if (itsCalcSubtr) {
+        addFactors (newBuf, itsFactorBufSubtr);
+        if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
+          makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+                       itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
+                       itsNChanOutSubtr);
+          itsFactorBufSubtr = Complex();   // clear summation buffer
+          itsNTimeOutSubtr++;
+        }
       }
       itsTimerDemix.stop();
 
       // Do BBS solve, etc. when sufficient time slots have been collected.
       if (itsNTimeOut == itsNTimeChunk) {
         demix();
-
-        ASSERT(itsNTimeIn == 0);
-        itsNTimeOut = 0;
+        itsNTimeIn       = 0;
+        itsNTimeOut      = 0;
+        itsNTimeOutSubtr = 0;
       }
 
       itsTimer.stop();
@@ -468,7 +371,6 @@ namespace LOFAR {
     void Demixer::finish()
     {
       // Process remaining entries.
-      // Let the next steps finish.
       if (itsNTimeIn > 0) {
         itsTimer.start();
 
@@ -481,18 +383,33 @@ namespace LOFAR {
         itsTimerPhaseShift.stop();
 
         itsTimerDemix.start();
-        // TODO: NB: This call increases itsNTimeOut as a side effect!!!!
-        averageFactors();
+        makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
+                     itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
+                     itsNChanOut);
+        // Deproject sources without a model.
+        // If needed, keep the original factors for subtraction.
+        if (!itsCalcSubtr) {
+          itsFactorsSubtr[itsNTimeOut].reference (itsFactors[itsNTimeOut].copy());
+        }
+        deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
+        itsNTimeOut++;
+        if (itsCalcSubtr) {
+          makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+                       itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
+                       itsNChanOutSubtr);
+          itsNTimeOutSubtr++;
+        }
         itsTimerDemix.stop();
 
         demix();
         itsTimer.stop();
       }
-
+      // Let the next steps finish.
       getNextStep()->finish();
     }
 
-    void Demixer::addFactors (const DPBuffer& newBuf)
+    void Demixer::addFactors (const DPBuffer& newBuf,
+                              Array<DComplex>& factorBuf)
     {
 ///#pragma omp parallel
       {
@@ -500,7 +417,7 @@ namespace LOFAR {
         uint ncorr  = newBuf.getData().shape()[0];
         uint nchan  = newBuf.getData().shape()[1];
         uint nbl    = newBuf.getData().shape()[2];
-        DComplex* factorPtr = itsFactorBuf.data();
+        DComplex* factorPtr = factorBuf.data();
         //# If ever in the future a time dependent phase center is used,
         //# the machine must be reset for each new time, thus each new call
         //# to process.
@@ -548,26 +465,26 @@ namespace LOFAR {
       }
     }
 
-    void Demixer::averageFactors()
+    void Demixer::makeFactors (const Array<DComplex>& bufIn,
+                               Array<DComplex>& bufOut,
+                               const Cube<float>& weightSums,
+                               uint nchanOut)
     {
-      // The averaged weights are calculated in the Averager, so use those.
-      const Cube<float>& weightSums = itsAvgResults[0]->get()[itsNTimeOut].getWeights();
       ASSERT (! weightSums.empty());
-      itsFactors[itsNTimeOut].resize (IPosition(5, itsNrDir, itsNrDir,
-                                                itsNrCorr, itsNrChanOut,
-                                                itsNrBl));
-      itsFactors[itsNTimeOut] = DComplex(1,0);
-      const DComplex* phin = itsFactorBuf.data();
+      bufOut.resize (IPosition(5, itsNrDir, itsNrDir,
+                               itsNrCorr, nchanOut, itsNrBl));
+      bufOut = DComplex(1,0);
+      const DComplex* phin = bufIn.data();
       for (uint d0=0; d0<itsNrDir; ++d0) {
         for (uint d1=d0+1; d1<itsNrDir; ++d1) {
-          DComplex* ph1 = itsFactors[itsNTimeOut].data() + d0*itsNrDir + d1;
-          DComplex* ph2 = itsFactors[itsNTimeOut].data() + d1*itsNrDir + d0;
+          DComplex* ph1 = bufOut.data() + d0*itsNrDir + d1;
+          DComplex* ph2 = bufOut.data() + d1*itsNrDir + d0;
           // Average for all channels and divide by the summed weights.
           const float* weightPtr = weightSums.data();
           for (uint k=0; k<itsNrBl; ++k) {
-            for (uint c0=0; c0<itsNrChanOut; ++c0) {
+            for (uint c0=0; c0<nchanOut; ++c0) {
               DComplex sum[4];
-              uint nch = std::min(itsNChanAvg, itsNrChanIn-c0*itsNChanAvg);
+              uint nch = std::min(itsNChanAvg, itsNChanIn-c0*itsNChanAvg);
               for (uint c1=0; c1<nch; ++c1) {
                 for (uint j=0; j<itsNrCorr; ++j) {
                   sum[j] += *phin++;
@@ -583,165 +500,133 @@ namespace LOFAR {
           }
         }
       }
-      ///      cout << "factor=" <<itsFactors[itsNTimeOut] << endl;
-      // Clear the summation buffer.
-      itsFactorBuf = DComplex();
+    }
 
-      // TODO: Factor this out somehow??
-      unsigned int nTime = itsNTimeIn % itsNTimeAvg;
-      nTime = (nTime == 0 ? itsNTimeAvg : nTime);
-      itsTimeWidths.push_back(nTime * itsTimeInterval);
-      itsTimeCenters.push_back(itsTimeStart + 0.5 * itsTimeWidths.back());
+    void Demixer::deproject (Array<DComplex>& factors,
+                             vector<MultiResultStep*> avgResults,
+                             uint resultIndex)
+    {
+      // Get pointers to the data for the various directions.
+      vector<Complex*> resultPtr(itsNrDir);
+      for (uint j=0; j<itsNrDir; ++j) {
+        resultPtr[j] = avgResults[j]->get()[resultIndex].getData().data();
+      }
+      // Sources without a model have to be deprojected.
+      uint nrDeproject = itsNrDir - itsNrModel;
+      // The projection matrix is given by
+      //     P = I - A * inv(A.T.conj * A) * A.T.conj
+      // where A is the last column of the demixing matrix M.
+      // The BBS equations get:
+      //     P * M' * v_predict = P * v_averaged
+      // where M' is obtained by removing the last column of demixing matrix M.
+      // The dimensions of the matrices/vectors are:
+      //     P : NxN
+      //     M' : Nx(N-1)
+      //     v_predict : (N-1) x 1
+      //     v_averaged: N x 1
+      // where N is the number of modeled sources to use in demixing.
+      // In the general case S sources might not have a source model.
+      // In that case A is the NxS matrix containing all these columns
+      // from M and M' is the Nx(N-S) matrix without all these columns.
 
-      itsNTimeOut++;
+      // Calculate P for all baselines,channels,correlations.
+      IPosition shape = factors.shape();
+      int nvis = shape[2] * shape[3] * shape[4];
+      shape[1] = itsNrModel;
+      Array<DComplex> newFactors (shape);
+      IPosition inShape (2, itsNrDir, itsNrDir);
+      IPosition outShape(2, itsNrDir, itsNrModel);
+      // omp parallel
+      casa::Matrix<DComplex> a(itsNrDir, nrDeproject);
+      casa::Matrix<DComplex> ma(itsNrDir, itsNrModel);
+      vector<DComplex> vec(itsNrDir);
+      // omp for
+      for (int i=0; i<nvis; ++i) {
+        // Split the matrix into the modeled and deprojected sources.
+        // Copy the columns to the individual matrices.
+        const DComplex* inptr  = factors.data() + i*itsNrDir*itsNrDir;
+        DComplex* outptr = newFactors.data() + i*itsNrDir*itsNrModel;
+        casa::Matrix<DComplex> out (outShape, outptr, SHARE);
+        // Copying a bit of data is probably faster than taking a matrix subset.
+        objcopy (ma.data(), inptr, itsNrDir*itsNrModel);
+        objcopy (a.data(), inptr + itsNrDir*itsNrModel, itsNrDir*nrDeproject);
+        // Calculate conjugated transpose of A, multiply with A, and invert.
+        casa::Matrix<DComplex> at(adjoint(a));
+        casa::Matrix<DComplex> ata(invert(product(at, a)));
+        if (ata.empty()) {
+          ata.resize (nrDeproject, nrDeproject);
+        }
+        DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
+        // Calculate P = I - A * ata * A.T.conj
+        casa::Matrix<DComplex> aata(product(a,ata));
+        casa::Matrix<DComplex> p (-product(product(a, ata), at));
+        casa::Vector<DComplex> diag(p.diagonal());
+        diag += DComplex(1,0);
+        // Multiply the demixing factors with P (get stored in newFactors).
+        out = product(p, ma);
+        ///        cout << "p matrix: " << p;
+        // Multiply the averaged data point with P.
+        std::fill (vec.begin(), vec.end(), DComplex());
+        for (uint j=0; j<itsNrDir; ++j) {
+          for (uint k=0; k<itsNrDir; ++k) {
+            vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
+          }
+        }
+        // Put result back in averaged data for those sources.
+        for (uint j=0; j<itsNrDir; ++j) {
+          resultPtr[j][i] = vec[j];
+        }
+        ///        cout << vec << endl;
+      }
+      // Set the new demixing factors.
+      factors.reference (newFactors);
     }
 
     void Demixer::demix()
     {
+      itsTimerSolve.start();
       // Collect buffers for each direction.
       vector<vector<DPBuffer> > buffers;
-      for(uint i = 0; i < itsAvgResults.size(); ++i)
-      {
-        buffers.push_back(itsAvgResults[i]->get());
-        itsAvgResults[i]->clear();
+      size_t targetIndex = itsAvgResults.size() - 1;
+      for (size_t i=0; i<itsAvgResults.size(); ++i) {
+        buffers.push_back (itsAvgResults[i]->get());
+        // Do not clear target buffer, because it is shared with
+        // itsAvgResultSubtr if averaging of demix and subtract is the same.
+        if (i != targetIndex) {
+          itsAvgResults[i]->clear();
+        }
       }
-
       // Solve for the gains in the various directions.
-      for(uint i = 0; i < itsModels.size(); ++i)
-      {
-        itsModels[i]->setSolvables(itsModelParms[i]);
-      }
-
-      // Make time axis based on averaged target visibilities.
-      ASSERT(itsTimeCenters.size() == itsNTimeOut
-        && itsTimeWidths.size() == itsNTimeOut);
-
-      Axis::ShPtr timeAxis(new OrderedAxis(itsTimeCenters, itsTimeWidths));
-      itsTimeCenters.clear();
-      itsTimeWidths.clear();
-
+      itsBBSExpr.setSolvables();
       // Make time axis and grid.
-      Grid visGrid(itsFreqAxisAvg, timeAxis);
-
+      Axis::ShPtr timeAxis (new RegularAxis (itsStartTimeChunk,
+                                             itsTimeIntervalAvg,
+                                             itsNTimeOut));
+      Grid visGrid(itsFreqAxisDemix, timeAxis);
       // Solve for each time slot over all channels.
-      Grid solGrid(itsFreqAxisAvg->compress(itsFreqAxisAvg->size()), timeAxis);
+      Grid solGrid(itsFreqAxisDemix->compress(itsFreqAxisDemix->size()),
+                   timeAxis);
 
-      LOG_DEBUG_STR("SHAPES: " << itsFactors[0].shape() << " " << itsFreqAxisAvg->size() << " " << buffers[0][0].getData().shape());
-
-//      double startTime = itsBuf[0].getTime() - itsInput->timeInterval() * 0.5;
-//      Axis::ShPtr timeAxis(new RegularAxis(startTime, itsTimeIntervalAvg,
-//                                             itsNTimeOut));
-//      Grid grid(itsBBSExpr[0]->getFreqAxis(), timeAxis);
-
-      // Set parameter domain.
-      ParmManager::instance().setDomain(solGrid.getBoundingBox());
+      LOG_DEBUG_STR("SHAPES: " << itsFactors[0].shape() << " " << itsFreqAxisDemix->size() << " " << buffers[0][0].getData().shape());
 
       // Estimate model parameters.
-      estimate(buffers, itsModels, itsFactors, itsBaselines, itsCorrelations,
-        itsBaselineMask, itsCorrelationMask, visGrid, solGrid, itsOptions);
-
-      // Flush solutions to disk.
-      ParmManager::instance().flush();
-
-
-      // Subtract the demixed sources.
-      // TODO: As soon as we allow a different output resolution for the target
-      // field, visGrid needs to be re-derived for the subtract.
-      ASSERT(itsNChanAvg == itsResChanAvg && itsNTimeAvg == itsResTimeAvg);
+      itsBBSExpr.estimate(buffers, visGrid, solGrid, itsFactors);
+      itsTimerSolve.stop();
+      // Subtract the modeled sources.
+      itsTimerSubtract.start();
       LOG_DEBUG_STR("subtracting....");
-
-      // Solve for the gains in the various directions.
-      for(uint i = 0; i < itsModels.size(); ++i)
-      {
-        itsModels[i]->clearSolvables();
+      itsBBSExpr.subtract (itsAvgResultSubtr->get(), visGrid, itsFactorsSubtr,
+                           itsNrDir-1, itsSubtrSources.size());
+      itsTimerSubtract.stop();
+      // Let the next step process the data.
+      itsTimer.stop();
+      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+        getNextStep()->process (itsAvgResultSubtr->get()[i]);
+        itsAvgResultSubtr->get()[i].clear();
+        itsAvgResults[targetIndex]->get()[i].clear();
       }
-
-      vector<unsigned int> directions(itsSources.size());
-      for(size_t i = 0; i < itsSources.size(); ++i)
-      {
-        directions[i] = i;
-      }
-
-      const unsigned int target = itsAllSources.size() - 1;
-
-      LOG_DEBUG_STR("target: " << target << " directions: " << directions);
-
-      subtract(buffers.back(), itsModels, itsFactors, itsBaselines,
-        itsCorrelations, itsBaselineMask, itsCorrelationMask, visGrid, target,
-        directions);
-
-      // Let the next steps process the data.
-      // TODO: As soon as we allow a different output resolution for the target
-      // field, this has to be adapted.
-      ASSERT(itsNChanAvg == itsResChanAvg && itsNTimeAvg == itsResTimeAvg);
-      for(uint i = 0; i < buffers.back().size(); ++i)
-      {
-        getNextStep()->process(buffers.back()[i]);
-      }
-
-      // Clear the intermediate buffers.
-      // TODO: Could already clear all buffers except for the target field
-      // before flushing buffers down the pipline (above).
-      for(uint i = 0; i < itsAvgResults.size(); ++i)
-      {
-        itsAvgResults[i]->clear();
-      }
+      itsTimer.start();
     }
-
-//    void Demixer::subtract()
-//    {
-//      // Set expressions to not solvable.
-//      for (uint i=0; i<itsModels.size(); ++i) {
-//        itsModels[i]->clearSolvables();
-//      }
-//      // Loop through all time windows.
-//      for (uint i=0; i<itsNTimeOut; ++i) {
-//        // Subtract data for each time window.
-//      }
-//    }
-
-
-
-      // array dim: baseline, time, freq, dir1, dir2
-      // NDPPP compares data with predictions in Estimate class
-      // Beam Info lezen en aan BBS doorgeven (evt. via BBS class)
-      //   Joris maakt zijn read functie public
-      // Get RA and DEC of phase center (take care of moving targets).
-      /// MeqExpr for FFT/degrid per baseline met apart (gedeeld) degrid object
-      ///     MeqMatrix[2][2] degrid (uvCoordStat1, uvCoordStat2, times, freqs)
-      /// Joris:
-      //  - publiek maken beam info lezen
-      //  - estimate functie voor demixing
-      /// Ger
-      //  - create demixing matrix
-      //  - multiple predict result with demix matrix (also derivatives)
-      //  - subtract mbv demixing matrix
-      //  awimager
-      //  - for subbands in awimager use correct reffreq
-      //    both for separate windows and for subbands combined in single band
-      //    moet parameter worden in ATerm::evaluate
-      //  - option to treat channels in spw as subbands
-      //  Sven
-      //  - on-the-fly degridding
-      //  Ronald
-      //  - Can Solver solve in block matrices?
-      //  Wim
-      //  - can solve be parallelized?
-      // Cyril:
-      // - separate time window for element beam?
-      // - gridding element beam because small conv.func?
-      // - degridding: apply element beam per time window?
-      // - commit the code
-      // - Joris: new beam model in imager (in Cyril's branch)
-      // - Bas: merge ionosphere in imager (gridding takes most time)
-      // - Sanjay: write paper wide-band MSMFS
-      // -         paper wide-band A-projection
-      //    Cyril: A-projection or LOFAR plus element beam trick
-      //    Bas:   ionosphere
-      //    Johan/Stefan: verify beam model
-      //    George: is MSMFS needed in awimager?
-
-    // awimager: default channels by MFS is channel 0 only.
 
   } //# end namespace
 }

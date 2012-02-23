@@ -117,7 +117,7 @@ namespace
     JonesMatrix mix(const vector<JonesMatrix> &in,
         const vector<casa::Array<casa::DComplex> > &coeff,
         unsigned int target,
-        const vector<unsigned int> &directions,
+        unsigned int nsources,
         unsigned int baseline);
 
     void mix(const vector<JonesMatrix> &in, vector<JonesMatrix> &out,
@@ -135,7 +135,7 @@ namespace
         const vector<MeasurementExpr::Ptr> &models,
         const vector<casa::Array<casa::DComplex> > &coeff,
         unsigned int target,
-        const vector<unsigned int> &directions,
+        unsigned int nsources,
         const vector<pair<size_t, size_t> > &baselineMap,
         const vector<pair<size_t, size_t> > &correlationMap);
 
@@ -191,8 +191,12 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
     // =========================================================================
     // CHECK PRECONDITIONS
     // =========================================================================
+    const size_t nDirections = buffers.size();
+    const size_t nModels = models.size();
     {
-        ASSERT(buffers.size() == models.size() && buffers.size() > 0);
+        ASSERT(nDirections >= nModels && nModels > 0);
+        ASSERT(nDirections == coeff[0].shape()[0]);
+        ASSERT(nModels == coeff[0].shape()[1]);
 
         CorrelationSeq tmp;
         tmp.append(Correlation::XX);
@@ -200,7 +204,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         tmp.append(Correlation::YX);
         tmp.append(Correlation::YY);
 
-        for(size_t i = 0; i < models.size(); ++i)
+        for(size_t i = 0; i < nModels; ++i)
         {
             ASSERT(models[i]->baselines() == models.front()->baselines());
             ASSERT(models[i]->correlations() == tmp);
@@ -208,8 +212,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         }
     }
     // =========================================================================
-
-    const size_t nDirections = buffers.size();
 
     // Construct a sequence of pairs of indices of matching baselines (i.e.
     // baselines common to both buffer and model).
@@ -233,7 +235,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         back_inserter(cellMap[TIME]));
 
     ParmGroup solvables;
-    for(size_t i = 0; i < nDirections; ++i)
+    for(size_t i = 0; i < nModels; ++i)
     {
         ParmGroup tmp = models[i]->solvables();
         solvables.insert(tmp.begin(), tmp.end());
@@ -316,7 +318,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
             cellMap[TIME][chunkStart.second].start);
         Location reqEnd(cellMap[FREQ][chunkEnd.first].end,
             cellMap[TIME][chunkEnd.second].end);
-        for(size_t i = 0; i < nDirections; ++i)
+        for(size_t i = 0; i < nModels; ++i)
         {
             models[i]->setEvalGrid(visGrid.subset(reqStart, reqEnd));
         }
@@ -346,7 +348,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
             timerIterate.stop();
 
             // Notify model that solvables have changed.
-            for(size_t i = 0; i < nDirections; ++i)
+            for(size_t i = 0; i < nModels; ++i)
             {
                 models[i]->solvablesChanged();
             }
@@ -426,21 +428,15 @@ void subtract(vector<DPPP::DPBuffer> &buffer,
     const BBS::CorrelationMask &correlationMask,
     const BBS::Grid &visGrid,
     unsigned int target,
-    const vector<unsigned int> &directions)
+    unsigned int nsources)
 {
     // =========================================================================
     // CHECK PRECONDITIONS
     // =========================================================================
     {
-        ASSERT(target < models.size());
-
-        ASSERT(directions.size() > 0);
-        for(size_t i = 0; i < directions.size(); ++i)
-        {
-            ASSERT(directions[i] < models.size());
-        }
-
+        ASSERT(nsources <= models.size());
         ASSERT(buffer.size() > 0);
+        ASSERT(int(target) < coeff[0].shape()[1]);
 
         CorrelationSeq tmp;
         tmp.append(Correlation::XX);
@@ -448,7 +444,7 @@ void subtract(vector<DPPP::DPBuffer> &buffer,
         tmp.append(Correlation::YX);
         tmp.append(Correlation::YY);
 
-        for(size_t i = 0; i < models.size(); ++i)
+        for(size_t i = 0; i < nsources; ++i)
         {
             ASSERT(models[i]->baselines() == models.front()->baselines());
             ASSERT(models[i]->correlations() == tmp);
@@ -469,12 +465,12 @@ void subtract(vector<DPPP::DPBuffer> &buffer,
     makeIndexMap(correlations, models.front()->correlations(), correlationMask,
         back_inserter(crMap));
 
-    for(size_t i = 0; i < models.size(); ++i)
+    for(size_t i = 0; i < nsources; ++i)
     {
         models[i]->setEvalGrid(visGrid);
     }
 
-    subtract2(buffer, models, coeff, target, directions, blMap, crMap);
+    subtract2(buffer, models, coeff, target, nsources, blMap, crMap);
 }
 
 
@@ -493,11 +489,12 @@ void equate(const Location &start, const Location &end,
     vector<Cell> &cells, Statistics &stats)
 
 {
-    ASSERT(buffers.size() == models.size());
+    ASSERT(buffers.size() >= models.size());
 
     const size_t nDirections = buffers.size();
+    const size_t nModels = models.size();
 
-    vector<JonesMatrix> sim(nDirections);
+    vector<JonesMatrix> sim(nModels);
     vector<JonesMatrix> mixed(nDirections);
 
     typedef vector<pair<size_t, size_t> >::const_iterator bl_iterator;
@@ -506,7 +503,7 @@ void equate(const Location &start, const Location &end,
     {
         // Evaluate models.
         stats.start(Statistics::T_EVALUATE);
-        for(size_t i = 0; i < nDirections; ++i)
+        for(size_t i = 0; i < nModels; ++i)
         {
             sim[i] = models[i]->evaluate(it->second);
         }
@@ -669,11 +666,11 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         const vector<MeasurementExpr::Ptr> &models,
         const vector<casa::Array<casa::DComplex> > &coeff,
         unsigned int target,
-        const vector<unsigned int> &directions,
+        unsigned int nsources,
         const vector<pair<size_t, size_t> > &baselineMap,
         const vector<pair<size_t, size_t> > &correlationMap)
     {
-        vector<JonesMatrix> sim(directions.size());
+        vector<JonesMatrix> sim(nsources);
 
         typedef vector<pair<size_t, size_t> >::const_iterator
             index_map_iterator;
@@ -682,14 +679,13 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
             bl_end = baselineMap.end(); bl_it != bl_end; ++bl_it)
         {
             // Evaluate models.
-            for(size_t i = 0; i < directions.size(); ++i)
+            for(unsigned int i = 0; i < nsources; ++i)
             {
-                sim[i] = models[directions[i]]->evaluate(bl_it->second);
+                sim[i] = models[i]->evaluate(bl_it->second);
             }
 
             // Mix
-            JonesMatrix mixed = mix(sim, coeff, target, directions,
-                bl_it->first);
+            JonesMatrix mixed = mix(sim, coeff, target, nsources, bl_it->first);
 
             // Subtract.
             for(index_map_iterator cr_it = correlationMap.begin(),
@@ -711,7 +707,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                     ++buffer_it)
                 {
                     casa::Cube<casa::Complex> &data = buffer_it->getData();
-                    ASSERT(data.shape()(1) == nFreq);
+                    ASSERT(data.shape()(1) == int(nFreq));
 
                     for(size_t i = 0; i < nFreq; ++i)
                     {
@@ -726,7 +722,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
     JonesMatrix mix(const vector<JonesMatrix> &in,
         const vector<casa::Array<casa::DComplex> > &coeff,
         unsigned int target,
-        const vector<unsigned int> &directions,
+        unsigned int nsources,
         unsigned int baseline)
     {
         const unsigned int nFreq = coeff.front().shape()(3);
@@ -737,12 +733,12 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         const Location end(nFreq - 1, nTime - 1);
 
         Matrix out[4];
-        for(unsigned int i = 0; i < directions.size(); ++i)
+        for(unsigned int i = 0; i < nsources; ++i)
         {
             for(unsigned int correlation = 0; correlation < 4; ++correlation)
             {
                 Matrix weight = makeMixingFactor(coeff, start, end, baseline,
-                    correlation, target, directions[i]);
+                    correlation, i, target);
 
                 const Matrix sim = in[i].element(correlation).value();
 
@@ -755,7 +751,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                     out[correlation] += weight * sim;
                 }
             } // correlations
-        } // directions
+        } // nsources
 
         JonesMatrix result(out[0], out[1], out[2], out[3]);
         result.setFlags(mergeFlags(in));
@@ -766,19 +762,20 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         const vector<casa::Array<casa::DComplex> > &coeff,
         const Location &start, const Location &end, unsigned int baseline)
     {
-        // dims array: ndir x ndir x ncorr x nchan x nbl (minor -> major).
-        // beter dims: nbl x ncorr x ndir x ndir x nchan ???
-        // TODO: Diagonal of mixing matrix == 1, so could optimize for this.
+        // dims array: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
+        // better dims: nbl x ncorr x ndir x nmodel x nchan ???
 
-        ASSERT(in.size() == out.size());
+        const unsigned int nModels = in.size();
+        const unsigned int nDirections = coeff[0].shape()[0];
+        ASSERT(nDirections == out.size());
+        ASSERT(int(nModels) == coeff[0].shape()[1]);
 
         FlagArray flags = mergeFlags(in);
 
-        const unsigned int nDirections = in.size();
         for(unsigned int i = 0; i < nDirections; ++i)
         {
             Element element[4];
-            for(unsigned int j = 0; j < nDirections; ++j)
+            for(unsigned int j = 0; j < nModels; ++j)
             {
                 for(unsigned int k = 0; k < 4; ++k)
                 {
@@ -880,12 +877,13 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         double *re = 0, *im = 0;
         factor.dcomplexStorage(re, im);
 
-        // dims array: ndir x ndir x ncorr x nchan x nbl (minor -> major).
-        casa::IPosition index(5, column, row, correlation, 0, baseline);
+        // dims coeff: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
+        //  nmodel = nr of directions with source model (thus excl. target)
+        casa::IPosition index(5, row, column, correlation, 0, baseline);
         for(unsigned int t = start.second; t <= end.second; ++t)
         {
             const casa::Array<casa::DComplex> &tmp = coeff[t];
-            ASSERT(tmp.shape()(3) == nFreq);
+            ASSERT(tmp.shape()(3) == int(nFreq));
             for(index(3) = start.first; index(3) <= static_cast<int>(end.first);
                 ++index(3))
             {
