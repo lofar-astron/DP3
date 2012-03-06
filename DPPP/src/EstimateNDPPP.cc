@@ -696,8 +696,8 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
 
                 const unsigned int nFreq = crMixed.nx();
                 const unsigned int nTime = crMixed.ny();
-                ASSERT(crMixed.isComplex() && crMixed.isArray()
-                    && nTime == buffer.size());
+                ASSERT(crMixed.isComplex() && crMixed.isArray());
+                ASSERTSTR(nTime == buffer.size(), "nTime: " << nTime << " buffer size: " << buffer.size());
 
                 const double *mixed_re = 0, *mixed_im = 0;
                 crMixed.dcomplexStorage(mixed_re, mixed_im);
@@ -742,6 +742,8 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
 
                 const Matrix sim = in[i].element(correlation).value();
 
+                ASSERTSTR(sim.nx() == weight.nx(), "sim: " << sim.nx() << " weight: " << weight.nx());
+                ASSERTSTR(sim.ny() == weight.ny(), "sim: " << sim.ny() << " weight: " << weight.ny());
                 if(out[correlation].isNull())
                 {
                     out[correlation] = weight * sim;

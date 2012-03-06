@@ -57,9 +57,8 @@ namespace LOFAR {
 
       ~BBSExpr();
 
-      // Create a model expression for the given source.
-      void addModel (const DPInput& input, const DPInfo&,
-                     const string& sourceName, double refFreq);
+      // Add a model expression for the given source and phase reference.
+      void addModel (const string &source, const casa::MDirection &phaseRef);
 
       // Estimate the model parameters.
       void estimate (vector<vector<DPBuffer> >& buffers,
@@ -69,7 +68,12 @@ namespace LOFAR {
       // Subtract the sources.
       void subtract (vector<DPBuffer>& buffer, const BBS::Grid& visGrid,
                      const vector<casa::Array<casa::DComplex> >& factors,
-                     uint target, uint nsources);
+                     uint target, uint nSources);
+
+    private:
+      // For now, forbid copy construction and assignment.
+      BBSExpr(const BBSExpr& other);
+      BBSExpr& operator= (const BBSExpr& other);
 
       // Clear the solvables in the model expressions.
       void clearSolvables();
@@ -77,24 +81,22 @@ namespace LOFAR {
       // Set the solvables in the model expressions to the gains.
       void setSolvables();
 
-    private:
-      // For now, forbid copy construction and assignment.
-      BBSExpr(const BBSExpr& other);
-      BBSExpr& operator= (const BBSExpr& other);
+      // Gather information about the instrument from the input meta-data.
+      void initInstrument(const DPInput &input);
 
       //# Data members
       boost::shared_ptr<BBS::SourceDB>  itsSourceDB;
       vector<BBS::MeasurementExpr::Ptr> itsModels;
-      vector<string>                    itsSources;
-      BBS::BaselineMask                 itsBaselineMask;
-      BBS::Instrument::ConstPtr         itsInstrument;
+      BBS::Instrument::Ptr              itsInstrument;
+      casa::MDirection                  itsDelayRef;
+      casa::MDirection                  itsTileRef;
       BBS::BaselineSeq                  itsBaselines;
       BBS::CorrelationSeq               itsCorrelations;
+      BBS::BaselineMask                 itsBaselineMask;
       BBS::CorrelationMask              itsCorrelationMask;
-      BBS::ModelConfig                  itsConfig;
-      vector<BBS::ParmGroup>            itsModelParms;
-      BBS::ParmGroup                    itsParms;
       BBS::EstimateOptions              itsOptions;
+      BBS::ParmGroup                    itsParms;
+      vector<BBS::ParmGroup>            itsModelParms;
     };
 
 // @}

@@ -121,7 +121,7 @@ namespace LOFAR {
       DPStep::ShPtr            itsAvgSubtr;     //# average step for subtract
       MultiResultStep*         itsAvgResultSubtr; //# result of subtract avg
       BBSExpr                  itsBBSExpr;
-      string                   itsTarget;
+//      string                   itsTarget;
       vector<string>           itsSubtrSources;
       vector<string>           itsModelSources;
       vector<string>           itsExtraSources;
