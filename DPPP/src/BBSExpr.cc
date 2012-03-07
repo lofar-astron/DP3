@@ -53,7 +53,7 @@ namespace LOFAR {
         ParmManager::instance().initCategory(SKY, itsSourceDB->getParmDB());
       } catch (Exception &e) {
         THROW(Exception, "Failed to open sky model parameter database: "
-              << skyName);
+          << skyName);
       }
 
       try {
@@ -62,7 +62,7 @@ namespace LOFAR {
                                                                instrumentName)));
       } catch (Exception &e) {
         THROW(Exception, "Failed to open instrument model parameter database: "
-              << instrumentName);
+          << instrumentName);
       }
 
       // Create Instrument instance using the information present in DPInput.
@@ -103,8 +103,13 @@ namespace LOFAR {
       lsqOptions.useSVD = true;
 
       itsOptions = EstimateOptions(EstimateOptions::COMPLEX,
-                                   EstimateOptions::L2, false, 0, true,
-                                   ~flag_t(0), flag_t(4), lsqOptions);
+                                   EstimateOptions::L2,
+                                   false,
+                                   0,
+                                   false,
+                                   ~flag_t(0),
+                                   flag_t(4),
+                                   lsqOptions);
     }
 
     BBSExpr::~BBSExpr()
