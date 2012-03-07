@@ -94,7 +94,7 @@ namespace LOFAR {
 
       // Initialize parameter estimation options.
       SolverOptions lsqOptions;
-      lsqOptions.maxIter = 300;
+      lsqOptions.maxIter = 50;
       lsqOptions.epsValue = 1e-9;
       lsqOptions.epsDerivative = 1e-9;
       lsqOptions.colFactor = 1e-9;
@@ -103,7 +103,7 @@ namespace LOFAR {
       lsqOptions.useSVD = true;
 
       itsOptions = EstimateOptions(EstimateOptions::COMPLEX,
-                                   EstimateOptions::L2, false, 0, false,
+                                   EstimateOptions::L2, false, 0, true,
                                    ~flag_t(0), flag_t(4), lsqOptions);
     }
 

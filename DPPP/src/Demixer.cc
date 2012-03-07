@@ -587,7 +587,7 @@ namespace LOFAR {
 
       // Let the next step process the data.
       itsTimer.stop();
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+      for (uint i=0; i<(itsCalcSubtr ? itsNTimeOutSubtr : itsNTimeOut); ++i) {
         getNextStep()->process (itsAvgResultSubtr->get()[i]);
         itsAvgResultSubtr->get()[i].clear();
         itsAvgResults[targetIndex]->get()[i].clear();
