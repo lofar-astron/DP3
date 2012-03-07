@@ -57,6 +57,9 @@ namespace LOFAR {
 
       ~BBSExpr();
 
+      // Set the options.
+      void setOptions (const BBS::SolverOptions&);
+
       // Add a model expression for the given source and phase reference.
       void addModel (const string &source, const casa::MDirection &phaseRef);
 

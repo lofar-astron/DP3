@@ -158,6 +158,7 @@ namespace LOFAR {
       //# each Array is basically cube(ncorr,nchan,nbl) of matrix(ndir,ndir)
       casa::Array<casa::DComplex> itsFactorBufSubtr; //# factors for subtract
       vector<casa::Array<casa::DComplex> > itsFactorsSubtr;
+      BBS::SolverOptions       itsSolveOpt;
       NSTimer                  itsTimer;
       NSTimer                  itsTimerPhaseShift;
       NSTimer                  itsTimerDemix;

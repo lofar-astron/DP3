@@ -91,17 +91,15 @@ namespace LOFAR {
       itsCorrelations.append(Correlation::XY);
       itsCorrelations.append(Correlation::YX);
       itsCorrelations.append(Correlation::YY);
+    }
 
+    BBSExpr::~BBSExpr()
+    {
+    }
+
+    void BBSExpr::setOptions (const SolverOptions& lsqOptions)
+    {
       // Initialize parameter estimation options.
-      SolverOptions lsqOptions;
-      lsqOptions.maxIter = 50;
-      lsqOptions.epsValue = 1e-9;
-      lsqOptions.epsDerivative = 1e-9;
-      lsqOptions.colFactor = 1e-9;
-      lsqOptions.lmFactor = 1.0;
-      lsqOptions.balancedEq = false;
-      lsqOptions.useSVD = true;
-
       itsOptions = EstimateOptions(EstimateOptions::COMPLEX,
                                    EstimateOptions::L2,
                                    false,
@@ -110,10 +108,6 @@ namespace LOFAR {
                                    ~flag_t(0),
                                    flag_t(4),
                                    lsqOptions);
-    }
-
-    BBSExpr::~BBSExpr()
-    {
     }
 
     void BBSExpr::addModel (const string &source, const MDirection &phaseRef)

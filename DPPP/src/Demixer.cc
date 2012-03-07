@@ -79,10 +79,27 @@ namespace LOFAR {
         itsNTimeChunk    (parset.getUint  (prefix+"ntimechunk", 0)),
         itsNTimeOut      (0)
     {
+      // Get and set solver options.
+      itsSolveOpt.maxIter =
+        parset.getUint  (prefix+"Solve.Options.MaxIter", 300);
+      itsSolveOpt.epsValue =
+        parset.getDouble(prefix+"Solve.Options.EpsValue", 1e-9);
+      itsSolveOpt.epsDerivative =
+        parset.getDouble(prefix+"Solve.Options.EpsDerivative", 1e-9);
+      itsSolveOpt.colFactor =
+        parset.getDouble(prefix+"Solve.Options.ColFactor", 1e-9);
+      itsSolveOpt.lmFactor  =
+        parset.getDouble(prefix+"Solve.Options.LMFactor", 1.0);
+      itsSolveOpt.balancedEq =
+        parset.getBool  (prefix+"Solve.Options.BalancedEqs", false);
+      itsSolveOpt.useSVD  =
+        parset.getBool  (prefix+"Solve.Options.UseSVD", true);
+      itsBBSExpr.setOptions (itsSolveOpt);
       /// Maybe optionally a parset parameter directions to give the
       /// directions of unknown sources.
       /// Or make sources a vector of vectors like [name, ra, dec] where
       /// ra and dec are optional.
+
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
         itsNTimeChunk = OpenMP::maxThreads();
@@ -221,6 +238,13 @@ namespace LOFAR {
       os << "  demixfreqstep:  " << itsNChanAvg << std::endl;
       os << "  demixtimestep:  " << itsNTimeAvg << std::endl;
       os << "  timechunk:      " << itsNTimeChunk << std::endl;
+      os << "  Solve.Options.MaxIter:       " << itsSolveOpt.maxIter << endl;
+      os << "  Solve.Options.EpsValue:      " << itsSolveOpt.epsValue << endl;
+      os << "  Solve.Options.EpsDerivative: " << itsSolveOpt.epsDerivative << endl;
+      os << "  Solve.Options.ColFactor:     " << itsSolveOpt.colFactor << endl;
+      os << "  Solve.Options.LMFactor:      " << itsSolveOpt.lmFactor << endl;
+      os << "  Solve.Options.BalancedEqs:   " << itsSolveOpt.balancedEq << endl;
+      os << "  Solve.Options.UseSVD:        " << itsSolveOpt.useSVD <<endl;
     }
 
     void Demixer::showTimings (std::ostream& os, double duration) const
