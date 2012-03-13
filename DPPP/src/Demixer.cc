@@ -67,7 +67,7 @@ namespace LOFAR {
                                                   vector<string>())),
         itsExtraSources  (parset.getStringVector (prefix+"othersources",
                                                   vector<string>())),
-        itsJointSolve    (parset.getBool  (prefix+"jointsolve", true)),
+///        itsJointSolve    (parset.getBool  (prefix+"jointsolve", true)),
         itsNTimeIn       (0),
         itsNChanAvgSubtr (parset.getUint  (prefix+"freqstep", 1)),
         itsNTimeAvgSubtr (parset.getUint  (prefix+"timestep", 1)),
@@ -111,6 +111,7 @@ namespace LOFAR {
       // See if averaging in demix and subtract differs.
       itsCalcSubtr = (itsNChanAvg != itsNChanAvgSubtr  ||
                       itsNTimeAvg != itsNTimeAvgSubtr);
+      itsCalcSubtr = true;
       // Collect all source names.
       itsNrModel = itsSubtrSources.size() + itsModelSources.size();
       itsNrDir   = itsNrModel + itsExtraSources.size() + 1;
@@ -196,6 +197,10 @@ namespace LOFAR {
       itsNrCorr  = info.ncorr();
       itsFactorBuf.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
                                      itsNrDir*(itsNrDir-1)/2));
+      if (itsCalcSubtr) {
+        itsFactorBufSubtr.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
+                                            itsNrDir*(itsNrDir-1)/2));
+      }
       itsTimeInterval = info.timeInterval();
 
       // Let the internal steps update their data.
@@ -232,7 +237,7 @@ namespace LOFAR {
       os << "  subtractsources:" << itsSubtrSources << std::endl;
       os << "  modelsources:   " << itsModelSources << std::endl;
       os << "  extrasources:   " << itsExtraSources << std::endl;
-      os << "  jointsolve:     " << itsJointSolve << std::endl;
+///      os << "  jointsolve:     " << itsJointSolve << std::endl;
       os << "  freqstep:       " << itsNChanAvgSubtr << std::endl;
       os << "  timestep:       " << itsNTimeAvgSubtr << std::endl;
       os << "  demixfreqstep:  " << itsNChanAvg << std::endl;
@@ -298,6 +303,7 @@ namespace LOFAR {
       for (int i=0; i<int(itsFirstSteps.size()); ++i) {
         itsFirstSteps[i]->process(newBuf);
       }
+      itsAvgSubtr->process(newBuf);
       itsTimerPhaseShift.stop();
 
       // For each itsNTimeAvg times, calculate the
@@ -390,6 +396,8 @@ namespace LOFAR {
     void Demixer::addFactors (const DPBuffer& newBuf,
                               Array<DComplex>& factorBuf)
     {
+      // Nothing to do if only target direction.
+      if (itsNrDir <= 1) return;
 ///#pragma omp parallel
       {
 ///#pragma omp for
@@ -449,6 +457,8 @@ namespace LOFAR {
                                const Cube<float>& weightSums,
                                uint nchanOut)
     {
+      // Nothing to do if only target direction.
+      if (itsNrDir <= 1) return;
       ASSERT (! weightSums.empty());
       bufOut.resize (IPosition(5, itsNrDir, itsNrDir,
                                itsNrCorr, nchanOut, itsNrBl));
@@ -485,6 +495,8 @@ namespace LOFAR {
                              vector<MultiResultStep*> avgResults,
                              uint resultIndex)
     {
+      // Nothing to do if only target direction.
+      if (itsNrDir <= 1) return;
       // Get pointers to the data for the various directions.
       vector<Complex*> resultPtr(itsNrDir);
       for (uint j=0; j<itsNrDir; ++j) {
@@ -563,52 +575,57 @@ namespace LOFAR {
 
     void Demixer::demix()
     {
-      itsTimerSolve.start();
-
-     // Collect buffers for each direction.
-      vector<vector<DPBuffer> > buffers;
       size_t targetIndex = itsAvgResults.size() - 1;
-      for (size_t i=0; i<itsAvgResults.size(); ++i) {
-        buffers.push_back (itsAvgResults[i]->get());
-        // Do not clear target buffer, because it is shared with
-        // itsAvgResultSubtr if averaging of demix and subtract is the same.
-        if (i != targetIndex) {
-          itsAvgResults[i]->clear();
+      // Only solve and subtract if multiple directions.
+      if (itsNrDir > 1) {
+        itsTimerSolve.start();
+        // Collect buffers for each direction.
+        vector<vector<DPBuffer> > buffers;
+        for (size_t i=0; i<itsAvgResults.size(); ++i) {
+          buffers.push_back (itsAvgResults[i]->get());
+          // Do not clear target buffer, because it is shared with
+          // itsAvgResultSubtr if averaging of demix and subtract is the same.
+          if (i != targetIndex) {
+            itsAvgResults[i]->clear();
+          }
         }
+
+        // Construct grids for parameter estimation.
+        Axis::ShPtr timeAxis (new RegularAxis (itsStartTimeChunk,
+                                               itsTimeIntervalAvg,
+                                               itsNTimeOut));
+        Grid visGrid(itsFreqAxisDemix, timeAxis);
+        // Solve for each time slot over all channels.
+        Grid solGrid(itsFreqAxisDemix->compress(itsFreqAxisDemix->size()),
+                     timeAxis);
+
+        // Estimate model parameters.
+        LOG_DEBUG_STR("estimating....");
+        LOG_DEBUG_STR("SHAPES ESTIMATE: " << itsFactors[0].shape() << " "
+                      << itsFreqAxisDemix->size() << " "
+                      << buffers[0][0].getData().shape());
+        itsBBSExpr.estimate(buffers, visGrid, solGrid, itsFactors);
+        itsTimerSolve.stop();
+
+        itsTimerSubtract.start();
+        if (itsCalcSubtr) {
+          // Construct subtract grid if it differs from the grid used for
+          // parameter estimation.
+          Axis::ShPtr timeAxisSubtr (new RegularAxis (itsStartTimeChunk,
+                                                      itsTimeIntervalSubtr,
+                                                      itsNTimeOutSubtr));
+          visGrid = Grid(itsFreqAxisSubtr, timeAxisSubtr);
+        }
+
+        // Subtract the sources.
+        LOG_DEBUG_STR("subtracting....");
+        LOG_DEBUG_STR("SHAPES SUBTRACT: " << itsFactorsSubtr[0].shape() << " "
+                      << itsFreqAxisSubtr->size() << " "
+                      << itsAvgResultSubtr->get()[0].getData().shape());
+        itsBBSExpr.subtract (itsAvgResultSubtr->get(), visGrid, itsFactorsSubtr,
+                             targetIndex, itsSubtrSources.size());
+        itsTimerSubtract.stop();
       }
-
-      // Construct grids for parameter estimation.
-      Axis::ShPtr timeAxis (new RegularAxis (itsStartTimeChunk,
-                                             itsTimeIntervalAvg,
-                                             itsNTimeOut));
-      Grid visGrid(itsFreqAxisDemix, timeAxis);
-      // Solve for each time slot over all channels.
-      Grid solGrid(itsFreqAxisDemix->compress(itsFreqAxisDemix->size()),
-                   timeAxis);
-
-      // Estimate model parameters.
-      LOG_DEBUG_STR("estimating....");
-      LOG_DEBUG_STR("SHAPES ESTIMATE: " << itsFactors[0].shape() << " " << itsFreqAxisDemix->size() << " " << buffers[0][0].getData().shape());
-      itsBBSExpr.estimate(buffers, visGrid, solGrid, itsFactors);
-      itsTimerSolve.stop();
-
-      itsTimerSubtract.start();
-      if (itsCalcSubtr) {
-        // Construct subtract grid if it differs from the grid used for
-        // parameter estimation.
-        Axis::ShPtr timeAxisSubtr (new RegularAxis (itsStartTimeChunk,
-                                                    itsTimeIntervalSubtr,
-                                                    itsNTimeOutSubtr));
-        visGrid = Grid(itsFreqAxisSubtr, timeAxisSubtr);
-      }
-
-      // Subtract the sources.
-      LOG_DEBUG_STR("subtracting....");
-      LOG_DEBUG_STR("SHAPES SUBTRACT: " << itsFactorsSubtr[0].shape() << " " << itsFreqAxisSubtr->size() << " " << itsAvgResultSubtr->get()[0].getData().shape());
-      itsBBSExpr.subtract (itsAvgResultSubtr->get(), visGrid, itsFactorsSubtr,
-                           targetIndex, itsSubtrSources.size());
-      itsTimerSubtract.stop();
-
       // Let the next step process the data.
       itsTimer.stop();
       for (uint i=0; i<(itsCalcSubtr ? itsNTimeOutSubtr : itsNTimeOut); ++i) {

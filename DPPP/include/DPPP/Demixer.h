@@ -121,7 +121,7 @@ namespace LOFAR {
       DPStep::ShPtr            itsAvgSubtr;     //# average step for subtract
       MultiResultStep*         itsAvgResultSubtr; //# result of subtract avg
       BBSExpr                  itsBBSExpr;
-//      string                   itsTarget;
+///      string                   itsTarget;
       vector<string>           itsSubtrSources;
       vector<string>           itsModelSources;
       vector<string>           itsExtraSources;
@@ -132,7 +132,7 @@ namespace LOFAR {
       double                   itsTimeInterval;
       vector<double>           itsTimeCenters;
       vector<double>           itsTimeWidths;
-      bool                     itsJointSolve;
+///      bool                     itsJointSolve;
       bool                     itsCalcSubtr;    //# subtract averaging differs
       uint                     itsNrDir;
       uint                     itsNrModel;
