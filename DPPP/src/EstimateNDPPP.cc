@@ -711,7 +711,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
 
                     for(size_t i = 0; i < nFreq; ++i)
                     {
-                        data(cr_it->first, i, bl_it->first) =
+                        data(cr_it->first, i, bl_it->first) -=
                             makedcomplex(*mixed_re++, *mixed_im++);
                     } // frequency
                 } // time
@@ -737,8 +737,10 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         {
             for(unsigned int correlation = 0; correlation < 4; ++correlation)
             {
+                // Exchanged target and i, because we want the effect of
+                // direction i on the target direction.
                 Matrix weight = makeMixingFactor(coeff, start, end, baseline,
-                    correlation, i, target);
+                    correlation, target, i);
 
                 const Matrix sim = in[i].element(correlation).value();
 

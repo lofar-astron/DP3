@@ -158,6 +158,7 @@ namespace LOFAR {
         // There is a single demix factor step which needs to get all results.
         itsAvgResults.push_back (step3);
       }
+
       // Now create the step to average the data themselves.
       DPStep::ShPtr targetAvg(new Averager(input, prefix,
                                            itsNChanAvg, itsNTimeAvg));
@@ -361,6 +362,7 @@ namespace LOFAR {
         for (int i=0; i<int(itsFirstSteps.size()); ++i) {
           itsFirstSteps[i]->finish();
         }
+        itsAvgSubtr->finish();
         itsTimerPhaseShift.stop();
 
         itsTimerDemix.start();
@@ -576,9 +578,9 @@ namespace LOFAR {
     void Demixer::demix()
     {
       size_t targetIndex = itsAvgResults.size() - 1;
+
       // Only solve and subtract if multiple directions.
       if (itsNrDir > 1) {
-        itsTimerSolve.start();
         // Collect buffers for each direction.
         vector<vector<DPBuffer> > buffers;
         for (size_t i=0; i<itsAvgResults.size(); ++i) {
@@ -590,6 +592,7 @@ namespace LOFAR {
           }
         }
 
+        itsTimerSolve.start();
         // Construct grids for parameter estimation.
         Axis::ShPtr timeAxis (new RegularAxis (itsStartTimeChunk,
                                                itsTimeIntervalAvg,
@@ -626,6 +629,7 @@ namespace LOFAR {
                              targetIndex, itsSubtrSources.size());
         itsTimerSubtract.stop();
       }
+
       // Let the next step process the data.
       itsTimer.stop();
       for (uint i=0; i<(itsCalcSubtr ? itsNTimeOutSubtr : itsNTimeOut); ++i) {
@@ -647,7 +651,6 @@ namespace LOFAR {
       return Axis::ShPtr(new RegularAxis (freq[0] - width[0] * 0.5, width[0],
         freq.size()));
     }
-
 
   } //# end namespace
 }
