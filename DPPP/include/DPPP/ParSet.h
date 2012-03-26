@@ -92,6 +92,7 @@ namespace LOFAR {
       vector<string> getStringVector(const string& aKey,
                                      const vector<string>& aValue,
                                      bool expandable = false) const;
+      ParameterRecord getRecord (const string& aKey) const;
 
       // Get all unused parameters.
       vector<string> unusedKeys() const;
