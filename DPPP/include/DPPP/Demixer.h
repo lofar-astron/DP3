@@ -133,7 +133,6 @@ namespace LOFAR {
       vector<double>           itsTimeCenters;
       vector<double>           itsTimeWidths;
 ///      bool                     itsJointSolve;
-      bool                     itsCalcSubtr;    //# subtract averaging differs
       uint                     itsNrDir;
       uint                     itsNrModel;
       uint                     itsNrBl;

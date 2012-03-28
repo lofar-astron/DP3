@@ -108,10 +108,6 @@ namespace LOFAR {
       ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr == 0,
                  "time window should fit final averaging integrally");
       itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
-      // See if averaging in demix and subtract differs.
-      itsCalcSubtr = (itsNChanAvg != itsNChanAvgSubtr  ||
-                      itsNTimeAvg != itsNTimeAvgSubtr);
-      itsCalcSubtr = true;
       // Collect all source names.
       itsNrModel = itsSubtrSources.size() + itsModelSources.size();
       itsNrDir   = itsNrModel + itsExtraSources.size() + 1;
@@ -167,21 +163,12 @@ namespace LOFAR {
       targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
       itsAvgResults.push_back (targetAvgRes);
 
-      // Do the same for the subtract if it has different averaging.
-      if (itsCalcSubtr) {
-        itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
-                                                  itsNChanAvgSubtr,
-                                                  itsNTimeAvgSubtr));
-        itsAvgResultSubtr = new MultiResultStep(itsNTimeChunk);
-        itsAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
-      } else {
-        // Same averaging, so use demix averaging for the subtract.
-        itsAvgSubtr = DPStep::ShPtr (new NullStep());
-        itsAvgResultSubtr = targetAvgRes;
-      }
-      // Construct frequency axis for the demix and subtract averaging.
-      itsFreqAxisDemix = makeFreqAxis (itsNChanAvg);
-      itsFreqAxisSubtr = makeFreqAxis (itsNChanAvgSubtr);
+      // Do the same for the subtract.
+      itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
+                                                itsNChanAvgSubtr,
+                                                itsNTimeAvgSubtr));
+      itsAvgResultSubtr = new MultiResultStep(itsNTimeChunk);
+      itsAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
     }
 
     Demixer::~Demixer()
@@ -190,23 +177,24 @@ namespace LOFAR {
 
     void Demixer::updateInfo (DPInfo& info)
     {
-      info.setNeedVisData();
-      info.setNeedWrite();
-
-      itsNChanIn = info.nchan();
-      itsNrBl    = info.nbaselines();
-      itsNrCorr  = info.ncorr();
+      // Get size info.
+      itsNChanIn  = info.nchan();
+      itsNrBl     = info.nbaselines();
+      itsNrCorr   = info.ncorr();
       itsFactorBuf.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
                                      itsNrDir*(itsNrDir-1)/2));
-      if (itsCalcSubtr) {
-        itsFactorBufSubtr.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
-                                            itsNrDir*(itsNrDir-1)/2));
-      }
+      itsFactorBufSubtr.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
+                                          itsNrDir*(itsNrDir-1)/2));
       itsTimeInterval = info.timeInterval();
 
-      // Let the internal steps update their data.
+      // Adapt averaging to available nr of channels and times.
       // Use a copy of the DPInfo, otherwise it is updated multiple times.
-      DPInfo infocp;
+      DPInfo infocp(info);
+      itsNTimeAvg = std::min (itsNTimeAvg, infocp.ntime());
+      itsNChanAvg = infocp.update (itsNChanAvg, itsNTimeAvg);
+      // Let the internal steps update their data.
+      infocp = info;
+      itsAvgSubtr->updateInfo (infocp);
       for (uint i=0; i<itsFirstSteps.size(); ++i) {
         infocp = info;
         DPStep::ShPtr step = itsFirstSteps[i];
@@ -219,14 +207,19 @@ namespace LOFAR {
           itsBBSExpr.addModel (itsAllSources[i], infocp.phaseCenter());
         }
       }
-
       // Keep the averaged time interval.
       itsNChanOut = infocp.nchan();
       itsTimeIntervalAvg = infocp.timeInterval();
       // Update the info of this object.
-      info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
+      info.setNeedVisData();
+      info.setNeedWrite();
+      itsNTimeAvgSubtr = std::min (itsNTimeAvgSubtr, info.ntime());
+      itsNChanAvgSubtr = info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
       itsNChanOutSubtr = info.nchan();
       itsTimeIntervalSubtr = info.timeInterval();
+      // Construct frequency axis for the demix and subtract averaging.
+      itsFreqAxisDemix = makeFreqAxis (itsNChanAvg);
+      itsFreqAxisSubtr = makeFreqAxis (itsNChanAvgSubtr);
     }
 
     void Demixer::show (std::ostream& os) const
@@ -243,7 +236,7 @@ namespace LOFAR {
       os << "  timestep:       " << itsNTimeAvgSubtr << std::endl;
       os << "  demixfreqstep:  " << itsNChanAvg << std::endl;
       os << "  demixtimestep:  " << itsNTimeAvg << std::endl;
-      os << "  timechunk:      " << itsNTimeChunk << std::endl;
+      os << "  ntimechunk:     " << itsNTimeChunk << std::endl;
       os << "  Solve.Options.MaxIter:       " << itsSolveOpt.maxIter << endl;
       os << "  Solve.Options.EpsValue:      " << itsSolveOpt.epsValue << endl;
       os << "  Solve.Options.EpsDerivative: " << itsSolveOpt.epsDerivative << endl;
@@ -295,7 +288,7 @@ namespace LOFAR {
       }
       if (newBuf.getFullResFlags().empty()) {
         newBuf.setFullResFlags(itsInput->fetchFullResFlags(newBuf, refRows,
-                                                            itsTimer));
+                                                           itsTimer));
       }
 
       // Do the initial steps (phaseshift and average).
@@ -315,26 +308,20 @@ namespace LOFAR {
         makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
                      itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
                      itsNChanOut);
-        // If needed, keep the original factors for subtraction.
-        if (!itsCalcSubtr) {
-          itsFactorsSubtr[itsNTimeOut].reference (itsFactors[itsNTimeOut].copy());
-        }
         // Deproject sources without a model.
         deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
         itsFactorBuf = Complex();   // clear summation buffer
         itsNTimeOut++;
       }
-      if (itsCalcSubtr) {
-        // Subtract is done with different averaging parameters, so
-        // calculate the factors for it.
-        addFactors (newBuf, itsFactorBufSubtr);
-        if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
-          makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
-                       itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
-                       itsNChanOutSubtr);
-          itsFactorBufSubtr = Complex();   // clear summation buffer
-          itsNTimeOutSubtr++;
-        }
+      // Subtract is done with different averaging parameters, so
+      // calculate the factors for it.
+      addFactors (newBuf, itsFactorBufSubtr);
+      if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
+        makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+                     itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
+                     itsNChanOutSubtr);
+        itsFactorBufSubtr = Complex();   // clear summation buffer
+        itsNTimeOutSubtr++;
       }
       itsTimerDemix.stop();
 
@@ -364,30 +351,27 @@ namespace LOFAR {
         }
         itsAvgSubtr->finish();
         itsTimerPhaseShift.stop();
-
+        // Only average if there is some data.
         itsTimerDemix.start();
-        makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
-                     itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
-                     itsNChanOut);
-        // Deproject sources without a model.
-        // If needed, keep the original factors for subtraction.
-        if (!itsCalcSubtr) {
-          itsFactorsSubtr[itsNTimeOut].reference (itsFactors[itsNTimeOut].copy());
+        if (itsNTimeIn % itsNTimeAvg != 0) {
+          makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
+                       itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
+                       itsNChanOut);
+          // Deproject sources without a model.
+          deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
+          itsNTimeOut++;
         }
-        deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
-        itsNTimeOut++;
-        if (itsCalcSubtr) {
+        if (itsNTimeIn % itsNTimeAvgSubtr != 0) {
           makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
                        itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
                        itsNChanOutSubtr);
           itsNTimeOutSubtr++;
         }
         itsTimerDemix.stop();
-
         // Resize lists of mixing factors to the number of valid entries.
         itsFactors.resize(itsNTimeOut);
-        itsFactorsSubtr.resize(itsCalcSubtr ? itsNTimeOutSubtr : itsNTimeOut);
-
+        itsFactorsSubtr.resize(itsNTimeOutSubtr);
+        // Demix the source directions.
         demix();
         itsTimer.stop();
       }
@@ -611,15 +595,12 @@ namespace LOFAR {
         itsTimerSolve.stop();
 
         itsTimerSubtract.start();
-        if (itsCalcSubtr) {
-          // Construct subtract grid if it differs from the grid used for
-          // parameter estimation.
-          Axis::ShPtr timeAxisSubtr (new RegularAxis (itsStartTimeChunk,
-                                                      itsTimeIntervalSubtr,
-                                                      itsNTimeOutSubtr));
-          visGrid = Grid(itsFreqAxisSubtr, timeAxisSubtr);
-        }
-
+        // Construct subtract grid if it differs from the grid used for
+        // parameter estimation.
+        Axis::ShPtr timeAxisSubtr (new RegularAxis (itsStartTimeChunk,
+                                                    itsTimeIntervalSubtr,
+                                                    itsNTimeOutSubtr));
+        visGrid = Grid(itsFreqAxisSubtr, timeAxisSubtr);
         // Subtract the sources.
         LOG_DEBUG_STR("subtracting....");
         LOG_DEBUG_STR("SHAPES SUBTRACT: " << itsFactorsSubtr[0].shape() << " "
@@ -632,7 +613,7 @@ namespace LOFAR {
 
       // Let the next step process the data.
       itsTimer.stop();
-      for (uint i=0; i<(itsCalcSubtr ? itsNTimeOutSubtr : itsNTimeOut); ++i) {
+      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
         getNextStep()->process (itsAvgResultSubtr->get()[i]);
         itsAvgResultSubtr->get()[i].clear();
         itsAvgResults[targetIndex]->get()[i].clear();
