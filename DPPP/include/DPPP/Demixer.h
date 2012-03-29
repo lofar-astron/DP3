@@ -110,6 +110,9 @@ namespace LOFAR {
       // Make a BBS frequency axis for the given channel average factor.
       BBS::Axis::ShPtr makeFreqAxis (uint nchanAvg);
 
+      // Convert a double value to a string (with sufficient precision).
+      string toString (double value) const;
+
       //# Data members.
       DPInput*                 itsInput;
       string                   itsName;
@@ -121,7 +124,7 @@ namespace LOFAR {
       DPStep::ShPtr            itsAvgSubtr;     //# average step for subtract
       MultiResultStep*         itsAvgResultSubtr; //# result of subtract avg
       BBSExpr                  itsBBSExpr;
-///      string                   itsTarget;
+      string                   itsTargetSource; //# empty if no target model
       vector<string>           itsSubtrSources;
       vector<string>           itsModelSources;
       vector<string>           itsExtraSources;

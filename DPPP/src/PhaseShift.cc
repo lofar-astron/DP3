@@ -51,11 +51,10 @@ namespace LOFAR {
 
     PhaseShift::PhaseShift (DPInput* input,
                             const ParSet& parset, const string& prefix,
-                            const string& defVal)
+                            const vector<string>& defVal)
       : itsInput   (input),
         itsName    (prefix),
-        itsCenter  (parset.getStringVector(prefix+"phasecenter",
-                                           vector<string>(1, defVal)))
+        itsCenter  (parset.getStringVector(prefix+"phasecenter", defVal))
     {}
 
     PhaseShift::~PhaseShift()

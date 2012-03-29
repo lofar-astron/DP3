@@ -195,8 +195,8 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
     const size_t nModels = models.size();
     {
         ASSERT(nDirections >= nModels && nModels > 0);
-        ASSERT(nDirections == coeff[0].shape()[0]);
-        ASSERT(nModels == coeff[0].shape()[1]);
+        ASSERT(int(nDirections) == coeff[0].shape()[0]);
+        ASSERT(int(nModels) == coeff[0].shape()[1]);
 
         CorrelationSeq tmp;
         tmp.append(Correlation::XX);

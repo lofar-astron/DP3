@@ -29,6 +29,7 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/ParSet.h>
 #include <ParmDB/Axis.h>
+#include <ParmDB/SourceDB.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
 #include <Common/OpenMP.h>
@@ -61,7 +62,7 @@ namespace LOFAR {
         itsInstrumentName(parset.getString(prefix+"instrumentmodel",
                                            "instrument")),
         itsBBSExpr       (*input, itsSkyName, itsInstrumentName),
-//        itsTarget        (parset.getString(prefix+"target", "target")),
+        itsTargetSource  (parset.getString(prefix+"targetsource", string())),
         itsSubtrSources  (parset.getStringVector (prefix+"subtractsources")),
         itsModelSources  (parset.getStringVector (prefix+"modelsources",
                                                   vector<string>())),
@@ -118,9 +119,15 @@ namespace LOFAR {
                             itsModelSources.begin(), itsModelSources.end());
       itsAllSources.insert (itsAllSources.end(),
                             itsExtraSources.begin(), itsExtraSources.end());
-      itsAllSources.push_back("target");
-//      itsAllSources.push_back(itsTarget);
-
+      itsAllSources.push_back (itsTargetSource);
+      // If the target source is given, add it to the model.
+      // Because the target source has to be the last direction, it means
+      // that (for the time being) no extra sources can be given.
+      if (! itsTargetSource.empty()) {
+        itsNrModel++;
+        ASSERTSTR (itsExtraSources.empty(), "Currently no extrasources can "
+                   "be given if the targetsource is given");
+      }
       // Size buffers.
       itsFactors.resize      (itsNTimeChunk);
       itsFactorsSubtr.resize (itsNTimeChunkSubtr);
@@ -128,6 +135,8 @@ namespace LOFAR {
       itsFirstSteps.reserve  (itsNrDir);
       itsAvgResults.reserve  (itsNrDir);
 
+      // Get the patch names and positions from the SourceDB table.
+      SourceDB sdb(ParmDBMeta("casa", itsSkyName));
       // Create the steps for the sources to be removed.
       // Demixing consists of the following steps:
       // - phaseshift data to each demix source
@@ -141,10 +150,17 @@ namespace LOFAR {
         // First make the phaseshift and average steps for each demix source.
         // The resultstep gets the result.
         // The phasecenter can be given in a parameter. Its name is the default.
-        // Note the PhaseShift knows about source names CygA, etc.
+        // Look up the source direction in the patch table.
+        // If found, turn it into a vector of strings.
+        vector<PatchInfo> patchInfo (sdb.getPatchInfo (-1, itsAllSources[i]));
+        vector<string> sourceVec (1, itsAllSources[i]);
+        if (! patchInfo.empty()) {
+          sourceVec[0] = toString(patchInfo[0].getRa());
+          sourceVec.push_back (toString(patchInfo[0].getDec()));
+        }
         PhaseShift* step1 = new PhaseShift (input, parset,
                                             prefix + itsAllSources[i] + '.',
-                                            itsAllSources[i]);
+                                            sourceVec);
         itsFirstSteps.push_back (DPStep::ShPtr(step1));
         itsPhaseShifts.push_back (step1);
         DPStep::ShPtr step2 (new Averager(input, parset, prefix));
@@ -227,7 +243,7 @@ namespace LOFAR {
       os << "Demixer " << itsName << std::endl;
       os << "  skymodel:       " << itsSkyName << std::endl;
       os << "  instrumentmodel:" << itsInstrumentName << std::endl;
-//      os << "  target:         " << itsTarget << std::endl;
+      os << "  targetsource:   " << itsTargetSource << std::endl;
       os << "  subtractsources:" << itsSubtrSources << std::endl;
       os << "  modelsources:   " << itsModelSources << std::endl;
       os << "  extrasources:   " << itsExtraSources << std::endl;
@@ -481,8 +497,8 @@ namespace LOFAR {
                              vector<MultiResultStep*> avgResults,
                              uint resultIndex)
     {
-      // Nothing to do if only target direction.
-      if (itsNrDir <= 1) return;
+      // Nothing to do if only target direction or if all sources are modeled.
+      if (itsNrDir <= 1  ||  itsNrDir == itsNrModel) return;
       // Get pointers to the data for the various directions.
       vector<Complex*> resultPtr(itsNrDir);
       for (uint j=0; j<itsNrDir; ++j) {
@@ -631,6 +647,13 @@ namespace LOFAR {
 
       return Axis::ShPtr(new RegularAxis (freq[0] - width[0] * 0.5, width[0],
         freq.size()));
+    }
+
+    string Demixer::toString (double value) const
+    {
+      ostringstream os;
+      os << setprecision(16) << value;
+      return os.str();
     }
 
   } //# end namespace

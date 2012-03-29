@@ -57,7 +57,7 @@ namespace LOFAR {
       // This is a constructor for Demixer where the phasecenter has the
       // given default value.
       PhaseShift (DPInput*, const ParSet&, const string& prefix,
-                  const string& defVal);
+                  const vector<string>& defVal);
 
       virtual ~PhaseShift();
 
