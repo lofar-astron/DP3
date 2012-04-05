@@ -33,6 +33,10 @@
 #include <measures/Measures/MDirection.h>
 #include <measures/Measures/MPosition.h>
 #include <measures/Measures/MBaseline.h>
+#include <measures/Measures/MeasConvert.h>
+#include <measures/Measures/MCDirection.h>
+#include <measures/Measures/MCPosition.h>
+#include <measures/Measures/MCBaseline.h>
 #include <casa/Arrays/Vector.h>
 
 namespace LOFAR {
@@ -63,9 +67,10 @@ namespace LOFAR {
       casa::Vector<double> getUVW (uint ant1, uint ant2, double time);
 
     private:
-      casa::MDirection              itsOrigPhaseDir;
       casa::MDirection              itsPhaseDir;
       bool                          itsMovingPhaseDir;  
+      casa::MDirection::Convert     itsDirToJ2000;   //# direction to J2000
+      casa::MBaseline::Convert      itsBLToJ2000;    //# convert ITRF to J2000
       casa::MeasFrame               itsFrame;
       vector<casa::MBaseline>       itsAntMB;
       vector<casa::Vector<double> > itsAntUvw;

@@ -23,13 +23,6 @@
 
 #include <DPPP/UVWCalculator.h>
 #include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MCPosition.h>
-#include <measures/Measures/MBaseline.h>
-#include <measures/Measures/MCBaseline.h>
-#include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/Muvw.h>
 
 using namespace casa;
@@ -60,18 +53,24 @@ namespace LOFAR {
                          (pos[2] - pos0[2]));
         itsAntMB.push_back (MBaseline (MVBaseline(mvpos), MBaseline::ITRF));
       }
-      // Try to use the PHASE_DIR in J2000.
-      // It fails if a moving source (e.g. SUN) is used.
+      // Initialize the converters.
+      // Set up the frame for epoch and antenna position.
+      itsFrame.set (arrayPos, MDirection());
+      // Create converter for phase center direction to J2000.
+      itsDirToJ2000.set (phaseDir,
+                         MDirection::Ref(MDirection::J2000,itsFrame));
+      // We can already try to convert the phase reference direction to J2000.
+      // If it fails, it is a time-dependent direction (like SUN).
       itsMovingPhaseDir = false;
-      itsOrigPhaseDir   = phaseDir;
       try {
-        itsPhaseDir = MDirection::Convert (phaseDir, MDirection::J2000)();
+        itsPhaseDir = itsDirToJ2000();
+        itsFrame.resetDirection (itsPhaseDir);
       } catch (...) {
         itsMovingPhaseDir = true;
       }
-      // Create a reference frame. Use the middle antenna as array position.
-      itsFrame.set (arrayPos);
-      itsFrame.set (itsPhaseDir);
+      itsFrame.set (MEpoch());
+      // Create converter for MBaseline ITRF to J2000.
+      itsBLToJ2000.set (MBaseline(), MBaseline::Ref(MBaseline::J2000,itsFrame));
       // Initialize the rest which is used to cache the UVW per antenna.
       // The cache is only useful if the MS is accessed in time order, but that
       // is normally the case.
@@ -87,12 +86,13 @@ namespace LOFAR {
       if (time != itsLastTime) {
         itsLastTime = time;
         Quantum<Double> tm(time, "s");
-        itsFrame.set (MEpoch(MVEpoch(tm.get("d").getValue()), MEpoch::UTC));
+        itsFrame.resetEpoch
+          (MEpoch(MVEpoch(tm.get("d").getValue()), MEpoch::UTC));
         itsUvwFilled = false;
         // If phase dir is moving, calculate it for this time.
         if (itsMovingPhaseDir) {
-          itsPhaseDir = MDirection::Convert (itsOrigPhaseDir,
-                                             MDirection::J2000)();
+          itsPhaseDir = itsDirToJ2000();
+          itsFrame.resetDirection (itsPhaseDir);
         }
       }
       // Calculate the UVWs for this timestamp if not done yet.
