@@ -61,7 +61,9 @@ namespace LOFAR {
         itsSkyName       (parset.getString(prefix+"skymodel", "sky")),
         itsInstrumentName(parset.getString(prefix+"instrumentmodel",
                                            "instrument")),
-        itsBBSExpr       (*input, itsSkyName, itsInstrumentName),
+        itsElevCutoff    (getAngle(parset.getString(prefix+"elevationcutoff",
+                                                    "0."))),
+        itsBBSExpr       (*input, itsSkyName, itsInstrumentName, itsElevCutoff),
         itsTargetSource  (parset.getString(prefix+"targetsource", string())),
         itsSubtrSources  (parset.getStringVector (prefix+"subtractsources")),
         itsModelSources  (parset.getStringVector (prefix+"modelsources",
@@ -654,6 +656,22 @@ namespace LOFAR {
       ostringstream os;
       os << setprecision(16) << value;
       return os.str();
+    }
+
+    double Demixer::getAngle (const String& value) const
+    {
+      double angle;
+      Quantity q;
+      ASSERTSTR (Quantity::read (q, value),
+                 "Demixer: " + value + " is not a proper angle");
+      if (q.getUnit().empty()) {
+        angle = q.getValue() / 180. * C::pi;
+      } else {
+        ASSERTSTR (q.getFullUnit().getValue() == UnitVal::ANGLE,
+                   "Demixer: " + value + " is not a proper angle");
+        angle = q.getValue("rad");
+      }
+      return angle;
     }
 
   } //# end namespace

@@ -53,7 +53,7 @@ namespace LOFAR {
       // Construct the expression for the given sky and instrument
       // parameter databases.
       BBSExpr (const DPInput& input, const string& skyName,
-               const string& instrumentName);
+               const string& instrumentName, double elevationCutoff);
 
       ~BBSExpr();
 
@@ -97,6 +97,7 @@ namespace LOFAR {
       BBS::CorrelationSeq               itsCorrelations;
       BBS::BaselineMask                 itsBaselineMask;
       BBS::CorrelationMask              itsCorrelationMask;
+      double                            itsElevationCutoff;
       BBS::EstimateOptions              itsOptions;
       BBS::ParmGroup                    itsParms;
       vector<BBS::ParmGroup>            itsModelParms;

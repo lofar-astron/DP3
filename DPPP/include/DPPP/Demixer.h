@@ -113,11 +113,16 @@ namespace LOFAR {
       // Convert a double value to a string (with sufficient precision).
       string toString (double value) const;
 
+      // Convert a angle string with an optional unit to radians.
+      // The default input unit is degrees.
+      double getAngle (const casa::String& value) const;
+
       //# Data members.
       DPInput*                 itsInput;
       string                   itsName;
       string                   itsSkyName;
       string                   itsInstrumentName;
+      double                   itsElevCutoff;   //# min source elevation (rad)
       vector<PhaseShift*>      itsPhaseShifts;
       vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average steps
       vector<MultiResultStep*> itsAvgResults;   //# result of phaseshift/average

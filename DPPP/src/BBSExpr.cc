@@ -42,9 +42,10 @@ namespace LOFAR {
   namespace DPPP {
 
     BBSExpr::BBSExpr (const DPInput& input, const string& skyName,
-                      const string& instrumentName)
+                      const string& instrumentName, double elevationCutoff)
       : itsBaselineMask    (true),
-        itsCorrelationMask (true)
+        itsCorrelationMask (true),
+        itsElevationCutoff (elevationCutoff)
     {
       // Open ParmDB and SourceDB.
       try {
@@ -124,7 +125,9 @@ namespace LOFAR {
       config.setSources (vector<string>(1, source));
       config.setDirectionalGain();
       config.setCache();
-
+      if (itsElevationCutoff > 0) {
+        config.setElevationCutConfig (ElevationCutConfig(itsElevationCutoff));
+      }
       // TODO: Find a better way to handle the reference frequency. Here we
       // use a bogus reference frequency, which does not matter since we are
       // not using the beam model. But it's still a hack, of course.
