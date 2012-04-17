@@ -32,56 +32,6 @@ using namespace BBS;
 
 namespace
 {
-    // Processing statistics and timers.
-    class Statistics
-    {
-    public:
-        enum Counter
-        {
-            C_ALL,
-            C_FLAGGED,
-            C_ZERO_WEIGHT,
-            C_INVALID_RESIDUAL,
-            C_INVALID_DERIVATIVE,
-            C_INVALID_WEIGHT,
-            C_OUTLIER,
-            N_Counter
-        };
-
-        enum Timer
-        {
-            T_EVALUATE,
-            T_MIX,
-            T_MAKE_COEFF_MAP,
-            T_PROCESS_CELL,
-            T_MODIFIER,
-            T_MAKE_NORM,
-            N_Timer
-        };
-
-        Statistics();
-
-        void inc(Counter counter);
-        void inc(Counter counter, size_t count);
-        void reset(Counter counter);
-
-        void reset(Timer timer);
-        void start(Timer timer);
-        void stop(Timer timer);
-
-        void reset();
-
-        string counters() const;
-        string timers() const;
-
-    private:
-        size_t          itsCounters[N_Counter];
-        static string   theirCounterNames[N_Counter];
-
-        NSTimer         itsTimers[N_Timer];
-        static string   theirTimerNames[N_Timer];
-    };
-
     // State kept for a single cell in the solution grid.
     struct Cell
     {
@@ -92,24 +42,6 @@ namespace
         casa::LSQFit    solver;
         vector<double>  coeff;
     };
-
-    // Cell counts separated by state. Used to indicate the status of all the
-    // cells after performing an iteration.
-    struct IterationStatus
-    {
-        unsigned int nActive, nConverged, nStopped, nNoReduction, nSingular;
-    };
-
-//    struct EstimateContext
-//    {
-//        vector<pair<size_t, size_t> >   baselineMap;
-//        vector<pair<size_t, size_t> >   correlationMap;
-//        vector<Interval<size_t> >       cellMap[2];
-//        map<PValueKey, unsigned int>    coeffMap;
-
-//        Statistics                      stats;
-//        vector<Cell>                    cells;
-//    };
 
     template <typename T_SAMPLE_MODIFIER>
     struct SampleProcessorComplex;
@@ -148,8 +80,7 @@ namespace
         const vector<pair<size_t, size_t> > &correlationMap,
         const vector<Interval<size_t> > (&cellMap)[2],
         const map<PValueKey, unsigned int> &coeffMap,
-        vector<Cell> &cells,
-        Statistics &stats);
+        vector<Cell> &cells);
 
     template <typename T_SAMPLE_PROCESSOR>
     void equate2(const Location &start, const Location &end, size_t blIndex,
@@ -157,8 +88,7 @@ namespace
         const vector<pair<size_t, size_t> > &correlationMap,
         const vector<Interval<size_t> > (&cellMap)[2],
         const map<PValueKey, unsigned int> &coeffMap,
-        vector<Cell> &cells,
-        Statistics &stats);
+        vector<Cell> &cells);
 
     void initCells(const Location &start, const Location &end,
         const ParmGroup &solvables, size_t nCoeff,
@@ -170,11 +100,9 @@ namespace
     // to the new estimates found.
     // \pre The range starting at \p cell should contain exactly one Cell
     // instance for each cell in the range [\p start, \p end].
-    IterationStatus iterate(const Location &start, const Location &end,
+    bool iterate(const Location &start, const Location &end,
         const ParmGroup &solvables, const EstimateOptions &options,
         vector<Cell> &cells);
-
-    void updateIterationStatus(const Cell &cell, IterationStatus &status);
 } // unnamed namespace
 
 void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
@@ -241,11 +169,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         solvables.insert(tmp.begin(), tmp.end());
     }
 
-//    LOG_INFO_STR("Selection: Baselines: " << blMap.size() << "/"
-//        << baselines.size() << " Correlations: " << crMap.size() << "/"
-//        << correlations.size() << " Parameters: " << solvables.size());
-//        << "/" << models->nParm());
-
     // Make coefficient map.
     map<PValueKey, unsigned int> coeffMap;
     makeCoeffMap(solvables, inserter(coeffMap, coeffMap.begin()));
@@ -253,10 +176,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
 
     // Assign solution grid to solvables.
     ParmManager::instance().setGrid(solGrid, solvables);
-
-//    // Log information that is valid for all chunks.
-//    logCoefficientIndex(log, solvables);
-//    logLSQOptions(log, options.lsqOptions());
 
     // ---------------------------------------------------------------------
     // Process each chunk of cells in a loop.
@@ -267,18 +186,10 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         : std::min(options.chunkSize(), solGrid[TIME]->size());
 
     // Allocate cells.
-//    boost::multi_array<Cell, 2> cells(boost::extents[chunkSize]
-//        [solGrid[FREQ]->size()]);
     vector<Cell> cells(solGrid[FREQ]->size() * chunkSize);
 
     // Compute the number of cell chunks to process.
     size_t nChunks = (solGrid[TIME]->size() + chunkSize - 1) / chunkSize;
-
-//    Timer::instance().reset();
-    Statistics stats;
-
-    NSTimer timer;
-    timer.start();
 
     // Process the solution grid in chunks.
     for(size_t chunk = 0; chunk < nChunks; ++chunk)
@@ -306,8 +217,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         if(chunkStart.first > chunkEnd.first
             || chunkStart.second > chunkEnd.second)
         {
-//            LOG_DEBUG_STR("chunk: " << (chunk + 1) << "/" << nChunks
-//                << " status: **skipped**");
             timerChunk.stop();
             continue;
         }
@@ -330,21 +239,20 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
 
         typedef SampleProcessorComplex<SampleModifierComplex> SampleProcessor;
 
-//        Statistics stats;
-        IterationStatus status = {0, 0, 0, 0, 0};
+        bool done = false;
         unsigned int nIterations = 0;
-        while(true)
+        while(!done)
         {
             // Construct normal equations from the data and an evaluation of
             // the model based on the current coefficient values.
             timerEquate.start();
             equate<SampleProcessor>(chunkStart, chunkEnd, buffers, models,
-                coeff, blMap, crMap, cellMap, coeffMap, cells, stats);
+                coeff, blMap, crMap, cellMap, coeffMap, cells);
             timerEquate.stop();
 
             // Perform a single iteration.
             timerIterate.start();
-            status = iterate(chunkStart, chunkEnd, solvables, options, cells);
+            done = iterate(chunkStart, chunkEnd, solvables, options, cells);
             timerIterate.stop();
 
             // Notify model that solvables have changed.
@@ -355,14 +263,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
 
             // Update iteration count.
             ++nIterations;
-
-            // If no active cells remain in this chunk (i.e. all cells have
-            // converged or have been stopped), then move to the next chunk
-            // of cells.
-            if(status.nActive == 0)
-            {
-                break;
-            }
         }
         timerChunk.stop();
 
@@ -370,12 +270,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
         const size_t nCells = (chunkEnd.second - chunkStart.second + 1)
             * (chunkEnd.first - chunkStart.first + 1);
         LOG_DEBUG_STR("chunk: " << (chunk + 1) << "/" << nChunks
-            << " cells: " << nCells << " iterations: " << nIterations
-            << " status: " << status.nConverged << "/" << status.nStopped
-            << "/" << status.nNoReduction << "/" << status.nSingular
-            << " converged/stopped/noreduction/singular");
-//        LOG_DEBUG_STR("\t" << stats.counters());
-//        LOG_DEBUG_STR("\t" << stats.timers());
+            << " cells: " << nCells << " iterations: " << nIterations);
         LOG_DEBUG_STR("\ttimers: all: " << toString(timerChunk)
             << " equate: " << toString(timerEquate) << " iterate: "
             << toString(timerIterate) << " total/count/average");
@@ -395,28 +290,6 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
             passCoeff(solvables, srcStart, srcEnd, destStart, destEnd);
         }
     }
-
-    timer.stop();
-
-    ostringstream oss;
-    oss << endl << "Estimate statistics:" << endl;
-    {
-        const double elapsed = timer.getElapsed();
-        const unsigned long long count = timer.getCount();
-        double average = count > 0 ? elapsed / count : 0.0;
-
-        oss << "TIMER s ESTIMATE ALL" << " total " << elapsed << " count "
-            << count << " avg " << average << endl;
-    }
-
-    LOG_DEBUG_STR("Estimate statistics:");
-    LOG_DEBUG_STR("\t" << stats.counters());
-    LOG_DEBUG_STR("\t" << stats.timers());
-
-//    Timer::instance().dump(oss);
-//    LOG_DEBUG(oss.str());
-
-//    Timer::instance().reset();
 }
 
 void subtract(vector<DPPP::DPBuffer> &buffer,
@@ -486,7 +359,7 @@ void equate(const Location &start, const Location &end,
     const vector<pair<size_t, size_t> > &correlationMap,
     const vector<Interval<size_t> > (&cellMap)[2],
     const map<PValueKey, unsigned int> &coeffMap,
-    vector<Cell> &cells, Statistics &stats)
+    vector<Cell> &cells)
 
 {
     ASSERT(buffers.size() >= models.size());
@@ -502,21 +375,17 @@ void equate(const Location &start, const Location &end,
         it != it_end; ++it)
     {
         // Evaluate models.
-        stats.start(Statistics::T_EVALUATE);
         for(size_t i = 0; i < nModels; ++i)
         {
             sim[i] = models[i]->evaluate(it->second);
         }
-        stats.stop(Statistics::T_EVALUATE);
 
         // Mix
         Location visStart(cellMap[FREQ][start.first].start,
             cellMap[TIME][start.second].start);
         Location visEnd(cellMap[FREQ][end.first].end,
             cellMap[TIME][end.second].end);
-        stats.start(Statistics::T_MIX);
         mix(sim, mixed, coeff, visStart, visEnd, it->first);
-        stats.stop(Statistics::T_MIX);
 
         // Flags will be equal for all mixed simulations. Skip baseline if all
         // grid points are flagged.
@@ -533,7 +402,7 @@ void equate(const Location &start, const Location &end,
         for(size_t i = 0; i < nDirections; ++i)
         {
             equate2<T_SAMPLE_PROCESSOR>(start, end, it->first, buffers[i], mixed[i], correlationMap,
-                cellMap, coeffMap, cells, stats);
+                cellMap, coeffMap, cells);
         }
     } // baselines
 }
@@ -544,7 +413,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
     const vector<pair<size_t, size_t> > &correlationMap,
     const vector<Interval<size_t> > (&cellMap)[2],
     const map<PValueKey, unsigned int> &coeffMap,
-    vector<Cell> &cells, Statistics &stats)
+    vector<Cell> &cells)
 {
 //    // can we somehow properly clear() if nUnkowns does not change?
 //    // instead of using set() which reallocates?
@@ -577,7 +446,6 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
         // Setup pointers and strides to access the model value and
         // derivatives.
         // -----------------------------------------------------------------
-        stats.start(Statistics::T_MAKE_COEFF_MAP);
         Matrix sim(element.value());
         ASSERT(sim.isComplex() && sim.isArray()
             && static_cast<unsigned int>(sim.nx()) == nFreq
@@ -602,7 +470,6 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                 && static_cast<unsigned int>(derivative.ny()) == nTime);
             derivative.dcomplexStorage(reSimDerivative[i], imSimDerivative[i]);
         }
-        stats.stop(Statistics::T_MAKE_COEFF_MAP);
 
         size_t offset[2];
         offset[FREQ] = cellMap[FREQ][start.first].start;
@@ -616,8 +483,6 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                 // Skip cell if it is inactive (converged or failed).
                 continue;
             }
-
-            stats.start(Statistics::T_PROCESS_CELL);
 
             const Interval<size_t> &freqInterval = cellMap[FREQ][it->first];
             const Interval<size_t> &timeInterval = cellMap[TIME][it->second];
@@ -646,7 +511,7 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                         T_SAMPLE_PROCESSOR::process(*cell, weight, real(vis),
                             imag(vis), reSim[index], imSim[index], nCoeff,
                             &(reDerivative[0]), &(imDerivative[0]),
-                            &(coeffIndex[0]), stats);
+                            &(coeffIndex[0]));
                     }
 
                     ++index;
@@ -655,587 +520,353 @@ void equate2(const Location &start, const Location &end, size_t blIndex,
                 index -= (freqInterval.end - freqInterval.start + 1);
                 index += nFreq;
             }
-
-            // merge LSQFit object.
-            stats.stop(Statistics::T_PROCESS_CELL);
         }
     }
 }
 
-    void subtract2(vector<DPPP::DPBuffer> &buffer,
-        const vector<MeasurementExpr::Ptr> &models,
-        const vector<casa::Array<casa::DComplex> > &coeff,
-        unsigned int target,
-        unsigned int nsources,
-        const vector<pair<size_t, size_t> > &baselineMap,
-        const vector<pair<size_t, size_t> > &correlationMap)
+void subtract2(vector<DPPP::DPBuffer> &buffer,
+    const vector<MeasurementExpr::Ptr> &models,
+    const vector<casa::Array<casa::DComplex> > &coeff,
+    unsigned int target,
+    unsigned int nsources,
+    const vector<pair<size_t, size_t> > &baselineMap,
+    const vector<pair<size_t, size_t> > &correlationMap)
+{
+    vector<JonesMatrix> sim(nsources);
+
+    typedef vector<pair<size_t, size_t> >::const_iterator
+        index_map_iterator;
+
+    for(index_map_iterator bl_it = baselineMap.begin(),
+        bl_end = baselineMap.end(); bl_it != bl_end; ++bl_it)
     {
-        vector<JonesMatrix> sim(nsources);
-
-        typedef vector<pair<size_t, size_t> >::const_iterator
-            index_map_iterator;
-
-        for(index_map_iterator bl_it = baselineMap.begin(),
-            bl_end = baselineMap.end(); bl_it != bl_end; ++bl_it)
-        {
-            // Evaluate models.
-            for(unsigned int i = 0; i < nsources; ++i)
-            {
-                sim[i] = models[i]->evaluate(bl_it->second);
-            }
-
-            // Mix
-            JonesMatrix mixed = mix(sim, coeff, target, nsources, bl_it->first);
-
-            // Subtract.
-            for(index_map_iterator cr_it = correlationMap.begin(),
-                cr_end = correlationMap.end(); cr_it != cr_end; ++cr_it)
-            {
-                Matrix crMixed = mixed.element(cr_it->second).value();
-                ASSERT(!crMixed.isNull());
-
-                const unsigned int nFreq = crMixed.nx();
-                const unsigned int nTime = crMixed.ny();
-                ASSERT(crMixed.isComplex() && crMixed.isArray());
-                ASSERTSTR(nTime == buffer.size(), "nTime: " << nTime << " buffer size: " << buffer.size());
-
-                const double *mixed_re = 0, *mixed_im = 0;
-                crMixed.dcomplexStorage(mixed_re, mixed_im);
-
-                for(vector<DPBuffer>::iterator buffer_it = buffer.begin(),
-                    buffer_end = buffer.end(); buffer_it != buffer_end;
-                    ++buffer_it)
-                {
-                    casa::Cube<casa::Complex> &data = buffer_it->getData();
-                    ASSERT(data.shape()(1) == int(nFreq));
-
-                    for(size_t i = 0; i < nFreq; ++i)
-                    {
-                        data(cr_it->first, i, bl_it->first) -=
-                            makedcomplex(*mixed_re++, *mixed_im++);
-                    } // frequency
-                } // time
-            } // correlations
-        } // baselines
-    }
-
-    JonesMatrix mix(const vector<JonesMatrix> &in,
-        const vector<casa::Array<casa::DComplex> > &coeff,
-        unsigned int target,
-        unsigned int nsources,
-        unsigned int baseline)
-    {
-        const unsigned int nFreq = coeff.front().shape()(3);
-        const unsigned int nTime = coeff.size();
-
-        ASSERT(nFreq >= 1 && nTime >= 1);
-        const Location start(0, 0);
-        const Location end(nFreq - 1, nTime - 1);
-
-        Matrix out[4];
+        // Evaluate models.
         for(unsigned int i = 0; i < nsources; ++i)
         {
-            for(unsigned int correlation = 0; correlation < 4; ++correlation)
+            sim[i] = models[i]->evaluate(bl_it->second);
+        }
+
+        // Mix
+        JonesMatrix mixed = mix(sim, coeff, target, nsources, bl_it->first);
+
+        // Subtract.
+        for(index_map_iterator cr_it = correlationMap.begin(),
+            cr_end = correlationMap.end(); cr_it != cr_end; ++cr_it)
+        {
+            Matrix crMixed = mixed.element(cr_it->second).value();
+            ASSERT(!crMixed.isNull());
+
+            const unsigned int nFreq = crMixed.nx();
+            const unsigned int nTime = crMixed.ny();
+            ASSERT(crMixed.isComplex() && crMixed.isArray());
+            ASSERTSTR(nTime == buffer.size(), "nTime: " << nTime << " buffer size: " << buffer.size());
+
+            const double *mixed_re = 0, *mixed_im = 0;
+            crMixed.dcomplexStorage(mixed_re, mixed_im);
+
+            for(vector<DPBuffer>::iterator buffer_it = buffer.begin(),
+                buffer_end = buffer.end(); buffer_it != buffer_end;
+                ++buffer_it)
             {
-                // Exchanged target and i, because we want the effect of
-                // direction i on the target direction.
-                Matrix weight = makeMixingFactor(coeff, start, end, baseline,
-                    correlation, target, i);
+                casa::Cube<casa::Complex> &data = buffer_it->getData();
+                ASSERT(data.shape()(1) == int(nFreq));
 
-                const Matrix sim = in[i].element(correlation).value();
-
-                ASSERTSTR(sim.nx() == weight.nx(), "sim: " << sim.nx() << " weight: " << weight.nx());
-                ASSERTSTR(sim.ny() == weight.ny(), "sim: " << sim.ny() << " weight: " << weight.ny());
-                if(out[correlation].isNull())
+                for(size_t i = 0; i < nFreq; ++i)
                 {
-                    out[correlation] = weight * sim;
-                }
-                else
-                {
-                    out[correlation] += weight * sim;
-                }
-            } // correlations
-        } // nsources
+                    data(cr_it->first, i, bl_it->first) -=
+                        makedcomplex(*mixed_re++, *mixed_im++);
+                } // frequency
+            } // time
+        } // correlations
+    } // baselines
+}
 
-        JonesMatrix result(out[0], out[1], out[2], out[3]);
-        result.setFlags(mergeFlags(in));
-        return result;
-    }
+JonesMatrix mix(const vector<JonesMatrix> &in,
+    const vector<casa::Array<casa::DComplex> > &coeff,
+    unsigned int target,
+    unsigned int nsources,
+    unsigned int baseline)
+{
+    const unsigned int nFreq = coeff.front().shape()(3);
+    const unsigned int nTime = coeff.size();
 
-    void mix(const vector<JonesMatrix> &in, vector<JonesMatrix> &out,
-        const vector<casa::Array<casa::DComplex> > &coeff,
-        const Location &start, const Location &end, unsigned int baseline)
+    ASSERT(nFreq >= 1 && nTime >= 1);
+    const Location start(0, 0);
+    const Location end(nFreq - 1, nTime - 1);
+
+    Matrix out[4];
+    for(unsigned int i = 0; i < nsources; ++i)
     {
-        // dims array: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
-        // better dims: nbl x ncorr x ndir x nmodel x nchan ???
-
-        const unsigned int nModels = in.size();
-        const unsigned int nDirections = coeff[0].shape()[0];
-        ASSERT(nDirections == out.size());
-        ASSERT(int(nModels) == coeff[0].shape()[1]);
-
-        FlagArray flags = mergeFlags(in);
-
-        for(unsigned int i = 0; i < nDirections; ++i)
+        for(unsigned int correlation = 0; correlation < 4; ++correlation)
         {
-            Element element[4];
-            for(unsigned int j = 0; j < nModels; ++j)
+            // Exchanged target and i, because we want the effect of
+            // direction i on the target direction.
+            Matrix weight = makeMixingFactor(coeff, start, end, baseline,
+                correlation, target, i);
+
+            const Matrix sim = in[i].element(correlation).value();
+
+            ASSERTSTR(sim.nx() == weight.nx(), "sim: " << sim.nx() << " weight: " << weight.nx());
+            ASSERTSTR(sim.ny() == weight.ny(), "sim: " << sim.ny() << " weight: " << weight.ny());
+            if(out[correlation].isNull())
             {
-                for(unsigned int k = 0; k < 4; ++k)
-                {
-                    Matrix factor = makeMixingFactor(coeff, start, end,
-                        baseline, k, i, j);
-
-                    mixAndMerge(factor, in[j].element(k), element[k]);
-                }
-            }
-
-            out[i] = JonesMatrix(element[0], element[1], element[2],
-                element[3]);
-            out[i].setFlags(flags);
-        }
-    }
-
-    FlagArray mergeFlags(const vector<JonesMatrix> &in)
-    {
-        vector<JonesMatrix>::const_iterator first = in.begin();
-        vector<JonesMatrix>::const_iterator last = in.end();
-
-        for(; first != last && !first->hasFlags(); ++first)
-        {
-        }
-
-        if(first == last)
-        {
-            return FlagArray();
-        }
-
-        FlagArray flags = first->flags().clone();
-        ++first;
-
-        for(; first != last; ++first)
-        {
-            if(first->hasFlags())
-            {
-                flags |= first->flags();
-            }
-        }
-
-        return flags;
-    }
-
-    void mixAndMerge(const Matrix &factor, const Element &in, Element &out)
-    {
-        // Update value.
-        Matrix value = out.value();
-        if(value.isNull())
-        {
-            out.assign(factor * in.value());
-        }
-        else
-        {
-            value += factor * in.value();
-        }
-
-        // Update partial derivatives.
-        Element::const_iterator inIter = in.begin();
-        Element::const_iterator inEnd = in.end();
-
-        Element::iterator outIter = out.begin();
-        Element::iterator outEnd = out.end();
-
-        while(inIter != inEnd && outIter != outEnd)
-        {
-            if(outIter->first == inIter->first)
-            {
-                outIter->second += factor * inIter->second;
-                ++inIter;
-                ++outIter;
-            }
-            else if(outIter->first < inIter->first)
-            {
-                ++outIter;
+                out[correlation] = weight * sim;
             }
             else
             {
-                out.assign(inIter->first, factor * inIter->second);
-                ++inIter;
+                out[correlation] += weight * sim;
+            }
+        } // correlations
+    } // nsources
+
+    JonesMatrix result(out[0], out[1], out[2], out[3]);
+    result.setFlags(mergeFlags(in));
+    return result;
+}
+
+void mix(const vector<JonesMatrix> &in, vector<JonesMatrix> &out,
+    const vector<casa::Array<casa::DComplex> > &coeff,
+    const Location &start, const Location &end, unsigned int baseline)
+{
+    // dims array: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
+    // better dims: nbl x ncorr x ndir x nmodel x nchan ???
+
+    const unsigned int nModels = in.size();
+    const unsigned int nDirections = coeff[0].shape()[0];
+    ASSERT(nDirections == out.size());
+    ASSERT(int(nModels) == coeff[0].shape()[1]);
+
+    FlagArray flags = mergeFlags(in);
+
+    for(unsigned int i = 0; i < nDirections; ++i)
+    {
+        Element element[4];
+        for(unsigned int j = 0; j < nModels; ++j)
+        {
+            for(unsigned int k = 0; k < 4; ++k)
+            {
+                Matrix factor = makeMixingFactor(coeff, start, end,
+                    baseline, k, i, j);
+
+                mixAndMerge(factor, in[j].element(k), element[k]);
             }
         }
 
-        while(inIter != inEnd)
+        out[i] = JonesMatrix(element[0], element[1], element[2],
+            element[3]);
+        out[i].setFlags(flags);
+    }
+}
+
+FlagArray mergeFlags(const vector<JonesMatrix> &in)
+{
+    vector<JonesMatrix>::const_iterator first = in.begin();
+    vector<JonesMatrix>::const_iterator last = in.end();
+
+    for(; first != last && !first->hasFlags(); ++first)
+    {
+    }
+
+    if(first == last)
+    {
+        return FlagArray();
+    }
+
+    FlagArray flags = first->flags().clone();
+    ++first;
+
+    for(; first != last; ++first)
+    {
+        if(first->hasFlags())
+        {
+            flags |= first->flags();
+        }
+    }
+
+    return flags;
+}
+
+void mixAndMerge(const Matrix &factor, const Element &in, Element &out)
+{
+    // Update value.
+    Matrix value = out.value();
+    if(value.isNull())
+    {
+        out.assign(factor * in.value());
+    }
+    else
+    {
+        value += factor * in.value();
+    }
+
+    // Update partial derivatives.
+    Element::const_iterator inIter = in.begin();
+    Element::const_iterator inEnd = in.end();
+
+    Element::iterator outIter = out.begin();
+    Element::iterator outEnd = out.end();
+
+    while(inIter != inEnd && outIter != outEnd)
+    {
+        if(outIter->first == inIter->first)
+        {
+            outIter->second += factor * inIter->second;
+            ++inIter;
+            ++outIter;
+        }
+        else if(outIter->first < inIter->first)
+        {
+            ++outIter;
+        }
+        else
         {
             out.assign(inIter->first, factor * inIter->second);
             ++inIter;
         }
     }
 
-    Matrix makeMixingFactor(const vector<casa::Array<casa::DComplex> > &coeff,
-        const Location &start, const Location &end, unsigned int baseline,
-        unsigned int correlation, unsigned int row, unsigned int column)
+    while(inIter != inEnd)
     {
-        const unsigned int nFreq = end.first - start.first + 1;
-        const unsigned int nTime = end.second - start.second + 1;
+        out.assign(inIter->first, factor * inIter->second);
+        ++inIter;
+    }
+}
 
-        Matrix factor(makedcomplex(0.0, 0.0), nFreq, nTime, false);
-        double *re = 0, *im = 0;
-        factor.dcomplexStorage(re, im);
+Matrix makeMixingFactor(const vector<casa::Array<casa::DComplex> > &coeff,
+    const Location &start, const Location &end, unsigned int baseline,
+    unsigned int correlation, unsigned int row, unsigned int column)
+{
+    const unsigned int nFreq = end.first - start.first + 1;
+    const unsigned int nTime = end.second - start.second + 1;
 
-        // dims coeff: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
-        //  nmodel = nr of directions with source model (thus excl. target)
-        casa::IPosition index(5, row, column, correlation, 0, baseline);
-        for(unsigned int t = start.second; t <= end.second; ++t)
+    Matrix factor(makedcomplex(0.0, 0.0), nFreq, nTime, false);
+    double *re = 0, *im = 0;
+    factor.dcomplexStorage(re, im);
+
+    // dims coeff: ndir x nmodel x ncorr x nchan x nbl (minor -> major).
+    //  nmodel = nr of directions with source model (thus excl. target)
+    casa::IPosition index(5, row, column, correlation, 0, baseline);
+    for(unsigned int t = start.second; t <= end.second; ++t)
+    {
+        const casa::Array<casa::DComplex> &tmp = coeff[t];
+        ASSERT(tmp.shape()(3) == int(nFreq));
+        for(index(3) = start.first; index(3) <= static_cast<int>(end.first);
+            ++index(3))
         {
-            const casa::Array<casa::DComplex> &tmp = coeff[t];
-            ASSERT(tmp.shape()(3) == int(nFreq));
-            for(index(3) = start.first; index(3) <= static_cast<int>(end.first);
-                ++index(3))
+            const casa::DComplex &weight = tmp(index);
+            *re++ = real(weight);
+            *im++ = imag(weight);
+        }
+    }
+
+    return factor;
+}
+
+template <typename T_SAMPLE_MODIFIER>
+struct SampleProcessorComplex
+{
+    static inline void process(Cell &cell, double weight, double reObs,
+        double imObs, double reSim, double imSim, unsigned int nDerivative,
+        double *reDerivative, double *imDerivative,
+        const unsigned int *index)
+    {
+        // Modify the observed and simulated data depending on the solving
+        // mode (complex, phase only, amplitude only).
+        T_SAMPLE_MODIFIER::process(weight, reObs, imObs, reSim, imSim,
+            reDerivative, imDerivative, nDerivative);
+
+        if(weight == 0.0)
+        {
+            return;
+        }
+
+        // Compute the residual.
+        double reResidual = reObs - reSim;
+        double imResidual = imObs - imSim;
+
+        // Update the normal equations.
+        cell.solver.makeNorm(nDerivative, index, reDerivative, weight,
+            reResidual);
+        cell.solver.makeNorm(nDerivative, index, imDerivative, weight,
+            imResidual);
+    }
+};
+
+void initCells(const Location &start, const Location &end,
+    const ParmGroup &solvables, size_t nCoeff,
+    const EstimateOptions &options,
+    vector<Cell> &cells)
+{
+    vector<Cell>::iterator cell = cells.begin();
+    for(CellIterator it(start, end); !it.atEnd(); ++it, ++cell)
+    {
+        // Processing has not completed yet.
+        cell->done = false;
+
+        // Initalize LSQ solver.
+        cell->solver = casa::LSQFit(static_cast<casa::uInt>(nCoeff));
+        configLSQSolver(cell->solver, options.lsqOptions());
+
+        // Initialize coefficients.
+        cell->coeff.resize(nCoeff);
+        loadCoeff(*it, solvables, cell->coeff.begin());
+    }
+}
+
+bool iterate(const Location &start, const Location &end,
+    const ParmGroup &solvables, const EstimateOptions &options,
+    vector<Cell> &cells)
+{
+    const size_t nCellFreq = end.first - start.first + 1;
+    const size_t nCellTime = end.second - start.second + 1;
+    const int nCell = nCellFreq * nCellTime;
+
+    bool done = true;
+#pragma omp parallel for
+    for(int i = 0; i < nCell; ++i)
+    {
+        Cell &cell = cells[i];
+
+        // If processing on the cell is already done, only update the status
+        // counts and continue to the next cell.
+        if(cell.done)
+        {
+            continue;
+        }
+
+        // Perform a single iteration if the cell has not yet converged or
+        // failed.
+        if(cell.solver.isReady())
+        {
+            // LSQFit::solveLoop() only returns false if the normal
+            // equations are singular. This can also be seen from the result
+            // of LSQFit::isReady(), so we don't update the iteration status
+            // here but do skip the update of the solvables.
+            casa::uInt rank;
+            if(cell.solver.solveLoop(rank, &(cell.coeff[0]),
+                options.lsqOptions().useSVD))
             {
-                const casa::DComplex &weight = tmp(index);
-                *re++ = real(weight);
-                *im++ = imag(weight);
+                // Store the updated coefficient values.
+                storeCoeff(Location(start.first + i % nCellFreq,
+                    start.second + i / nCellFreq), solvables,
+                    cell.coeff.begin());
             }
         }
 
-        return factor;
-    }
-
-    template <typename T_SAMPLE_MODIFIER>
-    struct SampleProcessorComplex
-    {
-        static inline void process(Cell &cell, double weight, double reObs,
-            double imObs, double reSim, double imSim, unsigned int nDerivative,
-            double *reDerivative, double *imDerivative,
-            const unsigned int *index, Statistics &stats)
+        if(cell.solver.isReady())
         {
-            // Modify the observed and simulated data depending on the solving
-            // mode (complex, phase only, amplitude only).
-            stats.start(Statistics::T_MODIFIER);
-            T_SAMPLE_MODIFIER::process(weight, reObs, imObs, reSim, imSim,
-                reDerivative, imDerivative, nDerivative);
-            stats.stop(Statistics::T_MODIFIER);
-
-            if(weight == 0.0)
-            {
-                return;
-            }
-
-            // Compute the residual.
-            double reResidual = reObs - reSim;
-            double imResidual = imObs - imSim;
-
-            // Update the normal equations.
-            stats.start(Statistics::T_MAKE_NORM);
-            cell.solver.makeNorm(nDerivative, index, reDerivative, weight,
-                reResidual);
-            cell.solver.makeNorm(nDerivative, index, imDerivative, weight,
-                imResidual);
-            stats.stop(Statistics::T_MAKE_NORM);
+            cell.done = true;
         }
-    };
-
-    void initCells(const Location &start, const Location &end,
-        const ParmGroup &solvables, size_t nCoeff,
-        const EstimateOptions &options,
-        vector<Cell> &cells)
-    {
-        vector<Cell>::iterator cell = cells.begin();
-        for(CellIterator it(start, end); !it.atEnd(); ++it, ++cell)
+        else
         {
-            // Processing has not completed yet.
-            cell->done = false;
-
-            // Initalize LSQ solver.
-            cell->solver = casa::LSQFit(static_cast<casa::uInt>(nCoeff));
-            configLSQSolver(cell->solver, options.lsqOptions());
-
-            // Initialize coefficients.
-            cell->coeff.resize(nCoeff);
-            loadCoeff(*it, solvables, cell->coeff.begin());
-
-//            // Clear RMS and sample counts.
-//            cell->rms = 0;
-//            cell->count = 0;
-
-//            // Initialize L1 epsilon value.
-//            cell->epsilonIdx = 0;
-//            cell->epsilon = options.algorithm() == EstimateOptions::L1
-//                ? options.epsilon(0) : 0.0;
-
-//            // Initialize RMS threshold and deactivate outlier detection.
-//            cell->flag = false;
-//            cell->thresholdIdx = 0;
-//            cell->threshold = numeric_limits<double>::infinity();
-//            cell->outliers = 0;
+            done = false;
         }
     }
 
-
-    IterationStatus iterate(const Location &start, const Location &end,
-        const ParmGroup &solvables, const EstimateOptions &options,
-        vector<Cell> &cells)
-    {
-        IterationStatus status = {0, 0, 0, 0, 0};
-
-        vector<Cell>::iterator cell = cells.begin();
-        for(CellIterator it(start, end); !it.atEnd(); ++it, ++cell)
-        {
-            // If processing on the cell is already done, only update the status
-            // counts and continue to the next cell.
-            if(cell->done)
-            {
-                updateIterationStatus(*cell, status);
-                continue;
-            }
-
-//            // Compute RMS.
-//            if(cell->count > 0)
-//            {
-//                cell->rms = sqrt(cell->rms / cell->count);
-//            }
-
-//            // Turn outlier detection off by default. May be enabled later on.
-//            cell->flag = false;
-
-            // Perform a single iteration if the cell has not yet converged or
-            // failed.
-            if(!cell->solver.isReady())
-            {
-                // LSQFit::solveLoop() only returns false if the normal
-                // equations are singular. This can also be seen from the result
-                // of LSQFit::isReady(), so we don't update the iteration status
-                // here but do skip the update of the solvables.
-                casa::uInt rank;
-                if(cell->solver.solveLoop(rank, &(cell->coeff[0]),
-                    options.lsqOptions().useSVD))
-                {
-                    // Store the updated coefficient values.
-                    storeCoeff(*it, solvables, cell->coeff.begin());
-                }
-            }
-
-//            // Handle L1 restart with a different epsilon value.
-//            if(cell->solver.isReady()
-//                && options.algorithm() == EstimateOptions::L1
-//                && cell->epsilonIdx < options.nEpsilon())
-//            {
-//                // Move to the next epsilon value.
-//                ++cell->epsilonIdx;
-
-//                if(cell->epsilonIdx < options.nEpsilon())
-//                {
-//                    // Re-initialize LSQ solver.
-//                    size_t nCoeff = cell->coeff.size();
-//                    cell->solver =
-//                        casa::LSQFit(static_cast<casa::uInt>(nCoeff));
-//                    configLSQSolver(cell->solver, options.lsqOptions());
-
-//                    // Update epsilon value.
-//                    cell->epsilon = options.epsilon(cell->epsilonIdx);
-//                }
-//            }
-
-//            // Handle restart with a new RMS threshold value.
-//            if(cell->solver.isReady()
-//                && options.robust()
-//                && cell->thresholdIdx < options.nThreshold())
-//            {
-//                // Re-initialize LSQ solver.
-//                size_t nCoeff = cell->coeff.size();
-//                cell->solver = casa::LSQFit(static_cast<casa::uInt>(nCoeff));
-//                configLSQSolver(cell->solver, options.lsqOptions());
-
-//                // Reset L1 state.
-//                cell->epsilonIdx = 0;
-//                cell->epsilon = options.algorithm() == EstimateOptions::L1
-//                    ? options.epsilon(0) : 0.0;
-
-//                // Compute new RMS threshold and activate outlier detection.
-//                cell->threshold = options.threshold(cell->thresholdIdx)
-//                    * cell->rms;
-//                cell->flag = true;
-
-//                // Move to the next threshold.
-//                 ++cell->thresholdIdx;
-//            }
-
-//            // Log solution statistics.
-//            if(!options.robust()
-//                && (options.algorithm() == EstimateOptions::L2))
-//            {
-//                logCellStats(log, grid.getCell(*it), *cell);
-//            }
-
-            if(cell->solver.isReady())
-            {
-                cell->done = true;
-            }
-//            else
-//            {
-//                // If not yet converged or failed, reset state for the next
-//                // iteration.
-//                cell->rms = 0.0;
-//                cell->count = 0;
-//                cell->outliers = 0;
-//            }
-
-            updateIterationStatus(*cell, status);
-        }
-
-        return status;
-    }
-
-    void updateIterationStatus(const Cell &cell, IterationStatus &status)
-    {
-        // casa::LSQFit::isReady() is incorrectly labelled non-const.
-        casa::LSQFit &solver = const_cast<casa::LSQFit&>(cell.solver);
-
-        // Decode and record the solver status.
-        switch(solver.isReady())
-        {
-            case casa::LSQFit::NONREADY:
-                ++status.nActive;
-                break;
-
-            case casa::LSQFit::SOLINCREMENT:
-            case casa::LSQFit::DERIVLEVEL:
-                ++status.nConverged;
-                break;
-
-            case casa::LSQFit::MAXITER:
-                ++status.nStopped;
-                break;
-
-            case casa::LSQFit::NOREDUCTION:
-                ++status.nNoReduction;
-                break;
-
-            case casa::LSQFit::SINGULAR:
-                ++status.nSingular;
-                break;
-
-            default:
-                // This assert triggers if an casa::LSQFit ready code is
-                // encountered that is not covered above. The most likely cause
-                // is that the casa::LSQFit::ReadyCode enumeration has changed
-                // in which case the code above needs to be changed accordingly.
-                ASSERT(false);
-                break;
-        }
-    }
-
-    Statistics::Statistics()
-    {
-        fill(itsCounters, itsCounters + N_Counter, 0);
-    }
-
-    inline void Statistics::inc(Statistics::Counter counter)
-    {
-        ++itsCounters[counter];
-    }
-
-    inline void Statistics::inc(Statistics::Counter counter, size_t count)
-    {
-        itsCounters[counter] += count;
-    }
-
-    inline void Statistics::reset(Statistics::Counter counter)
-    {
-        itsCounters[counter] = 0;
-    }
-
-    inline void Statistics::reset(Statistics::Timer timer)
-    {
-        itsTimers[timer].reset();
-    }
-
-    inline void Statistics::start(Statistics::Timer timer)
-    {
-        itsTimers[timer].start();
-    }
-
-    inline void Statistics::stop(Statistics::Timer timer)
-    {
-        itsTimers[timer].stop();
-    }
-
-    void Statistics::reset()
-    {
-        fill(itsCounters, itsCounters + N_Counter, 0);
-
-        for(size_t i = 0; i < N_Timer; ++i)
-        {
-            itsTimers[i].reset();
-        }
-    }
-
-    string Statistics::counters() const
-    {
-        ostringstream oss;
-        oss << "counters:";
-        for(size_t i = 0; i < N_Counter; ++i)
-        {
-            oss << " " << theirCounterNames[i] << ": " << itsCounters[i];
-        }
-        return oss.str();
-    }
-
-    string Statistics::timers() const
-    {
-        ostringstream oss;
-        oss << "timers:";
-        for(size_t i = 0; i < N_Timer; ++i)
-        {
-            oss << " " << theirTimerNames[i] << ": " << toString(itsTimers[i]);
-        }
-        oss << " total/count/average";
-        return oss.str();
-    }
-
-    string Statistics::theirCounterNames[Statistics::N_Counter] =
-        {"all",
-         "flagged",
-         "zero weight",
-         "invalid residual",
-         "invalid derivative",
-         "invalid weight",
-         "outlier"};
-
-    string Statistics::theirTimerNames[Statistics::N_Timer] =
-        {"evaluate",
-        "mix",
-        "coeff map",
-        "process cell",
-        "modify sample",
-        "condition eq"};
+    return done;
+}
 
 } // unnamed namespace
-
-////        // intervals in VisBuffer coordinates? (NB. need map of cells -> samples)
-////        // need cell offset, because start cell may not be (0,0).
-////        // need map sample -> cells, index OK (sample coordinates)
-////        // IDEA: sample -> cell map as 1's and 0's, so position (offset) independent.
-
-////        for(t)
-////        {
-////            for(f)
-////            {
-////                for(d)
-////                {
-////                    derivatives[d] = *derive_p[d]++;
-////                }
-
-////                if(!flags[t][f])
-////                {
-////                    LSQFit &tmp = solvers[sampleMap[TIME][t] - offset[TIME]][sampleMap[FREQ][t] - offset[FREQ]];
-////                    process_sample(tmp, 1.0 / cov[t][f], obs[t][f], *value_p, derivatives);
-////                }
-
-////                value_p++;
-////            }
-////        }
-
-////        // merge all LSQFit objects...
 
 } //# namespace BBS
 } //# namespace LOFAR
