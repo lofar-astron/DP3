@@ -605,10 +605,6 @@ namespace LOFAR {
                      timeAxis);
 
         // Estimate model parameters.
-        LOG_DEBUG_STR("estimating....");
-        LOG_DEBUG_STR("SHAPES ESTIMATE: " << itsFactors[0].shape() << " "
-                      << itsFreqAxisDemix->size() << " "
-                      << buffers[0][0].getData().shape());
         itsBBSExpr.estimate(buffers, visGrid, solGrid, itsFactors);
         itsTimerSolve.stop();
 
@@ -620,10 +616,6 @@ namespace LOFAR {
                                                     itsNTimeOutSubtr));
         visGrid = Grid(itsFreqAxisSubtr, timeAxisSubtr);
         // Subtract the sources.
-        LOG_DEBUG_STR("subtracting....");
-        LOG_DEBUG_STR("SHAPES SUBTRACT: " << itsFactorsSubtr[0].shape() << " "
-                      << itsFreqAxisSubtr->size() << " "
-                      << itsAvgResultSubtr->get()[0].getData().shape());
         itsBBSExpr.subtract (itsAvgResultSubtr->get(), visGrid, itsFactorsSubtr,
                              targetIndex, itsSubtrSources.size());
         itsTimerSubtract.stop();

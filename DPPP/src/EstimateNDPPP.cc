@@ -35,9 +35,6 @@ namespace
     // State kept for a single cell in the solution grid.
     struct Cell
     {
-        // Flag that indicates if processing has completed.
-        bool            done;
-
         // LSQ solver and current estimates for the coefficients.
         casa::LSQFit    solver;
         vector<double>  coeff;
@@ -172,7 +169,7 @@ void estimate(const vector<vector<DPPP::DPBuffer> > &buffers,
     // Make coefficient map.
     map<PValueKey, unsigned int> coeffMap;
     makeCoeffMap(solvables, inserter(coeffMap, coeffMap.begin()));
-    LOG_INFO_STR("No. of coefficients to estimate: " << coeffMap.size());
+    LOG_DEBUG_STR("No. of coefficients to estimate: " << coeffMap.size());
 
     // Assign solution grid to solvables.
     ParmManager::instance().setGrid(solGrid, solvables);
@@ -800,9 +797,6 @@ void initCells(const Location &start, const Location &end,
     vector<Cell>::iterator cell = cells.begin();
     for(CellIterator it(start, end); !it.atEnd(); ++it, ++cell)
     {
-        // Processing has not completed yet.
-        cell->done = false;
-
         // Initalize LSQ solver.
         cell->solver = casa::LSQFit(static_cast<casa::uInt>(nCoeff));
         configLSQSolver(cell->solver, options.lsqOptions());
@@ -819,45 +813,38 @@ bool iterate(const Location &start, const Location &end,
 {
     const size_t nCellFreq = end.first - start.first + 1;
     const size_t nCellTime = end.second - start.second + 1;
-    const int nCell = nCellFreq * nCellTime;
+    const size_t nCell = nCellFreq * nCellTime;
 
     bool done = true;
 #pragma omp parallel for
-    for(int i = 0; i < nCell; ++i)
+    for(size_t i = 0; i < nCell; ++i)
     {
         Cell &cell = cells[i];
 
         // If processing on the cell is already done, only update the status
         // counts and continue to the next cell.
-        if(cell.done)
+        if(cell.solver.isReady())
         {
             continue;
         }
 
         // Perform a single iteration if the cell has not yet converged or
         // failed.
-        if(cell.solver.isReady())
+        //
+        // LSQFit::solveLoop() only returns false if the normal
+        // equations are singular. This can also be seen from the result
+        // of LSQFit::isReady(), so we don't update the iteration status
+        // here but do skip the update of the solvables.
+        casa::uInt rank;
+        if(cell.solver.solveLoop(rank, &(cell.coeff[0]),
+            options.lsqOptions().useSVD))
         {
-            // LSQFit::solveLoop() only returns false if the normal
-            // equations are singular. This can also be seen from the result
-            // of LSQFit::isReady(), so we don't update the iteration status
-            // here but do skip the update of the solvables.
-            casa::uInt rank;
-            if(cell.solver.solveLoop(rank, &(cell.coeff[0]),
-                options.lsqOptions().useSVD))
-            {
-                // Store the updated coefficient values.
-                storeCoeff(Location(start.first + i % nCellFreq,
-                    start.second + i / nCellFreq), solvables,
-                    cell.coeff.begin());
-            }
+            // Store the updated coefficient values.
+            storeCoeff(Location(start.first + i % nCellFreq, start.second + i
+                / nCellFreq), solvables, cell.coeff.begin());
         }
 
-        if(cell.solver.isReady())
-        {
-            cell.done = true;
-        }
-        else
+        if(!cell.solver.isReady())
         {
             done = false;
         }
