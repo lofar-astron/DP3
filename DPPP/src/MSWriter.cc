@@ -38,6 +38,7 @@
 #include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <measures/Measures/MCDirection.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/Arrays/ArrayLogical.h>
 #include <casa/Containers/Record.h>
 #include <casa/OS/Path.h>
 #include <iostream>
@@ -529,8 +530,12 @@ namespace LOFAR {
     {
       ArrayColumn<Complex> dataCol(out, itsDataColName);
       ArrayColumn<bool>    flagCol(out, "FLAG");
+      ScalarColumn<bool>   flagRowCol(out, "FLAG_ROW");
       dataCol.putColumn (buf.getData());
       flagCol.putColumn (buf.getFlags());
+      // A row is flagged if no flags in the row are False.
+      Vector<Bool> rowFlags (partialNFalse(buf.getFlags(), IPosition(2,0,1)) == 0u);
+      flagRowCol.putColumn (rowFlags);
       if (itsWriteFullResFlags) {
         writeFullResFlags (out, buf);
       }
@@ -588,7 +593,6 @@ namespace LOFAR {
       copySca<int> (in, out, "ARRAY_ID");
       copySca<int> (in, out, "OBSERVATION_ID");
       copySca<int> (in, out, "STATE_ID");
-      copySca<bool>(in, out, "FLAG_ROW");
       copyArr<float> (in, out, "SIGMA");
       copyArr<float> (in, out, "WEIGHT");
       if (copyTimeInfo) {
