@@ -487,13 +487,14 @@ namespace LOFAR {
 			       int bl, uint polarization)
     {
       uint nchan = reals->Height();
-      uint ntime = reals->Width();
+      uint imagestride = reals->Stride();
+      uint maskstride = mask->Stride();
       for (uint i=0; i<itsWindowSize; ++i) {
         rfiStats.Add (itsInput->getAnt1()[bl], itsInput->getAnt2()[bl],
                       itsBuf[i].getTime(), 0, polarization,
                       reals->ValuePtr (i,0), imags->ValuePtr (i,0),
                       mask->ValuePtr (i,0), origFlags->ValuePtr (i,0),
-                      nchan, ntime, ntime, ntime);
+                      nchan, imagestride, maskstride, maskstride);
       }
     }
 
