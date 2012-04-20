@@ -124,6 +124,7 @@ namespace LOFAR {
       string                   itsInstrumentName;
       double                   itsElevCutoff;   //# min source elevation (rad)
       vector<PhaseShift*>      itsPhaseShifts;
+      // Note: itsAvgSubtr is last entry in itsFirstSteps (to use OpenMP).
       vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average steps
       vector<MultiResultStep*> itsAvgResults;   //# result of phaseshift/average
       DPStep::ShPtr            itsAvgSubtr;     //# average step for subtract
