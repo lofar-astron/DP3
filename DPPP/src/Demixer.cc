@@ -134,7 +134,7 @@ namespace LOFAR {
       itsFactors.resize      (itsNTimeChunk);
       itsFactorsSubtr.resize (itsNTimeChunkSubtr);
       itsPhaseShifts.reserve (itsNrDir-1);
-      itsFirstSteps.reserve  (itsNrDir);
+      itsFirstSteps.reserve  (itsNrDir+1);   // one extra for itsAvgSubtr
       itsAvgResults.reserve  (itsNrDir);
 
       // Get the patch names and positions from the SourceDB table.
@@ -165,7 +165,8 @@ namespace LOFAR {
                                             sourceVec);
         itsFirstSteps.push_back (DPStep::ShPtr(step1));
         itsPhaseShifts.push_back (step1);
-        DPStep::ShPtr step2 (new Averager(input, parset, prefix));
+        DPStep::ShPtr step2 (new Averager(input, prefix,
+					  itsNChanAvg, itsNTimeAvg));
         step1->setNextStep (step2);
         MultiResultStep* step3 = new MultiResultStep(itsNTimeChunk);
         step2->setNextStep (DPStep::ShPtr(step3));
@@ -181,12 +182,13 @@ namespace LOFAR {
       targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
       itsAvgResults.push_back (targetAvgRes);
 
-      // Do the same for the subtract.
+      // Create the data verage step for the subtract.
       itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
                                                 itsNChanAvgSubtr,
                                                 itsNTimeAvgSubtr));
-      itsAvgResultSubtr = new MultiResultStep(itsNTimeChunk);
+      itsAvgResultSubtr = new MultiResultStep(itsNTimeChunkSubtr);
       itsAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
+      itsFirstSteps.push_back (itsAvgSubtr);
     }
 
     Demixer::~Demixer()
@@ -211,8 +213,6 @@ namespace LOFAR {
       itsNTimeAvg = std::min (itsNTimeAvg, infocp.ntime());
       itsNChanAvg = infocp.update (itsNChanAvg, itsNTimeAvg);
       // Let the internal steps update their data.
-      infocp = info;
-      itsAvgSubtr->updateInfo (infocp);
       for (uint i=0; i<itsFirstSteps.size(); ++i) {
         infocp = info;
         DPStep::ShPtr step = itsFirstSteps[i];
@@ -220,14 +220,16 @@ namespace LOFAR {
           step->updateInfo (infocp);
           step = step->getNextStep();
         }
+	if (i == 0) {
+	  // Keep the averaged time interval.
+	  itsNChanOut = infocp.nchan();
+	  itsTimeIntervalAvg = infocp.timeInterval();
+	}
         // Create the BBS model expression for sources with a model.
         if (i < itsNrModel) {
           itsBBSExpr.addModel (itsAllSources[i], infocp.phaseCenter());
         }
       }
-      // Keep the averaged time interval.
-      itsNChanOut = infocp.nchan();
-      itsTimeIntervalAvg = infocp.timeInterval();
       // Update the info of this object.
       info.setNeedVisData();
       info.setNeedWrite();
@@ -311,11 +313,10 @@ namespace LOFAR {
 
       // Do the initial steps (phaseshift and average).
       itsTimerPhaseShift.start();
-///#pragma omp parallel for
+#pragma omp parallel for
       for (int i=0; i<int(itsFirstSteps.size()); ++i) {
         itsFirstSteps[i]->process(newBuf);
       }
-      itsAvgSubtr->process(newBuf);
       itsTimerPhaseShift.stop();
 
       // For each itsNTimeAvg times, calculate the
@@ -363,11 +364,10 @@ namespace LOFAR {
 
         // Finish the initial steps (phaseshift and average).
         itsTimerPhaseShift.start();
-        ///#pragma omp parallel for
+#pragma omp parallel for
         for (int i=0; i<int(itsFirstSteps.size()); ++i) {
           itsFirstSteps[i]->finish();
         }
-        itsAvgSubtr->finish();
         itsTimerPhaseShift.stop();
         // Only average if there is some data.
         itsTimerDemix.start();
@@ -402,54 +402,57 @@ namespace LOFAR {
     {
       // Nothing to do if only target direction.
       if (itsNrDir <= 1) return;
-///#pragma omp parallel
-      {
-///#pragma omp for
-        uint ncorr  = newBuf.getData().shape()[0];
-        uint nchan  = newBuf.getData().shape()[1];
-        uint nbl    = newBuf.getData().shape()[2];
-        DComplex* factorPtr = factorBuf.data();
-        //# If ever in the future a time dependent phase center is used,
-        //# the machine must be reset for each new time, thus each new call
-        //# to process.
-        for (uint i1=0; i1<itsNrDir-1; ++i1) {
-          for (uint i0=i1+1; i0<itsNrDir; ++i0) {
-            const double* uvw       = newBuf.getUVW().data();
-            const bool*   flagPtr   = newBuf.getFlags().data();
-            const float*  weightPtr = newBuf.getWeights().data();
-            const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data();
-            if (i0 == itsNrDir-1) {
-              for (uint i=0; i<nbl; ++i) {
-                for (uint j=0; j<nchan; ++j) {
-                  DComplex factor = conj(*phasor1++);
-                  for (uint k=0; k<ncorr; ++k) {
-                    if (! *flagPtr) {
-                      *factorPtr += factor * double(*weightPtr);
-                    }
-                    flagPtr++;
-                    weightPtr++;
-                    factorPtr++;
-                  }
-                }
-                uvw += 3;
-              }
-            } else {
-              const DComplex* phasor0 = itsPhaseShifts[i0]->getPhasors().data();
-              for (uint i=0; i<nbl; ++i) {
-                for (uint j=0; j<nchan; ++j) {
-                  // Probably multiply with conj
-                  DComplex factor = *phasor0++ / *phasor1++;
-                  for (uint k=0; k<ncorr; ++k) {
-                    if (! *flagPtr) {
-                      *factorPtr += factor * double(*weightPtr);
-                    }
-                    flagPtr++;
-                    weightPtr++;
-                    factorPtr++;
-                  }
-                }
-                uvw += 3;
-              }
+      int ncorr  = newBuf.getData().shape()[0];
+      int nchan  = newBuf.getData().shape()[1];
+      int nbl    = newBuf.getData().shape()[2];
+      //# If ever in the future a time dependent phase center is used,
+      //# the machine must be reset for each new time, thus each new call
+      //# to process.
+      for (uint i1=0; i1<itsNrDir-1; ++i1) {
+	for (uint i0=i1+1; i0<itsNrDir; ++i0) {
+	  if (i0 == itsNrDir-1) {
+#pragma omp parallel for
+	    for (int i=0; i<nbl; ++i) {
+	      const double* uvw       = newBuf.getUVW().data() + i*3;
+	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
+	      const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
+	      const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
+	      DComplex* factorPtr     = factorBuf.data() + i*ncorr*nchan;
+	      for (int j=0; j<nchan; ++j) {
+		DComplex factor = conj(*phasor1++);
+		for (int k=0; k<ncorr; ++k) {
+		  if (! *flagPtr) {
+		    *factorPtr += factor * double(*weightPtr);
+		  }
+		  flagPtr++;
+		  weightPtr++;
+		  factorPtr++;
+		}
+	      }
+	      uvw += 3;
+	    }
+	  } else {
+#pragma omp parallel for
+	    for (int i=0; i<nbl; ++i) {
+	      const double* uvw       = newBuf.getUVW().data() + i*3;
+	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
+	      const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
+	      const DComplex* phasor0 = itsPhaseShifts[i0]->getPhasors().data() + i*nchan;
+	      const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
+	      DComplex* factorPtr     = factorBuf.data() + i*ncorr*nchan;
+	      for (int j=0; j<nchan; ++j) {
+		// Probably multiply with conj
+		DComplex factor = *phasor0++ / *phasor1++;
+		for (int k=0; k<ncorr; ++k) {
+		  if (! *flagPtr) {
+		    *factorPtr += factor * double(*weightPtr);
+		  }
+		  flagPtr++;
+		  weightPtr++;
+		  factorPtr++;
+		}
+	      }
+	      uvw += 3;
             }
           }
         }
@@ -531,47 +534,49 @@ namespace LOFAR {
       Array<DComplex> newFactors (shape);
       IPosition inShape (2, itsNrDir, itsNrDir);
       IPosition outShape(2, itsNrDir, itsNrModel);
-      // omp parallel
-      casa::Matrix<DComplex> a(itsNrDir, nrDeproject);
-      casa::Matrix<DComplex> ma(itsNrDir, itsNrModel);
-      vector<DComplex> vec(itsNrDir);
-      // omp for
-      for (int i=0; i<nvis; ++i) {
-        // Split the matrix into the modeled and deprojected sources.
-        // Copy the columns to the individual matrices.
-        const DComplex* inptr  = factors.data() + i*itsNrDir*itsNrDir;
-        DComplex* outptr = newFactors.data() + i*itsNrDir*itsNrModel;
-        casa::Matrix<DComplex> out (outShape, outptr, SHARE);
-        // Copying a bit of data is probably faster than taking a matrix subset.
-        objcopy (ma.data(), inptr, itsNrDir*itsNrModel);
-        objcopy (a.data(), inptr + itsNrDir*itsNrModel, itsNrDir*nrDeproject);
-        // Calculate conjugated transpose of A, multiply with A, and invert.
-        casa::Matrix<DComplex> at(adjoint(a));
-        casa::Matrix<DComplex> ata(invert(product(at, a)));
-        if (ata.empty()) {
-          ata.resize (nrDeproject, nrDeproject);
-        }
-        DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
-        // Calculate P = I - A * ata * A.T.conj
-        casa::Matrix<DComplex> aata(product(a,ata));
-        casa::Matrix<DComplex> p (-product(product(a, ata), at));
-        casa::Vector<DComplex> diag(p.diagonal());
-        diag += DComplex(1,0);
-        // Multiply the demixing factors with P (get stored in newFactors).
-        out = product(p, ma);
-        ///        cout << "p matrix: " << p;
-        // Multiply the averaged data point with P.
-        std::fill (vec.begin(), vec.end(), DComplex());
-        for (uint j=0; j<itsNrDir; ++j) {
-          for (uint k=0; k<itsNrDir; ++k) {
-            vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
-          }
-        }
-        // Put result back in averaged data for those sources.
-        for (uint j=0; j<itsNrDir; ++j) {
-          resultPtr[j][i] = vec[j];
-        }
-        ///        cout << vec << endl;
+#pragma omp parallel
+      {
+	casa::Matrix<DComplex> a(itsNrDir, nrDeproject);
+	casa::Matrix<DComplex> ma(itsNrDir, itsNrModel);
+	vector<DComplex> vec(itsNrDir);
+#pragma omp for
+	for (int i=0; i<nvis; ++i) {
+	  // Split the matrix into the modeled and deprojected sources.
+	  // Copy the columns to the individual matrices.
+	  const DComplex* inptr  = factors.data() + i*itsNrDir*itsNrDir;
+	  DComplex* outptr = newFactors.data() + i*itsNrDir*itsNrModel;
+	  casa::Matrix<DComplex> out (outShape, outptr, SHARE);
+	  // Copying a bit of data is probably faster than taking a matrix subset.
+	  objcopy (ma.data(), inptr, itsNrDir*itsNrModel);
+	  objcopy (a.data(), inptr + itsNrDir*itsNrModel, itsNrDir*nrDeproject);
+	  // Calculate conjugated transpose of A, multiply with A, and invert.
+	  casa::Matrix<DComplex> at(adjoint(a));
+	  casa::Matrix<DComplex> ata(invert(product(at, a)));
+	  if (ata.empty()) {
+	    ata.resize (nrDeproject, nrDeproject);
+	  }
+	  DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
+	  // Calculate P = I - A * ata * A.T.conj
+	  casa::Matrix<DComplex> aata(product(a,ata));
+	  casa::Matrix<DComplex> p (-product(product(a, ata), at));
+	  casa::Vector<DComplex> diag(p.diagonal());
+	  diag += DComplex(1,0);
+	  // Multiply the demixing factors with P (get stored in newFactors).
+	  out = product(p, ma);
+	  ///        cout << "p matrix: " << p;
+	  // Multiply the averaged data point with P.
+	  std::fill (vec.begin(), vec.end(), DComplex());
+	  for (uint j=0; j<itsNrDir; ++j) {
+	    for (uint k=0; k<itsNrDir; ++k) {
+	      vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
+	    }
+	  }
+	  // Put result back in averaged data for those sources.
+	  for (uint j=0; j<itsNrDir; ++j) {
+	    resultPtr[j][i] = vec[j];
+	  }
+	  ///        cout << vec << endl;
+	}
       }
       // Set the new demixing factors.
       factors.reference (newFactors);
@@ -587,11 +592,8 @@ namespace LOFAR {
         vector<vector<DPBuffer> > buffers;
         for (size_t i=0; i<itsAvgResults.size(); ++i) {
           buffers.push_back (itsAvgResults[i]->get());
-          // Do not clear target buffer, because it is shared with
-          // itsAvgResultSubtr if averaging of demix and subtract is the same.
-          if (i != targetIndex) {
-            itsAvgResults[i]->clear();
-          }
+          // Clear the buffers.
+	  itsAvgResults[i]->clear();
         }
 
         itsTimerSolve.start();
@@ -625,11 +627,11 @@ namespace LOFAR {
       itsTimer.stop();
       for (uint i=0; i<itsNTimeOutSubtr; ++i) {
         getNextStep()->process (itsAvgResultSubtr->get()[i]);
+	// Clear the buffer after it has been processed.
         itsAvgResultSubtr->get()[i].clear();
-        itsAvgResults[targetIndex]->get()[i].clear();
       }
-      itsAvgResultSubtr->get().clear();
-      itsAvgResults[targetIndex]->get().clear();
+      // Clear the vector in the MultiStep.
+      itsAvgResultSubtr->clear();
       itsTimer.start();
     }
 

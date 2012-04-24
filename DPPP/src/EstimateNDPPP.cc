@@ -746,7 +746,8 @@ Matrix makeMixingFactor(const vector<casa::Array<casa::DComplex> > &coeff,
     for(unsigned int t = start.second; t <= end.second; ++t)
     {
         const casa::Array<casa::DComplex> &tmp = coeff[t];
-        ASSERT(tmp.shape()(3) == int(nFreq));
+        ASSERTSTR(tmp.shape()(3) == int(nFreq), "nFreq: "
+		  << nFreq << ' ' << tmp.shape());
         for(index(3) = start.first; index(3) <= static_cast<int>(end.first);
             ++index(3))
         {
