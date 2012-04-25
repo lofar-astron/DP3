@@ -182,7 +182,7 @@ namespace LOFAR {
       targetAvg->setNextStep (DPStep::ShPtr(targetAvgRes));
       itsAvgResults.push_back (targetAvgRes);
 
-      // Create the data verage step for the subtract.
+      // Create the data average step for the subtract.
       itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
                                                 itsNChanAvgSubtr,
                                                 itsNTimeAvgSubtr));
@@ -237,6 +237,14 @@ namespace LOFAR {
       itsNChanAvgSubtr = info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
       itsNChanOutSubtr = info.nchan();
       itsTimeIntervalSubtr = info.timeInterval();
+      ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0,
+		 "Demix averaging " << itsNChanAvg
+		 << " must be multiple of output averaging "
+		 << itsNChanAvgSubtr);
+      ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0,
+		 "Demix averaging " << itsNTimeAvg
+		 << " must be multiple of output averaging "
+		 << itsNTimeAvgSubtr);
       // Construct frequency axis for the demix and subtract averaging.
       itsFreqAxisDemix = makeFreqAxis (itsNChanAvg);
       itsFreqAxisSubtr = makeFreqAxis (itsNChanAvgSubtr);
@@ -313,7 +321,7 @@ namespace LOFAR {
 
       // Do the initial steps (phaseshift and average).
       itsTimerPhaseShift.start();
-#pragma omp parallel for
+///#pragma omp parallel for
       for (int i=0; i<int(itsFirstSteps.size()); ++i) {
         itsFirstSteps[i]->process(newBuf);
       }
@@ -364,7 +372,7 @@ namespace LOFAR {
 
         // Finish the initial steps (phaseshift and average).
         itsTimerPhaseShift.start();
-#pragma omp parallel for
+///#pragma omp parallel for
         for (int i=0; i<int(itsFirstSteps.size()); ++i) {
           itsFirstSteps[i]->finish();
         }
@@ -411,7 +419,7 @@ namespace LOFAR {
       for (uint i1=0; i1<itsNrDir-1; ++i1) {
 	for (uint i0=i1+1; i0<itsNrDir; ++i0) {
 	  if (i0 == itsNrDir-1) {
-#pragma omp parallel for
+///#pragma omp parallel for
 	    for (int i=0; i<nbl; ++i) {
 	      const double* uvw       = newBuf.getUVW().data() + i*3;
 	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
@@ -432,7 +440,7 @@ namespace LOFAR {
 	      uvw += 3;
 	    }
 	  } else {
-#pragma omp parallel for
+///#pragma omp parallel for
 	    for (int i=0; i<nbl; ++i) {
 	      const double* uvw       = newBuf.getUVW().data() + i*3;
 	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
@@ -534,12 +542,12 @@ namespace LOFAR {
       Array<DComplex> newFactors (shape);
       IPosition inShape (2, itsNrDir, itsNrDir);
       IPosition outShape(2, itsNrDir, itsNrModel);
-#pragma omp parallel
+///#pragma omp parallel
       {
 	casa::Matrix<DComplex> a(itsNrDir, nrDeproject);
 	casa::Matrix<DComplex> ma(itsNrDir, itsNrModel);
 	vector<DComplex> vec(itsNrDir);
-#pragma omp for
+///#pragma omp for
 	for (int i=0; i<nvis; ++i) {
 	  // Split the matrix into the modeled and deprojected sources.
 	  // Copy the columns to the individual matrices.
