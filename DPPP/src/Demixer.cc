@@ -356,7 +356,7 @@ namespace LOFAR {
 
       // Do BBS solve, etc. when sufficient time slots have been collected.
       if (itsNTimeOut == itsNTimeChunk) {
-        ASSERT(itsNTimeOutSubtr % itsNTimeOut == 0);
+//        ASSERT(itsNTimeOutSubtr % itsNTimeOut == 0);
         demix();
         itsNTimeIn       = 0;
         itsNTimeOut      = 0;
@@ -403,7 +403,7 @@ namespace LOFAR {
         itsFactors.resize(itsNTimeOut);
         itsFactorsSubtr.resize(itsNTimeOutSubtr);
         // Demix the source directions.
-        ASSERT(itsNTimeOutSubtr % itsNTimeOut == 0);
+//        ASSERTSTR(itsNTimeOutSubtr % itsNTimeOut == 0, "subtr: " << itsNTimeOutSubtr << " demix: " << itsNTimeOut);
         demix();
         itsTimer.stop();
       }
