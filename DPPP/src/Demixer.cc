@@ -183,12 +183,12 @@ namespace LOFAR {
       itsAvgResults.push_back (targetAvgRes);
 
       // Create the data average step for the subtract.
-      itsAvgSubtr = DPStep::ShPtr (new Averager(input, prefix,
+      DPStep::ShPtr targetAvgSubtr(new Averager(input, prefix,
                                                 itsNChanAvgSubtr,
                                                 itsNTimeAvgSubtr));
       itsAvgResultSubtr = new MultiResultStep(itsNTimeChunkSubtr);
-      itsAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
-      itsFirstSteps.push_back (itsAvgSubtr);
+      targetAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
+      itsFirstSteps.push_back (targetAvgSubtr);
     }
 
     Demixer::~Demixer()
@@ -201,10 +201,10 @@ namespace LOFAR {
       itsNChanIn  = info.nchan();
       itsNrBl     = info.nbaselines();
       itsNrCorr   = info.ncorr();
-      itsFactorBuf.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
+      itsFactorBuf.resize (IPosition(4, itsNrCorr, itsNChanIn, itsNrBl,
                                      itsNrDir*(itsNrDir-1)/2));
-      itsFactorBufSubtr.resize (IPosition(4, itsNrBl, itsNChanIn, itsNrCorr,
-                                          itsNrDir*(itsNrDir-1)/2));
+      itsFactorBufSubtr.resize (IPosition(4, itsNrCorr, itsNChanIn, itsNrBl,
+                                     itsNrDir*(itsNrDir-1)/2));
       itsTimeInterval = info.timeInterval();
 
       // Adapt averaging to available nr of channels and times.
@@ -220,11 +220,11 @@ namespace LOFAR {
           step->updateInfo (infocp);
           step = step->getNextStep();
         }
-	if (i == 0) {
-	  // Keep the averaged time interval.
-	  itsNChanOut = infocp.nchan();
-	  itsTimeIntervalAvg = infocp.timeInterval();
-	}
+        if (i == 0) {
+          // Keep the averaged time interval.
+          itsNChanOut = infocp.nchan();
+          itsTimeIntervalAvg = infocp.timeInterval();
+        }
         // Create the BBS model expression for sources with a model.
         if (i < itsNrModel) {
           itsBBSExpr.addModel (itsAllSources[i], infocp.phaseCenter());
@@ -334,7 +334,8 @@ namespace LOFAR {
       if (itsNTimeIn % itsNTimeAvg == 0) {
         makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
                      itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
-                     itsNChanOut);
+                     itsNChanOut,
+                     itsNChanAvg);
         // Deproject sources without a model.
         deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
         itsFactorBuf = Complex();   // clear summation buffer
@@ -346,7 +347,8 @@ namespace LOFAR {
       if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
         makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
                      itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
-                     itsNChanOutSubtr);
+                     itsNChanOutSubtr,
+                     itsNChanAvgSubtr);
         itsFactorBufSubtr = Complex();   // clear summation buffer
         itsNTimeOutSubtr++;
       }
@@ -354,6 +356,7 @@ namespace LOFAR {
 
       // Do BBS solve, etc. when sufficient time slots have been collected.
       if (itsNTimeOut == itsNTimeChunk) {
+        ASSERT(itsNTimeOutSubtr % itsNTimeOut == 0);
         demix();
         itsNTimeIn       = 0;
         itsNTimeOut      = 0;
@@ -382,7 +385,8 @@ namespace LOFAR {
         if (itsNTimeIn % itsNTimeAvg != 0) {
           makeFactors (itsFactorBuf, itsFactors[itsNTimeOut],
                        itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
-                       itsNChanOut);
+                       itsNChanOut,
+                       itsNChanAvg);
           // Deproject sources without a model.
           deproject (itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
           itsNTimeOut++;
@@ -390,7 +394,8 @@ namespace LOFAR {
         if (itsNTimeIn % itsNTimeAvgSubtr != 0) {
           makeFactors (itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
                        itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
-                       itsNChanOutSubtr);
+                       itsNChanOutSubtr,
+                       itsNChanAvgSubtr);
           itsNTimeOutSubtr++;
         }
         itsTimerDemix.stop();
@@ -398,6 +403,7 @@ namespace LOFAR {
         itsFactors.resize(itsNTimeOut);
         itsFactorsSubtr.resize(itsNTimeOutSubtr);
         // Demix the source directions.
+        ASSERT(itsNTimeOutSubtr % itsNTimeOut == 0);
         demix();
         itsTimer.stop();
       }
@@ -416,51 +422,57 @@ namespace LOFAR {
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
+      DComplex* test = factorBuf.data();
+
       for (uint i1=0; i1<itsNrDir-1; ++i1) {
-	for (uint i0=i1+1; i0<itsNrDir; ++i0) {
-	  if (i0 == itsNrDir-1) {
+        for (uint i0=i1+1; i0<itsNrDir; ++i0) {
+          if (i0 == itsNrDir-1) {
 ///#pragma omp parallel for
-	    for (int i=0; i<nbl; ++i) {
-	      const double* uvw       = newBuf.getUVW().data() + i*3;
-	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
-	      const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
-	      const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
-	      DComplex* factorPtr     = factorBuf.data() + i*ncorr*nchan;
-	      for (int j=0; j<nchan; ++j) {
-		DComplex factor = conj(*phasor1++);
-		for (int k=0; k<ncorr; ++k) {
-		  if (! *flagPtr) {
-		    *factorPtr += factor * double(*weightPtr);
-		  }
-		  flagPtr++;
-		  weightPtr++;
-		  factorPtr++;
-		}
-	      }
-	      uvw += 3;
-	    }
-	  } else {
+            for (int i=0; i<nbl; ++i) {
+//              const double* uvw       = newBuf.getUVW().data() + i*3;
+              const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
+              const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
+              const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
+              DComplex* factorPtr     = factorBuf.data() + i*ncorr*nchan + ((i1 * (2 * itsNrDir - i1 - 1)) / 2 + (i0 - i1 - 1)) * ncorr * nchan * nbl;
+              for (int j=0; j<nchan; ++j) {
+                DComplex factor = conj(*phasor1++);
+                for (int k=0; k<ncorr; ++k) {
+                  ASSERTSTR(test == factorPtr, "test: " << reinterpret_cast<size_t>(test) << " factorPtr: " << reinterpret_cast<size_t>(factorPtr));
+                  if (! *flagPtr) {
+                    *factorPtr += factor * double(*weightPtr);
+                  }
+                  flagPtr++;
+                  weightPtr++;
+                  factorPtr++;
+                  test++;
+                }
+              }
+//              uvw += 3;
+            }
+    	  } else {
 ///#pragma omp parallel for
-	    for (int i=0; i<nbl; ++i) {
-	      const double* uvw       = newBuf.getUVW().data() + i*3;
-	      const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
-	      const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
-	      const DComplex* phasor0 = itsPhaseShifts[i0]->getPhasors().data() + i*nchan;
-	      const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
-	      DComplex* factorPtr     = factorBuf.data() + i*ncorr*nchan;
-	      for (int j=0; j<nchan; ++j) {
-		// Probably multiply with conj
-		DComplex factor = *phasor0++ / *phasor1++;
-		for (int k=0; k<ncorr; ++k) {
-		  if (! *flagPtr) {
-		    *factorPtr += factor * double(*weightPtr);
-		  }
-		  flagPtr++;
-		  weightPtr++;
-		  factorPtr++;
-		}
-	      }
-	      uvw += 3;
+            for (int i=0; i<nbl; ++i) {
+//              const double* uvw       = newBuf.getUVW().data() + i*3;
+              const bool*   flagPtr   = newBuf.getFlags().data() + i*ncorr*nchan;
+              const float*  weightPtr = newBuf.getWeights().data() + i*ncorr*nchan;
+              const DComplex* phasor0 = itsPhaseShifts[i0]->getPhasors().data() + i*nchan;
+              const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data() + i*nchan;
+              DComplex* factorPtr     = factorBuf.data() + ((i1 * (2 * itsNrDir - i1 - 1)) / 2 + (i0 - i1 - 1)) * ncorr * nchan * nbl + i*ncorr*nchan;
+              for (int j=0; j<nchan; ++j) {
+                // Probably multiply with conj
+                DComplex factor = *phasor0++ / *phasor1++;
+                for (int k=0; k<ncorr; ++k) {
+                  ASSERTSTR(test == factorPtr, "test: " << reinterpret_cast<size_t>(test) << " factorPtr: " << reinterpret_cast<size_t>(factorPtr));
+                  if (! *flagPtr) {
+                    *factorPtr += factor * double(*weightPtr);
+                  }
+                  flagPtr++;
+                  weightPtr++;
+                  factorPtr++;
+                  test++;
+                }
+              }
+//              uvw += 3;
             }
           }
         }
@@ -470,13 +482,14 @@ namespace LOFAR {
     void Demixer::makeFactors (const Array<DComplex>& bufIn,
                                Array<DComplex>& bufOut,
                                const Cube<float>& weightSums,
-                               uint nchanOut)
+                               uint nChanOut,
+                               uint nChanAvg)
     {
       // Nothing to do if only target direction.
       if (itsNrDir <= 1) return;
       ASSERT (! weightSums.empty());
       bufOut.resize (IPosition(5, itsNrDir, itsNrDir,
-                               itsNrCorr, nchanOut, itsNrBl));
+                               itsNrCorr, nChanOut, itsNrBl));
       bufOut = DComplex(1,0);
       const DComplex* phin = bufIn.data();
       for (uint d0=0; d0<itsNrDir; ++d0) {
@@ -486,9 +499,9 @@ namespace LOFAR {
           // Average for all channels and divide by the summed weights.
           const float* weightPtr = weightSums.data();
           for (uint k=0; k<itsNrBl; ++k) {
-            for (uint c0=0; c0<nchanOut; ++c0) {
+            for (uint c0=0; c0<nChanOut; ++c0) {
               DComplex sum[4];
-              uint nch = std::min(itsNChanAvg, itsNChanIn-c0*itsNChanAvg);
+              uint nch = std::min(nChanAvg, itsNChanIn-c0*nChanAvg);
               for (uint c1=0; c1<nch; ++c1) {
                 for (uint j=0; j<itsNrCorr; ++j) {
                   sum[j] += *phin++;
@@ -501,6 +514,7 @@ namespace LOFAR {
                 ph2 += itsNrDir*itsNrDir;
               }
             }
+            ASSERTSTR(phin == bufIn.data() + ((d0 * (2 * itsNrDir - d0 - 1)) / 2 + (d1 - d0 - 1)) * itsNrBl * itsNrCorr * itsNChanIn + (k + 1) * itsNrCorr * itsNChanIn, "phin: " << reinterpret_cast<size_t>(phin) << " computed: " << reinterpret_cast<size_t>(bufIn.data() + ((d0 * (2 * itsNrDir - d0 - 1)) / 2 + (d1 - d0 - 1)) * itsNrBl * itsNrCorr * itsNChanIn + (k + 1) * itsNrCorr * itsNChanIn));
           }
         }
       }
@@ -601,7 +615,7 @@ namespace LOFAR {
         for (size_t i=0; i<itsAvgResults.size(); ++i) {
           buffers.push_back (itsAvgResults[i]->get());
           // Clear the buffers.
-	  itsAvgResults[i]->clear();
+          itsAvgResults[i]->clear();
         }
 
         itsTimerSolve.start();
