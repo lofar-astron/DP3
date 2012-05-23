@@ -30,6 +30,10 @@
 #include <MS/BaselineSelect.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
+
+#include <tables/Tables/ExprNode.h>
+#include <tables/Tables/RecordGram.h>
+#include <casa/Containers/Record.h>
 #include <casa/Arrays/ArrayLogical.h>
 #include <casa/Quanta/Quantum.h>
 #include <casa/Quanta/MVTime.h>
@@ -255,8 +259,7 @@ namespace LOFAR {
       itsMaxUV    = parset.getDouble       (prefix+"uvmmax", -1);
       itsStrFreq  = parset.getStringVector (prefix+"freqrange",
                                             vector<string>());
-      itsFlagChan = parset.getUintVector   (prefix+"chan", vector<uint>(),
-                                            true);   // expand .. etc.
+      itsStrChan  = parset.getStringVector (prefix+"chan", vector<string>());
       itsAmplMin = fillValuePerCorr
         (ParameterValue (parset.getString  (prefix+"amplmin", string())),-1e30,
          itsFlagOnAmpl);
@@ -335,7 +338,7 @@ namespace LOFAR {
       itsFlags.resize (nrcorr, nrchan, info.nbaselines());
       itsMatchBL.resize (info.nbaselines());
       // Determine the channels to be flagged.
-      if (!(itsFlagChan.empty() && itsStrFreq.empty())) {
+      if (!(itsStrChan.empty() && itsStrFreq.empty())) {
         fillChannels (info);
         if (! itsChannels.empty()) {
           itsFlagOnTimeOnly = false;
@@ -352,14 +355,45 @@ namespace LOFAR {
       uint nrcorr = info.ncorr();
       uint nrchan = info.nchan();
       Vector<bool> selChan(nrchan);
-      if (itsFlagChan.empty()) {
+      if (itsStrChan.empty()) {
         selChan = true;
       } else {
         // Set selChan for channels not exceeding nr of channels.
         selChan = false;
-        for (uint i=0; i<itsFlagChan.size(); ++i) {
-          if (itsFlagChan[i] < nrchan) {
-            selChan[itsFlagChan[i]] = true;
+        Record rec;
+        rec.define ("nchan", nrchan);
+        double result;
+        for (uint i=0; i<itsStrChan.size(); ++i) {
+          // Evaluate possible expressions.
+          // Split the value if start..end is given.
+          uint startch, endch;
+          string::size_type pos = itsStrChan[i].find ("..");
+          if (pos == string::npos) {
+            TableExprNode node (RecordGram::parse(rec, itsStrChan[i]));
+            node.get (rec, result);
+            startch = uint(result+0.001);
+            endch   = startch;
+          } else {
+            ASSERTSTR (pos != 0  &&  pos < itsStrChan[i].size() - 2,
+                       "No start or end given in PreFlagger channel range "
+                       << itsStrChan[i]);
+            TableExprNode node1
+              (RecordGram::parse(rec, itsStrChan[i].substr(0,pos)));
+            node1.get (rec, result);
+            startch = uint(result+0.001);
+            TableExprNode node2
+              (RecordGram::parse(rec, itsStrChan[i].substr(pos+2)));
+            node2.get (rec, result);
+            endch = uint(result+0.001);
+            ASSERTSTR (startch <= endch,
+                       "Start " << startch << " must be <= end " << endch
+                       << " in PreFlagger channel range " << itsStrChan[i]);
+          }
+          cout << "strchan="<<itsStrChan[i]<<' '<<startch<<' ' <<endch<<endl;
+          if (startch < nrchan) {
+            for (uint ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
+              selChan[ch] = true;
+            }
           }
         }
       }
@@ -425,7 +459,7 @@ namespace LOFAR {
         os << "   elevation:     " << itsStrElev << std::endl;
       }
       if (! itsChannels.empty()) {
-        os << "   channel:       " << itsFlagChan << std::endl;
+        os << "   channel:       " << itsStrChan << std::endl;
         os << "   freqrange:     " << itsStrFreq << std::endl;
         os << "    chan to flag: " << itsChannels << std::endl;
       }
@@ -979,8 +1013,7 @@ namespace LOFAR {
            str != vec.end(); ++str) {
         // Find the .. or +- token.
         bool usepm = false;
-        string::size_type pos;
-        pos = str->find ("..");
+        string::size_type pos = str->find ("..");
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");
@@ -1208,8 +1241,7 @@ namespace LOFAR {
            str != itsStrFreq.end(); ++str) {
         // Find the .. or +- token.
         bool usepm = false;
-        string::size_type pos;
-        pos = str->find ("..");
+        string::size_type pos = str->find ("..");
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");

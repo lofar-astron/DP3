@@ -321,7 +321,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("chan", "[11..13, 4, 11]");
+  parset.add ("chan", "[11..13, 4, 11, nchan/1000+1000..1000*nchan]");
   parset.add ("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
