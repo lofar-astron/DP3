@@ -389,7 +389,6 @@ namespace LOFAR {
                        "Start " << startch << " must be <= end " << endch
                        << " in PreFlagger channel range " << itsStrChan[i]);
           }
-          cout << "strchan="<<itsStrChan[i]<<' '<<startch<<' ' <<endch<<endl;
           if (startch < nrchan) {
             for (uint ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
               selChan[ch] = true;
@@ -1087,19 +1086,22 @@ namespace LOFAR {
       vector<float> result(4);
       std::fill (result.begin(), result.end(), defVal);
       if (! value.get().empty()) {
-        // It contains a value, so set that flagging is done.
-        doFlag = true;
         if (value.isVector()) {
           // Defined as a vector, take the values given.
           vector<string> valstr = value.getStringVector();
           uint sz = std::min(valstr.size(), result.size());
-          for (uint i=0; i<sz; ++i) {
-            if (! valstr[i].empty()) {
-              result[i] = strToFloat(valstr[i]);
-            }
+	  if (sz > 0) {
+	    // It contains a value, so set that flagging is done.
+	    doFlag = true;
+	    for (uint i=0; i<sz; ++i) {
+	      if (! valstr[i].empty()) {
+		result[i] = strToFloat(valstr[i]);
+	      }
+	    }
           }
         } else {
           // A single value means use it for all correlations.
+	  doFlag = true;
           std::fill (result.begin(), result.end(), value.getFloat());
         }
       }
@@ -1113,7 +1115,7 @@ namespace LOFAR {
       itsFlagBL = true;
       Matrix<bool> tmpflags(itsFlagBL.shape());
       // Loop through all values in the baseline string.
-      if (! itsStrBL.empty()) {
+      if (! itsStrBL.empty()  &&  itsStrBL != "[]") {
         itsFlagOnBL = true;
         tmpflags    = false;
         ParameterValue pvBL(itsStrBL);
@@ -1154,7 +1156,7 @@ namespace LOFAR {
         const Vector<Int>& ant1 = itsInput->getAnt1();
         const Vector<Int>& ant2 = itsInput->getAnt2();
         for (uint i=0; i<ant1.size(); ++i) {
-          if (blength[i] > itsMinBL  &&  blength[i] < itsMaxBL) {
+          if (blength[i] < itsMinBL  ||  blength[i] > itsMaxBL) {
             int a1 = ant1[i];
             int a2 = ant2[i];
             tmpflags(a1,a2) = true;
