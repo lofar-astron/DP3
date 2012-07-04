@@ -21,27 +21,23 @@
 //# @author Adriaan Renting
 
 #include <lofar_config.h>
-#include <libgen.h>
+#include <Common/lofar_iostream.h>
+#include <Common/SystemUtil.h>
+#include <Common/Exceptions.h>
 #include <PLC/ACCmain.h>
-#include <casa/Exceptions.h>
 #include <SPWCombine/CombinerProcessControl.h>
+
+using namespace LOFAR;
 
 int main(int argc, char *argv[])
 {
-  try
-  {
+  try {
     INIT_LOGGER(basename(argv[0]));
     LOFAR::CS1::CombinerProcessControl myProcess;
     return LOFAR::ACC::PLC::ACCmain(argc, argv, &myProcess);
-  } //try
-  catch(casa::AipsError& err)
-  {
-    std::cerr << "Aips++ error detected: " << err.getMesg() << std::endl;
-    return -2;
+  } catch(Exception& ex) {
+    cerr << ex << endl;
+    return 1;
   }
-  catch(...)
-  {
-    std::cerr << "** PROBLEM **: Unhandled exception caught." << std::endl;
-    return -3;
-  }
+  return 0;
 }
