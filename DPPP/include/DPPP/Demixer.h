@@ -80,7 +80,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Update the general info.
-      virtual void updateInfo (DPInfo&);
+      virtual void updateInfo (const DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;
@@ -113,6 +113,12 @@ namespace LOFAR {
       void deproject (casa::Array<casa::DComplex>& factors,
                       vector<MultiResultStep*> avgResults,
                       uint resultIndex);
+
+      // Calculate the P matrix telling how to deal with sources that will
+      // not be predicted.
+      // Those sources are the last columns in the demixing matrix.
+      vector<casa::Array<casa::DComplex> > getP
+      (const vector<casa::Array<casa::DComplex> >& factors, uint nsources);
 
       // Convert a double value to a string (with sufficient precision).
       string toString (double value) const;

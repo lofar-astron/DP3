@@ -164,6 +164,12 @@ namespace LOFAR {
       double getTime() const
         { return itsTime; }
 
+      // Get or set the exposure.
+      void setExposure (double exposure)
+        { itsExposure = exposure; }
+      double getExposure() const
+        { return itsExposure; }
+
       // Get or set the row numbers used by the DPInput class.
       // It can be empty (e.g. when MSReader inserted a dummy time slot).
       void setRowNrs (const casa::Vector<uint>& rownrs)
@@ -186,6 +192,7 @@ namespace LOFAR {
 
     private:
       double                    itsTime;
+      double                    itsExposure;
       casa::Vector<uint>        itsRowNrs;
       casa::Cube<casa::Complex> itsData;        //# ncorr,nchan,nbasel
       casa::Cube<float>         itsAmpl;        //# amplitude of data

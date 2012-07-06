@@ -47,8 +47,9 @@ namespace LOFAR {
         itsNTimes    (0),
         itsTimeInterval (0)
     {
-      ASSERTSTR (itsNChanAvg > 1  ||  itsNTimeAvg > 1,
-                 "freqstep and/or timestep must be specified when averaging");
+      if (itsNChanAvg <= 0) itsNChanAvg = 1;
+      if (itsNTimeAvg <= 0) itsNTimeAvg = 1;
+      itsNoAvg = (itsNChanAvg == 1  &&  itsNTimeAvg == 1);
     }
 
     Averager::Averager (DPInput* input, const string& stepName,
@@ -62,21 +63,23 @@ namespace LOFAR {
         itsNTimes    (0),
         itsTimeInterval (0)
     {
-      ASSERTSTR (itsNChanAvg > 1  ||  itsNTimeAvg > 1,
-                 "freqstep and/or timestep must be specified when averaging");
+      if (itsNChanAvg <= 0) itsNChanAvg = 1;
+      if (itsNTimeAvg <= 0) itsNTimeAvg = 1;
+      itsNoAvg = (itsNChanAvg == 1  &&  itsNTimeAvg == 1);
     }
 
     Averager::~Averager()
     {}
 
-    void Averager::updateInfo (DPInfo& info)
+    void Averager::updateInfo (const DPInfo& infoIn)
     {
-      info.setNeedVisData();
-      info.setNeedWrite();
-      itsTimeInterval = info.timeInterval();
+      info() = infoIn;
+      info().setNeedVisData();
+      info().setNeedWrite();
+      itsTimeInterval = infoIn.timeInterval();
       // Adapt averaging to available nr of channels and times.
-      itsNTimeAvg = std::min (itsNTimeAvg, info.ntime());
-      itsNChanAvg = info.update (itsNChanAvg, itsNTimeAvg);
+      itsNTimeAvg = std::min (itsNTimeAvg, infoIn.ntime());
+      itsNChanAvg = info().update (itsNChanAvg, itsNTimeAvg);
     }
 
     void Averager::show (std::ostream& os) const
@@ -97,6 +100,11 @@ namespace LOFAR {
 
     bool Averager::process (const DPBuffer& buf)
     {
+      // Nothing needs to be done if no averaging.
+      if (itsNoAvg) {
+        getNextStep()->process (buf);
+        return true;
+      }
       itsTimer.start();
       RefRows rowNrs(buf.getRowNrs());
       // Sum the data in time applying the weights.
@@ -126,7 +134,8 @@ namespace LOFAR {
         copyFullResFlags (fullResFlags, buf.getFlags(), 0);
         // Set middle of new interval.
         double time = buf.getTime() + 0.5*(itsNTimeAvg-1)*itsTimeInterval;
-        itsBuf.setTime (time);
+        itsBuf.setTime     (time);
+        itsBuf.setExposure (itsNTimeAvg*itsTimeInterval);
         // Only set.
         itsNPoints = 1;
         // Set flagged points to zero.
@@ -273,7 +282,8 @@ namespace LOFAR {
         }
       }
       // Set the remaining values in the output buffer.
-      buf.setTime (itsBuf.getTime());
+      buf.setTime     (itsBuf.getTime());
+      buf.setExposure (itsBuf.getExposure());
       buf.setFullResFlags (itsBuf.getFullResFlags());
       // The result UVWs are the average of the input.
       // If ever needed, UVWCalculator can be used to calculate the UVWs.

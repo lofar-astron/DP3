@@ -112,14 +112,31 @@ namespace LOFAR {
       // Write the full resolution flags (flags before any averaging).
       void writeFullResFlags (casa::Table& out, const DPBuffer& buf);
 
-      // Write the time info (TIME, TIME_CENTROID, INTERVAL, EXPOSURE).
-      void writeTimeInfo (casa::Table& out, double time,
-                          const casa::Matrix<double>& uvws);
+      // Write all meta data columns for a time slot (ANTENNA1, etc.)
+      void writeMeta (casa::Table& out, const DPBuffer& buf);
 
       // Copy meta data columns for a time slot (ANTENNA1, etc.)
       // It also copies all time info if possible.
       void copyMeta (const casa::Table& in, casa::Table& out,
                      bool copyTimeInfo);
+
+      // Copy the contents of a scalar column.
+      template<typename T> void fillSca (const T& value,
+                                         casa::Table& out,
+                                         const casa::String& columnName)
+      {
+        casa::ScalarColumn<T>  outCol(out, columnName);
+        outCol.fillColumn (value);
+      }
+
+      // Copy the contents of an array column.
+      template<typename T> void fillArr (const casa::Array<T>& value,
+                                         casa::Table& out,
+                                         const casa::String& columnName)
+      {
+        casa::ArrayColumn<T> outCol(out, columnName);
+        outCol.fillColumn (value);
+      }
 
       // Copy the contents of a scalar column.
       template<typename T> void copySca (const casa::Table& in,
@@ -147,7 +164,6 @@ namespace LOFAR {
       casa::String    itsDataColName;
       double          itsInterval;
       bool            itsOverwrite;   //# Overwrite an existing output MS?
-      bool            itsCopyTimeInfo;
       bool            itsCopyCorrData;
       bool            itsCopyModelData;
       bool            itsWriteFullResFlags;

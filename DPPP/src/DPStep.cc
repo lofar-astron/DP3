@@ -30,8 +30,19 @@ namespace LOFAR {
     DPStep::~DPStep()
     {}
 
-    void DPStep::updateInfo (DPInfo&)
-    {}
+    const DPInfo& DPStep::setInfo (const DPInfo& info)
+    {
+      // Update the info of this step using the given info.
+      updateInfo (info);
+      // If there is a next step, set its info using the info of this step.
+      if (getNextStep()) {
+        return getNextStep()->setInfo (getInfo());
+      }
+      return getInfo();
+    }
+
+    void DPStep::updateInfo (const DPInfo& infoIn)
+      { info() = infoIn; }
 
     void DPStep::addToMS (const string&)
     {}

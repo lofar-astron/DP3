@@ -104,8 +104,7 @@ namespace LOFAR {
         itsNTimeChunk    (parset.getUint  (prefix+"ntimechunk", 0)),
         itsNTimeOut      (0),
         itsNConverged    (0),
-        itsTimeCount     (0),
-        itsNStation      (input->antennaNames().size())
+        itsTimeCount     (0)
     {
       // Get and set solver options.
 //      itsSolveOpt.maxIter =
@@ -128,6 +127,8 @@ namespace LOFAR {
       // Or make sources a vector of vectors like [name, ra, dec] where
       // ra and dec are optional.
 
+      ASSERTSTR (!(itsSkyName.empty() || itsInstrumentName.empty()),
+                 "An empty name is given for the sky and/or instrument model");
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
         itsNTimeChunk = OpenMP::maxThreads();
@@ -150,14 +151,9 @@ namespace LOFAR {
 
       // Get the patch names and positions from the SourceDB table.
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("casa", itsSkyName));
-      for(uint i = 0; i < itsNModel; ++i) {
-        itsPatchList.push_back(makePatch(sourceDB, itsAllSources[i]));
+      for (uint i = 0; i < itsNModel; ++i) {
+        itsPatchList.push_back (makePatch(sourceDB, itsAllSources[i]));
       }
-
-//      // Get the patch names and positions from the SourceDB table.
-//      for(uint i = 0; i < itsNModel; ++i) {
-//        itsPatchList.push_back(makePatch(itsAllSources[i]));
-//      }
 
       // If the target source is given, add it to the model.
       // Because the target source has to be the last direction, it means
@@ -228,11 +224,6 @@ namespace LOFAR {
       targetAvgSubtr->setNextStep (DPStep::ShPtr(itsAvgResultSubtr));
       itsFirstSteps.push_back (targetAvgSubtr);
 
-      for(size_t i = 0; i < input->getAnt1().size(); ++i) {
-        itsBaselines.push_back(Baseline(input->getAnt1()[i],
-          input->getAnt2()[i]));
-      }
-
 //      while(itsCutOffs.size() < itsNModel) {
 //        itsCutOffs.push_back(0);
 //      }
@@ -281,12 +272,15 @@ namespace LOFAR {
     {
     }
 
-    void Demixer::updateInfo (DPInfo& info)
+    void Demixer::updateInfo (const DPInfo& infoIn)
     {
+      info() = infoIn;
       // Get size info.
-      itsNChanIn = info.nchan();
-      itsNBl     = info.nbaselines();
-      itsNCorr   = info.ncorr();
+      itsNStation = infoIn.antennaNames().size();
+      itsNChanIn  = infoIn.nchan();
+      itsNBl      = infoIn.nbaselines();
+      itsNCorr    = infoIn.ncorr();
+      ASSERTSTR (itsNCorr==4, "Demixing requires data with 4 polarizations");
       itsFactorBuf.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
                                      itsNDir*(itsNDir-1)/2));
       itsFactorBufSubtr.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
@@ -294,48 +288,45 @@ namespace LOFAR {
 
       // Adapt averaging to available nr of channels and times.
       // Use a copy of the DPInfo, otherwise it is updated multiple times.
-      DPInfo infocp(info);
-      itsNTimeAvg = std::min (itsNTimeAvg, infocp.ntime());
-      itsNChanAvg = infocp.update (itsNChanAvg, itsNTimeAvg);
-      itsNTimeDemix = infocp.ntime();
+      DPInfo infoDemix(infoIn);
+      itsNTimeAvg = std::min (itsNTimeAvg, infoIn.ntime());
+      itsNChanAvg = infoDemix.update (itsNChanAvg, itsNTimeAvg);
+      itsNChanOut = infoDemix.nchan();
+      itsTimeIntervalAvg = infoDemix.timeInterval();
+      itsNTimeDemix      = infoDemix.ntime();
+      for (size_t i=0; i<infoIn.getAnt1().size(); ++i) {
+        itsBaselines.push_back (Baseline(infoIn.getAnt1()[i],
+                                         infoIn.getAnt2()[i]));
+      }
 
       // Let the internal steps update their data.
       for (uint i=0; i<itsFirstSteps.size(); ++i) {
-        infocp = info;
-        DPStep::ShPtr step = itsFirstSteps[i];
-        while (step) {
-          step->updateInfo (infocp);
-          step = step->getNextStep();
-        }
-        if (i == 0) {
-          // Keep the averaged time interval.
-          itsNChanOut = infocp.nchan();
-          itsTimeIntervalAvg = infocp.timeInterval();
-        }
+        itsFirstSteps[i]->setInfo (infoIn);
       }
-
       // Update the info of this object.
-      info.setNeedVisData();
-      info.setNeedWrite();
-      itsNTimeAvgSubtr = std::min (itsNTimeAvgSubtr, info.ntime());
-      itsNChanAvgSubtr = info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
-      itsNChanOutSubtr = info.nchan();
-      ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0, "Demix averaging "
-        << itsNChanAvg << " must be multiple of output averaging "
-        << itsNChanAvgSubtr);
-      ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0, "Demix averaging "
-        << itsNTimeAvg << " must be multiple of output averaging "
-        << itsNTimeAvgSubtr);
-
+      info().setNeedVisData();
+      info().setNeedWrite();
+      itsNTimeAvgSubtr = std::min (itsNTimeAvgSubtr, infoIn.ntime());
+      itsNChanAvgSubtr = info().update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
+      itsNChanOutSubtr = info().nchan();
+      ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0,
+		 "Demix averaging " << itsNChanAvg
+		 << " must be multiple of output averaging "
+		 << itsNChanAvgSubtr);
+      ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0,
+		 "Demix averaging " << itsNTimeAvg
+		 << " must be multiple of output averaging "
+		 << itsNTimeAvgSubtr);
       // Store channel frequencies for the demix and subtract resolutions.
-      itsFreqDemix = itsInput->chanFreqs (itsNChanAvg);
-      itsFreqSubtr = itsInput->chanFreqs (itsNChanAvgSubtr);
+      itsFreqDemix = infoDemix.chanFreqs();
+      itsFreqSubtr = getInfo().chanFreqs();
 
       // Store phase center position in J2000.
-      MDirection dirJ2000(MDirection::Convert(info.phaseCenter(), MDirection::J2000)());
+      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+                                              MDirection::J2000)());
       Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      itsPhaseRef = Position(angles.getBaseValue()(0),
-        angles.getBaseValue()(1));
+      itsPhaseRef = Position(angles.getBaseValue()[0],
+                             angles.getBaseValue()[1]);
 
       initUnknowns();
     }
@@ -394,7 +385,6 @@ namespace LOFAR {
     bool Demixer::process (const DPBuffer& buf)
     {
       itsTimer.start();
-
       // Update the count.
       itsNTimeIn++;
       // Make sure all required data arrays are filled in.
@@ -1024,9 +1014,8 @@ namespace LOFAR {
         }
 
         // Update convergence count.
-        for(size_t i = 0; i < nThread; ++i)
-        {
-            itsNConverged += converged[i];
+        for (size_t i=0; i<nThread; ++i) {
+          itsNConverged += converged[i];
         }
 
         itsTimerSolve.stop();
@@ -1069,12 +1058,12 @@ namespace LOFAR {
     void Demixer::dumpSolutions()
     {
       // Construct solution grid.
-      Vector<double> freq = itsInput->chanFreqs(itsInput->nchan());
-      Vector<double> freqWidth = itsInput->chanWidths(itsInput->nchan());
+      const Vector<double>& freq      = getInfo().chanFreqs();
+      const Vector<double>& freqWidth = getInfo().chanWidths();
       BBS::Axis::ShPtr freqAxis(new BBS::RegularAxis(freq[0] - freqWidth[0]
         * 0.5, freqWidth[0], 1));
-      BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis(itsInput->startTime()
-        - itsInput->timeInterval() * 0.5, itsTimeIntervalAvg, itsNTimeDemix));
+      BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis(getInfo().startTime()
+        - getInfo().timeInterval() * 0.5, itsTimeIntervalAvg, itsNTimeDemix));
       BBS::Grid solGrid(freqAxis, timeAxis);
 
       // Initialize ParmDB.
@@ -1089,9 +1078,9 @@ namespace LOFAR {
       parmDB.setDefaultSteps(resolution);
 
       // Convert station names from casa::String to std::string.
-      ASSERT(itsInput->antennaNames().size() == itsNStation);
+      ASSERT(getInfo().antennaNames().size() == itsNStation);
       vector<string> stations(itsNStation);
-      copy(itsInput->antennaNames().begin(), itsInput->antennaNames().end(),
+      copy(getInfo().antennaNames().begin(), getInfo().antennaNames().end(),
           stations.begin());
 
       vector<BBS::Parm> parms;

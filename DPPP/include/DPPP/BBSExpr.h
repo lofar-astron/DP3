@@ -52,7 +52,7 @@ namespace LOFAR {
     public:
       // Construct the expression for the given sky and instrument
       // parameter databases.
-      BBSExpr (const DPInput& input, const string& skyName,
+      BBSExpr (const DPInfo& info, const string& skyName,
                const string& instrumentName, double elevationCutoff);
 
       ~BBSExpr();
@@ -61,7 +61,7 @@ namespace LOFAR {
       void setOptions (const BBS::SolverOptions&);
 
       // Add a model expression for the given source and phase reference.
-      void addModel (const string &source, const casa::MDirection &phaseRef);
+      void addModel (const string& source, const casa::MDirection& phaseRef);
 
       // Estimate the model parameters.
       void estimate (vector<vector<DPBuffer> >& buffers,
@@ -85,7 +85,7 @@ namespace LOFAR {
       void setSolvables();
 
       // Gather information about the instrument from the input meta-data.
-      void initInstrument(const DPInput &input);
+      void initInstrument(const DPInfo& info);
 
       //# Data members
       boost::shared_ptr<BBS::SourceDB>  itsSourceDB;

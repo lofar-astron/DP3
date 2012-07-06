@@ -34,10 +34,9 @@ namespace LOFAR {
 
     Counter::Counter (DPInput* input,
                       const ParSet& parset, const string& prefix)
-      : itsInput       (input),
-        itsName        (prefix),
+      : itsName        (prefix),
         itsCount       (0),
-        itsFlagCounter (input, parset, prefix)
+        itsFlagCounter (input->msName(), parset, prefix)
     {
       itsFlagData = parset.getBool (prefix+"flagdata", false);
     }
@@ -58,14 +57,15 @@ namespace LOFAR {
       itsFlagCounter.showChannel  (os, itsCount);
     }
 
-    void Counter::updateInfo (DPInfo& info)
+    void Counter::updateInfo (const DPInfo& infoIn)
     {
-      // Visibility data must be read if needed.
+      info() = infoIn;
+      // Visibility data must be read if needed, so NaNs are flagged.
       if (itsFlagData) {
-        info.setNeedVisData();
+        info().setNeedVisData();
       }
       // Initialize the flag counters.
-      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
+      itsFlagCounter.init (infoIn);
     }
 
     bool Counter::process (const DPBuffer& buf)

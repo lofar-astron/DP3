@@ -39,6 +39,7 @@
 #include <ms/MeasurementSets/MeasurementSet.h>
 #include <ms/MeasurementSets/MSSelection.h>
 #include <casa/Containers/Record.h>
+#include <casa/Arrays/ArrayMath.h>
 #include <casa/Quanta/MVTime.h>
 #include <casa/OS/Conversion.h>
 #include <iostream>
@@ -166,13 +167,10 @@ namespace LOFAR {
       }
       // Are all channels used?
       itsUseAllChan = itsStartChan==0 && itsNrChan==nAllChan;
+      // Do the rest of the preparation.
+      prepare2();
       // Take subset of channel frequencies if needed.
       // Make sure to copy the subset to get a proper Vector.
-      if (!itsUseAllChan) {
-        Vector<double> chanFreqs;
-        chanFreqs = itsChanFreqs(Slice(itsStartChan, itsNrChan));
-        itsChanFreqs.reference (chanFreqs);
-      }
       // Form the slicer to get channels and correlations from column.
       itsColSlicer = Slicer(IPosition(2, 0, itsStartChan),
                             IPosition(2, itsNrCorr, itsNrChan));
@@ -180,10 +178,13 @@ namespace LOFAR {
       itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
                             IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
       // Initialize the flag counters.
-      itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
+      itsFlagCounter.init (getInfo());
     }
 
     MSReader::~MSReader()
+    {}
+
+    void MSReader::updateInfo (const DPInfo&)
     {}
 
     casa::String MSReader::msName() const
@@ -194,31 +195,6 @@ namespace LOFAR {
     void MSReader::setReadVisData (bool readVisData)
     {
       itsReadVisData = readVisData;
-    }
-
-    void MSReader::getFreqInfo (Vector<double>& freq,
-                                Vector<double>& width,
-                                Vector<double>& effBW,
-                                Vector<double>& resolution,
-                                double& refFreq) const
-    {
-      freq.resize (itsNrChan);
-      width.resize (itsNrChan);
-      effBW.resize (itsNrChan);
-      resolution.resize (itsNrChan);
-      Table inSPW(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
-      ROArrayColumn<Double> inFREQ(inSPW, "CHAN_FREQ");
-      ROArrayColumn<Double> inWIDTH(inSPW, "CHAN_WIDTH");
-      ROArrayColumn<Double> inBW(inSPW, "EFFECTIVE_BW");
-      ROArrayColumn<Double> inRESOLUTION(inSPW, "RESOLUTION");
-      ROScalarColumn<Double> inREFFREQ(inSPW, "REF_FREQUENCY");
-      Slicer slicer(IPosition(1, itsStartChan),
-                    IPosition(1, itsNrChan));
-      inFREQ.getSlice (itsSpw, slicer, freq);
-      inWIDTH.getSlice (itsSpw, slicer, width);
-      inBW.getSlice (itsSpw, slicer, effBW);
-      inRESOLUTION.getSlice (itsSpw, slicer, resolution);
-      refFreq = inREFFREQ(itsSpw);
     }
 
     bool MSReader::process (const DPBuffer&)
@@ -266,6 +242,7 @@ namespace LOFAR {
         if (!useIter) {
           // Need to insert a fully flagged time slot.
           itsBuffer.setRowNrs (Vector<uint>());
+          itsBuffer.setExposure (itsTimeInterval);
           itsBuffer.getData().resize  (itsNrCorr, itsNrChan, itsNrBl);
           itsBuffer.getFlags().resize (itsNrCorr, itsNrChan, itsNrBl);
           itsBuffer.getData() = Complex();
@@ -277,11 +254,15 @@ namespace LOFAR {
           itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
           if (itsMissingData) {
             // Data column not present, so fill a fully flagged time slot.
+            itsBuffer.setExposure (itsTimeInterval);
             itsBuffer.getData().resize  (itsNrCorr, itsNrChan, itsNrBl);
             itsBuffer.getFlags().resize (itsNrCorr, itsNrChan, itsNrBl);
             itsBuffer.getData() = Complex();
             itsBuffer.getFlags() = true;
           } else {
+            // Set exposure.
+            itsBuffer.setExposure (ROScalarColumn<double>
+                                   (itsIter.table(), "EXPOSURE")(0));
             // Get data and flags from the MS.
             if (itsReadVisData) {
               ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
@@ -353,14 +334,6 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
-    void MSReader::updateInfo (DPInfo& info)
-    {
-      info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
-                 int((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5),
-                 itsTimeInterval);
-      info.setPhaseCenter (itsPhaseCenter, true);
-    }
-
     void MSReader::show (std::ostream& os) const
     {
       os << "MSReader" << std::endl;
@@ -374,12 +347,13 @@ namespace LOFAR {
         os << "  band            " << itsSpw << std::endl;
         os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
            << ')' << std::endl;
-        os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr
+        os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
            << ')' << std::endl;
-        os << "  ncorrelations:  " << itsNrCorr << std::endl;
-        os << "  nbaselines:     " << itsNrBl << std::endl;
-        os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
-        os << "  time interval:  " << itsTimeInterval << std::endl;
+        os << "  ncorrelations:  " << getInfo().ncorr() << std::endl;
+        uint nrbl = getInfo().nbaselines();
+        os << "  nbaselines:     " << nrbl << std::endl;
+        os << "  ntimes:         " << itsMS.nrow() / nrbl << std::endl;
+        os << "  time interval:  " << getInfo().timeInterval() << std::endl;
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
           os << "  (not present)";
@@ -488,58 +462,86 @@ namespace LOFAR {
                                           Sort::QuickSort + Sort::NoDuplicates);
       ASSERTSTR (sortab.nrow() == itsNrBl,
                  "The MS appears to have multiple subbands");
-      // Get the baselines.
-      ROScalarColumn<Int>(itsIter.table(), "ANTENNA1").getColumn (itsAnt1);
-      ROScalarColumn<Int>(itsIter.table(), "ANTENNA2").getColumn (itsAnt2);
+      // Get the baseline columns.
+      ROScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
+      ROScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
-      {
-        // Get the antenna names and positions.
-        Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
-        ROScalarColumn<String> nameCol (anttab, "NAME");
-        nameCol.getColumn (itsAntNames);
-        uint nant = anttab.nrow();
-        ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
-        itsAntPos.reserve (nant);
-        for (uint i=0; i<nant; ++i) {
-          itsAntPos.push_back (antcol(i));
-        }
-        // Read the phase reference position from the FIELD subtable.
-        // Only use the main value from the PHASE_DIR array.
-        // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
-        // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
-        Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
-        AlwaysAssert (fldtab.nrow() == 1, AipsError);
-        ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
-        ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
-        itsPhaseCenter = *(fldcol1(0).data());
-        itsDelayCenter = *(fldcol2(0).data());
-        if (fldtab.tableDesc().isColumn ("LOFAR_TILE_BEAM_DIR")) {
-          ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
-          itsTileBeamDir = *(fldcol3(0).data());
-        } else {
-          itsTileBeamDir = itsDelayCenter;
-        }
-        // Read the center frequencies of all channels.
-        Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
-        ROArrayColumn<double> freqCol (spwtab, "CHAN_FREQ");
-        ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
-        // Take only the channels used in the input.
-        itsChanFreqs  = freqCol(itsSpw);
-        itsChanWidths = widthCol(itsSpw);
-        // Get the array position using the telescope name from the OBSERVATION
-        // subtable. 
-        Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
-        ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
-        if (obstab.nrow() ==0  ||
-            ! MeasTable::Observatory(itsArrayPos, telCol(0))) {
-          // If not found, use the position of the middle antenna.
-          itsArrayPos = itsAntPos[itsAntPos.size() / 2];
-        }
-      }        
+      // Get the antenna names and positions.
+      Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
+      ROScalarColumn<String> nameCol (anttab, "NAME");
+      uint nant = anttab.nrow();
+      ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
+      vector<MPosition> antPos;
+      antPos.reserve (nant);
+      for (uint i=0; i<nant; ++i) {
+        antPos.push_back (antcol(i));
+      }
+      // Set antenna/baseline info.
+      info().set (nameCol.getColumn(), antPos,
+                  ant1col.getColumn(), ant2col.getColumn());
+      // Read the phase reference position from the FIELD subtable.
+      // Only use the main value from the PHASE_DIR array.
+      // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
+      // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
+      Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
+      AlwaysAssert (fldtab.nrow() == 1, AipsError);
+      MDirection phaseCenter, delayCenter, tileBeamDir;
+      ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
+      ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
+      phaseCenter = *(fldcol1(0).data());
+      delayCenter = *(fldcol2(0).data());
+      if (fldtab.tableDesc().isColumn ("LOFAR_TILE_BEAM_DIR")) {
+        ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
+        tileBeamDir = *(fldcol3(0).data());
+      } else {
+        tileBeamDir = delayCenter;
+      }
+      // Get the array position using the telescope name from the OBSERVATION
+      // subtable. 
+      Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
+      ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
+      MPosition arrayPos;
+      if (obstab.nrow() == 0  ||
+          ! MeasTable::Observatory(arrayPos, telCol(0))) {
+        // If not found, use the position of the middle antenna.
+        arrayPos = antPos[antPos.size() / 2];
+      }
+      info().set (arrayPos, phaseCenter, delayCenter, tileBeamDir);
       // Create the UVW calculator.
-      itsUVWCalc = UVWCalculator (itsPhaseCenter, itsArrayPos, itsAntPos);
+      itsUVWCalc = UVWCalculator (phaseCenter, arrayPos, antPos);
+    }
+
+    void MSReader::prepare2()
+    {
+      // Set the info.
+      uint ntime = uint((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5);
+      info().init (itsNrCorr, itsNrChan, ntime, itsStartTime,
+                   itsTimeInterval, itsMSName);
+      // Read the center frequencies of all channels.
+      Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
+      ROArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
+      ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
+      ROArrayColumn<double> resolCol (spwtab, "RESOLUTION");
+      ROArrayColumn<double> effBWCol (spwtab, "EFFECTIVE_BW");
+      ROScalarColumn<Double> refCol  (spwtab, "REF_FREQUENCY");
+      Vector<double> chanFreqs   = freqCol(itsSpw);
+      Vector<double> chanWidths  = widthCol(itsSpw);
+      Vector<double> resolutions = resolCol(itsSpw);
+      Vector<double> effectiveBW = effBWCol(itsSpw);
+      double refFreq = refCol(itsSpw);
+      if (itsUseAllChan) {
+        info().set (chanFreqs, chanWidths, resolutions, effectiveBW,
+                    sum(effectiveBW), refFreq);
+      } else {
+        Vector<double> cwSlice(effectiveBW(Slice(itsStartChan, itsNrChan)));
+        info().set (chanFreqs  (Slice(itsStartChan, itsNrChan)),
+                    chanWidths (Slice(itsStartChan, itsNrChan)),
+                    resolutions(Slice(itsStartChan, itsNrChan)),
+                    cwSlice,
+                    sum(cwSlice), refFreq);
+      }
     }
 
     void MSReader::skipFirstTimes()
@@ -584,9 +586,10 @@ namespace LOFAR {
     void MSReader::calcUVW()
     {
       Matrix<double> uvws(3, itsNrBl);
+      const Vector<Int>& ant1 = getInfo().getAnt1();
+      const Vector<Int>& ant2 = getInfo().getAnt2();
       for (uint i=0; i<itsNrBl; ++i) {
-        uvws.column(i) = itsUVWCalc.getUVW (itsAnt1[i], itsAnt2[i],
-                                            itsNextTime);
+        uvws.column(i) = itsUVWCalc.getUVW (ant1[i], ant2[i], itsNextTime);
       }
       itsBuffer.setUVW (uvws);
     }
@@ -654,22 +657,24 @@ namespace LOFAR {
 
     void MSReader::autoWeight (Cube<float>& weights, const DPBuffer& buf)
     {
-      const double* chanWidths = itsChanWidths.data();
+      const double* chanWidths = getInfo().chanWidths().data();
       uint npol  = weights.shape()[0];
       uint nchan = weights.shape()[1];
       uint nbl   = weights.shape()[2];
       // Get the autocorrelations indices.
-      const vector<int>& autoInx = getAutoCorrIndex();
+      const vector<int>& autoInx = getInfo().getAutoCorrIndex();
       // Calculate the weight for each cross-correlation data point.
+      const Vector<Int>& ant1 = getInfo().getAnt1();
+      const Vector<Int>& ant2 = getInfo().getAnt2();
       const Complex* data = buf.getData().data();
       float* weight = weights.data();
       for (uint i=0; i<nbl; ++i) {
         // Can only be done if both autocorrelations are present.
-        if (itsAnt1[i] != itsAnt2[i]  &&
-            autoInx[itsAnt1[i]] >= 0  &&  autoInx[itsAnt2[i]] >= 0) {
+        if (ant1[i] != ant2[i]  &&
+            autoInx[ant1[i]] >= 0  &&  autoInx[ant2[i]] >= 0) {
           // Get offset of both autocorrelations in data array.
-          const Complex* auto1 = data + autoInx[itsAnt1[i]]*nchan*npol;
-          const Complex* auto2 = data + autoInx[itsAnt2[i]]*nchan*npol;
+          const Complex* auto1 = data + autoInx[ant1[i]]*nchan*npol;
+          const Complex* auto2 = data + autoInx[ant2[i]]*nchan*npol;
           for (uint j=0; j<nchan; ++j) {
             if (auto1[0].real() != 0  &&  auto2[0].real() != 0) {
               double w = chanWidths[j] * itsTimeInterval;

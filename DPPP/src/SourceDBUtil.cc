@@ -149,6 +149,7 @@ double getDefaultParmValue(const ParmDB &parmDB, const string &name,
     const casa::Array<double> &values = valueSet.getDefParmValue().getValues();
     ASSERT(values.size() == 1);
     return values(casa::IPosition(values.ndim(), 0));
+    ///return values.data()[0];
 }
 } // Unnamed namespace.
 

@@ -50,7 +50,6 @@ namespace LOFAR {
       // Create the step objects.
       // It fills DPInfo object and the name of the MS being written.
       static DPStep::ShPtr makeSteps (const ParSet& parset,
-                                      DPInfo& info,
                                       std::string& msName);
     };
 

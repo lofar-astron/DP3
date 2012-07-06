@@ -49,8 +49,9 @@ namespace LOFAR {
 
     MultiMSReader::MultiMSReader (const vector<string>& msNames,
                                   const ParSet& parset, const string& prefix)
-      : itsFirst   (-1),
-        itsMSNames (msNames)
+      : itsFirst    (-1),
+        itsNMissing (0),
+        itsMSNames  (msNames)
     {
       ASSERTSTR (msNames.size() > 0, "No names of MeasurementSets given");
       itsStartChanStr     = parset.getString (prefix+"startchan", "0");
@@ -65,71 +66,22 @@ namespace LOFAR {
       DPStep::ShPtr nullStep (new NullStep());
       itsReaders.reserve (msNames.size());
       itsSteps.reserve   (msNames.size());
-      int nmissing = 0;
       for (uint i=0; i<msNames.size(); ++i) {
         itsReaders.push_back (new MSReader (msNames[i], parset, prefix,
                                             itsMissingData));
+        // itsSteps takes care of deletion of the MSReader object.
         itsSteps.push_back   (DPStep::ShPtr(itsReaders[i]));
         // Add a null step for the reader.
         itsSteps[i]->setNextStep (nullStep);
         // Ignore if the MS is missing.
         if (itsReaders[i]->table().isNull()) {
           itsReaders[i] = 0;
-          nmissing++;
+          itsNMissing++;
         } else if (itsFirst < 0) {
           itsFirst = i;
         }
       }
       ASSERTSTR (itsFirst>=0, "All input MeasurementSets do not exist");
-      // Use the first valid MS as the standard MS (for meta data)
-      // Get meta data and check they are equal for all MSs.
-      itsMS              = itsReaders[itsFirst]->table();
-      itsStartTime       = itsReaders[itsFirst]->startTime();
-      itsFirstTime       = itsReaders[itsFirst]->firstTime();
-      itsLastTime        = itsReaders[itsFirst]->lastTime();
-      itsTimeInterval    = itsReaders[itsFirst]->timeInterval();
-      itsSelBL           = itsReaders[itsFirst]->baselineSelection();
-      itsSpw             = itsReaders[itsFirst]->spectralWindow();
-      itsNrCorr          = itsReaders[itsFirst]->ncorr();
-      itsNrBl            = itsReaders[itsFirst]->nbaselines();
-      itsNrChan          = 0;
-      itsFillNChan       = itsReaders[itsFirst]->nchan();
-      itsStartChan       = itsReaders[itsFirst]->startChan();
-      itsFullResNChanAvg = itsReaders[itsFirst]->nchanAvg();
-      itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvg();
-      itsAnt1            = itsReaders[itsFirst]->getAnt1();
-      itsAnt2            = itsReaders[itsFirst]->getAnt2();
-      itsAntNames        = itsReaders[itsFirst]->antennaNames();
-      itsAntPos          = itsReaders[itsFirst]->antennaPos();
-      itsArrayPos        = itsReaders[itsFirst]->arrayPos();
-      itsPhaseCenter     = itsReaders[itsFirst]->phaseCenter();
-      itsDelayCenter     = itsReaders[itsFirst]->delayCenter();
-      itsTileBeamDir     = itsReaders[itsFirst]->tileBeamDir();
-      itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
-      itsBaseRowNrs      = itsReaders[itsFirst]->getBaseRowNrs();
-      for (uint i=0; i<msNames.size(); ++i) {
-        if (itsReaders[i]) {
-          ASSERTSTR (near(itsStartTime, itsReaders[i]->startTime())  &&
-                     near(itsLastTime, itsReaders[i]->lastTime())  &&
-                     near(itsTimeInterval, itsReaders[i]->timeInterval())  &&
-                     itsNrCorr == itsReaders[i]->ncorr()  &&
-                     itsNrBl   == itsReaders[i]->nbaselines()  &&
-                     itsFullResNChanAvg == itsReaders[i]->nchanAvg()  &&
-                     itsFullResNTimeAvg == itsReaders[i]->ntimeAvg()  &&
-                     allEQ (itsAnt1, itsReaders[i]->getAnt1())  &&
-                     allEQ (itsAnt2, itsReaders[i]->getAnt2()),
-                     "Meta data of MS " << msNames[i]
-                     << " differs from " << msNames[itsFirst]);
-          itsNrChan += itsReaders[i]->nchan();
-          itsHasFullResFlags = (itsHasFullResFlags  &&
-                                itsReaders[i]->hasFullResFlags());
-        }
-      }
-      // Handle the bands and take care of missing MSs.
-      // Sort them if needed.
-      handleBands (nmissing);
-      // Initialize the flag counters.
-      itsFlagCounter.init (itsNrBl, itsNrChan, itsNrCorr);
     }
 
     MultiMSReader::~MultiMSReader()
@@ -145,27 +97,34 @@ namespace LOFAR {
       }
     }
 
-    void MultiMSReader::handleBands (uint nmissing)
+    void MultiMSReader::handleBands()
     {
-      if (nmissing > 0) {
-        fillBands (nmissing);
+      if (itsNMissing > 0) {
+        fillBands();
         return;
       }
       if (itsOrderMS) {
         sortBands();
       }
       // Collect the channel info of all MSs.
-      itsChanFreqs.resize  (itsNrChan);
-      itsChanWidths.resize (itsNrChan);
+      Vector<double> chanFreqs  (itsNrChan);
+      Vector<double> chanWidths (itsNrChan);
+      Vector<double> resolutions(itsNrChan);
+      Vector<double> effectiveBW(itsNrChan);
       uint inx = 0;
       for (uint i=0; i<itsReaders.size(); ++i) {
-        uint nchan = itsReaders[i]->nchan();
-        objcopy (itsChanFreqs.data()  + inx,
-                 itsReaders[i]->chanFreqs().data(),  nchan);
-        objcopy (itsChanWidths.data() + inx,
-                 itsReaders[i]->chanWidths().data(), nchan);
+        uint nchan = itsReaders[i]->getInfo().nchan();
+        objcopy (chanFreqs.data()  + inx,
+                 itsReaders[i]->getInfo().chanFreqs().data(),  nchan);
+        objcopy (chanWidths.data() + inx,
+                 itsReaders[i]->getInfo().chanWidths().data(), nchan);
+        objcopy (resolutions.data() + inx,
+                 itsReaders[i]->getInfo().resolutions().data(), nchan);
+        objcopy (effectiveBW.data() + inx,
+                 itsReaders[i]->getInfo().effectiveBW().data(), nchan);
         inx += nchan;
-      }      
+      }
+      info().set (chanFreqs, chanWidths, resolutions, effectiveBW, 0., 0.);
     }
 
     void MultiMSReader::sortBands()
@@ -174,7 +133,7 @@ namespace LOFAR {
       int nband = itsReaders.size();
       Vector<double> freqs(nband);
       for (int i=0; i<nband; ++i) {
-        freqs[i] = itsReaders[i]->chanFreqs().data()[0];
+        freqs[i] = itsReaders[i]->getInfo().chanFreqs().data()[0];
       }
       Vector<uInt> index;
       GenSortIndirect<double>::sort (index, freqs);
@@ -184,80 +143,46 @@ namespace LOFAR {
       }      
     }
 
-    void MultiMSReader::fillBands (uint nmissing)
+    void MultiMSReader::fillBands()
     {
       ASSERTSTR (!itsOrderMS, "Cannot order the MSs if some are missing");
       // Get channel width (which should be the same for all bands).
-      double chanw = itsReaders[itsFirst]->chanWidths().data()[0];
+      double chanw = itsReaders[itsFirst]->getInfo().chanWidths().data()[0];
       // Get frequency for first subband.
-      double freq  = itsReaders[itsFirst]->chanFreqs().data()[0];
+      double freq  = itsReaders[itsFirst]->getInfo().chanFreqs().data()[0];
       freq -= itsFirst*itsFillNChan*chanw;
       // Add missing channels to the total nr.
-      itsNrChan += nmissing*itsFillNChan;
+      itsNrChan += itsNMissing*itsFillNChan;
       // Collect the channel info of all MSs.
-      itsChanFreqs.resize  (itsNrChan);
-      itsChanWidths.resize (itsNrChan);
+      Vector<double> chanFreqs (itsNrChan);
+      Vector<double> chanWidths(itsNrChan);
       uint inx = 0;
       // Data for a missing MS can only be inserted if all other MSs have
       // the same nr of channels and are in increasing order of freq.
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
-          ASSERTSTR (itsReaders[i]->nchan() == itsFillNChan,
+          ASSERTSTR (itsReaders[i]->getInfo().nchan() == itsFillNChan,
                      "An MS is missing; the others should have equal size");
           // Check if all channels have the same width and are consecutive.
-          const Vector<double>& freqs = itsReaders[i]->chanFreqs();
-          const Vector<double>& width = itsReaders[i]->chanWidths();
+          const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
+          const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
           ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq),
                      "Subbands should be in increasing order of frequency");
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
-          objcopy (itsChanFreqs.data()  + inx, freqs.data(), itsFillNChan);
-          objcopy (itsChanWidths.data() + inx, width.data(), itsFillNChan);
+          objcopy (chanFreqs.data()  + inx, freqs.data(), itsFillNChan);
+          objcopy (chanWidths.data() + inx, width.data(), itsFillNChan);
           inx += itsFillNChan;
         } else {
           // Insert channel info for missing MSs.
           for (uint j=0; j<itsFillNChan; ++j) {
-            itsChanFreqs[inx]  = freq;
-            itsChanWidths[inx] = chanw;
+            chanFreqs[inx]  = freq;
+            chanWidths[inx] = chanw;
             freq += chanw;
             inx++;
           }
         }
       }
-    }
-
-    void MultiMSReader::getFreqInfo (Vector<double>& freq,
-                                     Vector<double>& width,
-                                     Vector<double>& effBW,
-                                     Vector<double>& resolution,
-                                     double& refFreq) const
-    {
-      freq.resize (itsNrChan);
-      width.resize (itsNrChan);
-      effBW.resize (itsNrChan);
-      resolution.resize (itsNrChan);
-      IPosition s(1,0);
-      IPosition e(1,0);
-      double rf;
-      for (uint i=0; i<itsReaders.size(); ++i) {
-        if (itsReaders[i]) {
-          e[0] = s[0] + itsReaders[i]->nchan() - 1;
-          Vector<double> subfreq (freq(s,e));
-          Vector<double> subwidth (width(s,e));
-          Vector<double> subeffBW (effBW(s,e));
-          Vector<double> subresolution (resolution(s,e));
-          itsReaders[i]->getFreqInfo (subfreq, subwidth,
-                                      subeffBW, subresolution, rf);
-        } else {
-          e[0] = s[0] + itsFillNChan - 1;
-          freq(s,e)       = itsChanFreqs(s,e);
-          width(s,e)      = itsChanWidths(s,e);
-          effBW(s,e)      = itsChanWidths(s,e);
-          resolution(s,e) = itsChanWidths(s,e);
-        }
-        s[0] = e[0] + 1;
-      }
-      // Take the middle channel for the reference frequency.
-      refFreq = freq[freq.size()/2];
+      info().set (chanFreqs, chanWidths);
     }
 
     bool MultiMSReader::process (const DPBuffer& buf)
@@ -267,9 +192,10 @@ namespace LOFAR {
         return false;   // end of input
       }
       const DPBuffer& buf1 = itsReaders[itsFirst]->getBuffer();
-      itsBuffer.setTime   (buf1.getTime());
-      itsBuffer.setRowNrs (buf1.getRowNrs());
-      itsBuffer.setUVW    (buf1.getUVW());
+      itsBuffer.setTime     (buf1.getTime());
+      itsBuffer.setExposure (buf1.getExposure());
+      itsBuffer.setRowNrs   (buf1.getRowNrs());
+      itsBuffer.setUVW      (buf1.getUVW());
       // Size the buffers.
       if (itsReadVisData) {
         itsBuffer.getData().resize (IPosition(3, itsNrCorr,
@@ -277,7 +203,7 @@ namespace LOFAR {
       }
       itsBuffer.getFlags().resize (IPosition(3, itsNrCorr,
                                              itsNrChan, itsNrBl));
-      // Lopp through all readers and get data and flags.
+      // Loop through all readers and get data and flags.
       IPosition s(3, 0, 0, 0);
       IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
       for (uint i=0; i<itsReaders.size(); ++i) {
@@ -290,7 +216,7 @@ namespace LOFAR {
                      "When using multiple MSs, the times in all MSs have to be "
                      "consecutive; this is not the case for MS " << i);
           // Copy data and flags.
-          e[1] = s[1] + itsReaders[i]->nchan() - 1;
+          e[1] = s[1] + itsReaders[i]->getInfo().nchan() - 1;
           if (itsReadVisData) {
             itsBuffer.getData()(s,e) = msBuf.getData();
           }
@@ -318,12 +244,58 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
-    void MultiMSReader::updateInfo (DPInfo& info)
+    void MultiMSReader::updateInfo (const DPInfo& infoIn)
     {
-      info.init (itsNrCorr, itsStartChan, itsNrChan, itsNrBl,
-                 int((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5),
-                 itsTimeInterval);
-      info.setPhaseCenter (itsPhaseCenter, true);
+      for (uint i=0; i<itsReaders.size(); ++i) {
+        if (itsReaders[i]) {
+          itsReaders[i]->updateInfo (infoIn);
+        }
+      }
+      info() = itsReaders[itsFirst]->getInfo();
+      // Use the first valid MS as the standard MS (for meta data)
+      // Get meta data and check they are equal for all MSs.
+      itsMS              = itsReaders[itsFirst]->table();
+      itsStartTime       = getInfo().startTime();
+      itsFirstTime       = itsReaders[itsFirst]->firstTime();
+      itsLastTime        = itsReaders[itsFirst]->lastTime();
+      itsTimeInterval    = getInfo().timeInterval();
+      itsSelBL           = itsReaders[itsFirst]->baselineSelection();
+      itsSpw             = itsReaders[itsFirst]->spectralWindow();
+      itsNrCorr          = getInfo().ncorr();
+      itsNrBl            = getInfo().nbaselines();
+      itsNrChan          = 0;
+      itsFillNChan       = getInfo().nchan();
+      itsStartChan       = itsReaders[itsFirst]->startChan();
+      itsFullResNChanAvg = itsReaders[itsFirst]->nchanAvg();
+      itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvg();
+      itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
+      itsBaseRowNrs      = itsReaders[itsFirst]->getBaseRowNrs();
+      for (uint i=0; i<itsMSNames.size(); ++i) {
+        if (itsReaders[i]) {
+          const DPInfo& rdinfo = itsReaders[i]->getInfo();
+          ASSERTSTR (near(itsStartTime, rdinfo.startTime())  &&
+                     near(itsLastTime, itsReaders[i]->lastTime())  &&
+                     near(itsTimeInterval, rdinfo.timeInterval())  &&
+                     itsNrCorr == rdinfo.ncorr()  &&
+                     itsNrBl   == rdinfo.nbaselines()  &&
+                     itsFullResNChanAvg == rdinfo.nchanAvg()  &&
+                     itsFullResNTimeAvg == rdinfo.ntimeAvg()  &&
+                     allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
+                     allEQ (getInfo().getAnt2(), rdinfo.getAnt2()),
+                     "Meta data of MS " << itsMSNames[i]
+                     << " differs from " << itsMSNames[itsFirst]);
+          itsNrChan += rdinfo.nchan();
+          itsHasFullResFlags = (itsHasFullResFlags  &&
+                                itsReaders[i]->hasFullResFlags());
+        }
+      }
+      // Handle the bands and take care of missing MSs.
+      // Sort them if needed.
+      handleBands();
+      // Set correct nr of channels.
+      info().setNChan (itsNrChan);
+      // Initialize the flag counters.
+      itsFlagCounter.init (getInfo());
     }
 
     void MultiMSReader::show (std::ostream& os) const
@@ -390,7 +362,7 @@ namespace LOFAR {
       IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
-          uint nchan = itsReaders[i]->nchan();
+          uint nchan = itsReaders[i]->getInfo().nchan();
           e[1] = s[1] + nchan-1;
           weights(s,e) = itsReaders[i]->getWeights (rowNrs, buf);
         } else {
@@ -437,7 +409,7 @@ namespace LOFAR {
       IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
-          uint nchan = itsReaders[i]->nchan();
+          uint nchan = itsReaders[i]->getInfo().nchan();
           e[1] = s[1] + nchan-1;
           data(s,e) = itsReaders[i]->getData (columnName, rowNrs);
         } else {

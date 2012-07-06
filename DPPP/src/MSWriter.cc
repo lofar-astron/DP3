@@ -53,10 +53,9 @@ namespace LOFAR {
                         const ParSet& parset, const string& prefix)
       : itsReader       (reader),
         itsInterval     (info.timeInterval()),
-        itsCopyTimeInfo (info.ntimeAvg() == 1  &&  info.phaseCenterIsOriginal()),
-        itsNrCorr       (reader->ncorr()),
+        itsNrCorr       (info.ncorr()),
         itsNrChan       (info.nchan()),
-        itsNrBl         (reader->nbaselines()),
+        itsNrBl         (info.nbaselines()),
         itsNrTimes      (info.ntime()),
         // Input can already be averaged, so take that into account.
         itsNChanAvg     (info.nchanAvg() * itsReader->nchanAvg()),
@@ -100,25 +99,8 @@ namespace LOFAR {
       // Time related info can only be copied if not averaging and if the
       // the time slot was not missing.
       Table out(itsMS(rownrs));
-      Table in;
-      bool copyTimeInfo = itsCopyTimeInfo;
-      if (buf.getRowNrs().empty()) {
-        in = itsReader->table()(itsReader->getBaseRowNrs());
-        copyTimeInfo = false;
-      } else {
-        in = itsReader->table()(buf.getRowNrs());
-      }
       // Copy the input columns that do not change.
-      copyMeta (in, out, copyTimeInfo);
-      // Write the time related values if not already copied.
-      // UVWs should be in the buffer; otherwise they were copied in CopyMeta.
-      if (!copyTimeInfo) {
-        ASSERT (! buf.getUVW().empty());
-        writeTimeInfo (out, buf.getTime(), buf.getUVW());
-      }
-      // Write 0 in the DATA_DESC_ID.
-      ScalarColumn<Int> ddCol (out, "DATA_DESC_ID");
-      ddCol.fillColumn (0);
+      writeMeta (out, buf);
       // Now write the data and flags.
       writeData (out, buf);
       return true;
@@ -356,7 +338,7 @@ namespace LOFAR {
       updateSpw (outName, info);
       // Adjust the OBSERVATION table as needed.
       updateObs (outName);
-      // ADjust the FIELD table as needed.
+      // Adjust the FIELD table as needed.
       if (! info.phaseCenterIsOriginal()) {
         updateField (outName, info);
       }
@@ -381,7 +363,7 @@ namespace LOFAR {
       }
       ASSERT (outSPW.nrow() == 1);
       // Set nr of channels.
-      ScalarColumn<int> channum(outSPW, "NUM_CHAN");
+      ScalarColumn<Int> channum(outSPW, "NUM_CHAN");
       channum.fillColumn (itsNrChan);
       // Change the column shapes.
       TableDesc tdesc = inSPW.tableDesc();
@@ -389,10 +371,6 @@ namespace LOFAR {
       makeArrayColumn (tdesc["CHAN_WIDTH"], shape, 0, outSPW);
       makeArrayColumn (tdesc["EFFECTIVE_BW"], shape, 0, outSPW);
       makeArrayColumn (tdesc["RESOLUTION"], shape, 0, outSPW);
-      // Get the original frequency info.
-      Vector<double> oldFreq, oldWidth, oldBW, oldRes;
-      double refFreq;
-      itsReader->getFreqInfo (oldFreq, oldWidth, oldBW, oldRes, refFreq);
       // Create the required column objects.
       ArrayColumn<Double> outFREQ(outSPW, "CHAN_FREQ");
       ArrayColumn<Double> outWIDTH(outSPW, "CHAN_WIDTH");
@@ -400,42 +378,12 @@ namespace LOFAR {
       ArrayColumn<Double> outRESOLUTION(outSPW, "RESOLUTION");
       ScalarColumn<Double> outTOTALBW(outSPW, "TOTAL_BANDWIDTH");
       ScalarColumn<Double> outREFFREQ(outSPW, "REF_FREQUENCY");
-      Vector<double> newFreq  (itsNrChan);
-      Vector<double> newWidth (itsNrChan);
-      Vector<double> newBW    (itsNrChan);
-      Vector<double> newRes   (itsNrChan);
-      double totalBW = 0;
-      uint first = 0;
-      // This loop assumes regularly spaced, adjacent frequency channels.
-      for (uint j=0; j<itsNrChan; ++j) { 
-        uint last = std::min (first + info.nchanAvg(), info.origNChan());
-        double sf, ef;
-        if (oldFreq[first] < oldFreq[last-1]) {
-          sf = oldFreq[first]  - 0.5*oldWidth[first];
-          ef = oldFreq[last-1] + 0.5*oldWidth[last-1];
-        } else {
-          sf = oldFreq[first]  + 0.5*oldWidth[first];
-          ef = oldFreq[last-1] - 0.5*oldWidth[last-1];
-        }
-        newFreq[j]  = 0.5 * (sf + ef);
-        newWidth[j] = abs(ef - sf);
-        double newbw = 0;
-        double newres = 0;
-        for (uint k=first; k<last; ++k) {
-          newbw  += oldBW[k];
-          newres += oldRes[k];
-        }
-        newBW[j]  = newbw;
-        newRes[j] = newres;
-        totalBW  += newbw;
-        first = last;
-      }
-      outFREQ.put      (0, newFreq);
-      outWIDTH.put     (0, newWidth);
-      outBW.put        (0, newBW);
-      outRESOLUTION.put(0, newRes);
-      outTOTALBW.put   (0, totalBW);
-      outREFFREQ.put   (0, refFreq);
+      outFREQ.put      (0, info.chanFreqs());
+      outWIDTH.put     (0, info.chanWidths());
+      outBW.put        (0, info.effectiveBW());
+      outRESOLUTION.put(0, info.resolutions());
+      outTOTALBW.put   (0, info.totalBW());
+      outREFFREQ.put   (0, info.refFreq());
       // Adjust the spwid in the DATA_DESCRIPTION.
       ScalarColumn<Int> spwCol(outDD, "SPECTRAL_WINDOW_ID");
       spwCol.put (0, 0);
@@ -445,10 +393,10 @@ namespace LOFAR {
     {
       Table outObs = Table(outName + "/OBSERVATION", Table::Update);
       // Set nr of channels.
-      ArrayColumn<double> timeRange(outObs, "TIME_RANGE");
+      ArrayColumn<Double> timeRange(outObs, "TIME_RANGE");
       Vector<double> times(2);
-      times[0] = itsReader->firstTime() - 0.5 * itsReader->timeInterval();
-      times[1] = itsReader->lastTime()  + 0.5 * itsReader->timeInterval();
+      times[0] = itsReader->firstTime() - 0.5 * itsReader->getInfo().timeInterval();
+      times[1] = itsReader->lastTime()  + 0.5 * itsReader->getInfo().timeInterval();
       // There should be one row, but loop in case of.
       for (uint i=0; i<outObs.nrow(); ++i) {
         timeRange.put (i, times);
@@ -468,8 +416,8 @@ namespace LOFAR {
     {
       Table histtab(ms.keywordSet().asTable("HISTORY"));
       histtab.reopenRW();
-      ScalarColumn<double> time        (histtab, "TIME");
-      ScalarColumn<int>    obsId       (histtab, "OBSERVATION_ID");
+      ScalarColumn<Double> time        (histtab, "TIME");
+      ScalarColumn<Int>    obsId       (histtab, "OBSERVATION_ID");
       ScalarColumn<String> message     (histtab, "MESSAGE");
       ScalarColumn<String> application (histtab, "APPLICATION");
       ScalarColumn<String> priority    (histtab, "PRIORITY");
@@ -509,28 +457,11 @@ namespace LOFAR {
       cli.put         (rownr, clivec);
     }
 
-    void MSWriter::writeTimeInfo (Table& out, double time,
-                                  const Matrix<double>& uvws)
-    {
-      ScalarColumn<double> timeCol (out, "TIME");
-      ScalarColumn<double> tcenCol (out, "TIME_CENTROID");
-      ScalarColumn<double> intvCol (out, "INTERVAL");
-      ScalarColumn<double> expoCol (out, "EXPOSURE");
-      ArrayColumn<double>  uvwCol  (out, "UVW");
-      for (uint i=0; i<out.nrow(); ++i) {
-        timeCol.put (i, time);
-        tcenCol.put (i, time);
-        intvCol.put (i, itsInterval);
-        expoCol.put (i, itsInterval);
-      }
-      uvwCol.putColumn (uvws);
-    }
-
     void MSWriter::writeData (Table& out, const DPBuffer& buf)
     {
       ArrayColumn<Complex> dataCol(out, itsDataColName);
-      ArrayColumn<bool>    flagCol(out, "FLAG");
-      ScalarColumn<bool>   flagRowCol(out, "FLAG_ROW");
+      ArrayColumn<Bool>    flagCol(out, "FLAG");
+      ScalarColumn<Bool>   flagRowCol(out, "FLAG_ROW");
       dataCol.putColumn (buf.getData());
       flagCol.putColumn (buf.getFlags());
       // A row is flagged if no flags in the row are False.
@@ -539,11 +470,16 @@ namespace LOFAR {
       if (itsWriteFullResFlags) {
         writeFullResFlags (out, buf);
       }
-      ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
-      // Do not account for getting the weights in the timings.
-      Array<float> weights (itsReader->fetchWeights (buf, buf.getRowNrs(),
+      // Write WEIGHT_SPECTRUM and UVW.
+      ArrayColumn<Float> weightCol(out, "WEIGHT_SPECTRUM");
+      ArrayColumn<Double> uvwCol(out, "UVW");
+      // Do not account for getting the data in the timings.
+      Array<Float> weights (itsReader->fetchWeights (buf, buf.getRowNrs(),
                                                      itsTimer));
       weightCol.putColumn (weights);
+      Array<Double> uvws (itsReader->fetchUVW (buf, buf.getRowNrs(),
+                                               itsTimer));
+      uvwCol.putColumn (uvws);
     }
 
     void MSWriter::writeFullResFlags (Table& out, const DPBuffer& buf)
@@ -579,6 +515,33 @@ namespace LOFAR {
       }
       fullResCol.putColumn (chars);
     } 
+
+    void MSWriter::writeMeta (Table& out, const DPBuffer& buf)
+    {
+      // Fill ANTENNA1/2.
+      ScalarColumn<Int> ant1col(out, "ANTENNA1");
+      ScalarColumn<Int> ant2col(out, "ANTENNA2");
+      ant1col.putColumn (getInfo().getAnt1());
+      ant2col.putColumn (getInfo().getAnt2());
+      // Fill all rows that do not change.
+      fillSca<Double> (buf.getTime(), out, "TIME");
+      fillSca<Double> (buf.getTime(), out, "TIME_CENTROID");
+      fillSca<Double> (buf.getExposure(), out, "EXPOSURE");
+      fillSca<Double> (itsInterval, out, "INTERVAL");
+      fillSca<Int> (0, out, "FEED1");
+      fillSca<Int> (0, out, "FEED2");
+      fillSca<Int> (0, out, "DATA_DESC_ID");
+      fillSca<Int> (0, out, "PROCESSOR_ID");
+      fillSca<Int> (0, out, "FIELD_ID");
+      fillSca<Int> (0, out, "SCAN_NUMBER");
+      fillSca<Int> (0, out, "ARRAY_ID");
+      fillSca<Int> (0, out, "OBSERVATION_ID");
+      fillSca<Int> (0, out, "STATE_ID");
+      Array<Float> arr(IPosition(1,4));
+      arr = 1;
+      fillArr<Float> (arr, out, "SIGMA");
+      fillArr<Float> (arr, out, "WEIGHT");
+    }
 
     void MSWriter::copyMeta (const Table& in, Table& out, bool copyTimeInfo)
     {

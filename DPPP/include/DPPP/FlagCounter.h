@@ -36,7 +36,7 @@ namespace LOFAR {
   namespace DPPP {
 
     //# Forward Declarations.
-    class DPInput;
+    class DPInfo;
     class ParSet;
 
     // @ingroup NDPPP
@@ -57,14 +57,14 @@ namespace LOFAR {
 
       // The constructor creates an empty object.
       // It reads info from the parset to see if percentages have to be saved.
-      FlagCounter (DPInput*, const ParSet&, const string& prefix);
+      FlagCounter (const string& msName, const ParSet&, const string& prefix);
 
-      // Size all counters and initialize them to zero.
-      void init (uint nbaselines, uint nchan, uint ncorr);
+      // Size all counters and initialize them to zero using the sizes
+      // from the DPInfo object.
+      void init (const DPInfo& info);
 
       // Size all counters to that's sizes and initialize them to zero.
-      // and all counters initialized to zero.
-      void init (const FlagCounter& that);
+      ///      void init (const FlagCounter& that);
 
       // Increment the count per baseline.
       void incrBaseline (uint bl)
@@ -110,7 +110,7 @@ namespace LOFAR {
                         const casa::Vector<int64>& count) const;
 
       //# Data members.
-      DPInput*      itsInput;
+      const DPInfo* itsInfo;
       string        itsSaveName;
       double        itsWarnPerc;
       bool          itsShowFF;

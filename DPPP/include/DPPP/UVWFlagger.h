@@ -72,7 +72,7 @@ namespace LOFAR {
 
       // Update the general info.
       // It is used to adjust the parms if needed.
-      virtual void updateInfo (DPInfo&);
+      virtual void updateInfo (const DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;

@@ -31,6 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
 #include <DPPP/FlagCounter.h>
+#include <DPPP/BaselineSelection.h>
 #include <tables/Tables/TableIter.h>
 #include <tables/Tables/RefRows.h>
 #include <casa/Arrays/Slicer.h>
@@ -147,8 +148,8 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info (by initializing it).
-      virtual void updateInfo (DPInfo&);
+      // Update the general info.
+      virtual void updateInfo (const DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;
@@ -217,13 +218,6 @@ namespace LOFAR {
       uint startChan() const
         { return itsStartChan; }
 
-      // Get the frequency information (used by the writer).
-      virtual void getFreqInfo (casa::Vector<double>& freq,
-                                casa::Vector<double>& width,
-                                casa::Vector<double>& effBW,
-                                casa::Vector<double>& resolution,
-                                double& refFreq) const;
-
       // Get the nr of averaged full resolution channels.
       uint nchanAvg() const
         { return itsFullResNChanAvg; }
@@ -244,6 +238,9 @@ namespace LOFAR {
       // Return the first and last time and the interval.
       void prepare (double& firstTime, double& lastTime,
                     double& interval);
+
+      // Do the rest of the preparation.
+      void prepare2();
 
       // Skip the first times in the MS in case a start time was given.
       // If needed, it sets itsFirstTime properly.
@@ -273,7 +270,12 @@ namespace LOFAR {
       bool                itsUseAllChan;    //# all channels (i.e. no slicer)?
       bool                itsMissingData;   //# allow missing data column?
       int                 itsSpw;           //# spw (band) to use (<0 no select)
+      uint                itsNrBl;
+      uint                itsNrCorr;
+      uint                itsNrChan;
       uint                itsStartChan;
+      double              itsTimeInterval;
+      double              itsStartTime;
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;

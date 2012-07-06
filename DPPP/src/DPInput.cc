@@ -42,73 +42,6 @@ namespace LOFAR {
       return String();
     }
 
-    Vector<double> DPInput::chanFreqs (uint nchanAvg) const
-    {
-      uint nchan = itsChanFreqs.size() / nchanAvg;
-      Vector<double> freqs(nchan); 
-      for (uint i=0; i<nchan; ++i) {
-        freqs[i] = 0.5 * (itsChanFreqs[i*nchanAvg] +
-                          itsChanFreqs[(i+1)*nchanAvg - 1]);
-      }
-      return freqs;
-    }
-
-    Vector<double> DPInput::chanWidths (uint nchanAvg) const
-    {
-      uint nchan = itsChanWidths.size() / nchanAvg;
-      Vector<double> widths(nchan);
-      widths = 0.;
-      int inx = 0;
-      for (uint i=0; i<nchan; ++i) {
-        for (uint j=0; j<nchanAvg; ++j) {
-          widths[i] += itsChanWidths[inx];
-          inx++;
-        }
-      }
-      return widths;
-    }
-
-    const vector<double>& DPInput::getBaselineLengths() const
-    {
-      // Calculate the baseline lengths if not done yet.
-      if (itsBLength.empty()) {
-        // First get the antenna positions.
-        const vector<MPosition>& antPos = antennaPos();
-        vector<Vector<double> > antVec;
-        antVec.reserve (antPos.size());
-        for (vector<MPosition>::const_iterator iter = antPos.begin();
-             iter != antPos.end(); ++iter) {
-          // Convert to ITRF and keep as x,y,z in m.
-          antVec.push_back
-           (MPosition::Convert(*iter, MPosition::ITRF)().getValue().getValue());
-        }
-        // Fill in the length of each baseline.
-        vector<double> blength;
-        itsBLength.reserve (itsAnt1.size());
-        for (uint i=0; i<itsAnt1.size(); ++i) {
-          Array<double> diff(antVec[itsAnt2[i]] - antVec[itsAnt1[i]]);
-          itsBLength.push_back (sqrt(sum(diff*diff)));
-        }
-      }
-      return itsBLength;
-    }
-
-    const vector<int>& DPInput::getAutoCorrIndex() const
-    {
-      if (itsAutoCorrIndex.empty()) {
-        int nant = 1 + std::max(max(itsAnt1), max(itsAnt2));
-        itsAutoCorrIndex.resize (nant);
-        std::fill (itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
-        // Keep the baseline table index for the autocorrelations.
-        for (uint i=0; i<itsAnt1.size(); ++i) {
-          if (itsAnt1[i] == itsAnt2[i]) {
-            itsAutoCorrIndex[itsAnt1[i]] = i;
-          }
-        }
-      }
-      return itsAutoCorrIndex;
-    }
-
     Cube<bool> DPInput::fetchFullResFlags (const DPBuffer& buf,
                                            const RefRows& rowNrs,
                                            NSTimer& timer,
@@ -179,9 +112,6 @@ namespace LOFAR {
 
     Cube<bool> DPInput::getFullResFlags (const RefRows&)
       { throw Exception ("DPInput::getFullResFlags not implemented"); }
-
-    ///    Cube<Complex> DPInput::getData (const String&, const RefRows&)
-    ///      { throw Exception ("DPInput::getData not implemented"); }
 
   } //# end namespace
 }

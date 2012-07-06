@@ -45,13 +45,12 @@ namespace LOFAR {
   namespace DPPP {
 
     FlagCounter::FlagCounter()
-      : itsInput  (0),
+      : itsInfo   (0),
         itsShowFF (false)
     {}
 
-    FlagCounter::FlagCounter (DPInput* input,
+    FlagCounter::FlagCounter (const string& msName,
                               const ParSet& parset, const string& prefix)
-      : itsInput (input)
     {
       itsWarnPerc = parset.getDouble (prefix+"warnperc", 0);
       itsShowFF   = parset.getBool   (prefix+"showfullyflagged", false);
@@ -67,7 +66,7 @@ namespace LOFAR {
         }
         // Use the MS name as the name.
         // If no path is given, use the path of the MS (use . if no path).
-        string name = input->msName();
+        string name = msName;
         pos = name.rfind ('/');
         if (path.empty()) {
           if (pos == string::npos) {
@@ -85,21 +84,24 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::init (uint nbaselines, uint nchan, uint ncorr)
+    void FlagCounter::init (const DPInfo& info)
     {
-      itsBLCounts.resize (nbaselines);
-      itsChanCounts.resize (nchan);
-      itsCorrCounts.resize (ncorr);
+      itsInfo = &info;
+      itsBLCounts.resize (info.nbaselines());
+      itsChanCounts.resize (info.nchan());
+      itsCorrCounts.resize (info.ncorr());
       std::fill (itsBLCounts.begin(), itsBLCounts.end(), 0);
       std::fill (itsChanCounts.begin(),itsChanCounts.end(), 0);
       std::fill (itsCorrCounts.begin(),itsCorrCounts.end(), 0);
     }
 
+    /*
     void FlagCounter::init (const FlagCounter& that)
     {
       init (that.itsBLCounts.size(), that.itsChanCounts.size(),
             that.itsCorrCounts.size());
     }
+    */
 
     void FlagCounter::add (const FlagCounter& that)
     {
@@ -120,9 +122,9 @@ namespace LOFAR {
 
     void FlagCounter::showBaseline (ostream& os, int64 ntimes) const
     {
-      const Vector<Int>& ant1 = itsInput->getAnt1();
-      const Vector<Int>& ant2 = itsInput->getAnt2();
-      const Vector<String>& antNames = itsInput->antennaNames();
+      const Vector<Int>& ant1 = itsInfo->getAnt1();
+      const Vector<Int>& ant2 = itsInfo->getAnt2();
+      const Vector<String>& antNames = itsInfo->antennaNames();
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;
       int64 npoints = ntimes * itsChanCounts.size();
@@ -336,7 +338,7 @@ namespace LOFAR {
       ScalarColumn<Int>    statCol(tab, "Station");
       ScalarColumn<String> nameCol(tab, "Name");
       ScalarColumn<float>  percCol(tab, "Percentage");
-      const Vector<String>& antNames = itsInput->antennaNames();
+      const Vector<String>& antNames = itsInfo->antennaNames();
       // Write if an antenna is used.
       for (uint i=0; i<nused.size(); ++i) {
         if (nused[i] > 0) {
@@ -360,9 +362,8 @@ namespace LOFAR {
       Table tab(newtab);
       ScalarColumn<double> freqCol(tab, "Frequency");
       ScalarColumn<float>  percCol(tab, "Percentage");
-      // Get the channel frequencies. Note that averaging might have been done.
-      int navg = itsInput->chanFreqs().size() / count.size();
-      Vector<double> chanFreqs = itsInput->chanFreqs(navg);
+      // Get the channel frequencies.
+      const Vector<double>& chanFreqs = itsInfo->chanFreqs();
       for (uint i=0; i<count.size(); ++i) {
         int rownr = tab.nrow();
         tab.addRow();

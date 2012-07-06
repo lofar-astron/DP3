@@ -70,7 +70,7 @@ namespace LOFAR {
       virtual void finish();
 
       // Update the general info.
-      virtual void updateInfo (DPInfo&);
+      virtual void updateInfo (const DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;

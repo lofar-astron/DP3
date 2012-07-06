@@ -37,9 +37,9 @@ namespace LOFAR {
     MSUpdater::MSUpdater (MSReader* reader, const ParSet& parset,
                           const string&)
       : itsReader      (reader),
-        itsNrCorr      (reader->ncorr()),
-        itsNrChan      (reader->nchan()),
-        itsNrBl        (reader->nbaselines()),
+        itsNrCorr      (reader->getInfo().ncorr()),
+        itsNrChan      (reader->getInfo().nchan()),
+        itsNrBl        (reader->getInfo().nbaselines()),
         itsNrTimes     (0)
     {
       NSTimer::StartStop sstime(itsTimer);

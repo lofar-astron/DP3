@@ -101,7 +101,7 @@ Stokes PointSource::stokes(double freq) const
 
         // Compute I * (v / v0) ^ exponent, where I is the value of Stokes
         // I at the reference frequency.
-        stokes.I *= pow10(base * exponent);
+        stokes.I *= pow(10., base * exponent);
     }
 
     if(hasRotationMeasure())

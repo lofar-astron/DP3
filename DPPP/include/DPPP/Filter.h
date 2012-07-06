@@ -1,5 +1,5 @@
-//# MultiMSReader.h: DPPP step reading from multiple MSs
-//# Copyright (C) 2011
+//# Filter.h: DPPP step to filter out baselines and channels
+//# Copyright (C) 2012
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -17,24 +17,19 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id: MultiMSReader.h 17800 2011-04-19 12:37:59Z diepen $
+//# $Id$
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_MULTIMSREADER_H
-#define DPPP_MULTIMSREADER_H
+#ifndef DPPP_FILTER_H
+#define DPPP_FILTER_H
 
 // @file
-// @brief DPPP step reading from multiple MSs
+// @brief DPPP step to filter out baselines and channels
 
-#include <DPPP/MSReader.h>
+#include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/UVWCalculator.h>
-#include <DPPP/FlagCounter.h>
-#include <tables/Tables/TableIter.h>
-#include <tables/Tables/RefRows.h>
-#include <casa/Arrays/Slicer.h>
-#include <Common/lofar_vector.h>
+#include <DPPP/BaselineSelection.h>
 
 namespace LOFAR {
 
@@ -125,78 +120,45 @@ namespace LOFAR {
     //  </tr>
     // </table>
 
-    class MultiMSReader: public MSReader
+    class Filter: public DPStep
     {
     public:
+      // Default constructor.
+      Filter();
+
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
-      MultiMSReader (const vector<string>& msNames,
-                     const ParSet&, const string& prefix);
+      Filter (DPInput* input, const ParSet&, const string& prefix);
 
-      virtual ~MultiMSReader();
+      virtual ~Filter();
 
       // Process the next data chunk.
-      // It returns false when at the end.
+      // When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info (by initializing it).
+      // Update the general info.
       virtual void updateInfo (const DPInfo&);
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // If needed, show the flag counts.
-      virtual void showCounts (std::ostream&) const;
-
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-      // Read the UVW at the given row numbers.
-      virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
-
-      // Read the weights at the given row numbers.
-      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs,
-                                            const DPBuffer& buf);
-
-      // Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
-      // It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
-      // If undefined, an empty array is returned.
-      virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
-
-      // Read the given data column at the given row numbers.
-      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
-                                                 const casa::RefRows& rowNrs);
-
-      // Tell if the visibility data are to be read.
-      virtual void setReadVisData (bool readVisData);
-
     private:
-      // Combine all cubes in the vector to a single one.
-      void combineFullResFlags (const vector<casa::Cube<bool> >& vec,
-                                casa::Cube<bool>& flags) const;
-
-      // Handle the info for all bands.
-      void handleBands();
-
-      // Sort the bands (MSs) inorder of frequency.
-      void sortBands();
-
-      // Fill the band info where some MSs are missing.
-      void fillBands();
-
       //# Data members.
-      bool                  itsOrderMS;   //# sort multi MS in order of freq?
-      int                   itsFirst;     //# first valid MSReader (<0 = none)
-      int                   itsNMissing;  //# nr of missing MSs
-      vector<string>        itsMSNames;
-      vector<MSReader*>     itsReaders;   //# same as itsSteps
-      vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
-      uint                  itsFillNChan; //# nr of chans for missing MSs
-      casa::Cube<bool>      itsFullResCube;  //# FullResFlags for missing MSs
-      FlagCounter           itsFlagCounter;
+      DPInput*          itsInput;
+      string            itsName;
+      DPBuffer          itsBuf;
+      casa::String      itsStartChanStr;  //# startchan expression
+      casa::String      itsNrChanStr;     //# nchan expression
+      BaselineSelection itsBaselines;
+      uint              itsStartChan;
+      vector<uint>      itsSelBL;         //# Index of baselines to select
+      NSTimer           itsTimer;
     };
 
   } //# end namespace

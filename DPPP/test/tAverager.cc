@@ -84,10 +84,16 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (DPInfo& info)
-    // Use startchan=8 and timeInterval=5
-    { info.init (itsNCorr, 8, itsNChan, itsNBl, itsNTime, 5); }
-
+  virtual void updateInfo (const DPInfo&)
+  {
+    // Use timeInterval=5
+    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string());
+    // Define the frequencies.
+    Vector<double> chanFreqs(itsNChan);
+    Vector<double> chanWidth(itsNChan, 100000.);
+    indgen (chanFreqs, 1050000., 100000.);
+    info().set (chanFreqs, chanWidth);
+  }
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };
@@ -159,9 +165,8 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (DPInfo& info)
+  virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (info.startChan()==8);
     ASSERT (int(info.origNChan())==itsNChan);
     ASSERT (int(info.nchan())==1+(itsNChan-1)/itsNAvgChan);
     ASSERT (int(info.ntime())==1+(itsNTime-1)/itsNAvgTime);
@@ -233,10 +238,16 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (DPInfo& info)
-    // Use startchan=0 and timeInterval=5
-    { info.init (itsNrCorr, 0, itsNrChan, itsNrBl, itsNrTime, 5); }
-
+  virtual void updateInfo (const DPInfo&)
+  {
+    // Use timeInterval=5
+    info().init (itsNrCorr, itsNrChan, itsNrTime, 100, 5, string());
+    // Define the frequencies.
+    Vector<double> chanFreqs(itsNrChan);
+    Vector<double> chanWidth(itsNrChan, 100000.);
+    indgen (chanFreqs, 1050000., 100000.);
+    info().set (chanFreqs, chanWidth);
+  }
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
   Cube<bool> itsFullResFlags;
 };
@@ -300,9 +311,8 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (DPInfo& info)
+  virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (info.startChan()==0);
     ASSERT (int(info.origNChan())==itsNrChan);
     ASSERT (info.nchan()==1);
     ASSERT (info.ntime()==1);
@@ -415,9 +425,8 @@ private:
 
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (DPInfo& info)
+  virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (info.startChan()==0);
     ASSERT (int(info.origNChan())==itsNrChan);
     ASSERT (info.nchan()==1);
     ASSERT (info.ntime()==1);
@@ -434,12 +443,7 @@ private:
 void execute (const DPStep::ShPtr& step1)
 {
   // Set DPInfo.
-  DPInfo info;
-  DPStep::ShPtr step = step1;
-  while (step) {
-    step->updateInfo (info);
-    step = step->getNextStep();
-  }
+  step1->setInfo (DPInfo());
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -567,6 +571,7 @@ int main()
     test1(10, 3, 30, 1, 3, 3, false);
     test1(11, 3, 30, 2, 3, 3, false);
     test1(10, 3, 32, 4, 1, 32, false);
+    test1(10, 3, 32, 1, 1, 1, false);
     test2(10, 3, 32, 2, true);
     test2(10, 3, 32, 2, false);
     test3(1, 1);

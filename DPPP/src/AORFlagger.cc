@@ -76,7 +76,7 @@ namespace LOFAR {
         itsNTimes      (0),
         itsNTimesToDo  (0),
         itsMemoryNeeded(0),
-        itsFlagCounter (input, parset, prefix+"count."),
+        itsFlagCounter (input->msName(), parset, prefix+"count."),
         itsMoveTime    (0),
         itsFlagTime    (0),
         itsQualTime    (0),
@@ -120,10 +120,11 @@ namespace LOFAR {
       os << "  max memory used " << itsMemoryNeeded << std::endl;
     }
 
-    void AORFlagger::updateInfo (DPInfo& info)
+    void AORFlagger::updateInfo (const DPInfo& infoIn)
     {
-      info.setNeedVisData();
-      info.setNeedWrite();
+      info() = infoIn;
+      info().setNeedVisData();
+      info().setNeedWrite();
       // Get nr of threads.
 #ifdef _OPENMP
       uint nthread = omp_get_max_threads();
@@ -148,7 +149,7 @@ namespace LOFAR {
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(Complex) + sizeof(bool)) *
-        (info.nbaselines() + 3*nthread) * info.nchan() * info.ncorr();
+        (infoIn.nbaselines() + 3*nthread) * infoIn.nchan() * infoIn.ncorr();
       // If no overlap percentage is given, set it to 1%.
       if (itsOverlapPerc < 0  &&  itsOverlap == 0) {
 	itsOverlapPerc = 1;
@@ -168,9 +169,9 @@ namespace LOFAR {
         itsWindowSize = uint(std::max(1., nt-2*itsOverlap));
 	// Make the window size divide the nr of times nicely (if known).
 	// In that way we cannot have a very small last window.
-	if (info.ntime() > 0) {
-	  uint nwindow = 1 + (info.ntime() - 1) / itsWindowSize;
-	  itsWindowSize = 1 + (info.ntime() - 1) / nwindow;
+	if (infoIn.ntime() > 0) {
+	  uint nwindow = 1 + (infoIn.ntime() - 1) / itsWindowSize;
+	  itsWindowSize = 1 + (infoIn.ntime() - 1) / nwindow;
 	  if (itsOverlapPerc > 0) {
 	    uint overlap = uint(itsOverlapPerc*itsWindowSize/100 + 0.5);
 	    if (overlap < itsOverlap) {
@@ -192,10 +193,10 @@ namespace LOFAR {
       // Size the buffer (need overlap on both sides).
       itsBuf.resize (itsWindowSize + 2*itsOverlap);
       // Initialize the flag counters.
-      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
-      itsNTimesToDo = info.ntime();
+      itsFlagCounter.init (getInfo());
+      itsNTimesToDo = infoIn.ntime();
       // Size the RFI statistics.
-      itsFreqs = itsInput->chanFreqs(info.nchanAvg());
+      itsFreqs = infoIn.chanFreqs();
       if (itsDoRfiStats) {
         for (int i=0; i<4; ++i) {
           itsRfiStats.InitializeBand (0, itsFreqs.data(), itsFreqs.size());
@@ -290,15 +291,15 @@ namespace LOFAR {
       uint ncorr  = itsBuf[0].getData().shape()[0];
       ASSERTSTR (ncorr==4, "AOFlagger can only handle all 4 correlations");
       // Get antenna numbers in case applyautocorr is true.
-      const Vector<Int>& ant1 = itsInput->getAnt1();
-      const Vector<Int>& ant2 = itsInput->getAnt2();
+      const Vector<Int>& ant1 = getInfo().getAnt1();
+      const Vector<Int>& ant2 = getInfo().getAnt2();
       itsComputeTimer.start();
       // Now flag each baseline for this time window.
       // The baselines can be processed in parallel.
 #pragma omp parallel
       {
 	// Create thread-private counter object.
-        FlagCounter counter;
+        FlagCounter counter (itsFlagCounter);
 	// Create thread-private strategy object.
 	rfiStrategy::Strategy strategy;
 	fillStrategy (strategy);
@@ -313,7 +314,6 @@ namespace LOFAR {
 	// GCC-4.3 only supports OpenMP 2.5 that needs signed iteration
 	// variables.
 	for (int ib=0; ib<nrbl; ++ib) {
-	  counter.init (itsFlagCounter);
 	  // Do autocorrelations only if told so.
           if (ant1[ib] == ant2[ib]) {
             if (itsDoAutoCorr) {
@@ -325,9 +325,11 @@ namespace LOFAR {
                           counter, strategy, rfiStats);
           }
         } // end of OMP for
-        if (itsDoRfiStats) {
-#pragma omp critical(aorflagger_updaterfistats)
-          {
+#pragma omp critical(aorflagger_updatecounts)
+        {
+          // Add the counters to the overall object.
+          itsFlagCounter.add (counter);
+          if (itsDoRfiStats) {
 	    itsQualityTimer.stop();
             // Add the rfi statistics to the global object.
             itsRfiStats.Add (rfiStats);
@@ -470,10 +472,8 @@ namespace LOFAR {
         addStats (rfiStats, realYY, imagYY, maskYY, origFlags, bl, 3);
 	qualTimer.stop();
       }
-#pragma omp critical(aorflagger_updatecounts)
+#pragma omp critical(aorflagger_updatetimers)
       {
-        // Add the counters to the overall object.
-        itsFlagCounter.add (counter);
         // Add the timings.
         itsMoveTime += moveTimer.getElapsed();
         itsFlagTime += flagTimer.getElapsed();
@@ -490,7 +490,7 @@ namespace LOFAR {
       uint imagestride = reals->Stride();
       uint maskstride = mask->Stride();
       for (uint i=0; i<itsWindowSize; ++i) {
-        rfiStats.Add (itsInput->getAnt1()[bl], itsInput->getAnt2()[bl],
+        rfiStats.Add (getInfo().getAnt1()[bl], getInfo().getAnt2()[bl],
                       itsBuf[i].getTime(), 0, polarization,
                       reals->ValuePtr (i,0), imags->ValuePtr (i,0),
                       mask->ValuePtr (i,0), origFlags->ValuePtr (i,0),

@@ -464,7 +464,6 @@ void checkFlags (const string& outName)
     ROArrayColumn<uChar> oflag(t1, "LOFAR_FULL_RES_FLAG");
     ASSERT (oflag(0).shape() == IPosition(2,2,6));
     Array<uChar> flags = oflag.getColumn();
-    cout << flags<<endl;
     ASSERT (allEQ(flags(IPosition(3,0,0,0), IPosition(3,0,3,5)), uChar(0xc5)));
     ASSERT (allEQ(flags(IPosition(3,1,0,0), IPosition(3,1,3,5)), uChar(0x01)));
     ASSERT (allEQ(flags(IPosition(3,0,4,0), IPosition(3,0,5,5)), uChar(0xff)));
@@ -587,6 +586,28 @@ void testFlags3()
   checkFlags ("tNDPPP_tmp.MS7b");
 }
 
+void testStationAdd()
+{
+  cout << endl << "** testStationAdd **" << endl;
+  // Add station RT0, 1 and 2.
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msout=tNDPPP_tmp.MSa" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[stationadd]" << endl;
+    ostr << "stationadd.stations={RTnew:[RT0..2]}" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  Table t1("tNDPPP_tmp.MS/ANTENNA");
+  Table t2("tNDPPP_tmp.MSa/ANTENNA");
+  ASSERT (t2.nrow() == t1.nrow()+1);     // 1 antenna has been added
+  ASSERT (ROScalarColumn<String>(t2,"NAME")(t2.nrow()-1) == "RTnew");
+  t1 = Table("tNDPPP_tmp.MS");
+  t2 = Table("tNDPPP_tmp.MSa");
+  ASSERT (t2.nrow() == t1.nrow()+40+12); // 2 baselines and 2 time slots added
+}
+
 void testClear()
 {
   cout << endl << "** testClear **" << endl;
@@ -646,6 +667,7 @@ int main()
     testFlags1();
     testFlags2();
     testFlags3();
+    testStationAdd();
     testClear();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;

@@ -28,7 +28,10 @@
 // @brief General info about DPPP data processing attributes like averaging
 
 #include <Common/LofarTypes.h>
+#include <Common/lofar_vector.h>
 #include <measures/Measures/MDirection.h>
+#include <measures/Measures/MPosition.h>
+#include <casa/Arrays/Vector.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -48,14 +51,50 @@ namespace LOFAR {
       DPInfo();
 
       // Set the initial info from the input.
-      void init (uint ncorr, uint startChan, uint nchan, uint nbaselines,
-                 uint ntime, double timeInterval);
+      void init (uint ncorr, uint nchan,
+                 uint ntime, double startTime, double timeInterval,
+                 const string& msName);
 
-      // Update the info from the given average factors.
+      // Set nr of channels.
+      void setNChan (uint nchan)
+        { itsNChan = nchan; }
+
+      // Set the frequency info.
+      // An empty resolutions or effectiveBW is default to chanWidths.
+      // If totalBW is 0, it is set to the sum of effectiveBW.
+      // If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
+      void set (const casa::Vector<double>& chanFreqs,
+                const casa::Vector<double>& chanWidths,
+                const casa::Vector<double>& resolutions= casa::Vector<double>(),
+                const casa::Vector<double>& effectiveBW= casa::Vector<double>(),
+                double totalBW = 0,
+                double refFreq = 0);
+
+      // Set array info.
+      void set (const casa::MPosition& arrayPos,
+                const casa::MDirection& phaseCenter,
+                const casa::MDirection& delayCenter,
+                const casa::MDirection& tileBeamDir);
+
+      // Set the info for the given antennae and baselines.
+      void set (const casa::Vector<casa::String>& antNames,
+                const vector<casa::MPosition>& antPos,
+                const casa::Vector<casa::Int>& ant1,
+                const casa::Vector<casa::Int>& ant2);
+
+      // Set the info for the given baselines.
+      void set (const casa::Vector<casa::Int>& ant1,
+                const casa::Vector<casa::Int>& ant2);
+
+      // Update the info for the given average factors.
       // If chanAvg is higher than the actual nr of channels, it is reset.
       // The same is true for timeAvg.
       // It returns the possibly reset nr of channels to average.
       uint update (uint chanAvg, uint timeAvg);
+
+      // Update the info from the given selection parameters.
+      void update (uint startChan, uint nchan,
+                   const vector<uint>& baselines);
 
       // Set the phase center.
       // If original=true, it is set to the original phase center.
@@ -63,24 +102,56 @@ namespace LOFAR {
         { itsPhaseCenter=phaseCenter; itsPhaseCenterIsOriginal = original; }
 
       // Get the info.
+      const string& msName() const
+        { return itsMSName; }
       uint ncorr() const
         { return itsNCorr; }
-      uint startChan() const
-        { return itsStartChan; }
-      uint origNChan() const
-        { return itsOrigNChan; }
       uint nchan() const
         { return itsNChan; }
+        uint origNChan() const
+      { return itsOrigNChan; }
       uint nchanAvg() const
         { return itsChanAvg; }
       uint nbaselines() const
-        { return itsNBl; }
+        { return itsAnt1.size(); }
       uint ntime() const
         { return itsNTime; }
       uint ntimeAvg() const
         { return itsTimeAvg; }
+      double startTime() const
+        { return itsStartTime; }
       double timeInterval() const
         { return itsTimeInterval; }
+      const casa::Vector<casa::Int>& getAnt1() const
+        { return itsAnt1; }
+      const casa::Vector<casa::Int>& getAnt2() const
+        { return itsAnt2; }
+      const casa::Vector<casa::String>& antennaNames() const
+        { return itsAntNames; }
+      const vector<casa::MPosition>& antennaPos() const
+        { return itsAntPos; }
+      const casa::MPosition& arrayPos() const
+        { return itsArrayPos; }
+      const casa::MDirection& phaseCenter() const
+        { return itsPhaseCenter; }
+      bool phaseCenterIsOriginal() const
+        { return itsPhaseCenterIsOriginal; }
+      const casa::MDirection& delayCenter() const
+        { return itsDelayCenter; }
+      const casa::MDirection& tileBeamDir() const
+        { return itsTileBeamDir; }
+      const casa::Vector<double>& chanFreqs() const
+        { return itsChanFreqs; }
+      const casa::Vector<double>& chanWidths() const
+        { return itsChanWidths; }
+      const casa::Vector<double>& resolutions() const
+        { return itsResolutions; }
+      const casa::Vector<double>& effectiveBW() const
+        { return itsEffectiveBW; }
+      double totalBW() const
+        { return itsTotalBW; }
+      double refFreq() const
+        { return itsRefFreq; }
 
       // Are the visibility data needed?
       bool needVisData() const
@@ -96,26 +167,43 @@ namespace LOFAR {
       void setNeedWrite()
         { itsNeedWrite = true; }
 
-      // Get the phase center info.
-      const casa::MDirection& phaseCenter() const
-        { return itsPhaseCenter; }
-      bool phaseCenterIsOriginal() const
-        { return itsPhaseCenterIsOriginal; }
+      // Get the baseline table index of the autocorrelations.
+      // A negative value means there are no autocorrelations for that antenna.
+      const vector<int>& getAutoCorrIndex() const;
+
+      // Get the lengths of the baselines (in meters).
+      const vector<double>& getBaselineLengths() const;
 
     private:
       bool   itsNeedVisData;    //# Are the visibility data needed?
       bool   itsNeedWrite;      //# Does the last step need to write?
+      string itsMSName;
       uint   itsNCorr;
       uint   itsStartChan;
       uint   itsOrigNChan;
       uint   itsNChan;
       uint   itsChanAvg;
-      uint   itsNBl;
       uint   itsNTime;
       uint   itsTimeAvg;
+      double itsStartTime;
       double itsTimeInterval;
       casa::MDirection itsPhaseCenter;
       bool             itsPhaseCenterIsOriginal;
+      casa::MDirection itsDelayCenter;
+      casa::MDirection itsTileBeamDir;
+      casa::MPosition  itsArrayPos;
+      casa::Vector<double>       itsChanFreqs;
+      casa::Vector<double>       itsChanWidths;
+      casa::Vector<double>       itsResolutions;
+      casa::Vector<double>       itsEffectiveBW;
+      double                     itsTotalBW;
+      double                     itsRefFreq;
+      casa::Vector<casa::String> itsAntNames;
+      vector<casa::MPosition>    itsAntPos;
+      casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
+      casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
+      mutable vector<double>     itsBLength;       //# baseline lengths
+      mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
     };
 
   } //# end namespace

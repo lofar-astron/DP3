@@ -60,12 +60,13 @@ namespace LOFAR {
     PhaseShift::~PhaseShift()
     {}
 
-    void PhaseShift::updateInfo (DPInfo& info)
+    void PhaseShift::updateInfo (const DPInfo& infoIn)
     {
-      info.setNeedVisData();
-      info.setNeedWrite();
+      info() = infoIn;
+      info().setNeedVisData();
+      info().setNeedWrite();
       // Default phase center is the original one.
-      MDirection newDir(itsInput->phaseCenter());
+      MDirection newDir(itsInput->getInfo().phaseCenter());
       ////      bool original = true;
       bool original = false;
       if (! itsCenter.empty()) {
@@ -74,8 +75,8 @@ namespace LOFAR {
       }
       double newRa  = newDir.getValue().get()[0];
       double newDec = newDir.getValue().get()[1];
-      double oldRa  = info.phaseCenter().getValue().get()[0];
-      double oldDec = info.phaseCenter().getValue().get()[1];
+      double oldRa  = infoIn.phaseCenter().getValue().get()[0];
+      double oldDec = infoIn.phaseCenter().getValue().get()[1];
       Matrix<double> oldUVW(3,3);
       Matrix<double> newUVW(3,3);
       fillTransMatrix (oldUVW, oldRa, oldDec);
@@ -90,14 +91,14 @@ namespace LOFAR {
       itsXYZ[2] = tt(0,2);
       ///      cout << itsXYZ[0]<<' '<<itsXYZ[1]<<' '<<itsXYZ[2]<<" ps"<<endl;
 
-      info.setPhaseCenter (newDir, original);
+      info().setPhaseCenter (newDir, original);
       // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
-      const Vector<double>& freq = itsInput->chanFreqs(info.nchanAvg());
+      const Vector<double>& freq = infoIn.chanFreqs();
       itsFreqC.reserve (freq.size());
       for (uint i=0; i<freq.size(); ++i) {
         itsFreqC.push_back (2. * C::pi * freq[i] / C::c);
       }
-      itsPhasors.resize (info.nchan(), info.nbaselines());
+      itsPhasors.resize (infoIn.nchan(), infoIn.nbaselines());
     }
 
     void PhaseShift::show (std::ostream& os) const
@@ -136,30 +137,30 @@ namespace LOFAR {
       //# to process.
 #pragma omp parallel for
       for (int i=0; i<nbl; ++i) {
-        Complex*  __restrict__ data    = newBuf.getData().data()
-                                         + i*nchan*ncorr;
-        double*   __restrict__ uvw     = newBuf.getUVW().data() + i*3;
-        DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
-        double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
-        double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
-        double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
-        double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
-        for (int j=0; j<nchan; ++j) {
-          // Shift the phase of the data of this baseline.
-          // Convert the phase term to wavelengths (and apply 2*pi).
-          // u_wvl = u_m / wvl = u_m * freq / c
-          double phasewvl = phase * itsFreqC[j];
-          DComplex phasor(cos(phasewvl), sin(phasewvl));
-          *phasors++ = phasor;
-          for (int k=0; k<ncorr; ++k) {
-            *data = DComplex(*data) * phasor;
-            data++;
-          }
-        }
-        uvw[0] = u;
-        uvw[1] = v;
-        uvw[2] = w;
-        uvw += 3;
+	Complex*  __restrict__ data    = newBuf.getData().data() + i*nchan*ncorr;
+	double*   __restrict__ uvw     = newBuf.getUVW().data() + i*3;
+	DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
+	double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
+	double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
+	double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
+	double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
+	for (int j=0; j<nchan; ++j) {
+	  // Shift the phase of the data of this baseline.
+	  // Converting the phase term to wavelengths (and applying 2*pi)
+	  //      u_wvl = u_m / wvl = u_m * freq / c
+          // has been done once in the beginning (in updateInfo).
+	  double phasewvl = phase * itsFreqC[j];
+	  DComplex phasor(cos(phasewvl), sin(phasewvl));
+	  *phasors++ = phasor;
+	  for (int k=0; k<ncorr; ++k) {
+	    *data = DComplex(*data) * phasor;
+	    data++;
+	  }
+	}
+	uvw[0] = u;
+	uvw[1] = v;
+	uvw[2] = w;
+	uvw += 3;
       }  //# end omp parallel for
       itsTimer.stop();
       getNextStep()->process (newBuf);

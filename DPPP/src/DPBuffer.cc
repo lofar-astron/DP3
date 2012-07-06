@@ -29,7 +29,8 @@ namespace LOFAR {
   namespace DPPP {
 
     DPBuffer::DPBuffer()
-      : itsTime(0)
+      : itsTime     (0),
+        itsExposure (0)
     {}
 
     DPBuffer::DPBuffer (const DPBuffer& that)
@@ -40,7 +41,8 @@ namespace LOFAR {
     DPBuffer& DPBuffer::operator= (const DPBuffer& that)
     {
       if (this != &that) {
-        itsTime = that.itsTime;
+        itsTime     = that.itsTime;
+        itsExposure = that.itsExposure;
         itsRowNrs.reference (that.itsRowNrs);
         itsData.reference (that.itsData);
         itsAmpl.reference (that.itsAmpl);

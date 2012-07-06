@@ -46,7 +46,7 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsNTimes      (0),
-        itsFlagCounter (input, parset, prefix+"count.")
+        itsFlagCounter (input->msName(), parset, prefix+"count.")
     {
       itsRangeUVm = fillUVW (parset, prefix, "uvm", true);
       itsRangeUm  = fillUVW (parset, prefix, "um", false);
@@ -62,9 +62,6 @@ namespace LOFAR {
                  "One or more u,v,w ranges in UVWFlagger has to be filled in");
       itsCenter = parset.getStringVector (prefix+"phasecenter",
                                           vector<string>());
-      if (! itsCenter.empty()) {
-        handleCenter();
-      }
     }
 
     UVWFlagger::~UVWFlagger()
@@ -111,14 +108,19 @@ namespace LOFAR {
       }
     }
 
-    void UVWFlagger::updateInfo (DPInfo& info)
+    void UVWFlagger::updateInfo (const DPInfo& infoIn)
     {
-      info.setNeedWrite();
+      info() = infoIn;
+      info().setNeedWrite();
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.
-      itsRecWavel = itsInput->chanFreqs (info.nchanAvg()) / casa::C::c;
+      itsRecWavel = infoIn.chanFreqs() / casa::C::c;
+      // Handle the phase center (if given).
+      if (! itsCenter.empty()) {
+        handleCenter();
+      }
       // Initialize the flag counters.
-      itsFlagCounter.init (info.nbaselines(), info.nchan(), info.ncorr());
+      itsFlagCounter.init (getInfo());
     }
 
     bool UVWFlagger::process (const DPBuffer& buf)
@@ -147,8 +149,8 @@ namespace LOFAR {
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
           NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-          Vector<double> uvw = itsUVWCalc.getUVW (itsInput->getAnt1()[i],
-                                                  itsInput->getAnt2()[i],
+          Vector<double> uvw = itsUVWCalc.getUVW (getInfo().getAnt1()[i],
+                                                  getInfo().getAnt2()[i],
                                                   buf.getTime());
           uvwPtr = uvw.data();
           ///cout << "uvw = " << uvw << endl;
@@ -331,8 +333,8 @@ namespace LOFAR {
         phaseCenter = MDirection(q0, q1, type);
       }
       // Create the UVW calculator.
-      itsUVWCalc = UVWCalculator (phaseCenter, itsInput->arrayPos(),
-                                  itsInput->antennaPos());
+      itsUVWCalc = UVWCalculator (phaseCenter, getInfo().arrayPos(),
+                                  getInfo().antennaPos());
     }
 
   } //# end namespace

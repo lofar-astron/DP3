@@ -41,45 +41,42 @@ using namespace LOFAR::BBS;
 namespace LOFAR {
   namespace DPPP {
 
-    BBSExpr::BBSExpr (const DPInput& input, const string& skyName,
+    BBSExpr::BBSExpr (const DPInfo& info, const string& skyName,
                       const string& instrumentName, double elevationCutoff)
       : itsBaselineMask    (true),
         itsCorrelationMask (true),
         itsElevationCutoff (elevationCutoff)
     {
-      // Open ParmDB and SourceDB.
+      // Open the sky SourceDB/ParmDB.
       try {
         itsSourceDB = boost::shared_ptr<SourceDB>
           (new SourceDB(ParmDBMeta("casa", skyName)));
         ParmManager::instance().initCategory(SKY, itsSourceDB->getParmDB());
-      } catch (Exception &e) {
+      } catch (Exception& e) {
         THROW(Exception, "Failed to open sky model parameter database: "
-          << skyName);
+              << skyName);
       }
-
+      // Open the instrument ParmDB.
       try {
-        ParmManager::instance().initCategory(INSTRUMENT,
-                                             ParmDB(ParmDBMeta("casa",
-                                                               instrumentName)));
-      } catch (Exception &e) {
+        ParmManager::instance().initCategory
+          (INSTRUMENT, ParmDB(ParmDBMeta("casa", instrumentName)));
+      } catch (Exception& e) {
         THROW(Exception, "Failed to open instrument model parameter database: "
-          << instrumentName);
+              << instrumentName);
       }
-
-      // Create Instrument instance using the information present in DPInput.
-      initInstrument(input);
-
+      // Create Instrument instance using the information present in DPInfo.
+      initInstrument(info);
       // Store reference directions.
-      MDirection itsDelayRef = MDirection::Convert(input.delayCenter(),
-        MDirection::J2000)();
-      MDirection itsTileRef  = MDirection::Convert(input.tileBeamDir(),
-        MDirection::J2000)();
+      MDirection itsDelayRef = MDirection::Convert(info.delayCenter(),
+                                                   MDirection::J2000)();
+      MDirection itsTileRef  = MDirection::Convert(info.tileBeamDir(),
+                                                   MDirection::J2000)();
 
       // Ignore auto-correlations.
-      ASSERT(input.getAnt1().size() == input.getAnt2().size());
-      for(size_t i=0; i<input.getAnt1().size(); ++i) {
-        int ant1 = input.getAnt1()[i];
-        int ant2 = input.getAnt2()[i];
+      ASSERT(info.getAnt1().size() == info.getAnt2().size());
+      for (size_t i=0; i<info.getAnt1().size(); ++i) {
+        int ant1 = info.getAnt1()[i];
+        int ant2 = info.getAnt2()[i];
         itsBaselines.append(baseline_t(ant1, ant2));
         if (ant1 == ant2) {
           itsBaselineMask.clear (ant1, ant2);
@@ -87,7 +84,7 @@ namespace LOFAR {
       }
 
       // Use all correlations.
-      ASSERT(input.ncorr() == 4);
+      ASSERT(info.ncorr() == 4);
       itsCorrelations.append(Correlation::XX);
       itsCorrelations.append(Correlation::XY);
       itsCorrelations.append(Correlation::YX);
@@ -95,8 +92,7 @@ namespace LOFAR {
     }
 
     BBSExpr::~BBSExpr()
-    {
-    }
+    {}
 
     void BBSExpr::setOptions (const SolverOptions& lsqOptions)
     {
@@ -111,15 +107,14 @@ namespace LOFAR {
                                    lsqOptions);
     }
 
-    void BBSExpr::addModel (const string &source, const MDirection &phaseRef)
+    void BBSExpr::addModel (const string& source, const MDirection& phaseRef)
     {
       // NB: The phase reference needs to be taken from the DPInfo object,
       // because it is not necessarily equal to the phase center of the
       // observation: A PhaseShift step may have shifted the phase center
       // somewhere else.
       MDirection phaseRefJ2000 = MDirection::Convert(phaseRef,
-        MDirection::J2000)();
-
+                                                     MDirection::J2000)();
       // Define the model configuration.
       ModelConfig config;
       config.setSources (vector<string>(1, source));
@@ -141,8 +136,8 @@ namespace LOFAR {
 
       // Determine parameters to estimate and store for later reference.
       vector<string> incl(1, "DirectionalGain:*"), excl;
-      ParmGroup parms = ParmManager::instance().makeSubset(incl, excl,
-        itsModels.back()->parms());
+      ParmGroup parms = ParmManager::instance().makeSubset
+        (incl, excl, itsModels.back()->parms());
       itsModelParms.push_back(parms);
 
       // Update list of unique parameters to estimate (models can in principle
@@ -200,26 +195,26 @@ namespace LOFAR {
       }
     }
 
-    void BBSExpr::initInstrument(const DPInput &input)
+    void BBSExpr::initInstrument(const DPInfo& info)
     {
-      const size_t nStations = input.antennaNames().size();
-
-	  vector<Station::Ptr> stations;
+      const size_t nStations = info.antennaNames().size();
+      vector<Station::Ptr> stations;
       stations.reserve(nStations);
-      for (size_t i = 0; i < nStations; ++i) {
+      for (size_t i=0; i<nStations; ++i) {
         // Get station name and ITRF position.
-        casa::MPosition position = MPosition::Convert(input.antennaPos()[i],
-          MPosition::ITRF)();
+        casa::MPosition position = MPosition::Convert(info.antennaPos()[i],
+                                                      MPosition::ITRF)();
 
         // Store station information.
-        stations.push_back(Station::Ptr(new Station(input.antennaNames()(i),
-          position)));
+        stations.push_back(Station::Ptr(new Station(info.antennaNames()(i),
+                                                    position)));
       }
 
-      MPosition position = MPosition::Convert(input.arrayPos(),
+      MPosition position = MPosition::Convert(info.arrayPos(),
         MPosition::ITRF)();
       itsInstrument = Instrument::Ptr(new Instrument("LOFAR", position,
-        stations.begin(), stations.end()));
+                                                     stations.begin(),
+                                                     stations.end()));
     }
 
   } //# namespace DPPP
