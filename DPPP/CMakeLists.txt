@@ -1,6 +1,6 @@
 # $Id$
 
-lofar_package(DPPP 1.0 DEPENDS Common MS AOFlagger BBSKernel)
+lofar_package(DPPP 1.0 DEPENDS Common MS AOFlagger ParmDB)
 
 include(LofarFindPackage)
 lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)

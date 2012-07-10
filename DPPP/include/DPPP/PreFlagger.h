@@ -259,7 +259,7 @@ namespace LOFAR {
         vector<float>      itsImagMin;  //# minimum imaginary for each corr
         vector<float>      itsImagMax;  //# maximum imaginary for each corr
         vector<uint>       itsChannels; //# channels to be flagged.
-        vector<uint>       itsFlagChan; //# channels given to be flagged.
+        vector<string>     itsStrChan;  //# channel ranges to be flagged.
         vector<string>     itsStrFreq;  //# frequency ranges to be flagged
         vector<string>     itsStrTime;  //# time ranges to be flagged
         vector<string>     itsStrLST;   //# LST ranges to be flagged

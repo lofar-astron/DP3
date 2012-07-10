@@ -122,32 +122,36 @@ namespace LOFAR {
         newBuf.getUVW().reference (itsInput->fetchUVW (newBuf, rowNrs,
                                                        itsTimer));
       }
+      // Make sure no other object references the DATA and UVW arrays.
       newBuf.getData().unique();
       newBuf.getUVW().unique();
-      uint ncorr  = newBuf.getData().shape()[0];
-      uint nchan  = newBuf.getData().shape()[1];
-      uint nbl    = newBuf.getData().shape()[2];
-      DBGASSERT (itsPhasors.nrow() == nchan  &&  itsPhasors.ncolumn() == nbl);
-      Complex* data     = newBuf.getData().data();
-      double* uvw       = newBuf.getUVW().data();
-      DComplex* phasors = itsPhasors.data();
+      int ncorr  = newBuf.getData().shape()[0];
+      int nchan  = newBuf.getData().shape()[1];
+      int nbl    = newBuf.getData().shape()[2];
+      DBGASSERT (itsPhasors.nrow() == uint(nchan)  &&
+                 itsPhasors.ncolumn() == uint(nbl));
+      const double* mat1 = itsMat1.data();
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
-      for (uint i=0; i<nbl; ++i) {
-        const double* mat1 = itsMat1.data();
+#pragma omp parallel for
+      for (int i=0; i<nbl; ++i) {
+        Complex*  __restrict__ data    = newBuf.getData().data()
+                                         + i*nchan*ncorr;
+        double*   __restrict__ uvw     = newBuf.getUVW().data() + i*3;
+        DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
         double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
         double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
         double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
         double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
-        for (uint j=0; j<nchan; ++j) {
+        for (int j=0; j<nchan; ++j) {
           // Shift the phase of the data of this baseline.
           // Convert the phase term to wavelengths (and apply 2*pi).
           // u_wvl = u_m / wvl = u_m * freq / c
           double phasewvl = phase * itsFreqC[j];
           DComplex phasor(cos(phasewvl), sin(phasewvl));
           *phasors++ = phasor;
-          for (uint k=0; k<ncorr; ++k) {
+          for (int k=0; k<ncorr; ++k) {
             *data = DComplex(*data) * phasor;
             data++;
           }
@@ -156,12 +160,12 @@ namespace LOFAR {
         uvw[1] = v;
         uvw[2] = w;
         uvw += 3;
-      }
+      }  //# end omp parallel for
       itsTimer.stop();
       getNextStep()->process (newBuf);
       return true;
     }
-    
+
     void PhaseShift::finish()
     {
       // Let the next steps finish.
@@ -180,30 +184,30 @@ namespace LOFAR {
       ASSERTSTR (itsCenter.size() == 2,
                  "2 values must be given in PhaseShift phasecenter");
       ///ASSERTSTR (itsCenter.size() < 4,
-      ///"Up to 3 values can be given in UVWFlagger phasecenter");
+      ///"Up to 3 values can be given in PhaseShift phasecenter");
       MDirection phaseCenter;
       if (itsCenter.size() == 1) {
         string str = toUpper(itsCenter[0]);
         MDirection::Types tp;
         ASSERTSTR (MDirection::getType(tp, str),
                    str << " is an invalid source type"
-                   " in UVWFlagger phasecenter");
+                   " in PhaseShift phasecenter");
         return MDirection(tp);
       }
       Quantity q0, q1;
       ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
                  itsCenter[0] << " is an invalid RA or longitude"
-                 " in UVWFlagger phasecenter");
+                 " in PhaseShift phasecenter");
       ASSERTSTR (MVAngle::read (q1, itsCenter[1]),
                  itsCenter[1] << " is an invalid DEC or latitude"
-                 " in UVWFlagger phasecenter");
+                 " in PhaseShift phasecenter");
       MDirection::Types type = MDirection::J2000;
       if (itsCenter.size() > 2) {
         string str = toUpper(itsCenter[2]);
         MDirection::Types tp;
         ASSERTSTR (MDirection::getType(tp, str),
-                   str << " is an invalid direction type in UVWFlagger"
-                   " in UVWFlagger phasecenter");
+                   str << " is an invalid direction type"
+                   " in PhaseShift phasecenter");
       }
       return MDirection(q0, q1, type);
     }
@@ -213,8 +217,8 @@ namespace LOFAR {
     {
       DBGASSERT (mat.nrow()==3 && mat.ncolumn()==3);
       double sinra  = sin(ra);
-      double sindec = sin(dec);
       double cosra  = cos(ra);
+      double sindec = sin(dec);
       double cosdec = cos(dec);
       mat(0,0) = cosra;
       mat(1,0) = -sinra;

@@ -27,14 +27,21 @@
 // @file
 // @brief DPPP step class to average in time and/or freq
 
+#include <DPPP/Baseline.h>
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/Patch.h>
 #include <DPPP/PhaseShift.h>
-#include <DPPP/BBSExpr.h>
-#include <ParmDB/Axis.h>
 
 #include <casa/Arrays/Cube.h>
+#include <casa/Quanta/Quantum.h>
 #include <measures/Measures/MDirection.h>
+#include <measures/Measures/MPosition.h>
+#include <measures/Measures/MEpoch.h>
+#include <measures/Measures/MeasFrame.h>
+#include <measures/Measures/MeasConvert.h>
+#include <measures/Measures/MCDirection.h>
+#include <measures/Measures/MCPosition.h>
 
 namespace LOFAR {
 
@@ -42,6 +49,8 @@ namespace LOFAR {
     class ParSet;
 
     // @ingroup NDPPP
+
+    typedef vector<Patch::ConstPtr> PatchList;
 
     // This class is a DPStep class to subtract the strong A-team sources.
     // It is based on the demixing.py script made by Bas vd Tol and operates
@@ -76,11 +85,14 @@ namespace LOFAR {
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 
+      // Show the counts.
+      virtual void showCounts (std::ostream&) const;
+
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      casa::MDirection handleCenter(const vector<string> &center) const;
+      void initUnknowns();
 
       // Solve gains and subtract sources.
       void demix();
@@ -102,15 +114,6 @@ namespace LOFAR {
                       vector<MultiResultStep*> avgResults,
                       uint resultIndex);
 
-      // Calculate the P matrix telling how to deal with sources that will
-      // not be predicted.
-      // Those sources are the last columns in the demixing matrix.
-      vector<casa::Array<casa::DComplex> > getP
-      (const vector<casa::Array<casa::DComplex> >& factors, uint nsources);
-
-      // Make a BBS frequency axis for the given channel average factor.
-      BBS::Axis::ShPtr makeFreqAxis (uint nchanAvg);
-
       // Convert a double value to a string (with sufficient precision).
       string toString (double value) const;
 
@@ -118,35 +121,33 @@ namespace LOFAR {
       // The default input unit is degrees.
       double getAngle (const casa::String& value) const;
 
+      // Export the solutions to a ParmDB.
+      void dumpSolutions();
+
       //# Data members.
       DPInput*                 itsInput;
       string                   itsName;
       string                   itsSkyName;
       string                   itsInstrumentName;
-      double                   itsElevCutoff;   //# min source elevation (rad)
       vector<PhaseShift*>      itsPhaseShifts;
-      // Note: itsAvgSubtr is last entry in itsFirstSteps (to use OpenMP).
-      vector<DPStep::ShPtr>    itsFirstSteps;   //# phaseshift/average steps
-      vector<MultiResultStep*> itsAvgResults;   //# result of phaseshift/average
-//      DPStep::ShPtr            itsAvgSubtr;     //# average step for subtract
-      MultiResultStep*         itsAvgResultSubtr; //# result of subtract avg
-      BBSExpr                  itsBBSExpr;
-      string                   itsTargetSource; //# empty if no target model
+      //# Phase shift and average steps.
+      vector<DPStep::ShPtr>                 itsFirstSteps;
+      //# Result of phase shifting and averaging the directions of interest
+      //# at the demix resolution.
+      vector<MultiResultStep*>              itsAvgResults;
+      //# Result of averaging the target at the subtract resolution.
+      MultiResultStep*                      itsAvgResultSubtr;
+      //# Name of the target. Empty if no model is available for the target.
+      string                                itsTargetSource;
       vector<string>           itsSubtrSources;
       vector<string>           itsModelSources;
       vector<string>           itsExtraSources;
       vector<string>           itsAllSources;
-      BBS::Axis::ShPtr         itsFreqAxisDemix;
-      BBS::Axis::ShPtr         itsFreqAxisSubtr;
-      double                   itsTimeStart;
-      double                   itsTimeInterval;
-      vector<double>           itsTimeCenters;
-      vector<double>           itsTimeWidths;
-///      bool                     itsJointSolve;
-      uint                     itsNrDir;
-      uint                     itsNrModel;
-      uint                     itsNrBl;
-      uint                     itsNrCorr;
+//      vector<uint>                          itsCutOffs;
+      uint                                  itsNDir;
+      uint                                  itsNModel;
+      uint                                  itsNBl;
+      uint                                  itsNCorr;
       uint                     itsNChanIn;
       uint                     itsNTimeIn;
       uint                     itsNChanOutSubtr;
@@ -159,23 +160,49 @@ namespace LOFAR {
       uint                     itsNTimeAvg;
       uint                     itsNTimeChunk;
       uint                     itsNTimeOut;
-      double                   itsStartTimeChunk;
-      double                   itsTimeIntervalSubtr;
       double                   itsTimeIntervalAvg;
-      casa::Array<casa::DComplex> itsFactorBuf; //# ncorr,nchan,nbl,ndir*ndir
-      vector<casa::Array<casa::DComplex> > itsFactors; //# demix factors/time
-      //# each Array is basically cube(ncorr,nchan,nbl) of matrix(ndir,ndir)
-      casa::Array<casa::DComplex> itsFactorBufSubtr; //# factors for subtract
+
+      //# Accumulator used for computing the demixing weights at the demix
+      //# resolution. The shape of this buffer is #correlations x #channels
+      //# x #baselines x #directions x #directions (fastest axis first).
+      casa::Array<casa::DComplex>           itsFactorBuf;
+      //# Buffer of demixing weights at the demix resolution. Each Array is a
+      //# cube of shape #correlations x #channels x #baselines of matrices of
+      //# shape #directions x #directions.
+      vector<casa::Array<casa::DComplex> >  itsFactors;
+
+      //# Accumulator used for computing the demixing weights. The shape of this
+      //# buffer is #correlations x #channels x #baselines x #directions
+      //# x #directions (fastest axis first).
+      casa::Array<casa::DComplex>           itsFactorBufSubtr;
+      //# Buffer of demixing weights at the subtract resolution. Each Array is a
+      //# cube of shape #correlations x #channels x #baselines of matrices of
+      //# shape #directions x #directions.
       vector<casa::Array<casa::DComplex> > itsFactorsSubtr;
-      BBS::SolverOptions       itsSolveOpt;
+
+      //# Timers.
       NSTimer                  itsTimer;
       NSTimer                  itsTimerPhaseShift;
       NSTimer                  itsTimerDemix;
       NSTimer                  itsTimerSolve;
-      NSTimer                  itsTimerSubtract;
+
+      uint                                  itsNConverged;
+      uint                                  itsTimeCount;
+      PatchList                             itsPatchList;
+      vector<Baseline>                      itsBaselines;
+      casa::Vector<double>                  itsFreqDemix;
+      casa::Vector<double>                  itsFreqSubtr;
+      uint                                  itsNTimeDemix;
+      uint                                  itsNStation;
+      Position                              itsPhaseRef;
+      casa::Array<double>                   itsUnknowns;
+//      casa::Array<double>                   itsErrors;
+      casa::Array<double>                   itsLastKnowns;
+//      vector<casa::MeasFrame>               itsFrames;
+//      vector<casa::MDirection::Convert>     itsConverters;
     };
 
   } //# end namespace
-}
+} //# end namespace
 
 #endif

@@ -321,7 +321,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  parset.add ("chan", "[11..13, 4, 11]");
+  parset.add ("chan", "[11..13, 4, 11, nchan/1000+1000..1000*nchan]");
   parset.add ("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
   DPStep::ShPtr step2(new PreFlagger(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
@@ -527,10 +527,10 @@ bool checkUVMin (Complex, double, int, int, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) <= 30; }
 bool checkUVBL (Complex, double, int a1, int a2, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) >= 30 && (a1==0 || a2==0); }
-bool checkBLMax (Complex, double, int a1, int a2, const double*)
+bool checkBLMin (Complex, double, int a1, int a2, const double*)
   { return abs(a1-a2) < 2; }   // adjacent ant have bl<145
 bool checkBLMinMax (Complex, double, int a1, int a2, const double*)
-  { return abs(a1-a2) == 1; }  // adjacent ant have bl<145
+  { return abs(a1-a2) != 1; }  // adjacent ant have bl<145
 bool checkTimeSlot (Complex, double time, int, int, const double*)
   { return time<5; }
 bool checkNone (Complex, double, int, int, const double*)
@@ -574,8 +574,8 @@ void testMany()
   test6("azimuth", "86120s..86125s", "elevation", "180deg..190deg", &checkNone);
   test6("azimuth", "86120s..86125s", "elevation", "12730s..12740s", &checkAll);
   test5("lst", "0.154d..0.155d", &checkAll);
-  test5("blmax", "145", &checkBLMax);
-  test6("blmax", "145", "blmin", "10", &checkBLMinMax);
+  test5("blmin", "145", &checkBLMin);
+  test6("blmin", "10", "blmax", "145", &checkBLMinMax);
 }
 
 int main()
