@@ -35,7 +35,7 @@ Exception::TerminateHandler t(Exception::terminate);
 int main(int argc, char *argv[])
 {
   try {
-    INIT_LOGGER(basename(argv[0]));
+    INIT_LOGGER(LOFAR::basename(argv[0]));
     LOFAR::CS1::CombinerProcessControl myProcess;
     return LOFAR::ACC::PLC::ACCmain(argc, argv, &myProcess);
   } catch(Exception& ex) {
