@@ -26,6 +26,7 @@
 // \file
 // Pair of stations that together form a baseline (interferometer).
 
+#include <cstddef>
 #include <utility>
 
 namespace LOFAR
