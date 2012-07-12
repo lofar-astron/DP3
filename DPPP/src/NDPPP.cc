@@ -26,6 +26,7 @@
 #include <DPPP/Package__Version.h>
 #include <Common/LofarLogger.h>
 #include <Common/SystemUtil.h>
+#include <Common/Exception.h>
 #include <iostream>
 #include <stdexcept>
 
