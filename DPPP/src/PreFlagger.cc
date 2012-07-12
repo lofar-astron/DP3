@@ -392,8 +392,8 @@ namespace LOFAR {
           if (startch < nrchan) {
             for (uint ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
               selChan[ch] = true;
-        }
-      }
+            }
+          }
         }
       }
       // Now determine which channels to use from given frequency ranges.
@@ -1093,11 +1093,11 @@ namespace LOFAR {
 	  if (sz > 0) {
 	    // It contains a value, so set that flagging is done.
 	    doFlag = true;
-          for (uint i=0; i<sz; ++i) {
-            if (! valstr[i].empty()) {
-              result[i] = strToFloat(valstr[i]);
-            }
-          }
+	    for (uint i=0; i<sz; ++i) {
+	      if (! valstr[i].empty()) {
+		result[i] = strToFloat(valstr[i]);
+	      }
+	    }
           }
         } else {
           // A single value means use it for all correlations.

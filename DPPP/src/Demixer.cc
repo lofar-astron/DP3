@@ -231,7 +231,7 @@ namespace LOFAR {
       for(size_t i = 0; i < input->getAnt1().size(); ++i) {
         itsBaselines.push_back(Baseline(input->getAnt1()[i],
           input->getAnt2()[i]));
-    }
+      }
 
 //      while(itsCutOffs.size() < itsNModel) {
 //        itsCutOffs.push_back(0);
@@ -284,7 +284,7 @@ namespace LOFAR {
     void Demixer::updateInfo (DPInfo& info)
     {
       // Get size info.
-      itsNChanIn  = info.nchan();
+      itsNChanIn = info.nchan();
       itsNBl     = info.nbaselines();
       itsNCorr   = info.ncorr();
       itsFactorBuf.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
@@ -312,7 +312,7 @@ namespace LOFAR {
           itsNChanOut = infocp.nchan();
           itsTimeIntervalAvg = infocp.timeInterval();
         }
-        }
+      }
 
       // Update the info of this object.
       info.setNeedVisData();
@@ -322,10 +322,10 @@ namespace LOFAR {
       itsNChanOutSubtr = info.nchan();
       ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0, "Demix averaging "
         << itsNChanAvg << " must be multiple of output averaging "
-		 << itsNChanAvgSubtr);
+        << itsNChanAvgSubtr);
       ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0, "Demix averaging "
         << itsNTimeAvg << " must be multiple of output averaging "
-		 << itsNTimeAvgSubtr);
+        << itsNTimeAvgSubtr);
 
       // Store channel frequencies for the demix and subtract resolutions.
       itsFreqDemix = itsInput->chanFreqs (itsNChanAvg);
@@ -545,7 +545,7 @@ namespace LOFAR {
                 }
               }
             } // end omp parallel for
-    	  } else {
+          } else {
             // Different source directions; take both phase terms into account.
 #pragma omp parallel for
             for (int i=0; i<nbl; ++i) {
@@ -568,13 +568,13 @@ namespace LOFAR {
                 }
               }
             } // end omp parallel for
-            }
+          }
 
           // Next direction pair.
           dirnr++;
-          }
         }
       }
+    }
 
     void Demixer::makeFactors (const Array<DComplex>& bufIn,
                                Array<DComplex>& bufOut,
@@ -626,9 +626,9 @@ namespace LOFAR {
           } // end omp parallel for
           // Next input direction pair.
           dirnr++;
-          }
         }
       }
+    }
 
     void Demixer::deproject (Array<DComplex>& factors,
                              vector<MultiResultStep*> avgResults,
@@ -672,9 +672,9 @@ namespace LOFAR {
         Matrix<DComplex> ma(itsNDir, itsNModel);
         vector<DComplex> vec(itsNDir);
         ///#pragma omp for
-	for (int i=0; i<nvis; ++i) {
-	  // Split the matrix into the modeled and deprojected sources.
-	  // Copy the columns to the individual matrices.
+        for (int i=0; i<nvis; ++i) {
+          // Split the matrix into the modeled and deprojected sources.
+          // Copy the columns to the individual matrices.
           const DComplex* inptr  = factors.data() + i*itsNDir*itsNDir;
           DComplex* outptr = newFactors.data() + i*itsNDir*itsNModel;
           Matrix<DComplex> out (outShape, outptr, SHARE);
@@ -682,32 +682,32 @@ namespace LOFAR {
           // subset.
           objcopy (ma.data(), inptr, itsNDir*itsNModel);
           objcopy (a.data(), inptr + itsNDir*itsNModel, itsNDir*nrDeproject);
-	  // Calculate conjugated transpose of A, multiply with A, and invert.
+          // Calculate conjugated transpose of A, multiply with A, and invert.
           Matrix<DComplex> at(adjoint(a));
           Matrix<DComplex> ata(invert(product(at, a)));
-	  if (ata.empty()) {
-	    ata.resize (nrDeproject, nrDeproject);
-	  }
-	  DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
-	  // Calculate P = I - A * ata * A.T.conj
+          if (ata.empty()) {
+            ata.resize (nrDeproject, nrDeproject);
+          }
+          DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
+          // Calculate P = I - A * ata * A.T.conj
           Matrix<DComplex> aata(product(a,ata));
           Matrix<DComplex> p (-product(product(a, ata), at));
           Vector<DComplex> diag(p.diagonal());
-	  diag += DComplex(1,0);
-	  // Multiply the demixing factors with P (get stored in newFactors).
-	  out = product(p, ma);
-	  // Multiply the averaged data point with P.
-	  std::fill (vec.begin(), vec.end(), DComplex());
+          diag += DComplex(1,0);
+          // Multiply the demixing factors with P (get stored in newFactors).
+          out = product(p, ma);
+          // Multiply the averaged data point with P.
+          std::fill (vec.begin(), vec.end(), DComplex());
           for (uint j=0; j<itsNDir; ++j) {
             for (uint k=0; k<itsNDir; ++k) {
-	      vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
-	    }
-	  }
-	  // Put result back in averaged data for those sources.
+              vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
+            }
+          }
+          // Put result back in averaged data for those sources.
           for (uint j=0; j<itsNDir; ++j) {
-	    resultPtr[j][i] = vec[j];
-	  }
-	}
+            resultPtr[j][i] = vec[j];
+          }
+        }
       }
       // Set the new demixing factors.
       factors.reference (newFactors);
@@ -759,7 +759,7 @@ namespace LOFAR {
             copy(&(itsLastKnowns(IPosition(3, 0, 0, 0))),
                 &(itsLastKnowns(IPosition(3, 0, 0, 0))) + nDr * nSt * 8,
                 &(unknowns[i][0]));
-      }
+        }
 
         // Thread-private buffer for station UVW coordinates.
         boost::multi_array<double, 3> uvw(boost::extents[nThread][nSt][3]);

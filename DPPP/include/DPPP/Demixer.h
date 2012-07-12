@@ -125,11 +125,11 @@ namespace LOFAR {
       void dumpSolutions();
 
       //# Data members.
-      DPInput*                 itsInput;
-      string                   itsName;
-      string                   itsSkyName;
-      string                   itsInstrumentName;
-      vector<PhaseShift*>      itsPhaseShifts;
+      DPInput*                              itsInput;
+      string                                itsName;
+      string                                itsSkyName;
+      string                                itsInstrumentName;
+      vector<PhaseShift*>                   itsPhaseShifts;
       //# Phase shift and average steps.
       vector<DPStep::ShPtr>                 itsFirstSteps;
       //# Result of phase shifting and averaging the directions of interest
@@ -139,28 +139,28 @@ namespace LOFAR {
       MultiResultStep*                      itsAvgResultSubtr;
       //# Name of the target. Empty if no model is available for the target.
       string                                itsTargetSource;
-      vector<string>           itsSubtrSources;
-      vector<string>           itsModelSources;
-      vector<string>           itsExtraSources;
-      vector<string>           itsAllSources;
+      vector<string>                        itsSubtrSources;
+      vector<string>                        itsModelSources;
+      vector<string>                        itsExtraSources;
+      vector<string>                        itsAllSources;
 //      vector<uint>                          itsCutOffs;
       uint                                  itsNDir;
       uint                                  itsNModel;
       uint                                  itsNBl;
       uint                                  itsNCorr;
-      uint                     itsNChanIn;
-      uint                     itsNTimeIn;
-      uint                     itsNChanOutSubtr;
-      uint                     itsNChanAvgSubtr;
-      uint                     itsNTimeAvgSubtr;
-      uint                     itsNTimeChunkSubtr;
-      uint                     itsNTimeOutSubtr;
-      uint                     itsNChanOut;
-      uint                     itsNChanAvg;
-      uint                     itsNTimeAvg;
-      uint                     itsNTimeChunk;
-      uint                     itsNTimeOut;
-      double                   itsTimeIntervalAvg;
+      uint                                  itsNChanIn;
+      uint                                  itsNTimeIn;
+      uint                                  itsNChanOutSubtr;
+      uint                                  itsNChanAvgSubtr;
+      uint                                  itsNTimeAvgSubtr;
+      uint                                  itsNTimeChunkSubtr;
+      uint                                  itsNTimeOutSubtr;
+      uint                                  itsNChanOut;
+      uint                                  itsNChanAvg;
+      uint                                  itsNTimeAvg;
+      uint                                  itsNTimeChunk;
+      uint                                  itsNTimeOut;
+      double                                itsTimeIntervalAvg;
 
       //# Accumulator used for computing the demixing weights at the demix
       //# resolution. The shape of this buffer is #correlations x #channels
@@ -178,13 +178,13 @@ namespace LOFAR {
       //# Buffer of demixing weights at the subtract resolution. Each Array is a
       //# cube of shape #correlations x #channels x #baselines of matrices of
       //# shape #directions x #directions.
-      vector<casa::Array<casa::DComplex> > itsFactorsSubtr;
+      vector<casa::Array<casa::DComplex> >  itsFactorsSubtr;
 
       //# Timers.
-      NSTimer                  itsTimer;
-      NSTimer                  itsTimerPhaseShift;
-      NSTimer                  itsTimerDemix;
-      NSTimer                  itsTimerSolve;
+      NSTimer                               itsTimer;
+      NSTimer                               itsTimerPhaseShift;
+      NSTimer                               itsTimerDemix;
+      NSTimer                               itsTimerSolve;
 
       uint                                  itsNConverged;
       uint                                  itsTimeCount;
