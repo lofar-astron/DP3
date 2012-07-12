@@ -38,7 +38,7 @@
 #include <DPPP/PointSource.h>
 
 #include <ParmDB/Axis.h>
-#include <ParmDB/SourceDB.h>
+#include <ParmDB/SourceDBBlob.h>
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmSet.h>
 #include <ParmDB/ParmCache.h>
@@ -149,22 +149,21 @@ namespace LOFAR {
                             itsExtraSources.begin(), itsExtraSources.end());
       itsAllSources.push_back (itsTargetSource);
 
-      // Get the patch names and positions from the SourceDB table.
-      BBS::SourceDB sourceDB(BBS::ParmDBMeta("casa", itsSkyName));
-      for (uint i = 0; i < itsNModel; ++i) {
-        itsPatchList.push_back (makePatch(sourceDB, itsAllSources[i]));
-      }
-
+      // Get the source info of all patches from the SourceDB table.
+      BBS::SourceDBBlob sourceDB(BBS::ParmDBMeta("blob", itsSkyName), false);
+      vector<string> patchNames(itsAllSources);
       // If the target source is given, add it to the model.
       // Because the target source has to be the last direction, it means
       // that (for the time being) no extra sources can be given.
       if (! itsTargetSource.empty()) {
-        itsNModel++;
+        patchNames[itsNModel++] = itsTargetSource;
+        // The target has to be the last demix direction.
+        // If it has a source model, there cannot be any extra source
+        // because the sources to be predicted have to be a consecutive vector.
         ASSERTSTR (itsExtraSources.empty(), "Currently no extrasources can "
                    "be given if the targetsource is given");
-        itsPatchList.push_back(makePatch(sourceDB, itsTargetSource));
-//        itsPatchList.push_back(makePatch(itsTargetSource));
       }
+      itsPatchList = makePatches (sourceDB, patchNames, itsNModel);
       ASSERT(itsPatchList.size() == itsNModel);
 
       // Size buffers.
@@ -1066,8 +1065,8 @@ namespace LOFAR {
         - getInfo().timeInterval() * 0.5, itsTimeIntervalAvg, itsNTimeDemix));
       BBS::Grid solGrid(freqAxis, timeAxis);
 
-      // Initialize ParmDB.
-      BBS::ParmDB parmDB(BBS::ParmDBMeta("casa", itsInstrumentName));
+      // Create and initialize ParmDB.
+      BBS::ParmDB parmDB(BBS::ParmDBMeta("casa", itsInstrumentName), true);
       BBS::ParmSet parmSet;
       BBS::ParmCache parmCache(parmSet, solGrid.getBoundingBox());
 
@@ -1138,138 +1137,6 @@ namespace LOFAR {
       parmCache.flush();
     }
 
-//    namespace {
-//      void pack(const vector<size_t> &directions, size_t nBl, size_t nCh,
-//        size_t nCr, const_cursor<dcomplex> in, cursor<dcomplex> out)
-//      {
-//          const size_t nDr = directions.size();
-//          for(size_t bl = 0; bl < nBl; ++bl)
-//          {
-//            for(size_t ch = 0; ch < nCh; ++ch)
-//            {
-//              for(size_t cr = 0; cr < nCr; ++cr)
-//              {
-//                for(vector<size_t>::const_iterator dr0 = directions.begin(),
-//                  end_dr0 = directions.end(); dr0 != end_dr0; ++dr0)
-//                {
-//                  in.forward(1, *dr0);
-//                  for(vector<size_t>::const_iterator dr1 = directions.begin(),
-//                    end_dr1 = directions.end(); dr1 != end_dr1; ++dr1)
-//                  {
-//                    *out = in[*dr1];
-//                    ++out;
-//                  }
-//                  in.backward(1, *dr0);
-
-//                  out -= nDr;
-//                  out.forward(1);
-//                }
-
-//                in.forward(2);
-//                out.backward(1, nDr);
-//                out.forward(2);
-//              }
-//              in.backward(2, nCr);
-//              in.forward(3);
-//              out.backward(2, nCr);
-//              out.forward(3);
-//            }
-//            in.backward(3, nCh);
-//            in.forward(4);
-//            out.backward(3, nCh);
-//            out.forward(4);
-//          }
-//      }
-
-//      void pack(const vector<size_t> &directions, size_t nStation,
-//        const_cursor<double> in, double *out)
-//      {
-//        for(vector<size_t>::const_iterator dr = directions.begin(),
-//          end_dr = directions.end(); dr != end_dr; ++dr)
-//        {
-//          in.forward(2, *dr);
-//          for(size_t st = 0; st < nStation; ++st)
-//          {
-//            for(size_t i = 0; i < 8; ++i)
-//            {
-//              *out++ = *in;
-//              ++in;
-//            }
-//            in -= 8;
-//            in.forward(1);
-//          }
-//          in.backward(1, nStation);
-//          in.backward(2, *dr);
-//        }
-//      }
-
-//      void unpack(const vector<size_t> &directions, size_t nStation,
-//        const double *in, cursor<double> out)
-//      {
-//        for(vector<size_t>::const_iterator dr = directions.begin(),
-//          end_dr = directions.end(); dr != end_dr; ++dr)
-//        {
-//          out.forward(2, *dr);
-//          for(size_t st = 0; st < nStation; ++st)
-//          {
-//            for(size_t i = 0; i < 8; ++i)
-//            {
-//              *out = *in++;
-//              ++out;
-//            }
-//            out -= 8;
-//            out.forward(1);
-//          }
-//          out.backward(1, nStation);
-//          out.backward(2, *dr);
-//        }
-//      }
-
-//      Patch::Ptr makePatch(const string &name)
-//      {
-//        string fname = name + ".mdl";
-//        ifstream inf(fname.c_str());
-
-//        size_t nComponents = 0;
-//        inf >> nComponents;
-//        ASSERT(inf);
-
-//        vector<ModelComponent::Ptr> components;
-//        components.reserve(nComponents);
-//        for(size_t i = 0; i < nComponents; ++i)
-//        {
-//          Position position;
-//          inf >> position[0] >> position[1];
-
-//          Stokes stokes;
-//          inf >> stokes.I >> stokes.Q >> stokes.U >> stokes.V;
-
-//          PointSource::Ptr component(new PointSource(position, stokes));
-
-//          double freq = 0.0;
-//          inf >> freq;
-
-//          size_t nSI = 0;
-//          inf >> nSI;
-
-//          vector<double> si(nSI, 0.0);
-//          if(nSI > 0)
-//          {
-//            for(size_t j = 0; j < nSI; ++j)
-//            {
-//              inf >> si[j];
-//            }
-//            component->setSpectralIndex(freq, si.begin(), si.end());
-//          }
-
-//          ASSERT(inf);
-//          components.push_back(component);
-//        }
-
-//        return Patch::Ptr(new Patch(name, components.begin(),
-//            components.end()));
-//      }
-//    } //# end unnamed namespace
 
   } //# end namespace DPPP
 } //# end namespace LOFAR

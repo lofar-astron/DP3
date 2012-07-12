@@ -25,54 +25,52 @@
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/PointSource.h>
 #include <DPPP/GaussianSource.h>
-#include <ParmDB/SourceDB.h>
+#include <ParmDB/SourceDBBlob.h>
 #include <Common/LofarLogger.h>
+#include <Common/lofar_vector.h>
 
 namespace LOFAR
 {
 namespace DPPP
 {
-using BBS::SourceDB;
-using BBS::ParmDB;
-using BBS::ParmValue;
-using BBS::ParmValueSet;
+using BBS::SourceDBBlob;
+using BBS::SourceData;
 using BBS::SourceInfo;
 
-namespace
-{
-// Retrieve the value of the parameter \p name from the default value table of
-// \p parmDB. If no default value can be found, \p value will be returned.
-double getDefaultParmValue(const ParmDB &parmDB, const string &name,
-    const double value = 0.0);
-} // Unnamed namespace.
 
-Patch::Ptr makePatch(SourceDB &sourceDB, const string &name)
+vector<Patch::ConstPtr> makePatches(SourceDBBlob &sourceDB,
+                                    const vector<string> &patchNames,
+                                    uint nModel)
 {
-    ParmDB &parmDB = sourceDB.getParmDB();
-    vector<SourceInfo> sourceList = sourceDB.getPatchSources(name);
+  // Create a component list for each patch name.
+  vector<vector<ModelComponent::Ptr> > componentsList(nModel);
 
-    vector<ModelComponent::Ptr> components;
-    components.reserve(sourceList.size());
-    for(vector<SourceInfo>::const_iterator it = sourceList.begin(),
-        end = sourceList.end(); it != end; ++it)
-    {
+  // Loop over all sources.
+  sourceDB.rewind();
+  SourceData src;
+  while (! sourceDB.atEnd()) {
+    sourceDB.getNextSource (src);
+    // Use the source if its patch matches a patch name.
+    for (uint i=0; i<nModel; ++i) {
+      if (src.getPatchName() == patchNames[i]) {
         // Fetch position.
+        ASSERT (src.getInfo().getRefType() == "J2000");
         Position position;
-        position[0] = getDefaultParmValue(parmDB, "Ra:" + it->getName());
-        position[1] = getDefaultParmValue(parmDB, "Dec:" + it->getName());
+        position[0] = src.getRa();
+        position[1] = src.getDec();
 
         // Fetch stokes vector.
         Stokes stokes;
-        stokes.I = getDefaultParmValue(parmDB, "I:" + it->getName());
-        stokes.V = getDefaultParmValue(parmDB, "V:" + it->getName());
-        if(!it->getUseRotationMeasure())
+        stokes.I = src.getI();
+        stokes.V = src.getV();
+        if(!src.getInfo().getUseRotationMeasure())
         {
-            stokes.Q = getDefaultParmValue(parmDB, "Q:" + it->getName());
-            stokes.U = getDefaultParmValue(parmDB, "U:" + it->getName());
+          stokes.Q = src.getQ();
+          stokes.U = src.getU();
         }
 
         PointSource::Ptr source;
-        switch(it->getType())
+        switch(src.getInfo().getType())
         {
         case SourceInfo::POINT:
             {
@@ -85,14 +83,11 @@ Patch::Ptr makePatch(SourceDB &sourceDB, const string &name)
                 GaussianSource::Ptr gauss(new GaussianSource(position, stokes));
 
                 const double deg2rad = (casa::C::pi / 180.0);
-                gauss->setPositionAngle(getDefaultParmValue(parmDB,
-                    "Orientation:" + it->getName()) * deg2rad);
+                gauss->setPositionAngle(src.getOrientation() * deg2rad);
 
                 const double arcsec2rad = (casa::C::pi / 3600.0) / 180.0;
-                gauss->setMajorAxis(getDefaultParmValue(parmDB, "MajorAxis:"
-                     + it->getName()) * arcsec2rad);
-                gauss->setMinorAxis(getDefaultParmValue(parmDB, "MinorAxis:"
-                    + it->getName()) * arcsec2rad);
+                gauss->setMajorAxis(src.getMajorAxis() * arcsec2rad);
+                gauss->setMinorAxis(src.getMinorAxis() * arcsec2rad);
                 source = gauss;
             }
             break;
@@ -105,53 +100,38 @@ Patch::Ptr makePatch(SourceDB &sourceDB, const string &name)
         }
 
         // Fetch spectral index attributes (if applicable).
-        size_t nTerms = it->getSpectralIndexNTerms();
-        if(nTerms > 0)
-        {
-            vector<double> terms;
-            terms.reserve(nTerms);
-
-            ostringstream oss;
-            for(size_t i = 0; i < nTerms; ++i)
-            {
-                oss << "SpectralIndex:" << i << ":" << it->getName();
-                terms.push_back(getDefaultParmValue(parmDB, oss.str()));
-            }
-
-            source->setSpectralIndex(it->getSpectralIndexRefFreq(),
-                terms.begin(), terms.end());
+        if (src.getSpectralIndex().size() > 0) {
+          source->setSpectralIndex(src.getInfo().getSpectralIndexRefFreq(),
+                                   src.getSpectralIndex().begin(),
+                                   src.getSpectralIndex().end());
         }
 
         // Fetch rotation measure attributes (if applicable).
-        if(it->getUseRotationMeasure())
+        if(src.getInfo().getUseRotationMeasure())
         {
-            source->setPolarizedFraction(getDefaultParmValue(parmDB,
-                "PolarizedFraction:" + it->getName()));
-            source->setPolarizationAngle(getDefaultParmValue(parmDB,
-                "PolarizationAngle:" + it->getName()));
-            source->setRotationMeasure(getDefaultParmValue(parmDB,
-                "RotationMeasure:" + it->getName()));
+          source->setPolarizedFraction(src.getPolarizedFraction());
+          source->setPolarizationAngle(src.getPolarizationAngle());
+          source->setRotationMeasure(src.getRotationMeasure());
         }
 
-        components.push_back(source);
+        componentsList[i].push_back(source);
+        break;
+      }
     }
+  }
 
-    return Patch::Ptr(new Patch(name, components.begin(), components.end()));
+  vector<Patch::ConstPtr> patchList;
+  patchList.reserve (componentsList.size());
+  for (uint i=0; i<componentsList.size(); ++i) {
+    ASSERTSTR (!componentsList[i].empty(), "No sources found for patch "
+               << patchNames[i]);
+    patchList.push_back (Patch::Ptr (new Patch(patchNames[i],
+                                               componentsList[i].begin(),
+                                               componentsList[i].end())));
+  }
+  return patchList;
 }
 
-namespace
-{
-double getDefaultParmValue(const ParmDB &parmDB, const string &name,
-    const double value)
-{
-    ParmValueSet valueSet = parmDB.getDefValue(name, ParmValue(value));
-    ASSERT(valueSet.empty() && valueSet.getType() == ParmValue::Scalar);
-    const casa::Array<double> &values = valueSet.getDefParmValue().getValues();
-    ASSERT(values.size() == 1);
-    return values(casa::IPosition(values.ndim(), 0));
-    ///return values.data()[0];
-}
-} // Unnamed namespace.
 
 } //# namespace DPPP
 } //# namespace LOFAR
