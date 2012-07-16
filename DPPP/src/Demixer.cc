@@ -38,7 +38,7 @@
 #include <DPPP/PointSource.h>
 
 #include <ParmDB/Axis.h>
-#include <ParmDB/SourceDBBlob.h>
+#include <ParmDB/SourceDB.h>
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmSet.h>
 #include <ParmDB/ParmCache.h>
@@ -150,7 +150,7 @@ namespace LOFAR {
       itsAllSources.push_back (itsTargetSource);
 
       // Get the source info of all patches from the SourceDB table.
-      BBS::SourceDBBlob sourceDB(BBS::ParmDBMeta("blob", itsSkyName), false);
+      BBS::SourceDB sourceDB(BBS::ParmDBMeta("casa", itsSkyName), false);
       vector<string> patchNames(itsAllSources);
       // If the target source is given, add it to the model.
       // Because the target source has to be the last direction, it means

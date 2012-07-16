@@ -25,7 +25,7 @@
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/PointSource.h>
 #include <DPPP/GaussianSource.h>
-#include <ParmDB/SourceDBBlob.h>
+#include <ParmDB/SourceDB.h>
 #include <Common/LofarLogger.h>
 #include <Common/lofar_vector.h>
 
@@ -33,12 +33,12 @@ namespace LOFAR
 {
 namespace DPPP
 {
-using BBS::SourceDBBlob;
+using BBS::SourceDB;
 using BBS::SourceData;
 using BBS::SourceInfo;
 
 
-vector<Patch::ConstPtr> makePatches(SourceDBBlob &sourceDB,
+vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
                                     const vector<string> &patchNames,
                                     uint nModel)
 {
@@ -46,6 +46,7 @@ vector<Patch::ConstPtr> makePatches(SourceDBBlob &sourceDB,
   vector<vector<ModelComponent::Ptr> > componentsList(nModel);
 
   // Loop over all sources.
+  sourceDB.lock();
   sourceDB.rewind();
   SourceData src;
   while (! sourceDB.atEnd()) {
@@ -118,6 +119,7 @@ vector<Patch::ConstPtr> makePatches(SourceDBBlob &sourceDB,
         break;
       }
     }
+    sourceDB.unlock();
   }
 
   vector<Patch::ConstPtr> patchList;

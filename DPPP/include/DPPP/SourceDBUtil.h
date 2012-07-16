@@ -34,7 +34,7 @@ namespace LOFAR
 {
 namespace BBS
 {
-class SourceDBBlob;
+class SourceDB;
 }
 
 namespace DPPP
@@ -42,7 +42,7 @@ namespace DPPP
 
 // \addtogroup NDPPP
 // @{
-  vector<Patch::ConstPtr> makePatches(BBS::SourceDBBlob &sourceDB,
+  vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
                                       const vector<string> &patchNames,
                                       uint nModel);
 // @}
