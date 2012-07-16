@@ -1066,7 +1066,7 @@ namespace LOFAR {
       BBS::Grid solGrid(freqAxis, timeAxis);
 
       // Create and initialize ParmDB.
-      BBS::ParmDB parmDB(BBS::ParmDBMeta("casa", itsInstrumentName), true);
+      BBS::ParmDB parmDB(BBS::ParmDBMeta("", itsInstrumentName), true);
       BBS::ParmSet parmSet;
       BBS::ParmCache parmCache(parmSet, solGrid.getBoundingBox());
 
