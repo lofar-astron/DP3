@@ -266,8 +266,8 @@ namespace LOFAR {
       itsNrChan          = 0;
       itsFillNChan       = getInfo().nchan();
       itsStartChan       = itsReaders[itsFirst]->startChan();
-      itsFullResNChanAvg = itsReaders[itsFirst]->nchanAvg();
-      itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvg();
+      itsFullResNChanAvg = getInfo().nchanAvg();
+      itsFullResNTimeAvg = getInfo().ntimeAvg();
       itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
       itsBaseRowNrs      = itsReaders[itsFirst]->getBaseRowNrs();
       for (uint i=0; i<itsMSNames.size(); ++i) {
