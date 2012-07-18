@@ -58,8 +58,8 @@ namespace LOFAR {
         itsNrBl         (info.nbaselines()),
         itsNrTimes      (info.ntime()),
         // Input can already be averaged, so take that into account.
-        itsNChanAvg     (info.nchanAvg() * itsReader->nchanAvg()),
-        itsNTimeAvg     (info.ntimeAvg() * itsReader->ntimeAvg())
+        itsNChanAvg     (reader->nchanAvgFullRes() * info.nchanAvg()),
+        itsNTimeAvg     (reader->ntimeAvgFullRes() * info.ntimeAvg())
     {
       NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).

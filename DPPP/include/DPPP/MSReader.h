@@ -219,10 +219,10 @@ namespace LOFAR {
         { return itsStartChan; }
 
       // Get the nr of averaged full resolution channels.
-      uint nchanAvg() const
+      uint nchanAvgFullRes() const
         { return itsFullResNChanAvg; }
       // Get the nr of averaged full resolution time slots.
-      uint ntimeAvg() const
+      uint ntimeAvgFullRes() const
         { return itsFullResNTimeAvg; }
 
       // Tell if the input MS has LOFAR_FULL_RES_FLAG.

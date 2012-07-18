@@ -266,8 +266,8 @@ namespace LOFAR {
       itsNrChan          = 0;
       itsFillNChan       = getInfo().nchan();
       itsStartChan       = itsReaders[itsFirst]->startChan();
-      itsFullResNChanAvg = getInfo().nchanAvg();
-      itsFullResNTimeAvg = getInfo().ntimeAvg();
+      itsFullResNChanAvg = itsReaders[itsFirst]->nchanAvgFullRes();
+      itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvgFullRes();
       itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
       itsBaseRowNrs      = itsReaders[itsFirst]->getBaseRowNrs();
       for (uint i=0; i<itsMSNames.size(); ++i) {
@@ -278,8 +278,8 @@ namespace LOFAR {
                      near(itsTimeInterval, rdinfo.timeInterval())  &&
                      itsNrCorr == rdinfo.ncorr()  &&
                      itsNrBl   == rdinfo.nbaselines()  &&
-                     itsFullResNChanAvg == rdinfo.nchanAvg()  &&
-                     itsFullResNTimeAvg == rdinfo.ntimeAvg()  &&
+                     itsFullResNChanAvg == itsReaders[i]->nchanAvgFullRes()  &&
+                     itsFullResNTimeAvg == itsReaders[i]->ntimeAvgFullRes()  &&
                      allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
                      allEQ (getInfo().getAnt2(), rdinfo.getAnt2()),
                      "Meta data of MS " << itsMSNames[i]
