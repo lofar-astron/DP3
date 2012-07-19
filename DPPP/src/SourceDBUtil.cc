@@ -119,8 +119,8 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
         break;
       }
     }
-    sourceDB.unlock();
   }
+  sourceDB.unlock();
 
   vector<Patch::ConstPtr> patchList;
   patchList.reserve (componentsList.size());
