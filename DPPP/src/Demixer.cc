@@ -150,7 +150,7 @@ namespace LOFAR {
       itsAllSources.push_back (itsTargetSource);
 
       // Get the source info of all patches from the SourceDB table.
-      BBS::SourceDB sourceDB(BBS::ParmDBMeta("casa", itsSkyName), false);
+      BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSkyName), false);
       vector<string> patchNames(itsAllSources);
       // If the target source is given, add it to the model.
       // Because the target source has to be the last direction, it means
@@ -1066,7 +1066,7 @@ namespace LOFAR {
       BBS::Grid solGrid(freqAxis, timeAxis);
 
       // Create and initialize ParmDB.
-      BBS::ParmDB parmDB(BBS::ParmDBMeta("", itsInstrumentName), true);
+      BBS::ParmDB parmDB(BBS::ParmDBMeta("casa", itsInstrumentName), true);
       BBS::ParmSet parmSet;
       BBS::ParmCache parmCache(parmSet, solGrid.getBoundingBox());
 
