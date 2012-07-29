@@ -29,6 +29,7 @@
 
 #include <DPPP/Patch.h>
 #include <Common/lofar_string.h>
+#include <Common/LofarTypes.h>
 
 namespace LOFAR
 {
