@@ -13,7 +13,7 @@ lofar_add_library(dppp
   StationAdder.cc Filter.cc
   PhaseShift.cc Demixer.cc
   Position.cc Stokes.cc SourceDBUtil.cc
-  Apply.cc EstimateMixed.cc Simulate.cc SubtractMixed.cc
+  Apply.cc EstimateMixed.cc Simulate.cc Simulator.cc SubtractMixed.cc
   ModelComponent.cc PointSource.cc GaussianSource.cc Patch.cc
   ModelComponentVisitor.cc
   FlaggerStatistics.cc

@@ -31,11 +31,6 @@ namespace DPPP
 void apply(size_t nBaseline, size_t nChannel, const_cursor<Baseline> baselines,
     const_cursor<double> coeff, cursor<dcomplex> data)
 {
-    dcomplex Jp_00, Jp_01, Jp_10, Jp_11;
-    dcomplex Jq_00, Jq_01, Jq_10, Jq_11;
-    dcomplex Jq_00_s0, Jq_10_s0, Jq_01_s1, Jq_11_s1, Jq_00_s2, Jq_10_s2,
-        Jq_01_s3, Jq_11_s3;
-
     for(size_t bl = 0; bl < nBaseline; ++bl)
     {
         const size_t p = baselines->first;
@@ -43,62 +38,56 @@ void apply(size_t nBaseline, size_t nChannel, const_cursor<Baseline> baselines,
 
         if(p != q)
         {
+            // Jones matrix for station P.
             coeff.forward(1, p);
-            Jp_00 = dcomplex(coeff[0], coeff[1]);
-            Jp_01 = dcomplex(coeff[2], coeff[3]);
-            Jp_10 = dcomplex(coeff[4], coeff[5]);
-            Jp_11 = dcomplex(coeff[6], coeff[7]);
+            const dcomplex Jp_00(coeff[0], coeff[1]);
+            const dcomplex Jp_01(coeff[2], coeff[3]);
+            const dcomplex Jp_10(coeff[4], coeff[5]);
+            const dcomplex Jp_11(coeff[6], coeff[7]);
             coeff.backward(1, p);
 
+            // Jones matrix for station Q, conjugated.
             coeff.forward(1, q);
-            Jq_00 = dcomplex(coeff[0], -coeff[1]);
-            Jq_01 = dcomplex(coeff[2], -coeff[3]);
-            Jq_10 = dcomplex(coeff[4], -coeff[5]);
-            Jq_11 = dcomplex(coeff[6], -coeff[7]);
+            const dcomplex Jq_00(coeff[0], -coeff[1]);
+            const dcomplex Jq_01(coeff[2], -coeff[3]);
+            const dcomplex Jq_10(coeff[4], -coeff[5]);
+            const dcomplex Jq_11(coeff[6], -coeff[7]);
             coeff.backward(1, q);
 
+            // Compute (Jp x conj(Jq)) * vec(data), where 'x' denotes the
+            // Kronecker product.
             for(size_t ch = 0; ch < nChannel; ++ch)
             {
-                Jq_00_s0 = Jq_00 * (*data);
-                Jq_10_s0 = Jq_10 * (*data);
-                ++data;
+                // Fetch visibilities.
+                const dcomplex xx = data[0];
+                const dcomplex xy = data[1];
+                const dcomplex yx = data[2];
+                const dcomplex yy = data[3];
 
-                Jq_01_s1 = Jq_01 * (*data);
-                Jq_11_s1 = Jq_11 * (*data);
-                ++data;
+                // Precompute terms involving conj(Jq) and data. Each term
+                // appears twice in the computation of (Jp x conj(Jq))
+                // * vec(data).
+                const dcomplex Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
+                const dcomplex Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
+                const dcomplex Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
+                const dcomplex Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
 
-                Jq_00_s2 = Jq_00 * (*data);
-                Jq_10_s2 = Jq_10 * (*data);
-                ++data;
+                // Compute (Jp x conj(Jq)) * vec(data) from the precomputed
+                // terms.
+                data[0] = Jp_00 * Jq_00xx_01xy + Jp_01 * Jq_00yx_01yy;
+                data[1] = Jp_00 * Jq_10xx_11xy + Jp_01 * Jq_10yx_11yy;
+                data[2] = Jp_10 * Jq_00xx_01xy + Jp_11 * Jq_00yx_01yy;
+                data[3] = Jp_10 * Jq_10xx_11xy + Jp_11 * Jq_10yx_11yy;
 
-                Jq_01_s3 = Jq_01 * (*data);
-                Jq_11_s3 = Jq_11 * (*data);
-                ++data;
-                data -= 4;
-
-                *data = Jp_00 * (Jq_00_s0 + Jq_01_s1)
-                    + Jp_01 * (Jq_00_s2 + Jq_01_s3);
-                ++data;
-
-                *data = Jp_00 * (Jq_10_s0 + Jq_11_s1)
-                    + Jp_01 * (Jq_10_s2 + Jq_11_s3);
-                ++data;
-
-                *data = Jp_10 * (Jq_00_s0 + Jq_01_s1)
-                    + Jp_11 * (Jq_00_s2 + Jq_01_s3);
-                ++data;
-
-                *data = Jp_10 * (Jq_10_s0 + Jq_11_s1)
-                    + Jp_11 * (Jq_10_s2 + Jq_11_s3);
-                ++data;
-                data -= 4;
-
-                // Move to next channel.
+                // Move to the next channel.
                 data.forward(1);
             } // Channels.
+
+            // Reset cursor to the beginning of the current baseline.
             data.backward(1, nChannel);
         }
 
+        // Move to the next baseline.
         data.forward(2);
         ++baselines;
     } // Baselines.

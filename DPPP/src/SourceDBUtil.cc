@@ -110,9 +110,8 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
         // Fetch rotation measure attributes (if applicable).
         if(src.getInfo().getUseRotationMeasure())
         {
-          source->setPolarizedFraction(src.getPolarizedFraction());
-          source->setPolarizationAngle(src.getPolarizationAngle());
-          source->setRotationMeasure(src.getRotationMeasure());
+          source->setRotationMeasure(src.getPolarizedFraction(),
+            src.getPolarizationAngle(), src.getRotationMeasure());
         }
 
         componentsList[i].push_back(source);

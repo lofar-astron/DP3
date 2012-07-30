@@ -30,15 +30,6 @@ namespace LOFAR
 namespace DPPP
 {
 
-void Patch::accept(ModelComponentVisitor &visitor) const
-{
-    for(const_iterator it = begin(), it_end = end(); it != it_end; ++it)
-    {
-        (*it)->accept(visitor);
-    }
-    visitor.visit(*this);
-}
-
 Patch::const_iterator Patch::begin() const
 {
     return itsComponents.begin();
@@ -53,27 +44,25 @@ void Patch::computePosition()
 {
     itsPosition = Position();
 
-    if(itsComponents.empty())
+    if(!itsComponents.empty())
     {
-        return;
+        double x = 0.0, y = 0.0, z = 0.0;
+        for(const_iterator it = begin(), it_end = end(); it != it_end; ++it)
+        {
+            const Position &position = (*it)->position();
+            double cosDec = cos(position[1]);
+            x += cos(position[0]) * cosDec;
+            y += sin(position[0]) * cosDec;
+            z += sin(position[1]);
+        }
+
+        x /= itsComponents.size();
+        y /= itsComponents.size();
+        z /= itsComponents.size();
+
+        itsPosition[0] = atan2(y, x);
+        itsPosition[1] = asin(z);
     }
-
-    double x = 0.0, y = 0.0, z = 0.0;
-    for(const_iterator it = begin(), it_end = end(); it != it_end; ++it)
-    {
-        const Position &position = (*it)->position();
-        double cosDec = cos(position[1]);
-        x += cos(position[0]) * cosDec;
-        y += sin(position[0]) * cosDec;
-        z += sin(position[1]);
-    }
-
-    x /= itsComponents.size();
-    y /= itsComponents.size();
-    z /= itsComponents.size();
-
-    itsPosition[0] = atan2(y, x);
-    itsPosition[1] = asin(z);
 }
 
 } //# namespace DPPP

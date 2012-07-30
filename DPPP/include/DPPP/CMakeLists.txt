@@ -10,7 +10,7 @@ set(inst_HEADERS
   StationAdder.h Filter.h
   PhaseShift.h Demixer.h
   Cursor.h CursorUtilCasa.h Position.h Stokes.h SourceDBUtil.h
-  Apply.h EstimateMixed.h Simulate.h SubtractMixed.h Baseline.h
+  Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h
   ModelComponent.h PointSource.h GaussianSource.h Patch.h
   ModelComponentVisitor.h
   FlaggerStatistics.h)

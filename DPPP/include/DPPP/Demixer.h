@@ -69,8 +69,6 @@ namespace LOFAR {
       // Parameters are obtained from the parset using the given prefix.
       Demixer (DPInput*, const ParSet&, const string& prefix);
 
-      virtual ~Demixer();
-
       // Process the data.
       // It keeps the data.
       // When processed, it invokes the process function of the next step.
@@ -92,11 +90,6 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      void initUnknowns();
-
-      // Solve gains and subtract sources.
-      void demix();
-
       // Add the decorrelation factor contribution for each time slot.
       void addFactors (const DPBuffer& newBuf,
                        casa::Array<casa::DComplex>& factorBuf);
@@ -114,18 +107,8 @@ namespace LOFAR {
                       vector<MultiResultStep*> avgResults,
                       uint resultIndex);
 
-      // Calculate the P matrix telling how to deal with sources that will
-      // not be predicted.
-      // Those sources are the last columns in the demixing matrix.
-      vector<casa::Array<casa::DComplex> > getP
-      (const vector<casa::Array<casa::DComplex> >& factors, uint nsources);
-
-      // Convert a double value to a string (with sufficient precision).
-      string toString (double value) const;
-
-      // Convert a angle string with an optional unit to radians.
-      // The default input unit is degrees.
-      double getAngle (const casa::String& value) const;
+      // Solve gains and subtract sources.
+      void demix();
 
       // Export the solutions to a ParmDB.
       void dumpSolutions();
@@ -149,22 +132,24 @@ namespace LOFAR {
       vector<string>                        itsModelSources;
       vector<string>                        itsExtraSources;
       vector<string>                        itsAllSources;
-//      vector<uint>                          itsCutOffs;
+//      vector<double>                        itsCutOffs;
       uint                                  itsNDir;
       uint                                  itsNModel;
+      uint                                  itsNStation;
       uint                                  itsNBl;
       uint                                  itsNCorr;
       uint                                  itsNChanIn;
       uint                                  itsNTimeIn;
-      uint                                  itsNChanOutSubtr;
+      uint                                  itsNTimeDemix;
       uint                                  itsNChanAvgSubtr;
       uint                                  itsNTimeAvgSubtr;
-      uint                                  itsNTimeChunkSubtr;
+      uint                                  itsNChanOutSubtr;
       uint                                  itsNTimeOutSubtr;
-      uint                                  itsNChanOut;
+      uint                                  itsNTimeChunk;
+      uint                                  itsNTimeChunkSubtr;
       uint                                  itsNChanAvg;
       uint                                  itsNTimeAvg;
-      uint                                  itsNTimeChunk;
+      uint                                  itsNChanOut;
       uint                                  itsNTimeOut;
       double                                itsTimeIntervalAvg;
 
@@ -186,26 +171,22 @@ namespace LOFAR {
       //# shape #directions x #directions.
       vector<casa::Array<casa::DComplex> >  itsFactorsSubtr;
 
+      PatchList                             itsPatchList;
+      Position                              itsPhaseRef;
+      vector<Baseline>                      itsBaselines;
+      casa::Vector<double>                  itsFreqDemix;
+      casa::Vector<double>                  itsFreqSubtr;
+      vector<double>                        itsUnknowns;
+      vector<double>                        itsLastKnowns;
+      uint                                  itsTimeIndex;
+      uint                                  itsNConverged;
+
       //# Timers.
       NSTimer                               itsTimer;
       NSTimer                               itsTimerPhaseShift;
       NSTimer                               itsTimerDemix;
       NSTimer                               itsTimerSolve;
-
-      uint                                  itsNConverged;
-      uint                                  itsTimeCount;
-      PatchList                             itsPatchList;
-      vector<Baseline>                      itsBaselines;
-      casa::Vector<double>                  itsFreqDemix;
-      casa::Vector<double>                  itsFreqSubtr;
-      uint                                  itsNTimeDemix;
-      uint                                  itsNStation;
-      Position                              itsPhaseRef;
-      casa::Array<double>                   itsUnknowns;
-//      casa::Array<double>                   itsErrors;
-      casa::Array<double>                   itsLastKnowns;
-//      vector<casa::MeasFrame>               itsFrames;
-//      vector<casa::MDirection::Convert>     itsConverters;
+      NSTimer                               itsTimerDump;
     };
 
   } //# end namespace

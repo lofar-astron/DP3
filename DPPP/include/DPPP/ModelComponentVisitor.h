@@ -34,7 +34,6 @@ namespace DPPP
 
 class PointSource;
 class GaussianSource;
-class Patch;
 
 // \addtogroup NDPPP
 // @{
@@ -46,7 +45,6 @@ public:
 
     virtual void visit(const PointSource&) = 0;
     virtual void visit(const GaussianSource&) = 0;
-    virtual void visit(const Patch&) = 0;
 };
 
 // @}

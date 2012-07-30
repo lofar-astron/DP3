@@ -137,30 +137,30 @@ namespace LOFAR {
       //# to process.
 #pragma omp parallel for
       for (int i=0; i<nbl; ++i) {
-	Complex*  __restrict__ data    = newBuf.getData().data() + i*nchan*ncorr;
-	double*   __restrict__ uvw     = newBuf.getUVW().data() + i*3;
-	DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
-	double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
-	double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
-	double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
-	double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
-	for (int j=0; j<nchan; ++j) {
-	  // Shift the phase of the data of this baseline.
-	  // Converting the phase term to wavelengths (and applying 2*pi)
-	  //      u_wvl = u_m / wvl = u_m * freq / c
-          // has been done once in the beginning (in updateInfo).
-	  double phasewvl = phase * itsFreqC[j];
-	  DComplex phasor(cos(phasewvl), sin(phasewvl));
-	  *phasors++ = phasor;
-	  for (int k=0; k<ncorr; ++k) {
-	    *data = DComplex(*data) * phasor;
-	    data++;
-	  }
-	}
-	uvw[0] = u;
-	uvw[1] = v;
-	uvw[2] = w;
-	uvw += 3;
+        Complex*  __restrict__ data    = newBuf.getData().data() + i*nchan*ncorr;
+        double*   __restrict__ uvw     = newBuf.getUVW().data() + i*3;
+        DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
+        double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
+        double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
+        double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
+        double phase = itsXYZ[0]*uvw[0] + itsXYZ[1]*uvw[1] + itsXYZ[2]*uvw[2];
+        for (int j=0; j<nchan; ++j) {
+          // Shift the phase of the data of this baseline.
+          // Converting the phase term to wavelengths (and applying 2*pi)
+          //      u_wvl = u_m / wvl = u_m * freq / c
+                // has been done once in the beginning (in updateInfo).
+          double phasewvl = phase * itsFreqC[j];
+          DComplex phasor(cos(phasewvl), sin(phasewvl));
+          *phasors++ = phasor;
+          for (int k=0; k<ncorr; ++k) {
+            *data = DComplex(*data) * phasor;
+            data++;
+          }
+        }
+        uvw[0] = u;
+        uvw[1] = v;
+        uvw[2] = w;
+        uvw += 3;
       }  //# end omp parallel for
       itsTimer.stop();
       getNextStep()->process (newBuf);

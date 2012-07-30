@@ -27,18 +27,50 @@
 #include <DPPP/EstimateMixed.h>
 #include <Common/LofarLogger.h>
 #include <scimath/Fitting/LSQFit.h>
-#include <boost/multi_array.hpp>
 
 namespace LOFAR
 {
 namespace DPPP
 {
 
+namespace
+{
+// Compute a map that contains the index of the unknowns related to the
+// specified baseline in the list of all unknowns.
+void makeIndex(size_t nDirection, size_t nStation, const Baseline &baseline,
+    unsigned int *index)
+{
+    const size_t nCorrelation = 4;
+    for(size_t cr = 0; cr < nCorrelation; ++cr)
+    {
+        size_t idx0 = baseline.first * 8 + (cr / 2) * 4;
+        size_t idx1 = baseline.second * 8 + (cr % 2) * 4;
+
+        for(size_t dr = 0; dr < nDirection; ++dr)
+        {
+            *index++ = idx0;
+            *index++ = idx0 + 1;
+            *index++ = idx0 + 2;
+            *index++ = idx0 + 3;
+
+            *index++ = idx1;
+            *index++ = idx1 + 1;
+            *index++ = idx1 + 2;
+            *index++ = idx1 + 3;
+
+            idx0 += nStation * 8;
+            idx1 += nStation * 8;
+        }
+    }
+}
+} // Unnamed namespace.
+
+
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     size_t nChannel, const_cursor<Baseline> baselines,
     vector<const_cursor<fcomplex> > data, vector<const_cursor<dcomplex> > model,
     const_cursor<bool> flag, const_cursor<float> weight,
-    const_cursor<dcomplex> mix, double *unknowns, double *errors)
+    const_cursor<dcomplex> mix, double *unknowns)
 {
     ASSERT(data.size() == nDirection && model.size() == nDirection);
 
@@ -52,46 +84,13 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     // each visibility provides information about (no. of directions) x 2 x 2
     // x 2 (scalar) unknowns = (no. of directions) x 8. For each of these
     // unknowns the value of the partial derivative of the model with respect
-    // to the unknow has to be computed.
-    const unsigned int nPartial = nDirection * 8;
-
-    // Construct partial derivative index template for each correlation.
-    boost::multi_array<unsigned int, 2> dIndexTemplate(boost::extents[4]
-        [nPartial]);
-    for(size_t cr = 0; cr < 4; ++cr)
-    {
-        size_t idx0 = (cr / 2) * 4;
-        size_t idx1 = (cr & 1) * 4;
-
-        for(size_t dr = 0; dr < nDirection; ++dr)
-        {
-            dIndexTemplate[cr][dr * 8 + 0] = idx0 + 0;
-            dIndexTemplate[cr][dr * 8 + 1] = idx0 + 1;
-            dIndexTemplate[cr][dr * 8 + 2] = idx0 + 2;
-            dIndexTemplate[cr][dr * 8 + 3] = idx0 + 3;
-            dIndexTemplate[cr][dr * 8 + 4] = idx1 + 0;
-            dIndexTemplate[cr][dr * 8 + 5] = idx1 + 1;
-            dIndexTemplate[cr][dr * 8 + 6] = idx1 + 2;
-            dIndexTemplate[cr][dr * 8 + 7] = idx1 + 3;
-            idx0 += nStation * 8;
-            idx1 += nStation * 8;
-        }
-    }
+    // to the unknown has to be computed.
+    const size_t nPartial = nDirection * 8;
+    vector<unsigned int> dIndex(4 * nPartial);
 
     // Allocate space for intermediate results.
-    boost::multi_array<dcomplex, 2> M(boost::extents[nDirection][4]);
-    boost::multi_array<dcomplex, 3> dM(boost::extents[nDirection][4][4]);
-    boost::multi_array<double, 1> dR(boost::extents[nPartial]);
-    boost::multi_array<double, 1> dI(boost::extents[nPartial]);
-    boost::multi_array<unsigned int, 2> dIndex(boost::extents[4][nPartial]);
-
-    dcomplex coherence;
-    dcomplex Jp_00, Jp_01, Jp_10, Jp_11;
-    dcomplex Jq_00, Jq_01, Jq_10, Jq_11;
-    dcomplex Jp_00_s0, Jp_10_s0, Jp_00_s1, Jp_10_s1, Jp_01_s2, Jp_11_s2,
-        Jp_01_s3, Jp_11_s3;
-    dcomplex Jq_00_s0, Jq_10_s0, Jq_01_s1, Jq_11_s1, Jq_00_s2, Jq_10_s2,
-        Jq_01_s3, Jq_11_s3;
+    vector<dcomplex> M(nDirection * 4), dM(nDirection * 16);
+    vector<double> dR(nPartial), dI(nPartial);
 
     // Iterate until convergence.
     size_t nIterations = 0;
@@ -104,103 +103,78 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
             if(p != q)
             {
-                // Update partial derivative index for current baseline.
-                const size_t offsetP = p * 8;
-                const size_t offsetQ = q * 8;
-                for(size_t cr = 0; cr < 4; ++cr)
-                {
-                    for(size_t dr = 0; dr < nDirection; ++dr)
-                    {
-                        dIndex[cr][dr * 8 + 0] = dIndexTemplate[cr][dr * 8 + 0]
-                            + offsetP;
-                        dIndex[cr][dr * 8 + 1] = dIndexTemplate[cr][dr * 8 + 1]
-                            + offsetP;
-                        dIndex[cr][dr * 8 + 2] = dIndexTemplate[cr][dr * 8 + 2]
-                            + offsetP;
-                        dIndex[cr][dr * 8 + 3] = dIndexTemplate[cr][dr * 8 + 3]
-                            + offsetP;
-
-                        dIndex[cr][dr * 8 + 4] = dIndexTemplate[cr][dr * 8 + 4]
-                            + offsetQ;
-                        dIndex[cr][dr * 8 + 5] = dIndexTemplate[cr][dr * 8 + 5]
-                            + offsetQ;
-                        dIndex[cr][dr * 8 + 6] = dIndexTemplate[cr][dr * 8 + 6]
-                            + offsetQ;
-                        dIndex[cr][dr * 8 + 7] = dIndexTemplate[cr][dr * 8 + 7]
-                            + offsetQ;
-                    }
-                }
+                // Create partial derivative index for current baseline.
+                makeIndex(nDirection, nStation, *baselines, &(dIndex[0]));
 
                 for(size_t ch = 0; ch < nChannel; ++ch)
                 {
-                    dcomplex coherence;
                     for(size_t dr = 0; dr < nDirection; ++dr)
                     {
+                        // Jones matrix for station P.
                         const double *Jp =
                             &(unknowns[dr * nStation * 8 + p * 8]);
-                        Jp_00 = dcomplex(Jp[0], Jp[1]);
-                        Jp_01 = dcomplex(Jp[2], Jp[3]);
-                        Jp_10 = dcomplex(Jp[4], Jp[5]);
-                        Jp_11 = dcomplex(Jp[6], Jp[7]);
+                        const dcomplex Jp_00(Jp[0], Jp[1]);
+                        const dcomplex Jp_01(Jp[2], Jp[3]);
+                        const dcomplex Jp_10(Jp[4], Jp[5]);
+                        const dcomplex Jp_11(Jp[6], Jp[7]);
 
+                        // Jones matrix for station Q, conjugated.
                         const double *Jq =
                             &(unknowns[dr * nStation * 8 + q * 8]);
-                        Jq_00 = dcomplex(Jq[0], -Jq[1]);
-                        Jq_01 = dcomplex(Jq[2], -Jq[3]);
-                        Jq_10 = dcomplex(Jq[4], -Jq[5]);
-                        Jq_11 = dcomplex(Jq[6], -Jq[7]);
+                        const dcomplex Jq_00(Jq[0], -Jq[1]);
+                        const dcomplex Jq_01(Jq[2], -Jq[3]);
+                        const dcomplex Jq_10(Jq[4], -Jq[5]);
+                        const dcomplex Jq_11(Jq[6], -Jq[7]);
 
-                        coherence = (model[dr][0]);
-                        Jp_00_s0 = Jp_00 * coherence;
-                        Jp_10_s0 = Jp_10 * coherence;
-                        Jq_00_s0 = Jq_00 * coherence;
-                        Jq_10_s0 = Jq_10 * coherence;
+                        // Fetch model visibilities for the current direction.
+                        const dcomplex xx = model[dr][0];
+                        const dcomplex xy = model[dr][1];
+                        const dcomplex yx = model[dr][2];
+                        const dcomplex yy = model[dr][3];
 
-                        coherence = (model[dr][1]);
-                        Jp_00_s1 = Jp_00 * coherence;
-                        Jp_10_s1 = Jp_10 * coherence;
-                        Jq_01_s1 = Jq_01 * coherence;
-                        Jq_11_s1 = Jq_11 * coherence;
+                        // Precompute terms involving conj(Jq) and the model
+                        // visibilities.
+                        const dcomplex Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
+                        const dcomplex Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
+                        const dcomplex Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
+                        const dcomplex Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
 
-                        coherence = (model[dr][2]);
-                        Jp_01_s2 = Jp_01 * coherence;
-                        Jp_11_s2 = Jp_11 * coherence;
-                        Jq_00_s2 = Jq_00 * coherence;
-                        Jq_10_s2 = Jq_10 * coherence;
+                        // Precompute (Jp x conj(Jq)) * vec(data), where 'x'
+                        // denotes the Kronecker product. This is the model
+                        // visibility for the current direction, with the
+                        // current Jones matrix estimates applied. This is
+                        // stored in M.
+                        // Also, precompute the partial derivatives of M with
+                        // respect to all 16 parameters (i.e. 2 Jones matrices
+                        // Jp and Jq, 4 complex scalars per Jones matrix, 2 real
+                        // scalars per complex scalar, 2 * 4 * 2 = 16). These
+                        // partial derivatives are stored in dM.
+                        M[dr * 4] = Jp_00 * Jq_00xx_01xy + Jp_01 * Jq_00yx_01yy;
+                        dM[dr * 16] = Jq_00xx_01xy;
+                        dM[dr * 16 + 1] = Jq_00yx_01yy;
+                        dM[dr * 16 + 2] = Jp_00 * xx + Jp_01 * yx;
+                        dM[dr * 16 + 3] = Jp_00 * xy + Jp_01 * yy;
 
-                        coherence = (model[dr][3]);
-                        Jp_01_s3 = Jp_01 * coherence;
-                        Jp_11_s3 = Jp_11 * coherence;
-                        Jq_01_s3 = Jq_01 * coherence;
-                        Jq_11_s3 = Jq_11 * coherence;
+                        M[dr * 4 + 1] = Jp_00 * Jq_10xx_11xy + Jp_01
+                            * Jq_10yx_11yy;
+                        dM[dr * 16 + 4] = Jq_10xx_11xy;
+                        dM[dr * 16 + 5] = Jq_10yx_11yy;
+                        dM[dr * 16 + 6] = dM[dr * 16 + 2];
+                        dM[dr * 16 + 7] = dM[dr * 16 + 3];
 
-                        M[dr][0] = Jp_00 * (Jq_00_s0 + Jq_01_s1)
-                            + Jp_01 * (Jq_00_s2 + Jq_01_s3);
-                        dM[dr][0][0] = Jq_00_s0 + Jq_01_s1;
-                        dM[dr][0][1] = Jq_00_s2 + Jq_01_s3;
-                        dM[dr][0][2] = Jp_00_s0 + Jp_01_s2;
-                        dM[dr][0][3] = Jp_00_s1 + Jp_01_s3;
+                        M[dr * 4 + 2] = Jp_10 * Jq_00xx_01xy + Jp_11
+                            * Jq_00yx_01yy;
+                        dM[dr * 16 + 8] = dM[dr * 16];
+                        dM[dr * 16 + 9] = dM[dr * 16 + 1];
+                        dM[dr * 16 + 10] = Jp_10 * xx + Jp_11 * yx;
+                        dM[dr * 16 + 11] = Jp_10 * xy + Jp_11 * yy;
 
-                        M[dr][1] = Jp_00 * (Jq_10_s0 + Jq_11_s1)
-                            + Jp_01 * (Jq_10_s2 + Jq_11_s3);
-                        dM[dr][1][0] = Jq_10_s0 + Jq_11_s1;
-                        dM[dr][1][1] = Jq_10_s2 + Jq_11_s3;
-                        dM[dr][1][2] = dM[dr][0][2];
-                        dM[dr][1][3] = dM[dr][0][3];
-
-                        M[dr][2] = Jp_10 * (Jq_00_s0 + Jq_01_s1)
-                            + Jp_11 * (Jq_00_s2 + Jq_01_s3);
-                        dM[dr][2][0] = dM[dr][0][0];
-                        dM[dr][2][1] = dM[dr][0][1];
-                        dM[dr][2][2] = Jp_10_s0 + Jp_11_s2;
-                        dM[dr][2][3] = Jp_10_s1 + Jp_11_s3;
-
-                        M[dr][3] = Jp_10 * (Jq_10_s0 + Jq_11_s1)
-                            + Jp_11 * (Jq_10_s2 + Jq_11_s3);
-                        dM[dr][3][0] = dM[dr][1][0];
-                        dM[dr][3][1] = dM[dr][1][1];
-                        dM[dr][3][2] = dM[dr][2][2];
-                        dM[dr][3][3] = dM[dr][2][3];
+                        M[dr * 4 + 3] = Jp_10 * Jq_10xx_11xy + Jp_11
+                            * Jq_10yx_11yy;
+                        dM[dr * 16 + 12] = dM[dr * 16 + 4];
+                        dM[dr * 16 + 13] = dM[dr * 16 + 5];
+                        dM[dr * 16 + 14] = dM[dr * 16 + 10];
+                        dM[dr * 16 + 15] = dM[dr * 16 + 11];
                     }
 
                     for(size_t cr = 0; cr < 4; ++cr)
@@ -209,39 +183,44 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                         {
                             for(size_t tg = 0; tg < nDirection; ++tg)
                             {
-                                dcomplex model = 0.0, partial;
+                                dcomplex visibility(0.0, 0.0);
                                 for(size_t dr = 0; dr < nDirection; ++dr)
                                 {
-                                    // Look-up mixing term.
-                                    const dcomplex term = *mix;
+                                    // Look-up mixing weight.
+                                    const dcomplex mix_weight = *mix;
 
-                                    // Update model visibility.
-                                    model += term * M[dr][cr];
+                                    // Weight model visibility.
+                                    visibility += mix_weight * M[dr * 4 + cr];
 
-                                    // Compute partial derivatives.
-                                    partial = term * dM[dr][cr][0];
-                                    dR[dr * 8] = real(partial);
-                                    dI[dr * 8] = imag(partial);
-                                    dR[dr * 8 + 1] = -imag(partial);
-                                    dI[dr * 8 + 1] = real(partial);
+                                    // Compute weighted partial derivatives.
+                                    dcomplex derivative(0.0, 0.0);
+                                    derivative =
+                                        mix_weight * dM[dr * 16 + cr * 4];
+                                    dR[dr * 8] = real(derivative);
+                                    dI[dr * 8] = imag(derivative);
+                                    dR[dr * 8 + 1] = -imag(derivative);
+                                    dI[dr * 8 + 1] = real(derivative);
 
-                                    partial = term * dM[dr][cr][1];
-                                    dR[dr * 8 + 2] = real(partial);
-                                    dI[dr * 8 + 2] = imag(partial);
-                                    dR[dr * 8 + 3] = -imag(partial);
-                                    dI[dr * 8 + 3] = real(partial);
+                                    derivative =
+                                        mix_weight * dM[dr * 16 + cr * 4 + 1];
+                                    dR[dr * 8 + 2] = real(derivative);
+                                    dI[dr * 8 + 2] = imag(derivative);
+                                    dR[dr * 8 + 3] = -imag(derivative);
+                                    dI[dr * 8 + 3] = real(derivative);
 
-                                    partial = term * dM[dr][cr][2];
-                                    dR[dr * 8 + 4] = real(partial);
-                                    dI[dr * 8 + 4] = imag(partial);
-                                    dR[dr * 8 + 5] = imag(partial);
-                                    dI[dr * 8 + 5] = -real(partial);
+                                    derivative =
+                                        mix_weight * dM[dr * 16 + cr * 4 + 2];
+                                    dR[dr * 8 + 4] = real(derivative);
+                                    dI[dr * 8 + 4] = imag(derivative);
+                                    dR[dr * 8 + 5] = imag(derivative);
+                                    dI[dr * 8 + 5] = -real(derivative);
 
-                                    partial = term * dM[dr][cr][3];
-                                    dR[dr * 8 + 6] = real(partial);
-                                    dI[dr * 8 + 6] = imag(partial);
-                                    dR[dr * 8 + 7] = imag(partial);
-                                    dI[dr * 8 + 7] = -real(partial);
+                                    derivative =
+                                        mix_weight * dM[dr * 16 + cr * 4 + 3];
+                                    dR[dr * 8 + 6] = real(derivative);
+                                    dI[dr * 8 + 6] = imag(derivative);
+                                    dR[dr * 8 + 7] = imag(derivative);
+                                    dI[dr * 8 + 7] = -real(derivative);
 
                                     // Move to next source direction.
                                     mix.forward(1);
@@ -249,14 +228,17 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
                                 // Compute the residual.
                                 dcomplex residual =
-                                    static_cast<dcomplex>(data[tg][cr]) - model;
+                                  static_cast<dcomplex>(data[tg][cr])
+                                  - visibility;
 
                                 // Update the normal equations.
-                                solver.makeNorm(nPartial, &(dIndex[cr][0]),
-                                    &(dR[0]), static_cast<double>(weight[cr]),
+                                solver.makeNorm(nPartial,
+                                    &(dIndex[cr * nPartial]), &(dR[0]),
+                                    static_cast<double>(weight[cr]),
                                     real(residual));
-                                solver.makeNorm(nPartial, &(dIndex[cr][0]),
-                                    &(dI[0]), static_cast<double>(weight[cr]),
+                                solver.makeNorm(nPartial,
+                                    &(dIndex[cr * nPartial]), &(dI[0]),
+                                    static_cast<double>(weight[cr]),
                                     imag(residual));
 
                                 // Move to next target direction.
@@ -326,22 +308,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
         // Update iteration count.
         ++nIterations;
-    }
-
-    // Get the estimated error for each unknown from the solver.
-    if(errors)
-    {
-//        boost::multi_array<double, 1> errors_packed(boost::extents[nUnknowns * nUnknowns]);
-//        // TODO: Somehow this only returns zero??
-//        bool status = solver.getErrors(&(errors_packed[0]));
-
-        vector<double> cov(nUnknowns * nUnknowns);
-        bool status = solver.getCovariance(&(cov[0]));
-        ASSERT(status);
-        for(size_t i = 0; i < nUnknowns; ++i)
-        {
-            errors[i] = sqrt(abs(cov[i * nUnknowns + i])) * solver.getSD();
-        }
     }
 
     const bool converged = (solver.isReady() == casa::LSQFit::SOLINCREMENT

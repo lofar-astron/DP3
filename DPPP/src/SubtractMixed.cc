@@ -42,7 +42,7 @@ void subtract(size_t nBaseline, size_t nChannel,
         {
             for(size_t ch = 0; ch < nChannel; ++ch)
             {
-                // Update visibilities.
+                // Subtract weighted model from data.
                 *data -= static_cast<fcomplex>((*weight) * (*model));
                 ++weight;
                 ++model;
@@ -60,7 +60,7 @@ void subtract(size_t nBaseline, size_t nChannel,
                 ++model;
                 ++data;
 
-                // Move to next channel.
+                // Move to the next channel.
                 weight -= 4;
                 weight.forward(1);
                 model -= 4;
@@ -74,6 +74,7 @@ void subtract(size_t nBaseline, size_t nChannel,
             data.backward(1, nChannel);
         }
 
+        // Move to the next baseline.
         weight.forward(2);
         model.forward(2);
         data.forward(2);

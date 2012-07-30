@@ -41,7 +41,7 @@ namespace DPPP
 // \addtogroup NDPPP
 // @{
 
-class Patch: public ModelComponent
+class Patch
 {
 public:
     typedef shared_ptr<Patch>       Ptr;
@@ -52,11 +52,12 @@ public:
 
     const string &name() const;
     virtual const Position &position() const;
-    virtual void accept(ModelComponentVisitor &visitor) const;
+
+    size_t nComponents() const;
+    ModelComponent::ConstPtr component(size_t i) const;
 
 private:
     typedef vector<ModelComponent::ConstPtr>::const_iterator const_iterator;
-
     const_iterator begin() const;
     const_iterator end() const;
 
@@ -91,6 +92,17 @@ inline const Position &Patch::position() const
 {
     return itsPosition;
 }
+
+inline size_t Patch::nComponents() const
+{
+    return itsComponents.size();
+}
+
+inline ModelComponent::ConstPtr Patch::component(size_t i) const
+{
+    return itsComponents[i];
+}
+
 
 } //# namespace DPPP
 } //# namespace LOFAR
