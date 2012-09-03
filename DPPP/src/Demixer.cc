@@ -86,6 +86,8 @@ namespace LOFAR {
 //        itsCutOffs        (parset.getDoubleVector (prefix+"elevationcutoffs",
 //                                                   vector<double>())),
 //        itsJointSolve     (parset.getBool  (prefix+"jointsolve", true)),
+        itsPropagateSolutions(parset.getBool (prefix+"propagatesolutions",
+                                              true)),
         itsNDir           (0),
         itsNModel         (0),
         itsNStation       (0),
@@ -306,19 +308,21 @@ namespace LOFAR {
     void Demixer::show (std::ostream& os) const
     {
       os << "Demixer " << itsName << std::endl;
-      os << "  skymodel:         " << itsSkyName << std::endl;
-      os << "  instrumentmodel:  " << itsInstrumentName << std::endl;
-      os << "  targetsource:     " << itsTargetSource << std::endl;
-      os << "  subtractsources:  " << itsSubtrSources << std::endl;
-      os << "  modelsources:     " << itsModelSources << std::endl;
-      os << "  extrasources:     " << itsExtraSources << std::endl;
+      os << "  skymodel:           " << itsSkyName << std::endl;
+      os << "  instrumentmodel:    " << itsInstrumentName << std::endl;
+      os << "  targetsource:       " << itsTargetSource << std::endl;
+      os << "  subtractsources:    " << itsSubtrSources << std::endl;
+      os << "  modelsources:       " << itsModelSources << std::endl;
+      os << "  extrasources:       " << itsExtraSources << std::endl;
 //      os << "  elevationcutoffs: " << itsCutOffs << std::endl;
 //      os << "  jointsolve:     " << itsJointSolve << std::endl;
-      os << "  freqstep:         " << itsNChanAvgSubtr << std::endl;
-      os << "  timestep:         " << itsNTimeAvgSubtr << std::endl;
-      os << "  demixfreqstep:    " << itsNChanAvg << std::endl;
-      os << "  demixtimestep:    " << itsNTimeAvg << std::endl;
-      os << "  ntimechunk:       " << itsNTimeChunk << std::endl;
+      os << "  propagatesolutions: " << std::boolalpha << itsPropagateSolutions
+                                     << std::noboolalpha << std::endl;
+      os << "  freqstep:           " << itsNChanAvgSubtr << std::endl;
+      os << "  timestep:           " << itsNTimeAvgSubtr << std::endl;
+      os << "  demixfreqstep:      " << itsNChanAvg << std::endl;
+      os << "  demixtimestep:      " << itsNTimeAvg << std::endl;
+      os << "  ntimechunk:         " << itsNTimeChunk << std::endl;
 //      os << "  Solve.Options.MaxIter:       " << itsSolveOpt.maxIter << endl;
 //      os << "  Solve.Options.EpsValue:      " << itsSolveOpt.epsValue << endl;
 //      os << "  Solve.Options.EpsDerivative: " << itsSolveOpt.epsDerivative << endl;
@@ -927,7 +931,7 @@ namespace LOFAR {
       }
 
       // Store last known solutions.
-      if(nTime > 0)
+      if(itsPropagateSolutions && nTime > 0)
       {
         copy(&(itsUnknowns[(itsTimeIndex + nTime - 1) * nDr * nSt * 8]),
           &(itsUnknowns[(itsTimeIndex + nTime) * nDr * nSt * 8]),
