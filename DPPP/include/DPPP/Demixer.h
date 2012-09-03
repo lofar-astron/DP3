@@ -133,6 +133,7 @@ namespace LOFAR {
       vector<string>                        itsExtraSources;
       vector<string>                        itsAllSources;
 //      vector<double>                        itsCutOffs;
+      bool                                  itsPropagateSolutions;
       uint                                  itsNDir;
       uint                                  itsNModel;
       uint                                  itsNStation;
