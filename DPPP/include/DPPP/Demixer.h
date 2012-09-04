@@ -126,6 +126,8 @@ namespace LOFAR {
       vector<MultiResultStep*>              itsAvgResults;
       //# Result of averaging the target at the subtract resolution.
       MultiResultStep*                      itsAvgResultSubtr;
+      //# Ignore target in demixing?
+      bool                                  itsIgnoreTarget;
       //# Name of the target. Empty if no model is available for the target.
       string                                itsTargetSource;
       vector<string>                        itsSubtrSources;
