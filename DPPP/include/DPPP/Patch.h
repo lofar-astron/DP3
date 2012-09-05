@@ -51,7 +51,7 @@ public:
     Patch(const string &name, T first, T last);
 
     const string &name() const;
-    virtual const Position &position() const;
+    const Position &position() const;
 
     size_t nComponents() const;
     ModelComponent::ConstPtr component(size_t i) const;
