@@ -29,6 +29,7 @@
 #include <Common/LofarLogger.h>
 
 #include <casa/OS/HostInfo.h>
+#include <casa/OS/File.h>
 
 #include <AOFlagger/msio/image2d.h>
 #include <AOFlagger/msio/mask2d.h>
@@ -46,10 +47,12 @@
 #include <AOFlagger/strategy/actions/sumthresholdaction.h>
 #include <AOFlagger/strategy/actions/timeselectionaction.h>
 #include <AOFlagger/strategy/control/artifactset.h>
+#include <AOFlagger/strategy/control/strategyreader.h>
 #include <AOFlagger/quality/qualitytablesformatter.h>
 
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
+#include <Common/OpenMP.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Containers/Record.h>
 #include <casa/Containers/RecordField.h>
@@ -57,10 +60,6 @@
 #include <tables/Tables/RecordGram.h>
 #include <iostream>
 #include <algorithm>
-
-#ifdef _OPENMP
-# include <omp.h>
-#endif
 
 using namespace casa;
 using namespace rfiStrategy;
@@ -82,20 +81,21 @@ namespace LOFAR {
         itsQualTime    (0),
         itsRfiStats    (4)
     {
-      itsWindowSize  = parset.getUint   (prefix+"timewindow", 0);
-      itsMemory      = parset.getUint   (prefix+"memorymax", 0);
-      itsMemoryPerc  = parset.getUint   (prefix+"memoryperc", 0);
-      itsOverlap     = parset.getUint   (prefix+"overlapmax", 0);
+      itsStrategyName = parset.getString (prefix+"strategy", string());
+      itsWindowSize   = parset.getUint   (prefix+"timewindow", 0);
+      itsMemory       = parset.getUint   (prefix+"memorymax", 0);
+      itsMemoryPerc   = parset.getUint   (prefix+"memoryperc", 0);
+      itsOverlap      = parset.getUint   (prefix+"overlapmax", 0);
       // Also look for keyword overlap for backward compatibility.
       if (itsOverlap == 0) {
-        itsOverlap   = parset.getUint   (prefix+"overlap", 0);
+        itsOverlap    = parset.getUint   (prefix+"overlap", 0);
       }
-      itsOverlapPerc = parset.getDouble (prefix+"overlapperc", -1);
-      itsPulsarMode  = parset.getBool   (prefix+"pulsar", false);
-      itsPedantic    = parset.getBool   (prefix+"pedantic", false);
-      itsDoAutoCorr  = parset.getBool   (prefix+"autocorr", true);
-      itsDoRfiStats  = parset.getBool   (prefix+"keepstatistics", true);
-      // Fill the strategy.
+      itsOverlapPerc  = parset.getDouble (prefix+"overlapperc", -1);
+      itsPulsarMode   = parset.getBool   (prefix+"pulsar", false);
+      itsPedantic     = parset.getBool   (prefix+"pedantic", false);
+      itsDoAutoCorr   = parset.getBool   (prefix+"autocorr", true);
+      itsDoRfiStats   = parset.getBool   (prefix+"keepstatistics", true);
+      // Fill the strategy for all possible threads.
       fillStrategy (itsStrategy);
     }
 
@@ -111,12 +111,7 @@ namespace LOFAR {
       os << "  pedantic:       " << itsPedantic << std::endl;
       os << "  keepstatistics: " << itsDoRfiStats << std::endl;
       os << "  autocorr:       " << itsDoAutoCorr << std::endl;
-#ifdef _OPENMP
-      uint nthread = omp_get_max_threads();
-#else
-      uint nthread = 1;
-#endif
-      os << "  nthreads (omp)  " << nthread << std::endl;
+      os << "  nthreads (omp)  " << OpenMP::maxThreads() << std::endl;
       os << "  max memory used " << itsMemoryNeeded << std::endl;
     }
 
@@ -126,11 +121,7 @@ namespace LOFAR {
       info().setNeedVisData();
       info().setNeedWrite();
       // Get nr of threads.
-#ifdef _OPENMP
-      uint nthread = omp_get_max_threads();
-#else
-      uint nthread = 1;
-#endif
+      uint nthread = OpenMP::maxThreads();
       // Determine available memory.
       double availMemory = HostInfo::memoryTotal() * 1024.;
       // Determine how much memory can be used.
@@ -301,7 +292,7 @@ namespace LOFAR {
 	// Create thread-private counter object.
         FlagCounter counter (itsFlagCounter);
 	// Create thread-private strategy object.
-	rfiStrategy::Strategy strategy;
+        boost::shared_ptr<Strategy> strategy;
 	fillStrategy (strategy);
         // Create a statistics object for all polarizations.
         StatisticsCollection rfiStats(4);
@@ -318,11 +309,11 @@ namespace LOFAR {
           if (ant1[ib] == ant2[ib]) {
             if (itsDoAutoCorr) {
               flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
-                            counter, strategy, rfiStats);
+                            counter, *strategy, rfiStats);
             }
           } else {
             flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
-                          counter, strategy, rfiStats);
+                          counter, *strategy, rfiStats);
           }
         } // end of OMP for
 #pragma omp critical(aorflagger_updatecounts)
@@ -360,7 +351,7 @@ namespace LOFAR {
     void AORFlagger::flagBaseline (uint leftOverlap, uint windowSize,
                                    uint rightOverlap, uint bl,
                                    FlagCounter& counter,
-				   rfiStrategy::Strategy& strategy,
+				   Strategy& strategy,
                                    StatisticsCollection& rfiStats)
     {
       NSTimer moveTimer, flagTimer, qualTimer;
@@ -415,9 +406,9 @@ namespace LOFAR {
       revData.SetIndividualPolarisationMasks (falseMask, falseMask,
                                               falseMask, falseMask);
       ////      boost::mutex mutex;
-      ////      rfiStrategy::ArtifactSet artifacts(&mutex);
+      ////      ArtifactSet artifacts(&mutex);
       // Create and fill the artifact set. A mutex is not needed.
-      rfiStrategy::ArtifactSet artifacts(0);
+      ArtifactSet artifacts(0);
       artifacts.SetOriginalData (origData);
       artifacts.SetContaminatedData (contData);
       artifacts.SetRevisedData (revData);
@@ -498,8 +489,23 @@ namespace LOFAR {
       }
     }
 
-    void AORFlagger::fillStrategy (rfiStrategy::Strategy& strategy)
+    void AORFlagger::fillStrategy (boost::shared_ptr<Strategy>& pstrategy)
     {
+      string fileName = itsStrategyName;
+      if (! fileName.empty()) {
+        if (! File(fileName).exists()) {
+          fileName = "$LOFARROOT/share/rfistrategies/" + fileName;
+          if (! File(fileName).exists()) {
+            THROW (Exception, "Unknown rfistrategy file " << itsStrategyName);
+          }
+        }
+        StrategyReader reader;
+        pstrategy = boost::shared_ptr<Strategy>
+          (reader.CreateStrategyFromFile(fileName));
+        return;
+      }
+      pstrategy = boost::shared_ptr<Strategy> (new Strategy);
+      Strategy& strategy = *pstrategy;
       strategy.Add(new SetFlaggingAction());
       ForEachPolarisationBlock* fepBlock = new ForEachPolarisationBlock();
       strategy.Add(fepBlock);

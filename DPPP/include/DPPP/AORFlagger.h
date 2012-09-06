@@ -31,6 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/FlagCounter.h>
 #include <Common/lofar_vector.h>
+#include <Common/lofar_smartptr.h>
 #include <AOFlagger/strategy/actions/strategyaction.h>
 #include <AOFlagger/util/progresslistener.h>
 #include <AOFlagger/quality/statisticscollection.h>
@@ -115,7 +116,7 @@ namespace LOFAR {
                      int bl, uint polarization);
 
       // Fill the rfi strategy.
-      void fillStrategy (rfiStrategy::Strategy&);
+      void fillStrategy (boost::shared_ptr<rfiStrategy::Strategy>&);
 
       //# Data members.
       DPInput*         itsInput;
@@ -123,6 +124,7 @@ namespace LOFAR {
       uint             itsBufIndex;
       uint             itsNTimes;
       uint             itsNTimesToDo;
+      string           itsStrategyName;
       uint             itsWindowSize;
       uint             itsOverlap;       //# extra time slots on both sides
       double           itsOverlapPerc;
@@ -141,7 +143,7 @@ namespace LOFAR {
       double           itsMoveTime;      //# data move timer (sum all threads)
       double           itsFlagTime;      //# flag timer (sum of all threads)
       double           itsQualTime;      //# quality timer (sum of all threads)
-      rfiStrategy::Strategy itsStrategy;
+      boost::shared_ptr<rfiStrategy::Strategy> itsStrategy;
       DummyProgressListener itsProgressListener;
       StatisticsCollection  itsRfiStats;
       casa::Vector<double>  itsFreqs;
