@@ -64,7 +64,7 @@ namespace LOFAR {
       NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).
       uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
-      uint tileNChan       = parset.getUint (prefix+"tilenchan", info.nchan());
+      uint tileNChan       = parset.getUint (prefix+"tilenchan", 0);
       itsOverwrite         = parset.getBool (prefix+"overwrite", false);
       itsCopyCorrData      = parset.getBool (prefix+"copycorrecteddata", false);
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
@@ -75,6 +75,9 @@ namespace LOFAR {
       ASSERTSTR (itsDataColName == "DATA", "Currently only the DATA column"
                  " can be used as output");
       // Create the MS.
+      if (tileNChan <= 0) {
+        tileNChan = info.nchan();
+      }
       createMS (outName, info, tileSize, tileNChan);
       // Write the parset info into the history.
       writeHistory (itsMS, parset.parameterSet());
