@@ -88,7 +88,7 @@ namespace LOFAR {
 //                                                   vector<double>())),
 //        itsJointSolve     (parset.getBool  (prefix+"jointsolve", true)),
         itsPropagateSolutions(parset.getBool (prefix+"propagatesolutions",
-                                              true)),
+                                              false)),
         itsNDir           (0),
         itsNModel         (0),
         itsNStation       (0),
