@@ -43,7 +43,16 @@ namespace LOFAR {
         itsName         (prefix),
         itsStartChanStr (parset.getString(prefix+"startchan", "0")),
         itsNrChanStr    (parset.getString(prefix+"nchan", "0")),
-        itsBaselines    (parset, prefix)
+        itsBaselines    (parset, prefix),
+        itsDoSelect     (false)
+    {}
+
+    Filter::Filter (DPInput* input, const BaselineSelection& baselines)
+      : itsInput        (input),
+        itsStartChanStr ("0"),
+        itsNrChanStr    ("0"),
+        itsBaselines    (baselines),
+        itsDoSelect     (false)
     {}
 
     Filter::~Filter()
@@ -76,6 +85,7 @@ namespace LOFAR {
       } else {
         nrChan = std::min (nrChan, maxNrChan);
       }
+      itsDoSelect = itsStartChan>0 || nrChan<maxNrChan;
       // Handle possible baseline selection.
       if (itsBaselines.hasSelection()) {
         Matrix<bool> selbl(itsBaselines.apply (infoIn));
@@ -87,14 +97,19 @@ namespace LOFAR {
             itsSelBL.push_back (i);
           }
         }
+        if (itsSelBL.size() < ant1.size()) {
+          itsDoSelect = true;
+        }
       }
-      // Update the DPInfo object.
-      info().update (itsStartChan, nrChan, itsSelBL);
-      // Shape the arrays in the buffer.
-      IPosition shape (3, infoIn.ncorr(), nrChan, getInfo().nbaselines());
-      itsBuf.getData().resize (shape);
-      itsBuf.getFlags().resize (shape);
-      itsBuf.getWeights().resize (shape);
+      if (itsDoSelect) {
+        // Update the DPInfo object.
+        info().update (itsStartChan, nrChan, itsSelBL);
+        // Shape the arrays in the buffer.
+        IPosition shape (3, infoIn.ncorr(), nrChan, getInfo().nbaselines());
+        itsBuf.getData().resize (shape);
+        itsBuf.getFlags().resize (shape);
+        itsBuf.getWeights().resize (shape);
+      }
     }
 
     void Filter::show (std::ostream& os) const
@@ -117,6 +132,17 @@ namespace LOFAR {
     bool Filter::process (const DPBuffer& buf)
     {
       itsTimer.start();
+      if (!itsDoSelect) {
+        itsBuf = buf;      // uses reference semantics
+	itsTimer.stop();
+	getNextStep()->process (itsBuf);
+        return true;
+      }
+      // Make sure no other object references the DATA and UVW arrays.
+      itsBuf.getData().unique();
+      itsBuf.getFlags().unique();
+      itsBuf.getWeights().unique();
+      itsBuf.getFullResFlags().unique();
       // Get the various data arrays.
       RefRows rowNrs(buf.getRowNrs());
       const Array<Complex>& data = buf.getData();
@@ -154,6 +180,7 @@ namespace LOFAR {
       } else {
         // Copy the data of the selected baselines and channels.
         itsBuf.getUVW().resize (IPosition(2, 3, getInfo().nbaselines()));
+        itsBuf.getUVW().unique();
         Complex* toData   = itsBuf.getData().data();
         Bool*    toFlag   = itsBuf.getFlags().data();
         Float*   toWeight = itsBuf.getWeights().data();

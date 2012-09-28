@@ -78,6 +78,7 @@ namespace LOFAR {
     bool ResultStep::process (const DPBuffer& buf)
     {
       itsBuffer = buf;
+      getNextStep()->process (buf);
       return true;
     }
 
@@ -100,6 +101,7 @@ namespace LOFAR {
     bool MultiResultStep::process (const DPBuffer& buf)
     {
       itsBuffers.push_back (buf);
+      getNextStep()->process (buf);
       return true;
     }
 

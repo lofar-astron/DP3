@@ -82,10 +82,6 @@ namespace LOFAR {
                 const casa::Vector<casa::Int>& ant1,
                 const casa::Vector<casa::Int>& ant2);
 
-      // Set the info for the given baselines.
-      void set (const casa::Vector<casa::Int>& ant1,
-                const casa::Vector<casa::Int>& ant2);
-
       // Update the info for the given average factors.
       // If chanAvg is higher than the actual nr of channels, it is reset.
       // The same is true for timeAvg.
@@ -153,6 +149,17 @@ namespace LOFAR {
       double refFreq() const
         { return itsRefFreq; }
 
+      // Get the antenna numbers actually used in the (selected) baselines.
+      // E.g. [0,2,5,6]
+      const vector<int>& antennaUsed() const
+        { return itsAntUsed; }
+
+      // Get the indices of all antennae in the used antenna vector above.
+      // -1 means that the antenna is not used.
+      // E.g. [0,-1,1,-1,-1,2,3] for the example above.
+      const vector<int>& antennaMap() const
+        { return itsAntMap; }
+
       // Are the visibility data needed?
       bool needVisData() const
         { return itsNeedVisData; }
@@ -175,6 +182,10 @@ namespace LOFAR {
       const vector<double>& getBaselineLengths() const;
 
     private:
+      // Set which antennae are actually used.
+      void setAntUsed();
+
+      //# Data members.
       bool   itsNeedVisData;    //# Are the visibility data needed?
       bool   itsNeedWrite;      //# Does the last step need to write?
       string itsMSName;
@@ -200,6 +211,8 @@ namespace LOFAR {
       double                     itsRefFreq;
       casa::Vector<casa::String> itsAntNames;
       vector<casa::MPosition>    itsAntPos;
+      vector<int>                itsAntUsed;
+      vector<int>                itsAntMap;
       casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
       casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
       mutable vector<double>     itsBLength;       //# baseline lengths

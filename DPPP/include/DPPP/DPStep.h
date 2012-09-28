@@ -118,7 +118,7 @@ namespace LOFAR {
       // The default implementation copies the info.
       virtual void updateInfo (const DPInfo&);
 
-      //# Data mamabers.
+      //# Data members.
       DPStep::ShPtr itsNextStep;
       DPInfo        itsInfo;
     };

@@ -130,6 +130,9 @@ namespace LOFAR {
       // Parameters are obtained from the parset using the given prefix.
       Filter (DPInput* input, const ParSet&, const string& prefix);
 
+      // Construct the object for the given MS and baseline selection.
+      Filter (DPInput* input, const BaselineSelection&);
+
       virtual ~Filter();
 
       // Process the next data chunk.
@@ -148,6 +151,18 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Does the filter step has an actual selection?
+      bool hasSelection() const
+        { return itsDoSelect; }
+
+      // Get the indices of the selected baselines.
+      const vector<uint>& getIndicesBL() const
+        { return itsSelBL; }
+
+      // Get the buffer.
+      const DPBuffer& getBuffer() const
+        { return itsBuf; }
+
     private:
       //# Data members.
       DPInput*          itsInput;
@@ -158,6 +173,7 @@ namespace LOFAR {
       BaselineSelection itsBaselines;
       uint              itsStartChan;
       vector<uint>      itsSelBL;         //# Index of baselines to select
+      bool              itsDoSelect;      //# Any selection?
       NSTimer           itsTimer;
     };
 
