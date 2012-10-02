@@ -268,18 +268,26 @@ namespace LOFAR {
       // Handle possible data selection.
       itsFilter.setInfo (infoIn);
       const DPInfo& infoSel = itsFilter.getInfo();
+      // NB. The number of baselines and stations refer to the number of
+      // selected baselines and the number of unique stations that participate
+      // in the selected baselines.
       itsNBl = infoSel.nbaselines();
+      itsNStation = infoSel.antennaUsed().size();
+
+      // Re-number the station IDs in the selected baselines, removing gaps in
+      // the numbering due to unused stations.
+      const vector<int> &antennaMap = infoSel.antennaMap();
+      for (uint i=0; i<itsNBl; ++i) {
+        itsBaselines.push_back(Baseline(antennaMap[infoSel.getAnt1()[i]],
+          antennaMap[infoSel.getAnt2()[i]]));
+      }
+
+      // Allocate buffers used to compute the smearing factors.
       itsFactorBuf.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
                                      itsNDir*(itsNDir-1)/2));
       itsFactorBufSubtr.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
                                      itsNDir*(itsNDir-1)/2));
-      for (uint i=0; i<itsNBl; ++i) {
-        itsBaselines.push_back (Baseline(infoSel.getAnt1()[i],
-                                         infoSel.getAnt2()[i]));
-      }
-      // Get nr of stations actually used.
-      ///itsNStation = infoSel.antennaUsed().size();
-      itsNStation = infoSel.antennaNames().size();
+
       // Adapt averaging to available nr of channels and times.
       // Use a copy of the DPInfo, otherwise it is updated multiple times.
       DPInfo infoDemix(infoSel);
@@ -321,9 +329,9 @@ namespace LOFAR {
 
       // Intialize the unknowns.
       itsUnknowns.resize(itsNTimeDemix * itsNModel * itsNStation * 8);
-      itsLastKnowns.resize(itsNModel * itsNStation * 8);
-      vector<double>::iterator it = itsLastKnowns.begin();
-      vector<double>::iterator it_end = itsLastKnowns.end();
+      itsPrevSolution.resize(itsNModel * itsNStation * 8);
+      vector<double>::iterator it = itsPrevSolution.begin();
+      vector<double>::iterator it_end = itsPrevSolution.end();
       while(it != it_end)
       {
         *it++ = 1.0;
@@ -344,11 +352,11 @@ namespace LOFAR {
       os << "  instrumentmodel:    " << itsInstrumentName << std::endl;
       itsSelBL.show (os);
       if (itsSelBL.hasSelection()) {
-	os << "    demixing " << itsFilter.getInfo().nbaselines()
-	   << " out of " << getInfo().nbaselines() << " baselines   ("
-	   << itsFilter.getInfo().antennaUsed().size()
-	   << " out of " << getInfo().antennaUsed().size()
-	   << " stations)" << std::endl;
+        os << "    demixing " << itsFilter.getInfo().nbaselines()
+           << " out of " << getInfo().nbaselines() << " baselines   ("
+           << itsFilter.getInfo().antennaUsed().size()
+           << " out of " << getInfo().antennaUsed().size()
+           << " stations)" << std::endl;
       }
       os << "  targetsource:       " << itsTargetSource << std::endl;
       os << "  subtractsources:    " << itsSubtrSources << std::endl;
@@ -463,49 +471,10 @@ namespace LOFAR {
       // Estimate gains and subtract source contributions when sufficient time
       // slots have been collected.
       if (itsNTimeOut == itsNTimeChunk) {
-	handleDemix();
+        handleDemix();
       }
       itsTimer.stop();
       return true;
-    }
-
-    void Demixer::handleDemix()
-    {
-      if(itsNModel > 0) {
-	itsTimerSolve.start();
-	demix();
-	itsTimerSolve.stop();
-	// If selection was done, merge the subtract results back into the
-	// buffer.
-	if (itsSelBL.hasSelection()) {
-	  mergeSubtractResult();
-	}
-      }
-
-      // Clear the input buffers.
-      for (size_t i=0; i<itsAvgResults.size(); ++i) {
-	itsAvgResults[i]->clear();
-      }
-      // Let the next step process the data.
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
-	itsTimer.stop();
-	if (itsSelBL.hasSelection()) {
-	  getNextStep()->process (itsAvgResultFull->get()[i]);
-	} else {
-	  getNextStep()->process (itsAvgResultSubtr->get()[i]);
-	}
-	itsTimer.start();
-      }
-
-      // Clear the output buffer.
-      itsAvgResultFull->clear();
-      itsAvgResultSubtr->clear();
-
-      // Reset counters.
-      itsNTimeIn       = 0;
-      itsNTimeOut      = 0;
-      itsNTimeOutSubtr = 0;
-      itsTimeIndex += itsNTimeChunk;
     }
 
     void Demixer::finish()
@@ -544,7 +513,7 @@ namespace LOFAR {
         itsFactorsSubtr.resize(itsNTimeOutSubtr);
 
         // Demix the source directions.
-	handleDemix();
+        handleDemix();
       }
 
       // Write solutions to disk in ParmDB format.
@@ -556,6 +525,45 @@ namespace LOFAR {
 
       // Let the next steps finish.
       getNextStep()->finish();
+    }
+
+    void Demixer::handleDemix()
+    {
+      if(itsNModel > 0) {
+        itsTimerSolve.start();
+        demix();
+        itsTimerSolve.stop();
+        // If selection was done, merge the subtract results back into the
+        // buffer.
+        if (itsSelBL.hasSelection()) {
+          mergeSubtractResult();
+        }
+      }
+
+      // Clear the input buffers.
+      for (size_t i=0; i<itsAvgResults.size(); ++i) {
+        itsAvgResults[i]->clear();
+      }
+      // Let the next step process the data.
+      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+        itsTimer.stop();
+        if (itsSelBL.hasSelection()) {
+          getNextStep()->process (itsAvgResultFull->get()[i]);
+        } else {
+          getNextStep()->process (itsAvgResultSubtr->get()[i]);
+        }
+        itsTimer.start();
+      }
+
+      // Clear the output buffer.
+      itsAvgResultFull->clear();
+      itsAvgResultSubtr->clear();
+
+      // Reset counters.
+      itsNTimeIn       = 0;
+      itsNTimeOut      = 0;
+      itsNTimeOutSubtr = 0;
+      itsTimeIndex += itsNTimeChunk;
     }
 
     void Demixer::mergeSubtractResult()
@@ -824,24 +832,20 @@ namespace LOFAR {
       const size_t nCr = 4;
       const size_t nSamples = nBl * nCh * nCr;
 
-      ///for (uint j=0; j<nTimeSubtr; ++j) {
-      ///cout << itsAvgResultSubtr->get()[j].getData()<<endl;
-      /// cout << itsAvgResultSubtr->get()[j].getFlags()<<endl;
-      /// cout << itsAvgResultSubtr->get()[j].getWeights()<<endl;
-      /// cout << itsAvgResultSubtr->get()[j].getUVW()<<endl;
-      ///}
-      ///for (uint i=0; i<itsFactors.size(); ++i) {
-      /// cout << itsFactors[i] << endl;
-      ///}
-      ///for (uint i=0; i<itsFactorsSubtr.size(); ++i) {
-      /// cout << itsFactorsSubtr[i] << endl;
-      ///}
-
       vector<ThreadPrivateStorage> threadStorage(nThread);
       for(vector<ThreadPrivateStorage>::iterator it = threadStorage.begin(),
         end = threadStorage.end(); it != end; ++it)
       {
         initThreadPrivateStorage(*it, nDr, nSt, nBl, nCh, nChSubtr);
+
+        // Copy the previous solution to the thread private vectors of unknowns.
+        // When solution propagation is disabled, itsPrevSolution is never
+        // updated. It then contains 1.0+0.0i for the diagonal terms and
+        // 0.0+0.0i for the off-diagonal terms. Thus, when solution propagation
+        // is disabled this statement effectively re-initializes the thread
+        // private vectors of unknowns.
+        copy(itsPrevSolution.begin(), itsPrevSolution.end(),
+          it->unknowns.begin());
       }
 
       const_cursor<double> cr_freq = casa_const_cursor(itsFreqDemix);
@@ -853,11 +857,14 @@ namespace LOFAR {
       {
         const size_t thread = OpenMP::threadNum();
         ThreadPrivateStorage &storage = threadStorage[thread];
-        // Copy solutions from global solution array to thread private solution
-        // array (solution propagation between chunks).
-	if (!itsPropagateSolutions || ts==0) {
-	  copy(itsLastKnowns.begin(), itsLastKnowns.end(), storage.unknowns.begin());
-	}
+
+        // If solution propagation is disabled, re-initialize the thread-private
+        // vector of unknowns.
+        if(!itsPropagateSolutions)
+        {
+          copy(itsPrevSolution.begin(), itsPrevSolution.end(),
+            storage.unknowns.begin());
+        }
 
         // Simulate.
         //
@@ -1009,7 +1016,7 @@ namespace LOFAR {
       {
         copy(&(itsUnknowns[(itsTimeIndex + nTime - 1) * nDr * nSt * 8]),
           &(itsUnknowns[(itsTimeIndex + nTime) * nDr * nSt * 8]),
-          itsLastKnowns.begin());
+          itsPrevSolution.begin());
       }
 
       // Update convergence count.
@@ -1041,30 +1048,40 @@ namespace LOFAR {
       resolution[1] = itsTimeIntervalAvg;
       parmDB.setDefaultSteps(resolution);
 
+      // Map station indices in the solution array to the corresponding antenna
+      // names. This is required because solutions are only produced for
+      // stations that participate in one or more baselines. Due to the baseline
+      // selection or missing baselines, solutions may be available for less
+      // than the total number of station available in the observation.
+      const DPInfo &info = itsFilter.getInfo();
+      const vector<int> &antennaUsed = info.antennaUsed();
+      const Vector<String> &antennaNames = info.antennaNames();
+
       vector<BBS::Parm> parms;
       for(size_t dr = 0; dr < itsNModel; ++dr) {
-        for(size_t st = 0; st < getInfo().antennaNames().size(); ++st) {
-            string suffix (string(getInfo().antennaNames()[st]) + ':' +
-                           itsAllSources[dr]);
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:0:0:Real:" + suffix)));
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:0:0:Imag:" + suffix)));
+        for(size_t st = 0; st < itsNStation; ++st) {
+          string suffix(string(antennaNames[antennaUsed[st]]) + ':' +
+            itsAllSources[dr]);
 
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:0:1:Real:" + suffix)));
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:0:1:Imag:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:0:0:Real:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:0:0:Imag:" + suffix)));
 
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:1:0:Real:" + suffix)));
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:1:0:Imag:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:0:1:Real:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:0:1:Imag:" + suffix)));
 
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:1:1:Real:" + suffix)));
-            parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
-              "DirectionalGain:1:1:Imag:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:1:0:Real:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:1:0:Imag:" + suffix)));
+
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:1:1:Real:" + suffix)));
+          parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
+            "DirectionalGain:1:1:Imag:" + suffix)));
         }
       }
 

@@ -193,7 +193,7 @@ namespace LOFAR {
       casa::Vector<double>                  itsFreqDemix;
       casa::Vector<double>                  itsFreqSubtr;
       vector<double>                        itsUnknowns;
-      vector<double>                        itsLastKnowns;
+      vector<double>                        itsPrevSolution;
       uint                                  itsTimeIndex;
       uint                                  itsNConverged;
 
