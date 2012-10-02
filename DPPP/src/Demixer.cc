@@ -1060,8 +1060,8 @@ namespace LOFAR {
       vector<BBS::Parm> parms;
       for(size_t dr = 0; dr < itsNModel; ++dr) {
         for(size_t st = 0; st < itsNStation; ++st) {
-          string suffix(string(antennaNames[antennaUsed[st]]) + ':' +
-            itsAllSources[dr]);
+          string name(antennaNames[antennaUsed[st]]);
+          string suffix(name + ":" + itsAllSources[dr]);
 
           parms.push_back(BBS::Parm(parmCache, parmSet.addParm(parmDB,
             "DirectionalGain:0:0:Real:" + suffix)));
