@@ -129,9 +129,9 @@ namespace LOFAR {
       itsAntUsed.reserve (itsAntNames.size());
       for (uint i=0; i<itsAntMap.size(); ++i) {
         if (itsAntMap[i] == 0) {
-	  itsAntMap[i] = itsAntUsed.size();
+          itsAntMap[i] = itsAntUsed.size();
           itsAntUsed.push_back (i);
-	}
+        }
       }
     }
 

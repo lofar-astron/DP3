@@ -134,8 +134,8 @@ namespace LOFAR {
       itsTimer.start();
       if (!itsDoSelect) {
         itsBuf = buf;      // uses reference semantics
-	itsTimer.stop();
-	getNextStep()->process (itsBuf);
+        itsTimer.stop();
+        getNextStep()->process (itsBuf);
         return true;
       }
       // Make sure no other object references the DATA and UVW arrays.
