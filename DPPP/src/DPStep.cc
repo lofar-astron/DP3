@@ -83,7 +83,9 @@ namespace LOFAR {
     }
 
     void ResultStep::finish()
-    {}
+    {
+      getNextStep()->finish();
+    }
 
     void ResultStep::show (std::ostream&) const
     {}
@@ -106,7 +108,9 @@ namespace LOFAR {
     }
 
     void MultiResultStep::finish()
-    {}
+    {
+      getNextStep()->finish();
+    }
 
     void MultiResultStep::show (std::ostream&) const
     {}

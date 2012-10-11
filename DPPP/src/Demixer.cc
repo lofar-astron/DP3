@@ -488,6 +488,7 @@ namespace LOFAR {
         for (int i=0; i<int(itsFirstSteps.size()); ++i) {
           itsFirstSteps[i]->finish();
         }
+	itsAvgStepSubtr->finish();
         itsTimerPhaseShift.stop();
         // Only average if there is some unaveraged data.
         itsTimerDemix.start();
@@ -535,9 +536,10 @@ namespace LOFAR {
         itsTimerSolve.stop();
         // If selection was done, merge the subtract results back into the
         // buffer.
-        if (itsSelBL.hasSelection()) {
-          mergeSubtractResult();
-        }
+      }
+      // If needed, merge in the deselected baselines.
+      if (itsSelBL.hasSelection()) {
+	mergeSubtractResult();
       }
 
       // Clear the input buffers.
