@@ -39,9 +39,10 @@ namespace LOFAR {
 
     BaselineSelection::BaselineSelection (const ParSet& parset,
                                           const string& prefix,
-                                          bool minmax)
+                                          bool minmax,
+					  const string& defaultCorrType)
       : itsStrBL    (parset.getString (prefix + "baseline", "")),
-        itsCorrType (parset.getString (prefix + "corrtype", "")),
+        itsCorrType (parset.getString (prefix + "corrtype", defaultCorrType)),
         itsRangeBL  (parset.getDoubleVector (prefix + "blrange",
                                              vector<double>()))
     {
@@ -69,9 +70,10 @@ namespace LOFAR {
 
     void BaselineSelection::show (ostream& os) const
     {
-      os << "   baseline:      " << itsStrBL << std::endl;
-      os << "   corrtype:      " << itsCorrType << std::endl;
-      os << "   blrange:       " << itsRangeBL << std::endl;
+      os << "  Baseline selection:" << std::endl;
+      os << "    baseline:     " << itsStrBL << std::endl;
+      os << "    corrtype:     " << itsCorrType << std::endl;
+      os << "    blrange:      " << itsRangeBL << std::endl;
     }
 
     Matrix<bool> BaselineSelection::apply (const DPInfo& info) const

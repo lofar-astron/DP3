@@ -111,13 +111,28 @@ namespace LOFAR {
       itsAntPos = antPos;
       itsAnt1.reference (ant1);
       itsAnt2.reference (ant2);
+      // Set which antennae are used.
+      setAntUsed();
     }
 
-    void DPInfo::set (const Vector<Int>& ant1,
-                      const Vector<Int>& ant2)
+    void DPInfo::setAntUsed()
     {
-      itsAnt1.reference (ant1);
-      itsAnt2.reference (ant2);
+      itsAntUsed.clear();
+      itsAntMap.resize (itsAntNames.size());
+      std::fill (itsAntMap.begin(), itsAntMap.end(), -1);
+      for (uint i=0; i<itsAnt1.size(); ++i) {
+        ASSERT (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
+                itsAnt2[i] >= 0  &&  itsAnt2[i] < int(itsAntMap.size()));
+        itsAntMap[itsAnt1[i]] = 0;
+        itsAntMap[itsAnt2[i]] = 0;
+      }
+      itsAntUsed.reserve (itsAntNames.size());
+      for (uint i=0; i<itsAntMap.size(); ++i) {
+        if (itsAntMap[i] == 0) {
+          itsAntMap[i] = itsAntUsed.size();
+          itsAntUsed.push_back (i);
+        }
+      }
     }
 
     uint DPInfo::update (uint chanAvg, uint timeAvg)
@@ -171,8 +186,8 @@ namespace LOFAR {
         Vector<Int> ant1 (baselines.size());
         Vector<Int> ant2 (baselines.size());
         for (uint i=0; i<baselines.size(); ++i) {
-          ant1 = itsAnt1[i];
-          ant2 = itsAnt2[i];
+          ant1[i] = itsAnt1[baselines[i]];
+          ant2[i] = itsAnt2[baselines[i]];
         }
         itsAnt1.reference (ant1);
         itsAnt2.reference (ant2);
@@ -180,6 +195,7 @@ namespace LOFAR {
         itsBLength.resize (0);
         itsAutoCorrIndex.resize (0);
       }
+      setAntUsed();
     }
 
     const vector<double>& DPInfo::getBaselineLengths() const

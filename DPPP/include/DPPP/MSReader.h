@@ -31,7 +31,6 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
 #include <DPPP/FlagCounter.h>
-#include <DPPP/BaselineSelection.h>
 #include <tables/Tables/TableIter.h>
 #include <tables/Tables/RefRows.h>
 #include <casa/Arrays/Slicer.h>

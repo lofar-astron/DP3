@@ -9,10 +9,10 @@ rfi detector by André Offringa (offringa@astro.rug.nl).
         <new-flagging>0</new-flagging>
       </action>
       <action type="ForEachPolarisationBlock">
-        <on-xx>1</on-xx>
+        <on-xx>0</on-xx>
         <on-xy>1</on-xy>
         <on-yx>1</on-yx>
-        <on-yy>1</on-yy>
+        <on-yy>0</on-yy>
         <on-stokes-i>0</on-stokes-i>
         <on-stokes-q>0</on-stokes-q>
         <on-stokes-u>0</on-stokes-u>
@@ -31,7 +31,7 @@ rfi detector by André Offringa (offringa@astro.rug.nl).
                 <children>
                   <action type="SumThresholdAction">
                     <base-sensitivity>1</base-sensitivity>
-                    <time-direction-flagging>0</time-direction-flagging>
+                    <time-direction-flagging>1</time-direction-flagging>
                     <frequency-direction-flagging>1</frequency-direction-flagging>
                   </action>
                   <action type="CombineFlagResults">
@@ -66,16 +66,12 @@ rfi detector by André Offringa (offringa@astro.rug.nl).
               </action>
               <action type="SumThresholdAction">
                 <base-sensitivity>1</base-sensitivity>
-                <time-direction-flagging>0</time-direction-flagging>
+                <time-direction-flagging>1</time-direction-flagging>
                 <frequency-direction-flagging>1</frequency-direction-flagging>
               </action>
             </children>
           </action>
         </children>
-      </action>
-      <action type="PlotAction">
-        <plot-kind>5</plot-kind>
-        <logarithmic-y-axis>0</logarithmic-y-axis>
       </action>
       <action type="SetFlaggingAction">
         <new-flagging>4</new-flagging>
@@ -87,29 +83,6 @@ rfi detector by André Offringa (offringa@astro.rug.nl).
         <max-contaminated-times-ratio>0.5</max-contaminated-times-ratio>
         <minimum-good-frequency-ratio>0.2</minimum-good-frequency-ratio>
         <minimum-good-time-ratio>0.2</minimum-good-time-ratio>
-      </action>
-      <action type="TimeSelectionAction">
-        <threshold>3.5</threshold>
-      </action>
-      <action type="BaselineSelectionAction">
-        <preparation-step>1</preparation-step>
-        <flag-bad-baselines>0</flag-bad-baselines>
-        <threshold>8</threshold>
-        <smoothing-sigma>0.6</smoothing-sigma>
-        <abs-threshold>0.4</abs-threshold>
-        <make-plot>0</make-plot>
-      </action>
-      <action type="SetFlaggingAction">
-        <new-flagging>6</new-flagging>
-      </action>
-      <action type="WriteFlagsAction" />
-      <action type="PlotAction">
-        <plot-kind>0</plot-kind>
-        <logarithmic-y-axis>0</logarithmic-y-axis>
-      </action>
-      <action type="PlotAction">
-        <plot-kind>1</plot-kind>
-        <logarithmic-y-axis>0</logarithmic-y-axis>
       </action>
     </children>
   </action>

@@ -54,7 +54,8 @@ namespace LOFAR {
       //  <li> maxbl:    maximum baseline length (in m); only if minmax=true
       // </ul>
       BaselineSelection (const ParSet&, const string& prefix,
-                         bool minmax=false);
+                         bool minmax=false,
+			 const string& defaultCorrType=string());
 
       // Is there any selection?
       bool hasSelection() const;

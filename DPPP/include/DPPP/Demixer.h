@@ -32,6 +32,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/Patch.h>
 #include <DPPP/PhaseShift.h>
+#include <DPPP/Filter.h>
 
 #include <casa/Arrays/Cube.h>
 #include <casa/Quanta/Quantum.h>
@@ -102,6 +103,9 @@ namespace LOFAR {
                         uint nChanOut,
                         uint nChanAvg);
 
+      // Do the demixing.
+      void handleDemix();
+
       // Deproject the sources without a model.
       void deproject (casa::Array<casa::DComplex>& factors,
                       vector<MultiResultStep*> avgResults,
@@ -113,18 +117,27 @@ namespace LOFAR {
       // Export the solutions to a ParmDB.
       void dumpSolutions();
 
+      // Merge the data of the selected baselines from the subtract buffer
+      // into the full buffer.
+      void mergeSubtractResult();
+
       //# Data members.
       DPInput*                              itsInput;
       string                                itsName;
       string                                itsSkyName;
       string                                itsInstrumentName;
+      BaselineSelection                     itsSelBL;
+      Filter                                itsFilter;
       vector<PhaseShift*>                   itsPhaseShifts;
-      //# Phase shift and average steps.
+      //# Phase shift and average steps for demix.
       vector<DPStep::ShPtr>                 itsFirstSteps;
       //# Result of phase shifting and averaging the directions of interest
       //# at the demix resolution.
       vector<MultiResultStep*>              itsAvgResults;
+      DPStep::ShPtr                         itsAvgStepSubtr;
+      Filter*                               itsFilterSubtr;
       //# Result of averaging the target at the subtract resolution.
+      MultiResultStep*                      itsAvgResultFull;
       MultiResultStep*                      itsAvgResultSubtr;
       //# Ignore target in demixing?
       bool                                  itsIgnoreTarget;
@@ -180,7 +193,7 @@ namespace LOFAR {
       casa::Vector<double>                  itsFreqDemix;
       casa::Vector<double>                  itsFreqSubtr;
       vector<double>                        itsUnknowns;
-      vector<double>                        itsLastKnowns;
+      vector<double>                        itsPrevSolution;
       uint                                  itsTimeIndex;
       uint                                  itsNConverged;
 
