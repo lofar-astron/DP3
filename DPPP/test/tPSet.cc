@@ -68,7 +68,8 @@ public:
     antNames[2] = "cs01.s01";
     antNames[3] = "cs01.s02";
     vector<MPosition> antPos(4);
-    info().set (antNames, antPos, ant1, ant2);
+    Vector<double> antDiam(4, 70.);
+    info().set (antNames, antDiam, antPos, ant1, ant2);
     Vector<double> chanWidth(nchan, 100000);
     Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 1050000., 100000.);

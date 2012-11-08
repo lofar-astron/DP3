@@ -471,6 +471,7 @@ namespace LOFAR {
       // Get the antenna names and positions.
       Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
       ROScalarColumn<String> nameCol (anttab, "NAME");
+      ROScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
       uint nant = anttab.nrow();
       ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
       vector<MPosition> antPos;
@@ -479,7 +480,7 @@ namespace LOFAR {
         antPos.push_back (antcol(i));
       }
       // Set antenna/baseline info.
-      info().set (nameCol.getColumn(), antPos,
+      info().set (nameCol.getColumn(), diamCol.getColumn(), antPos,
                   ant1col.getColumn(), ant2col.getColumn());
       // Read the phase reference position from the FIELD subtable.
       // Only use the main value from the PHASE_DIR array.
@@ -759,20 +760,20 @@ namespace LOFAR {
       if (! rowNrs.rowVector().empty()) {
         itsMS.reopenRW();
         ArrayColumn<bool> flagCol(itsMS, "FLAG");
-	bool succ = true;
-	try {
-	  flagCol.putColumnCells (rowNrs, itsColSlicer, flags);
-	} catch (std::exception&) {
-	  succ = false;
-	}
-	// Work around StandardStMan putCol with RefRows problem.
-	if (!succ) {
-	  Vector<uint> rows = rowNrs.convert();
-	  ReadOnlyArrayIterator<bool> flagIter (flags, 2);
-	  for (uint i=0; i<rows.size(); ++i) {
-	    flagCol.putSlice (rows[i], itsColSlicer, flagIter.array());
-	    flagIter.next();
-	  }
+        ScalarColumn<bool> flagRowCol(itsMS, "FLAG_ROW");
+        // Loop over all rows of this subset.
+	// (it also avoids StandardStMan putCol with RefRows problem).
+        Vector<uint> rows = rowNrs.convert();
+        ReadOnlyArrayIterator<bool> flagIter (flags, 2);
+        for (uint i=0; i<rows.size(); ++i) {
+          flagCol.putSlice (rows[i], itsColSlicer, flagIter.array());
+          // If a new flag in a row is clear, the ROW_FLAG should not be set.
+          // If all new flags are set, we leave it because we might have a
+          // subset of the channels, so other flags might still be clear.
+          if (anyEQ (flagIter.array(), False)) {
+            flagRowCol.put (i, False);
+          }
+          flagIter.next();
 	}
       }
     }

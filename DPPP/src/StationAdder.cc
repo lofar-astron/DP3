@@ -110,11 +110,13 @@ namespace LOFAR {
       //    stations = {new1:[s1,s2,s3], new2:[s4,s5,s6]}
       // where s1, etc. can be glob patterns.
       Vector<String> antennaNames (infoIn.antennaNames());
+      Vector<Double> antennaDiam (infoIn.antennaDiam());
       vector<MPosition> antennaPos(info().antennaPos());
       // For each existing station, give id of new superstation it is used in.
       vector<int> newStations (antennaNames.size());
       std::fill (newStations.begin(), newStations.end(), -1);
       vector<string> newNames;    // Names of new superstations
+      vector<double> newDiam;
       vector<MPosition> newPoss;
       for (ParameterRecord::const_iterator iter = itsStatRec.begin();
            iter != itsStatRec.end(); ++iter) {
@@ -147,6 +149,20 @@ namespace LOFAR {
         newPosition *= 1./parts.size();
         newPoss.push_back (MPosition(newPosition, MPosition::ITRF));
         itsParts.push_back (Vector<int>(parts));
+        // Set the diameter of the new station by determining the
+        // maximum distance to the center.
+        double maxdist = 0;
+        for (uint i=0; i<parts.size(); ++i) {
+          int inx = parts[i];
+          MVPosition mvdiff = newPosition - 
+            MPosition::Convert (antennaPos[inx], MPosition::ITRF)().getValue();
+          const Vector<Double>& diff = mvdiff.getValue();
+          double dist = sqrt(std::accumulate(diff.cbegin(), diff.cend(), 0.,
+                                             casa::SumSqr<Double>()));
+          // Add the radius of the station used.
+          maxdist = max (maxdist, dist + 0.5*antennaDiam[inx]);
+        }
+        newDiam.push_back (2*maxdist);
       }
       // Add the new stations to the info's vectors.
       Vector<Int> ant1 (info().getAnt1());
@@ -154,9 +170,11 @@ namespace LOFAR {
       uint nrold = antennaNames.size();
       uint nrnew = nrold + newNames.size();
       antennaNames.resize (nrnew, True);
+      antennaDiam.resize (nrnew, True);
       antennaPos.reserve  (nrnew);
       for (uint i=0; i<newNames.size(); ++i) {
         antennaNames[nrold+i] = newNames[i];
+        antennaDiam[nrold+i]  = newDiam[i];
         antennaPos.push_back (newPoss[i]);
       }
       // Now determine the new baselines.
@@ -226,7 +244,7 @@ namespace LOFAR {
         }
       }
       // Set the new info.
-      info().set (antennaNames, antennaPos, ant1, ant2);
+      info().set (antennaNames, antennaDiam, antennaPos, ant1, ant2);
       // Setup the UVW calculator (for new baselines).
       itsUVWCalc = UVWCalculator (infoIn.phaseCenter(), infoIn.arrayPos(),
                                   antennaPos);
@@ -412,7 +430,7 @@ namespace LOFAR {
 
     void StationAdder::addToMS (const string& msName)
     {
-      // Add the new baselines.
+      // Add the new stations to the ANTENNA subtable.
       Table antTab (msName + "/ANTENNA", Table::Update);
       ScalarColumn<String> nameCol   (antTab, "NAME");
       ScalarColumn<String> typeCol   (antTab, "TYPE");
@@ -437,24 +455,22 @@ namespace LOFAR {
       uint origNant = antTab.nrow();
       // Take common info from the first row.
       String type, mount, stat;
-      double diam = 0;
       if (origNant > 0) {
         type  = typeCol(0);
         mount = mountCol(0);
-        diam  = diamCol(0);
         if (! statCol.isNull()) {
           stat = statCol(0);
         }
       }
       Vector<Double> offset(3, 0.);
       // Put the data for each new antenna.
-      for (uint i=antTab.nrow(); i<getInfo().antennaNames().size(); ++i) {
+      for (uint i=origNant; i<getInfo().antennaNames().size(); ++i) {
         antTab.addRow();
         nameCol.put   (i, getInfo().antennaNames()[i]);
         typeCol.put   (i, type);
         mountCol.put  (i, mount);
         offsetCol.put (i, offset);
-        diamCol.put   (i, diam);
+        diamCol.put   (i, getInfo().antennaDiam()[i]);
         flagCol.put   (i, false);
         posCol.put    (i, getInfo().antennaPos()[i]);
         if (! statCol.isNull()) {
@@ -467,7 +483,17 @@ namespace LOFAR {
           phrefCol.put (i, getInfo().antennaPos()[i]);
         }
       }
-
+      // For each new station, add a row to the FEED subtable.
+      // It is a copy of the first row, except for the station id.
+      Table feedTab (msName + "/FEED", Table::Update);
+      TableRow feedRow(feedTab);
+      ScalarColumn<Int> antidCol(feedTab, "ANTENNA_ID");
+      for (uint i=origNant; i<getInfo().antennaNames().size(); ++i) {
+        uInt rownr = feedTab.nrow();
+        feedTab.addRow();
+        feedRow.put (rownr, feedRow.get(0));
+        antidCol.put (rownr, i);
+      }
       // Now update the BeamInfo tables if they are present.
       Table ms(msName);
       if (ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD")) {

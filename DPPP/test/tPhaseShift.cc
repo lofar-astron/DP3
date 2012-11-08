@@ -92,7 +92,8 @@ public:
     }
     Vector<String> antNames(nant);
     vector<MPosition> antPos(nant);
-    info().set (antNames, antPos, ant1, ant2);
+    Vector<double> antDiam(nant, 70.);
+    info().set (antNames, antDiam, antPos, ant1, ant2);
     itsStatUVW.resize (3, nant);
     for (int i=0; i<nant; ++i) {
       itsStatUVW(0,i) = 0.01 + i*0.02;

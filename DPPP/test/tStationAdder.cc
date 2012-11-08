@@ -87,7 +87,8 @@ public:
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
     antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
-    info().set (antNames, antPos, ant1, ant2);
+    Vector<double> antDiam(4, 70.);
+    info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     Vector<double> chanWidth(nchan, 1000000.);
     Vector<double> chanFreqs(nchan);
@@ -211,11 +212,24 @@ private:
     ASSERT (int(infoIn.ntimeAvg())==1);
     ASSERT (int(infoIn.nbaselines())==itsNBl+2);
     ASSERT (int(infoIn.antennaNames().size())==5);
+    ASSERT (int(infoIn.antennaDiam().size())==5);
+    ASSERT (int(infoIn.antennaPos().size())==5);
     ASSERT (infoIn.antennaNames()[4]=="ns");
     Vector<Double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
     ASSERT (near(pos1[0], (3828763.+3828746.+3828713.)/3));
     ASSERT (near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
     ASSERT (near(pos1[2], (5064923.+5064924.+5064926.)/3));
+    // Check diam.
+    double d1 = sqrt ((pos1[0]-3828763) * (pos1[0]-3828763) +
+                      (pos1[1]- 442449) * (pos1[1]- 442449) +
+                      (pos1[2]-5064923) * (pos1[2]-5064923));
+    double d2 = sqrt ((pos1[0]-3828746) * (pos1[0]-3828746) +
+                      (pos1[1]- 442592) * (pos1[1]- 442592) +
+                      (pos1[2]-5064924) * (pos1[2]-5064924));
+    double d3 = sqrt ((pos1[0]-3828713) * (pos1[0]-3828713) +
+                      (pos1[1]- 442878) * (pos1[1]- 442878) +
+                      (pos1[2]-5064926) * (pos1[2]-5064926));
+    ASSERT (near(infoIn.antennaDiam()[4], 70+2*max(d1,max(d2,d3))));
   }
 
   int itsCount;

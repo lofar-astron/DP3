@@ -154,7 +154,7 @@ namespace LOFAR {
 
     // This class defines step in the DPPP pipeline that keeps the result
     // to make it possible to get the result of another step.
-    // It only keeps the buffer, but does not process it in next steps.
+    // It keeps the result and calls process of the next step.
 
     class ResultStep: public DPStep
     {
@@ -194,7 +194,7 @@ namespace LOFAR {
 
     // This class defines step in the DPPP pipeline that keeps the result
     // to make it possible to get the result of another step.
-    // It only keeps buffers, but does not process them in next steps.
+    // It keeps the result and calls process of the next step.
     // Buffers are accumulated until cleared.
 
     class MultiResultStep: public DPStep

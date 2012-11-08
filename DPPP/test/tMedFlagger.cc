@@ -123,7 +123,8 @@ private:
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
     antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
-    info().set (antNames, antPos, ant1, ant2);
+    Vector<double> antDiam(4, 70.);
+    info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000);

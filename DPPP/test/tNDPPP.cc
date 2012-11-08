@@ -603,6 +603,11 @@ void testStationAdd()
   Table t2("tNDPPP_tmp.MSa/ANTENNA");
   ASSERT (t2.nrow() == t1.nrow()+1);     // 1 antenna has been added
   ASSERT (ROScalarColumn<String>(t2,"NAME")(t2.nrow()-1) == "RTnew");
+  Int oldNant = t1.nrow();
+  t1 = Table("tNDPPP_tmp.MS/FEED");
+  t2 = Table("tNDPPP_tmp.MSa/FEED");
+  ASSERT (t2.nrow() == t1.nrow()+1);     // 1 antenna has been added
+  ASSERT (ROScalarColumn<Int>(t2,"ANTENNA_ID")(t2.nrow()-1) == oldNant);
   t1 = Table("tNDPPP_tmp.MS");
   t2 = Table("tNDPPP_tmp.MSa");
   ASSERT (t2.nrow() == t1.nrow()+40+12); // 2 baselines and 2 time slots added

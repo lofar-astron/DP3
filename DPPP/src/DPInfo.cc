@@ -103,11 +103,16 @@ namespace LOFAR {
     }
 
     void DPInfo::set (const Vector<String>& antNames,
+                      const Vector<Double>& antDiam,
                       const vector<MPosition>& antPos,
                       const Vector<Int>& ant1,
                       const Vector<Int>& ant2)
     {
+      ASSERT (antNames.size() == antDiam.size()  &&
+              antNames.size() == antPos.size());
+      ASSERT (ant1.size() == ant2.size());
       itsAntNames.reference (antNames);
+      itsAntDiam.reference (antDiam);
       itsAntPos = antPos;
       itsAnt1.reference (ant1);
       itsAnt2.reference (ant2);

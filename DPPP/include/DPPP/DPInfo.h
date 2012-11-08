@@ -78,6 +78,7 @@ namespace LOFAR {
 
       // Set the info for the given antennae and baselines.
       void set (const casa::Vector<casa::String>& antNames,
+                const casa::Vector<casa::Double>& antDiam,
                 const vector<casa::MPosition>& antPos,
                 const casa::Vector<casa::Int>& ant1,
                 const casa::Vector<casa::Int>& ant2);
@@ -124,6 +125,8 @@ namespace LOFAR {
         { return itsAnt2; }
       const casa::Vector<casa::String>& antennaNames() const
         { return itsAntNames; }
+      const casa::Vector<casa::Double>& antennaDiam() const
+        { return itsAntDiam; }
       const vector<casa::MPosition>& antennaPos() const
         { return itsAntPos; }
       const casa::MPosition& arrayPos() const
@@ -210,6 +213,7 @@ namespace LOFAR {
       double                     itsTotalBW;
       double                     itsRefFreq;
       casa::Vector<casa::String> itsAntNames;
+      casa::Vector<casa::Double> itsAntDiam;
       vector<casa::MPosition>    itsAntPos;
       vector<int>                itsAntUsed;
       vector<int>                itsAntMap;
