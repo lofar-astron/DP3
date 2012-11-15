@@ -290,7 +290,8 @@ namespace LOFAR {
 #pragma omp parallel
       {
 	// Create thread-private counter object.
-        FlagCounter counter (itsFlagCounter);
+        FlagCounter counter;
+	counter.init (getInfo());
 	// Create thread-private strategy object.
         boost::shared_ptr<Strategy> strategy;
 	fillStrategy (strategy);

@@ -52,19 +52,16 @@ namespace LOFAR {
     class FlagCounter
     {
     public:
-      // The default constructor creates an emty object. It does not save.
+      // The default constructor creates an empty object. It does not save.
       FlagCounter();
 
-      // The constructor creates an empty object.
+      // This constructor creates an empty object.
       // It reads info from the parset to see if percentages have to be saved.
       FlagCounter (const string& msName, const ParSet&, const string& prefix);
 
       // Size all counters and initialize them to zero using the sizes
       // from the DPInfo object.
       void init (const DPInfo& info);
-
-      // Size all counters to that's sizes and initialize them to zero.
-      ///      void init (const FlagCounter& that);
 
       // Increment the count per baseline.
       void incrBaseline (uint bl)
