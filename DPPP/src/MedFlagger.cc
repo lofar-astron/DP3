@@ -284,7 +284,8 @@ namespace LOFAR {
 	// the medians.
 	// Also create thread-private counter and timer objects.
 	Block<float> tempBuf(itsFreqWindow*ntime);
-	FlagCounter counter (itsFlagCounter);
+	FlagCounter counter;
+	counter.init (getInfo());
 	NSTimer moveTimer;
 	NSTimer medianTimer;
 	float Z1, Z2;

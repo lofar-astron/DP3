@@ -95,14 +95,6 @@ namespace LOFAR {
       std::fill (itsCorrCounts.begin(),itsCorrCounts.end(), 0);
     }
 
-    /*
-    void FlagCounter::init (const FlagCounter& that)
-    {
-      init (that.itsBLCounts.size(), that.itsChanCounts.size(),
-            that.itsCorrCounts.size());
-    }
-    */
-
     void FlagCounter::add (const FlagCounter& that)
     {
       // Add that to this after checking for equal sizes.
