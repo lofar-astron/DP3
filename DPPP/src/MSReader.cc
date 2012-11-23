@@ -771,7 +771,7 @@ namespace LOFAR {
           // If all new flags are set, we leave it because we might have a
           // subset of the channels, so other flags might still be clear.
           if (anyEQ (flagIter.array(), False)) {
-            flagRowCol.put (i, False);
+            flagRowCol.put (rows[i], False);
           }
           flagIter.next();
 	}
