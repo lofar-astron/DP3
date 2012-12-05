@@ -166,9 +166,10 @@ namespace LOFAR {
           // Check if all channels have the same width and are consecutive.
           const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
           const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
-          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq),
+          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq, 1e-5),
                      "Subbands should be in increasing order of frequency; found "
-		     << freqs[0] << ", expected " << freq);
+		     << freqs[0] << ", expected " << freq << " (diff="
+		     << freqs[0]-freq << ')');
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
           objcopy (chanFreqs.data()  + inx, freqs.data(), itsFillNChan);
           objcopy (chanWidths.data() + inx, width.data(), itsFillNChan);
