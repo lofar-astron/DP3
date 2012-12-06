@@ -33,9 +33,9 @@
 
 namespace LOFAR {
 
-  class ParameterSet;
-
   namespace DPPP {
+    class ParSet;
+
     // @ingroup NDPPP
 
     // This class is a DPInput step reading the data from a MeasurementSet.
@@ -128,7 +128,7 @@ namespace LOFAR {
 
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
-      Filter (DPInput* input, const ParameterSet&, const string& prefix);
+      Filter (DPInput* input, const ParSet&, const string& prefix);
 
       // Construct the object for the given MS and baseline selection.
       Filter (DPInput* input, const BaselineSelection&);

@@ -25,7 +25,7 @@
 #include <DPPP/MedFlagger.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -42,8 +42,7 @@ namespace LOFAR {
   namespace DPPP {
 
     MedFlagger::MedFlagger (DPInput* input,
-                            const ParameterSet& parset,
-                            const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsInput         (input),
         itsName          (prefix),
         itsThresholdStr  (parset.getString (prefix+"threshold", "1")),

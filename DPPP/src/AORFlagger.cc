@@ -25,7 +25,7 @@
 #include <DPPP/AORFlagger.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
 
 #include <casa/OS/HostInfo.h>
@@ -68,8 +68,7 @@ namespace LOFAR {
   namespace DPPP {
 
     AORFlagger::AORFlagger (DPInput* input,
-                            const ParameterSet& parset,
-                            const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsInput       (input),
         itsName        (prefix),
         itsBufIndex    (0),
