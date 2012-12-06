@@ -26,7 +26,7 @@
 #include <DPPP/MSReader.h>
 #include <DPPP/MSWriter.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <iostream>
 
 using namespace casa;
@@ -34,7 +34,7 @@ using namespace casa;
 namespace LOFAR {
   namespace DPPP {
 
-    MSUpdater::MSUpdater (MSReader* reader, const ParSet& parset,
+    MSUpdater::MSUpdater (MSReader* reader, const ParameterSet& parset,
                           const string&)
       : itsReader      (reader),
         itsNrCorr      (reader->getInfo().ncorr()),
@@ -43,7 +43,7 @@ namespace LOFAR {
         itsNrTimes     (0)
     {
       NSTimer::StartStop sstime(itsTimer);
-      MSWriter::writeHistory (reader->table(), parset.parameterSet());
+      MSWriter::writeHistory (reader->table(), parset);
     }
 
     MSUpdater::~MSUpdater()

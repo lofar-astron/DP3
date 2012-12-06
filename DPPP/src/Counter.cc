@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/Counter.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <iostream>
 
 using namespace casa;
@@ -33,7 +33,8 @@ namespace LOFAR {
   namespace DPPP {
 
     Counter::Counter (DPInput* input,
-                      const ParSet& parset, const string& prefix)
+                      const ParameterSet& parset,
+                      const string& prefix)
       : itsName        (prefix),
         itsCount       (0),
         itsFlagCounter (input->msName(), parset, prefix)

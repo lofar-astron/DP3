@@ -30,7 +30,6 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/EstimateMixed.h>
 #include <DPPP/PhaseShift.h>
-#include <DPPP/ParSet.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/SubtractMixed.h>
@@ -42,6 +41,7 @@
 #include <ParmDB/ParmCache.h>
 #include <ParmDB/Parm.h>
 
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <Common/OpenMP.h>
 #include <Common/StreamUtil.h>
@@ -70,7 +70,8 @@ namespace LOFAR {
     } //# end unnamed namespace
 
     Demixer::Demixer (DPInput* input,
-                      const ParSet& parset, const string& prefix)
+                      const ParameterSet& parset,
+                      const string& prefix)
       : itsInput          (input),
         itsName           (prefix),
         itsSkyName        (parset.getString(prefix+"skymodel", "sky")),
@@ -360,8 +361,21 @@ namespace LOFAR {
       }
       os << "  targetsource:       " << itsTargetSource << std::endl;
       os << "  subtractsources:    " << itsSubtrSources << std::endl;
+      uint inx=0;
+      for (uint i=0; i<itsSubtrSources.size(); ++i ) {
+        os << "                        "
+           << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
+      }
       os << "  modelsources:       " << itsModelSources << std::endl;
+      for (uint i=0; i<itsModelSources.size(); ++i ) {
+        os << "                        "
+           << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
+      }
       os << "  extrasources:       " << itsExtraSources << std::endl;
+      for (uint i=0; i<itsExtraSources.size(); ++i ) {
+        os << "                        "
+           << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
+      }
 //      os << "  elevationcutoffs: " << itsCutOffs << std::endl;
 //      os << "  jointsolve:     " << itsJointSolve << std::endl;
       os << "  propagatesolutions: " << std::boolalpha << itsPropagateSolutions

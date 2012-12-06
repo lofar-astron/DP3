@@ -33,11 +33,11 @@
 #include <casa/Arrays/Vector.h>
 
 namespace LOFAR {
-  namespace DPPP {
+  class ParameterSet;
 
+  namespace DPPP {
     //# Forward Declarations.
     class DPInfo;
-    class ParSet;
 
     // @ingroup NDPPP
 
@@ -57,7 +57,8 @@ namespace LOFAR {
 
       // This constructor creates an empty object.
       // It reads info from the parset to see if percentages have to be saved.
-      FlagCounter (const string& msName, const ParSet&, const string& prefix);
+      FlagCounter (const string& msName, const ParameterSet&,
+                   const string& prefix);
 
       // Size all counters and initialize them to zero using the sizes
       // from the DPInfo object.
