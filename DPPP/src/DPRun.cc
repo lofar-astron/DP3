@@ -58,9 +58,17 @@ namespace LOFAR {
       nstimer.start();
       ParameterSet parset (parsetName);
       DPLogger::useLogger = parset.getBool ("uselogger", false);
-      int  checkparset    = parset.getInt  ("checkparset", 0);
       bool showProgress   = parset.getBool ("showprogress", true);
       bool showTimings    = parset.getBool ("showtimings", true);
+      // checkparset is an integer parameter now, but accept a bool as well
+      // for backward compatibility.
+      int checkparset = 0;
+      try {
+        checkparset = parset.getInt ("checkparset", 0);
+      } catch (...) {
+        DPLOG_WARN_STR ("Parameter checkparset should be an integer value");
+        checkparset = parset.getBool ("checkparset") ? 1:0;
+      }
       string msName;
       // Create the steps and fill their DPInfo objects.
       DPStep::ShPtr firstStep = makeSteps (parset, msName);
