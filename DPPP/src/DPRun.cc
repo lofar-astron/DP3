@@ -39,7 +39,6 @@
 #include <DPPP/StationAdder.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
-#include <DPPP/ApplyCal.h>
 #include <DPPP/ProgressMeter.h>
 #include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
