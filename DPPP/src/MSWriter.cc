@@ -27,9 +27,9 @@
 #include <DPPP/MSUpdater.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
+#include <DPPP/ParSet.h>
 #include <DPPP/DPLogger.h>
 #include <MS/VdsMaker.h>
-#include <Common/ParameterSet.h>
 #include <tables/Tables/TableCopy.h>
 #include <tables/Tables/DataManInfo.h>
 #include <tables/Tables/SetupNewTab.h>
@@ -50,7 +50,7 @@ namespace LOFAR {
 
     MSWriter::MSWriter (MSReader* reader, const std::string& outName,
                         const DPInfo& info,
-                        const ParameterSet& parset, const string& prefix)
+                        const ParSet& parset, const string& prefix)
       : itsReader       (reader),
         itsInterval     (info.timeInterval()),
         itsNrCorr       (info.ncorr()),
@@ -80,7 +80,7 @@ namespace LOFAR {
       }
       createMS (outName, info, tileSize, tileNChan);
       // Write the parset info into the history.
-      writeHistory (itsMS, parset);
+      writeHistory (itsMS, parset.parameterSet());
       itsMS.flush (true, true);
       DPLOG_INFO ("Finished preparing output MS", false);
     }

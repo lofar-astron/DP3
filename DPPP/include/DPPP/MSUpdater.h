@@ -32,9 +32,9 @@
 
 namespace LOFAR {
 
-  class ParameterSet;
-
   namespace DPPP {
+    class ParSet;
+
     //# Forward Declarations.
     class MSReader;
 
@@ -50,7 +50,7 @@ namespace LOFAR {
     class MSUpdater: public DPStep
     {
     public:
-      MSUpdater (MSReader*, const ParameterSet& parset,
+      MSUpdater (MSReader*, const ParSet& parset,
                  const std::string& prefix);
 
       virtual ~MSUpdater();

@@ -33,10 +33,11 @@
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
-  class ParameterSet;
   class ParameterValue;
 
   namespace DPPP {
+    class ParSet;
+
     // @ingroup NDPPP
 
     // This class is a DPStep class flagging data points based on data
@@ -58,7 +59,7 @@ namespace LOFAR {
       // The antenna names are used to find antenna numbers.
       // The channel frequencies as they are in the input step must be given
       // starting at the start-channel.
-      UVWFlagger (DPInput*, const ParameterSet&, const string& prefix);
+      UVWFlagger (DPInput*, const ParSet&, const string& prefix);
 
       virtual ~UVWFlagger();
 
@@ -96,7 +97,7 @@ namespace LOFAR {
       // (min and max are also turned into a range).
       // Optionally the values are squared to avoid having to take a sqrt
       // of the data's UVW coordinates.
-      vector<double> fillUVW (const ParameterSet& parset,
+      vector<double> fillUVW (const ParSet& parset,
                               const string& prefix,
                               const string& name,
                               bool square);

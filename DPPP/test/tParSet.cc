@@ -1,4 +1,4 @@
-//# DPRun.h: Class to run steps like averaging and flagging on an MS
+//# tParSet.cc: Test for class ParSet
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -21,39 +21,37 @@
 //#
 //# @author Ger van Diepen
 
-#ifndef DPPP_DPRUN_H
-#define DPPP_DPRUN_H
-
-// @file
-// @brief Class to run steps like averaging and flagging on an MS
-
 #include <lofar_config.h>
-#include <DPPP/DPStep.h>
 #include <DPPP/ParSet.h>
+#include <Common/LofarLogger.h>
 
-namespace LOFAR {
-  namespace DPPP {
+using namespace LOFAR;
+using namespace LOFAR::DPPP;
 
-    // @ingroup NDPPP
-
-    // This class contains a single static function that creates and executes
-    // the steps defined in the parset file.
-    // The parset file is documented on the LOFAR wiki.
-
-    class DPRun
-    {
-    public:
-      // Execute the stps defined in the parset file.
-      static void execute (const std::string& parsetName);
-
-    private:
-      // Create the step objects.
-      // It fills DPInfo object and the name of the MS being written.
-      static DPStep::ShPtr makeSteps (const ParSet& parset,
-                                      std::string& msName);
-    };
-
-  } //# end namespace
+void doTest()
+{
+  ParameterSet parset;
+  parset.add ("key1", "abc");
+  parset.add ("key2", "def");
+  parset.add ("key3", "g");
+  ParSet pset(parset);
+  ASSERT (pset.unusedKeys().size() == 3);
+  ASSERT (pset.getString("key1") == "abc");
+  ASSERT (pset.getString("key1", "") == "abc");
+  ASSERT (pset.getString("key1a", "12") == "12");
+  ASSERT (pset.getString("key3") == "g");
+  vector<string> unused = pset.unusedKeys();
+  ASSERT (unused.size() == 1);
+  ASSERT (unused[0] == "key2");
 }
 
-#endif
+int main()
+{
+  try {
+    doTest();
+  } catch (std::exception& x) {
+    cout << "Unexpected exception: " << x.what() << endl;
+    return 1;
+  }
+  return 0;
+}

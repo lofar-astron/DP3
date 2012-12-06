@@ -25,8 +25,8 @@
 #include <DPPP/PreFlagger.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
+#include <DPPP/ParSet.h>
 #include <DPPP/DPLogger.h>
-#include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 
@@ -51,8 +51,7 @@ namespace LOFAR {
   namespace DPPP {
 
     PreFlagger::PreFlagger (DPInput* input,
-                            const ParameterSet& parset,
-                            const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsName        (prefix),
         itsInput       (input),
         itsMode        (SetFlag),
@@ -226,8 +225,7 @@ namespace LOFAR {
 
 
     PreFlagger::PSet::PSet (DPInput* input,
-                            const ParameterSet& parset,
-                            const string& prefix)
+                            const ParSet& parset, const string& prefix)
       : itsInput (input),
         itsName  (prefix),
         itsFlagOnUV    (false),

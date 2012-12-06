@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/PreFlagger.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayIO.h>
 #include <casa/Quanta/MVTime.h>

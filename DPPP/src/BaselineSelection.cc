@@ -25,8 +25,6 @@
 #include <DPPP/BaselineSelection.h>
 #include <DPPP/DPLogger.h>
 #include <MS/BaselineSelect.h>
-#include <Common/ParameterSet.h>
-#include <Common/ParameterValue.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
 
@@ -39,7 +37,7 @@ namespace LOFAR {
     BaselineSelection::BaselineSelection()
     {}
 
-    BaselineSelection::BaselineSelection (const ParameterSet& parset,
+    BaselineSelection::BaselineSelection (const ParSet& parset,
                                           const string& prefix,
                                           bool minmax,
 					  const string& defaultCorrType)

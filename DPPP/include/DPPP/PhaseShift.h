@@ -33,9 +33,9 @@
 
 namespace LOFAR {
 
-  class ParameterSet;
-
   namespace DPPP {
+    class ParSet;
+
     // @ingroup NDPPP
 
     // This class is a DPStep class to shift the data and UVW coordinates
@@ -50,13 +50,13 @@ namespace LOFAR {
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       // This is the standard constructor where the phasecenter must be given.
-      PhaseShift (DPInput*, const ParameterSet&, const string& prefix);
+      PhaseShift (DPInput*, const ParSet&, const string& prefix);
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       // This is a constructor for Demixer where the phasecenter has the
       // given default value.
-      PhaseShift (DPInput*, const ParameterSet&, const string& prefix,
+      PhaseShift (DPInput*, const ParSet&, const string& prefix,
                   const vector<string>& defVal);
 
       virtual ~PhaseShift();
@@ -86,10 +86,6 @@ namespace LOFAR {
       // This is used in the Demixer.
       const casa::Matrix<casa::DComplex>& getPhasors() const
         { return itsPhasors; }
-
-      // Get the phase center.
-      const vector<string>& getPhaseCenter() const
-        { return itsCenter; }
 
     private:
       // Interpret the phase center specification.

@@ -25,7 +25,7 @@
 #include <DPPP/MultiMSReader.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include <DPPP/ParSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <tables/Tables/TableRecord.h>
@@ -48,8 +48,7 @@ namespace LOFAR {
   namespace DPPP {
 
     MultiMSReader::MultiMSReader (const vector<string>& msNames,
-                                  const ParameterSet& parset,
-                                  const string& prefix)
+                                  const ParSet& parset, const string& prefix)
       : itsFirst    (-1),
         itsNMissing (0),
         itsMSNames  (msNames)
@@ -404,7 +403,6 @@ namespace LOFAR {
       return flags;
     }
 
-    /*
     Cube<Complex> MultiMSReader::getData (const String& columnName,
                                           const RefRows& rowNrs)
     {
@@ -424,7 +422,6 @@ namespace LOFAR {
       }
       return data;
     }
-    */
 
     void MultiMSReader::combineFullResFlags (const vector<Cube<bool> >& vec,
                                              Cube<bool>& flags) const

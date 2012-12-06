@@ -33,9 +33,10 @@
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
-  class ParameterSet;
 
   namespace DPPP {
+    class ParSet;
+
     // @ingroup NDPPP
 
     // This class is a DPStep class flagging data points based on the median
@@ -77,7 +78,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      MedFlagger (DPInput*, const ParameterSet&, const string& prefix);
+      MedFlagger (DPInput*, const ParSet&, const string& prefix);
 
       virtual ~MedFlagger();
 
