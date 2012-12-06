@@ -25,8 +25,8 @@
 #include <DPPP/StationAdder.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
 #include <DPPP/DPLogger.h>
+#include <Common/ParameterSet.h>
 #include <Common/ParameterRecord.h>
 
 #include <measures/Measures/MPosition.h>
@@ -48,7 +48,8 @@ namespace LOFAR {
   namespace DPPP {
 
     StationAdder::StationAdder (DPInput* input,
-                                const ParSet& parset, const string& prefix)
+                                const ParameterSet& parset,
+                                const string& prefix)
       : itsInput        (input),
         itsName         (prefix),
         itsStatRec      (parset.getRecord(prefix+"stations")),

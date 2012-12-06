@@ -25,7 +25,7 @@
 #include <DPPP/UVWFlagger.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -42,7 +42,8 @@ namespace LOFAR {
   namespace DPPP {
 
     UVWFlagger::UVWFlagger (DPInput* input,
-                            const ParSet& parset, const string& prefix)
+                            const ParameterSet& parset,
+                            const string& prefix)
       : itsInput       (input),
         itsName        (prefix),
         itsNTimes      (0),
@@ -242,7 +243,7 @@ namespace LOFAR {
       }
     }
 
-    vector<double> UVWFlagger::fillUVW (const ParSet& parset,
+    vector<double> UVWFlagger::fillUVW (const ParameterSet& parset,
                                         const string& prefix,
                                         const string& name,
                                         bool square)

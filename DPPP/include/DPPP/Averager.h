@@ -33,9 +33,9 @@
 
 namespace LOFAR {
 
-  namespace DPPP {
-    class ParSet;
+  class ParameterSet;
 
+  namespace DPPP {
     // @ingroup NDPPP
 
     // This class is a DPStep class calculating the weighted average of
@@ -55,7 +55,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      Averager (DPInput*, const ParSet&, const string& prefix);
+      Averager (DPInput*, const ParameterSet&, const string& prefix);
 
       // Construct the object using the given parameters.
       Averager (DPInput*, const string& stepname,

@@ -39,7 +39,7 @@
 #include <DPPP/StationAdder.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
-#include <DPPP/ParSet.h>
+#include <DPPP/ApplyCal.h>
 #include <DPPP/ProgressMeter.h>
 #include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
@@ -57,9 +57,9 @@ namespace LOFAR {
       casa::Timer timer;
       NSTimer nstimer;
       nstimer.start();
-      ParSet parset ((ParameterSet(parsetName)));
+      ParameterSet parset (parsetName);
       DPLogger::useLogger = parset.getBool ("uselogger", false);
-      bool checkparset    = parset.getBool ("checkparset", false);
+      int  checkparset    = parset.getInt  ("checkparset", 0);
       bool showProgress   = parset.getBool ("showprogress", true);
       bool showTimings    = parset.getBool ("showtimings", true);
       string msName;
@@ -73,17 +73,19 @@ namespace LOFAR {
         DPLOG_INFO (os.str(), true);
         step = step->getNextStep();
       }
-      // Show unused parameters (might be misspelled).
-      vector<string> unused = parset.unusedKeys();
-      if (! unused.empty()) {
-        DPLOG_WARN_STR
-          (endl
-           << "*** WARNING: the following parset keywords were not used ***"
-           << endl
-           << "             maybe they are misspelled"
-           << endl
-           << "    " << unused << endl);
-        ASSERTSTR (!checkparset, "Unused parset keywords found");
+      if (checkparset >= 0) {
+        // Show unused parameters (might be misspelled).
+        vector<string> unused = parset.unusedKeys();
+        if (! unused.empty()) {
+          DPLOG_WARN_STR
+            (endl
+             << "*** WARNING: the following parset keywords were not used ***"
+             << endl
+             << "             maybe they are misspelled"
+             << endl
+             << "    " << unused << endl);
+          ASSERTSTR (checkparset==0, "Unused parset keywords found");
+        }
       }
       // Process until the end.
       uint ntodo = firstStep->getInfo().ntime();
@@ -157,7 +159,7 @@ namespace LOFAR {
       // The destructors are called automatically at this point.
     }
 
-    DPStep::ShPtr DPRun::makeSteps (const ParSet& parset, string& msName)
+    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset, string& msName)
     {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;
@@ -252,6 +254,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "filter") {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
+          ///        } else if (type == "applycal"  ||  type == "correct") {
+          ///          step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }

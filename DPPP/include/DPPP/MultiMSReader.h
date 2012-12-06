@@ -38,9 +38,9 @@
 
 namespace LOFAR {
 
-  namespace DPPP {
-    class ParSet;
+  class ParameterSet;
 
+  namespace DPPP {
     // @ingroup NDPPP
 
     // This class is a DPInput step reading the data from a MeasurementSet.
@@ -131,7 +131,7 @@ namespace LOFAR {
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
       MultiMSReader (const vector<string>& msNames,
-                     const ParSet&, const string& prefix);
+                     const ParameterSet&, const string& prefix);
 
       virtual ~MultiMSReader();
 
@@ -167,8 +167,8 @@ namespace LOFAR {
       virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
 
       // Read the given data column at the given row numbers.
-      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
-                                                 const casa::RefRows& rowNrs);
+      ///      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
+      ///                                                 const casa::RefRows& rowNrs);
 
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
