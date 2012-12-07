@@ -25,7 +25,7 @@
 #include <DPPP/Averager.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <iostream>
@@ -37,7 +37,8 @@ namespace LOFAR {
   namespace DPPP {
 
     Averager::Averager (DPInput* input,
-                        const ParSet& parset, const string& prefix)
+                        const ParameterSet& parset,
+                        const string& prefix)
       : itsInput     (input),
         itsName      (prefix),
         itsNChanAvg  (parset.getUint  (prefix+"freqstep", 1)),

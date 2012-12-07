@@ -34,10 +34,9 @@
 #include <measures/Measures/MPosition.h>
 
 namespace LOFAR {
+  class ParameterSet;
 
   namespace DPPP {
-    class ParSet;
-
     // @ingroup NDPPP
 
     // This class is a DPStep class summing stations to a superstation.
@@ -63,7 +62,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      StationAdder (DPInput*, const ParSet&, const string& prefix);
+      StationAdder (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~StationAdder();
 

@@ -24,7 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/BaselineSelection.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
 #include <casa/Arrays/ArrayLogical.h>

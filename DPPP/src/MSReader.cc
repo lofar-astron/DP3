@@ -26,7 +26,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/DPLogger.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 
 #include <tables/Tables/TableRecord.h>
@@ -58,7 +58,8 @@ namespace LOFAR {
     {}
 
     MSReader::MSReader (const string& msName,
-                        const ParSet& parset, const string& prefix,
+                        const ParameterSet& parset,
+                        const string& prefix,
                         bool missingData)
       : itsReadVisData (False),
         itsMissingData (missingData),
@@ -744,6 +745,7 @@ namespace LOFAR {
       return flags;
     }
 
+    /*
     Cube<Complex> MSReader::getData (const String& columnName,
                                      const RefRows& rowNrs)
     {
@@ -756,6 +758,7 @@ namespace LOFAR {
       Cube<Complex> data = dataCol.getColumnCells (rowNrs);
       return (itsUseAllChan ? data : data(itsArrSlicer));
     }
+    */
 
     void MSReader::putFlags (const RefRows& rowNrs,
                              const Cube<bool>& flags)

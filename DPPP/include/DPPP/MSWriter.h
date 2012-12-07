@@ -39,8 +39,6 @@ namespace LOFAR {
   class ParameterSet;
 
   namespace DPPP {
-    class ParSet;
-
     // @ingroup NDPPP
 
     // This class is a DPStep creating a new MeasurementSet and writing
@@ -64,7 +62,7 @@ namespace LOFAR {
     public:
       explicit MSWriter (MSReader* reader, const std::string& outName,
                          const DPInfo&,
-                         const ParSet&, const string& prefix);
+                         const ParameterSet&, const string& prefix);
 
       virtual ~MSWriter();
 

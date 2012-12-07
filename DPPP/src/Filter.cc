@@ -25,8 +25,8 @@
 #include <DPPP/Filter.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
 #include <DPPP/DPLogger.h>
+#include <Common/ParameterSet.h>
 
 #include <tables/Tables/ExprNode.h>
 #include <tables/Tables/RecordGram.h>
@@ -38,7 +38,8 @@ namespace LOFAR {
   namespace DPPP {
 
     Filter::Filter (DPInput* input,
-                    const ParSet& parset, const string& prefix)
+                    const ParameterSet& parset,
+                    const string& prefix)
       : itsInput        (input),
         itsName         (prefix),
         itsStartChanStr (parset.getString(prefix+"startchan", "0")),
