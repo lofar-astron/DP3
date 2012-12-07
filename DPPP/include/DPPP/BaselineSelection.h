@@ -27,13 +27,14 @@
 // @file
 // @brief Class to handle the baseline selection
 
-#include <DPPP/ParSet.h>
 #include <DPPP/DPInfo.h>
-#include <Common/ParameterValue.h>
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Matrix.h>
 
 namespace LOFAR {
+  class ParameterSet;
+  class ParameterValue;
+
   namespace DPPP {
 
     // Class containing a few static functions to parse a baseline selection
@@ -53,7 +54,7 @@ namespace LOFAR {
       //  <li> minbl:    minimum baseline length (in m); only if minmax=true
       //  <li> maxbl:    maximum baseline length (in m); only if minmax=true
       // </ul>
-      BaselineSelection (const ParSet&, const string& prefix,
+      BaselineSelection (const ParameterSet&, const string& prefix,
                          bool minmax=false,
 			 const string& defaultCorrType=string());
 

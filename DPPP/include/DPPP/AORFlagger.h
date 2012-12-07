@@ -38,9 +38,9 @@
 
 namespace LOFAR {
 
-  namespace DPPP {
-    class ParSet;
+  class ParameterSet;
 
+  namespace DPPP {
     // @ingroup NDPPP
 
     // This class is a DPStep class flagging data points based on the
@@ -70,7 +70,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      AORFlagger (DPInput*, const ParSet&, const string& prefix);
+      AORFlagger (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~AORFlagger();
 

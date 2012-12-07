@@ -3,7 +3,7 @@
 # List of header files that will be installed.
 set(inst_HEADERS
   DPRun.h DPStep.h DPInput.h DPBuffer.h DPInfo.h
-  ParSet.h DPLogger.h ProgressMeter.h FlagCounter.h
+  DPLogger.h ProgressMeter.h FlagCounter.h
   UVWCalculator.h BaselineSelection.h
   MSReader.h MSWriter.h MSUpdater.h Counter.h
   Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h AORFlagger.h

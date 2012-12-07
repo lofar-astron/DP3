@@ -25,7 +25,7 @@
 #include <DPPP/PhaseShift.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -43,14 +43,16 @@ namespace LOFAR {
   namespace DPPP {
 
     PhaseShift::PhaseShift (DPInput* input,
-                            const ParSet& parset, const string& prefix)
+                            const ParameterSet& parset,
+                            const string& prefix)
       : itsInput   (input),
         itsName    (prefix),
         itsCenter  (parset.getStringVector(prefix+"phasecenter"))
     {}
 
     PhaseShift::PhaseShift (DPInput* input,
-                            const ParSet& parset, const string& prefix,
+                            const ParameterSet& parset,
+                            const string& prefix,
                             const vector<string>& defVal)
       : itsInput   (input),
         itsName    (prefix),

@@ -46,9 +46,9 @@
 
 namespace LOFAR {
 
-  namespace DPPP {
-    class ParSet;
+  class ParameterSet;
 
+  namespace DPPP {
     // @ingroup NDPPP
 
     typedef vector<Patch::ConstPtr> PatchList;
@@ -68,7 +68,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      Demixer (DPInput*, const ParSet&, const string& prefix);
+      Demixer (DPInput*, const ParameterSet&, const string& prefix);
 
       // Process the data.
       // It keeps the data.

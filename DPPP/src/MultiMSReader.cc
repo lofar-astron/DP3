@@ -25,7 +25,7 @@
 #include <DPPP/MultiMSReader.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <tables/Tables/TableRecord.h>
@@ -48,7 +48,8 @@ namespace LOFAR {
   namespace DPPP {
 
     MultiMSReader::MultiMSReader (const vector<string>& msNames,
-                                  const ParSet& parset, const string& prefix)
+                                  const ParameterSet& parset,
+                                  const string& prefix)
       : itsFirst    (-1),
         itsNMissing (0),
         itsMSNames  (msNames)
@@ -162,12 +163,14 @@ namespace LOFAR {
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
           ASSERTSTR (itsReaders[i]->getInfo().nchan() == itsFillNChan,
-                     "An MS is missing; the others should have equal size");
+                     "An MS is missing; the others should have equal nchan");
           // Check if all channels have the same width and are consecutive.
           const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
           const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
-          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq),
-                     "Subbands should be in increasing order of frequency");
+          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq, 1e-5),
+                     "Subbands should be in increasing order of frequency; found "
+		     << freqs[0] << ", expected " << freq << " (diff="
+		     << freqs[0]-freq << ')');
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
           objcopy (chanFreqs.data()  + inx, freqs.data(), itsFillNChan);
           objcopy (chanWidths.data() + inx, width.data(), itsFillNChan);
@@ -401,6 +404,7 @@ namespace LOFAR {
       return flags;
     }
 
+    /*
     Cube<Complex> MultiMSReader::getData (const String& columnName,
                                           const RefRows& rowNrs)
     {
@@ -420,6 +424,7 @@ namespace LOFAR {
       }
       return data;
     }
+    */
 
     void MultiMSReader::combineFullResFlags (const vector<Cube<bool> >& vec,
                                              Cube<bool>& flags) const

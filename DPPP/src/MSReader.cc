@@ -26,8 +26,9 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/DPLogger.h>
-#include <DPPP/ParSet.h>
+#include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
+
 #include <tables/Tables/TableRecord.h>
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/ArrayColumn.h>
@@ -57,7 +58,8 @@ namespace LOFAR {
     {}
 
     MSReader::MSReader (const string& msName,
-                        const ParSet& parset, const string& prefix,
+                        const ParameterSet& parset,
+                        const string& prefix,
                         bool missingData)
       : itsReadVisData (False),
         itsMissingData (missingData),
@@ -89,6 +91,7 @@ namespace LOFAR {
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
+	DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
         Table subset = itsMS (itsMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsMS.nrow()) {
@@ -101,6 +104,7 @@ namespace LOFAR {
       }
       // See if a selection on baseline needs to be done.
       if (! itsSelBL.empty()) {
+	DPLOG_INFO_STR (" MSReader selecting baselines ...");
         MSSelection select;
         // Set given selection strings.
         select.setAntennaExpr (itsSelBL);
@@ -210,8 +214,8 @@ namespace LOFAR {
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
             LOG_WARN_STR ("Time at rownr "
-                          << itsIter.table().rowNumbers(itsMS)[0]
-                          << " of MS " << itsMS.tableName()
+                          << itsIter.table().rowNumbers()[0]
+                          << " of MS " << itsMSName
                           << " is less than previous time slot");
           } else {
             // Use the time slot if near or < nexttime, but > starttime.
@@ -251,7 +255,7 @@ namespace LOFAR {
           calcUVW();
           itsNrInserted++;
         } else {
-          itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS));
+          itsBuffer.setRowNrs (itsIter.table().rowNumbers(itsMS, True));
           if (itsMissingData) {
             // Data column not present, so fill a fully flagged time slot.
             itsBuffer.setExposure (itsTimeInterval);
@@ -467,7 +471,7 @@ namespace LOFAR {
       ROScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
-      itsBaseRowNrs = itsIter.table().rowNumbers(itsMS);
+      itsBaseRowNrs = itsIter.table().rowNumbers(itsMS, True);
       // Get the antenna names and positions.
       Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
       ROScalarColumn<String> nameCol (anttab, "NAME");
@@ -553,8 +557,8 @@ namespace LOFAR {
         // Skip time slot and give warning if MS data is not in time order.
         if (mstime < itsLastMSTime) {
           LOG_WARN_STR ("Time at rownr "
-                        << itsIter.table().rowNumbers(itsMS)[0]
-                        << " of MS " << itsMS.tableName()
+                        << itsIter.table().rowNumbers()[0]
+                        << " of MS " << itsMSName
                         << " is less than previous time slot");
         } else {
           // Stop skipping if time equal to itsFirstTime.
@@ -741,6 +745,7 @@ namespace LOFAR {
       return flags;
     }
 
+    /*
     Cube<Complex> MSReader::getData (const String& columnName,
                                      const RefRows& rowNrs)
     {
@@ -753,6 +758,7 @@ namespace LOFAR {
       Cube<Complex> data = dataCol.getColumnCells (rowNrs);
       return (itsUseAllChan ? data : data(itsArrSlicer));
     }
+    */
 
     void MSReader::putFlags (const RefRows& rowNrs,
                              const Cube<bool>& flags)
@@ -771,7 +777,7 @@ namespace LOFAR {
           // If all new flags are set, we leave it because we might have a
           // subset of the channels, so other flags might still be clear.
           if (anyEQ (flagIter.array(), False)) {
-            flagRowCol.put (i, False);
+            flagRowCol.put (rows[i], False);
           }
           flagIter.next();
 	}
