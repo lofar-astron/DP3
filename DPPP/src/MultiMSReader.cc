@@ -162,14 +162,12 @@ namespace LOFAR {
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
           ASSERTSTR (itsReaders[i]->getInfo().nchan() == itsFillNChan,
-                     "An MS is missing; the others should have equal nchan");
+                     "An MS is missing; the others should have equal size");
           // Check if all channels have the same width and are consecutive.
           const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
           const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
-          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq, 1e-5),
-                     "Subbands should be in increasing order of frequency; found "
-		     << freqs[0] << ", expected " << freq << " (diff="
-		     << freqs[0]-freq << ')');
+          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq),
+                     "Subbands should be in increasing order of frequency");
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
           objcopy (chanFreqs.data()  + inx, freqs.data(), itsFillNChan);
           objcopy (chanWidths.data() + inx, width.data(), itsFillNChan);
