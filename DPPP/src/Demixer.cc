@@ -1005,8 +1005,11 @@ namespace LOFAR {
             // [0, nDrSubtr).
             const IPosition &stride_mix_subtr =
               itsFactorsSubtr[ts_subtr].steps();
-            size_t stride_mix_subtr_slice[3] = {stride_mix_subtr[2],
-              stride_mix_subtr[3], stride_mix_subtr[4]};
+            size_t stride_mix_subtr_slice[3] = {
+              static_cast<size_t>(stride_mix_subtr[2]),
+              static_cast<size_t>(stride_mix_subtr[3]),
+              static_cast<size_t>(stride_mix_subtr[4])
+            };
             ASSERT(stride_mix_subtr_slice[0] == itsNDir * itsNDir
               && stride_mix_subtr_slice[1] == itsNDir * itsNDir * nCr
               && stride_mix_subtr_slice[2] == itsNDir * itsNDir * nCr * nChSubtr);
