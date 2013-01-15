@@ -255,6 +255,7 @@ namespace LOFAR {
       //# Data members.
       casa::String        itsMSName;
       casa::Table         itsMS;
+      casa::Table         itsSelMS;         //# possible selection of spw, baseline
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
       casa::String        itsStartChanStr;  //# startchan expression

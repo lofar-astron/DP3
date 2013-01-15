@@ -87,17 +87,18 @@ namespace LOFAR {
         return;
       }
       itsMS = MeasurementSet (msName, TableLock::AutoNoReadLocking);
+      itsSelMS = itsMS;
       itsMSName = itsMS.tableName();
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
 	DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
-        Table subset = itsMS (itsMS.col("DATA_DESC_ID") == itsSpw);
+        Table subset = itsSelMS (itsSelMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
-        if (subset.nrow() < itsMS.nrow()) {
+        if (subset.nrow() < itsSelMS.nrow()) {
           ASSERTSTR (subset.nrow() > 0, "Band " << itsSpw << " not found in "
                      << itsMSName);
-          itsMS = subset;
+          itsSelMS = subset;
         }
       } else {
         itsSpw = 0;
@@ -109,14 +110,14 @@ namespace LOFAR {
         // Set given selection strings.
         select.setAntennaExpr (itsSelBL);
         // Create a table expression for an MS representing the selection.
-        MeasurementSet ms(itsMS);
+        MeasurementSet ms(itsSelMS);
         TableExprNode node = select.toTableExprNode (&ms);
-        Table subset = itsMS(node);
+        Table subset = itsSelMS(node);
         // If not all is selected, use the selection.
-        if (subset.nrow() < itsMS.nrow()) {
+        if (subset.nrow() < itsSelMS.nrow()) {
           ASSERTSTR (subset.nrow() > 0, "Baselines " << itsSelBL
                      << "not found in " << itsMSName);
-          itsMS = subset;
+          itsSelMS = subset;
         }
       }
       // Prepare the MS access and get time info.
@@ -214,7 +215,7 @@ namespace LOFAR {
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
             LOG_WARN_STR ("Time at rownr "
-                          << itsIter.table().rowNumbers()[0]
+                          << itsIter.table().rowNumbers(itsMS)[0]
                           << " of MS " << itsMSName
                           << " is less than previous time slot");
           } else {
@@ -356,7 +357,7 @@ namespace LOFAR {
         os << "  ncorrelations:  " << getInfo().ncorr() << std::endl;
         uint nrbl = getInfo().nbaselines();
         os << "  nbaselines:     " << nrbl << std::endl;
-        os << "  ntimes:         " << itsMS.nrow() / nrbl << std::endl;
+        os << "  ntimes:         " << itsSelMS.nrow() / nrbl << std::endl;
         os << "  time interval:  " << getInfo().timeInterval() << std::endl;
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
@@ -386,14 +387,14 @@ namespace LOFAR {
     void MSReader::prepare (double& firstTime, double& lastTime,
                             double& interval)
     {
-      ASSERT (itsMS.nrow() > 0);
+      ASSERT (itsSelMS.nrow() > 0);
       // Test if WEIGHT_SPECTRUM is present.
       TableDesc tdesc = itsMS.tableDesc();
       itsHasWeightSpectrum = false;
       if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
         // The column is there, but it might not contain values. Test row 0.
         itsHasWeightSpectrum =
-          ROArrayColumn<float>(itsMS, "WEIGHT_SPECTRUM").isDefined(0);
+          ROArrayColumn<float>(itsSelMS, "WEIGHT_SPECTRUM").isDefined(0);
       }
       // Test if the data column is present.
       if (tdesc.isColumn (itsDataColName)) {
@@ -439,14 +440,14 @@ namespace LOFAR {
       } else if (!useRaw && itsAutoWeight) {
         THROW (Exception, "Using autoweight=true cannot be done on DPPP-ed MS");
       }
-      // If not in order, sort the main table (also on baseline).
-      Table sortms(itsMS);
+      // If not in order, sort the table selection (also on baseline).
+      Table sortms(itsSelMS);
       Block<String> sortCols(3);
       sortCols[0] = "TIME";
       sortCols[1] = "ANTENNA1";
       sortCols[2] = "ANTENNA2";
       if (needSort) {
-        sortms = itsMS.sort(sortCols);
+        sortms = itsSelMS.sort(sortCols);
       }
       // Get first and last time and interval from MS.
       firstTime = ROScalarColumn<double>(sortms, "TIME")(0);
@@ -457,7 +458,7 @@ namespace LOFAR {
                                TableIterator::Ascending,
                                TableIterator::NoSort);
       // Find the nr of corr, chan, and baseline.
-      IPosition shp (ROArrayColumn<Complex>(itsMS, "DATA").shape(0));
+      IPosition shp (ROArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
       itsNrCorr = shp[0];
       itsNrChan = shp[1];
       itsNrBl   = itsIter.table().nrow();
@@ -557,7 +558,7 @@ namespace LOFAR {
         // Skip time slot and give warning if MS data is not in time order.
         if (mstime < itsLastMSTime) {
           LOG_WARN_STR ("Time at rownr "
-                        << itsIter.table().rowNumbers()[0]
+                        << itsIter.table().rowNumbers(itsMS)[0]
                         << " of MS " << itsMSName
                         << " is less than previous time slot");
         } else {
