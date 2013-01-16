@@ -712,12 +712,15 @@ namespace LOFAR {
     Cube<bool> MSReader::getFullResFlags (const RefRows& rowNrs)
     {
       NSTimer::StartStop sstime(itsTimer);
+      int norigchan = itsNrChan * itsFullResNChanAvg;
       // Return empty array if no fullRes flags.
-      if (!itsHasFullResFlags  ||  rowNrs.rowVector().empty()) {
-        return Cube<bool>();
+      if (!itsHasFullResFlags) {
+	return Cube<bool>();
+      } else if (rowNrs.rowVector().empty()) {
+	// Return all False if rows are missing.
+        return Cube<bool>(norigchan, itsFullResNTimeAvg, itsNrBl, true);
       }
       ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-      int norigchan = itsNrChan * itsFullResNChanAvg;
       int origstart = itsStartChan * itsFullResNChanAvg;
       Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.

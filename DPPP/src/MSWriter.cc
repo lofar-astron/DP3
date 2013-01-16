@@ -491,8 +491,9 @@ namespace LOFAR {
       Cube<bool> flags (itsReader->fetchFullResFlags (buf, buf.getRowNrs(),
                                                       itsTimer));
       const IPosition& ofShape = flags.shape();
-      ASSERT (uint(ofShape[0]) == itsNChanAvg * itsNrChan);
-      ASSERT (uint(ofShape[1]) == itsNTimeAvg);
+      ASSERTSTR (uint(ofShape[0]) == itsNChanAvg * itsNrChan,
+		 ofShape<<itsNChanAvg<<'*'<<itsNrChan);
+      ASSERTSTR (uint(ofShape[1]) == itsNTimeAvg, ofShape<<itsNTimeAvg);
       // Convert the bools to uChar bits.
       IPosition chShape(ofShape);
       chShape[0] = (ofShape[0] + 7) / 8;
