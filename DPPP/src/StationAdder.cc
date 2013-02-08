@@ -1,4 +1,4 @@
-//# StationAdder.cc: DPPP step class to add station to a superstation
+//# StationAdder.cc: DPPP step class to add stations as a superstation
 //# Copyright (C) 2012
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -55,6 +55,7 @@ namespace LOFAR {
         itsStatRec      (parset.getRecord(prefix+"stations")),
         itsMinNPoint    (parset.getUint  (prefix+"minpoints", 1)),
         itsMakeAutoCorr (parset.getBool  (prefix+"autocorr", false)),
+        itsSumAutoCorr  (parset.getBool  (prefix+"sumauto", true)),
         itsUseWeight    (parset.getBool  (prefix+"useweights", true))
     {
     }
@@ -204,11 +205,10 @@ namespace LOFAR {
           int  take   = 0;
           if (havea1) {
             // If both stations are in same superstation, only use them
-            // if it is an autocorrelation.
+            // if autocorrelations have to be made.
+            // Taking auto or cross depends on summing mode.
             if (havea2) {
-              if (itsMakeAutoCorr  &&  ant1[i] == ant2[i]) {
-                take = 1;
-              }
+              take = itsMakeAutoCorr  &&  itsSumAutoCorr == (ant1[i]==ant2[i]);
             } else {
               ant  = ant2[i];
               take = -1;            // conjugate has to be added

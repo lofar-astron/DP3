@@ -1,4 +1,4 @@
-//# StationAdder.h: DPPP step class to add station to a superstation
+//# StationAdder.h: DPPP step class to add stations as a superstation
 //# Copyright (C) 2012
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -25,7 +25,7 @@
 #define DPPP_STATIONADDER_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP step class to add stations as a superstation
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
@@ -109,7 +109,8 @@ namespace LOFAR {
       vector<casa::Vector<int> > itsParts;  // the stations in each superstation
       vector<vector<int> > itsBufRows; // old baseline rows in each new baseline
       uint            itsMinNPoint  ;  // flag data if too few unflagged data
-      bool            itsMakeAutoCorr; // also form new autocorrelations?
+      bool            itsMakeAutoCorr; // also form new auto-correlations?
+      bool            itsSumAutoCorr;  // sum auto- or cross-correlations?
       bool            itsUseWeight;    // false = use weight 1 per station
       UVWCalculator   itsUVWCalc;
       NSTimer         itsTimer;
