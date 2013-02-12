@@ -206,10 +206,10 @@ private:
     ASSERT (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
+    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0/weight, 1e-5));
     ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weight, 1e-5));
     end[2] = itsNBl+1;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1, 1e-5));
+    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1/6.f, 1e-5));
     ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), 6.f, 1e-5));
     itsCount++;
     return true;
@@ -408,6 +408,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
   if (!sumauto) {
     parset.add ("sumauto", "false");
   }
+  parset.add ("average", "true");
   parset.add ("useweights", "false");
   DPStep::ShPtr step2(new StationAdder(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, sumauto));

@@ -56,6 +56,7 @@ namespace LOFAR {
         itsMinNPoint    (parset.getUint  (prefix+"minpoints", 1)),
         itsMakeAutoCorr (parset.getBool  (prefix+"autocorr", false)),
         itsSumAutoCorr  (parset.getBool  (prefix+"sumauto", true)),
+        itsDoAverage    (parset.getBool  (prefix+"average", false)),
         itsUseWeight    (parset.getBool  (prefix+"useweights", true))
     {
     }
@@ -275,6 +276,8 @@ namespace LOFAR {
       }
       os << "  minpoints:      " << itsMinNPoint << std::endl;
       os << "  autocorr:       " << itsMakeAutoCorr << std::endl;
+      os << "  sumauto:        " << itsSumAutoCorr << std::endl;
+      os << "  average:        " << itsDoAverage << std::endl;
       os << "  useweights:     " << itsUseWeight << std::endl;
     }
 
@@ -398,9 +401,16 @@ namespace LOFAR {
             frfPtr[k] = frfPtr[k] && inFrfPtr[k];
           }
         }
-        // Set the resulting flags.
+        // Set the resulting flags. Average if needed.
         for (uint k=0; k<nrcc; ++k) {
-          flagPtr[k] = (npoints[k] < itsMinNPoint);
+          if (wghtPtr[k] == 0) {
+            flagPtr[k] = true;
+          } else {
+            flagPtr[k] = (npoints[k] < itsMinNPoint);
+            if (itsDoAverage) {
+              dataPtr[k] /= wghtPtr[k];
+            }
+          }
         }
         // Calculate the UVW coordinate of the new station.
         uint blnr = nrOldBL + i;

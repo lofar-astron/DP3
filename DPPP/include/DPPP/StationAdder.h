@@ -111,6 +111,7 @@ namespace LOFAR {
       uint            itsMinNPoint  ;  // flag data if too few unflagged data
       bool            itsMakeAutoCorr; // also form new auto-correlations?
       bool            itsSumAutoCorr;  // sum auto- or cross-correlations?
+      bool            itsDoAverage;    // average or sum?
       bool            itsUseWeight;    // false = use weight 1 per station
       UVWCalculator   itsUVWCalc;
       NSTimer         itsTimer;
