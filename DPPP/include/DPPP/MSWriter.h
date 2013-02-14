@@ -171,6 +171,8 @@ namespace LOFAR {
       uint            itsNrTimes;
       uint            itsNChanAvg;    //# nr of channels in input averaged to 1
       uint            itsNTimeAvg;    //# nr of times in input averaged to 1
+      uint            itsNrTimesFlush;//# flush every N time slots (0=no flush)
+      uint            itsNrDone;      //# nr of time slots written
       std::string     itsVdsDir;      //# directory where to put VDS file
       std::string     itsClusterDesc; //# name of clusterdesc file
       NSTimer         itsTimer;

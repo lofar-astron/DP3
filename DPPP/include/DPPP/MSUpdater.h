@@ -73,7 +73,8 @@ namespace LOFAR {
       uint        itsNrCorr;
       uint        itsNrChan;
       uint        itsNrBl;
-      uint        itsNrTimes;
+      uint        itsNrTimesFlush; //# flush every N time slots (0=no flush)
+      uint        itsNrDone;       //# nr of time slots written
       NSTimer     itsTimer;
     };
 
