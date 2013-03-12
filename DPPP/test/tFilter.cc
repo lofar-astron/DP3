@@ -50,7 +50,7 @@ public:
       itsNCorr(ncorr), itsFlag(flag)
   {
     // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init (ncorr, nchan, ntime, 0.5, 5., string());
+    info().init (ncorr, nchan, ntime, 0.5, 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -141,7 +141,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string());
+    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);

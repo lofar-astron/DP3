@@ -10,7 +10,7 @@ lofar_add_library(dppp
   UVWCalculator.cc  BaselineSelection.cc
   MSReader.cc MultiMSReader.cc MSWriter.cc MSUpdater.cc Counter.cc
   Averager.cc MedFlagger.cc AORFlagger.cc PreFlagger.cc UVWFlagger.cc
-  StationAdder.cc Filter.cc
+  StationAdder.cc ScaleData.cc Filter.cc
   PhaseShift.cc Demixer.cc
   Position.cc Stokes.cc SourceDBUtil.cc
   Apply.cc EstimateMixed.cc Simulate.cc Simulator.cc SubtractMixed.cc

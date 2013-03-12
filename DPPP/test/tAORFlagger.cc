@@ -131,7 +131,7 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo&)
     // Use startchan=0 and timeInterval=5
-    { info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string()); }
+    { info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string()); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -141,13 +141,9 @@ private:
 class TestOutput: public DPStep
 {
 public:
-  TestOutput(int ntime, int nant, int nchan, int ncorr,
-             bool flag, bool useAutoCorr, bool shortbl)
+  TestOutput(int ntime, int nant, int nchan, int ncorr)
     : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
-      itsNCorr(ncorr),
-      itsFlag(flag),
-      itsUseAutoCorr(useAutoCorr),
-      itsShortBL(shortbl)
+      itsNCorr(ncorr)
   {}
 private:
   virtual bool process (const DPBuffer& buf)
@@ -187,8 +183,7 @@ private:
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
-  bool itsFlag, itsUseAutoCorr, itsShortBL;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 
@@ -209,20 +204,17 @@ void execute (const DPStep::ShPtr& step1)
 }
 
 // Test simple flagging with or without preflagged points.
-void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
-           bool shortbl)
+void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
 {
   cout << "test1: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold
-       << " shortbl=" << shortbl << endl;
+       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("timewindow", "1");
   DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, false,
-                                     shortbl));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   step2->show (cout);
@@ -230,12 +222,10 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
 }
 
 // Test applyautocorr flagging with or without preflagged points.
-void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
-           bool shortbl)
+void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
 {
   cout << "test2: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold
-       << " shortbl=" << shortbl << endl;
+       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -243,8 +233,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   parset.add ("timewindow", "4");
   parset.add ("overlapmax", "1");
   DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr, flag, true,
-                                     shortbl));
+  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
@@ -257,13 +246,13 @@ int main()
   try {
 
     for (uint i=0; i<2; ++i) {
-      test1(10, 2, 32, 4, false, 1, i>0);
-      test1(10, 5, 32, 4, true, 1, i>0);
-      test2( 4, 2,  8, 4, false, 100, i>0);
-      test2(10, 5, 32, 4, true, 1, i>0);
-      test2( 8, 2,  8, 4, false, 100, i>0);
-      test2(14, 2,  8, 4, false, 100, i>0);
-      ///      test2(99, 8, 64, 4, false, 100, i>0);
+      test1(10, 2, 32, 4, false, 1);
+      test1(10, 5, 32, 4, true, 1);
+      test2( 4, 2,  8, 4, false, 100);
+      test2(10, 5, 32, 4, true, 1);
+      test2( 8, 2,  8, 4, false, 100);
+      test2(14, 2,  8, 4, false, 100);
+      ///      test2(99, 8, 64, 4, false, 100);
     }
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;

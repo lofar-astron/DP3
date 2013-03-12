@@ -40,7 +40,7 @@ using namespace std;
 DPInfo makeInfo (int nbl)
 {
   DPInfo info;
-  info.init (4, 16, 1, 0.5, 5., string());
+  info.init (4, 16, 1, 0.5, 5., string(), string());
   // Fill the baseline stations; use 4 stations.
   // So they are called 00 01 02 03 10 11 12 13 20, etc.
   Vector<Int> ant1(nbl);

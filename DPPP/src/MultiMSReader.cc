@@ -283,6 +283,7 @@ namespace LOFAR {
                      itsNrBl   == rdinfo.nbaselines()  &&
                      itsFullResNChanAvg == itsReaders[i]->nchanAvgFullRes()  &&
                      itsFullResNTimeAvg == itsReaders[i]->ntimeAvgFullRes()  &&
+                     getInfo().antennaSet() == rdinfo.antennaSet()  &&
                      allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
                      allEQ (getInfo().getAnt2(), rdinfo.getAnt2()),
                      "Meta data of MS " << itsMSNames[i]

@@ -523,8 +523,15 @@ namespace LOFAR {
     {
       // Set the info.
       uint ntime = uint((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5);
+      // Read the antenna set.
+      Table obstab(itsMS.keywordSet().asTable("OBSERVATION"));
+      string antennaSet;
+      if (obstab.nrow() > 0  &&
+          obstab.tableDesc().isColumn ("LOFAR_ANTENNA_SET")) {
+        antennaSet = ROScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+      }
       info().init (itsNrCorr, itsNrChan, ntime, itsStartTime,
-                   itsTimeInterval, itsMSName);
+                   itsTimeInterval, itsMSName, antennaSet);
       // Read the center frequencies of all channels.
       Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
       ROArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
@@ -763,30 +770,6 @@ namespace LOFAR {
       return (itsUseAllChan ? data : data(itsArrSlicer));
     }
     */
-
-    void MSReader::putFlags (const RefRows& rowNrs,
-                             const Cube<bool>& flags)
-    {
-      if (! rowNrs.rowVector().empty()) {
-        itsMS.reopenRW();
-        ArrayColumn<bool> flagCol(itsMS, "FLAG");
-        ScalarColumn<bool> flagRowCol(itsMS, "FLAG_ROW");
-        // Loop over all rows of this subset.
-	// (it also avoids StandardStMan putCol with RefRows problem).
-        Vector<uint> rows = rowNrs.convert();
-        ReadOnlyArrayIterator<bool> flagIter (flags, 2);
-        for (uint i=0; i<rows.size(); ++i) {
-          flagCol.putSlice (rows[i], itsColSlicer, flagIter.array());
-          // If a new flag in a row is clear, the ROW_FLAG should not be set.
-          // If all new flags are set, we leave it because we might have a
-          // subset of the channels, so other flags might still be clear.
-          if (anyEQ (flagIter.array(), False)) {
-            flagRowCol.put (rows[i], False);
-          }
-          flagIter.next();
-	}
-      }
-    }
 
   } //# end namespace
 }

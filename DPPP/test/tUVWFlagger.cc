@@ -49,7 +49,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr)
   {
-    info().init (ncorr, nchan, ntime, 0., 5., string());
+    info().init (ncorr, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -178,7 +178,7 @@ private:
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 // Class to check result of flagged, unaveraged TestInput run by test2.
@@ -230,7 +230,7 @@ private:
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 
@@ -322,7 +322,7 @@ private:
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 

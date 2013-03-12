@@ -47,13 +47,17 @@ namespace LOFAR {
     class DPInfo
     {
     public:
+
+      // Define bits telling if data and/or flags need to be written.
+      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2};
+
       // Default constructor.
       DPInfo();
 
       // Set the initial info from the input.
       void init (uint ncorr, uint nchan,
                  uint ntime, double startTime, double timeInterval,
-                 const string& msName);
+                 const string& msName, const string& antennaSet);
 
       // Set nr of channels.
       void setNChan (uint nchan)
@@ -101,6 +105,8 @@ namespace LOFAR {
       // Get the info.
       const string& msName() const
         { return itsMSName; }
+      const string& antennaSet() const
+        { return itsAntennaSet; }
       uint ncorr() const
         { return itsNCorr; }
       uint nchan() const
@@ -166,16 +172,16 @@ namespace LOFAR {
       // Are the visibility data needed?
       bool needVisData() const
         { return itsNeedVisData; }
-      // Does the last step need to write?
-      bool needWrite() const
+      // Does the last step need to write data and/or flags?
+      int needWrite() const
         { return itsNeedWrite; }
 
       // Set if visibility data needs to be read.
       void setNeedVisData()
         { itsNeedVisData = true; } 
-      // Set if the last step needs to write.
-      void setNeedWrite()
-        { itsNeedWrite = true; }
+      // Set if the last step needs to write data and/or flags (default both).
+      void setNeedWrite (int needWrite = NeedWriteData+NeedWriteFlags)
+        { itsNeedWrite |= needWrite; }
 
       // Get the baseline table index of the autocorrelations.
       // A negative value means there are no autocorrelations for that antenna.
@@ -190,10 +196,10 @@ namespace LOFAR {
 
       //# Data members.
       bool   itsNeedVisData;    //# Are the visibility data needed?
-      bool   itsNeedWrite;      //# Does the last step need to write?
+      int    itsNeedWrite;      //# Does the last step need to write data/flags?
       string itsMSName;
+      string itsAntennaSet;
       uint   itsNCorr;
-      uint   itsStartChan;
       uint   itsOrigNChan;
       uint   itsNChan;
       uint   itsChanAvg;

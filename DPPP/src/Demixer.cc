@@ -66,7 +66,6 @@ namespace LOFAR {
     namespace
     {
       string toString (double value);
-      double getAngle (const String& value);
     } //# end unnamed namespace
 
     Demixer::Demixer (DPInput* input,
@@ -1131,22 +1130,6 @@ namespace LOFAR {
         ostringstream os;
         os << setprecision(16) << value;
         return os.str();
-      }
-
-      double getAngle (const String& value)
-      {
-        double angle;
-        Quantity q;
-        ASSERTSTR (Quantity::read (q, value),
-                   "Demixer: " + value + " is not a proper angle");
-        if (q.getUnit().empty()) {
-          angle = q.getValue() / 180. * C::pi;
-        } else {
-          ASSERTSTR (q.getFullUnit().getValue() == UnitVal::ANGLE,
-                     "Demixer: " + value + " is not a proper angle");
-          angle = q.getValue("rad");
-        }
-        return angle;
       }
     } //# end unnamed namespace
 

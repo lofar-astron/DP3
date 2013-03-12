@@ -29,6 +29,7 @@
 
 #include <DPPP/DPStep.h>
 #include <Common/LofarTypes.h>
+#include <tables/Tables/RefRows.h>
 
 namespace LOFAR {
 
@@ -51,7 +52,7 @@ namespace LOFAR {
     {
     public:
       MSUpdater (MSReader*, const ParameterSet& parset,
-                 const std::string& prefix);
+                 const std::string& prefix, int needWrite);
 
       virtual ~MSUpdater();
 
@@ -69,7 +70,17 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      // Write the flags at the given row numbers.
+      void putFlags (const casa::RefRows& rowNrs,
+                     const casa::Cube<bool>& flags);
+
+      // Write the data at the given row numbers.
+      void putData (const casa::RefRows& rowNrs,
+                    const casa::Cube<casa::Complex>& data);
+
+      //# Data members
       MSReader*   itsReader;
+      bool        itsWriteData;
       uint        itsNrCorr;
       uint        itsNrChan;
       uint        itsNrBl;

@@ -112,7 +112,7 @@ namespace LOFAR {
     void UVWFlagger::updateInfo (const DPInfo& infoIn)
     {
       info() = infoIn;
-      info().setNeedWrite();
+      info().setNeedWrite (DPInfo::NeedWriteFlags);
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.
       itsRecWavel = infoIn.chanFreqs() / casa::C::c;

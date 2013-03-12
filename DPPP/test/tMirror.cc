@@ -24,7 +24,6 @@
 #include <lofar_config.h>
 #include <Common/LofarTypes.h>
 #include <Common/LofarLogger.h>
-#include <iostream>
 
 #include <casa/Arrays/Matrix.h>
 #include <casa/Utilities/LinearSearch.h>
@@ -146,7 +145,7 @@ void testAdd()
         }
       }
       cout << itsAnt1<<endl<<itsAnt2<<endl;
-      LOFAR::writeVector (cout, itsBufRows);
+      writeVector (cout, itsBufRows);
       cout<<endl;
 }
 

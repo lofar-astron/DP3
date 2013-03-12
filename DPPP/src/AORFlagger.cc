@@ -70,8 +70,7 @@ namespace LOFAR {
     AORFlagger::AORFlagger (DPInput* input,
                             const ParameterSet& parset,
                             const string& prefix)
-      : itsInput       (input),
-        itsName        (prefix),
+      : itsName        (prefix),
         itsBufIndex    (0),
         itsNTimes      (0),
         itsNTimesToDo  (0),
@@ -120,7 +119,7 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setNeedWrite (DPInfo::NeedWriteFlags);
       // Get nr of threads.
       uint nthread = OpenMP::maxThreads();
       // Determine available memory.

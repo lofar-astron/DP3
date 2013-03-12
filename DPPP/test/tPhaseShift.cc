@@ -49,7 +49,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {
-    info().init (ncorr, nchan, ntime, 0., 10., string());
+    info().init (ncorr, nchan, ntime, 0., 10., string(), string());
     MDirection phaseCenter(Quantity(45,"deg"), Quantity(30,"deg"),
                            MDirection::J2000);
     info().set (MPosition(), phaseCenter, phaseCenter, phaseCenter);

@@ -175,17 +175,20 @@ namespace LOFAR {
       ///      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
       ///                                                 const casa::RefRows& rowNrs);
 
-      // Write the flags at the given row numbers.
-      // It is used by MSUpdater.
-      void putFlags (const casa::RefRows& rowNrs,
-                     const casa::Cube<bool>& flags);
-
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 
       // Get the main MS table.
       casa::Table& table()
         { return itsMS; }
+
+      // Get the name of the data column to be used.
+      const casa::String& dataColumnName() const
+        { return itsDataColName; }
+
+      // Get the slicer in the FLAG and DATA column.
+      const casa::Slicer& colSlicer() const
+        { return itsColSlicer; }
 
       // Get the rownrs for meta info of missing time slots.
       // It uses the rows of the first time slot.

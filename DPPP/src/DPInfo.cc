@@ -35,7 +35,7 @@ namespace LOFAR {
 
     DPInfo::DPInfo()
       : itsNeedVisData  (false),
-        itsNeedWrite    (false),
+        itsNeedWrite    (0),
         itsNCorr        (0),
         itsNChan        (0),
         itsChanAvg      (1),
@@ -48,7 +48,7 @@ namespace LOFAR {
 
     void DPInfo::init (uint ncorr, uint nchan,
                        uint ntime, double startTime, double timeInterval,
-                       const string& msName)
+                       const string& msName, const string& antennaSet)
     {
       itsNCorr        = ncorr;
       itsNChan        = nchan;
@@ -57,6 +57,7 @@ namespace LOFAR {
       itsStartTime    = startTime;
       itsTimeInterval = timeInterval;
       itsMSName       = msName;
+      itsAntennaSet   = antennaSet;
     }
 
     void DPInfo::set (const Vector<double>& chanFreqs,

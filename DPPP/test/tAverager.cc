@@ -87,7 +87,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string());
+    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);
@@ -241,7 +241,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNrCorr, itsNrChan, itsNrTime, 100, 5, string());
+    info().init (itsNrCorr, itsNrChan, itsNrTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNrChan);
     Vector<double> chanWidth(itsNrChan, 100000.);

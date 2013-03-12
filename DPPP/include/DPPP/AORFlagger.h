@@ -119,7 +119,6 @@ namespace LOFAR {
       void fillStrategy (boost::shared_ptr<rfiStrategy::Strategy>&);
 
       //# Data members.
-      DPInput*         itsInput;
       string           itsName;
       uint             itsBufIndex;
       uint             itsNTimes;

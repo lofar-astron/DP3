@@ -86,7 +86,7 @@ private:
   {
     info() = infoIn;
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string());
+    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(itsNBl);
@@ -196,7 +196,7 @@ private:
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag, itsUseAutoCorr, itsShortBL;
 };
 

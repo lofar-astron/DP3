@@ -26,6 +26,7 @@
 #include <tables/Tables.h>
 #include <tables/Tables/TableIter.h>
 #include <casa/Arrays/ArrayLogical.h>
+#include <casa/Arrays/ArrayMath.h>
 #include <casa/Arrays/ArrayPartMath.h>
 #include <Common/LofarLogger.h>
 #include <iostream>
@@ -407,9 +408,9 @@ void testAvg4()
   }
 }
 
-void testUpdate()
+void testUpdate1()
 {
-  cout << endl << "** testUpdate **" << endl;
+  cout << endl << "** testUpdate1 **" << endl;
   // Test if update works fine.
   // In fact, it does not do anything apart from rewriting the current flags.
   // However, it should ignore the inserted time slots.
@@ -426,6 +427,56 @@ void testUpdate()
   // Check that the flags did not change.
   {
     Table tab("tNDPPP_tmp.MS");
+    ASSERT (allEQ(ROArrayColumn<bool>(tab,"FLAG").getColumn(), flags));
+  }
+}
+
+void testUpdate2()
+{
+  cout << endl << "** testUpdate2 **" << endl;
+  // Test if update all flags works fine.
+  {
+    Table tab("tNDPPP_tmp.MS");
+    tab.deepCopy ("tNDPPP_tmp.MS_copy1", Table::New);
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS_copy1" << endl;
+    ostr << "msout=." << endl;
+    ostr << "steps=[preflag]" << endl;
+    ostr << "preflag.blmin=1e6" << endl;     // should flag all data
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  // Check that all flags are true.
+  {
+    Table tab("tNDPPP_tmp.MS_copy1");
+    ASSERT (allEQ(ROArrayColumn<bool>(tab,"FLAG").getColumn(), true));
+  }
+}
+
+void testUpdateScale()
+{
+  cout << endl << "** testUpdateScale **" << endl;
+  // Test if update data works fine.
+  Array<Complex> data;
+  Array<bool> flags;
+  {
+    Table tab("tNDPPP_tmp.MS");
+    data = ROArrayColumn<Complex>(tab,"DATA").getColumn();
+    flags = ROArrayColumn<bool>(tab,"FLAG").getColumn();
+    tab.deepCopy ("tNDPPP_tmp.MS_copy1", Table::New);
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS_copy1" << endl;
+    ostr << "msout=tNDPPP_tmp.MS_copy1" << endl;   // same name means update
+    ostr << "steps=[scaledata]" << endl;
+    ostr << "scaledata.coeffs=2" << endl;
+    ostr << "scaledata.stations=*" << endl;
+    ostr << "scaledata.scalesize=false" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  // Check that all data is doubled.
+  {
+    Table tab("tNDPPP_tmp.MS_copy1");
+    data *= Complex(2,0);
+    ASSERT (allNear(ROArrayColumn<Complex>(tab,"DATA").getColumn(), data, 1e-5));
     ASSERT (allEQ(ROArrayColumn<bool>(tab,"FLAG").getColumn(), flags));
   }
 }
@@ -668,7 +719,9 @@ int main()
     testAvg2();
     testAvg3();
     testAvg4();
-    testUpdate();
+    testUpdate1();
+    testUpdate2();
+    testUpdateScale();
     testFlags1();
     testFlags2();
     testFlags3();

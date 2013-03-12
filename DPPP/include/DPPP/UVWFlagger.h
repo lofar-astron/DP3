@@ -109,7 +109,6 @@ namespace LOFAR {
       DPInput*             itsInput;
       string               itsName;
       uint                 itsNTimes;
-      bool                 itsFlagOnWl; //# Flag on wavelengths?
       casa::Vector<double> itsRecWavel; //# reciprokes of wavelengths
       vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
       vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged

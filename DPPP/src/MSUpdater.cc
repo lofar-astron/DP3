@@ -27,6 +27,9 @@
 #include <DPPP/MSWriter.h>
 #include <DPPP/DPBuffer.h>
 #include <Common/ParameterSet.h>
+
+#include <tables/Tables/Table.h>
+#include <tables/Tables/ArrayColumn.h>
 #include <iostream>
 
 using namespace casa;
@@ -35,8 +38,9 @@ namespace LOFAR {
   namespace DPPP {
 
     MSUpdater::MSUpdater (MSReader* reader, const ParameterSet& parset,
-                          const string& prefix)
+                          const string& prefix, int needWrite)
       : itsReader      (reader),
+        itsWriteData   ((needWrite & DPInfo::NeedWriteData) != 0),
         itsNrCorr      (reader->getInfo().ncorr()),
         itsNrChan      (reader->getInfo().nchan()),
         itsNrBl        (reader->getInfo().nbaselines()),
@@ -53,7 +57,10 @@ namespace LOFAR {
     bool MSUpdater::process (const DPBuffer& buf)
     {
       NSTimer::StartStop sstime(itsTimer);
-      itsReader->putFlags (buf.getRowNrs(), buf.getFlags());
+      putFlags (buf.getRowNrs(), buf.getFlags());
+      if (itsWriteData) {
+        putData (buf.getRowNrs(), buf.getData());
+      }
       itsNrDone++;
       if (itsNrTimesFlush > 0  &&  itsNrDone%itsNrTimesFlush == 0) {
         itsReader->table().flush();
@@ -75,6 +82,51 @@ namespace LOFAR {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
       os << " MSUpdater" << endl;
+    }
+
+    void MSUpdater::putFlags (const RefRows& rowNrs,
+                              const Cube<bool>& flags)
+    {
+      if (! rowNrs.rowVector().empty()) {
+        const Slicer& colSlicer = itsReader->colSlicer();
+        Table& ms = itsReader->table();
+        ms.reopenRW();
+        ArrayColumn<bool> flagCol(ms, "FLAG");
+        ScalarColumn<bool> flagRowCol(ms, "FLAG_ROW");
+        // Loop over all rows of this subset.
+	// (it also avoids StandardStMan putCol with RefRows problem).
+        Vector<uint> rows = rowNrs.convert();
+        ReadOnlyArrayIterator<bool> flagIter (flags, 2);
+        for (uint i=0; i<rows.size(); ++i) {
+          flagCol.putSlice (rows[i], colSlicer, flagIter.array());
+          // If a new flag in a row is clear, the ROW_FLAG should not be set.
+          // If all new flags are set, we leave it because we might have a
+          // subset of the channels, so other flags might still be clear.
+          if (anyEQ (flagIter.array(), False)) {
+            flagRowCol.put (rows[i], False);
+          }
+          flagIter.next();
+	}
+      }
+    }
+
+    void MSUpdater::putData (const RefRows& rowNrs,
+                             const Cube<Complex>& data)
+    {
+      if (! rowNrs.rowVector().empty()) {
+        const Slicer& colSlicer = itsReader->colSlicer();
+        Table& ms = itsReader->table();
+        ms.reopenRW();
+        ArrayColumn<Complex> dataCol(ms, itsReader->dataColumnName());
+        // Loop over all rows of this subset.
+	// (it also avoids StandardStMan putCol with RefRows problem).
+        Vector<uint> rows = rowNrs.convert();
+        ReadOnlyArrayIterator<Complex> dataIter (data, 2);
+        for (uint i=0; i<rows.size(); ++i) {
+          dataCol.putSlice (rows[i], colSlicer, dataIter.array());
+          dataIter.next();
+	}
+      }
     }
 
   } //# end namespace

@@ -7,7 +7,7 @@ set(inst_HEADERS
   UVWCalculator.h BaselineSelection.h
   MSReader.h MSWriter.h MSUpdater.h Counter.h
   Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h AORFlagger.h
-  StationAdder.h Filter.h
+  StationAdder.h ScaleData.h Filter.h
   PhaseShift.h Demixer.h
   Cursor.h CursorUtilCasa.h Position.h Stokes.h SourceDBUtil.h
   Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h

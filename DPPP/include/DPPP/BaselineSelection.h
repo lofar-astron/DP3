@@ -87,8 +87,6 @@ namespace LOFAR {
       //# Data members
       string itsStrBL;
       string itsCorrType;
-      double itsMinBL;
-      double itsMaxBL;
       vector<double> itsRangeBL;
     };
 

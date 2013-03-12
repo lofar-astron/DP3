@@ -37,6 +37,7 @@
 #include <DPPP/PhaseShift.h>
 #include <DPPP/Demixer.h>
 #include <DPPP/StationAdder.h>
+#include <DPPP/ScaleData.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -259,6 +260,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
         } else if (type == "stationadder"  ||  type == "stationadd") {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
+        } else if (type == "scaledata") {
+          step = DPStep::ShPtr(new ScaleData (reader, parset, prefix));
         } else if (type == "filter") {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
           ///        } else if (type == "applycal"  ||  type == "correct") {
@@ -289,7 +292,8 @@ namespace LOFAR {
         if (needWrite  ||  lastInfo.needWrite()) {
           ASSERTSTR (inNames.size() == 1,
                      "No update can be done if multiple input MSs are used");
-          step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout."));
+          step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout.",
+                                              lastInfo.needWrite()));
           msName = inNames[0];
         } else {
           step = DPStep::ShPtr(new NullStep());
