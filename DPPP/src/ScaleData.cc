@@ -26,6 +26,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
+#include <Common/ParameterValue.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 
@@ -100,7 +101,8 @@ namespace LOFAR {
         // Convert the station string to a proper Regex object.
         stationRegex[i] = Regex(Regex::fromPattern(itsStationExp[i]));
         // Convert coefficients from string to double.
-        vector<double> coeff (ParameterValue(itsCoeffStr[i]).getDoubleVector());
+	ParameterValue coeffPar(itsCoeffStr[i]);
+	vector<double> coeff (coeffPar.getDoubleVector());
         ASSERTSTR (coeff.size() > 0, "A ScaleData coeffs vector is empty");
         vector<double>& scales = scaleVec[i];
         scales.reserve (freqs.size());
