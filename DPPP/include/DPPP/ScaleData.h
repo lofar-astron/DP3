@@ -89,6 +89,7 @@ namespace LOFAR {
       bool               itsScaleSize;
       vector<string>     itsStationExp;  // station regex strings
       vector<string>     itsCoeffStr;    // coeff per station regex
+      vector<vector<double> > itsStationFactors; // scale factor per station,freq
       casa::Cube<double> itsFactors;     // scale factor per baseline,freq,pol
       NSTimer            itsTimer;
     };
