@@ -122,6 +122,9 @@ namespace LOFAR {
       vector<double> extraFactors(nant, 1.);
       if (itsScaleSize  ||  !itsScaleSizeGiven) {
         fillSizeScaleFactors (nNominal, extraFactors);
+	ASSERTSTR (extraFactors.size() == nant,
+		   "Maybe stations have been added before doing the scaling; "
+		   "that should not be done");
       }
       // Find the scale factors for each station.
       // The first matching regex is used.
@@ -219,7 +222,10 @@ namespace LOFAR {
                  "ScaleData: subtable LOFAR_ANTENNA_FIELD is missing, but "
                  "is needed unless scalesize=false is given");
       Table tab(ms.keywordSet().asTable ("LOFAR_ANTENNA_FIELD"));
-      uint nant = getInfo().antennaNames().size();
+      // Get nr of antennae from the table to be sure it matches the
+      // contents of LOFAR_ANTENNA_FIELD. Later it is checked if it matches
+      // the actual nr of antennae.
+      uint nant = ms.keywordSet().asTable("ANTENNA").nrow();
       fact.resize (nant);
       for (uint i=0; i<nant; ++i) {
         fact[i] = 0;
@@ -229,7 +235,7 @@ namespace LOFAR {
       ROScalarColumn<Int> antId (tab, "ANTENNA_ID");
       ROArrayColumn<Bool> elemFlag (tab, "ELEMENT_FLAG");
       for (uint i=0; i<tab.nrow(); ++i) {
-        fact[antId(i)] += nfalse(elemFlag(i));
+        fact[antId(i)] += 0.5*nfalse(elemFlag(i));  // X and Y are separate
       }
       // Determine the scale factor.
       for (uint i=0; i<nant; ++i) {
