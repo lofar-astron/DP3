@@ -22,6 +22,7 @@ lofar_add_library(dppp
 lofar_add_bin_program(NDPPP NDPPP.cc)
 #lofar_add_bin_program(IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
+lofar_add_bin_program(measures measures.cc)
 
 install(PROGRAMS
   mwflagger
