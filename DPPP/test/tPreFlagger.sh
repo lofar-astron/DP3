@@ -1,2 +1,2 @@
 #!/bin/sh
-./runctest.sh tPreFlagger > tPreFlagger.log 2>&1
+./runctest.sh tPreFlagger
