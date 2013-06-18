@@ -1,4 +1,4 @@
-//# AORFlagger.h: DPPP step class to flag data usibng rficonsole's functionality
+//# AORFlagger.h: DPPP step class to flag data using rficonsole's functionality
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
