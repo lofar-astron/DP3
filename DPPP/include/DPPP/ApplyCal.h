@@ -1,5 +1,5 @@
 //# ApplyCal.h: DPPP step class to apply a calibration correction to the data
-//# Copyright (C) 2012
+//# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -34,6 +34,7 @@
 #include <ParmDB/ParmCache.h>
 #include <ParmDB/Parm.h>
 #include <casa/Arrays/Cube.h>
+#include <casa/Arrays/ArrayMath.h>
 
 namespace LOFAR {
 
@@ -71,16 +72,38 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
+      void fillParms (const string& parmPrefix, const boost::shared_ptr<BBS::ParmDB> itsParmDB);
+      void correct (DPBuffer& buf, int bl);
+      void applyTEC (casa::Complex* vis, const casa::DComplex* lhs,
+                               const casa::DComplex* rhs);
+      void applyClock (casa::Complex* vis, const casa::DComplex* lhs,
+                                     const casa::DComplex* rhs);
+      void applyBandpass (casa::Complex* vis, const casa::DComplex* lhs,
+                                        const casa::DComplex* rhs);
+      void applyRM (casa::Complex* vis, const casa::DComplex* lhs,
+                                  const casa::DComplex* rhs);
+      void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
+                                     const casa::DComplex* rhs);
+      void invert (casa::DComplex* v);
+
+
+
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
       BBS::Axis::ShPtr itsFreqAxis;
-      BBS::ParmDB      itsParmDB;
+      string           itsParmDBName;
+      //BBS::ParmDB      itsParmDB;
       BBS::ParmSet     itsParmSet;
-      BBS::ParmCache   itsParmCache;
+      string           itsCorrectType;
+      //BBS::ParmCache   itsParmCache;
+      double           itsSigma;
       map<string, vector<BBS::Parm> > itsParms;
-      double itsTimeInterval;
-      bool   itsUseAP;            //# use ampl/phase or real/imag
+      double           itsTimeInterval;
+      bool             itsUseAP;      //# use ampl/phase or real/imag
+      NSTimer          itsTimer;
+      int              itsNChan;
+      int              itsNPol;
     };
 
   } //# end namespace

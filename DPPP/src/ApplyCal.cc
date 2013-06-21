@@ -1,5 +1,5 @@
 //# ApplyCal.cc: DPPP step class to apply a calibration correction to the data
-//# Copyright (C) 2012
+//# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //#
@@ -29,6 +29,7 @@
 #include <Common/StringUtil.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <casa/OS/File.h>
 #include <iostream>
 #include <iomanip>
 
@@ -46,10 +47,12 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
-        itsCorrectTypes (parset.getString (prefix + "correction")),
+        itsCorrectType (parset.getString (prefix + "correction")),
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
-        itsLastTime    (-1),
-        itsUseAP       (False)
+        itsTimeInterval (-1),
+        itsUseAP       (False),
+        itsNChan       (0),
+        itsNPol        (0)
     {
       ASSERT (!itsParmDBName.empty());
       // Possible corrections one (or more?) of:
@@ -64,14 +67,14 @@ namespace LOFAR {
       info() = infoIn;
       info().setNeedVisData();
       info().setNeedWrite();
-      itsTimeInterval = infoIn.getInterval();
+      itsTimeInterval = infoIn.timeInterval();
       // Open the ParmDB.
       File parmdbFile(itsParmDBName);
       ASSERTSTR (parmdbFile.exists(), "ParmDB " + itsParmDBName +
                  " does not exist");
-      BBS::ParmDBMeta pdb("casa", parmdbName);
+      BBS::ParmDBMeta pdb("casa", itsParmDBName);
       ///      // Use ParmFacade to get corrections in correct grid?
-      itsParmDB = boost::shared_ptr<BBS::ParmDB>(new BBS::ParmDB(pdb));
+      boost::shared_ptr<BBS::ParmDB> itsParmDB = boost::shared_ptr<BBS::ParmDB>(new BBS::ParmDB(pdb));
       // Form the frequency axis for this time slot.
       vector<double> freqs, freqWidths;
       freqs.resize (infoIn.chanFreqs().size());
@@ -81,51 +84,51 @@ namespace LOFAR {
       itsFreqAxis = BBS::Axis::ShPtr (new BBS::OrderedAxis(freqs, freqWidths));
       // Handle the correction type.
       // Form the Parm objects for all parameters involved.
-      string corrType = StringUtil::toLower(itsCorrectType);
+      string corrType = toLower(itsCorrectType);
       if (corrType == "clock") {
-        fillParms ("Clock:");
+        fillParms ("Clock:", itsParmDB);
       } else if (corrType == "gain") {
         string prefix1 = "real:";
         string prefix2 = "imag:";
         // Test if real/imag or ampl/phase is used.
         if (itsParmDB->getNameId("Gain:0:0:real:" +
-                                 infoIn.itsAntennaNames()[0]) < 0) {
+                                 infoIn.antennaNames()[0]) < 0) {
           prefix1  = "ampl:";
           prefix1  = "phase:";
           itsUseAP = true;
         }
-        fillParms ("Gain:0:0:" + prefix1);
-        fillParms ("Gain:0:0:" + prefix2);
-        fillParms ("Gain:0:1:" + prefix1);
-        fillParms ("Gain:0:1:" + prefix2);
-        fillParms ("Gain:1:0:" + prefix1);
-        fillParms ("Gain:1:0:" + prefix2);
-        fillParms ("Gain:1:1:" + prefix1);
-        fillParms ("Gain:1:1:" + prefix2);
+        fillParms ("Gain:0:0:" + prefix1, itsParmDB);
+        fillParms ("Gain:0:0:" + prefix2, itsParmDB);
+        fillParms ("Gain:0:1:" + prefix1, itsParmDB);
+        fillParms ("Gain:0:1:" + prefix2, itsParmDB);
+        fillParms ("Gain:1:0:" + prefix1, itsParmDB);
+        fillParms ("Gain:1:0:" + prefix2, itsParmDB);
+        fillParms ("Gain:1:1:" + prefix1, itsParmDB);
+        fillParms ("Gain:1:1:" + prefix2, itsParmDB);
       } else if (corrType == "rm") {
-        fillParms ("RotationMeasure:");
-      } else if (corrType = "tec") {
-        fillParms ("TEC:");
-      } else if (corrType = "bandpass") {
-        fillParms ("Bandpass:0:0:");
-        fillParms ("Bandpass:1:1:");
+        fillParms ("RotationMeasure:", itsParmDB);
+      } else if (corrType == "tec") {
+        fillParms ("TEC:", itsParmDB);
+      } else if (corrType == "bandpass") {
+        fillParms ("Bandpass:0:0:", itsParmDB);
+        fillParms ("Bandpass:1:1:", itsParmDB);
       } else {
-        THROW (Exception("Correction type " + itsCorrectType +
-                         " is unknown"));
+        THROW (Exception, "Correction type " + itsCorrectType +
+                         " is unknown");
       }
     }
 
-    void ApplyCal::fillParms (const string& parmPrefix)
+    void ApplyCal::fillParms (const string& parmPrefix, const boost::shared_ptr<BBS::ParmDB> itsParmDB)
     {
       vector<Parm>& parms = itsParms[parmPrefix];
       ASSERTSTR (parms.empty(), "Parm " + parmPrefix + " multiply used");
-      parms.reserve (info().antennaNames.size());
-      for (uint i=0; i<info().antennaNames.size(); ++i) {
-        string name = parmPrefix + info().antennaNames()[i];
+      parms.reserve (info().antennaNames().size());
+      for (uint i=0; i<info().antennaNames().size(); ++i) {
+        string name = casa::String(parmPrefix) + info().antennaNames()[i];
         ASSERTSTR (itsParmDB->getNameId(name) >= 0,
                    "ParmDB parm " + name + " does not exist");
-        ParmId id = itsParmSet.addParm (*itsParmDB, name);
-        parms.push_back = Parm(itsParmCache, id);
+        //ParmId id = itsParmSet.addParm (itsParmDB, name);
+        //parms.push_back = Parm(itsParmCache, id);
       }
     }
 
@@ -151,14 +154,16 @@ namespace LOFAR {
       buf.getData().unique();
       RefRows rowNrs(buf.getRowNrs());
       // If needed, cache parm values for the next 100 time slots.
-      double stime = buf.time() - 0.5*itsTimeInterval;
+      double stime = buf.getTime() - 0.5*itsTimeInterval;
+      /*
       if (stime > itsLastTime) {
         itsLastTime = stime + 100*itsTimeInterval;
         BBS::Box domain(make_pair(stime, 0.), make_pair(etime, 1e10));
         itsParmCache.reset (itsParmSet, domain);
       }
+      */
       // Form the grid for this time slot.
-      Axis::ShPtr timeAxis (new BBS::RegularAxis(stime, itsInterval, 1));
+      Axis::ShPtr timeAxis (new BBS::RegularAxis(stime, itsTimeInterval, 1));
       // Loop through all baselines in the buffer.
       int nbl = bufin.getData().shape()[2];
       //#pragma omp parallel for
@@ -166,8 +171,8 @@ namespace LOFAR {
         correct (buf, i);
       }
       itsTimer.stop();
-      itsNextStep().process (buf);
-      return true;
+      getNextStep()->process(buf);
+      return false;
     }
 
     void ApplyCal::finish()
@@ -179,9 +184,9 @@ namespace LOFAR {
     void ApplyCal::correct (DPBuffer& buf, int bl)
     {
       Complex* data = buf.getData().data();
-      int npol  = bufin.getData().shape()[0];
-      int nchan = bufin.getData().shape()[1];
-      rmParm.getResult (coeffs, grid);
+      int npol  = buf.getData().shape()[0];
+      int nchan = buf.getData().shape()[1];
+      //rmParm.getResult (coeffs, grid);
     }
 
     // Corrections can be constant or can vary in freq.
@@ -198,7 +203,8 @@ namespace LOFAR {
       ///Matrix phase = freq * (delay() * casa::C::_2pi);
       ///Matrix shift = tocomplex(cos(phase), sin(phase));
       for (uint i=0; i<itsNChan; ++i) {
-        DComplex factor = 1 / (lhs[i] * conj(rhs[i]));
+        //DComplex factor = 1. / (lhs[i] * conj(rhs[i])); // TJD: delen door complex getal???
+        DComplex factor = 1.;
         for (uint j=0; j<itsNPol; ++j) {
           *vis++ *= factor;
         }
@@ -214,6 +220,7 @@ namespace LOFAR {
                             const DComplex* rhs)
     {
       // Precompute lambda squared for the current frequency point.
+      /*
       const double lambda = C::c / grid[FREQ]->center(f);
       const double lambda2 = lambda * lambda;
 
@@ -232,6 +239,7 @@ namespace LOFAR {
       result.assign(0, 1, -sinChi);
       result.assign(1, 0, sinChi);
       result.assign(1, 1, cosChi);
+      */
     }
 
     void ApplyCal::applyJones (Complex* vis, const DComplex* lhs,
@@ -239,6 +247,7 @@ namespace LOFAR {
     {
       for (uint i=0; i<itsNChan; ++i) {
         // Compute the Mueller matrix.
+        /*
         DComplex mueller[4][4];
         mueller[0][0] = lhs[0] * conj(rhs[0]);
         mueller[0][1] = lhs[0] * conj(rhs[1]);
@@ -287,6 +296,7 @@ namespace LOFAR {
         vis[2] = yx;
         vis[3] = yy;
         vis += 4;
+        */
       }
     }
 
@@ -294,14 +304,14 @@ namespace LOFAR {
     {
       // Add the variance of the nuisance term to the elements on the diagonal.
       const double variance = itsSigma * itsSigma;
-      Matrix diag0 = v[0] + variance;
-      Matrix diag1 = v[3] + variance;
+      DComplex diag0 = v[0] + variance;
+      DComplex diag1 = v[3] + variance;
       // Compute inverse in the usual way.
-      Complex invDet(1.0 / (diag0 * diag1 - v[1] * v[2]));
-      Complex xx = diag1 * invDet;
-      Complex xy = v[1] * -invDet;
-      Complex yx = v[2] * -invDet;
-      Complex yy = diag0 * invDet;
+      DComplex invDet(1.0 / (diag0 * diag1 - v[1] * v[2]));
+      DComplex xx = diag1 * invDet;
+      DComplex xy = v[1] * -invDet;
+      DComplex yx = v[2] * -invDet;
+      DComplex yy = diag0 * invDet;
       ///result.assign(0, 0, diag1 * invDet);
       ///result.assign(0, 1, arg0(0, 1) * -invDet);
       ///result.assign(1, 0, arg0(1, 0) * -invDet);

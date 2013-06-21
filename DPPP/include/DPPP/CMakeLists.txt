@@ -2,7 +2,7 @@
 
 # List of header files that will be installed.
 set(inst_HEADERS
-  DPRun.h DPStep.h DPInput.h DPBuffer.h DPInfo.h
+  DPRun.h DPStep.h DPInput.h DPBuffer.h DPInfo.h ApplyCal.h
   DPLogger.h ProgressMeter.h FlagCounter.h
   UVWCalculator.h BaselineSelection.h
   MSReader.h MSWriter.h MSUpdater.h Counter.h
