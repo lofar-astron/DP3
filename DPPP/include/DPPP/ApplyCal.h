@@ -71,11 +71,12 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      static void invert (casa::DComplex* v);
+
     private:
-      void fillParms (const string& parmPrefix, const boost::shared_ptr<BBS::ParmDB> itsParmDB);
+      void fillParms (const string& parmPrefix);
       void correct (DPBuffer& buf, int bl);
-      void applyTEC (casa::Complex* vis, const casa::DComplex* lhs,
-                               const casa::DComplex* rhs);
+      void applyTEC (casa::Complex* vis, const casa::DComplex& tec);
       void applyClock (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
       void applyBandpass (casa::Complex* vis, const casa::DComplex* lhs,
@@ -84,7 +85,7 @@ namespace LOFAR {
                                   const casa::DComplex* rhs);
       void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
-      void invert (casa::DComplex* v);
+
 
 
 
@@ -93,8 +94,7 @@ namespace LOFAR {
       string           itsName;
       BBS::Axis::ShPtr itsFreqAxis;
       string           itsParmDBName;
-      //BBS::ParmDB      itsParmDB;
-      BBS::ParmSet     itsParmSet;
+      boost::shared_ptr<BBS::ParmDB> itsParmDB;
       string           itsCorrectType;
       //BBS::ParmCache   itsParmCache;
       double           itsSigma;

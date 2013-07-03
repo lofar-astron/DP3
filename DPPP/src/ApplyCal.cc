@@ -68,13 +68,23 @@ namespace LOFAR {
       info().setNeedVisData();
       info().setNeedWrite();
       itsTimeInterval = infoIn.timeInterval();
+
       // Open the ParmDB.
       File parmdbFile(itsParmDBName);
+
       ASSERTSTR (parmdbFile.exists(), "ParmDB " + itsParmDBName +
                  " does not exist");
       BBS::ParmDBMeta pdb("casa", itsParmDBName);
       ///      // Use ParmFacade to get corrections in correct grid?
-      boost::shared_ptr<BBS::ParmDB> itsParmDB = boost::shared_ptr<BBS::ParmDB>(new BBS::ParmDB(pdb));
+      itsParmDB.reset(new BBS::ParmDB(pdb));
+
+      vector<string> parnames;
+      parnames=itsParmDB->getNames("*");
+      for (vector<string>::iterator it = parnames.begin();it!=parnames.end();++it) {
+        cout << *it <<",";
+      }
+      cout << endl;
+
       // Form the frequency axis for this time slot.
       vector<double> freqs, freqWidths;
       freqs.resize (infoIn.chanFreqs().size());
@@ -85,8 +95,10 @@ namespace LOFAR {
       // Handle the correction type.
       // Form the Parm objects for all parameters involved.
       string corrType = toLower(itsCorrectType);
+
+      /*
       if (corrType == "clock") {
-        fillParms ("Clock:", itsParmDB);
+        fillParms ("Clock:");
       } else if (corrType == "gain") {
         string prefix1 = "real:";
         string prefix2 = "imag:";
@@ -94,31 +106,32 @@ namespace LOFAR {
         if (itsParmDB->getNameId("Gain:0:0:real:" +
                                  infoIn.antennaNames()[0]) < 0) {
           prefix1  = "ampl:";
-          prefix1  = "phase:";
+          prefix2  = "phase:";
           itsUseAP = true;
         }
-        fillParms ("Gain:0:0:" + prefix1, itsParmDB);
-        fillParms ("Gain:0:0:" + prefix2, itsParmDB);
-        fillParms ("Gain:0:1:" + prefix1, itsParmDB);
-        fillParms ("Gain:0:1:" + prefix2, itsParmDB);
-        fillParms ("Gain:1:0:" + prefix1, itsParmDB);
-        fillParms ("Gain:1:0:" + prefix2, itsParmDB);
-        fillParms ("Gain:1:1:" + prefix1, itsParmDB);
-        fillParms ("Gain:1:1:" + prefix2, itsParmDB);
+        fillParms ("Gain:0:0:" + prefix1);
+        fillParms ("Gain:0:0:" + prefix2);
+        fillParms ("Gain:0:1:" + prefix1);
+        fillParms ("Gain:0:1:" + prefix2);
+        fillParms ("Gain:1:0:" + prefix1);
+        fillParms ("Gain:1:0:" + prefix2);
+        fillParms ("Gain:1:1:" + prefix1);
+        fillParms ("Gain:1:1:" + prefix2);
       } else if (corrType == "rm") {
-        fillParms ("RotationMeasure:", itsParmDB);
+        fillParms ("RotationMeasure:");
       } else if (corrType == "tec") {
-        fillParms ("TEC:", itsParmDB);
+        fillParms ("TEC:");
       } else if (corrType == "bandpass") {
-        fillParms ("Bandpass:0:0:", itsParmDB);
-        fillParms ("Bandpass:1:1:", itsParmDB);
+        fillParms ("Bandpass:0:0:");
+        fillParms ("Bandpass:1:1:");
       } else {
         THROW (Exception, "Correction type " + itsCorrectType +
                          " is unknown");
       }
+      */
     }
 
-    void ApplyCal::fillParms (const string& parmPrefix, const boost::shared_ptr<BBS::ParmDB> itsParmDB)
+    void ApplyCal::fillParms (const string& parmPrefix)
     {
       vector<Parm>& parms = itsParms[parmPrefix];
       ASSERTSTR (parms.empty(), "Parm " + parmPrefix + " multiply used");
@@ -153,9 +166,11 @@ namespace LOFAR {
       DPBuffer buf(bufin);
       buf.getData().unique();
       RefRows rowNrs(buf.getRowNrs());
+
       // If needed, cache parm values for the next 100 time slots.
       double stime = buf.getTime() - 0.5*itsTimeInterval;
       /*
+       *
       if (stime > itsLastTime) {
         itsLastTime = stime + 100*itsTimeInterval;
         BBS::Box domain(make_pair(stime, 0.), make_pair(etime, 1e10));
@@ -166,6 +181,7 @@ namespace LOFAR {
       Axis::ShPtr timeAxis (new BBS::RegularAxis(stime, itsTimeInterval, 1));
       // Loop through all baselines in the buffer.
       int nbl = bufin.getData().shape()[2];
+
       //#pragma omp parallel for
       for (int i=0; i<nbl; ++i) {
         correct (buf, i);
@@ -186,14 +202,19 @@ namespace LOFAR {
       Complex* data = buf.getData().data();
       int npol  = buf.getData().shape()[0];
       int nchan = buf.getData().shape()[1];
+
+      for (int i=bl*npol*nchan;i<(bl+1)*npol*nchan;i++) {
+        cout<<data[i]<<endl;
+      }
+
       //rmParm.getResult (coeffs, grid);
     }
 
     // Corrections can be constant or can vary in freq.
-    void ApplyCal::applyTEC (Complex* vis, const DComplex* lhs,
-                             const DComplex* rhs)
+    // TODO: this is a scalar effect, so should not be implemented as matrix
+    void ApplyCal::applyTEC (Complex* vis, const DComplex& tec)
     {
-      ///Matrix phase = (tec() * -8.44797245e9) / freq;
+      ///Matrix phase = (tec * -8.44797245e9) / freq;
       ///Matrix shift = tocomplex(cos(phase), sin(phase));
     }
 
@@ -203,8 +224,7 @@ namespace LOFAR {
       ///Matrix phase = freq * (delay() * casa::C::_2pi);
       ///Matrix shift = tocomplex(cos(phase), sin(phase));
       for (uint i=0; i<itsNChan; ++i) {
-        //DComplex factor = 1. / (lhs[i] * conj(rhs[i])); // TJD: delen door complex getal???
-        DComplex factor = 1.;
+        DComplex factor = 1. / (lhs[i] * conj(rhs[i]));
         for (uint j=0; j<itsNPol; ++j) {
           *vis++ *= factor;
         }
@@ -247,7 +267,7 @@ namespace LOFAR {
     {
       for (uint i=0; i<itsNChan; ++i) {
         // Compute the Mueller matrix.
-        /*
+
         DComplex mueller[4][4];
         mueller[0][0] = lhs[0] * conj(rhs[0]);
         mueller[0][1] = lhs[0] * conj(rhs[1]);
@@ -270,52 +290,50 @@ namespace LOFAR {
         mueller[3][3] = lhs[3] * conj(rhs[3]);
 
         // Apply Mueller matrix to visibilities.
-        Complex xx, xy, yx, yy;
-        xx = (mueller[0][0] * vis[0] +
-              mueller[0][1] * vis[1] +
-              mueller[0][2] * vis[2] +
-              mueller[0][3] * vis[3]);
+        DComplex xx, xy, yx, yy;
+        xx = (mueller[0][0] * DComplex(vis[0]) +
+              mueller[0][1] * DComplex(vis[1]) +
+              mueller[0][2] * DComplex(vis[2]) +
+              mueller[0][3] * DComplex(vis[3]));
 
-        xy = (mueller[1][0] * vis[0] +
-              mueller[1][1] * vis[1] +
-              mueller[1][2] * vis[2] +
-              mueller[1][3] * vis[3]);
+        xy = (mueller[1][0] * DComplex(vis[0]) +
+              mueller[1][1] * DComplex(vis[1]) +
+              mueller[1][2] * DComplex(vis[2]) +
+              mueller[1][3] * DComplex(vis[3]));
 
-        yx = (mueller[2][0] * vis[0] +
-              mueller[2][1] * vis[1] +
-              mueller[2][2] * vis[2] +
-              mueller[2][3] * vis[3]);
+        yx = (mueller[2][0] * DComplex(vis[0]) +
+              mueller[2][1] * DComplex(vis[1]) +
+              mueller[2][2] * DComplex(vis[2]) +
+              mueller[2][3] * DComplex(vis[3]));
 
-        yy = (mueller[3][0] * vis[0] +
-              mueller[3][1] * vis[1] +
-              mueller[3][2] * vis[2] +
-              mueller[3][3] * vis[3]);
+        yy = (mueller[3][0] * DComplex(vis[0]) +
+              mueller[3][1] * DComplex(vis[1]) +
+              mueller[3][2] * DComplex(vis[2]) +
+              mueller[3][3] * DComplex(vis[3]));
 
         vis[0] = xx;
         vis[1] = xy;
         vis[2] = yx;
         vis[3] = yy;
         vis += 4;
-        */
+
       }
     }
 
+    // Inverts complex input matrix (in place??)
+    // TODO: what does this sigma term do? It is added, should it be added back?
     void ApplyCal::invert (DComplex* v)
     {
       // Add the variance of the nuisance term to the elements on the diagonal.
-      const double variance = itsSigma * itsSigma;
-      DComplex diag0 = v[0] + variance;
-      DComplex diag1 = v[3] + variance;
+      const double variance = 0;//itsSigma * itsSigma;
+      DComplex v0 = v[0] + variance;
+      DComplex v3 = v[3] + variance;
       // Compute inverse in the usual way.
-      DComplex invDet(1.0 / (diag0 * diag1 - v[1] * v[2]));
-      DComplex xx = diag1 * invDet;
-      DComplex xy = v[1] * -invDet;
-      DComplex yx = v[2] * -invDet;
-      DComplex yy = diag0 * invDet;
-      ///result.assign(0, 0, diag1 * invDet);
-      ///result.assign(0, 1, arg0(0, 1) * -invDet);
-      ///result.assign(1, 0, arg0(1, 0) * -invDet);
-      ///result.assign(1, 1, diag0 * invDet);
+      DComplex invDet(1.0 / (v0 * v3 - v[1] * v[2]));
+      v[0] = v3 * invDet;
+      v[2] = v[2] * -invDet;
+      v[1] = v[1] * -invDet;
+      v[3] = v0 * invDet;
     }
 
   } //# end namespace
