@@ -67,10 +67,10 @@ public:
       }
     }
     Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    antNames[0] = "CS001LBA";
+    antNames[1] = "CS028LBA";
+    antNames[2] = "CS302LBA";
+    antNames[3] = "CS401LBA";
     // Define their positions (more or less WSRT RT0-3).
     vector<MPosition> antPos(4);
     Vector<double> vals(3);

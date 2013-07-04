@@ -96,9 +96,10 @@ namespace LOFAR {
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmDB> itsParmDB;
       string           itsCorrectType;
-      //BBS::ParmCache   itsParmCache;
       double           itsSigma;
       map<string, vector<BBS::Parm> > itsParms;
+      BBS::ParmSet     itsParmSet;
+      BBS::ParmCache   itsParmCache;
       double           itsTimeInterval;
       bool             itsUseAP;      //# use ampl/phase or real/imag
       NSTimer          itsTimer;

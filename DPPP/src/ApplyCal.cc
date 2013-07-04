@@ -49,6 +49,7 @@ namespace LOFAR {
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (parset.getString (prefix + "correction")),
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
+        itsParmCache   (itsParmSet),
         itsTimeInterval (-1),
         itsUseAP       (False),
         itsNChan       (0),
@@ -78,12 +79,16 @@ namespace LOFAR {
       ///      // Use ParmFacade to get corrections in correct grid?
       itsParmDB.reset(new BBS::ParmDB(pdb));
 
-      vector<string> parnames;
-      parnames=itsParmDB->getNames("*");
+
+      //vector<string> parnames;
+      //parnames=itsParmDB->getNames("*");
+
+      /*
       for (vector<string>::iterator it = parnames.begin();it!=parnames.end();++it) {
-        cout << *it <<",";
+        cout << *it <<endl;
       }
-      cout << endl;
+      cout << "dat waren de parameters" << endl;
+      */
 
       // Form the frequency axis for this time slot.
       vector<double> freqs, freqWidths;
@@ -92,29 +97,30 @@ namespace LOFAR {
       infoIn.chanFreqs().tovector  (freqs);
       infoIn.chanWidths().tovector (freqWidths);
       itsFreqAxis = BBS::Axis::ShPtr (new BBS::OrderedAxis(freqs, freqWidths));
+
       // Handle the correction type.
       // Form the Parm objects for all parameters involved.
+
       string corrType = toLower(itsCorrectType);
 
-      /*
       if (corrType == "clock") {
         fillParms ("Clock:");
       } else if (corrType == "gain") {
-        string prefix1 = "real:";
-        string prefix2 = "imag:";
+        string prefix1 = "Real:";
+        string prefix2 = "Imag:";
         // Test if real/imag or ampl/phase is used.
-        if (itsParmDB->getNameId("Gain:0:0:real:" +
+        if (itsParmDB->getNameId("Gain:0:0:Real:" +
                                  infoIn.antennaNames()[0]) < 0) {
-          prefix1  = "ampl:";
-          prefix2  = "phase:";
+          prefix1  = "Ampl:";
+          prefix2  = "Phase:";
           itsUseAP = true;
         }
         fillParms ("Gain:0:0:" + prefix1);
         fillParms ("Gain:0:0:" + prefix2);
-        fillParms ("Gain:0:1:" + prefix1);
-        fillParms ("Gain:0:1:" + prefix2);
-        fillParms ("Gain:1:0:" + prefix1);
-        fillParms ("Gain:1:0:" + prefix2);
+        //fillParms ("Gain:0:1:" + prefix1);
+        //fillParms ("Gain:0:1:" + prefix2);
+        //fillParms ("Gain:1:0:" + prefix1);
+        //fillParms ("Gain:1:0:" + prefix2);
         fillParms ("Gain:1:1:" + prefix1);
         fillParms ("Gain:1:1:" + prefix2);
       } else if (corrType == "rm") {
@@ -128,7 +134,6 @@ namespace LOFAR {
         THROW (Exception, "Correction type " + itsCorrectType +
                          " is unknown");
       }
-      */
     }
 
     void ApplyCal::fillParms (const string& parmPrefix)
@@ -140,8 +145,8 @@ namespace LOFAR {
         string name = casa::String(parmPrefix) + info().antennaNames()[i];
         ASSERTSTR (itsParmDB->getNameId(name) >= 0,
                    "ParmDB parm " + name + " does not exist");
-        //ParmId id = itsParmSet.addParm (itsParmDB, name);
-        //parms.push_back = Parm(itsParmCache, id);
+        ParmId id = itsParmSet.addParm(*itsParmDB, name);
+        parms.push_back(Parm(itsParmCache, id));
       }
     }
 
@@ -168,19 +173,25 @@ namespace LOFAR {
       RefRows rowNrs(buf.getRowNrs());
 
       // If needed, cache parm values for the next 100 time slots.
+      // getTime geeft midden van interval
       double stime = buf.getTime() - 0.5*itsTimeInterval;
+
+
       /*
-       *
       if (stime > itsLastTime) {
         itsLastTime = stime + 100*itsTimeInterval;
-        BBS::Box domain(make_pair(stime, 0.), make_pair(etime, 1e10));
-        itsParmCache.reset (itsParmSet, domain);
+        BBS::Box domain(make_pair(stime, 0.), make_pair(itsLastTime, 1e10));
+        itsParmCache.reset(domain);
       }
       */
+
       // Form the grid for this time slot.
       Axis::ShPtr timeAxis (new BBS::RegularAxis(stime, itsTimeInterval, 1));
+
       // Loop through all baselines in the buffer.
       int nbl = bufin.getData().shape()[2];
+
+      //as wordt grid, dan voor ieder van parms waarde ophalen
 
       //#pragma omp parallel for
       for (int i=0; i<nbl; ++i) {
