@@ -49,8 +49,8 @@ namespace LOFAR {
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (parset.getString (prefix + "correction")),
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
-        itsParmCache   (itsParmSet),
         itsTimeInterval (-1),
+        itsLastTime    (-1),
         itsUseAP       (False),
         itsNChan       (0),
         itsNPol        (0)
@@ -70,83 +70,43 @@ namespace LOFAR {
       info().setNeedWrite();
       itsTimeInterval = infoIn.timeInterval();
 
-      // Open the ParmDB.
-      File parmdbFile(itsParmDBName);
-
-      ASSERTSTR (parmdbFile.exists(), "ParmDB " + itsParmDBName +
-                 " does not exist");
-      BBS::ParmDBMeta pdb("casa", itsParmDBName);
-      ///      // Use ParmFacade to get corrections in correct grid?
-      itsParmDB.reset(new BBS::ParmDB(pdb));
-
-
-      //vector<string> parnames;
-      //parnames=itsParmDB->getNames("*");
+      itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
 
       /*
-      for (vector<string>::iterator it = parnames.begin();it!=parnames.end();++it) {
-        cout << *it <<endl;
+      vector<string> parNames;
+      parNames=itsParmDB->getNames("*");
+      for (int i=0;i<parNames.size();++i) {
+        cout<<parNames[i]<<" ";
       }
-      cout << "dat waren de parameters" << endl;
+      cout<<endl;
       */
 
       // Form the frequency axis for this time slot.
-      vector<double> freqs, freqWidths;
-      freqs.resize (infoIn.chanFreqs().size());
-      freqWidths.resize (freqs.size());
-      infoIn.chanFreqs().tovector  (freqs);
-      infoIn.chanWidths().tovector (freqWidths);
-      itsFreqAxis = BBS::Axis::ShPtr (new BBS::OrderedAxis(freqs, freqWidths));
+      int numFreqs = infoIn.chanFreqs().size();
+
+      itsFreqInterval = infoIn.chanWidths()[0];
+      itsMinFreq = infoIn.chanFreqs()[0]-0.5*itsFreqInterval;
+      itsMaxFreq = infoIn.chanFreqs()[numFreqs-1]+0.5*itsFreqInterval;
+
 
       // Handle the correction type.
-      // Form the Parm objects for all parameters involved.
 
       string corrType = toLower(itsCorrectType);
 
-      if (corrType == "clock") {
-        fillParms ("Clock:");
-      } else if (corrType == "gain") {
-        string prefix1 = "Real:";
-        string prefix2 = "Imag:";
-        // Test if real/imag or ampl/phase is used.
-        if (itsParmDB->getNameId("Gain:0:0:Real:" +
-                                 infoIn.antennaNames()[0]) < 0) {
-          prefix1  = "Ampl:";
-          prefix2  = "Phase:";
-          itsUseAP = true;
-        }
-        fillParms ("Gain:0:0:" + prefix1);
-        fillParms ("Gain:0:0:" + prefix2);
-        //fillParms ("Gain:0:1:" + prefix1);
-        //fillParms ("Gain:0:1:" + prefix2);
-        //fillParms ("Gain:1:0:" + prefix1);
-        //fillParms ("Gain:1:0:" + prefix2);
-        fillParms ("Gain:1:1:" + prefix1);
-        fillParms ("Gain:1:1:" + prefix2);
-      } else if (corrType == "rm") {
-        fillParms ("RotationMeasure:");
+      if (corrType == "gain") {
+        itsUseAP = itsParmDB->getNames("Gain:*:Real:*").empty();
+        itsHasCrossGain = !itsParmDB->getNames("Gain:0:1:").empty();
+        itsParmExprs.push_back("Gain:0:0:");
+        itsParmExprs.push_back("Gain:1:1:");
+      } else if (corrType =="rm" || corrType == "rotationmeasure") {
+        itsParmExprs.push_back("RotationMeasure:");
       } else if (corrType == "tec") {
-        fillParms ("TEC:");
-      } else if (corrType == "bandpass") {
-        fillParms ("Bandpass:0:0:");
-        fillParms ("Bandpass:1:1:");
+        itsParmExprs.push_back("TEC:");
+      } else if (corrType == "bandpass") { /*Bandpass:0:0 and Bandpass:1:1*/
+        itsParmExprs.push_back("Bandpass:");
       } else {
         THROW (Exception, "Correction type " + itsCorrectType +
                          " is unknown");
-      }
-    }
-
-    void ApplyCal::fillParms (const string& parmPrefix)
-    {
-      vector<Parm>& parms = itsParms[parmPrefix];
-      ASSERTSTR (parms.empty(), "Parm " + parmPrefix + " multiply used");
-      parms.reserve (info().antennaNames().size());
-      for (uint i=0; i<info().antennaNames().size(); ++i) {
-        string name = casa::String(parmPrefix) + info().antennaNames()[i];
-        ASSERTSTR (itsParmDB->getNameId(name) >= 0,
-                   "ParmDB parm " + name + " does not exist");
-        ParmId id = itsParmSet.addParm(*itsParmDB, name);
-        parms.push_back(Parm(itsParmCache, id));
       }
     }
 
@@ -172,31 +132,62 @@ namespace LOFAR {
       buf.getData().unique();
       RefRows rowNrs(buf.getRowNrs());
 
-      // If needed, cache parm values for the next 100 time slots.
-      // getTime geeft midden van interval
-      double stime = buf.getTime() - 0.5*itsTimeInterval;
+      int numAnts = info().antennaNames().size();
 
+      // If needed, cache parm values for the next 10 time slots.
+      // getTime returns the center of the interval
+      const int numparmbufsteps(10);
+      double bufStartTime = buf.getTime() - 0.5*itsTimeInterval;
 
-      /*
-      if (stime > itsLastTime) {
-        itsLastTime = stime + 100*itsTimeInterval;
-        BBS::Box domain(make_pair(stime, 0.), make_pair(itsLastTime, 1e10));
-        itsParmCache.reset(domain);
+      if (buf.getTime() > itsLastTime) {
+        itsLastTime = bufStartTime + numparmbufsteps * itsTimeInterval;
+
+        map<string, vector<double> > parmMap;
+        vector<vector<double> > oneParm;
+        oneParm.reserve(info().antennaNames().size());
+
+        for (int parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
+          parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
+          itsMinFreq, itsMaxFreq, itsFreqInterval,
+          bufStartTime, itsLastTime, itsTimeInterval, true);
+
+          for (int ant = 0; ant < numAnts; ++ant) {
+            // TODO: checken dat entry er is
+            oneParm[ant]=parmMap.find("Gain:0:0:Real:"+info().antennaNames()[ant])->second;
+          }
+
+          itsParms[parmNum] = oneParm;
+        }
       }
-      */
-
-      // Form the grid for this time slot.
-      Axis::ShPtr timeAxis (new BBS::RegularAxis(stime, itsTimeInterval, 1));
 
       // Loop through all baselines in the buffer.
       int nbl = bufin.getData().shape()[2];
 
-      //as wordt grid, dan voor ieder van parms waarde ophalen
+      Complex* data = buf.getData().data();
+      int npol  = buf.getData().shape()[0];
+      int nchan = buf.getData().shape()[1];
 
-      //#pragma omp parallel for
-      for (int i=0; i<nbl; ++i) {
-        correct (buf, i);
-      }
+      if (toLower(itsCorrectType)=="gain") {
+        vector<vector<double> > gains00a;
+        vector<vector<double> > gains00b;
+        vector<vector<double> > gains11a;
+        vector<vector<double> > gains11b;
+
+        gains00a.reserve(info().antennaNames().size());
+        gains00b.reserve(info().antennaNames().size());
+        gains11a.reserve(info().antennaNames().size());
+        gains11b.reserve(info().antennaNames().size());
+
+
+        //#pragma omp parallel for
+        for (int bl=0; bl<nbl; ++bl) {
+          for (int i=bl*npol*nchan;i<(bl+1)*npol*nchan;i++) {
+             // do nothing yet
+          }
+        }
+      } // End of 'gain'
+
+
       itsTimer.stop();
       getNextStep()->process(buf);
       return false;
@@ -208,18 +199,6 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
-    void ApplyCal::correct (DPBuffer& buf, int bl)
-    {
-      Complex* data = buf.getData().data();
-      int npol  = buf.getData().shape()[0];
-      int nchan = buf.getData().shape()[1];
-
-      for (int i=bl*npol*nchan;i<(bl+1)*npol*nchan;i++) {
-        cout<<data[i]<<endl;
-      }
-
-      //rmParm.getResult (coeffs, grid);
-    }
 
     // Corrections can be constant or can vary in freq.
     // TODO: this is a scalar effect, so should not be implemented as matrix

@@ -29,9 +29,8 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <ParmDB/ParmDB.h>
+#include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
-#include <ParmDB/ParmCache.h>
 #include <ParmDB/Parm.h>
 #include <casa/Arrays/Cube.h>
 #include <casa/Arrays/ArrayMath.h>
@@ -74,8 +73,6 @@ namespace LOFAR {
       static void invert (casa::DComplex* v);
 
     private:
-      void fillParms (const string& parmPrefix);
-      void correct (DPBuffer& buf, int bl);
       void applyTEC (casa::Complex* vis, const casa::DComplex& tec);
       void applyClock (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
@@ -86,25 +83,29 @@ namespace LOFAR {
       void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
 
-
-
-
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
-      BBS::Axis::ShPtr itsFreqAxis;
+      double          itsMinFreq;
+      double          itsMaxFreq;
+      double          itsFreqInterval;
       string           itsParmDBName;
-      boost::shared_ptr<BBS::ParmDB> itsParmDB;
+      boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
-      double           itsSigma;
-      map<string, vector<BBS::Parm> > itsParms;
-      BBS::ParmSet     itsParmSet;
-      BBS::ParmCache   itsParmCache;
-      double           itsTimeInterval;
-      bool             itsUseAP;      //# use ampl/phase or real/imag
+      // Expressions to search for in itsParmDB
+      vector<string>   itsParmExprs;
+      // itsParms contains the parameters to a grid, first for all parameters
+      // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over frec * time
+      // as returned by ParmDB
+      vector<vector<vector<double> > > itsParms;
+      double          itsSigma;
+      double          itsTimeInterval;
+      double          itsLastTime;
+      bool            itsUseAP;      //# use ampl/phase or real/imag
+      bool            itsHasCrossGain;  //# use terms Gain:0:1:* and Gain:1:0:*
       NSTimer          itsTimer;
-      int              itsNChan;
-      int              itsNPol;
+      int             itsNChan;
+      int             itsNPol;
     };
 
   } //# end namespace
