@@ -82,30 +82,32 @@ namespace LOFAR {
                                   const casa::DComplex* rhs);
       void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
+      void applyGain (casa::Complex* vis, const int ant1, const int ant2,
+          int chan, int time);
+
+      void updateParms (const double bufStartTime);
 
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
-      double          itsMinFreq;
-      double          itsMaxFreq;
-      double          itsFreqInterval;
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
       // Expressions to search for in itsParmDB
-      vector<string>   itsParmExprs;
+
+      vector<casa::String>   itsParmExprs;
+
       // itsParms contains the parameters to a grid, first for all parameters
       // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over frec * time
       // as returned by ParmDB
       vector<vector<vector<double> > > itsParms;
+      int             itsBufStep;
       double          itsSigma;
       double          itsTimeInterval;
       double          itsLastTime;
       bool            itsUseAP;      //# use ampl/phase or real/imag
       bool            itsHasCrossGain;  //# use terms Gain:0:1:* and Gain:1:0:*
       NSTimer          itsTimer;
-      int             itsNChan;
-      int             itsNPol;
     };
 
   } //# end namespace

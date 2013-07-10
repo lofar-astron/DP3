@@ -48,12 +48,12 @@ namespace LOFAR {
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (parset.getString (prefix + "correction")),
+        itsBufStep     (0),
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
         itsTimeInterval (-1),
         itsLastTime    (-1),
-        itsUseAP       (False),
-        itsNChan       (0),
-        itsNPol        (0)
+        itsUseAP       (false),
+        itsHasCrossGain (false)
     {
       ASSERT (!itsParmDBName.empty());
       // Possible corrections one (or more?) of:
@@ -72,23 +72,6 @@ namespace LOFAR {
 
       itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
 
-      /*
-      vector<string> parNames;
-      parNames=itsParmDB->getNames("*");
-      for (int i=0;i<parNames.size();++i) {
-        cout<<parNames[i]<<" ";
-      }
-      cout<<endl;
-      */
-
-      // Form the frequency axis for this time slot.
-      int numFreqs = infoIn.chanFreqs().size();
-
-      itsFreqInterval = infoIn.chanWidths()[0];
-      itsMinFreq = infoIn.chanFreqs()[0]-0.5*itsFreqInterval;
-      itsMaxFreq = infoIn.chanFreqs()[numFreqs-1]+0.5*itsFreqInterval;
-
-
       // Handle the correction type.
 
       string corrType = toLower(itsCorrectType);
@@ -96,8 +79,29 @@ namespace LOFAR {
       if (corrType == "gain") {
         itsUseAP = itsParmDB->getNames("Gain:*:Real:*").empty();
         itsHasCrossGain = !itsParmDB->getNames("Gain:0:1:").empty();
-        itsParmExprs.push_back("Gain:0:0:");
-        itsParmExprs.push_back("Gain:1:1:");
+        if (itsUseAP) {
+          itsParmExprs.push_back("Gain:0:0:Ampl:");
+          itsParmExprs.push_back("Gain:0:0:Phase:");
+          itsParmExprs.push_back("Gain:1:1:Ampl:");
+          itsParmExprs.push_back("Gain:1:1:Phase:");
+          if (itsHasCrossGain) {
+            itsParmExprs.push_back("Gain:0:1:Ampl:");
+            itsParmExprs.push_back("Gain:0:1:Phase:");
+            itsParmExprs.push_back("Gain:1:0:Ampl:");
+            itsParmExprs.push_back("Gain:1:0:Phase:");
+          }
+        } else {
+          itsParmExprs.push_back("Gain:0:0:Real:");
+          itsParmExprs.push_back("Gain:0:0:Imag:");
+          itsParmExprs.push_back("Gain:1:1:Real:");
+          itsParmExprs.push_back("Gain:1:1:Imag:");
+          if (itsHasCrossGain) {
+            itsParmExprs.push_back("Gain:0:1:Real:");
+            itsParmExprs.push_back("Gain:0:1:Imag:");
+            itsParmExprs.push_back("Gain:1:0:Real:");
+            itsParmExprs.push_back("Gain:1:0:Imag:");
+          }
+        }
       } else if (corrType =="rm" || corrType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure:");
       } else if (corrType == "tec") {
@@ -108,6 +112,8 @@ namespace LOFAR {
         THROW (Exception, "Correction type " + itsCorrectType +
                          " is unknown");
       }
+
+      itsParms.resize(itsParmExprs.size());
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -132,32 +138,14 @@ namespace LOFAR {
       buf.getData().unique();
       RefRows rowNrs(buf.getRowNrs());
 
-      int numAnts = info().antennaNames().size();
-
-      // If needed, cache parm values for the next 10 time slots.
-      // getTime returns the center of the interval
-      const int numparmbufsteps(10);
       double bufStartTime = buf.getTime() - 0.5*itsTimeInterval;
 
       if (buf.getTime() > itsLastTime) {
-        itsLastTime = bufStartTime + numparmbufsteps * itsTimeInterval;
-
-        map<string, vector<double> > parmMap;
-        vector<vector<double> > oneParm;
-        oneParm.reserve(info().antennaNames().size());
-
-        for (int parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
-          parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
-          itsMinFreq, itsMaxFreq, itsFreqInterval,
-          bufStartTime, itsLastTime, itsTimeInterval, true);
-
-          for (int ant = 0; ant < numAnts; ++ant) {
-            // TODO: checken dat entry er is
-            oneParm[ant]=parmMap.find("Gain:0:0:Real:"+info().antennaNames()[ant])->second;
-          }
-
-          itsParms[parmNum] = oneParm;
-        }
+        updateParms(bufStartTime);
+        itsBufStep=0;
+      }
+      else {
+        itsBufStep++;
       }
 
       // Loop through all baselines in the buffer.
@@ -165,28 +153,16 @@ namespace LOFAR {
 
       Complex* data = buf.getData().data();
       int npol  = buf.getData().shape()[0];
+      ASSERT(npol==4);
       int nchan = buf.getData().shape()[1];
 
-      if (toLower(itsCorrectType)=="gain") {
-        vector<vector<double> > gains00a;
-        vector<vector<double> > gains00b;
-        vector<vector<double> > gains11a;
-        vector<vector<double> > gains11b;
-
-        gains00a.reserve(info().antennaNames().size());
-        gains00b.reserve(info().antennaNames().size());
-        gains11a.reserve(info().antennaNames().size());
-        gains11b.reserve(info().antennaNames().size());
-
-
-        //#pragma omp parallel for
-        for (int bl=0; bl<nbl; ++bl) {
-          for (int i=bl*npol*nchan;i<(bl+1)*npol*nchan;i++) {
-             // do nothing yet
-          }
+      //#pragma omp parallel for
+      for (int bl=0; bl<nbl; ++bl) {
+        for (int chan=0;chan<nchan;chan++) {
+            applyGain( &data[bl * npol * nchan + chan * npol ],
+              info().getAnt1()[bl], info().getAnt2()[bl], chan, itsBufStep);
         }
-      } // End of 'gain'
-
+      }
 
       itsTimer.stop();
       getNextStep()->process(buf);
@@ -199,9 +175,107 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
+    void ApplyCal::updateParms (const double bufStartTime)
+    {
+      int numAnts = info().antennaNames().size();
+
+      // If needed, cache parm values for the next 10 time slots.
+      const int numparmbufsteps(10);
+
+      int numFreqs         (info().chanFreqs().size());
+      double freqInterval  (info().chanWidths()[0]);
+      double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
+      double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
+
+      itsLastTime = bufStartTime + numparmbufsteps * itsTimeInterval;
+
+      map<string, vector<double> > parmMap;
+      map<string, vector<double> >::iterator parmIt;
+
+      // Size of frequency * time domain for one parameter
+      int parSize(numFreqs * numparmbufsteps);
+
+      for (int parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
+        parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
+          minFreq, maxFreq, freqInterval,
+          bufStartTime, itsLastTime, itsTimeInterval, true);
+
+        // swap met iterator->second
+        for (int ant = 0; ant < numAnts; ++ant) {
+          parmIt = parmMap.find(
+              itsParmExprs[parmNum]+info().antennaNames()[ant]);
+          ASSERT( parmIt != parmMap.end() );
+          itsParms[parmNum][ant].swap(parmIt->second);
+        }
+      }
+    }
+
+    void ApplyCal::applyGain (Complex* vis, const int ant1, const int ant2,
+        int chan, int time) {
+
+      Complex gain00a;
+      Complex gain00b;
+      Complex gain11a;
+      Complex gain11b;
+      Complex gain01a;
+      Complex gain10a;
+      Complex gain01b;
+      Complex gain10b;
+
+      int timeFreqOffset=(time*info().nchan())+chan;
+
+      if (itsUseAP) {
+        gain00a = polar(itsParms[0][ant1][timeFreqOffset],
+                        itsParms[1][ant1][timeFreqOffset]);
+        gain11a = polar(itsParms[2][ant1][timeFreqOffset],
+                        itsParms[3][ant1][timeFreqOffset]);
+        gain00b = polar(itsParms[0][ant2][timeFreqOffset],
+                        itsParms[1][ant2][timeFreqOffset]);
+        gain11b = polar(itsParms[2][ant2][timeFreqOffset],
+                        itsParms[3][ant2][timeFreqOffset]);
+        if (itsHasCrossGain) {
+          gain01a = polar(itsParms[4][ant1][timeFreqOffset],
+                          itsParms[5][ant1][timeFreqOffset]);
+          gain10a = polar(itsParms[6][ant1][timeFreqOffset],
+                          itsParms[7][ant1][timeFreqOffset]);
+          gain01b = polar(itsParms[4][ant2][timeFreqOffset],
+                          itsParms[5][ant2][timeFreqOffset]);
+          gain10b = polar(itsParms[6][ant2][timeFreqOffset],
+                          itsParms[7][ant2][timeFreqOffset]);
+        }
+      } else {
+        gain00a = Complex(itsParms[0][ant1][timeFreqOffset],
+                          itsParms[1][ant1][timeFreqOffset]);
+        gain11a = Complex(itsParms[2][ant1][timeFreqOffset],
+                          itsParms[3][ant1][timeFreqOffset]);
+        gain00b = Complex(itsParms[0][ant2][timeFreqOffset],
+                          itsParms[1][ant2][timeFreqOffset]);
+        gain11b = Complex(itsParms[2][ant2][timeFreqOffset],
+                          itsParms[3][ant2][timeFreqOffset]);
+        if (itsHasCrossGain) {
+          gain01a = Complex(itsParms[4][ant1][timeFreqOffset],
+                            itsParms[5][ant1][timeFreqOffset]);
+          gain10a = Complex(itsParms[6][ant1][timeFreqOffset],
+                            itsParms[7][ant1][timeFreqOffset]);
+          gain01b = Complex(itsParms[4][ant2][timeFreqOffset],
+                            itsParms[5][ant2][timeFreqOffset]);
+          gain10b = Complex(itsParms[6][ant2][timeFreqOffset],
+                            itsParms[7][ant2][timeFreqOffset]);
+        }
+      }
+
+      if (itsHasCrossGain) {
+
+      }
+      else {
+        vis[0] *= gain00a * gain00b;
+        vis[1] *= gain00a * gain11b;
+        vis[2] *= gain11a * gain00b;
+        vis[3] *= gain11a * gain11b;
+      }
+    }
 
     // Corrections can be constant or can vary in freq.
-    // TODO: this is a scalar effect, so should not be implemented as matrix
     void ApplyCal::applyTEC (Complex* vis, const DComplex& tec)
     {
       ///Matrix phase = (tec * -8.44797245e9) / freq;
@@ -213,12 +287,12 @@ namespace LOFAR {
     {
       ///Matrix phase = freq * (delay() * casa::C::_2pi);
       ///Matrix shift = tocomplex(cos(phase), sin(phase));
-      for (uint i=0; i<itsNChan; ++i) {
+      /*
         DComplex factor = 1. / (lhs[i] * conj(rhs[i]));
         for (uint j=0; j<itsNPol; ++j) {
           *vis++ *= factor;
         }
-      }
+      */
     }
 
     void ApplyCal::applyBandpass (Complex* vis, const DComplex* lhs,
@@ -255,7 +329,7 @@ namespace LOFAR {
     void ApplyCal::applyJones (Complex* vis, const DComplex* lhs,
                                const DComplex* rhs)
     {
-      for (uint i=0; i<itsNChan; ++i) {
+
         // Compute the Mueller matrix.
 
         DComplex mueller[4][4];
@@ -307,7 +381,7 @@ namespace LOFAR {
         vis[3] = yy;
         vis += 4;
 
-      }
+
     }
 
     // Inverts complex input matrix (in place??)

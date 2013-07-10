@@ -89,9 +89,10 @@ public:
     Vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 1000000.);
+    Vector<double> chanWidth(nchan, 10000000.);
     Vector<double> chanFreqs(nchan);
-    indgen (chanFreqs, 10500000., 1000000.);
+    cout<<"nchan="<<nchan<<endl;
+    indgen (chanFreqs, 59805000., 10000000.);
     info().set (chanFreqs, chanWidth);
   }
 private:
@@ -114,7 +115,7 @@ private:
       uvw(2,i) = 3 + itsCount + i;
     }
     DPBuffer buf;
-    buf.setTime (itsCount*30 + 4472025740.0);
+    buf.setTime (itsCount*5 + 56456.1);
     buf.setData (data);
     buf.setWeights (weights);
     buf.setUVW  (uvw);
