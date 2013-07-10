@@ -114,6 +114,9 @@ namespace LOFAR {
       }
 
       itsParms.resize(itsParmExprs.size());
+      for (uint i=0;i<itsParms.size();++i) {
+        itsParms[i].resize(info().antennaNames().size());
+      }
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -175,6 +178,7 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
+
     void ApplyCal::updateParms (const double bufStartTime)
     {
       int numAnts = info().antennaNames().size();
@@ -192,86 +196,101 @@ namespace LOFAR {
       map<string, vector<double> > parmMap;
       map<string, vector<double> >::iterator parmIt;
 
-      // Size of frequency * time domain for one parameter
-      int parSize(numFreqs * numparmbufsteps);
-
-      for (int parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
+      for (uint parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
         parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
-          minFreq, maxFreq, freqInterval,
-          bufStartTime, itsLastTime, itsTimeInterval, true);
+        minFreq, maxFreq, freqInterval,
+        bufStartTime, itsLastTime, itsTimeInterval, true);
 
-        // swap met iterator->second
         for (int ant = 0; ant < numAnts; ++ant) {
           parmIt = parmMap.find(
-              itsParmExprs[parmNum]+info().antennaNames()[ant]);
+                    itsParmExprs[parmNum]+info().antennaNames()[ant]);
           ASSERT( parmIt != parmMap.end() );
+
           itsParms[parmNum][ant].swap(parmIt->second);
         }
       }
     }
 
+
     void ApplyCal::applyGain (Complex* vis, const int ant1, const int ant2,
         int chan, int time) {
-
-      Complex gain00a;
-      Complex gain00b;
-      Complex gain11a;
-      Complex gain11b;
-      Complex gain01a;
-      Complex gain10a;
-      Complex gain01b;
-      Complex gain10b;
+      vector<vector<Complex> > gainA(2);
+      vector<vector<Complex> > gainB(2);
 
       int timeFreqOffset=(time*info().nchan())+chan;
 
+      for (uint i=0;i<2;i++) {
+        gainA[i].resize(2);
+      }
+
       if (itsUseAP) {
-        gain00a = polar(itsParms[0][ant1][timeFreqOffset],
+        gainA[0][0] = polar(itsParms[0][ant1][timeFreqOffset],
                         itsParms[1][ant1][timeFreqOffset]);
-        gain11a = polar(itsParms[2][ant1][timeFreqOffset],
+        gainA[1][1] = polar(itsParms[2][ant1][timeFreqOffset],
                         itsParms[3][ant1][timeFreqOffset]);
-        gain00b = polar(itsParms[0][ant2][timeFreqOffset],
+        gainB[0][0] = polar(itsParms[0][ant2][timeFreqOffset],
                         itsParms[1][ant2][timeFreqOffset]);
-        gain11b = polar(itsParms[2][ant2][timeFreqOffset],
+        gainB[1][1] = polar(itsParms[2][ant2][timeFreqOffset],
                         itsParms[3][ant2][timeFreqOffset]);
         if (itsHasCrossGain) {
-          gain01a = polar(itsParms[4][ant1][timeFreqOffset],
+          gainA[0][1] = polar(itsParms[4][ant1][timeFreqOffset],
                           itsParms[5][ant1][timeFreqOffset]);
-          gain10a = polar(itsParms[6][ant1][timeFreqOffset],
+          gainA[1][0] = polar(itsParms[6][ant1][timeFreqOffset],
                           itsParms[7][ant1][timeFreqOffset]);
-          gain01b = polar(itsParms[4][ant2][timeFreqOffset],
+          gainB[0][1] = polar(itsParms[4][ant2][timeFreqOffset],
                           itsParms[5][ant2][timeFreqOffset]);
-          gain10b = polar(itsParms[6][ant2][timeFreqOffset],
+          gainB[1][0] = polar(itsParms[6][ant2][timeFreqOffset],
                           itsParms[7][ant2][timeFreqOffset]);
         }
       } else {
-        gain00a = Complex(itsParms[0][ant1][timeFreqOffset],
+        gainA[0][0] = Complex(itsParms[0][ant1][timeFreqOffset],
                           itsParms[1][ant1][timeFreqOffset]);
-        gain11a = Complex(itsParms[2][ant1][timeFreqOffset],
+        gainA[1][1] = Complex(itsParms[2][ant1][timeFreqOffset],
                           itsParms[3][ant1][timeFreqOffset]);
-        gain00b = Complex(itsParms[0][ant2][timeFreqOffset],
+        gainB[0][0] = Complex(itsParms[0][ant2][timeFreqOffset],
                           itsParms[1][ant2][timeFreqOffset]);
-        gain11b = Complex(itsParms[2][ant2][timeFreqOffset],
+        gainB[1][1] = Complex(itsParms[2][ant2][timeFreqOffset],
                           itsParms[3][ant2][timeFreqOffset]);
         if (itsHasCrossGain) {
-          gain01a = Complex(itsParms[4][ant1][timeFreqOffset],
+          gainA[0][1] = Complex(itsParms[4][ant1][timeFreqOffset],
                             itsParms[5][ant1][timeFreqOffset]);
-          gain10a = Complex(itsParms[6][ant1][timeFreqOffset],
+          gainA[1][0] = Complex(itsParms[6][ant1][timeFreqOffset],
                             itsParms[7][ant1][timeFreqOffset]);
-          gain01b = Complex(itsParms[4][ant2][timeFreqOffset],
+          gainB[0][1] = Complex(itsParms[4][ant2][timeFreqOffset],
                             itsParms[5][ant2][timeFreqOffset]);
-          gain10b = Complex(itsParms[6][ant2][timeFreqOffset],
+          gainB[1][0] = Complex(itsParms[6][ant2][timeFreqOffset],
                             itsParms[7][ant2][timeFreqOffset]);
         }
       }
 
       if (itsHasCrossGain) {
+        THROW ( Exception, "cross gain not implemented");
+        vector<vector<Complex> > gainAxvis(2);
 
+        for (uint i=0;i<2;++i) {
+          gainAxvis.resize(2);
+          for (uint j=0;j<2;++j) {
+            gainAxvis[i][j] = 0;
+            for (uint k=0;k<2;++k) {
+              gainAxvis[i][j] += gainA[i][j+k] * vis[2 * (i+k) + j];
+            }
+          }
+        }
+
+        for (uint i=0;i<2;++i) {
+          for (uint j=0;j<2;++j) {
+            vis[2 * i + j] = 0;
+            for (uint k=0;k<2;++k) {
+              vis[2 * i + j] += gainAxvis[i][j+k] * conj(gainB[i+k][j]);
+            }
+          }
+        }
       }
       else {
-        vis[0] *= gain00a * gain00b;
-        vis[1] *= gain00a * gain11b;
-        vis[2] *= gain11a * gain00b;
-        vis[3] *= gain11a * gain11b;
+        vis[0] *= gainA[0][0] * conj(gainB[0][0]);
+        vis[1] *= gainA[0][0] * conj(gainB[1][1]);
+        vis[2] *= gainA[1][1] * conj(gainB[0][0]);
+        vis[3] *= gainA[1][1] * conj(gainB[1][1]);
       }
     }
 
