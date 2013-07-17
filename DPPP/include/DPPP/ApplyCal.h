@@ -70,22 +70,24 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-      static void invert (casa::DComplex* v);
 
     private:
-      void applyTEC (casa::Complex* vis, const casa::DComplex& tec);
-      void applyClock (casa::Complex* vis, const casa::DComplex* lhs,
-                                     const casa::DComplex* rhs);
+      void applyTEC (casa::Complex* vis, const double tec, const double freq);
+      void applyClock (casa::Complex* vis, const double clockA,
+                                     const double clockB);
       void applyBandpass (casa::Complex* vis, const casa::DComplex* lhs,
                                         const casa::DComplex* rhs);
       void applyRM (casa::Complex* vis, const casa::DComplex* lhs,
                                   const casa::DComplex* rhs);
       void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
                                      const casa::DComplex* rhs);
-      void applyGain (casa::Complex* vis, const int ant1, const int ant2,
-          int chan, int time);
+      void applyGain (casa::Complex* vis, int ant1, int ant2, int chan,
+                       int time);
 
       void updateParms (const double bufStartTime);
+
+      void invert (casa::DComplex* v) const;
+      void invert (casa::Complex* v) const;
 
       //# Data members.
       DPInput*         itsInput;
@@ -102,6 +104,7 @@ namespace LOFAR {
       // as returned by ParmDB
       vector<vector<vector<double> > > itsParms;
       int             itsBufStep;
+      int             itsNCorr;
       double          itsSigma;
       double          itsTimeInterval;
       double          itsLastTime;

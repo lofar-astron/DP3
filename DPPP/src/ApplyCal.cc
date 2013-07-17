@@ -49,6 +49,7 @@ namespace LOFAR {
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (parset.getString (prefix + "correction")),
         itsBufStep     (0),
+        itsNCorr       (0),
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
         itsTimeInterval (-1),
         itsLastTime    (-1),
@@ -69,6 +70,10 @@ namespace LOFAR {
       info().setNeedVisData();
       info().setNeedWrite();
       itsTimeInterval = infoIn.timeInterval();
+      itsNCorr = infoIn.ncorr();
+
+      ASSERT(itsNCorr==4);
+
 
       itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
 
@@ -109,12 +114,12 @@ namespace LOFAR {
       } else if (corrType == "bandpass") { /*Bandpass:0:0 and Bandpass:1:1*/
         itsParmExprs.push_back("Bandpass:");
       } else {
-        THROW (Exception, "Correction type " + itsCorrectType +
-                         " is unknown");
+        //THROW (Exception, "Correction type " + itsCorrectType +
+        //                 " is unknown");
       }
 
       itsParms.resize(itsParmExprs.size());
-      for (uint i=0;i<itsParms.size();++i) {
+      for (size_t i=0;i<itsParms.size();++i) {
         itsParms[i].resize(info().antennaNames().size());
       }
     }
@@ -152,18 +157,19 @@ namespace LOFAR {
       }
 
       // Loop through all baselines in the buffer.
-      int nbl = bufin.getData().shape()[2];
+      size_t nbl = bufin.getData().shape()[2];
 
       Complex* data = buf.getData().data();
-      int npol  = buf.getData().shape()[0];
-      ASSERT(npol==4);
-      int nchan = buf.getData().shape()[1];
 
-      //#pragma omp parallel for
-      for (int bl=0; bl<nbl; ++bl) {
-        for (int chan=0;chan<nchan;chan++) {
-            applyGain( &data[bl * npol * nchan + chan * npol ],
+      size_t nchan = buf.getData().shape()[1];
+
+#pragma omp parallel for
+      for (size_t bl=0; bl<nbl; ++bl) {
+        for (size_t chan=0;chan<nchan;chan++) {
+          if (itsCorrectType=="gain") {
+            applyGain( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
               info().getAnt1()[bl], info().getAnt2()[bl], chan, itsBufStep);
+          }
         }
       }
 
@@ -196,7 +202,7 @@ namespace LOFAR {
       map<string, vector<double> > parmMap;
       map<string, vector<double> >::iterator parmIt;
 
-      for (uint parmNum =0; parmNum<itsParmExprs.size();++parmNum) {
+      for (uint parmNum = 0; parmNum<itsParmExprs.size();++parmNum) {
         parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
         minFreq, maxFreq, freqInterval,
         bufStartTime, itsLastTime, itsTimeInterval, true);
@@ -212,103 +218,119 @@ namespace LOFAR {
     }
 
 
-    void ApplyCal::applyGain (Complex* vis, const int ant1, const int ant2,
+    void ApplyCal::applyGain (Complex* vis, int ant1, int ant2,
         int chan, int time) {
-      vector<vector<Complex> > gainA(2);
-      vector<vector<Complex> > gainB(2);
+      DComplex gainA[4];
+      DComplex gainB[4];
 
       int timeFreqOffset=(time*info().nchan())+chan;
 
-      for (uint i=0;i<2;i++) {
-        gainA[i].resize(2);
+      if (itsUseAP) { // Data as Amplitude / Phase
+        gainA[0] = polar(itsParms[0][ant1][timeFreqOffset],
+                         itsParms[1][ant1][timeFreqOffset]);
+        gainA[3] = polar(itsParms[2][ant1][timeFreqOffset],
+                         itsParms[3][ant1][timeFreqOffset]);
+        gainB[0] = polar(itsParms[0][ant2][timeFreqOffset],
+                         itsParms[1][ant2][timeFreqOffset]);
+        gainB[3] = polar(itsParms[2][ant2][timeFreqOffset],
+                         itsParms[3][ant2][timeFreqOffset]);
+        if (itsHasCrossGain) {
+          gainA[1] = polar(itsParms[4][ant1][timeFreqOffset],
+                           itsParms[5][ant1][timeFreqOffset]);
+          gainA[2] = polar(itsParms[6][ant1][timeFreqOffset],
+                           itsParms[7][ant1][timeFreqOffset]);
+          gainB[1] = polar(itsParms[4][ant2][timeFreqOffset],
+                           itsParms[5][ant2][timeFreqOffset]);
+          gainB[2] = polar(itsParms[6][ant2][timeFreqOffset],
+                           itsParms[7][ant2][timeFreqOffset]);
+        }
+      } else { // Data as Real / Imaginary
+        gainA[0] = DComplex(itsParms[0][ant1][timeFreqOffset],
+                           itsParms[1][ant1][timeFreqOffset]);
+        gainA[3] = DComplex(itsParms[2][ant1][timeFreqOffset],
+                           itsParms[3][ant1][timeFreqOffset]);
+        gainB[0] = DComplex(itsParms[0][ant2][timeFreqOffset],
+                           itsParms[1][ant2][timeFreqOffset]);
+        gainB[3] = DComplex(itsParms[2][ant2][timeFreqOffset],
+                           itsParms[3][ant2][timeFreqOffset]);
+        if (itsHasCrossGain) {
+          gainA[1] = DComplex(itsParms[4][ant1][timeFreqOffset],
+                             itsParms[5][ant1][timeFreqOffset]);
+          gainA[2] = DComplex(itsParms[6][ant1][timeFreqOffset],
+                             itsParms[7][ant1][timeFreqOffset]);
+          gainB[1] = DComplex(itsParms[4][ant2][timeFreqOffset],
+                             itsParms[5][ant2][timeFreqOffset]);
+          gainB[2] = DComplex(itsParms[6][ant2][timeFreqOffset],
+                             itsParms[7][ant2][timeFreqOffset]);
+        }
       }
 
-      if (itsUseAP) {
-        gainA[0][0] = polar(itsParms[0][ant1][timeFreqOffset],
-                        itsParms[1][ant1][timeFreqOffset]);
-        gainA[1][1] = polar(itsParms[2][ant1][timeFreqOffset],
-                        itsParms[3][ant1][timeFreqOffset]);
-        gainB[0][0] = polar(itsParms[0][ant2][timeFreqOffset],
-                        itsParms[1][ant2][timeFreqOffset]);
-        gainB[1][1] = polar(itsParms[2][ant2][timeFreqOffset],
-                        itsParms[3][ant2][timeFreqOffset]);
-        if (itsHasCrossGain) {
-          gainA[0][1] = polar(itsParms[4][ant1][timeFreqOffset],
-                          itsParms[5][ant1][timeFreqOffset]);
-          gainA[1][0] = polar(itsParms[6][ant1][timeFreqOffset],
-                          itsParms[7][ant1][timeFreqOffset]);
-          gainB[0][1] = polar(itsParms[4][ant2][timeFreqOffset],
-                          itsParms[5][ant2][timeFreqOffset]);
-          gainB[1][0] = polar(itsParms[6][ant2][timeFreqOffset],
-                          itsParms[7][ant2][timeFreqOffset]);
-        }
-      } else {
-        gainA[0][0] = Complex(itsParms[0][ant1][timeFreqOffset],
-                          itsParms[1][ant1][timeFreqOffset]);
-        gainA[1][1] = Complex(itsParms[2][ant1][timeFreqOffset],
-                          itsParms[3][ant1][timeFreqOffset]);
-        gainB[0][0] = Complex(itsParms[0][ant2][timeFreqOffset],
-                          itsParms[1][ant2][timeFreqOffset]);
-        gainB[1][1] = Complex(itsParms[2][ant2][timeFreqOffset],
-                          itsParms[3][ant2][timeFreqOffset]);
-        if (itsHasCrossGain) {
-          gainA[0][1] = Complex(itsParms[4][ant1][timeFreqOffset],
-                            itsParms[5][ant1][timeFreqOffset]);
-          gainA[1][0] = Complex(itsParms[6][ant1][timeFreqOffset],
-                            itsParms[7][ant1][timeFreqOffset]);
-          gainB[0][1] = Complex(itsParms[4][ant2][timeFreqOffset],
-                            itsParms[5][ant2][timeFreqOffset]);
-          gainB[1][0] = Complex(itsParms[6][ant2][timeFreqOffset],
-                            itsParms[7][ant2][timeFreqOffset]);
-        }
-      }
 
       if (itsHasCrossGain) {
-        THROW ( Exception, "cross gain not implemented");
-        vector<vector<Complex> > gainAxvis(2);
+        ASSERTSTR(itsNCorr==4,
+          "Polarization leakage correction requires data with 4 correlations");
+        // vis = gainA * vis * gainB^H
+        DComplex gainAxvis[4];
+        invert(gainA);
+        invert(gainB);
 
+        // gainAxvis = gainA * vis
         for (uint i=0;i<2;++i) {
-          gainAxvis.resize(2);
           for (uint j=0;j<2;++j) {
-            gainAxvis[i][j] = 0;
+            gainAxvis[2 * i+j] = 0;
             for (uint k=0;k<2;++k) {
-              gainAxvis[i][j] += gainA[i][j+k] * vis[2 * (i+k) + j];
+              gainAxvis[2 * i+j] += gainA[2 * i+j+k] *
+                  DComplex(vis[2 * (i+k)+j]);
             }
           }
         }
 
+        // vis = gainAxvis * gainB^H
         for (uint i=0;i<2;++i) {
           for (uint j=0;j<2;++j) {
-            vis[2 * i + j] = 0;
+            vis[2 * i+j] = 0;
             for (uint k=0;k<2;++k) {
-              vis[2 * i + j] += gainAxvis[i][j+k] * conj(gainB[i+k][j]);
+              vis[2 * i+j] += gainAxvis[2 * i+j+k] *
+                                conj(gainB[2 * j+i+k]);
             }
           }
         }
       }
       else {
-        vis[0] *= gainA[0][0] * conj(gainB[0][0]);
-        vis[1] *= gainA[0][0] * conj(gainB[1][1]);
-        vis[2] *= gainA[1][1] * conj(gainB[0][0]);
-        vis[3] *= gainA[1][1] * conj(gainB[1][1]);
+        if (itsNCorr==2) {
+          vis[0] /= gainA[0] * conj(gainB[0]);
+          vis[1] /= gainA[3] * conj(gainB[3]);
+        } else if (itsNCorr==4) {
+          vis[0] /= gainA[0] * conj(gainB[0]);
+          vis[1] /= gainA[0] * conj(gainB[3]);
+          vis[2] /= gainA[3] * conj(gainB[0]);
+          vis[3] /= gainA[3] * conj(gainB[3]);
+        } else {
+          THROW(Exception, "Correction only possible for 2 or 4 correlations.");
+        }
       }
     }
 
     // Corrections can be constant or can vary in freq.
-    void ApplyCal::applyTEC (Complex* vis, const DComplex& tec)
+    void ApplyCal::applyTEC (Complex* vis, const double tec,
+                              const double freq)
     {
-      ///Matrix phase = (tec * -8.44797245e9) / freq;
-      ///Matrix shift = tocomplex(cos(phase), sin(phase));
+      double phase = (tec * -8.44797245e9) / freq;
+      DComplex shift = polar(1.0,phase);
+
+      for (size_t i=0;i<itsNCorr;i++) {
+        vis[i] *= shift;
+      }
     }
 
-    void ApplyCal::applyClock (Complex* vis, const DComplex* lhs,
-                               const DComplex* rhs)
+    void ApplyCal::applyClock (Complex* vis,
+                                 const double clockA, const double clockB)
     {
       ///Matrix phase = freq * (delay() * casa::C::_2pi);
       ///Matrix shift = tocomplex(cos(phase), sin(phase));
       /*
         DComplex factor = 1. / (lhs[i] * conj(rhs[i]));
-        for (uint j=0; j<itsNPol; ++j) {
+        for (uint j=0; j<itsNCorr; ++j) {
           *vis++ *= factor;
         }
       */
@@ -345,67 +367,10 @@ namespace LOFAR {
       */
     }
 
-    void ApplyCal::applyJones (Complex* vis, const DComplex* lhs,
-                               const DComplex* rhs)
-    {
 
-        // Compute the Mueller matrix.
-
-        DComplex mueller[4][4];
-        mueller[0][0] = lhs[0] * conj(rhs[0]);
-        mueller[0][1] = lhs[0] * conj(rhs[1]);
-        mueller[1][0] = lhs[0] * conj(rhs[2]);
-        mueller[1][1] = lhs[0] * conj(rhs[3]);
-
-        mueller[0][2] = lhs[1] * conj(rhs[0]);
-        mueller[0][3] = lhs[1] * conj(rhs[1]);
-        mueller[1][2] = lhs[1] * conj(rhs[2]);
-        mueller[1][3] = lhs[1] * conj(rhs[3]);
-
-        mueller[2][0] = lhs[2] * conj(rhs[0]);
-        mueller[2][1] = lhs[2] * conj(rhs[1]);
-        mueller[3][0] = lhs[2] * conj(rhs[2]);
-        mueller[3][1] = lhs[2] * conj(rhs[3]);
-
-        mueller[2][2] = lhs[3] * conj(rhs[0]);
-        mueller[2][3] = lhs[3] * conj(rhs[1]);
-        mueller[3][2] = lhs[3] * conj(rhs[2]);
-        mueller[3][3] = lhs[3] * conj(rhs[3]);
-
-        // Apply Mueller matrix to visibilities.
-        DComplex xx, xy, yx, yy;
-        xx = (mueller[0][0] * DComplex(vis[0]) +
-              mueller[0][1] * DComplex(vis[1]) +
-              mueller[0][2] * DComplex(vis[2]) +
-              mueller[0][3] * DComplex(vis[3]));
-
-        xy = (mueller[1][0] * DComplex(vis[0]) +
-              mueller[1][1] * DComplex(vis[1]) +
-              mueller[1][2] * DComplex(vis[2]) +
-              mueller[1][3] * DComplex(vis[3]));
-
-        yx = (mueller[2][0] * DComplex(vis[0]) +
-              mueller[2][1] * DComplex(vis[1]) +
-              mueller[2][2] * DComplex(vis[2]) +
-              mueller[2][3] * DComplex(vis[3]));
-
-        yy = (mueller[3][0] * DComplex(vis[0]) +
-              mueller[3][1] * DComplex(vis[1]) +
-              mueller[3][2] * DComplex(vis[2]) +
-              mueller[3][3] * DComplex(vis[3]));
-
-        vis[0] = xx;
-        vis[1] = xy;
-        vis[2] = yx;
-        vis[3] = yy;
-        vis += 4;
-
-
-    }
-
-    // Inverts complex input matrix (in place??)
+    // Inverts complex 2x2 input matrix
     // TODO: what does this sigma term do? It is added, should it be added back?
-    void ApplyCal::invert (DComplex* v)
+    void ApplyCal::invert (DComplex* v) const
     {
       // Add the variance of the nuisance term to the elements on the diagonal.
       const double variance = 0;//itsSigma * itsSigma;
@@ -418,6 +383,23 @@ namespace LOFAR {
       v[1] = v[1] * -invDet;
       v[3] = v0 * invDet;
     }
+
+    /*
+    void ApplyCal::invert (Complex* v) const
+    {
+      DComplex w[4];
+
+      for (uint i=0;i<4;i++) {
+        w[i] = v[i];
+      }
+
+      invert(w);
+
+      for (uint i=0;i<4;i++) {
+        v[i] = w[i];
+      }
+    }
+    */
 
   } //# end namespace
 }

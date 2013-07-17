@@ -26,6 +26,8 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
+#include <ParmDB/ParmDBMeta.h>
+#include <ParmDB/ParmDBCasa.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
 #include <Common/StreamUtil.h>
@@ -51,7 +53,8 @@ public:
   {
     info().init (ncorr, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
-    // So they are called 00 01 02 03 10 11 12 13 20, etc.
+    // So the baselines are 00 01 02 03 10 11 12 13 20, etc.
+
     Vector<Int> ant1(nbl);
     Vector<Int> ant2(nbl);
     int st1 = 0;
@@ -71,6 +74,7 @@ public:
     antNames[1] = "CS028LBA";
     antNames[2] = "CS302LBA";
     antNames[3] = "CS401LBA";
+
     // Define their positions (more or less WSRT RT0-3).
     vector<MPosition> antPos(4);
     Vector<double> vals(3);
@@ -237,9 +241,15 @@ void test1(int ntime, int nbl, int nchan, int ncorr)
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
+
+  BBS::ParmDB parmDB(BBS::ParmDBMeta("casa", "tApplyCal_tmp.tab"), true);
+
+
   ParameterSet parset;
-  parset.add ("parmdb", "L146375_SAP001_SB387_uv.MS.bbs.parmdb");
-  parset.add ("correction", "gain");
+  parset.add ("parmdb", "tApplyCal_tmp.tab");
+  parset.add ("correction", "nothing");
+
+
   DPStep::ShPtr step2(new ApplyCal(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr));
   step1->setNextStep (step2);
@@ -262,7 +272,7 @@ void testinverse()
     w[i]=v[i];
   }
 
-  ApplyCal::invert(w);
+  //ApplyCal::invert(w);
 
   // y=v*w as matrices
   y[0]=w[0]*v[0]+w[2]*v[1];
@@ -278,9 +288,9 @@ int main()
 {
   INIT_LOGGER ("tApplyCal");
   try {
-    test1 ( 40,  5, 4, 1);
+    test1 ( 40,  5, 4, 4);
     //test1 (10,  16, 32, 4);
-    //test1 (10,  12, 16, 2);
+    //test1 (10,  12, 16, 4);
     testinverse();
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
