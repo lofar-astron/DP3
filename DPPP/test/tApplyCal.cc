@@ -257,32 +257,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr)
   execute (step1);
 }
 
-void testinverse()
-{
-  DComplex v[4];
-  DComplex w[4];
-  DComplex y[4];
-
-  v[0]=DComplex(2,1);
-  v[1]=DComplex(1,3);
-  v[2]=0.;
-  v[3]=3.;
-
-  for (int i=0;i<4;i++) {
-    w[i]=v[i];
-  }
-
-  //ApplyCal::invert(w);
-
-  // y=v*w as matrices
-  y[0]=w[0]*v[0]+w[2]*v[1];
-  y[2]=w[0]*v[2]+w[2]*v[3];
-  y[1]=w[1]*v[0]+w[3]*v[1];
-  y[3]=w[1]*v[2]+w[3]*v[3];
-  cout<<"v=("<<v[0]<<","<<v[2]<<"//"<<v[1]<<","<<v[3]<<endl;
-  cout<<"w=("<<w[0]<<","<<w[2]<<"//"<<w[1]<<","<<w[3]<<endl;
-  cout<<"y=("<<y[0]<<","<<y[2]<<"//"<<y[1]<<","<<y[3]<<endl;
-}
 
 int main()
 {
@@ -291,7 +265,6 @@ int main()
     test1 ( 40,  5, 4, 4);
     //test1 (10,  16, 32, 4);
     //test1 (10,  12, 16, 4);
-    testinverse();
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;

@@ -86,9 +86,6 @@ namespace LOFAR {
 
       void updateParms (const double bufStartTime);
 
-      void invert (casa::DComplex* v) const;
-      void invert (casa::Complex* v) const;
-
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
@@ -109,7 +106,6 @@ namespace LOFAR {
       double          itsTimeInterval;
       double          itsLastTime;
       bool            itsUseAP;      //# use ampl/phase or real/imag
-      bool            itsHasCrossGain;  //# use terms Gain:0:1:* and Gain:1:0:*
       NSTimer          itsTimer;
     };
 

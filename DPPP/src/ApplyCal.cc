@@ -53,8 +53,7 @@ namespace LOFAR {
         itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
         itsTimeInterval (-1),
         itsLastTime    (-1),
-        itsUseAP       (false),
-        itsHasCrossGain (false)
+        itsUseAP       (false)
     {
       ASSERT (!itsParmDBName.empty());
       // Possible corrections one (or more?) of:
@@ -83,29 +82,16 @@ namespace LOFAR {
 
       if (corrType == "gain") {
         itsUseAP = itsParmDB->getNames("Gain:*:Real:*").empty();
-        itsHasCrossGain = !itsParmDB->getNames("Gain:0:1:").empty();
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl:");
           itsParmExprs.push_back("Gain:0:0:Phase:");
           itsParmExprs.push_back("Gain:1:1:Ampl:");
           itsParmExprs.push_back("Gain:1:1:Phase:");
-          if (itsHasCrossGain) {
-            itsParmExprs.push_back("Gain:0:1:Ampl:");
-            itsParmExprs.push_back("Gain:0:1:Phase:");
-            itsParmExprs.push_back("Gain:1:0:Ampl:");
-            itsParmExprs.push_back("Gain:1:0:Phase:");
-          }
         } else {
           itsParmExprs.push_back("Gain:0:0:Real:");
           itsParmExprs.push_back("Gain:0:0:Imag:");
           itsParmExprs.push_back("Gain:1:1:Real:");
           itsParmExprs.push_back("Gain:1:1:Imag:");
-          if (itsHasCrossGain) {
-            itsParmExprs.push_back("Gain:0:1:Real:");
-            itsParmExprs.push_back("Gain:0:1:Imag:");
-            itsParmExprs.push_back("Gain:1:0:Real:");
-            itsParmExprs.push_back("Gain:1:0:Imag:");
-          }
         }
       } else if (corrType =="rm" || corrType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure:");
@@ -234,16 +220,6 @@ namespace LOFAR {
                          itsParms[1][ant2][timeFreqOffset]);
         gainB[3] = polar(itsParms[2][ant2][timeFreqOffset],
                          itsParms[3][ant2][timeFreqOffset]);
-        if (itsHasCrossGain) {
-          gainA[1] = polar(itsParms[4][ant1][timeFreqOffset],
-                           itsParms[5][ant1][timeFreqOffset]);
-          gainA[2] = polar(itsParms[6][ant1][timeFreqOffset],
-                           itsParms[7][ant1][timeFreqOffset]);
-          gainB[1] = polar(itsParms[4][ant2][timeFreqOffset],
-                           itsParms[5][ant2][timeFreqOffset]);
-          gainB[2] = polar(itsParms[6][ant2][timeFreqOffset],
-                           itsParms[7][ant2][timeFreqOffset]);
-        }
       } else { // Data as Real / Imaginary
         gainA[0] = DComplex(itsParms[0][ant1][timeFreqOffset],
                            itsParms[1][ant1][timeFreqOffset]);
@@ -253,61 +229,18 @@ namespace LOFAR {
                            itsParms[1][ant2][timeFreqOffset]);
         gainB[3] = DComplex(itsParms[2][ant2][timeFreqOffset],
                            itsParms[3][ant2][timeFreqOffset]);
-        if (itsHasCrossGain) {
-          gainA[1] = DComplex(itsParms[4][ant1][timeFreqOffset],
-                             itsParms[5][ant1][timeFreqOffset]);
-          gainA[2] = DComplex(itsParms[6][ant1][timeFreqOffset],
-                             itsParms[7][ant1][timeFreqOffset]);
-          gainB[1] = DComplex(itsParms[4][ant2][timeFreqOffset],
-                             itsParms[5][ant2][timeFreqOffset]);
-          gainB[2] = DComplex(itsParms[6][ant2][timeFreqOffset],
-                             itsParms[7][ant2][timeFreqOffset]);
-        }
       }
 
-
-      if (itsHasCrossGain) {
-        ASSERTSTR(itsNCorr==4,
-          "Polarization leakage correction requires data with 4 correlations");
-        // vis = gainA * vis * gainB^H
-        DComplex gainAxvis[4];
-        invert(gainA);
-        invert(gainB);
-
-        // gainAxvis = gainA * vis
-        for (uint i=0;i<2;++i) {
-          for (uint j=0;j<2;++j) {
-            gainAxvis[2 * i+j] = 0;
-            for (uint k=0;k<2;++k) {
-              gainAxvis[2 * i+j] += gainA[2 * i+j+k] *
-                  DComplex(vis[2 * (i+k)+j]);
-            }
-          }
-        }
-
-        // vis = gainAxvis * gainB^H
-        for (uint i=0;i<2;++i) {
-          for (uint j=0;j<2;++j) {
-            vis[2 * i+j] = 0;
-            for (uint k=0;k<2;++k) {
-              vis[2 * i+j] += gainAxvis[2 * i+j+k] *
-                                conj(gainB[2 * j+i+k]);
-            }
-          }
-        }
-      }
-      else {
-        if (itsNCorr==2) {
-          vis[0] /= gainA[0] * conj(gainB[0]);
-          vis[1] /= gainA[3] * conj(gainB[3]);
-        } else if (itsNCorr==4) {
-          vis[0] /= gainA[0] * conj(gainB[0]);
-          vis[1] /= gainA[0] * conj(gainB[3]);
-          vis[2] /= gainA[3] * conj(gainB[0]);
-          vis[3] /= gainA[3] * conj(gainB[3]);
-        } else {
-          THROW(Exception, "Correction only possible for 2 or 4 correlations.");
-        }
+      if (itsNCorr==2) {
+        vis[0] /= gainA[0] * conj(gainB[0]);
+        vis[1] /= gainA[3] * conj(gainB[3]);
+      } else if (itsNCorr==4) {
+        vis[0] /= gainA[0] * conj(gainB[0]);
+        vis[1] /= gainA[0] * conj(gainB[3]);
+        vis[2] /= gainA[3] * conj(gainB[0]);
+        vis[3] /= gainA[3] * conj(gainB[3]);
+      } else {
+        THROW(Exception, "Correction only possible for 2 or 4 correlations.");
       }
     }
 
@@ -366,40 +299,6 @@ namespace LOFAR {
       result.assign(1, 1, cosChi);
       */
     }
-
-
-    // Inverts complex 2x2 input matrix
-    // TODO: what does this sigma term do? It is added, should it be added back?
-    void ApplyCal::invert (DComplex* v) const
-    {
-      // Add the variance of the nuisance term to the elements on the diagonal.
-      const double variance = 0;//itsSigma * itsSigma;
-      DComplex v0 = v[0] + variance;
-      DComplex v3 = v[3] + variance;
-      // Compute inverse in the usual way.
-      DComplex invDet(1.0 / (v0 * v3 - v[1] * v[2]));
-      v[0] = v3 * invDet;
-      v[2] = v[2] * -invDet;
-      v[1] = v[1] * -invDet;
-      v[3] = v0 * invDet;
-    }
-
-    /*
-    void ApplyCal::invert (Complex* v) const
-    {
-      DComplex w[4];
-
-      for (uint i=0;i<4;i++) {
-        w[i] = v[i];
-      }
-
-      invert(w);
-
-      for (uint i=0;i<4;i++) {
-        v[i] = w[i];
-      }
-    }
-    */
 
   } //# end namespace
 }
