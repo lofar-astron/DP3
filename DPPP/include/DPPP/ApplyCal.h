@@ -72,19 +72,16 @@ namespace LOFAR {
 
 
     private:
-      void applyTEC (casa::Complex* vis, const double tec, const double freq);
-      void applyClock (casa::Complex* vis, const double clockA,
-                                     const double clockB);
-      void applyBandpass (casa::Complex* vis, const casa::DComplex* lhs,
-                                        const casa::DComplex* rhs);
-      void applyRM (casa::Complex* vis, const casa::DComplex* lhs,
-                                  const casa::DComplex* rhs);
-      void applyJones (casa::Complex* vis, const casa::DComplex* lhs,
-                                     const casa::DComplex* rhs);
-      void applyGain (casa::Complex* vis, int ant1, int ant2, int chan,
-                       int time);
+      void applyPhase (casa::Complex* vis, int antA, int antB, int chan,
+          int time);
+      void applyClock (casa::Complex* vis, int antA, int antB, int chan,
+          int time);
+      void applyGain (casa::Complex* vis, float* weight, int antA, int antB,
+          int chan, int time);
 
       void updateParms (const double bufStartTime);
+
+      void initDataArrays();
 
       //# Data members.
       DPInput*         itsInput;
@@ -92,17 +89,15 @@ namespace LOFAR {
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
+      uint             itsTimeSlotsPerParmUpdate;
       // Expressions to search for in itsParmDB
 
       vector<casa::String>   itsParmExprs;
 
-      // itsParms contains the parameters to a grid, first for all parameters
-      // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over frec * time
-      // as returned by ParmDB
-      vector<vector<vector<double> > > itsParms;
-      int             itsBufStep;
-      int             itsNCorr;
-      double          itsSigma;
+      vector<vector<casa::DComplex> > itsParms0;
+      vector<vector<casa::DComplex> > itsParms1;
+      uint             itsTimeStep;
+      uint             itsNCorr;
       double          itsTimeInterval;
       double          itsLastTime;
       bool            itsUseAP;      //# use ampl/phase or real/imag

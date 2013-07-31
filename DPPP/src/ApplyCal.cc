@@ -48,9 +48,10 @@ namespace LOFAR {
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (parset.getString (prefix + "correction")),
-        itsBufStep     (0),
+        itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
+            "timeslotsperparmupdate", 100)),
+        itsTimeStep    (0),
         itsNCorr       (0),
-        itsSigma       (parset.getDouble (prefix + "sigma", 0.)),
         itsTimeInterval (-1),
         itsLastTime    (-1),
         itsUseAP       (false)
@@ -73,41 +74,44 @@ namespace LOFAR {
 
       ASSERT(itsNCorr==4);
 
-
       itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
 
       // Handle the correction type.
 
       string corrType = toLower(itsCorrectType);
 
+
       if (corrType == "gain") {
-        itsUseAP = itsParmDB->getNames("Gain:*:Real:*").empty();
+        itsUseAP = (itsParmDB->getNames("Gain:*:Real:*").empty() &&
+            itsParmDB->getDefNames("Gain:*:Real:*").empty());
         if (itsUseAP) {
-          itsParmExprs.push_back("Gain:0:0:Ampl:");
-          itsParmExprs.push_back("Gain:0:0:Phase:");
-          itsParmExprs.push_back("Gain:1:1:Ampl:");
-          itsParmExprs.push_back("Gain:1:1:Phase:");
+          itsParmExprs.push_back("Gain:0:0:Ampl");
+          itsParmExprs.push_back("Gain:0:0:Phase");
+          itsParmExprs.push_back("Gain:1:1:Ampl");
+          itsParmExprs.push_back("Gain:1:1:Phase");
         } else {
-          itsParmExprs.push_back("Gain:0:0:Real:");
-          itsParmExprs.push_back("Gain:0:0:Imag:");
-          itsParmExprs.push_back("Gain:1:1:Real:");
-          itsParmExprs.push_back("Gain:1:1:Imag:");
+          itsParmExprs.push_back("Gain:0:0:Real");
+          itsParmExprs.push_back("Gain:0:0:Imag");
+          itsParmExprs.push_back("Gain:1:1:Real");
+          itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      } else if (corrType =="rm" || corrType == "rotationmeasure") {
-        itsParmExprs.push_back("RotationMeasure:");
       } else if (corrType == "tec") {
-        itsParmExprs.push_back("TEC:");
-      } else if (corrType == "bandpass") { /*Bandpass:0:0 and Bandpass:1:1*/
-        itsParmExprs.push_back("Bandpass:");
+        itsParmExprs.push_back("TEC");
+      } else if (corrType == "clock") {
+        if (itsParmDB->getNames("Clock:0:*").empty() &&
+            itsParmDB->getDefNames("Clock:0:*").empty() ) {
+          itsParmExprs.push_back("Clock");
+        }
+        else {
+          itsParmExprs.push_back("Clock:0");
+          itsParmExprs.push_back("Clock:1");
+        }
       } else {
-        //THROW (Exception, "Correction type " + itsCorrectType +
-        //                 " is unknown");
+        THROW (Exception, "Correction type " + itsCorrectType +
+                         " is unknown");
       }
 
-      itsParms.resize(itsParmExprs.size());
-      for (size_t i=0;i<itsParms.size();++i) {
-        itsParms[i].resize(info().antennaNames().size());
-      }
+      initDataArrays();
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -115,7 +119,6 @@ namespace LOFAR {
       os << "ApplyCal " << itsName << std::endl;
       os << "  parmdb:         " << itsParmDBName << endl;
       os << "  correction:     " << itsCorrectType << endl;
-      os << "  sigma:          " << itsSigma << endl;
     }
 
     void ApplyCal::showTimings (std::ostream& os, double duration) const
@@ -136,16 +139,18 @@ namespace LOFAR {
 
       if (buf.getTime() > itsLastTime) {
         updateParms(bufStartTime);
-        itsBufStep=0;
+        itsTimeStep=0;
       }
       else {
-        itsBufStep++;
+        itsTimeStep++;
       }
 
       // Loop through all baselines in the buffer.
       size_t nbl = bufin.getData().shape()[2];
 
       Complex* data = buf.getData().data();
+
+      float* weight = buf.getWeights().data();
 
       size_t nchan = buf.getData().shape()[1];
 
@@ -154,7 +159,12 @@ namespace LOFAR {
         for (size_t chan=0;chan<nchan;chan++) {
           if (itsCorrectType=="gain") {
             applyGain( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
-              info().getAnt1()[bl], info().getAnt2()[bl], chan, itsBufStep);
+                &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
+                info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
+          }
+          else if (itsCorrectType=="tec" || itsCorrectType=="clock") {
+            applyPhase( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+                info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
           }
         }
       }
@@ -175,129 +185,155 @@ namespace LOFAR {
     {
       int numAnts = info().antennaNames().size();
 
-      // If needed, cache parm values for the next 10 time slots.
-      const int numparmbufsteps(10);
+      // itsParms contains the parameters to a grid, first for all parameters
+      // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over frec * time
+      // as returned by ParmDB
+      vector<vector<vector<double> > > parmvalues;
+      parmvalues.resize(itsParmExprs.size());
+      for (size_t i=0;i<parmvalues.size();++i) {
+        parmvalues[i].resize(numAnts);
+      }
 
-      int numFreqs         (info().chanFreqs().size());
+      uint numFreqs         (info().chanFreqs().size());
       double freqInterval  (info().chanWidths()[0]);
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
 
-      itsLastTime = bufStartTime + numparmbufsteps * itsTimeInterval;
+      itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
 
       map<string, vector<double> > parmMap;
       map<string, vector<double> >::iterator parmIt;
 
+      uint tfDomainSize=itsTimeSlotsPerParmUpdate*numFreqs;
+
       for (uint parmNum = 0; parmNum<itsParmExprs.size();++parmNum) {
+        // parmMap contains parameter values for all antennas
         parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
         minFreq, maxFreq, freqInterval,
         bufStartTime, itsLastTime, itsTimeInterval, true);
 
         for (int ant = 0; ant < numAnts; ++ant) {
           parmIt = parmMap.find(
-                    itsParmExprs[parmNum]+info().antennaNames()[ant]);
-          ASSERT( parmIt != parmMap.end() );
+                    itsParmExprs[parmNum] + ":" + info().antennaNames()[ant]);
 
-          itsParms[parmNum][ant].swap(parmIt->second);
+          if (parmIt != parmMap.end()) {
+            parmvalues[parmNum][ant].swap(parmIt->second);
+          } else {// No value found, try default
+            Array<double> defValues;
+            double defValue;
+
+            if (itsParmDB->getDefValues(itsParmExprs[parmNum] + ":" +
+                info().antennaNames()[ant]).size()==1) { // Default for antenna
+              itsParmDB->getDefValues(itsParmExprs[parmNum] + ":" +
+                  info().antennaNames()[ant]).get(0,defValues);
+              ASSERT(defValues.size()==1);
+              defValue=defValues.data()[0];
+            }
+            else if (itsParmDB->getDefValues(itsParmExprs[parmNum]).size()
+                == 1) { //Default value
+              //TODO: not including * in the pattern above may be too strict
+              itsParmDB->getDefValues(itsParmExprs[parmNum]).get(0,defValues);
+              ASSERT(defValues.size()==1);
+              defValue=defValues.data()[0];
+            }
+            else {
+              THROW (Exception, "No parameter value found for "+
+                 itsParmExprs[parmNum]+":"+info().antennaNames()[ant]);
+            }
+
+            parmvalues[parmNum][ant].resize(tfDomainSize);
+            for (uint tf=0; tf<tfDomainSize;++tf) {
+              parmvalues[parmNum][ant][tf]=defValue;
+            }
+          }
+        }
+      }
+
+      ASSERT(tfDomainSize==parmvalues[0][0].size());
+
+      double freq;
+
+      // Make parameters complex
+      for (uint tf=0;tf<tfDomainSize;++tf) {
+        for (int ant=0;ant<numAnts;++ant) {
+
+          freq=info().chanFreqs()[tf % numFreqs];
+
+          if (itsCorrectType=="gain") {
+            if (itsUseAP) { // Data as Amplitude / Phase
+              itsParms0[ant][tf] = polar(parmvalues[0][ant][tf],
+                               parmvalues[1][ant][tf]);
+              itsParms1[ant][tf] = polar(parmvalues[2][ant][tf],
+                               parmvalues[3][ant][tf]);
+            } else { // Data as Real / Imaginary
+              itsParms0[ant][tf] = DComplex(parmvalues[0][ant][tf],
+                                 parmvalues[1][ant][tf]);
+              itsParms1[ant][tf] = DComplex(parmvalues[2][ant][tf],
+                                 parmvalues[3][ant][tf]);
+            }
+          }
+          else if (itsCorrectType=="tec") {
+            itsParms0[ant][tf]=polar(1.,
+                parmvalues[0][ant][tf] * -8.44797245e9 / freq);
+            itsParms1[ant][tf]=polar(1.,
+                parmvalues[0][ant][tf] * -8.44797245e9 / freq);
+          }
+          else if (itsCorrectType=="clock") {
+            itsParms0[ant][tf]=polar(1.,
+                parmvalues[0][ant][tf] * freq * casa::C::_2pi);
+            if (itsParmExprs.size() == 1) {
+              itsParms1[ant][tf]=polar(1.,
+                  parmvalues[0][ant][tf] * freq * casa::C::_2pi);
+            }
+            else {
+              itsParms1[ant][tf]=polar(1.,
+                  parmvalues[1][ant][tf] * freq * casa::C::_2pi);
+            }
+          }
         }
       }
     }
 
+    void ApplyCal::initDataArrays() {
+      uint numAnts=info().antennaNames().size();
+      uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
-    void ApplyCal::applyGain (Complex* vis, int ant1, int ant2,
-        int chan, int time) {
-      DComplex gainA[4];
-      DComplex gainB[4];
+      itsParms0.resize(numAnts);
+      itsParms1.resize(numAnts);
+      for (uint ant=0;ant<numAnts;++ant) {
+          itsParms0[ant].resize(tfDomainSize);
+          itsParms1[ant].resize(tfDomainSize);
+      }
+    }
 
+    void ApplyCal::applyGain (Complex* vis, float* weight, int antA,
+        int antB, int chan, int time) {
       int timeFreqOffset=(time*info().nchan())+chan;
 
-      if (itsUseAP) { // Data as Amplitude / Phase
-        gainA[0] = polar(itsParms[0][ant1][timeFreqOffset],
-                         itsParms[1][ant1][timeFreqOffset]);
-        gainA[3] = polar(itsParms[2][ant1][timeFreqOffset],
-                         itsParms[3][ant1][timeFreqOffset]);
-        gainB[0] = polar(itsParms[0][ant2][timeFreqOffset],
-                         itsParms[1][ant2][timeFreqOffset]);
-        gainB[3] = polar(itsParms[2][ant2][timeFreqOffset],
-                         itsParms[3][ant2][timeFreqOffset]);
-      } else { // Data as Real / Imaginary
-        gainA[0] = DComplex(itsParms[0][ant1][timeFreqOffset],
-                           itsParms[1][ant1][timeFreqOffset]);
-        gainA[3] = DComplex(itsParms[2][ant1][timeFreqOffset],
-                           itsParms[3][ant1][timeFreqOffset]);
-        gainB[0] = DComplex(itsParms[0][ant2][timeFreqOffset],
-                           itsParms[1][ant2][timeFreqOffset]);
-        gainB[3] = DComplex(itsParms[2][ant2][timeFreqOffset],
-                           itsParms[3][ant2][timeFreqOffset]);
-      }
+      DComplex gain00A = itsParms0[antA][timeFreqOffset];
+      DComplex gain11A = itsParms1[antA][timeFreqOffset];
+      DComplex gain00B = itsParms0[antB][timeFreqOffset];
+      DComplex gain11B = itsParms1[antB][timeFreqOffset];
 
-      if (itsNCorr==2) {
-        vis[0] /= gainA[0] * conj(gainB[0]);
-        vis[1] /= gainA[3] * conj(gainB[3]);
-      } else if (itsNCorr==4) {
-        vis[0] /= gainA[0] * conj(gainB[0]);
-        vis[1] /= gainA[0] * conj(gainB[3]);
-        vis[2] /= gainA[3] * conj(gainB[0]);
-        vis[3] /= gainA[3] * conj(gainB[3]);
-      } else {
-        THROW(Exception, "Correction only possible for 2 or 4 correlations.");
-      }
+      vis[0] /= gain00A * conj(gain00B);
+      vis[1] /= gain00A * conj(gain11B);
+      vis[2] /= gain11A * conj(gain00B);
+      vis[3] /= gain11A * conj(gain11B);
+
+      //cout<<weight[0]<<endl;
+      //weight[0]*= real(gain00A) * real(gain00A) * real(gain00B) * real(gain00B);
+      //weight[1]*= real(gain00A) * real(gain00A) * real(gain11B) * real(gain11B);
+      //weight[2]*= real(gain11A) * real(gain11A) * real(gain00B) * real(gain00B);
+      //weight[3]*= real(gain11A) * real(gain11A) * real(gain11B) * real(gain11B);
     }
 
-    // Corrections can be constant or can vary in freq.
-    void ApplyCal::applyTEC (Complex* vis, const double tec,
-                              const double freq)
-    {
-      double phase = (tec * -8.44797245e9) / freq;
-      DComplex shift = polar(1.0,phase);
-
+    void ApplyCal::applyPhase(Complex* vis, int antA, int antB,
+        int chan, int time) {
+      int timeFreqOffset=(time*info().nchan())+chan;
       for (size_t i=0;i<itsNCorr;i++) {
-        vis[i] *= shift;
+        vis[i] /= itsParms0[antA][timeFreqOffset]/
+            itsParms0[antB][timeFreqOffset];
       }
-    }
-
-    void ApplyCal::applyClock (Complex* vis,
-                                 const double clockA, const double clockB)
-    {
-      ///Matrix phase = freq * (delay() * casa::C::_2pi);
-      ///Matrix shift = tocomplex(cos(phase), sin(phase));
-      /*
-        DComplex factor = 1. / (lhs[i] * conj(rhs[i]));
-        for (uint j=0; j<itsNCorr; ++j) {
-          *vis++ *= factor;
-        }
-      */
-    }
-
-    void ApplyCal::applyBandpass (Complex* vis, const DComplex* lhs,
-                                  const DComplex* rhs)
-    {
-    }
-
-    void ApplyCal::applyRM (Complex* vis, const DComplex* lhs,
-                            const DComplex* rhs)
-    {
-      // Precompute lambda squared for the current frequency point.
-      /*
-      const double lambda = C::c / grid[FREQ]->center(f);
-      const double lambda2 = lambda * lambda;
-
-      double *sample = origin + f;
-      for (unsigned int t = 0; t < nTime; ++t) {
-        *sample = lambda2;
-        sample += nFreq;
-      }
-
-      Matrix chi = rm() * lambdaSqr;
-      Matrix cosChi = cos(chi);
-      Matrix sinChi = sin(chi);
-
-      JonesMatrix::View result;
-      result.assign(0, 0, cosChi);
-      result.assign(0, 1, -sinChi);
-      result.assign(1, 0, sinChi);
-      result.assign(1, 1, cosChi);
-      */
     }
 
   } //# end namespace
