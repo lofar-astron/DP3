@@ -19,7 +19,7 @@
 //#
 //# $Id: ApplyCal.h 21598 2012-07-16 08:07:34Z diepen $
 //#
-//# @author Ger van Diepen
+//# @author Tammo Jan Dijkema
 
 #ifndef DPPP_APPLYCAL_H
 #define DPPP_APPLYCAL_H
@@ -72,14 +72,19 @@ namespace LOFAR {
 
 
     private:
-      void applyPhase (casa::Complex* vis, int antA, int antB, int chan,
-          int time);
-      void applyClock (casa::Complex* vis, int antA, int antB, int chan,
-          int time);
-      void applyGain (casa::Complex* vis, float* weight, int antA, int antB,
+      // Apply a diagonal Jones matrix to the 2x2 visibilities matrix
+      void applyDiag (casa::Complex* vis, float* weight, int antA, int antB,
           int chan, int time);
 
+      // Apply a full Jones matrix to the 2x2 visibilities matrix
+      void applyFull (casa::Complex* vis, float* weight, int antA, int antB,
+          int chan, int time);
+
+      // Read parameters from the associated parmdb and store them in itsParms
       void updateParms (const double bufStartTime);
+
+      // Invert a 2x2 matrix in place
+      void invert (casa::DComplex* v, double sigmaMMSE=0) const;
 
       void initDataArrays();
 
@@ -90,18 +95,19 @@ namespace LOFAR {
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
       uint             itsTimeSlotsPerParmUpdate;
-      // Expressions to search for in itsParmDB
+      double           itsSigmaMMSE;
 
+      // Expressions to search for in itsParmDB
       vector<casa::String>   itsParmExprs;
 
-      vector<vector<casa::DComplex> > itsParms0;
-      vector<vector<casa::DComplex> > itsParms1;
-      uint             itsTimeStep;
-      uint             itsNCorr;
+      // parameters, numparms, antennas, time x frequency
+      vector<vector<vector<casa::DComplex> > > itsParms;
+      uint            itsTimeStep;
+      uint            itsNCorr;
       double          itsTimeInterval;
       double          itsLastTime;
       bool            itsUseAP;      //# use ampl/phase or real/imag
-      NSTimer          itsTimer;
+      NSTimer         itsTimer;
     };
 
   } //# end namespace

@@ -19,7 +19,7 @@
 //#
 //# $Id: ApplyCal.cc 21598 2012-07-16 08:07:34Z diepen $
 //#
-//# @author Ger van Diepen
+//# @author Tammo Jan Dijkema
 
 #include <lofar_config.h>
 #include <DPPP/ApplyCal.h>
@@ -47,9 +47,10 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
-        itsCorrectType (parset.getString (prefix + "correction")),
+        itsCorrectType (toLower(parset.getString (prefix + "correction"))),
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
-            "timeslotsperparmupdate", 100)),
+            "timeslotsperparmupdate", 500)),
+        itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
         itsTimeStep    (0),
         itsNCorr       (0),
         itsTimeInterval (-1),
@@ -78,12 +79,15 @@ namespace LOFAR {
 
       // Handle the correction type.
 
-      string corrType = toLower(itsCorrectType);
+      if ((itsCorrectType == "gain" || itsCorrectType=="fullgain") &&
+          (itsParmDB->getNames("Gain:0:1:*").size() +
+           itsParmDB->getDefNames("Gain:0:1:*").size() >0 )) {
+        itsCorrectType="fullgain";
+      }
 
-
-      if (corrType == "gain") {
-        itsUseAP = (itsParmDB->getNames("Gain:*:Real:*").empty() &&
-            itsParmDB->getDefNames("Gain:*:Real:*").empty());
+      if (itsCorrectType == "gain") {
+        itsUseAP = (itsParmDB->getNames("Gain:0:0:Real*").empty() &&
+            itsParmDB->getDefNames("Gain:0:0:Real*").empty());
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl");
           itsParmExprs.push_back("Gain:0:0:Phase");
@@ -95,9 +99,31 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Real");
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      } else if (corrType == "tec") {
+      } else if (itsCorrectType == "fullgain") {
+        itsUseAP = (itsParmDB->getNames("Gain:0:0:Real*").empty() &&
+            itsParmDB->getDefNames("Gain:0:0:Real*").empty());
+        if (itsUseAP) {
+          itsParmExprs.push_back("Gain:0:0:Ampl");
+          itsParmExprs.push_back("Gain:0:0:Phase");
+          itsParmExprs.push_back("Gain:0:1:Ampl");
+          itsParmExprs.push_back("Gain:0:1:Phase");
+          itsParmExprs.push_back("Gain:1:0:Ampl");
+          itsParmExprs.push_back("Gain:1:0:Phase");
+          itsParmExprs.push_back("Gain:1:1:Ampl");
+          itsParmExprs.push_back("Gain:1:1:Phase");
+        } else {
+          itsParmExprs.push_back("Gain:0:0:Real");
+          itsParmExprs.push_back("Gain:0:0:Imag");
+          itsParmExprs.push_back("Gain:0:1:Real");
+          itsParmExprs.push_back("Gain:0:1:Imag");
+          itsParmExprs.push_back("Gain:1:0:Real");
+          itsParmExprs.push_back("Gain:1:0:Imag");
+          itsParmExprs.push_back("Gain:1:1:Real");
+          itsParmExprs.push_back("Gain:1:1:Imag");
+        }
+      }  else if (itsCorrectType == "tec") {
         itsParmExprs.push_back("TEC");
-      } else if (corrType == "clock") {
+      } else if (itsCorrectType == "clock") {
         if (itsParmDB->getNames("Clock:0:*").empty() &&
             itsParmDB->getDefNames("Clock:0:*").empty() ) {
           itsParmExprs.push_back("Clock");
@@ -119,6 +145,8 @@ namespace LOFAR {
       os << "ApplyCal " << itsName << std::endl;
       os << "  parmdb:         " << itsParmDBName << endl;
       os << "  correction:     " << itsCorrectType << endl;
+      os << "  sigmaMMSE:      " << itsSigmaMMSE << endl;
+      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
     }
 
     void ApplyCal::showTimings (std::ostream& os, double duration) const
@@ -157,13 +185,14 @@ namespace LOFAR {
 #pragma omp parallel for
       for (size_t bl=0; bl<nbl; ++bl) {
         for (size_t chan=0;chan<nchan;chan++) {
-          if (itsCorrectType=="gain") {
-            applyGain( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+          if (itsCorrectType=="fullgain") {
+            applyFull( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
                 &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
                 info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
           }
-          else if (itsCorrectType=="tec" || itsCorrectType=="clock") {
-            applyPhase( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+          else {
+            applyDiag( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+                &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
                 info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
           }
         }
@@ -199,57 +228,59 @@ namespace LOFAR {
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
 
-      itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
+      itsLastTime = std::min(
+          bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval,
+          info().startTime() + info().ntime() * itsTimeInterval);
 
       map<string, vector<double> > parmMap;
       map<string, vector<double> >::iterator parmIt;
 
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*numFreqs;
 
-      for (uint parmNum = 0; parmNum<itsParmExprs.size();++parmNum) {
+      for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
         // parmMap contains parameter values for all antennas
-        parmMap = itsParmDB->getValuesMap( itsParmExprs[parmNum] + "*",
+        parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
         minFreq, maxFreq, freqInterval,
         bufStartTime, itsLastTime, itsTimeInterval, true);
 
         for (int ant = 0; ant < numAnts; ++ant) {
           parmIt = parmMap.find(
-                    itsParmExprs[parmNum] + ":" + info().antennaNames()[ant]);
+                    itsParmExprs[parmExprNum] + ":" + info().antennaNames()[ant]);
 
           if (parmIt != parmMap.end()) {
-            parmvalues[parmNum][ant].swap(parmIt->second);
+            parmvalues[parmExprNum][ant].swap(parmIt->second);
           } else {// No value found, try default
             Array<double> defValues;
             double defValue;
 
-            if (itsParmDB->getDefValues(itsParmExprs[parmNum] + ":" +
+            if (itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
                 info().antennaNames()[ant]).size()==1) { // Default for antenna
-              itsParmDB->getDefValues(itsParmExprs[parmNum] + ":" +
+              itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
                   info().antennaNames()[ant]).get(0,defValues);
               ASSERT(defValues.size()==1);
               defValue=defValues.data()[0];
             }
-            else if (itsParmDB->getDefValues(itsParmExprs[parmNum]).size()
+            else if (itsParmDB->getDefValues(itsParmExprs[parmExprNum]).size()
                 == 1) { //Default value
               //TODO: not including * in the pattern above may be too strict
-              itsParmDB->getDefValues(itsParmExprs[parmNum]).get(0,defValues);
+              itsParmDB->getDefValues(itsParmExprs[parmExprNum]).get(0,defValues);
               ASSERT(defValues.size()==1);
               defValue=defValues.data()[0];
             }
             else {
               THROW (Exception, "No parameter value found for "+
-                 itsParmExprs[parmNum]+":"+info().antennaNames()[ant]);
+                 itsParmExprs[parmExprNum]+":"+info().antennaNames()[ant]);
             }
 
-            parmvalues[parmNum][ant].resize(tfDomainSize);
+            parmvalues[parmExprNum][ant].resize(tfDomainSize);
             for (uint tf=0; tf<tfDomainSize;++tf) {
-              parmvalues[parmNum][ant][tf]=defValue;
+              parmvalues[parmExprNum][ant][tf]=defValue;
             }
           }
         }
       }
 
-      ASSERT(tfDomainSize==parmvalues[0][0].size());
+      ASSERT(parmvalues[0][0].size() <= tfDomainSize); // Catches multiple matches
 
       double freq;
 
@@ -261,32 +292,53 @@ namespace LOFAR {
 
           if (itsCorrectType=="gain") {
             if (itsUseAP) { // Data as Amplitude / Phase
-              itsParms0[ant][tf] = polar(parmvalues[0][ant][tf],
+              itsParms[0][ant][tf] = polar(parmvalues[0][ant][tf],
                                parmvalues[1][ant][tf]);
-              itsParms1[ant][tf] = polar(parmvalues[2][ant][tf],
+              itsParms[1][ant][tf] = polar(parmvalues[2][ant][tf],
                                parmvalues[3][ant][tf]);
             } else { // Data as Real / Imaginary
-              itsParms0[ant][tf] = DComplex(parmvalues[0][ant][tf],
+              itsParms[0][ant][tf] = DComplex(parmvalues[0][ant][tf],
                                  parmvalues[1][ant][tf]);
-              itsParms1[ant][tf] = DComplex(parmvalues[2][ant][tf],
+              itsParms[1][ant][tf] = DComplex(parmvalues[2][ant][tf],
                                  parmvalues[3][ant][tf]);
             }
           }
+          else if (itsCorrectType=="fullgain") {
+            if (itsUseAP) { // Data as Amplitude / Phase
+              itsParms[0][ant][tf] = polar(parmvalues[0][ant][tf],
+                               parmvalues[1][ant][tf]);
+              itsParms[1][ant][tf] = polar(parmvalues[2][ant][tf],
+                               parmvalues[3][ant][tf]);
+              itsParms[2][ant][tf] = polar(parmvalues[4][ant][tf],
+                               parmvalues[5][ant][tf]);
+              itsParms[3][ant][tf] = polar(parmvalues[6][ant][tf],
+                               parmvalues[7][ant][tf]);
+            } else { // Data as Real / Imaginary
+              itsParms[0][ant][tf] = DComplex(parmvalues[0][ant][tf],
+                                 parmvalues[1][ant][tf]);
+              itsParms[1][ant][tf] = DComplex(parmvalues[2][ant][tf],
+                                 parmvalues[3][ant][tf]);
+              itsParms[2][ant][tf] = DComplex(parmvalues[4][ant][tf],
+                                 parmvalues[5][ant][tf]);
+              itsParms[3][ant][tf] = DComplex(parmvalues[6][ant][tf],
+                                 parmvalues[7][ant][tf]);
+            }
+          }
           else if (itsCorrectType=="tec") {
-            itsParms0[ant][tf]=polar(1.,
+            itsParms[0][ant][tf]=polar(1.,
                 parmvalues[0][ant][tf] * -8.44797245e9 / freq);
-            itsParms1[ant][tf]=polar(1.,
+            itsParms[1][ant][tf]=polar(1.,
                 parmvalues[0][ant][tf] * -8.44797245e9 / freq);
           }
           else if (itsCorrectType=="clock") {
-            itsParms0[ant][tf]=polar(1.,
+            itsParms[0][ant][tf]=polar(1.,
                 parmvalues[0][ant][tf] * freq * casa::C::_2pi);
-            if (itsParmExprs.size() == 1) {
-              itsParms1[ant][tf]=polar(1.,
+            if (itsParmExprs.size() == 1) { // No Clock:0, only Clock:
+              itsParms[1][ant][tf]=polar(1.,
                   parmvalues[0][ant][tf] * freq * casa::C::_2pi);
             }
-            else {
-              itsParms1[ant][tf]=polar(1.,
+            else { // Clock:0 and Clock:1
+              itsParms[1][ant][tf]=polar(1.,
                   parmvalues[1][ant][tf] * freq * casa::C::_2pi);
             }
           }
@@ -298,43 +350,99 @@ namespace LOFAR {
       uint numAnts=info().antennaNames().size();
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
-      itsParms0.resize(numAnts);
-      itsParms1.resize(numAnts);
-      for (uint ant=0;ant<numAnts;++ant) {
-          itsParms0[ant].resize(tfDomainSize);
-          itsParms1[ant].resize(tfDomainSize);
+      uint numParms;
+      if (itsCorrectType=="fullgain") {
+        numParms = 4;
+      }
+      else {
+        numParms = 2;
+      }
+
+      itsParms.resize(numParms);
+
+      for (uint parmNum=0;parmNum<numParms;parmNum++) {
+        itsParms[parmNum].resize(numAnts);
+        for (uint ant=0;ant<numAnts;++ant) {
+            itsParms[parmNum][ant].resize(tfDomainSize);
+        }
       }
     }
 
-    void ApplyCal::applyGain (Complex* vis, float* weight, int antA,
+    void ApplyCal::applyDiag (Complex* vis, float* weight, int antA,
         int antB, int chan, int time) {
       int timeFreqOffset=(time*info().nchan())+chan;
 
-      DComplex gain00A = itsParms0[antA][timeFreqOffset];
-      DComplex gain11A = itsParms1[antA][timeFreqOffset];
-      DComplex gain00B = itsParms0[antB][timeFreqOffset];
-      DComplex gain11B = itsParms1[antB][timeFreqOffset];
+      DComplex diag0A = itsParms[0][antA][timeFreqOffset];
+      DComplex diag1A = itsParms[1][antA][timeFreqOffset];
+      DComplex diag0B = itsParms[0][antB][timeFreqOffset];
+      DComplex diag1B = itsParms[1][antB][timeFreqOffset];
 
-      vis[0] /= gain00A * conj(gain00B);
-      vis[1] /= gain00A * conj(gain11B);
-      vis[2] /= gain11A * conj(gain00B);
-      vis[3] /= gain11A * conj(gain11B);
+      vis[0] /= diag0A * conj(diag0B);
+      vis[1] /= diag0A * conj(diag1B);
+      vis[2] /= diag1A * conj(diag0B);
+      vis[3] /= diag1A * conj(diag1B);
 
-      //cout<<weight[0]<<endl;
-      //weight[0]*= real(gain00A) * real(gain00A) * real(gain00B) * real(gain00B);
-      //weight[1]*= real(gain00A) * real(gain00A) * real(gain11B) * real(gain11B);
-      //weight[2]*= real(gain11A) * real(gain11A) * real(gain00B) * real(gain00B);
-      //weight[3]*= real(gain11A) * real(gain11A) * real(gain11B) * real(gain11B);
+      // TODO: implement DPInput::getWeights
+      //weight[0]*= real(diag0A) * real(diag0A) * real(diag0B) * real(diag0B);
+      //weight[1]*= real(diag0A) * real(diag0A) * real(diag1B) * real(diag1B);
+      //weight[2]*= real(diag1A) * real(diag1A) * real(diag0B) * real(diag0B);
+      //weight[3]*= real(diag1A) * real(diag1A) * real(diag1B) * real(diag1B);
     }
 
-    void ApplyCal::applyPhase(Complex* vis, int antA, int antB,
-        int chan, int time) {
+    // Inverts complex 2x2 input matrix
+    void ApplyCal::invert (DComplex* v, double sigmaMMSE) const
+    {
+      // Add the variance of the nuisance term to the elements on the diagonal.
+      const double variance = sigmaMMSE * sigmaMMSE;
+      DComplex v0 = v[0] + variance;
+      DComplex v3 = v[3] + variance;
+      // Compute inverse in the usual way.
+      DComplex invDet(1.0 / (v0 * v3 - v[1] * v[2]));
+      v[0] = v3 * invDet;
+      v[2] = v[2] * -invDet;
+      v[1] = v[1] * -invDet;
+      v[3] = v0 * invDet;
+    }
+
+    void ApplyCal::applyFull (Complex* vis, float* weight, int antA,
+        int antB, int chan, int time) {
       int timeFreqOffset=(time*info().nchan())+chan;
-      for (size_t i=0;i<itsNCorr;i++) {
-        vis[i] /= itsParms0[antA][timeFreqOffset]/
-            itsParms0[antB][timeFreqOffset];
-      }
-    }
+      DComplex gainA[4];
+      DComplex gainB[4];
 
+      gainA[0] = itsParms[0][antA][timeFreqOffset];
+      gainA[1] = itsParms[1][antA][timeFreqOffset];
+      gainA[2] = itsParms[2][antA][timeFreqOffset];
+      gainA[3] = itsParms[3][antA][timeFreqOffset];
+
+      gainB[0] = itsParms[0][antB][timeFreqOffset];
+      gainB[1] = itsParms[1][antB][timeFreqOffset];
+      gainB[2] = itsParms[2][antB][timeFreqOffset];
+      gainB[3] = itsParms[3][antB][timeFreqOffset];
+
+      DComplex gainAxvis[4];
+      invert(gainA,itsSigmaMMSE);
+      invert(gainB,itsSigmaMMSE);
+
+      // gainAxvis = gainA * vis
+      for (uint row=0;row<2;++row) {
+        for (uint col=0;col<2;++col) {
+          gainAxvis[2*row+col]=gainA[2*row+0] * DComplex(vis[2*0+col]) +
+                               gainA[2*row+1] * DComplex(vis[2*1+col]);
+        }
+      }
+
+      // vis = gainAxvis * gainB^H
+      for (uint row=0;row<2;++row) {
+        for (uint col=0;col<2;++col) {
+          vis[2*row+col]=gainAxvis[2*row+0] * conj(gainB[2*col+0])+
+                         gainAxvis[2*row+1] * conj(gainB[2*col+1]);
+        }
+      }
+
+      // TODO: weights for this case are not implemented
+      // see combination of BBS + python script covariance2weight.py (cookbook)
+      // for what to do (diagonal of covariance matrix is transferred to WEIGHT)
+    }
   } //# end namespace
 }
