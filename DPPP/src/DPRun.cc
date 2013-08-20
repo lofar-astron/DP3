@@ -38,7 +38,6 @@
 #include <DPPP/Demixer.h>
 #include <DPPP/StationAdder.h>
 #include <DPPP/ScaleData.h>
-#include <DPPP/ApplyCal.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -265,8 +264,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ScaleData (reader, parset, prefix));
         } else if (type == "filter") {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
-        } else if (type == "applycal"  ||  type == "correct") {
-          step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
+          ///        } else if (type == "applycal"  ||  type == "correct") {
+          ///          step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
