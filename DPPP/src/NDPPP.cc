@@ -52,6 +52,11 @@ int main(int argc, char *argv[])
   } catch (LOFAR::Exception& err) {
     std::cerr << "LOFAR Exception detected: " << err << std::endl;
     return 1;
+#ifdef __clang__
+  } catch (std::exception& err) {
+    std::cerr << "std exception detected: " << err.what() << std::endl;
+    return 1;
+#endif
   }
   return 0;
 }

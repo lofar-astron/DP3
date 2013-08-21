@@ -278,14 +278,16 @@ namespace LOFAR {
       Vector<Int> idMap (nrId);
       indgen (idMap);   // fill with 0,1,2,...
       int nrrem = 0;
-      for (uInt i=0; i<removedIds.size()-1; ++i) {
+      for (uInt i=0; i<removedIds.size(); ++i) {
         idMap[removedIds[i]] = -1;
         nrrem++;
-        for (uInt j=removedIds[i]+1; j<removedIds[i+1]; ++j) {
-          idMap[j] -= nrrem;
+        if (i < removedIds.size() - 1) {
+          for (uInt j=removedIds[i]+1; j<removedIds[i+1]; ++j) {
+            idMap[j] -= nrrem;
+          }
         }
       }
-      for (uInt j=removedIds[removedIds.size()-1]; j<idMap.size(); ++j) {
+      for (uInt j=removedIds[removedIds.size()-1]+1; j<idMap.size(); ++j) {
         idMap[j] -= nrrem;
       }
       return idMap;
