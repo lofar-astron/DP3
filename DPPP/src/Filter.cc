@@ -28,6 +28,8 @@
 #include <DPPP/DPLogger.h>
 #include <Common/ParameterSet.h>
 
+#include <tables/Tables/ScalarColumn.h>
+#include <tables/Tables/TableRecord.h>
 #include <tables/Tables/ExprNode.h>
 #include <tables/Tables/RecordGram.h>
 #include <casa/Containers/Record.h>
@@ -44,6 +46,7 @@ namespace LOFAR {
         itsName         (prefix),
         itsStartChanStr (parset.getString(prefix+"startchan", "0")),
         itsNrChanStr    (parset.getString(prefix+"nchan", "0")),
+        itsRemoveAnt    (parset.getBool  (prefix+"remove", false)),
         itsBaselines    (parset, prefix),
         itsDoSelect     (false)
     {}
@@ -52,6 +55,7 @@ namespace LOFAR {
       : itsInput        (input),
         itsStartChanStr ("0"),
         itsNrChanStr    ("0"),
+        itsRemoveAnt    (false),
         itsBaselines    (baselines),
         itsDoSelect     (false)
     {}
@@ -102,14 +106,16 @@ namespace LOFAR {
           itsDoSelect = true;
         }
       }
-      if (itsDoSelect) {
+      if (itsDoSelect || itsRemoveAnt) {
         // Update the DPInfo object.
-        info().update (itsStartChan, nrChan, itsSelBL);
-        // Shape the arrays in the buffer.
-        IPosition shape (3, infoIn.ncorr(), nrChan, getInfo().nbaselines());
-        itsBuf.getData().resize (shape);
-        itsBuf.getFlags().resize (shape);
-        itsBuf.getWeights().resize (shape);
+        info().update (itsStartChan, nrChan, itsSelBL, itsRemoveAnt);
+        if (itsDoSelect) {
+          // Shape the arrays in the buffer.
+          IPosition shape (3, infoIn.ncorr(), nrChan, getInfo().nbaselines());
+          itsBuf.getData().resize (shape);
+          itsBuf.getFlags().resize (shape);
+          itsBuf.getWeights().resize (shape);
+        }
       }
     }
 
@@ -121,6 +127,7 @@ namespace LOFAR {
       os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
          << ')' << std::endl;
       itsBaselines.show (os);
+      os << "  remove:         " << itsRemoveAnt << std::endl;
     }
 
     void Filter::showTimings (std::ostream& os, double duration) const
@@ -226,6 +233,90 @@ namespace LOFAR {
     {
       // Let the next steps finish.
       getNextStep()->finish();
+    }
+
+    void Filter::addToMS (const string& msName)
+    {
+      if (! itsRemoveAnt) {
+        return;
+      }
+      // See if and which stations have been removed.
+      Table antTab (msName + "/ANTENNA", Table::Update);
+      Table selTab = antTab(! antTab.col("NAME").in (info().antennaNames()));
+      if (selTab.nrow() == 0) {
+        return;
+      }
+      // Remove these rows from the ANTENNA table.
+      // Note that stations of baselines that have been filtered out before,
+      // will also be removed.
+      Vector<uInt> removedAnt = selTab.rowNumbers();
+      Vector<Int> antMap = createIdMap (antTab.nrow(), removedAnt);
+      antTab.removeRow (removedAnt);
+      // Remove and renumber the stations in other subtables.
+      Table ms(msName);
+      uInt nr;
+      renumberSubTable (ms, "FEED", "ANTENNA_ID", removedAnt, antMap, nr);
+      renumberSubTable (ms, "POINTING", "ANTENNA_ID", removedAnt, antMap, nr);
+      renumberSubTable (ms, "SYSCAL", "ANTENNA_ID", removedAnt, antMap, nr);
+      // Finally remove and renumber in the beam tables.
+      uInt nrAntFldId;
+      Vector<uInt> remAntFldId = renumberSubTable (ms, "LOFAR_ANTENNA_FIELD",
+                                                   "ANTENNA_ID",
+                                                   removedAnt, antMap,
+                                                   nrAntFldId);
+      if (! remAntFldId.empty()) {
+        Vector<Int> antFldIdMap = createIdMap (nrAntFldId, remAntFldId);
+        renumberSubTable (ms, "LOFAR_ELEMENT_FAILURE", "ANTENNA_FIELD_ID",
+                          remAntFldId, antFldIdMap, nr);
+      }
+    }
+
+    Vector<Int> Filter::createIdMap (uInt nrId,
+                                     const Vector<uInt>& removedIds) const
+    {
+      // Create the mapping from old to new id.
+      Vector<Int> idMap (nrId);
+      indgen (idMap);   // fill with 0,1,2,...
+      int nrrem = 0;
+      for (uInt i=0; i<removedIds.size()-1; ++i) {
+        idMap[removedIds[i]] = -1;
+        nrrem++;
+        for (uInt j=removedIds[i]+1; j<removedIds[i+1]; ++j) {
+          idMap[j] -= nrrem;
+        }
+      }
+      for (uInt j=removedIds[removedIds.size()-1]; j<idMap.size(); ++j) {
+        idMap[j] -= nrrem;
+      }
+      return idMap;
+    }
+
+    Vector<uInt> Filter::renumberSubTable (const Table& ms,
+                                           const String& name,
+                                           const String& colName,
+                                           const Vector<uInt>& removedAnt,
+                                           const Vector<Int>& antMap,
+                                           uInt& nrId) const
+    {
+      // Exit if no such subtable.
+      if (! ms.keywordSet().isDefined(name)) {
+        return Vector<uInt>();
+      }
+      // Remove the rows of the removed stations.
+      Table subTab (ms.tableName() + '/' + name, Table::Update);
+      nrId = subTab.nrow();
+      Table selTab = subTab(subTab.col(colName).in (removedAnt));
+      subTab.removeRow (selTab.rowNumbers());
+      // Renumber the rest.
+      ScalarColumn<Int> antCol(subTab, colName);
+      Vector<Int> antIds = antCol.getColumn();
+      for (uint i=0; i<antIds.size(); ++i) {
+        Int newId = antMap[antIds[i]];
+        ASSERT (newId >= 0);
+        antIds[i] = newId;
+      }
+      antCol.putColumn (antIds);
+      return selTab.rowNumbers();
     }
 
   } //# end namespace

@@ -145,6 +145,15 @@ void checkCopy (const String& in, const String& out, int nms)
   ASSERT (near(timeRange(1), ROScalarColumn<double>(tout,"TIME")(143) + 15));
 }
 
+void checkCopyColumn (const String& in)
+{
+  Table tin(in);
+  ASSERT (tin.nrow() == 6*24);
+  ROArrayColumn<Complex> data1(tin, "DATA");
+  ROArrayColumn<Complex> data2(tin, "COPY_DATA");
+  ASSERT (allEQ(data1.getColumn(), data2.getColumn()));
+}
+
 void testCopy()
 {
   cout << endl << "** testCopy **" << endl;
@@ -161,6 +170,20 @@ void testCopy()
   }
   DPRun::execute ("tNDPPP_tmp.parset");
   checkCopy ("tNDPPP_tmp.MS", "tNDPPP_tmp.MS1", 1);
+}
+
+void testCopyColumn()
+{
+  cout << endl << "** testCopyColumn **" << endl;
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS1" << endl;
+    ostr << "msout=." << endl;
+    ostr << "msout.datacolumn=COPY_DATA" << endl;
+    ostr << "steps=[]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  checkCopyColumn ("tNDPPP_tmp.MS1");
 }
 
 void testMulti()
@@ -664,6 +687,124 @@ void testStationAdd()
   ASSERT (t2.nrow() == t1.nrow()+40+12); // 2 baselines and 2 time slots added
 }
 
+void testFilter1()
+{
+  cout << endl << "** testFilter1 **" << endl;
+  // Remove all baselines containing station RT1 or 6.
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msout=tNDPPP_tmp.MSa" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[filter]" << endl;
+    ostr << "filter.baseline=!RT[16]&&*" << endl;
+    ostr << "filter.remove=True" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  Table t1("tNDPPP_tmp.MS/ANTENNA");
+  Table t2("tNDPPP_tmp.MSa/ANTENNA");
+  // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
+  // have baselines. So these were removed as well meaning only 0,2,7 are left.
+  Vector<uInt> rownrs(3);
+  rownrs[0]=0; rownrs[1]=2; rownrs[2]=7;
+  Table t1s = t1(rownrs);
+  ASSERT (t2.nrow() == t1s.nrow());
+  ASSERT (allEQ (ROScalarColumn<String>(t2,"NAME").getColumn(),
+                 ROScalarColumn<String>(t1s,"NAME").getColumn()));
+  t1 = Table("tNDPPP_tmp.MS/FEED");
+  t2 = Table("tNDPPP_tmp.MSa/FEED");
+  t1s = t1(rownrs);
+  ASSERT (t2.nrow() == t1s.nrow());
+  // The ANTENNA_IDs in the FEED table must be 0,1,2.
+  Vector<Int> ids(t2.nrow());
+  indgen (ids);
+  ASSERT (allEQ (ROScalarColumn<Int>(t2,"ANTENNA_ID").getColumn(), ids));
+  // Check the main table.
+  t1 = Table("tNDPPP_tmp.MS");
+  t2 = Table("tNDPPP_tmp.MSa");
+  ASSERT (t2.nrow() == t1.nrow()-72+4); // 4 baselines removed, 2 timeslots added
+  t1s = t1((t1.col("ANTENNA1")==0 || t1.col("ANTENNA1")==2) &&
+           t1.col("ANTENNA2")==7);
+  // A few dummy time slots were inserted, so ignore those.
+  Table t2s = t2(t2.nodeRownr() < 6  ||  t2.nodeRownr() >= 10);
+  ASSERT (allEQ (ROArrayColumn<Complex>(t2s,"DATA").getColumn(),
+                 ROArrayColumn<Complex>(t1s,"DATA").getColumn()));
+  t2s = t2(t2.nodeRownr() % 2 == 0);
+  ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA1").getColumn(), 0));
+  ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA2").getColumn(), 2));
+  t2s = t2(t2.nodeRownr() % 2 == 1);
+  ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA1").getColumn(), 1));
+  ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA2").getColumn(), 2));
+}
+
+void testFilter2()
+{
+  cout << endl << "** testFilter2 **" << endl;
+  // Keep all baselines.
+  // First by not specifying baseline selection, second by all baselines.
+  // Also alter between remove and !remove.
+  for (int iter=0; iter<4; ++iter) {
+    {
+      ofstream ostr("tNDPPP_tmp.parset");
+      ostr << "msin=tNDPPP_tmp.MS" << endl;
+      ostr << "msout=tNDPPP_tmp.MSa" << endl;
+      ostr << "msout.overwrite=true" << endl;
+      ostr << "steps=[filter]" << endl;
+      if (iter%2 == 1) {
+        ostr << "filter.baseline=*&&*" << endl;
+      }
+      if (iter/2 == 1) {
+        ostr << "filter.remove=True" << endl;
+      }
+    }
+    DPRun::execute ("tNDPPP_tmp.parset");
+    //cout << "check ANTENNA"<<endl;
+    Table t1("tNDPPP_tmp.MS/ANTENNA");
+    Table t2("tNDPPP_tmp.MSa/ANTENNA");
+    // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
+    // have baselines. So these were removed meaning only 0,1,2,6,7 are left.
+    Vector<uInt> rownrs(5);
+    rownrs[0]=0; rownrs[1]=1; rownrs[2]=2; rownrs[3]=6; rownrs[4]=7;
+    Table t1s(t1);
+    if (iter/2 == 1) {
+      t1s = t1(rownrs);
+    }
+    ASSERT (t2.nrow() == t1s.nrow());
+    ASSERT (allEQ (ROScalarColumn<String>(t2,"NAME").getColumn(),
+                   ROScalarColumn<String>(t1s,"NAME").getColumn()));
+    //cout << "check FEED"<<endl;
+    t1 = Table("tNDPPP_tmp.MS/FEED");
+    t2 = Table("tNDPPP_tmp.MSa/FEED");
+    t1s = t1;
+    if (iter/2 == 1) {
+      t1s = t1(rownrs);
+    }
+    ASSERT (t2.nrow() == t1s.nrow());
+    // The ANTENNA_IDs in the FEED table must be 0,1,2.
+    Vector<Int> ids(t2.nrow());
+    indgen (ids);
+    ASSERT (allEQ (ROScalarColumn<Int>(t2,"ANTENNA_ID").getColumn(), ids));
+    // Check the main table.
+    t1 = Table("tNDPPP_tmp.MS");
+    t2 = Table("tNDPPP_tmp.MSa");
+    ASSERT (t2.nrow() == t1.nrow()+12); // 2 timeslots added
+    // A few dummy time slots were inserted, so ignore those.
+    Table t2s = t2(t2.nodeRownr() < 18  ||  t2.nodeRownr() >= 30);
+    ASSERT (allEQ (ROArrayColumn<Complex>(t2s,"DATA").getColumn(),
+                   ROArrayColumn<Complex>(t1,"DATA").getColumn()));
+    int ant1[] = {0,0,1,1,2,2};
+    int ant2[] = {6,7,6,7,6,7};
+    int sub = (iter/2 == 0 ? 0:3);    // if remove, ant2 6->3 and 7->4
+    for (int i=0; i<6; ++i) {
+      t2s = t2(t2.nodeRownr() % 6 == i);
+      ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA1").getColumn(),
+                     ant1[i]));
+      ASSERT (allEQ (ROScalarColumn<Int>(t2s,"ANTENNA2").getColumn(),
+                     ant2[i]-sub));
+    }
+  }
+}
+  
 void testClear()
 {
   cout << endl << "** testClear **" << endl;
@@ -714,6 +855,7 @@ int main()
   try
   {
     testCopy();
+    testCopyColumn();
     testMulti();
     testAvg1();
     testAvg2();
@@ -726,6 +868,8 @@ int main()
     testFlags2();
     testFlags3();
     testStationAdd();
+    testFilter1();
+    testFilter2();
     testClear();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;
