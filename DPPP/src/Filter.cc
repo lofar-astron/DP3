@@ -258,6 +258,10 @@ namespace LOFAR {
       renumberSubTable (ms, "FEED", "ANTENNA_ID", removedAnt, antMap, nr);
       renumberSubTable (ms, "POINTING", "ANTENNA_ID", removedAnt, antMap, nr);
       renumberSubTable (ms, "SYSCAL", "ANTENNA_ID", removedAnt, antMap, nr);
+      renumberSubTable (ms, "QUALITY_BASELINE_STATISTIC", "ANTENNA1",
+                        removedAnt, antMap, nr);
+      renumberSubTable (ms, "QUALITY_BASELINE_STATISTIC", "ANTENNA2",
+                        removedAnt, antMap, nr);
       // Finally remove and renumber in the beam tables.
       uInt nrAntFldId;
       Vector<uInt> remAntFldId = renumberSubTable (ms, "LOFAR_ANTENNA_FIELD",
