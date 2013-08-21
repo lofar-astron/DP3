@@ -75,7 +75,7 @@ namespace LOFAR {
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       ASSERTSTR (itsDataColName == "DATA", "Currently only the DATA column"
-                 " can be used as output");
+                 " can be used as output when writing a new MS");
       // Create the MS.
       if (tileNChan <= 0) {
         tileNChan = info.nchan();

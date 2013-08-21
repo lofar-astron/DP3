@@ -69,6 +69,11 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Test if output data column differs from input column.
+      static bool isNewDataColumn (MSReader* reader,
+                                   const ParameterSet& parset,
+                                   const string& prefix);
+
     private:
       // Write the flags at the given row numbers.
       void putFlags (const casa::RefRows& rowNrs,
@@ -78,14 +83,20 @@ namespace LOFAR {
       void putData (const casa::RefRows& rowNrs,
                     const casa::Cube<casa::Complex>& data);
 
+      // If not existing yet, add the data column.
+      // If existing, check if it contains Complex arrays.
+      void addDataColumn();
+
       //# Data members
       MSReader*   itsReader;
+      string      itsDataColName;
+      uint        itsNrTimesFlush; //# flush every N time slots (0=no flush)
       bool        itsWriteData;
       uint        itsNrCorr;
       uint        itsNrChan;
       uint        itsNrBl;
-      uint        itsNrTimesFlush; //# flush every N time slots (0=no flush)
       uint        itsNrDone;       //# nr of time slots written
+      bool        itsDataColAdded; //# has data column been added?
       NSTimer     itsTimer;
     };
 

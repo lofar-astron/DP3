@@ -123,7 +123,6 @@ namespace LOFAR {
       DPLOG_INFO_STR ("Finishing processing ...");
       firstStep->finish();
       // Give all steps the option to add something to the MS written.
-      // Currently it is used by the AOFlagger to write its statistics.
       if (! msName.empty()) {
         step = firstStep;
         while (step) {
@@ -278,12 +277,19 @@ namespace LOFAR {
         }
       }
       // Let all steps fill their info using the info from the previous step.
-      const DPInfo& lastInfo = firstStep->setInfo (DPInfo());
+      DPInfo lastInfo = firstStep->setInfo (DPInfo());
+      // If another output column, but no output MS is given the data
+      // need to be read and written.
+      if (outName.empty()  &&
+          MSUpdater::isNewDataColumn (reader, parset, "msout.")) {
+        lastInfo.setNeedVisData();
+        lastInfo.setNeedWrite (DPInfo::NeedWriteData);
+      }
       // Tell the reader if visibility data needs to be read.
       reader->setReadVisData (lastInfo.needVisData());
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
-      // If the user specified an output name, a writer is always created
+      // If the user specified an output MS name, a writer is always created
       // If there is a writer, the reader needs to read the visibility data.
       if (outName.empty()) {
         ASSERTSTR (lastInfo.nchanAvg() == 1  &&  lastInfo.ntimeAvg() == 1,
