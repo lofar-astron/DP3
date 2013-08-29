@@ -72,11 +72,11 @@ namespace LOFAR {
 
 
     private:
-      // Apply a diagonal Jones matrix to the 2x2 visibilities matrix
+      // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
       void applyDiag (casa::Complex* vis, float* weight, int antA, int antB,
           int chan, int time);
 
-      // Apply a full Jones matrix to the 2x2 visibilities matrix
+      // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
       void applyFull (casa::Complex* vis, float* weight, int antA, int antB,
           int chan, int time);
 
