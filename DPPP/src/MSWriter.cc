@@ -72,10 +72,14 @@ namespace LOFAR {
       itsCopyModelData     = parset.getBool (prefix+"copymodeldata", false);
       itsWriteFullResFlags = parset.getBool (prefix+"writefullresflag", true);
       itsDataColName       = parset.getString (prefix+"datacolumn", "DATA");
+      itsWeightColName     = parset.getString (prefix+"weightcolumn",
+                               "WEIGHT_SPECTRUM");
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
       ASSERTSTR (itsDataColName == "DATA", "Currently only the DATA column"
                  " can be used as output when writing a new MS");
+      ASSERTSTR (itsWeightColName == "WEIGHT_SPECTRUM", "Currently only the "
+          "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
       // Create the MS.
       if (tileNChan <= 0) {
         tileNChan = info.nchan();
@@ -145,6 +149,7 @@ namespace LOFAR {
       os << "  ntimes:         " << itsNrTimes << std::endl;
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
+      os << "  WEIGHT column:  " << itsWeightColName << std::endl;
     }
 
     void MSWriter::showTimings (std::ostream& os, double duration) const

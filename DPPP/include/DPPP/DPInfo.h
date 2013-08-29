@@ -49,7 +49,7 @@ namespace LOFAR {
     public:
 
       // Define bits telling if data and/or flags need to be written.
-      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2};
+      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2, NeedWriteWeight=4};
 
       // Default constructor.
       DPInfo();

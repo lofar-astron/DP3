@@ -151,7 +151,10 @@ void checkCopyColumn (const String& in)
   ASSERT (tin.nrow() == 6*24);
   ROArrayColumn<Complex> data1(tin, "DATA");
   ROArrayColumn<Complex> data2(tin, "COPY_DATA");
+  ROArrayColumn<float> weight1(tin, "NEW_WEIGHT_SPECTRUM");
+  ROArrayColumn<float> weight2(tin, "COPY_NEW_WEIGHT_SPECTRUM");
   ASSERT (allEQ(data1.getColumn(), data2.getColumn()));
+  ASSERT (allEQ(weight1.getColumn(), weight2.getColumn()));
 }
 
 void testCopy()
@@ -174,15 +177,30 @@ void testCopy()
 
 void testCopyColumn()
 {
-  cout << endl << "** testCopyColumn **" << endl;
+  cout << endl << "** testCopyColumn 1 **" << endl;
   {
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=tNDPPP_tmp.MS1" << endl;
     ostr << "msout=." << endl;
     ostr << "msout.datacolumn=COPY_DATA" << endl;
+    ostr << "msout.weightcolumn=NEW_WEIGHT_SPECTRUM" << endl;
     ostr << "steps=[]" << endl;
   }
   DPRun::execute ("tNDPPP_tmp.parset");
+
+  cout << endl << "** testCopyColumn 2 **" << endl;
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS1" << endl;
+    ostr << "msin.datacolumn=COPY_DATA" << endl;
+    ostr << "msin.weightcolumn=NEW_WEIGHT_SPECTRUM" << endl;
+    ostr << "msout=." << endl;
+    ostr << "msout.datacolumn=DATA" << endl;
+    ostr << "msout.weightcolumn=COPY_NEW_WEIGHT_SPECTRUM" << endl;
+    ostr << "steps=[]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+
   checkCopyColumn ("tNDPPP_tmp.MS1");
 }
 
@@ -202,6 +220,7 @@ void testMulti()
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]" << endl;
     ostr << "msin.datacolumn=CORRECTED_DATA" << endl;
+    ostr << "msin.weightcolumn=NEW_WEIGHT_SPECTRUM" << endl;
     ostr << "msin.missingdata=true" << endl;
     ostr << "msin.baseline=0,2&6" << endl;
     ostr << "msout=tNDPPP_tmp.MS1a" << endl;
@@ -212,6 +231,7 @@ void testMulti()
   Table tab("tNDPPP_tmp.MS1a");
   ASSERT (tab.nrow() == 48);
   ASSERT (allEQ (ROArrayColumn<Complex>(tab,"DATA").getColumn(), Complex()));
+  ASSERT (tab.tableDesc().isColumn("WEIGHT_SPECTRUM"));
   ASSERT (allEQ (ROArrayColumn<Bool>(tab,"FLAG").getColumn(), True));
   ASSERT (allEQ (ROScalarColumn<Int>(tab,"ANTENNA2").getColumn(), 6));
   {
@@ -804,7 +824,7 @@ void testFilter2()
     }
   }
 }
-  
+
 void testClear()
 {
   cout << endl << "** testClear **" << endl;
