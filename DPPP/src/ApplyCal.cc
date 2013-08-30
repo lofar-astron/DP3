@@ -441,9 +441,36 @@ namespace LOFAR {
         }
       }
 
-      // TODO: weights for this case are not implemented
-      // see combination of BBS + python script covariance2weight.py (cookbook)
-      // for what to do (diagonal of covariance matrix is transferred to WEIGHT)
+      // The code below does the same as the combination of BBS + python script
+      // covariance2weight.py (cookbook), except it stores weights per freq.
+      // The diagonal of covariance matrix is transferred to the weights.
+      // Note that the real covariance (mixing of noise terms after which they
+      // are not independent anymore) is not stored.
+      float oldweight[4];
+      for (uint i=0;i<4;++i) {
+        oldweight[i]=weight[i];
+      }
+
+      weight[0]=oldweight[0]/(norm(gainA[0])*norm(gainB[0]))
+               +oldweight[1]/(norm(gainA[0])*norm(gainB[1]))
+               +oldweight[2]/(norm(gainA[1])*norm(gainB[0]))
+               +oldweight[3]/(norm(gainA[1])*norm(gainB[1]));
+
+      weight[1]=oldweight[0]/(norm(gainA[0])*norm(gainB[2]))
+               +oldweight[1]/(norm(gainA[0])*norm(gainB[3]))
+               +oldweight[2]/(norm(gainA[1])*norm(gainB[2]))
+               +oldweight[3]/(norm(gainA[1])*norm(gainB[3]));
+
+      weight[2]=oldweight[0]/(norm(gainA[2])*norm(gainB[0]))
+               +oldweight[1]/(norm(gainA[2])*norm(gainB[1]))
+               +oldweight[2]/(norm(gainA[3])*norm(gainB[0]))
+               +oldweight[3]/(norm(gainA[3])*norm(gainB[1]));
+
+      weight[3]=oldweight[0]/(norm(gainA[2])*norm(gainB[2]))
+               +oldweight[1]/(norm(gainA[2])*norm(gainB[3]))
+               +oldweight[2]/(norm(gainA[3])*norm(gainB[2]))
+               +oldweight[3]/(norm(gainA[3])*norm(gainB[3]));
+
     }
   } //# end namespace
 }
