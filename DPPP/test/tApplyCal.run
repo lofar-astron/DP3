@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if test ! -f tApplyCal.in_parmdb.tgz; then
+  return 3   # untested
+fi
+
+tar zxf tApplyCal.in_parmdb.tgz
+./tApplyCal
