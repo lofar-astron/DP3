@@ -446,30 +446,39 @@ namespace LOFAR {
       // The diagonal of covariance matrix is transferred to the weights.
       // Note that the real covariance (mixing of noise terms after which they
       // are not independent anymore) is not stored.
-      float oldweight[4];
+      // The input covariance matrix C is assumed to be diagonal with elements
+      // w_i (the weights), the result the diagonal of
+      // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
+      float cov[4], normGainA[4], normGainB[4];
       for (uint i=0;i<4;++i) {
-        oldweight[i]=weight[i];
+        cov[i]=1./weight[i];
+        normGainA[i]=norm(gainA[i]);
+        normGainB[i]=norm(gainB[i]);
       }
 
-      weight[0]=oldweight[0]/(norm(gainA[0])*norm(gainB[0]))
-               +oldweight[1]/(norm(gainA[0])*norm(gainB[1]))
-               +oldweight[2]/(norm(gainA[1])*norm(gainB[0]))
-               +oldweight[3]/(norm(gainA[1])*norm(gainB[1]));
+      weight[0]=cov[0]*(normGainA[0]*normGainB[0])
+               +cov[1]*(normGainA[0]*normGainB[1])
+               +cov[2]*(normGainA[1]*normGainB[0])
+               +cov[3]*(normGainA[1]*normGainB[1]);
+      weight[0]=1./weight[0];
 
-      weight[1]=oldweight[0]/(norm(gainA[0])*norm(gainB[2]))
-               +oldweight[1]/(norm(gainA[0])*norm(gainB[3]))
-               +oldweight[2]/(norm(gainA[1])*norm(gainB[2]))
-               +oldweight[3]/(norm(gainA[1])*norm(gainB[3]));
+      weight[1]=cov[0]*(normGainA[0]*normGainB[2])
+               +cov[1]*(normGainA[0]*normGainB[3])
+               +cov[2]*(normGainA[1]*normGainB[2])
+               +cov[3]*(normGainA[1]*normGainB[3]);
+      weight[1]=1./weight[1];
 
-      weight[2]=oldweight[0]/(norm(gainA[2])*norm(gainB[0]))
-               +oldweight[1]/(norm(gainA[2])*norm(gainB[1]))
-               +oldweight[2]/(norm(gainA[3])*norm(gainB[0]))
-               +oldweight[3]/(norm(gainA[3])*norm(gainB[1]));
+      weight[2]=cov[0]*(normGainA[2]*normGainB[0])
+               +cov[1]*(normGainA[2]*normGainB[1])
+               +cov[2]*(normGainA[3]*normGainB[0])
+               +cov[3]*(normGainA[3]*normGainB[1]);
+      weight[2]=1./weight[2];
 
-      weight[3]=oldweight[0]/(norm(gainA[2])*norm(gainB[2]))
-               +oldweight[1]/(norm(gainA[2])*norm(gainB[3]))
-               +oldweight[2]/(norm(gainA[3])*norm(gainB[2]))
-               +oldweight[3]/(norm(gainA[3])*norm(gainB[3]));
+      weight[3]=cov[0]*(normGainA[2]*normGainB[2])
+               +cov[1]*(normGainA[2]*normGainB[3])
+               +cov[2]*(normGainA[3]*normGainB[2])
+               +cov[3]*(normGainA[3]*normGainB[3]);
+      weight[3]=1./weight[3];
 
     }
   } //# end namespace
