@@ -181,7 +181,7 @@ private:
     // ant2
     gains[0](0,0,1)=2;
     gains[3](0,0,1)=3;
-    gains[0](1,1,1)=3.+4.i;
+    gains[0](1,1,1)=Complex(3.,4.);
     // ant3
     gains[2](1,0,2)=.5;
 
