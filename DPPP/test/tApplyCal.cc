@@ -292,12 +292,19 @@ void testclocktec(int ntime, int nchan)
   parset2.add ("timeslotsperparmupdate", "5");
   DPStep::ShPtr step3(new ApplyCal(in, parset2, ""));
 
-  DPStep::ShPtr step4(new TestOutput(ntime, nchan,
+  ParameterSet parset3;
+  parset3.add ("correction", "commonscalarphase");
+  parset3.add ("parmdb", "tApplyCal_tmp.parmdb");
+  parset3.add ("timeslotsperparmupdate", "1");
+  DPStep::ShPtr step4(new ApplyCal(in, parset3, ""));
+
+  DPStep::ShPtr step5(new TestOutput(ntime, nchan,
       TestOutput::DataChanged | TestOutput::WeightsNotChanged));
 
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   step3->setNextStep (step4);
+  step4->setNextStep (step5);
   execute (step1);
   cout<<"finished testclocktec"<<endl;
 }

@@ -122,7 +122,7 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Real");
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      }  else if (itsCorrectType == "tec") {
+      } else if (itsCorrectType == "tec") {
         itsParmExprs.push_back("TEC");
       } else if (itsCorrectType == "clock") {
         if (itsParmDB->getNames("Clock:0:*").empty() &&
@@ -133,7 +133,12 @@ namespace LOFAR {
           itsParmExprs.push_back("Clock:0");
           itsParmExprs.push_back("Clock:1");
         }
-      } else {
+      } else if (itsCorrectType == "commonrotationangle") {
+        itsParmExprs.push_back("CommonRotationAngle");
+      } else if (itsCorrectType == "commonscalarphase") {
+        itsParmExprs.push_back("CommonScalarPhase");
+      }
+      else {
         THROW (Exception, "Correction type " + itsCorrectType +
                          " is unknown");
       }
@@ -187,7 +192,7 @@ namespace LOFAR {
 #pragma omp parallel for
       for (size_t bl=0; bl<nbl; ++bl) {
         for (size_t chan=0;chan<nchan;chan++) {
-          if (itsCorrectType=="fullgain") {
+          if (itsParms.size()>2) {
             applyFull( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
                 &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
                 info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
@@ -344,6 +349,16 @@ namespace LOFAR {
                   parmvalues[1][ant][tf] * freq * casa::C::_2pi);
             }
           }
+          else if (itsCorrectType=="commonrotationangle") {
+            itsParms[0][ant][tf] =  cos(parmvalues[0][ant][tf]);
+            itsParms[1][ant][tf] = -sin(parmvalues[0][ant][tf]);
+            itsParms[2][ant][tf] =  sin(parmvalues[0][ant][tf]);
+            itsParms[3][ant][tf] =  cos(parmvalues[0][ant][tf]);
+          }
+          else if (itsCorrectType=="commonscalarphase") {
+            itsParms[0][ant][tf] = polar(1., parmvalues[0][ant][tf]);
+            itsParms[1][ant][tf] = polar(1., parmvalues[0][ant][tf]);
+          }
         }
       }
     }
@@ -353,7 +368,7 @@ namespace LOFAR {
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
       uint numParms;
-      if (itsCorrectType=="fullgain") {
+      if (itsCorrectType=="fullgain" || itsCorrectType=="commonrotationangle") {
         numParms = 4;
       }
       else {
