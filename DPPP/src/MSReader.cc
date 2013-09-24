@@ -85,7 +85,7 @@ namespace LOFAR {
       // Try to open the MS and get its full name.
       if (itsMissingData  &&  !Table::isReadable (msName)) {
         DPLOG_WARN_STR ("MeasurementSet " << msName
-			<< " not found; dummy data used");
+            << " not found; dummy data used");
         return;
       }
       itsMS = MeasurementSet (msName, TableLock::AutoNoReadLocking);
@@ -94,7 +94,7 @@ namespace LOFAR {
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
-	DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
+        DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
         Table subset = itsSelMS (itsSelMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
@@ -107,7 +107,7 @@ namespace LOFAR {
       }
       // See if a selection on baseline needs to be done.
       if (! itsSelBL.empty()) {
-	DPLOG_INFO_STR (" MSReader selecting baselines ...");
+        DPLOG_INFO_STR (" MSReader selecting baselines ...");
         MSSelection select;
         // Set given selection strings.
         select.setAntennaExpr (itsSelBL);
@@ -736,9 +736,9 @@ namespace LOFAR {
       int norigchan = itsNrChan * itsFullResNChanAvg;
       // Return empty array if no fullRes flags.
       if (!itsHasFullResFlags) {
-	return Cube<bool>();
+        return Cube<bool>();
       } else if (rowNrs.rowVector().empty()) {
-	// Return all False if rows are missing.
+        // Return all False if rows are missing.
         return Cube<bool>(norigchan, itsFullResNTimeAvg, itsNrBl, true);
       }
       ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");

@@ -181,7 +181,7 @@ namespace LOFAR {
         ArrayColumn<bool> flagCol(itsReader->table(), "FLAG");
         ScalarColumn<bool> flagRowCol(itsReader->table(), "FLAG_ROW");
         // Loop over all rows of this subset.
-	// (it also avoids StandardStMan putCol with RefRows problem).
+        // (it also avoids StandardStMan putCol with RefRows problem).
         Vector<uint> rows = rowNrs.convert();
         ReadOnlyArrayIterator<bool> flagIter (flags, 2);
         for (uint i=0; i<rows.size(); ++i) {
@@ -193,7 +193,7 @@ namespace LOFAR {
             flagRowCol.put (rows[i], False);
           }
           flagIter.next();
-	}
+        }
       }
     }
 
@@ -224,13 +224,13 @@ namespace LOFAR {
         const Slicer& colSlicer = itsReader->colSlicer();
         ArrayColumn<Complex> dataCol(itsReader->table(), itsDataColName);
         // Loop over all rows of this subset.
-	// (it also avoids StandardStMan putCol with RefRows problem).
+        // (it also avoids StandardStMan putCol with RefRows problem).
         Vector<uint> rows = rowNrs.convert();
         ReadOnlyArrayIterator<Complex> dataIter (data, 2);
         for (uint i=0; i<rows.size(); ++i) {
           dataCol.putSlice (rows[i], colSlicer, dataIter.array());
           dataIter.next();
-	}
+        }
       }
     }
 

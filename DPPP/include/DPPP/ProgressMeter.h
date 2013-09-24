@@ -83,9 +83,9 @@ public:
     // in the progress bar position at that level. If updateEvery is <=0, it
     // is set to 1 for you.
     ProgressMeter(double min, double max, 
-		  const string& title, const string& subtitle,
-		  const string& minlabel, const string& maxlabel,
-		  bool estimateTime=true, int updateEvery=1);
+        const string& title, const string& subtitle,
+        const string& minlabel, const string& maxlabel,
+        bool estimateTime=true, int updateEvery=1);
 
     // The destruction of the meter will cause an update to be sent with the
     // maximum value. This will usually cause the GUI window to be removed

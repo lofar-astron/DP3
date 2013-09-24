@@ -504,7 +504,7 @@ namespace LOFAR {
                                                       itsTimer));
       const IPosition& ofShape = flags.shape();
       ASSERTSTR (uint(ofShape[0]) == itsNChanAvg * itsNrChan,
-		 ofShape<<itsNChanAvg<<'*'<<itsNrChan);
+          ofShape<<itsNChanAvg<<'*'<<itsNrChan);
       ASSERTSTR (uint(ofShape[1]) == itsNTimeAvg, ofShape<<itsNTimeAvg);
       // Convert the bools to uChar bits.
       IPosition chShape(ofShape);

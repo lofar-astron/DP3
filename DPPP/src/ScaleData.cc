@@ -101,8 +101,8 @@ namespace LOFAR {
         // Convert the station string to a proper Regex object.
         stationRegex[i] = Regex(Regex::fromPattern(itsStationExp[i]));
         // Convert coefficients from string to double.
-	ParameterValue coeffPar(itsCoeffStr[i]);
-	vector<double> coeff (coeffPar.getDoubleVector());
+        ParameterValue coeffPar(itsCoeffStr[i]);
+        vector<double> coeff (coeffPar.getDoubleVector());
         ASSERTSTR (coeff.size() > 0, "A ScaleData coeffs vector is empty");
         vector<double>& scales = scaleVec[i];
         scales.reserve (freqs.size());
@@ -122,9 +122,9 @@ namespace LOFAR {
       vector<double> extraFactors(nant, 1.);
       if (itsScaleSize  ||  !itsScaleSizeGiven) {
         fillSizeScaleFactors (nNominal, extraFactors);
-	ASSERTSTR (extraFactors.size() == nant,
-		   "Maybe stations have been added before doing the scaling; "
-		   "that should not be done");
+        ASSERTSTR (extraFactors.size() == nant,
+            "Maybe stations have been added before doing the scaling; "
+            "that should not be done");
       }
       // Find the scale factors for each station.
       // The first matching regex is used.

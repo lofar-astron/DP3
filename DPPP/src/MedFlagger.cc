@@ -281,66 +281,66 @@ namespace LOFAR {
       // This can be done in parallel.
 #pragma omp parallel
       {
-	// Create a temporary buffer (per thread) to hold data for determining
-	// the medians.
-	// Also create thread-private counter and timer objects.
-	Block<float> tempBuf(itsFreqWindow*ntime);
-	FlagCounter counter;
-	counter.init (getInfo());
-	NSTimer moveTimer;
-	NSTimer medianTimer;
-	float Z1, Z2;
-	// The for loop can be parallellized. This must be done dynamically,
-	// because the execution time of each iteration can vary a lot.
+        // Create a temporary buffer (per thread) to hold data for determining
+        // the medians.
+        // Also create thread-private counter and timer objects.
+        Block<float> tempBuf(itsFreqWindow*ntime);
+        FlagCounter counter;
+        counter.init (getInfo());
+        NSTimer moveTimer;
+        NSTimer medianTimer;
+        float Z1, Z2;
+        // The for loop can be parallellized. This must be done dynamically,
+        // because the execution time of each iteration can vary a lot.
 #pragma omp for schedule(dynamic)
-	// GCC-4.3 only supports OpenMP 2.5 that needs signed iteration
-	// variables.
-	for (int ib=0; ib<nrbl; ++ib) {
-	  const float* dataPtr = bufDataPtr + ib*blsize;
-	  bool* flagPtr = bufFlagPtr + ib*blsize;
-	  double threshold = itsThresholdArr[ib];
-	  // Do only autocorrelations if told so.
-	  // Otherwise do baseline only if length within min-max.
-	  if ((!itsApplyAutoCorr  &&  itsBLength[ib] >= itsMinBLength  &&
-	       itsBLength[ib] <= itsMaxBLength)  ||
-	      (itsApplyAutoCorr  &&  ant1[ib] == ant2[ib])) {
-	    for (uint ic=0; ic<nchan; ++ic) {
-	      bool corrIsFlagged = false;
-	      // Iterate over given correlations.
-	      for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
-		   iter != itsFlagCorr.end(); ++iter) {
-		uint ip = *iter;
-		// If one correlation is flagged, all of them will be flagged.
-		// So no need to check others.
-		if (flagPtr[ip]) {
-		  corrIsFlagged = true;
-		  break;
-		}
-		// Calculate values from the median.
-		computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
-				Z1, Z2, tempBuf.storage(),
-				moveTimer, medianTimer);
-		if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
-		  corrIsFlagged = true;
-		  counter.incrBaseline(ib);
-		  counter.incrChannel(ic);
-		  counter.incrCorrelation(ip);
-		  break;
-		}
-	      }
-	      if (corrIsFlagged) {
-		for (uint ip=0; ip<ncorr; ++ip) {
-		  flagPtr[ip] = true;
-		}
-	      }
-	      dataPtr += ncorr;
-	      flagPtr += ncorr;
-	    }
-	  } else {
-	    dataPtr += nchan*ncorr;
-	    flagPtr += nchan*ncorr;
-	  }
-	} // end of OMP for
+        // GCC-4.3 only supports OpenMP 2.5 that needs signed iteration
+        // variables.
+        for (int ib=0; ib<nrbl; ++ib) {
+          const float* dataPtr = bufDataPtr + ib*blsize;
+          bool* flagPtr = bufFlagPtr + ib*blsize;
+          double threshold = itsThresholdArr[ib];
+          // Do only autocorrelations if told so.
+          // Otherwise do baseline only if length within min-max.
+          if ((!itsApplyAutoCorr  &&  itsBLength[ib] >= itsMinBLength  &&
+              itsBLength[ib] <= itsMaxBLength)  ||
+              (itsApplyAutoCorr  &&  ant1[ib] == ant2[ib])) {
+            for (uint ic=0; ic<nchan; ++ic) {
+              bool corrIsFlagged = false;
+              // Iterate over given correlations.
+              for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
+                  iter != itsFlagCorr.end(); ++iter) {
+                uint ip = *iter;
+                // If one correlation is flagged, all of them will be flagged.
+                // So no need to check others.
+                if (flagPtr[ip]) {
+                  corrIsFlagged = true;
+                  break;
+                }
+                // Calculate values from the median.
+                computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
+                    Z1, Z2, tempBuf.storage(),
+                    moveTimer, medianTimer);
+                if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
+                  corrIsFlagged = true;
+                  counter.incrBaseline(ib);
+                  counter.incrChannel(ic);
+                  counter.incrCorrelation(ip);
+                  break;
+                }
+              }
+              if (corrIsFlagged) {
+                for (uint ip=0; ip<ncorr; ++ip) {
+                  flagPtr[ip] = true;
+                }
+              }
+              dataPtr += ncorr;
+              flagPtr += ncorr;
+            }
+          } else {
+            dataPtr += nchan*ncorr;
+            flagPtr += nchan*ncorr;
+          }
+        } // end of OMP for
 #pragma omp critical(medflagger_updatecounts)
         {
           // Add the counters to the overall object.

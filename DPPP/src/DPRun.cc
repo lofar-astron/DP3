@@ -155,9 +155,9 @@ namespace LOFAR {
         while (step) {
           ostringstream os;
           step->showTimings (os, duration);
-	  if (! os.str().empty()) {
-	    DPLOG_INFO (os.str(), true);
-	  }
+        if (! os.str().empty()) {
+          DPLOG_INFO (os.str(), true);
+        }
           step = step->getNextStep();
         }
       }
@@ -210,16 +210,16 @@ namespace LOFAR {
       // A name equal to . or input name means an update, so clear outname.
       bool needWrite = false;
       if (! outName.empty()) {
-	needWrite = true;
-	if (outName == ".") {
-	  outName = "";
-	} else {
-	  casa::Path pathIn (inNames[0]);
-	  casa::Path pathOut(outName);
-	  if (pathIn.absoluteName() == pathOut.absoluteName()) {
-	    outName = "";
-	  }
-	}
+        needWrite = true;
+        if (outName == ".") {
+          outName = "";
+        } else {
+          casa::Path pathIn (inNames[0]);
+          casa::Path pathOut(outName);
+          if (pathIn.absoluteName() == pathOut.absoluteName()) {
+            outName = "";
+          }
+        }
       }
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
@@ -324,6 +324,5 @@ namespace LOFAR {
       }
       return firstStep;
     }
-
   } //# end namespace
 }

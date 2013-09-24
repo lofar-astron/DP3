@@ -76,8 +76,8 @@ namespace LOFAR
                               MsInfo& Info,
                               DataBuffer& Buffer,
                               TimeBuffer& TimeData,
-			      bool missingTime,
-			      double timeValue);
+                              bool missingTime,
+                              double timeValue);
       /// Writes the data in DataBuffer->Position+1 to the file
       void WriteData(casa::TableIterator& Data_iter,
                      MsInfo& Info,
