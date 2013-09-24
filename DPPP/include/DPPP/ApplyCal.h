@@ -36,9 +36,6 @@
 #include <casa/Arrays/ArrayMath.h>
 
 namespace LOFAR {
-
-  class ParameterSet;
-
   namespace DPPP {
     // @ingroup NDPPP
 
