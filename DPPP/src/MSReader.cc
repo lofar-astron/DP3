@@ -301,26 +301,8 @@ namespace LOFAR {
               itsBuffer.getFlags() = false;
             }
             // Flag invalid data (NaN, infinite).
-            // TODO: TJ make static, use in correct
-            const Complex* dataPtr = itsBuffer.getData().data();
-            bool* flagPtr = itsBuffer.getFlags().data();
-            for (uint i=0; i<itsBuffer.getData().size();) {
-              for (uint j=i; j<i+itsNrCorr; ++j) {
-                bool flag = (!isFinite(dataPtr[j].real())  ||
-                             !isFinite(dataPtr[j].imag()));
-                if (flag) {
-                  itsFlagCounter.incrCorrelation(j-i);
-                }
-                if (flag  ||  flagPtr[j]) {
-                  // Flag all correlations if a single one is flagged.
-                  for (uint k=i; k<i+itsNrCorr; ++k) {
-                    flagPtr[k] = true;
-                  }
-                  break;
-                }
-              }
-              i += itsNrCorr;
-            }
+            flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(),
+                       itsFlagCounter);
           }
           itsLastMSTime = itsNextTime;
           itsNrRead++;
@@ -335,6 +317,30 @@ namespace LOFAR {
       // Do not add to previous time, because it introduces round-off errors.
       itsNextTime = itsFirstTime + (itsNrRead+itsNrInserted) * itsTimeInterval;
       return true;
+    }
+
+    void MSReader::flagInfNaN(const casa::Cube<casa::Complex>& dataCube,
+                          casa::Cube<bool>& flagsCube, FlagCounter& flagCounter) {
+      int ncorr=dataCube.shape()[0];
+      const Complex* dataPtr = dataCube.data();
+      bool* flagPtr = flagsCube.data();
+      for (uint i=0; i<dataCube.size();) {
+        for (uint j=i; j<i+ncorr; ++j) {
+          bool flag = (!isFinite(dataPtr[j].real())  ||
+                       !isFinite(dataPtr[j].imag()));
+          if (flag) {
+            flagCounter.incrCorrelation(j-i);
+          }
+          if (flag  ||  flagPtr[j]) {
+            // Flag all correlations if a single one is flagged.
+            for (uint k=i; k<i+ncorr; ++k) {
+              flagPtr[k] = true;
+            }
+            break;
+          }
+        }
+        i += ncorr;
+      }
     }
 
     void MSReader::finish()

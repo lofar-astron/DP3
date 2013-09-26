@@ -25,6 +25,7 @@
 #include <DPPP/ApplyCal.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
+#include <DPPP/MSReader.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
 #include <Common/LofarLogger.h>
@@ -58,8 +59,6 @@ namespace LOFAR {
         itsUseAP       (false)
     {
       ASSERT (!itsParmDBName.empty());
-      // Possible corrections one (or more?) of:
-      //   Gain (real/imag or ampl/phase), RM, TEC, Clock, Bandpass
     }
 
     ApplyCal::~ApplyCal()
@@ -144,6 +143,7 @@ namespace LOFAR {
       }
 
       initDataArrays();
+      itsFlagCounter.init(getInfo());
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -204,6 +204,8 @@ namespace LOFAR {
           }
         }
       }
+
+      MSReader::flagInfNaN(buf.getData(),buf.getFlags(),itsFlagCounter);
 
       itsTimer.stop();
       getNextStep()->process(buf);
@@ -496,5 +498,6 @@ namespace LOFAR {
       weight[3]=1./weight[3];
 
     }
+
   } //# end namespace
 }
