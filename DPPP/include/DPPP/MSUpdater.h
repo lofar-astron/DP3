@@ -75,6 +75,11 @@ namespace LOFAR {
                                    const ParameterSet& parset,
                                    const string& prefix);
 
+      // Tests if an update is possible. When throwError is true, it will
+      // throw an error with a descriptive string instead of returning false
+      static bool updateAllowed (DPInfo& info, MSReader* reader,
+                                  bool throwError=true);
+
     private:
       // Write the flags at the given row numbers.
       void putFlags (const casa::RefRows& rowNrs,
@@ -101,9 +106,6 @@ namespace LOFAR {
       uint        itsNrTimesFlush; //# flush every N time slots (0=no flush)
       bool        itsWriteData;
       bool        itsWriteWeight;
-      uint        itsNrCorr;
-      uint        itsNrChan;
-      uint        itsNrBl;
       uint        itsNrDone;       //# nr of time slots written
       bool        itsDataColAdded; //# has data column been added?
       bool        itsWeightColAdded; //# has weight column been added?

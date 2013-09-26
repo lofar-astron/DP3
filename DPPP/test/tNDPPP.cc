@@ -825,6 +825,25 @@ void testFilter2()
   }
 }
 
+
+void testFilter3()
+{
+  cout << endl << "** testFilter3 **" << endl;
+  // Remove some baselines, update original file with different data column
+  // This test justs tests if it runs without throwing exceptions
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msout=." << endl;
+    ostr << "msout.datacolumn=DATA_FILTER" << endl;
+    ostr << "steps=[filter]" << endl;
+    ostr << "filter.baseline=!RT[16]&&*" << endl;
+    ostr << "filter.remove=False" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+}
+
+
 void testClear()
 {
   cout << endl << "** testClear **" << endl;
@@ -890,6 +909,7 @@ int main()
     testStationAdd();
     testFilter1();
     testFilter2();
+    testFilter3();
     testClear();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;

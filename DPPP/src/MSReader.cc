@@ -301,6 +301,7 @@ namespace LOFAR {
               itsBuffer.getFlags() = false;
             }
             // Flag invalid data (NaN, infinite).
+            // TODO: TJ make static, use in correct
             const Complex* dataPtr = itsBuffer.getData().data();
             bool* flagPtr = itsBuffer.getFlags().data();
             for (uint i=0; i<itsBuffer.getData().size();) {
