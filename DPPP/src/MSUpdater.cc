@@ -46,6 +46,9 @@ namespace LOFAR {
       : itsReader       (reader),
         itsWriteData    ((needWrite & DPInfo::NeedWriteData) != 0),
         itsWriteWeight  ((needWrite & DPInfo::NeedWriteWeight) != 0),
+        itsNrCorr       (reader->getInfo().ncorr()),
+        itsNrChan       (reader->getInfo().nchan()),
+        itsNrBl         (reader->getInfo().nbaselines()),
         itsNrDone       (0),
         itsDataColAdded (false),
         itsWeightColAdded (false)
@@ -90,30 +93,6 @@ namespace LOFAR {
       String colName = parset.getString (prefix+"datacolumn",
                                          reader->dataColumnName());
       return colName != reader->dataColumnName();
-    }
-
-    bool MSUpdater::updateAllowed (DPInfo& info, MSReader* reader,
-                                    bool throwError) {
-      if (info.nchanAvg() != 1 || info.ntimeAvg() != 1) {
-        if (throwError) {
-          THROW(Exception, "A new MS has to be given in msout if averaging is done");
-        }
-        return false;
-      }
-      if (!info.phaseCenterIsOriginal()) {
-        if (throwError) {
-          THROW(Exception, "A new MS has to be given in msout if a phase shift is done");
-        }
-        return false;
-      }
-      if (info.antennaNames().size() != reader->getInfo().antennaNames().size() ||
-          ! allEQ(info.antennaNames(), reader->getInfo().antennaNames())) {
-        if (throwError) {
-          THROW(Exception, "A new MS has to be given if antennas are added or removed");
-        }
-        return false;
-      }
-      return true;
     }
 
     bool MSUpdater::addColumn(const string& colName, const casa::DataType
@@ -198,8 +177,7 @@ namespace LOFAR {
     {
       // Only put if rownrs are filled, thus if data were not inserted.
       if (! rowNrs.rowVector().empty()) {
-        Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                         IPosition(2, info().ncorr(), info().nchan()) );
+        const Slicer& colSlicer = itsReader->colSlicer();
         ArrayColumn<bool> flagCol(itsReader->table(), "FLAG");
         ScalarColumn<bool> flagRowCol(itsReader->table(), "FLAG_ROW");
         // Loop over all rows of this subset.
@@ -224,11 +202,10 @@ namespace LOFAR {
     {
       // Only put if rownrs are filled, thus if data were not inserted.
       if (! rowNrs.rowVector().empty()) {
-        Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                         IPosition(2, info().ncorr(), info().nchan()) );
+        const Slicer& colSlicer = itsReader->colSlicer();
         ArrayColumn<float> weightCol(itsReader->table(), itsWeightColName);
         // Loop over all rows of this subset.
-        // (it also avoids StandardStMan putCol with RefRows problem).
+  // (it also avoids StandardStMan putCol with RefRows problem).
         Vector<uint> rows = rowNrs.convert();
         ReadOnlyArrayIterator<float> weightIter (weights, 2);
         for (uint i=0; i<rows.size(); ++i) {
@@ -243,10 +220,8 @@ namespace LOFAR {
                              const Cube<Complex>& data)
     {
       // Only put if rownrs are filled, thus if data were not inserted.
-      //cout << "Data shape"<< data.shape()<<endl;
       if (! rowNrs.rowVector().empty()) {
-        Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                         IPosition(2, info().ncorr(), info().nchan()) );
+        const Slicer& colSlicer = itsReader->colSlicer();
         ArrayColumn<Complex> dataCol(itsReader->table(), itsDataColName);
         // Loop over all rows of this subset.
         // (it also avoids StandardStMan putCol with RefRows problem).

@@ -40,7 +40,6 @@ namespace LOFAR {
       : itsNeedVisData  (false),
         itsNeedWrite    (0),
         itsNCorr        (0),
-        itsStartChan    (0),
         itsNChan        (0),
         itsChanAvg      (1),
         itsNTime        (0),
@@ -188,11 +187,8 @@ namespace LOFAR {
                          const vector<uint>& baselines, bool removeAnt)
     {
       Slice slice(startChan, nchan);
-      itsStartChan=startChan;
       itsChanFreqs.reference  (itsChanFreqs (slice).copy());
       itsChanWidths.reference (itsChanWidths(slice).copy());
-      itsResolutions.reference (itsResolutions(slice).copy());
-      itsEffectiveBW.reference (itsEffectiveBW(slice).copy());
       itsNChan = nchan;
       // Keep only selected baselines.
       if (! baselines.empty()) {

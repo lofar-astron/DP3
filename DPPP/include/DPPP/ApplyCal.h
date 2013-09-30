@@ -34,7 +34,6 @@
 #include <ParmDB/Parm.h>
 #include <casa/Arrays/Cube.h>
 #include <casa/Arrays/ArrayMath.h>
-#include <DPPP/FlagCounter.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -67,6 +66,7 @@ namespace LOFAR {
 
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
+
 
     private:
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
@@ -103,7 +103,6 @@ namespace LOFAR {
       uint            itsNCorr;
       double          itsTimeInterval;
       double          itsLastTime;
-      FlagCounter     itsFlagCounter;
       bool            itsUseAP;      //# use ampl/phase or real/imag
       NSTimer         itsTimer;
     };

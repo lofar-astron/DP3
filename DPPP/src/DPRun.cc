@@ -292,9 +292,10 @@ namespace LOFAR {
       // If the user specified an output MS name, a writer is always created
       // If there is a writer, the reader needs to read the visibility data.
       if (outName.empty()) {
-        if (!MSUpdater::updateAllowed(lastInfo,reader)) {
-          THROW(Exception, "Updating an existing MS is not possible with the current operations");
-        }
+        ASSERTSTR (lastInfo.nchanAvg() == 1  &&  lastInfo.ntimeAvg() == 1,
+                   "A new MS has to be given in msout if averaging is done");
+        ASSERTSTR (lastInfo.phaseCenterIsOriginal(),
+                   "A new MS has to be given in msout if a phase shift is done");
         if (needWrite  ||  lastInfo.needWrite()) {
           ASSERTSTR (inNames.size() == 1,
                      "No update can be done if multiple input MSs are used");

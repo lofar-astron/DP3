@@ -185,12 +185,7 @@ namespace LOFAR {
         itsBuf.getWeights() = weights(first, last);
         itsBuf.getFullResFlags() = frFlags(frfFirst, frfLast);
         itsBuf.setUVW (buf.getUVW());
-        itsBuf.setRowNrs   (buf.getRowNrs());
       } else {
-        Vector<uint> rowNrs(0);
-        if (!buf.getRowNrs().empty()) {
-          rowNrs.resize(getInfo().nbaselines());
-        }
         // Copy the data of the selected baselines and channels.
         itsBuf.getUVW().resize (IPosition(2, 3, getInfo().nbaselines()));
         itsBuf.getUVW().unique();
@@ -209,9 +204,6 @@ namespace LOFAR {
         int nffr = frFlags.shape()[0];
         int nfto = itsBuf.getFullResFlags().shape()[0];
         for (uint i=0; i<itsSelBL.size(); ++i) {
-          if (!buf.getRowNrs().empty()) {
-            rowNrs[i] = buf.getRowNrs()[itsSelBL[i]];
-          }
           objcopy (toData  , frData   + itsSelBL[i]*ndfr, ndto);
           toData += ndto;
           objcopy (toFlag  , frFlag   + itsSelBL[i]*ndfr, ndto);
@@ -229,7 +221,6 @@ namespace LOFAR {
             frFrf += nffr;
           }
         }
-        itsBuf.setRowNrs(rowNrs);
       }
       itsBuf.setTime     (buf.getTime());
       itsBuf.setExposure (buf.getExposure());

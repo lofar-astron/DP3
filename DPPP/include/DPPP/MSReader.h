@@ -240,10 +240,6 @@ namespace LOFAR {
       const DPBuffer& getBuffer() const
         { return itsBuffer; }
 
-      // Flags inf and NaN
-      static void flagInfNaN(const casa::Cube<casa::Complex>& dataCube,
-                       casa::Cube<bool>& flagsCube, FlagCounter& flagCounter);
-
     private:
       // Prepare the access to the MS.
       // Return the first and last time and the interval.
