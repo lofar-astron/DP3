@@ -38,6 +38,7 @@
 #include <DPPP/Demixer.h>
 #include <DPPP/StationAdder.h>
 #include <DPPP/ScaleData.h>
+#include <DPPP/ApplyCal.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -122,7 +123,6 @@ namespace LOFAR {
       DPLOG_INFO_STR ("Finishing processing ...");
       firstStep->finish();
       // Give all steps the option to add something to the MS written.
-      // Currently it is used by the AOFlagger to write its statistics.
       if (! msName.empty()) {
         step = firstStep;
         while (step) {
@@ -155,9 +155,9 @@ namespace LOFAR {
         while (step) {
           ostringstream os;
           step->showTimings (os, duration);
-	  if (! os.str().empty()) {
-	    DPLOG_INFO (os.str(), true);
-	  }
+        if (! os.str().empty()) {
+          DPLOG_INFO (os.str(), true);
+        }
           step = step->getNextStep();
         }
       }
@@ -210,16 +210,16 @@ namespace LOFAR {
       // A name equal to . or input name means an update, so clear outname.
       bool needWrite = false;
       if (! outName.empty()) {
-	needWrite = true;
-	if (outName == ".") {
-	  outName = "";
-	} else {
-	  casa::Path pathIn (inNames[0]);
-	  casa::Path pathOut(outName);
-	  if (pathIn.absoluteName() == pathOut.absoluteName()) {
-	    outName = "";
-	  }
-	}
+        needWrite = true;
+        if (outName == ".") {
+          outName = "";
+        } else {
+          casa::Path pathIn (inNames[0]);
+          casa::Path pathOut(outName);
+          if (pathIn.absoluteName() == pathOut.absoluteName()) {
+            outName = "";
+          }
+        }
       }
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
@@ -264,8 +264,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ScaleData (reader, parset, prefix));
         } else if (type == "filter") {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
-          ///        } else if (type == "applycal"  ||  type == "correct") {
-          ///          step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
+        } else if (type == "applycal"  ||  type == "correct") {
+          step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
@@ -277,18 +277,24 @@ namespace LOFAR {
         }
       }
       // Let all steps fill their info using the info from the previous step.
-      const DPInfo& lastInfo = firstStep->setInfo (DPInfo());
+      DPInfo lastInfo = firstStep->setInfo (DPInfo());
+      // If another output column, but no output MS is given the data
+      // need to be read and written.
+      if (outName.empty()  &&
+          MSUpdater::isNewDataColumn (reader, parset, "msout.")) {
+        lastInfo.setNeedVisData();
+        lastInfo.setNeedWrite (DPInfo::NeedWriteData);
+      }
       // Tell the reader if visibility data needs to be read.
       reader->setReadVisData (lastInfo.needVisData());
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
-      // If the user specified an output name, a writer is always created
+      // If the user specified an output MS name, a writer is always created
       // If there is a writer, the reader needs to read the visibility data.
       if (outName.empty()) {
-        ASSERTSTR (lastInfo.nchanAvg() == 1  &&  lastInfo.ntimeAvg() == 1,
-                   "A new MS has to be given in msout if averaging is done");
-        ASSERTSTR (lastInfo.phaseCenterIsOriginal(),
-                   "A new MS has to be given in msout if a phase shift is done");
+        if (!MSUpdater::updateAllowed(lastInfo,reader)) {
+          THROW(Exception, "Updating an existing MS is not possible with the current operations");
+        }
         if (needWrite  ||  lastInfo.needWrite()) {
           ASSERTSTR (inNames.size() == 1,
                      "No update can be done if multiple input MSs are used");
@@ -317,6 +323,5 @@ namespace LOFAR {
       }
       return firstStep;
     }
-
   } //# end namespace
 }

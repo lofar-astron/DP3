@@ -1091,18 +1091,18 @@ namespace LOFAR {
           // Defined as a vector, take the values given.
           vector<string> valstr = value.getStringVector();
           uint sz = std::min(valstr.size(), result.size());
-	  if (sz > 0) {
-	    // It contains a value, so set that flagging is done.
-	    doFlag = true;
-	    for (uint i=0; i<sz; ++i) {
-	      if (! valstr[i].empty()) {
-		result[i] = strToFloat(valstr[i]);
-	      }
-	    }
+          if (sz > 0) {
+            // It contains a value, so set that flagging is done.
+            doFlag = true;
+            for (uint i=0; i<sz; ++i) {
+              if (! valstr[i].empty()) {
+                result[i] = strToFloat(valstr[i]);
+              }
+            }
           }
         } else {
           // A single value means use it for all correlations.
-	  doFlag = true;
+          doFlag = true;
           std::fill (result.begin(), result.end(), value.getFloat());
         }
       }

@@ -49,7 +49,7 @@ namespace LOFAR {
     public:
 
       // Define bits telling if data and/or flags need to be written.
-      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2};
+      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2, NeedWriteWeight=4};
 
       // Default constructor.
       DPInfo();
@@ -94,8 +94,9 @@ namespace LOFAR {
       uint update (uint chanAvg, uint timeAvg);
 
       // Update the info from the given selection parameters.
+      // Optionally the stations are really removed from the antenna lists.
       void update (uint startChan, uint nchan,
-                   const vector<uint>& baselines);
+                   const vector<uint>& baselines, bool remove);
 
       // Set the phase center.
       // If original=true, it is set to the original phase center.
@@ -111,8 +112,10 @@ namespace LOFAR {
         { return itsNCorr; }
       uint nchan() const
         { return itsNChan; }
+      uint startchan() const
+        { return itsStartChan; }
         uint origNChan() const
-      { return itsOrigNChan; }
+        { return itsOrigNChan; }
       uint nchanAvg() const
         { return itsChanAvg; }
       uint nbaselines() const
@@ -200,6 +203,7 @@ namespace LOFAR {
       string itsMSName;
       string itsAntennaSet;
       uint   itsNCorr;
+      uint   itsStartChan;
       uint   itsOrigNChan;
       uint   itsNChan;
       uint   itsChanAvg;
@@ -221,8 +225,8 @@ namespace LOFAR {
       casa::Vector<casa::String> itsAntNames;
       casa::Vector<casa::Double> itsAntDiam;
       vector<casa::MPosition>    itsAntPos;
-      vector<int>                itsAntUsed;
-      vector<int>                itsAntMap;
+      vector<int>                itsAntUsed;       //# tells which ant are used
+      vector<int>                itsAntMap;        //# reverse of itsAntUsed
       casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
       casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
       mutable vector<double>     itsBLength;       //# baseline lengths

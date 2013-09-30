@@ -76,6 +76,8 @@ namespace LOFAR {
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
+      itsWeightColName    = parset.getString (prefix+"weightcolumn",
+                                              "WEIGHT_SPECTRUM");
       itsAutoWeight       = parset.getBool   (prefix+"autoweight", false);
       itsAutoWeightForce  = parset.getBool   (prefix+"forceautoweight", false);
       itsNeedSort         = parset.getBool   (prefix+"sort", false);
@@ -83,7 +85,7 @@ namespace LOFAR {
       // Try to open the MS and get its full name.
       if (itsMissingData  &&  !Table::isReadable (msName)) {
         DPLOG_WARN_STR ("MeasurementSet " << msName
-			<< " not found; dummy data used");
+            << " not found; dummy data used");
         return;
       }
       itsMS = MeasurementSet (msName, TableLock::AutoNoReadLocking);
@@ -92,7 +94,7 @@ namespace LOFAR {
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
-	DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
+        DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
         Table subset = itsSelMS (itsSelMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
@@ -105,7 +107,7 @@ namespace LOFAR {
       }
       // See if a selection on baseline needs to be done.
       if (! itsSelBL.empty()) {
-	DPLOG_INFO_STR (" MSReader selecting baselines ...");
+        DPLOG_INFO_STR (" MSReader selecting baselines ...");
         MSSelection select;
         // Set given selection strings.
         select.setAntennaExpr (itsSelBL);
@@ -299,25 +301,8 @@ namespace LOFAR {
               itsBuffer.getFlags() = false;
             }
             // Flag invalid data (NaN, infinite).
-            const Complex* dataPtr = itsBuffer.getData().data();
-            bool* flagPtr = itsBuffer.getFlags().data();
-            for (uint i=0; i<itsBuffer.getData().size();) {
-              for (uint j=i; j<i+itsNrCorr; ++j) {
-                bool flag = (!isFinite(dataPtr[j].real())  ||
-                             !isFinite(dataPtr[j].imag()));
-                if (flag) {
-                  itsFlagCounter.incrCorrelation(j-i);
-                }
-                if (flag  ||  flagPtr[j]) {
-                  // Flag all correlations if a single one is flagged.
-                  for (uint k=i; k<i+itsNrCorr; ++k) {
-                    flagPtr[k] = true;
-                  }
-                  break;
-                }
-              }
-              i += itsNrCorr;
-            }
+            flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(),
+                       itsFlagCounter);
           }
           itsLastMSTime = itsNextTime;
           itsNrRead++;
@@ -332,6 +317,30 @@ namespace LOFAR {
       // Do not add to previous time, because it introduces round-off errors.
       itsNextTime = itsFirstTime + (itsNrRead+itsNrInserted) * itsTimeInterval;
       return true;
+    }
+
+    void MSReader::flagInfNaN(const casa::Cube<casa::Complex>& dataCube,
+                          casa::Cube<bool>& flagsCube, FlagCounter& flagCounter) {
+      int ncorr=dataCube.shape()[0];
+      const Complex* dataPtr = dataCube.data();
+      bool* flagPtr = flagsCube.data();
+      for (uint i=0; i<dataCube.size();) {
+        for (uint j=i; j<i+ncorr; ++j) {
+          bool flag = (!isFinite(dataPtr[j].real())  ||
+                       !isFinite(dataPtr[j].imag()));
+          if (flag) {
+            flagCounter.incrCorrelation(j-i);
+          }
+          if (flag  ||  flagPtr[j]) {
+            // Flag all correlations if a single one is flagged.
+            for (uint k=i; k<i+ncorr; ++k) {
+              flagPtr[k] = true;
+            }
+            break;
+          }
+        }
+        i += ncorr;
+      }
     }
 
     void MSReader::finish()
@@ -364,6 +373,7 @@ namespace LOFAR {
           os << "  (not present)";
         }
         os << std::endl;
+        os << "  WEIGHT column:  " << itsWeightColName << std::endl;
         os << "  autoweight:     " << itsAutoWeight << std::endl;
       }
     }
@@ -388,14 +398,24 @@ namespace LOFAR {
                             double& interval)
     {
       ASSERT (itsSelMS.nrow() > 0);
-      // Test if WEIGHT_SPECTRUM is present.
       TableDesc tdesc = itsMS.tableDesc();
+
       itsHasWeightSpectrum = false;
-      if (tdesc.isColumn("WEIGHT_SPECTRUM")) {
-        // The column is there, but it might not contain values. Test row 0.
-        itsHasWeightSpectrum =
-          ROArrayColumn<float>(itsSelMS, "WEIGHT_SPECTRUM").isDefined(0);
+      // if weightcolname is specified to "WEIGHT" then this is used, even
+      // if a weight_spectrum is present.
+      if (itsWeightColName!="WEIGHT") {
+        // Test if specified weight column or WEIGHT_SPECTRUM is present.
+        if (tdesc.isColumn(itsWeightColName)) {
+          // The column is there, but it might not contain values. Test row 0.
+          itsHasWeightSpectrum =
+            ROArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
+          if (!itsHasWeightSpectrum && itsWeightColName!="WEIGHT_SPECTRUM") {
+            LOG_WARN ("Specified weight column " + itsWeightColName +
+                "is not a valid column, using WEIGHT instead");
+          }
+        }
       }
+
       // Test if the data column is present.
       if (tdesc.isColumn (itsDataColName)) {
         itsMissingData = false;
@@ -409,6 +429,7 @@ namespace LOFAR {
                              " is missing in " + itsMSName));
         }
       }
+
       // Test if the full resolution flags are present.
       itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
       if (itsHasFullResFlags) {
@@ -630,7 +651,7 @@ namespace LOFAR {
       Cube<float> weights;
       // Get weights for entire spectrum if present.
       if (itsHasWeightSpectrum) {
-        ROArrayColumn<float> wsCol(itsMS, "WEIGHT_SPECTRUM");
+        ROArrayColumn<float> wsCol(itsMS, itsWeightColName);
         // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
         // Hence work around it.
         weights.reference (wsCol.getColumnCells (rowNrs));
@@ -722,9 +743,9 @@ namespace LOFAR {
       int norigchan = itsNrChan * itsFullResNChanAvg;
       // Return empty array if no fullRes flags.
       if (!itsHasFullResFlags) {
-	return Cube<bool>();
+        return Cube<bool>();
       } else if (rowNrs.rowVector().empty()) {
-	// Return all False if rows are missing.
+        // Return all False if rows are missing.
         return Cube<bool>(norigchan, itsFullResNTimeAvg, itsNrBl, true);
       }
       ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");

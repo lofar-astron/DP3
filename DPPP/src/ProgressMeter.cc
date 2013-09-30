@@ -35,9 +35,9 @@ namespace LOFAR {
 // a way to reclaim the following storage.
 static vector<double> stderr_min, stderr_max, stderr_last;
 static int stderr_creation_function(double min, double max,
-				    const string&, const string&,
-				    const string&, const string&,
-				    bool)
+    const string&, const string&,
+    const string&, const string&,
+    bool)
 {
     stderr_min.push_back (min);
     stderr_max.push_back (max);
@@ -49,34 +49,34 @@ static int stderr_creation_function(double min, double max,
 static void stderr_update_function(int id, double value)
 {
     if (id < 0 || id > int(stderr_min.size())) {
-	cerr << __FILE__ << " illegal id " << id << endl;
-	return;
+      cerr << __FILE__ << " illegal id " << id << endl;
+      return;
     }
     id--; // 0-relative
     int percent     = int((value - stderr_min[id]) / 
-			  (stderr_max[id] - stderr_min[id]) * 100.0);
+        (stderr_max[id] - stderr_min[id]) * 100.0);
     int lastpercent = int((stderr_last[id] - stderr_min[id]) / 
-			  (stderr_max[id] - stderr_min[id]) * 100.0);
+        (stderr_max[id] - stderr_min[id]) * 100.0);
     if (percent > lastpercent) {
-	stderr_last[id] = value;
-	// Probably we could do this more efficiently. We need to get all the
-	// "missing" ..'s etc if we have jumped a lot since our last updated.
-	for (int i=lastpercent+1; i<=percent; i++) {
-	    if (i%2 == 0 && i%10 != 0) {
-		cerr << ".";
-	    } else if (i %10 == 0) {
-		cerr << i;
-		if (i >= 100) {
-		    cerr << "%\n";
-		}
-	    }
-	}	
+      stderr_last[id] = value;
+      // Probably we could do this more efficiently. We need to get all the
+      // "missing" ..'s etc if we have jumped a lot since our last updated.
+      for (int i=lastpercent+1; i<=percent; i++) {
+        if (i%2 == 0 && i%10 != 0) {
+          cerr << ".";
+        } else if (i %10 == 0) {
+          cerr << i;
+          if (i >= 100) {
+            cerr << "%\n";
+          }
+        }
+      }
     }
     
 }
 
 int (*ProgressMeter::creation_function_p)(double, double, 
-			      const string&, const string&,
+    const string&, const string&,
                               const string&, const string&,
                               bool) = stderr_creation_function;
 void (*ProgressMeter::update_function_p)(int, double) = stderr_update_function;
@@ -87,19 +87,19 @@ ProgressMeter::ProgressMeter()
 }
 
 ProgressMeter::ProgressMeter(double min, double max, 
-			     const string& title, const string& subtitle,
-			     const string& minlabel, const string& maxlabel,
-			     bool estimateTime, int updateEvery)
+    const string& title, const string& subtitle,
+    const string& minlabel, const string& maxlabel,
+    bool estimateTime, int updateEvery)
     : id_p(-1), min_p(min), max_p(max), update_every_p(updateEvery),
       update_count_p(0)
 {
     // Correct silently
     if (update_every_p <= 0) {
-	update_every_p = 1;
+      update_every_p = 1;
     }
     if (creation_function_p) {
-	id_p = creation_function_p(min, max, title, subtitle, minlabel, maxlabel,
-				 estimateTime);
+      id_p = creation_function_p(min, max, title, subtitle, minlabel, maxlabel,
+          estimateTime);
     }
 }
 
@@ -114,21 +114,21 @@ void ProgressMeter::update(double value, bool force)
     update_count_p++;
     // Always force the first one through
     if (update_count_p == 1) {
-	force = true;
+      force = true;
     }
     if((value >= min_p) && (value <= max_p)){
       if(update_count_p == 1 || force || ((update_count_p%update_every_p)== 0))
-	{
-	  // Do the update if we have a "sink" and a valid id
-	  if (id_p > 0 && update_function_p) {
-	    update_function_p(id_p, value);
-	  } else {
-	    // If we have more than one progress meter active at once
-	    // this might look pretty confusing. We can decide what to
-	    // do if that ever actually happens.
-	    
-	  }
-	}
+      {
+        // Do the update if we have a "sink" and a valid id
+        if (id_p > 0 && update_function_p) {
+          update_function_p(id_p, value);
+        } else {
+          // If we have more than one progress meter active at once
+          // this might look pretty confusing. We can decide what to
+          // do if that ever actually happens.
+
+        }
+      }
     }
     else{
 

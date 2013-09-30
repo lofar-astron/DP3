@@ -42,7 +42,7 @@ namespace LOFAR {
     BaselineSelection::BaselineSelection (const ParameterSet& parset,
                                           const string& prefix,
                                           bool minmax,
-					  const string& defaultCorrType)
+                                          const string& defaultCorrType)
       : itsStrBL    (parset.getString (prefix + "baseline", "")),
         itsCorrType (parset.getString (prefix + "corrtype", defaultCorrType)),
         itsRangeBL  (parset.getDoubleVector (prefix + "blrange",

@@ -513,7 +513,7 @@ namespace LOFAR {
     }
 
     void StationAdder::updateBeamInfo (const string& msName, uint origNant,
-				       Table& antTab)
+        Table& antTab)
     {
       // Update the LOFAR_ANTENNA_FIELD table.
       // Copy all rows where ANTENNA_ID matches one of the stations used in
@@ -548,23 +548,23 @@ namespace LOFAR {
       int nextClockId = max(clockIds);
       // Loop over all new antennae.
       for (uint i=0; i<itsParts.size(); ++i) {
-	// Do all antennae of a new antenna share the same clock?
-	// If so, use that clock-id, otherwise make a new one.
-	int cid = clockIds[statIds[itsParts[i][0]]];
-	for (uint j=1; j<itsParts[i].size(); ++j) {
-	  if (clockIds[statIds[itsParts[i][j]]] != cid) {
-	    cid = ++nextClockId;
-	    break;
-	  }
-	}
-	// Update LOFAR_STATION_ID for this new antenna.
-	int rownr = statTab.nrow();
-	stidCol.put (origNant+i, rownr);
-	// Add new station.
-	statTab.addRow();
-	nameCol.put (rownr, getInfo().antennaNames()[origNant+i]);
-	clockCol.put (rownr, cid);
-	flagCol.put (rownr, False);
+        // Do all antennae of a new antenna share the same clock?
+        // If so, use that clock-id, otherwise make a new one.
+        int cid = clockIds[statIds[itsParts[i][0]]];
+        for (uint j=1; j<itsParts[i].size(); ++j) {
+          if (clockIds[statIds[itsParts[i][j]]] != cid) {
+            cid = ++nextClockId;
+            break;
+          }
+        }
+        // Update LOFAR_STATION_ID for this new antenna.
+        int rownr = statTab.nrow();
+        stidCol.put (origNant+i, rownr);
+        // Add new station.
+        statTab.addRow();
+        nameCol.put (rownr, getInfo().antennaNames()[origNant+i]);
+        clockCol.put (rownr, cid);
+        flagCol.put (rownr, False);
       }
     }
 

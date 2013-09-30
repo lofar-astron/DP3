@@ -56,7 +56,7 @@ namespace LOFAR {
       // </ul>
       BaselineSelection (const ParameterSet&, const string& prefix,
                          bool minmax=false,
-			 const string& defaultCorrType=string());
+                         const string& defaultCorrType=string());
 
       // Is there any selection?
       bool hasSelection() const;
