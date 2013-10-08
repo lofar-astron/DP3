@@ -44,6 +44,7 @@
 #include <AOFlagger/strategy/actions/setimageaction.h>
 #include <AOFlagger/strategy/actions/slidingwindowfitaction.h>
 #include <AOFlagger/strategy/actions/statisticalflagaction.h>
+#include <AOFlagger/strategy/actions/strategyaction.h>
 #include <AOFlagger/strategy/actions/sumthresholdaction.h>
 #include <AOFlagger/strategy/actions/timeselectionaction.h>
 #include <AOFlagger/strategy/control/artifactset.h>
