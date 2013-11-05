@@ -52,6 +52,7 @@ namespace LOFAR {
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
             "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
+        itsUpdateWeights (parset.getBool (prefix + "updateweights", false)),
         itsTimeStep    (0),
         itsNCorr       (0),
         itsTimeInterval (-1),
@@ -69,7 +70,9 @@ namespace LOFAR {
       info() = infoIn;
       info().setNeedVisData();
       info().setNeedWrite();
-      info().setNeedWrite(info().needWrite() | DPInfo::NeedWriteWeight);
+      if (itsUpdateWeights) {
+        info().setNeedWrite(info().needWrite() | DPInfo::NeedWriteWeight);
+      }
       itsTimeInterval = infoIn.timeInterval();
       itsNCorr = infoIn.ncorr();
 
@@ -184,7 +187,9 @@ namespace LOFAR {
 
       Complex* data = buf.getData().data();
 
-      buf.setWeights(itsInput->fetchWeights (buf, rowNrs, itsTimer));
+      if (itsUpdateWeights) {
+        buf.setWeights(itsInput->fetchWeights (buf, rowNrs, itsTimer));
+      }
       float* weight = buf.getWeights().data();
 
       size_t nchan = buf.getData().shape()[1];
@@ -401,10 +406,12 @@ namespace LOFAR {
       vis[2] /= diag1A * conj(diag0B);
       vis[3] /= diag1A * conj(diag1B);
 
-      weight[0] *= norm(diag0A) * norm(diag0B);
-      weight[1] *= norm(diag0A) * norm(diag1B);
-      weight[2] *= norm(diag1A) * norm(diag0B);
-      weight[3] *= norm(diag1A) * norm(diag1B);
+      if (itsUpdateWeights) {
+        weight[0] *= norm(diag0A) * norm(diag0B);
+        weight[1] *= norm(diag0A) * norm(diag1B);
+        weight[2] *= norm(diag1A) * norm(diag0B);
+        weight[3] *= norm(diag1A) * norm(diag1B);
+      }
     }
 
     // Inverts complex 2x2 input matrix
@@ -466,37 +473,38 @@ namespace LOFAR {
       // The input covariance matrix C is assumed to be diagonal with elements
       // w_i (the weights), the result the diagonal of
       // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      float cov[4], normGainA[4], normGainB[4];
-      for (uint i=0;i<4;++i) {
-        cov[i]=1./weight[i];
-        normGainA[i]=norm(gainA[i]);
-        normGainB[i]=norm(gainB[i]);
+      if (itsUpdateWeights) {
+        float cov[4], normGainA[4], normGainB[4];
+        for (uint i=0;i<4;++i) {
+          cov[i]=1./weight[i];
+          normGainA[i]=norm(gainA[i]);
+          normGainB[i]=norm(gainB[i]);
+        }
+
+        weight[0]=cov[0]*(normGainA[0]*normGainB[0])
+                 +cov[1]*(normGainA[0]*normGainB[1])
+                 +cov[2]*(normGainA[1]*normGainB[0])
+                 +cov[3]*(normGainA[1]*normGainB[1]);
+        weight[0]=1./weight[0];
+
+        weight[1]=cov[0]*(normGainA[0]*normGainB[2])
+                 +cov[1]*(normGainA[0]*normGainB[3])
+                 +cov[2]*(normGainA[1]*normGainB[2])
+                 +cov[3]*(normGainA[1]*normGainB[3]);
+        weight[1]=1./weight[1];
+
+        weight[2]=cov[0]*(normGainA[2]*normGainB[0])
+                 +cov[1]*(normGainA[2]*normGainB[1])
+                 +cov[2]*(normGainA[3]*normGainB[0])
+                 +cov[3]*(normGainA[3]*normGainB[1]);
+        weight[2]=1./weight[2];
+
+        weight[3]=cov[0]*(normGainA[2]*normGainB[2])
+                 +cov[1]*(normGainA[2]*normGainB[3])
+                 +cov[2]*(normGainA[3]*normGainB[2])
+                 +cov[3]*(normGainA[3]*normGainB[3]);
+        weight[3]=1./weight[3];
       }
-
-      weight[0]=cov[0]*(normGainA[0]*normGainB[0])
-               +cov[1]*(normGainA[0]*normGainB[1])
-               +cov[2]*(normGainA[1]*normGainB[0])
-               +cov[3]*(normGainA[1]*normGainB[1]);
-      weight[0]=1./weight[0];
-
-      weight[1]=cov[0]*(normGainA[0]*normGainB[2])
-               +cov[1]*(normGainA[0]*normGainB[3])
-               +cov[2]*(normGainA[1]*normGainB[2])
-               +cov[3]*(normGainA[1]*normGainB[3]);
-      weight[1]=1./weight[1];
-
-      weight[2]=cov[0]*(normGainA[2]*normGainB[0])
-               +cov[1]*(normGainA[2]*normGainB[1])
-               +cov[2]*(normGainA[3]*normGainB[0])
-               +cov[3]*(normGainA[3]*normGainB[1]);
-      weight[2]=1./weight[2];
-
-      weight[3]=cov[0]*(normGainA[2]*normGainB[2])
-               +cov[1]*(normGainA[2]*normGainB[3])
-               +cov[2]*(normGainA[3]*normGainB[2])
-               +cov[3]*(normGainA[3]*normGainB[3]);
-      weight[3]=1./weight[3];
-
     }
 
   } //# end namespace

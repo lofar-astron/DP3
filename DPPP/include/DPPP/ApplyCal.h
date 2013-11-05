@@ -93,6 +93,7 @@ namespace LOFAR {
       string           itsCorrectType;
       uint             itsTimeSlotsPerParmUpdate;
       double           itsSigmaMMSE;
+      bool             itsUpdateWeights;
 
       // Expressions to search for in itsParmDB
       vector<casa::String>   itsParmExprs;
