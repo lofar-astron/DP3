@@ -250,6 +250,8 @@ namespace LOFAR {
 
     void AORFlagger::finish()
     {
+      cerr << "  " << itsBufIndex << " time slots to finish in AORFlagger ..."
+           << endl;
       itsTimer.start();
       // Set window size to all entries left.
       itsWindowSize = itsBufIndex;

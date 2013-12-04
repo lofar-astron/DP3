@@ -43,8 +43,10 @@ namespace LOFAR {
     class DPRun
     {
     public:
-      // Execute the stps defined in the parset file.
-      static void execute (const std::string& parsetName);
+      // Execute the steps defined in the parset file.
+      // Possible parameters given at the command line are taken into account.
+      static void execute (const std::string& parsetName,
+                           int argc=0, char* argv[] = 0);
 
     private:
       // Create the step objects.

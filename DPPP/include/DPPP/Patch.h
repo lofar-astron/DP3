@@ -46,25 +46,31 @@ class Patch
 public:
     typedef shared_ptr<Patch>       Ptr;
     typedef shared_ptr<const Patch> ConstPtr;
+    typedef vector<ModelComponent::ConstPtr>::const_iterator const_iterator;
 
     template <typename T>
     Patch(const string &name, T first, T last);
 
     const string &name() const;
     const Position &position() const;
+    double brightness() const;
+    void setPosition (const Position&);
+    void setBrightness (double);
 
     size_t nComponents() const;
     ModelComponent::ConstPtr component(size_t i) const;
 
-private:
-    typedef vector<ModelComponent::ConstPtr>::const_iterator const_iterator;
     const_iterator begin() const;
     const_iterator end() const;
 
+    // Compute the position as the average of the positions of the components.
     void computePosition();
+
+private:
 
     string                              itsName;
     Position                            itsPosition;
+    double                              itsBrightness;
     vector<ModelComponent::ConstPtr>    itsComponents;
 };
 
@@ -93,6 +99,21 @@ inline const Position &Patch::position() const
     return itsPosition;
 }
 
+inline double Patch::brightness() const
+{
+    return itsBrightness;
+}
+
+inline void Patch::setPosition (const Position& pos)
+{
+    itsPosition = pos;
+}
+
+inline void Patch::setBrightness (double brightness)
+{
+    itsBrightness = brightness;
+}
+
 inline size_t Patch::nComponents() const
 {
     return itsComponents.size();
@@ -101,6 +122,16 @@ inline size_t Patch::nComponents() const
 inline ModelComponent::ConstPtr Patch::component(size_t i) const
 {
     return itsComponents[i];
+}
+
+inline Patch::const_iterator Patch::begin() const
+{
+    return itsComponents.begin();
+}
+
+inline Patch::const_iterator Patch::end() const
+{
+    return itsComponents.end();
 }
 
 

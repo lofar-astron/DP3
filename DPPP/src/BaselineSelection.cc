@@ -42,8 +42,9 @@ namespace LOFAR {
     BaselineSelection::BaselineSelection (const ParameterSet& parset,
                                           const string& prefix,
                                           bool minmax,
-                                          const string& defaultCorrType)
-      : itsStrBL    (parset.getString (prefix + "baseline", "")),
+					  const string& defaultCorrType,
+                                          const string& defaultBaseline)
+      : itsStrBL    (parset.getString (prefix + "baseline", defaultBaseline)),
         itsCorrType (parset.getString (prefix + "corrtype", defaultCorrType)),
         itsRangeBL  (parset.getDoubleVector (prefix + "blrange",
                                              vector<double>()))
@@ -70,12 +71,12 @@ namespace LOFAR {
                itsCorrType.empty()  &&  itsRangeBL.empty());
     }
 
-    void BaselineSelection::show (ostream& os) const
+    void BaselineSelection::show (ostream& os, const string& blanks) const
     {
       os << "  Baseline selection:" << std::endl;
-      os << "    baseline:     " << itsStrBL << std::endl;
-      os << "    corrtype:     " << itsCorrType << std::endl;
-      os << "    blrange:      " << itsRangeBL << std::endl;
+      os << "    baseline:     " << blanks << itsStrBL << std::endl;
+      os << "    corrtype:     " << blanks << itsCorrType << std::endl;
+      os << "    blrange:      " << blanks << itsRangeBL << std::endl;
     }
 
     Matrix<bool> BaselineSelection::apply (const DPInfo& info) const
@@ -94,6 +95,17 @@ namespace LOFAR {
         handleLength (selectBL, info);
       }
       return selectBL;
+    }
+
+    Vector<bool> BaselineSelection::applyVec (const DPInfo& info) const
+    {
+      Matrix<bool> sel = apply(info);
+      Vector<bool> vec;
+      vec.resize (info.nbaselines());
+      for (uint i=0; i<info.nbaselines(); ++i) {
+        vec[i] = sel(info.getAnt1()[i], info.getAnt2()[i]);
+      }
+      return vec;
     }
 
     void BaselineSelection::handleBL (Matrix<bool>& selectBL,

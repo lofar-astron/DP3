@@ -1,6 +1,6 @@
 # $Id$
 
-lofar_package(DPPP 1.0 DEPENDS Common MS AOFlagger ParmDB)
+lofar_package(DPPP 1.0 DEPENDS Common MS AOFlagger ParmDB StationResponse)
 
 include(LofarFindPackage)
 lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)

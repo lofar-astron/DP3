@@ -12,9 +12,11 @@ lofar_add_library(dppp
   Averager.cc MedFlagger.cc AORFlagger.cc PreFlagger.cc UVWFlagger.cc
   StationAdder.cc ScaleData.cc Filter.cc PhaseShift.cc
   Demixer.cc Position.cc Stokes.cc SourceDBUtil.cc
-  Apply.cc EstimateMixed.cc Simulate.cc Simulator.cc SubtractMixed.cc
+  Apply.cc EstimateMixed.cc EstimateNew.cc Simulate.cc Simulator.cc
+  SubtractMixed.cc SubtractNew.cc
   ModelComponent.cc PointSource.cc GaussianSource.cc Patch.cc
   ModelComponentVisitor.cc
+  DemixerNew.cc DemixInfo.cc DemixWorker.cc
   FlaggerStatistics.cc
 )
 

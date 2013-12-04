@@ -76,7 +76,7 @@ namespace DPPP
 // A cursor for a 5-D buffer of mixing weights of shape
 // (\p nBaseline, \p nChannel, 4, \p nDirection, \p nDirection).
 // \param[in]   unknowns
-// A pointer to a bufer of unknowns of size nDirection * nStation * 8.
+// A pointer to a buffer of unknowns of size nDirection * nStation * 8.
 // \param[in]   errors
 // A pointer to a buffer of errors of size nDirection * nStation * 8. If this
 // pointer is null (0), errors will not be estimated.
@@ -86,6 +86,18 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     const_cursor<bool> flag, const_cursor<float> weight,
     const_cursor<dcomplex> mix, double *unknowns);
 // @}
+
+// Estimate for a variable nr of stations per source.
+bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
+                 size_t nChannel, const_cursor<Baseline> baselines,
+                 vector<const_cursor<fcomplex> > data,
+                 vector<const_cursor<dcomplex> > model,
+                 const_cursor<bool> flag, const_cursor<float> weight,
+                 const_cursor<dcomplex> mix, double *unknowns,
+                 size_t nUnknowns,
+                 vector<dcomplex>& M, vector<dcomplex>& dM,
+                 vector<double>& dR, vector<double>& dI);
+
 
 } //# namespace DPPP
 } //# namespace LOFAR

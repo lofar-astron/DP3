@@ -30,16 +30,6 @@ namespace LOFAR
 namespace DPPP
 {
 
-Patch::const_iterator Patch::begin() const
-{
-    return itsComponents.begin();
-}
-
-Patch::const_iterator Patch::end() const
-{
-    return itsComponents.end();
-}
-
 void Patch::computePosition()
 {
     itsPosition = Position();

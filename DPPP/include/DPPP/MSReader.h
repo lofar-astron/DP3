@@ -177,6 +177,11 @@ namespace LOFAR {
       ///      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
       ///                                                 const casa::RefRows& rowNrs);
 
+      // Fill the vector with station beam info from the input MS.
+      // Only fill it for the given station names.
+      virtual void fillBeamInfo (vector<StationResponse::Station::Ptr>&,
+                                 const casa::Vector<casa::String>& antNames);
+
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
       parsetName = argv[1];
     }
     // Execute the parset file.
-    DPRun::execute (parsetName);
+    DPRun::execute (parsetName, argc, argv);
   } catch (LOFAR::Exception& err) {
     std::cerr << "LOFAR Exception detected: " << err << std::endl;
     return 1;

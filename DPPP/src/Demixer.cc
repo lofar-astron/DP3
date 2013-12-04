@@ -492,6 +492,8 @@ namespace LOFAR {
 
     void Demixer::finish()
     {
+      cerr << "  " << itsNTimeIn << " time slots to finish in Demixer ..."
+           << endl;
       itsTimer.start();
 
       // Process remaining entries.
@@ -721,6 +723,7 @@ namespace LOFAR {
           dirnr++;
         }
       }
+      //cout<<"makefactors "<<weightSums<<bufOut;
     }
 
     void Demixer::deproject (Array<DComplex>& factors,
@@ -895,12 +898,14 @@ namespace LOFAR {
           const_cursor<double> cr_uvw =
             casa_const_cursor(itsAvgResults[dr]->get()[ts].getUVW());
           splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
+          //cout<<"uvw"<<dr<<'='<<storage.uvw<<endl;
 
           cursor<dcomplex> cr_model(&(storage.model[dr * nSamples]), 3,
             stride_model);
           simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt,
             nBl, nCh, cr_baseline, cr_freq, cr_uvw_split, cr_model);
         }
+        //cout<<"modelvis="<<storage.model<<endl;
 
         // Estimate Jones matrices.
         //
@@ -916,6 +921,7 @@ namespace LOFAR {
         const_cursor<float> cr_weight =
           casa_const_cursor(itsAvgResults[0]->get()[ts].getWeights());
         const_cursor<dcomplex> cr_mix = casa_const_cursor(itsFactors[ts]);
+        //cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<endl;
 
         vector<const_cursor<fcomplex> > cr_data(nDr);
         vector<const_cursor<dcomplex> > cr_model(nDr);
