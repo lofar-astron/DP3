@@ -96,6 +96,7 @@ namespace LOFAR {
       bool   isAteamNearby() const               {return itsIsAteamNearby;}
       bool   propagateSolution() const           {return itsPropagateSolution;}
       bool   applyBeam() const                   {return itsApplyBeam;}
+      bool   solveBoth() const                   {return itsSolveBoth;}
       bool   doSubtract() const                  {return itsDoSubtract;}
       const BaselineSelection& selBL() const     {return itsSelBL;}
       const vector<int>& uvwSplitIndex() const   {return itsUVWSplitIndex;}
@@ -167,28 +168,29 @@ namespace LOFAR {
       bool                    itsIsAteamNearby;
       bool                    itsPropagateSolution;
       bool                    itsApplyBeam;
+      bool                    itsSolveBoth;    //# solve if both stat solvable
       bool                    itsDoSubtract;
       uint                    itsTargetHandling;
-      uint                    itsVerbose;            //# trace verbosity level
-      uint                    itsMaxIter;            //# max #iter in solve
-      uint                    itsMinNBaseline;       //# min #baselines for solve
-      uint                    itsMinNStation;        //# min #stations for solve
+      uint                    itsVerbose;           //# trace verbosity level
+      uint                    itsMaxIter;           //# max #iter in solve
+      uint                    itsMinNBaseline;      //# min #baselines for solve
+      uint                    itsMinNStation;       //# min #stations for solve
       uint                    itsNStation;
       uint                    itsNBl;
       uint                    itsNCorr;
       uint                    itsNChanIn;
-      uint                    itsNChanAvgSubtr;      //# subtract averaging
-      uint                    itsNChanAvg;           //# demix averaging
+      uint                    itsNChanAvgSubtr;     //# subtract averaging
+      uint                    itsNChanAvg;          //# demix averaging
       uint                    itsNChanOutSubtr;
       uint                    itsNChanOut;
-      uint                    itsNTimeAvgSubtr;      //# subtract averaging
-      uint                    itsNTimeAvg;           //# demix averaging
-      uint                    itsNTimeOutSubtr;      //# #output times per chunk
-      uint                    itsNTimeOut;           //# #demix times per chunk
-      uint                    itsChunkSize;          //# predict time step
-      uint                    itsNTimeChunk;         //# nr chunks in parallel
+      uint                    itsNTimeAvgSubtr;     //# subtract averaging
+      uint                    itsNTimeAvg;          //# demix averaging
+      uint                    itsNTimeOutSubtr;     //# #output times per chunk
+      uint                    itsNTimeOut;          //# #demix times per chunk
+      uint                    itsChunkSize;         //# predict time step
+      uint                    itsNTimeChunk;        //# nr chunks in parallel
       double                  itsTimeIntervalAvg;
-      Position                itsPhaseRef;           //# original phaseref
+      Position                itsPhaseRef;          //# original phaseref
       vector<Baseline>        itsBaselines;
       casa::Vector<bool>      itsSelTarget;     //# baselines in target estimate
       casa::Vector<double>    itsFreqDemix;

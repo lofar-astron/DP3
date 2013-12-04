@@ -74,6 +74,8 @@ namespace LOFAR {
       // \param[in]   mix
       // A cursor for a 5-D buffer of mixing weights of shape
       // (\p nBaseline, \p nChannel, 4, \p nDirection, \p nDirection).
+      // \param[in]   solveBoth
+      // True = only use baseline if both stations are solvable
       //
       // <br>Note that the cursors are passed by value, so a copy is made.
       // In this way no reset of the cursor is needed.
@@ -85,6 +87,7 @@ namespace LOFAR {
                      const_cursor<bool> flag,
                      const_cursor<float> weight,
                      const_cursor<dcomplex> mix,
+                     bool solveBoth,
                      uint verbose);
 
       // Get the last solution.
@@ -98,9 +101,14 @@ namespace LOFAR {
 
     private:
       // Initialize the solution. Nr must be a multiple of 8.
-      // The diagonal is set to (diag,0), off-diagonal to (0,0).
+      // The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
       void initSolution (const vector<vector<int> >& unknownsIndex,
                          const vector<uint>& srcSet);
+
+      // Clear the solution for unsolvable stations
+      // (essentially changing 1e-8 to 0).
+      void clearNonSolvable (const vector<vector<int> >& unknownsIndex,
+                             const vector<uint>& srcSet);
 
       // Update itsSolution from itsUnknowns for the unknowns to be used.
       void fillSolution (const vector<vector<int> >& unknownsIndex,

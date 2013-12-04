@@ -1131,6 +1131,7 @@ namespace LOFAR {
                                                cr_baseline, cr_data,
                                                cr_model, cr_flag,
                                                cr_weight, cr_mix,
+                                               itsMix->solveBoth(),
                                                itsMix->verbose());
         // Copy solutions to overall solution array.
         solutions[ts] = itsEstimate.getSolution();

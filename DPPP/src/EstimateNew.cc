@@ -47,7 +47,7 @@ namespace LOFAR {
       itsSolveStation.resize (nStation);
       itsUnknowns.resize (maxndir * nStation * 4 * 2);
       itsSolution.resize (itsUnknowns.size());
-      std::fill (itsSolution.begin(), itsSolution.end(), 0.);
+      std::fill (itsSolution.begin(), itsSolution.end(), 0);
       itsDerivIndex.resize (maxndir*4*2*4);
       itsM.resize  (maxndir*4);
       itsdM.resize (maxndir*4*4);
@@ -55,8 +55,8 @@ namespace LOFAR {
       itsdI.resize (maxndir*8);
     }
 
-    // Initialize the solution to 0 for sources/stations not to solve.
-    // At other places set to 1 where diagonal is 0.
+    // Initialize the solution to 1e-8 for sources/stations not to solve.
+    // Set to 0 and diagonal to 1 for solvable ones.
     void EstimateNew::initSolution (const vector<vector<int> >& unknownsIndex,
                                     const vector<uint>& srcSet)
     {
@@ -68,14 +68,15 @@ namespace LOFAR {
           for (size_t st=0; st<itsNrStations; ++st) {
             if (unknownsIndex[dr][st] >= 0) {
               if (! itsPropagateSolution) {
-                std::fill (solution, solution+8, 0.);
+                std::fill (solution, solution+8, 0);
               }
               // Solvable; set diagonal to 1 if it is 0.
               if (solution[0] == 0) solution[0] = 1;
               if (solution[6] == 0) solution[6] = 1;
             } else {
               // Set non-solvable station-source to 0.
-              std::fill (solution, solution+8, 0.);
+              std::fill (solution, solution+8, 0);
+              solution[0] = solution[6] = 1e-8;
             }
             solution += 8;
           }
@@ -83,6 +84,31 @@ namespace LOFAR {
         } else {
           // Set entire non-solvable source to 0.
           std::fill (solution, solution + 8*itsNrStations, 0.);
+          solution += 8*itsNrStations;
+        }
+      }
+    }
+
+    // Clear the solution for unsolvable stations
+    // (essentially changing 1e-8 to 0).
+    void EstimateNew::clearNonSolvable (const vector<vector<int> >& unknownsIndex,
+                                        const vector<uint>& srcSet)
+    {
+      uint dr=0;
+      double* solution = &(itsSolution[0]);
+      for (size_t i=0; i<itsNrDir; ++i) {
+        if (dr < srcSet.size()  &&  srcSet[dr] == i) {
+          // This source is to be solved.
+          for (size_t st=0; st<itsNrStations; ++st) {
+            if (unknownsIndex[dr][st] < 0) {
+              // Set non-solvable station-source to 0.
+              std::fill (solution, solution+8, 0);
+            }
+            solution += 8;
+          }
+          dr++;
+        } else {
+          // Skip entire source.
           solution += 8*itsNrStations;
         }
       }
@@ -159,6 +185,7 @@ namespace LOFAR {
                                 const_cursor<bool> flag,
                                 const_cursor<float> weight,
                                 const_cursor<dcomplex> mix,
+                                bool solveBoth,
                                 uint verbose)
     {
       initSolution (unknownsIndex, srcSet);
@@ -194,7 +221,9 @@ namespace LOFAR {
           const size_t q = baselines->second;
           // Only compute if no autocorr and if stations need to be solved.
           ///if (p != q  &&  (itsSolveStation[p] || itsSolveStation[q])) { ????
-          if (p != q  &&  (itsSolveStation[p] && itsSolveStation[q])) {
+          if (p != q  &&  ((itsSolveStation[p] || itsSolveStation[q])  &&
+                           (!solveBoth ||
+                            (itsSolveStation[p] && itsSolveStation[q])))) {
             // Create partial derivative index for current baseline.
             size_t nPartial = fillDerivIndex (srcSet.size(), unknownsIndex,
                                               *baselines);
@@ -300,7 +329,9 @@ namespace LOFAR {
                       bool do2 = unknownsIndex[dr][q] >= 0;
                       // Only generate equations if a station has to be solved
                       // for this direction.
-                      if (do1 && do2) {
+                      cout<<"do12 = "<<solveBoth<<' '<<do1<<' '<<do2<<endl;
+                      if ((do1 && do2)  ||  (!solveBoth && (do1 || do2))) {
+                        cout<<"solve"<<endl;
                         // Look-up mixing weight.
                         const dcomplex mix_weight = *mix;
                         // Sum weighted model visibilities.
@@ -437,6 +468,7 @@ namespace LOFAR {
       }
       bool converged = (solver.isReady() == casa::LSQFit::SOLINCREMENT  ||
                         solver.isReady() == casa::LSQFit::DERIVLEVEL);
+      clearNonSolvable (unknownsIndex, srcSet);
       return converged;
     }
 
