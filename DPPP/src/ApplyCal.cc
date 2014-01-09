@@ -276,10 +276,11 @@ namespace LOFAR {
             }
             else if (itsParmDB->getDefValues(itsParmExprs[parmExprNum]).size()
                 == 1) { //Default value
-              //TODO: not including * in the pattern above may be too strict
               itsParmDB->getDefValues(itsParmExprs[parmExprNum]).get(0,defValues);
               ASSERT(defValues.size()==1);
               defValue=defValues.data()[0];
+            } else if (itsParmExprs[parmExprNum].substr(0,5)=="Gain:") {
+              defValue=0.;
             }
             else {
               THROW (Exception, "No parameter value found for "+

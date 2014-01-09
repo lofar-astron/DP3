@@ -7,10 +7,8 @@ clear
 adddef Gain:0:0:Real values=1
 adddef Gain:0:0:Imag values=0
 adddef Gain:1:1:Real values=1
-adddef Gain:1:1:Imag values=0
 adddef Gain:0:1:Real values=0
 adddef Gain:0:1:Imag values=0
-adddef Gain:1:0:Real values=0
 adddef Gain:1:0:Imag values=0
 
 adddef Clock values=0.0000037
