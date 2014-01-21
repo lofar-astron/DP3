@@ -106,6 +106,7 @@ namespace LOFAR {
     void AORFlagger::show (std::ostream& os) const
     {
       os << "AOFlagger " << itsName << std::endl;
+      os << "  strategy:       " << itsStrategyName << std::endl;
       os << "  timewindow:     " << itsWindowSize << std::endl;
       os << "  overlap:        " << itsOverlap << std::endl;
       os << "  pulsar:         " << itsPulsarMode << std::endl;
