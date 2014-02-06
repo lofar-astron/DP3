@@ -106,6 +106,7 @@ namespace LOFAR {
     void AORFlagger::show (std::ostream& os) const
     {
       os << "AOFlagger " << itsName << std::endl;
+      os << "  strategy:       " << itsStrategyName << std::endl;
       os << "  timewindow:     " << itsWindowSize << std::endl;
       os << "  overlap:        " << itsOverlap << std::endl;
       os << "  pulsar:         " << itsPulsarMode << std::endl;
@@ -495,17 +496,17 @@ namespace LOFAR {
 
     void AORFlagger::fillStrategy (boost::shared_ptr<Strategy>& pstrategy)
     {
-      string fileName = itsStrategyName;
-      if (! fileName.empty()) {
-        if (! File(fileName).exists()) {
-          fileName = "$LOFARROOT/share/rfistrategies/" + fileName;
-          if (! File(fileName).exists()) {
+      if (! itsStrategyName.empty()) {
+        File file(itsStrategyName);
+        if (! file.exists()) {
+          file = File("$LOFARROOT/share/rfistrategies/" + itsStrategyName);
+          if (! file.exists()) {
             THROW (Exception, "Unknown rfistrategy file " << itsStrategyName);
           }
         }
         StrategyReader reader;
         pstrategy = boost::shared_ptr<Strategy>
-          (reader.CreateStrategyFromFile(fileName));
+          (reader.CreateStrategyFromFile(file.path().absoluteName()));
         return;
       }
       pstrategy = boost::shared_ptr<Strategy> (new Strategy);
