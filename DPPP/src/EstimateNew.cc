@@ -329,9 +329,7 @@ namespace LOFAR {
                       bool do2 = unknownsIndex[dr][q] >= 0;
                       // Only generate equations if a station has to be solved
                       // for this direction.
-                      cout<<"do12 = "<<solveBoth<<' '<<do1<<' '<<do2<<endl;
                       if ((do1 && do2)  ||  (!solveBoth && (do1 || do2))) {
-                        cout<<"solve"<<endl;
                         // Look-up mixing weight.
                         const dcomplex mix_weight = *mix;
                         // Sum weighted model visibilities.
