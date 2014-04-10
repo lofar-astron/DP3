@@ -159,7 +159,7 @@ void Simulator::visit(const GaussianSource &component)
     // Convert position angle from North over East to the angle used to
     // rotate the right-handed UV-plane.
     // TODO: Can probably optimize by changing the rotation matrix instead.
-    const double phi = casa::C::pi_2 - component.positionAngle();
+    const double phi = casa::C::pi_2 + component.positionAngle() + casa::C::pi;
     const double cosPhi = cos(phi);
     const double sinPhi = sin(phi);
 
