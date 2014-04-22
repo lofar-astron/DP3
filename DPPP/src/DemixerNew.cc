@@ -81,7 +81,7 @@ namespace LOFAR {
       itsWorkers.reserve (nthread);
       for (int i=0; i<nthread; ++i) {
         itsWorkers.push_back (DemixWorker (itsInput, itsName, itsDemixInfo,
-                                           infoIn));
+                                           infoIn, i));
       }
     }
 
@@ -190,14 +190,23 @@ namespace LOFAR {
       if (itsDemixInfo.doSubtract()) {
         os << endl << "Mean/stddev percentage of subtracted Stokes I amplitude"
            << " for the middle channel" << endl;
-        os << "     ";
+        os << setw(8) << ' ';
         for (size_t dr=0; dr<ndir; ++dr) {
           if (nsources[dr] > 0) {
-            os << setw(13) << itsDemixInfo.ateamList()[dr]->name().substr(0,13);
+	    // Print name a bit right of the center.
+            const string& nm = itsDemixInfo.ateamList()[dr]->name().substr(0,13);
+	    if (nm.size() > 10) {
+	      cout << setw(13) << nm;
+	    } else {
+	      int szws = 13 - nm.size();    // whitespace
+	      os << setw(szws/2+1) << ' ';
+	      os << nm;
+	      os << setw(szws-szws/2-1) << ' ';
+	    }
           }
         }
-        os << setw(13) << "Total" << endl;
-        os << " baseline";
+        os << setw(10) << "Total" << endl;
+        os << "baseline";
         for (size_t dr=0; dr<ndir; ++dr) {
           if (nsources[dr] > 0) {
             os << "  mean stddev";

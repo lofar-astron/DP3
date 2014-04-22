@@ -49,15 +49,21 @@
 #include <Common/lofar_fstream.h>
 
 #include <casa/Quanta/MVAngle.h>
+#include <casa/Quanta/MVEpoch.h>
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Arrays/ArrayIO.h>
 #include <casa/Arrays/MatrixMath.h>
 #include <casa/Arrays/MatrixIter.h>
+#include <casa/Containers/Record.h>
 #include <scimath/Mathematics/MatrixMathLA.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/MCDirection.h>
+#include <measures/Measures/MEpoch.h>
+#include <measures/Measures/MeasureHolder.h>
+
+#include <sstream>
 
 using namespace casa;
 
@@ -74,8 +80,10 @@ namespace LOFAR {
     DemixWorker::DemixWorker (DPInput* input,
                               const string& prefix,
                               const DemixInfo& mixInfo,
-                              const DPInfo& info)
-      : itsMix         (&mixInfo),
+                              const DPInfo& info,
+			      int workerNr)
+      : itsWorkerNr    (workerNr),
+	itsMix         (&mixInfo),
         itsFilter      (input, mixInfo.selBL()),
         itsNrSolves    (0),
         itsNrConverged (0),
@@ -226,15 +234,44 @@ namespace LOFAR {
                           itsMix->nchanOut(), itsMix->maxIter(),
                           itsMix->propagateSolution());
       itsBeamValues.resize (itsMix->nchanOutSubtr() * itsMix->nstation());
+      // Make a copy of the array position and directions, because using the
+      // same Measure object in multiple threads is not safe.
+      // The only way to make a deep copy if using a MeasureHolder which
+      // gets converted to/from a Record.
+      String msg;
+      {
+        Record rec;
+        MeasureHolder mh1(info.arrayPos());
+        ASSERT (mh1.toRecord (msg, rec));
+        MeasureHolder mh2;
+        ASSERT (mh2.fromRecord (msg, rec));
+        itsArrayPos = mh2.asMPosition();
+      }
+      {
+        Record rec;
+        MeasureHolder mh1(info.delayCenter());
+        ASSERT (mh1.toRecord (msg, rec));
+        MeasureHolder mh2;
+        ASSERT (mh2.fromRecord (msg, rec));
+        itsDelayCenter = mh2.asMDirection();
+      }
+      {
+        Record rec;
+        MeasureHolder mh1(info.tileBeamDir());
+        ASSERT (mh1.toRecord (msg, rec));
+        MeasureHolder mh2;
+        ASSERT (mh2.fromRecord (msg, rec));
+        itsTileBeamDir = mh2.asMDirection();
+      }
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
-      itsMeasFrame.set (info.arrayPos());
+      itsMeasFrame.set (itsArrayPos);
       itsMeasFrame.set (MEpoch(MVEpoch(info.startTime()/86400), MEpoch::UTC));
       itsMeasConverter.set (MDirection::J2000,
                             MDirection::Ref(MDirection::ITRF, itsMeasFrame));
       // Do a dummy conversion, because Measure initialization does not
       // seem to be thread-safe.
-      dir2Itrf(itsMix->getInfo().delayCenter());
+      dir2Itrf(itsDelayCenter);
     }
 
     void DemixWorker::process (const DPBuffer* bufin, uint nbufin,
@@ -505,6 +542,8 @@ namespace LOFAR {
             itsSolveStation[st] = true;
           }
         } else {
+          itsStationsToUse[i].clear();
+          itsSrcSet.push_back (i);
           if (itsMix->verbose() > 10) {
             cout << "ignore source " << patchList[i]->name()
                  << " (" << itsStationsToUse[i].size() << " stations)" << endl;
@@ -551,6 +590,9 @@ namespace LOFAR {
         }
       }
       // Median is middle element.
+      if (nrtmp == 0) {
+        return 0;
+      }
       return GenSort<float>::kthLargest (tmp, nrtmp, (nrtmp-1)/2);
     }
 
@@ -711,10 +753,8 @@ namespace LOFAR {
       }
       // Convert the directions to ITRF for the given time.
       itsMeasFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-      StationResponse::vector3r_t refdir =
-        dir2Itrf(itsMix->getInfo().delayCenter());
-      StationResponse::vector3r_t tiledir =
-        dir2Itrf(itsMix->getInfo().tileBeamDir());
+      StationResponse::vector3r_t refdir  = dir2Itrf(itsDelayCenter);
+      StationResponse::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
       MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
       StationResponse::vector3r_t srcdir = dir2Itrf(dir);
       // Get the beam values for each station.
@@ -1131,6 +1171,7 @@ namespace LOFAR {
                                                cr_baseline, cr_data,
                                                cr_model, cr_flag,
                                                cr_weight, cr_mix,
+					       itsMix->defaultGain(),
                                                itsMix->solveBoth(),
                                                itsMix->verbose());
         // Copy solutions to overall solution array.

@@ -1,4 +1,4 @@
-//# DemixInfo.h: Struct to hold the common demix variables
+//# DemixInfo.h: DPPP struct to hold the common demix variables
 //# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -25,24 +25,15 @@
 #define DPPP_DEMIXINFO_H
 
 // @file
-// @brief DPPP step class to average in time and/or freq
+// @brief DPPP struct to hold the common demix variables
 
+#include <DPPP/DPInfo.h>
+#include <DPPP/BaselineSelection.h>
 #include <DPPP/Baseline.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
 #include <DPPP/Patch.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/Filter.h>
+#include <Common/ParameterSet.h>
 
-#include <casa/Arrays/Cube.h>
-#include <casa/Quanta/Quantum.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasFrame.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MCPosition.h>
+#include <casa/Arrays/Vector.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -93,6 +84,7 @@ namespace LOFAR {
       double ratio2() const                      {return itsRatio2;}
       double ateamAmplThreshold() const          {return itsAteamAmplThreshold;}
       double targetAmplThreshold() const         {return itsTargetAmplThreshold;}
+      double defaultGain() const                 {return itsDefaultGain;}
       bool   isAteamNearby() const               {return itsIsAteamNearby;}
       bool   propagateSolution() const           {return itsPropagateSolution;}
       bool   applyBeam() const                   {return itsApplyBeam;}
@@ -165,6 +157,7 @@ namespace LOFAR {
       double                  itsCosTargetDelta;
       double                  itsAngdistThreshold;
       double                  itsAngdistRefFreq;
+      double                  itsDefaultGain;
       bool                    itsIsAteamNearby;
       bool                    itsPropagateSolution;
       bool                    itsApplyBeam;
