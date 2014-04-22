@@ -54,7 +54,7 @@ void testStl (size_t sz, size_t n)
     for (vector<float>::iterator iter=vec.begin(); iter!=vec.end(); ++iter) {
       *iter = j++;
     }
-    nth_element (vec.begin(), vec.end(), vec.begin()+sz/2);
+    nth_element (vec.begin(), vec.begin()+sz/2, vec.end());
   }
   timer.show ("stl ");
 }
