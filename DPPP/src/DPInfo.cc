@@ -29,7 +29,7 @@
 #include <measures/Measures/MCPosition.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Arrays/ArrayIO.h>
-#include <casa/BasicSL/STLIO.h>
+#include <casa/Containers/ContainerIO.h>
 
 using namespace casa;
 using namespace std;
