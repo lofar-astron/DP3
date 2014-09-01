@@ -189,6 +189,7 @@ namespace LOFAR {
       os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  parmdb:         " << itsParmDBName << endl;
       os << "  apply beam:     " << boolalpha << itsApplyBeam << endl;
+      os << "   beam per patch:" << boolalpha << itsBeamPerPatch << endl;
       os << "  solint          " << itsSolInt <<endl;
       os << "  max iter:       " << itsMaxIter << endl;
       os << "  tolerance:      " << itsTolerance << endl;
@@ -494,8 +495,8 @@ namespace LOFAR {
       double dgx =1.0e30;
       double dgxx;
       bool threestep = false;
-      int nhit=0;
-      int maxhit=5;
+      int badIters=0;
+      int maxBadIters=5;
 
       uint nSt, nCr, nUn, nSp; // number of actual stations,
                                // number of correlations,
@@ -697,16 +698,17 @@ namespace LOFAR {
           if (itsDebugLevel>7) {
             cout<<"iter: "<<iter<<endl;
           }
-          if (dgx-dg <= 1.0e-3*dg) {
+          if (itsDetectStalling && dgx-dg <= 1.0e-3*dg) {
+          // This iteration did not improve much upon the previous
             if (itsDebugLevel>3) {
               cout<<"**"<<endl;
             }
-            nhit++;
+            badIters++;
           } else {
-            nhit=0;
+            badIters=0;
           }
 
-          if (nhit>=maxhit && itsDetectStalling) {
+          if (badIters>=maxBadIters && itsDetectStalling) {
             if (itsDebugLevel>3) {
               cout<<"Detected stall"<<endl;
             }
@@ -799,7 +801,7 @@ namespace LOFAR {
         }
       }
       if (dg > itsTolerance && nSt>0) {
-        if (nhit<maxhit) {
+        if (itsDetectStalling && badIters<maxBadIters) {
           itsNonconverged++;
         }
         if (itsDebugLevel>0) {
