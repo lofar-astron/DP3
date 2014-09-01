@@ -48,6 +48,7 @@ namespace LOFAR {
         itsAmpl.reference (that.itsAmpl);
         itsFlags.reference (that.itsFlags);
         itsWeights.reference (that.itsWeights);
+        itsModel.reference (that.itsModel);
         itsUVW.reference (that.itsUVW);
         itsFullResFlags.reference (that.itsFullResFlags);
       }
@@ -61,6 +62,7 @@ namespace LOFAR {
       itsAmpl.resize();
       itsFlags.resize();
       itsWeights.resize();
+      itsModel.resize();
       itsUVW.resize();
       itsFullResFlags.resize();
     }

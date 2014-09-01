@@ -185,6 +185,9 @@ namespace LOFAR {
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 
+      // Tell if the visibility data are to be read.
+      virtual void setReadModelData (bool readModelData);
+
       // Get the main MS table.
       casa::Table& table()
         { return itsMS; }
@@ -195,6 +198,9 @@ namespace LOFAR {
 
       const casa::String& weightColumnName() const
         { return itsWeightColName; }
+
+      const casa::String& modelColumnName() const
+        { return itsModelColName; }
 
       // Get the slicer in the FLAG and DATA column.
       const casa::Slicer& colSlicer() const
@@ -276,10 +282,12 @@ namespace LOFAR {
       casa::TableIterator itsIter;
       casa::String        itsDataColName;
       casa::String        itsWeightColName;
+      casa::String        itsModelColName;
       casa::String        itsStartChanStr;  //# startchan expression
       casa::String        itsNrChanStr;     //# nchan expression
       string              itsSelBL;         //# Baseline selection string
       bool                itsReadVisData;   //# read visibility data?
+      bool                itsReadModelData; //# read model data?
       bool                itsNeedSort;      //# sort needed on time,baseline?
       bool                itsAutoWeight;    //# calculate weights from autocorr?
       bool                itsAutoWeightForce; //# always calculate weights?

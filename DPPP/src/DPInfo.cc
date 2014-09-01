@@ -39,6 +39,7 @@ namespace LOFAR {
 
     DPInfo::DPInfo()
       : itsNeedVisData  (false),
+        itsNeedModelData(false),
         itsNeedWrite    (0),
         itsNCorr        (0),
         itsStartChan    (0),
@@ -144,6 +145,15 @@ namespace LOFAR {
           itsAntUsed.push_back (i);
         }
       }
+    }
+
+    MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
+      Record rec;
+      String msg;
+      ASSERT (fromMeas.toRecord (msg, rec));
+      MeasureHolder mh2;
+      ASSERT (mh2.fromRecord (msg, rec));
+      return mh2;
     }
 
     uint DPInfo::update (uint chanAvg, uint timeAvg)

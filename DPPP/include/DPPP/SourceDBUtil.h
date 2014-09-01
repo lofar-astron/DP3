@@ -46,6 +46,8 @@ namespace DPPP
   vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
                                       const vector<string> &patchNames,
                                       uint nModel);
+
+  vector<string>  makePatchList(BBS::SourceDB &sourceDB, vector<string> patterns);
 // @}
 
 } //# namespace DPPP

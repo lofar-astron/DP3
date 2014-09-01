@@ -52,21 +52,23 @@ namespace LOFAR {
   namespace DPPP {
 
     MSReader::MSReader()
-      : itsReadVisData (False),
-        itsLastMSTime  (0),
-        itsNrRead      (0),
-        itsNrInserted  (0)
+      : itsReadVisData   (False),
+        itsReadModelData (False),
+        itsLastMSTime    (0),
+        itsNrRead        (0),
+        itsNrInserted    (0)
     {}
 
     MSReader::MSReader (const string& msName,
                         const ParameterSet& parset,
                         const string& prefix,
                         bool missingData)
-      : itsReadVisData (False),
-        itsMissingData (missingData),
-        itsLastMSTime  (0),
-        itsNrRead      (0),
-        itsNrInserted  (0)
+      : itsReadVisData   (False),
+        itsReadModelData (False),
+        itsMissingData   (missingData),
+        itsLastMSTime    (0),
+        itsNrRead        (0),
+        itsNrInserted    (0)
     {
       NSTimer::StartStop sstime(itsTimer);
       // Get info from parset.
@@ -79,6 +81,8 @@ namespace LOFAR {
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
       itsWeightColName    = parset.getString (prefix+"weightcolumn",
                                               "WEIGHT_SPECTRUM");
+      itsModelColName     = parset.getString (prefix+"modelcolumn",
+                                              "MODEL_DATA");
       itsAutoWeight       = parset.getBool   (prefix+"autoweight", false);
       itsAutoWeightForce  = parset.getBool   (prefix+"forceautoweight", false);
       itsNeedSort         = parset.getBool   (prefix+"sort", false);
@@ -205,6 +209,11 @@ namespace LOFAR {
       itsReadVisData = readVisData;
     }
 
+    void MSReader::setReadModelData(bool readModelData)
+    {
+      itsReadModelData = readModelData;
+    }
+
     bool MSReader::process (const DPBuffer&)
     {
       {
@@ -278,6 +287,14 @@ namespace LOFAR {
                 itsBuffer.setData (dataCol.getColumn());
               } else {
                 itsBuffer.setData (dataCol.getColumn(itsColSlicer));
+              }
+            }
+            if (itsReadModelData) {
+              ROArrayColumn<Complex> modelCol(itsIter.table(), itsModelColName);
+              if (itsUseAllChan) {
+                itsBuffer.setModel(modelCol.getColumn());
+              } else {
+                itsBuffer.setModel(modelCol.getColumn(itsColSlicer));
               }
             }
             if (itsUseFlags) {

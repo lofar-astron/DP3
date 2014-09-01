@@ -39,6 +39,7 @@
 
 #include <casa/Arrays/Cube.h>
 #include <casa/Quanta/Quantum.h>
+#include <measures/Measures/MeasureHolder.h>
 #include <measures/Measures/MeasFrame.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/MPosition.h>
@@ -69,6 +70,7 @@ namespace LOFAR {
                    const DemixInfo& info,
                    const DPInfo& dpinfo,
 		   int workernr);
+
 
       // Process the data in the input buffers and store the result in the
       // output buffers.

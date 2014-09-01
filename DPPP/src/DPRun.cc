@@ -40,6 +40,7 @@
 #include <DPPP/StationAdder.h>
 #include <DPPP/ScaleData.h>
 #include <DPPP/ApplyCal.h>
+#include <DPPP/GainCal.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -271,6 +272,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
         } else if (type == "applycal"  ||  type == "correct") {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
+        } else if (type == "gaincal"  ||  type == "calibrate") {
+          step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }
@@ -292,6 +295,7 @@ namespace LOFAR {
       }
       // Tell the reader if visibility data needs to be read.
       reader->setReadVisData (lastInfo.needVisData());
+      reader->setReadModelData (lastInfo.needModelData());
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
       // If the user specified an output MS name, a writer is always created

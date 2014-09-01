@@ -28,6 +28,7 @@
 #include <ParmDB/SourceDB.h>
 #include <Common/LofarLogger.h>
 #include <Common/lofar_vector.h>
+#include <set>
 
 namespace LOFAR
 {
@@ -143,6 +144,32 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   return patchList;
 }
 
+vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
+{
+    if(patterns.empty())
+    {
+        patterns.push_back("*");
+    }
+
+    std::set<string> patches;
+    vector<string>::iterator it = patterns.begin();
+    while(it != patterns.end())
+    {
+        if(!it->empty() && (*it)[0] == '@')
+        {
+            patches.insert(*it);
+            it = patterns.erase(it);
+        }
+        else
+        {
+            vector<string> match(sourceDB.getPatches(-1, *it));
+            patches.insert(match.begin(), match.end());
+            ++it;
+        }
+    }
+
+    return vector<string>(patches.begin(), patches.end());
+}
 
 } //# namespace DPPP
 } //# namespace LOFAR

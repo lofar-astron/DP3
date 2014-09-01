@@ -44,8 +44,8 @@ void makeIndex(size_t nDirection, size_t nStation, const Baseline &baseline,
     const size_t nCorrelation = 4;
     for(size_t cr = 0; cr < nCorrelation; ++cr)
     {
-        size_t idx0 = baseline.first * 8 + (cr / 2) * 4;
-        size_t idx1 = baseline.second * 8 + (cr % 2) * 4;
+        size_t idx0 = baseline.first * 8 + (cr / 2) * 4; // row of P
+        size_t idx1 = baseline.second * 8 + (cr % 2) * 4;// column of Q (row of Q^H)
 
         for(size_t dr = 0; dr < nDirection; ++dr)
         {
@@ -154,38 +154,38 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                         // scalars per complex scalar, 2 * 4 * 2 = 16). These
                         // partial derivatives are stored in dM.
                         M[dr * 4] = Jp_00 * Jq_00xx_01xy + Jp_01 * Jq_00yx_01yy;
-                        dM[dr * 16] = Jq_00xx_01xy;
-                        dM[dr * 16 + 1] = Jq_00yx_01yy;
-                        dM[dr * 16 + 2] = Jp_00 * xx + Jp_01 * yx;
-                        dM[dr * 16 + 3] = Jp_00 * xy + Jp_01 * yy;
+                        dM[dr * 16] = Jq_00xx_01xy;               //dM_00/dJp_00
+                        dM[dr * 16 + 1] = Jq_00yx_01yy;           //dM_00/dJp_01
+                        dM[dr * 16 + 2] = Jp_00 * xx + Jp_01 * yx;//dM_00/dJq_00
+                        dM[dr * 16 + 3] = Jp_00 * xy + Jp_01 * yy;//dM_00/dJq_01
 
                         M[dr * 4 + 1] = Jp_00 * Jq_10xx_11xy + Jp_01
                             * Jq_10yx_11yy;
-                        dM[dr * 16 + 4] = Jq_10xx_11xy;
-                        dM[dr * 16 + 5] = Jq_10yx_11yy;
-                        dM[dr * 16 + 6] = dM[dr * 16 + 2];
-                        dM[dr * 16 + 7] = dM[dr * 16 + 3];
+                        dM[dr * 16 + 4] = Jq_10xx_11xy;           //dM_01/dJp_00
+                        dM[dr * 16 + 5] = Jq_10yx_11yy;           //dM_01/dJp_01
+                        dM[dr * 16 + 6] = dM[dr * 16 + 2];        //dM_01/dJq_10
+                        dM[dr * 16 + 7] = dM[dr * 16 + 3];        //dM_01/dJq_11
 
                         M[dr * 4 + 2] = Jp_10 * Jq_00xx_01xy + Jp_11
                             * Jq_00yx_01yy;
-                        dM[dr * 16 + 8] = dM[dr * 16];
-                        dM[dr * 16 + 9] = dM[dr * 16 + 1];
-                        dM[dr * 16 + 10] = Jp_10 * xx + Jp_11 * yx;
-                        dM[dr * 16 + 11] = Jp_10 * xy + Jp_11 * yy;
+                        dM[dr * 16 + 8] = dM[dr * 16];            //dM_10/dJp_10
+                        dM[dr * 16 + 9] = dM[dr * 16 + 1];        //dM_10/dJp_11
+                        dM[dr * 16 + 10] =Jp_10 * xx + Jp_11 * yx;//dM_10/dJq_00
+                        dM[dr * 16 + 11] =Jp_10 * xy + Jp_11 * yy;//dM_10/dJq_01
 
                         M[dr * 4 + 3] = Jp_10 * Jq_10xx_11xy + Jp_11
                             * Jq_10yx_11yy;
-                        dM[dr * 16 + 12] = dM[dr * 16 + 4];
-                        dM[dr * 16 + 13] = dM[dr * 16 + 5];
-                        dM[dr * 16 + 14] = dM[dr * 16 + 10];
-                        dM[dr * 16 + 15] = dM[dr * 16 + 11];
+                        dM[dr * 16 + 12] = dM[dr * 16 + 4];       //dM_11/dJp_10
+                        dM[dr * 16 + 13] = dM[dr * 16 + 5];       //dM_11/dJp_11
+                        dM[dr * 16 + 14] = dM[dr * 16 + 10];      //dM_11/dJq_10
+                        dM[dr * 16 + 15] = dM[dr * 16 + 11];      //dM_11/dJq_11
                     }
                     if (sh) {
                       cout<<"M="<<M<<endl;
                       cout<<"dM="<<dM<<endl;
                     }
 
-                    for(size_t cr = 0; cr < 4; ++cr)
+                    for(size_t cr = 0; cr < 4; ++cr) // correlation: 00,01,10,11
                     {
                         if(!flag[cr])
                         {
@@ -204,31 +204,31 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                                     dcomplex derivative(0.0, 0.0);
                                     derivative =
                                         mix_weight * dM[dr * 16 + cr * 4];
-                                    dR[dr * 8] = real(derivative);
-                                    dI[dr * 8] = imag(derivative);
-                                    dR[dr * 8 + 1] = -imag(derivative);
-                                    dI[dr * 8 + 1] = real(derivative);
+                                    dR[dr * 8] = real(derivative);     //for cr==0: Re(d/dRe(p_00)))
+                                    dI[dr * 8] = imag(derivative);     //for cr==0: Re(d/dIm(p_00)))
+                                    dR[dr * 8 + 1] = -imag(derivative);//for cr==0: Im(d/dRe(p_00)))
+                                    dI[dr * 8 + 1] = real(derivative); //for cr==0: Im(d/dIm(p_00)))
 
                                     derivative =
                                         mix_weight * dM[dr * 16 + cr * 4 + 1];
-                                    dR[dr * 8 + 2] = real(derivative);
-                                    dI[dr * 8 + 2] = imag(derivative);
-                                    dR[dr * 8 + 3] = -imag(derivative);
-                                    dI[dr * 8 + 3] = real(derivative);
+                                    dR[dr * 8 + 2] = real(derivative); //for cr==0: Re(d/dRe(p_01)))
+                                    dI[dr * 8 + 2] = imag(derivative); //for cr==0: Re(d/dIm(p_01)))
+                                    dR[dr * 8 + 3] = -imag(derivative);//for cr==0: Im(d/dRe(p_01)))
+                                    dI[dr * 8 + 3] = real(derivative); //for cr==0: Im(d/dIm(p_01)))
 
                                     derivative =
                                         mix_weight * dM[dr * 16 + cr * 4 + 2];
-                                    dR[dr * 8 + 4] = real(derivative);
-                                    dI[dr * 8 + 4] = imag(derivative);
-                                    dR[dr * 8 + 5] = imag(derivative);
-                                    dI[dr * 8 + 5] = -real(derivative);
+                                    dR[dr * 8 + 4] = real(derivative); //for cr==0: Re(d/dRe(q_00)))
+                                    dI[dr * 8 + 4] = imag(derivative); //for cr==0: Re(d/dIm(q_00)))
+                                    dR[dr * 8 + 5] = imag(derivative); //for cr==0: Im(d/dRe(q_00)))
+                                    dI[dr * 8 + 5] = -real(derivative);//for cr==0: Im(d/dIm(q_00)))
 
                                     derivative =
                                         mix_weight * dM[dr * 16 + cr * 4 + 3];
-                                    dR[dr * 8 + 6] = real(derivative);
-                                    dI[dr * 8 + 6] = imag(derivative);
-                                    dR[dr * 8 + 7] = imag(derivative);
-                                    dI[dr * 8 + 7] = -real(derivative);
+                                    dR[dr * 8 + 6] = real(derivative); //for cr==0: Re(d/dRe(q_01)))
+                                    dI[dr * 8 + 6] = imag(derivative); //for cr==0: Re(d/dIm(q_01)))
+                                    dR[dr * 8 + 7] = imag(derivative); //for cr==0: Im(d/dRe(q_01)))
+                                    dI[dr * 8 + 7] = -real(derivative);//for cr==0: Im(d/dIm(q_01)))
 
                                     // Move to next source direction.
                                     mix.forward(1);
