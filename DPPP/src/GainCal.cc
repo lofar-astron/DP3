@@ -140,10 +140,6 @@ namespace LOFAR {
         itsSolInt=info().ntime();
       }
 
-      // initialize storage
-      itsVis.resize (IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
-      itsMVis.resize(IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
- 
       const size_t nThread=1;//OpenMP::maxThreads();
 
       itsThreadStorage.resize(nThread);
@@ -476,6 +472,12 @@ namespace LOFAR {
 
       itsAntUseds.push_back(antUsed);
       itsAntMaps.push_back(antMap);
+
+      uint nSt=antUsed.size();
+      uint nCh=info().nchan();
+      // initialize storage
+      itsVis.resize (IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
+      itsMVis.resize(IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
     }
 
     void GainCal::stefcal (string mode, uint solInt) {
@@ -586,14 +588,15 @@ namespace LOFAR {
           for (uint st1=0;st1<nSt;++st1) {
             for (uint time=0;time<solInt;++time) {
               for (uint ch=0;ch<nCh;++ch) {
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)); }
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+nSt*ch+nSt*nCh*time,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1)); }
+                uint zoff=nSt*ch+nSt*nCh*time;
+                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)); }
+                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z(st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1)); }
               }
             }
 
@@ -603,9 +606,10 @@ namespace LOFAR {
             for (uint time=0;time<solInt;++time) {
               for (uint ch=0;ch<nCh;++ch) {
                 for (uint st2=0;st2<nSt;++st2) {
-                  w(0) += conj(iS.z(st2+nSt*ch+nSt*nCh*time,0))*iS.z(st2+nSt*ch+nSt*nCh*time,0) + conj(iS.z(st2+nSt*ch+nSt*nCh*time,2))*iS.z(st2+nSt*ch+nSt*nCh*time,2);
-                  w(1) += conj(iS.z(st2+nSt*ch+nSt*nCh*time,0))*iS.z(st2+nSt*ch+nSt*nCh*time,1) + conj(iS.z(st2+nSt*ch+nSt*nCh*time,2))*iS.z(st2+nSt*ch+nSt*nCh*time,3);
-                  w(3) += conj(iS.z(st2+nSt*ch+nSt*nCh*time,1))*iS.z(st2+nSt*ch+nSt*nCh*time,1) + conj(iS.z(st2+nSt*ch+nSt*nCh*time,3))*iS.z(st2+nSt*ch+nSt*nCh*time,3);
+                  uint zoff=st2+nSt*ch+nSt*nCh*time;
+                  w(0) += conj(iS.z(zoff,0))*iS.z(zoff,0) + conj(iS.z(zoff,2))*iS.z(zoff,2);
+                  w(1) += conj(iS.z(zoff,0))*iS.z(zoff,1) + conj(iS.z(zoff,2))*iS.z(zoff,3);
+                  w(3) += conj(iS.z(zoff,1))*iS.z(zoff,1) + conj(iS.z(zoff,3))*iS.z(zoff,3);
                 }
               }
             }
@@ -849,15 +853,15 @@ namespace LOFAR {
           cout<<iS.g(i,0).real()<<(iS.g(i,0).imag()>=0?"+":"")<<iS.g(i,0).imag()<<"j; ";
         }
         cout<<endl;
-        THROW(Exception,"Klaar!");
+        //THROW(Exception,"Klaar!");
       }
 
       if (dg > itsTolerance && itsDebugLevel>1 && nSt>0) {
         cout<<endl<<"Did not converge: dg="<<dg<<" tolerance="<<itsTolerance<<", nants="<<nSt<<endl;
         if (itsDebugLevel>12) {
           cout<<"g="<<iS.g<<endl;
-          //exportToMatlab(0);
-          //THROW(Exception,"Klaar!");
+          exportToMatlab(0);
+          THROW(Exception,"Klaar!");
         }
       }
 //      THROW(Exception,"Klaar!");
@@ -867,7 +871,7 @@ namespace LOFAR {
 
     void GainCal::exportToMatlab(uint ch) {
       ofstream mFile;
-      uint nSt = itsMVis.shape()[1];
+      uint nSt = itsMVis.shape()[0];
       mFile.open ("debug.txt");
       mFile << "# Created by NDPPP"<<endl;
       mFile << "# name: V"<<endl;
@@ -875,15 +879,9 @@ namespace LOFAR {
       mFile << "# rows: "<<2*nSt<<endl;
       mFile << "# columns: "<<2*nSt<<endl;
 
-      for (uint row=0;row<nSt;++row) {
-        for (uint col=0;col<nSt;++col) {
-          mFile << itsVis(IPosition(4,0,row,ch,col))<<" ";
-          mFile << itsVis(IPosition(4,1,row,ch,col))<<" ";
-        }
-        mFile << endl;
-        for (uint col=0;col<nSt;++col) {
-          mFile << itsVis(IPosition(4,2,row,ch,col))<<" ";
-          mFile << itsVis(IPosition(4,3,row,ch,col))<<" ";
+      for (uint row=0;row<2*nSt;++row) {
+        for (uint col=0;col<2*nSt;++col) {
+          mFile << itsVis(IPosition(6,row%nSt,row/nSt,ch,0,col/nSt,col%nSt))<<" ";
         }
         mFile << endl;
       }
@@ -896,13 +894,7 @@ namespace LOFAR {
 
       for (uint row=0;row<nSt;++row) {
         for (uint col=0;col<nSt;++col) {
-          mFile << itsMVis(IPosition(4,0,row,ch,col))<<" ";
-          mFile << itsMVis(IPosition(4,1,row,ch,col))<<" ";
-        }
-        mFile << endl;
-        for (uint col=0;col<nSt;++col) {
-          mFile << itsMVis(IPosition(4,2,row,ch,col))<<" ";
-          mFile << itsMVis(IPosition(4,3,row,ch,col))<<" ";
+          mFile << itsMVis(IPosition(6,row%nSt,row/nSt,ch,0,col/nSt,col%nSt))<<" ";
         }
         mFile << endl;
       }
