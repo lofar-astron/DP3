@@ -584,7 +584,7 @@ namespace LOFAR {
             iS.h(st,3)=conj(iS.g(st,3));
           }
 
-#pragma omp parallel for
+//#pragma omp parallel for
           for (uint st1=0;st1<nSt;++st1) {
             for (uint time=0;time<solInt;++time) {
               for (uint ch=0;ch<nCh;++ch) {
@@ -646,7 +646,7 @@ namespace LOFAR {
           for (uint st=0;st<nUn;++st) {
             iS.h(st,0)=conj(iS.g(st,0));
           }
-#pragma omp parallel for
+//#pragma omp parallel for
           for (uint st1=0;st1<nUn;++st1) {
             ww=0;
             t(0)=0;
@@ -1001,6 +1001,14 @@ namespace LOFAR {
           resolution[1] = info().timeInterval();
           itsParmDB->setDefaultSteps(resolution);
         }
+
+        // Write out default amplitudes
+        if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+          ParmValueSet pvset(ParmValue(1.0));
+          itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+        }
+
         // Write the solutions per parameter.
         const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
         const char* strri[] = {"Real:","Imag:"};
