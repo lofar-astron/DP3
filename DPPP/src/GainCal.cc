@@ -932,26 +932,22 @@ namespace LOFAR {
         }
       }
 
-      StationResponse::matrix22c_t *left;
-      StationResponse::matrix22c_t *right;
-
       // Apply the beam values of both stations to the predicted data.
       dcomplex tmp[4];
-      for (size_t bl=0; bl<nBl; ++bl) {
-        for (size_t ch=0; ch<nchan; ++ch) {
-          if (itsUseChannelFreq) {
-            for (size_t st=0; st<nSt; ++st) {
-              itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                            srcdir, chanFreqs[ch], refdir,
-                                            tiledir, &(beamvalues[nchan*st]));
+      for (size_t ch=0; ch<nchan; ++ch) {
+        if (itsUseChannelFreq) {
+          for (size_t st=0; st<nSt; ++st) {
+            itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+                                          srcdir, chanFreqs[ch], refdir,
+                                          tiledir, &(beamvalues[nchan*st]));
 
-            }
-            left = &(beamvalues[nchan * info().getAnt1()[bl]]);
-            right= &(beamvalues[nchan * info().getAnt2()[bl]]);
-          } else {
-            left = &(beamvalues[nchan * info().getAnt1()[bl]]);
-            right= &(beamvalues[nchan * info().getAnt2()[bl]]);
           }
+        }
+        for (size_t bl=0; bl<nBl; ++bl) {
+          StationResponse::matrix22c_t *left =
+              &(beamvalues[nchan * info().getAnt1()[bl]]);
+          StationResponse::matrix22c_t *right=
+              &(beamvalues[nchan * info().getAnt2()[bl]]);
           dcomplex l[] = {left[ch][0][0], left[ch][0][1],
                           left[ch][1][0], left[ch][1][1]};
           // Form transposed conjugate of right.
