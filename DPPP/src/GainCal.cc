@@ -181,19 +181,20 @@ namespace LOFAR {
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  use model col:  " << boolalpha << itsUseModelColumn << endl;
-      os << "  sourcedb:       " << itsSourceDBName << endl;
+      os << "  use model col:      " << boolalpha << itsUseModelColumn << endl;
+      os << "  sourcedb:           " << itsSourceDBName << endl;
       os << "   number of patches: " << itsPatchList.size() << endl;
-      os << "  parmdb:         " << itsParmDBName << endl;
-      os << "  apply beam:     " << boolalpha << itsApplyBeam << endl;
-      os << "   beam per patch:" << boolalpha << itsBeamPerPatch << endl;
-      os << "  solint          " << itsSolInt <<endl;
-      os << "  max iter:       " << itsMaxIter << endl;
-      os << "  tolerance:      " << itsTolerance << endl;
+      os << "  parmdb:             " << itsParmDBName << endl;
+      os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
+      os << "   beam per patch:    " << boolalpha << itsBeamPerPatch << endl;
+      os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
+      os << "  solint              " << itsSolInt <<endl;
+      os << "  max iter:           " << itsMaxIter << endl;
+      os << "  tolerance:          " << itsTolerance << endl;
 //      os << "  propagate sols: " << boolalpha << itsPropagateSolutions << endl;
-      os << "  mode:           " << itsMode << endl;
-      os << "  stefcalvariant: " << itsStefcalVariant <<endl;
-      os << "  detect stalling:" << boolalpha << itsDetectStalling << endl;
+      os << "  mode:               " << itsMode << endl;
+      os << "  stefcalvariant:     " << itsStefcalVariant <<endl;
+      os << "  detect stalling:    " << boolalpha << itsDetectStalling << endl;
     }
 
     void GainCal::showTimings (std::ostream& os, double duration) const
