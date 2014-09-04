@@ -906,7 +906,7 @@ namespace LOFAR {
     }
 
     void GainCal::applyBeam (double time, const Position& pos, bool apply,
-                             const Vector<double>& chanFreqs, dcomplex* data,
+                             const Vector<double>& chanFreqs, dcomplex* data0,
                              StationResponse::vector3r_t& refdir,
                              StationResponse::vector3r_t& tiledir,
                              StationResponse::matrix22c_t* beamvalues,
@@ -928,7 +928,6 @@ namespace LOFAR {
           itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
                                         srcdir, info().refFreq(), refdir,
                                         tiledir, &(beamvalues[nchan*st]));
-
         }
       }
 
@@ -940,10 +939,10 @@ namespace LOFAR {
             itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
                                           srcdir, chanFreqs[ch], refdir,
                                           tiledir, &(beamvalues[nchan*st]));
-
           }
         }
         for (size_t bl=0; bl<nBl; ++bl) {
+          dcomplex* data=data0+bl*4*nchan + ch*4; //TODO
           StationResponse::matrix22c_t *left =
               &(beamvalues[nchan * info().getAnt1()[bl]]);
           StationResponse::matrix22c_t *right=
@@ -963,7 +962,6 @@ namespace LOFAR {
           data[1] = tmp[0] * r[1] + tmp[1] * r[3];
           data[2] = tmp[2] * r[0] + tmp[3] * r[2];
           data[3] = tmp[2] * r[1] + tmp[3] * r[3];
-          data += 4;
         }
       }
     }
