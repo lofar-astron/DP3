@@ -182,6 +182,7 @@ namespace {
       string           itsParmDBName;
       bool             itsApplyBeam;
       bool             itsBeamPerPatch;
+      bool             itsUseChannelFreq;
       shared_ptr<BBS::ParmDB> itsParmDB;
       Position         itsPhaseRef;
 
