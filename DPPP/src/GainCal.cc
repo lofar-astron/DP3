@@ -274,10 +274,10 @@ namespace LOFAR {
         splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
         cursor<dcomplex> cr_model(&(storage.model_patch[0]), 3, stride_model);
 
-        StationResponse::vector3r_t refdir = dir2Itrf(info().delayCenterCopy(),storage.measConverter);
-        StationResponse::vector3r_t tiledir = dir2Itrf(info().tileBeamDirCopy(),storage.measConverter);
         // Convert the directions to ITRF for the given time.
         storage.measFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
+        StationResponse::vector3r_t refdir = dir2Itrf(info().delayCenter(),storage.measConverter);
+        StationResponse::vector3r_t tiledir = dir2Itrf(info().tileBeamDir(),storage.measConverter);
 
   //#pragma omp parallel for
         for(size_t dr = 0; dr < nDr; ++dr)
