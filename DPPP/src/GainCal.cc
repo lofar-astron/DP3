@@ -70,7 +70,7 @@ namespace LOFAR {
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb")),
         itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
-        itsBeamPerPatch  (parset.getBool (prefix + "beamperpatch", true)),
+        itsBeamPerPatch  (parset.getBool (prefix + "onebeamperpatch", true)),
         itsUseChannelFreq(parset.getBool (prefix + "usechannelfreq", true)),
         itsMode          (parset.getString (prefix + "caltype")),
         itsTStep         (0),
