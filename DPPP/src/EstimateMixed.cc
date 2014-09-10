@@ -71,7 +71,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     size_t nChannel, const_cursor<Baseline> baselines,
     vector<const_cursor<fcomplex> > data, vector<const_cursor<dcomplex> > model,
     const_cursor<bool> flag, const_cursor<float> weight,
-    const_cursor<dcomplex> mix, double *unknowns)
+    const_cursor<dcomplex> mix, double *unknowns, size_t maxiter)
 {
     ASSERT(data.size() == nDirection && model.size() == nDirection);
     bool sh=false;
@@ -96,7 +96,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
     // Iterate until convergence.
     size_t nIterations = 0;
-    while(!solver.isReady() && nIterations < 50)
+    while(!solver.isReady() && nIterations < maxiter)
     {
       if (sh) cout<<endl<<"iteration " << nIterations << endl;
         for(size_t bl = 0; bl < nBaseline; ++bl)

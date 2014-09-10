@@ -282,6 +282,7 @@ namespace LOFAR {
   //#pragma omp parallel for
         for(size_t dr = 0; dr < nDr; ++dr)
         {
+          //Todo: if (!itsBeamPerPatch): make new patch for each source
           fill(storage.model_patch.begin(), storage.model_patch.end(), dcomplex());
 
           simulate(itsPhaseRef, itsPatchList[dr], nSt, nBl, nCh, cr_baseline,
