@@ -84,7 +84,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     size_t nChannel, const_cursor<Baseline> baselines,
     vector<const_cursor<fcomplex> > data, vector<const_cursor<dcomplex> > model,
     const_cursor<bool> flag, const_cursor<float> weight,
-    const_cursor<dcomplex> mix, double *unknowns);
+    const_cursor<dcomplex> mix, double *unknowns, size_t maxiter=50);
 // @}
 
 // Estimate for a variable nr of stations per source.
