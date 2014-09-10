@@ -127,6 +127,7 @@ namespace LOFAR {
       string                                itsSkyName;
       string                                itsInstrumentName;
       double                                itsDefaultGain;
+      size_t                                itsMaxIter;
       BaselineSelection                     itsSelBL;
       Filter                                itsFilter;
       vector<PhaseShift*>                   itsPhaseShifts;

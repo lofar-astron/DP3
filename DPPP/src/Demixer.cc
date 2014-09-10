@@ -77,6 +77,7 @@ namespace LOFAR {
         itsInstrumentName (parset.getString(prefix+"instrumentmodel",
                                             "instrument")),
         itsDefaultGain    (parset.getDouble(prefix+"defaultgain",1.0)),
+        itsMaxIter        (parset.getInt(prefix+"maxiter",50)),
         itsSelBL          (parset, prefix, false, "cross"),
         itsFilter         (input, itsSelBL),
         itsAvgResultSubtr (0),
@@ -937,7 +938,8 @@ namespace LOFAR {
         }
 
         bool converged = estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data,
-          cr_model, cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]));
+          cr_model, cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]),
+          itsMaxIter);
         if(converged)
         {
           ++storage.count_converged;
