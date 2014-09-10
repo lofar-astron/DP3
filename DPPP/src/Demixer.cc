@@ -353,6 +353,7 @@ namespace LOFAR {
       os << "  skymodel:           " << itsSkyName << std::endl;
       os << "  instrumentmodel:    " << itsInstrumentName << std::endl;
       os << "  default gain:       " << itsDefaultGain << std::endl;
+      os << "  max iterations:     " << itsMaxIter << std::endl;
       itsSelBL.show (os);
       if (itsSelBL.hasSelection()) {
         os << "    demixing " << itsFilter.getInfo().nbaselines()
