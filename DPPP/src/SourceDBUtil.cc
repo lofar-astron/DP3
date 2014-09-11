@@ -28,6 +28,7 @@
 #include <ParmDB/SourceDB.h>
 #include <Common/LofarLogger.h>
 #include <Common/lofar_vector.h>
+#include <sstream>
 #include <set>
 
 namespace LOFAR
@@ -143,6 +144,41 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   }
   return patchList;
 }
+
+
+vector<Patch::ConstPtr> makeOnePatchPerComponent(
+    vector<Patch::ConstPtr> patchList) {
+    size_t numComponents=0;
+    vector<Patch::ConstPtr>::iterator patchIt;
+
+    for (patchIt=patchList.begin();patchIt!=patchList.end();++patchIt) {
+        numComponents+=(*patchIt)->nComponents();
+    }
+
+    vector<Patch::ConstPtr> largePatchList;
+    largePatchList.reserve(numComponents);
+
+    for (patchIt=patchList.begin();patchIt!=patchList.end();++patchIt) {
+        Patch::const_iterator compIt;
+
+        size_t compNum=0;
+        for (compIt=(*patchIt)->begin();compIt!=(*patchIt)->end();++compIt) {
+            // convert compNum to string (blegh)
+            stringstream ss;
+            ss<<compNum;
+
+            Patch::Ptr ppatch(new Patch((*patchIt)->name()+"_"+ss.str(),
+                                        compIt,
+                                        compIt));
+            ppatch->setPosition((*compIt)->position());
+            largePatchList.push_back(ppatch);
+            compNum++;
+        }
+    }
+
+    return largePatchList;
+}
+
 
 vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
 {

@@ -70,7 +70,7 @@ namespace LOFAR {
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb")),
         itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
-        itsBeamPerPatch  (parset.getBool (prefix + "onebeamperpatch", true)),
+        itsOneBeamPerPatch  (parset.getBool (prefix + "onebeamperpatch", true)),
         itsUseChannelFreq(parset.getBool (prefix + "usechannelfreq", true)),
         itsMode          (parset.getString (prefix + "caltype")),
         itsTStep         (0),
@@ -103,6 +103,9 @@ namespace LOFAR {
         patchNames=makePatchList(sourceDB, sourcePatterns);
 
         itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
+        if (itsOneBeamPerPatch) {
+          itsPatchList = makeOnePatchPerComponent(itsPatchList);
+        }
       }
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase");
@@ -186,7 +189,7 @@ namespace LOFAR {
       os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
-      os << "   beam per patch:    " << boolalpha << itsBeamPerPatch << endl;
+      os << "   beam per patch:    " << boolalpha << itsOneBeamPerPatch << endl;
       os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
       os << "  solint              " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
@@ -282,26 +285,15 @@ namespace LOFAR {
   //#pragma omp parallel for
         for(size_t dr = 0; dr < nDr; ++dr)
         {
-          //Todo: if (!itsBeamPerPatch): make new patch for each source
           fill(storage.model_patch.begin(), storage.model_patch.end(), dcomplex());
 
           simulate(itsPhaseRef, itsPatchList[dr], nSt, nBl, nCh, cr_baseline,
                    cr_freq, cr_uvw_split, cr_model);
 
-          if (itsBeamPerPatch) {
-            applyBeam(time, itsPatchList[dr]->position(), itsApplyBeam,
-                      info().chanFreqs(), &(itsThreadStorage[thread].model_patch[0]),
-                      refdir, tiledir, &(itsThreadStorage[thread].beamvalues[0]),
-                      storage.measConverter);
-          } else {
-            for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
-              // Apply beam for every source, not only once per patch
-              applyBeam(time, itsPatchList[dr]->component(i)->position(), itsApplyBeam,
-                        info().chanFreqs(), &(itsThreadStorage[thread].model_patch[0]),
-                        refdir, tiledir, &(itsThreadStorage[thread].beamvalues[0]),
-                        storage.measConverter);
-            }
-          }
+          applyBeam(time, itsPatchList[dr]->position(), itsApplyBeam,
+                    info().chanFreqs(), &(itsThreadStorage[thread].model_patch[0]),
+                    refdir, tiledir, &(itsThreadStorage[thread].beamvalues[0]),
+                    storage.measConverter);
 
           for (size_t i=0; i<itsThreadStorage[thread].model_patch.size();++i) {
             itsThreadStorage[thread].model[i]+=
