@@ -169,7 +169,7 @@ vector<Patch::ConstPtr> makeOnePatchPerComponent(
 
             Patch::Ptr ppatch(new Patch((*patchIt)->name()+"_"+ss.str(),
                                         compIt,
-                                        compIt));
+                                        compIt+1));
             ppatch->setPosition((*compIt)->position());
             largePatchList.push_back(ppatch);
             compNum++;

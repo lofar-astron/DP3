@@ -103,7 +103,7 @@ namespace LOFAR {
         patchNames=makePatchList(sourceDB, sourcePatterns);
 
         itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
-        if (itsOneBeamPerPatch) {
+        if (!itsOneBeamPerPatch) {
           itsPatchList = makeOnePatchPerComponent(itsPatchList);
         }
       }
