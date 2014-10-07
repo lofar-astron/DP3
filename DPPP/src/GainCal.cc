@@ -189,8 +189,10 @@ namespace LOFAR {
       os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
-      os << "   beam per patch:    " << boolalpha << itsOneBeamPerPatch << endl;
-      os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
+      if (itsApplyBeam) {
+        os << "   beam per patch:    " << boolalpha << itsOneBeamPerPatch << endl;
+        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
+      }
       os << "  solint              " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
@@ -337,13 +339,6 @@ namespace LOFAR {
       getNextStep()->process(buf);
       return false;
     }
-
-    // Remove rows and colums corresponding to antennas with too much
-    // flagged data from vis and mvis
-    void GainCal::removeDeadAntennas() {
-      //TODO: implement this function...
-    }
-
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
     // top left, all 11 polarizations in the bottom right, etc. //TODO: make templated
@@ -699,8 +694,10 @@ namespace LOFAR {
           if (itsDebugLevel>7) {
             cout<<"iter: "<<iter<<endl;
           }
-          if (itsDetectStalling && dgx-dg <= 1.0e-3*dg) {
+          if (itsDetectStalling && iter > 20 && dgx-dg <= 5.0e-3*dg) {
           // This iteration did not improve much upon the previous
+          // Stalling detection only after 20 iterations, to account for
+          // ''startup problems''
             if (itsDebugLevel>3) {
               cout<<"**"<<endl;
             }
