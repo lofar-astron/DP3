@@ -23,8 +23,6 @@ lofar_add_bin_program(NDPPP NDPPP.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 
 install(PROGRAMS
-  mwflagger
-  mwflagger-part
   taqlflagger
   DESTINATION bin)
 
