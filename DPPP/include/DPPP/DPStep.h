@@ -25,7 +25,7 @@
 #define DPPP_DPSTEP_H
 
 // @file
-// @brief Class to hold code for virtual base class for Flaggers in IDPPP
+// @brief Class to hold code for virtual base class for Flaggers in DPPP
 
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>

@@ -6,18 +6,11 @@
 // of the visibility data. Currently it consists of various flaggers
 // and some classes for other features.
 //
-// The package consists of two parts:
-// <ul>
-// <li> NDPPP is the new program to do flagging and averaging of
+// NDPPP is the new program to do flagging and averaging of
 // visibility data in a MeasurementSet. It can also do demixing (i.e.,
 // subtraction of the A-team sources) and station summation.
 // It is easily extendible with new classes for new features.
 //
-// <li> IDPPP is the old program. It has a few special flag options
-// not found in the new version, which might be useful for WSRT data.
-// </ul>
-//
 // @{
 //   \defgroup NDPPP NDPPP (new version)
-//   \defgroup IDPPP IDPPP (old version)
 // @}

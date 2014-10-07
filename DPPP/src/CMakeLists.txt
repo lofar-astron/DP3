@@ -15,12 +15,11 @@ lofar_add_library(dppp
   Apply.cc EstimateMixed.cc EstimateNew.cc Simulate.cc Simulator.cc
   SubtractMixed.cc SubtractNew.cc
   ModelComponent.cc PointSource.cc GaussianSource.cc Patch.cc
-  ModelComponentVisitor.cc FlaggerStatistics.cc GainCal.cc
+  ModelComponentVisitor.cc GainCal.cc
   DemixerNew.cc DemixInfo.cc DemixWorker.cc
 )
 
 lofar_add_bin_program(NDPPP NDPPP.cc)
-#lofar_add_bin_program(IDPPP IDPPP.cc PipelineProcessControl.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 
 install(PROGRAMS

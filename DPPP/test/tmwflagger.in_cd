@@ -1,5 +1,0 @@
-ClusterName = test
-NNodes=1
-Node0.NodeName = localhost
-Node0.NodeFileSys = [node1:/usr]
-Node0.NodeMountPoints = /
