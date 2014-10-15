@@ -526,6 +526,11 @@ namespace LOFAR {
       // Set antenna/baseline info.
       info().set (nameCol.getColumn(), diamCol.getColumn(), antPos,
                   ant1col.getColumn(), ant2col.getColumn());
+
+      if (itsAutoWeight) {
+        info().setNeedVisData();
+      }
+
       // Read the phase reference position from the FIELD subtable.
       // Only use the main value from the PHASE_DIR array.
       // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
