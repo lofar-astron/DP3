@@ -392,7 +392,7 @@ namespace LOFAR {
         }
         os << std::endl;
         os << "  WEIGHT column:  " << itsWeightColName << std::endl;
-        os << "  autoweight:     " << itsAutoWeight << std::endl;
+        os << "  autoweight:     " << boolalpha << itsAutoWeight << std::endl;
       }
     }
 

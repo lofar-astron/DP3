@@ -334,7 +334,7 @@ namespace LOFAR {
         }
       }
       os << "  WEIGHT column:  " << itsWeightColName << std::endl;
-      os << "  autoweight:     " << itsAutoWeight << std::endl;
+      os << "  autoweight:     " << boolalpha << itsAutoWeight << std::endl;
     }
 
     void MultiMSReader::showCounts (std::ostream& os) const
