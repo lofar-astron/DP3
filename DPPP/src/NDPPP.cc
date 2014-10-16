@@ -43,9 +43,12 @@ int main(int argc, char *argv[])
     TEST_SHOW_VERSION (argc, argv, DPPP);
     INIT_LOGGER(basename(string(argv[0])));
     // Get the name of the parset file.
-    string parsetName("NDPPP.parset");
-    if (argc > 1) {
+    string parsetName("");
+    if (argc > 1 && string(argv[1]).find('=')==string::npos) {
+      // First argument is parset name (except if it's a key-value pair)
       parsetName = argv[1];
+    } else if (argc==1) { // If no arguments given, load NDPPP.parset
+      parsetName="NDPPP.parset";
     }
     // Execute the parset file.
     DPRun::execute (parsetName, argc, argv);
