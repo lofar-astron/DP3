@@ -529,6 +529,7 @@ namespace LOFAR {
 
       if (itsAutoWeight) {
         info().setNeedVisData();
+        info().setNeedWrite(info().needWrite() | DPInfo::NeedWriteWeight);
       }
 
       // Read the phase reference position from the FIELD subtable.
