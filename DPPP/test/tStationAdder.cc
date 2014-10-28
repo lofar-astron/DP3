@@ -253,6 +253,17 @@ private:
   bool itsSumAuto;
 };
 
+// Class that throws an error when process() is called
+class ThrowStep: public DPStep
+{
+    virtual void finish() {}
+    virtual void show (std::ostream&) const {}
+    virtual bool process (const DPBuffer&) {
+      cout<<"Previous step should have thrown an error!"<<endl;
+      return true;
+    }
+};
+
 // Class to check result of flagged, unaveraged TestInput run by test2.
 class TestOutput2: public DPStep
 {
@@ -380,6 +391,40 @@ private:
   int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
+// Class to check result of TestInput run by test4.
+class TestOutput4: public DPStep
+{
+public:
+  TestOutput4(int ntime, int nbl, int nchan, int ncorr)
+    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
+      itsNCorr(ncorr)
+  {}
+private:
+  virtual bool process (const DPBuffer&)
+  {
+    return true;
+  }
+
+  virtual void finish() {}
+  virtual void show (std::ostream&) const {}
+  virtual void updateInfo (const DPInfo& infoIn)
+  {
+    info() = infoIn;
+    ASSERT (int(infoIn.origNChan())==itsNChan);
+    ASSERT (int(infoIn.nchan())==itsNChan);
+    ASSERT (int(infoIn.ntime())==itsNTime);
+    ASSERT (infoIn.timeInterval()==5);
+    ASSERT (int(infoIn.nchanAvg())==1);
+    ASSERT (int(infoIn.ntimeAvg())==1);
+    ASSERT (int(infoIn.nbaselines())==itsNBl);
+    ASSERT (int(infoIn.antennaNames().size())==4);
+    ASSERT (int(infoIn.antennaDiam().size())==4);
+    ASSERT (int(infoIn.antennaPos().size())==4);
+  }
+
+  int itsCount;
+  int itsNTime, itsNBl, itsNChan, itsNCorr;
+};
 
 // Execute steps.
 void execute (const DPStep::ShPtr& step1)
@@ -446,7 +491,9 @@ void test3 (const string& stations)
   parset.add ("stations", stations);
   parset.add ("autocorr", "true");
   DPStep::ShPtr step2(new StationAdder(in, parset, ""));
+  DPStep::ShPtr step3(new ThrowStep());
   step1->setNextStep (step2);
+  step2->setNextStep (step3);
   bool ok = true;
   try {
     execute (step1);
@@ -455,6 +502,24 @@ void test3 (const string& stations)
     ok = false;
   }
   ASSERT (!ok);
+}
+
+// Test making a superstation out of nonexisting stations (should do nothing)
+void test4(int ntime, int nbl, int nchan, int ncorr)
+{
+  cout << "test4: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("stations",
+              "{ns1:nonexistingstationpattern}");
+  DPStep::ShPtr step2(new StationAdder(in, parset, ""));
+  DPStep::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
 }
 
 void testPatterns()
@@ -488,11 +553,12 @@ int main()
     test1( 10,  16, 32, 4, false);
     test2( 10,  16, 32, 4);
     // Unknown station.
-    test3("{ns1:rs01.s1, ns2:[cs01.s02, cs01.s01]}");
+    //test3("{ns1:unknown, ns2:[cs01.s02, cs01.s01]}");
     // New station already used.
     test3("{ns1:[rs01.s01, rs02.s01], cs01.s02:[cs01.s02, cs01.s01]}");
     // Old station doubly used.
     test3("{ns1:[rs01.s01, rs02.s01], ns2:[rs01.s01, cs01.s01]}");
+    test4( 10, 16, 32, 4);
   } catch (std::exception& x) {
     cout << "Unexpected exception: " << x.what() << endl;
     return 1;
