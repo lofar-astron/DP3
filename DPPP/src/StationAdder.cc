@@ -275,10 +275,10 @@ namespace LOFAR {
         os << ']' << endl;
       }
       os << "  minpoints:      " << itsMinNPoint << std::endl;
-      os << "  autocorr:       " << itsMakeAutoCorr << std::endl;
-      os << "  sumauto:        " << itsSumAutoCorr << std::endl;
-      os << "  average:        " << itsDoAverage << std::endl;
-      os << "  useweights:     " << itsUseWeight << std::endl;
+      os << "  autocorr:       " << boolalpha << itsMakeAutoCorr << std::endl;
+      os << "  sumauto:        " << boolalpha << itsSumAutoCorr << std::endl;
+      os << "  average:        " << boolalpha << itsDoAverage << std::endl;
+      os << "  useweights:     " << boolalpha << itsUseWeight << std::endl;
     }
 
     void StationAdder::showTimings (std::ostream& os, double duration) const
