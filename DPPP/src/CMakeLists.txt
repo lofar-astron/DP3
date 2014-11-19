@@ -22,6 +22,11 @@ lofar_add_library(dppp
 lofar_add_bin_program(NDPPP NDPPP.cc)
 lofar_add_bin_program(versiondppp versiondppp.cc)
 
+install(CODE "EXECUTE_PROCESS(
+  COMMAND \"${CMAKE_COMMAND}\" -E create_symlink NDPPP DPPP WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
+  )"
+)
+
 install(PROGRAMS
   taqlflagger
   DESTINATION bin)

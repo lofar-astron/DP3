@@ -30,11 +30,26 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <casa/OS/File.h>
+
 using namespace LOFAR::DPPP;
 using namespace LOFAR;
 
 // Define handler that tries to print a backtrace.
 Exception::TerminateHandler t(Exception::terminate);
+
+void showUsage() {
+  std::cout<<"Usage: DPPP [-v] [parsetfile] [parsetkeys...]"<<std::endl;
+  std::cout<<"  parsetfile: a file containing one parset key=value pair "<<
+    "per line"<<std::endl;
+  std::cout<<"  parsetkeys: any number of parset key=value pairs, e.g. "<<
+    "msin=my.MS"<<std::endl<<std::endl;
+  std::cout<<"If both a file and command-line keys are specified, the "<<
+    "keys on the command line override those in the file."<<std::endl;
+  std::cout<<"If no arguments are specified, the program tries to read "<<
+    "\"NDPPP.parset\" or \"DPPP.parset\" as a default."<<std::endl;
+  std::cout<<"-v will show version info and exit."<<std::endl;
+}
 
 int main(int argc, char *argv[])
 {
@@ -43,13 +58,29 @@ int main(int argc, char *argv[])
     TEST_SHOW_VERSION (argc, argv, DPPP);
     INIT_LOGGER(basename(string(argv[0])));
     // Get the name of the parset file.
+    if (argc>1 && (
+          string(argv[1])=="--help" ||
+          string(argv[1])=="-help"   || string(argv[1])=="-h" || 
+          string(argv[1])=="--usage" || string(argv[1])=="-usage")) {
+      showUsage();
+      return 0;
+    }
+
     string parsetName("");
     if (argc > 1 && string(argv[1]).find('=')==string::npos) {
       // First argument is parset name (except if it's a key-value pair)
       parsetName = argv[1];
-    } else if (argc==1) { // If no arguments given, load NDPPP.parset
-      parsetName="NDPPP.parset";
+    } else if (argc==1) { // If no arguments given: try to load [N]DPPP.parset
+      if (casa::File("NDPPP.parset").exists()) {
+        parsetName="NDPPP.parset";
+      } else if (casa::File("DPPP.parset").exists()) {
+        parsetName="DPPP.parset";
+      } else { // No default file, show usage and exit
+        showUsage();
+        return 0;
+      }
     }
+
     // Execute the parset file.
     DPRun::execute (parsetName, argc, argv);
   } catch (LOFAR::Exception& err) {
