@@ -77,11 +77,12 @@ void Simulator::simulate(const ModelComponent::ConstPtr &component)
     component->accept(*this);
 }
 
+
 void Simulator::visit(const PointSource &component)
 {
     // Compute LMN coordinates.
     double lmn[3];
-    radec2lmn(itsReference, component.position(), cursor<double>(lmn));
+    radec2lmn(itsReference, component.position(), lmn);
     ///    cout<<"pos="<<itsReference[0]<<' '<<itsReference[1]<<' '<<component.position()[0]<<' '<<component.position()[1]<<endl;
     ///    cout<<"lmn="<<lmn[0]<<' '<<lmn[1]<<' '<<lmn[2]<<endl;
 
@@ -249,6 +250,22 @@ void Simulator::visit(const GaussianSource &component)
 namespace
 {
 inline void radec2lmn(const Position &reference, const Position &position,
+                      double* lmn)
+{
+  const double dRA = position[0] - reference[0];
+  const double pDEC = position[1];
+  const double rDEC = reference[1];
+  const double cDEC = cos(pDEC);
+
+  const double l = cDEC * sin(dRA);
+  const double m = sin(pDEC) * cos(rDEC) - cDEC * sin(rDEC) * cos(dRA);
+
+  lmn[0] = l;
+  lmn[1] = m;
+  lmn[2] = sqrt(1.0 - l * l - m * m);
+}
+
+inline void radec2lmn(const Position &reference, const Position &position,
     cursor<double> lmn)
 {
     const double dRA = position[0] - reference[0];
@@ -262,6 +279,25 @@ inline void radec2lmn(const Position &reference, const Position &position,
     lmn[0] = l;
     lmn[1] = m;
     lmn[2] = sqrt(1.0 - l * l - m * m);
+}
+
+inline void phases(size_t nStation, size_t nChannel, double *lmn,
+    double *uvw, double *freq, dcomplex *shift)
+{
+    // Compute station phase shifts.
+    for(size_t st = 0; st < nStation; ++st)
+    {
+        const double phase = casa::C::_2pi * (
+            uvw[3*nStation+0] * lmn[0] +
+            uvw[3*nStation+1] * lmn[1] +
+            uvw[3*nStation+2] * (lmn[2] - 1.0));
+
+        for(size_t ch = 0; ch < nChannel; ++ch)
+        {
+            const double chPhase = phase * freq[ch] / casa::C::c;
+            shift[nChannel*st+ch] = dcomplex(cos(chPhase), sin(chPhase));
+        } // Channels.
+    } // Stations.
 }
 
 inline void phases(size_t nStation, size_t nChannel, const_cursor<double> lmn,
@@ -283,6 +319,21 @@ inline void phases(size_t nStation, size_t nChannel, const_cursor<double> lmn,
         } // Channels.
         freq -= nChannel;
     } // Stations.
+}
+
+inline void spectrum(const PointSource &component, size_t nChannel,
+    double *freq, dcomplex *spectrum)
+{
+    // Compute component spectrum.
+    for(size_t ch = 0; ch < nChannel; ++ch)
+    {
+        Stokes stokes = component.stokes(freq[ch]);
+
+        spectrum[4*ch+0] = dcomplex(stokes.I + stokes.Q, 0.0);
+        spectrum[4*ch+1] = dcomplex(stokes.U, stokes.V);
+        spectrum[4*ch+2] = dcomplex(stokes.U, -stokes.V);
+        spectrum[4*ch+3] = dcomplex(stokes.I - stokes.Q, 0.0);
+    }
 }
 
 inline void spectrum(const PointSource &component, size_t nChannel,

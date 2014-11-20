@@ -41,6 +41,7 @@
 #include <DPPP/ScaleData.h>
 #include <DPPP/ApplyCal.h>
 #include <DPPP/GainCal.h>
+#include <DPPP/Predict.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -277,6 +278,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else if (type == "gaincal"  ||  type == "calibrate") {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
+        } else if (type == "predict" || type == "predicter") {
+          step = DPStep::ShPtr(new Predict (reader, parset, prefix));
         } else {
           THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
         }

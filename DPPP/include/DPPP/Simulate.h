@@ -126,6 +126,12 @@ void simulate(const Position &reference, const Patch::ConstPtr &patch,
     size_t nStation, size_t nBaseline, size_t nChannel,
     const_cursor<Baseline> baselines, const_cursor<double> freq,
     const_cursor<double> uvw, cursor<dcomplex> buffer);
+
+void simulate(const Position &reference, const Patch::ConstPtr &patch,
+    size_t nStation, size_t nBaseline, size_t nChannel,
+    Baseline* baselines, double* freq,
+    double* uvw, dcomplex* buffer);
+
 // @}
 
 } //# namespace DPPP
