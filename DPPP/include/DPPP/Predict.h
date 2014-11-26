@@ -47,7 +47,6 @@ namespace LOFAR {
 
     // This class is a DPStep class to predict visibilities with optionally beam
 
-    typedef vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t >Baseline;
 
     class Predict: public DPStep
@@ -83,7 +82,6 @@ namespace LOFAR {
       string           itsName;
       string           itsSourceDBName;
       bool             itsApplyBeam;
-      bool             itsOneBeamPerPatch;
       bool             itsUseChannelFreq;
       Position         itsPhaseRef;
 
@@ -91,10 +89,17 @@ namespace LOFAR {
 
       vector<Baseline> itsBaselines;
 
-      //# The info needed to calculate the station beams.
+      // Vector containing info on converting baseline uvw to station uvw
+      vector<int>      itsUVWSplitIndex;
+
+      // UVW coordinates per station (3 coordinates per station)
+      casa::Matrix<double>   itsUVW;
+
+      // The info needed to calculate the station beams.
       vector<StationResponse::Station::Ptr> itsAntBeamInfo;
 
-      PatchList        itsPatchList;
+      // Vector of patches, and a bool indicating if it contains only one source
+      vector<Patch::ConstPtr> itsPatchList;
 
       string           itsOperation;
 

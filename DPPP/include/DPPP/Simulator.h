@@ -48,9 +48,9 @@ class Simulator: public ModelComponentVisitor
 {
 public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
-        size_t nChannel, const_cursor<Baseline> baselines,
-        const_cursor<double> freq, const_cursor<double> uvw,
-        cursor<dcomplex> buffer);
+        size_t nChannel, const vector<Baseline> baselines,
+        const vector<double> freq, const casa::Matrix<double> uvw,
+        casa::Matrix<dcomplex> buffer);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -61,9 +61,10 @@ private:
 private:
     Position                itsReference;
     size_t                  itsNStation, itsNBaseline, itsNChannel;
-    const_cursor<Baseline>  itsBaselines;
-    const_cursor<double>    itsFreq, itsUVW;
-    cursor<dcomplex>        itsBuffer;
+    vector<Baseline>        itsBaselines;
+    vector<double>          itsFreq;
+    casa::Matrix<double>    itsUVW; // 3 x nStations
+    casa::Matrix<dcomplex>  itsBuffer; // nBl x nSt x nCr
     vector<dcomplex>        itsShiftBuffer, itsSpectrumBuffer;
 };
 
