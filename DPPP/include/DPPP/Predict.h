@@ -103,7 +103,8 @@ namespace LOFAR {
       vector<Patch::ConstPtr> itsPatchList;
       vector<Source> itsSourceList;
 
-      casa::Cube<dcomplex> itsModelVis; // TODO: should be thread private
+      vector<casa::Cube<dcomplex> > itsModelVis; // one for every thread
+      vector<casa::Cube<dcomplex> > itsModelVisTmp; // without beam applied
       string           itsOperation;
 
       NSTimer          itsTimer;

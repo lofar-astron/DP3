@@ -117,9 +117,15 @@ namespace LOFAR {
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
 
-      itsModelVis.resize(nCr,nCh,nBl);
-      //
-      //itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
+      itsModelVis.resize(OpenMP::maxThreads());
+      itsModelVisTmp.resize(OpenMP::maxThreads());
+
+      for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+        itsModelVis[thread].resize(nCr,nCh,nBl);
+        itsModelVisTmp[thread].resize(nCr,nCh,nBl);
+      }
+
+      itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
     }
 
     void Predict::show (std::ostream& os) const
@@ -164,24 +170,33 @@ namespace LOFAR {
       itsUVW.resize(3,nSt);
       nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
 
-      itsModelVis=dcomplex();
-
+#pragma omp parallel
+{
+      uint thread=OpenMP::threadNum();
+      itsModelVis[thread]=dcomplex();
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                          info().chanFreqs(), itsUVW, itsModelVis);
+                          info().chanFreqs(), itsUVW, itsModelVis[thread]);
 
-#pragma omp parallel for
+      Patch::ConstPtr curPatch;
+#pragma omp for
       for (uint i=0;i<itsSourceList.size();++i) {
-        simulator.simulate(itsSourceList[i].first);
-      }
-      /*
-      for (size_t dr=0; dr<nDr; dr++) {
-        for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
-          simulator.simulate(itsPatchList[dr]->component(i));
+        if (curPatch!=itsSourceList[i].second && curPatch!=0) {
+//          cout<<"apply Beam for patch "<<curPatch<<endl;
         }
+        simulator.simulate(itsSourceList[i].first);
+        curPatch=itsSourceList[i].second;
       }
-      */
 
-      copy(itsModelVis.data(),itsModelVis.data()+nSamples,data);
+      if (curPatch!=0) {
+//        cout<<"apply Beam at end for patch "<<curPatch<<endl;
+      }
+}
+
+      for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+        std::transform(data, data+nSamples, itsModelVis[thread].data(),
+                       data, std::plus<dcomplex>());
+        //copy(itsModelVis.data(),itsModelVis.data()+nSamples,data);
+      }
 
       itsTimerPredict.stop();
 
