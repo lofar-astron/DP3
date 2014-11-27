@@ -145,6 +145,32 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   return patchList;
 }
 
+vector<pair<ModelComponent::ConstPtr,Patch::ConstPtr> >
+makeSourceList (const vector<Patch::ConstPtr>& patchList) {
+  vector<Patch::ConstPtr>::const_iterator pIter=patchList.begin();
+  vector<Patch::ConstPtr>::const_iterator pEnd =patchList.end();
+
+  uint nSources=0;
+  for (; pIter!=pEnd; ++pIter) {
+    nSources+=(*pIter)->nComponents();
+  }
+
+  vector<pair<ModelComponent::ConstPtr,Patch::ConstPtr> > sourceList;
+  sourceList.reserve(nSources);
+
+  pIter=patchList.begin();
+
+  for (; pIter!=pEnd; ++pIter) {
+    Patch::const_iterator sIter=(*pIter)->begin();
+    Patch::const_iterator sEnd =(*pIter)->end();
+    for (; sIter!=sEnd; ++sIter) {
+      sourceList.push_back(make_pair(*sIter,*pIter));
+    }
+  }
+
+  return sourceList;
+}
+
 
 vector<Patch::ConstPtr> makeOnePatchPerComponent(
     const vector<Patch::ConstPtr>& patchList) {

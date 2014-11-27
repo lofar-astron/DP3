@@ -31,6 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/Patch.h>
 #include <DPPP/SourceDBUtil.h>
+#include <DPPP/ModelComponent.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 #include <casa/Arrays/Cube.h>
@@ -47,7 +48,8 @@ namespace LOFAR {
 
     // This class is a DPStep class to predict visibilities with optionally beam
 
-    typedef std::pair<size_t, size_t >Baseline;
+    typedef std::pair<size_t, size_t> Baseline;
+    typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
 
     class Predict: public DPStep
     {
@@ -75,7 +77,6 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-
     private:
       //# Data members.
       DPInput*         itsInput;
@@ -100,6 +101,7 @@ namespace LOFAR {
 
       // Vector of patches, and a bool indicating if it contains only one source
       vector<Patch::ConstPtr> itsPatchList;
+      vector<Source> itsSourceList;
 
       casa::Cube<dcomplex> itsModelVis; // TODO: should be thread private
       string           itsOperation;

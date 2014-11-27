@@ -31,12 +31,16 @@
 #include <Common/OpenMP.h>
 #include <ParmDB/ParmDBMeta.h>
 #include <ParmDB/PatchInfo.h>
-#include <ParmDB/SourceDB.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/FlagCounter.h>
 #include <DPPP/Position.h>
 #include <DPPP/Simulator.h>
 #include <DPPP/Simulate.h>
+
+#include <DPPP/Stokes.h>
+#include <DPPP/PointSource.h>
+#include <DPPP/GaussianSource.h>
+#include <ParmDB/SourceDB.h>
 
 #include <casa/Arrays/Array.h>
 #include <casa/Arrays/Vector.h>
@@ -80,6 +84,8 @@ namespace LOFAR {
       if (!parset.getBool(prefix + "onebeamperpatch", true)) {
         itsPatchList = makeOnePatchPerComponent(itsPatchList);
       }
+
+      itsSourceList = makeSourceList(itsPatchList);
     }
 
     Predict::~Predict()
@@ -146,7 +152,7 @@ namespace LOFAR {
       buf.setFullResFlags(itsInput->fetchFullResFlags(buf, refRows, itsTimer));
 
       // Determine the various sizes.
-      const size_t nDr = itsPatchList.size();
+      //const size_t nDr = itsPatchList.size();
       const size_t nSt = info().antennaUsed().size();
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
@@ -163,11 +169,17 @@ namespace LOFAR {
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
                           info().chanFreqs(), itsUVW, itsModelVis);
 
+#pragma omp parallel for
+      for (uint i=0;i<itsSourceList.size();++i) {
+        simulator.simulate(itsSourceList[i].first);
+      }
+      /*
       for (size_t dr=0; dr<nDr; dr++) {
         for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
           simulator.simulate(itsPatchList[dr]->component(i));
         }
       }
+      */
 
       copy(itsModelVis.data(),itsModelVis.data()+nSamples,data);
 
@@ -183,7 +195,5 @@ namespace LOFAR {
       // Let the next steps finish.
       getNextStep()->finish();
     }
-
-
   } //# end namespace
 }

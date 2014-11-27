@@ -81,47 +81,45 @@ void Simulator::simulate(const ModelComponent::ConstPtr &component)
 }
 
 
-void Simulator::visit(const PointSource &component)
-{
-    // Compute LMN coordinates.
-    double lmn[3];
-    radec2lmn(itsReference, component.position(), lmn);
+void Simulator::visit(const PointSource &component) {
+  // Compute LMN coordinates.
+  double lmn[3];
+  radec2lmn(itsReference, component.position(), lmn);
 
-    // Compute station phase shifts.
-    phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
+  // Compute station phase shifts.
+  phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
 
-    // Compute component spectrum.
-    spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
+  // Compute component spectrum.
+  spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
-    dcomplex* buffer=itsBuffer.data();
+  // Compute visibilities.
+#pragma omp parallel for
+  for(size_t bl = 0; bl < itsNBaseline; ++bl) {
+    dcomplex* buffer=&itsBuffer(0,0,bl);
+    const size_t p = itsBaselines[bl].first;
+    const size_t q = itsBaselines[bl].second;
 
-    // Compute visibilities.
-    for(size_t bl = 0; bl < itsNBaseline; ++bl)
-    {
-        const size_t p = itsBaselines[bl].first;
-        const size_t q = itsBaselines[bl].second;
+    if(p == q) {
+      buffer+=itsNChannel*4;
+    } else {
+      const dcomplex *shiftP = &(itsShiftBuffer(0,p));
+      const dcomplex *shiftQ = &(itsShiftBuffer(0,q));
+      const dcomplex *spectrum = itsSpectrumBuffer.data();
+      for(size_t ch = 0; ch < itsNChannel; ++ch)
+      {
+        // Compute baseline phase shift.
+        const dcomplex blShift = (*shiftQ) * conj(*shiftP);
+        ++shiftP;
+        ++shiftQ;
 
-        if(p == q) {
-          buffer+=itsNChannel*4;
-        } else {
-            const dcomplex *shiftP = &(itsShiftBuffer(0,p));
-            const dcomplex *shiftQ = &(itsShiftBuffer(0,q));
-            const dcomplex *spectrum = itsSpectrumBuffer.data();
-            for(size_t ch = 0; ch < itsNChannel; ++ch)
-            {
-                // Compute baseline phase shift.
-                const dcomplex blShift = (*shiftQ) * conj(*shiftP);
-                ++shiftP;
-                ++shiftQ;
-
-                // Compute visibilities.
-                *buffer++ += blShift * (*spectrum++);
-                *buffer++ += blShift * (*spectrum++);
-                *buffer++ += blShift * (*spectrum++);
-                *buffer++ += blShift * (*spectrum++);
-            } // Channels.
-        }
-    } // Baselines.
+        // Compute visibilities.
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+      } // Channels.
+    }
+  } // Baselines.
 }
 
 void Simulator::visit(const GaussianSource &component)
