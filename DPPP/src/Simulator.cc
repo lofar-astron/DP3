@@ -45,11 +45,11 @@ namespace
 // Pointer to a buffer of (at least) length three into which the computed LMN
 // coordinates will be written.
 void radec2lmn(const Position &reference, const Position &position,
-    cursor<double> lmn);
+               double* lmn);
 
-void phases(size_t nStation, size_t nChannel, const_cursor<double> lmn,
+void phases(size_t nStation, size_t nChannel, const double* lmn,
             const casa::Matrix<double>& uvw, const casa::Vector<double>& freq,
-    cursor<dcomplex> shift);
+            cursor<dcomplex> shift);
 
 void spectrum(const PointSource &component, size_t nChannel,
               const casa::Vector<double>& freq, cursor<dcomplex> spectrum);
@@ -58,7 +58,7 @@ void spectrum(const PointSource &component, size_t nChannel,
 Simulator::Simulator(const Position &reference, size_t nStation,
     size_t nBaseline, size_t nChannel, const casa::Vector<Baseline>& baselines,
     const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-    cursor<dcomplex> buffer)
+    casa::Cube<dcomplex>& buffer)
     :   itsReference(reference),
         itsNStation(nStation),
         itsNBaseline(nBaseline),
@@ -87,12 +87,14 @@ void Simulator::visit(const PointSource &component)
     ///    cout<<"lmn="<<lmn[0]<<' '<<lmn[1]<<' '<<lmn[2]<<endl;
 
     // Compute station phase shifts.
-    phases(itsNStation, itsNChannel, const_cursor<double>(lmn),
-        itsUVW, itsFreq, cursor<dcomplex>(&itsShiftBuffer[0]));
+    phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq,
+           cursor<dcomplex>(&itsShiftBuffer[0]));
 
     // Compute component spectrum.
     spectrum(component, itsNChannel, itsFreq,
         cursor<dcomplex>(&itsSpectrumBuffer[0]));
+
+    dcomplex* buffer=itsBuffer.data();
 
     // Compute visibilities.
     for(size_t bl = 0; bl < itsNBaseline; ++bl)
@@ -100,8 +102,9 @@ void Simulator::visit(const PointSource &component)
         const size_t p = itsBaselines[bl].first;
         const size_t q = itsBaselines[bl].second;
 
-        if(p != q)
-        {
+        if(p == q) {
+          buffer+=itsNChannel*4;
+        } else {
             const dcomplex *shiftP = &(itsShiftBuffer[p * itsNChannel]);
             const dcomplex *shiftQ = &(itsShiftBuffer[q * itsNChannel]);
             const dcomplex *spectrum = &(itsSpectrumBuffer[0]);
@@ -113,47 +116,34 @@ void Simulator::visit(const PointSource &component)
                 ++shiftQ;
 
                 // Compute visibilities.
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-
-                // Move to next channel.
-                itsBuffer -= 4;
-                itsBuffer.forward(1);
             } // Channels.
-
-            itsBuffer.backward(1, itsNChannel);
         }
-
-        // Move to next baseline.
-        itsBuffer.forward(2);
     } // Baselines.
-
-    itsBuffer.backward(2, itsNBaseline);
 }
 
 void Simulator::visit(const GaussianSource &component)
 {
     // Compute LMN coordinates.
     double lmn[3];
-    radec2lmn(itsReference, component.position(), cursor<double>(lmn));
+    radec2lmn(itsReference, component.position(), lmn);
 
     // Compute station phase shifts.
-    phases(itsNStation, itsNChannel, const_cursor<double>(lmn),
-        itsUVW, itsFreq, cursor<dcomplex>(&itsShiftBuffer[0]));
+    phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq,
+           cursor<dcomplex>(&itsShiftBuffer[0]));
 
     // Compute component spectrum.
     spectrum(component, itsNChannel, itsFreq,
         cursor<dcomplex>(&itsSpectrumBuffer[0]));
+
+    dcomplex* buffer=itsBuffer.data();
 
     // Convert position angle from North over East to the angle used to
     // rotate the right-handed UV-plane.
@@ -175,8 +165,9 @@ void Simulator::visit(const GaussianSource &component)
         const size_t p = itsBaselines[bl].first;
         const size_t q = itsBaselines[bl].second;
 
-        if(p != q)
-        {
+        if(p == q) {
+          buffer+=itsNChannel*4;
+        } else {
             double u = itsUVW(0,q);
             double v = itsUVW(1,q);
 
@@ -210,31 +201,17 @@ void Simulator::visit(const GaussianSource &component)
                 blShift *= ampl;
 
                 // Compute visibilities.
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-                *itsBuffer += blShift * (*spectrum);
-                ++itsBuffer;
+                *buffer++ += blShift * (*spectrum);
                 ++spectrum;
-
-                // Move to next channel.
-                itsBuffer -= 4;
-                itsBuffer.forward(1);
             } // Channels.
-            itsBuffer.backward(1, itsNChannel);
         }
-
-        // Move to next baseline.
-        itsBuffer.forward(2);
     } // Baselines.
-
-    itsBuffer.backward(2, itsNBaseline);
 }
 
 namespace
@@ -272,7 +249,7 @@ inline void radec2lmn(const Position &reference, const Position &position,
 }
 
 
-inline void phases(size_t nStation, size_t nChannel, const_cursor<double> lmn,
+inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const casa::Matrix<double>& uvw, const casa::Vector<double>& freq,
     cursor<dcomplex> shift)
 {

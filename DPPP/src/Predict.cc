@@ -112,7 +112,7 @@ namespace LOFAR {
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
 
-      itsModelVis.resize(nCr * nBl * nCh);
+      itsModelVis.resize(nCr,nCh,nBl);
       //
       //itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
     }
@@ -153,19 +153,16 @@ namespace LOFAR {
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
       const size_t nSamples = nBl * nCh * nCr;
-      size_t stride_model[3] = {1, nCr, nCr*nCh};
 
       itsTimerPredict.start();
 
       itsUVW.resize(3,nSt);
       nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
 
-      fill(itsModelVis.begin(), itsModelVis.end(), dcomplex());
-
-      cursor<dcomplex> cr_model(&(itsModelVis[0]), 3, stride_model);
+      itsModelVis=dcomplex();
 
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                          info().chanFreqs(), itsUVW, cr_model);
+                          info().chanFreqs(), itsUVW, itsModelVis);
 
       for (size_t dr=0; dr<nDr; dr++) {
         for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
@@ -173,7 +170,7 @@ namespace LOFAR {
         }
       }
 
-      copy(itsModelVis.begin(),itsModelVis.begin()+nSamples,data);
+      copy(itsModelVis.data(),itsModelVis.data()+nSamples,data);
 
       itsTimerPredict.stop();
 

@@ -29,6 +29,7 @@
 #include <DPPP/PhaseShift.h>
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/Cube.h>
 #include <casa/Arrays/MatrixMath.h>
 
 using namespace casa;
@@ -321,7 +322,7 @@ void rotateUVW(const Position &from, const Position &to, size_t nUVW,
 void simulate(const Position &reference, const Patch::ConstPtr &patch,
     size_t nStation, size_t nBaseline, size_t nChannel,
     const casa::Vector<Baseline>& baselines, const casa::Vector<double>& freq,
-    const casa::Matrix<double>& uvw, cursor<dcomplex> vis)
+    const casa::Matrix<double>& uvw, casa::Cube<dcomplex>& vis)
 {
     Simulator simulator(reference, nStation, nBaseline, nChannel, baselines,
         freq, uvw, vis);

@@ -36,6 +36,7 @@
 
 #include <casa/Arrays/Vector.h>
 #include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/Cube.h>
 
 #include <Common/lofar_complex.h>
 #include <Common/lofar_vector.h>
@@ -54,7 +55,7 @@ public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
         size_t nChannel, const casa::Vector<Baseline>& baselines,
         const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-        cursor<dcomplex> buffer);
+        casa::Cube<dcomplex>& buffer);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -63,13 +64,13 @@ private:
     virtual void visit(const GaussianSource &component);
 
 private:
-    Position                itsReference;
-    size_t                  itsNStation, itsNBaseline, itsNChannel;
-    const casa::Vector<Baseline>  itsBaselines;
-    const casa::Vector<double> itsFreq;
-    const casa::Matrix<double>    itsUVW;
-    cursor<dcomplex>        itsBuffer;
-    vector<dcomplex>        itsShiftBuffer, itsSpectrumBuffer;
+    Position                     itsReference;
+    size_t                       itsNStation, itsNBaseline, itsNChannel;
+    const casa::Vector<Baseline> itsBaselines;
+    const casa::Vector<double>   itsFreq;
+    const casa::Matrix<double>   itsUVW;
+    casa::Cube<dcomplex>         itsBuffer;
+    vector<dcomplex>             itsShiftBuffer, itsSpectrumBuffer;
 };
 
 // @}
