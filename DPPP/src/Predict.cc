@@ -27,15 +27,17 @@
 #include <iostream>
 //#include <iomanip>
 #include <Common/ParameterSet.h>
-#include <Common/OpenMP.h>
 #include <Common/Timer.h>
+#include <Common/OpenMP.h>
 #include <ParmDB/ParmDBMeta.h>
 #include <ParmDB/PatchInfo.h>
 #include <ParmDB/SourceDB.h>
+#include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/FlagCounter.h>
 #include <DPPP/Position.h>
 #include <DPPP/Simulator.h>
+#include <DPPP/Simulate.h>
 
 #include <casa/Arrays/Array.h>
 #include <casa/Arrays/Vector.h>
@@ -101,20 +103,23 @@ namespace LOFAR {
       Quantum<Vector<Double> > angles = dirJ2000.getAngle();
       itsPhaseRef = Position(angles.getBaseValue()[0],
                              angles.getBaseValue()[1]);
-      //
+
       //const size_t nDr = itsPatchList.size();
       //const size_t nSt = info().antennaUsed().size();
-      //const size_t nCh = info().nchan();
+      const size_t nCh = info().nchan();
+      const size_t nCr = info().ncorr();
 
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
+
+      itsModelVis.resize(nCr * nBl * nCh);
       //
       //itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
     }
 
     void Predict::show (std::ostream& os) const
     {
-      os << "Precit " << itsName << endl;
+      os << "Predict " << itsName << endl;
       os << "  sourcedb:           " << itsSourceDBName << endl;
       os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
@@ -134,6 +139,7 @@ namespace LOFAR {
       itsTimer.start();
       DPBuffer buf(bufin);
       buf.getData().unique();
+      Complex* data=buf.getData().data();
       RefRows refRows(buf.getRowNrs());
 
       buf.setUVW(itsInput->fetchUVW(buf, refRows, itsTimer));
@@ -145,39 +151,29 @@ namespace LOFAR {
       const size_t nSt = info().antennaUsed().size();
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
-      //const size_t nCr = 4;
-      //const size_t nSamples = nBl * nCh * nCr;
+      const size_t nCr = 4;
+      const size_t nSamples = nBl * nCh * nCr;
+      size_t stride_model[3] = {1, nCr, nCr*nCh};
 
       itsTimerPredict.start();
 
-      Simulator simulator();
+      itsUVW.resize(3,nSt);
+      nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
 
-      void nsplitUVW (const vector<int>& blindex,
-                     const vector<Baseline>& baselines,
-                     const Matrix<double>& uvwbl,
-                     Matrix<double>& uvwant)
+      fill(itsModelVis.begin(), itsModelVis.end(), dcomplex());
 
-      nsplitUVW (itsUVWSplitIndex, itsBaselines(), buf.getUVW(), itsUVW);
+      cursor<dcomplex> cr_model(&(itsModelVis[0]), 3, stride_model);
 
+      Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
+                          info().chanFreqs(), itsUVW, cr_model);
 
-      //TODO: if number of patches is small, make thread storage for every
-      //patch on every thread. For now, assume number of patches is large.
-
-#pragma omp parallel for schedule(dynamic,1)
       for (size_t dr=0; dr<nDr; dr++) {
-        stringstream threadoutput;
-
-        //TODO: make uvw split (a la Ger)
-        //Simulator simulator(itsPhaseRef, nSt, nBl, nCh,
-        //                    itsBaselines,  info().chanFreqs(), uvw, vis);
-
         for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
-          //threadoutput<<"   Thread "<<OpenMP::threadNum()<<", source "<<dr<<":"<<i<<endl;
+          simulator.simulate(itsPatchList[dr]->component(i));
         }
-#pragma omp critical
-        cout<<threadoutput.rdbuf();
-        // Apply beam and add to thread storage
       }
+
+      copy(itsModelVis.begin(),itsModelVis.begin()+nSamples,data);
 
       itsTimerPredict.stop();
 

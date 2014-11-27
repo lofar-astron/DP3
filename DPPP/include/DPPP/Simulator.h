@@ -33,6 +33,10 @@
 #include <DPPP/ModelComponent.h>
 #include <DPPP/ModelComponentVisitor.h>
 #include <DPPP/Position.h>
+
+#include <casa/Arrays/Vector.h>
+#include <casa/Arrays/Matrix.h>
+
 #include <Common/lofar_complex.h>
 #include <Common/lofar_vector.h>
 
@@ -48,9 +52,9 @@ class Simulator: public ModelComponentVisitor
 {
 public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
-        size_t nChannel, const vector<Baseline> baselines,
-        const vector<double> freq, const casa::Matrix<double> uvw,
-        casa::Matrix<dcomplex> buffer);
+        size_t nChannel, const casa::Vector<Baseline>& baselines,
+        const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
+        cursor<dcomplex> buffer);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -61,10 +65,10 @@ private:
 private:
     Position                itsReference;
     size_t                  itsNStation, itsNBaseline, itsNChannel;
-    vector<Baseline>        itsBaselines;
-    vector<double>          itsFreq;
-    casa::Matrix<double>    itsUVW; // 3 x nStations
-    casa::Matrix<dcomplex>  itsBuffer; // nBl x nSt x nCr
+    const casa::Vector<Baseline>  itsBaselines;
+    const casa::Vector<double> itsFreq;
+    const casa::Matrix<double>    itsUVW;
+    cursor<dcomplex>        itsBuffer;
     vector<dcomplex>        itsShiftBuffer, itsSpectrumBuffer;
 };
 

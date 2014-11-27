@@ -264,10 +264,10 @@ namespace LOFAR {
           step = DPStep::ShPtr(new Counter (reader, parset, prefix));
         } else if (type == "phaseshifter"  ||  type == "phaseshift") {
           step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
-        } else if (type == "demixer"  ||  type == "demix") {
-          step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
-        } else if (type == "smartdemixer"  ||  type == "smartdemix") {
-          step = DPStep::ShPtr(new DemixerNew (reader, parset, prefix));
+//        } else if (type == "demixer"  ||  type == "demix") {
+//          step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
+//        } else if (type == "smartdemixer"  ||  type == "smartdemix") {
+//          step = DPStep::ShPtr(new DemixerNew (reader, parset, prefix));
         } else if (type == "stationadder"  ||  type == "stationadd") {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "scaledata") {
@@ -276,8 +276,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
         } else if (type == "applycal"  ||  type == "correct") {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
-        } else if (type == "gaincal"  ||  type == "calibrate") {
-          step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
+//        } else if (type == "gaincal"  ||  type == "calibrate") {
+//          step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else if (type == "predict") {
           step = DPStep::ShPtr(new Predict (reader, parset, prefix));
         } else {

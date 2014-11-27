@@ -277,6 +277,11 @@ namespace LOFAR {
 
         const_cursor<double> cr_uvw = casa_const_cursor(buf.getUVW());
         splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
+        cout<<"UVW: ";
+        for (int i=0;i<storage.uvw.size();++i) {
+          cout<<storage.uvw[i]<<",";
+        }
+        cout<<endl;
         cursor<dcomplex> cr_model(&(storage.model_patch[0]), 3, stride_model);
 
         // Convert the directions to ITRF for the given time.

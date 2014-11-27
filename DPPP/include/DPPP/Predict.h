@@ -101,6 +101,7 @@ namespace LOFAR {
       // Vector of patches, and a bool indicating if it contains only one source
       vector<Patch::ConstPtr> itsPatchList;
 
+      vector<dcomplex> itsModelVis; // TODO: should be thread private
       string           itsOperation;
 
       NSTimer          itsTimer;
