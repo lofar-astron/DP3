@@ -70,7 +70,8 @@ private:
     const casa::Vector<double>   itsFreq;
     const casa::Matrix<double>   itsUVW;
     casa::Cube<dcomplex>         itsBuffer;
-    vector<dcomplex>             itsShiftBuffer, itsSpectrumBuffer;
+    vector<dcomplex>             itsShiftBuffer;
+    casa::Vector<dcomplex>       itsSpectrumBuffer;
 };
 
 // @}

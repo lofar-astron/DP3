@@ -52,7 +52,8 @@ void phases(size_t nStation, size_t nChannel, const double* lmn,
             cursor<dcomplex> shift);
 
 void spectrum(const PointSource &component, size_t nChannel,
-              const casa::Vector<double>& freq, cursor<dcomplex> spectrum);
+              const casa::Vector<double>& freq,
+              casa::Vector<dcomplex> spectrum);
 } // Unnamed namespace.
 
 Simulator::Simulator(const Position &reference, size_t nStation,
@@ -91,8 +92,7 @@ void Simulator::visit(const PointSource &component)
            cursor<dcomplex>(&itsShiftBuffer[0]));
 
     // Compute component spectrum.
-    spectrum(component, itsNChannel, itsFreq,
-        cursor<dcomplex>(&itsSpectrumBuffer[0]));
+    spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
     dcomplex* buffer=itsBuffer.data();
 
@@ -116,14 +116,10 @@ void Simulator::visit(const PointSource &component)
                 ++shiftQ;
 
                 // Compute visibilities.
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
             } // Channels.
         }
     } // Baselines.
@@ -140,8 +136,7 @@ void Simulator::visit(const GaussianSource &component)
            cursor<dcomplex>(&itsShiftBuffer[0]));
 
     // Compute component spectrum.
-    spectrum(component, itsNChannel, itsFreq,
-        cursor<dcomplex>(&itsSpectrumBuffer[0]));
+    spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
     dcomplex* buffer=itsBuffer.data();
 
@@ -201,14 +196,10 @@ void Simulator::visit(const GaussianSource &component)
                 blShift *= ampl;
 
                 // Compute visibilities.
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
-                *buffer++ += blShift * (*spectrum);
-                ++spectrum;
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
             } // Channels.
         }
     } // Baselines.
@@ -250,8 +241,8 @@ inline void radec2lmn(const Position &reference, const Position &position,
 
 
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
-                   const casa::Matrix<double>& uvw, const casa::Vector<double>& freq,
-    cursor<dcomplex> shift)
+                   const casa::Matrix<double>& uvw,
+                   const casa::Vector<double>& freq, cursor<dcomplex> shift)
 {
     // Compute station phase shifts.
     for(size_t st = 0; st < nStation; ++st)
@@ -270,18 +261,18 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
 
 
 inline void spectrum(const PointSource &component, size_t nChannel,
-                     const casa::Vector<double>& freq, cursor<dcomplex> spectrum)
+                     const casa::Vector<double>& freq,
+                     casa::Vector<dcomplex> spectrum)
 {
     // Compute component spectrum.
     for(size_t ch = 0; ch < nChannel; ++ch)
     {
         Stokes stokes = component.stokes(freq[ch]);
 
-        spectrum[0] = dcomplex(stokes.I + stokes.Q, 0.0);
-        spectrum[1] = dcomplex(stokes.U, stokes.V);
-        spectrum[2] = dcomplex(stokes.U, -stokes.V);
-        spectrum[3] = dcomplex(stokes.I - stokes.Q, 0.0);
-        spectrum += 4;
+        spectrum[4*ch+0] = dcomplex(stokes.I + stokes.Q, 0.0);
+        spectrum[4*ch+1] = dcomplex(stokes.U, stokes.V);
+        spectrum[4*ch+2] = dcomplex(stokes.U, -stokes.V);
+        spectrum[4*ch+3] = dcomplex(stokes.I - stokes.Q, 0.0);
     }
 }
 } // Unnamed namespace.
