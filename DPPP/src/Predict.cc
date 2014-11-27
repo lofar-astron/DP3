@@ -192,6 +192,7 @@ namespace LOFAR {
       }
 }
 
+      buf.getData()=Complex();
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         std::transform(data, data+nSamples, itsModelVis[thread].data(),
                        data, std::plus<dcomplex>());
