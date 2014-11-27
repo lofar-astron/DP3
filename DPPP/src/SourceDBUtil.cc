@@ -147,9 +147,9 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
 
 
 vector<Patch::ConstPtr> makeOnePatchPerComponent(
-    vector<Patch::ConstPtr> patchList) {
+    const vector<Patch::ConstPtr>& patchList) {
     size_t numComponents=0;
-    vector<Patch::ConstPtr>::iterator patchIt;
+    vector<Patch::ConstPtr>::const_iterator patchIt;
 
     for (patchIt=patchList.begin();patchIt!=patchList.end();++patchIt) {
         numComponents+=(*patchIt)->nComponents();

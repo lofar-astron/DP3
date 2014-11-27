@@ -32,7 +32,6 @@
 #include <ParmDB/ParmDBMeta.h>
 #include <ParmDB/PatchInfo.h>
 #include <ParmDB/SourceDB.h>
-#include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPInfo.h>
 #include <DPPP/FlagCounter.h>
 #include <DPPP/Position.h>

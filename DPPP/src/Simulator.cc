@@ -86,8 +86,6 @@ void Simulator::visit(const PointSource &component)
     // Compute LMN coordinates.
     double lmn[3];
     radec2lmn(itsReference, component.position(), lmn);
-    ///    cout<<"pos="<<itsReference[0]<<' '<<itsReference[1]<<' '<<component.position()[0]<<' '<<component.position()[1]<<endl;
-    ///    cout<<"lmn="<<lmn[0]<<' '<<lmn[1]<<' '<<lmn[2]<<endl;
 
     // Compute station phase shifts.
     phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
