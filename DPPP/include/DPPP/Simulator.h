@@ -29,7 +29,6 @@
 // ModelComponentVisitor).
 
 #include <DPPP/Baseline.h>
-#include <DPPP/Cursor.h>
 #include <DPPP/ModelComponent.h>
 #include <DPPP/ModelComponentVisitor.h>
 #include <DPPP/Position.h>
@@ -70,8 +69,8 @@ private:
     const casa::Vector<double>   itsFreq;
     const casa::Matrix<double>   itsUVW;
     casa::Cube<dcomplex>         itsBuffer;
-    vector<dcomplex>             itsShiftBuffer;
-    casa::Vector<dcomplex>       itsSpectrumBuffer;
+    casa::Matrix<dcomplex>       itsShiftBuffer;
+    casa::Matrix<dcomplex>       itsSpectrumBuffer;
 };
 
 // @}
