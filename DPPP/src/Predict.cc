@@ -208,7 +208,6 @@ namespace LOFAR {
                           MDirection::J2000);
           srcdir = dir2Itrf(dir);
 
-
           //Add itsModelVisTmp to itsModelVis
           std::transform(itsModelVis[thread].data(),
                          itsModelVis[thread].data()+nSamples,
@@ -235,7 +234,6 @@ namespace LOFAR {
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         std::transform(data, data+nSamples, itsModelVis[thread].data(),
                        data, std::plus<dcomplex>());
-        //copy(itsModelVis.data(),itsModelVis.data()+nSamples,data);
       }
 
       itsTimerPredict.stop();
@@ -260,33 +258,35 @@ namespace LOFAR {
                              const StationResponse::vector3r_t& srcdir,
                              const StationResponse::vector3r_t& refdir,
                              const StationResponse::vector3r_t& tiledir,
-                             vector<StationResponse::matrix22c_t>& beamValues)
-    {
+                             const vector<StationResponse::Station::Ptr>&
+                               antBeamInfo,
+                             vector<StationResponse::matrix22c_t>& beamValues,
+                             bool useChannelFreq)  {
       // Get the beam values for each station.
       uint nchan = chanFreqs.size();
       uint nSt   = beamValues.size();
       uint nBl   = info().nbaselines();
 
-      if (!itsUseChannelFreq) {
+      if (!useChannelFreq) {
         for (size_t st=0; st<nSt; ++st) {
-          itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                        srcdir, info().refFreq(), refdir,
-                                        tiledir, &(beamValues[nchan*st]));
+          antBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+                                     srcdir, info().refFreq(), refdir,
+                                     tiledir, &(beamValues[nchan*st]));
         }
       }
 
       // Apply the beam values of both stations to the predicted data.
       dcomplex tmp[4];
       for (size_t ch=0; ch<nchan; ++ch) {
-        if (itsUseChannelFreq) {
+        if (useChannelFreq) {
           for (size_t st=0; st<nSt; ++st) {
-            itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                          srcdir, chanFreqs[ch], refdir,
-                                          tiledir, &(beamValues[nchan*st]));
+            antBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+                                       srcdir, chanFreqs[ch], refdir,
+                                       tiledir, &(beamValues[nchan*st]));
           }
         }
         for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=data0.data()+bl*4*nchan + ch*4; //TODO
+          dcomplex* data=&data0(0,ch,bl);
           StationResponse::matrix22c_t *left =
               &(beamValues[nchan * info().getAnt1()[bl]]);
           StationResponse::matrix22c_t *right=
