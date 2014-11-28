@@ -80,8 +80,12 @@ namespace LOFAR {
     private:
       StationResponse::vector3r_t dir2Itrf (const casa::MDirection& dir,
                                      casa::MDirection::Convert& measConverter);
+      void addBeamToData (Patch::ConstPtr patch, double time,
+                                   const StationResponse::vector3r_t& refdir,
+                                   const StationResponse::vector3r_t& tiledir,
+                                   uint thread, uint nSamples, dcomplex* data0);
       void applyBeam (const casa::Vector<double>& chanFreqs, double time,
-                      casa::Cube<dcomplex>& data0,
+                      dcomplex* data0,
                       const StationResponse::vector3r_t& srcdir,
                       const StationResponse::vector3r_t& refdir,
                       const StationResponse::vector3r_t& tiledir,
@@ -119,7 +123,7 @@ namespace LOFAR {
       vector<Source> itsSourceList;
 
       vector<casa::Cube<dcomplex> > itsModelVis; // one for every thread
-      vector<casa::Cube<dcomplex> > itsModelVisTmp; // without beam applied
+      vector<casa::Cube<dcomplex> > itsModelVisPatch;
       string           itsOperation;
 
       NSTimer          itsTimer;

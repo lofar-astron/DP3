@@ -119,7 +119,7 @@ namespace LOFAR {
                                          info().getAnt2());
 
       itsModelVis.resize(OpenMP::maxThreads());
-      itsModelVisTmp.resize(OpenMP::maxThreads());
+      itsModelVisPatch.resize(OpenMP::maxThreads());
       itsBeamValues.resize(OpenMP::maxThreads());
 
       // Create the Measure ITRF conversion info given the array position.
@@ -130,7 +130,7 @@ namespace LOFAR {
 
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         itsModelVis[thread].resize(nCr,nCh,nBl);
-        itsModelVisTmp[thread].resize(nCr,nCh,nBl);
+        itsModelVisPatch[thread].resize(nCr,nCh,nBl);
         itsBeamValues[thread].resize(nSt*nCh);
         itsMeasFrames[thread].set (info().arrayPosCopy());
         itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
@@ -200,59 +200,31 @@ namespace LOFAR {
 
 #pragma omp parallel
 {
-      StationResponse::vector3r_t srcdir;
       uint thread=OpenMP::threadNum();
       itsModelVis[thread]=dcomplex();
-      itsModelVisTmp[thread]=dcomplex();
+      itsModelVisPatch[thread]=dcomplex();
+
+      //When applying beam, simulate into patch vector,
+      Cube<dcomplex>& simulatedest=(itsApplyBeam?itsModelVisPatch[thread]
+                                                :itsModelVis[thread]);
+
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                          info().chanFreqs(), itsUVW, itsModelVisTmp[thread]);
+                          info().chanFreqs(), itsUVW, simulatedest);
 
       Patch::ConstPtr curPatch;
 #pragma omp for
       for (uint i=0;i<itsSourceList.size();++i) {
-        if (curPatch!=itsSourceList[i].second && curPatch!=0) {
-          //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
-          MDirection dir (MVDirection(curPatch->position()[0],
-                                      curPatch->position()[1]),
-                          MDirection::J2000);
-          srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
-          if (itsApplyBeam) {
-            applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
-                      srcdir, refdir, tiledir, itsAntBeamInfo[thread],
-                      itsBeamValues[thread], itsUseChannelFreq);
-          }
-
-          //Add itsModelVisTmp to itsModelVis
-          std::transform(itsModelVis[thread].data(),
-                         itsModelVis[thread].data()+nSamples,
-                         itsModelVisTmp[thread].data(),
-                         itsModelVis[thread].data(), std::plus<dcomplex>());
-          //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
-          itsModelVisTmp[thread]=dcomplex();
+        if (itsApplyBeam && curPatch!=itsSourceList[i].second && curPatch!=0) {
+          addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
+                         itsModelVisPatch[thread].data());
         }
         simulator.simulate(itsSourceList[i].first);
         curPatch=itsSourceList[i].second;
       }
 
-      if (curPatch!=0) {
-        //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
-        MDirection dir (MVDirection(curPatch->position()[0],
-                                    curPatch->position()[1]),
-                        MDirection::J2000);
-        srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
-        if (itsApplyBeam) {
-          applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
-                    srcdir, refdir, tiledir, itsAntBeamInfo[thread],
-                    itsBeamValues[thread], itsUseChannelFreq);
-        }
-
-        //Add itsModelVisTmp to itsModelVis
-        std::transform(itsModelVis[thread].data(),
-                       itsModelVis[thread].data()+nSamples,
-                       itsModelVisTmp[thread].data(),
-                       itsModelVis[thread].data(), std::plus<dcomplex>());
-        //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
-        itsModelVisTmp[thread]=dcomplex();
+      if (itsApplyBeam && curPatch!=0) {
+        addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
+                       itsModelVisPatch[thread].data());
       }
 }
 
@@ -281,8 +253,29 @@ namespace LOFAR {
       return vec;
     }
 
+    void Predict::addBeamToData (Patch::ConstPtr patch, double time,
+                                 const StationResponse::vector3r_t& refdir,
+                                 const StationResponse::vector3r_t& tiledir,
+                                 uint thread, uint nSamples, dcomplex* data0) {
+      //Apply beam for a patch, add result to itsModelVis
+      MDirection dir (MVDirection(patch->position()[0],
+                                  patch->position()[1]),
+                      MDirection::J2000);
+      StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+      applyBeam(info().chanFreqs(), time, data0, srcdir, refdir, tiledir,
+                itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq);
+
+      //Add temporary buffer to itsModelVis
+      std::transform(itsModelVis[thread].data(),
+                     itsModelVis[thread].data()+nSamples,
+                     data0,
+                     itsModelVis[thread].data(), std::plus<dcomplex>());
+      //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
+      itsModelVisPatch[thread]=dcomplex();
+    }
+
     void Predict::applyBeam (const Vector<double>& chanFreqs, double time,
-                             Cube<dcomplex>& data0,
+                             dcomplex* data0,
                              const StationResponse::vector3r_t& srcdir,
                              const StationResponse::vector3r_t& refdir,
                              const StationResponse::vector3r_t& tiledir,
@@ -314,7 +307,7 @@ namespace LOFAR {
           }
         }
         for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=&data0(0,ch,bl);
+          dcomplex* data=data0+bl*nCh+ch;
           StationResponse::matrix22c_t *left =
               &(beamValues[nCh * info().getAnt1()[bl]]);
           StationResponse::matrix22c_t *right=
