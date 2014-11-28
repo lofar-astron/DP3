@@ -77,13 +77,9 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-      // Apply beam
-      void applyBeam (double time, const Position& pos, bool apply,
-                      const casa::Vector<double>& chanFreqs,
-                      dcomplex* data);
-
     private:
-      StationResponse::vector3r_t dir2Itrf (const casa::MDirection& dir);
+      StationResponse::vector3r_t dir2Itrf (const casa::MDirection& dir,
+                                     casa::MDirection::Convert& measConverter);
       void applyBeam (const casa::Vector<double>& chanFreqs, double time,
                       casa::Cube<dcomplex>& data0,
                       const StationResponse::vector3r_t& srcdir,
@@ -113,9 +109,9 @@ namespace LOFAR {
       casa::Matrix<double>   itsUVW;
 
       // The info needed to calculate the station beams.
-      vector<StationResponse::Station::Ptr> itsAntBeamInfo;
-      casa::MeasFrame                       itsMeasFrame;
-      casa::MDirection::Convert             itsMeasConverter;
+      vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
+      vector<casa::MeasFrame>                       itsMeasFrames;
+      vector<casa::MDirection::Convert>             itsMeasConverters;
       vector<vector<StationResponse::matrix22c_t> > itsBeamValues;
 
       // Vector of patches, and a bool indicating if it contains only one source

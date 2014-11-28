@@ -122,20 +122,24 @@ namespace LOFAR {
       itsModelVisTmp.resize(OpenMP::maxThreads());
       itsBeamValues.resize(OpenMP::maxThreads());
 
+      // Create the Measure ITRF conversion info given the array position.
+      // The time and direction are filled in later.
+      itsMeasConverters.resize(OpenMP::maxThreads());
+      itsMeasFrames.resize(OpenMP::maxThreads());
+      itsAntBeamInfo.resize(OpenMP::maxThreads());
+
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         itsModelVis[thread].resize(nCr,nCh,nBl);
         itsModelVisTmp[thread].resize(nCr,nCh,nBl);
         itsBeamValues[thread].resize(nSt*nCh);
+        itsMeasFrames[thread].set (info().arrayPosCopy());
+        itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
+                                          MEpoch::UTC));
+        itsMeasConverters[thread].set (MDirection::J2000,
+                     MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
+        cout<<"filling BeamInfo"<<endl;
+        itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
       }
-
-      itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
-
-      // Create the Measure ITRF conversion info given the array position.
-      // The time and direction are filled in later.
-      itsMeasFrame.set (info().arrayPos());
-      itsMeasFrame.set (MEpoch(MVEpoch(info().startTime()/86400), MEpoch::UTC));
-      itsMeasConverter.set (MDirection::J2000,
-                            MDirection::Ref(MDirection::ITRF, itsMeasFrame));
     }
 
     void Predict::show (std::ostream& os) const
@@ -185,9 +189,14 @@ namespace LOFAR {
       StationResponse::vector3r_t refdir, tiledir, srcdir;
 
       if (itsApplyBeam) {
-        itsMeasFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-        refdir  = dir2Itrf(info().delayCenter());
-        tiledir = dir2Itrf(info().tileBeamDir());
+        for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+          itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
+                                                   MEpoch::UTC));
+          //Do a conversion on all threads, because converters are not
+          //thread safe and apparently need to be used at least once
+          refdir  = dir2Itrf(info().delayCenter(),itsMeasConverters[thread]);
+          tiledir = dir2Itrf(info().tileBeamDir(),itsMeasConverters[thread]);
+        }
       }
 
 #pragma omp parallel
@@ -206,7 +215,12 @@ namespace LOFAR {
           MDirection dir (MVDirection(curPatch->position()[0],
                                       curPatch->position()[1]),
                           MDirection::J2000);
-          srcdir = dir2Itrf(dir);
+          srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+          if (itsApplyBeam) {
+            applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
+                      srcdir, refdir, tiledir, itsAntBeamInfo[thread],
+                      itsBeamValues[thread], itsUseChannelFreq);
+          }
 
           //Add itsModelVisTmp to itsModelVis
           std::transform(itsModelVis[thread].data(),
@@ -221,15 +235,26 @@ namespace LOFAR {
 
       if (curPatch!=0) {
         //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
+        MDirection dir (MVDirection(curPatch->position()[0],
+                                    curPatch->position()[1]),
+                        MDirection::J2000);
+        srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+        if (itsApplyBeam) {
+          applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
+                    srcdir, refdir, tiledir, itsAntBeamInfo[thread],
+                    itsBeamValues[thread], itsUseChannelFreq);
+        }
 
         //Add itsModelVisTmp to itsModelVis
         std::transform(itsModelVis[thread].data(),
                        itsModelVis[thread].data()+nSamples,
                        itsModelVisTmp[thread].data(),
                        itsModelVis[thread].data(), std::plus<dcomplex>());
+        itsModelVisTmp[thread]=dcomplex();
       }
 }
 
+      //Add all thread model data to one buffer
       buf.getData()=Complex();
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         std::transform(data, data+nSamples, itsModelVis[thread].data(),
@@ -243,8 +268,9 @@ namespace LOFAR {
       return false;
     }
 
-    StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir) {
-      const MDirection& itrfDir = itsMeasConverter(dir);
+    StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir,
+                                      MDirection::Convert& measConverter) {
+      const MDirection& itrfDir = measConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
       StationResponse::vector3r_t vec;
       vec[0] = itrf[0];
@@ -263,34 +289,34 @@ namespace LOFAR {
                              vector<StationResponse::matrix22c_t>& beamValues,
                              bool useChannelFreq)  {
       // Get the beam values for each station.
-      uint nchan = chanFreqs.size();
-      uint nSt   = beamValues.size();
+      uint nCh = chanFreqs.size();
+      uint nSt   = beamValues.size()/nCh;
       uint nBl   = info().nbaselines();
 
       if (!useChannelFreq) {
         for (size_t st=0; st<nSt; ++st) {
-          antBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+          antBeamInfo[st]->response (nCh, time, chanFreqs.cbegin(),
                                      srcdir, info().refFreq(), refdir,
-                                     tiledir, &(beamValues[nchan*st]));
+                                     tiledir, &(beamValues[nCh*st]));
         }
       }
 
       // Apply the beam values of both stations to the predicted data.
       dcomplex tmp[4];
-      for (size_t ch=0; ch<nchan; ++ch) {
+      for (size_t ch=0; ch<nCh; ++ch) {
         if (useChannelFreq) {
           for (size_t st=0; st<nSt; ++st) {
-            antBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+            antBeamInfo[st]->response (nCh, time, chanFreqs.cbegin(),
                                        srcdir, chanFreqs[ch], refdir,
-                                       tiledir, &(beamValues[nchan*st]));
+                                       tiledir, &(beamValues[nCh*st]));
           }
         }
         for (size_t bl=0; bl<nBl; ++bl) {
           dcomplex* data=&data0(0,ch,bl);
           StationResponse::matrix22c_t *left =
-              &(beamValues[nchan * info().getAnt1()[bl]]);
+              &(beamValues[nCh * info().getAnt1()[bl]]);
           StationResponse::matrix22c_t *right=
-              &(beamValues[nchan * info().getAnt2()[bl]]);
+              &(beamValues[nCh * info().getAnt2()[bl]]);
           dcomplex l[] = {left[ch][0][0], left[ch][0][1],
                           left[ch][1][0], left[ch][1][1]};
           // Form transposed conjugate of right.
