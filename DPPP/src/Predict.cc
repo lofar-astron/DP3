@@ -103,29 +103,39 @@ namespace LOFAR {
                                          info().getAnt2()[i]));
       }
 
-      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenterCopy(),
+      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
                                               MDirection::J2000)());
       Quantum<Vector<Double> > angles = dirJ2000.getAngle();
       itsPhaseRef = Position(angles.getBaseValue()[0],
                              angles.getBaseValue()[1]);
 
       //const size_t nDr = itsPatchList.size();
-      //const size_t nSt = info().antennaUsed().size();
+      const size_t nSt = info().antennaUsed().size();
       const size_t nCh = info().nchan();
       const size_t nCr = info().ncorr();
 
+      itsUVW.resize(3,nSt);
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
 
       itsModelVis.resize(OpenMP::maxThreads());
       itsModelVisTmp.resize(OpenMP::maxThreads());
+      itsBeamValues.resize(OpenMP::maxThreads());
 
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         itsModelVis[thread].resize(nCr,nCh,nBl);
         itsModelVisTmp[thread].resize(nCr,nCh,nBl);
+        itsBeamValues[thread].resize(nSt*nCh);
       }
 
       itsInput->fillBeamInfo (itsAntBeamInfo, info().antennaNames());
+
+      // Create the Measure ITRF conversion info given the array position.
+      // The time and direction are filled in later.
+      itsMeasFrame.set (info().arrayPos());
+      itsMeasFrame.set (MEpoch(MVEpoch(info().startTime()/86400), MEpoch::UTC));
+      itsMeasConverter.set (MDirection::J2000,
+                            MDirection::Ref(MDirection::ITRF, itsMeasFrame));
     }
 
     void Predict::show (std::ostream& os) const
@@ -165,30 +175,59 @@ namespace LOFAR {
       const size_t nCr = 4;
       const size_t nSamples = nBl * nCh * nCr;
 
+      double time = buf.getTime();
+
       itsTimerPredict.start();
 
-      itsUVW.resize(3,nSt);
       nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
+
+      //Set up directions for beam evaluation
+      StationResponse::vector3r_t refdir, tiledir, srcdir;
+
+      if (itsApplyBeam) {
+        itsMeasFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
+        refdir  = dir2Itrf(info().delayCenter());
+        tiledir = dir2Itrf(info().tileBeamDir());
+      }
 
 #pragma omp parallel
 {
       uint thread=OpenMP::threadNum();
       itsModelVis[thread]=dcomplex();
+      itsModelVisTmp[thread]=dcomplex();
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                          info().chanFreqs(), itsUVW, itsModelVis[thread]);
+                          info().chanFreqs(), itsUVW, itsModelVisTmp[thread]);
 
       Patch::ConstPtr curPatch;
 #pragma omp for
       for (uint i=0;i<itsSourceList.size();++i) {
         if (curPatch!=itsSourceList[i].second && curPatch!=0) {
-//          cout<<"apply Beam for patch "<<curPatch<<endl;
+          //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
+          MDirection dir (MVDirection(curPatch->position()[0],
+                                      curPatch->position()[1]),
+                          MDirection::J2000);
+          srcdir = dir2Itrf(dir);
+
+
+          //Add itsModelVisTmp to itsModelVis
+          std::transform(itsModelVis[thread].data(),
+                         itsModelVis[thread].data()+nSamples,
+                         itsModelVisTmp[thread].data(),
+                         itsModelVis[thread].data(), std::plus<dcomplex>());
+          itsModelVisTmp[thread]=dcomplex();
         }
         simulator.simulate(itsSourceList[i].first);
         curPatch=itsSourceList[i].second;
       }
 
       if (curPatch!=0) {
-//        cout<<"apply Beam at end for patch "<<curPatch<<endl;
+        //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
+
+        //Add itsModelVisTmp to itsModelVis
+        std::transform(itsModelVis[thread].data(),
+                       itsModelVis[thread].data()+nSamples,
+                       itsModelVisTmp[thread].data(),
+                       itsModelVis[thread].data(), std::plus<dcomplex>());
       }
 }
 
@@ -205,6 +244,72 @@ namespace LOFAR {
       getNextStep()->process(buf);
       return false;
     }
+
+    StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir) {
+      const MDirection& itrfDir = itsMeasConverter(dir);
+      const Vector<Double>& itrf = itrfDir.getValue().getValue();
+      StationResponse::vector3r_t vec;
+      vec[0] = itrf[0];
+      vec[1] = itrf[1];
+      vec[2] = itrf[2];
+      return vec;
+    }
+
+    void Predict::applyBeam (const Vector<double>& chanFreqs, double time,
+                             Cube<dcomplex>& data0,
+                             const StationResponse::vector3r_t& srcdir,
+                             const StationResponse::vector3r_t& refdir,
+                             const StationResponse::vector3r_t& tiledir,
+                             vector<StationResponse::matrix22c_t>& beamValues)
+    {
+      // Get the beam values for each station.
+      uint nchan = chanFreqs.size();
+      uint nSt   = beamValues.size();
+      uint nBl   = info().nbaselines();
+
+      if (!itsUseChannelFreq) {
+        for (size_t st=0; st<nSt; ++st) {
+          itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+                                        srcdir, info().refFreq(), refdir,
+                                        tiledir, &(beamValues[nchan*st]));
+        }
+      }
+
+      // Apply the beam values of both stations to the predicted data.
+      dcomplex tmp[4];
+      for (size_t ch=0; ch<nchan; ++ch) {
+        if (itsUseChannelFreq) {
+          for (size_t st=0; st<nSt; ++st) {
+            itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+                                          srcdir, chanFreqs[ch], refdir,
+                                          tiledir, &(beamValues[nchan*st]));
+          }
+        }
+        for (size_t bl=0; bl<nBl; ++bl) {
+          dcomplex* data=data0.data()+bl*4*nchan + ch*4; //TODO
+          StationResponse::matrix22c_t *left =
+              &(beamValues[nchan * info().getAnt1()[bl]]);
+          StationResponse::matrix22c_t *right=
+              &(beamValues[nchan * info().getAnt2()[bl]]);
+          dcomplex l[] = {left[ch][0][0], left[ch][0][1],
+                          left[ch][1][0], left[ch][1][1]};
+          // Form transposed conjugate of right.
+          dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
+                          conj(right[ch][0][1]), conj(right[ch][1][1])};
+          // left*data
+          tmp[0] = l[0] * data[0] + l[1] * data[2];
+          tmp[1] = l[0] * data[1] + l[1] * data[3];
+          tmp[2] = l[2] * data[0] + l[3] * data[2];
+          tmp[3] = l[2] * data[1] + l[3] * data[3];
+          // data*conj(right)
+          data[0] = tmp[0] * r[0] + tmp[1] * r[2];
+          data[1] = tmp[0] * r[1] + tmp[1] * r[3];
+          data[2] = tmp[2] * r[0] + tmp[3] * r[2];
+          data[3] = tmp[2] * r[1] + tmp[3] * r[3];
+        }
+      }
+    }
+
 
     void Predict::finish()
     {
