@@ -137,7 +137,6 @@ namespace LOFAR {
                                           MEpoch::UTC));
         itsMeasConverters[thread].set (MDirection::J2000,
                      MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-        cout<<"filling BeamInfo"<<endl;
         itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
       }
     }
@@ -186,7 +185,7 @@ namespace LOFAR {
       nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
 
       //Set up directions for beam evaluation
-      StationResponse::vector3r_t refdir, tiledir, srcdir;
+      StationResponse::vector3r_t refdir, tiledir;
 
       if (itsApplyBeam) {
         for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
@@ -201,6 +200,8 @@ namespace LOFAR {
 
 #pragma omp parallel
 {
+      StationResponse::vector3r_t srcdir;
+      stringstream threadoutput;
       uint thread=OpenMP::threadNum();
       itsModelVis[thread]=dcomplex();
       itsModelVisTmp[thread]=dcomplex();
@@ -210,16 +211,22 @@ namespace LOFAR {
       Patch::ConstPtr curPatch;
 #pragma omp for
       for (uint i=0;i<itsSourceList.size();++i) {
+        threadoutput<<"thread "<<thread<<" gets source ("<<itsSourceList[i].first<<", "<<itsSourceList[i].second<<")"<<endl;
         if (curPatch!=itsSourceList[i].second && curPatch!=0) {
           //Apply beam for curPatch, copy itsModelVisTmp to itsModelVis
           MDirection dir (MVDirection(curPatch->position()[0],
                                       curPatch->position()[1]),
                           MDirection::J2000);
           srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+          threadoutput<<"thread "<<thread<<" HAD "<<itsModelVisTmp[thread]<<endl;
+          threadoutput<<"thread "<<thread<<" has DIRECTION "<<dir<<endl;
+          threadoutput<<"thread "<<thread<<" has CONVERTER "<<itsMeasConverters[thread]<<endl;
+          threadoutput<<"thread "<<thread<<" has DIRECTION "<<srcdir[0]<<", "<<srcdir[1]<<", "<<srcdir[2]<<endl;
           if (itsApplyBeam) {
             applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
                       srcdir, refdir, tiledir, itsAntBeamInfo[thread],
                       itsBeamValues[thread], itsUseChannelFreq);
+            threadoutput<<"thread "<<thread<<" applied beam on patch "<<curPatch<<endl;
           }
 
           //Add itsModelVisTmp to itsModelVis
@@ -227,6 +234,7 @@ namespace LOFAR {
                          itsModelVis[thread].data()+nSamples,
                          itsModelVisTmp[thread].data(),
                          itsModelVis[thread].data(), std::plus<dcomplex>());
+          //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
           itsModelVisTmp[thread]=dcomplex();
         }
         simulator.simulate(itsSourceList[i].first);
@@ -240,9 +248,15 @@ namespace LOFAR {
                         MDirection::J2000);
         srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
         if (itsApplyBeam) {
+          threadoutput<<"thread "<<thread<<" HAD "<<itsModelVisTmp[thread]<<endl;
+          threadoutput<<"thread "<<thread<<" has DIRECTION "<<dir<<endl;
+          threadoutput<<"thread "<<thread<<" has CONVERTER "<<itsMeasConverters[thread]<<endl;
+          threadoutput<<"thread "<<thread<<" has DIRECTION "<<srcdir[0]<<", "<<srcdir[1]<<", "<<srcdir[2]<<endl;
+          threadoutput<<"address of srcdir "<<&srcdir<<endl;
           applyBeam(info().chanFreqs(), time, itsModelVisTmp[thread],
                     srcdir, refdir, tiledir, itsAntBeamInfo[thread],
                     itsBeamValues[thread], itsUseChannelFreq);
+          threadoutput<<"thread "<<thread<<" applied final beam on patch "<<curPatch<<endl;
         }
 
         //Add itsModelVisTmp to itsModelVis
@@ -250,8 +264,11 @@ namespace LOFAR {
                        itsModelVis[thread].data()+nSamples,
                        itsModelVisTmp[thread].data(),
                        itsModelVis[thread].data(), std::plus<dcomplex>());
+        //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
         itsModelVisTmp[thread]=dcomplex();
       }
+#pragma omp critical
+      {cout<<threadoutput.rdbuf();}
 }
 
       //Add all thread model data to one buffer
