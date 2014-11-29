@@ -146,9 +146,12 @@ namespace LOFAR {
       os << "Predict " << itsName << endl;
       os << "  sourcedb:           " << itsSourceDBName << endl;
       os << "   number of patches: " << itsPatchList.size() << endl;
+      os << "   number of sources: " << itsSourceList.size() << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
-      os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
-      os << "Threads: "<<OpenMP::maxThreads()<<endl;
+      if (itsApplyBeam) {
+        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
+      }
+      os << "  threads:            "<<OpenMP::maxThreads()<<endl;
     }
 
     void Predict::showTimings (std::ostream& os, double duration) const
@@ -286,7 +289,7 @@ namespace LOFAR {
       // Get the beam values for each station.
       uint nCh = chanFreqs.size();
       uint nSt   = beamValues.size()/nCh;
-      uint nBl   = info().nbaselines();
+      uint nBl   = info().nbaselines(); //Todo: should be variable, so function can be static
 
       if (!useChannelFreq) {
         for (size_t st=0; st<nSt; ++st) {
@@ -307,7 +310,7 @@ namespace LOFAR {
           }
         }
         for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=data0+bl*nCh+ch;
+          dcomplex* data=data0+bl*4*nCh + ch*4;
           StationResponse::matrix22c_t *left =
               &(beamValues[nCh * info().getAnt1()[bl]]);
           StationResponse::matrix22c_t *right=
