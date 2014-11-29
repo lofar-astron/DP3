@@ -30,6 +30,7 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/Patch.h>
+#include <DPPP/Predict.h>
 #include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
 #include <DPPP/SourceDBUtil.h>
@@ -42,10 +43,6 @@
 #include <casa/Arrays/ArrayMath.h>
 
 namespace LOFAR {
-
-namespace {
-
-}
 
   class ParameterSet;
 
@@ -60,21 +57,6 @@ namespace {
     class GainCal: public DPStep
     {
     public:
-      struct ThreadPrivateStorage
-      {
-        vector<double>    unknowns;
-        vector<double>    uvw;
-        vector<dcomplex>  model_patch; // Contains the model for only one patch
-        vector<dcomplex>  model;
-        vector<dcomplex>  model_subtr;
-        vector<StationResponse::matrix22c_t> beamvalues; // [nst,nch]
-        size_t            count_converged;
-
-        //# Variables for conversion of directions to ITRF
-        casa::MeasFrame                       measFrame;
-        casa::MDirection::Convert             measConverter;
-      };
-
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       GainCal (DPInput*, const ParameterSet&, const string& prefix);
@@ -111,31 +93,6 @@ namespace {
 
       void exportToMatlab(uint ch);
 
-      void initThreadPrivateStorage(ThreadPrivateStorage &storage,
-                                    size_t nDirection, size_t nStation,
-                                    size_t nBaseline, size_t nChannel,
-                                    size_t nChannelSubtr)
-      {
-        storage.unknowns.resize(nDirection * nStation * 8);
-        storage.uvw.resize(nStation * 3);
-        storage.model.resize(nBaseline * nChannel * 4);
-        storage.model_patch.resize(nBaseline * nChannel * 4);
-        storage.model_subtr.resize(nBaseline * nChannelSubtr * 4);
-        storage.beamvalues.resize(nStation * nChannel);
-        storage.count_converged = 0;
-
-        // Create the Measure ITRF conversion info given the array position.
-        // The time and direction are filled in later.
-        info().arrayPosCopy();
-        storage.measFrame.set (info().arrayPosCopy());
-        storage.measFrame.set (casa::MEpoch(casa::MVEpoch(info().startTime()/86400), casa::MEpoch::UTC));
-        storage.measConverter.set (casa::MDirection::J2000,
-                              casa::MDirection::Ref(casa::MDirection::ITRF, storage.measFrame));
-        // Do a dummy conversion, because Measure initialization does not
-        // seem to be thread-safe.
-        dir2Itrf(info().delayCenterCopy(),storage.measConverter);
-      }
-
       // Perform stefcal (polarized or unpolarized)
       void stefcal(string mode, uint solint=1);
 
@@ -158,30 +115,12 @@ namespace {
       void fillMatrices (dcomplex* model, casa::Complex* data, float* weight,
                          const casa::Bool* flag);
 
-      // Calculate the beam for the given sky direction and frequencies.
-      // Apply it to the data.
-      // If apply==False, nothing is done.
-      void applyBeam (double time, const Position& pos, bool apply,
-                      const casa::Vector<double>& chanFreqs, dcomplex* data,
-                      StationResponse::vector3r_t& refdir,
-                      StationResponse::vector3r_t& tiledir,
-                      StationResponse::matrix22c_t* beamvalues,
-                      casa::MDirection::Convert& converter);
-
-      // Convert a direction to ITRF.
-      StationResponse::vector3r_t dir2Itrf (const casa::MDirection&, casa::MDirection::Convert&) const;
-
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
-      string           itsSourceDBName;
       bool             itsUseModelColumn;
       string           itsParmDBName;
-      bool             itsApplyBeam;
-      bool             itsOneBeamPerPatch;
-      bool             itsUseChannelFreq;
       shared_ptr<BBS::ParmDB> itsParmDB;
-      Position         itsPhaseRef;
 
       string           itsMode;
       uint             itsTStep;
@@ -191,7 +130,6 @@ namespace {
       string           itsStefcalVariant;
 
       vector<Baseline> itsBaselines;
-      vector<ThreadPrivateStorage> itsThreadStorage;
 
       casa::Array<casa::DComplex> itsVis;
       casa::Array<casa::DComplex> itsMVis;
@@ -202,6 +140,10 @@ namespace {
 
       StefVecs         iS;
 
+      Predict          itsPredict;
+      ResultStep*      itsPredictResult;
+      casa::Cube<casa::Complex> itsModelData;
+
       casa::Vector<casa::String> itsAntennaUsedNames;
       casa::Vector<uint>     itsDataPerAntenna;
       map<string,int>  itsParmIdMap; //# -1 = new parm name
@@ -211,11 +153,6 @@ namespace {
       bool             itsPropagateSolutions;
       uint             itsSolInt;
       uint             itsMinBLperAnt;      
-
-      //# The info needed to calculate the station beams.
-      vector<StationResponse::Station::Ptr> itsAntBeamInfo;
-
-      PatchList        itsPatchList;
 
       string           itsOperation;
 

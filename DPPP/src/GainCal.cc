@@ -66,25 +66,19 @@ namespace LOFAR {
                       const string& prefix)
       : itsInput         (input),
         itsName          (prefix),
-        itsSourceDBName  (""),
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb")),
-        itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
-        itsOneBeamPerPatch  (parset.getBool (prefix + "onebeamperpatch", true)),
-        itsUseChannelFreq(parset.getBool (prefix + "usechannelfreq", true)),
         itsMode          (parset.getString (prefix + "caltype")),
         itsTStep         (0),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsStefcalVariant(parset.getString (prefix + "stefcalvariant", "1c")),
         itsBaselines     (),
-        itsThreadStorage (),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
         itsPropagateSolutions (parset.getBool(prefix + "propagatesolutions", false)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
         itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
-        itsPatchList     (),
         itsOperation     (parset.getString(prefix + "operation", "solve")),
         itsConverged     (0),
         itsNonconverged  (0),
@@ -92,20 +86,9 @@ namespace LOFAR {
         itsNTimes        (0)
     {
       if (!itsUseModelColumn) {
-        itsSourceDBName = parset.getString (prefix + "sourcedb","");
-        BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
-
-        vector<PatchInfo> patchInfo=sourceDB.getPatchInfo();
-        vector<string> patchNames;
-
-        vector<string> sourcePatterns=parset.getStringVector(prefix + "sources",
-                                                             vector<string>());
-        patchNames=makePatchList(sourceDB, sourcePatterns);
-
-        itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
-        if (!itsOneBeamPerPatch) {
-          itsPatchList = makeOnePatchPerComponent(itsPatchList);
-        }
+        itsPredict=Predict(input, parset, prefix);
+        itsPredictResult=new ResultStep();
+        itsPredict.setNextStep(DPStep::ShPtr(itsPredictResult));
       }
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase");
@@ -118,39 +101,25 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
+
+      const size_t nCh = info().nchan();
+      const size_t nBl=info().nbaselines();
+
       if (itsUseModelColumn) {
         info().setNeedModelData();
+      } else {
+        itsModelData.resize(4,nCh,nBl);
+        itsPredict.updateInfo(infoIn);
       }
       info().setNeedWrite();
 
-      uint nBl=info().nbaselines();
       for (uint i=0; i<nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
                                          info().getAnt2()[i]));
       }
 
-
-      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenterCopy(),
-                                              MDirection::J2000)());
-      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      itsPhaseRef = Position(angles.getBaseValue()[0],
-                             angles.getBaseValue()[1]);
-
-      const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
-      const size_t nCh = info().nchan();
-
       if (itsSolInt==0) {
         itsSolInt=info().ntime();
-      }
-
-      const size_t nThread=1;//OpenMP::maxThreads();
-
-      itsThreadStorage.resize(nThread);
-      for(vector<ThreadPrivateStorage>::iterator it = itsThreadStorage.begin(),
-          end = itsThreadStorage.end(); it != end; ++it)
-      {
-        initThreadPrivateStorage(*it, nDr, nSt, nBl, nCh, nCh);
       }
 
       itsSols.reserve(info().ntime());
@@ -163,43 +132,22 @@ namespace LOFAR {
       for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
         itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
       }
-
-      if (!itsUseModelColumn) {
-        itsInput->fillBeamInfo (itsAntBeamInfo, itsAntennaUsedNames);
-      }
-    }
-
-    StationResponse::vector3r_t GainCal::dir2Itrf (const MDirection& dir,
-                                                   MDirection::Convert& converter) const
-    {
-      const MDirection& itrfDir = converter(dir);
-      const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      StationResponse::vector3r_t vec;
-      vec[0] = itrf[0];
-      vec[1] = itrf[1];
-      vec[2] = itrf[2];
-      return vec;
     }
 
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  use model col:      " << boolalpha << itsUseModelColumn << endl;
-      os << "  sourcedb:           " << itsSourceDBName << endl;
-      os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
-      os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
-      if (itsApplyBeam) {
-        os << "   beam per patch:    " << boolalpha << itsOneBeamPerPatch << endl;
-        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
-      }
       os << "  solint              " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
-//      os << "  propagate sols: " << boolalpha << itsPropagateSolutions << endl;
       os << "  mode:               " << itsMode << endl;
       os << "  stefcalvariant:     " << itsStefcalVariant <<endl;
       os << "  detect stalling:    " << boolalpha << itsDetectStalling << endl;
+      os << "  use model col:      " << boolalpha << itsUseModelColumn << endl;
+      if (!itsUseModelColumn) {
+        itsPredict.show(os);
+      }
     }
 
     void GainCal::showTimings (std::ostream& os, double duration) const
@@ -236,22 +184,15 @@ namespace LOFAR {
       buf.getData().unique();
       RefRows refRows(buf.getRowNrs());
 
-      buf.setUVW(itsInput->fetchUVW(buf, refRows, itsTimer));
       buf.setWeights(itsInput->fetchWeights(buf, refRows, itsTimer));
       buf.setFullResFlags(itsInput->fetchFullResFlags(buf, refRows, itsTimer));
 
       // Determine the various sizes.
-      const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
+      //const size_t nSt = info().antennaUsed().size();
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
       const size_t nSamples = nBl * nCh * nCr;
-      // Define various cursors to iterate through arrays.
-      const_cursor<double> cr_freq = casa_const_cursor(info().chanFreqs());
-      const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
-
-      const size_t thread = 0;//OpenMP::threadNum();
 
       Complex* data=buf.getData().data();
       Complex* model=buf.getModel().data();
@@ -265,54 +206,16 @@ namespace LOFAR {
 
       itsTimerPredict.start();
 
-      ThreadPrivateStorage &storage = itsThreadStorage[thread];
       if (!itsUseModelColumn) {
-        double time = buf.getTime();
-
-        size_t stride_uvw[2] = {1, 3};
-        cursor<double> cr_uvw_split(&(storage.uvw[0]), 2, stride_uvw);
-
-        size_t stride_model[3] = {1, nCr, nCr * nCh};
-        fill(storage.model.begin(), storage.model.end(), dcomplex());
-
-        const_cursor<double> cr_uvw = casa_const_cursor(buf.getUVW());
-        splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
-        cout<<"UVW: ";
-        for (int i=0;i<storage.uvw.size();++i) {
-          cout<<storage.uvw[i]<<",";
-        }
-        cout<<endl;
-        cursor<dcomplex> cr_model(&(storage.model_patch[0]), 3, stride_model);
-
-        // Convert the directions to ITRF for the given time.
-        storage.measFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-        StationResponse::vector3r_t refdir = dir2Itrf(info().delayCenter(),storage.measConverter);
-        StationResponse::vector3r_t tiledir = dir2Itrf(info().tileBeamDir(),storage.measConverter);
-
-  //#pragma omp parallel for
-        for(size_t dr = 0; dr < nDr; ++dr)
-        {
-          fill(storage.model_patch.begin(), storage.model_patch.end(), dcomplex());
-
-          simulate(itsPhaseRef, itsPatchList[dr], nSt, nBl, nCh, cr_baseline,
-                   cr_freq, cr_uvw_split, cr_model);
-
-          applyBeam(time, itsPatchList[dr]->position(), itsApplyBeam,
-                    info().chanFreqs(), &(itsThreadStorage[thread].model_patch[0]),
-                    refdir, tiledir, &(itsThreadStorage[thread].beamvalues[0]),
-                    storage.measConverter);
-
-          for (size_t i=0; i<itsThreadStorage[thread].model_patch.size();++i) {
-            itsThreadStorage[thread].model[i]+=
-                itsThreadStorage[thread].model_patch[i];
-          }
-        }
+        itsPredict.process(buf);
       } //if(itsUseModelColumn)
+
 
       itsTimerPredict.stop();
       //copy result of model to data
       if (itsOperation=="predict") {
-        copy(storage.model.begin(),storage.model.begin()+nSamples,data);
+        copy(itsPredictResult->get().getData().data(),
+             itsPredictResult->get().getData().data()+nSamples,data);
       }
 
       if (itsOperation=="solve") {
@@ -327,7 +230,7 @@ namespace LOFAR {
         if (itsUseModelColumn) {
           fillMatrices(model,data,weight,flag);
         } else {
-          fillMatrices(&storage.model[0],data,weight,flag);
+          fillMatrices(itsPredictResult->get().getData().data(),data,weight,flag);
         }
         itsTimerFill.stop();
 
@@ -898,67 +801,6 @@ namespace LOFAR {
 
       mFile.close();
       THROW(Exception,"Wrote output to debug.txt -- stopping now");
-    }
-
-    void GainCal::applyBeam (double time, const Position& pos, bool apply,
-                             const Vector<double>& chanFreqs, dcomplex* data0,
-                             StationResponse::vector3r_t& refdir,
-                             StationResponse::vector3r_t& tiledir,
-                             StationResponse::matrix22c_t* beamvalues,
-                             casa::MDirection::Convert& converter)
-    {
-      if (! apply) {
-        return;
-      }
-
-      MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
-      StationResponse::vector3r_t srcdir = dir2Itrf(dir,converter);
-      // Get the beam values for each station.
-      uint nchan = chanFreqs.size();
-      uint nSt   = info().antennaUsed().size();
-      uint nBl   = info().nbaselines();
-
-      if (!itsUseChannelFreq) {
-        for (size_t st=0; st<nSt; ++st) {
-          itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                        srcdir, info().refFreq(), refdir,
-                                        tiledir, &(beamvalues[nchan*st]));
-        }
-      }
-
-      // Apply the beam values of both stations to the predicted data.
-      dcomplex tmp[4];
-      for (size_t ch=0; ch<nchan; ++ch) {
-        if (itsUseChannelFreq) {
-          for (size_t st=0; st<nSt; ++st) {
-            itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                          srcdir, chanFreqs[ch], refdir,
-                                          tiledir, &(beamvalues[nchan*st]));
-          }
-        }
-        for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=data0+bl*4*nchan + ch*4; //TODO
-          StationResponse::matrix22c_t *left =
-              &(beamvalues[nchan * info().getAnt1()[bl]]);
-          StationResponse::matrix22c_t *right=
-              &(beamvalues[nchan * info().getAnt2()[bl]]);
-          dcomplex l[] = {left[ch][0][0], left[ch][0][1],
-                          left[ch][1][0], left[ch][1][1]};
-          // Form transposed conjugate of right.
-          dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
-                          conj(right[ch][0][1]), conj(right[ch][1][1])};
-          // left*data
-          tmp[0] = l[0] * data[0] + l[1] * data[2];
-          tmp[1] = l[0] * data[1] + l[1] * data[3];
-          tmp[2] = l[2] * data[0] + l[3] * data[2];
-          tmp[3] = l[2] * data[1] + l[3] * data[3];
-          // data*conj(right)
-          data[0] = tmp[0] * r[0] + tmp[1] * r[2];
-          data[1] = tmp[0] * r[1] + tmp[1] * r[3];
-          data[2] = tmp[2] * r[0] + tmp[3] * r[2];
-          data[3] = tmp[2] * r[1] + tmp[3] * r[3];
-        }
-      }
     }
 
     void GainCal::finish()

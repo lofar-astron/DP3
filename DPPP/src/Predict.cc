@@ -88,6 +88,9 @@ namespace LOFAR {
       itsSourceList = makeSourceList(itsPatchList);
     }
 
+    Predict::Predict()
+    {}
+
     Predict::~Predict()
     {}
 

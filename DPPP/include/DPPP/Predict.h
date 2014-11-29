@@ -58,6 +58,8 @@ namespace LOFAR {
       // Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
 
+      Predict();
+
       virtual ~Predict();
 
       // Process the data.
