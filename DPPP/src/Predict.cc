@@ -178,7 +178,7 @@ namespace LOFAR {
 
       // Determine the various sizes.
       //const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
+      const size_t nSt = info().nantenna();
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
