@@ -544,7 +544,7 @@ namespace LOFAR {
           for (uint st=0;st<nUn;++st) {
             iS.h(st,0)=conj(iS.g(st,0));
           }
-//#pragma omp parallel for
+#pragma omp parallel for
           for (uint st1=0;st1<nUn;++st1) {
             ww=0;
             t(0)=0;
