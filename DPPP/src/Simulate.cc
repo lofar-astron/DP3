@@ -113,6 +113,8 @@ void nsplitUVW (const vector<int>& blindex,
     if (inx < 0) {
       // Ant2 is known.
       inx = -inx - 1;
+      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].first);
+      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].second);
       uvwl = uvwant.data() + 3 * baselines[inx].first;
       uvwr = uvwant.data() + 3 * baselines[inx].second;
       uvwb = uvwbl.data() + 3*inx;
@@ -120,6 +122,8 @@ void nsplitUVW (const vector<int>& blindex,
         uvwl[j] = uvwr[j] - uvwb[j];
       }
     } else {
+      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].first);
+      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].second);
       // Ant1 is known.
       uvwl = uvwant.data() + 3 * baselines[inx].first;
       uvwr = uvwant.data() + 3 * baselines[inx].second;

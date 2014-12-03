@@ -113,7 +113,7 @@ namespace LOFAR {
                              angles.getBaseValue()[1]);
 
       //const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
+      const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
       const size_t nCr = info().ncorr();
 
