@@ -68,7 +68,6 @@ namespace LOFAR {
         itsName          (prefix),
         itsSourceDBName (parset.getString (prefix + "sourcedb")),
         itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
-        itsUseChannelFreq(parset.getBool (prefix + "usechannelfreq", true)),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsPatchList     ()
     {
@@ -77,11 +76,15 @@ namespace LOFAR {
       vector<string> sourcePatterns=parset.getStringVector(prefix + "sources",
                                                            vector<string>());
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
-
       itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
 
+      if (itsApplyBeam) {
+        itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
+        itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", true);
+      }
+
       // Rework patch list to contain a patch for every source
-      if (!parset.getBool(prefix + "onebeamperpatch", true)) {
+      if (!itsOneBeamPerPatch) {
         itsPatchList = makeOnePatchPerComponent(itsPatchList);
       }
 
@@ -153,6 +156,7 @@ namespace LOFAR {
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
       if (itsApplyBeam) {
         os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
+        os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << endl;
       }
       os << "  threads:            "<<OpenMP::maxThreads()<<endl;
     }
