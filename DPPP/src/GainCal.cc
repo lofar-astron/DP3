@@ -67,7 +67,7 @@ namespace LOFAR {
       : itsInput         (input),
         itsName          (prefix),
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
-        itsParmDBName    (parset.getString (prefix + "parmdb")),
+        itsParmDBName    (parset.getString (prefix + "parmdb", "")),
         itsMode          (parset.getString (prefix + "caltype")),
         itsTStep         (0),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
@@ -84,6 +84,10 @@ namespace LOFAR {
         itsStalled       (0),
         itsNTimes        (0)
     {
+      if (itsParmDBName=="") {
+        itsParmDBName=parset.getString("msin")+"/instrument";
+      }
+
       if (!itsUseModelColumn) {
         itsPredictStep=Predict(input, parset, prefix);
         itsResultStep=new ResultStep();
