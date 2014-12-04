@@ -34,6 +34,7 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/FlagCounter.h>
 #include <DPPP/Position.h>
+#include <DPPP/ApplyBeam.h>
 #include <DPPP/Simulator.h>
 #include <DPPP/Simulate.h>
 
@@ -273,8 +274,10 @@ namespace LOFAR {
                                   patch->position()[1]),
                       MDirection::J2000);
       StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
-      applyBeam(info().chanFreqs(), time, data0, srcdir, refdir, tiledir,
-                itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq);
+
+      ApplyBeam::applyBeam(info(), time, data0, srcdir, refdir,
+                           tiledir, itsAntBeamInfo[thread],
+                           itsBeamValues[thread], itsUseChannelFreq, false);
 
       //Add temporary buffer to itsModelVis
       std::transform(itsModelVis[thread].data(),
@@ -284,64 +287,6 @@ namespace LOFAR {
       //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
       itsModelVisPatch[thread]=dcomplex();
     }
-
-    void Predict::applyBeam (const Vector<double>& chanFreqs, double time,
-                             dcomplex* data0,
-                             const StationResponse::vector3r_t& srcdir,
-                             const StationResponse::vector3r_t& refdir,
-                             const StationResponse::vector3r_t& tiledir,
-                             const vector<StationResponse::Station::Ptr>&
-                               antBeamInfo,
-                             vector<StationResponse::matrix22c_t>& beamValues,
-                             bool useChannelFreq)  {
-      // Get the beam values for each station.
-      uint nCh = chanFreqs.size();
-      uint nSt   = beamValues.size()/nCh;
-      uint nBl   = info().nbaselines(); //Todo: should be variable, so function can be static
-
-      if (!useChannelFreq) {
-        for (size_t st=0; st<nSt; ++st) {
-          antBeamInfo[st]->response (nCh, time, chanFreqs.cbegin(),
-                                     srcdir, info().refFreq(), refdir,
-                                     tiledir, &(beamValues[nCh*st]));
-        }
-      }
-
-      // Apply the beam values of both stations to the predicted data.
-      dcomplex tmp[4];
-      for (size_t ch=0; ch<nCh; ++ch) {
-        if (useChannelFreq) {
-          for (size_t st=0; st<nSt; ++st) {
-            antBeamInfo[st]->response (nCh, time, chanFreqs.cbegin(),
-                                       srcdir, chanFreqs[ch], refdir,
-                                       tiledir, &(beamValues[nCh*st]));
-          }
-        }
-        for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=data0+bl*4*nCh + ch*4;
-          StationResponse::matrix22c_t *left =
-              &(beamValues[nCh * info().getAnt1()[bl]]);
-          StationResponse::matrix22c_t *right=
-              &(beamValues[nCh * info().getAnt2()[bl]]);
-          dcomplex l[] = {left[ch][0][0], left[ch][0][1],
-                          left[ch][1][0], left[ch][1][1]};
-          // Form transposed conjugate of right.
-          dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
-                          conj(right[ch][0][1]), conj(right[ch][1][1])};
-          // left*data
-          tmp[0] = l[0] * data[0] + l[1] * data[2];
-          tmp[1] = l[0] * data[1] + l[1] * data[3];
-          tmp[2] = l[2] * data[0] + l[3] * data[2];
-          tmp[3] = l[2] * data[1] + l[3] * data[3];
-          // data*conj(right)
-          data[0] = tmp[0] * r[0] + tmp[1] * r[2];
-          data[1] = tmp[0] * r[1] + tmp[1] * r[3];
-          data[2] = tmp[2] * r[0] + tmp[3] * r[2];
-          data[3] = tmp[2] * r[1] + tmp[3] * r[3];
-        }
-      }
-    }
-
 
     void Predict::finish()
     {

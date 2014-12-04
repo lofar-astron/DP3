@@ -86,15 +86,6 @@ namespace LOFAR {
                                    const StationResponse::vector3r_t& refdir,
                                    const StationResponse::vector3r_t& tiledir,
                                    uint thread, uint nSamples, dcomplex* data0);
-      void applyBeam (const casa::Vector<double>& chanFreqs, double time,
-                      dcomplex* data0,
-                      const StationResponse::vector3r_t& srcdir,
-                      const StationResponse::vector3r_t& refdir,
-                      const StationResponse::vector3r_t& tiledir,
-                      const std::vector<StationResponse::Station::Ptr>&
-                        antBeamInfo,
-                      vector<StationResponse::matrix22c_t>& beamValues,
-                      bool useChannelFreq);
 
       //# Data members.
       DPInput*         itsInput;

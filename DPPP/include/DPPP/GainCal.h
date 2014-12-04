@@ -34,6 +34,7 @@
 #include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
 #include <DPPP/SourceDBUtil.h>
+#include <DPPP/ApplyBeam.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 #include <ParmDB/Parm.h>
@@ -140,9 +141,10 @@ namespace LOFAR {
 
       StefVecs         iS;
 
-      Predict          itsPredict;
-      ResultStep*      itsPredictResult;
-      casa::Cube<casa::Complex> itsModelData;
+      Predict          itsPredictStep;
+      ApplyBeam        itsApplyBeamStep; // Beam step for applying beam to modelcol
+      ResultStep*      itsResultStep; // For catching results from Predict or Beam
+      bool             itsApplyBeamToModelColumn;
 
       casa::Vector<casa::String> itsAntennaUsedNames;
       casa::Vector<uint>     itsDataPerAntenna;
@@ -153,8 +155,6 @@ namespace LOFAR {
       bool             itsPropagateSolutions;
       uint             itsSolInt;
       uint             itsMinBLperAnt;      
-
-      string           itsOperation;
 
       uint             itsConverged;
       uint             itsNonconverged;
