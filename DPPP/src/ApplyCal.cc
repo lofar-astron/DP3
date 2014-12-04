@@ -416,7 +416,7 @@ namespace LOFAR {
     }
 
     // Inverts complex 2x2 input matrix
-    void ApplyCal::invert (DComplex* v, double sigmaMMSE) const
+    void ApplyCal::invert (DComplex* v, double sigmaMMSE)
     {
       // Add the variance of the nuisance term to the elements on the diagonal.
       const double variance = sigmaMMSE * sigmaMMSE;

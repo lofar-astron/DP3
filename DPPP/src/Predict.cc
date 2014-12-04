@@ -81,12 +81,13 @@ namespace LOFAR {
       if (itsApplyBeam) {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
         itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", true);
+
+        // Rework patch list to contain a patch for every source
+        if (!itsOneBeamPerPatch) {
+          itsPatchList = makeOnePatchPerComponent(itsPatchList);
+        }
       }
 
-      // Rework patch list to contain a patch for every source
-      if (!itsOneBeamPerPatch) {
-        itsPatchList = makeOnePatchPerComponent(itsPatchList);
-      }
 
       itsSourceList = makeSourceList(itsPatchList);
     }
