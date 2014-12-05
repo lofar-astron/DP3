@@ -91,6 +91,7 @@ namespace LOFAR {
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
+      bool             itsInvert;
       uint             itsTimeSlotsPerParmUpdate;
       double           itsSigmaMMSE;
       bool             itsUpdateWeights;
