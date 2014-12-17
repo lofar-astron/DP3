@@ -860,7 +860,7 @@ namespace LOFAR {
                   values(0, ts) = 0;
                 }
               } else {
-                int rst=itsAntMaps[ts][st];
+                int rst=itsAntMaps[ts][st]; // Real station
                 if (itsMode=="fulljones") {
                   if (seqnr%2==0) {
                     values(0, ts) = real(itsSols[ts](rst,seqnr/2));
