@@ -118,9 +118,6 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      if (itsUseModelColumn) {
-        info().setNeedModelData();
-      }
       info().setNeedWrite();
 
       uint nBl=info().nbaselines();
@@ -232,13 +229,10 @@ namespace LOFAR {
     bool GainCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      DPBuffer buf(bufin);
-      buf.getData().unique();
-      RefRows refRows(buf.getRowNrs());
-
-      buf.setUVW(itsInput->fetchUVW(buf, refRows, itsTimer));
-      buf.setWeights(itsInput->fetchWeights(buf, refRows, itsTimer));
-      buf.setFullResFlags(itsInput->fetchFullResFlags(buf, refRows, itsTimer));
+      itsBuf.referenceFilled (bufin);
+      itsInput->fetchUVW(bufin, itsBuf, itsTimer);
+      itsInput->fetchWeights(bufin, itsBuf, itsTimer);
+      itsInput->fetchFullResFlags(bufin, itsBuf, itsTimer);
 
       // Determine the various sizes.
       const size_t nDr = itsPatchList.size();
@@ -253,10 +247,13 @@ namespace LOFAR {
 
       const size_t thread = 0;//OpenMP::threadNum();
 
-      Complex* data=buf.getData().data();
-      Complex* model=buf.getModel().data();
-      float* weight = buf.getWeights().data();
-      const Bool* flag=buf.getFlags().data();
+      if (itsUseModelColumn) {
+        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
+      }
+      Complex* data=itsBuf.getData().data();
+      Complex* model=itsModelData.data();
+      float* weight = itsBuf.getWeights().data();
+      const Bool* flag=itsBuf.getFlags().data();
 
       // Simulate.
       //
@@ -267,7 +264,7 @@ namespace LOFAR {
 
       ThreadPrivateStorage &storage = itsThreadStorage[thread];
       if (!itsUseModelColumn) {
-        double time = buf.getTime();
+        double time = itsBuf.getTime();
 
         size_t stride_uvw[2] = {1, 3};
         cursor<double> cr_uvw_split(&(storage.uvw[0]), 2, stride_uvw);
@@ -275,7 +272,7 @@ namespace LOFAR {
         size_t stride_model[3] = {1, nCr, nCr * nCh};
         fill(storage.model.begin(), storage.model.end(), dcomplex());
 
-        const_cursor<double> cr_uvw = casa_const_cursor(buf.getUVW());
+        const_cursor<double> cr_uvw = casa_const_cursor(itsBuf.getUVW());
         splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
         cursor<dcomplex> cr_model(&(storage.model_patch[0]), 3, stride_model);
 
@@ -336,7 +333,7 @@ namespace LOFAR {
 
       itsTimer.stop();
       itsTStep++;
-      getNextStep()->process(buf);
+      getNextStep()->process(itsBuf);
       return false;
     }
 

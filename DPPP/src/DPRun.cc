@@ -51,9 +51,48 @@
 #include <casa/OS/Path.h>
 #include <casa/OS/DirectoryIterator.h>
 #include <casa/OS/Timer.h>
+#include <casa/OS/DynLib.h>
 
 namespace LOFAR {
   namespace DPPP {
+
+    // Initialize the statics.
+    std::map<std::string, DPRun::StepCtor*> DPRun::theirStepMap;
+
+    void DPRun::registerStepCtor (const std::string& type, StepCtor* func)
+    {
+      theirStepMap[type] = func;
+    }
+
+    DPRun::StepCtor* DPRun::findStepCtor (const std::string& type)
+    {
+      std::map<std::string,StepCtor*>::const_iterator iter =
+        theirStepMap.find (type);
+      if (iter != theirStepMap.end()) {
+        return iter->second;
+      }
+      // Try to load the step from a dynamic library with that name
+      // (in lowercase).
+      // A dot can be used to have a specific library name (so multiple
+      // steps can use the same shared library).
+      std::string libname(toLower(type));
+      string::size_type pos = libname.find_first_of (".");
+      if (pos != string::npos) {
+        libname = libname.substr (0, pos);
+      }
+      // Try to load and initialize the dynamic library.
+      casa::DynLib dl(libname, string(), "register_"+libname, false);
+      if (dl.getHandle()) {
+        // See if registered now.
+        iter = theirStepMap.find (type);
+        if (iter != theirStepMap.end()) {
+          return iter->second;
+        }
+      }
+      THROW(Exception, "Step type " + type +
+            " is unknown and no such shared library found");
+    }
+
 
     void DPRun::execute (const string& parsetName, int argc, char* argv[])
     {
@@ -278,7 +317,8 @@ namespace LOFAR {
         } else if (type == "gaincal"  ||  type == "calibrate") {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else {
-          THROW (LOFAR::Exception, "DPPP step type " << type << " is unknown");
+          // Maybe the step is defined in a dynamic library.
+          step = findStepCtor(type) (reader, parset, prefix);
         }
         lastStep->setNextStep (step);
         lastStep = step;
@@ -298,7 +338,6 @@ namespace LOFAR {
       }
       // Tell the reader if visibility data needs to be read.
       reader->setReadVisData (lastInfo.needVisData());
-      reader->setReadModelData (lastInfo.needModelData());
       // Create an updater step if an input MS was given; otherwise a writer.
       // Create an updater step only if needed (e.g. not if only count is done).
       // If the user specified an output MS name, a writer is always created
@@ -335,5 +374,6 @@ namespace LOFAR {
       }
       return firstStep;
     }
+
   } //# end namespace
 }

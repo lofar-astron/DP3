@@ -127,7 +127,7 @@ namespace LOFAR {
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 
         // Set and return the flags.
-        casa::Cube<bool>* process (DPBuffer&, uint timeSlot,
+        casa::Cube<bool>* process (const DPBuffer&, DPBuffer&, uint timeSlot,
                                    const casa::Block<bool>& matchBL,
                                    NSTimer& timer);
 
@@ -282,6 +282,7 @@ namespace LOFAR {
       //# Data members of PreFlagger.
       string      itsName;
       DPInput*    itsInput;
+      DPBuffer    itsBuffer;
       Mode        itsMode;
       NSTimer     itsTimer;
       PSet        itsPSet;

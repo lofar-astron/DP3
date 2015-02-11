@@ -39,7 +39,6 @@ namespace LOFAR {
 
     DPInfo::DPInfo()
       : itsNeedVisData  (false),
-        itsNeedModelData(false),
         itsNeedWrite    (0),
         itsNCorr        (0),
         itsStartChan    (0),
@@ -147,7 +146,8 @@ namespace LOFAR {
       }
     }
 
-    MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
+    MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas)
+    {
       Record rec;
       String msg;
       ASSERT (fromMeas.toRecord (msg, rec));
@@ -295,6 +295,124 @@ namespace LOFAR {
         }
       }
       return itsAutoCorrIndex;
+    }
+
+    Record DPInfo::toRecord() const
+    {
+      Record rec;
+      rec.define ("NeedVisData", itsNeedVisData);
+      rec.define ("NeedWrite", itsNeedWrite);
+      rec.define ("MSName", itsMSName);
+      rec.define ("AntennaSet", itsAntennaSet);
+      rec.define ("NCorr", itsNCorr);
+      rec.define ("StartChan", itsStartChan);
+      rec.define ("OrigNChan", itsOrigNChan);
+      rec.define ("NChan", itsNChan);
+      rec.define ("ChanAvg", itsChanAvg);
+      rec.define ("NTime", itsNTime);
+      rec.define ("TimeAvg", itsTimeAvg);
+      rec.define ("StartTime", itsStartTime);
+      rec.define ("TimeInterval", itsTimeInterval);
+      rec.define ("ChanFreqs", itsChanFreqs);
+      rec.define ("ChanWidths", itsChanWidths);
+      rec.define ("Resolutions", itsResolutions);
+      rec.define ("EffectiveBW", itsEffectiveBW);
+      rec.define ("TotalBW", itsTotalBW);
+      rec.define ("RefFreq", itsRefFreq);
+      rec.define ("AntNames", itsAntNames);
+      rec.define ("AntDiam", itsAntDiam);
+      rec.define ("AntUsed", Vector<int>(itsAntUsed));
+      rec.define ("AntMap", Vector<int>(itsAntMap));
+      rec.define ("Ant1", itsAnt1);
+      rec.define ("Ant2", itsAnt2);
+      rec.define ("BLength", Vector<double>(itsBLength));
+      rec.define ("AutoCorrIndex", Vector<int>(itsAutoCorrIndex));
+      return rec;
+    }
+
+    void DPInfo::fromRecord (const Record& rec)
+    {
+      if (rec.isDefined ("NeedVisData")) {
+        rec.get ("NeedVisData", itsNeedVisData);
+      }
+      if (rec.isDefined ("NeedWrite")) {
+        rec.get ("NeedWrite", itsNeedWrite);
+      }
+      if (rec.isDefined ("MSName")) {
+        itsMSName = rec.asString ("MSName");
+      }
+      if (rec.isDefined ("AntennaSet")) {
+        itsAntennaSet = rec.asString ("AntennaSet");
+      }
+      if (rec.isDefined ("NCorr")) {
+        rec.get ("NCorr", itsNCorr);
+      }
+      if (rec.isDefined ("StartChan")) {
+        rec.get ("StartChan", itsStartChan);
+      }
+      if (rec.isDefined ("OrigNChan")) {
+        rec.get ("OrigNChan", itsOrigNChan);
+      }
+      if (rec.isDefined ("NChan")) {
+        rec.get ("NChan", itsNChan);
+      }
+      if (rec.isDefined ("ChanAvg")) {
+        rec.get ("ChanAvg", itsChanAvg);
+      }
+      if (rec.isDefined ("NTime")) {
+        rec.get ("NTime", itsNTime);
+      }
+      if (rec.isDefined ("TimeAvg")) {
+        rec.get ("TimeAvg", itsTimeAvg);
+      }
+      if (rec.isDefined ("StartTime")) {
+        rec.get ("StartTime", itsStartTime);
+      }
+      if (rec.isDefined ("TimeInterval")) {
+        rec.get ("TimeInterval", itsTimeInterval);
+      }
+      if (rec.isDefined ("ChanFreqs")) {
+        rec.get ("ChanFreqs", itsChanFreqs);
+      }
+      if (rec.isDefined ("ChanWidths")) {
+        rec.get ("ChanWidths", itsChanWidths);
+      }
+      if (rec.isDefined ("Resolutions")) {
+        rec.get ("Resolutions", itsResolutions);
+      }
+      if (rec.isDefined ("EffectiveBW")) {
+        rec.get ("EffectiveBW", itsEffectiveBW);
+      }
+      if (rec.isDefined ("TotalBW")) {
+        rec.get ("TotalBW", itsTotalBW);
+      }
+      if (rec.isDefined ("RefFreq")) {
+        rec.get ("RefFreq", itsRefFreq);
+      }
+      if (rec.isDefined ("AntNames")) {
+        rec.get ("AntNames", itsAntNames);
+      }
+      if (rec.isDefined ("AntDiam")) {
+        rec.get ("AntDiam", itsAntDiam);
+      }
+      ///if (rec.isDefined ("AntUsed")) {
+      ///itsAntUsed = rec.toArrayInt("AntUsed").tovector();
+      ///}
+      ///if (rec.isDefined ("AntMap")) {
+      ///  itsAntMap = rec.toArrayInt("AntMap").tovector();
+      ///}
+      if (rec.isDefined ("Ant1")) {
+        rec.get ("Ant1", itsAnt1);
+      }
+      if (rec.isDefined ("Ant2")) {
+        rec.get ("Ant2", itsAnt2);
+      }
+      ///if (rec.isDefined ("BLength")) {
+      ///  itsBLength = rec.toArrayDouble("BLength").tovector();
+      ///}
+      ///if (rec.isDefined ("AutoCorrIndex")) {
+      ///  itsAutoCorrIndex = rec.toArrayInt("AutoCorrIndex").tovector();
+      ///}
     }
 
   } //# end namespace

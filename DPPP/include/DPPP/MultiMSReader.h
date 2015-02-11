@@ -155,29 +155,24 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Read the UVW at the given row numbers.
-      virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
+      virtual void getUVW (const casa::RefRows& rowNrs,
+                           double time,
+                           DPBuffer& buf);
 
       // Read the weights at the given row numbers.
-      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs,
-                                            const DPBuffer& buf);
+      virtual void getWeights (const casa::RefRows& rowNrs,
+                               DPBuffer& buf);
 
       // Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
-      // If undefined, an empty array is returned.
-      virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
-
-      // Read the given data column at the given row numbers.
-      ///      virtual casa::Cube<casa::Complex> getData (const casa::String& columnName,
-      ///                                                 const casa::RefRows& rowNrs);
+      // If undefined, false is returned.
+      virtual bool getFullResFlags (const casa::RefRows& rowNrs,
+                                    DPBuffer& buf);
 
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 
     private:
-      // Combine all cubes in the vector to a single one.
-      void combineFullResFlags (const vector<casa::Cube<bool> >& vec,
-                                casa::Cube<bool>& flags) const;
-
       // Handle the info for all bands.
       void handleBands();
 
@@ -194,8 +189,8 @@ namespace LOFAR {
       vector<string>        itsMSNames;
       vector<MSReader*>     itsReaders;   //# same as itsSteps
       vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
+      vector<DPBuffer>      itsBuffers;
       uint                  itsFillNChan; //# nr of chans for missing MSs
-      casa::Cube<bool>      itsFullResCube;  //# FullResFlags for missing MSs
       FlagCounter           itsFlagCounter;
     };
 

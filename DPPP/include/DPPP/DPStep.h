@@ -67,6 +67,7 @@ namespace LOFAR {
       // Define the shared pointer for this type.
       typedef shared_ptr<DPStep> ShPtr;
 
+      // Destructor.
       virtual ~DPStep();
 
       // Process the data.
@@ -182,7 +183,7 @@ namespace LOFAR {
 
       // Clear the buffer.
       void clear()
-        { itsBuffer.clear(); }
+      { itsBuffer = DPBuffer(); }
 
     private:
       DPBuffer itsBuffer;
@@ -201,7 +202,7 @@ namespace LOFAR {
     {
     public:
       // Create the object. By default it sets its next step to the NullStep.
-      MultiResultStep (uint reserveSize);
+      MultiResultStep (uint size);
 
       virtual ~MultiResultStep();
 
@@ -221,12 +222,17 @@ namespace LOFAR {
       vector<DPBuffer>& get()
         { return itsBuffers; }
 
+      // Get the size of the result.
+      size_t size() const
+        { return itsSize; }
+
       // Clear the buffers.
       void clear()
-        { itsBuffers.clear(); }
+        { itsSize = 0; }
 
     private:
       vector<DPBuffer> itsBuffers;
+      size_t           itsSize;
     };
 
   } //# end namespace

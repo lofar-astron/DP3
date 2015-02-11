@@ -168,13 +168,10 @@ namespace LOFAR {
     bool ApplyCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      DPBuffer buf(bufin);
-      buf.getData().unique();
-      RefRows rowNrs(buf.getRowNrs());
+      itsBuffer.copy (bufin);
+      double bufStartTime = bufin.getTime() - 0.5*itsTimeInterval;
 
-      double bufStartTime = buf.getTime() - 0.5*itsTimeInterval;
-
-      if (buf.getTime() > itsLastTime) {
+      if (bufin.getTime() > itsLastTime) {
         updateParms(bufStartTime);
         itsTimeStep=0;
       }
@@ -183,16 +180,14 @@ namespace LOFAR {
       }
 
       // Loop through all baselines in the buffer.
-      size_t nbl = bufin.getData().shape()[2];
+      size_t nbl = itsBuffer.getData().shape()[2];
 
-      Complex* data = buf.getData().data();
+      Complex* data = itsBuffer.getData().data();
 
-      if (itsUpdateWeights) {
-        buf.setWeights(itsInput->fetchWeights (buf, rowNrs, itsTimer));
-      }
-      float* weight = buf.getWeights().data();
+      itsInput->fetchWeights (bufin, itsBuffer, itsTimer);
+      float* weight = itsBuffer.getWeights().data();
 
-      size_t nchan = buf.getData().shape()[1];
+      size_t nchan = itsBuffer.getData().shape()[1];
 
 #pragma omp parallel for
       for (size_t bl=0; bl<nbl; ++bl) {
@@ -210,10 +205,11 @@ namespace LOFAR {
         }
       }
 
-      MSReader::flagInfNaN(buf.getData(),buf.getFlags(),itsFlagCounter);
+      MSReader::flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(),
+                           itsFlagCounter);
 
       itsTimer.stop();
-      getNextStep()->process(buf);
+      getNextStep()->process(itsBuffer);
       return false;
     }
 

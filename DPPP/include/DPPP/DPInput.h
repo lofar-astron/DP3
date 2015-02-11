@@ -65,18 +65,28 @@ namespace LOFAR {
     public:
       virtual ~DPInput();
 
-      // Read the UVW at the given row numbers.
+      // Read the UVW at the given row numbers into the buffer.
       // The default implementation throws an exception.
-      virtual casa::Matrix<double> getUVW (const casa::RefRows& rowNrs);
+      virtual void getUVW (const casa::RefRows& rowNrs,
+                           double time,
+                           DPBuffer&);
 
-      // Read the weights at the given row numbers.
+      // Read the weights at the given row numbers into the buffer.
       // The default implementation throws an exception.
-      virtual casa::Cube<float> getWeights (const casa::RefRows& rowNrs,
-                                            const DPBuffer&);
+      virtual void getWeights (const casa::RefRows& rowNrs,
+                               DPBuffer&);
 
-      // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
+      // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
+      // into the buffer.
+      // If undefined, false is returned.
       // The default implementation throws an exception.
-      virtual casa::Cube<bool> getFullResFlags (const casa::RefRows& rowNrs);
+      virtual bool getFullResFlags (const casa::RefRows& rowNrs,
+                                    DPBuffer&);
+
+      // Read the model data at the given row numbers into the array.
+      // The default implementation throws an exception.
+      virtual void getModelData (const casa::RefRows& rowNrs,
+                                 casa::Cube<casa::Complex>&);
 
       // Get the MS name.
       // The default implementation returns an empty string.
@@ -93,30 +103,32 @@ namespace LOFAR {
       // Otherwise there are read from the input.
       // If not defined in the input, they are filled using the flags in the
       // buffer assuming that no averaging has been done so far.
-      // If defined, they can be merged with the buffer's flags which means
+      // <src>If desired, they can be merged with the buffer's FLAG which means
       // that if an averaged channel is flagged, the corresponding FullRes
       // flags are set.
       // <br>It does a stop/start of the timer when actually reading the data.
-      casa::Cube<bool> fetchFullResFlags (const DPBuffer& buf,
-                                          const casa::RefRows& rowNrs,
-                                          NSTimer& timer,
-                                          bool merge=false);
+      const casa::Cube<bool>& fetchFullResFlags (const DPBuffer& bufin,
+                                                 DPBuffer& bufout,
+                                                 NSTimer& timer,
+                                                 bool merge=false);
 
       // Fetch the weights.
       // If defined in the buffer, they are taken from there.
       // Otherwise there are read from the input.
+      // If they have to be read and if autoweighting is in effect, the buffer
+      // must contain DATA to calculate the weights.
       // <br>It does a stop/start of the timer when actually reading the data.
-      casa::Cube<float> fetchWeights (const DPBuffer& buf,
-                                      const casa::RefRows& rowNrs,
-                                      NSTimer& timer);
+      const casa::Cube<float>& fetchWeights (const DPBuffer& bufin,
+                                             DPBuffer& bufout,
+                                             NSTimer& timer);
 
       // Fetch the UVW.
       // If defined in the buffer, they are taken from there.
       // Otherwise there are read from the input.
       // <br>It does a stop/start of the timer when actually reading the data.
-      casa::Matrix<double> fetchUVW (const DPBuffer& buf,
-                                     const casa::RefRows& rowNrs,
-                                     NSTimer& timer);
+      const casa::Matrix<double>& fetchUVW (const DPBuffer& bufin,
+                                            DPBuffer& bufout,
+                                            NSTimer& timer);
     };
 
   } //# end namespace

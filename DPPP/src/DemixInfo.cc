@@ -82,10 +82,12 @@ namespace LOFAR {
                                               itsNTimeAvgSubtr)),
         itsChunkSize        (parset.getUint  (prefix+"chunksize",
                                               itsNTimeAvg)),
-        itsNTimeChunk       (parset.getUint  (prefix+"ntimechunk",
-                                              OpenMP::maxThreads())),
+        itsNTimeChunk       (parset.getUint  (prefix+"ntimechunk", 0)),
         itsTimeIntervalAvg  (0)
     {
+      if (itsNTimeChunk == 0) {
+        itsNTimeChunk = OpenMP::maxThreads();
+      }
       // Get delta in arcsec and take cosine of it (convert to radians first).
       double delta = parset.getDouble (prefix+"target.delta", 60.);
       itsCosTargetDelta = cos (delta / 3600. * casa::C::pi / 180.);
@@ -105,7 +107,9 @@ namespace LOFAR {
         }
       }
       itsAteamDemixList = makePatchList (itsDemixModelName, itsSourceNames);
-      itsTargetList     = makePatchList (itsTargetModelName, vector<string>());
+      if (itsTargetHandling != 3) {
+        itsTargetList   = makePatchList (itsTargetModelName, vector<string>());
+      }
       // If no estimate model is given, use the demix model.
       if (itsAteamList.empty()) {
         itsAteamList = itsAteamDemixList;

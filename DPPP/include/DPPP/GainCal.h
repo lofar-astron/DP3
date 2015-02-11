@@ -174,6 +174,8 @@ namespace {
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
+      DPBuffer         itsBuf;
+      casa::Cube<casa::Complex> itsModelData;
       string           itsSourceDBName;
       bool             itsUseModelColumn;
       string           itsParmDBName;

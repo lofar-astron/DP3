@@ -395,9 +395,8 @@ private:
 class TestOutput4: public DPStep
 {
 public:
-  TestOutput4(int ntime, int nbl, int nchan, int ncorr)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
-      itsNCorr(ncorr)
+  TestOutput4(int ntime, int nbl, int nchan, int /*ncorr*/)
+    : itsNTime(ntime), itsNBl(nbl), itsNChan(nchan)
   {}
 private:
   virtual bool process (const DPBuffer&)
@@ -422,8 +421,7 @@ private:
     ASSERT (int(infoIn.antennaPos().size())==4);
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  int itsNTime, itsNBl, itsNChan;
 };
 
 // Execute steps.
