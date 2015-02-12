@@ -22,7 +22,6 @@
 
 #include <lofar_config.h>
 #include <DPPP/Simulate.h>
-#include <DPPP/Simulator.h>
 #include <Common/LofarLogger.h>
 
 // Only required for rotateUVW().
@@ -321,19 +320,6 @@ void rotateUVW(const Position &from, const Position &to, size_t nUVW,
         // Move to next station.
         uvw.forward(1);
     } // Stations.
-}
-
-void simulate(const Position &reference, const Patch::ConstPtr &patch,
-    size_t nStation, size_t nBaseline, size_t nChannel,
-    const casa::Vector<Baseline>& baselines, const casa::Vector<double>& freq,
-    const casa::Matrix<double>& uvw, casa::Cube<dcomplex>& vis)
-{
-    Simulator simulator(reference, nStation, nBaseline, nChannel, baselines,
-        freq, uvw, vis);
-    for(size_t i = 0; i < patch->nComponents(); ++i)
-    {
-      simulator.simulate(patch->component(i));
-    }
 }
 
 } //# namespace DPPP

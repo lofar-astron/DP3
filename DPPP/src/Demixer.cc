@@ -31,6 +31,7 @@
 #include <DPPP/EstimateMixed.h>
 #include <DPPP/PhaseShift.h>
 #include <DPPP/Simulate.h>
+#include <DPPP/Simulator.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/SubtractMixed.h>
 
@@ -298,6 +299,11 @@ namespace LOFAR {
       itsNChanOut = infoDemix.nchan();
       itsTimeIntervalAvg = infoDemix.timeInterval();
       itsNTimeDemix      = infoDemix.ntime();
+
+      // Setup the baseline index vector used to split the UVWs.
+      itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(),
+                                         info().getAnt1(),
+                                         info().getAnt2());
 
       // Let the internal steps update their data.
       for (uint i=0; i<itsFirstSteps.size(); ++i) {
@@ -820,11 +826,11 @@ namespace LOFAR {
     namespace {
       struct ThreadPrivateStorage
       {
-        vector<double>    unknowns;
-        vector<double>    uvw;
-        vector<dcomplex>  model;
-        vector<dcomplex>  model_subtr;
-        size_t            count_converged;
+        vector<double>          unknowns;
+        Matrix<double>          uvw;
+        vector<Cube<dcomplex> > model;
+        Cube<dcomplex>          model_subtr;
+        size_t                  count_converged;
       };
 
       void initThreadPrivateStorage(ThreadPrivateStorage &storage,
@@ -832,9 +838,12 @@ namespace LOFAR {
         size_t nChannelSubtr)
       {
         storage.unknowns.resize(nDirection * nStation * 8);
-        storage.uvw.resize(nStation * 3);
-        storage.model.resize(nDirection * nBaseline * nChannel * 4);
-        storage.model_subtr.resize(nBaseline * nChannelSubtr * 4);
+        storage.uvw.resize(3, nStation);
+        storage.model.resize(nDirection);
+        for (uint dr=0;dr<nDirection;++dr) {
+          storage.model[dr].resize(4, nChannel, nBaseline);
+        }
+        storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
         storage.count_converged = 0;
       }
     } //# end unnamed namespace
@@ -901,13 +910,19 @@ namespace LOFAR {
         {
           const_cursor<double> cr_uvw =
             casa_const_cursor(itsAvgResults[dr]->get()[ts].getUVW());
-          splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
-          //cout<<"uvw"<<dr<<'='<<storage.uvw<<endl;
+
+          nsplitUVW(itsUVWSplitIndex, itsBaselines,
+                    itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
 
           cursor<dcomplex> cr_model(&(storage.model[dr * nSamples]), 3,
             stride_model);
-          simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt,
-            nBl, nCh, cr_baseline, cr_freq, cr_uvw_split, cr_model);
+
+          Simulator simulator(itsPatchList[dr]->position(),
+                              nSt, nBl, nCh, itsBaselines, itsFreqDemix,
+                              storage.uvw, storage.model[dr]);
+          for (uint i=0; i<itsPatchList[dr]->nComponents(); ++i) {
+            simulator.simulate(itsPatchList[dr]->component(i));
+          }
         }
         //cout<<"modelvis="<<storage.model<<endl;
 
@@ -987,9 +1002,13 @@ namespace LOFAR {
               size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
               cr_model_subtr = cursor<dcomplex>(&(storage.model_subtr[0]), 3,
                 stride_model_subtr);
-              simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt, nBl,
-                nChSubtr, cr_baseline, cr_freqSubtr, cr_uvw_split,
-                cr_model_subtr);
+
+              Simulator simulator(itsPatchList[dr]->position(),
+                                  nSt, nBl, nChSubtr, itsBaselines,
+                                  itsFreqSubtr, storage.uvw, storage.model[dr]);
+              for (uint i=0; i<itsPatchList[dr]->nComponents(); ++i) {
+                simulator.simulate(itsPatchList[dr]->component(i));
+              }
             }
 
             // Apply Jones matrices.

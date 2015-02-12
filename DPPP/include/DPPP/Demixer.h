@@ -149,6 +149,7 @@ namespace LOFAR {
       vector<string>                        itsModelSources;
       vector<string>                        itsExtraSources;
       vector<string>                        itsAllSources;
+      vector<int>                           itsUVWSplitIndex;
 //      vector<double>                        itsCutOffs;
       bool                                  itsPropagateSolutions;
       uint                                  itsNDir;

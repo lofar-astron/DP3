@@ -99,39 +99,6 @@ void splitUVW(size_t nStation, size_t nBaseline,
 void rotateUVW(const Position &from, const Position &to, size_t nUVW,
     cursor<double> uvw);
 
-// Simulate visibilities for a patch of sources. The computed visibilities are
-// added to \p vis.
-//
-// \param[in]   reference
-// Phase reference position.
-// \param[in]   patch
-// Patch of sources to simulate visibilities for.
-// \param[in]   nStation
-// The number of stations.
-// \param[in]   nBaseline
-// The number of baselines.
-// \param[in]   nChannel
-// The number of frequency channels.
-// \param[in]   baselines
-// A cursor for a 1-D buffer of baselines of shape (\p nBaseline).
-// \param[in]   freq
-// A cursor for a 1-D buffer of channel frequencies of shape (\p nChannel).
-// \param[in]   uvw
-// A cursor for a 2-D buffer of station UVW coordinates of shape
-// (\p nStation, 3).
-// \param[in]   buffer
-// A cursor for a 3-D buffer of shape (\p nBaseline, \p nChannel, 4) into which
-// the simulated visibilities will be written.
-void simulate(const Position &reference, const Patch::ConstPtr &patch,
-    size_t nStation, size_t nBaseline, size_t nChannel,
-    const_cursor<Baseline> baselines, const_cursor<double> freq,
-    const_cursor<double> uvw, cursor<dcomplex> buffer);
-
-void simulate(const Position &reference, const Patch::ConstPtr &patch,
-    size_t nStation, size_t nBaseline, size_t nChannel,
-    Baseline* baselines, double* freq,
-    double* uvw, dcomplex* buffer);
-
 // @}
 
 } //# namespace DPPP
