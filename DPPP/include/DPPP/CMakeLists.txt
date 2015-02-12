@@ -13,6 +13,7 @@ set(inst_HEADERS
   Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h
   ModelComponent.h PointSource.h GaussianSource.h Patch.h
   ModelComponentVisitor.h
+  DemixerNew.h DemixInfo.h DemixWorker.h
   GainCal.h)
 
 # Create symbolic link to include directory.
