@@ -815,17 +815,6 @@ namespace LOFAR {
         cout<<"]"<<endl;
       }
 
-      // Set phase of first station to zero
-      if (nSt>0) {
-        DComplex p = conj(iS.g(0,0))/abs(iS.g(0,0));
-        // Set phase of first gain to zero
-        for (uint st=0;st<nUn;++st) {
-          for (uint cr=0;cr<nCr;++cr) {
-            iS.g(st,cr)*=p;
-          }
-        }
-      }
-
       //for (uint ant2=0;ant2<nSt;++ant2) {
         //cout<<"g["<<ant2<<"]={"<<g[ant2][0]<<", "<<g[ant2][1]<<", "<<g[ant2][2]<<", "<<g[ant2][3]<<"}"<<endl;
         //cout<<"w["<<ant2<<"]={"<<w[ant2][0]<<", "<<w[ant2][1]<<", "<<w[ant2][2]<<", "<<w[ant2][3]<<"}"<<endl;
