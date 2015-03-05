@@ -127,7 +127,7 @@ namespace LOFAR {
       os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
          << ')' << std::endl;
       itsBaselines.show (os);
-      os << "  remove:         " << itsRemoveAnt << std::endl;
+      os << "  remove:         " << boolalpha << itsRemoveAnt << std::endl;
     }
 
     void Filter::showTimings (std::ostream& os, double duration) const

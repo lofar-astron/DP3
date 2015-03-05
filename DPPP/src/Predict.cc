@@ -36,7 +36,6 @@
 #include <DPPP/Position.h>
 #include <DPPP/ApplyBeam.h>
 #include <DPPP/Simulator.h>
-#include <DPPP/Simulate.h>
 
 #include <DPPP/Stokes.h>
 #include <DPPP/PointSource.h>

@@ -53,41 +53,37 @@ void ApplyBeam::applyBeam(
       uint nSt = beamValues.size() / nCh;
       uint nBl = info.nbaselines();
 
-      if (!useChannelFreq) {
-        for (size_t st = 0; st < nSt; ++st) {
-          antBeamInfo[st]->response(nCh, time, info.chanFreqs().cbegin(),
-                                    srcdir, info.refFreq(), refdir, tiledir,
-                                    &(beamValues[nCh * st]));
-          if (invert) {
-            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st])));
-          }
-        }
-      }
+      double reffreq=info.refFreq();
 
       // Apply the beam values of both stations to the ApplyBeamed data.
       dcomplex tmp[4];
       for (size_t ch = 0; ch < nCh; ++ch) {
         if (useChannelFreq) {
-          for (size_t st = 0; st < nSt; ++st) {
-            antBeamInfo[st]->response(nCh, time, info.chanFreqs().cbegin(),
-                                      srcdir, info.chanFreqs()[ch], refdir,
-                                      tiledir, &(beamValues[nCh * st]));
-            if (invert) {
-              ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st])));
-            }
+          reffreq=info.chanFreqs()[ch];
+        }
+
+        // Fill beamValues for channel ch
+        for (size_t st = 0; st < nSt; ++st) {
+          beamValues[nCh * st + ch] = antBeamInfo[st]->response(time,
+                                        info.chanFreqs()[ch], srcdir,
+                                        reffreq, refdir, tiledir);
+          if (invert) {
+            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st])));
           }
         }
+
+        // Apply beam for channel ch on all baselines
         for (size_t bl = 0; bl < nBl; ++bl) {
           T* data = data0 + bl * 4 * nCh + ch * 4;
           StationResponse::matrix22c_t *left = &(beamValues[nCh
               * info.getAnt1()[bl]]);
           StationResponse::matrix22c_t *right = &(beamValues[nCh
               * info.getAnt2()[bl]]);
-          dcomplex l[] = { left[ch][0][0], left[ch][0][1], left[ch][1][0],
-            left[ch][1][1] };
+          dcomplex l[] = { left[ch][0][0], left[ch][0][1],
+                           left[ch][1][0], left[ch][1][1] };
           // Form transposed conjugate of right.
-          dcomplex r[] = { conj(right[ch][0][0]), conj(right[ch][1][0]), conj(
-              right[ch][0][1]), conj(right[ch][1][1]) };
+          dcomplex r[] = { conj(right[ch][0][0]), conj(right[ch][1][0]),
+                           conj(right[ch][0][1]), conj(right[ch][1][1]) };
           // left*data
           tmp[0] = l[0] * dcomplex(data[0]) + l[1] * dcomplex(data[2]);
           tmp[1] = l[0] * dcomplex(data[1]) + l[1] * dcomplex(data[3]);
