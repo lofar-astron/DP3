@@ -5,12 +5,13 @@ set(inst_HEADERS
   DPRun.h DPStep.h DPInput.h DPBuffer.h DPInfo.h ApplyCal.h
   DPLogger.h ProgressMeter.h FlagCounter.h
   UVWCalculator.h BaselineSelection.h
-  MSReader.h MSWriter.h MSUpdater.h Counter.h
+  MSReader.h MultiMSReader.h MSWriter.h MSUpdater.h Counter.h
   Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h AORFlagger.h
   StationAdder.h ScaleData.h Filter.h
   PhaseShift.h Demixer.h
   Cursor.h CursorUtilCasa.h Position.h Stokes.h SourceDBUtil.h
   Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h
+  EstimateNew.h DemixerNew.h DemixInfo.h DemixWorker.h
   ModelComponent.h PointSource.h GaussianSource.h Patch.h
   ModelComponentVisitor.h
   Predict.h  GainCal.h
