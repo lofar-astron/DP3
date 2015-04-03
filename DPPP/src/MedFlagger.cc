@@ -112,7 +112,7 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite (DPInfo::NeedWriteFlags);
+      info().setWriteFlags();
       // Get baseline indices of autocorrelations.
       itsAutoCorrIndex = info().getAutoCorrIndex();
       itsNrAutoCorr    = 0;

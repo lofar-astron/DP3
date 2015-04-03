@@ -69,9 +69,10 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setWriteData();
+      info().setWriteFlags();
       if (itsUpdateWeights) {
-        info().setNeedWrite(info().needWrite() | DPInfo::NeedWriteWeight);
+        info().setWriteWeights();
       }
       itsTimeInterval = infoIn.timeInterval();
       itsNCorr = infoIn.ncorr();

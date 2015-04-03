@@ -117,15 +117,17 @@ namespace LOFAR {
         DPLOG_WARN_STR ("Parameter checkparset should be an integer value");
         checkparset = parset.getBool ("checkparset") ? 1:0;
       }
-      string msName;
+
       // Create the steps and fill their DPInfo objects.
-      DPStep::ShPtr firstStep = makeSteps (parset, msName);
+      DPStep::ShPtr firstStep = makeSteps (parset);
       // Show the steps.
       DPStep::ShPtr step = firstStep;
+      DPStep::ShPtr lastStep;
       while (step) {
         ostringstream os;
         step->show (os);
         DPLOG_INFO (os.str(), true);
+        lastStep = step;
         step = step->getNextStep();
       }
       if (checkparset >= 0) {
@@ -169,13 +171,8 @@ namespace LOFAR {
       DPLOG_INFO_STR ("Finishing processing ...");
       firstStep->finish();
       // Give all steps the option to add something to the MS written.
-      if (! msName.empty()) {
-        step = firstStep;
-        while (step) {
-          step->addToMS (msName);
-          step = step->getNextStep();
-        }
-      }
+      lastStep->addToMS("");
+
       // Show the counts where needed.
       step = firstStep;
       while (step) {
@@ -213,7 +210,7 @@ namespace LOFAR {
       // The destructors are called automatically at this point.
     }
 
-    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset, string& msName)
+    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset)
     {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;
@@ -248,25 +245,7 @@ namespace LOFAR {
           inNames = names;
         }
       }
-      string outName = parset.getString ("msout.name", "");
-      if (outName.empty()) {
-        outName = parset.getString ("msout");
-      }
-      // A write should always be done if an output name is given.
-      // A name equal to . or input name means an update, so clear outname.
-      bool needWrite = false;
-      if (! outName.empty()) {
-        needWrite = true;
-        if (outName == ".") {
-          outName = "";
-        } else {
-          casa::Path pathIn (inNames[0]);
-          casa::Path pathOut(outName);
-          if (pathIn.absoluteName() == pathOut.absoluteName()) {
-            outName = "";
-          }
-        }
-      }
+
       // Get the steps.
       vector<string> steps = parset.getStringVector ("steps");
       // Currently the input MS must be given.
@@ -278,9 +257,12 @@ namespace LOFAR {
       } else {
         reader = new MultiMSReader (inNames, parset, "msin.");
       }
+      casa::Path pathIn (reader->msName());
+      casa::String currentMSName (pathIn.absoluteName());
+
+      // Create the other steps.
       firstStep = DPStep::ShPtr (reader);
       lastStep = firstStep;
-      // Create the other steps.
       DPStep::ShPtr step;
       for (vector<string>::const_iterator iter = steps.begin();
            iter != steps.end(); ++iter) {
@@ -316,6 +298,9 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else if (type == "gaincal"  ||  type == "calibrate") {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
+        } else if (type == "out" || type=="output") {
+          step = makeOutputStep(reader, parset, prefix,
+                                inNames.size()>1, currentMSName);
         } else {
           // Maybe the step is defined in a dynamic library.
           step = findStepCtor(type) (reader, parset, prefix);
@@ -327,44 +312,14 @@ namespace LOFAR {
           firstStep = step;
         }
       }
-      // Let all steps fill their info using the info from the previous step.
-      DPInfo lastInfo = firstStep->setInfo (DPInfo());
-      // If another output column, but no output MS is given the data
-      // need to be read and written.
-      if (outName.empty()  &&
-          MSUpdater::isNewDataColumn (reader, parset, "msout.")) {
-        lastInfo.setNeedVisData();
-        lastInfo.setNeedWrite (DPInfo::NeedWriteData);
-      }
-      // Tell the reader if visibility data needs to be read.
-      reader->setReadVisData (lastInfo.needVisData());
-      // Create an updater step if an input MS was given; otherwise a writer.
-      // Create an updater step only if needed (e.g. not if only count is done).
-      // If the user specified an output MS name, a writer is always created
-      // If there is a writer, the reader needs to read the visibility data.
-      if (outName.empty()) {
-        if (!MSUpdater::updateAllowed(lastInfo,reader)) {
-          THROW(Exception, "Updating an existing MS is not possible with the current operations");
-        }
-        if (needWrite  ||  lastInfo.needWrite()) {
-          ASSERTSTR (inNames.size() == 1,
-                     "No update can be done if multiple input MSs are used");
-          step = DPStep::ShPtr(new MSUpdater (reader, parset, "msout.",
-                                              lastInfo.needWrite()));
-          msName = inNames[0];
-        } else {
-          step = DPStep::ShPtr(new NullStep());
-        }
-      } else {
-        step = DPStep::ShPtr(new MSWriter (reader, outName, lastInfo,
-                                           parset, "msout."));
-        reader->setReadVisData (true);
-        msName = outName;
-      }
-      // Set the info of the write/update step.
-      step->setInfo (lastInfo);
+      step = makeOutputStep(reader, parset, "msout.",
+                            inNames.size()>1, currentMSName);
       lastStep->setNextStep (step);
       lastStep = step;
+
+      // Let all steps fill their info using the info from the previous step.
+      DPInfo lastInfo = firstStep->setInfo (DPInfo());
+
       // Add a null step, so the last step can use getNextStep->process().
       DPStep::ShPtr nullStep(new NullStep());
       if (lastStep) {
@@ -374,6 +329,57 @@ namespace LOFAR {
       }
       return firstStep;
     }
+
+    DPStep::ShPtr DPRun::makeOutputStep (MSReader* reader,
+                                         const ParameterSet& parset,
+                                         const string& prefix,
+                                         bool multipleInputs,
+                                         casa::String& currentMSName)
+    {
+      DPStep::ShPtr step;
+      casa::String outName;
+      bool doUpdate = false;
+      bool lastOut  = false;
+      if (prefix == "msout.") {
+        // The last output step.
+        lastOut = true;
+        outName = parset.getString ("msout.name", "");
+        if (outName.empty()) {
+          outName = parset.getString ("msout");
+        }
+      } else {
+        // An intermediate output step.
+        outName = parset.getString(prefix + "name");
+      }
+
+      // A name equal to . or the last name means an update of the last MS.
+      if (outName.empty()  ||  outName == ".") {
+        outName  = currentMSName;
+        doUpdate = true;
+      } else {
+        casa::Path pathOut(outName);
+        if (currentMSName == pathOut.absoluteName()) {
+          outName  = currentMSName;
+          doUpdate = true;
+        }
+      }
+      if (doUpdate) {
+        // Create MSUpdater.
+        // Take care the history is not written twice.
+        // Note that if there is nothing to write, the updater won't do anything.
+        ASSERTSTR (! multipleInputs,
+                   "No update can be done if multiple input MSs are used");
+        step = DPStep::ShPtr(new MSUpdater(reader, outName, parset, prefix,
+                                           outName!=currentMSName));
+      } else {
+        step = DPStep::ShPtr(new MSWriter (reader, outName, parset, prefix));
+        reader->setReadVisData (true);
+      }
+      casa::Path pathOut(outName);
+      currentMSName = pathOut.absoluteName();
+      return step;
+    }
+
 
   } //# end namespace
 }

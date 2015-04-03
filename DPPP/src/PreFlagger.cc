@@ -117,8 +117,8 @@ namespace LOFAR {
     void PreFlagger::updateInfo (const DPInfo& infoIn)
     {
       info() = infoIn;
-      info().setNeedWrite (DPInfo::NeedWriteFlags);
       info().setNeedVisData();
+      info().setWriteFlags();
       itsPSet.updateInfo (getInfo());
       // Initialize the flag counters.
       itsFlagCounter.init (getInfo());

@@ -39,7 +39,10 @@ namespace LOFAR {
 
     DPInfo::DPInfo()
       : itsNeedVisData  (false),
-        itsNeedWrite    (0),
+        itsWriteData    (false),
+        itsWriteFlags   (false),
+        itsWriteWeights (false),
+        itsMetaChanged  (false),
         itsNCorr        (0),
         itsStartChan    (0),
         itsNChan        (0),
@@ -301,7 +304,10 @@ namespace LOFAR {
     {
       Record rec;
       rec.define ("NeedVisData", itsNeedVisData);
-      rec.define ("NeedWrite", itsNeedWrite);
+      rec.define ("WriteData", itsWriteData);
+      rec.define ("WriteFlags", itsWriteFlags);
+      rec.define ("WriteWeights", itsWriteWeights);
+      rec.define ("MetaChanged", itsMetaChanged);
       rec.define ("MSName", itsMSName);
       rec.define ("AntennaSet", itsAntennaSet);
       rec.define ("NCorr", itsNCorr);
@@ -335,8 +341,17 @@ namespace LOFAR {
       if (rec.isDefined ("NeedVisData")) {
         rec.get ("NeedVisData", itsNeedVisData);
       }
-      if (rec.isDefined ("NeedWrite")) {
-        rec.get ("NeedWrite", itsNeedWrite);
+      if (rec.isDefined ("WriteData")) {
+        rec.get ("WriteData", itsWriteData);
+      }
+      if (rec.isDefined ("WriteFlags")) {
+        rec.get ("WriteFlags", itsWriteFlags);
+      }
+      if (rec.isDefined ("WriteWeights")) {
+        rec.get ("WriteWeights", itsWriteWeights);
+      }
+      if (rec.isDefined ("MetaChanged")) {
+        rec.get ("MetaChanged", itsMetaChanged);
       }
       if (rec.isDefined ("MSName")) {
         itsMSName = rec.asString ("MSName");

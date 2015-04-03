@@ -76,7 +76,9 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setWriteData();
+      info().setWriteFlags();
+      info().setMetaChanged();
       itsTimeInterval = infoIn.timeInterval();
       // Adapt averaging to available nr of channels and times.
       itsNTimeAvg = std::min (itsNTimeAvg, infoIn.ntime());

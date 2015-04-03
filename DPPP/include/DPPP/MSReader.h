@@ -152,6 +152,10 @@ namespace LOFAR {
       // Update the general info.
       virtual void updateInfo (const DPInfo&);
 
+      // Add some data to the MeasurementSet written/updated.
+      // Do nothing.
+      virtual void addToMS (const string&) {};
+
       // Show the step parameters.
       virtual void show (std::ostream&) const;
 

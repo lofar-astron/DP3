@@ -61,7 +61,6 @@ namespace LOFAR {
     {
     public:
       explicit MSWriter (MSReader* reader, const std::string& outName,
-                         const DPInfo&,
                          const ParameterSet&, const string& prefix);
 
       virtual ~MSWriter();
@@ -75,6 +74,13 @@ namespace LOFAR {
 
       // Show the step parameters.
       virtual void show (std::ostream&) const;
+
+      // Add some data to the MeasurementSet written/updated.
+      // Calls addToMS from the previous step, with the current output msname.
+      virtual void addToMS (const string&);
+
+      // Update the general info.
+      virtual void updateInfo (const DPInfo&);
 
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
@@ -158,8 +164,11 @@ namespace LOFAR {
 
       //# Data items.
       MSReader*       itsReader;
+      string          itsName;
+      string          itsOutName;
       DPBuffer        itsBuffer;
       casa::Table     itsMS;
+      const ParameterSet&   itsParset; //# parset for writing history
       casa::String    itsDataColName;
       casa::String    itsWeightColName;
       double          itsInterval;
@@ -167,6 +176,8 @@ namespace LOFAR {
       bool            itsCopyCorrData;
       bool            itsCopyModelData;
       bool            itsWriteFullResFlags;
+      uint            itsTileSize;
+      uint            itsTileNChan;
       uint            itsNrCorr;
       uint            itsNrChan;
       uint            itsNrBl;

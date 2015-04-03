@@ -49,24 +49,17 @@ using namespace casa;
 namespace LOFAR {
   namespace DPPP {
 
-    MSWriter::MSWriter (MSReader* reader, const std::string& outName,
-                        const DPInfo& info,
+    MSWriter::MSWriter (MSReader* reader, const string& outName,
                         const ParameterSet& parset, const string& prefix)
       : itsReader       (reader),
-        itsInterval     (info.timeInterval()),
-        itsNrCorr       (info.ncorr()),
-        itsNrChan       (info.nchan()),
-        itsNrBl         (info.nbaselines()),
-        itsNrTimes      (info.ntime()),
-        // Input can already be averaged, so take that into account.
-        itsNChanAvg     (reader->nchanAvgFullRes() * info.nchanAvg()),
-        itsNTimeAvg     (reader->ntimeAvgFullRes() * info.ntimeAvg()),
+        itsName         (prefix),
+        itsOutName      (outName),
+        itsParset       (parset),
         itsNrDone       (0)
     {
-      NSTimer::StartStop sstime(itsTimer);
       // Get tile size (default 1024 KBytes).
-      uint tileSize        = parset.getUint (prefix+"tilesize", 1024);
-      uint tileNChan       = parset.getUint (prefix+"tilenchan", 0);
+      itsTileSize          = parset.getUint (prefix+"tilesize", 1024);
+      itsTileNChan         = parset.getUint (prefix+"tilenchan", 0);
       itsOverwrite         = parset.getBool (prefix+"overwrite", false);
       itsNrTimesFlush      = parset.getUint (prefix+"flush", 60);
       itsCopyCorrData      = parset.getBool (prefix+"copycorrecteddata", false);
@@ -81,15 +74,6 @@ namespace LOFAR {
                  " can be used as output when writing a new MS");
       ASSERTSTR (itsWeightColName == "WEIGHT_SPECTRUM", "Currently only the "
           "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
-      // Create the MS.
-      if (tileNChan <= 0  ||  tileNChan > info.nchan()) {
-        tileNChan = info.nchan();
-      }
-      createMS (outName, info, tileSize, tileNChan);
-      // Write the parset info into the history.
-      writeHistory (itsMS, parset);
-      itsMS.flush (true, true);
-      DPLOG_INFO ("Finished preparing output MS", false);
     }
 
     MSWriter::~MSWriter()
@@ -118,6 +102,10 @@ namespace LOFAR {
       if (itsNrTimesFlush > 0  &&  itsNrDone%itsNrTimesFlush == 0) {
         itsMS.flush();
       }
+      // Replace the rownrs in the buffer which is needed if in a later
+      // step the MS gets updated.
+      itsBuffer.setRowNrs (rownrs);
+      getNextStep()->process(itsBuffer);
       return true;
     }
 
@@ -148,9 +136,39 @@ namespace LOFAR {
       }
     }
 
+    void MSWriter::addToMS (const string&)
+    {
+      getPrevStep()->addToMS(itsOutName);
+    }
+
+    void MSWriter::updateInfo (const DPInfo& infoIn)
+    {
+      info() = infoIn;
+      itsInterval     = info().timeInterval();
+      itsNrCorr       = info().ncorr();
+      itsNrChan       = info().nchan();
+      itsNrBl         = info().nbaselines();
+      itsNrTimes      = info().ntime();
+      // Input can already be averaged, so take that into account.
+      itsNChanAvg     = itsReader->nchanAvgFullRes() * info().nchanAvg();
+      itsNTimeAvg     = itsReader->ntimeAvgFullRes() * info().ntimeAvg();
+      // Create the MS.
+      if (itsTileNChan <= 0  ||  itsTileNChan > getInfo().nchan()) {
+        itsTileNChan = getInfo().nchan();
+      }
+      NSTimer::StartStop sstime(itsTimer);
+      createMS (itsOutName, info(), itsTileSize, itsTileNChan);
+      // Write the parset info into the history.
+      writeHistory (itsMS, itsParset);
+      itsMS.flush (true, true);
+      DPLOG_INFO ("Finished preparing output MS", false);
+      info().clearWrites();
+      info().clearMetaChanged();
+    }
+
     void MSWriter::show (std::ostream& os) const
     {
-      os << "MSWriter" << std::endl;
+      os << "MSWriter " << itsName << std::endl;
       os << "  output MS:      " << itsMS.tableName() << std::endl;
       os << "  nchan:          " << itsNrChan << std::endl;
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
@@ -165,7 +183,7 @@ namespace LOFAR {
     {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
-      os << " MSWriter" << endl;
+      os << " MSWriter " << itsName << endl;
     }
 
     void MSWriter::makeArrayColumn (ColumnDesc desc, const IPosition& ipos,

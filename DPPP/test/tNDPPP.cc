@@ -206,9 +206,9 @@ void testCopyColumn()
   checkCopyColumn ("tNDPPP_tmp.MS1");
 }
 
-void testMulti()
+void testMultiIn()
 {
-  cout << endl << "** testMulti **" << endl;
+  cout << endl << "** testMultiIn **" << endl;
   {
     ofstream ostr("tNDPPP_tmp.parset");
     ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]" << endl;
@@ -891,13 +891,118 @@ void testClear()
 }
 
 
+void testMultiOut()
+{
+  cout << endl << "** testMultiOut **" << endl;
+  {
+    // First make the reference output MS.
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "msout=tNDPPP_tmp.MS_copy" << endl;
+    ostr << "msout.overwrite=true" << endl;
+    ostr << "steps=[]" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  // Test if update data works fine with multiple outputs:
+  // read from tNDPPP_tmp.MS, write to copy3, update to copy3
+  Array<Complex> data;
+  Array<bool> flags;
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "steps=[scaledata,out1,scaledata,out2]" << endl;
+    ostr << "scaledata.coeffs=2" << endl;
+    ostr << "scaledata.stations=*" << endl;
+    ostr << "scaledata.scalesize=false" << endl;
+    ostr << "out1.type=out" << endl;
+    ostr << "out1.name=tNDPPP_tmp.MS_copy3" << endl;
+    ostr << "out1.overwrite=true" << endl;
+    ostr << "out2.type=out" << endl;
+    ostr << "out2.name=." << endl; // Defaults to the previous out, so _copy3
+    ostr << "out2.datacolumn=DATA_2" << endl;
+    ostr << "msout=tNDPPP_tmp.MS_copy4" << endl;   // same name means update
+    ostr << "msout.overwrite=true" << endl;
+  }
+  DPRun::execute ("tNDPPP_tmp.parset");
+  // Check that tables exist, contain the specified columns
+  {
+    Table tab1("tNDPPP_tmp.MS_copy");
+    Table tab2("tNDPPP_tmp.MS_copy3");
+    ///cout<<ROArrayColumn<Complex>(tab2,"DATA_2").getColumn();
+    ///cout<<Complex(2,0)*ROArrayColumn<Complex>(tab1,"DATA").getColumn();
+    ASSERT (allNear(ROArrayColumn<Complex>(tab2,"DATA").getColumn(),
+                    Complex(2,0)*ROArrayColumn<Complex>(tab1,"DATA").getColumn(),
+                    1e-5));
+    ASSERT (allNear(ROArrayColumn<Complex>(tab2,"DATA_2").getColumn(),
+                    Complex(4,0)*ROArrayColumn<Complex>(tab1,"DATA").getColumn(),
+                    1e-5));
+    ASSERT (allNear(ROArrayColumn<Float>(tab2,"WEIGHT_SPECTRUM").getColumn(),
+                    ROArrayColumn<Float>(tab1,"WEIGHT_SPECTRUM").getColumn(),
+                    1e-5));
+    ASSERT (allEQ(ROArrayColumn<Bool>(tab2,"FLAG").getColumn(),
+                  ROArrayColumn<Bool>(tab1,"FLAG").getColumn()));
+    Table tab3("tNDPPP_tmp.MS_copy4");
+    ASSERT (allNear(ROArrayColumn<Complex>(tab3,"DATA").getColumn(),
+                    Complex(4,0)*ROArrayColumn<Complex>(tab1,"DATA").getColumn(),
+                    1e-5));
+    ASSERT (allNear(ROArrayColumn<Float>(tab3,"WEIGHT_SPECTRUM").getColumn(),
+                    ROArrayColumn<Float>(tab1,"WEIGHT_SPECTRUM").getColumn(),
+                    1e-5));
+    ASSERT (allEQ(ROArrayColumn<Bool>(tab3,"FLAG").getColumn(),
+                  ROArrayColumn<Bool>(tab1,"FLAG").getColumn()));
+  }
+
+}
+
+void tryErr (const string& parsetName)
+{
+  bool err = false;
+  try {
+    DPRun::execute (parsetName);
+  } catch (const std::exception& x) {
+    err = true;
+    cout << "Expected exception: " << x.what() << endl;
+  }
+  ASSERT (err);
+}
+
+void testErrorOut()
+{
+  cout << endl << "Trying some incorrect DPPP runs ..." << endl;
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "steps=[filter,out1,average,out2]" << endl;
+    ostr << "out1.type=out" << endl;
+    ostr << "out1.name=''" << endl;
+    ostr << "out2.type=out" << endl;
+    ostr << "out2.name=." << endl;       // update not possible when avg
+    ostr << "msout=''" << endl;
+    tryErr ("tNDPPP_tmp.parset");
+  }
+  {
+    ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "msin=tNDPPP_tmp.MS" << endl;
+    ostr << "steps=[average,out1,filter,out2]" << endl;
+    ostr << "out1.type=out" << endl;
+    ostr << "out1.name=tNDPPP_tmp.MSx" << endl;
+    ostr << "out1.overwrite=true" << endl;
+    ostr << "filter.remove=true" << endl;
+    ostr << "out2.type=out" << endl;
+    ostr << "out2.name=./tNDPPP_tmp.MSx" << endl;  // update not possible (filter)
+    ostr << "msout=''" << endl;
+    tryErr ("tNDPPP_tmp.parset");
+  }
+}
+
+
 int main()
 {
   try
   {
     testCopy();
     testCopyColumn();
-    testMulti();
+    testMultiIn();
     testAvg1();
     testAvg2();
     testAvg3();
@@ -913,6 +1018,8 @@ int main()
     testFilter2();
     testFilter3();
     testClear();
+    testMultiOut();
+    testErrorOut();
   } catch (std::exception& err) {
     std::cerr << "Error detected: " << err.what() << std::endl;
     return 1;

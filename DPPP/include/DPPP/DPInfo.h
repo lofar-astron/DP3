@@ -52,10 +52,6 @@ namespace LOFAR {
     class DPInfo
     {
     public:
-
-      // Define bits telling if data and/or flags need to be written.
-      enum NeedWrite {NeedWriteData=1, NeedWriteFlags=2, NeedWriteWeight=4};
-
       // Default constructor.
       DPInfo();
 
@@ -91,6 +87,16 @@ namespace LOFAR {
                 const vector<casa::MPosition>& antPos,
                 const casa::Vector<casa::Int>& ant1,
                 const casa::Vector<casa::Int>& ant2);
+
+      // Set the name of the data column
+      void setDataColName(const casa::String& dataColName) {
+        itsDataColName=dataColName;
+      }
+
+      // Set the name of the weight column
+      void setWeightColName(const casa::String& weightColName) {
+        itsWeightColName=weightColName;
+      }
 
       // Update the info for the given average factors.
       // If chanAvg is higher than the actual nr of channels, it is reset.
@@ -175,6 +181,10 @@ namespace LOFAR {
         { return itsResolutions; }
       const casa::Vector<double>& effectiveBW() const
         { return itsEffectiveBW; }
+      const casa::String& getDataColName() const
+        { return itsDataColName; }
+      const casa::String& getWeightColName() const
+        { return itsWeightColName; }
       double totalBW() const
         { return itsTotalBW; }
       double refFreq() const
@@ -195,15 +205,36 @@ namespace LOFAR {
       bool needVisData() const
         { return itsNeedVisData; }
       // Does the last step need to write data and/or flags?
-      int needWrite() const
-        { return itsNeedWrite; }
+      bool needWrite() const
+        { return itsWriteData || itsWriteFlags || itsWriteWeights; }
+      bool writeData() const
+        { return itsWriteData; }
+      bool writeFlags() const
+        { return itsWriteFlags; }
+      bool writeWeights() const
+        { return itsWriteWeights; }
+      // Has the meta data been changed in a step (precluding an update)?
+      bool metaChanged() const
+        { return itsMetaChanged; }
 
       // Set if visibility data needs to be read.
       void setNeedVisData()
-        { itsNeedVisData = true; } 
-      // Set if the last step needs to write data and/or flags (default both).
-      void setNeedWrite (int needWrite = NeedWriteData+NeedWriteFlags)
-        { itsNeedWrite |= needWrite; }
+        { itsNeedVisData = true; }
+      // Set if data needs to be written.
+      void setWriteData()
+        { itsWriteData = true; }
+      void setWriteFlags()
+        { itsWriteFlags = true; }
+      void setWriteWeights()
+        { itsWriteWeights = true; }
+      // Clear all write flags.
+      void clearWrites()
+        { itsWriteData = itsWriteFlags = itsWriteWeights = false; }
+      // Set change of meta data.
+      void setMetaChanged()
+        { itsMetaChanged = true; }
+      void clearMetaChanged()
+        { itsMetaChanged = false; }
 
       // Get the baseline table index of the autocorrelations.
       // A negative value means there are no autocorrelations for that antenna.
@@ -229,8 +260,13 @@ namespace LOFAR {
 
       //# Data members.
       bool   itsNeedVisData;    //# Are the visibility data needed?
-      int    itsNeedWrite;      //# Does the last step need to write data/flags?
+      bool   itsWriteData;      //# Must the data be written?
+      bool   itsWriteFlags;     //# Must the flags be written?
+      bool   itsWriteWeights;   //# Must the weights be written?
+      bool   itsMetaChanged;    //# Are meta data changed? (e.g., by averaging)
       string itsMSName;
+      casa::String itsDataColName;
+      casa::String itsWeightColName;
       string itsAntennaSet;
       uint   itsNCorr;
       uint   itsStartChan;

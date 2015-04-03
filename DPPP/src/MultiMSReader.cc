@@ -55,6 +55,7 @@ namespace LOFAR {
         itsMSNames  (msNames)
     {
       ASSERTSTR (msNames.size() > 0, "No names of MeasurementSets given");
+      itsMSName           = itsMSNames[0];
       itsStartChanStr     = parset.getString (prefix+"startchan", "0");
       itsNrChanStr        = parset.getString (prefix+"nchan", "0");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);

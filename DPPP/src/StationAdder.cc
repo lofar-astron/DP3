@@ -107,7 +107,8 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setWriteData();
+      info().setMetaChanged();
       // Check the superstation definition(s).
       // They are specified as a ParameterRecord like:
       //    stations = {new1:[s1,s2,s3], new2:[s4,s5,s6]}
