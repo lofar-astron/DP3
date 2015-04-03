@@ -91,10 +91,11 @@ namespace LOFAR {
     {}
 
 
-    MultiResultStep::MultiResultStep (uint reserveSize)
+    MultiResultStep::MultiResultStep (uint size)
+      : itsSize (0)
     {
       setNextStep (DPStep::ShPtr (new NullStep()));
-      itsBuffers.reserve (reserveSize);
+      itsBuffers.resize (size);
     }
 
     MultiResultStep::~MultiResultStep()
@@ -102,7 +103,9 @@ namespace LOFAR {
 
     bool MultiResultStep::process (const DPBuffer& buf)
     {
-      itsBuffers.push_back (buf);
+      ASSERT (itsSize < itsBuffers.size());
+      itsBuffers[itsSize].copy (buf);
+      itsSize++;
       getNextStep()->process (buf);
       return true;
     }

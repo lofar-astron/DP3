@@ -158,6 +158,7 @@ namespace LOFAR {
 
       //# Data items.
       MSReader*       itsReader;
+      DPBuffer        itsBuffer;
       casa::Table     itsMS;
       casa::String    itsDataColName;
       casa::String    itsWeightColName;

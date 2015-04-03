@@ -90,6 +90,7 @@ namespace LOFAR {
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
+      DPBuffer         itsBuffer;
       string           itsSourceDBName;
       bool             itsApplyBeam;
       bool             itsUseChannelFreq;

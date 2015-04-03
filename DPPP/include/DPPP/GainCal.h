@@ -119,7 +119,9 @@ namespace LOFAR {
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
+      DPBuffer         itsBuf;
       bool             itsUseModelColumn;
+      casa::Cube<casa::Complex> itsModelData;
       string           itsParmDBName;
       shared_ptr<BBS::ParmDB> itsParmDB;
 

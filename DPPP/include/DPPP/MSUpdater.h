@@ -101,6 +101,7 @@ namespace LOFAR {
 
       //# Data members
       MSReader*   itsReader;
+      DPBuffer    itsBuffer;
       casa::String itsDataColName;
       casa::String itsWeightColName;
       uint        itsNrTimesFlush; //# flush every N time slots (0=no flush)

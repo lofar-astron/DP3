@@ -189,6 +189,7 @@ namespace LOFAR {
       DPInput*          itsInput;
       string            itsName;
       DPBuffer          itsBuf;
+      DPBuffer          itsBufTmp;
       casa::String      itsStartChanStr;  //# startchan expression
       casa::String      itsNrChanStr;     //# nchan expression
       bool              itsRemoveAnt;     //# Remove from ANTENNA table?

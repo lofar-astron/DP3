@@ -127,19 +127,19 @@ namespace LOFAR {
     bool PreFlagger::process (const DPBuffer& buf)
     {
       itsTimer.start();
-      DPBuffer out(buf);
-      // The flags will be changed, so make sure we have a unique array.
-      out.getFlags().unique();
+      // Because no buffers are kept, we can reference the filled arrays
+      // in the input buffer instead of copying them.
+      itsBuffer.referenceFilled (buf);
       // Do the PSet steps and combine the result with the current flags.
       // Only count if the flag changes.
-      Cube<bool>* flags = itsPSet.process (out, itsCount, Block<bool>(),
-                                           itsTimer);
+      Cube<bool>* flags = itsPSet.process (buf, itsBuffer, itsCount,
+                                           Block<bool>(), itsTimer);
       const IPosition& shape = flags->shape();
       uint nrcorr = shape[0];
       uint nrchan = shape[1];
       uint nrbl   = shape[2];
       const bool* inPtr = flags->data();
-      bool* outPtr = out.getFlags().data();
+      bool* outPtr = itsBuffer.getFlags().data();
       switch (itsMode) {
       case SetFlag:
         setFlags (inPtr, outPtr, nrcorr, nrchan, nrbl, true);
@@ -156,7 +156,7 @@ namespace LOFAR {
       }
       itsTimer.stop();
       // Let the next step do its processing.
-      getNextStep()->process (out);
+      getNextStep()->process (itsBuffer);
       itsCount++;
       return true;
     }
@@ -186,7 +186,7 @@ namespace LOFAR {
                                  bool mode, const DPBuffer& buf)
     {
       const Complex* dataPtr = buf.getData().data();
-      Cube<float> weights = itsInput->fetchWeights (buf, buf.getRowNrs(),
+      Cube<float> weights = itsInput->fetchWeights (buf, itsBuffer,
                                                     itsTimer);
       const float* weightPtr = weights.data();
       for (uint i=0; i<nrbl; ++i) {
@@ -480,7 +480,8 @@ namespace LOFAR {
       }
     }
 
-    Cube<bool>* PreFlagger::PSet::process (DPBuffer& out,
+    Cube<bool>* PreFlagger::PSet::process (const DPBuffer& in,
+                                           DPBuffer& out,
                                            uint timeSlot,
                                            const Block<bool>& matchBL,
                                            NSTimer& timer)
@@ -503,7 +504,7 @@ namespace LOFAR {
       // Take over the baseline info from the parent. Default is all.
       if (matchBL.empty()) {
         itsMatchBL = true;
-      } else{
+      } else {
         itsMatchBL = matchBL;
       }
       // The PSet tree is a combination of ORs and ANDs.
@@ -521,8 +522,8 @@ namespace LOFAR {
         return &itsFlags;
       }
       // Flag on UV distance if necessary.
-      if (itsFlagOnUV  &&  !flagUV (itsInput->fetchUVW(out, out.getRowNrs(),
-                                                       timer))) {
+      if (itsFlagOnUV  &&  !flagUV (itsInput->fetchUVW (in, out,
+                                                        timer))) {
         return &itsFlags;
       }
       // Flag on AzEl is necessary.
@@ -543,10 +544,7 @@ namespace LOFAR {
       }
       // Flag on amplitude, phase or real/imaginary if necessary.
       if (itsFlagOnAmpl) {
-        if (out.getAmplitudes().empty()) {
-          out.setAmplitudes (amplitude(out.getData()));
-        }
-        flagAmpl (out.getAmplitudes());
+        flagAmpl (amplitude(out.getData()));
       }
       if (itsFlagOnReal) {
         flagReal (out.getData());
@@ -567,8 +565,8 @@ namespace LOFAR {
         for (vector<int>::const_iterator oper = itsRpn.begin();
              oper != itsRpn.end(); ++oper) {
           if (*oper >= 0) {
-            results.push (itsPSets[*oper]->process (out, timeSlot, itsMatchBL,
-                                                    timer));
+            results.push (itsPSets[*oper]->process (in, out, timeSlot,
+                                                    itsMatchBL, timer));
           } else if (*oper == OpNot) {
             Cube<bool>* left = results.top();
             // No ||= operator exists, so use the transform function.

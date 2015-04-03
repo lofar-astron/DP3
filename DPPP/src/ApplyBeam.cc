@@ -142,17 +142,16 @@ namespace LOFAR {
     bool ApplyBeam::process(const DPBuffer& bufin)
     {
       itsTimer.start();
-      DPBuffer buf(bufin);
-      buf.getData().unique();
-      RefRows refRows(buf.getRowNrs());
+      itsBuffer.copy (bufin);
+      Complex* data=itsBuffer.getData().data();
+      itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
 
-      buf.setUVW(itsInput->fetchUVW(buf, refRows, itsTimer));
 
-      double time = buf.getTime();
+      double time = itsBuffer.getTime();
 
       itsTimer.start();
 
-      nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
+      nsplitUVW(itsUVWSplitIndex, itsBaselines, itsBuffer.getUVW(), itsUVW);
 
       //Set up directions for beam evaluation
       StationResponse::vector3r_t refdir, tiledir;
@@ -166,18 +165,18 @@ namespace LOFAR {
         tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
       }
 
-        uint thread = OpenMP::threadNum();
+      uint thread = OpenMP::threadNum();
 
-        //Apply beam for a patch, add result to itsModelVis
-        StationResponse::vector3r_t srcdir = refdir;
-        applyBeam(info(), time, buf.getData().data(), srcdir, refdir, tiledir,
-                  itsAntBeamInfo[thread], itsBeamValues[thread],
-                  itsUseChannelFreq, itsInvert);
-
-      itsTimer.stop();
+      //Apply beam for a patch, add result to itsModelVis
+      StationResponse::vector3r_t srcdir = refdir;
+      applyBeam(info(), time, data, srcdir, refdir, tiledir,
+                itsAntBeamInfo[thread], itsBeamValues[thread],
+                itsUseChannelFreq, itsInvert);
 
       itsTimer.stop();
-      getNextStep()->process(buf);
+
+      itsTimer.stop();
+      getNextStep()->process(itsBuffer);
       return false;
     }
 

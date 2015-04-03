@@ -117,7 +117,6 @@ namespace LOFAR {
       const size_t nBl=info().nbaselines();
 
       if (itsUseModelColumn) {
-        info().setNeedModelData();
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep.updateInfo(infoIn);
         }
@@ -193,17 +192,15 @@ namespace LOFAR {
     bool GainCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      DPBuffer buf(bufin);
-      buf.getData().unique();
-      RefRows refRows(buf.getRowNrs());
+      itsBuf.referenceFilled (bufin);
+      itsInput->fetchUVW(bufin, itsBuf, itsTimer);
+      itsInput->fetchWeights(bufin, itsBuf, itsTimer);
+      itsInput->fetchFullResFlags(bufin, itsBuf, itsTimer);
 
-      buf.setWeights(itsInput->fetchWeights(buf, refRows, itsTimer));
-      buf.setFullResFlags(itsInput->fetchFullResFlags(buf, refRows, itsTimer));
-
-      Complex* data=buf.getData().data();
-      Complex* model=buf.getModel().data();
-      float* weight = buf.getWeights().data();
-      const Bool* flag=buf.getFlags().data();
+      Cube<Complex> dataCube=itsBuf.getData();
+      Complex* data=dataCube.data();
+      float* weight = itsBuf.getWeights().data();
+      const Bool* flag=itsBuf.getFlags().data();
 
       // Simulate.
       //
@@ -213,11 +210,17 @@ namespace LOFAR {
       itsTimerPredict.start();
 
       if (itsUseModelColumn) {
+        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
         if (itsApplyBeamToModelColumn) {
-          itsApplyBeamStep.process(buf);
+          // Temporarily put model data in data column for applybeam step
+          // ApplyBeam step will copy the buffer so no harm is done
+          itsBuf.getData()=itsModelData;
+          itsApplyBeamStep.process(itsBuf);
+          //Put original data back in data column
+          itsBuf.getData()=dataCube;
         }
       } else { // Predict
-        itsPredictStep.process(buf);
+        itsPredictStep.process(itsBuf);
       }
 
       itsTimerPredict.stop();
@@ -232,7 +235,7 @@ namespace LOFAR {
         setAntennaMaps();
       }
       if (itsUseModelColumn && !itsApplyBeamToModelColumn) {
-        fillMatrices(model,data,weight,flag);
+        fillMatrices(itsModelData.data(),data,weight,flag);
       } else {
         fillMatrices(itsResultStep->get().getData().data(),data,weight,flag);
       }
@@ -247,7 +250,7 @@ namespace LOFAR {
 
       itsTimer.stop();
       itsTStep++;
-      getNextStep()->process(buf);
+      getNextStep()->process(itsBuf);
       return false;
     }
 

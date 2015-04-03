@@ -87,6 +87,7 @@ namespace LOFAR {
 
       //# Data members.
       DPInput*         itsInput;
+      DPBuffer         itsBuffer;
       string           itsName;
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;

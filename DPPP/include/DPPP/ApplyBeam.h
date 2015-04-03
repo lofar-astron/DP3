@@ -99,18 +99,19 @@ namespace LOFAR {
             casa::MDirection::Convert& measConverter);
 
         //# Data members.
-        DPInput* itsInput;
-        string itsName;
-        bool itsInvert;
-        bool itsUseChannelFreq;
-        Position itsPhaseRef;
+        DPInput*             itsInput;
+        string               itsName;
+        DPBuffer             itsBuffer;
+        bool                 itsInvert;
+        bool                 itsUseChannelFreq;
+        Position             itsPhaseRef;
 
-        uint itsDebugLevel;
+        uint                 itsDebugLevel;
 
-        vector<Baseline> itsBaselines;
+        vector<Baseline>     itsBaselines;
 
         // Vector containing info on converting baseline uvw to station uvw
-        vector<int> itsUVWSplitIndex;
+        vector<int>          itsUVWSplitIndex;
 
         // UVW coordinates per station (3 coordinates per station)
         casa::Matrix<double> itsUVW;

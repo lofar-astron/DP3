@@ -156,8 +156,9 @@ namespace LOFAR {
         putData (buf.getRowNrs(), buf.getData());
       }
       if (itsWriteWeight) {
+        itsBuffer.referenceFilled (buf);
         putWeights (buf.getRowNrs(),
-            itsReader->fetchWeights(buf, buf.getRowNrs(), itsTimer));
+                    itsReader->fetchWeights(buf, itsBuffer, itsTimer));
       }
       itsNrDone++;
       if (itsNrTimesFlush > 0  &&  itsNrDone%itsNrTimesFlush == 0) {

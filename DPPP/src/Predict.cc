@@ -172,14 +172,11 @@ namespace LOFAR {
     bool Predict::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      DPBuffer buf(bufin);
-      buf.getData().unique();
-      Complex* data=buf.getData().data();
-      RefRows refRows(buf.getRowNrs());
-
-      buf.setUVW(itsInput->fetchUVW(buf, refRows, itsTimer));
-      buf.setWeights(itsInput->fetchWeights(buf, refRows, itsTimer));
-      buf.setFullResFlags(itsInput->fetchFullResFlags(buf, refRows, itsTimer));
+      itsBuffer.copy (bufin);
+      Complex* data=itsBuffer.getData().data();
+      itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
+      itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
+      itsInput->fetchFullResFlags(bufin, itsBuffer, itsTimer);
 
       // Determine the various sizes.
       //const size_t nDr = itsPatchList.size();
@@ -189,11 +186,11 @@ namespace LOFAR {
       const size_t nCr = 4;
       const size_t nSamples = nBl * nCh * nCr;
 
-      double time = buf.getTime();
+      double time = itsBuffer.getTime();
 
       itsTimerPredict.start();
 
-      nsplitUVW(itsUVWSplitIndex, itsBaselines, buf.getUVW(), itsUVW);
+      nsplitUVW(itsUVWSplitIndex, itsBaselines, itsBuffer.getUVW(), itsUVW);
 
       //Set up directions for beam evaluation
       StationResponse::vector3r_t refdir, tiledir;
@@ -240,7 +237,7 @@ namespace LOFAR {
 }
 
       //Add all thread model data to one buffer
-      buf.getData()=Complex();
+      itsBuffer.getData()=Complex();
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         std::transform(data, data+nSamples, itsModelVis[thread].data(),
                        data, std::plus<dcomplex>());
@@ -249,7 +246,7 @@ namespace LOFAR {
       itsTimerPredict.stop();
 
       itsTimer.stop();
-      getNextStep()->process(buf);
+      getNextStep()->process(itsBuffer);
       return false;
     }
 

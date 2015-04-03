@@ -13,7 +13,8 @@ set(inst_HEADERS
   Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h
   ModelComponent.h PointSource.h GaussianSource.h Patch.h
   ModelComponentVisitor.h
-  GainCal.h Predict.h ApplyBeam.h ApplyBeam.tcc)
+  Predict.h  GainCal.h
+  ApplyBeam.h ApplyBeam.tcc)
 
 # Create symbolic link to include directory.
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink

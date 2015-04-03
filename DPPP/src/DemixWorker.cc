@@ -576,8 +576,8 @@ namespace LOFAR {
         itsAvgStepSubtr->process (bufin[i]);
       }
       itsAvgStepSubtr->finish();
-      ASSERT (itsAvgResultFull->get().size() <= itsMix->ntimeOutSubtr());
-      for (uint i=0; i<itsAvgResultFull->get().size(); ++i) {
+      ASSERT (itsAvgResultFull->size() <= itsMix->ntimeOutSubtr());
+      for (uint i=0; i<itsAvgResultFull->size(); ++i) {
         bufout[i] = itsAvgResultFull->get()[i];
       }
       itsAvgResultFull->clear();
@@ -1085,8 +1085,8 @@ namespace LOFAR {
                              double time, double timeStep)
     {
       // Determine the various sizes.
-      const size_t nTime = itsAvgResults[itsSrcSet[0]]->get().size();
-      const size_t nTimeSubtr = itsAvgResultSubtr->get().size();
+      const size_t nTime = itsAvgResults[itsSrcSet[0]]->size();
+      const size_t nTimeSubtr = itsAvgResultSubtr->size();
       const size_t multiplier = itsMix->ntimeAvg() / itsMix->ntimeAvgSubtr();
       const size_t nSt = itsMix->nstation();
       const size_t nBl = itsMix->baselines().size();
