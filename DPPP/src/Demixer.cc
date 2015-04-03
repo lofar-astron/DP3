@@ -906,8 +906,19 @@ namespace LOFAR {
 
           cursor<dcomplex> cr_model(&(storage.model[dr * nSamples]), 3,
             stride_model);
-          simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt,
-            nBl, nCh, cr_baseline, cr_freq, cr_uvw_split, cr_model);
+
+//          Simulator(const Position &reference, size_t nStation, size_t nBaseline,
+//              size_t nChannel, const casa::Vector<Baseline>& baselines,
+//              const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
+//              casa::Cube<dcomplex>& buffer);
+
+          Simulator simulator(itsPatchList[dr]->position(), nSt, nBl, nCh, cr_baseline,
+                              cr_freq, cr_uvw_split, cr_model);
+          for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
+          {
+            simulator.simulate(itsPatchList[dr]->component(i));
+          }
+
         }
         ///cout<<"modelvis="<<storage.model<<endl;
 
