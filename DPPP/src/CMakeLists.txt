@@ -17,7 +17,7 @@ lofar_add_library(dppp
   ModelComponent.cc PointSource.cc GaussianSource.cc Patch.cc
   ModelComponentVisitor.cc Predict.cc ApplyBeam.cc
   GainCal.cc
-  #Demixer.cc
+  Demixer.cc
   DemixerNew.cc DemixInfo.cc DemixWorker.cc
 )
 

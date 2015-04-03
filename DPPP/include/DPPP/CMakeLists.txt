@@ -8,7 +8,7 @@ set(inst_HEADERS
   MSReader.h MSWriter.h MSUpdater.h Counter.h
   Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h AORFlagger.h
   StationAdder.h ScaleData.h Filter.h
-  PhaseShift.h #Demixer.h
+  PhaseShift.h Demixer.h
   Cursor.h CursorUtilCasa.h Position.h Stokes.h SourceDBUtil.h
   Apply.h EstimateMixed.h Simulate.h Simulator.h SubtractMixed.h Baseline.h
   ModelComponent.h PointSource.h GaussianSource.h Patch.h

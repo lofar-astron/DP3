@@ -134,165 +134,31 @@ void nsplitUVW (const vector<int>& blindex,
   }
 }
 
-void splitUVW(size_t nStation, size_t nBaseline,
-    const_cursor<Baseline> baselines, const_cursor<double> uvw,
-    cursor<double> split)
+
+void rotateUVW(const Position &from, const Position &to, size_t nUVW,
+    double *uvw)
 {
-    // If the number of stations is zero, then the number of baselines should be
-    // zero as well because no valid baselines exist in this case.
-    ASSERT(nStation > 0 || nBaseline == 0);
+    casa::Matrix<double> oldUVW(3,3);
+    casa::Matrix<double> newUVW(3,3);
+    PhaseShift::fillTransMatrix(oldUVW, from[0], from[1]);
+    PhaseShift::fillTransMatrix(newUVW, to[0], to[1]);
 
-    // Flags to keep track of the stations for which the UVW coordinates are
-    // known.
-    vector<bool> flag(nStation, true);
+    casa::Matrix<double> tmp(casa::product(casa::transpose(newUVW), oldUVW));
+    const double *R = tmp.data();
 
-    // Find reachable stations, i.e. stations that participate in at least one
-    // (cross) baseline.
-    size_t nReachable = 0;
-    const_cursor<Baseline> tmp(baselines);
-    for(size_t i = 0; i < nBaseline; ++i)
+    for(size_t i = 0; i < 3*nUVW; i+=3)
     {
-        const size_t p = tmp->first;
-        const size_t q = tmp->second;
+        // Compute rotated UVW.
+        double u = uvw[i+0] * R[0] + uvw[i+1] * R[3] + uvw[i+2] * R[6];
+        double v = uvw[i+0] * R[1] + uvw[i+1] * R[4] + uvw[i+2] * R[7];
+        double w = uvw[i+0] * R[2] + uvw[i+1] * R[5] + uvw[i+2] * R[8];
 
-        if(p != q)
-        {
-            if(flag[p])
-            {
-                flag[p] = false;
-                ++nReachable;
-            }
+        uvw[i+0] = u;
+        uvw[i+1] = v;
+        uvw[i+2] = w;
 
-            if(flag[q])
-            {
-                flag[q] = false;
-                ++nReachable;
-            }
-        }
-
-        if(nReachable == nStation)
-        {
-            break;
-        }
-
-        // Move to next baseline.
-        ++tmp;
-    }
-
-    // Zero the UVW coordinates of all unreachable stations and flag them as
-    // known.
-    if(nReachable < nStation)
-    {
-        for(size_t i = 0; i < nStation; ++i)
-        {
-            if(flag[i])
-            {
-                split.forward(1, i);
-                split[0] = 0.0;
-                split[1] = 0.0;
-                split[2] = 0.0;
-                split.backward(1, i);
-            }
-        }
-    }
-
-    // If no stations are reachable, nothing more can be done.
-    if(nReachable == 0)
-    {
-        return;
-    }
-
-    size_t ref = 0;
-    cursor<double> known(split);
-    while(true)
-    {
-        // Find first station for which UVW coordinates are unknown.
-        while(ref < nStation && flag[ref])
-        {
-            ++ref;
-        }
-
-        // UVW coordinates known for all stations, done.
-        if(ref == nStation)
-        {
-            break;
-        }
-
-        // Set UVW coordinates of the reference station to zero. Note that each
-        // isolated group of stations will have such a reference station. This
-        // is OK because the groups are isolated.
-        split.forward(1, ref);
-        split[0] = 0.0;
-        split[1] = 0.0;
-        split[2] = 0.0;
-        split.backward(1, ref);
-        flag[ref] = true;
-
-        // Single isolated station left, no use iterating over baselines.
-        if(ref == nStation - 1)
-        {
-            break;
-        }
-
-        bool done = false;
-        while(!done)
-        {
-            // Find UVW coordinates for other stations linked to the reference
-            // station via baselines.
-            size_t nFound = 0;
-            for(size_t i = 0; i < nBaseline; ++i)
-            {
-                const size_t p = baselines->first;
-                const size_t q = baselines->second;
-                if(p != q && flag[p] != flag[q])
-                {
-                    if(flag[p])
-                    {
-                        known.forward(1, p);
-                        split.forward(1, q);
-                        split[0] = uvw[0] + known[0];
-                        split[1] = uvw[1] + known[1];
-                        split[2] = uvw[2] + known[2];
-                        split.backward(1, q);
-                        known.backward(1, p);
-                        flag[q] = true;
-                    }
-                    else
-                    {
-                        known.forward(1, q);
-                        split.forward(1, p);
-                        split[0] = -uvw[0] + known[0];
-                        split[1] = -uvw[1] + known[1];
-                        split[2] = -uvw[2] + known[2];
-                        split.backward(1, p);
-                        known.backward(1, q);
-                        flag[p] = true;
-                    }
-
-                    ++nFound;
-                }
-
-                // Move to next baseline.
-                uvw.forward(1);
-                ++baselines;
-            } // Baselines.
-
-            // Reset cursors.
-            uvw.backward(1, nBaseline);
-            baselines -= nBaseline;
-
-            // Depending on the baseline order it may be possible to derive the
-            // UVW coordinates of additional stations when UVW coordinates were
-            // found for at leat one station (i.e. nFound larger than 0).
-            // Another iteration is required in this case, unless UVW
-            // coordinates were found for all (remaining) stations (i.e. nFound
-            // equals nStation - ref - 1).
-            done = (nFound == 0 || nFound == nStation - ref - 1);
-        }
-    }
-
-    ASSERT(static_cast<size_t>(std::count(flag.begin(), flag.end(), true))
-        == flag.size());
+        // Move to next station.
+    } // Stations.
 }
 
 void rotateUVW(const Position &from, const Position &to, size_t nUVW,
