@@ -29,11 +29,11 @@
 #include <DPPP/DPRun.h>
 #include <Common/ParameterSet.h>
 
-#include <pyrap/Converters/PycExcp.h>
-#include <pyrap/Converters/PycBasicData.h>
-#include <pyrap/Converters/PycValueHolder.h>
-#include <pyrap/Converters/PycRecord.h>
-#include <pyrap/Converters/PycArray.h>
+#include <python/Converters/PycExcp.h>
+#include <python/Converters/PycBasicData.h>
+#include <python/Converters/PycValueHolder.h>
+#include <python/Converters/PycRecord.h>
+#include <python/Converters/PycArray.h>
 
 #include <casa/OS/Path.h>
 #include <unistd.h>
@@ -65,10 +65,10 @@ namespace LOFAR {
       PyObject* sysPath = PySys_GetObject(path);
       PyList_Insert (sysPath, 0, PyString_FromString(workingDir.c_str()));
       // Register converters for casa types from/to python types
-      casa::pyrap::register_convert_excp();
-      casa::pyrap::register_convert_basicdata();
-      casa::pyrap::register_convert_casa_valueholder();
-      casa::pyrap::register_convert_casa_record();
+      casa::python::register_convert_excp();
+      casa::python::register_convert_basicdata();
+      casa::python::register_convert_casa_valueholder();
+      casa::python::register_convert_casa_record();
       try {
         // First import main
         boost::python::object mainModule = boost::python::import
