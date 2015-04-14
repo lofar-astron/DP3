@@ -22,10 +22,18 @@
 #include <lofar_config.h>
 #include <PythonDPPP/DPStepBase.h>
 
+#if defined(casacore)
 #include <python/Converters/PycExcp.h>
 #include <python/Converters/PycBasicData.h>
 #include <python/Converters/PycValueHolder.h>
 #include <python/Converters/PycRecord.h>
+#define pyrap python
+#else
+#include <pyrap/Converters/PycExcp.h>
+#include <pyrap/Converters/PycBasicData.h>
+#include <pyrap/Converters/PycValueHolder.h>
+#include <pyrap/Converters/PycRecord.h>
+#endif
 #include <boost/python.hpp>
 #include <boost/python/args.hpp>
 
@@ -78,10 +86,10 @@ namespace LOFAR {
 // Define the python module itself.
 BOOST_PYTHON_MODULE(_pythondppp)
 {
-  casa::python::register_convert_excp();
-  casa::python::register_convert_basicdata();
-  casa::python::register_convert_casa_valueholder();
-  casa::python::register_convert_casa_record();
+  casa::pyrap::register_convert_excp();
+  casa::pyrap::register_convert_basicdata();
+  casa::pyrap::register_convert_casa_valueholder();
+  casa::pyrap::register_convert_casa_record();
 
   LOFAR::DPPP::dpstepbase();
 }

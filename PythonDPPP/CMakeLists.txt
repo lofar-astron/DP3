@@ -8,9 +8,10 @@ FIND_PATH(BOOST_PYTHON_FOUND "boost/python.hpp")
 
 if(BOOST_PYTHON_FOUND)
   include(LofarFindPackage)
+  lofar_find_package(Pyrap REQUIRED)
   lofar_find_package(Python 2.6 REQUIRED)
   lofar_find_package(Boost REQUIRED COMPONENTS python)
-  lofar_find_package(Casacore COMPONENTS casa ms tables python REQUIRED)
+  lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)
 
   add_subdirectory(include/PythonDPPP)
   add_subdirectory(src)
