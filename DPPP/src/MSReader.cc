@@ -39,7 +39,11 @@
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <ms/MeasurementSets/MeasurementSet.h>
+#if defined(casacore)
+#include <ms/MSSel/MSSelection.h>
+#else
 #include <ms/MeasurementSets/MSSelection.h>
+#endif
 #include <casa/Containers/Record.h>
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Quanta/MVTime.h>

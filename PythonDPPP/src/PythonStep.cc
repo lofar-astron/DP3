@@ -35,6 +35,7 @@
 #include <python/Converters/PycValueHolder.h>
 #include <python/Converters/PycRecord.h>
 #include <python/Converters/PycArray.h>
+#define pyrap python
 #else
 #include <pyrap/Converters/PycExcp.h>
 #include <pyrap/Converters/PycBasicData.h>

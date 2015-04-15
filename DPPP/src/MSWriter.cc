@@ -31,7 +31,11 @@
 #include <MS/VdsMaker.h>
 #include <Common/ParameterSet.h>
 #include <tables/Tables/TableCopy.h>
+#if defined(casacore)
+#include <tables/DataMan/DataManInfo.h>
+#else
 #include <tables/Tables/DataManInfo.h>
+#endif
 #include <tables/Tables/SetupNewTab.h>
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/StandardStMan.h>
