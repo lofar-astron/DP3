@@ -148,6 +148,7 @@ namespace LOFAR {
     {
       itsTimer.start();
       if (!itsDoSelect) {
+        itsBuf.referenceFilled (buf);
         itsTimer.stop();
         getNextStep()->process (buf);
         return true;

@@ -339,10 +339,8 @@ namespace LOFAR {
       DPStep::ShPtr step;
       casa::String outName;
       bool doUpdate = false;
-      bool lastOut  = false;
       if (prefix == "msout.") {
         // The last output step.
-        lastOut = true;
         outName = parset.getString ("msout.name", "");
         if (outName.empty()) {
           outName = parset.getString ("msout");
