@@ -9,9 +9,5 @@ rm -rf tDemix_tmp
 tar zxf tDemix.in_MS.tgz
 cd tDemix_tmp
 
-# Find taql program.
-taqlexe=@TAQL_EXECUTABLE@
-export taqlexe
-
 # Run the test script (created by cmake's CONFIGURE_FILE).
 sh ../tDemix.run_script
