@@ -1,14 +1,13 @@
 #!/bin/sh
 
-if test ! -f tDemix.in_MS.tgz; then
+if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz then
   echo '!!!!!!!!!!!!!!!!!!!!!!!'
   exit 3   # untested
 fi
 
-rm -rf tDemix_tmp
+mkdir -p tApplyBeam_tmp
 # Unpack the MS and other files and do the DPPP run.
-tar zxf tDemix.in_MS.tgz
-cd tDemix_tmp
+tar zxf tNDPPP-generic.in_MS.tgz -C tApplyBeam_tmp
 
 # Run the test script (created by cmake's CONFIGURE_FILE).
 sh ../tApplyBeam.run_script
