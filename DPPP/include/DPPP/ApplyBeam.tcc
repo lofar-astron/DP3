@@ -68,7 +68,7 @@ void ApplyBeam::applyBeam(
                                         info.chanFreqs()[ch], srcdir,
                                         reffreq, refdir, tiledir);
           if (invert) {
-            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st])));
+            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
           }
         }
 
