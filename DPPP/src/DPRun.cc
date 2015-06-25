@@ -270,6 +270,9 @@ namespace LOFAR {
         string prefix(*iter + '.');
         // The name is the default step type.
         string type = toLower(parset.getString (prefix+"type", *iter));
+        if (type == "newaoflagger"  ||  type == "newaoflag") {
+          type = "aoflaggerstep";
+        }
         if (type == "averager"  ||  type == "average"  ||  type == "squash") {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));
         } else if (type == "madflagger"  ||  type == "madflag") {
