@@ -1,12 +1,63 @@
 #!/bin/sh
 
+# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
+source findenv.run_script
+echo "srcdirx=$rt_srcdir"
+
+# Set srcdir if not defined (in case run by hand).
+if test "$srcdir" = ""; then
+  srcdir="$rt_srcdir"
+fi
+
 if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
   exit 3   # untested
 fi
 
+rm -rf tApplyBeam_tmp
 mkdir -p tApplyBeam_tmp
 # Unpack the MS and other files and do the DPPP run.
-tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz -C tApplyBeam_tmp
+cd tApplyBeam_tmp
+tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
+tar zxf ${srcdir}/tApplyBeam.tab.tgz
 
-# Run the test script (created by cmake's CONFIGURE_FILE).
-#sh ../tApplyBeam.run_script
+# Create expected taql output.
+echo "    select result of 0 rows" > taql.ref
+
+# Create the parsets for the normal and inverted applybeam.
+cat > tApplyBeam.ps1 <<EOF
+msin = tNDPPP-generic.MS
+msout = out.ms
+msout.overwrite = true
+steps = [applybeam]
+applybeam.invert = false
+EOF
+cat > tApplyBeam.ps2 <<EOF
+msin = out.ms
+msout = outinv.ms
+msout.overwrite = true
+steps = [applybeam]
+applybeam.invert = true
+EOF
+
+# Test without invert and usechannelfreq.
+../../src/NDPPP tApplyBeam.ps1 applybeam.usechannelfreq=false
+# Compare the DATA column of the output MS with the reference output.
+$taqlexe 'select from out.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+# Test with invert on the output of the previous step.
+../../src/NDPPP tApplyBeam.ps2 applybeam.usechannelfreq=false
+# Compare the DATA column of the output MS with the original MS.
+$taqlexe 'select from outinv.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-2) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+# Do the same tests without usechannelfreq.
+../../src/NDPPP tApplyBeam.ps1 applybeam.usechannelfreq=true
+# Compare the DATA column of the output MS with the reference output.
+$taqlexe 'select from out.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ucf)))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+../../src/NDPPP tApplyBeam.ps2 applybeam.usechannelfreq=true
+# Compare the DATA column of the output MS with the original MS.
+$taqlexe 'select from outinv.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-2) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+diff taql.out taql.ref  ||  exit 1

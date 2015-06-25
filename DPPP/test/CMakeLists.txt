@@ -1,8 +1,8 @@
 # $Id$
 
 # Generate the actual test script.
+configure_file(findenv.run_tmpl findenv.run_script)
 configure_file(tDemix.run_tmpl tDemix.run_script)
-configure_file(tApplyBeam.run_tmpl tApplyBeam.run_script)
 
 include(LofarCTest)
 
