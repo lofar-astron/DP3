@@ -25,7 +25,7 @@
 #define DPPP_APPLYBEAM_H
 
 // @file
-// @brief DPPP step class to ApplyBeam visibilities from a source model
+// @brief DPPP step class to apply the beam model (optionally inverted)
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
@@ -41,7 +41,9 @@ namespace LOFAR {
   namespace DPPP {
     // @ingroup NDPPP
 
-    // This class is a DPStep class to ApplyBeam visibilities with optionally beam
+    // This class is a DPStep class to apply the beam model, optionally inverted.
+    // The input MeasurementSet it operates on, must have the LOFAR subtables
+    // defining the station layout and tiles/dipoles used.
 
     class ApplyBeam: public DPStep
     {
