@@ -21,23 +21,18 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#ifndef DPPP_ApplyBeam_H
-#define DPPP_ApplyBeam_H
+#ifndef DPPP_APPLYBEAM_H
+#define DPPP_APPLYBEAM_H
 
 // @file
 // @brief DPPP step class to ApplyBeam visibilities from a source model
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/Patch.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/ModelComponent.h>
+#include <DPPP/Position.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 #include <casa/Arrays/Cube.h>
-#include <casa/Quanta/MVEpoch.h>
-#include <measures/Measures/MEpoch.h>
-#include <casa/Arrays/ArrayMath.h>
 
 namespace LOFAR {
 
@@ -47,9 +42,6 @@ namespace LOFAR {
     // @ingroup NDPPP
 
     // This class is a DPStep class to ApplyBeam visibilities with optionally beam
-
-    typedef std::pair<size_t, size_t> Baseline;
-    typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
 
     class ApplyBeam: public DPStep
     {
@@ -107,14 +99,6 @@ namespace LOFAR {
         Position             itsPhaseRef;
 
         uint                 itsDebugLevel;
-
-        vector<Baseline>     itsBaselines;
-
-        // Vector containing info on converting baseline uvw to station uvw
-        vector<int>          itsUVWSplitIndex;
-
-        // UVW coordinates per station (3 coordinates per station)
-        casa::Matrix<double> itsUVW;
 
         // The info needed to calculate the station beams.
         vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
