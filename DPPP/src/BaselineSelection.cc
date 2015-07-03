@@ -113,7 +113,25 @@ namespace LOFAR {
     {
       // Handle the value(s) in the baseline selection string.
       ParameterValue pvBL(itsStrBL);
-      if (pvBL.isVector()) {
+      // The value can be a vector or an MSSelection string.
+      // Alas the ParameterValue vector test cannot be used, because
+      // the first character of a MSSelection string can also be [.
+      // So if the first is [ and a ] is found before the end and before
+      // another [, it must be a MSSelection string.
+      bool mssel = true;
+      if (itsStrBL[0] == '[') {
+        String::size_type rb = itsStrBL.find (']');
+        ASSERTSTR (rb != string::npos,
+                   "Baseline selection " + itsStrBL +
+                   " has no ending ]");
+        if (rb == itsStrBL.size()-1) {
+          mssel = false;
+        } else {
+          String::size_type lb = itsStrBL.find ('[', 1);
+          mssel = (lb == string::npos  ||  lb > rb);
+        }
+      }
+      if (!mssel) {
         // Specified as a vector of antenna name patterns.
         selectBL = selectBL && handleBLVector (pvBL, info.antennaNames());
       } else {
