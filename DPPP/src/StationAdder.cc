@@ -446,6 +446,7 @@ namespace LOFAR {
 
     void StationAdder::addToMS (const string& msName)
     {
+      getPrevStep()->addToMS(msName);
       // Add the new stations to the ANTENNA subtable.
       Table antTab (msName + "/ANTENNA", Table::Update);
       ScalarColumn<String> nameCol   (antTab, "NAME");
