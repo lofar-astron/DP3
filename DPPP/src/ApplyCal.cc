@@ -49,6 +49,7 @@ namespace LOFAR {
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (toLower(parset.getString (prefix + "correction"))),
+        itsInvert      (parset.getBool (prefix + "invert", true)),
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
             "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
@@ -156,6 +157,7 @@ namespace LOFAR {
       os << "  parmdb:         " << itsParmDBName << endl;
       os << "  correction:     " << itsCorrectType << endl;
       os << "  sigmaMMSE:      " << itsSigmaMMSE << endl;
+      os << "  invert:         " << boolalpha << itsInvert <<endl;
       os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
     }
 
@@ -413,7 +415,7 @@ namespace LOFAR {
     }
 
     // Inverts complex 2x2 input matrix
-    void ApplyCal::invert (DComplex* v, double sigmaMMSE) const
+    void ApplyCal::invert (DComplex* v, double sigmaMMSE)
     {
       // Add the variance of the nuisance term to the elements on the diagonal.
       const double variance = sigmaMMSE * sigmaMMSE;
@@ -444,8 +446,10 @@ namespace LOFAR {
       gainB[3] = itsParms[3][antB][timeFreqOffset];
 
       DComplex gainAxvis[4];
-      invert(gainA,itsSigmaMMSE);
-      invert(gainB,itsSigmaMMSE);
+      if (itsInvert) {
+        invert(gainA,itsSigmaMMSE);
+        invert(gainB,itsSigmaMMSE);
+      }
 
       // gainAxvis = gainA * vis
       for (uint row=0;row<2;++row) {
