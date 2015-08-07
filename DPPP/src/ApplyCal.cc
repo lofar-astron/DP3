@@ -48,7 +48,7 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
-        itsCorrectType (toLower(parset.getString (prefix + "correction"))),
+        itsCorrectType (toLower(parset.getString (prefix + "correction", "gain"))),
         itsInvert      (parset.getBool (prefix + "invert", true)),
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
             "timeslotsperparmupdate", 500)),
@@ -61,6 +61,9 @@ namespace LOFAR {
         itsUseAP       (false)
     {
       ASSERT (!itsParmDBName.empty());
+      if (itsCorrectType=="fulljones" && itsUpdateWeights) {
+        ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
+      }
     }
 
     ApplyCal::~ApplyCal()
@@ -82,17 +85,33 @@ namespace LOFAR {
 
       itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
 
-      // Handle the correction type.
-
-      if ((itsCorrectType == "gain" || itsCorrectType=="fullgain") &&
+      // Detect if full jones solutions are present
+      if ((itsCorrectType == "gain" || itsCorrectType=="fulljones") &&
           (itsParmDB->getNames("Gain:0:1:*").size() +
            itsParmDB->getDefNames("Gain:0:1:*").size() >0 )) {
-        itsCorrectType="fullgain";
+        itsCorrectType="fulljones";
+      }
+
+      // Detect if solutions are saved as Real/Imag or Ampl/Phase 
+      if (itsCorrectType == "gain" || itsCorrectType == "fulljones" ){
+        if (!itsParmDB->getNames("Gain:0:0:Real*").empty()) {
+          // Values with :Real present
+          itsUseAP = false; 
+        } else if (!itsParmDB->getNames("Gain:0:0:Ampl*").empty()) {
+          // Values with :Ampl present
+          itsUseAP = true;
+        } else if (!itsParmDB->getDefNames("Gain:0:0:Real*").empty()) {
+          // Defvalues with :Real present
+          itsUseAP = false;
+        } else if (!itsParmDB->getDefNames("Gain:0:0:Ampl*").empty()) {
+          // Defvalues with :Ampl present
+          itsUseAP = true;
+        } else {
+          THROW (Exception, "No gains found in parmdb");
+        }
       }
 
       if (itsCorrectType == "gain") {
-        itsUseAP = (itsParmDB->getNames("Gain:0:0:Real*").empty() &&
-            itsParmDB->getDefNames("Gain:0:0:Real*").empty());
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl");
           itsParmExprs.push_back("Gain:0:0:Phase");
@@ -104,9 +123,7 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Real");
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      } else if (itsCorrectType == "fullgain") {
-        itsUseAP = (itsParmDB->getNames("Gain:0:0:Real*").empty() &&
-            itsParmDB->getDefNames("Gain:0:0:Real*").empty());
+      } else if (itsCorrectType == "fulljones") {
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl");
           itsParmExprs.push_back("Gain:0:0:Phase");
@@ -156,6 +173,10 @@ namespace LOFAR {
       os << "ApplyCal " << itsName << std::endl;
       os << "  parmdb:         " << itsParmDBName << endl;
       os << "  correction:     " << itsCorrectType << endl;
+      if (itsCorrectType=="gain" || itsCorrectType=="fulljones") {
+        os << "    Ampl/Phase:   " << boolalpha << itsUseAP << endl;
+      }
+      os << "  update weights: " << boolalpha << itsUpdateWeights << endl;
       os << "  sigmaMMSE:      " << itsSigmaMMSE << endl;
       os << "  invert:         " << boolalpha << itsInvert <<endl;
       os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
@@ -317,7 +338,7 @@ namespace LOFAR {
                                  parmvalues[3][ant][tf]);
             }
           }
-          else if (itsCorrectType=="fullgain") {
+          else if (itsCorrectType=="fulljones") {
             if (itsUseAP) { // Data as Amplitude / Phase
               itsParms[0][ant][tf] = polar(parmvalues[0][ant][tf],
                                parmvalues[1][ant][tf]);
@@ -366,6 +387,12 @@ namespace LOFAR {
             itsParms[0][ant][tf] = polar(1., parmvalues[0][ant][tf]);
             itsParms[1][ant][tf] = polar(1., parmvalues[0][ant][tf]);
           }
+
+          // Invert diagonal corrections (not fulljones and commonrotationangle)
+          if (itsInvert && itsParms.size()==2) {
+            itsParms[0][ant][tf] = 1./itsParms[0][ant][tf];
+            itsParms[1][ant][tf] = 1./itsParms[1][ant][tf];
+          }
         }
       }
     }
@@ -375,7 +402,7 @@ namespace LOFAR {
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
       uint numParms;
-      if (itsCorrectType=="fullgain" || itsCorrectType=="commonrotationangle") {
+      if (itsCorrectType=="fulljones" || itsCorrectType=="commonrotationangle") {
         numParms = 4;
       }
       else {
@@ -401,16 +428,16 @@ namespace LOFAR {
       DComplex diag0B = itsParms[0][antB][timeFreqOffset];
       DComplex diag1B = itsParms[1][antB][timeFreqOffset];
 
-      vis[0] /= diag0A * conj(diag0B);
-      vis[1] /= diag0A * conj(diag1B);
-      vis[2] /= diag1A * conj(diag0B);
-      vis[3] /= diag1A * conj(diag1B);
+      vis[0] *= diag0A * conj(diag0B);
+      vis[1] *= diag0A * conj(diag1B);
+      vis[2] *= diag1A * conj(diag0B);
+      vis[3] *= diag1A * conj(diag1B);
 
       if (itsUpdateWeights) {
-        weight[0] *= norm(diag0A) * norm(diag0B);
-        weight[1] *= norm(diag0A) * norm(diag1B);
-        weight[2] *= norm(diag1A) * norm(diag0B);
-        weight[3] *= norm(diag1A) * norm(diag1B);
+        weight[0] /= norm(diag0A) * norm(diag0B);
+        weight[1] /= norm(diag0A) * norm(diag1B);
+        weight[2] /= norm(diag1A) * norm(diag0B);
+        weight[3] /= norm(diag1A) * norm(diag1B);
       }
     }
 
@@ -476,6 +503,7 @@ namespace LOFAR {
       // w_i (the weights), the result the diagonal of
       // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
       if (itsUpdateWeights) {
+        ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false");
         float cov[4], normGainA[4], normGainB[4];
         for (uint i=0;i<4;++i) {
           cov[i]=1./weight[i];
