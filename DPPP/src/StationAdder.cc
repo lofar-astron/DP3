@@ -56,7 +56,7 @@ namespace LOFAR {
         itsMinNPoint    (parset.getUint  (prefix+"minpoints", 1)),
         itsMakeAutoCorr (parset.getBool  (prefix+"autocorr", false)),
         itsSumAutoCorr  (parset.getBool  (prefix+"sumauto", true)),
-        itsDoAverage    (parset.getBool  (prefix+"average", false)),
+        itsDoAverage    (parset.getBool  (prefix+"average", true)),
         itsUseWeight    (parset.getBool  (prefix+"useweights", true))
     {
     }
@@ -341,6 +341,10 @@ namespace LOFAR {
         for (uint k=0; k<nrfr; ++k) {
           frfPtr[k] = true;
         }
+        for (uint k=0; k<3; ++k) {
+          uvwPtr[k]  = 0.;
+        }
+        double uvwWghtSum = 0.;
         // Sum the baselines forming the new baselines.
         for (uint j=0; j<itsBufRows[i].size(); ++j) {
           // Get the baseline number to use.
@@ -351,7 +355,7 @@ namespace LOFAR {
             blnr = -blnr;
             useConj = true;
           }
-          blnr--;
+          blnr--;     // decrement because blnr+1 is stored in itsBufRows
           // Get pointers to the input baseline data.
           const Complex* inDataPtr = (itsBuf.getData().data() +
                                       blnr*nrcc);
@@ -361,15 +365,21 @@ namespace LOFAR {
                                       blnr*nrcc);
           const Bool*    inFrfPtr  = (itsBuf.getFullResFlags().data() +
                                       blnr*nrfr);
-          // Add the data and weights if not flagged.
+          const Double*  inUvwPtr  = (itsBuf.getUVW().data() +
+                                      blnr*3);
+          // Add the data, uvw, and weights if not flagged.
           // Write 4 loops to avoid having to test inside the loop.
           if (useConj) {
             if (itsUseWeight) {
               for (uint k=0; k<nrcc; ++k) {
                 if (!inFlagPtr[k]) {
                   npoints[k]++;
-                  dataPtr[k] += conj(inDataPtr[k]);
+                  dataPtr[k] += conj(inDataPtr[k]) * inWghtPtr[k];
                   wghtPtr[k] += inWghtPtr[k];
+                  for (int ui=0; ui<3; ++ui) {
+                    uvwPtr[ui] -= inUvwPtr[ui] * inWghtPtr[k];
+                  }
+                  uvwWghtSum += inWghtPtr[k];
                 }
               }
             } else {
@@ -378,6 +388,10 @@ namespace LOFAR {
                   npoints[k]++;
                   dataPtr[k] += conj(inDataPtr[k]);
                   wghtPtr[k] += 1.;
+                  for (int ui=0; ui<3; ++ui) {
+                    uvwPtr[ui] -= inUvwPtr[ui];
+                  }
+                  uvwWghtSum += 1;
                 }
               }
             }
@@ -386,8 +400,12 @@ namespace LOFAR {
               for (uint k=0; k<nrcc; ++k) {
                 if (!inFlagPtr[k]) {
                   npoints[k]++;
-                  dataPtr[k] += inDataPtr[k];
+                  dataPtr[k] += inDataPtr[k] * inWghtPtr[k];
                   wghtPtr[k] += inWghtPtr[k];
+                  for (int ui=0; ui<3; ++ui) {
+                    uvwPtr[ui] += inUvwPtr[ui] * inWghtPtr[k];
+                  }
+                  uvwWghtSum += inWghtPtr[k];
                 }
               }
             } else {
@@ -396,6 +414,10 @@ namespace LOFAR {
                   npoints[k]++;
                   dataPtr[k] += inDataPtr[k];
                   wghtPtr[k] += 1.;
+                  for (int ui=0; ui<3; ++ui) {
+                    uvwPtr[ui] += inUvwPtr[ui];
+                  }
+                  uvwWghtSum += 1;
                 }
               }
             }
@@ -417,14 +439,20 @@ namespace LOFAR {
             }
           }
         }
-        // Calculate the UVW coordinate of the new station.
-        uint blnr = nrOldBL + i;
-        Vector<Double> uvws = itsUVWCalc.getUVW (getInfo().getAnt1()[blnr],
-                                                 getInfo().getAnt2()[blnr],
-                                                 buf.getTime());
-        uvwPtr[0] = uvws[0];
-        uvwPtr[1] = uvws[1];
-        uvwPtr[2] = uvws[2];
+        // Average or calculate the UVW coordinate of the new station.
+        if (itsDoAverage) {
+          for (int ui=0; ui<3; ++ui) {
+            uvwPtr[ui] /= uvwWghtSum;
+          }
+        } else {
+          uint blnr = nrOldBL + i;
+          Vector<Double> uvws = itsUVWCalc.getUVW (getInfo().getAnt1()[blnr],
+                                                   getInfo().getAnt2()[blnr],
+                                                   buf.getTime());
+          uvwPtr[0] = uvws[0];
+          uvwPtr[1] = uvws[1];
+          uvwPtr[2] = uvws[2];
+        }
         dataPtr += nrcc;
         flagPtr += nrcc;
         wghtPtr += nrcc;
@@ -446,6 +474,7 @@ namespace LOFAR {
 
     void StationAdder::addToMS (const string& msName)
     {
+      getPrevStep()->addToMS(msName);
       // Add the new stations to the ANTENNA subtable.
       Table antTab (msName + "/ANTENNA", Table::Update);
       ScalarColumn<String> nameCol   (antTab, "NAME");
