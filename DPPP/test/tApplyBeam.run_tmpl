@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Find taql program.
+taqlexe=@TAQL_EXECUTABLE@
+# Find srcdir in the runctest file.
+if test -f runctest.sh; then
+  rt_srcdir=`grep 'srcdir=' runctest.sh | sed -e 's/srcdir="//' -e 's/";.*//'`
+fi
