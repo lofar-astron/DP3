@@ -23,41 +23,26 @@ tar zxf ${srcdir}/tApplyBeam.tab.tgz
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
-# Create the parsets for the normal and inverted applybeam.
-cat > tApplyBeam.ps1 <<EOF
-msin = tNDPPP-generic.MS
-msout = out.ms
-msout.overwrite = true
-steps = [applybeam]
-applybeam.invert = false
-EOF
-cat > tApplyBeam.ps2 <<EOF
-msin = out.ms
-msout = outinv.ms
-msout.overwrite = true
-steps = [applybeam]
-applybeam.invert = true
-EOF
-
-# Test without invert and usechannelfreq.
-../../src/NDPPP tApplyBeam.ps1 applybeam.usechannelfreq=false
-# Compare the DATA column of the output MS with the reference output.
-$taqlexe 'select from out.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))' > taql.out
+# Test with invert=true and usechannelfreq=false
+../../src/NDPPP msin=tNDPPP-generic.MS msout=outinv.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=true
+# Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
-# Test with invert on the output of the previous step.
-../../src/NDPPP tApplyBeam.ps2 applybeam.usechannelfreq=false
+# Test with invert=false on the output of the previous step.
+../../src/NDPPP msin=outinv.ms msout=out.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=false
 # Compare the DATA column of the output MS with the original MS.
-$taqlexe 'select from outinv.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+$taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
-# Do the same tests without usechannelfreq.
-../../src/NDPPP tApplyBeam.ps1 applybeam.usechannelfreq=true
-# Compare the DATA column of the output MS with the reference output.
-$taqlexe 'select from out.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ucf)))' > taql.out
+# Do the same tests with usechannelfreq=true
+../../src/NDPPP msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true
+# Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ucf,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ucf)))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
-../../src/NDPPP tApplyBeam.ps2 applybeam.usechannelfreq=true
+# Test with invert=false on the output of the previous step.
+../../src/NDPPP msin=outinv.ms msout=out.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=false
 # Compare the DATA column of the output MS with the original MS.
-$taqlexe 'select from outinv.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+$taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
 diff taql.out taql.ref  ||  exit 1

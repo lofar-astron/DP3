@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Generate reference data tApplyBeam.tab for tApplyBeam
+# This script uses BBS. Note that casacore data should be up-to-date
+# Run the script in the source directory of CEP/DP3/DPPP/test
+
+tar xf tNDPPP-generic.in_MS.tgz
+
+cat > tApplyBeam-bbs-ucf.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[correct_ucf]
+
+Step.correct_ucf.Operation=CORRECT
+Step.correct_ucf.Model.Beam.Enable=True
+Step.correct_ucf.Model.Beam.UseChannelFreq=True
+Step.correct_ucf.Output.Column=DATA_ucf
+EOF
+
+calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-ucf.parset tApplyBeam-bbs-ucf.parset
+
+rm tApplyBeam-bbs-ucf.parset
+
+cat > tApplyBeam-bbs-noucf.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[correct_ucf]
+
+Step.correct_ucf.Operation=CORRECT
+Step.correct_ucf.Model.Beam.Enable=True
+Step.correct_ucf.Model.Beam.UseChannelFreq=False
+Step.correct_ucf.Output.Column=DATA_noucf
+EOF
+
+calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-noucf.parset tApplyBeam-bbs-noucf.parset
+
+rm tApplyBeam-bbs-noucf.parset
+
+taql 'select from (select DATA_ucf, DATA_noucf from tNDPPP-generic.MS giving tApplyBeam.tab as plain)'
+
+tar czf tApplyBeam.tab.tgz tApplyBeam.tab
