@@ -67,6 +67,11 @@ namespace LOFAR {
       // Define the shared pointer for this type.
       typedef shared_ptr<DPStep> ShPtr;
 
+      // Constructor to initialize.
+      DPStep()
+        : itsPrevStep(0)
+      {}
+
       // Destructor.
       virtual ~DPStep();
 
