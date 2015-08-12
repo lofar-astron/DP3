@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
 source findenv.run_script
