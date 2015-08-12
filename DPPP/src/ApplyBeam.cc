@@ -57,7 +57,7 @@ namespace LOFAR {
         :
           itsInput(input),
           itsName(prefix),
-          itsInvert(parset.getBool(prefix + "invert", false)),
+          itsInvert(parset.getBool(prefix + "invert", true)),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
