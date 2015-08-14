@@ -41,7 +41,7 @@
 #include <DPPP/StationAdder.h>
 #include <DPPP/ScaleData.h>
 #include <DPPP/ApplyCal.h>
-#include <DPPP/GainCal.h>
+//#include <DPPP/GainCal.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -305,8 +305,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else if (type == "applybeam") {
           step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
-        } else if (type == "gaincal"  ||  type == "calibrate") {
-          step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
+        //} else if (type == "gaincal"  ||  type == "calibrate") {
+          //step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else if (type == "out" || type=="output") {
           step = makeOutputStep(reader, parset, prefix,
                                 inNames.size()>1, currentMSName);

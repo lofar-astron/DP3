@@ -29,10 +29,14 @@
 // ModelComponentVisitor).
 
 #include <DPPP/Baseline.h>
-#include <DPPP/Cursor.h>
 #include <DPPP/ModelComponent.h>
 #include <DPPP/ModelComponentVisitor.h>
 #include <DPPP/Position.h>
+
+#include <casa/Arrays/Vector.h>
+#include <casa/Arrays/Matrix.h>
+#include <casa/Arrays/Cube.h>
+
 #include <Common/lofar_complex.h>
 #include <Common/lofar_vector.h>
 
@@ -48,9 +52,9 @@ class Simulator: public ModelComponentVisitor
 {
 public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
-        size_t nChannel, const_cursor<Baseline> baselines,
-        const_cursor<double> freq, const_cursor<double> uvw,
-        cursor<dcomplex> buffer);
+        size_t nChannel, const casa::Vector<Baseline>& baselines,
+        const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
+        casa::Cube<dcomplex>& buffer);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -59,12 +63,14 @@ private:
     virtual void visit(const GaussianSource &component);
 
 private:
-    Position                itsReference;
-    size_t                  itsNStation, itsNBaseline, itsNChannel;
-    const_cursor<Baseline>  itsBaselines;
-    const_cursor<double>    itsFreq, itsUVW;
-    cursor<dcomplex>        itsBuffer;
-    vector<dcomplex>        itsShiftBuffer, itsSpectrumBuffer;
+    Position                     itsReference;
+    size_t                       itsNStation, itsNBaseline, itsNChannel;
+    const casa::Vector<Baseline> itsBaselines;
+    const casa::Vector<double>   itsFreq;
+    const casa::Matrix<double>   itsUVW;
+    casa::Cube<dcomplex>         itsBuffer;
+    casa::Matrix<dcomplex>       itsShiftBuffer;
+    casa::Matrix<dcomplex>       itsSpectrumBuffer;
 };
 
 // @}

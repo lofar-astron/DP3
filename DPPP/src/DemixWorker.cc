@@ -30,6 +30,7 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/PhaseShift.h>
 #include <DPPP/Simulate.h>
+#include <DPPP/Simulator.h>
 #include <DPPP/SubtractNew.h>
 #include <DPPP/DPLogger.h>
 
@@ -194,8 +195,8 @@ namespace LOFAR {
       itsSrcSet.reserve (nsrc+1);
       itsStationsToUse.resize (nsrc);
       itsUnknownsIndex.resize (nsrc+1);
-      for (uint i=0; i<nsrc+1; ++i) {
-        itsUnknownsIndex[i].resize (itsMix->nstation());
+      for (uint dr=0; dr<nsrc+1; ++dr) {
+        itsUnknownsIndex[dr].resize (itsMix->nstation());
       }
       itsSolveStation.resize (itsMix->nstation());
       itsNrSourcesDemixed.resize (nsrc);
@@ -209,12 +210,16 @@ namespace LOFAR {
       // itsModel is used to predict all sources at demix freq resolution
       // and to predict a source at subtract freq resolution.
       // So size to the largest.
-      itsModelVis.resize (itsMix->ncorr() * itsMix->nbl() *
-                          std::max (itsMix->nchanOutSubtr(),
-                                    itsMix->nchanOut() * (nsrc+1)));
+      itsModelVis.resize (nsrc+1);
+      for (uint dr=0; dr<nsrc+1; ++dr) {
+        itsModelVis[dr].resize(itsMix->ncorr(),
+                               std::max(itsMix->nchanOutSubtr(),
+                                        itsMix->nchanOut()),
+                               itsMix->nbl());
+      }
       itsAteamAmpl.resize (nsrc);
-      for (uint i=0; i<nsrc; ++i) {
-        itsAteamAmpl[i].resize (itsMix->nchanOut(), itsMix->nbl(),
+      for (uint dr=0; dr<nsrc; ++dr) {
+        itsAteamAmpl[dr].resize (itsMix->nchanOut(), itsMix->nbl(),
                                 itsMix->ntimeOut());
       }
       itsAteamAmplSel.resize (itsMix->nbl(), nsrc);
@@ -432,19 +437,22 @@ namespace LOFAR {
       MatrixIterator<double> uvwiter(itsStationUVW);
       double t = time;
       for (uint j=0; j<ntime; ++j) {
-        for (uint i=0; i<patchList.size(); ++i) {
+        for (uint dr=0; dr<patchList.size(); ++dr) {
           itsPredictVis = dcomplex();
-          simulate (itsMix->phaseRef(),
-                    patchList[i],
-                    itsMix->nstation(),
-                    itsMix->nbl(),
-                    itsMix->freqDemix().size(),
-                    const_cursor<Baseline>(&(itsMix->baselines()[0])),
-                    casa_const_cursor<double>(itsMix->freqDemix()),
-                    casa_const_cursor<double>(uvwiter.matrix()),
-                    casa_cursor<dcomplex>(itsPredictVis));
+          Simulator simulator(itsMix->phaseRef(),
+                              itsMix->nstation(),
+                              itsMix->nbl(),
+                              itsMix->freqDemix().size(),
+                              itsMix->baselines(),
+                              itsMix->freqDemix(),
+                              itsStationUVW,
+                              itsPredictVis);
+          for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
+          {
+            simulator.simulate(patchList[dr]->component(i));
+          }
           // Get and apply beam for target patch.
-          applyBeam (t, patchList[i]->position(), True);
+          applyBeam (t, patchList[dr]->position(), True);
           addStokesI (miter.matrix());
         }
         miter.next();
@@ -473,24 +481,27 @@ namespace LOFAR {
     {
       itsAteamAmplSel = false;
       itsSolveStation = false;
-      for (uint i=0; i<patchList.size(); ++i) {
-        itsAteamAmpl[i] = 0;
-        MatrixIterator<float> miter(itsAteamAmpl[i]);
+      for (uint dr=0; dr<patchList.size(); ++dr) {
+        itsAteamAmpl[dr] = 0;
+        MatrixIterator<float> miter(itsAteamAmpl[dr]);
         MatrixIterator<double> uvwiter(itsStationUVW);
         double t = time;
         for (uint j=0; j<ntime; ++j) {
           itsPredictVis = dcomplex();
-          simulate (itsMix->phaseRef(),
-                    patchList[i],
-                    itsMix->nstation(),
-                    itsMix->nbl(),
-                    itsMix->freqDemix().size(),
-                    const_cursor<Baseline>(&(itsMix->baselines()[0])),
-                    casa_const_cursor<double>(itsMix->freqDemix()),
-                    casa_const_cursor<double>(itsStationUVW),
-                    casa_cursor<dcomplex>(itsPredictVis));
+          Simulator simulator(itsMix->phaseRef(),
+                              itsMix->nstation(),
+                              itsMix->nbl(),
+                              itsMix->freqDemix().size(),
+                              itsMix->baselines(),
+                              itsMix->freqDemix(),
+                              itsStationUVW,
+                              itsPredictVis);
+          for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
+          {
+            simulator.simulate(patchList[dr]->component(i));
+          }
           // Get and apply beam.
-          applyBeam (t, patchList[i]->position(), True);
+          applyBeam (t, patchList[dr]->position(), True);
           // Keep the StokesI ampl ((XX+YY)/2).
           addStokesI (miter.matrix());
           miter.next();
@@ -1082,10 +1093,7 @@ namespace LOFAR {
       const size_t nCh = itsMix->freqDemix().size();
       const size_t nChSubtr = itsMix->freqSubtr().size();
       const size_t nCr = 4;
-      const size_t nSamples = nBl * nCh * nCr;
       // Define various cursors to iterate through arrays.
-      const_cursor<double> cr_freq = casa_const_cursor(itsMix->freqDemix());
-      const_cursor<double> cr_freqSubtr = casa_const_cursor(itsMix->freqSubtr());
       const_cursor<Baseline> cr_baseline(&(itsMix->baselines()[0]));
       // Do a solve and subtract for each predict time slot.
       // Determine the time step for the subtract.
@@ -1102,37 +1110,39 @@ namespace LOFAR {
           if (itsMix->verbose() > 13) {
             cout <<"uvw"<<dr<<'='<<itsUVW;
           }
-          // Create cursors to step through UVW and model buffer.
-          const_cursor<double> cr_uvw = casa_const_cursor(itsUVW);
-          cursor<dcomplex> cr_model(&(itsModelVis[dr * nSamples]), 3,
-                                    stride_model);
           // Initialize this part of the buffer.
-          std::fill (itsModelVis.begin() + dr*nSamples,
-                     itsModelVis.begin() + (dr+1)*nSamples, dcomplex());
+          itsModelVis[dr]=dcomplex();
           if (dr == itsNSubtr) {
-            dcomplex* model = &(itsModelVis[dr*nSamples]);
             // This is the target which consists of multiple components.
             // To each of them the beam must be applied.
-            for (uint i=0; i<itsMix->targetDemixList().size(); ++i) {
+            for (uint dr=0; dr<itsMix->targetDemixList().size(); ++dr) {
               itsPredictVis = dcomplex();
-              simulate (itsMix->phaseRef(),
-                        itsMix->targetDemixList()[i],
-                        nSt, nBl, nCh, cr_baseline, cr_freq, cr_uvw,
-                        casa_cursor<dcomplex>(itsPredictVis));
-              applyBeam (time, itsMix->targetDemixList()[i]->position(),
-                         itsMix->applyBeam());
-              const dcomplex* pred = itsPredictVis.data(); 
-              for (uint j=0; j<nSamples; ++j) {
-                model[j] += pred[j];
+              Simulator simulator(itsMix->phaseRef(),
+                                  nSt, nBl, nCh, itsMix->baselines(),
+                                  itsMix->freqDemix(),
+                                  itsUVW,
+                                  itsPredictVis);
+              for(size_t i = 0; i < itsMix->targetDemixList()[dr]->nComponents(); ++i)
+              {
+                simulator.simulate(itsMix->targetDemixList()[dr]->component(i));
               }
+              applyBeam (time, itsMix->targetDemixList()[dr]->position(),
+                         itsMix->applyBeam());
+              itsModelVis[dr]+=itsPredictVis;
             }
           } else {
-            simulate (itsDemixList[dr]->position(),
-                      itsDemixList[dr],
-                      nSt, nBl, nCh, cr_baseline, cr_freq, cr_uvw, cr_model);
+            Simulator simulator(itsDemixList[dr]->position(),
+                                nSt, nBl, nCh, itsMix->baselines(),
+                                itsMix->freqDemix(),
+                                itsUVW,
+                                itsPredictVis);
+            for(size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i)
+            {
+              simulator.simulate(itsDemixList[dr]->component(i));
+            }
             applyBeam (time, itsMix->ateamDemixList()[drOrig]->position(),
                        itsMix->applyBeam(), itsMix->freqDemix(),
-                       &(itsModelVis[dr * nSamples]));
+                       itsModelVis[dr].data());
           }
         } // end nModel
         itsTimerPredict.stop();
@@ -1162,8 +1172,7 @@ namespace LOFAR {
           cr_data[dr] =
             casa_const_cursor(itsAvgResults[drOrig]->get()[ts].getData());
           cr_model[dr] =
-            const_cursor<dcomplex>(&(itsModelVis[dr * nSamples]), 3,
-                                   stride_model);
+            const_cursor<dcomplex>(itsModelVis[dr].data(), 3, stride_model);
         }
         // If solving the system succeeds, increment nconverged.
         bool converged = itsEstimate.estimate (itsUnknownsIndex,
@@ -1209,7 +1218,7 @@ namespace LOFAR {
             for (size_t dr=0; dr<itsNSubtr; ++dr) {
               uint drOrig = itsSrcSet[dr];
               // Re-use simulation used for estimating Jones matrices if possible.
-              cursor<dcomplex> cr_model_subtr(&(itsModelVis[dr * nSamples]),
+              cursor<dcomplex> cr_model_subtr(itsModelVis[dr].data(),
                                               3, stride_model);
               // Re-simulate if required.
               if (multiplier != 1 || nCh != nChSubtr) {
@@ -1229,17 +1238,27 @@ namespace LOFAR {
                 std::fill (itsModelVis.begin(), itsModelVis.end(), dcomplex());
                 // Simulate visibilities at the resolution of the residual.
                 size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
-                cr_model_subtr = cursor<dcomplex>(&(itsModelVis[0]), 3,
+                cr_model_subtr = cursor<dcomplex>(itsModelVis[0].data(), 3,
                                                   stride_model_subtr);
-                simulate(itsMix->ateamList()[drOrig]->position(),
-                         itsMix->ateamList()[drOrig], nSt, nBl,
-                         nChSubtr, cr_baseline, cr_freqSubtr, cr_uvw_split,
-                         cr_model_subtr);
+//                Simulator::Simulator(const Position &reference, size_t nStation,
+//                    size_t nBaseline, size_t nChannel, const casa::Vector<Baseline>& baselines,
+//                    const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
+//                    casa::Cube<dcomplex>& buffer)
+
+                Simulator simulator(itsMix->ateamList()[drOrig]->position(),
+                                    nSt, nBl, nChSubtr, itsMix->baselines(),
+                                    itsMix->freqSubtr(), itsUVW,
+                                    itsModelVis[0]);
+                for(size_t i = 0; i < itsDemixList[drOrig]->nComponents(); ++i)
+                {
+                  simulator.simulate(itsDemixList[drOrig]->component(i));
+                }
+
                 applyBeam (subtrTime,
                            itsMix->ateamDemixList()[drOrig]->position(),
                            itsMix->applyBeam(),
                            itsMix->freqSubtr(),
-                           &(itsModelVis[0]));
+                           itsModelVis[0].data());
               }
               
               // Apply Jones matrices.

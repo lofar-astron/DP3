@@ -193,6 +193,7 @@ namespace LOFAR {
       PatchList                             itsPatchList;
       Position                              itsPhaseRef;
       vector<Baseline>                      itsBaselines;
+      vector<int>                           itsUVWSplitIndex;
       casa::Vector<double>                  itsFreqDemix;
       casa::Vector<double>                  itsFreqSubtr;
       vector<double>                        itsUnknowns;
