@@ -6,6 +6,8 @@
 
 tar xf tNDPPP-generic.in_MS.tgz
 
+#### Run BBS, correct data for beam with UseChannelFreq
+
 cat > tApplyBeam-bbs-ucf.parset <<EOF
 Strategy.ChunkSize=100
 Strategy.Steps=[correct_ucf]
@@ -19,6 +21,8 @@ EOF
 calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-ucf.parset tApplyBeam-bbs-ucf.parset
 
 rm tApplyBeam-bbs-ucf.parset
+
+#### Run BBS, correct data for beam with UseChannelFreq
 
 cat > tApplyBeam-bbs-noucf.parset <<EOF
 Strategy.ChunkSize=100
@@ -34,6 +38,42 @@ calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-noucf.parset tApply
 
 rm tApplyBeam-bbs-noucf.parset
 
-taql 'select from (select DATA_ucf, DATA_noucf from tNDPPP-generic.MS giving tApplyBeam.tab as plain)'
+#### Run BBS, correct data for beam with UseChannelFreq, ARRAY_FACTOR
+
+cat > tApplyBeam-bbs-arrayfactor.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[correct_ucf]
+
+Step.correct_ucf.Operation=CORRECT
+Step.correct_ucf.Model.Beam.Enable=True
+Step.correct_ucf.Model.Beam.Mode=ARRAY_FACTOR
+Step.correct_ucf.Model.Beam.UseChannelFreq=True
+Step.correct_ucf.Output.Column=DATA_ARRAY_FACTOR
+EOF
+
+calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-arrayfactor.parset tApplyBeam-bbs-arrayfactor.parset
+
+rm tApplyBeam-bbs-arrayfactor.parset
+
+#### Run BBS, correct data for beam with UseChannelFreq, ELEMENT beam only
+
+cat > tApplyBeam-bbs-element.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[correct_ucf]
+
+Step.correct_ucf.Operation=CORRECT
+Step.correct_ucf.Model.Beam.Enable=True
+Step.correct_ucf.Model.Beam.Mode=ELEMENT
+Step.correct_ucf.Model.Beam.UseChannelFreq=True
+Step.correct_ucf.Output.Column=DATA_ELEMENT
+EOF
+
+calibrate-stand-alone -n -f tNDPPP-generic.MS tApplyBeam-bbs-element.parset tApplyBeam-bbs-element.parset
+
+rm tApplyBeam-bbs-element.parset
+
+#### Store output from BBS in separate table
+
+taql 'select from (select DATA_ucf, DATA_noucf, DATA_ARRAY_FACTOR, DATA_ELEMENT from tNDPPP-generic.MS giving tApplyBeam.tab as plain)'
 
 tar czf tApplyBeam.tab.tgz tApplyBeam.tab

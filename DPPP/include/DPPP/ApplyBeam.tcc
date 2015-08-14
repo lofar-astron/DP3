@@ -1,11 +1,32 @@
+//# ApplyBeam.tcc: DPPP step class to ApplyBeam visibilities from a source model
+//# Copyright (C) 2013
+//# ASTRON (Netherlands Institute for Radio Astronomy)
+//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//#
+//# This file is part of the LOFAR software suite.
+//# The LOFAR software suite is free software: you can redistribute it and/or
+//# modify it under the terms of the GNU General Public License as published
+//# by the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The LOFAR software suite is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License along
+//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//#
+//# $Id:
+//#
+//# @author Tammo Jan Dijkema
+
 #ifndef DPPP_ApplyBeam_TCC
 #define DPPP_ApplyBeam_TCC
 
 #include <lofar_config.h>
 #include <DPPP/ApplyBeam.h>
 
-#include <iostream>
-//#include <iomanip>
 #include <Common/ParameterSet.h>
 #include <Common/Timer.h>
 #include <Common/OpenMP.h>
@@ -17,6 +38,8 @@
 #include <DPPP/Simulator.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/ApplyCal.h>
+
+#include <StationResponse/AntennaField.h>
 
 #include <DPPP/Stokes.h>
 #include <DPPP/PointSource.h>
@@ -38,6 +61,9 @@
 
 namespace LOFAR {
   namespace DPPP {
+
+
+// applyBeam is templated on the type of the data, could be double or float
 template<typename T>
 void ApplyBeam::applyBeam(
         const DPInfo& info, double time, T* data0,
@@ -46,12 +72,16 @@ void ApplyBeam::applyBeam(
         const StationResponse::vector3r_t& tiledir,
         const vector<StationResponse::Station::Ptr>& antBeamInfo,
         vector<StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-        bool invert)
+        bool invert, int mode)
     { 
       // Get the beam values for each station.
       uint nCh = info.chanFreqs().size();
       uint nSt = beamValues.size() / nCh;
       uint nBl = info.nbaselines();
+
+      // Store array factor in diagonal matrix (in other modes this variable
+      // is not used).
+      StationResponse::diag22c_t af_tmp;
 
       double reffreq=info.refFreq();
 
@@ -62,17 +92,55 @@ void ApplyBeam::applyBeam(
           reffreq=info.chanFreqs()[ch];
         }
 
-        // Fill beamValues for channel ch
-        for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = antBeamInfo[st]->response(time,
-                                        info.chanFreqs()[ch], srcdir,
-                                        reffreq, refdir, tiledir);
-          if (invert) {
-            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+        switch (mode) {
+        case DEFAULT:
+          // Fill beamValues for channel ch
+          for (size_t st = 0; st < nSt; ++st) {
+            beamValues[nCh * st + ch] = antBeamInfo[st]->response(time,
+                                          info.chanFreqs()[ch], srcdir,
+                                          reffreq, refdir, tiledir);
+            if (invert) {
+              ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+            }
           }
+          break;
+        case ARRAY_FACTOR:
+          // Fill beamValues for channel ch
+          for (size_t st = 0; st < nSt; ++st) {
+            af_tmp = antBeamInfo[st]->arrayFactor(time,
+                                          info.chanFreqs()[ch], srcdir,
+                                          reffreq, refdir, tiledir);
+            beamValues[nCh * st + ch][0][1]=0.;
+            beamValues[nCh * st + ch][1][0]=0.;
+
+            if (invert) {
+              beamValues[nCh * st + ch][0][0]=1./af_tmp[0];
+              beamValues[nCh * st + ch][1][1]=1./af_tmp[1];
+            } else {
+              beamValues[nCh * st + ch][0][0]=af_tmp[0];
+              beamValues[nCh * st + ch][1][1]=af_tmp[1];
+            }
+          }
+          break;
+        case ELEMENT:
+          // Fill beamValues for channel ch
+          for (size_t st = 0; st < nSt; ++st) {
+            LOFAR::StationResponse::AntennaField::ConstPtr field =
+                *(antBeamInfo[st]->beginFields());
+
+            beamValues[nCh * st + ch] = field->elementResponse(time,
+                                                 info.chanFreqs()[ch],
+                                                 srcdir);
+            if (invert) {
+              ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+            }
+          }
+          break;
         }
 
         // Apply beam for channel ch on all baselines
+        // For mode=ARRAY_FACTOR, too much work is done here because we know
+        // that r and l are diagonal
         for (size_t bl = 0; bl < nBl; ++bl) {
           T* data = data0 + bl * 4 * nCh + ch * 4;
           StationResponse::matrix22c_t *left = &(beamValues[nCh

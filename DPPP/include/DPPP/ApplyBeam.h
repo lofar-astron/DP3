@@ -48,6 +48,9 @@ namespace LOFAR {
     class ApplyBeam: public DPStep
     {
       public:
+        // Modes for the beam: only array factor, only element beam, or both (default)
+        enum BeamMode {DEFAULT=1, ARRAY_FACTOR=2, ELEMENT=3};
+
         // Construct the object.
         // Parameters are obtained from the parset using the given prefix.
         ApplyBeam (DPInput*, const ParameterSet&, const string& prefix);
@@ -85,7 +88,7 @@ namespace LOFAR {
             const StationResponse::vector3r_t& tiledir,
             const vector<StationResponse::Station::Ptr>& antBeamInfo,
             vector<StationResponse::matrix22c_t>& beamValues,
-            bool useChannelFreq, bool invert);
+            bool useChannelFreq, bool invert, int mode=DEFAULT);
 
       private:
         StationResponse::vector3r_t dir2Itrf(
@@ -99,6 +102,7 @@ namespace LOFAR {
         bool                 itsInvert;
         bool                 itsUseChannelFreq;
         Position             itsPhaseRef;
+        BeamMode             itsMode;
 
         uint                 itsDebugLevel;
 
