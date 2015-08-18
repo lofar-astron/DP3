@@ -834,7 +834,7 @@ namespace LOFAR {
         vector<double>                unknowns;
         casa::Matrix<double>          uvw;
         vector<casa::Cube<dcomplex> > model;
-        vector<dcomplex>              model_subtr;
+        casa::Cube<dcomplex>          model_subtr;
         size_t                        count_converged;
       };
 
@@ -848,7 +848,7 @@ namespace LOFAR {
         for (uint dir=0;dir<nDirection; ++dir) {
           storage.model[dir].resize(4, nChannel, nBaseline);
         }
-        storage.model_subtr.resize(nBaseline * nChannelSubtr * 4);
+        storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
         storage.count_converged = 0;
       }
     } //# end unnamed namespace
@@ -988,30 +988,16 @@ namespace LOFAR {
                         storage.uvw.data());
 
               // Zero the visibility buffer.
-              fill(storage.model_subtr.begin(), storage.model_subtr.end(),
-                dcomplex());
+              storage.model_subtr=dcomplex();
 
               // Simulate visibilities at the resolution of the residual.
               size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
-              cr_model_subtr = cursor<dcomplex>(&(storage.model_subtr[0]), 3,
+              cr_model_subtr = cursor<dcomplex>(storage.model_subtr.data(), 3,
                 stride_model_subtr);
-
-              //          Simulator(const Position &reference, size_t nStation, size_t nBaseline,
-              //              size_t nChannel, const casa::Vector<Baseline>& baselines,
-              //              const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-              //              casa::Cube<dcomplex>& buffer);
-//
-//                        Simulator simulator(itsPatchList[dr]->position(), nSt, nBl, nCh,
-//                                            itsBaselines, itsFreqDemix, cr_uvw_split,
-//                                            storage.model[dr]);
-//                        for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
-//                        {
-//                          simulator.simulate(itsPatchList[dr]->component(i));
-//                        }
 
               Simulator simulator(itsPatchList[dr]->position(), nSt, nBl,
                                   nChSubtr, itsBaselines, itsFreqSubtr,
-                                  storage.uvw, storage.model[dr]);
+                                  storage.uvw, storage.model_subtr);
               for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
               {
                 simulator.simulate(itsPatchList[dr]->component(i));
@@ -1022,6 +1008,7 @@ namespace LOFAR {
             size_t stride_unknowns[2] = {1, 8};
             const_cursor<double> cr_unknowns(&(storage.unknowns[dr * nSt * 8]),
               2, stride_unknowns);
+
             apply(nBl, nChSubtr, cr_baseline, cr_unknowns, cr_model_subtr);
 
             // Subtract the source contribution from the data.
