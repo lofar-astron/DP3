@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Generate reference data tApplyBeam.tab for tApplyBeam
+# This script uses BBS. Note that casacore data should be up-to-date
+# Run the script in the source directory of CEP/DP3/DPPP/test
+
+tar xf tNDPPP-generic.in_MS.tgz
+
+#### Run BBS, do not corrupt data with beam
+
+cat > tPredict-bbs-nobeam.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[predict_nobeam]
+
+Step.predict_nobeam.Operation=PREDICT
+Step.predict_nobeam.Model.Beam.Enable=FALSE
+Step.predict_nobeam.Output.Column=PREDICT_nobeam
+EOF
+
+bbs-reducer --sourcedb=tNDPPP-generic.MS/sky tNDPPP-generic.MS tPredict-bbs-nobeam.parset
+
+rm tPredict-bbs-nobeam.parset
+
+#### Run BBS, corrupt data with beam
+
+cat > tPredict-bbs-beam.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[predict_beam]
+
+Step.predict_beam.Operation=PREDICT
+Step.predict_beam.Model.Beam.Enable=TRUE
+Step.predict_beam.Model.Beam.UseChannelFreq=TRUE
+Step.predict_beam.Output.Column=PREDICT_beam
+EOF
+
+bbs-reducer --sourcedb=tNDPPP-generic.MS/sky tNDPPP-generic.MS tPredict-bbs-beam.parset
+
+rm tPredict-bbs-beam.parset
+
+#### Store output from BBS in separate table
+
+taql 'select from (select PREDICT_nobeam, PREDICT_beam from tNDPPP-generic.MS giving tPredict.tab as plain)'
+
+tar czf tPredict.tab.tgz tPredict.tab

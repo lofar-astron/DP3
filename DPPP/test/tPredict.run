@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
+source findenv.run_script
+echo "srcdirx=$rt_srcdir"
+
+# Set srcdir if not defined (in case run by hand).
+if test "$srcdir" = ""; then
+  srcdir="$rt_srcdir"
+fi
+
+if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
+  exit 3   # untested
+fi
+
+rm -rf tPredict_tmp
+mkdir -p tPredict_tmp
+# Unpack the MS and other files and do the DPPP run.
+cd tPredict_tmp
+tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
+tar zxf ${srcdir}/tPredict.tab.tgz
+
+# Create expected taql output.
+echo "    select result of 0 rows" > taql.ref
+
+echo; echo "Test without beam"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky
+# Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Test with beam"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true
+# Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
