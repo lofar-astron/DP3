@@ -134,8 +134,6 @@ void Simulator::visit(const GaussianSource &component)
     // Compute component spectrum.
     spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
-    dcomplex* buffer=itsBuffer.data();
-
     // Convert position angle from North over East to the angle used to
     // rotate the right-handed UV-plane.
     // TODO: Can probably optimize by changing the rotation matrix instead.
@@ -153,6 +151,7 @@ void Simulator::visit(const GaussianSource &component)
 
     for(size_t bl = 0; bl < itsNBaseline; ++bl)
     {
+        dcomplex* buffer=&itsBuffer(0,0,bl);
         const size_t p = itsBaselines[bl].first;
         const size_t q = itsBaselines[bl].second;
 
