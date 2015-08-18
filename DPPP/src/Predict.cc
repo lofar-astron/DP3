@@ -137,14 +137,16 @@ namespace LOFAR {
 
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
         itsModelVis[thread].resize(nCr,nCh,nBl);
-        itsModelVisPatch[thread].resize(nCr,nCh,nBl);
-        itsBeamValues[thread].resize(nSt*nCh);
-        itsMeasFrames[thread].set (info().arrayPosCopy());
-        itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
-                                          MEpoch::UTC));
-        itsMeasConverters[thread].set (MDirection::J2000,
-                     MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-        itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
+        if (itsApplyBeam) {
+          itsModelVisPatch[thread].resize(nCr,nCh,nBl);
+          itsBeamValues[thread].resize(nSt*nCh);
+          itsMeasFrames[thread].set (info().arrayPosCopy());
+          itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
+                                            MEpoch::UTC));
+          itsMeasConverters[thread].set (MDirection::J2000,
+                                         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
+          itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
+        }
       }
     }
 

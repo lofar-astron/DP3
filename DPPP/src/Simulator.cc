@@ -219,13 +219,13 @@ inline void radec2lmn(const Position &reference, const Position &position,
   lmn[2] = sqrt(1.0 - l * l - m * m);
 }
 
+// Compute station phase shifts.
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const casa::Matrix<double>& uvw,
                    const casa::Vector<double>& freq,
                    casa::Matrix<dcomplex>& shift)
 {
     dcomplex* shiftdata=shift.data();
-    // Compute station phase shifts.
     for(size_t st = 0; st < nStation; ++st)
     {
         const double phase = casa::C::_2pi * (uvw(0,st) * lmn[0]
@@ -241,11 +241,11 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
 }
 
 
+// Compute component spectrum.
 inline void spectrum(const PointSource &component, size_t nChannel,
                      const casa::Vector<double>& freq,
                      casa::Matrix<dcomplex>& spectrum)
 {
-    // Compute component spectrum.
     for(size_t ch = 0; ch < nChannel; ++ch)
     {
         Stokes stokes = component.stokes(freq[ch]);
