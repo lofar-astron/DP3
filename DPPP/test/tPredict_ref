@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Generate reference data tApplyBeam.tab for tApplyBeam
+# Generate reference data tPredict.tab for tPredict
 # This script uses BBS. Note that casacore data should be up-to-date
 # Run the script in the source directory of CEP/DP3/DPPP/test
 
