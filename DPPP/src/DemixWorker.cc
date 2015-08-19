@@ -1117,11 +1117,9 @@ namespace LOFAR {
             // To each of them the beam must be applied.
             for (uint dr=0; dr<itsMix->targetDemixList().size(); ++dr) {
               itsPredictVis = dcomplex();
-              Simulator simulator(itsMix->phaseRef(),
-                                  nSt, nBl, nCh, itsMix->baselines(),
-                                  itsMix->freqDemix(),
-                                  itsUVW,
-                                  itsPredictVis);
+              Simulator simulator(itsMix->phaseRef(), nSt, nBl, nCh,
+                                  itsMix->baselines(), itsMix->freqDemix(),
+                                  itsUVW, itsPredictVis);
               for(size_t i = 0; i < itsMix->targetDemixList()[dr]->nComponents(); ++i)
               {
                 simulator.simulate(itsMix->targetDemixList()[dr]->component(i));
@@ -1131,11 +1129,9 @@ namespace LOFAR {
               itsModelVis[dr]+=itsPredictVis;
             }
           } else {
-            Simulator simulator(itsDemixList[dr]->position(),
-                                nSt, nBl, nCh, itsMix->baselines(),
-                                itsMix->freqDemix(),
-                                itsUVW,
-                                itsPredictVis);
+            Simulator simulator(itsDemixList[dr]->position(), nSt, nBl, nCh,
+                                itsMix->baselines(), itsMix->freqDemix(),
+                                itsUVW, itsPredictVis);
             for(size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i)
             {
               simulator.simulate(itsDemixList[dr]->component(i));
@@ -1230,28 +1226,23 @@ namespace LOFAR {
                 // directions other than the target are unavailable (unless the
                 // resolution of the residual is equal to the resolution at
                 // which the Jones matrices were estimated, of course).
-                cursor<double> cr_uvw_split = casa_cursor(itsUVW);
                 rotateUVW (itsMix->phaseRef(),
                            itsMix->ateamList()[drOrig]->position(), nSt,
-                           cr_uvw_split);
+                           itsUVW.data());
                 // Initialize the visibility buffer.
                 std::fill (itsModelVis.begin(), itsModelVis.end(), dcomplex());
                 // Simulate visibilities at the resolution of the residual.
                 size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
                 cr_model_subtr = cursor<dcomplex>(itsModelVis[0].data(), 3,
                                                   stride_model_subtr);
-//                Simulator::Simulator(const Position &reference, size_t nStation,
-//                    size_t nBaseline, size_t nChannel, const casa::Vector<Baseline>& baselines,
-//                    const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-//                    casa::Cube<dcomplex>& buffer)
 
                 Simulator simulator(itsMix->ateamList()[drOrig]->position(),
                                     nSt, nBl, nChSubtr, itsMix->baselines(),
                                     itsMix->freqSubtr(), itsUVW,
                                     itsModelVis[0]);
-                for(size_t i = 0; i < itsDemixList[drOrig]->nComponents(); ++i)
+                for(size_t i = 0; i < itsMix->ateamList()[drOrig]->nComponents(); ++i)
                 {
-                  simulator.simulate(itsDemixList[drOrig]->component(i));
+                  simulator.simulate(itsMix->ateamList()[drOrig]->component(i));
                 }
 
                 applyBeam (subtrTime,

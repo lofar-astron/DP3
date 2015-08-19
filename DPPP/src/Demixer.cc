@@ -976,6 +976,7 @@ namespace LOFAR {
             // Re-simulate if required.
             if(multiplier != 1 || nCh != nChSubtr)
             {
+              cout<<endl<<endl<<"RESIMULATING!!!!!!!!!!!!!!!"<<endl<<endl;
               nsplitUVW(itsUVWSplitIndex, itsBaselines, itsAvgResultSubtr->get()[ts_subtr].getUVW(), storage.uvw);
 
               // Rotate the UVW coordinates for the target direction to the

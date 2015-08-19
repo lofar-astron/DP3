@@ -161,32 +161,5 @@ void rotateUVW(const Position &from, const Position &to, size_t nUVW,
     } // Stations.
 }
 
-void rotateUVW(const Position &from, const Position &to, size_t nUVW,
-    cursor<double> uvw)
-{
-    casa::Matrix<double> oldUVW(3,3);
-    casa::Matrix<double> newUVW(3,3);
-    PhaseShift::fillTransMatrix(oldUVW, from[0], from[1]);
-    PhaseShift::fillTransMatrix(newUVW, to[0], to[1]);
-
-    casa::Matrix<double> tmp(casa::product(casa::transpose(newUVW), oldUVW));
-    const double *R = tmp.data();
-
-    for(size_t i = 0; i < nUVW; ++i)
-    {
-        // Compute rotated UVW.
-        double u = uvw[0] * R[0] + uvw[1] * R[3] + uvw[2] * R[6];
-        double v = uvw[0] * R[1] + uvw[1] * R[4] + uvw[2] * R[7];
-        double w = uvw[0] * R[2] + uvw[1] * R[5] + uvw[2] * R[8];
-
-        uvw[0] = u;
-        uvw[1] = v;
-        uvw[2] = w;
-
-        // Move to next station.
-        uvw.forward(1);
-    } // Stations.
-}
-
 } //# namespace DPPP
 } //# namespace LOFAR
