@@ -121,7 +121,7 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite (DPInfo::NeedWriteFlags);
+      info().setWriteFlags();
       // Get nr of threads.
       uint nthread = OpenMP::maxThreads();
       // Determine available memory.
@@ -241,7 +241,10 @@ namespace LOFAR {
       // Accumulate in the time window until the window and overlap are full. 
       itsNTimes++;
       ///      cout<<"inserted at " << itsBufIndex<<endl;
-      itsBuf[itsBufIndex++] = buf;
+      itsBuf[itsBufIndex++].copy (buf);
+      ///if (itsBufIndex < 5) {
+      ///cout << (void*)(itsBuf[itsBufIndex-1].getData().data())<<' '<<itsBuf[itsBufIndex-1].getData().data()[0]<<endl;
+      ///}
       if (itsBufIndex == itsWindowSize+2*itsOverlap) {
         flag (2*itsOverlap);
       }
@@ -268,6 +271,7 @@ namespace LOFAR {
 
     void AORFlagger::addToMS (const string& msName)
     {
+      getPrevStep()->addToMS(msName);
       itsTimer.start();
       if (itsDoRfiStats) {
         itsQualityTimer.start();
@@ -339,7 +343,7 @@ namespace LOFAR {
       // If possible, discard the buffer processed to minimize memory usage.
       for (uint i=0; i<itsWindowSize; ++i) {
         getNextStep()->process (itsBuf[i]);
-        itsBuf[i] = DPBuffer();
+        ///        itsBuf[i] = DPBuffer();
         ///cout << "cleared buffer " << i << endl;
       }
       itsTimer.start();
@@ -347,7 +351,7 @@ namespace LOFAR {
       // This is a bit easier than keeping a wrapped vector.
       // Note it is a cheap operation, because shallow copies are made.
       for (uint i=0; i<rightOverlap; ++i) {
-        itsBuf[i] = itsBuf[i+itsWindowSize];
+        itsBuf[i].copy (itsBuf[i+itsWindowSize]);
         ///cout << "moved buffer " <<i+itsWindowSize<<" to "<< i << endl;
       }
       itsBufIndex = rightOverlap;

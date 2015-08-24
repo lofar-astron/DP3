@@ -55,6 +55,7 @@ namespace LOFAR {
         itsMSNames  (msNames)
     {
       ASSERTSTR (msNames.size() > 0, "No names of MeasurementSets given");
+      itsMSName           = itsMSNames[0];
       itsStartChanStr     = parset.getString (prefix+"startchan", "0");
       itsNrChanStr        = parset.getString (prefix+"nchan", "0");
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
@@ -85,6 +86,7 @@ namespace LOFAR {
         }
       }
       ASSERTSTR (itsFirst>=0, "All input MeasurementSets do not exist");
+      itsBuffers.resize (itsReaders.size());
     }
 
     MultiMSReader::~MultiMSReader()
@@ -200,14 +202,15 @@ namespace LOFAR {
       itsBuffer.setTime     (buf1.getTime());
       itsBuffer.setExposure (buf1.getExposure());
       itsBuffer.setRowNrs   (buf1.getRowNrs());
-      itsBuffer.setUVW      (buf1.getUVW());
       // Size the buffers.
-      if (itsReadVisData) {
-        itsBuffer.getData().resize (IPosition(3, itsNrCorr,
-                                              itsNrChan, itsNrBl));
+      if (itsBuffer.getFlags().empty()) {
+        if (itsReadVisData) {
+          itsBuffer.getData().resize (IPosition(3, itsNrCorr,
+                                                itsNrChan, itsNrBl));
+        }
+        itsBuffer.getFlags().resize (IPosition(3, itsNrCorr,
+                                               itsNrChan, itsNrBl));
       }
-      itsBuffer.getFlags().resize (IPosition(3, itsNrCorr,
-                                             itsNrChan, itsNrBl));
       // Loop through all readers and get data and flags.
       IPosition s(3, 0, 0, 0);
       IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
@@ -355,100 +358,70 @@ namespace LOFAR {
       }
     }
 
-    Matrix<double> MultiMSReader::getUVW (const RefRows& rowNrs)
+    void MultiMSReader::getUVW (const RefRows& rowNrs,
+                                double time, DPBuffer& buf)
     {
       // All MSs have the same UVWs, so use first one.
-      return itsReaders[itsFirst]->getUVW (rowNrs);
+      itsReaders[itsFirst]->getUVW (rowNrs, time, buf);
     }
 
-    Cube<float> MultiMSReader::getWeights (const RefRows& rowNrs,
-                                           const DPBuffer& buf)
+    void MultiMSReader::getWeights (const RefRows& rowNrs, DPBuffer& buf)
     {
-      Cube<float> weights(itsNrCorr, itsNrChan, itsNrBl);
+      Cube<float>& weights = buf.getWeights();
+      // Resize if needed (probably when called for first time).
+      if (weights.empty()) {
+        weights.resize (itsNrCorr, itsNrChan, itsNrBl);
+      }
       IPosition s(3, 0, 0, 0);
       IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
           uint nchan = itsReaders[i]->getInfo().nchan();
           e[1] = s[1] + nchan-1;
-          weights(s,e) = itsReaders[i]->getWeights (rowNrs, buf);
+          itsReaders[i]->getWeights (rowNrs, itsBuffers[i]);
+          weights(s,e) = itsBuffers[i].getWeights();
         } else {
           e[1] = s[1] + itsFillNChan-1;
           weights(s,e) = float(0);
         }
         s[1] = e[1] + 1;
       }
-      return weights;
     }
 
-    Cube<bool> MultiMSReader::getFullResFlags (const RefRows& rowNrs)
+    bool MultiMSReader::getFullResFlags (const RefRows& rowNrs,
+                                         DPBuffer& buf)
     {
-      // Return empty array if no fullRes flags.
-      if (!itsHasFullResFlags  ||  rowNrs.rowVector().empty()) {
-        return Cube<bool>();
+      Cube<bool>& flags = buf.getFullResFlags();
+      // Resize if needed (probably when called for first time).
+      if (flags.empty()) {
+        int norigchan = itsNrChan * itsFullResNChanAvg;
+        flags.resize (norigchan, itsFullResNTimeAvg, itsNrBl);
       }
-      Cube<bool> flags;
-      vector<Cube<bool> > fullResFlags;
-      fullResFlags.reserve (itsReaders.size());
-      for (uint i=0; i<itsReaders.size(); ++i) {
-        if (itsReaders[i]) {
-          fullResFlags.push_back (itsReaders[i]->getFullResFlags (rowNrs));
-        } else {
-          // Fill a cube for missing fullres flags only once.
-          if (itsFullResCube.empty()) {
-            itsFullResCube.resize (itsFillNChan*itsFullResNChanAvg,
-                                   itsFullResNTimeAvg,
-                                   itsNrBl);
-            itsFullResCube = True;
-          }
-          fullResFlags.push_back (itsFullResCube);
-        }
+      // Return false if no fullRes flags available.
+      if (!itsHasFullResFlags) {
+        flags = false;
+        return false;
       }
-      combineFullResFlags (fullResFlags, flags);
-      return flags;
-    }
-
-    /*
-    Cube<Complex> MultiMSReader::getData (const String& columnName,
-                                          const RefRows& rowNrs)
-    {
-      Cube<Complex> data(itsNrCorr, itsNrChan, itsNrBl);
-      IPosition s(3, 0, 0, 0);
-      IPosition e(3, itsNrCorr-1, 0, itsNrBl-1);
-      for (uint i=0; i<itsReaders.size(); ++i) {
-        if (itsReaders[i]) {
-          uint nchan = itsReaders[i]->getInfo().nchan();
-          e[1] = s[1] + nchan-1;
-          data(s,e) = itsReaders[i]->getData (columnName, rowNrs);
-        } else {
-          e[1] = s[1] + itsFillNChan-1;
-          data(s,e) = Complex();
-        }
-        s[1] = e[1] + 1;
+      // Flag everything if data rows are missing.
+      if (rowNrs.rowVector().empty()) {
+        flags = true;
+        return true;
       }
-      return data;
-    }
-    */
-
-    void MultiMSReader::combineFullResFlags (const vector<Cube<bool> >& vec,
-                                             Cube<bool>& flags) const
-    {
-      // The cubes have axes nchan, ntimeavg, nbl.
+      // Get the flags from all MSs and combine them.
       IPosition s(3, 0);
-      IPosition e(vec[0].shape());
-      // Count nr of channels.
-      uint nchan = 0;
-      for (uint i=0; i<vec.size(); ++i) {
-        nchan += vec[i].shape()[0];
-      }
-      e[0] = nchan;
-      flags.resize (e);
-      e -= 1;
-      for (uint i=0; i<vec.size(); ++i) {
-        e[0] = s[0] + vec[i].shape()[0] - 1;
-        flags(s,e) = vec[i];
+      IPosition e(flags.shape() - 1);
+      for (uint i=0; i<itsReaders.size(); ++i) {
+        if (itsReaders[i]) {
+          itsReaders[i]->getFullResFlags (rowNrs, itsBuffers[i]);
+          e[0] = s[0] + itsBuffers[i].getFullResFlags().shape()[0] - 1;
+          flags(s,e) = itsBuffers[i].getFullResFlags();
+        } else {
+          e[0] = s[0] + itsFillNChan - 1;
+          flags(s,e) = true;
+        }
         s[0] = e[0] + 1;
       }
+      return true;
     }
 
   } //# end namespace

@@ -68,6 +68,9 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Invert a 2x2 matrix in place
+      static void invert (casa::DComplex* v, double sigmaMMSE=0);
+
     private:
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
       void applyDiag (casa::Complex* vis, float* weight, int antA, int antB,
@@ -80,17 +83,16 @@ namespace LOFAR {
       // Read parameters from the associated parmdb and store them in itsParms
       void updateParms (const double bufStartTime);
 
-      // Invert a 2x2 matrix in place
-      void invert (casa::DComplex* v, double sigmaMMSE=0) const;
-
       void initDataArrays();
 
       //# Data members.
       DPInput*         itsInput;
+      DPBuffer         itsBuffer;
       string           itsName;
       string           itsParmDBName;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       string           itsCorrectType;
+      bool             itsInvert;
       uint             itsTimeSlotsPerParmUpdate;
       double           itsSigmaMMSE;
       bool             itsUpdateWeights;

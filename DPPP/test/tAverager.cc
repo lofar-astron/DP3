@@ -157,7 +157,7 @@ private:
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
       ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
+    cout <<buf.getFullResFlags()<< fullResFlags;
     ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
@@ -225,15 +225,15 @@ private:
     return true;
   }
 
-  virtual casa::Matrix<double> getUVW (const casa::RefRows&)
+  virtual void getUVW (const casa::RefRows&, double, DPBuffer& buf)
   {
-    Matrix<double> uvw(3,itsNrBl);
-    indgen (uvw);
-    return uvw;
+    buf.getUVW().resize (3, itsNrBl);
+    indgen (buf.getUVW());
   }
-  virtual casa::Cube<bool> getFullResFlags (const casa::RefRows&)
+  virtual bool getFullResFlags (const casa::RefRows&, DPBuffer& buf)
   {
-    return itsFullResFlags;
+    buf.getFullResFlags().assign (itsFullResFlags);
+    return true;
   }
 
   virtual void finish() {getNextStep()->finish();}

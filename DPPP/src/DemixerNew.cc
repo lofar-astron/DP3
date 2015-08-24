@@ -67,7 +67,8 @@ namespace LOFAR {
       info() = infoIn;
       // Update the info of this object.
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setWriteData();
+      info().setWriteFlags();
       // Handle possible data selection.
       itsFilter.updateInfo (getInfo());
       // Update itsDemixInfo and info().
@@ -340,18 +341,10 @@ namespace LOFAR {
       // Collect sufficient data buffers.
       // Make sure all required data arrays are filled in.
       DPBuffer& newBuf = itsBufIn[itsNTime];
-      newBuf = buf;
-      RefRows refRows(newBuf.getRowNrs());
-      if (newBuf.getUVW().empty()) {
-        newBuf.setUVW(itsInput->fetchUVW(newBuf, refRows, itsTimer));
-      }
-      if (newBuf.getWeights().empty()) {
-        newBuf.setWeights(itsInput->fetchWeights(newBuf, refRows, itsTimer));
-      }
-      if (newBuf.getFullResFlags().empty()) {
-        newBuf.setFullResFlags(itsInput->fetchFullResFlags(newBuf, refRows,
-                                                           itsTimer));
-      }
+      newBuf.copy (buf);
+      itsInput->fetchUVW(buf, newBuf, itsTimer);
+      itsInput->fetchWeights(buf, newBuf, itsTimer);
+      itsInput->fetchFullResFlags(buf, newBuf, itsTimer);
       // Process the data if entire buffer is filled.
       if (++itsNTime >= itsBufIn.size()) {
         processData();

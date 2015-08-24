@@ -1,5 +1,9 @@
 # $Id$
 
+# Generate the actual test script.
+configure_file(findenv.run_tmpl findenv.run_script)
+configure_file(tDemix.run_tmpl tDemix.run_script)
+
 include(LofarCTest)
 
 lofar_add_test(tMirror tMirror.cc)
@@ -19,6 +23,8 @@ lofar_add_test(tFilter tFilter.cc)
 lofar_add_test(tNDPPP tNDPPP.cc)
 lofar_add_test(tparse tparse.cc)
 lofar_add_test(tBaselineSelection tBaselineSelection.cc)
+lofar_add_test(tDemix)
+lofar_add_test(tApplyBeam)
 # lofar_add_test(tExpr tExpr.cc)
 # lofar_add_test(tmeqarray tmeqarray.cc)
 # lofar_add_test(test_flaggers test_flaggers.cc)

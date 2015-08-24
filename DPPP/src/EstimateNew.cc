@@ -72,8 +72,8 @@ namespace LOFAR {
                 std::fill (solution, solution+8, 0);
               }
               // Solvable; set diagonal to 1 if it is 0.
-              if (solution[0] == 0) solution[0] = defaultGain;
-              if (solution[6] == 0) solution[6] = defaultGain;
+              if (solution[0] == 0) solution[0] = 1;
+              if (solution[6] == 0) solution[6] = 1;
             } else {
               // Set non-solvable station-source to 0.
               std::fill (solution, solution+8, 0);

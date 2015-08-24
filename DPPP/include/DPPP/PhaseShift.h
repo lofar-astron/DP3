@@ -99,6 +99,7 @@ namespace LOFAR {
       //# Data members.
       DPInput*             itsInput;
       string               itsName;
+      DPBuffer             itsBuf;
       vector<string>       itsCenter;
       vector<double>       itsFreqC;      //# freq/C
       casa::Matrix<double> itsMat1;       //# TT in phasehift.py

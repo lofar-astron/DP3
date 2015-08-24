@@ -276,13 +276,25 @@ private:
   void addData (Cube<Complex>& to, const Cube<Complex>& from,
                 Cube<Float>& tow, const Cube<Float>& weights, int bl)
   {
-    to += from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    Cube<Complex> tmp=from.copy();
+    Cube<Complex>::iterator tmpit=tmp.begin();
+    Cube<Float>::const_iterator weightit=weights.begin();
+    for (; tmpit!=to.end() && weightit!=weights.end(); tmpit++, weightit++) {
+      *tmpit *= *weightit;
+    }
+    to += tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
     tow += weights(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
   void addConjData (Cube<Complex>& to, const Cube<Complex>& from,
                     Cube<Float>& tow, const Cube<Float>& weights, int bl)
   {
-    to += conj(from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
+    Cube<Complex> tmp=from.copy();
+    Cube<Complex>::iterator tmpit=tmp.begin();
+    Cube<Float>::const_iterator weightit=weights.begin();
+    for (; tmpit!=to.end() && weightit!=weights.end(); tmpit++, weightit++) {
+      *tmpit *= *weightit;
+    }
+    to += conj(tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
     tow += weights(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
   virtual bool process (const DPBuffer& buf)
@@ -395,9 +407,8 @@ private:
 class TestOutput4: public DPStep
 {
 public:
-  TestOutput4(int ntime, int nbl, int nchan, int ncorr)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
-      itsNCorr(ncorr)
+  TestOutput4(int ntime, int nbl, int nchan, int /*ncorr*/)
+    : itsNTime(ntime), itsNBl(nbl), itsNChan(nchan)
   {}
 private:
   virtual bool process (const DPBuffer&)
@@ -422,8 +433,7 @@ private:
     ASSERT (int(infoIn.antennaPos().size())==4);
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  int itsNTime, itsNBl, itsNChan;
 };
 
 // Execute steps.
@@ -474,6 +484,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   parset.add ("stations",
               "{ns1:[rs01.s01, rs02.s01], ns2:[cs01.s02, cs01.s01]}");
   parset.add ("autocorr", "false");
+  parset.add ("average", "false");
   DPStep::ShPtr step2(new StationAdder(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
   step1->setNextStep (step2);
@@ -490,6 +501,7 @@ void test3 (const string& stations)
   ParameterSet parset;
   parset.add ("stations", stations);
   parset.add ("autocorr", "true");
+  parset.add ("average", "false");
   DPStep::ShPtr step2(new StationAdder(in, parset, ""));
   DPStep::ShPtr step3(new ThrowStep());
   step1->setNextStep (step2);

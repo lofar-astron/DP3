@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if test ! -f tDemix.in_MS.tgz; then
+  exit 3   # untested
+fi
+
+rm -rf tDemix_tmp
+# Unpack the MS and other files and do the DPPP run.
+tar zxf tDemix.in_MS.tgz
+cd tDemix_tmp
+
+# Run the test script (created by cmake's CONFIGURE_FILE).
+sh ../tDemix.run_script

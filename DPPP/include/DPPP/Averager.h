@@ -81,8 +81,8 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      // Average and return the result.
-      DPBuffer average() const;
+      // Average into itsBufOut.
+      void average();
 
       // Copy the fullRes flags in the input buffer to the correct
       // time index in the output buffer.
@@ -95,9 +95,12 @@ namespace LOFAR {
       DPInput*        itsInput;
       string          itsName;
       DPBuffer        itsBuf;
+      DPBuffer        itsBufTmp;
+      DPBuffer        itsBufOut;
       casa::Cube<int> itsNPoints;
       casa::Cube<casa::Complex> itsAvgAll;
       casa::Cube<float>         itsWeightAll;
+      casa::Cube<bool>          itsFullResFlags;
       uint            itsNChanAvg;
       uint            itsNTimeAvg;
       uint            itsMinNPoint;

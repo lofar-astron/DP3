@@ -1,4 +1,4 @@
-//# Filter.cc: DPPP step class to add station to a superstation
+//# Filter.cc: DPPP step to filter out baselines and channels
 //# Copyright (C) 2012
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -67,7 +67,11 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
-      info().setNeedWrite();
+      info().setWriteData();
+      info().setWriteFlags();
+      if (itsRemoveAnt) {
+        info().setMetaChanged();
+      }
       // Parse the chan expressions.
       // Nr of channels can be used as 'nchan' in the expressions.
       Record rec;
@@ -115,6 +119,9 @@ namespace LOFAR {
           itsBuf.getData().resize (shape);
           itsBuf.getFlags().resize (shape);
           itsBuf.getWeights().resize (shape);
+          if (! itsSelBL.empty()) {
+            itsBuf.getUVW().resize (IPosition(2, 3, shape[2]));
+          }
         }
       }
     }
@@ -141,25 +148,23 @@ namespace LOFAR {
     {
       itsTimer.start();
       if (!itsDoSelect) {
-        itsBuf = buf;      // uses reference semantics
+        itsBuf.referenceFilled (buf);
         itsTimer.stop();
-        getNextStep()->process (itsBuf);
+        getNextStep()->process (buf);
         return true;
       }
-      // Make sure no other object references the DATA and UVW arrays.
-      itsBuf.getData().unique();
-      itsBuf.getFlags().unique();
-      itsBuf.getWeights().unique();
-      itsBuf.getFullResFlags().unique();
       // Get the various data arrays.
-      RefRows rowNrs(buf.getRowNrs());
+      itsBufTmp.referenceFilled (buf);
       const Array<Complex>& data = buf.getData();
       const Array<Bool>& flags = buf.getFlags();
-      Array<Float> weights(itsInput->fetchWeights (buf, rowNrs, itsTimer));
-      Array<Double> uvws(itsInput->fetchUVW (buf, rowNrs, itsTimer));
-      Array<Bool> frFlags(itsInput->fetchFullResFlags(buf, rowNrs, itsTimer));
-      int frfAvg = frFlags.shape()[0] / data.shape()[1];
+      const Array<Float>& weights =
+        itsInput->fetchWeights (buf, itsBufTmp, itsTimer);
+      const Array<Double>& uvws =
+        itsInput->fetchUVW (buf, itsBufTmp, itsTimer);
+      const Array<Bool>& frFlags =
+        itsInput->fetchFullResFlags (buf, itsBufTmp, itsTimer);
       // Size fullResFlags if not done yet.
+      int frfAvg = frFlags.shape()[0] / data.shape()[1];
       if (itsBuf.getFullResFlags().empty()) {
         IPosition frfShp = frFlags.shape();
         frfShp[0] = getInfo().nchan() * frfAvg;
@@ -180,20 +185,18 @@ namespace LOFAR {
         // No baseline selection; copy all data for given channels to
         // make them contiguous.
         // UVW can be referenced, because not dependent on channel.
-        itsBuf.getData() = data(first, last);
-        itsBuf.getFlags() = flags(first, last);
-        itsBuf.getWeights() = weights(first, last);
-        itsBuf.getFullResFlags() = frFlags(frfFirst, frfLast);
+        itsBuf.getData().assign (data(first, last));
+        itsBuf.getFlags().assign (flags(first, last));
+        itsBuf.getWeights().assign (weights(first, last));
+        itsBuf.getFullResFlags().assign (frFlags(frfFirst, frfLast));
         itsBuf.setUVW (buf.getUVW());
-        itsBuf.setRowNrs   (buf.getRowNrs());
+        itsBuf.setRowNrs (buf.getRowNrs());
       } else {
-        Vector<uint> rowNrs(0);
-        if (!buf.getRowNrs().empty()) {
+        Vector<uint> rowNrs;
+        if (! buf.getRowNrs().empty()) {
           rowNrs.resize(getInfo().nbaselines());
         }
         // Copy the data of the selected baselines and channels.
-        itsBuf.getUVW().resize (IPosition(2, 3, getInfo().nbaselines()));
-        itsBuf.getUVW().unique();
         Complex* toData   = itsBuf.getData().data();
         Bool*    toFlag   = itsBuf.getFlags().data();
         Float*   toWeight = itsBuf.getWeights().data();
@@ -246,6 +249,7 @@ namespace LOFAR {
 
     void Filter::addToMS (const string& msName)
     {
+      getPrevStep()->addToMS(msName);
       if (! itsRemoveAnt) {
         return;
       }
