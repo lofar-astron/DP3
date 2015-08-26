@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Generate reference data tGainCal.tab for tGainCal
+# This script uses BBS. Note that casacore data should be up-to-date
+# Run the script in the source directory of CEP/DP3/DPPP/test
+
+rm -rf tNDPPP-generic.MS
+tar xf tNDPPP-generic.in_MS.tgz
+
+#### Save instrument table with only defaultvalues
+cp -r tNDPPP-generic.MS/instrument tNDPPP-generic.MS/definstrument
+
+#### DIAGONAL
+
+cat > tGainCal-bbs-diagonal.parset <<EOF
+Strategy.ChunkSize = 0 
+Strategy.Steps = [solve,correct]
+
+Step.solve.Operation = SOLVE
+Step.solve.Model.Sources = []
+Step.solve.Model.Beam.Enable = T
+Step.solve.Model.Gain.Enable = T
+Step.solve.Solve.Parms = ["Gain:0:0:*","Gain:1:1:*"]
+Step.solve.Solve.CellSize.Freq = 0
+Step.solve.Solve.CellSize.Time = 4
+Step.solve.Solve.CellChunkSize = 10
+
+Step.correct.Operation = CORRECT
+Step.correct.Model.Gain.Enable = T
+Step.correct.Output.Column = CORRECTED_DIAGONAL
+EOF
+
+bbs-reducer tNDPPP-generic.MS tGainCal-bbs-diagonal.parset
+
+rm tGainCal-bbs-diagonal.parset
+
+exit 0
+
+#### Restore instrument table with only defaultvalues
+rm -rf tNDPPP-generic.MS/instrument
+cp -r tNDPPP-generic.MS/definstrument tNDPPP-generic.MS/instrument
+
+
+
+#### FULLJONES
+
+cat > tGainCal-bbs-fulljones.parset <<EOF
+Strategy.ChunkSize = 0 
+Strategy.Steps = [solve,correct]
+
+Step.solve.Operation = SOLVE
+Step.solve.Model.Sources = []
+Step.solve.Model.Gain.Enable = T
+Step.solve.Model.Beam.Enable = T
+Step.solve.Solve.Parms = ["Gain:0:0:*","Gain:1:1:*","Gain:0:1:*","Gain:1:0:*"]
+Step.solve.Solve.CellSize.Freq = 0
+Step.solve.Solve.CellSize.Time = 1
+Step.solve.Solve.CellChunkSize = 10
+
+Step.correct.Operation = CORRECT
+Step.correct.Model.Gain.Enable = T
+Step.correct.Output.Column = CORRECTED_FULLJONES
+EOF
+
+bbs-reducer tNDPPP-generic.MS tGainCal-bbs-fulljones.parset
+
+rm tGainCal-bbs-fulljones.parset
+
+#### Restore instrument table with only defaultvalues
+rm -rf tNDPPP-generic.MS/instrument
+cp -r tNDPPP-generic.MS/definstrument tNDPPP-generic.MS/instrument
+
+
+
+#### Store output from BBS in separate table
+
+taql 'select from (select CORRECTED_DIAGONAL, CORRECTED_FULLJONES from tNDPPP-generic.MS giving tGainCal.tab as plain)'
+
+tar czf tGainCal.tab.tgz tGainCal.tab

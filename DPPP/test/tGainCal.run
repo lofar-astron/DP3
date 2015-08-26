@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
+source findenv.run_script
+echo "srcdirx=$rt_srcdir"
+
+# Set srcdir if not defined (in case run by hand).
+if test "$srcdir" = ""; then
+  srcdir="$rt_srcdir"
+fi
+
+if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
+  exit 3   # untested
+fi
+
+rm -rf tGainCal_tmp
+mkdir -p tGainCal_tmp
+# Unpack the MS and other files and do the DPPP run.
+cd tGainCal_tmp
+tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
+tar zxf ${srcdir}/tGainCal.tab.tgz
+
+# Create expected taql output.
+echo "    select result of 0 rows" > taql.ref
+
+echo; echo "Test caltype=diagonal"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=true gaincal.caltype=diagonal gaincal.solint=4
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal
+
+# Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select from tNDPPP-generic.MS t1, tGainCal.tab t2 where not all(near(t1.DPPP_DIAGONAL,t2.CORRECTED_DIAGONAL, 1.e-3) or FLAG)' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
