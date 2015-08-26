@@ -23,14 +23,23 @@ tar zxf ${srcdir}/tGainCal.tab.tgz
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
+# Create MODEL_DATA so that residual can be computed
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false
+
+
 echo; echo "Test caltype=diagonal"; echo
 ../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=1
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal
 
-# Create MODEL_DATA so that residual can be computed
-../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false
-
 # Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
 $taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_DIAGONAL-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_DIAGONAL-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where not near(dpppres,bbsres,1.e-2)' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Test caltype=fulljones"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-fulljones gaincal.usebeammodel=false gaincal.caltype=fulljones gaincal.solint=1
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_FULLJONES steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-fulljones
+
+# Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
+$taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_FULLJONES-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_FULLJONES-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where not near(dpppres,bbsres,1.e-2)' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
