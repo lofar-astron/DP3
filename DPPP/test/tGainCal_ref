@@ -18,16 +18,18 @@ Strategy.Steps = [solve,correct]
 
 Step.solve.Operation = SOLVE
 Step.solve.Model.Sources = []
-Step.solve.Model.Beam.Enable = T
+Step.solve.Model.Beam.Enable = F
+Step.solve.Model.Beam.UseChannelFreq = T
 Step.solve.Model.Gain.Enable = T
 Step.solve.Solve.Parms = ["Gain:0:0:*","Gain:1:1:*"]
 Step.solve.Solve.CellSize.Freq = 0
-Step.solve.Solve.CellSize.Time = 4
+Step.solve.Solve.CellSize.Time = 1
 Step.solve.Solve.CellChunkSize = 10
+Step.solve.Solve.Options.UseSVD = T
 
 Step.correct.Operation = CORRECT
 Step.correct.Model.Gain.Enable = T
-Step.correct.Output.Column = CORRECTED_DIAGONAL
+Step.correct.Output.Column = BBS_DIAGONAL
 EOF
 
 bbs-reducer tNDPPP-generic.MS tGainCal-bbs-diagonal.parset
@@ -38,8 +40,6 @@ rm tGainCal-bbs-diagonal.parset
 rm -rf tNDPPP-generic.MS/instrument
 cp -r tNDPPP-generic.MS/definstrument tNDPPP-generic.MS/instrument
 
-
-
 #### FULLJONES
 
 cat > tGainCal-bbs-fulljones.parset <<EOF
@@ -49,15 +49,17 @@ Strategy.Steps = [solve,correct]
 Step.solve.Operation = SOLVE
 Step.solve.Model.Sources = []
 Step.solve.Model.Gain.Enable = T
-Step.solve.Model.Beam.Enable = T
+Step.solve.Model.Beam.Enable = F
+Step.solve.Model.Beam.UseChannelFreq = T
 Step.solve.Solve.Parms = ["Gain:0:0:*","Gain:1:1:*","Gain:0:1:*","Gain:1:0:*"]
 Step.solve.Solve.CellSize.Freq = 0
 Step.solve.Solve.CellSize.Time = 1
 Step.solve.Solve.CellChunkSize = 10
+Step.solve.Solve.Options.UseSVD = T
 
 Step.correct.Operation = CORRECT
 Step.correct.Model.Gain.Enable = T
-Step.correct.Output.Column = CORRECTED_FULLJONES
+Step.correct.Output.Column = BBS_FULLJONES
 EOF
 
 bbs-reducer tNDPPP-generic.MS tGainCal-bbs-fulljones.parset
@@ -72,6 +74,6 @@ cp -r tNDPPP-generic.MS/definstrument tNDPPP-generic.MS/instrument
 
 #### Store output from BBS in separate table
 
-taql 'select from (select CORRECTED_DIAGONAL, CORRECTED_FULLJONES from tNDPPP-generic.MS giving tGainCal.tab as plain)'
+taql 'select from (select BBS_DIAGONAL, BBS_FULLJONES from tNDPPP-generic.MS giving tGainCal.tab as plain)'
 
 tar czf tGainCal.tab.tgz tGainCal.tab
