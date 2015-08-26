@@ -28,7 +28,7 @@ echo "    select result of 0 rows" > taql.ref
 
 
 echo; echo "Test caltype=diagonal"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=2
+../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=4
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal
 
 # Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
