@@ -6,6 +6,8 @@
 
 tar xf tNDPPP-generic.in_MS.tgz
 
+rm -rf tPredict.tab.tgz tPredict.tab
+
 #### Run BBS, do not corrupt data with beam
 
 cat > tPredict-bbs-nobeam.parset <<EOF
