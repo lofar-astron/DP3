@@ -1,10 +1,15 @@
 #!/bin/bash
 
-# Generate reference data tPredict.tab for tPredict
+#wfeaw Generate reference data tPredict.tab for tPredict
 # This script uses BBS. Note that casacore data should be up-to-date
 # Run the script in the source directory of CEP/DP3/DPPP/test
 
 tar xf tNDPPP-generic.in_MS.tgz
+#gsm.py tPredict_ref_skymodel 01:37:41.299440 +33.09.35.13240 4
+rm -rf tNDPPP-generic.MS/sky
+makesourcedb in=my.skymodel out=tNDPPP-generic.MS/sky format='<'
+rm -rf tNDPPP-generic.in_MS.tgz
+tar czf tNDPPP-generic.in_MS.tgz tNDPPP-generic.MS
 
 rm -rf tPredict.tab.tgz tPredict.tab
 

@@ -34,8 +34,6 @@ bbs-reducer tNDPPP-generic.MS tGainCal-bbs-diagonal.parset
 
 rm tGainCal-bbs-diagonal.parset
 
-exit 0
-
 #### Restore instrument table with only defaultvalues
 rm -rf tNDPPP-generic.MS/instrument
 cp -r tNDPPP-generic.MS/definstrument tNDPPP-generic.MS/instrument

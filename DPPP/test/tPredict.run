@@ -26,6 +26,7 @@ echo "    select result of 0 rows" > taql.ref
 echo; echo "Test without beam"; echo
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky
 # Compare the DATA column of the output MS with the BBS reference output.
+$taqlexe 'select ANTENNA1, ANTENNA2, ctime(TIME), FLAG[0,0], t1.DATA[0,0], t2.PREDICT_nobeam[0,0] from tNDPPP-generic.MS t1, tPredict.tab t2 where not near(t1.DATA[0,0],t2.PREDICT_nobeam[0,0],5e-2)'
 $taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 

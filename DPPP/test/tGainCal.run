@@ -27,7 +27,7 @@ echo; echo "Test caltype=diagonal"; echo
 ../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=true gaincal.caltype=diagonal gaincal.solint=4
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal
 
-# Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from tNDPPP-generic.MS t1, tGainCal.tab t2 where not all(near(t1.DPPP_DIAGONAL,t2.CORRECTED_DIAGONAL, 1.e-3) or FLAG)' > taql.out
+# Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
+$taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_DIAGONAL-t1.DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.CORRECTED_DIAGONAL-t1.DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where not near(dpppres,bbsres,1.e-2)' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
