@@ -256,7 +256,7 @@ namespace LOFAR {
     }
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
-    // top left, all 11 polarizations in the bottom right, etc. //TODO: make templated
+    // top left, all 11 polarizations in the bottom right, etc.
     void GainCal::fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
                                 const casa::Bool* flag) {
       vector<int>* antMap=&itsAntMaps[itsAntMaps.size()-1];
@@ -784,12 +784,12 @@ namespace LOFAR {
         * 0.5, getInfo().totalBW(), 1));
       BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis
                                 (info().startTime(),
-                                 info().timeInterval(), ntime));
+                                 info().timeInterval() * itsSolInt, ntime));
       BBS::Grid solGrid(freqAxis, timeAxis);
       // Create domain grid.
       BBS::Axis::ShPtr tdomAxis(new BBS::RegularAxis
                                 (info().startTime(),
-                                 info().timeInterval() * ntime, 1));
+                                 info().timeInterval() * itsSolInt * ntime, 1));
       BBS::Grid domainGrid(freqAxis, tdomAxis);
 
       // Open the ParmDB at the first write.
@@ -802,7 +802,7 @@ namespace LOFAR {
         // Store the (freq, time) resolution of the solutions.
         vector<double> resolution(2);
         resolution[0] = freqWidth[0];
-        resolution[1] = info().timeInterval();
+        resolution[1] = info().timeInterval() * itsSolInt;
         itsParmDB->setDefaultSteps(resolution);
       }
 

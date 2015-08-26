@@ -23,7 +23,7 @@ Step.solve.Model.Beam.UseChannelFreq = T
 Step.solve.Model.Gain.Enable = T
 Step.solve.Solve.Parms = ["Gain:0:0:*","Gain:1:1:*"]
 Step.solve.Solve.CellSize.Freq = 0
-Step.solve.Solve.CellSize.Time = 1
+Step.solve.Solve.CellSize.Time = 2
 Step.solve.Solve.CellChunkSize = 10
 Step.solve.Solve.Options.UseSVD = T
 
