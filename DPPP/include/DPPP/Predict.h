@@ -31,6 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/Patch.h>
 #include <DPPP/SourceDBUtil.h>
+#include <DPPP/ApplyBeam.h>
 #include <DPPP/ModelComponent.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
@@ -112,6 +113,7 @@ namespace LOFAR {
       vector<casa::MeasFrame>                       itsMeasFrames;
       vector<casa::MDirection::Convert>             itsMeasConverters;
       vector<vector<StationResponse::matrix22c_t> > itsBeamValues;
+      ApplyBeam::BeamMode                           itsBeamMode;
 
       // Vector of patches, and a bool indicating if it contains only one source
       vector<Patch::ConstPtr> itsPatchList;

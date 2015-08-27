@@ -54,14 +54,20 @@ namespace LOFAR {
   namespace DPPP {
 
     ApplyBeam::ApplyBeam(DPInput* input, const ParameterSet& parset,
-                     const string& prefix)
+                     const string& prefix, bool substep)
         :
           itsInput(input),
           itsName(prefix),
-          itsInvert(parset.getBool(prefix + "invert", true)),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
+      // only read 'invert' parset key if it is a separate step
+      // if applybeam is called from gaincal/predict, the invert key should always be false
+      if (substep) {
+        itsInvert=false;
+      } else {
+        itsInvert=parset.getBool(prefix + "invert", true);
+      }
       string mode=toLower(parset.getString(prefix + "beammode","default"));
       ASSERT (mode=="default" || mode=="array_factor" || mode=="element");
       if (mode=="default") {

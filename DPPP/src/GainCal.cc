@@ -96,7 +96,7 @@ namespace LOFAR {
         itsApplyBeamToModelColumn=parset.getBool(prefix +
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
-          itsApplyBeamStep=ApplyBeam(input, parset, prefix);
+          itsApplyBeamStep=ApplyBeam(input, parset, prefix, true);
           ASSERT(!itsApplyBeamStep.invert());
           itsResultStep=new ResultStep();
           itsApplyBeamStep.setNextStep(DPStep::ShPtr(itsResultStep));
@@ -151,15 +151,16 @@ namespace LOFAR {
     {
       os << "GainCal " << itsName << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
-      os << "  solint              " << itsSolInt <<endl;
+      os << "  solint:             " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
       os << "  mode:               " << itsMode << endl;
-      os << "  stefcalvariant:     " << itsStefcalVariant <<endl;
       os << "  detect stalling:    " << boolalpha << itsDetectStalling << endl;
-      os << "  use model col:      " << boolalpha << itsUseModelColumn << endl;
+      os << "  use model column:   " << boolalpha << itsUseModelColumn << endl;
       if (!itsUseModelColumn) {
         itsPredictStep.show(os);
+      } else if (itsApplyBeamToModelColumn) {
+        itsApplyBeamStep.show(os);
       }
     }
 
@@ -678,6 +679,8 @@ namespace LOFAR {
       }
       if (dg > itsTolerance && nSt>0) {
         if (itsDetectStalling && badIters<maxBadIters) {
+          itsNonconverged++;
+        } else {
           itsNonconverged++;
         }
         if (itsDebugLevel>0) {

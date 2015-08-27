@@ -82,6 +82,18 @@ namespace LOFAR {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
         itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", true);
 
+        string mode=toLower(parset.getString(prefix + "beammode","default"));
+        ASSERT (mode=="default" || mode=="array_factor" || mode=="element");
+        if (mode=="default") {
+          itsBeamMode=ApplyBeam::DEFAULT;
+        } else if (mode=="array_factor") {
+          itsBeamMode=ApplyBeam::ARRAY_FACTOR;
+        } else if (mode=="element") {
+          itsBeamMode=ApplyBeam::ELEMENT;
+        } else {
+          THROW(Exception, "Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
+        }
+
         // Rework patch list to contain a patch for every source
         if (!itsOneBeamPerPatch) {
           itsPatchList = makeOnePatchPerComponent(itsPatchList);
@@ -158,6 +170,13 @@ namespace LOFAR {
       os << "   number of sources: " << itsSourceList.size() << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
       if (itsApplyBeam) {
+        os << "   mode:              ";
+        if (itsBeamMode==ApplyBeam::DEFAULT)
+          os<<"default";
+        else if (itsBeamMode==ApplyBeam::ARRAY_FACTOR)
+          os<<"array_factor";
+        else os<<"element";
+        os << endl;
         os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
         os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << endl;
       }
@@ -275,7 +294,7 @@ namespace LOFAR {
 
       ApplyBeam::applyBeam(info(), time, data0, srcdir, refdir,
                            tiledir, itsAntBeamInfo[thread],
-                           itsBeamValues[thread], itsUseChannelFreq, false);
+                           itsBeamValues[thread], itsUseChannelFreq, false, itsBeamMode);
 
       //Add temporary buffer to itsModelVis
       std::transform(itsModelVis[thread].data(),

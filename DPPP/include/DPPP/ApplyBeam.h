@@ -53,7 +53,7 @@ namespace LOFAR {
 
         // Construct the object.
         // Parameters are obtained from the parset using the given prefix.
-        ApplyBeam (DPInput*, const ParameterSet&, const string& prefix);
+        ApplyBeam (DPInput*, const ParameterSet&, const string& prefix, bool substep=false);
 
         ApplyBeam();
 
