@@ -66,45 +66,40 @@ namespace LOFAR {
                       const string& prefix)
       : itsInput         (input),
         itsName          (prefix),
-        itsSourceDBName  (""),
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
-        itsParmDBName    (parset.getString (prefix + "parmdb")),
-        itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
-        itsOneBeamPerPatch  (parset.getBool (prefix + "onebeamperpatch", true)),
-        itsUseChannelFreq(parset.getBool (prefix + "usechannelfreq", true)),
+        itsParmDBName    (parset.getString (prefix + "parmdb", "")),
         itsMode          (parset.getString (prefix + "caltype")),
         itsTStep         (0),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsStefcalVariant(parset.getString (prefix + "stefcalvariant", "1c")),
         itsBaselines     (),
-        itsThreadStorage (),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
         itsPropagateSolutions (parset.getBool(prefix + "propagatesolutions", false)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
         itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
-        itsPatchList     (),
-        itsOperation     (parset.getString(prefix + "operation", "solve")),
         itsConverged     (0),
         itsNonconverged  (0),
         itsStalled       (0),
         itsNTimes        (0)
     {
+      if (itsParmDBName=="") {
+        itsParmDBName=parset.getString("msin")+"/instrument";
+      }
+
       if (!itsUseModelColumn) {
-        itsSourceDBName = parset.getString (prefix + "sourcedb","");
-        BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
-
-        vector<PatchInfo> patchInfo=sourceDB.getPatchInfo();
-        vector<string> patchNames;
-
-        vector<string> sourcePatterns=parset.getStringVector(prefix + "sources",
-                                                             vector<string>());
-        patchNames=makePatchList(sourceDB, sourcePatterns);
-
-        itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
-        if (!itsOneBeamPerPatch) {
-          itsPatchList = makeOnePatchPerComponent(itsPatchList);
+        itsPredictStep=Predict(input, parset, prefix);
+        itsResultStep=new ResultStep();
+        itsPredictStep.setNextStep(DPStep::ShPtr(itsResultStep));
+      } else {
+        itsApplyBeamToModelColumn=parset.getBool(prefix +
+                                              "applybeamtomodelcolumn", false);
+        if (itsApplyBeamToModelColumn) {
+          itsApplyBeamStep=ApplyBeam(input, parset, prefix, true);
+          ASSERT(!itsApplyBeamStep.invert());
+          itsResultStep=new ResultStep();
+          itsApplyBeamStep.setNextStep(DPStep::ShPtr(itsResultStep));
         }
       }
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
@@ -118,37 +113,26 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
+
+      const size_t nBl=info().nbaselines();
+
+      if (itsUseModelColumn) {
+        if (itsApplyBeamToModelColumn) {
+          itsApplyBeamStep.updateInfo(infoIn);
+        }
+      } else {
+        itsPredictStep.updateInfo(infoIn);
+      }
       info().setWriteData();
       info().setWriteFlags();
 
-      uint nBl=info().nbaselines();
       for (uint i=0; i<nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
                                          info().getAnt2()[i]));
       }
 
-
-      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenterCopy(),
-                                              MDirection::J2000)());
-      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      itsPhaseRef = Position(angles.getBaseValue()[0],
-                             angles.getBaseValue()[1]);
-
-      const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
-      const size_t nCh = info().nchan();
-
       if (itsSolInt==0) {
         itsSolInt=info().ntime();
-      }
-
-      const size_t nThread=1;//OpenMP::maxThreads();
-
-      itsThreadStorage.resize(nThread);
-      for(vector<ThreadPrivateStorage>::iterator it = itsThreadStorage.begin(),
-          end = itsThreadStorage.end(); it != end; ++it)
-      {
-        initThreadPrivateStorage(*it, nDr, nSt, nBl, nCh, nCh);
       }
 
       itsSols.reserve(info().ntime());
@@ -161,43 +145,23 @@ namespace LOFAR {
       for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
         itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
       }
-
-      if (!itsUseModelColumn) {
-        itsInput->fillBeamInfo (itsAntBeamInfo, itsAntennaUsedNames);
-      }
-    }
-
-    StationResponse::vector3r_t GainCal::dir2Itrf (const MDirection& dir,
-                                                   MDirection::Convert& converter) const
-    {
-      const MDirection& itrfDir = converter(dir);
-      const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      StationResponse::vector3r_t vec;
-      vec[0] = itrf[0];
-      vec[1] = itrf[1];
-      vec[2] = itrf[2];
-      return vec;
     }
 
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  use model col:      " << boolalpha << itsUseModelColumn << endl;
-      os << "  sourcedb:           " << itsSourceDBName << endl;
-      os << "   number of patches: " << itsPatchList.size() << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
-      os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
-      if (itsApplyBeam) {
-        os << "   beam per patch:    " << boolalpha << itsOneBeamPerPatch << endl;
-        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
-      }
-      os << "  solint              " << itsSolInt <<endl;
+      os << "  solint:             " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
-//      os << "  propagate sols: " << boolalpha << itsPropagateSolutions << endl;
       os << "  mode:               " << itsMode << endl;
-      os << "  stefcalvariant:     " << itsStefcalVariant <<endl;
       os << "  detect stalling:    " << boolalpha << itsDetectStalling << endl;
+      os << "  use model column:   " << boolalpha << itsUseModelColumn << endl;
+      if (!itsUseModelColumn) {
+        itsPredictStep.show(os);
+      } else if (itsApplyBeamToModelColumn) {
+        itsApplyBeamStep.show(os);
+      }
     }
 
     void GainCal::showTimings (std::ostream& os, double duration) const
@@ -235,24 +199,8 @@ namespace LOFAR {
       itsInput->fetchWeights(bufin, itsBuf, itsTimer);
       itsInput->fetchFullResFlags(bufin, itsBuf, itsTimer);
 
-      // Determine the various sizes.
-      const size_t nDr = itsPatchList.size();
-      const size_t nSt = info().antennaUsed().size();
-      const size_t nBl = info().nbaselines();
-      const size_t nCh = info().nchan();
-      const size_t nCr = 4;
-      const size_t nSamples = nBl * nCh * nCr;
-      // Define various cursors to iterate through arrays.
-      const_cursor<double> cr_freq = casa_const_cursor(info().chanFreqs());
-      const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
-
-      const size_t thread = 0;//OpenMP::threadNum();
-
-      if (itsUseModelColumn) {
-        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
-      }
-      Complex* data=itsBuf.getData().data();
-      Complex* model=itsModelData.data();
+      Cube<Complex> dataCube=itsBuf.getData();
+      Complex* data=dataCube.data();
       float* weight = itsBuf.getWeights().data();
       const Bool* flag=itsBuf.getFlags().data();
 
@@ -263,73 +211,43 @@ namespace LOFAR {
 
       itsTimerPredict.start();
 
-      ThreadPrivateStorage &storage = itsThreadStorage[thread];
-      if (!itsUseModelColumn) {
-        double time = itsBuf.getTime();
-
-        size_t stride_uvw[2] = {1, 3};
-        cursor<double> cr_uvw_split(&(storage.uvw[0]), 2, stride_uvw);
-
-        size_t stride_model[3] = {1, nCr, nCr * nCh};
-        fill(storage.model.begin(), storage.model.end(), dcomplex());
-
-        const_cursor<double> cr_uvw = casa_const_cursor(itsBuf.getUVW());
-        splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
-        cursor<dcomplex> cr_model(&(storage.model_patch[0]), 3, stride_model);
-
-        // Convert the directions to ITRF for the given time.
-        storage.measFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-        StationResponse::vector3r_t refdir = dir2Itrf(info().delayCenter(),storage.measConverter);
-        StationResponse::vector3r_t tiledir = dir2Itrf(info().tileBeamDir(),storage.measConverter);
-
-  //#pragma omp parallel for
-        for(size_t dr = 0; dr < nDr; ++dr)
-        {
-          fill(storage.model_patch.begin(), storage.model_patch.end(), dcomplex());
-
-          simulate(itsPhaseRef, itsPatchList[dr], nSt, nBl, nCh, cr_baseline,
-                   cr_freq, cr_uvw_split, cr_model);
-
-          applyBeam(time, itsPatchList[dr]->position(), itsApplyBeam,
-                    info().chanFreqs(), &(itsThreadStorage[thread].model_patch[0]),
-                    refdir, tiledir, &(itsThreadStorage[thread].beamvalues[0]),
-                    storage.measConverter);
-
-          for (size_t i=0; i<itsThreadStorage[thread].model_patch.size();++i) {
-            itsThreadStorage[thread].model[i]+=
-                itsThreadStorage[thread].model_patch[i];
-          }
+      if (itsUseModelColumn) {
+        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
+        if (itsApplyBeamToModelColumn) {
+          // Temporarily put model data in data column for applybeam step
+          // ApplyBeam step will copy the buffer so no harm is done
+          itsBuf.getData()=itsModelData;
+          itsApplyBeamStep.process(itsBuf);
+          //Put original data back in data column
+          itsBuf.getData()=dataCube;
         }
-      } //if(itsUseModelColumn)
-
-      itsTimerPredict.stop();
-      //copy result of model to data
-      if (itsOperation=="predict") {
-        copy(storage.model.begin(),storage.model.begin()+nSamples,data);
+      } else { // Predict
+        itsPredictStep.process(itsBuf);
       }
 
-      if (itsOperation=="solve") {
-        itsTimerFill.start();
-        if (itsNTimes==0) {
-          itsDataPerAntenna=0;
-          itsVis=0;
-          itsMVis=0;
-          countAntUsedNotFlagged(flag);
-          setAntennaMaps();
-        }
-        if (itsUseModelColumn) {
-          fillMatrices(model,data,weight,flag);
-        } else {
-          fillMatrices(&storage.model[0],data,weight,flag);
-        }
-        itsTimerFill.stop();
+      itsTimerPredict.stop();
 
-        if (itsNTimes==itsSolInt-1) {
-          stefcal(itsMode,itsSolInt);
-          itsNTimes=0;
-        } else {
-          itsNTimes++;
-        }
+      itsTimerFill.start();
+
+      if (itsNTimes==0) {
+        itsDataPerAntenna=0;
+        itsVis=0;
+        itsMVis=0;
+        countAntUsedNotFlagged(flag);
+        setAntennaMaps();
+      }
+      if (itsUseModelColumn && !itsApplyBeamToModelColumn) {
+        fillMatrices(itsModelData.data(),data,weight,flag);
+      } else {
+        fillMatrices(itsResultStep->get().getData().data(),data,weight,flag);
+      }
+      itsTimerFill.stop();
+
+      if (itsNTimes==itsSolInt-1) {
+        stefcal(itsMode,itsSolInt);
+        itsNTimes=0;
+      } else {
+        itsNTimes++;
       }
 
       itsTimer.stop();
@@ -339,7 +257,7 @@ namespace LOFAR {
     }
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
-    // top left, all 11 polarizations in the bottom right, etc. //TODO: make templated
+    // top left, all 11 polarizations in the bottom right, etc.
     void GainCal::fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
                                 const casa::Bool* flag) {
       vector<int>* antMap=&itsAntMaps[itsAntMaps.size()-1];
@@ -376,43 +294,6 @@ namespace LOFAR {
       }
     }
 
-    // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
-    // top left, all 11 polarizations in the bottom right, etc.
-    void GainCal::fillMatrices (dcomplex* model, casa::Complex* data, float* weight,
-                                const casa::Bool* flag) {
-      vector<int>* antMap=&itsAntMaps[itsAntMaps.size()-1];      
-
-      const size_t nBl = info().nbaselines();
-      const size_t nCh = info().nchan();
-      const size_t nCr = 4;
-
-      for (uint ch=0;ch<nCh;++ch) {
-        for (uint bl=0;bl<nBl;++bl) {
-          int ant1=(*antMap)[info().getAnt1()[bl]];
-          int ant2=(*antMap)[info().getAnt2()[bl]];
-          if (ant1==ant2 || ant1==-1 || ant2 == -1 || flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
-            continue;
-          }
-
-          for (uint cr=0;cr<nCr;++cr) {
-            itsVis (IPosition(6,ant1,cr/2,ch,itsNTimes,cr%2,ant2)) =
-                DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            itsMVis(IPosition(6,ant1,cr/2,ch,itsNTimes,cr%2,ant2)) =
-                         model[bl*nCr*nCh+ch*nCr+cr] *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-
-            // conjugate transpose
-            itsVis (IPosition(6,ant2,cr%2,ch,itsNTimes,cr/2,ant1)) =
-                DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            itsMVis(IPosition(6,ant2,cr%2,ch,itsNTimes,cr/2,ant1)) =
-                         conj(model[bl*nCr*nCh+ch*nCr+cr] ) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-          }
-        }
-      }
-    }
 
     void GainCal::countAntUsedNotFlagged (const Bool* flag) {
       uint nCr=info().ncorr();
@@ -799,6 +680,8 @@ namespace LOFAR {
       if (dg > itsTolerance && nSt>0) {
         if (itsDetectStalling && badIters<maxBadIters) {
           itsNonconverged++;
+        } else {
+          itsNonconverged++;
         }
         if (itsDebugLevel>0) {
           cerr<<"!";
@@ -882,67 +765,6 @@ namespace LOFAR {
       THROW(Exception,"Wrote output to debug.txt -- stopping now");
     }
 
-    void GainCal::applyBeam (double time, const Position& pos, bool apply,
-                             const Vector<double>& chanFreqs, dcomplex* data0,
-                             StationResponse::vector3r_t& refdir,
-                             StationResponse::vector3r_t& tiledir,
-                             StationResponse::matrix22c_t* beamvalues,
-                             casa::MDirection::Convert& converter)
-    {
-      if (! apply) {
-        return;
-      }
-
-      MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
-      StationResponse::vector3r_t srcdir = dir2Itrf(dir,converter);
-      // Get the beam values for each station.
-      uint nchan = chanFreqs.size();
-      uint nSt   = info().antennaUsed().size();
-      uint nBl   = info().nbaselines();
-
-      if (!itsUseChannelFreq) {
-        for (size_t st=0; st<nSt; ++st) {
-          itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                        srcdir, info().refFreq(), refdir,
-                                        tiledir, &(beamvalues[nchan*st]));
-        }
-      }
-
-      // Apply the beam values of both stations to the predicted data.
-      dcomplex tmp[4];
-      for (size_t ch=0; ch<nchan; ++ch) {
-        if (itsUseChannelFreq) {
-          for (size_t st=0; st<nSt; ++st) {
-            itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
-                                          srcdir, chanFreqs[ch], refdir,
-                                          tiledir, &(beamvalues[nchan*st]));
-          }
-        }
-        for (size_t bl=0; bl<nBl; ++bl) {
-          dcomplex* data=data0+bl*4*nchan + ch*4; //TODO
-          StationResponse::matrix22c_t *left =
-              &(beamvalues[nchan * info().getAnt1()[bl]]);
-          StationResponse::matrix22c_t *right=
-              &(beamvalues[nchan * info().getAnt2()[bl]]);
-          dcomplex l[] = {left[ch][0][0], left[ch][0][1],
-                          left[ch][1][0], left[ch][1][1]};
-          // Form transposed conjugate of right.
-          dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
-                          conj(right[ch][0][1]), conj(right[ch][1][1])};
-          // left*data
-          tmp[0] = l[0] * data[0] + l[1] * data[2];
-          tmp[1] = l[0] * data[1] + l[1] * data[3];
-          tmp[2] = l[2] * data[0] + l[3] * data[2];
-          tmp[3] = l[2] * data[1] + l[3] * data[3];
-          // data*conj(right)
-          data[0] = tmp[0] * r[0] + tmp[1] * r[2];
-          data[1] = tmp[0] * r[1] + tmp[1] * r[3];
-          data[2] = tmp[2] * r[0] + tmp[3] * r[2];
-          data[3] = tmp[2] * r[1] + tmp[3] * r[3];
-        }
-      }
-    }
-
     void GainCal::finish()
     {
       itsTimer.start();
@@ -954,124 +776,122 @@ namespace LOFAR {
 
       itsTimerWrite.start();
 
-      if (itsOperation=="solve") {
-        uint nSt=info().antennaUsed().size();
+      uint nSt=info().antennaUsed().size();
 
-        uint ntime=itsSols.size();
+      uint ntime=itsSols.size();
 
-        // Construct solution grid.
-        const Vector<double>& freq      = getInfo().chanFreqs();
-        const Vector<double>& freqWidth = getInfo().chanWidths();
-        BBS::Axis::ShPtr freqAxis(new BBS::RegularAxis(freq[0] - freqWidth[0]
-          * 0.5, getInfo().totalBW(), 1));
-        BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis
-                                  (info().startTime(),
-                                   info().timeInterval(), ntime));
-        BBS::Grid solGrid(freqAxis, timeAxis);
-        // Create domain grid.
-        BBS::Axis::ShPtr tdomAxis(new BBS::RegularAxis
-                                  (info().startTime(),
-                                   info().timeInterval() * ntime, 1));
-        BBS::Grid domainGrid(freqAxis, tdomAxis);
+      // Construct solution grid.
+      const Vector<double>& freq      = getInfo().chanFreqs();
+      const Vector<double>& freqWidth = getInfo().chanWidths();
+      BBS::Axis::ShPtr freqAxis(new BBS::RegularAxis(freq[0] - freqWidth[0]
+        * 0.5, getInfo().totalBW(), 1));
+      BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis
+                                (info().startTime(),
+                                 info().timeInterval() * itsSolInt, ntime));
+      BBS::Grid solGrid(freqAxis, timeAxis);
+      // Create domain grid.
+      BBS::Axis::ShPtr tdomAxis(new BBS::RegularAxis
+                                (info().startTime(),
+                                 info().timeInterval() * itsSolInt * ntime, 1));
+      BBS::Grid domainGrid(freqAxis, tdomAxis);
 
-        // Open the ParmDB at the first write.
-        // In that way the instrumentmodel ParmDB can be in the MS directory.
-        if (! itsParmDB) {
-          itsParmDB = boost::shared_ptr<BBS::ParmDB>
-            (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
-                             true));
-          itsParmDB->lock();
-          // Store the (freq, time) resolution of the solutions.
-          vector<double> resolution(2);
-          resolution[0] = freqWidth[0];
-          resolution[1] = info().timeInterval();
-          itsParmDB->setDefaultSteps(resolution);
-        }
+      // Open the ParmDB at the first write.
+      // In that way the instrumentmodel ParmDB can be in the MS directory.
+      if (! itsParmDB) {
+        itsParmDB = boost::shared_ptr<BBS::ParmDB>
+          (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
+                           true));
+        itsParmDB->lock();
+        // Store the (freq, time) resolution of the solutions.
+        vector<double> resolution(2);
+        resolution[0] = freqWidth[0];
+        resolution[1] = info().timeInterval() * itsSolInt;
+        itsParmDB->setDefaultSteps(resolution);
+      }
 
-        // Write out default amplitudes
-        if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-          ParmValueSet pvset(ParmValue(1.0));
-          itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
-          itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
-        }
+      // Write out default amplitudes
+      if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+        ParmValueSet pvset(ParmValue(1.0));
+        itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
+        itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+      }
 
-        // Write the solutions per parameter.
-        const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
-        const char* strri[] = {"Real:","Imag:"};
-        Matrix<double> values(1, ntime);
+      // Write the solutions per parameter.
+      const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
+      const char* strri[] = {"Real:","Imag:"};
+      Matrix<double> values(1, ntime);
 
-        DComplex sol;
+      DComplex sol;
 
-        for (size_t st=0; st<nSt; ++st) {
-          uint seqnr = 0; // To take care of real and imaginary part
-          string suffix(itsAntennaUsedNames[st]);
+      for (size_t st=0; st<nSt; ++st) {
+        uint seqnr = 0; // To take care of real and imaginary part
+        string suffix(itsAntennaUsedNames[st]);
 
-          for (int pol=0; pol<4; ++pol) { // For 0101
-            if ((itsMode=="diagonal" || itsMode=="phaseonly") && (pol==1||pol==2)) {
-              continue;
+        for (int pol=0; pol<4; ++pol) { // For 0101
+          if ((itsMode=="diagonal" || itsMode=="phaseonly") && (pol==1||pol==2)) {
+            continue;
+          }
+          if (itsMode=="scalarphase" && pol>0) {
+            continue;
+          }
+          int realimmax;
+          if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+            realimmax=1;
+          } else {
+            realimmax=2;
+          }
+          for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
+            string name(string("Gain:") +
+                        str0101[pol] + (itsMode=="phaseonly"?"Phase:":strri[realim]) + suffix);
+            if (itsMode=="scalarphase") {
+              name="CommonScalarPhase:"+suffix;
             }
-            if (itsMode=="scalarphase" && pol>0) {
-              continue;
-            }
-            int realimmax;
-            if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-              realimmax=1;
-            } else {
-              realimmax=2;
-            }
-            for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
-              string name(string("Gain:") +
-                          str0101[pol] + (itsMode=="phaseonly"?"Phase:":strri[realim]) + suffix);
-              if (itsMode=="scalarphase") {
-                name="CommonScalarPhase:"+suffix;
-              }
-              // Collect its solutions for all times in a single array.
-              for (uint ts=0; ts<ntime; ++ts) {
-                if (itsAntMaps[ts][st]==-1) {
-                  if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
-                      realim==0 && (pol==0||pol==3)) {
-                    values(0, ts) = 1;
-                  } else {
-                    values(0, ts) = 0;
-                  }
+            // Collect its solutions for all times in a single array.
+            for (uint ts=0; ts<ntime; ++ts) {
+              if (itsAntMaps[ts][st]==-1) {
+                if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
+                    realim==0 && (pol==0||pol==3)) {
+                  values(0, ts) = 1;
                 } else {
-                  int rst=itsAntMaps[ts][st];
-                  if (itsMode=="fulljones") {
-                    if (seqnr%2==0) {
-                      values(0, ts) = real(itsSols[ts](rst,seqnr/2));
-                    } else {
-                      values(0, ts) = -imag(itsSols[ts](rst,seqnr/2)); // Conjugate transpose!
-                    }
-                  } else if (itsMode=="diagonal") {
-                    uint sSt=itsSols[ts].size()/2;
-                    if (seqnr%2==0) {
-                      values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
-                    } else {
-                      values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0)); // Conjugate transpose!
-                    }
-                  } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
-                    uint sSt=itsSols[ts].size()/2;
-                    values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                  values(0, ts) = 0;
+                }
+              } else {
+                int rst=itsAntMaps[ts][st]; // Real station
+                if (itsMode=="fulljones") {
+                  if (seqnr%2==0) {
+                    values(0, ts) = real(itsSols[ts](rst,seqnr/2));
+                  } else {
+                    values(0, ts) = -imag(itsSols[ts](rst,seqnr/2)); // Conjugate transpose!
                   }
+                } else if (itsMode=="diagonal") {
+                  uint sSt=itsSols[ts].size()/2;
+                  if (seqnr%2==0) {
+                    values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                  } else {
+                    values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0)); // Conjugate transpose!
+                  }
+                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
+                  uint sSt=itsSols[ts].size()/2;
+                  values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
                 }
               }
-              cout.flush();
-              seqnr++;
-              BBS::ParmValue::ShPtr pv(new BBS::ParmValue());
-              pv->setScalars (solGrid, values);
-              BBS::ParmValueSet pvs(domainGrid,
-                                    vector<BBS::ParmValue::ShPtr>(1, pv));
-              map<string,int>::const_iterator pit = itsParmIdMap.find(name);
-              if (pit == itsParmIdMap.end()) {
-                // First time, so a new nameId will be set.
-                int nameId = -1;
-                itsParmDB->putValues (name, nameId, pvs);
-                itsParmIdMap[name] = nameId;
-              } else {
-                // Parm has been put before.
-                int nameId = pit->second;
-                itsParmDB->putValues (name, nameId, pvs);
-              }
+            }
+            cout.flush();
+            seqnr++;
+            BBS::ParmValue::ShPtr pv(new BBS::ParmValue());
+            pv->setScalars (solGrid, values);
+            BBS::ParmValueSet pvs(domainGrid,
+                                  vector<BBS::ParmValue::ShPtr>(1, pv));
+            map<string,int>::const_iterator pit = itsParmIdMap.find(name);
+            if (pit == itsParmIdMap.end()) {
+              // First time, so a new nameId will be set.
+              int nameId = -1;
+              itsParmDB->putValues (name, nameId, pvs);
+              itsParmIdMap[name] = nameId;
+            } else {
+              // Parm has been put before.
+              int nameId = pit->second;
+              itsParmDB->putValues (name, nameId, pvs);
             }
           }
         }

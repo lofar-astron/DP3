@@ -34,6 +34,7 @@
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/SubtractMixed.h>
 #include <DPPP/MSReader.h>
+#include <DPPP/Simulator.h>
 
 #include <ParmDB/Axis.h>
 #include <ParmDB/SourceDB.h>
@@ -284,6 +285,15 @@ namespace LOFAR {
         itsBaselines.push_back(Baseline(antennaMap[infoSel.getAnt1()[i]],
           antennaMap[infoSel.getAnt2()[i]]));
       }
+
+      // Prepare conversion from relative to absolute UVW
+      casa::Vector<casa::Int> newAnt1(itsNBl);
+      casa::Vector<casa::Int> newAnt2(itsNBl);
+      for (uint i=0; i<itsNBl; ++i) {
+        newAnt1[i]=antennaMap[infoSel.getAnt1()[i]];
+        newAnt2[i]=antennaMap[infoSel.getAnt2()[i]];
+      }
+      itsUVWSplitIndex = nsetupSplitUVW (itsNStation,newAnt1,newAnt2);
 
       // Allocate buffers used to compute the smearing factors.
       itsFactorBuf.resize (IPosition(4, itsNCorr, itsNChanIn, itsNBl,
@@ -821,11 +831,11 @@ namespace LOFAR {
     namespace {
       struct ThreadPrivateStorage
       {
-        vector<double>    unknowns;
-        vector<double>    uvw;
-        vector<dcomplex>  model;
-        vector<dcomplex>  model_subtr;
-        size_t            count_converged;
+        vector<double>                unknowns;
+        casa::Matrix<double>          uvw;
+        vector<casa::Cube<dcomplex> > model;
+        casa::Cube<dcomplex>          model_subtr;
+        size_t                        count_converged;
       };
 
       void initThreadPrivateStorage(ThreadPrivateStorage &storage,
@@ -833,9 +843,12 @@ namespace LOFAR {
         size_t nChannelSubtr)
       {
         storage.unknowns.resize(nDirection * nStation * 8);
-        storage.uvw.resize(nStation * 3);
-        storage.model.resize(nDirection * nBaseline * nChannel * 4);
-        storage.model_subtr.resize(nBaseline * nChannelSubtr * 4);
+        storage.uvw.resize(3, nStation);
+        storage.model.resize(nDirection);
+        for (uint dir=0;dir<nDirection; ++dir) {
+          storage.model[dir].resize(4, nChannel, nBaseline);
+        }
+        storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
         storage.count_converged = 0;
       }
     } //# end unnamed namespace
@@ -853,7 +866,6 @@ namespace LOFAR {
       const size_t nCh = itsFreqDemix.size();
       const size_t nChSubtr = itsFreqSubtr.size();
       const size_t nCr = 4;
-      const size_t nSamples = nBl * nCh * nCr;
 
       vector<ThreadPrivateStorage> threadStorage(nThread);
       for(vector<ThreadPrivateStorage>::iterator it = threadStorage.begin(),
@@ -871,8 +883,6 @@ namespace LOFAR {
           it->unknowns.begin());
       }
 
-      const_cursor<double> cr_freq = casa_const_cursor(itsFreqDemix);
-      const_cursor<double> cr_freqSubtr = casa_const_cursor(itsFreqSubtr);
       const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
 
 #pragma omp parallel for
@@ -893,22 +903,21 @@ namespace LOFAR {
         //
         // Model visibilities for each direction of interest will be computed
         // and stored.
-        size_t stride_uvw[2] = {1, 3};
-        cursor<double> cr_uvw_split(&(storage.uvw[0]), 2, stride_uvw);
-
         size_t stride_model[3] = {1, nCr, nCr * nCh};
-        fill(storage.model.begin(), storage.model.end(), dcomplex());
+        fill(storage.model.begin(), storage.model.end(), 0.);
         for(size_t dr = 0; dr < nDr; ++dr)
         {
-          const_cursor<double> cr_uvw =
-            casa_const_cursor(itsAvgResults[dr]->get()[ts].getUVW());
-          splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
+          nsplitUVW(itsUVWSplitIndex, itsBaselines, itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
           ///cout<<"uvw"<<dr<<'='<<storage.uvw<<endl;
 
-          cursor<dcomplex> cr_model(&(storage.model[dr * nSamples]), 3,
-            stride_model);
-          simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt,
-            nBl, nCh, cr_baseline, cr_freq, cr_uvw_split, cr_model);
+          Simulator simulator(itsPatchList[dr]->position(), nSt, nBl, nCh,
+                              itsBaselines, itsFreqDemix, storage.uvw,
+                              storage.model[dr]);
+          for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
+          {
+            simulator.simulate(itsPatchList[dr]->component(i));
+          }
+
         }
         ///cout<<"modelvis="<<storage.model<<endl;
 
@@ -935,7 +944,7 @@ namespace LOFAR {
           cr_data[dr] =
             casa_const_cursor(itsAvgResults[dr]->get()[ts].getData());
           cr_model[dr] =
-            const_cursor<dcomplex>(&(storage.model[dr * nSamples]), 3,
+            const_cursor<dcomplex>(storage.model[dr].data(), 3,
             stride_model);
         }
 
@@ -961,15 +970,14 @@ namespace LOFAR {
           for(size_t dr = 0; dr < nDrSubtr; ++dr)
           {
             // Re-use simulation used for estimating Jones matrices if possible.
-            cursor<dcomplex> cr_model_subtr(&(storage.model[dr * nSamples]),
+            cursor<dcomplex> cr_model_subtr(storage.model[dr].data(),
               3, stride_model);
 
             // Re-simulate if required.
             if(multiplier != 1 || nCh != nChSubtr)
             {
-              const_cursor<double> cr_uvw =
-                casa_const_cursor(itsAvgResultSubtr->get()[ts_subtr].getUVW());
-              splitUVW(nSt, nBl, cr_baseline, cr_uvw, cr_uvw_split);
+              cout<<endl<<endl<<"RESIMULATING!!!!!!!!!!!!!!!"<<endl<<endl;
+              nsplitUVW(itsUVWSplitIndex, itsBaselines, itsAvgResultSubtr->get()[ts_subtr].getUVW(), storage.uvw);
 
               // Rotate the UVW coordinates for the target direction to the
               // direction of source to subtract. This is required because at
@@ -978,25 +986,30 @@ namespace LOFAR {
               // resolution of the residual is equal to the resolution at which
               // the Jones matrices were estimated, of course).
               rotateUVW(itsPhaseRef, itsPatchList[dr]->position(), nSt,
-                cr_uvw_split);
+                        storage.uvw.data());
 
               // Zero the visibility buffer.
-              fill(storage.model_subtr.begin(), storage.model_subtr.end(),
-                dcomplex());
+              storage.model_subtr=dcomplex();
 
               // Simulate visibilities at the resolution of the residual.
               size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
-              cr_model_subtr = cursor<dcomplex>(&(storage.model_subtr[0]), 3,
+              cr_model_subtr = cursor<dcomplex>(storage.model_subtr.data(), 3,
                 stride_model_subtr);
-              simulate(itsPatchList[dr]->position(), itsPatchList[dr], nSt, nBl,
-                nChSubtr, cr_baseline, cr_freqSubtr, cr_uvw_split,
-                cr_model_subtr);
+
+              Simulator simulator(itsPatchList[dr]->position(), nSt, nBl,
+                                  nChSubtr, itsBaselines, itsFreqSubtr,
+                                  storage.uvw, storage.model_subtr);
+              for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
+              {
+                simulator.simulate(itsPatchList[dr]->component(i));
+              }
             }
 
             // Apply Jones matrices.
             size_t stride_unknowns[2] = {1, 8};
             const_cursor<double> cr_unknowns(&(storage.unknowns[dr * nSt * 8]),
               2, stride_unknowns);
+
             apply(nBl, nChSubtr, cr_baseline, cr_unknowns, cr_model_subtr);
 
             // Subtract the source contribution from the data.

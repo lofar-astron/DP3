@@ -6,6 +6,8 @@
 
 tar xf tNDPPP-generic.in_MS.tgz
 
+rm -rf tApplyBeam.tab.tgz tApplyBeam.tab
+
 #### Run BBS, correct data for beam with UseChannelFreq
 
 cat > tApplyBeam-bbs-ucf.parset <<EOF

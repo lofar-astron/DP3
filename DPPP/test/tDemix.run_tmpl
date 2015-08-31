@@ -5,7 +5,7 @@ echo "    select result of 0 rows" > taql.ref
 # Find taql program.
 taqlexe=@TAQL_EXECUTABLE@
 
-# Test without target.
+echo; echo "### Test without target."; echo
 rm -rf instrument
 ../../src/NDPPP tDemix.parset demix.ignoretarget=true
 # Compare some columns of the output MS with the reference output.
@@ -15,7 +15,7 @@ diff taql.out taql.ref  ||  exit 1
 ##$taqlexe 'select from instrument t1, instrument_ref1 t2 where t1.NAMEID!=t1.NAMEID  ||  t1.STARTX!~=t2.STARTX  ||  t1.ENDX!~=t2.ENDX  ||  t1.STARTY!~=t2.STARTY  ||  t1.ENDY!~=t2.ENDY  ||  not all(near(t1.VALUES, t2.VALUES))' > taql.out
 ##diff taql.out taql.ref  ||  exit 1
 
-# Test with target projected away.
+echo; echo "### Test with target projected away."; echo
 rm -rf instrument
 ../../src/NDPPP tDemix.parset demix.ignoretarget=false
 # Compare some columns of the output MS with the reference output.
@@ -25,7 +25,7 @@ diff taql.out taql.ref  ||  exit 1
 ##$taqlexe 'select from instrument t1, instrument_ref2 t2 where t1.NAMEID!=t1.NAMEID  ||  t1.STARTX!~=t2.STARTX  ||  t1.ENDX!~=t2.ENDX  ||  t1.STARTY!~=t2.STARTY  ||  t1.ENDY!~=t2.ENDY  ||  not all(near(t1.VALUES, t2.VALUES))' > taql.out
 ##diff taql.out taql.ref  ||  exit 1
 
-# Test with target.
+echo; echo "### Test with target."; echo
 rm -rf instrument
 ../../src/NDPPP tDemix.parset demix.target=CIZA.SP1A.FITS.pbcor_patch_s537 demix.freqstep=32 demix.timestep=5
 # Compare some columns of the output MS with the reference output.
