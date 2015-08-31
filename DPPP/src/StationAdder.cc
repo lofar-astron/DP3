@@ -345,10 +345,12 @@ namespace LOFAR {
         for (uint k=0; k<nrfr; ++k) {
           frfPtr[k] = true;
         }
+
         for (uint k=0; k<3; ++k) {
           uvwPtr[k] = 0.;
         }
         double uvwWghtSum = 0.;
+
         // Sum the baselines forming the new baselines.
         for (uint j=0; j<itsBufRows[i].size(); ++j) {
           // Get the baseline number to use.
@@ -460,6 +462,7 @@ namespace LOFAR {
             dataPtr[k] /= wghtPtr[k];
           }
         }
+
         // Average or calculate the UVW coordinate of the new station.
         if (itsDoAverage  &&  uvwWghtSum != 0) {
           for (int ui=0; ui<3; ++ui) {
@@ -474,6 +477,7 @@ namespace LOFAR {
           uvwPtr[1] = uvws[1];
           uvwPtr[2] = uvws[2];
         }
+
         dataPtr += nrcc;
         flagPtr += nrcc;
         wghtPtr += nrcc;
