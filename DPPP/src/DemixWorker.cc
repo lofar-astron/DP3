@@ -445,7 +445,7 @@ namespace LOFAR {
                               itsMix->freqDemix().size(),
                               itsMix->baselines(),
                               itsMix->freqDemix(),
-                              itsStationUVW,
+                              uvwiter.matrix(),
                               itsPredictVis);
           for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
           {
@@ -494,7 +494,7 @@ namespace LOFAR {
                               itsMix->freqDemix().size(),
                               itsMix->baselines(),
                               itsMix->freqDemix(),
-                              itsStationUVW,
+                              uvwiter.matrix(),
                               itsPredictVis);
           for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
           {
