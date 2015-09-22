@@ -70,7 +70,7 @@ namespace LOFAR {
         .def ("_getUVW", &DPStepBase::_getUVW,
               "Get the UVW coordinates into the given array",
               (boost::python::arg("value")))
-        .def ("_getModelData", &DPStepBase::_getData,
+        .def ("_getModelData", &DPStepBase::_getModelData,
               "Get the model data into the given array",
               (boost::python::arg("value")))
         .def ("_processNext", &DPStepBase::_processNext,
