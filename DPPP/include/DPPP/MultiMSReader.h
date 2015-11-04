@@ -192,6 +192,7 @@ namespace LOFAR {
       vector<DPBuffer>      itsBuffers;
       uint                  itsFillNChan; //# nr of chans for missing MSs
       FlagCounter           itsFlagCounter;
+      bool                  itsRegularChannels; // Are resulting channels regularly spaced
     };
 
   } //# end namespace

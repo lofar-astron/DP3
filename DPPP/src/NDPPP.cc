@@ -49,6 +49,8 @@ void showUsage() {
   std::cout<<"If no arguments are specified, the program tries to read "<<
     "\"NDPPP.parset\" or \"DPPP.parset\" as a default."<<std::endl;
   std::cout<<"-v will show version info and exit."<<std::endl;
+  std::cout<<"Documentation is at http://www.lofar.org/wiki/doku.php?id="<<
+    "public:user_software:ndppp"<<std::endl;
 }
 
 int main(int argc, char *argv[])

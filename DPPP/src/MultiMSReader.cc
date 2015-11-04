@@ -24,6 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/MultiMSReader.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/DPLogger.h>
 #include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
@@ -52,7 +53,8 @@ namespace LOFAR {
                                   const string& prefix)
       : itsFirst    (-1),
         itsNMissing (0),
-        itsMSNames  (msNames)
+        itsMSNames  (msNames),
+        itsRegularChannels (true)
     {
       ASSERTSTR (msNames.size() > 0, "No names of MeasurementSets given");
       itsMSName           = itsMSNames[0];
@@ -85,6 +87,10 @@ namespace LOFAR {
           itsFirst = i;
         }
       }
+
+      // TODO: check if frequencies are regular, insert some empy readers
+      // if necessary
+
       ASSERTSTR (itsFirst>=0, "All input MeasurementSets do not exist");
       itsBuffers.resize (itsReaders.size());
     }
@@ -111,6 +117,7 @@ namespace LOFAR {
       if (itsOrderMS) {
         sortBands();
       }
+
       // Collect the channel info of all MSs.
       Vector<double> chanFreqs  (itsNrChan);
       Vector<double> chanWidths (itsNrChan);
@@ -189,6 +196,7 @@ namespace LOFAR {
           }
         }
       }
+
       info().set (chanFreqs, chanWidths);
     }
 
@@ -301,6 +309,22 @@ namespace LOFAR {
       // Handle the bands and take care of missing MSs.
       // Sort them if needed.
       handleBands();
+
+      // check that channels are regularly spaced, give warning otherwise
+      if (itsNrChan>1) {
+        Vector<Double> upFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,1),
+                                         IPosition(1,itsNrChan-1)));
+        Vector<Double> lowFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,0),
+                                         IPosition(1,itsNrChan-1)));
+        Double freqstep0=upFreq(0)-lowFreq(0);
+        // Compare up to 1kHz accuracy
+        itsRegularChannels=allNearAbs(upFreq-lowFreq, freqstep0, 1.e3) &&
+                           allNearAbs(info().chanWidths(),
+                                      info().chanWidths()(0), 1.e3);
+      }
+
       // Set correct nr of channels.
       info().setNChan (itsNrChan);
       // Initialize the flag counters.
@@ -321,7 +345,12 @@ namespace LOFAR {
       os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
          << ')' << std::endl;
       os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr
-         << ')' << std::endl;
+         << ')';
+      if (itsRegularChannels) {
+        os <<" (regularly spaced)" << std::endl;
+      } else {
+        os <<" (NOT regularly spaced)" << std::endl;
+      }
       os << "  ncorrelations:  " << itsNrCorr << std::endl;
       os << "  nbaselines:     " << itsNrBl << std::endl;
       os << "  ntimes:         " << itsMS.nrow() / itsNrBl << std::endl;
