@@ -85,6 +85,11 @@ int main(int argc, char *argv[])
 
     // Execute the parset file.
     DPRun::execute (parsetName, argc, argv);
+  } catch (LOFAR::APSException& err) {
+    // just send err.what() to the error stream
+    // this is just the error message, not a full backtrace
+    std::cerr << "ParameterSet Exception detected: "<< err.what() << std::endl;
+    return 1;
   } catch (LOFAR::Exception& err) {
     std::cerr << "LOFAR Exception detected: " << err << std::endl;
     return 1;

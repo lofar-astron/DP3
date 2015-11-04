@@ -66,6 +66,9 @@ namespace LOFAR {
       }
     }
 
+    ApplyCal::ApplyCal()
+    {}
+
     ApplyCal::~ApplyCal()
     {}
 

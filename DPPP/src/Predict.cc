@@ -66,13 +66,27 @@ namespace LOFAR {
                       const string& prefix)
       : itsInput         (input),
         itsName          (prefix),
-        itsSourceDBName (parset.getString (prefix + "sourcedb")),
+        itsSourceDBName  (parset.getString (prefix + "sourcedb")),
         itsApplyBeam     (parset.getBool (prefix + "usebeammodel", false)),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
-        itsPatchList     ()
+        itsPatchList     (),
+        itsOperation     (parset.getString(prefix + "operation","replace"))
     {
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
+      if (parset.getString(prefix + "parmdb","") != "") {
+        itsDoApplyCal=true;
+        itsApplyCalStep=ApplyCal(input, parset, prefix);
+        ASSERT(!itsApplyCalStep.invert());
+        itsResultStep=new ResultStep();
+        itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
+      } else {
+        itsDoApplyCal=false;
+      }
+
+      ASSERTSTR(itsOperation=="replace" || itsOperation=="add" ||
+              itsOperation=="subtract", "operation must be \"replace\", " <<
+              "add\" or \"subtract\"");
       vector<string> sourcePatterns=parset.getStringVector(prefix + "sources",
                                                            vector<string>());
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
@@ -115,6 +129,10 @@ namespace LOFAR {
       info() = infoIn;
       info().setNeedVisData();
       info().setWriteData();
+
+      if (itsDoApplyCal) {
+        itsApplyCalStep.updateInfo(infoIn);
+      }
 
       uint nBl=info().nbaselines();
       for (uint i=0; i<nBl; ++i) {
@@ -257,11 +275,25 @@ namespace LOFAR {
       }
 }
 
+      //Do applycal if necessary
+      if (itsDoApplyCal) {
+        //TODO
+      }
+
       //Add all thread model data to one buffer
-      itsBuffer.getData()=Complex();
-      for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
-        std::transform(data, data+nSamples, itsModelVis[thread].data(),
-                       data, std::plus<dcomplex>());
+      if (itsOperation=="replace") {
+        itsBuffer.getData()=Complex();
+      }
+      if (itsOperation=="subtract") {
+        for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+          std::transform(data, data+nSamples, itsModelVis[thread].data(),
+                         data, std::minus<dcomplex>());
+        }
+      } else {
+          for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+            std::transform(data, data+nSamples, itsModelVis[thread].data(),
+                           data, std::plus<dcomplex>());
+          }
       }
 
       itsTimerPredict.stop();
