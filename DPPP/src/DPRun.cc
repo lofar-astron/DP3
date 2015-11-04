@@ -83,7 +83,6 @@ namespace LOFAR {
         libname = libname.substr (0, pos);
       }
       // Try to load and initialize the dynamic library.
-      cout<<"libname="<<libname<<endl;
       casa::DynLib dl(libname, string(), "register_"+libname, false);
       if (dl.getHandle()) {
         // See if registered now.
