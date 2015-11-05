@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
   } catch (LOFAR::APSException& err) {
     // just send err.what() to the error stream
     // this is just the error message, not a full backtrace
+    std::cerr << std::endl;
     std::cerr << "ParameterSet Exception detected: "<< err.what() << std::endl;
     return 1;
   } catch (LOFAR::Exception& err) {
@@ -95,6 +96,7 @@ int main(int argc, char *argv[])
     return 1;
 #ifdef __clang__
   } catch (std::exception& err) {
+    std::cerr << std::endl;
     std::cerr << "std exception detected: " << err.what() << std::endl;
     return 1;
 #endif
