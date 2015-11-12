@@ -1120,23 +1120,24 @@ namespace LOFAR {
           if (dr == itsNSubtr) {
             // This is the target which consists of multiple components.
             // To each of them the beam must be applied.
-            for (uint dr=0; dr<itsMix->targetDemixList().size(); ++dr) {
+            for (uint i=0; i<itsMix->targetDemixList().size(); ++i) {
               itsPredictVis = dcomplex();
               Simulator simulator(itsMix->phaseRef(), nSt, nBl, nCh,
                                   itsMix->baselines(), itsMix->freqDemix(),
                                   itsUVW, itsPredictVis);
-              for(size_t i = 0; i < itsMix->targetDemixList()[dr]->nComponents(); ++i)
+              for(size_t j = 0; j < itsMix->targetDemixList()[i]->nComponents(); ++j)
               {
-                simulator.simulate(itsMix->targetDemixList()[dr]->component(i));
+                simulator.simulate(itsMix->targetDemixList()[i]->component(j));
               }
-              applyBeam (time, itsMix->targetDemixList()[dr]->position(),
+              applyBeam (time, itsMix->targetDemixList()[i]->position(),
                          itsMix->applyBeam());
               itsModelVisDemix[dr]+=itsPredictVis;
             }
           } else {
+            itsModelVisDemix[dr]=dcomplex();
             Simulator simulator(itsDemixList[dr]->position(), nSt, nBl, nCh,
                                 itsMix->baselines(), itsMix->freqDemix(),
-                                itsUVW, itsPredictVis);
+                                itsUVW, itsModelVisDemix[dr]);
             for(size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i)
             {
               simulator.simulate(itsDemixList[dr]->component(i));
