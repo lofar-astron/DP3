@@ -298,7 +298,8 @@ namespace LOFAR {
       EstimateNew                           itsEstimate;
       //# Variables for the predict.
       casa::Matrix<double>                  itsUVW;
-      vector<casa::Cube<dcomplex> >         itsModelVis;
+      vector<casa::Cube<dcomplex> >         itsModelVisDemix;
+      vector<casa::Cube<dcomplex> >         itsModelVisSubtr;
       uint                                  itsNTimeOut;
       uint                                  itsNTimeOutSubtr;
       uint                                  itsTimeIndex;
