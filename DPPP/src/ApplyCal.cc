@@ -146,7 +146,14 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
       } else if (itsCorrectType == "tec") {
-        itsParmExprs.push_back("TEC");
+        if (itsParmDB->getNames("TEC:0:*").empty() &&
+                    itsParmDB->getDefNames("TEC:0:*").empty() ) {
+          itsParmExprs.push_back("TEC");
+        }
+        else {
+          itsParmExprs.push_back("TEC:0");
+          itsParmExprs.push_back("TEC:1");
+        }
       } else if (itsCorrectType == "clock") {
         if (itsParmDB->getNames("Clock:0:*").empty() &&
             itsParmDB->getDefNames("Clock:0:*").empty() ) {
@@ -364,8 +371,14 @@ namespace LOFAR {
           else if (itsCorrectType=="tec") {
             itsParms[0][ant][tf]=polar(1.,
                 parmvalues[0][ant][tf] * -8.44797245e9 / freq);
-            itsParms[1][ant][tf]=polar(1.,
-                parmvalues[0][ant][tf] * -8.44797245e9 / freq);
+            if (itsParmExprs.size() == 1) { // No TEC:0, only TEC:
+              itsParms[1][ant][tf]=polar(1.,
+                  parmvalues[0][ant][tf] * -8.44797245e9 / freq);
+            }
+            else { // TEC:0 and TEC:1
+              itsParms[1][ant][tf]=polar(1.,
+                  parmvalues[1][ant][tf] * -8.44797245e9 / freq);
+            }
           }
           else if (itsCorrectType=="clock") {
             itsParms[0][ant][tf]=polar(1.,
