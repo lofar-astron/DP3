@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
   try
   {
     TEST_SHOW_VERSION (argc, argv, DPPP);
-    INIT_LOGGER(basename("DPPP"));
+    INIT_LOGGER(basename(string("DPPP")));
     // Get the name of the parset file.
     if (argc>1 && (
           string(argv[1])=="--help" ||
