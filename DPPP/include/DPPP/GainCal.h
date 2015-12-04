@@ -89,7 +89,7 @@ namespace LOFAR {
         casa::Matrix<casa::DComplex> gx;
         casa::Matrix<casa::DComplex> gxx;
         casa::Matrix<casa::DComplex> h;
-        casa::Matrix<casa::DComplex> z;
+        std::vector<casa::Matrix<casa::DComplex> > z;
       };
 
       void exportToMatlab(uint ch);
