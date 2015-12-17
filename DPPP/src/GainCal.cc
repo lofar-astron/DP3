@@ -451,7 +451,7 @@ namespace LOFAR {
             iS.h(st,3)=conj(iS.g(st,3));
           }
 
-#pragma omp parallel for
+//#pragma omp parallel for
           for (uint st1=0;st1<nSt;++st1) {
             uint thread=OpenMP::threadNum();
             DComplex* vis_p;
@@ -518,7 +518,7 @@ namespace LOFAR {
           for (uint st=0;st<nUn;++st) {
             iS.h(st,0)=conj(iS.g(st,0));
           }
-#pragma omp parallel for
+//#pragma omp parallel for
           for (uint st1=0;st1<nUn;++st1) {
             uint thread=OpenMP::threadNum();
             DComplex* vis_p;
