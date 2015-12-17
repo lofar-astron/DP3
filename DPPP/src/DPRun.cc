@@ -49,6 +49,7 @@
 #include <DPPP/DPLogger.h>
 #include <Common/Timer.h>
 #include <Common/StreamUtil.h>
+#include <Common/OpenMP.h>
 
 #include <casa/OS/Path.h>
 #include <casa/OS/DirectoryIterator.h>
@@ -121,6 +122,9 @@ namespace LOFAR {
       }
 
       bool showcounts = parset.getBool ("showcounts", true);
+
+      uint numThreads = parset.getInt("numthreads", OpenMP::maxThreads());
+      OpenMP::setNumThreads(numThreads);
 
       // Create the steps and fill their DPInfo objects.
       DPStep::ShPtr firstStep = makeSteps (parset);
