@@ -44,8 +44,22 @@ bbs-reducer --sourcedb=tNDPPP-generic.MS/sky tNDPPP-generic.MS tPredict-bbs-beam
 
 rm tPredict-bbs-beam.parset
 
+#### Run BBS, corrupt data with beam, subtract from data
+
+cat > tPredict-bbs-beam-subtract.parset <<EOF
+Strategy.ChunkSize=100
+Strategy.Steps=[subtract_beam]
+
+Step.subtract_beam.Operation=PREDICT
+Step.subtract_beam.Model.Beam.Enable=TRUE
+Step.subtract_beam.Model.Beam.UseChannelFreq=TRUE
+Step.subtract_beam.Output.Column=SUBTRACT_beam
+EOF
+
+bbs-reducer --sourcedb=tNDPPP-generic.MS/sky tNDPPP-generic.MS tPredict-bbs-beam.parset
+
 #### Store output from BBS in separate table
 
-taql 'select from (select PREDICT_nobeam, PREDICT_beam from tNDPPP-generic.MS giving tPredict.tab as plain)'
+taql 'select from (select PREDICT_nobeam, PREDICT_beam, SUBTRACT_BEAM from tNDPPP-generic.MS giving tPredict.tab as plain)'
 
 tar czf tPredict.tab.tgz tPredict.tab

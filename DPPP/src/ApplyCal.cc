@@ -44,12 +44,12 @@ namespace LOFAR {
 
     ApplyCal::ApplyCal (DPInput* input,
                         const ParameterSet& parset,
-                        const string& prefix)
+                        const string& prefix,
+                        bool substep)
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
         itsCorrectType (toLower(parset.getString (prefix + "correction", "gain"))),
-        itsInvert      (parset.getBool (prefix + "invert", true)),
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
             "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
@@ -61,10 +61,18 @@ namespace LOFAR {
         itsUseAP       (false)
     {
       ASSERT (!itsParmDBName.empty());
+      if (substep) {
+        itsInvert=false;
+      } else {
+        itsInvert=parset.getBool (prefix + "invert", true);
+      }
       if (itsCorrectType=="fulljones" && itsUpdateWeights) {
         ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
       }
     }
+
+    ApplyCal::ApplyCal()
+    {}
 
     ApplyCal::~ApplyCal()
     {}
@@ -109,7 +117,7 @@ namespace LOFAR {
           // Defvalues with :Ampl present
           itsUseAP = true;
         } else {
-          THROW (Exception, "No gains found in parmdb");
+          THROW (Exception, "No gains found in parmdb "+itsParmDBName);
         }
       }
 
