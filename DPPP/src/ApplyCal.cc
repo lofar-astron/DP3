@@ -279,9 +279,7 @@ namespace LOFAR {
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
 
-      itsLastTime = std::min(
-          bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval,
-          info().startTime() + info().ntime() * itsTimeInterval);
+      itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
 
       map<string, vector<double> > parmMap;
       map<string, vector<double> >::iterator parmIt;
