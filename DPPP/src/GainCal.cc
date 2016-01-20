@@ -823,6 +823,13 @@ namespace LOFAR {
         itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
       }
 
+      // Write out default gains
+      if (itsMode=="diagonal" || itsMode=="fulljones") {
+        ParmValueSet pvset(ParmValue(1.0));
+        itsParmDB->putDefValue("Gain:0:0:Real",pvset);
+        itsParmDB->putDefValue("Gain:1:1:Real",pvset);
+      }
+
       // Write the solutions per parameter.
       const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
       const char* strri[] = {"Real:","Imag:"};
