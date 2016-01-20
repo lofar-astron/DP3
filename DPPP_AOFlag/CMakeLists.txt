@@ -1,6 +1,6 @@
 # $Id: CMakeLists.txt 27640 2013-12-04 08:02:49Z diepen $
 
-lofar_package(AOFlaggerStep 1.0 DEPENDS DPPP)
+lofar_package(DPPP_AOFlag 1.0 DEPENDS DPPP)
 
 include(LofarFindPackage)
 lofar_find_package(AOFlagger REQUIRED)
@@ -16,6 +16,6 @@ lofar_find_package(CFITSIO REQUIRED)
 #  list(APPEND LOFAR_EXTRA_LIBRARIES ${RT_LIBRARY})
 #endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
-add_subdirectory(include/AOFlaggerStep)
+add_subdirectory(include/DPPP_AOFlag)
 add_subdirectory(src)
 add_subdirectory(test)

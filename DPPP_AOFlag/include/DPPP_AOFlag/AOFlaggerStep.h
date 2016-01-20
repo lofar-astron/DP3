@@ -1,4 +1,4 @@
-//# AORFlagger.h: DPPP step class to flag data using rficonsole's functionality
+//# AOFlaggerStep.h: DPPP step class to flag data using rficonsole's functionality
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,25 +17,24 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id$
+//# $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
 //#
-//# @author Ger van Diepen
+//# @author Andre Offringa, Ger van Diepen
 
-#ifndef DPPP_AORFLAGGER_H
-#define DPPP_AORFLAGGER_H
+#ifndef DPPP_AOFLAGGERSTEP_H
+#define DPPP_AOFLAGGERSTEP_H
 
 // @file
-// @brief DPPP step class to flag using rficonsole's functionality
+// @brief DPPP step class to flag using aoflagger's functionality
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/FlagCounter.h>
+
 #include <Common/lofar_vector.h>
 #include <Common/lofar_smartptr.h>
-#include <AOFlagger/msio/image2d.h>
-#include <AOFlagger/msio/mask2d.h>
-#include <AOFlagger/util/progresslistener.h>
-#include <AOFlagger/quality/statisticscollection.h>
+
+#include <aoflagger.h>
 
 namespace LOFAR {
 
@@ -45,13 +44,14 @@ namespace LOFAR {
     // @ingroup NDPPP
 
     // This class is a DPStep class flagging data points based on the
-    // rficonsole program (aka AOFlagger) written by Andre Offringa.
+    // aoflagger library written by Andre Offringa.
     // See the following papers for background information:
     // <ul>
     // <li> Post-correlation radio frequency interference classification
     //      methods -- http://arxiv.org/abs/1002.1957 
     // <li> A LOFAR RFI detection pipeline and its first results
     //      -- http://arxiv.org/abs/1007.2089
+    // </ul>
     //
     // When a correlation is flagged, all correlations for that data point
     // are flagged. It is possible to specify which correlations have to be
@@ -66,14 +66,18 @@ namespace LOFAR {
     // apply the resulting flags to the crosscorrelations, possibly selected
     // on baseline length.
 
-    class AORFlagger: public DPStep
+    class AOFlaggerStep : public DPStep
     {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      AORFlagger (DPInput*, const ParameterSet&, const string& prefix);
+      AOFlaggerStep(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~AORFlagger();
+      virtual ~AOFlaggerStep();
+
+      // Create an AOFlaggerStep object using the given parset.
+      static DPStep::ShPtr makeStep (DPInput*, const ParameterSet&,
+                                     const std::string&);
 
       // Process the data.
       // When processed, it invokes the process function of the next step.
@@ -107,23 +111,21 @@ namespace LOFAR {
       void flagBaseline (uint leftOverlap, uint windowSize,
                          uint rightOverlap, uint bl,
                          FlagCounter& counter,
-                         rfiStrategy::Strategy&,
-                         StatisticsCollection& rfiStats);
+                         aoflagger::QualityStatistics& rfiStats);
 
       // Add the flags to the statistics.
-      void addStats (StatisticsCollection& rfiStats,
-                     const Image2DPtr& reals, const Image2DPtr& imags,
-                     const Mask2DCPtr& mask, const Mask2DPtr& origFlags,
-                     int bl, uint polarization);
+      void addStats (aoflagger::QualityStatistics& rfiStats,
+                     const aoflagger::ImageSet& values, 
+                     const aoflagger::FlagMask& rfiMask, const aoflagger::FlagMask& origMask,
+                     int bl);
 
       // Fill the rfi strategy.
-      void fillStrategy (boost::shared_ptr<rfiStrategy::Strategy>&);
+      void fillStrategy();
 
       //# Data members.
       string           itsName;
       uint             itsBufIndex;
       uint             itsNTimes;
-      uint             itsNTimesToDo;
       string           itsStrategyName;
       uint             itsWindowSize;
       uint             itsOverlap;       //# extra time slots on both sides
@@ -143,13 +145,14 @@ namespace LOFAR {
       double           itsMoveTime;      //# data move timer (sum all threads)
       double           itsFlagTime;      //# flag timer (sum of all threads)
       double           itsQualTime;      //# quality timer (sum of all threads)
-      boost::shared_ptr<rfiStrategy::Strategy> itsStrategy;
-      DummyProgressListener itsProgressListener;
-      StatisticsCollection  itsRfiStats;
       casa::Vector<double>  itsFreqs;
+      aoflagger::AOFlagger  itsAOFlagger;
+      boost::scoped_ptr<aoflagger::Strategy> itsStrategy;
+      boost::scoped_ptr<aoflagger::QualityStatistics> itsRfiStats;
     };
 
   } //# end namespace
 }
+
 
 #endif

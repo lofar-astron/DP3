@@ -1,9 +1,0 @@
-#!/bin/sh
-
-# Define the path for finding the library.
-LD_LIBRARY_PATH=../src:/Users/diepen/external/lib:$LD_LIBRARYPATH
-DYLD_LIBRARY_PATH=../src:/Users/diepen/external/lib:$DYLD_LIBRARYPATH
-export LD_LIBRARY_PATH
-export DYLD_LIBRARY_PATH
-
-./tAOFlaggerStep

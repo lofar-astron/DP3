@@ -6,7 +6,7 @@ set(inst_HEADERS
   DPLogger.h ProgressMeter.h FlagCounter.h
   UVWCalculator.h BaselineSelection.h
   MSReader.h MSWriter.h MSUpdater.h Counter.h
-  Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h AORFlagger.h
+  Averager.h MedFlagger.h PreFlagger.h UVWFlagger.h
   StationAdder.h ScaleData.h Filter.h
   PhaseShift.h Demixer.h
   Cursor.h CursorUtilCasa.h Position.h Stokes.h SourceDBUtil.h

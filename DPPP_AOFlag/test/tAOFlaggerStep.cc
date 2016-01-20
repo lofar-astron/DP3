@@ -1,4 +1,4 @@
-//# tAORFlagger.cc: Test program for class AORFlagger
+//# tAOFlaggerStep.cc: Test program for class AOFlaggerStep
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,12 +17,13 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id$
+//# $Id: tAOFlaggerStep.cc 24221 2013-03-12 12:24:48Z diepen $
 //#
 //# @author Ger van Diepen
 
 #include <lofar_config.h>
-#include <DPPP/AORFlagger.h>
+#include <DPPP_AOFlag/AOFlaggerStep.h>
+#include <DPPP/DPRun.h>
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
@@ -213,7 +214,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   DPStep::ShPtr step1(in);
   ParameterSet parset;
   parset.add ("timewindow", "1");
-  DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
+  DPStep::ShPtr step2 = DPRun::findStepCtor("aoflag")(in, parset, "");
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
@@ -232,7 +233,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
   ParameterSet parset;
   parset.add ("timewindow", "4");
   parset.add ("overlapmax", "1");
-  DPStep::ShPtr step2(new AORFlagger(in, parset, ""));
+  DPStep::ShPtr step2 = DPRun::findStepCtor("aoflag")(in, parset, "");
   DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
@@ -242,7 +243,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
 
 int main()
 {
-  INIT_LOGGER ("tAORFlagger");
+  INIT_LOGGER ("tAOFlaggerStep");
   try {
 
     for (uint i=0; i<2; ++i) {

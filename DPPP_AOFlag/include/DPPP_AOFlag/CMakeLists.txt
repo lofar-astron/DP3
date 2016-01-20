@@ -1,7 +1,7 @@
 # $Id: CMakeLists.txt 30990 2015-02-12 12:27:47Z diepen $
 
 # List of header files that will be installed.
-set(inst_HEADERS AOFlaggerStep.h)
+set(inst_HEADERS AOFlaggerStep.h SlidingFlagger.h Register.h)
 
 # Create symbolic link to include directory.
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
