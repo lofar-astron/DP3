@@ -50,6 +50,7 @@
 #include <vector>
 #include <algorithm>
 
+#include <limits>
 #include <iostream>
 #include <iomanip>
 
@@ -856,11 +857,12 @@ namespace LOFAR {
             // Collect its solutions for all times in a single array.
             for (uint ts=0; ts<ntime; ++ts) {
               if (itsAntMaps[ts][st]==-1) {
+                // No solution found, insert NaN
                 if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
                     realim==0 && (pol==0||pol==3)) {
-                  values(0, ts) = 1;
+                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
                 } else {
-                  values(0, ts) = 0;
+                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
                 }
               } else {
                 int rst=itsAntMaps[ts][st]; // Real station
