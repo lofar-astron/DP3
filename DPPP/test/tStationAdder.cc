@@ -279,7 +279,7 @@ private:
     Cube<Complex> tmp=from.copy();
     Cube<Complex>::iterator tmpit=tmp.begin();
     Cube<Float>::const_iterator weightit=weights.begin();
-    for (; tmpit!=to.end() && weightit!=weights.end(); tmpit++, weightit++) {
+    for (; tmpit!=tmp.end() && weightit!=weights.end(); tmpit++, weightit++) {
       *tmpit *= *weightit;
     }
     to += tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
@@ -291,7 +291,7 @@ private:
     Cube<Complex> tmp=from.copy();
     Cube<Complex>::iterator tmpit=tmp.begin();
     Cube<Float>::const_iterator weightit=weights.begin();
-    for (; tmpit!=to.end() && weightit!=weights.end(); tmpit++, weightit++) {
+    for (; tmpit!=tmp.end() && weightit!=weights.end(); tmpit++, weightit++) {
       *tmpit *= *weightit;
     }
     to += conj(tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
