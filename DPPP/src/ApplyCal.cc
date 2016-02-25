@@ -175,6 +175,8 @@ namespace LOFAR {
         itsParmExprs.push_back("CommonRotationAngle");
       } else if (itsCorrectType == "commonscalarphase") {
         itsParmExprs.push_back("CommonScalarPhase");
+      } else if (itsCorrectType == "rotationmeasure") {
+        itsParmExprs.push_back("RotationMeasure");
       }
       else {
         THROW (Exception, "Correction type " + itsCorrectType +
@@ -399,10 +401,30 @@ namespace LOFAR {
             }
           }
           else if (itsCorrectType=="commonrotationangle") {
-            itsParms[0][ant][tf] =  cos(parmvalues[0][ant][tf]);
-            itsParms[1][ant][tf] = -sin(parmvalues[0][ant][tf]);
-            itsParms[2][ant][tf] =  sin(parmvalues[0][ant][tf]);
-            itsParms[3][ant][tf] =  cos(parmvalues[0][ant][tf]);
+            double phi=parmvalues[0][ant][tf];
+            if (itsInvert) {
+              phi = -phi;
+            }
+            double sinv=sin(phi);
+            double cosv=cos(phi);
+            itsParms[0][ant][tf] =  cosv;
+            itsParms[1][ant][tf] = -sinv;
+            itsParms[2][ant][tf] =  sinv;
+            itsParms[3][ant][tf] =  cosv;
+          }
+          else if (itsCorrectType=="rotationmeasure") {
+            double lambda2 = casa::C::c / freq;
+            lambda2 *= lambda2;
+            double chi = parmvalues[0][ant][tf] * lambda2;
+            if (itsInvert) {
+              chi = -chi;
+            }
+            double sinv = sin(parmvalues[0][ant][tf] * chi);
+            double cosv = cos(parmvalues[0][ant][tf] * chi);
+            itsParms[0][ant][tf] =  cosv;
+            itsParms[1][ant][tf] = -sinv;
+            itsParms[2][ant][tf] =  sinv;
+            itsParms[3][ant][tf] =  cosv;
           }
           else if (itsCorrectType=="commonscalarphase") {
             itsParms[0][ant][tf] = polar(1., parmvalues[0][ant][tf]);
@@ -410,6 +432,7 @@ namespace LOFAR {
           }
 
           // Invert diagonal corrections (not fulljones and commonrotationangle)
+          // For fulljones it will be handled in applyFull
           if (itsInvert && itsParms.size()==2) {
             itsParms[0][ant][tf] = 1./itsParms[0][ant][tf];
             itsParms[1][ant][tf] = 1./itsParms[1][ant][tf];
@@ -494,7 +517,7 @@ namespace LOFAR {
       gainB[3] = itsParms[3][antB][timeFreqOffset];
 
       DComplex gainAxvis[4];
-      if (itsInvert) {
+      if (itsInvert && itsCorrectType=="fulljones") {
         invert(gainA,itsSigmaMMSE);
         invert(gainB,itsSigmaMMSE);
       }
