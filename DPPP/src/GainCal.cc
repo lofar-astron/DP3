@@ -550,9 +550,9 @@ namespace LOFAR {
             //cout<<", w="<<ww<<"       ";
             iS.g(st1,0)=tt/ww;
             //cout<<", g="<<iS.g(st1,0)<<endl;
-            //if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-            //  iS.g(st1,0)/=abs(iS.g(st1,0));
-            //}
+            if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+              iS.g(st1,0)/=abs(iS.g(st1,0));
+            }
 
             if (itsStefcalVariant=="2a") {
               iS.h(st1,0)=conj(iS.g(st1,0));
