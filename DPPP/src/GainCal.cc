@@ -141,7 +141,7 @@ namespace LOFAR {
       // Read the antenna beam info from the MS.
       // Only take the stations actually used.
       itsAntennaUsedNames.resize(info().antennaUsed().size());
-      itsDataPerAntenna.resize(info().antennaUsed().size());
+      itsDataPerAntenna.resize(info().antennaNames().size());
       casa::Vector<int> antsUsed = info().antennaUsed();
       for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
         itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
@@ -302,8 +302,6 @@ namespace LOFAR {
       uint nCr=info().ncorr();
       uint nCh=info().nchan();
       uint nBl=info().nbaselines();
-
-      vector<uint> dataPerAntenna(info().antennaNames().size(),0);
 
       // I assume antennas are numbered 0, 1, 2, ...
       for (uint bl=0;bl<nBl;++bl) {
