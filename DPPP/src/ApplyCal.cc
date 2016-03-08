@@ -446,7 +446,9 @@ namespace LOFAR {
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
       uint numParms;
-      if (itsCorrectType=="fulljones" || itsCorrectType=="commonrotationangle") {
+      if (itsCorrectType=="fulljones" || 
+          itsCorrectType=="commonrotationangle" || 
+          itsCorrectType=="rotationmeasure") {
         numParms = 4;
       }
       else {
