@@ -419,8 +419,8 @@ namespace LOFAR {
             if (itsInvert) {
               chi = -chi;
             }
-            double sinv = sin(parmvalues[0][ant][tf] * chi);
-            double cosv = cos(parmvalues[0][ant][tf] * chi);
+            double sinv = sin(chi);
+            double cosv = cos(chi);
             itsParms[0][ant][tf] =  cosv;
             itsParms[1][ant][tf] = -sinv;
             itsParms[2][ant][tf] =  sinv;
