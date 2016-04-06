@@ -792,17 +792,28 @@ namespace LOFAR {
       // Construct solution grid.
       const Vector<double>& freq      = getInfo().chanFreqs();
       const Vector<double>& freqWidth = getInfo().chanWidths();
-      BBS::Axis::ShPtr freqAxis(new BBS::RegularAxis(freq[0] - freqWidth[0]
-        * 0.5, getInfo().totalBW(), 1));
-      BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis
-                                (info().startTime(),
-                                 info().timeInterval() * itsSolInt, ntime));
+      BBS::Axis::ShPtr freqAxis(
+          new BBS::RegularAxis(
+              freq[0] - freqWidth[0] * 0.5,
+              freqWidth[0]*itsNChan,
+              itsNFreqCells));
+      BBS::Axis::ShPtr timeAxis(
+          new BBS::RegularAxis(
+              info().startTime(),
+              info().timeInterval() * itsSolInt,
+              ntime));
       BBS::Grid solGrid(freqAxis, timeAxis);
       // Create domain grid.
-      BBS::Axis::ShPtr tdomAxis(new BBS::RegularAxis
-                                (info().startTime(),
-                                 info().timeInterval() * itsSolInt * ntime, 1));
-      BBS::Grid domainGrid(freqAxis, tdomAxis);
+      BBS::Axis::ShPtr tdomAxis(
+          new BBS::RegularAxis(
+              info().startTime(),
+              info().timeInterval() * itsSolInt * ntime,
+              1));
+      BBS::Axis::ShPtr fdomAxis(
+          new BBS::RegularAxis(
+              freq[0] - freqWidth[0] * 0.5,
+              getInfo().totalBW(), 1));
+      BBS::Grid domainGrid(fdomAxis, tdomAxis);
 
       // Open the ParmDB at the first write.
       // In that way the instrumentmodel ParmDB can be in the MS directory.
@@ -862,34 +873,36 @@ namespace LOFAR {
             if (itsMode=="scalarphase") {
               name="CommonScalarPhase:"+suffix;
             }
-            // Collect its solutions for all times in a single array.
+            // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {
-              if (itsAntMaps[ts][st]==-1) {
-                // No solution found, insert NaN
-                if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
-                    realim==0 && (pol==0||pol==3)) {
-                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
+              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+                if (itsAntMaps[ts][st]==-1) {
+                  // No solution found, insert NaN
+                  if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
+                      realim==0 && (pol==0||pol==3)) {
+                    values(freqCell, ts) = std::numeric_limits<double>::quiet_NaN();
+                  } else {
+                    values(freqCell, ts) = std::numeric_limits<double>::quiet_NaN();
+                  }
                 } else {
-                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
-                }
-              } else {
-                int rst=itsAntMaps[ts][st]; // Real station
-                if (itsMode=="fulljones") {
-                  if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](rst,seqnr/2,0));
-                  } else {
-                    values(0, ts) = -imag(itsSols[ts](rst,seqnr/2,0)); // Conjugate transpose!
+                  int rst=itsAntMaps[ts][st]; // Real station
+                  if (itsMode=="fulljones") {
+                    if (seqnr%2==0) {
+                      values(freqCell, ts) = real(itsSols[ts](rst,seqnr/2,freqCell));
+                    } else {
+                      values(freqCell, ts) = -imag(itsSols[ts](rst,seqnr/2,freqCell)); // Conjugate transpose!
+                    }
+                  } else if (itsMode=="diagonal") {
+                    uint sSt=itsSols[ts].size()/2;
+                    if (seqnr%2==0) {
+                      values(freqCell, ts) = real(itsSols[ts](pol/3*sSt+rst,0,freqCell)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                    } else {
+                      values(freqCell, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0,freqCell)); // Conjugate transpose!
+                    }
+                  } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
+                    uint sSt=itsSols[ts].size()/2;
+                    values(freqCell, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0,freqCell)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
                   }
-                } else if (itsMode=="diagonal") {
-                  uint sSt=itsSols[ts].size()/2;
-                  if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
-                  } else {
-                    values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0,0)); // Conjugate transpose!
-                  }
-                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
-                  uint sSt=itsSols[ts].size()/2;
-                  values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
                 }
               }
             }
