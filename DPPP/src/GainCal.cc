@@ -107,6 +107,7 @@ namespace LOFAR {
       }
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase");
+      ASSERT(itsStefcalVariant=="1c");
     }
 
     GainCal::~GainCal()
@@ -515,13 +516,6 @@ namespace LOFAR {
             iS.g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
             iS.g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
             iS.g(st1,3) = invdet * ( w(0) * t(3) - w(2) * t(1) );
-
-            if (itsStefcalVariant=="2a") {
-              iS.h(st1,0)=conj(iS.g(st1,0));
-              iS.h(st1,1)=conj(iS.g(st1,1));
-              iS.h(st1,2)=conj(iS.g(st1,2));
-              iS.h(st1,3)=conj(iS.g(st1,3));
-            }
           }
         } else {// ======================== Nonpolarized =======================
           for (uint freqCell=0; freqCell<1; ++freqCell) {
@@ -562,28 +556,6 @@ namespace LOFAR {
               if (itsMode=="phaseonly" || itsMode=="scalarphase") {
                 iS.g(st1,0)/=abs(iS.g(st1,0));
               }
-
-              if (itsStefcalVariant=="2a") {
-                iS.h(st1,0)=conj(iS.g(st1,0));
-              } else if (itsStefcalVariant=="2b") {
-                iS.h(st1,0)=0.8*iS.h(st1,0)-0.2*conj(iS.g(st1,0));
-              }
-            }
-            if (itsStefcalVariant!="1c") {
-              double fronormdiff=0;
-              double fronormg=0;
-              for (uint ant=0;ant<nUn;++ant) {
-                for (uint cr=0;cr<nCr;++cr) {
-                  DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
-                  fronormdiff+=abs(diff*diff);
-                  fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
-                }
-              }
-              fronormdiff=sqrt(fronormdiff);
-              fronormg=sqrt(fronormg);
-
-              dg = fronormdiff/fronormg;
-              dgs.push_back(dg);
             }
           }
         } // ============================== Relaxation   =======================
