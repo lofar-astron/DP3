@@ -846,7 +846,7 @@ namespace LOFAR {
       // Write the solutions per parameter.
       const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
       const char* strri[] = {"Real:","Imag:"};
-      Matrix<double> values(1, ntime);
+      Matrix<double> values(itsNFreqCells, ntime);
 
       DComplex sol;
 
