@@ -402,10 +402,10 @@ namespace LOFAR {
       uint nCh = info().nchan();
 
       iS.allg.resize(nUn,nCr,itsNFreqCells);
-      iS.g.resize(nUn,nCr);
-      iS.gold.resize(nUn,nCr);
-      iS.gx.resize(nUn,nCr);
-      iS.gxx.resize(nUn,nCr);
+      //iS.g.resize(nUn,nCr);
+      iS.gold.resize(nUn,nCr,itsNFreqCells);
+      iS.gx.resize(nUn,nCr,itsNFreqCells);
+      iS.gxx.resize(nUn,nCr,itsNFreqCells);
       iS.h.resize(nUn,nCr);
       uint numThreads=OpenMP::maxThreads();
       for (uint thread=0; thread<numThreads; ++thread) {
@@ -434,16 +434,18 @@ namespace LOFAR {
       }
       if (mode=="fulljones") {
         for (uint st=0;st<nUn;++st) {
-          iS.g(st,0)=1.;
-          iS.g(st,1)=0.;
-          iS.g(st,2)=0.;
-          iS.g(st,3)=1.;
+          for (uint freqCell=0;freqCell<itsNFreqCells;++freqCell) {
+            iS.allg(st,0,freqCell)=ginit;
+            iS.allg(st,1,freqCell)=0.;
+            iS.allg(st,2,freqCell)=0.;
+            iS.allg(st,3,freqCell)=ginit;
+          }
         }
       } else {
-        iS.g=ginit;
+        iS.allg=ginit;
       }
 
-      iS.gx = iS.g;
+      iS.gx = iS.allg;
       int sstep=0;
 
       uint iter=0;
@@ -451,76 +453,76 @@ namespace LOFAR {
         iter=itsMaxIter;
       }
       for (;iter<itsMaxIter;++iter) {
-        iS.gold=iS.g;
+        iS.gold=iS.allg;
 
-        if (mode=="fulljones") { // ======================== Polarized =======================
-          for (uint st=0;st<nSt;++st) {
-            iS.h(st,0)=conj(iS.g(st,0));
-            iS.h(st,1)=conj(iS.g(st,1));
-            iS.h(st,2)=conj(iS.g(st,2));
-            iS.h(st,3)=conj(iS.g(st,3));
-          }
-
-//#pragma omp parallel for
-          for (uint st1=0;st1<nSt;++st1) {
-            uint thread=OpenMP::threadNum();
-            DComplex* vis_p;
-            DComplex* mvis_p;
-            Vector<DComplex> w(nCr);
-            Vector<DComplex> t(nCr);
-
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                uint zoff=nSt*ch+nSt*nCh*time;
-                mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-                mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-                mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-                mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
-                mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-                mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-                mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-                mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
-              }
+        for (uint freqCell=0; freqCell<1; ++freqCell) {
+          if (mode=="fulljones") { // ======================== Polarized =======================
+            for (uint st=0;st<nSt;++st) {
+              iS.h(st,0)=conj(iS.allg(st,0,freqCell));
+              iS.h(st,1)=conj(iS.allg(st,1,freqCell));
+              iS.h(st,2)=conj(iS.allg(st,2,freqCell));
+              iS.h(st,3)=conj(iS.allg(st,3,freqCell));
             }
 
-            w=0;
+  //#pragma omp parallel for
+            for (uint st1=0;st1<nSt;++st1) {
+              uint thread=OpenMP::threadNum();
+              DComplex* vis_p;
+              DComplex* mvis_p;
+              Vector<DComplex> w(nCr);
+              Vector<DComplex> t(nCr);
 
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                for (uint st2=0;st2<nSt;++st2) {
-                  uint zoff=st2+nSt*ch+nSt*nCh*time;
-                  w(0) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,0) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,2);
-                  w(1) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,3);
-                  w(3) += conj(iS.z[thread](zoff,1))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,3))*iS.z[thread](zoff,3);
+              for (uint time=0;time<solInt;++time) {
+                for (uint ch=0;ch<nCh;++ch) {
+                  uint zoff=nSt*ch+nSt*nCh*time;
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
                 }
               }
-            }
-            w(2)=conj(w(1));
 
-            t=0;
+              w=0;
 
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+              for (uint time=0;time<solInt;++time) {
+                for (uint ch=0;ch<nCh;++ch) {
+                  for (uint st2=0;st2<nSt;++st2) {
+                    uint zoff=st2+nSt*ch+nSt*nCh*time;
+                    w(0) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,0) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,2);
+                    w(1) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,3);
+                    w(3) += conj(iS.z[thread](zoff,1))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,3))*iS.z[thread](zoff,3);
+                  }
+                }
               }
+              w(2)=conj(w(1));
+
+              t=0;
+
+              for (uint time=0;time<solInt;++time) {
+                for (uint ch=0;ch<nCh;++ch) {
+                  vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+                }
+              }
+              DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
+              iS.allg(st1,0,freqCell) = invdet * ( w(3) * t(0) - w(1) * t(2) );
+              iS.allg(st1,1,freqCell) = invdet * ( w(3) * t(1) - w(1) * t(3) );
+              iS.allg(st1,2,freqCell) = invdet * ( w(0) * t(2) - w(2) * t(0) );
+              iS.allg(st1,3,freqCell) = invdet * ( w(0) * t(3) - w(2) * t(1) );
             }
-            DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
-            iS.g(st1,0) = invdet * ( w(3) * t(0) - w(1) * t(2) );
-            iS.g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
-            iS.g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
-            iS.g(st1,3) = invdet * ( w(0) * t(3) - w(2) * t(1) );
-          }
-        } else {// ======================== Nonpolarized =======================
-          for (uint freqCell=0; freqCell<1; ++freqCell) {
+          } else {// ======================== Nonpolarized =======================
             for (uint st=0;st<nUn;++st) {
-              iS.h(st,0)=conj(iS.g(st,0));
+              iS.h(st,0)=conj(iS.allg(st,0,freqCell));
             }
 
             for (uint st1=0;st1<nUn;++st1) {
@@ -551,122 +553,139 @@ namespace LOFAR {
               }
               //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
               //cout<<", w="<<ww<<"       ";
-              iS.g(st1,0)=tt/ww;
+              iS.allg(st1,0,freqCell)=tt/ww;
               //cout<<", g="<<iS.g(st1,0)<<endl;
               if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-                iS.g(st1,0)/=abs(iS.g(st1,0));
+                iS.allg(st1,0,freqCell)/=abs(iS.allg(st1,0,freqCell));
               }
             }
           }
         } // ============================== Relaxation   =======================
         if (iter % 2 == 1 && itsStefcalVariant=="1c") {
-          if (itsDebugLevel>7) {
-            cout<<"iter: "<<iter<<endl;
-          }
-          if (itsDetectStalling && iter > 20 && dgx-dg <= 5.0e-3*dg) {
-          // This iteration did not improve much upon the previous
-          // Stalling detection only after 20 iterations, to account for
-          // ''startup problems''
-            if (itsDebugLevel>3) {
-              cout<<"**"<<endl;
-            }
-            badIters++;
-          } else {
-            badIters=0;
-          }
-
-          if (badIters>=maxBadIters && itsDetectStalling) {
-            if (itsDebugLevel>3) {
-              cout<<"Detected stall"<<endl;
-            }
-            itsStalled++;
-            break;
-          }
-
-          dgxx = dgx;
-          dgx  = dg;
-
-          double fronormdiff=0;
-          double fronormg=0;
-          for (uint ant=0;ant<nUn;++ant) {
-            for (uint cr=0;cr<nCr;++cr) {
-              DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
-              fronormdiff+=abs(diff*diff);
-              fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
-            }
-          }
-          fronormdiff=sqrt(fronormdiff);
-          fronormg=sqrt(fronormg);
-
-          dg = fronormdiff/fronormg;
-          if (itsDebugLevel>1) {
-            dgs.push_back(dg);
-          }
-
-          if (dg <= itsTolerance) {
-            itsConverged++;
-            break;
-          }
-
-          if (itsDebugLevel>7) {
-            cout<<"Averaged"<<endl;
-          }
-          for (uint ant=0;ant<nUn;++ant) {
-            for (uint cr=0;cr<nCr;++cr) {
-              iS.g(ant,cr) = (1-omega) * iS.g(ant,cr) + omega * iS.gold(ant,cr);
-            }
-          }
-
-          if (!threestep) {
-            threestep = (iter+1 >= nomega) ||
-                ( max(dg,max(dgx,dgxx)) <= 1.0e-3 && dg<dgx && dgx<dgxx);
+          std::vector<bool> converged(itsNFreqCells,false);
+          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             if (itsDebugLevel>7) {
-              cout<<"Threestep="<<boolalpha<<threestep<<endl;
+              cout<<"iter: "<<iter<<endl;
             }
-          }
-
-          if (threestep) {
-            if (sstep <= 0) {
-              if (dg <= c1 * dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=c1*dgx"<<endl;
-                }
-                for (uint ant=0;ant<nUn;++ant) {
-                  for (uint cr=0;cr<nCr;++cr) {
-                    iS.g(ant,cr) = f1q * iS.g(ant,cr) + f2q * iS.gx(ant,cr);
-                  }
-                }
-              } else if (dg <= dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=dgx"<<endl;
-                }
-                for (uint ant=0;ant<nUn;++ant) {
-                  for (uint cr=0;cr<nCr;++cr) {
-                    iS.g(ant,cr) = f1 * iS.g(ant,cr) + f2 * iS.gx(ant,cr) + f3 * iS.gxx(ant,cr);
-                  }
-                }
-              } else if (dg <= c2 *dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=c2*dgx"<<endl;
-                }
-                iS.g = iS.gx;
-                sstep = 1;
-              } else {
-                //cout<<"else"<<endl;
-                iS.g = iS.gxx;
-                sstep = 2;
+            if (itsDetectStalling && iter > 20 && dgx-dg <= 5.0e-3*dg) {
+            // This iteration did not improve much upon the previous
+            // Stalling detection only after 20 iterations, to account for
+            // ''startup problems''
+              if (itsDebugLevel>3) {
+                cout<<"**"<<endl;
               }
+              badIters++;
             } else {
-              if (itsDebugLevel>7) {
-                cout<<"no sstep"<<endl;
+              badIters=0;
+            }
+
+            if (badIters>=maxBadIters && itsDetectStalling) {
+              if (itsDebugLevel>3) {
+                cout<<"Detected stall"<<endl;
               }
-              sstep = sstep - 1;
+              itsStalled++;
+              converged[freqCell]=true;
+            }
+
+            dgxx = dgx;
+            dgx  = dg;
+
+            double fronormdiff=0;
+            double fronormg=0;
+            for (uint ant=0;ant<nUn;++ant) {
+              for (uint cr=0;cr<nCr;++cr) {
+                DComplex diff=iS.allg(ant,cr,freqCell)-iS.gold(ant,cr,freqCell);
+                fronormdiff+=abs(diff*diff);
+                fronormg+=abs(iS.allg(ant,cr,freqCell)*iS.allg(ant,cr,freqCell));
+              }
+            }
+            fronormdiff=sqrt(fronormdiff);
+            fronormg=sqrt(fronormg);
+
+            dg = fronormdiff/fronormg;
+            if (itsDebugLevel>1) {
+              dgs.push_back(dg);
+            }
+
+            if (dg <= itsTolerance) {
+              itsConverged++;
+              converged[freqCell]=true;
+            }
+
+            if (itsDebugLevel>7) {
+              cout<<"Averaged"<<endl;
+            }
+            for (uint ant=0;ant<nUn;++ant) {
+              for (uint cr=0;cr<nCr;++cr) {
+                iS.allg(ant,cr,freqCell) = (1-omega) * iS.allg(ant,cr,freqCell) +
+                                               omega * iS.gold(ant,cr,freqCell);
+              }
+            }
+
+            if (!threestep) {
+              threestep = (iter+1 >= nomega) ||
+                  ( max(dg,max(dgx,dgxx)) <= 1.0e-3 && dg<dgx && dgx<dgxx);
+              if (itsDebugLevel>7) {
+                cout<<"Threestep="<<boolalpha<<threestep<<endl;
+              }
+            }
+
+            if (threestep) {
+              if (sstep <= 0) {
+                if (dg <= c1 * dgx) {
+                  if (itsDebugLevel>7) {
+                    cout<<"dg<=c1*dgx"<<endl;
+                  }
+                  for (uint ant=0;ant<nUn;++ant) {
+                    for (uint cr=0;cr<nCr;++cr) {
+                      iS.allg(ant,cr,freqCell) = f1q * iS.allg(ant,cr,freqCell) +
+                                                 f2q * iS.gx(ant,cr,freqCell);
+                    }
+                  }
+                } else if (dg <= dgx) {
+                  if (itsDebugLevel>7) {
+                    cout<<"dg<=dgx"<<endl;
+                  }
+                  for (uint ant=0;ant<nUn;++ant) {
+                    for (uint cr=0;cr<nCr;++cr) {
+                      iS.allg(ant,cr,freqCell) = f1 * iS.allg(ant,cr,freqCell) +
+                                                 f2 * iS.gx(ant,cr,freqCell) +
+                                                 f3 * iS.gxx(ant,cr,freqCell);
+                    }
+                  }
+                } else if (dg <= c2 *dgx) {
+                  if (itsDebugLevel>7) {
+                    cout<<"dg<=c2*dgx"<<endl;
+                  }
+                  iS.allg = iS.gx;
+                  sstep = 1;
+                } else {
+                  //cout<<"else"<<endl;
+                  iS.allg = iS.gxx;
+                  sstep = 2;
+                }
+              } else {
+                if (itsDebugLevel>7) {
+                  cout<<"no sstep"<<endl;
+                }
+                sstep = sstep - 1;
+              }
+            }
+            iS.gxx = iS.gx;
+            iS.gx = iS.allg;
+          } // FreqCell
+
+          bool allConverged=true;
+          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            if (!converged[freqCell]) {
+              allConverged=false;
             }
           }
-          iS.gxx = iS.gx;
-          iS.gx = iS.g;
-        }
-      }
+          if (allConverged) {
+            break;
+          }
+        } // End relaxation
+      } // End niter
       if (dg > itsTolerance && nSt>0) {
         if (itsDetectStalling && badIters<maxBadIters) {
           itsNonconverged++;
@@ -696,13 +715,13 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
       // Let's save G...
-      itsSols.push_back(iS.g.copy());
+      itsSols.push_back(iS.allg.copy());
 
       if (itsDebugLevel>3) {
         //cout<<"g="<<iS.g<<endl;
         cout<<"g=[";
         for (uint i=0;i<nUn;++i) {
-          cout<<iS.g(i,0).real()<<(iS.g(i,0).imag()>=0?"+":"")<<iS.g(i,0).imag()<<"j; ";
+          cout<<iS.allg(i,0,0).real()<<(iS.allg(i,0,0).imag()>=0?"+":"")<<iS.allg(i,0,0).imag()<<"j; ";
         }
         cout<<endl;
         //THROW(Exception,"Klaar!");
@@ -711,7 +730,7 @@ namespace LOFAR {
       if (dg > itsTolerance && itsDebugLevel>1 && nSt>0) {
         cout<<endl<<"Did not converge: dg="<<dg<<" tolerance="<<itsTolerance<<", nants="<<nSt<<endl;
         if (itsDebugLevel>12) {
-          cout<<"g="<<iS.g<<endl;
+          cout<<"g="<<iS.allg<<endl;
           exportToMatlab(0);
           THROW(Exception,"Klaar!");
         }
@@ -857,20 +876,20 @@ namespace LOFAR {
                 int rst=itsAntMaps[ts][st]; // Real station
                 if (itsMode=="fulljones") {
                   if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](rst,seqnr/2));
+                    values(0, ts) = real(itsSols[ts](rst,seqnr/2,0));
                   } else {
-                    values(0, ts) = -imag(itsSols[ts](rst,seqnr/2)); // Conjugate transpose!
+                    values(0, ts) = -imag(itsSols[ts](rst,seqnr/2,0)); // Conjugate transpose!
                   }
                 } else if (itsMode=="diagonal") {
                   uint sSt=itsSols[ts].size()/2;
                   if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                    values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
                   } else {
-                    values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0)); // Conjugate transpose!
+                    values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0,0)); // Conjugate transpose!
                   }
                 } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
                   uint sSt=itsSols[ts].size()/2;
-                  values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                  values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
                 }
               }
             }
