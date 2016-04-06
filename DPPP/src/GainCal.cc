@@ -455,7 +455,12 @@ namespace LOFAR {
       for (;iter<itsMaxIter;++iter) {
         iS.gold=iS.allg;
 
+        std::vector<bool> converged(itsNFreqCells,false);
+
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          if (converged[freqCell]) {
+            continue;
+          }
           if (mode=="fulljones") { // ======================== Polarized =======================
             for (uint st=0;st<nSt;++st) {
               iS.h(st,0)=conj(iS.allg(st,0,freqCell));
@@ -473,16 +478,16 @@ namespace LOFAR {
               Vector<DComplex> t(nCr);
 
               for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<nCh;++ch) {
+                for (uint ch=0;ch<itsNChan;++ch) {
                   uint zoff=nSt*ch+nSt*nCh*time;
-                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,0,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-                  mvis_p=&itsMVis(IPosition(6,0,1,time,ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+                  mvis_p=&itsMVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
                 }
               }
 
@@ -503,15 +508,15 @@ namespace LOFAR {
               t=0;
 
               for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<nCh;++ch) {
-                  vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-                  vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-                  vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-                  vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
-                  vis_p=&itsVis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-                  vis_p=&itsVis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-                  vis_p=&itsVis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-                  vis_p=&itsVis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+                for (uint ch=0;ch<itsNChan;++ch) {
+                  vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+                  vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+                  vis_p=&itsVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
                 }
               }
               DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
@@ -562,7 +567,6 @@ namespace LOFAR {
           }
         } // ============================== Relaxation   =======================
         if (iter % 2 == 1 && itsStefcalVariant=="1c") {
-          std::vector<bool> converged(itsNFreqCells,false);
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             if (itsDebugLevel>7) {
               cout<<"iter: "<<iter<<endl;
