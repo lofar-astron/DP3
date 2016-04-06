@@ -84,12 +84,13 @@ namespace LOFAR {
 
     private:
       struct StefVecs {
-        casa::Matrix<casa::DComplex> g;
+        casa::Cube<casa::DComplex> allg; // Station, polarization, freqcell
+        casa::Matrix<casa::DComplex> g;  // Station, polarization
         casa::Matrix<casa::DComplex> gold;
         casa::Matrix<casa::DComplex> gx;
         casa::Matrix<casa::DComplex> gxx;
         casa::Matrix<casa::DComplex> h;
-        std::vector<casa::Matrix<casa::DComplex> > z;
+        std::vector<casa::Matrix<casa::DComplex> > z; // One per thread
       };
 
       void exportToMatlab(uint ch);
@@ -152,6 +153,8 @@ namespace LOFAR {
       double           itsTolerance;
       bool             itsPropagateSolutions;
       uint             itsSolInt;
+      uint             itsNChan;
+      uint             itsNFreqCells;
       uint             itsMinBLperAnt;      
 
       uint             itsConverged;

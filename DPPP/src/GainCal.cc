@@ -79,6 +79,8 @@ namespace LOFAR {
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
         itsPropagateSolutions (parset.getBool(prefix + "propagatesolutions", false)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
+        itsNChan         (parset.getInt(prefix + "nchan", 0)),
+        itsNFreqCells    (0),
         itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
         itsConverged     (0),
         itsNonconverged  (0),
@@ -138,8 +140,14 @@ namespace LOFAR {
 
       itsSols.reserve(info().ntime());
 
-      // Read the antenna beam info from the MS.
-      // Only take the stations actually used.
+      if (itsNChan==0) {
+        itsNChan = info().nchan();
+      }
+      //TODO Handle case where last frequency cell is smaller
+      ASSERT(info().nchan() % itsNChan == 0);
+      ASSERT(itsNChan<=info().nchan());
+      itsNFreqCells = info().nchan() / itsNChan;
+
       itsAntennaUsedNames.resize(info().antennaUsed().size());
       itsDataPerAntenna.resize(info().antennaNames().size());
       casa::Vector<int> antsUsed = info().antennaUsed();
@@ -155,6 +163,7 @@ namespace LOFAR {
       os << "GainCal " << itsName << endl;
       os << "  parmdb:             " << itsParmDBName << endl;
       os << "  solint:             " << itsSolInt <<endl;
+      os << "  nchan:              " << itsNChan <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
       os << "  mode:               " << itsMode << endl;
@@ -391,6 +400,7 @@ namespace LOFAR {
       }
       uint nCh = info().nchan();
 
+      iS.allg.resize(nUn,nCr,itsNFreqCells);
       iS.g.resize(nUn,nCr);
       iS.gold.resize(nUn,nCr);
       iS.gx.resize(nUn,nCr);
@@ -398,7 +408,7 @@ namespace LOFAR {
       iS.h.resize(nUn,nCr);
       uint numThreads=OpenMP::maxThreads();
       for (uint thread=0; thread<numThreads; ++thread) {
-        iS.z[thread].resize(nUn*nCh*solInt*nSp,nCr);
+        iS.z[thread].resize(nUn*itsNChan*solInt*nSp,nCr);
       }
 
       // Initialize all vectors
@@ -514,65 +524,67 @@ namespace LOFAR {
             }
           }
         } else {// ======================== Nonpolarized =======================
-          for (uint st=0;st<nUn;++st) {
-            iS.h(st,0)=conj(iS.g(st,0));
-          }
-//#pragma omp parallel for
-          for (uint st1=0;st1<nUn;++st1) {
-            uint thread=OpenMP::threadNum();
-            DComplex* vis_p;
-            DComplex* mvis_p;
-            double ww=0; // Same as w, but specifically for pol==false
-            DComplex tt=0; // Same as t, but specifically for pol==false
+          for (uint freqCell=0; freqCell<1; ++freqCell) {
+            for (uint st=0;st<nUn;++st) {
+              iS.h(st,0)=conj(iS.g(st,0));
+            }
 
-            DComplex* z_p=iS.z[thread].data();
-            mvis_p=&itsMVis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-            vis_p = &itsVis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-            for (uint st1pol=0;st1pol<nSp;++st1pol) {
-              for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<nCh;++ch) {
-                  DComplex* h_p=iS.h.data();
-                  for (uint st2=0;st2<nUn;++st2) {
-                    *z_p = h_p[st2] * *mvis_p; //itsMVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
-                    ww+=norm(*z_p);
-                    tt+=conj(*z_p) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
-                    mvis_p++;
-                    vis_p++;
-                    z_p++;
+            for (uint st1=0;st1<nUn;++st1) {
+              uint thread=OpenMP::threadNum();
+              DComplex* vis_p;
+              DComplex* mvis_p;
+              double ww=0; // Same as w, but specifically for pol==false
+              DComplex tt=0; // Same as t, but specifically for pol==false
+
+              DComplex* z_p=iS.z[thread].data();
+              mvis_p=&itsMVis(IPosition(6,0,0,freqCell*itsNChan,0,st1/nSt,st1%nSt));
+              vis_p = &itsVis(IPosition(6,0,0,freqCell*itsNChan,0,st1/nSt,st1%nSt));
+              for (uint st1pol=0;st1pol<nSp;++st1pol) {
+                for (uint time=0;time<solInt;++time) {
+                  for (uint ch=0;ch<itsNChan;++ch) { //Todo: make upper limit smaller for last freq cell if itsNChan%nchan!=0
+                    DComplex* h_p=iS.h.data();
+                    for (uint st2=0;st2<nUn;++st2) {
+                      *z_p = h_p[st2] * *mvis_p; //itsMVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
+                      ww+=norm(*z_p);
+                      tt+=conj(*z_p) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
+                      mvis_p++;
+                      vis_p++;
+                      z_p++;
+                    }
+                    //cout<<"iS.z bij ch="<<ch<<"="<<iS.z<<endl<<"----"<<endl;
                   }
-                  //cout<<"iS.z bij ch="<<ch<<"="<<iS.z<<endl<<"----"<<endl;
                 }
               }
-            }
-            //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
-            //cout<<", w="<<ww<<"       ";
-            iS.g(st1,0)=tt/ww;
-            //cout<<", g="<<iS.g(st1,0)<<endl;
-            if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-              iS.g(st1,0)/=abs(iS.g(st1,0));
-            }
+              //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
+              //cout<<", w="<<ww<<"       ";
+              iS.g(st1,0)=tt/ww;
+              //cout<<", g="<<iS.g(st1,0)<<endl;
+              if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+                iS.g(st1,0)/=abs(iS.g(st1,0));
+              }
 
-            if (itsStefcalVariant=="2a") {
-              iS.h(st1,0)=conj(iS.g(st1,0));
-            } else if (itsStefcalVariant=="2b") {
-              iS.h(st1,0)=0.8*iS.h(st1,0)-0.2*conj(iS.g(st1,0));
-            }
-          }
-          if (itsStefcalVariant!="1c") {
-            double fronormdiff=0;
-            double fronormg=0;
-            for (uint ant=0;ant<nUn;++ant) {
-              for (uint cr=0;cr<nCr;++cr) {
-                DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
-                fronormdiff+=abs(diff*diff);
-                fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
+              if (itsStefcalVariant=="2a") {
+                iS.h(st1,0)=conj(iS.g(st1,0));
+              } else if (itsStefcalVariant=="2b") {
+                iS.h(st1,0)=0.8*iS.h(st1,0)-0.2*conj(iS.g(st1,0));
               }
             }
-            fronormdiff=sqrt(fronormdiff);
-            fronormg=sqrt(fronormg);
+            if (itsStefcalVariant!="1c") {
+              double fronormdiff=0;
+              double fronormg=0;
+              for (uint ant=0;ant<nUn;++ant) {
+                for (uint cr=0;cr<nCr;++cr) {
+                  DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
+                  fronormdiff+=abs(diff*diff);
+                  fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
+                }
+              }
+              fronormdiff=sqrt(fronormdiff);
+              fronormg=sqrt(fronormg);
 
-            dg = fronormdiff/fronormg;
-            dgs.push_back(dg);
+              dg = fronormdiff/fronormg;
+              dgs.push_back(dg);
+            }
           }
         } // ============================== Relaxation   =======================
         if (iter % 2 == 1 && itsStefcalVariant=="1c") {
