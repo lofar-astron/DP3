@@ -455,7 +455,7 @@ namespace LOFAR {
       for (;iter<itsMaxIter;++iter) {
         iS.gold=iS.allg;
 
-        for (uint freqCell=0; freqCell<1; ++freqCell) {
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
           if (mode=="fulljones") { // ======================== Polarized =======================
             for (uint st=0;st<nSt;++st) {
               iS.h(st,0)=conj(iS.allg(st,0,freqCell));
