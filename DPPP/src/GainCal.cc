@@ -361,7 +361,8 @@ namespace LOFAR {
     }
 
     void GainCal::stefcal (string mode, uint solInt) {
-      vector<double> dgs;
+      vector<vector<double> > dgs;
+      dgs.resize(itsNFreqCells);
 
       itsTimerSolve.start();
       double f2 = -1.0;
@@ -452,10 +453,10 @@ namespace LOFAR {
       if (nSt==0) {
         iter=itsMaxIter;
       }
+
+      std::vector<bool> converged(itsNFreqCells,false);
       for (;iter<itsMaxIter;++iter) {
         iS.gold=iS.allg;
-
-        std::vector<bool> converged(itsNFreqCells,false);
 
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
           if (converged[freqCell]) {
@@ -608,7 +609,7 @@ namespace LOFAR {
 
             dg = fronormdiff/fronormg;
             if (itsDebugLevel>1) {
-              dgs.push_back(dg);
+              dgs[freqCell].push_back(dg);
             }
 
             if (dg <= itsTolerance) {
@@ -702,14 +703,17 @@ namespace LOFAR {
       }
 
       if ((itsDebugLevel>1 && dg>itsTolerance) || itsDebugLevel>2) {
-        cout<<"t: "<<itsTStep<<", iter:"<<iter<<", dg=[";
-        if (dgs.size()>0) {
-          cout<<dgs[0];
+        cout<<"t: "<<itsTStep<<", iter:"<<iter<<endl;
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          cout<<"dg["<<freqCell<<"]=";
+          if (dgs[freqCell].size()>0) {
+            cout<<dgs[freqCell][0];
+          }
+          for (uint i=1;i<dgs[freqCell].size();++i) {
+            cout<<","<<dgs[freqCell][i];
+          }
+          cout<<"],"<<endl;
         }
-        for (uint i=1;i<dgs.size();++i) {
-          cout<<","<<dgs[i];
-        }
-        cout<<"]"<<endl;
       }
 
       //for (uint ant2=0;ant2<nSt;++ant2) {
