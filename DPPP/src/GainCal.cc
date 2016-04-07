@@ -150,7 +150,7 @@ namespace LOFAR {
       itsNFreqCells = info().nchan() / itsNChan;
 
       itsAntennaUsedNames.resize(info().antennaUsed().size());
-      itsDataPerAntenna.resize(info().antennaNames().size());
+      itsDataPerAntenna.resize(info().antennaNames().size(),itsNFreqCells);
       casa::Vector<int> antsUsed = info().antennaUsed();
       for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
         itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
@@ -323,8 +323,9 @@ namespace LOFAR {
         for (uint ch=0;ch<nCh;++ch) {
           for (uint cr=0;cr<nCr;++cr) {
             if (!flag[bl*nCr*nCh + ch*nCr + cr]) {
-              itsDataPerAntenna[ant1]++;
-              itsDataPerAntenna[ant2]++;
+              uint freqCell=ch/itsNChan;
+              itsDataPerAntenna(ant1,freqCell)++;
+              itsDataPerAntenna(ant2,freqCell)++;
             }
           }
         }
@@ -335,8 +336,16 @@ namespace LOFAR {
       vector<int> antMap(info().antennaNames().size(),-1);
       uint nCr=info().ncorr();
 
-      for (uint ant=0; ant<itsDataPerAntenna.size(); ++ant) {
-        if (itsDataPerAntenna[ant]>nCr*itsMinBLperAnt) {
+      for (uint ant=0; ant<antMap.size(); ++ant) {
+        // Needs to have sufficient data for each cell
+        // TODO: this could be relieved a bit, only one cell could be flagged
+        bool enoughData=true;
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          if (itsDataPerAntenna(ant,freqCell)<=nCr*itsMinBLperAnt) {
+            enoughData=false;
+          }
+        }
+        if (enoughData) {
           antMap[ant] = 0;
         }
       }

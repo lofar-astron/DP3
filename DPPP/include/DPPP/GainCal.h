@@ -146,7 +146,7 @@ namespace LOFAR {
       bool             itsApplyBeamToModelColumn;
 
       casa::Vector<casa::String> itsAntennaUsedNames;
-      casa::Vector<uint>     itsDataPerAntenna;
+      casa::Matrix<casa::uInt>   itsDataPerAntenna; // nAnt x nFreqCells
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;
