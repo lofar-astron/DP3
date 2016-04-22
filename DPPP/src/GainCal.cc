@@ -29,6 +29,7 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/MSReader.h>
+#include <DPPP/DPLogger.h>
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
 #include <ParmDB/SourceDB.h>
@@ -819,6 +820,16 @@ namespace LOFAR {
         resolution[0] = freqWidth[0];
         resolution[1] = info().timeInterval() * itsSolInt;
         itsParmDB->setDefaultSteps(resolution);
+        string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
+        if (!itsParmDB->getNames(name).empty()) {
+          DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
+                          <<", these are removed");
+          itsParmDB->deleteValues(name, BBS::Box(
+                                            freqAxis->start(), tdomAxis->start(),
+                                            freqAxis->end(), tdomAxis->end(), true
+                                                )
+                     );
+        }
       }
 
       // Write out default values, if they don't exist yet
@@ -914,7 +925,8 @@ namespace LOFAR {
             map<string,int>::const_iterator pit = itsParmIdMap.find(name);
             if (pit == itsParmIdMap.end()) {
               // First time, so a new nameId will be set.
-              int nameId = -1;
+              // Check if the name was defined in the parmdb previously
+              int nameId = itsParmDB->getNameId(name);
               itsParmDB->putValues (name, nameId, pvs);
               itsParmIdMap[name] = nameId;
             } else {
