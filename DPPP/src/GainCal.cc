@@ -153,7 +153,13 @@ namespace LOFAR {
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  parmdb:             " << itsParmDBName << endl;
+      os << "  parmdb:             " << itsParmDBName;
+      if (Table::isReadable(itsParmDBName)) {
+        os << " (existing)";
+      } else {
+        os << " (will be created)";
+      }
+      os << endl;
       os << "  solint:             " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
@@ -806,7 +812,7 @@ namespace LOFAR {
       if (! itsParmDB) {
         itsParmDB = boost::shared_ptr<BBS::ParmDB>
           (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
-                           true));
+                           false));
         itsParmDB->lock();
         // Store the (freq, time) resolution of the solutions.
         vector<double> resolution(2);
@@ -815,18 +821,27 @@ namespace LOFAR {
         itsParmDB->setDefaultSteps(resolution);
       }
 
+      // Write out default values, if they don't exist yet
+      ParmMap parmset;
+
       // Write out default amplitudes
       if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-        ParmValueSet pvset(ParmValue(1.0));
-        itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
-        itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Ampl");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(1.0));
+          itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+        }
       }
 
       // Write out default gains
       if (itsMode=="diagonal" || itsMode=="fulljones") {
-        ParmValueSet pvset(ParmValue(1.0));
-        itsParmDB->putDefValue("Gain:0:0:Real",pvset);
-        itsParmDB->putDefValue("Gain:1:1:Real",pvset);
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(1.0));
+          itsParmDB->putDefValue("Gain:0:0:Real",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Real",pvset);
+        }
       }
 
       // Write the solutions per parameter.
