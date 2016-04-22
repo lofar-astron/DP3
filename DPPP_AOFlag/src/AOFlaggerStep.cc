@@ -93,7 +93,28 @@ namespace LOFAR {
       os << "  keepstatistics: " << itsDoRfiStats << std::endl;
       os << "  autocorr:       " << itsDoAutoCorr << std::endl;
       os << "  nthreads (omp)  " << OpenMP::maxThreads() << std::endl;
-      os << "  max memory used " << itsMemoryNeeded << std::endl;
+      os << "  max memory used ";
+      formatBytes(os, itsMemoryNeeded);
+      os << std::endl;
+    }
+
+    void AOFlaggerStep::formatBytes(std::ostream& os, double bytes) {
+      int exp=0;
+      while (bytes >= 1024 && exp<5) {
+        bytes/=1024;
+        exp++;
+      }
+
+      uint origPrec=os.precision();
+      os.precision(1);
+
+      if (exp==0) {
+        os<<fixed<<bytes<<" "<<"B";
+      } else {
+        os<<fixed<<bytes<<" "<<"KMGTPE"[exp-1]<<"B";
+      }
+
+      os.precision(origPrec);
     }
 
     void AOFlaggerStep::updateInfo (const DPInfo& infoIn)

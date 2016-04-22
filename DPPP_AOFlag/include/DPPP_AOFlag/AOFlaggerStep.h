@@ -119,6 +119,9 @@ namespace LOFAR {
                      const aoflagger::FlagMask& rfiMask, const aoflagger::FlagMask& origMask,
                      int bl);
 
+      // Format a number as kB, MB, etc.
+      static void formatBytes(std::ostream&, double);
+
       // Fill the rfi strategy.
       void fillStrategy();
 
