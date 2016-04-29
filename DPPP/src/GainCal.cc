@@ -144,10 +144,13 @@ namespace LOFAR {
       if (itsNChan==0) {
         itsNChan = info().nchan();
       }
-      //TODO Handle case where last frequency cell is smaller
-      ASSERT(info().nchan() % itsNChan == 0);
-      ASSERT(itsNChan<=info().nchan());
+      if (itsNChan>info().nchan()) {
+        itsNChan=info().nchan();
+      }
       itsNFreqCells = info().nchan() / itsNChan;
+      if (itsNChan*itsNFreqCells<info().nchan()) { // If last freq cell is smaller
+        itsNFreqCells++;
+      }
 
       itsAntennaUsedNames.resize(info().antennaUsed().size());
       itsDataPerAntenna.resize(info().antennaNames().size(),itsNFreqCells);
@@ -468,6 +471,11 @@ namespace LOFAR {
         iS.gold=iS.allg;
 
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          uint chMax = itsNChan;
+          if ((freqCell+1)*itsNChan>nCh) { // Last cell can be smaller
+            chMax-=((freqCell+1)*itsNChan)%nCh;
+          }
+
           if (converged[freqCell]) {
             continue;
           }
@@ -488,7 +496,7 @@ namespace LOFAR {
               Vector<DComplex> t(nCr);
 
               for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<itsNChan;++ch) {
+                for (uint ch=0;ch<chMax;++ch) {
                   uint zoff=nSt*ch+nSt*itsNChan*time;
                   mvis_p=&itsMVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
                   mvis_p=&itsMVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
@@ -504,7 +512,7 @@ namespace LOFAR {
               w=0;
 
               for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<itsNChan;++ch) {
+                for (uint ch=0;ch<chMax;++ch) {
                   for (uint st2=0;st2<nSt;++st2) {
                     uint zoff=st2+nSt*ch+nSt*itsNChan*time;
                     w(0) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,0) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,2);
@@ -518,7 +526,7 @@ namespace LOFAR {
               t=0;
 
               for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<itsNChan;++ch) {
+                for (uint ch=0;ch<chMax;++ch) {
                   vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*itsNChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
                   vis_p=&itsVis(IPosition(6,0,1,time,freqCell*itsNChan+ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*itsNChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
                   vis_p=&itsVis(IPosition(6,0,0,time,freqCell*itsNChan+ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*itsNChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
@@ -551,7 +559,7 @@ namespace LOFAR {
               mvis_p=&itsMVis(IPosition(6,0,0,0,freqCell*itsNChan,st1/nSt,st1%nSt));
               vis_p = &itsVis(IPosition(6,0,0,0,freqCell*itsNChan,st1/nSt,st1%nSt));
               for (uint st1pol=0;st1pol<nSp;++st1pol) {
-                for (uint ch=0;ch<itsNChan;++ch) { //Todo: make upper limit smaller for last freq cell if itsNChan%nchan!=0
+                for (uint ch=0;ch<chMax;++ch) {
                   for (uint time=0;time<solInt;++time) {
                     DComplex* h_p=iS.h.data();
                     for (uint st2=0;st2<nUn;++st2) {
