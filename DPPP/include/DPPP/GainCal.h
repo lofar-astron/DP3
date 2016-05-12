@@ -29,6 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
 #include <DPPP/Predict.h>
 #include <ParmDB/ParmFacade.h>
@@ -83,27 +84,12 @@ namespace LOFAR {
 
 
     private:
-      struct StefVecs {
-        casa::Cube<casa::DComplex> allg; // Station, polarization, freqcell
-        //casa::Cube<casa::DComplex> g;  // Station, polarization, freqcell
-        casa::Cube<casa::DComplex> gold;
-        casa::Cube<casa::DComplex> gx;
-        casa::Cube<casa::DComplex> gxx;
-        casa::Matrix<casa::DComplex> h; // Station, polarization
-        std::vector<casa::Matrix<casa::DComplex> > z; // One per thread
-      };
-
-      void exportToMatlab(uint ch);
-
       // Perform stefcal (polarized or unpolarized)
-      void stefcal(string mode, uint solint=1);
+      void stefcal(string mode);
 
-      // Counts the number of antennas with non-flagged data, adds this to
-      // dataPerAntenna
-      void countAntUsedNotFlagged (const casa::Bool* flag);
-
-      // Set a map for the used antennas
-      void setAntennaMaps ();
+      // Counts the number of antennas with non-flagged data,
+      // Set a map for the used antennas in iS, returns the number of antennas
+      uint setAntennaMaps (const casa::Bool* flag);
 
       // Remove rows and colums corresponding to antennas with too much
       // flagged data from vis and mvis
@@ -131,14 +117,9 @@ namespace LOFAR {
 
       vector<Baseline> itsBaselines;
 
-      casa::Array<casa::DComplex> itsVis;
-      casa::Array<casa::DComplex> itsMVis;
-
       vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nSt x nCr x nFreqCells
-      vector<vector<int> > itsAntUseds;
-      vector<vector<int> > itsAntMaps;
 
-      StefVecs         iS;
+      std::vector<StefCal>  iS;
 
       Predict          itsPredictStep;
       ApplyBeam        itsApplyBeamStep; // Beam step for applying beam to modelcol
@@ -146,7 +127,6 @@ namespace LOFAR {
       bool             itsApplyBeamToModelColumn;
 
       casa::Vector<casa::String> itsAntennaUsedNames;
-      casa::Matrix<casa::uInt>   itsDataPerAntenna; // nAnt x nFreqCells
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;
