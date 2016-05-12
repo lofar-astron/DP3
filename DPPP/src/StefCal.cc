@@ -23,6 +23,7 @@
 
 #include <lofar_config.h>
 #include <DPPP/StefCal.h>
+#include <DPPP/DPInput.h>
 
 #include <vector>
 #include <algorithm>
@@ -233,19 +234,31 @@ namespace LOFAR {
 
       uint sSt=0; // Index in stefcal numbering
       for (uint st=0; st<_antMap.size(); ++st) {
-        for (uint cr=0; cr<nCr; ++cr) {
-          if (_antMap[st]==-1) {
+        if (_antMap[st]==-1) {
+          for (uint cr=0; cr<nCr; ++cr) {
             sol(st,cr)=std::numeric_limits<double>::quiet_NaN();
-          } else
+          }
+        } else {
+          for (uint cr=0; cr<nCr; ++cr) {
             sol(st,cr)=g(sSt,cr);
+            if (_mode=="diagonal" || _mode=="phaseonly") {
+              sol(st,cr+1)=g(sSt+nSt,cr);
+            }
             if (cr==nCr-1) {
               sSt++;
             }
+          }
         }
       }
 
-      cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<endl;
-      ASSERT(sSt==g.size()-1);
+      cout<<endl;
+      cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<", nSt="<<nSt<<endl;
+      cout<<"antMap=[";
+      for (uint i=0; i<_antMap.size(); ++i) {
+        cout<<_antMap[i]<<",";
+      }
+      cout<<"]"<<endl;
+      ASSERT(sSt==nSt);
       return sol;
     }
 
@@ -285,7 +298,7 @@ namespace LOFAR {
         if (itsDebugLevel>3) {
           cout<<"Detected stall"<<endl;
         }
-        return Status::STALLED;
+        return STALLED;
       }
 
       dgxx = dgx;
@@ -310,7 +323,7 @@ namespace LOFAR {
 
       if (dg <= itsTolerance) {
         converged = true;
-        return Status::CONVERGED;
+        return CONVERGED;
       }
 
       if (itsDebugLevel>7) {
@@ -376,7 +389,7 @@ namespace LOFAR {
       gxx = gx;
       gx = g;
 
-      return Status::NOTCONVERGED;
+      return NOTCONVERGED;
     }
   } //# end namespace
 }
