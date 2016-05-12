@@ -254,10 +254,7 @@ namespace LOFAR {
         uint nSt=setAntennaMaps(flag);
 
         for (uint freqCell=0; freqCell<itsNFreqCells; freqCell++) {
-          iS[freqCell].vis.resize(IPosition(6,nSt,2,itsSolInt,itsNChan,2,nSt));
-          iS[freqCell].mvis.resize(IPosition(6,nSt,2,itsSolInt,itsNChan,2,nSt));
-          iS[freqCell].vis=0;
-          iS[freqCell].mvis=0;
+          iS[freqCell].resetVis(nSt);
         }
       }
 

@@ -40,7 +40,16 @@ namespace LOFAR {
       _mode   (mode)
     {
       _antMap.resize(maxAntennas, -1);
+      vis.resize(IPosition(6,maxAntennas,2,_solInt,_nChan,2,maxAntennas));
+      mvis.resize(IPosition(6,maxAntennas,2,_solInt,_nChan,2,maxAntennas));
       init();
+    }
+
+    void StefCal::resetVis(uint nSt) {
+      vis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
+      mvis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
+      vis=0;
+      mvis=0;
     }
 
     void StefCal::init() {
@@ -48,7 +57,7 @@ namespace LOFAR {
       dgx=1.0e30;
       dgs.clear();
 
-      nSt=vis.shape()(2);
+      nSt=vis.shape()[0];
 
       if (nSt==0) {
         converged=true;
@@ -235,6 +244,7 @@ namespace LOFAR {
         }
       }
 
+      cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<endl;
       ASSERT(sSt==g.size()-1);
       return sol;
     }

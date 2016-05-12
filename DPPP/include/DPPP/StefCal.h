@@ -26,8 +26,6 @@
 
 // @file
 // @brief DPPP step class to apply a calibration correction to the data
-
-#include <DPPP/DPInput.h>
 #include <casa/Arrays/Cube.h>
 #include <casa/Arrays/ArrayMath.h>
 
@@ -44,6 +42,7 @@ namespace LOFAR {
       void doStep_polarized();
       void doStep_unpolarized(bool phaseOnly);
       Status relax(uint iter);
+      void resetVis(uint nSt);
       void init();
       casa::Matrix<casa::DComplex> getSolution();
 
