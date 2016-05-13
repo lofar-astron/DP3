@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 #include <iostream>
 
@@ -60,11 +61,6 @@ namespace LOFAR {
 
       nSt=vis.shape()[0];
 
-      if (nSt==0) {
-        converged=true;
-      } else {
-        converged=false;
-      }
       if (_mode=="fulljones") {
         nUn=nSt;
         nCr=4;
@@ -230,7 +226,11 @@ namespace LOFAR {
 
     casa::Matrix<casa::DComplex> StefCal::getSolution() {
       casa::Matrix<casa::DComplex> sol;
-      sol.resize(_antMap.size(), nCr);
+      if (_mode=="diagonal" || _mode=="phaseonly") {
+        sol.resize(_antMap.size(), 2);
+      } else {
+        sol.resize(_antMap.size(), nCr);
+      }
 
       uint sSt=0; // Index in stefcal numbering
       for (uint st=0; st<_antMap.size(); ++st) {
@@ -251,18 +251,27 @@ namespace LOFAR {
         }
       }
 
-      cout<<endl;
-      cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<", nSt="<<nSt<<endl;
-      cout<<"antMap=[";
-      for (uint i=0; i<_antMap.size(); ++i) {
-        cout<<_antMap[i]<<",";
-      }
-      cout<<"]"<<endl;
+      //cout<<endl;
+      //cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<", nSt="<<nSt<<endl;
+      //cout<<"antMap=[";
+      //for (uint i=0; i<_antMap.size(); ++i) {
+      //  cout<<_antMap[i]<<",";
+      //}
+      //cout<<"sol=["<<endl;
+      //for (uint i=0; i<_antMap.size(); ++i) {
+      //  cout<<sol(i,0)<<","<<sol(i,1)<<endl;
+      //}
+      //cout<<"]"<<endl;
       ASSERT(sSt==nSt);
+
       return sol;
     }
 
     StefCal::Status StefCal::relax(uint iter) {
+      if (nSt==0) {
+        return CONVERGED;
+      }
+
       double f2 = -1.0;
       double f3 = -0.5;
       double f1 = 1 - f2 - f3;
@@ -322,7 +331,6 @@ namespace LOFAR {
       }
 
       if (dg <= itsTolerance) {
-        converged = true;
         return CONVERGED;
       }
 

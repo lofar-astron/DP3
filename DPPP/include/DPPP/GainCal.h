@@ -89,7 +89,7 @@ namespace LOFAR {
 
       // Counts the number of antennas with non-flagged data,
       // Set a map for the used antennas in iS, returns the number of antennas
-      uint setAntennaMaps (const casa::Bool* flag);
+      uint setAntennaMaps (const casa::Bool* flag, uint freqCell);
 
       // Remove rows and colums corresponding to antennas with too much
       // flagged data from vis and mvis
@@ -113,7 +113,6 @@ namespace LOFAR {
 
       uint             itsDebugLevel;
       bool             itsDetectStalling;
-      string           itsStefcalVariant;
 
       vector<Baseline> itsBaselines;
 
@@ -135,7 +134,7 @@ namespace LOFAR {
       uint             itsSolInt;
       uint             itsNChan;
       uint             itsNFreqCells;
-      uint             itsMinBLperAnt;      
+      uint             itsMinBLperAnt;
 
       uint             itsConverged;
       uint             itsNonconverged;
