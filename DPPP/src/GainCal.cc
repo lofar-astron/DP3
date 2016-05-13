@@ -411,12 +411,12 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
       // Let's save G...
-      Cube<DComplex> allg(info().antennaNames().size(), nCr, itsNFreqCells);
+      Cube<DComplex> allg(info().antennaNames().size(), iS[0].savedNCr, itsNFreqCells);
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         //cout<<endl<<"freqCell="<<freqCell<<", timeCell="<<itsTStep/itsSolInt<<", tstep="<<itsTStep<<endl;
         casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution();
         for (uint st=0; st<info().antennaNames().size(); st++) {
-          for (uint cr=0; cr<nCr; ++cr) {
+          for (uint cr=0; cr<iS[0].savedNCr; ++cr) {
             allg(st,cr,freqCell)=sol(st,cr);
           }
         }

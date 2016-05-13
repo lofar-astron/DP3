@@ -65,14 +65,17 @@ namespace LOFAR {
         nUn=nSt;
         nCr=4;
         nSp=1;
+        savedNCr=4;
       } else if (_mode=="scalarphase") {
         nUn=nSt;
         nCr=1;
         nSp=2;
+        savedNCr=1;
       } else { // mode=="phaseonly", mode=="diagonal"
         nUn=nSt*2;
         nCr=1;
         nSp=1;
+        savedNCr=2;
       }
 
       g.resize(nUn,nCr);
@@ -226,11 +229,7 @@ namespace LOFAR {
 
     casa::Matrix<casa::DComplex> StefCal::getSolution() {
       casa::Matrix<casa::DComplex> sol;
-      if (_mode=="diagonal" || _mode=="phaseonly") {
-        sol.resize(_antMap.size(), 2);
-      } else {
-        sol.resize(_antMap.size(), nCr);
-      }
+      sol.resize(_antMap.size(), savedNCr);
 
       uint sSt=0; // Index in stefcal numbering
       for (uint st=0; st<_antMap.size(); ++st) {

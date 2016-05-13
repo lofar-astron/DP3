@@ -52,6 +52,7 @@ namespace LOFAR {
       casa::Matrix<casa::DComplex> g; // Station, correlation
       casa::Array<casa::DComplex> vis;
       casa::Array<casa::DComplex> mvis;
+      uint savedNCr; // number of correlations stored (1,2 or 4)
 
     private:
       casa::Matrix<casa::DComplex> gx;
@@ -61,7 +62,7 @@ namespace LOFAR {
       casa::Matrix<casa::DComplex> z;
 
       uint nSt; // number of stations
-      uint nCr; // number of correlations
+      uint nCr; // number of correlations (1 or 4)
       uint nUn; // number of unknowns
       uint nSp; // number that is two for scalarphase, one else
       uint _solInt;
