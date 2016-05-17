@@ -29,6 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
 #include <DPPP/Predict.h>
 #include <ParmDB/ParmFacade.h>
@@ -83,26 +84,12 @@ namespace LOFAR {
 
 
     private:
-      struct StefVecs {
-        casa::Matrix<casa::DComplex> g;
-        casa::Matrix<casa::DComplex> gold;
-        casa::Matrix<casa::DComplex> gx;
-        casa::Matrix<casa::DComplex> gxx;
-        casa::Matrix<casa::DComplex> h;
-        std::vector<casa::Matrix<casa::DComplex> > z;
-      };
-
-      void exportToMatlab(uint ch);
-
       // Perform stefcal (polarized or unpolarized)
-      void stefcal(string mode, uint solint=1);
+      void stefcal();
 
-      // Counts the number of antennas with non-flagged data, adds this to
-      // dataPerAntenna
-      void countAntUsedNotFlagged (const casa::Bool* flag);
-
-      // Set a map for the used antennas
-      void setAntennaMaps ();
+      // Counts the number of antennas with non-flagged data,
+      // Set a map for the used antennas in iS, returns the number of antennas
+      uint setAntennaMaps (const casa::Bool* flag, uint freqCell);
 
       // Remove rows and colums corresponding to antennas with too much
       // flagged data from vis and mvis
@@ -126,18 +113,12 @@ namespace LOFAR {
 
       uint             itsDebugLevel;
       bool             itsDetectStalling;
-      string           itsStefcalVariant;
 
       vector<Baseline> itsBaselines;
 
-      casa::Array<casa::DComplex> itsVis;
-      casa::Array<casa::DComplex> itsMVis;
+      vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nSt x nCr x nFreqCells
 
-      vector<casa::Matrix<casa::DComplex> > itsSols; // for every timeslot, nSt gains with vector of length nCr values
-      vector<vector<int> > itsAntUseds;
-      vector<vector<int> > itsAntMaps;
-
-      StefVecs         iS;
+      std::vector<StefCal>  iS;
 
       Predict          itsPredictStep;
       ApplyBeam        itsApplyBeamStep; // Beam step for applying beam to modelcol
@@ -145,14 +126,15 @@ namespace LOFAR {
       bool             itsApplyBeamToModelColumn;
 
       casa::Vector<casa::String> itsAntennaUsedNames;
-      casa::Vector<uint>     itsDataPerAntenna;
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;
       double           itsTolerance;
       bool             itsPropagateSolutions;
       uint             itsSolInt;
-      uint             itsMinBLperAnt;      
+      uint             itsNChan;
+      uint             itsNFreqCells;
+      uint             itsMinBLperAnt;
 
       uint             itsConverged;
       uint             itsNonconverged;
