@@ -374,11 +374,7 @@ namespace LOFAR {
           if (converged[freqCell]==StefCal::CONVERGED) { // Do another step when stalled and not all converged
             continue;
           }
-          if (mode=="fulljones") {
-            iS[freqCell].doStep_polarized();
-          } else {
-            iS[freqCell].doStep_unpolarized(itsMode=="phaseonly" || itsMode=="scalarphase");
-          }
+          iS[freqCell].doStep();
         } // ============================== Relaxation   =======================
         if (iter % 2 == 1) {
           if (itsDebugLevel>7) {

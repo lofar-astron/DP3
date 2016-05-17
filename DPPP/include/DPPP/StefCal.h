@@ -39,14 +39,12 @@ namespace LOFAR {
     public:
       enum Status {CONVERGED=1, NOTCONVERGED=2, STALLED=3};
       StefCal(uint solInt, uint nChan, string mode, uint maxAntennas);
-      void doStep_polarized();
-      void doStep_unpolarized(bool phaseOnly);
-      Status relax(uint iter);
       void resetVis(uint nSt);
       void init();
+      void doStep();
+      Status relax(uint iter);
       casa::Matrix<casa::DComplex> getSolution();
 
-      bool converged;
       std::vector<int> _antMap; // Length antennaNames, contains size(antennaNames)-nSt times the value -1
                                 // Values are indices in the stefcal internal numbering
       casa::Matrix<casa::DComplex> g; // Station, correlation
@@ -55,6 +53,8 @@ namespace LOFAR {
       uint savedNCr; // number of correlations stored (1,2 or 4)
 
     private:
+      void doStep_polarized();
+      void doStep_unpolarized(bool phaseOnly);
       casa::Matrix<casa::DComplex> gx;
       casa::Matrix<casa::DComplex> gxx;
       casa::Matrix<casa::DComplex> gold;

@@ -119,6 +119,15 @@ namespace LOFAR {
       gx = g;
     }
 
+    void StefCal::doStep() {
+      if (_mode=="fulljones") {
+        doStep_polarized();
+      } else {
+
+        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
+      }
+    }
+
     void StefCal::doStep_polarized() {
       gold = g;
 
