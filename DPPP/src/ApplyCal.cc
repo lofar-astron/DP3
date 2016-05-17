@@ -185,6 +185,23 @@ namespace LOFAR {
 
       initDataArrays();
       itsFlagCounter.init(getInfo());
+
+      // Check that channels are evenly spaced
+      if (info().nchan()>1) {
+        Vector<Double> upFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,1),
+                                         IPosition(1,info().nchan()-1)));
+        Vector<Double> lowFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,0),
+                                         IPosition(1,info().nchan()-1)));
+        Double freqstep0=upFreq(0)-lowFreq(0);
+        // Compare up to 1kHz accuracy
+        bool regularChannels=allNearAbs(upFreq-lowFreq, freqstep0, 1.e3) &&
+                             allNearAbs(info().chanWidths(),
+                                        info().chanWidths()(0), 1.e3);
+        ASSERTSTR(regularChannels, 
+                  "ApplyCal requires evenly spaced channels.");
+      }
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -278,9 +295,11 @@ namespace LOFAR {
 
       uint numFreqs         (info().chanFreqs().size());
       double freqInterval  (info().chanWidths()[0]);
+      if (numFreqs>1) { // Handle data with evenly spaced gaps between channels
+        freqInterval = info().chanFreqs()[1]-info().chanFreqs()[0];
+      }
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
-
       itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
       uint numTimes = itsTimeSlotsPerParmUpdate;
 
