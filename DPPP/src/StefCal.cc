@@ -1,4 +1,4 @@
-//# GainCal.cc: DPPP step class to do a gain calibration
+//# StefCal.cc: Perform StefCal algorithm for gain calibration
 //# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,7 +17,7 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id: GainCal.cc 21598 2012-07-16 08:07:34Z diepen $
+//# $Id: StefCal.cc 21598 2012-07-16 08:07:34Z diepen $
 //#
 //# @author Tammo Jan Dijkema
 
@@ -36,63 +36,72 @@ using namespace casa;
 namespace LOFAR {
   namespace DPPP {
 
-    StefCal::StefCal(uint solInt, uint nChan, string mode, uint maxAntennas)
-    : _solInt (solInt),
+    StefCal::StefCal(uint solInt, uint nChan, const string& mode,
+                     double tolerance, uint maxAntennas,
+                     bool detectStalling, uint debugLevel)
+    : _nSt    (maxAntennas),
+      _solInt (solInt),
       _nChan  (nChan),
-      _mode   (mode)
+      _mode   (mode),
+      _tolerance (tolerance),
+      _detectStalling (detectStalling),
+      _debugLevel (debugLevel)
     {
       _antMap.resize(maxAntennas, -1);
-      vis.resize(IPosition(6,maxAntennas,2,_solInt,_nChan,2,maxAntennas));
-      mvis.resize(IPosition(6,maxAntennas,2,_solInt,_nChan,2,maxAntennas));
+      resetVis(maxAntennas);
+
+      if (_mode=="fulljones") {
+        _nCr=4;
+        _nSp=1;
+        _savedNCr=4;
+      } else if (_mode=="scalarphase") {
+        _nCr=1;
+        _nSp=2;
+        _savedNCr=1;
+      } else { // mode=="phaseonly", mode=="diagonal"
+        _nCr=1;
+        _nSp=1;
+        _savedNCr=2;
+      }
+
       init();
     }
 
     void StefCal::resetVis(uint nSt) {
-      vis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
-      mvis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
-      vis=0;
-      mvis=0;
+      _nSt = nSt;
+      _vis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
+      _mvis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
+      _vis=0;
+      _mvis=0;
+
+      if (_mode=="fulljones" || _mode=="scalarphase") {
+        _nUn = _nSt;
+      } else {
+        _nUn = 2*_nSt;
+      }
+
     }
 
     void StefCal::init() {
-      dg=1.0e29;
-      dgx=1.0e30;
-      dgs.clear();
+      _dg=1.0e29;
+      _dgx=1.0e30;
+      _dgs.clear();
 
-      nSt=vis.shape()[0];
-
-      if (_mode=="fulljones") {
-        nUn=nSt;
-        nCr=4;
-        nSp=1;
-        savedNCr=4;
-      } else if (_mode=="scalarphase") {
-        nUn=nSt;
-        nCr=1;
-        nSp=2;
-        savedNCr=1;
-      } else { // mode=="phaseonly", mode=="diagonal"
-        nUn=nSt*2;
-        nCr=1;
-        nSp=1;
-        savedNCr=2;
-      }
-
-      g.resize(nUn,nCr);
-      gold.resize(nUn,nCr);
-      gx.resize(nUn,nCr);
-      gxx.resize(nUn,nCr);
-      h.resize(nUn,nCr);
-      z.resize(nUn*_nChan*_solInt*nSp,nCr);
+      _g.resize(_nUn,_nCr);
+      _gold.resize(_nUn,_nCr);
+      _gx.resize(_nUn,_nCr);
+      _gxx.resize(_nUn,_nCr);
+      _h.resize(_nUn,_nCr);
+      _z.resize(_nUn*_nChan*_solInt*_nSp,_nCr);
 
       // Initialize all vectors
       double fronormvis=0;
       double fronormmod=0;
 
-      DComplex* t_vis_p=vis.data();
-      DComplex* t_mvis_p=mvis.data();
+      DComplex* t_vis_p=_vis.data();
+      DComplex* t_mvis_p=_mvis.data();
 
-      uint vissize=vis.size();
+      uint vissize=_vis.size();
       for (uint i=0;i<vissize;++i) {
         fronormvis+=norm(t_vis_p[i]);
         fronormmod+=norm(t_mvis_p[i]);
@@ -102,59 +111,62 @@ namespace LOFAR {
       fronormmod=sqrt(fronormmod);
 
       double ginit=1;
-      if (nSt>0 && abs(fronormmod)>1.e-15) {
+      if (_nSt>0 && abs(fronormmod)>1.e-15) {
         ginit=sqrt(fronormvis/fronormmod);
       }
-      if (nCr==4) {
-        for (uint st=0;st<nUn;++st) {
-            g(st,0)=ginit;
-            g(st,1)=0.;
-            g(st,2)=0.;
-            g(st,3)=ginit;
+      if (_nCr==4) {
+        for (uint st=0;st<_nUn;++st) {
+            _g(st,0)=ginit;
+            _g(st,1)=0.;
+            _g(st,2)=0.;
+            _g(st,3)=ginit;
         }
       } else {
-        g=ginit;
+        _g=ginit;
       }
 
-      gx = g;
+      _gx = _g;
     }
 
-    void StefCal::doStep() {
+    StefCal::Status StefCal::doStep(uint iter) {
       if (_mode=="fulljones") {
         doStep_polarized();
+        doStep_polarized();
+        return relax(2*iter);
       } else {
-
         doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
+        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
+        return relax(2*iter);
       }
     }
 
     void StefCal::doStep_polarized() {
-      gold = g;
+      _gold = _g;
 
-      for (uint st=0;st<nSt;++st) {
-        h(st,0)=conj(g(st,0));
-        h(st,1)=conj(g(st,1));
-        h(st,2)=conj(g(st,2));
-        h(st,3)=conj(g(st,3));
+      for (uint st=0;st<_nSt;++st) {
+        _h(st,0)=conj(_g(st,0));
+        _h(st,1)=conj(_g(st,1));
+        _h(st,2)=conj(_g(st,2));
+        _h(st,3)=conj(_g(st,3));
       }
 
-      for (uint st1=0;st1<nSt;++st1) {
+      for (uint st1=0;st1<_nSt;++st1) {
         DComplex* vis_p;
         DComplex* mvis_p;
-        Vector<DComplex> w(nCr);
-        Vector<DComplex> t(nCr);
+        Vector<DComplex> w(_nCr);
+        Vector<DComplex> t(_nCr);
 
         for (uint time=0;time<_solInt;++time) {
           for (uint ch=0;ch<_nChan;++ch) {
-            uint zoff=nSt*ch+nSt*_nChan*time;
-            mvis_p=&mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,0)  = h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-            mvis_p=&mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,0) += h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-            mvis_p=&mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,1)  = h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-            mvis_p=&mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,1) += h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
-            mvis_p=&mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,2)  = h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-            mvis_p=&mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,2) += h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-            mvis_p=&mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,3)  = h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-            mvis_p=&mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { z(st2+zoff,3) += h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+            uint zoff=_nSt*ch+_nSt*_nChan*time;
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,0)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,0) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,1)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,1) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,2)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,2) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,3)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,3) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
           }
         }
 
@@ -162,11 +174,11 @@ namespace LOFAR {
 
         for (uint time=0;time<_solInt;++time) {
           for (uint ch=0;ch<_nChan;++ch) {
-            for (uint st2=0;st2<nSt;++st2) {
-              uint zoff=st2+nSt*ch+nSt*_nChan*time;
-              w(0) += conj(z(zoff,0))*z(zoff,0) + conj(z(zoff,2))*z(zoff,2);
-              w(1) += conj(z(zoff,0))*z(zoff,1) + conj(z(zoff,2))*z(zoff,3);
-              w(3) += conj(z(zoff,1))*z(zoff,1) + conj(z(zoff,3))*z(zoff,3);
+            for (uint st2=0;st2<_nSt;++st2) {
+              uint zoff=st2+_nSt*ch+_nSt*_nChan*time;
+              w(0) += conj(_z(zoff,0))*_z(zoff,0) + conj(_z(zoff,2))*_z(zoff,2);
+              w(1) += conj(_z(zoff,0))*_z(zoff,1) + conj(_z(zoff,2))*_z(zoff,3);
+              w(3) += conj(_z(zoff,1))*_z(zoff,1) + conj(_z(zoff,3))*_z(zoff,3);
             }
           }
         }
@@ -176,45 +188,45 @@ namespace LOFAR {
 
         for (uint time=0;time<_solInt;++time) {
           for (uint ch=0;ch<_nChan;++ch) {
-            vis_p=&vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(z(st2+nSt*ch+nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-            vis_p=&vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(z(st2+nSt*ch+nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-            vis_p=&vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(z(st2+nSt*ch+nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-            vis_p=&vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(z(st2+nSt*ch+nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
-            vis_p=&vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(z(st2+nSt*ch+nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-            vis_p=&vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(z(st2+nSt*ch+nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-            vis_p=&vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(z(st2+nSt*ch+nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-            vis_p=&vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(z(st2+nSt*ch+nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
           }
         }
         DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
-        g(st1,0) = invdet * ( w(3) * t(0) - w(1) * t(2) );
-        g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
-        g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
-        g(st1,3) = invdet * ( w(0) * t(3) - w(2) * t(1) );
+        _g(st1,0) = invdet * ( w(3) * t(0) - w(1) * t(2) );
+        _g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
+        _g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
+        _g(st1,3) = invdet * ( w(0) * t(3) - w(2) * t(1) );
       }
     }
 
     void StefCal::doStep_unpolarized(bool phaseOnly) {
-      gold=g;
+      _gold=_g;
 
-      for (uint st=0;st<nUn;++st) {
-        h(st,0)=conj(g(st,0));
+      for (uint st=0;st<_nUn;++st) {
+        _h(st,0)=conj(_g(st,0));
       }
 
-      for (uint st1=0;st1<nUn;++st1) {
+      for (uint st1=0;st1<_nUn;++st1) {
         DComplex* vis_p;
         DComplex* mvis_p;
         double ww=0; // Same as w, but specifically for pol==false
         DComplex tt=0; // Same as t, but specifically for pol==false
 
-        DComplex* z_p=z.data();
-        mvis_p=&mvis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-        vis_p = &vis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-        for (uint st1pol=0;st1pol<nSp;++st1pol) {
+        DComplex* z_p=_z.data();
+        mvis_p=&_mvis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
+        vis_p = &_vis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
+        for (uint st1pol=0;st1pol<_nSp;++st1pol) {
           for (uint ch=0;ch<_nChan;++ch) {
             for (uint time=0;time<_solInt;++time) {
-              DComplex* h_p=h.data();
-              for (uint st2=0;st2<nUn;++st2) {
+              DComplex* h_p=_h.data();
+              for (uint st2=0;st2<_nUn;++st2) {
                 *z_p = h_p[st2] * *mvis_p; //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
                 ww+=norm(*z_p);
                 tt+=conj(*z_p) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
@@ -228,55 +240,44 @@ namespace LOFAR {
         }
         //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
         //cout<<", w="<<ww<<"       ";
-        g(st1,0)=tt/ww;
+        _g(st1,0)=tt/ww;
         //cout<<", g="<<iS.g(st1,0)<<endl;
         if (phaseOnly) {
-          g(st1,0)/=abs(g(st1,0));
+          _g(st1,0)/=abs(_g(st1,0));
         }
       }
     }
 
     casa::Matrix<casa::DComplex> StefCal::getSolution() {
       casa::Matrix<casa::DComplex> sol;
-      sol.resize(_antMap.size(), savedNCr);
+      sol.resize(_antMap.size(), _savedNCr);
 
       uint sSt=0; // Index in stefcal numbering
       for (uint st=0; st<_antMap.size(); ++st) {
         if (_antMap[st]==-1) {
-          for (uint cr=0; cr<nCr; ++cr) {
+          for (uint cr=0; cr<_nCr; ++cr) {
             sol(st,cr)=std::numeric_limits<double>::quiet_NaN();
           }
         } else {
-          for (uint cr=0; cr<nCr; ++cr) {
-            sol(st,cr)=g(sSt,cr);
+          for (uint cr=0; cr<_nCr; ++cr) {
+            sol(st,cr)=_g(sSt,cr);
             if (_mode=="diagonal" || _mode=="phaseonly") {
-              sol(st,cr+1)=g(sSt+nSt,cr);
+              sol(st,cr+1)=_g(sSt+_nSt,cr);
             }
-            if (cr==nCr-1) {
+            if (cr==_nCr-1) {
               sSt++;
             }
           }
         }
       }
 
-      //cout<<endl;
-      //cout<<"sSt=="<<sSt<<", g.size()="<<g.size()<<", nSt="<<nSt<<endl;
-      //cout<<"antMap=[";
-      //for (uint i=0; i<_antMap.size(); ++i) {
-      //  cout<<_antMap[i]<<",";
-      //}
-      //cout<<"sol=["<<endl;
-      //for (uint i=0; i<_antMap.size(); ++i) {
-      //  cout<<sol(i,0)<<","<<sol(i,1)<<endl;
-      //}
-      //cout<<"]"<<endl;
-      ASSERT(sSt==nSt);
+      ASSERT(sSt==_nSt);
 
       return sol;
     }
 
     StefCal::Status StefCal::relax(uint iter) {
-      if (nSt==0) {
+      if (_nSt==0) {
         return CONVERGED;
       }
 
@@ -293,17 +294,14 @@ namespace LOFAR {
       bool threestep = false;
       int badIters=0;
       int maxBadIters=5;
-      uint itsDebugLevel=0;
-      bool itsDetectStalling=true;
-      double itsTolerance = 1.0e-12;
 
       int sstep=0;
 
-      if (itsDetectStalling && iter > 20 && dgx-dg <= 5.0e-3*dg) {
+      if (_detectStalling && iter > 10 && _dgx-_dg <= 5.0e-3*_dg) {
       // This iteration did not improve much upon the previous
       // Stalling detection only after 20 iterations, to account for
       // ''startup problems''
-        if (itsDebugLevel>3) {
+        if (_debugLevel>3) {
           cout<<"**"<<endl;
         }
         badIters++;
@@ -311,99 +309,99 @@ namespace LOFAR {
         badIters=0;
       }
 
-      if (badIters>=maxBadIters && itsDetectStalling) {
-        if (itsDebugLevel>3) {
+      if (badIters>=maxBadIters && _detectStalling) {
+        if (_debugLevel>3) {
           cout<<"Detected stall"<<endl;
         }
         return STALLED;
       }
 
-      dgxx = dgx;
-      dgx  = dg;
+      dgxx = _dgx;
+      _dgx  = _dg;
 
       double fronormdiff=0;
       double fronormg=0;
-      for (uint ant=0;ant<nUn;++ant) {
-        for (uint cr=0;cr<nCr;++cr) {
-          DComplex diff=g(ant,cr)-gold(ant,cr);
+      for (uint ant=0;ant<_nUn;++ant) {
+        for (uint cr=0;cr<_nCr;++cr) {
+          DComplex diff=_g(ant,cr)-_gold(ant,cr);
           fronormdiff+=abs(diff*diff);
-          fronormg+=abs(g(ant,cr)*g(ant,cr));
+          fronormg+=abs(_g(ant,cr)*_g(ant,cr));
         }
       }
       fronormdiff=sqrt(fronormdiff);
       fronormg=sqrt(fronormg);
 
-      dg = fronormdiff/fronormg;
-      if (itsDebugLevel>1) {
-        dgs.push_back(dg);
+      _dg = fronormdiff/fronormg;
+      if (_debugLevel>1) {
+        _dgs.push_back(_dg);
       }
 
-      if (dg <= itsTolerance) {
+      if (_dg <= _tolerance) {
         return CONVERGED;
       }
 
-      if (itsDebugLevel>7) {
+      if (_debugLevel>7) {
         cout<<"Averaged"<<endl;
       }
 
-      for (uint ant=0;ant<nUn;++ant) {
-        for (uint cr=0;cr<nCr;++cr) {
-          g(ant,cr) = (1-omega) * g(ant,cr) +
-                      omega     * gold(ant,cr);
+      for (uint ant=0;ant<_nUn;++ant) {
+        for (uint cr=0;cr<_nCr;++cr) {
+          _g(ant,cr) = (1-omega) * _g(ant,cr) +
+                      omega     * _gold(ant,cr);
         }
       }
 
       if (!threestep) {
         threestep = (iter+1 >= nomega) ||
-            ( max(dg,max(dgx,dgxx)) <= 1.0e-3 && dg<dgx && dgx<dgxx);
-        if (itsDebugLevel>7) {
+            ( max(_dg,max(_dgx,dgxx)) <= 1.0e-3 && _dg<_dgx && _dgx<dgxx);
+        if (_debugLevel>7) {
           cout<<"Threestep="<<boolalpha<<threestep<<endl;
         }
       }
 
       if (threestep) {
         if (sstep <= 0) {
-          if (dg <= c1 * dgx) {
-            if (itsDebugLevel>7) {
+          if (_dg <= c1 * _dgx) {
+            if (_debugLevel>7) {
               cout<<"dg<=c1*dgx"<<endl;
             }
-            for (uint ant=0;ant<nUn;++ant) {
-              for (uint cr=0;cr<nCr;++cr) {
-                g(ant,cr) = f1q * g(ant,cr) +
-                            f2q * gx(ant,cr);
+            for (uint ant=0;ant<_nUn;++ant) {
+              for (uint cr=0;cr<_nCr;++cr) {
+                _g(ant,cr) = f1q * _g(ant,cr) +
+                            f2q * _gx(ant,cr);
               }
             }
-          } else if (dg <= dgx) {
-            if (itsDebugLevel>7) {
+          } else if (_dg <= _dgx) {
+            if (_debugLevel>7) {
               cout<<"dg<=dgx"<<endl;
             }
-            for (uint ant=0;ant<nUn;++ant) {
-              for (uint cr=0;cr<nCr;++cr) {
-                g(ant,cr) = f1 * g(ant,cr) +
-                            f2 * gx(ant,cr) +
-                            f3 * gxx(ant,cr);
+            for (uint ant=0;ant<_nUn;++ant) {
+              for (uint cr=0;cr<_nCr;++cr) {
+                _g(ant,cr) = f1 * _g(ant,cr) +
+                            f2 * _gx(ant,cr) +
+                            f3 * _gxx(ant,cr);
               }
             }
-          } else if (dg <= c2 *dgx) {
-            if (itsDebugLevel>7) {
+          } else if (_dg <= c2 *_dgx) {
+            if (_debugLevel>7) {
               cout<<"dg<=c2*dgx"<<endl;
             }
-            g = gx;
+            _g = _gx;
             sstep = 1;
           } else {
             //cout<<"else"<<endl;
-            g = gxx;
+            _g = _gxx;
             sstep = 2;
           }
         } else {
-          if (itsDebugLevel>7) {
+          if (_debugLevel>7) {
             cout<<"no sstep"<<endl;
           }
           sstep = sstep - 1;
         }
       }
-      gxx = gx;
-      gx = g;
+      _gxx = _gx;
+      _gx = _g;
 
       return NOTCONVERGED;
     }

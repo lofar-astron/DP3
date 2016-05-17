@@ -85,7 +85,7 @@ namespace LOFAR {
 
     private:
       // Perform stefcal (polarized or unpolarized)
-      void stefcal(string mode);
+      void stefcal();
 
       // Counts the number of antennas with non-flagged data,
       // Set a map for the used antennas in iS, returns the number of antennas

@@ -159,9 +159,10 @@ namespace LOFAR {
         if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
-        iS.push_back(StefCal(itsSolInt, chMax, itsMode, info().antennaNames().size()));
+        iS.push_back(StefCal(itsSolInt, chMax, itsMode, itsTolerance,
+                             info().antennaNames().size(), itsDetectStalling,
+                             itsDebugLevel));
       }
-      //cout<<"iS.size()="<<iS.size()<<endl;
     }
 
     void GainCal::show (std::ostream& os) const
@@ -267,7 +268,7 @@ namespace LOFAR {
 
       if (itsNTimes==itsSolInt-1) {
         // Solve past solution interval
-        stefcal(itsMode);
+        stefcal();
         itsNTimes=0;
       } else {
         itsNTimes++;
@@ -289,25 +290,25 @@ namespace LOFAR {
 
       for (uint ch=0;ch<nCh;++ch) {
         for (uint bl=0;bl<nBl;++bl) {
-          int ant1=iS[ch/itsNChan]._antMap[info().getAnt1()[bl]];
-          int ant2=iS[ch/itsNChan]._antMap[info().getAnt2()[bl]];
+          int ant1=iS[ch/itsNChan].getAntMap()[info().getAnt1()[bl]];
+          int ant2=iS[ch/itsNChan].getAntMap()[info().getAnt2()[bl]];
           if (ant1==ant2 || ant1==-1 || ant2 == -1 || flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
             continue;
           }
 
           for (uint cr=0;cr<nCr;++cr) {
-            iS[ch/itsNChan].vis (IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
                 DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].mvis(IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
                 DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
 
             // conjugate transpose
-            iS[ch/itsNChan].vis (IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].mvis(IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
           }
@@ -345,16 +346,16 @@ namespace LOFAR {
 
       for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
         if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
-          iS[freqCell]._antMap[ant]=nSt++; // Index in stefcal numbering
+          iS[freqCell].getAntMap()[ant]=nSt++; // Index in stefcal numbering
         } else {
-          iS[freqCell]._antMap[ant]=-1; // Not enough data
+          iS[freqCell].getAntMap()[ant]=-1; // Not enough data
         }
       }
 
       return nSt;
     }
 
-    void GainCal::stefcal (string mode) {
+    void GainCal::stefcal () {
       itsTimerSolve.start();
 
       uint nCr=1; // number of correlations,
@@ -370,30 +371,19 @@ namespace LOFAR {
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
+        bool allConverged=true;
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
           if (converged[freqCell]==StefCal::CONVERGED) { // Do another step when stalled and not all converged
             continue;
           }
-          iS[freqCell].doStep();
-        } // ============================== Relaxation   =======================
-        if (iter % 2 == 1) {
-          if (itsDebugLevel>7) {
-            cout<<"iter: "<<iter<<endl;
+          converged[freqCell] = iS[freqCell].doStep(iter);
+          if (converged[freqCell]==StefCal::NOTCONVERGED) {
+            allConverged = false;
           }
-
-          bool allConverged=true;
-          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-            converged[freqCell] = iS[freqCell].relax(iter);
-            if (converged[freqCell]==StefCal::NOTCONVERGED) {
-              allConverged=false;
-            }
-          }
-
           if (allConverged) {
             break;
           }
-        }
-      } // End niter
+        }       } // End niter
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         switch (converged[freqCell]) {
@@ -407,12 +397,12 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
       // Let's save G...
-      Cube<DComplex> allg(info().antennaNames().size(), iS[0].savedNCr, itsNFreqCells);
+      Cube<DComplex> allg(info().antennaNames().size(), iS[0].numCorrelations(), itsNFreqCells);
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         //cout<<endl<<"freqCell="<<freqCell<<", timeCell="<<itsTStep/itsSolInt<<", tstep="<<itsTStep<<endl;
         casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution();
         for (uint st=0; st<info().antennaNames().size(); st++) {
-          for (uint cr=0; cr<iS[0].savedNCr; ++cr) {
+          for (uint cr=0; cr<iS[0].numCorrelations(); ++cr) {
             allg(st,cr,freqCell)=sol(st,cr);
           }
         }
@@ -428,7 +418,7 @@ namespace LOFAR {
 
       //Solve remaining time slots if any
       if (itsNTimes!=0) {
-        stefcal(itsMode);
+        stefcal();
       }
 
       itsTimerWrite.start();
