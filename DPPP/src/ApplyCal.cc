@@ -308,7 +308,7 @@ namespace LOFAR {
       uint numTimes = itsTimeSlotsPerParmUpdate;
 
       double lastMSTime = info().startTime() + info().ntime() * itsTimeInterval;
-      if (itsLastTime > lastMSTime) {
+      if (itsLastTime > lastMSTime && !nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
         itsLastTime = lastMSTime;
         numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
       }
