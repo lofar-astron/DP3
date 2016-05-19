@@ -29,6 +29,7 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/MSReader.h>
+#include <DPPP/DPLogger.h>
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
 #include <ParmDB/SourceDB.h>
@@ -153,7 +154,13 @@ namespace LOFAR {
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  parmdb:             " << itsParmDBName << endl;
+      os << "  parmdb:             " << itsParmDBName;
+      if (Table::isReadable(itsParmDBName)) {
+        os << " (existing)";
+      } else {
+        os << " (will be created)";
+      }
+      os << endl;
       os << "  solint:             " << itsSolInt <<endl;
       os << "  max iter:           " << itsMaxIter << endl;
       os << "  tolerance:          " << itsTolerance << endl;
@@ -806,27 +813,46 @@ namespace LOFAR {
       if (! itsParmDB) {
         itsParmDB = boost::shared_ptr<BBS::ParmDB>
           (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
-                           true));
+                           false));
         itsParmDB->lock();
         // Store the (freq, time) resolution of the solutions.
         vector<double> resolution(2);
         resolution[0] = freqWidth[0];
         resolution[1] = info().timeInterval() * itsSolInt;
         itsParmDB->setDefaultSteps(resolution);
+        string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
+        if (!itsParmDB->getNames(name).empty()) {
+          DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
+                          <<", these are removed");
+          itsParmDB->deleteValues(name, BBS::Box(
+                                            freqAxis->start(), tdomAxis->start(),
+                                            freqAxis->end(), tdomAxis->end(), true
+                                                )
+                     );
+        }
       }
+
+      // Write out default values, if they don't exist yet
+      ParmMap parmset;
 
       // Write out default amplitudes
       if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-        ParmValueSet pvset(ParmValue(1.0));
-        itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
-        itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Ampl");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(1.0));
+          itsParmDB->putDefValue("Gain:0:0:Ampl",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Ampl",pvset);
+        }
       }
 
       // Write out default gains
       if (itsMode=="diagonal" || itsMode=="fulljones") {
-        ParmValueSet pvset(ParmValue(1.0));
-        itsParmDB->putDefValue("Gain:0:0:Real",pvset);
-        itsParmDB->putDefValue("Gain:1:1:Real",pvset);
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(1.0));
+          itsParmDB->putDefValue("Gain:0:0:Real",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Real",pvset);
+        }
       }
 
       // Write the solutions per parameter.
@@ -899,7 +925,8 @@ namespace LOFAR {
             map<string,int>::const_iterator pit = itsParmIdMap.find(name);
             if (pit == itsParmIdMap.end()) {
               // First time, so a new nameId will be set.
-              int nameId = -1;
+              // Check if the name was defined in the parmdb previously
+              int nameId = itsParmDB->getNameId(name);
               itsParmDB->putValues (name, nameId, pvs);
               itsParmIdMap[name] = nameId;
             } else {
