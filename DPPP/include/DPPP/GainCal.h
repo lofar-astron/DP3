@@ -96,8 +96,14 @@ namespace LOFAR {
       void removeDeadAntennas ();
 
       // Fills the matrices itsVis and itsMVis
-      void fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
-                         const casa::Bool* flag);
+      void fillMatrices (casa::Complex* model, casa::Complex* data,
+                         float* weight, const casa::Bool* flag);
+
+      // Initialize the parmdb
+      void initParmDB();
+
+      // Write out the solutions of the current parameter chunk (timeslotsperparmupdate)
+      void writeSolutions (double startTime);
 
       //# Data members.
       DPInput*         itsInput;
@@ -109,7 +115,6 @@ namespace LOFAR {
       shared_ptr<BBS::ParmDB> itsParmDB;
 
       string           itsMode;
-      uint             itsTStep;
 
       uint             itsDebugLevel;
       bool             itsDetectStalling;
@@ -130,16 +135,19 @@ namespace LOFAR {
 
       uint             itsMaxIter;
       double           itsTolerance;
-      bool             itsPropagateSolutions;
-      uint             itsSolInt;
-      uint             itsNChan;
+      bool             itsPropagateSolutions; // Not used currently, TODO: use this
+      uint             itsSolInt;  // Time cell size
+      uint             itsNChan;   // Frequency cell size
       uint             itsNFreqCells;
       uint             itsMinBLperAnt;
 
+      uint             itsTimeSlotsPerParmUpdate;
       uint             itsConverged;
       uint             itsNonconverged;
       uint             itsStalled;
-      uint             itsNTimes;
+      uint             itsTimeStep; // Timestep within parameter update
+      double           itsChunkStartTime; // First time value of chunk to be stored
+      uint             itsNTimes;  // Timestep within solint
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
       NSTimer          itsTimerSolve;

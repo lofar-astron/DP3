@@ -78,15 +78,19 @@ namespace LOFAR {
       // Invert a 2x2 matrix in place
       static void invert (casa::DComplex* v, double sigmaMMSE=0);
 
-    private:
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      void applyDiag (casa::Complex* vis, float* weight, bool* flag,
-                      uint bl, int chan, int time);
+      static void applyDiag (casa::DComplex* gainA, casa::DComplex* gainB,
+                             casa::Complex* vis, float* weight, bool* flag,
+                             uint bl, uint chan, bool updateWeights,
+                             FlagCounter& flagCounter);
 
       // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      void applyFull (casa::Complex* vis, float* weight, bool* flag,
-                      uint bl, int chan, int time);
+      static void applyFull (casa::DComplex* gainA, casa::DComplex* gainB,
+                             casa::Complex* vis, float* weight, bool* flag,
+                             uint bl, uint chan, bool updateWeights,
+                             FlagCounter& flagCounter);
 
+    private:
       // Read parameters from the associated parmdb and store them in itsParms
       void updateParms (const double bufStartTime);
 
@@ -113,7 +117,7 @@ namespace LOFAR {
       vector<casa::String>   itsParmExprs;
 
       // parameters, numparms, antennas, time x frequency
-      vector<vector<vector<casa::DComplex> > > itsParms;
+      casa::Cube<casa::DComplex> itsParms;
       uint            itsTimeStep; // time step within current chunk
       uint            itsNCorr;
       double          itsTimeInterval;

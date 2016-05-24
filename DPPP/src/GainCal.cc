@@ -69,20 +69,24 @@ namespace LOFAR {
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb", "")),
         itsMode          (parset.getString (prefix + "caltype")),
-        itsTStep         (0),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsBaselines     (),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
-        itsPropagateSolutions (parset.getBool(prefix + "propagatesolutions", false)),
+        itsPropagateSolutions
+                         (parset.getBool(prefix + "propagatesolutions", false)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
         itsNChan         (parset.getInt(prefix + "nchan", 0)),
         itsNFreqCells    (0),
         itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
+        itsTimeSlotsPerParmUpdate
+                         (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
         itsConverged     (0),
         itsNonconverged  (0),
         itsStalled       (0),
+        itsTimeStep      (0),
+        itsChunkStartTime(0),
         itsNTimes        (0)
     {
       if (itsParmDBName=="") {
@@ -136,7 +140,7 @@ namespace LOFAR {
         itsSolInt=info().ntime();
       }
 
-      itsSols.reserve(info().ntime());
+      itsSols.reserve(itsTimeSlotsPerParmUpdate);
 
       if (itsNChan==0) {
         itsNChan = info().nchan();
@@ -164,6 +168,8 @@ namespace LOFAR {
                              info().antennaNames().size(), itsDetectStalling,
                              itsDebugLevel));
       }
+
+      itsChunkStartTime = info().startTime();
     }
 
     void GainCal::show (std::ostream& os) const
@@ -276,13 +282,20 @@ namespace LOFAR {
       if (itsNTimes==itsSolInt-1) {
         // Solve past solution interval
         stefcal();
+        itsTimeStep++;
         itsNTimes=0;
       } else {
         itsNTimes++;
       }
 
       itsTimer.stop();
-      itsTStep++;
+
+      if (itsTimeStep == itsTimeSlotsPerParmUpdate) {
+        writeSolutions(itsChunkStartTime);
+        itsChunkStartTime += itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
+        itsSols.clear();
+        itsTimeStep = 0;
+      }
       getNextStep()->process(itsBuf);
       return false;
     }
@@ -399,13 +412,16 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
       // Let's save G...
-      Cube<DComplex> allg(info().antennaNames().size(), iS[0].numCorrelations(), itsNFreqCells);
+      Cube<DComplex> allg(iS[0].numCorrelations(), info().antennaNames().size(), itsNFreqCells);
+
+      uint transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         //cout<<endl<<"freqCell="<<freqCell<<", timeCell="<<itsTStep/itsSolInt<<", tstep="<<itsTStep<<endl;
         casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution();
         for (uint st=0; st<info().antennaNames().size(); st++) {
           for (uint cr=0; cr<iS[0].numCorrelations(); ++cr) {
-            allg(st,cr,freqCell)=sol(st,cr);
+            uint crt=transpose[iS[0].numCorrelations()/4][cr]; // Conjugate transpose ! (only for numCorrelations = 4)
+            allg(crt, st, freqCell) = conj(sol(st, cr));
           }
         }
       }
@@ -414,69 +430,41 @@ namespace LOFAR {
       itsTimerSolve.stop();
     }
 
-    void GainCal::finish()
-    {
-      itsTimer.start();
+    void GainCal::initParmDB() {
+      itsParmDB = boost::shared_ptr<BBS::ParmDB>
+        (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
+                         false));
+      itsParmDB->lock();
+      // Store the (freq, time) resolution of the solutions.
 
-      //Solve remaining time slots if any
-      if (itsNTimes!=0) {
-        stefcal();
+      double freqWidth = getInfo().chanWidths()[0];
+      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
+        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
       }
 
-      itsTimerWrite.start();
+      vector<double> resolution(2);
+      resolution[0] = freqWidth * itsNChan;
+      resolution[1] = info().timeInterval() * itsSolInt;
+      itsParmDB->setDefaultSteps(resolution);
+      string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
+      if (!itsParmDB->getNames(name).empty()) {
+        DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
+                        <<", these are removed");
+        // Specify entire domain of this MS; only to specify that the existing
+        // values should be deleted for this domain
+        BBS::Axis::ShPtr tdomAxis(
+            new BBS::RegularAxis(
+                info().startTime(),
+                info().ntime() * info().timeInterval(),
+                1));
+        BBS::Axis::ShPtr fdomAxis(
+            new BBS::RegularAxis(
+                info().chanFreqs()[0] - freqWidth * 0.5,
+                freqWidth * getInfo().chanFreqs().size(), 1));
 
-      uint nSt=info().antennaNames().size();
-
-      uint ntime=itsSols.size();
-
-      // Construct solution grid.
-      const Vector<double>& freq      = getInfo().chanFreqs();
-      const Vector<double>& freqWidth = getInfo().chanWidths();
-      BBS::Axis::ShPtr freqAxis(
-          new BBS::RegularAxis(
-              freq[0] - freqWidth[0] * 0.5,
-              freqWidth[0]*itsNChan,
-              itsNFreqCells));
-      BBS::Axis::ShPtr timeAxis(
-          new BBS::RegularAxis(
-              info().startTime(),
-              info().timeInterval() * itsSolInt,
-              ntime));
-      BBS::Grid solGrid(freqAxis, timeAxis);
-      // Create domain grid.
-      BBS::Axis::ShPtr tdomAxis(
-          new BBS::RegularAxis(
-              info().startTime(),
-              info().timeInterval() * itsSolInt * ntime,
-              1));
-      BBS::Axis::ShPtr fdomAxis(
-          new BBS::RegularAxis(
-              freq[0] - freqWidth[0] * 0.5,
-              getInfo().totalBW(), 1));
-      BBS::Grid domainGrid(fdomAxis, tdomAxis);
-
-      // Open the ParmDB at the first write.
-      // In that way the instrumentmodel ParmDB can be in the MS directory.
-      if (! itsParmDB) {
-        itsParmDB = boost::shared_ptr<BBS::ParmDB>
-          (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
-                           false));
-        itsParmDB->lock();
-        // Store the (freq, time) resolution of the solutions.
-        vector<double> resolution(2);
-        resolution[0] = freqWidth[0];
-        resolution[1] = info().timeInterval() * itsSolInt;
-        itsParmDB->setDefaultSteps(resolution);
-        string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
-        if (!itsParmDB->getNames(name).empty()) {
-          DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
-                          <<", these are removed");
-          itsParmDB->deleteValues(name, BBS::Box(
-                                            freqAxis->start(), tdomAxis->start(),
-                                            freqAxis->end(), tdomAxis->end(), true
-                                                )
-                     );
-        }
+        itsParmDB->deleteValues(name, BBS::Box(
+                                    fdomAxis->start(), tdomAxis->start(),
+                                    fdomAxis->end(), tdomAxis->end(), true));
       }
 
       // Write out default values, if they don't exist yet
@@ -501,14 +489,57 @@ namespace LOFAR {
           itsParmDB->putDefValue("Gain:1:1:Real",pvset);
         }
       }
+    }
+
+    void GainCal::writeSolutions(double startTime) {
+      itsTimer.start();
+      itsTimerWrite.start();
+
+      // Open the ParmDB at the first write.
+      // In that way the instrumentmodel ParmDB can be in the MS directory.
+      if (! itsParmDB) {
+        initParmDB();
+      } // End initialization of parmdb
+
+      uint ntime=itsSols.size();
+
+      // Construct solution grid for the current chunk
+      double freqWidth = getInfo().chanWidths()[0];
+      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
+        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
+      }
+      BBS::Axis::ShPtr freqAxis(
+          new BBS::RegularAxis(
+              getInfo().chanFreqs()[0] - freqWidth * 0.5,
+              freqWidth*itsNChan,
+              itsNFreqCells));
+      BBS::Axis::ShPtr timeAxis(
+          new BBS::RegularAxis(
+              startTime,
+              info().timeInterval() * itsSolInt,
+              ntime));
+      BBS::Grid solGrid(freqAxis, timeAxis);
+
+      // Construct domain grid for the current chunk
+      BBS::Axis::ShPtr tdomAxis(
+          new BBS::RegularAxis(
+              startTime,
+              ntime * info().timeInterval() * itsSolInt,
+              1));
+      BBS::Axis::ShPtr fdomAxis(
+          new BBS::RegularAxis(
+              info().chanFreqs()[0] - freqWidth * 0.5,
+              freqWidth * getInfo().chanFreqs().size(), 1));
+      BBS::Grid domainGrid(fdomAxis, tdomAxis);
 
       // Write the solutions per parameter.
-      const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
+      const char* str0101[] = {"0:0:","0:1:","1:0:","1:1:"};
       const char* strri[] = {"Real:","Imag:"};
       Matrix<double> values(itsNFreqCells, ntime);
 
       DComplex sol;
 
+      uint nSt=info().antennaNames().size();
       for (size_t st=0; st<nSt; ++st) {
         uint seqnr = 0; // To take care of real and imaginary part
         string suffix(info().antennaNames()[st]);
@@ -537,28 +568,29 @@ namespace LOFAR {
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 if (itsMode=="fulljones") {
                   if (seqnr%2==0) {
-                    values(freqCell, ts) = real(itsSols[ts](st,seqnr/2,freqCell));
+                    values(freqCell, ts) = real(itsSols[ts](seqnr/2,st,freqCell));
                   } else {
-                    values(freqCell, ts) = -imag(itsSols[ts](st,seqnr/2,freqCell)); // Conjugate transpose!
+                    values(freqCell, ts) = imag(itsSols[ts](seqnr/2,st,freqCell));
                   }
                 } else if (itsMode=="diagonal") {
                   if (seqnr%2==0) {
-                    values(freqCell, ts) = real(itsSols[ts](st,pol/3,freqCell));
+                    values(freqCell, ts) = real(itsSols[ts](pol/3,st,freqCell));
                   } else {
-                    values(freqCell, ts) = -imag(itsSols[ts](st,pol/3,freqCell)); // Conjugate transpose!
+                    values(freqCell, ts) = imag(itsSols[ts](pol/3,st,freqCell));
                   }
                 } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
-                  values(freqCell, ts) = -arg(itsSols[ts](st,pol/3,freqCell));
+                  values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
                 }
               }
             }
-            //cout.flush();
             seqnr++;
             BBS::ParmValue::ShPtr pv(new BBS::ParmValue());
             pv->setScalars (solGrid, values);
+
             BBS::ParmValueSet pvs(domainGrid,
                                   vector<BBS::ParmValue::ShPtr>(1, pv));
             map<string,int>::const_iterator pit = itsParmIdMap.find(name);
+
             if (pit == itsParmIdMap.end()) {
               // First time, so a new nameId will be set.
               // Check if the name was defined in the parmdb previously
@@ -576,6 +608,23 @@ namespace LOFAR {
 
       itsTimerWrite.stop();
       itsTimer.stop();
+    }
+
+    void GainCal::finish()
+    {
+      itsTimer.start();
+
+      //Solve remaining time slots if any
+      if (itsNTimes!=0) {
+        stefcal();
+      }
+
+      itsTimer.stop();
+
+      if (!itsSols.empty()) {
+        writeSolutions(itsChunkStartTime);
+      }
+
       // Let the next steps finish.
       getNextStep()->finish();
     }
