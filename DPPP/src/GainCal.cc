@@ -108,7 +108,8 @@ namespace LOFAR {
         }
       }
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
-             itsMode=="fulljones" || itsMode=="scalarphase");
+             itsMode=="fulljones" || itsMode=="scalarphase" ||
+             itsMode=="amplitudeonly" || itsMode=="scalaramplitude");
     }
 
     GainCal::~GainCal()
@@ -480,6 +481,16 @@ namespace LOFAR {
         }
       }
 
+      // Write out default phases
+      if (itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Phase");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(0.0));
+          itsParmDB->putDefValue("Gain:0:0:Phase",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Phase",pvset);
+        }
+      }
+
       // Write out default gains
       if (itsMode=="diagonal" || itsMode=="fulljones") {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
@@ -545,23 +556,37 @@ namespace LOFAR {
         string suffix(info().antennaNames()[st]);
 
         for (int pol=0; pol<4; ++pol) { // For 0101
-          if ((itsMode=="diagonal" || itsMode=="phaseonly") && (pol==1||pol==2)) {
+          if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
+               itsMode=="amplitudeonly") && (pol==1||pol==2)) {
             continue;
           }
-          if (itsMode=="scalarphase" && pol>0) {
+          if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ) && pol>0) {
             continue;
           }
           int realimmax;
-          if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+          if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
+              itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
             realimmax=1;
           } else {
             realimmax=2;
           }
           for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
-            string name(string("Gain:") +
-                        str0101[pol] + (itsMode=="phaseonly"?"Phase:":strri[realim]) + suffix);
+            string name;
+
             if (itsMode=="scalarphase") {
-              name="CommonScalarPhase:"+suffix;
+              name=string("CommonScalarPhase:")+suffix;
+            } else if (itsMode=="scalaramplitude") {
+              name=string("CommonScalarAmplitude:")+suffix;
+            } else {
+              name=string("Gain:") + str0101[pol];
+              if (itsMode=="phaseonly") {
+                name=name+"Phase:";
+              } else if (itsMode=="amplitudeonly") {
+                name=name+"Amplitude:";
+              } else {
+                name=name+strri[realim];
+              }
+              name+=suffix;
             }
             // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {

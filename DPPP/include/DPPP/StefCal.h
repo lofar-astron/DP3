@@ -88,7 +88,7 @@ namespace LOFAR {
       Status relax(uint iter);
 
       void doStep_polarized();
-      void doStep_unpolarized(bool phaseOnly);
+      void doStep_unpolarized();
 
       uint _savedNCr;
       std::vector<int> _antMap; // Length antennaNames, contains size(antennaNames)-nSt times the value -1

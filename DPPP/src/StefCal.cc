@@ -134,8 +134,8 @@ namespace LOFAR {
         doStep_polarized();
         return relax(2*iter);
       } else {
-        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
-        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
+        doStep_unpolarized();
+        doStep_unpolarized();
         return relax(2*iter);
       }
     }
@@ -206,7 +206,7 @@ namespace LOFAR {
       }
     }
 
-    void StefCal::doStep_unpolarized(bool phaseOnly) {
+    void StefCal::doStep_unpolarized() {
       _gold=_g;
 
       for (uint st=0;st<_nUn;++st) {
@@ -242,8 +242,10 @@ namespace LOFAR {
         //cout<<", w="<<ww<<"       ";
         _g(st1,0)=tt/ww;
         //cout<<", g="<<iS.g(st1,0)<<endl;
-        if (phaseOnly) {
+        if (_mode=="phaseonly" || _mode=="scalarphase") {
           _g(st1,0)/=abs(_g(st1,0));
+        } else if (_mode=="amplitudeonly" || _mode=="scalaramplitude") {
+          _g(st1,0) = abs(_g(st1,0));
         }
       }
     }
