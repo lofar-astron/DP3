@@ -110,8 +110,10 @@ namespace LOFAR {
       fronormvis=sqrt(fronormvis);
       fronormmod=sqrt(fronormmod);
 
+      // Initialize solution with sensible values (or 1.)
       double ginit=1;
-      if (_nSt>0 && abs(fronormmod)>1.e-15) {
+      if ((_mode != "phaseonly" && _mode != "scalarphase" ) &&
+          _nSt>0 && abs(fronormmod)>1.e-15) {
         ginit=sqrt(fronormvis/fronormmod);
       }
       if (_nCr==4) {

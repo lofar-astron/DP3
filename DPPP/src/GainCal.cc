@@ -582,7 +582,7 @@ namespace LOFAR {
               if (itsMode=="phaseonly") {
                 name=name+"Phase:";
               } else if (itsMode=="amplitudeonly") {
-                name=name+"Amplitude:";
+                name=name+"Ampl:";
               } else {
                 name=name+strri[realim];
               }
