@@ -29,6 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/phasefitter.h>
 #include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
 #include <DPPP/Predict.h>
@@ -89,7 +90,7 @@ namespace LOFAR {
 
       // Counts the number of antennas with non-flagged data,
       // Set a map for the used antennas in iS, returns the number of antennas
-      uint setAntennaMaps (const casa::Bool* flag, uint freqCell);
+      void setAntennaMaps (const casa::Bool* flag, uint freqCell);
 
       // Remove rows and colums corresponding to antennas with too much
       // flagged data from vis and mvis
@@ -121,6 +122,7 @@ namespace LOFAR {
 
       vector<Baseline> itsBaselines;
 
+      vector<casa::Matrix<casa::DComplex> > itsPrevSol; // previous solution, for propagating solutions, for each freq
       vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nSt x nCr x nFreqCells
 
       std::vector<StefCal>  iS;
@@ -145,6 +147,7 @@ namespace LOFAR {
       uint             itsConverged;
       uint             itsNonconverged;
       uint             itsStalled;
+      vector<uint>     itsNIter; // Total iterations made (for converged, stalled and nonconverged)
       uint             itsTimeStep; // Timestep within parameter update
       double           itsChunkStartTime; // First time value of chunk to be stored
       uint             itsNTimes;  // Timestep within solint
