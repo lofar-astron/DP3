@@ -53,8 +53,10 @@ class PhaseFitter
    * @ref FitTECModelParameters().
 	 * @param alpha Found value for the alpha parameter.
 	 * @param beta Found value for the beta parameter.
+	 *
+	 * @returns Cost of the found solution.
    */
-  void FitDataToTECModel(double& alpha, double& beta);
+  double FitDataToTECModel(double& alpha, double& beta);
 
   /**
    * Fits the given phase values to a TEC model using prior estimates of the 
@@ -66,8 +68,10 @@ class PhaseFitter
 	 * @todo No fast method has been implemented -- instead it will perform a full parameter search.
 	 * @param alpha Estimate of alpha parameter on input, found value on output.
 	 * @param beta Estimate of beta parameter on input, found value on output.
+	 *
+	 * @returns Cost of the found solution.
    */
-  void FitDataToTECModelWithInitialValues(double& alpha, double& beta)
+  double FitDataToTECModelWithInitialValues(double& alpha, double& beta)
 	{
 		return FitDataToTECModel(alpha, beta);
 	}

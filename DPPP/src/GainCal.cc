@@ -24,6 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
+#include <DPPP/ApplyCal.h>
 #include <DPPP/phasefitter.h>
 #include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPBuffer.h>
@@ -72,6 +73,7 @@ namespace LOFAR {
         itsMode          (parset.getString (prefix + "caltype")),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
+        itsApplySolution (parset.getBool (prefix + "applysolution", false)),
         itsBaselines     (),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
@@ -86,9 +88,9 @@ namespace LOFAR {
         itsConverged     (0),
         itsNonconverged  (0),
         itsStalled       (0),
-        itsTimeStep      (0),
+        itsStepInParmUpdate      (0),
         itsChunkStartTime(0),
-        itsNTimes        (0)
+        itsStepInSolInt        (0)
     {
       if (itsParmDBName=="") {
         itsParmDBName=parset.getString("msin")+"/instrument";
@@ -111,9 +113,16 @@ namespace LOFAR {
 
       itsNIter.resize(3,0);
 
+      if (itsApplySolution) {
+        itsBuf.resize(itsSolInt);
+      } else {
+        itsBuf.resize(1);
+      }
+
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase" ||
-             itsMode=="amplitudeonly" || itsMode=="scalaramplitude");
+             itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
+             itsMode=="tec");
     }
 
     GainCal::~GainCal()
@@ -133,8 +142,10 @@ namespace LOFAR {
       } else {
         itsPredictStep.updateInfo(infoIn);
       }
-      info().setWriteData();
-      info().setWriteFlags();
+      if (itsApplySolution) {
+        info().setWriteData();
+        info().setWriteFlags();
+      }
 
       for (uint i=0; i<nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
@@ -169,10 +180,13 @@ namespace LOFAR {
         if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
-        iS.push_back(StefCal(itsSolInt, chMax, itsMode, itsTolerance,
-                             info().antennaNames().size(), itsDetectStalling,
-                             itsDebugLevel));
+        iS.push_back(StefCal(itsSolInt, chMax,
+                             (itsMode=="tec"?"scalarphase":itsMode),
+                             itsTolerance, info().antennaNames().size(),
+                             itsDetectStalling, itsDebugLevel));
       }
+
+      itsFlagCounter.init(getInfo());
 
       itsChunkStartTime = info().startTime();
     }
@@ -192,6 +206,7 @@ namespace LOFAR {
       os << "  max iter:            " << itsMaxIter << endl;
       os << "  tolerance:           " << itsTolerance << endl;
       os << "  mode:                " << itsMode << endl;
+      os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
       os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
       os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
       os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
@@ -235,15 +250,23 @@ namespace LOFAR {
     bool GainCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      itsBuf.referenceFilled (bufin);
-      itsInput->fetchUVW(bufin, itsBuf, itsTimer);
-      itsInput->fetchWeights(bufin, itsBuf, itsTimer);
-      itsInput->fetchFullResFlags(bufin, itsBuf, itsTimer);
 
-      Cube<Complex> dataCube=itsBuf.getData();
+      uint bufIndex=0;
+
+      if (itsApplySolution) {
+        bufIndex=itsStepInSolInt;
+        itsBuf[bufIndex].copy(bufin);
+      } else {
+        itsBuf[0].referenceFilled (bufin);
+      }
+      itsInput->fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
+      itsInput->fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
+      itsInput->fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
+
+      Cube<Complex> dataCube=itsBuf[bufIndex].getData();
       Complex* data=dataCube.data();
-      float* weight = itsBuf.getWeights().data();
-      const Bool* flag=itsBuf.getFlags().data();
+      float* weight = itsBuf[bufIndex].getWeights().data();
+      const Bool* flag=itsBuf[bufIndex].getFlags().data();
 
       // Simulate.
       //
@@ -253,24 +276,24 @@ namespace LOFAR {
       itsTimerPredict.start();
 
       if (itsUseModelColumn) {
-        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
-        if (itsApplyBeamToModelColumn) {
+        itsInput->getModelData (itsBuf[bufIndex].getRowNrs(), itsModelData);
+        if (itsApplyBeamToModelColumn) { // TODO: double check this
           // Temporarily put model data in data column for applybeam step
           // ApplyBeam step will copy the buffer so no harm is done
-          itsBuf.getData()=itsModelData;
-          itsApplyBeamStep.process(itsBuf);
+          itsBuf[bufIndex].getData()=itsModelData;
+          itsApplyBeamStep.process(itsBuf[bufIndex]);
           //Put original data back in data column
-          itsBuf.getData()=dataCube;
+          itsBuf[bufIndex].getData()=dataCube;
         }
       } else { // Predict
-        itsPredictStep.process(itsBuf);
+        itsPredictStep.process(itsBuf[bufIndex]);
       }
 
       itsTimerPredict.stop();
 
       itsTimerFill.start();
 
-      if (itsNTimes==0) {
+      if (itsStepInSolInt==0) {
         // Start new solution interval
 
         for (uint freqCell=0; freqCell<itsNFreqCells; freqCell++) {
@@ -287,25 +310,92 @@ namespace LOFAR {
       }
       itsTimerFill.stop();
 
-      if (itsNTimes==itsSolInt-1) {
+      if (itsStepInSolInt==itsSolInt-1) {
         // Solve past solution interval
         stefcal();
-        itsTimeStep++;
-        itsNTimes=0;
+        itsStepInParmUpdate++;
+
+        if (itsApplySolution) {
+          Cube<DComplex> invsol = invertSol(itsSols.back());
+          for (uint stepInSolInt=0; stepInSolInt<itsSolInt; stepInSolInt++) {
+            applySolution(itsBuf[stepInSolInt], invsol);
+            getNextStep()->process(itsBuf[stepInSolInt]);
+          }
+        }
+
+        itsStepInSolInt=0;
       } else {
-        itsNTimes++;
+        itsStepInSolInt++;
       }
 
       itsTimer.stop();
 
-      if (itsTimeStep == itsTimeSlotsPerParmUpdate) {
+      if (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate) {
         writeSolutions(itsChunkStartTime);
         itsChunkStartTime += itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
         itsSols.clear();
-        itsTimeStep = 0;
+        itsStepInParmUpdate = 0;
       }
-      getNextStep()->process(itsBuf);
+
+      if (!itsApplySolution) {
+        getNextStep()->process(itsBuf[bufIndex]);
+      }
       return false;
+    }
+
+    Cube<DComplex> GainCal::invertSol(const Cube<DComplex>& sol) {
+      Cube<DComplex> invsol = sol.copy();
+      uint nCr = invsol.shape()[0];
+
+      // Invert copy of solutions
+      uint nSt = invsol.shape()[1];
+      for (uint st=0; st<nSt; ++st) {
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          if (nCr==4) {
+            ApplyCal::invert(&invsol(0,st,freqCell));
+          } else {
+            for (uint cr=0; cr<nCr; ++cr) {
+              invsol(cr, st, freqCell) = 1./invsol(cr, st, freqCell);
+            }
+          }
+        }
+      }
+
+      return invsol;
+    }
+
+    void GainCal::applySolution(DPBuffer& buf, const Cube<DComplex>& invsol) {
+      uint nbl = buf.getData().shape()[2];
+      Complex* data = buf.getData().data();
+      float* weight = buf.getWeights().data(); // Not initialized yet
+      bool* flag = buf.getFlags().data();
+      uint nchan = buf.getData().shape()[1];
+
+      uint nCr = invsol.shape()[0];
+
+      for (size_t bl=0; bl<nbl; ++bl) {
+        for (size_t chan=0;chan<nchan;chan++) {
+          uint antA = info().getAnt1()[bl];
+          uint antB = info().getAnt2()[bl];
+          uint freqCell = chan / itsNChan;
+          if (nCr>2) {
+            ApplyCal::applyFull( &invsol(0, antA, freqCell),
+                       &invsol(0, antB, freqCell),
+                       &data[bl * 4 * nchan + chan * 4 ],
+                       &weight[bl * 4 * nchan + chan * 4 ], // Not passing weights, any pointer should do
+                       &flag[  bl * 4 * nchan + chan * 4 ],
+                       bl, chan, false, itsFlagCounter); // Update weights is disabled here
+          }
+          else {
+            ApplyCal::applyDiag( &invsol(0, antA, freqCell),
+                       &invsol(0, antB, freqCell),
+                       &data[bl * 4 * nchan + chan * 4 ],
+                       &weight[bl * 4 * nchan + chan * 4 ], // Not passing weights, any pointer should do
+                       &flag[  bl * 4 * nchan + chan * 4 ],
+                       bl, chan, false, itsFlagCounter); // Update weights is disabled here
+          }
+        }
+      }
     }
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
@@ -328,18 +418,18 @@ namespace LOFAR {
           }
 
           for (uint cr=0;cr<nCr;++cr) {
-            iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                 DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsNTimes,ch%itsNChan,cr%2,ant2)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                 DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
 
             // conjugate transpose
-            iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsNTimes,ch%itsNChan,cr/2,ant1)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
           }
@@ -379,6 +469,7 @@ namespace LOFAR {
         if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
           iS[freqCell].getStationFlagged()[ant]=false; // Index in stefcal numbering
         } else {
+          //cout<<"flagging station "<<ant<<", "<<dataPerAntenna(ant)<<endl;
           iS[freqCell].getStationFlagged()[ant]=true; // Not enough data
         }
       }
@@ -398,23 +489,26 @@ namespace LOFAR {
       uint iter=0;
 
       PhaseFitter fitter(itsNFreqCells);
-      // Set frequency data for TEC fitter
-      double* nu = fitter.FrequencyData();
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-        double meanfreq=0;
-        uint chmin=itsNChan*freqCell;
-        uint chmax=min(info().nchan(), chmin+itsNChan);
 
-        meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
-                                   info().chanFreqs().data()+chmax, 0.0);
+      if (itsMode=="tec") {
+        // Set frequency data for TEC fitter
+        double* nu = fitter.FrequencyData();
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          double meanfreq=0;
+          uint chmin=itsNChan*freqCell;
+          uint chmax=min(info().nchan(), chmin+itsNChan);
 
-        nu[freqCell] = meanfreq / (chmax-chmin);
-        //cout<<"freqCell:" <<freqCell<<", meanfreq: "<<meanfreq/(chmax-chmin)<<endl;
+          meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
+                                     info().chanFreqs().data()+chmax, 0.0);
+
+          nu[freqCell] = meanfreq / (chmax-chmin);
+        }
       }
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
+#pragma omp parallel for
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
           if (converged[freqCell]==StefCal::CONVERGED) { // Do another step when stalled and not all converged
             continue;
@@ -426,8 +520,86 @@ namespace LOFAR {
             itsNIter[0] += iter;
           }
         }
+
+        double alpha=0., beta=0.;
+        if (itsMode=="tec") {
+          casa::Matrix<casa::DComplex> tecsol(itsNFreqCells, info().antennaNames().size());
+
+          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution(false);
+            for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
+              tecsol(freqCell, ant) = sol(ant, 0)/sol(0, 0);
+            }
+          }
+
+          uint nSt = info().antennaNames().size();
+          for (uint ant=0; ant<nSt; ++ant) {
+            uint numpoints=0;
+            double cost=0;
+            double* phases = fitter.PhaseData();
+            double* weights = fitter.WeightData();
+            for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+              if (iS[freqCell].getStationFlagged()[ant%nSt]) {
+                phases[freqCell] = 0;
+                weights[freqCell] = 0;
+              } else {
+                phases[freqCell] = arg(tecsol(freqCell, ant));
+                weights[freqCell] = 1;
+                numpoints++;
+              }
+            }
+
+            if (itsDebugLevel>0 && ant==1) {
+              //cout<<endl<<"phases["<<ant<<"]=[";
+              cout<<"unfitted["<<iter<<"]=[";
+              uint freqCell=0;
+              for (; freqCell<itsNFreqCells-1; ++freqCell) {
+                cout<<phases[freqCell]<<",";
+              }
+              cout<<phases[freqCell]<<"];"<<endl;
+            }
+            if (numpoints>1) {
+              cost=fitter.FitDataToTECModel(alpha, beta);
+              // Update solution in stefcal
+              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+                iS[freqCell].getSolution(false)(ant, 0) = polar(1., phases[freqCell]);
+              }
+            } else if (itsDebugLevel>5) {
+              cout<<"Not enough points ("<<numpoints<<") for antenna "<<ant<<endl;
+            }
+            if (itsDebugLevel>1 && ant==1) {
+              cout<<"fitted["<<iter<<"]=[";
+              uint freqCell=0;
+              for (; freqCell<itsNFreqCells-1; ++freqCell) {
+                cout<<phases[freqCell]<<",";
+              }
+              cout<<phases[freqCell]<<"]"<<endl;
+            }
+            if (itsDebugLevel>0 && ant==1) {
+              cout << "fitdata["<<iter<<"]=[" << alpha << ", " << beta << ", " << cost << "];" << endl;
+            }
+          }
+        }
+
         if (allConverged) {
           break;
+        }
+
+        if (itsDebugLevel>1) { // Only antenna 1
+          cout<<"phases["<<iter<<"]=[";
+          uint freqCell=0;
+          for (; freqCell<itsNFreqCells-1; ++freqCell) {
+            cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<",";
+          }
+          cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<"];"<<endl;
+        }
+        if (itsDebugLevel>2) { // Statistics about nStalled
+          cout<<"convstatus["<<iter<<"]=[";
+          uint freqCell=0;
+          for (; freqCell<itsNFreqCells-1; ++freqCell) {
+            cout<<converged[freqCell]<<",";
+          }
+          cout<<converged[freqCell]<<"]"<<endl;
         }
       } // End niter
 
@@ -443,26 +615,26 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
 
-      Cube<DComplex> allg(iS[0].numCorrelations(), info().antennaNames().size(), itsNFreqCells);
+      Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaNames().size(), itsNFreqCells);
 
       uint transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
 
       uint nSt = info().antennaNames().size();
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-        casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution();
+        casa::Matrix<casa::DComplex> tmpsol = iS[freqCell].getSolution(true);
 
         for (uint st=0; st<nSt; st++) {
           for (uint cr=0; cr<iS[0].nCr(); ++cr) {
             uint crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
-            allg(crt, st, freqCell) = conj(sol(st, cr));        // Conjugate transpose
+            sol(crt, st, freqCell) = conj(tmpsol(st, cr));        // Conjugate transpose
             if (itsMode=="diagonal" || itsMode=="phaseonly" || itsMode=="amplitudeonly") {
-              allg(crt+1, st, freqCell) = conj(sol(st+nSt,cr)); // Conjugate transpose
+              sol(crt+1, st, freqCell) = conj(tmpsol(st+nSt,cr)); // Conjugate transpose
             }
           }
         }
       }
-      itsSols.push_back(allg);
+      itsSols.push_back(sol);
 
       itsTimerSolve.stop();
     }
@@ -483,9 +655,11 @@ namespace LOFAR {
       resolution[0] = freqWidth * itsNChan;
       resolution[1] = info().timeInterval() * itsSolInt;
       itsParmDB->setDefaultSteps(resolution);
-      string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
-      if (!itsParmDB->getNames(name).empty()) {
-        DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
+
+      string parmname=parmName()+"*";
+
+      if (!itsParmDB->getNames(parmname).empty()) {
+        DPLOG_WARN_STR ("Solutions for "<<parmname<<" already in "<<itsParmDBName
                         <<", these are removed");
         // Specify entire domain of this MS; only to specify that the existing
         // values should be deleted for this domain
@@ -499,7 +673,7 @@ namespace LOFAR {
                 info().chanFreqs()[0] - freqWidth * 0.5,
                 freqWidth * getInfo().chanFreqs().size(), 1));
 
-        itsParmDB->deleteValues(name, BBS::Box(
+        itsParmDB->deleteValues(parmname, BBS::Box(
                                     fdomAxis->start(), tdomAxis->start(),
                                     fdomAxis->end(), tdomAxis->end(), true));
       }
@@ -536,6 +710,22 @@ namespace LOFAR {
           itsParmDB->putDefValue("Gain:1:1:Real",pvset);
         }
       }
+    }
+
+    string GainCal::parmName() {
+      string name;
+      if (itsMode=="scalarphase") {
+        name=string("CommonScalarPhase:");
+      } else if (itsMode=="scalaramplitude") {
+        name=string("CommonScalarAmplitude:");
+      } else if (itsMode=="tec") {
+        name=string("TEC:");
+      }
+      else {
+        name=string("Gain:");
+      }
+
+      return name;
     }
 
     void GainCal::writeSolutions(double startTime) {
@@ -597,25 +787,23 @@ namespace LOFAR {
                itsMode=="amplitudeonly") && (pol==1||pol==2)) {
             continue;
           }
-          if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ) && pol>0) {
+          if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ||
+              itsMode=="tec") && pol>0) {
             continue;
           }
           int realimmax;
           if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
-              itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
+              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
+              itsMode=="tec") {
             realimmax=1;
           } else {
             realimmax=2;
           }
           for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
-            string name;
+            string name = parmName();
 
-            if (itsMode=="scalarphase") {
-              name=string("CommonScalarPhase:")+suffix;
-            } else if (itsMode=="scalaramplitude") {
-              name=string("CommonScalarAmplitude:")+suffix;
-            } else {
-              name=string("Gain:") + str0101[pol];
+            if (itsMode!="scalarphase" && itsMode!="scalaramplitude") {
+              name+=str0101[pol];
               if (itsMode=="phaseonly") {
                 name=name+"Phase:";
               } else if (itsMode=="amplitudeonly") {
@@ -623,8 +811,10 @@ namespace LOFAR {
               } else {
                 name=name+strri[realim];
               }
-              name+=suffix;
             }
+
+            name+=suffix;
+
             // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -640,8 +830,14 @@ namespace LOFAR {
                   } else {
                     values(freqCell, ts) = imag(itsSols[ts](pol/3,st,freqCell));
                   }
-                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
+                } else if (itsMode=="scalarphase" || itsMode=="phaseonly" ||
+                           itsMode=="tec") {
                   values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
+                } else if (itsMode=="scalaramplitude" || itsMode=="amplitudeonly") {
+                  values(freqCell, ts) = abs(itsSols[ts](pol/3,st,freqCell));
+                }
+                else {
+                  THROW (Exception, "Unhandled mode");
                 }
               }
             }
@@ -677,8 +873,16 @@ namespace LOFAR {
       itsTimer.start();
 
       //Solve remaining time slots if any
-      if (itsNTimes!=0) {
+      if (itsStepInSolInt!=0) {
         stefcal();
+
+        if (itsApplySolution) {
+          Cube<DComplex> invsol = invertSol(itsSols.back());
+          for (uint stepInSolInt=0; stepInSolInt<itsStepInSolInt; stepInSolInt++) {
+            applySolution(itsBuf[stepInSolInt], invsol);
+            getNextStep()->process(itsBuf[stepInSolInt]);
+          }
+        }
       }
 
       itsTimer.stop();

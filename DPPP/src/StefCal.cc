@@ -40,6 +40,8 @@ namespace LOFAR {
                      double tolerance, uint maxAntennas,
                      bool detectStalling, uint debugLevel)
     : _nSt    (maxAntennas),
+      _badIters (0),
+      _veryBadIters (0),
       _solInt (solInt),
       _nChan  (nChan),
       _mode   (mode),
@@ -99,6 +101,9 @@ namespace LOFAR {
       _dgx=1.0e30;
       _dgs.clear();
 
+      _badIters=0;
+      _veryBadIters=0;
+
       if (initSolutions) {
         double ginit=1.0;
         if (_mode != "phaseonly" && _mode != "scalarphase" ) {
@@ -134,8 +139,6 @@ namespace LOFAR {
         } else {
           _g=ginit;
         }
-
-        _gx = _g;
       } else { // Take care of NaNs in solution
         for (uint ant=0; ant<_nUn; ++ant) {
           double ginit=0;
@@ -175,6 +178,9 @@ namespace LOFAR {
     }
 
     StefCal::Status StefCal::doStep(uint iter) {
+      _gxx = _gx;
+      _gx = _g;
+
       if (_mode=="fulljones") {
         doStep_polarized();
         doStep_polarized();
@@ -300,14 +306,43 @@ namespace LOFAR {
         } else if (_mode=="amplitudeonly" || _mode=="scalaramplitude") {
           _g(st1,0) = abs(_g(st1,0));
         }
+
+        if (_debugLevel>2) {
+          cout<<endl<<"gi=[";
+          uint ant=0;
+          for (; ant<_nUn-1; ++ant) {
+            cout<<_g(ant,0)<<",";
+          }
+          cout<<_g(ant,0)<<"]"<<endl;
+        }
       }
     }
 
-    casa::Matrix<casa::DComplex> StefCal::getSolution() {
-      for (uint ant=0; ant<_nUn; ++ant) {
-        if (_stationFlagged[ant%_nSt]) {
-          for (uint cr=0; cr<_nCr; ++cr) {
-            _g(ant,cr)=std::numeric_limits<double>::quiet_NaN();
+    casa::Matrix<casa::DComplex> StefCal::getSolution(bool setNaNs) {
+      if (setNaNs && _debugLevel>0) {
+        cout<<endl<<"dg=[";
+        uint iter=0;
+        for (; iter<_dgs.size()-1; ++iter) {
+          cout<<_dgs[iter]<<",";
+        }
+        cout<<_dgs[iter]<<"]"<<endl;
+      }
+
+      if (_debugLevel>2) {
+        cout<<endl<<"g=[";
+        uint ant=0;
+        for (; ant<_nUn-1; ++ant) {
+          cout<<_g(ant,0)<<",";
+        }
+        cout<<_g(ant,0)<<"]"<<endl;
+      }
+
+      if (setNaNs) {
+        for (uint ant=0; ant<_nUn; ++ant) {
+          if (_stationFlagged[ant%_nSt]) {
+            for (uint cr=0; cr<_nCr; ++cr) {
+              _g(ant,cr)=std::numeric_limits<double>::quiet_NaN();
+            }
           }
         }
       }
@@ -331,28 +366,34 @@ namespace LOFAR {
       double c2 = 1.2;
       double dgxx;
       bool threestep = false;
-      int badIters=0;
-      int maxBadIters=5;
+      uint maxBadIters=3;
 
       int sstep=0;
 
-      if (_detectStalling && iter > 10 && _dgx-_dg <= 5.0e-3*_dg) {
-      // This iteration did not improve much upon the previous
-      // Stalling detection only after 20 iterations, to account for
-      // ''startup problems''
-        if (_debugLevel>3) {
-          cout<<"**"<<endl;
-        }
-        badIters++;
-      } else {
-        badIters=0;
-      }
+      if (_detectStalling && iter > 3) {
+        double improvement = _dgx-_dg;
 
-      if (badIters>=maxBadIters && _detectStalling) {
-        if (_debugLevel>3) {
-          cout<<"Detected stall"<<endl;
+        if (abs(improvement) < 5.0e-2*_dg) {
+        // This iteration did not improve much upon the previous
+        // Stalling detection only after 4 iterations, to account for
+        // ''startup problems''
+          if (_debugLevel>3) {
+            cout<<"**"<<endl;
+          }
+          _badIters++;
+        } else if (improvement < 0) {
+          _veryBadIters++; 
+        } else {
+          //TODO slingergedrag
+          _badIters=0;
         }
-        return STALLED;
+
+        if (_badIters>=maxBadIters || _veryBadIters > maxBadIters) {
+          if (_debugLevel>3) {
+            cout<<"Detected stall"<<endl;
+          }
+          return STALLED;
+        }
       }
 
       dgxx = _dgx;
@@ -371,7 +412,7 @@ namespace LOFAR {
       fronormg=sqrt(fronormg);
 
       _dg = fronormdiff/fronormg;
-      if (_debugLevel>1) {
+      if (_debugLevel>0) {
         _dgs.push_back(_dg);
       }
 
@@ -439,9 +480,6 @@ namespace LOFAR {
           sstep = sstep - 1;
         }
       }
-      _gxx = _gx;
-      _gx = _g;
-
       return NOTCONVERGED;
     }
   } //# end namespace

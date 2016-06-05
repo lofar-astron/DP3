@@ -38,7 +38,7 @@ double PhaseFitter::fitTECModelBeta(double alpha, double betaEstimate) const {
 void PhaseFitter::bruteForceSearchTECModel(double& lowerAlpha, double& upperAlpha, double& beta) const
 {
   double minCost = std::numeric_limits<double>::max();
-  double alphaOversampling = 128;
+  double alphaOversampling = 256;
   //size_t betaOversampling = 16;
   double dAlpha = upperAlpha - lowerAlpha;
   const double bandw = _frequencies.back() - _frequencies.front();
@@ -94,16 +94,18 @@ void PhaseFitter::fillDataWithTECModel(double alpha, double beta)
 
 void PhaseFitter::FitTECModelParameters(double& alpha, double& beta) const
 {
-  double lowerAlpha = 0.0, upperAlpha = 40000.0e6;
+  double lowerAlpha = -40000.0e6, upperAlpha = 40000.0e6;
   bruteForceSearchTECModel(lowerAlpha, upperAlpha, beta);
   alpha = (lowerAlpha + upperAlpha) * 0.5;
   //beta = fitBeta(alpha, beta);
   alpha = ternarySearchTECModelAlpha(lowerAlpha, upperAlpha, beta);
 }
 
-void PhaseFitter::FitDataToTECModel(double& alpha, double& beta)
+double PhaseFitter::FitDataToTECModel(double& alpha, double& beta)
 {
   FitTECModelParameters(alpha, beta);
+  double cost = TECModelCost(alpha, beta);
   fillDataWithTECModel(alpha, beta);
+  return cost;
 }
 

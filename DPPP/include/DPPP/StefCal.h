@@ -59,7 +59,7 @@ namespace LOFAR {
       // Returns the solution. The return matrix has a length of maxAntennas,
       // which is zero for antennas for which no solution was computed.
       // The mapping is stored in the antenna map
-      casa::Matrix<casa::DComplex> getSolution();
+      casa::Matrix<casa::DComplex> getSolution(bool setNaNs);
 
       // Returns a reference to the visibility matrix
       casa::Array<casa::DComplex>& getVis() {
@@ -115,6 +115,8 @@ namespace LOFAR {
       uint _nUn; // number of unknowns
       uint _nCr; // number of correlations (1 or 4)
       uint _nSp; // number that is two for scalarphase, one else
+      uint _badIters; // number of bad iterations, for stalling detection
+      uint _veryBadIters; // number of iterations where solution got worse
       uint _solInt; // solution interval
       uint _nChan;  // number of channels
       string _mode; // diagonal, scalarphase, fulljones or phaseonly

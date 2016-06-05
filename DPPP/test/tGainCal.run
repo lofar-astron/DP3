@@ -23,19 +23,18 @@ tar zxf ${srcdir}/tGainCal.tab.tgz
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
-# Create MODEL_DATA so that residual can be computed
+echo "Creating MODEL_DATA so that residual can be computed"
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false
 
-exit 3
 echo; echo "Test caltype=diagonal"; echo
 ../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.propagatesolutions=true gaincal.solint=1
 
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal
 
-# Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
+echo "Comparing the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima."
 $taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_DIAGONAL-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_DIAGONAL-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where dpppres>bbsres*1.02' > taql.out
 diff taql.out taql.ref  ||  exit 1
-# Check that not everything was flagged
+echo "Checking that not everything was flagged"
 $taqlexe 'select from tNDPPP-generic.MS where all(FLAG) groupby true having gcount()>100' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
@@ -44,31 +43,48 @@ echo; echo "Test caltype=diagonal with timeslotsperparmupdate=4"; echo
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL_TPP steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal-tpp
 $taqlexe 'select from tNDPP-generic.MS where not all(near(DPPP_DIAGONAL, DPPP_DIAGONAL_TPP))'
 
-# Compare the difference between applying with timeslotsperparmupdate = default and timeslotsperparmupdate=1
+echo "Comparing the difference between applying with timeslotsperparmupdate = default and timeslotsperparmupdate=1"
 $taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_DIAGONAL-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_DIAGONAL-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where dpppres>bbsres*1.02' > taql.out
 diff taql.out taql.ref  ||  exit 1
-# Check that not everything was flagged
+echo "Checking that not everything was flagged"
 $taqlexe 'select from tNDPPP-generic.MS where all(FLAG) groupby true having gcount()>100' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test caltype=fulljones"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-fulljones gaincal.usebeammodel=false gaincal.caltype=fulljones gaincal.solint=1
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_FULLJONES_GAINCAL steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-fulljones gaincal.usebeammodel=false gaincal.caltype=fulljones gaincal.solint=1 gaincal.applysolution=true
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_FULLJONES steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-fulljones
 
-# Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
+echo "Comparing the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima."
 $taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_FULLJONES-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_FULLJONES-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where dpppres>bbsres*1.02' > taql.out
 diff taql.out taql.ref  ||  exit 1
-# Check that not everything was flagged
+echo "Comparing the solutions from gaincal + applycal with gaincal directly"
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DPPP_FULLJONES ~= DPPP_FULLJONES))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+echo "Checking that not everything was flagged"
 $taqlexe 'select from tNDPPP-generic.MS where all(FLAG) groupby true having gcount()>100' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test caltype=diagonal, nchan=2"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout= steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal-nchan gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=4 gaincal.nchan=2
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL_NCHAN_GAINCAL steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal-nchan gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=4 gaincal.nchan=2 gaincal.applysolution=true
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL_NCHAN steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal-nchan
 
-# Compare the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima.
+echo "Comparing the bbs residual with the dppp residual (solutions will not be equal, but residual should be equal). This avoids issues with local minima."
 $taqlexe 'select from (select gsumsqr(sumsqr(abs(iif(t1.FLAG,0,t1.DPPP_DIAGONAL_NCHAN-t1.MODEL_DATA)))) as dpppres, gsumsqr(sumsqr(abs(iif(FLAG,0,t2.BBS_DIAGONAL_NCHAN-t1.MODEL_DATA)))) as bbsres from tNDPPP-generic.MS t1, tGainCal.tab t2) where dpppres>bbsres*1.02' > taql.out
 diff taql.out taql.ref  ||  exit 1
-# Check that not everything was flagged
+
+echo "Comparing the solutions from gaincal + applycal with gaincal directly"
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DPPP_DIAGONAL_NCHAN_GAINCAL ~= DPPP_DIAGONAL_NCHAN))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+echo "Checking that not everything was flagged"
 $taqlexe 'select from tNDPPP-generic.MS where all(FLAG) groupby true having gcount()>100' > taql.out
 diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Test caltype=diagonal, nchan=2, solint=7"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL_NCHAN_7_GAINCAL steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-diagonal-nchan gaincal.usebeammodel=false gaincal.caltype=diagonal gaincal.solint=4 gaincal.nchan=2 gaincal.applysolution=true
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_DIAGONAL_NCHAN_7 steps=[applycal] applycal.parmdb=tNDPPP-generic.MS/inst-diagonal-nchan
+
+echo "Comparing the solutions from gaincal + applycal with gaincal directly"
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DPPP_DIAGONAL_NCHAN_7_GAINCAL ~= DPPP_DIAGONAL_NCHAN_7))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+

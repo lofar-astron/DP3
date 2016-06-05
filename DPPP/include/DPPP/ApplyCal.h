@@ -79,13 +79,15 @@ namespace LOFAR {
       static void invert (casa::DComplex* v, double sigmaMMSE=0);
 
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyDiag (casa::DComplex* gainA, casa::DComplex* gainB,
+      static void applyDiag (const casa::DComplex* gainA,
+                             const casa::DComplex* gainB,
                              casa::Complex* vis, float* weight, bool* flag,
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
       // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyFull (casa::DComplex* gainA, casa::DComplex* gainB,
+      static void applyFull (const casa::DComplex* gainA,
+                             const casa::DComplex* gainB,
                              casa::Complex* vis, float* weight, bool* flag,
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);

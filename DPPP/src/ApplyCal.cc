@@ -498,7 +498,7 @@ namespace LOFAR {
       itsParms.resize(numParms, numAnts, tfDomainSize);
     }
 
-    void ApplyCal::applyDiag (DComplex* gainA, DComplex* gainB,
+    void ApplyCal::applyDiag (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
                               uint bl, uint chan, bool updateWeights,
                               FlagCounter& flagCounter) {
@@ -546,7 +546,7 @@ namespace LOFAR {
       v[3] = v0 * invDet;
     }
 
-    void ApplyCal::applyFull (DComplex* gainA, DComplex* gainB,
+    void ApplyCal::applyFull (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
                               uint bl, uint chan, bool updateWeights,
                               FlagCounter& flagCounter) {
