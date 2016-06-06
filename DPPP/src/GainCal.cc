@@ -25,7 +25,6 @@
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/ApplyCal.h>
-#include <DPPP/phasefitter.h>
 #include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
@@ -121,8 +120,7 @@ namespace LOFAR {
 
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase" ||
-             itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
-             itsMode=="tec");
+             itsMode=="amplitudeonly" || itsMode=="scalaramplitude");
     }
 
     GainCal::~GainCal()
@@ -488,23 +486,6 @@ namespace LOFAR {
 
       uint iter=0;
 
-      PhaseFitter fitter(itsNFreqCells);
-
-      if (itsMode=="tec") {
-        // Set frequency data for TEC fitter
-        double* nu = fitter.FrequencyData();
-        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-          double meanfreq=0;
-          uint chmin=itsNChan*freqCell;
-          uint chmax=min(info().nchan(), chmin+itsNChan);
-
-          meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
-                                     info().chanFreqs().data()+chmax, 0.0);
-
-          nu[freqCell] = meanfreq / (chmax-chmin);
-        }
-      }
-
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
@@ -518,66 +499,6 @@ namespace LOFAR {
             allConverged = false;
           } else if (converged[freqCell]==StefCal::CONVERGED) {
             itsNIter[0] += iter;
-          }
-        }
-
-        double alpha=0., beta=0.;
-        if (itsMode=="tec") {
-          casa::Matrix<casa::DComplex> tecsol(itsNFreqCells, info().antennaNames().size());
-
-          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-            casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution(false);
-            for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
-              tecsol(freqCell, ant) = sol(ant, 0)/sol(0, 0);
-            }
-          }
-
-          uint nSt = info().antennaNames().size();
-          for (uint ant=0; ant<nSt; ++ant) {
-            uint numpoints=0;
-            double cost=0;
-            double* phases = fitter.PhaseData();
-            double* weights = fitter.WeightData();
-            for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-              if (iS[freqCell].getStationFlagged()[ant%nSt]) {
-                phases[freqCell] = 0;
-                weights[freqCell] = 0;
-              } else {
-                phases[freqCell] = arg(tecsol(freqCell, ant));
-                weights[freqCell] = 1;
-                numpoints++;
-              }
-            }
-
-            if (itsDebugLevel>0 && ant==1) {
-              //cout<<endl<<"phases["<<ant<<"]=[";
-              cout<<"unfitted["<<iter<<"]=[";
-              uint freqCell=0;
-              for (; freqCell<itsNFreqCells-1; ++freqCell) {
-                cout<<phases[freqCell]<<",";
-              }
-              cout<<phases[freqCell]<<"];"<<endl;
-            }
-            if (numpoints>1) {
-              cost=fitter.FitDataToTECModel(alpha, beta);
-              // Update solution in stefcal
-              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-                iS[freqCell].getSolution(false)(ant, 0) = polar(1., phases[freqCell]);
-              }
-            } else if (itsDebugLevel>5) {
-              cout<<"Not enough points ("<<numpoints<<") for antenna "<<ant<<endl;
-            }
-            if (itsDebugLevel>1 && ant==1) {
-              cout<<"fitted["<<iter<<"]=[";
-              uint freqCell=0;
-              for (; freqCell<itsNFreqCells-1; ++freqCell) {
-                cout<<phases[freqCell]<<",";
-              }
-              cout<<phases[freqCell]<<"]"<<endl;
-            }
-            if (itsDebugLevel>0 && ant==1) {
-              cout << "fitdata["<<iter<<"]=[" << alpha << ", " << beta << ", " << cost << "];" << endl;
-            }
           }
         }
 

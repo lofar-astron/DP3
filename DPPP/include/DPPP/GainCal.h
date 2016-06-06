@@ -29,7 +29,6 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/phasefitter.h>
 #include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
 #include <DPPP/Predict.h>
