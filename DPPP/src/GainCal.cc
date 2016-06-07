@@ -24,6 +24,7 @@
 #include <lofar_config.h>
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
+#include <DPPP/ApplyCal.h>
 #include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
@@ -58,8 +59,6 @@
 using namespace casa;
 using namespace LOFAR::BBS;
 
-/// Look at BBSKernel MeasurementExprLOFARUtil.cc and Apply.cc
-
 namespace LOFAR {
   namespace DPPP {
 
@@ -71,20 +70,26 @@ namespace LOFAR {
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb", "")),
         itsMode          (parset.getString (prefix + "caltype")),
-        itsTStep         (0),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
-        itsStefcalVariant(parset.getString (prefix + "stefcalvariant", "1c")),
+        itsApplySolution (parset.getBool (prefix + "applysolution", false)),
         itsBaselines     (),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
-        itsPropagateSolutions (parset.getBool(prefix + "propagatesolutions", false)),
+        itsPropagateSolutions
+                         (parset.getBool(prefix + "propagatesolutions", true)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
+        itsNChan         (parset.getInt(prefix + "nchan", 0)),
+        itsNFreqCells    (0),
         itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
+        itsTimeSlotsPerParmUpdate
+                         (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
         itsConverged     (0),
         itsNonconverged  (0),
         itsStalled       (0),
-        itsNTimes        (0)
+        itsStepInParmUpdate      (0),
+        itsChunkStartTime(0),
+        itsStepInSolInt        (0)
     {
       if (itsParmDBName=="") {
         itsParmDBName=parset.getString("msin")+"/instrument";
@@ -104,8 +109,18 @@ namespace LOFAR {
           itsApplyBeamStep.setNextStep(DPStep::ShPtr(itsResultStep));
         }
       }
+
+      itsNIter.resize(3,0);
+
+      if (itsApplySolution) {
+        itsBuf.resize(itsSolInt);
+      } else {
+        itsBuf.resize(1);
+      }
+
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
-             itsMode=="fulljones" || itsMode=="scalarphase");
+             itsMode=="fulljones" || itsMode=="scalarphase" ||
+             itsMode=="amplitudeonly" || itsMode=="scalaramplitude");
     }
 
     GainCal::~GainCal()
@@ -125,8 +140,10 @@ namespace LOFAR {
       } else {
         itsPredictStep.updateInfo(infoIn);
       }
-      info().setWriteData();
-      info().setWriteFlags();
+      if (itsApplySolution) {
+        info().setWriteData();
+        info().setWriteFlags();
+      }
 
       for (uint i=0; i<nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
@@ -137,18 +154,39 @@ namespace LOFAR {
         itsSolInt=info().ntime();
       }
 
-      itsSols.reserve(info().ntime());
+      itsSols.reserve(itsTimeSlotsPerParmUpdate);
 
-      // Read the antenna beam info from the MS.
-      // Only take the stations actually used.
+      if (itsNChan==0) {
+        itsNChan = info().nchan();
+      }
+      if (itsNChan>info().nchan()) {
+        itsNChan=info().nchan();
+      }
+      itsNFreqCells = info().nchan() / itsNChan;
+      if (itsNChan*itsNFreqCells<info().nchan()) { // If last freq cell is smaller
+        itsNFreqCells++;
+      }
+
       itsAntennaUsedNames.resize(info().antennaUsed().size());
-      itsDataPerAntenna.resize(info().antennaNames().size());
-      casa::Vector<int> antsUsed = info().antennaUsed();
       for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
         itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
       }
 
-      iS.z.resize(OpenMP::maxThreads());
+      iS.reserve(itsNFreqCells);
+      uint chMax = itsNChan;
+      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+        if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
+          chMax-=((freqCell+1)*itsNChan)%info().nchan();
+        }
+        iS.push_back(StefCal(itsSolInt, chMax,
+                             (itsMode=="tec"?"scalarphase":itsMode),
+                             itsTolerance, info().antennaNames().size(),
+                             itsDetectStalling, itsDebugLevel));
+      }
+
+      itsFlagCounter.init(getInfo());
+
+      itsChunkStartTime = info().startTime();
     }
 
     void GainCal::show (std::ostream& os) const
@@ -161,12 +199,15 @@ namespace LOFAR {
         os << " (will be created)";
       }
       os << endl;
-      os << "  solint:             " << itsSolInt <<endl;
-      os << "  max iter:           " << itsMaxIter << endl;
-      os << "  tolerance:          " << itsTolerance << endl;
-      os << "  mode:               " << itsMode << endl;
-      os << "  detect stalling:    " << boolalpha << itsDetectStalling << endl;
-      os << "  use model column:   " << boolalpha << itsUseModelColumn << endl;
+      os << "  solint:              " << itsSolInt <<endl;
+      os << "  nchan:               " << itsNChan <<endl;
+      os << "  max iter:            " << itsMaxIter << endl;
+      os << "  tolerance:           " << itsTolerance << endl;
+      os << "  mode:                " << itsMode << endl;
+      os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
+      os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
+      os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
+      os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
       if (!itsUseModelColumn) {
         itsPredictStep.show(os);
       } else if (itsApplyBeamToModelColumn) {
@@ -199,20 +240,31 @@ namespace LOFAR {
 
       os << "          ";
       os <<"Converged: "<<itsConverged<<", stalled: "<<itsStalled<<", non converged: "<<itsNonconverged<<endl;
+      os <<"Iters converged: " << (itsConverged==0?0:itsNIter[0]/itsConverged);
+      os << ", stalled: "<<      (itsStalled  ==0?0:itsNIter[1]/itsStalled);
+      os << ", non converged: "<<(itsNonconverged==0?0:itsNIter[2]/itsNonconverged)<<endl;
     }
 
     bool GainCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      itsBuf.referenceFilled (bufin);
-      itsInput->fetchUVW(bufin, itsBuf, itsTimer);
-      itsInput->fetchWeights(bufin, itsBuf, itsTimer);
-      itsInput->fetchFullResFlags(bufin, itsBuf, itsTimer);
 
-      Cube<Complex> dataCube=itsBuf.getData();
+      uint bufIndex=0;
+
+      if (itsApplySolution) {
+        bufIndex=itsStepInSolInt;
+        itsBuf[bufIndex].copy(bufin);
+      } else {
+        itsBuf[0].referenceFilled (bufin);
+      }
+      itsInput->fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
+      itsInput->fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
+      itsInput->fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
+
+      Cube<Complex> dataCube=itsBuf[bufIndex].getData();
       Complex* data=dataCube.data();
-      float* weight = itsBuf.getWeights().data();
-      const Bool* flag=itsBuf.getFlags().data();
+      float* weight = itsBuf[bufIndex].getWeights().data();
+      const Bool* flag=itsBuf[bufIndex].getFlags().data();
 
       // Simulate.
       //
@@ -222,30 +274,33 @@ namespace LOFAR {
       itsTimerPredict.start();
 
       if (itsUseModelColumn) {
-        itsInput->getModelData (itsBuf.getRowNrs(), itsModelData);
-        if (itsApplyBeamToModelColumn) {
+        itsInput->getModelData (itsBuf[bufIndex].getRowNrs(), itsModelData);
+        if (itsApplyBeamToModelColumn) { // TODO: double check this
           // Temporarily put model data in data column for applybeam step
           // ApplyBeam step will copy the buffer so no harm is done
-          itsBuf.getData()=itsModelData;
-          itsApplyBeamStep.process(itsBuf);
+          itsBuf[bufIndex].getData()=itsModelData;
+          itsApplyBeamStep.process(itsBuf[bufIndex]);
           //Put original data back in data column
-          itsBuf.getData()=dataCube;
+          itsBuf[bufIndex].getData()=dataCube;
         }
       } else { // Predict
-        itsPredictStep.process(itsBuf);
+        itsPredictStep.process(itsBuf[bufIndex]);
       }
 
       itsTimerPredict.stop();
 
       itsTimerFill.start();
 
-      if (itsNTimes==0) {
-        itsDataPerAntenna=0;
-        itsVis=0;
-        itsMVis=0;
-        countAntUsedNotFlagged(flag);
-        setAntennaMaps();
+      if (itsStepInSolInt==0) {
+        // Start new solution interval
+
+        for (uint freqCell=0; freqCell<itsNFreqCells; freqCell++) {
+          setAntennaMaps(flag, freqCell);
+          iS[freqCell].resetVis();
+        }
       }
+
+      // Store data in the stefcal object
       if (itsUseModelColumn && !itsApplyBeamToModelColumn) {
         fillMatrices(itsModelData.data(),data,weight,flag);
       } else {
@@ -253,50 +308,126 @@ namespace LOFAR {
       }
       itsTimerFill.stop();
 
-      if (itsNTimes==itsSolInt-1) {
-        stefcal(itsMode,itsSolInt);
-        itsNTimes=0;
+      if (itsStepInSolInt==itsSolInt-1) {
+        // Solve past solution interval
+        stefcal();
+        itsStepInParmUpdate++;
+
+        if (itsApplySolution) {
+          Cube<DComplex> invsol = invertSol(itsSols.back());
+          for (uint stepInSolInt=0; stepInSolInt<itsSolInt; stepInSolInt++) {
+            applySolution(itsBuf[stepInSolInt], invsol);
+            getNextStep()->process(itsBuf[stepInSolInt]);
+          }
+        }
+
+        itsStepInSolInt=0;
       } else {
-        itsNTimes++;
+        itsStepInSolInt++;
       }
 
       itsTimer.stop();
-      itsTStep++;
-      getNextStep()->process(itsBuf);
+
+      if (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate) {
+        writeSolutions(itsChunkStartTime);
+        itsChunkStartTime += itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
+        itsSols.clear();
+        itsStepInParmUpdate = 0;
+      }
+
+      if (!itsApplySolution) {
+        getNextStep()->process(itsBuf[bufIndex]);
+      }
       return false;
+    }
+
+    Cube<DComplex> GainCal::invertSol(const Cube<DComplex>& sol) {
+      Cube<DComplex> invsol = sol.copy();
+      uint nCr = invsol.shape()[0];
+
+      // Invert copy of solutions
+      uint nSt = invsol.shape()[1];
+      for (uint st=0; st<nSt; ++st) {
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          if (nCr==4) {
+            ApplyCal::invert(&invsol(0,st,freqCell));
+          } else {
+            for (uint cr=0; cr<nCr; ++cr) {
+              invsol(cr, st, freqCell) = 1./invsol(cr, st, freqCell);
+            }
+          }
+        }
+      }
+
+      return invsol;
+    }
+
+    void GainCal::applySolution(DPBuffer& buf, const Cube<DComplex>& invsol) {
+      uint nbl = buf.getData().shape()[2];
+      Complex* data = buf.getData().data();
+      float* weight = buf.getWeights().data(); // Not initialized yet
+      bool* flag = buf.getFlags().data();
+      uint nchan = buf.getData().shape()[1];
+
+      uint nCr = invsol.shape()[0];
+
+      for (size_t bl=0; bl<nbl; ++bl) {
+        for (size_t chan=0;chan<nchan;chan++) {
+          uint antA = info().getAnt1()[bl];
+          uint antB = info().getAnt2()[bl];
+          uint freqCell = chan / itsNChan;
+          if (nCr>2) {
+            ApplyCal::applyFull( &invsol(0, antA, freqCell),
+                       &invsol(0, antB, freqCell),
+                       &data[bl * 4 * nchan + chan * 4 ],
+                       &weight[bl * 4 * nchan + chan * 4 ], // Not passing weights, any pointer should do
+                       &flag[  bl * 4 * nchan + chan * 4 ],
+                       bl, chan, false, itsFlagCounter); // Update weights is disabled here
+          }
+          else {
+            ApplyCal::applyDiag( &invsol(0, antA, freqCell),
+                       &invsol(0, antB, freqCell),
+                       &data[bl * 4 * nchan + chan * 4 ],
+                       &weight[bl * 4 * nchan + chan * 4 ], // Not passing weights, any pointer should do
+                       &flag[  bl * 4 * nchan + chan * 4 ],
+                       bl, chan, false, itsFlagCounter); // Update weights is disabled here
+          }
+        }
+      }
     }
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
     // top left, all 11 polarizations in the bottom right, etc.
     void GainCal::fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
                                 const casa::Bool* flag) {
-      vector<int>* antMap=&itsAntMaps[itsAntMaps.size()-1];
-
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
 
       for (uint ch=0;ch<nCh;++ch) {
         for (uint bl=0;bl<nBl;++bl) {
-          int ant1=(*antMap)[info().getAnt1()[bl]];
-          int ant2=(*antMap)[info().getAnt2()[bl]];
-          if (ant1==ant2 || ant1==-1 || ant2 == -1 || flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
+          int ant1=info().getAnt1()[bl];
+          int ant2=info().getAnt2()[bl];
+          if (ant1==ant2 ||
+              iS[ch/itsNChan].getStationFlagged()[ant1] ||
+              iS[ch/itsNChan].getStationFlagged()[ant2] ||
+              flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
             continue;
           }
 
           for (uint cr=0;cr<nCr;++cr) {
-            itsVis (IPosition(6,ant1,cr/2,ch,itsNTimes,cr%2,ant2)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                 DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            itsMVis(IPosition(6,ant1,cr/2,ch,itsNTimes,cr%2,ant2)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                 DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
 
             // conjugate transpose
-            itsVis (IPosition(6,ant2,cr%2,ch,itsNTimes,cr/2,ant1)) =
+            iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            itsMVis(IPosition(6,ant2,cr%2,ch,itsNTimes,cr/2,ant1)) =
+            iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
                 DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
           }
@@ -304,532 +435,168 @@ namespace LOFAR {
       }
     }
 
-
-    void GainCal::countAntUsedNotFlagged (const Bool* flag) {
+    void GainCal::setAntennaMaps (const Bool* flag, uint freqCell) {
       uint nCr=info().ncorr();
       uint nCh=info().nchan();
       uint nBl=info().nbaselines();
 
-      // I assume antennas are numbered 0, 1, 2, ...
+      iS[freqCell].clearStationFlagged();
+
+      casa::Vector<casa::uInt> dataPerAntenna; // nAnt
+      dataPerAntenna.resize(info().antennaNames().size());
+      dataPerAntenna=0;
+
       for (uint bl=0;bl<nBl;++bl) {
         uint ant1=info().getAnt1()[bl];
         uint ant2=info().getAnt2()[bl];
         if (ant1==ant2) {
           continue;
         }
-        for (uint ch=0;ch<nCh;++ch) {
+        uint chmax=min((freqCell+1)*itsNChan, nCh);
+        for (uint ch=freqCell*itsNChan;ch<chmax;++ch) {
           for (uint cr=0;cr<nCr;++cr) {
             if (!flag[bl*nCr*nCh + ch*nCr + cr]) {
-              itsDataPerAntenna[ant1]++;
-              itsDataPerAntenna[ant2]++;
+              dataPerAntenna(ant1)++;
+              dataPerAntenna(ant2)++;
             }
           }
         }
       }
-    }
-      
-    void GainCal::setAntennaMaps () {      
-      vector<int> antMap(info().antennaNames().size(),-1);
-      uint nCr=info().ncorr();
 
-      for (uint ant=0; ant<itsDataPerAntenna.size(); ++ant) {
-        if (itsDataPerAntenna[ant]>nCr*itsMinBLperAnt) {
-          antMap[ant] = 0;
+      for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
+        if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
+          iS[freqCell].getStationFlagged()[ant]=false; // Index in stefcal numbering
+        } else {
+          //cout<<"flagging station "<<ant<<", "<<dataPerAntenna(ant)<<endl;
+          iS[freqCell].getStationFlagged()[ant]=true; // Not enough data
         }
       }
-
-      vector<int> antUsed;
-      antUsed.reserve(info().antennaNames().size());
-      for (uint i=0; i<antMap.size(); ++i) {
-        if (antMap[i] == 0) {
-          antMap[i] = antUsed.size();
-          antUsed.push_back (i);
-        }
-      }
-
-      itsAntUseds.push_back(antUsed);
-      itsAntMaps.push_back(antMap);
-
-      uint nSt=antUsed.size();
-      uint nCh=info().nchan();
-      // initialize storage
-      itsVis.resize (IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
-      itsMVis.resize(IPosition(6,nSt,2,nCh,itsSolInt,2,nSt));
     }
 
-    void GainCal::stefcal (string mode, uint solInt) {
-      vector<double> dgs;
-
+    void GainCal::stefcal () {
       itsTimerSolve.start();
-      double f2 = -1.0;
-      double f3 = -0.5;
-      double f1 = 1 - f2 - f3;
-      double f2q = -0.5;
-      double f1q = 1 - f2q;
-      double omega = 0.5;
-      uint nomega = 24;
-      double c1 = 0.5;
-      double c2 = 1.2;
-      double dg  =1.0e29;
-      double dgx =1.0e30;
-      double dgxx;
-      bool threestep = false;
-      int badIters=0;
-      int maxBadIters=5;
 
-      uint nSt, nCr, nUn, nSp; // number of actual stations,
-                               // number of correlations,
-                               // number of unknowns
-                               // number that is two for scalarphase, one else
-
-      nSt=itsAntUseds[itsAntUseds.size()-1].size();
-      if (mode=="fulljones") {
-        nUn=nSt;
-        nCr=4;
-        nSp=1;
-      } else if (mode=="scalarphase") {
-        nUn=nSt;
-        nCr=1;
-        nSp=2;
-      } else {
-        nUn=nSt*2;
-        nCr=1;
-        nSp=1;
-      }
-      uint nCh = info().nchan();
-
-      iS.g.resize(nUn,nCr);
-      iS.gold.resize(nUn,nCr);
-      iS.gx.resize(nUn,nCr);
-      iS.gxx.resize(nUn,nCr);
-      iS.h.resize(nUn,nCr);
-      uint numThreads=OpenMP::maxThreads();
-      for (uint thread=0; thread<numThreads; ++thread) {
-        iS.z[thread].resize(nUn*nCh*solInt*nSp,nCr);
-      }
-
-      // Initialize all vectors
-      double fronormvis=0;
-      double fronormmod=0;
-
-      DComplex* t_vis_p=itsVis.data();
-      DComplex* t_mvis_p=itsMVis.data();
-
-      uint vissize=itsVis.size();
-      for (uint i=0;i<vissize;++i) {
-        fronormvis+=norm(t_vis_p[i]);
-        fronormmod+=norm(t_mvis_p[i]);
-      }
-
-      fronormvis=sqrt(fronormvis);
-      fronormmod=sqrt(fronormmod);
-
-      double ginit=1;
-      if (nSt>0 && abs(fronormmod)>1.e-15) {
-        ginit=sqrt(fronormvis/fronormmod);
-      }
-      if (mode=="fulljones") {
-        for (uint st=0;st<nUn;++st) {
-          iS.g(st,0)=1.;
-          iS.g(st,1)=0.;
-          iS.g(st,2)=0.;
-          iS.g(st,3)=1.;
+      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+        if (itsPropagateSolutions) {
+          iS[freqCell].init(false);
+        } else {
+          iS[freqCell].init(true);
         }
-      } else {
-        iS.g=ginit;
       }
-
-      iS.gx = iS.g;
-      int sstep=0;
 
       uint iter=0;
-      if (nSt==0) {
-        iter=itsMaxIter;
-      }
+
+      std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
-        iS.gold=iS.g;
-
-        if (mode=="fulljones") { // ======================== Polarized =======================
-          for (uint st=0;st<nSt;++st) {
-            iS.h(st,0)=conj(iS.g(st,0));
-            iS.h(st,1)=conj(iS.g(st,1));
-            iS.h(st,2)=conj(iS.g(st,2));
-            iS.h(st,3)=conj(iS.g(st,3));
+        bool allConverged=true;
+#pragma omp parallel for
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          if (converged[freqCell]==StefCal::CONVERGED) { // Do another step when stalled and not all converged
+            continue;
           }
-
-//#pragma omp parallel for
-          for (uint st1=0;st1<nSt;++st1) {
-            uint thread=OpenMP::threadNum();
-            DComplex* vis_p;
-            DComplex* mvis_p;
-            Vector<DComplex> w(nCr);
-            Vector<DComplex> t(nCr);
-
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                uint zoff=nSt*ch+nSt*nCh*time;
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,0) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1)  = iS.h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,1) += iS.h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1))
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,0,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,0,st1,0)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,2) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,ch,time,1,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,0,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3)  = iS.h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,0,st1)) 
-                mvis_p=&itsMVis(IPosition(6,0,1,ch,time,1,st1,1)); for (uint st2=0;st2<nSt;++st2) { iS.z[thread](st2+zoff,3) += iS.h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,ch,time,1,st1))
-              }
-            }
-
-            w=0;
-
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                for (uint st2=0;st2<nSt;++st2) {
-                  uint zoff=st2+nSt*ch+nSt*nCh*time;
-                  w(0) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,0) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,2);
-                  w(1) += conj(iS.z[thread](zoff,0))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,2))*iS.z[thread](zoff,3);
-                  w(3) += conj(iS.z[thread](zoff,1))*iS.z[thread](zoff,1) + conj(iS.z[thread](zoff,3))*iS.z[thread](zoff,3);
-                }
-              }
-            }
-            w(2)=conj(w(1));
-
-            t=0;
-
-            for (uint time=0;time<solInt;++time) {
-              for (uint ch=0;ch<nCh;++ch) {
-                vis_p=&itsVis(IPosition(6,0,0,ch,time,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,ch,time,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,ch,time,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(0) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,ch,time,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,ch,time,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,ch,time,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,ch,time,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(1) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,ch,time,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,ch,time,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,ch,time,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,ch,time,0,st1)); for (uint st2=0;st2<nSt;++st2) { t(2) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,ch,time,1,st1))
-                vis_p=&itsVis(IPosition(6,0,0,ch,time,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,ch,time,0,st1))
-                vis_p=&itsVis(IPosition(6,0,1,ch,time,1,st1)); for (uint st2=0;st2<nSt;++st2) { t(3) += conj(iS.z[thread](st2+nSt*ch+nSt*nCh*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,ch,time,1,st1))
-              }
-            }
-            DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
-            iS.g(st1,0) = invdet * ( w(3) * t(0) - w(1) * t(2) );
-            iS.g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
-            iS.g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
-            iS.g(st1,3) = invdet * ( w(0) * t(3) - w(2) * t(1) );
-
-            if (itsStefcalVariant=="2a") {
-              iS.h(st1,0)=conj(iS.g(st1,0));
-              iS.h(st1,1)=conj(iS.g(st1,1));
-              iS.h(st1,2)=conj(iS.g(st1,2));
-              iS.h(st1,3)=conj(iS.g(st1,3));
-            }
+          converged[freqCell] = iS[freqCell].doStep(iter);
+          if (converged[freqCell]==StefCal::NOTCONVERGED) {
+            allConverged = false;
+          } else if (converged[freqCell]==StefCal::CONVERGED) {
+            itsNIter[0] += iter;
           }
-        } else {// ======================== Nonpolarized =======================
-          for (uint st=0;st<nUn;++st) {
-            iS.h(st,0)=conj(iS.g(st,0));
-          }
-//#pragma omp parallel for
-          for (uint st1=0;st1<nUn;++st1) {
-            uint thread=OpenMP::threadNum();
-            DComplex* vis_p;
-            DComplex* mvis_p;
-            double ww=0; // Same as w, but specifically for pol==false
-            DComplex tt=0; // Same as t, but specifically for pol==false
+        }
 
-            DComplex* z_p=iS.z[thread].data();
-            mvis_p=&itsMVis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-            vis_p = &itsVis(IPosition(6,0,0,0,0,st1/nSt,st1%nSt));
-            for (uint st1pol=0;st1pol<nSp;++st1pol) {
-              for (uint time=0;time<solInt;++time) {
-                for (uint ch=0;ch<nCh;++ch) {
-                  DComplex* h_p=iS.h.data();
-                  for (uint st2=0;st2<nUn;++st2) {
-                    *z_p = h_p[st2] * *mvis_p; //itsMVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
-                    ww+=norm(*z_p);
-                    tt+=conj(*z_p) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,ch,time,st1/nSt,st1%nSt));
-                    mvis_p++;
-                    vis_p++;
-                    z_p++;
-                  }
-                  //cout<<"iS.z bij ch="<<ch<<"="<<iS.z<<endl<<"----"<<endl;
-                }
-              }
-            }
-            //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
-            //cout<<", w="<<ww<<"       ";
-            iS.g(st1,0)=tt/ww;
-            //cout<<", g="<<iS.g(st1,0)<<endl;
-            if (itsMode=="phaseonly" || itsMode=="scalarphase") {
-              iS.g(st1,0)/=abs(iS.g(st1,0));
-            }
+        if (allConverged) {
+          break;
+        }
 
-            if (itsStefcalVariant=="2a") {
-              iS.h(st1,0)=conj(iS.g(st1,0));
-            } else if (itsStefcalVariant=="2b") {
-              iS.h(st1,0)=0.8*iS.h(st1,0)-0.2*conj(iS.g(st1,0));
-            }
+        if (itsDebugLevel>1) { // Only antenna 1
+          cout<<"phases["<<iter<<"]=[";
+          uint freqCell=0;
+          for (; freqCell<itsNFreqCells-1; ++freqCell) {
+            cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<",";
           }
-          if (itsStefcalVariant!="1c") {
-            double fronormdiff=0;
-            double fronormg=0;
-            for (uint ant=0;ant<nUn;++ant) {
-              for (uint cr=0;cr<nCr;++cr) {
-                DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
-                fronormdiff+=abs(diff*diff);
-                fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
-              }
-            }
-            fronormdiff=sqrt(fronormdiff);
-            fronormg=sqrt(fronormg);
+          cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<"];"<<endl;
+        }
+        if (itsDebugLevel>2) { // Statistics about nStalled
+          cout<<"convstatus["<<iter<<"]=[";
+          uint freqCell=0;
+          for (; freqCell<itsNFreqCells-1; ++freqCell) {
+            cout<<converged[freqCell]<<",";
+          }
+          cout<<converged[freqCell]<<"]"<<endl;
+        }
+      } // End niter
 
-            dg = fronormdiff/fronormg;
-            dgs.push_back(dg);
-          }
-        } // ============================== Relaxation   =======================
-        if (iter % 2 == 1 && itsStefcalVariant=="1c") {
-          if (itsDebugLevel>7) {
-            cout<<"iter: "<<iter<<endl;
-          }
-          if (itsDetectStalling && iter > 20 && dgx-dg <= 5.0e-3*dg) {
-          // This iteration did not improve much upon the previous
-          // Stalling detection only after 20 iterations, to account for
-          // ''startup problems''
-            if (itsDebugLevel>3) {
-              cout<<"**"<<endl;
-            }
-            badIters++;
-          } else {
-            badIters=0;
-          }
-
-          if (badIters>=maxBadIters && itsDetectStalling) {
-            if (itsDebugLevel>3) {
-              cout<<"Detected stall"<<endl;
-            }
-            itsStalled++;
-            break;
-          }
-
-          dgxx = dgx;
-          dgx  = dg;
-
-          double fronormdiff=0;
-          double fronormg=0;
-          for (uint ant=0;ant<nUn;++ant) {
-            for (uint cr=0;cr<nCr;++cr) {
-              DComplex diff=iS.g(ant,cr)-iS.gold(ant,cr);
-              fronormdiff+=abs(diff*diff);
-              fronormg+=abs(iS.g(ant,cr)*iS.g(ant,cr));
-            }
-          }
-          fronormdiff=sqrt(fronormdiff);
-          fronormg=sqrt(fronormg);
-
-          dg = fronormdiff/fronormg;
-          if (itsDebugLevel>1) {
-            dgs.push_back(dg);
-          }
-
-          if (dg <= itsTolerance) {
-            itsConverged++;
-            break;
-          }
-
-          if (itsDebugLevel>7) {
-            cout<<"Averaged"<<endl;
-          }
-          for (uint ant=0;ant<nUn;++ant) {
-            for (uint cr=0;cr<nCr;++cr) {
-              iS.g(ant,cr) = (1-omega) * iS.g(ant,cr) + omega * iS.gold(ant,cr);
-            }
-          }
-
-          if (!threestep) {
-            threestep = (iter+1 >= nomega) ||
-                ( max(dg,max(dgx,dgxx)) <= 1.0e-3 && dg<dgx && dgx<dgxx);
-            if (itsDebugLevel>7) {
-              cout<<"Threestep="<<boolalpha<<threestep<<endl;
-            }
-          }
-
-          if (threestep) {
-            if (sstep <= 0) {
-              if (dg <= c1 * dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=c1*dgx"<<endl;
-                }
-                for (uint ant=0;ant<nUn;++ant) {
-                  for (uint cr=0;cr<nCr;++cr) {
-                    iS.g(ant,cr) = f1q * iS.g(ant,cr) + f2q * iS.gx(ant,cr);
-                  }
-                }
-              } else if (dg <= dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=dgx"<<endl;
-                }
-                for (uint ant=0;ant<nUn;++ant) {
-                  for (uint cr=0;cr<nCr;++cr) {
-                    iS.g(ant,cr) = f1 * iS.g(ant,cr) + f2 * iS.gx(ant,cr) + f3 * iS.gxx(ant,cr);
-                  }
-                }
-              } else if (dg <= c2 *dgx) {
-                if (itsDebugLevel>7) {
-                  cout<<"dg<=c2*dgx"<<endl;
-                }
-                iS.g = iS.gx;
-                sstep = 1;
-              } else {
-                //cout<<"else"<<endl;
-                iS.g = iS.gxx;
-                sstep = 2;
-              }
-            } else {
-              if (itsDebugLevel>7) {
-                cout<<"no sstep"<<endl;
-              }
-              sstep = sstep - 1;
-            }
-          }
-          iS.gxx = iS.gx;
-          iS.gx = iS.g;
+      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+        switch (converged[freqCell]) {
+        case StefCal::CONVERGED: {itsConverged++; break;}
+        case StefCal::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
+        case StefCal::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
+        default:
+          THROW(Exception, "Unknown converged status");
         }
       }
-      if (dg > itsTolerance && nSt>0) {
-        if (itsDetectStalling && badIters<maxBadIters) {
-          itsNonconverged++;
-        } else {
-          itsNonconverged++;
-        }
-        if (itsDebugLevel>0) {
-          cerr<<"!";
-        }
-      }
-
-      if ((itsDebugLevel>1 && dg>itsTolerance) || itsDebugLevel>2) {
-        cout<<"t: "<<itsTStep<<", iter:"<<iter<<", dg=[";
-        if (dgs.size()>0) {
-          cout<<dgs[0];
-        }
-        for (uint i=1;i<dgs.size();++i) {
-          cout<<","<<dgs[i];
-        }
-        cout<<"]"<<endl;
-      }
-
-      //for (uint ant2=0;ant2<nSt;++ant2) {
-        //cout<<"g["<<ant2<<"]={"<<g[ant2][0]<<", "<<g[ant2][1]<<", "<<g[ant2][2]<<", "<<g[ant2][3]<<"}"<<endl;
-        //cout<<"w["<<ant2<<"]={"<<w[ant2][0]<<", "<<w[ant2][1]<<", "<<w[ant2][2]<<", "<<w[ant2][3]<<"}"<<endl;
-      //}
 
       // Stefcal terminated (either by maxiter or by converging)
-      // Let's save G...
-      itsSols.push_back(iS.g.copy());
 
-      if (itsDebugLevel>3) {
-        //cout<<"g="<<iS.g<<endl;
-        cout<<"g=[";
-        for (uint i=0;i<nUn;++i) {
-          cout<<iS.g(i,0).real()<<(iS.g(i,0).imag()>=0?"+":"")<<iS.g(i,0).imag()<<"j; ";
-        }
-        cout<<endl;
-        //THROW(Exception,"Klaar!");
-      }
+      Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaNames().size(), itsNFreqCells);
 
-      if (dg > itsTolerance && itsDebugLevel>1 && nSt>0) {
-        cout<<endl<<"Did not converge: dg="<<dg<<" tolerance="<<itsTolerance<<", nants="<<nSt<<endl;
-        if (itsDebugLevel>12) {
-          cout<<"g="<<iS.g<<endl;
-          exportToMatlab(0);
-          THROW(Exception,"Klaar!");
+      uint transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
+
+      uint nSt = info().antennaNames().size();
+
+      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+        casa::Matrix<casa::DComplex> tmpsol = iS[freqCell].getSolution(true);
+
+        for (uint st=0; st<nSt; st++) {
+          for (uint cr=0; cr<iS[0].nCr(); ++cr) {
+            uint crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
+            sol(crt, st, freqCell) = conj(tmpsol(st, cr));        // Conjugate transpose
+            if (itsMode=="diagonal" || itsMode=="phaseonly" || itsMode=="amplitudeonly") {
+              sol(crt+1, st, freqCell) = conj(tmpsol(st+nSt,cr)); // Conjugate transpose
+            }
+          }
         }
       }
-//      THROW(Exception,"Klaar!");
+      itsSols.push_back(sol);
+
       itsTimerSolve.stop();
     }
 
+    void GainCal::initParmDB() {
+      itsParmDB = boost::shared_ptr<BBS::ParmDB>
+        (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
+                         false));
+      itsParmDB->lock();
+      // Store the (freq, time) resolution of the solutions.
 
-    void GainCal::exportToMatlab(uint ch) {
-      ofstream mFile;
-      uint nSt = itsMVis.shape()[0];
-      mFile.open ("debug.txt");
-      mFile << "# Created by NDPPP"<<endl;
-      mFile << "# name: V"<<endl;
-      mFile << "# type: complex matrix"<<endl;
-      mFile << "# rows: "<<2*nSt<<endl;
-      mFile << "# columns: "<<2*nSt<<endl;
-
-      for (uint row=0;row<2*nSt;++row) {
-        for (uint col=0;col<2*nSt;++col) {
-          mFile << itsVis(IPosition(6,row%nSt,row/nSt,ch,0,col/nSt,col%nSt))<<" ";
-        }
-        mFile << endl;
+      double freqWidth = getInfo().chanWidths()[0];
+      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
+        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
       }
 
-      mFile << endl;
-      mFile << "# name: Vm"<<endl;
-      mFile << "# type: complex matrix"<<endl;
-      mFile << "# rows: "<<nSt*2<<endl;
-      mFile << "# columns: "<<nSt*2<<endl;
+      vector<double> resolution(2);
+      resolution[0] = freqWidth * itsNChan;
+      resolution[1] = info().timeInterval() * itsSolInt;
+      itsParmDB->setDefaultSteps(resolution);
 
-      for (uint row=0;row<nSt;++row) {
-        for (uint col=0;col<nSt;++col) {
-          mFile << itsMVis(IPosition(6,row%nSt,row/nSt,ch,0,col/nSt,col%nSt))<<" ";
-        }
-        mFile << endl;
-      }
+      string parmname=parmName()+"*";
 
-      mFile.close();
-      THROW(Exception,"Wrote output to debug.txt -- stopping now");
-    }
+      if (!itsParmDB->getNames(parmname).empty()) {
+        DPLOG_WARN_STR ("Solutions for "<<parmname<<" already in "<<itsParmDBName
+                        <<", these are removed");
+        // Specify entire domain of this MS; only to specify that the existing
+        // values should be deleted for this domain
+        BBS::Axis::ShPtr tdomAxis(
+            new BBS::RegularAxis(
+                info().startTime(),
+                info().ntime() * info().timeInterval(),
+                1));
+        BBS::Axis::ShPtr fdomAxis(
+            new BBS::RegularAxis(
+                info().chanFreqs()[0] - freqWidth * 0.5,
+                freqWidth * getInfo().chanFreqs().size(), 1));
 
-    void GainCal::finish()
-    {
-      itsTimer.start();
-
-      //Solve remaining time slots if any
-      if (itsNTimes!=0) {
-        stefcal(itsMode,itsSolInt);
-      }
-
-      itsTimerWrite.start();
-
-      uint nSt=info().antennaUsed().size();
-
-      uint ntime=itsSols.size();
-
-      // Construct solution grid.
-      const Vector<double>& freq      = getInfo().chanFreqs();
-      const Vector<double>& freqWidth = getInfo().chanWidths();
-      BBS::Axis::ShPtr freqAxis(new BBS::RegularAxis(freq[0] - freqWidth[0]
-        * 0.5, getInfo().totalBW(), 1));
-      BBS::Axis::ShPtr timeAxis(new BBS::RegularAxis
-                                (info().startTime(),
-                                 info().timeInterval() * itsSolInt, ntime));
-      BBS::Grid solGrid(freqAxis, timeAxis);
-      // Create domain grid.
-      BBS::Axis::ShPtr tdomAxis(new BBS::RegularAxis
-                                (info().startTime(),
-                                 info().timeInterval() * itsSolInt * ntime, 1));
-      BBS::Grid domainGrid(freqAxis, tdomAxis);
-
-      // Open the ParmDB at the first write.
-      // In that way the instrumentmodel ParmDB can be in the MS directory.
-      if (! itsParmDB) {
-        itsParmDB = boost::shared_ptr<BBS::ParmDB>
-          (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsParmDBName),
-                           false));
-        itsParmDB->lock();
-        // Store the (freq, time) resolution of the solutions.
-        vector<double> resolution(2);
-        resolution[0] = freqWidth[0];
-        resolution[1] = info().timeInterval() * itsSolInt;
-        itsParmDB->setDefaultSteps(resolution);
-        string name=(itsMode=="commonscalarphase"?"CommonScalarPhase:*":"Gain:*");
-        if (!itsParmDB->getNames(name).empty()) {
-          DPLOG_WARN_STR ("Solutions for "<<name<<" already in "<<itsParmDBName
-                          <<", these are removed");
-          itsParmDB->deleteValues(name, BBS::Box(
-                                            freqAxis->start(), tdomAxis->start(),
-                                            freqAxis->end(), tdomAxis->end(), true
-                                                )
-                     );
-        }
+        itsParmDB->deleteValues(parmname, BBS::Box(
+                                    fdomAxis->start(), tdomAxis->start(),
+                                    fdomAxis->end(), tdomAxis->end(), true));
       }
 
       // Write out default values, if they don't exist yet
@@ -845,6 +612,16 @@ namespace LOFAR {
         }
       }
 
+      // Write out default phases
+      if (itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
+        itsParmDB->getDefValues(parmset, "Gain:0:0:Phase");
+        if (parmset.empty()) {
+          ParmValueSet pvset(ParmValue(0.0));
+          itsParmDB->putDefValue("Gain:0:0:Phase",pvset);
+          itsParmDB->putDefValue("Gain:1:1:Phase",pvset);
+        }
+      }
+
       // Write out default gains
       if (itsMode=="diagonal" || itsMode=="fulljones") {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
@@ -854,75 +631,145 @@ namespace LOFAR {
           itsParmDB->putDefValue("Gain:1:1:Real",pvset);
         }
       }
+    }
+
+    string GainCal::parmName() {
+      string name;
+      if (itsMode=="scalarphase") {
+        name=string("CommonScalarPhase:");
+      } else if (itsMode=="scalaramplitude") {
+        name=string("CommonScalarAmplitude:");
+      } else if (itsMode=="tec") {
+        name=string("TEC:");
+      }
+      else {
+        name=string("Gain:");
+      }
+
+      return name;
+    }
+
+    void GainCal::writeSolutions(double startTime) {
+      itsTimer.start();
+      itsTimerWrite.start();
+
+      // Open the ParmDB at the first write.
+      // In that way the instrumentmodel ParmDB can be in the MS directory.
+      if (!itsParmDB) {
+        initParmDB();
+      } // End initialization of parmdb
+
+      uint ntime=itsSols.size();
+
+      // Construct solution grid for the current chunk
+      double freqWidth = getInfo().chanWidths()[0];
+      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
+        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
+      }
+      BBS::Axis::ShPtr freqAxis(
+          new BBS::RegularAxis(
+              getInfo().chanFreqs()[0] - freqWidth * 0.5,
+              freqWidth*itsNChan,
+              itsNFreqCells));
+      BBS::Axis::ShPtr timeAxis(
+          new BBS::RegularAxis(
+              startTime,
+              info().timeInterval() * itsSolInt,
+              ntime));
+      BBS::Grid solGrid(freqAxis, timeAxis);
+
+      // Construct domain grid for the current chunk
+      BBS::Axis::ShPtr tdomAxis(
+          new BBS::RegularAxis(
+              startTime,
+              ntime * info().timeInterval() * itsSolInt,
+              1));
+      BBS::Axis::ShPtr fdomAxis(
+          new BBS::RegularAxis(
+              info().chanFreqs()[0] - freqWidth * 0.5,
+              freqWidth * getInfo().chanFreqs().size(), 1));
+      BBS::Grid domainGrid(fdomAxis, tdomAxis);
 
       // Write the solutions per parameter.
-      const char* str0101[] = {"0:0:","1:0:","0:1:","1:1:"}; // Conjugate transpose!
+      const char* str0101[] = {"0:0:","0:1:","1:0:","1:1:"};
       const char* strri[] = {"Real:","Imag:"};
-      Matrix<double> values(1, ntime);
+      Matrix<double> values(itsNFreqCells, ntime);
 
       DComplex sol;
 
+      uint nSt=info().antennaNames().size();
+
       for (size_t st=0; st<nSt; ++st) {
         uint seqnr = 0; // To take care of real and imaginary part
-        string suffix(itsAntennaUsedNames[st]);
+        string suffix(info().antennaNames()[st]);
 
         for (int pol=0; pol<4; ++pol) { // For 0101
-          if ((itsMode=="diagonal" || itsMode=="phaseonly") && (pol==1||pol==2)) {
+          if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
+               itsMode=="amplitudeonly") && (pol==1||pol==2)) {
             continue;
           }
-          if (itsMode=="scalarphase" && pol>0) {
+          if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ||
+              itsMode=="tec") && pol>0) {
             continue;
           }
           int realimmax;
-          if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+          if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
+              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
+              itsMode=="tec") {
             realimmax=1;
           } else {
             realimmax=2;
           }
           for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
-            string name(string("Gain:") +
-                        str0101[pol] + (itsMode=="phaseonly"?"Phase:":strri[realim]) + suffix);
-            if (itsMode=="scalarphase") {
-              name="CommonScalarPhase:"+suffix;
-            }
-            // Collect its solutions for all times in a single array.
-            for (uint ts=0; ts<ntime; ++ts) {
-              if (itsAntMaps[ts][st]==-1) {
-                // No solution found, insert NaN
-                if (itsMode!="phaseonly" && itsMode!="scalarphase" &&
-                    realim==0 && (pol==0||pol==3)) {
-                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
-                } else {
-                  values(0, ts) = std::numeric_limits<double>::quiet_NaN();
-                }
+            string name = parmName();
+
+            if (itsMode!="scalarphase" && itsMode!="scalaramplitude") {
+              name+=str0101[pol];
+              if (itsMode=="phaseonly") {
+                name=name+"Phase:";
+              } else if (itsMode=="amplitudeonly") {
+                name=name+"Ampl:";
               } else {
-                int rst=itsAntMaps[ts][st]; // Real station
+                name=name+strri[realim];
+              }
+            }
+
+            name+=suffix;
+
+            // Collect its solutions for all times and frequency cells in a single array.
+            for (uint ts=0; ts<ntime; ++ts) {
+              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 if (itsMode=="fulljones") {
                   if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](rst,seqnr/2));
+                    values(freqCell, ts) = real(itsSols[ts](seqnr/2,st,freqCell));
                   } else {
-                    values(0, ts) = -imag(itsSols[ts](rst,seqnr/2)); // Conjugate transpose!
+                    values(freqCell, ts) = imag(itsSols[ts](seqnr/2,st,freqCell));
                   }
                 } else if (itsMode=="diagonal") {
-                  uint sSt=itsSols[ts].size()/2;
                   if (seqnr%2==0) {
-                    values(0, ts) = real(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                    values(freqCell, ts) = real(itsSols[ts](pol/3,st,freqCell));
                   } else {
-                    values(0, ts) = -imag(itsSols[ts](pol/3*sSt+rst,0)); // Conjugate transpose!
+                    values(freqCell, ts) = imag(itsSols[ts](pol/3,st,freqCell));
                   }
-                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
-                  uint sSt=itsSols[ts].size()/2;
-                  values(0, ts) = -arg(itsSols[ts](pol/3*sSt+rst,0)); // nSt times Gain:0:0 at the beginning, then nSt times Gain:1:1
+                } else if (itsMode=="scalarphase" || itsMode=="phaseonly" ||
+                           itsMode=="tec") {
+                  values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
+                } else if (itsMode=="scalaramplitude" || itsMode=="amplitudeonly") {
+                  values(freqCell, ts) = abs(itsSols[ts](pol/3,st,freqCell));
+                }
+                else {
+                  THROW (Exception, "Unhandled mode");
                 }
               }
             }
-            cout.flush();
             seqnr++;
             BBS::ParmValue::ShPtr pv(new BBS::ParmValue());
             pv->setScalars (solGrid, values);
+
             BBS::ParmValueSet pvs(domainGrid,
                                   vector<BBS::ParmValue::ShPtr>(1, pv));
             map<string,int>::const_iterator pit = itsParmIdMap.find(name);
+
             if (pit == itsParmIdMap.end()) {
               // First time, so a new nameId will be set.
               // Check if the name was defined in the parmdb previously
@@ -940,10 +787,34 @@ namespace LOFAR {
 
       itsTimerWrite.stop();
       itsTimer.stop();
+    }
+
+    void GainCal::finish()
+    {
+      itsTimer.start();
+
+      //Solve remaining time slots if any
+      if (itsStepInSolInt!=0) {
+        stefcal();
+
+        if (itsApplySolution) {
+          Cube<DComplex> invsol = invertSol(itsSols.back());
+          for (uint stepInSolInt=0; stepInSolInt<itsStepInSolInt; stepInSolInt++) {
+            applySolution(itsBuf[stepInSolInt], invsol);
+            getNextStep()->process(itsBuf[stepInSolInt]);
+          }
+        }
+      }
+
+      itsTimer.stop();
+
+      if (!itsSols.empty()) {
+        writeSolutions(itsChunkStartTime);
+      }
+
       // Let the next steps finish.
       getNextStep()->finish();
     }
-
 
   } //# end namespace
 }

@@ -54,6 +54,7 @@ namespace LOFAR {
             "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
         itsUpdateWeights (parset.getBool (prefix + "updateweights", false)),
+        itsCount       (0),
         itsTimeStep    (0),
         itsNCorr       (0),
         itsTimeInterval (-1),
@@ -185,6 +186,23 @@ namespace LOFAR {
 
       initDataArrays();
       itsFlagCounter.init(getInfo());
+
+      // Check that channels are evenly spaced
+      if (info().nchan()>1) {
+        Vector<Double> upFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,1),
+                                         IPosition(1,info().nchan()-1)));
+        Vector<Double> lowFreq = info().chanFreqs()(
+                                  Slicer(IPosition(1,0),
+                                         IPosition(1,info().nchan()-1)));
+        Double freqstep0=upFreq(0)-lowFreq(0);
+        // Compare up to 1kHz accuracy
+        bool regularChannels=allNearAbs(upFreq-lowFreq, freqstep0, 1.e3) &&
+                             allNearAbs(info().chanWidths(),
+                                        info().chanWidths()(0), 1.e3);
+        ASSERTSTR(regularChannels, 
+                  "ApplyCal requires evenly spaced channels.");
+      }
     }
 
     void ApplyCal::show (std::ostream& os) const
@@ -230,30 +248,40 @@ namespace LOFAR {
       itsInput->fetchWeights (bufin, itsBuffer, itsTimer);
       float* weight = itsBuffer.getWeights().data();
 
+      bool* flag = itsBuffer.getFlags().data();
+
       size_t nchan = itsBuffer.getData().shape()[1];
 
 #pragma omp parallel for
       for (size_t bl=0; bl<nbl; ++bl) {
         for (size_t chan=0;chan<nchan;chan++) {
-          if (itsParms.size()>2) {
-            applyFull( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
-                &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
-                info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
+          uint timeFreqOffset=(itsTimeStep*info().nchan())+chan;
+          uint antA = info().getAnt1()[bl];
+          uint antB = info().getAnt2()[bl];
+          if (itsParms.shape()[0]>2) {
+            applyFull( &itsParms(0, antA, timeFreqOffset),
+                       &itsParms(0, antB, timeFreqOffset),
+                       &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+                       &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
+                       &flag[  bl * itsNCorr * nchan + chan * itsNCorr ],
+                       bl, chan, itsUpdateWeights, itsFlagCounter);
           }
           else {
-            applyDiag( &data[bl * itsNCorr * nchan + chan * itsNCorr ],
-                &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
-                info().getAnt1()[bl], info().getAnt2()[bl], chan, itsTimeStep);
+            applyDiag( &itsParms(0, antA, timeFreqOffset),
+                       &itsParms(0, antB, timeFreqOffset),
+                       &data[bl * itsNCorr * nchan + chan * itsNCorr ],
+                       &weight[bl * itsNCorr * nchan + chan * itsNCorr ],
+                       &flag[  bl * itsNCorr * nchan + chan * itsNCorr ],
+                       bl, chan, itsUpdateWeights, itsFlagCounter);
           }
         }
       }
 
-      MSReader::flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(),
-                           itsFlagCounter);
-
       itsTimer.stop();
       getNextStep()->process(itsBuffer);
-      return false;
+
+      itsCount++;
+      return true;
     }
 
     void ApplyCal::finish()
@@ -268,7 +296,7 @@ namespace LOFAR {
       int numAnts = info().antennaNames().size();
 
       // itsParms contains the parameters to a grid, first for all parameters
-      // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over frec * time
+      // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq * time
       // as returned by ParmDB
       vector<vector<vector<double> > > parmvalues;
       parmvalues.resize(itsParmExprs.size());
@@ -278,14 +306,16 @@ namespace LOFAR {
 
       uint numFreqs         (info().chanFreqs().size());
       double freqInterval  (info().chanWidths()[0]);
+      if (numFreqs>1) { // Handle data with evenly spaced gaps between channels
+        freqInterval = info().chanFreqs()[1]-info().chanFreqs()[0];
+      }
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
-
       itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
       uint numTimes = itsTimeSlotsPerParmUpdate;
 
       double lastMSTime = info().startTime() + info().ntime() * itsTimeInterval;
-      if (itsLastTime > lastMSTime) {
+      if (itsLastTime > lastMSTime && !nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
         itsLastTime = lastMSTime;
         numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
       }
@@ -352,59 +382,59 @@ namespace LOFAR {
 
           if (itsCorrectType=="gain") {
             if (itsUseAP) { // Data as Amplitude / Phase
-              itsParms[0][ant][tf] = polar(parmvalues[0][ant][tf],
-                               parmvalues[1][ant][tf]);
-              itsParms[1][ant][tf] = polar(parmvalues[2][ant][tf],
-                               parmvalues[3][ant][tf]);
+              itsParms(0, ant, tf) = polar(parmvalues[0][ant][tf],
+                                           parmvalues[1][ant][tf]);
+              itsParms(1, ant, tf) = polar(parmvalues[2][ant][tf],
+                                           parmvalues[3][ant][tf]);
             } else { // Data as Real / Imaginary
-              itsParms[0][ant][tf] = DComplex(parmvalues[0][ant][tf],
-                                 parmvalues[1][ant][tf]);
-              itsParms[1][ant][tf] = DComplex(parmvalues[2][ant][tf],
-                                 parmvalues[3][ant][tf]);
+              itsParms(0, ant, tf) = DComplex(parmvalues[0][ant][tf],
+                                              parmvalues[1][ant][tf]);
+              itsParms(1, ant, tf) = DComplex(parmvalues[2][ant][tf],
+                                              parmvalues[3][ant][tf]);
             }
           }
           else if (itsCorrectType=="fulljones") {
             if (itsUseAP) { // Data as Amplitude / Phase
-              itsParms[0][ant][tf] = polar(parmvalues[0][ant][tf],
-                               parmvalues[1][ant][tf]);
-              itsParms[1][ant][tf] = polar(parmvalues[2][ant][tf],
-                               parmvalues[3][ant][tf]);
-              itsParms[2][ant][tf] = polar(parmvalues[4][ant][tf],
-                               parmvalues[5][ant][tf]);
-              itsParms[3][ant][tf] = polar(parmvalues[6][ant][tf],
-                               parmvalues[7][ant][tf]);
+              itsParms(0, ant, tf) = polar(parmvalues[0][ant][tf],
+                                           parmvalues[1][ant][tf]);
+              itsParms(1, ant, tf) = polar(parmvalues[2][ant][tf],
+                                           parmvalues[3][ant][tf]);
+              itsParms(2, ant, tf) = polar(parmvalues[4][ant][tf],
+                                           parmvalues[5][ant][tf]);
+              itsParms(3, ant, tf) = polar(parmvalues[6][ant][tf],
+                                           parmvalues[7][ant][tf]);
             } else { // Data as Real / Imaginary
-              itsParms[0][ant][tf] = DComplex(parmvalues[0][ant][tf],
-                                 parmvalues[1][ant][tf]);
-              itsParms[1][ant][tf] = DComplex(parmvalues[2][ant][tf],
-                                 parmvalues[3][ant][tf]);
-              itsParms[2][ant][tf] = DComplex(parmvalues[4][ant][tf],
-                                 parmvalues[5][ant][tf]);
-              itsParms[3][ant][tf] = DComplex(parmvalues[6][ant][tf],
-                                 parmvalues[7][ant][tf]);
+              itsParms(0, ant, tf) = DComplex(parmvalues[0][ant][tf],
+                                              parmvalues[1][ant][tf]);
+              itsParms(1, ant, tf) = DComplex(parmvalues[2][ant][tf],
+                                              parmvalues[3][ant][tf]);
+              itsParms(2, ant, tf) = DComplex(parmvalues[4][ant][tf],
+                                              parmvalues[5][ant][tf]);
+              itsParms(3, ant, tf) = DComplex(parmvalues[6][ant][tf],
+                                              parmvalues[7][ant][tf]);
             }
           }
           else if (itsCorrectType=="tec") {
-            itsParms[0][ant][tf]=polar(1.,
+            itsParms(0, ant, tf)=polar(1.,
                 parmvalues[0][ant][tf] * -8.44797245e9 / freq);
             if (itsParmExprs.size() == 1) { // No TEC:0, only TEC:
-              itsParms[1][ant][tf]=polar(1.,
+              itsParms(1, ant, tf)=polar(1.,
                   parmvalues[0][ant][tf] * -8.44797245e9 / freq);
             }
             else { // TEC:0 and TEC:1
-              itsParms[1][ant][tf]=polar(1.,
+              itsParms(1, ant, tf)=polar(1.,
                   parmvalues[1][ant][tf] * -8.44797245e9 / freq);
             }
           }
           else if (itsCorrectType=="clock") {
-            itsParms[0][ant][tf]=polar(1.,
+            itsParms(0, ant, tf)=polar(1.,
                 parmvalues[0][ant][tf] * freq * casa::C::_2pi);
             if (itsParmExprs.size() == 1) { // No Clock:0, only Clock:
-              itsParms[1][ant][tf]=polar(1.,
+              itsParms(1, ant, tf)=polar(1.,
                   parmvalues[0][ant][tf] * freq * casa::C::_2pi);
             }
             else { // Clock:0 and Clock:1
-              itsParms[1][ant][tf]=polar(1.,
+              itsParms(1, ant, tf)=polar(1.,
                   parmvalues[1][ant][tf] * freq * casa::C::_2pi);
             }
           }
@@ -415,10 +445,10 @@ namespace LOFAR {
             }
             double sinv=sin(phi);
             double cosv=cos(phi);
-            itsParms[0][ant][tf] =  cosv;
-            itsParms[1][ant][tf] = -sinv;
-            itsParms[2][ant][tf] =  sinv;
-            itsParms[3][ant][tf] =  cosv;
+            itsParms(0, ant, tf) =  cosv;
+            itsParms(1, ant, tf) = -sinv;
+            itsParms(2, ant, tf) =  sinv;
+            itsParms(3, ant, tf) =  cosv;
           }
           else if (itsCorrectType=="rotationmeasure") {
             double lambda2 = casa::C::c / freq;
@@ -429,21 +459,23 @@ namespace LOFAR {
             }
             double sinv = sin(chi);
             double cosv = cos(chi);
-            itsParms[0][ant][tf] =  cosv;
-            itsParms[1][ant][tf] = -sinv;
-            itsParms[2][ant][tf] =  sinv;
-            itsParms[3][ant][tf] =  cosv;
+            itsParms(0, ant, tf) =  cosv;
+            itsParms(1, ant, tf) = -sinv;
+            itsParms(2, ant, tf) =  sinv;
+            itsParms(3, ant, tf) =  cosv;
           }
           else if (itsCorrectType=="commonscalarphase") {
-            itsParms[0][ant][tf] = polar(1., parmvalues[0][ant][tf]);
-            itsParms[1][ant][tf] = polar(1., parmvalues[0][ant][tf]);
+            itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
+            itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
           }
 
-          // Invert diagonal corrections (not fulljones and commonrotationangle)
-          // For fulljones it will be handled in applyFull
-          if (itsInvert && itsParms.size()==2) {
-            itsParms[0][ant][tf] = 1./itsParms[0][ant][tf];
-            itsParms[1][ant][tf] = 1./itsParms[1][ant][tf];
+          // Invert (rotationmeasure and commonrotationangle are already inverted)
+          if (itsInvert && itsParms.shape()[0]==2) {
+            itsParms(0, ant, tf) = 1./itsParms(0, ant, tf);
+            itsParms(1, ant, tf) = 1./itsParms(1, ant, tf);
+          }
+          else if (itsInvert && itsCorrectType=="fulljones") {
+            invert(&itsParms(0, ant, tf),itsSigmaMMSE);
           }
         }
       }
@@ -463,35 +495,39 @@ namespace LOFAR {
         numParms = 2;
       }
 
-      itsParms.resize(numParms);
-
-      for (uint parmNum=0;parmNum<numParms;parmNum++) {
-        itsParms[parmNum].resize(numAnts);
-        for (uint ant=0;ant<numAnts;++ant) {
-            itsParms[parmNum][ant].resize(tfDomainSize);
-        }
-      }
+      itsParms.resize(numParms, numAnts, tfDomainSize);
     }
 
-    void ApplyCal::applyDiag (Complex* vis, float* weight, int antA,
-        int antB, int chan, int time) {
-      int timeFreqOffset=(time*info().nchan())+chan;
+    void ApplyCal::applyDiag (const DComplex* gainA, const DComplex* gainB,
+                              Complex* vis, float* weight, bool* flag,
+                              uint bl, uint chan, bool updateWeights,
+                              FlagCounter& flagCounter) {
+      // If parameter is NaN or inf, do not apply anything and flag the data
+      if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
+             isFinite(gainB[0].real()) && isFinite(gainB[0].imag()) &&
+             isFinite(gainA[1].real()) && isFinite(gainA[1].imag()) &&
+             isFinite(gainB[1].real()) && isFinite(gainB[1].imag())) ) {
+        // Only update flagcounter for first correlation
+        if (!flag[0]) {
+          flagCounter.incrChannel(chan);
+          flagCounter.incrBaseline(bl);
+        }
+        for (uint corr=0; corr<4; ++corr) {
+          flag[corr]=true;
+        }
+        return;
+      }
 
-      DComplex diag0A = itsParms[0][antA][timeFreqOffset];
-      DComplex diag1A = itsParms[1][antA][timeFreqOffset];
-      DComplex diag0B = itsParms[0][antB][timeFreqOffset];
-      DComplex diag1B = itsParms[1][antB][timeFreqOffset];
+      vis[0] *= gainA[0] * conj(gainB[0]);
+      vis[1] *= gainA[0] * conj(gainB[1]);
+      vis[2] *= gainA[1] * conj(gainB[0]);
+      vis[3] *= gainA[1] * conj(gainB[1]);
 
-      vis[0] *= diag0A * conj(diag0B);
-      vis[1] *= diag0A * conj(diag1B);
-      vis[2] *= diag1A * conj(diag0B);
-      vis[3] *= diag1A * conj(diag1B);
-
-      if (itsUpdateWeights) {
-        weight[0] /= norm(diag0A) * norm(diag0B);
-        weight[1] /= norm(diag0A) * norm(diag1B);
-        weight[2] /= norm(diag1A) * norm(diag0B);
-        weight[3] /= norm(diag1A) * norm(diag1B);
+      if (updateWeights) {
+        weight[0] /= norm(gainA[0]) * norm(gainB[0]);
+        weight[1] /= norm(gainA[0]) * norm(gainB[1]);
+        weight[2] /= norm(gainA[1]) * norm(gainB[0]);
+        weight[3] /= norm(gainA[1]) * norm(gainB[1]);
       }
     }
 
@@ -510,26 +546,31 @@ namespace LOFAR {
       v[3] = v0 * invDet;
     }
 
-    void ApplyCal::applyFull (Complex* vis, float* weight, int antA,
-        int antB, int chan, int time) {
-      int timeFreqOffset=(time*info().nchan())+chan;
-      DComplex gainA[4];
-      DComplex gainB[4];
-
-      gainA[0] = itsParms[0][antA][timeFreqOffset];
-      gainA[1] = itsParms[1][antA][timeFreqOffset];
-      gainA[2] = itsParms[2][antA][timeFreqOffset];
-      gainA[3] = itsParms[3][antA][timeFreqOffset];
-
-      gainB[0] = itsParms[0][antB][timeFreqOffset];
-      gainB[1] = itsParms[1][antB][timeFreqOffset];
-      gainB[2] = itsParms[2][antB][timeFreqOffset];
-      gainB[3] = itsParms[3][antB][timeFreqOffset];
-
+    void ApplyCal::applyFull (const DComplex* gainA, const DComplex* gainB,
+                              Complex* vis, float* weight, bool* flag,
+                              uint bl, uint chan, bool updateWeights,
+                              FlagCounter& flagCounter) {
       DComplex gainAxvis[4];
-      if (itsInvert && itsCorrectType=="fulljones") {
-        invert(gainA,itsSigmaMMSE);
-        invert(gainB,itsSigmaMMSE);
+
+      // If parameter is NaN or inf, do not apply anything and flag the data
+      bool anyinfnan = false;
+      for (uint corr=0; corr<4; ++corr) {
+        if (! (isFinite(gainA[corr].real()) && isFinite(gainA[corr].imag()) &&
+               isFinite(gainB[corr].real()) && isFinite(gainB[corr].imag())) ) {
+          anyinfnan = true;
+          break;
+        }
+      }
+      if (anyinfnan) {
+        // Only update flag counter for first correlation
+        if (!flag[0]) {
+          flagCounter.incrChannel(chan);
+          flagCounter.incrBaseline(bl);
+        }
+        for (uint corr=0; corr<4; ++corr) {
+          flag[corr]=true;
+        }
+        return;
       }
 
       // gainAxvis = gainA * vis
@@ -556,8 +597,7 @@ namespace LOFAR {
       // The input covariance matrix C is assumed to be diagonal with elements
       // w_i (the weights), the result the diagonal of
       // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      if (itsUpdateWeights) {
-        ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false");
+      if (updateWeights) {
         float cov[4], normGainA[4], normGainB[4];
         for (uint i=0;i<4;++i) {
           cov[i]=1./weight[i];
@@ -589,6 +629,14 @@ namespace LOFAR {
                  +cov[3]*(normGainA[3]*normGainB[3]);
         weight[3]=1./weight[3];
       }
+    }
+
+    void ApplyCal::showCounts (std::ostream& os) const
+    {
+      os << endl << "Flags set by ApplyCal " << itsName;
+      os << endl << "=======================" << endl;
+      itsFlagCounter.showBaseline (os, itsCount);
+      itsFlagCounter.showChannel  (os, itsCount);
     }
 
   } //# end namespace
