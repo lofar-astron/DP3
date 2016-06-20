@@ -40,6 +40,8 @@ namespace LOFAR {
                      double tolerance, uint maxAntennas,
                      bool detectStalling, uint debugLevel)
     : _nSt    (maxAntennas),
+      _badIters (0),
+      _veryBadIters (0),
       _solInt (solInt),
       _nChan  (nChan),
       _mode   (mode),
@@ -47,45 +49,31 @@ namespace LOFAR {
       _detectStalling (detectStalling),
       _debugLevel (debugLevel)
     {
-      _antMap.resize(maxAntennas, -1);
-      resetVis(maxAntennas);
+      resetVis();
 
+      _nSt = maxAntennas;
       if (_mode=="fulljones") {
         _nCr=4;
         _nSp=1;
         _savedNCr=4;
-      } else if (_mode=="scalarphase") {
+      } else if (_mode=="scalarphase" || _mode=="scalaramplitude") {
         _nCr=1;
         _nSp=2;
         _savedNCr=1;
-      } else { // mode=="phaseonly", mode=="diagonal"
+      } else { // mode=="phaseonly", mode=="diagonal", mode=="amplitudeonly"
         _nCr=1;
         _nSp=1;
         _savedNCr=2;
       }
 
-      init();
-    }
+      _vis.resize(IPosition(6,_nSt,2,_solInt,_nChan,2,_nSt));
+      _mvis.resize(IPosition(6,_nSt,2,_solInt,_nChan,2,_nSt));
 
-    void StefCal::resetVis(uint nSt) {
-      _nSt = nSt;
-      _vis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
-      _mvis.resize(IPosition(6,nSt,2,_solInt,_nChan,2,nSt));
-      _vis=0;
-      _mvis=0;
-
-      if (_mode=="fulljones" || _mode=="scalarphase") {
+      if (_mode=="fulljones" || _mode=="scalarphase" || _mode=="scalaramplitude") {
         _nUn = _nSt;
-      } else {
+      } else { // mode=="phaseonly", mode=="diagonal", mode=="amplitudeonly"
         _nUn = 2*_nSt;
       }
-
-    }
-
-    void StefCal::init() {
-      _dg=1.0e29;
-      _dgx=1.0e30;
-      _dgs.clear();
 
       _g.resize(_nUn,_nCr);
       _gold.resize(_nUn,_nCr);
@@ -94,48 +82,112 @@ namespace LOFAR {
       _h.resize(_nUn,_nCr);
       _z.resize(_nUn*_nChan*_solInt*_nSp,_nCr);
 
-      // Initialize all vectors
-      double fronormvis=0;
-      double fronormmod=0;
+      _stationFlagged.resize(_nSt, false);
 
-      DComplex* t_vis_p=_vis.data();
-      DComplex* t_mvis_p=_mvis.data();
+      init(true);
+    }
 
-      uint vissize=_vis.size();
-      for (uint i=0;i<vissize;++i) {
-        fronormvis+=norm(t_vis_p[i]);
-        fronormmod+=norm(t_mvis_p[i]);
-      }
+    void StefCal::resetVis() {
+      _vis=0;
+      _mvis=0;
+    }
 
-      fronormvis=sqrt(fronormvis);
-      fronormmod=sqrt(fronormmod);
+    void StefCal::clearStationFlagged() {
+      fill(_stationFlagged.begin(), _stationFlagged.end(), false);
+    }
 
-      double ginit=1;
-      if (_nSt>0 && abs(fronormmod)>1.e-15) {
-        ginit=sqrt(fronormvis/fronormmod);
-      }
-      if (_nCr==4) {
-        for (uint st=0;st<_nUn;++st) {
-            _g(st,0)=ginit;
-            _g(st,1)=0.;
-            _g(st,2)=0.;
-            _g(st,3)=ginit;
+    void StefCal::init(bool initSolutions) {
+      _dg=1.0e29;
+      _dgx=1.0e30;
+      _dgs.clear();
+
+      _badIters=0;
+      _veryBadIters=0;
+
+      if (initSolutions) {
+        double ginit=1.0;
+        if (_mode != "phaseonly" && _mode != "scalarphase" ) {
+          // Initialize solution with sensible amplitudes
+          double fronormvis=0;
+          double fronormmod=0;
+
+          DComplex* t_vis_p=_vis.data();
+          DComplex* t_mvis_p=_mvis.data();
+
+          uint vissize=_vis.size();
+          for (uint i=0;i<vissize;++i) {
+            fronormvis+=norm(t_vis_p[i]);
+            fronormmod+=norm(t_mvis_p[i]);
+          }
+
+          fronormvis=sqrt(fronormvis);
+          fronormmod=sqrt(fronormmod);
+          if (abs(fronormmod)>1.e-15) {
+            ginit=sqrt(fronormvis/fronormmod);
+          } else {
+            ginit=1.0;
+          }
         }
-      } else {
-        _g=ginit;
-      }
 
-      _gx = _g;
+        if (_nCr==4) {
+          for (uint ant=0;ant<_nUn;++ant) {
+              _g(ant,0)=ginit;
+              _g(ant,1)=0.;
+              _g(ant,2)=0.;
+              _g(ant,3)=ginit;
+          }
+        } else {
+          _g=ginit;
+        }
+      } else { // Take care of NaNs in solution
+        for (uint ant=0; ant<_nUn; ++ant) {
+          double ginit=0;
+          if (!isFinite(_g(ant,0).real()) ) {
+            if (ginit==0 && !_stationFlagged[ant%_nSt]) {
+              // Avoid calling getAverageUnflaggedSolution for stations that are always flagged
+              ginit = getAverageUnflaggedSolution();
+            }
+            if (_nCr==4) {
+              _g(ant,0)=ginit;
+              _g(ant,1)=0.;
+              _g(ant,2)=0.;
+              _g(ant,3)=ginit;
+            } else {
+              _g(ant,0)=ginit;
+            }
+          }
+        }
+      }
+    }
+
+    double StefCal::getAverageUnflaggedSolution() {
+      // Get average solution of unflagged antennas only once
+      double total=0.;
+      uint unflaggedstations=0;
+      for (uint ant2=0; ant2<_nUn; ++ant2) {
+        if (isFinite(_g(ant2,0).real())) {
+          total += abs(_g(ant2,0));
+          unflaggedstations++;
+          if (_nCr==4) {
+            total += abs(_g(ant2,3));
+            unflaggedstations++;
+          }
+        }
+      }
+      return total/unflaggedstations;
     }
 
     StefCal::Status StefCal::doStep(uint iter) {
+      _gxx = _gx;
+      _gx = _g;
+
       if (_mode=="fulljones") {
         doStep_polarized();
         doStep_polarized();
         return relax(2*iter);
       } else {
-        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
-        doStep_unpolarized(_mode=="phaseonly" || _mode=="scalarphase");
+        doStep_unpolarized();
+        doStep_unpolarized();
         return relax(2*iter);
       }
     }
@@ -151,6 +203,10 @@ namespace LOFAR {
       }
 
       for (uint st1=0;st1<_nSt;++st1) {
+        if (_stationFlagged[st1]) {
+          continue;
+        }
+
         DComplex* vis_p;
         DComplex* mvis_p;
         Vector<DComplex> w(_nCr);
@@ -206,14 +262,17 @@ namespace LOFAR {
       }
     }
 
-    void StefCal::doStep_unpolarized(bool phaseOnly) {
+    void StefCal::doStep_unpolarized() {
       _gold=_g;
 
-      for (uint st=0;st<_nUn;++st) {
-        _h(st,0)=conj(_g(st,0));
+      for (uint ant=0;ant<_nUn;++ant) {
+        _h(ant,0)=conj(_g(ant,0));
       }
 
       for (uint st1=0;st1<_nUn;++st1) {
+        if (_stationFlagged[st1%_nSt]) {
+          continue;
+        }
         DComplex* vis_p;
         DComplex* mvis_p;
         double ww=0; // Same as w, but specifically for pol==false
@@ -242,38 +301,53 @@ namespace LOFAR {
         //cout<<", w="<<ww<<"       ";
         _g(st1,0)=tt/ww;
         //cout<<", g="<<iS.g(st1,0)<<endl;
-        if (phaseOnly) {
+        if (_mode=="phaseonly" || _mode=="scalarphase") {
           _g(st1,0)/=abs(_g(st1,0));
+        } else if (_mode=="amplitudeonly" || _mode=="scalaramplitude") {
+          _g(st1,0) = abs(_g(st1,0));
+        }
+
+        if (_debugLevel>2) {
+          cout<<endl<<"gi=[";
+          uint ant=0;
+          for (; ant<_nUn-1; ++ant) {
+            cout<<_g(ant,0)<<",";
+          }
+          cout<<_g(ant,0)<<"]"<<endl;
         }
       }
     }
 
-    casa::Matrix<casa::DComplex> StefCal::getSolution() {
-      casa::Matrix<casa::DComplex> sol;
-      sol.resize(_antMap.size(), _savedNCr);
+    casa::Matrix<casa::DComplex> StefCal::getSolution(bool setNaNs) {
+      if (setNaNs && _debugLevel>0) {
+        cout<<endl<<"dg=[";
+        uint iter=0;
+        for (; iter<_dgs.size()-1; ++iter) {
+          cout<<_dgs[iter]<<",";
+        }
+        cout<<_dgs[iter]<<"]"<<endl;
+      }
 
-      uint sSt=0; // Index in stefcal numbering
-      for (uint st=0; st<_antMap.size(); ++st) {
-        if (_antMap[st]==-1) {
-          for (uint cr=0; cr<_nCr; ++cr) {
-            sol(st,cr)=std::numeric_limits<double>::quiet_NaN();
-          }
-        } else {
-          for (uint cr=0; cr<_nCr; ++cr) {
-            sol(st,cr)=_g(sSt,cr);
-            if (_mode=="diagonal" || _mode=="phaseonly") {
-              sol(st,cr+1)=_g(sSt+_nSt,cr);
-            }
-            if (cr==_nCr-1) {
-              sSt++;
+      if (_debugLevel>2) {
+        cout<<endl<<"g=[";
+        uint ant=0;
+        for (; ant<_nUn-1; ++ant) {
+          cout<<_g(ant,0)<<",";
+        }
+        cout<<_g(ant,0)<<"]"<<endl;
+      }
+
+      if (setNaNs) {
+        for (uint ant=0; ant<_nUn; ++ant) {
+          if (_stationFlagged[ant%_nSt]) {
+            for (uint cr=0; cr<_nCr; ++cr) {
+              _g(ant,cr)=std::numeric_limits<double>::quiet_NaN();
             }
           }
         }
       }
 
-      ASSERT(sSt==_nSt);
-
-      return sol;
+      return _g;
     }
 
     StefCal::Status StefCal::relax(uint iter) {
@@ -292,28 +366,34 @@ namespace LOFAR {
       double c2 = 1.2;
       double dgxx;
       bool threestep = false;
-      int badIters=0;
-      int maxBadIters=5;
+      uint maxBadIters=3;
 
       int sstep=0;
 
-      if (_detectStalling && iter > 10 && _dgx-_dg <= 5.0e-3*_dg) {
-      // This iteration did not improve much upon the previous
-      // Stalling detection only after 20 iterations, to account for
-      // ''startup problems''
-        if (_debugLevel>3) {
-          cout<<"**"<<endl;
-        }
-        badIters++;
-      } else {
-        badIters=0;
-      }
+      if (_detectStalling && iter > 3) {
+        double improvement = _dgx-_dg;
 
-      if (badIters>=maxBadIters && _detectStalling) {
-        if (_debugLevel>3) {
-          cout<<"Detected stall"<<endl;
+        if (abs(improvement) < 5.0e-2*_dg) {
+        // This iteration did not improve much upon the previous
+        // Stalling detection only after 4 iterations, to account for
+        // ''startup problems''
+          if (_debugLevel>3) {
+            cout<<"**"<<endl;
+          }
+          _badIters++;
+        } else if (improvement < 0) {
+          _veryBadIters++; 
+        } else {
+          //TODO slingergedrag
+          _badIters=0;
         }
-        return STALLED;
+
+        if (_badIters>=maxBadIters || _veryBadIters > maxBadIters) {
+          if (_debugLevel>3) {
+            cout<<"Detected stall"<<endl;
+          }
+          return STALLED;
+        }
       }
 
       dgxx = _dgx;
@@ -332,7 +412,7 @@ namespace LOFAR {
       fronormg=sqrt(fronormg);
 
       _dg = fronormdiff/fronormg;
-      if (_debugLevel>1) {
+      if (_debugLevel>0) {
         _dgs.push_back(_dg);
       }
 
@@ -400,9 +480,6 @@ namespace LOFAR {
           sstep = sstep - 1;
         }
       }
-      _gxx = _gx;
-      _gx = _g;
-
       return NOTCONVERGED;
     }
   } //# end namespace

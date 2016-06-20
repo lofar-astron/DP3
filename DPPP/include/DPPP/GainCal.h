@@ -87,36 +87,53 @@ namespace LOFAR {
       // Perform stefcal (polarized or unpolarized)
       void stefcal();
 
+      // Apply the solution
+      void applySolution(DPBuffer& buf, const casa::Cube<casa::DComplex>& invsol);
+
+      // Invert solution (for applying it)
+      casa::Cube<casa::DComplex> invertSol(const casa::Cube<casa::DComplex>& sol);
+
       // Counts the number of antennas with non-flagged data,
       // Set a map for the used antennas in iS, returns the number of antennas
-      uint setAntennaMaps (const casa::Bool* flag, uint freqCell);
+      void setAntennaMaps (const casa::Bool* flag, uint freqCell);
 
       // Remove rows and colums corresponding to antennas with too much
       // flagged data from vis and mvis
       void removeDeadAntennas ();
 
       // Fills the matrices itsVis and itsMVis
-      void fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
-                         const casa::Bool* flag);
+      void fillMatrices (casa::Complex* model, casa::Complex* data,
+                         float* weight, const casa::Bool* flag);
+
+      // Initialize the parmdb
+      void initParmDB();
+
+      // Get parmdbname from itsMode
+      string parmName();
+
+      // Write out the solutions of the current parameter chunk (timeslotsperparmupdate)
+      void writeSolutions (double startTime);
 
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
-      DPBuffer         itsBuf;
+      vector<DPBuffer> itsBuf;
       bool             itsUseModelColumn;
       casa::Cube<casa::Complex> itsModelData;
       string           itsParmDBName;
       shared_ptr<BBS::ParmDB> itsParmDB;
 
       string           itsMode;
-      uint             itsTStep;
 
       uint             itsDebugLevel;
       bool             itsDetectStalling;
 
+      bool             itsApplySolution;
+
       vector<Baseline> itsBaselines;
 
-      vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nSt x nCr x nFreqCells
+      vector<casa::Matrix<casa::DComplex> > itsPrevSol; // previous solution, for propagating solutions, for each freq
+      vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
 
       std::vector<StefCal>  iS;
 
@@ -130,16 +147,23 @@ namespace LOFAR {
 
       uint             itsMaxIter;
       double           itsTolerance;
-      bool             itsPropagateSolutions;
-      uint             itsSolInt;
-      uint             itsNChan;
+      bool             itsPropagateSolutions; // Not used currently, TODO: use this
+      uint             itsSolInt;  // Time cell size
+      uint             itsNChan;   // Frequency cell size
       uint             itsNFreqCells;
       uint             itsMinBLperAnt;
 
+      uint             itsTimeSlotsPerParmUpdate;
       uint             itsConverged;
       uint             itsNonconverged;
       uint             itsStalled;
-      uint             itsNTimes;
+      vector<uint>     itsNIter; // Total iterations made (for converged, stalled and nonconverged)
+      uint             itsStepInParmUpdate; // Timestep within parameter update
+      double           itsChunkStartTime; // First time value of chunk to be stored
+      uint             itsStepInSolInt;  // Timestep within solint
+
+      FlagCounter      itsFlagCounter;
+
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
       NSTimer          itsTimerSolve;

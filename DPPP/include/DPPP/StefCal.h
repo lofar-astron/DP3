@@ -43,11 +43,14 @@ namespace LOFAR {
       StefCal(uint solInt, uint nChan, const string& mode, double tolerance,
               uint maxAntennas, bool detectStalling, uint debugLevel);
 
-      // Sets visibility matrices to zero, resizes them to nSt stations
-      void resetVis(uint nSt);
+      // Sets visibility matrices to zero
+      void resetVis();
 
       // Initializes a new run of stefcal, resizes all internal vectors
-      void init();
+      // If initSolutions is false, you are responsible for setting them
+      // before running the solver. You could set the solutions to those
+      // of the previous time step.
+      void init(bool initSolutions);
 
       // Perform sone iteration of stefcal. Returns CONVERGED, NOTCONVERGED
       // or STALLED
@@ -56,7 +59,7 @@ namespace LOFAR {
       // Returns the solution. The return matrix has a length of maxAntennas,
       // which is zero for antennas for which no solution was computed.
       // The mapping is stored in the antenna map
-      casa::Matrix<casa::DComplex> getSolution();
+      casa::Matrix<casa::DComplex> getSolution(bool setNaNs);
 
       // Returns a reference to the visibility matrix
       casa::Array<casa::DComplex>& getVis() {
@@ -68,17 +71,22 @@ namespace LOFAR {
         return _mvis;
       }
 
-      // Returns a reference to the antenna map. This map has length
-      // maxAntennas, its values are the indices in the stefcal internal
-      // numbering, or zero when an antenna was not solved for
-      std::vector<int>& getAntMap() {
-        return _antMap;
+      std::vector<bool>& getStationFlagged() {
+        return _stationFlagged;
       }
 
       // Number of correlations in the solution (1,2 or 4)
       uint numCorrelations() {
         return _savedNCr;
       }
+
+      // Number of correlations (1 or 4)
+      uint nCr() {
+        return _nCr;
+      }
+
+      // Clear antFlagged
+      void clearStationFlagged();
 
     private:
       // Number of unknowns (nSt or 2*nSt, depending on _mode)
@@ -88,10 +96,12 @@ namespace LOFAR {
       Status relax(uint iter);
 
       void doStep_polarized();
-      void doStep_unpolarized(bool phaseOnly);
+      void doStep_unpolarized();
+
+      double getAverageUnflaggedSolution();
 
       uint _savedNCr;
-      std::vector<int> _antMap; // Length antennaNames, contains size(antennaNames)-nSt times the value -1
+      std::vector<bool> _stationFlagged ; // Contains true for totally flagged stations
       casa::Array<casa::DComplex> _vis; // Visibility matrix
       casa::Array<casa::DComplex> _mvis; // Model visibility matrix
       casa::Matrix<casa::DComplex> _g; // Solution, indexed by station, correlation
@@ -105,6 +115,8 @@ namespace LOFAR {
       uint _nUn; // number of unknowns
       uint _nCr; // number of correlations (1 or 4)
       uint _nSp; // number that is two for scalarphase, one else
+      uint _badIters; // number of bad iterations, for stalling detection
+      uint _veryBadIters; // number of iterations where solution got worse
       uint _solInt; // solution interval
       uint _nChan;  // number of channels
       string _mode; // diagonal, scalarphase, fulljones or phaseonly
