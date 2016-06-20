@@ -178,6 +178,8 @@ namespace LOFAR {
         itsParmExprs.push_back("CommonScalarPhase");
       } else if (itsCorrectType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure");
+      } else if (itsCorrectType == "commonscalaramplitude") {
+        itsParmExprs.push_back("CommonScalarAmplitude");
       }
       else {
         THROW (Exception, "Correction type " + itsCorrectType +
@@ -467,6 +469,10 @@ namespace LOFAR {
           else if (itsCorrectType=="commonscalarphase") {
             itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
             itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
+          }
+          else if (itsCorrectType=="commonscalaramplitude") {
+            itsParms(0, ant, tf) = parmvalues[0][ant][tf];
+            itsParms(1, ant, tf) = parmvalues[0][ant][tf];
           }
 
           // Invert (rotationmeasure and commonrotationangle are already inverted)

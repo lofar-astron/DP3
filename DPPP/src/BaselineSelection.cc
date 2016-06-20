@@ -28,6 +28,7 @@
 #include <Common/ParameterSet.h>
 #include <Common/ParameterValue.h>
 #include <Common/LofarLogger.h>
+#include <Common/StringUtil.h>
 #include <Common/StreamUtil.h>
 
 using namespace casa;
@@ -138,7 +139,15 @@ namespace LOFAR {
         // Specified in casacore's MSSelection format.
         string msName = info.msName();
         ASSERT (! msName.empty());
-        Matrix<bool> sel(BaselineSelect::convert (msName, itsStrBL));
+        std::ostringstream os;
+        Matrix<bool> sel(BaselineSelect::convert (msName, itsStrBL, os));
+        // Show possible messages about unknown stations.
+        if (! os.str().empty()) {
+          vector<string> messages = StringUtil::split (os.str(), '\n');
+          for (size_t i=0; i<messages.size(); ++i) {
+            DPLOG_WARN_STR (messages[i]);
+          }
+        }
         // The resulting matrix can be smaller because new stations might have
         // been added that are not present in the MS's ANTENNA table.
         if (sel.nrow() == selectBL.nrow()) {

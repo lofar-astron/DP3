@@ -103,8 +103,8 @@ namespace LOFAR {
       NSTimer nstimer;
       nstimer.start();
       ParameterSet parset;
-      if (parsetName!="") {
-        parset.adoptFile(parsetName);
+      if (! parsetName.empty()) {
+        parset.adoptFile (parsetName);
       }
       // Adopt possible parameters given at the command line.
       parset.adoptArgv (argc, argv); //# works fine if argc==0 and argv==0
