@@ -508,6 +508,11 @@ namespace LOFAR {
       ArrayColumn<Complex> dataCol(out, itsDataColName);
       ArrayColumn<Bool>    flagCol(out, "FLAG");
       ScalarColumn<Bool>   flagRowCol(out, "FLAG_ROW");
+
+      if (buf.getData().empty()) {
+        return;
+      }
+
       dataCol.putColumn (buf.getData());
       flagCol.putColumn (buf.getFlags());
       // A row is flagged if no flags in the row are False.

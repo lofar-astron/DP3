@@ -265,6 +265,10 @@ namespace LOFAR {
         os << endl;
       }
       int64 totalnpoints = npoints * itsChanCounts.size();
+      // Prevent division by zero
+      if (totalnpoints == 0) {
+        totalnpoints = 1;
+      }
       os << "Total flagged: ";
       showPerc3 (os, nflagged, totalnpoints);
       os << "   (" << nflagged << " out of " << totalnpoints
@@ -287,6 +291,10 @@ namespace LOFAR {
     void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
     {
       int64 ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
+      // Prevent division by zero
+      if (ntotal == 0) {
+        ntotal = 1;
+      }
       os << endl
          << "Percentage of flagged visibilities detected per correlation:"
          << endl;
