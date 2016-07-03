@@ -87,6 +87,7 @@ namespace LOFAR {
                          (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
         itsConverged     (0),
         itsNonconverged  (0),
+        itsFailed        (0),
         itsStalled       (0),
         itsStepInParmUpdate      (0),
         itsChunkStartTime(0),
@@ -111,7 +112,7 @@ namespace LOFAR {
         }
       }
 
-      itsNIter.resize(3,0);
+      itsNIter.resize(4,0);
 
       if (itsApplySolution) {
         itsBuf.resize(itsSolInt);
@@ -156,8 +157,6 @@ namespace LOFAR {
         itsSolInt=info().ntime();
       }
 
-      itsSols.reserve(itsTimeSlotsPerParmUpdate);
-
       if (itsNChan==0) {
         itsNChan = info().nchan();
       }
@@ -169,9 +168,33 @@ namespace LOFAR {
         itsNFreqCells++;
       }
 
-      itsAntennaUsedNames.resize(info().antennaUsed().size());
-      for (int ant=0, nAnts=info().antennaUsed().size(); ant<nAnts; ++ant) {
-        itsAntennaUsedNames[ant]=info().antennaNames()[info().antennaUsed()[ant]];
+      itsSols.reserve(itsTimeSlotsPerParmUpdate);
+
+      // Initialize phase fitters, set their frequency data
+      if (itsMode=="tec") {
+        itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
+
+        itsPhaseFitters.reserve(itsNFreqCells); // TODO: could be numthreads instead
+        vector<double> freqData(itsNFreqCells);
+        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          double meanfreq=0;
+          uint chmin=itsNChan*freqCell;
+          uint chmax=min(info().nchan(), chmin+itsNChan);
+
+          meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
+                                     info().chanFreqs().data()+chmax, 0.0);
+
+          freqData[freqCell] = meanfreq / (chmax-chmin);
+        }
+
+        uint nSt=info().antennaNames().size();
+        for (uint st=0; st<nSt; ++st) {
+          itsPhaseFitters.push_back(CountedPtr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
+          double* nu = itsPhaseFitters[st]->FrequencyData();
+          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            nu[freqCell] = freqData[freqCell];
+          }
+        }
       }
 
       iS.reserve(itsNFreqCells);
@@ -180,8 +203,7 @@ namespace LOFAR {
         if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
-        iS.push_back(StefCal(itsSolInt, chMax,
-                             (itsMode=="tec"?"scalarphase":itsMode),
+        iS.push_back(StefCal(itsSolInt, chMax, itsMode,
                              itsTolerance, info().antennaNames().size(),
                              itsDetectStalling, itsDebugLevel));
       }
@@ -205,7 +227,7 @@ namespace LOFAR {
       os << "  nchan:               " << itsNChan <<endl;
       os << "  max iter:            " << itsMaxIter << endl;
       os << "  tolerance:           " << itsTolerance << endl;
-      os << "  mode:                " << itsMode << endl;
+      os << "  caltype:             " << itsMode << endl;
       os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
       os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
       os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
@@ -236,15 +258,22 @@ namespace LOFAR {
       FlagCounter::showPerc1 (os, itsTimerSolve.getElapsed(), totaltime);
       os << " of it spent in estimating gains and computing residuals" << endl;
 
+      if (itsMode == "tec") {
+        os << "          ";
+        FlagCounter::showPerc1 (os, itsTimerPhaseFit.getElapsed(), totaltime);
+        os << "of it spent in fitting phases" << endl;
+      }
+
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerWrite.getElapsed(), totaltime);
       os << " of it spent in writing gain solutions to disk" << endl;
 
       os << "          ";
-      os <<"Converged: "<<itsConverged<<", stalled: "<<itsStalled<<", non converged: "<<itsNonconverged<<endl;
+      os <<"Converged: "<<itsConverged<<", stalled: "<<itsStalled<<", non converged: "<<itsNonconverged<<", failed: "<<itsFailed<<endl;
       os <<"Iters converged: " << (itsConverged==0?0:itsNIter[0]/itsConverged);
       os << ", stalled: "<<      (itsStalled  ==0?0:itsNIter[1]/itsStalled);
-      os << ", non converged: "<<(itsNonconverged==0?0:itsNIter[2]/itsNonconverged)<<endl;
+      os << ", non converged: "<<(itsNonconverged==0?0:itsNIter[2]/itsNonconverged);
+      os << ", failed: "<<(itsFailed==0?0:itsNIter[3]/itsFailed)<<endl;
     }
 
     bool GainCal::process (const DPBuffer& bufin)
@@ -334,6 +363,7 @@ namespace LOFAR {
         writeSolutions(itsChunkStartTime);
         itsChunkStartTime += itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
         itsSols.clear();
+        itsTECSols.clear();
         itsStepInParmUpdate = 0;
       }
 
@@ -400,6 +430,7 @@ namespace LOFAR {
 
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
     // top left, all 11 polarizations in the bottom right, etc.
+    // For TEC fitting, it also sets weights for the frequency cells
     void GainCal::fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
                                 const casa::Bool* flag) {
       const size_t nBl = info().nbaselines();
@@ -415,6 +446,10 @@ namespace LOFAR {
               iS[ch/itsNChan].getStationFlagged()[ant2] ||
               flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
             continue;
+          }
+
+          if (itsMode=="tec") {
+            iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
           }
 
           for (uint cr=0;cr<nCr;++cr) {
@@ -446,32 +481,46 @@ namespace LOFAR {
 
       casa::Vector<casa::uInt> dataPerAntenna; // nAnt
       dataPerAntenna.resize(info().antennaNames().size());
-      dataPerAntenna=0;
 
-      for (uint bl=0;bl<nBl;++bl) {
-        uint ant1=info().getAnt1()[bl];
-        uint ant2=info().getAnt2()[bl];
-        if (ant1==ant2) {
-          continue;
-        }
-        uint chmax=min((freqCell+1)*itsNChan, nCh);
-        for (uint ch=freqCell*itsNChan;ch<chmax;++ch) {
-          for (uint cr=0;cr<nCr;++cr) {
-            if (!flag[bl*nCr*nCh + ch*nCr + cr]) {
-              dataPerAntenna(ant1)++;
-              dataPerAntenna(ant2)++;
+      // TODO: implement smarter graph algorithm here that requires
+      // less than O(n_ant^3) worst case operations.
+      bool flaggedAntsAdded=true;
+      uint loopcount=0;
+      while (flaggedAntsAdded) {
+        dataPerAntenna=0;
+        for (uint bl=0;bl<nBl;++bl) {
+          uint ant1=info().getAnt1()[bl];
+          uint ant2=info().getAnt2()[bl];
+          if (ant1==ant2) {
+            continue;
+          }
+          uint chmax=min((freqCell+1)*itsNChan, nCh);
+          for (uint ch=freqCell*itsNChan;ch<chmax;++ch) {
+            for (uint cr=0;cr<nCr;++cr) {
+              if (!(flag[bl*nCr*nCh + ch*nCr + cr]
+                    || iS[freqCell].getStationFlagged()[ant1]
+                    || iS[freqCell].getStationFlagged()[ant2]
+                   )) {
+                dataPerAntenna(ant1)++;
+                dataPerAntenna(ant2)++;
+              }
             }
           }
         }
-      }
 
-      for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
-        if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
-          iS[freqCell].getStationFlagged()[ant]=false; // Index in stefcal numbering
-        } else {
-          //cout<<"flagging station "<<ant<<", "<<dataPerAntenna(ant)<<endl;
-          iS[freqCell].getStationFlagged()[ant]=true; // Not enough data
+        flaggedAntsAdded=false;
+        for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
+          if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
+            iS[freqCell].getStationFlagged()[ant]=false; // Index in stefcal numbering
+          } else { // Not enough data
+            //cout<<"flagging station "<<ant<<", "<<dataPerAntenna(ant)<<endl;
+            if (!iS[freqCell].getStationFlagged()[ant]) {
+              iS[freqCell].getStationFlagged()[ant]=true;
+              flaggedAntsAdded=true;
+            }
+          }
         }
+        loopcount++;
       }
     }
 
@@ -488,22 +537,7 @@ namespace LOFAR {
 
       uint iter=0;
 
-      PhaseFitter fitter(itsNFreqCells);
-
-      if (itsMode=="tec") {
-        // Set frequency data for TEC fitter
-        double* nu = fitter.FrequencyData();
-        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-          double meanfreq=0;
-          uint chmin=itsNChan*freqCell;
-          uint chmax=min(info().nchan(), chmin+itsNChan);
-
-          meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
-                                     info().chanFreqs().data()+chmax, 0.0);
-
-          nu[freqCell] = meanfreq / (chmax-chmin);
-        }
-      }
+      casa::Matrix<double> tecsol(2, info().antennaNames().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
@@ -514,77 +548,109 @@ namespace LOFAR {
             continue;
           }
           converged[freqCell] = iS[freqCell].doStep(iter);
-          if (converged[freqCell]==StefCal::NOTCONVERGED) {
+          if (converged[freqCell]==StefCal::NOTCONVERGED) { // Only continue if there are steps worth continuing (so not converged, failed or stalled)
             allConverged = false;
-          } else if (converged[freqCell]==StefCal::CONVERGED) {
-            itsNIter[0] += iter;
-          }
+          } 
         }
 
-        double alpha=0., beta=0.;
         if (itsMode=="tec") {
-          casa::Matrix<casa::DComplex> tecsol(itsNFreqCells, info().antennaNames().size());
+          itsTimerSolve.stop();
+          itsTimerPhaseFit.start();
+          casa::Matrix<casa::DComplex> sols_f(itsNFreqCells, info().antennaNames().size());
 
+          uint nSt = info().antennaNames().size();
+
+          // TODO: set phase reference so something smarter that station 0
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution(false);
-            for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
-              tecsol(freqCell, ant) = sol(ant, 0)/sol(0, 0);
+            if (iS[freqCell].getStationFlagged()[0]) {
+              // If reference station flagged, flag whole channel
+              for (uint st=0; st<info().antennaNames().size(); ++st) {
+                iS[freqCell].getStationFlagged()[st] = true;
+              }
+            } else {
+              for (uint st=0; st<info().antennaNames().size(); ++st) {
+                sols_f(freqCell, st) = sol(st, 0)/sol(0, 0);
+                ASSERT(isFinite(sols_f(freqCell, st)));
+              }
             }
           }
 
-          uint nSt = info().antennaNames().size();
-          for (uint ant=0; ant<nSt; ++ant) {
+#pragma omp parallel for
+          for (uint st=0; st<nSt; ++st) {
             uint numpoints=0;
             double cost=0;
-            double* phases = fitter.PhaseData();
-            double* weights = fitter.WeightData();
+            double* phases = itsPhaseFitters[st]->PhaseData();
+            double* weights = itsPhaseFitters[st]->WeightData();
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-              if (iS[freqCell].getStationFlagged()[ant%nSt]) {
+              if (iS[freqCell].getStationFlagged()[st%nSt] || 
+                  converged[freqCell]==StefCal::FAILED) {
                 phases[freqCell] = 0;
                 weights[freqCell] = 0;
               } else {
-                phases[freqCell] = arg(tecsol(freqCell, ant));
-                weights[freqCell] = 1;
+                phases[freqCell] = arg(sols_f(freqCell, st));
+                if (!isFinite(phases[freqCell])) {
+                  cout<<"Yuk, phases[freqCell]="<<phases[freqCell]<<", sols_f(freqCell, st)="<<sols_f(freqCell, st)<<endl;
+                  ASSERT(isFinite(phases[freqCell]));
+                }
+                ASSERT(iS[freqCell].getWeight()>0);
+                weights[freqCell] = iS[freqCell].getWeight();
+                if (itsDebugLevel > 0 && st==34) {
+                  cout<<"w["<<freqCell<<"]="<<weights[freqCell]<<endl;
+                }
                 numpoints++;
               }
             }
 
-            if (itsDebugLevel>0 && ant==1) {
-              //cout<<endl<<"phases["<<ant<<"]=[";
-              cout<<"unfitted["<<iter<<"]=[";
-              uint freqCell=0;
-              for (; freqCell<itsNFreqCells-1; ++freqCell) {
-                cout<<phases[freqCell]<<",";
-              }
-              cout<<phases[freqCell]<<"];"<<endl;
+            if (itsDebugLevel>0) {
+              cout<<"st="<<st<<", numpoints="<<numpoints<<endl;
             }
-            if (numpoints>1) {
-              cost=fitter.FitDataToTECModel(alpha, beta);
+
+            if (itsDebugLevel>0 && st==34) {
+              cout<<"t="<<itsStepInParmUpdate<<", st="<<st<<", unfitted["<<iter<<"]=[";
+              uint freqCell2=0;
+              for (; freqCell2<itsNFreqCells-1; ++freqCell2) {
+                cout<<phases[freqCell2]<<",";
+              }
+              cout<<phases[freqCell2]<<"];"<<endl;
+            }
+
+            for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+              ASSERT(isFinite(phases[freqCell]));
+            }
+
+            if (numpoints>1) { // TODO: limit should be higher
+              //cout<<"tecsol(0,"<<st<<")="<<tecsol(0,st)<<", tecsol(1,"<<st<<")="<<tecsol(1,st)<<endl;
+              cost=itsPhaseFitters[st]->FitDataToTECModel(tecsol(0, st), tecsol(1,st));
               // Update solution in stefcal
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-                iS[freqCell].getSolution(false)(ant, 0) = polar(1., phases[freqCell]);
+                ASSERT(isFinite(phases[freqCell]));
+                iS[freqCell].getSolution(false)(st, 0) = polar(1., phases[freqCell]);
               }
-            } else if (itsDebugLevel>5) {
-              cout<<"Not enough points ("<<numpoints<<") for antenna "<<ant<<endl;
+            } else {
+              tecsol(0, st) = 0; //std::numeric_limits<double>::quiet_NaN();
+              tecsol(1, st) = 0; //std::numeric_limits<double>::quiet_NaN();
             }
-            if (itsDebugLevel>1 && ant==1) {
-              cout<<"fitted["<<iter<<"]=[";
+
+            if (st==34 && itsDebugLevel>0) {
+              cout<<"fitted["<<st<<"]=[";
               uint freqCell=0;
               for (; freqCell<itsNFreqCells-1; ++freqCell) {
                 cout<<phases[freqCell]<<",";
               }
               cout<<phases[freqCell]<<"]"<<endl;
-            }
-            if (itsDebugLevel>0 && ant==1) {
-              cout << "fitdata["<<iter<<"]=[" << alpha << ", " << beta << ", " << cost << "];" << endl;
+              cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << ", " << tecsol(1,1) << ", " << cost << "];" << endl;
             }
           }
+          itsTimerPhaseFit.stop();
+          itsTimerSolve.start();
         }
 
         if (allConverged) {
           break;
         }
 
+#ifdef DEBUG
         if (itsDebugLevel>1) { // Only antenna 1
           cout<<"phases["<<iter<<"]=[";
           uint freqCell=0;
@@ -601,6 +667,7 @@ namespace LOFAR {
           }
           cout<<converged[freqCell]<<"]"<<endl;
         }
+#endif
       } // End niter
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -608,6 +675,7 @@ namespace LOFAR {
         case StefCal::CONVERGED: {itsConverged++; break;}
         case StefCal::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
         case StefCal::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
+        case StefCal::FAILED: {itsFailed++; itsNIter[3]+=iter; break;}
         default:
           THROW(Exception, "Unknown converged status");
         }
@@ -635,9 +703,13 @@ namespace LOFAR {
         }
       }
       itsSols.push_back(sol);
+      if (itsMode=="tec") {
+        itsTECSols.push_back(tecsol);
+      }
 
       itsTimerSolve.stop();
-    }
+    } // End stefcal()
+
 
     void GainCal::initParmDB() {
       itsParmDB = boost::shared_ptr<BBS::ParmDB>
@@ -739,6 +811,14 @@ namespace LOFAR {
       } // End initialization of parmdb
 
       uint ntime=itsSols.size();
+      uint nchan, nfreqs;
+      if (itsMode=="tec") {
+        nfreqs = 1;
+        nchan = info().nchan();
+      } else {
+        nfreqs = itsNFreqCells;
+        nchan = itsNChan;
+      }
 
       // Construct solution grid for the current chunk
       double freqWidth = getInfo().chanWidths()[0];
@@ -748,8 +828,8 @@ namespace LOFAR {
       BBS::Axis::ShPtr freqAxis(
           new BBS::RegularAxis(
               getInfo().chanFreqs()[0] - freqWidth * 0.5,
-              freqWidth*itsNChan,
-              itsNFreqCells));
+              freqWidth*nchan,
+              nfreqs));
       BBS::Axis::ShPtr timeAxis(
           new BBS::RegularAxis(
               startTime,
@@ -772,16 +852,13 @@ namespace LOFAR {
       // Write the solutions per parameter.
       const char* str0101[] = {"0:0:","0:1:","1:0:","1:1:"};
       const char* strri[] = {"Real:","Imag:"};
-      Matrix<double> values(itsNFreqCells, ntime);
+      Matrix<double> values(nfreqs, ntime);
 
       DComplex sol;
 
       uint nSt=info().antennaNames().size();
 
       for (size_t st=0; st<nSt; ++st) {
-        uint seqnr = 0; // To take care of real and imaginary part
-        string suffix(info().antennaNames()[st]);
-
         for (int pol=0; pol<4; ++pol) { // For 0101
           if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
                itsMode=="amplitudeonly") && (pol==1||pol==2)) {
@@ -791,10 +868,9 @@ namespace LOFAR {
               itsMode=="tec") && pol>0) {
             continue;
           }
-          int realimmax;
+          int realimmax; // For tec, this functions as dummy between tec and commonscalarphase
           if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
-              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
-              itsMode=="tec") {
+              itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
             realimmax=1;
           } else {
             realimmax=2;
@@ -812,36 +888,47 @@ namespace LOFAR {
                 name=name+strri[realim];
               }
             }
+            if (itsMode=="tec") {
+              if (realim==0) {
+                name="TEC:";
+              } else {
+                name="CommonScalarPhase:";
+              }
+            }
 
-            name+=suffix;
+            name+=info().antennaNames()[st];
 
             // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {
-              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+              for (uint freqCell=0; freqCell<nfreqs; ++freqCell) {
                 if (itsMode=="fulljones") {
-                  if (seqnr%2==0) {
-                    values(freqCell, ts) = real(itsSols[ts](seqnr/2,st,freqCell));
+                  if (realim==0) {
+                    values(freqCell, ts) = real(itsSols[ts](pol,st,freqCell));
                   } else {
-                    values(freqCell, ts) = imag(itsSols[ts](seqnr/2,st,freqCell));
+                    values(freqCell, ts) = imag(itsSols[ts](pol,st,freqCell));
                   }
                 } else if (itsMode=="diagonal") {
-                  if (seqnr%2==0) {
+                  if (realim==0) {
                     values(freqCell, ts) = real(itsSols[ts](pol/3,st,freqCell));
                   } else {
                     values(freqCell, ts) = imag(itsSols[ts](pol/3,st,freqCell));
                   }
-                } else if (itsMode=="scalarphase" || itsMode=="phaseonly" ||
-                           itsMode=="tec") {
+                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
                   values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
                 } else if (itsMode=="scalaramplitude" || itsMode=="amplitudeonly") {
                   values(freqCell, ts) = abs(itsSols[ts](pol/3,st,freqCell));
+                } else if (itsMode=="tec") {
+                  if (realim==0) {
+                    values(freqCell, ts) = itsTECSols[ts](realim,st) / 8.44797245e9;
+                  } else {
+                    values(freqCell, ts) = -itsTECSols[ts](realim,st); // TODO: why is there a minus here?
+                  }
                 }
                 else {
                   THROW (Exception, "Unhandled mode");
                 }
               }
             }
-            seqnr++;
             BBS::ParmValue::ShPtr pv(new BBS::ParmValue());
             pv->setScalars (solGrid, values);
 
