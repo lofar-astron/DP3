@@ -146,6 +146,8 @@ namespace LOFAR {
       ResultStep*      itsResultStep; // For catching results from Predict or Beam
       bool             itsApplyBeamToModelColumn;
 
+      BaselineSelection itsBaselineSelection; // Filter
+
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;

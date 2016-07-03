@@ -75,6 +75,7 @@ namespace LOFAR {
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
         itsBaselines     (),
+        itsBaselineSelection (parset, prefix),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
         itsPropagateSolutions
