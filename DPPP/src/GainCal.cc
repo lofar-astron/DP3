@@ -682,7 +682,8 @@ namespace LOFAR {
       BBS::Axis::ShPtr tdomAxis(
           new BBS::RegularAxis(
               startTime,
-              ntime * info().timeInterval() * itsSolInt,
+              min(ntime * info().timeInterval() * itsSolInt,
+                  info().ntime() * info().timeInterval()),
               1));
       BBS::Axis::ShPtr fdomAxis(
           new BBS::RegularAxis(
