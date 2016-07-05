@@ -206,6 +206,7 @@ namespace LOFAR {
       os << "  mode:                " << itsMode << endl;
       os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
       os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
+      os << "  timeslotsperparmupdate: " << itsTimeSlotsPerParmUpdate << endl;
       os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
       os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
       if (!itsUseModelColumn) {
@@ -666,24 +667,33 @@ namespace LOFAR {
       if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
         freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
       }
+
+      // Get end time of the current chunk. For the last chunk, this
+      // is chopped off at the end of the MS (only if solint > 1)
+      double endTime = min(startTime + ntime * info().timeInterval() * itsSolInt,
+                           info().startTime() + info().ntime() * info().timeInterval());
+
+      // Make time axis (can be non regular for last chunk if solint > 1)
+      vector<double> lowtimes(ntime), hightimes(ntime);
+      for (uint t=0; t<ntime; ++t) {
+        lowtimes[t]  = startTime + info().timeInterval() * itsSolInt * t;
+        hightimes[t] = min(startTime + info().timeInterval() * itsSolInt * (t+1),
+                           endTime);
+      }
+      BBS::Axis::ShPtr timeAxis = Axis::makeAxis(lowtimes, hightimes);
+
       BBS::Axis::ShPtr freqAxis(
           new BBS::RegularAxis(
               getInfo().chanFreqs()[0] - freqWidth * 0.5,
               freqWidth*itsNChan,
               itsNFreqCells));
-      BBS::Axis::ShPtr timeAxis(
-          new BBS::RegularAxis(
-              startTime,
-              info().timeInterval() * itsSolInt,
-              ntime));
       BBS::Grid solGrid(freqAxis, timeAxis);
 
       // Construct domain grid for the current chunk
       BBS::Axis::ShPtr tdomAxis(
           new BBS::RegularAxis(
               startTime,
-              min(ntime * info().timeInterval() * itsSolInt,
-                  info().ntime() * info().timeInterval()),
+              endTime - startTime,
               1));
       BBS::Axis::ShPtr fdomAxis(
           new BBS::RegularAxis(
