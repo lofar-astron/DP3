@@ -19,11 +19,14 @@
  * - Perform a calibration iteration.
  * - Set the phase values (@ref PhaseData()) and, if not yet done, the weights (@ref WeightData())
  *   to the current phase solutions / weights of a single antenna.
- * - Call @ref FitDataToTECModel().
+ * - Call @ref FitDataToTEC1Model() or @ref FitDataToTEC2Model().
  * - Read the new phase values.
  * - When fitting multiple polarizations, the above steps should be done twice for each
  *   diagonal value of the Jones matrix. Also repeat for all antennae.
  * - Continue the iteration with the new phase values.
+ * 
+ * Methods with name containing TEC1 refer to a single-parameter TEC model (no delay), while
+ * methods with TEC2 refer to dual-parameter TEC model (TEC + delay).
  */
 class PhaseFitter
 {
@@ -46,21 +49,29 @@ class PhaseFitter
   PhaseFitter& operator=(const PhaseFitter&) = delete;
 
   /**
-   * Fits the given phase values to a TEC model. This function is
+   * Fits the given phase values to a TEC model and returns the parameters. This function is
    * robust even when phase wrapping occurs.
    * After this call, the @ref PhaseData() satisfy the TEC model.
    * The TEC model has two parameters and are fitted as described in
-   * @ref FitTECModelParameters().
+   * @ref FitTEC2ModelParameters().
 	 * @param alpha Found value for the alpha parameter.
 	 * @param beta Found value for the beta parameter.
-	 *
 	 * @returns Cost of the found solution.
    */
-  double FitDataToTECModel(double& alpha, double& beta);
+	double FitDataToTEC2Model(double& alpha, double& beta);
 
-  /**
+	/**
+	 * Like @ref FitDataToTEC2Model(double&,double&), but without returning the parameters.
+	 */
+  void FitDataToTEC2Model()
+	{
+		double a,b;
+		FitDataToTEC2Model(a, b);
+	}
+	
+ /**
    * Fits the given phase values to a TEC model using prior estimates of the 
-	 * model parameters. This method is similar to @ref FitDataToTECModel(),
+	 * model parameters. This method is similar to @ref FitDataToTEC2Model(),
 	 * except that it will use the provided initial values of alpha and
 	 * beta to speed up the solution. When the provided initial values
 	 * are not accurate, the fit might not be accurate.
@@ -68,12 +79,10 @@ class PhaseFitter
 	 * @todo No fast method has been implemented -- instead it will perform a full parameter search.
 	 * @param alpha Estimate of alpha parameter on input, found value on output.
 	 * @param beta Estimate of beta parameter on input, found value on output.
-	 *
-	 * @returns Cost of the found solution.
    */
-  double FitDataToTECModelWithInitialValues(double& alpha, double& beta)
+  double FitDataToTEC2ModelWithInitialValues(double& alpha, double& beta)
 	{
-		return FitDataToTECModel(alpha, beta);
+		return FitDataToTEC2Model(alpha, beta);
 	}
 
   /**
@@ -90,12 +99,12 @@ class PhaseFitter
 	 * @param beta Will be set to the fitted value for the beta parameter
 	 * (value on input is not used).
    */
-  void FitTECModelParameters(double& alpha, double& beta) const;
+  void FitTEC2ModelParameters(double& alpha, double& beta) const;
   
 	/**
 	 * Get a pointer to the array of phase values. This array should be filled with the
-	 * phases of solutions before calling one of the fit methods. @ref FitDataToTECModel()
-	 * sets this array to the fitted phases.
+	 * phases of solutions before calling one of the fit methods. @ref FitDataToTEC1Model()
+	 * and ~TEC2~ sets this array to the fitted phases.
 	 * Normally, these values should be set to std::arg(z) or atan2(z.imag(), z.real()), where
 	 * z is a complex solution for one polarizations. All phases should correspond to the same
 	 * polarizations, i.e., different polarizations (xx/yy/ll/rr, etc.) should be independently
@@ -182,40 +191,81 @@ class PhaseFitter
 	 * @returns sum of | nu_i / alpha + beta - theta_i |, and each sum term is
 	 * phase unwrapped.
 	 */
-	double TECModelCost(double alpha, double beta) const;
+	double TEC2ModelCost(double alpha, double beta) const;
   
 	/**
-	 * Like @ref TECModelFunc(), but 2-pi wrapped.
+	 * Like @ref TEC2ModelFunc(), but 2-pi wrapped.
 	 * @param nu Frequency in Hz
 	 * @param alpha TEC parameter (in undefined units)
 	 * @param beta Phase offset parameter (in radians)
 	 * @returns | nu_i / alpha + beta | % 2pi
 	 */
-	static double TECModelFunc(double nu, double alpha, double beta)
+	static double TEC2ModelFunc(double nu, double alpha, double beta)
 	{
 		return alpha / nu + beta;
 	}
   
+	double FitDataToTEC1Model(double& alpha);
+
 	/**
-	 * Like @ref TECModelFunc(), but 2-pi wrapped.
+	 * Like @ref FitDataToTEC1Model(double&,double&), but without returning the parameters.
+	 */
+  void FitDataToTEC1Model()
+	{
+		double a;
+		FitDataToTEC1Model(a);
+	}
+	
+	/**
+	 * Like @ref TEC2ModelFunc(), but 2-pi wrapped.
 	 * @param nu Frequency in Hz
 	 * @param alpha TEC parameter (in undefined units)
 	 * @param beta Phase offset parameter (in radians)
 	 * @returns | nu_i / alpha + beta | % 2pi
 	 */
-  static double TECModelFuncWrapped(double nu, double alpha, double beta)
+  static double TEC2ModelFuncWrapped(double nu, double alpha, double beta)
   {
-    return fmod(alpha / nu + beta, 2*M_PI);
+    return fmod(alpha / nu + beta, 2.0*M_PI);
+  }
+  
+  double FitDataToTEC1ModelWithInitialValues(double& alpha)
+	{
+		return FitDataToTEC1Model(alpha);
+	}
+
+  void FitTEC1ModelParameters(double& alpha) const;
+	
+	/**
+	 * Evaluate the cost function for given TEC model parameter. The higher the
+	 * cost, the worser the data fit the given parameters.
+	 * @param alpha TEC parameter
+	 * @returns sum of | alpha / nu_i - theta_i |, and each sum term is
+	 * phase unwrapped.
+	 */
+	double TEC1ModelCost(double alpha) const;
+	
+	/**
+	 * Like @ref TEC1ModelFunc(), but 2-pi wrapped.
+	 * @param nu Frequency in Hz
+	 * @param alpha TEC parameter (in undefined units)
+	 * @param beta Phase offset parameter (in radians)
+	 * @returns | alpha / nu_i + beta | % 2pi
+	 */
+  static double TEC1ModelFuncWrapped(double nu, double alpha)
+  {
+    return fmod(alpha / nu, 2.0*M_PI);
   }
  private:
-  std::vector<double> _phases, _frequencies, _weights;
-  double _fittingAccuracy;
-  
-  double fitTECModelBeta(double alpha, double betaEstimate) const;
-  void bruteForceSearchTECModel(double& lowerAlpha, double& upperAlpha, double& beta) const;
-  double ternarySearchTECModelAlpha(double startAlpha, double endAlpha, double& beta) const;
-  void fillDataWithTECModel(double alpha, double beta);
-    
+	std::vector<double> _phases, _frequencies, _weights;
+	double _fittingAccuracy;
+	
+	double fitTEC2ModelBeta(double alpha, double betaEstimate) const;
+	void bruteForceSearchTEC2Model(double& lowerAlpha, double& upperAlpha, double& beta) const;
+	double ternarySearchTEC2ModelAlpha(double startAlpha, double endAlpha, double& beta) const;
+	void fillDataWithTEC2Model(double alpha, double beta);
+	
+	void bruteForceSearchTEC1Model(double& lowerAlpha, double& upperAlpha) const;
+	double ternarySearchTEC1ModelAlpha(double startAlpha, double endAlpha) const;
 };
 
 #endif
