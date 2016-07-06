@@ -262,15 +262,16 @@ namespace LOFAR {
       if (itsMode == "tec") {
         os << "          ";
         FlagCounter::showPerc1 (os, itsTimerPhaseFit.getElapsed(), totaltime);
-        os << "of it spent in fitting phases" << endl;
+        os << " of it spent in fitting phases" << endl;
       }
 
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerWrite.getElapsed(), totaltime);
       os << " of it spent in writing gain solutions to disk" << endl;
 
-      os << "          ";
+      os << "        ";
       os <<"Converged: "<<itsConverged<<", stalled: "<<itsStalled<<", non converged: "<<itsNonconverged<<", failed: "<<itsFailed<<endl;
+      os << "        ";
       os <<"Iters converged: " << (itsConverged==0?0:itsNIter[0]/itsConverged);
       os << ", stalled: "<<      (itsStalled  ==0?0:itsNIter[1]/itsStalled);
       os << ", non converged: "<<(itsNonconverged==0?0:itsNIter[2]/itsNonconverged);
@@ -673,7 +674,7 @@ namespace LOFAR {
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         switch (converged[freqCell]) {
-        case StefCal::CONVERGED: {itsConverged++; break;}
+        case StefCal::CONVERGED: {itsConverged++; itsNIter[0]+=iter; break;}
         case StefCal::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
         case StefCal::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
         case StefCal::FAILED: {itsFailed++; itsNIter[3]+=iter; break;}
