@@ -16,7 +16,7 @@ set(inst_HEADERS
   DemixerNew.h DemixInfo.h DemixWorker.h
   ApplyBeam.h ApplyBeam.tcc
   Predict.h
-  GainCal.h StefCal.h
+  GainCal.h StefCal.h phasefitter.h
 )
 
 # Create symbolic link to include directory.
