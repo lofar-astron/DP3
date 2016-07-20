@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
+source findenv.run_script
+echo "srcdirx=$rt_srcdir"
+
+# Set srcdir if not defined (in case run by hand).
+if test "$srcdir" = ""; then
+  srcdir="$rt_srcdir"
+fi
+
+if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
+  exit 3   # untested
+fi
+
+rm -rf tApplyCal2_tmp
+mkdir -p tApplyCal2_tmp
+# Unpack the MS and other files and do the DPPP run.
+cd tApplyCal2_tmp
+tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
+
+# Create expected taql output.
+echo "    select result of 0 rows" > taql.ref
+
+echo; echo "Creating parmdb with defvalues 3"
+../../../../ParmDB/src/parmdbm <<EOL
+open table="tApplyCal.parmdb"
+adddef Gain:0:0:Real values=3.
+adddef Gain:1:1:Real values=3.
+EOL
+
+echo; echo "Testing without updateweights"
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+$taqlexe 'select from tNDPPP-generic.MS where not(all(WEIGHTS_NEW~=WEIGHT_SPECTRUM))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Testing with updateweights"
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false applycal.updateweights=true
+$taqlexe 'select from tNDPPP-generic.MS where not(all(WEIGHTS_NEW~=81*WEIGHT_SPECTRUM))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+

@@ -554,7 +554,7 @@ namespace LOFAR {
 
     void ApplyCal::applyFull (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool updateWeights,
+                              uint bl, uint chan, bool doUpdateWeights,
                               FlagCounter& flagCounter) {
       DComplex gainAxvis[4];
 
@@ -595,46 +595,44 @@ namespace LOFAR {
         }
       }
 
-      // The code below does the same as the combination of BBS + python script
-      // covariance2weight.py (cookbook), except it stores weights per freq.
-      // The diagonal of covariance matrix is transferred to the weights.
-      // Note that the real covariance (mixing of noise terms after which they
-      // are not independent anymore) is not stored.
-      // The input covariance matrix C is assumed to be diagonal with elements
-      // w_i (the weights), the result the diagonal of
-      // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      if (updateWeights) {
-        float cov[4], normGainA[4], normGainB[4];
-        for (uint i=0;i<4;++i) {
-          cov[i]=1./weight[i];
-          normGainA[i]=norm(gainA[i]);
-          normGainB[i]=norm(gainB[i]);
-        }
-
-        weight[0]=cov[0]*(normGainA[0]*normGainB[0])
-                 +cov[1]*(normGainA[0]*normGainB[1])
-                 +cov[2]*(normGainA[1]*normGainB[0])
-                 +cov[3]*(normGainA[1]*normGainB[1]);
-        weight[0]=1./weight[0];
-
-        weight[1]=cov[0]*(normGainA[0]*normGainB[2])
-                 +cov[1]*(normGainA[0]*normGainB[3])
-                 +cov[2]*(normGainA[1]*normGainB[2])
-                 +cov[3]*(normGainA[1]*normGainB[3]);
-        weight[1]=1./weight[1];
-
-        weight[2]=cov[0]*(normGainA[2]*normGainB[0])
-                 +cov[1]*(normGainA[2]*normGainB[1])
-                 +cov[2]*(normGainA[3]*normGainB[0])
-                 +cov[3]*(normGainA[3]*normGainB[1]);
-        weight[2]=1./weight[2];
-
-        weight[3]=cov[0]*(normGainA[2]*normGainB[2])
-                 +cov[1]*(normGainA[2]*normGainB[3])
-                 +cov[2]*(normGainA[3]*normGainB[2])
-                 +cov[3]*(normGainA[3]*normGainB[3]);
-        weight[3]=1./weight[3];
+      if (doUpdateWeights) {
+        applyWeights(gainA, gainB, weight);
       }
+    }
+
+    void ApplyCal::applyWeights(const DComplex* gainA,
+                                const DComplex* gainB,
+                                float* weight) {
+      float cov[4], normGainA[4], normGainB[4];
+      for (uint i=0;i<4;++i) {
+        cov[i]=1./weight[i];
+        normGainA[i]=norm(gainA[i]);
+        normGainB[i]=norm(gainB[i]);
+      }
+
+      weight[0]=cov[0]*(normGainA[0]*normGainB[0])
+                     +cov[1]*(normGainA[0]*normGainB[1])
+                     +cov[2]*(normGainA[1]*normGainB[0])
+                     +cov[3]*(normGainA[1]*normGainB[1]);
+      weight[0]=1./weight[0];
+
+      weight[1]=cov[0]*(normGainA[0]*normGainB[2])
+                     +cov[1]*(normGainA[0]*normGainB[3])
+                     +cov[2]*(normGainA[1]*normGainB[2])
+                     +cov[3]*(normGainA[1]*normGainB[3]);
+      weight[1]=1./weight[1];
+
+      weight[2]=cov[0]*(normGainA[2]*normGainB[0])
+                     +cov[1]*(normGainA[2]*normGainB[1])
+                     +cov[2]*(normGainA[3]*normGainB[0])
+                     +cov[3]*(normGainA[3]*normGainB[1]);
+      weight[2]=1./weight[2];
+
+      weight[3]=cov[0]*(normGainA[2]*normGainB[2])
+                     +cov[1]*(normGainA[2]*normGainB[3])
+                     +cov[2]*(normGainA[3]*normGainB[2])
+                     +cov[3]*(normGainA[3]*normGainB[3]);
+      weight[3]=1./weight[3];
     }
 
     void ApplyCal::showCounts (std::ostream& os) const

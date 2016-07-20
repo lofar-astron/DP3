@@ -92,6 +92,18 @@ namespace LOFAR {
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
+      // Do the same as the combination of BBS + python script
+      // covariance2weight.py (cookbook), except it stores weights per freq.
+      // The diagonal of covariance matrix is transferred to the weights.
+      // Note that the real covariance (mixing of noise terms after which they
+      // are not independent anymore) is not stored.
+      // The input covariance matrix C is assumed to be diagonal with elements
+      // w_i (the weights), the result the diagonal of
+      // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
+      static void applyWeights (const casa::DComplex* gainA,
+                                const casa::DComplex* gainB,
+                                float* weight);
+
     private:
       // Read parameters from the associated parmdb and store them in itsParms
       void updateParms (const double bufStartTime);

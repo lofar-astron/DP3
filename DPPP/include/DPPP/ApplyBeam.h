@@ -82,13 +82,14 @@ namespace LOFAR {
 
         template<typename T>
         static void applyBeam(
-            const DPInfo& info, double time, T* data0,
+            const DPInfo& info, double time, T* data0, float* weight0,
             const StationResponse::vector3r_t& srcdir,
             const StationResponse::vector3r_t& refdir,
             const StationResponse::vector3r_t& tiledir,
             const vector<StationResponse::Station::Ptr>& antBeamInfo,
             vector<StationResponse::matrix22c_t>& beamValues,
-            bool useChannelFreq, bool invert, int mode=DEFAULT);
+            bool useChannelFreq, bool invert, int mode,
+            bool doUpdateWeights=false);
 
       private:
         StationResponse::vector3r_t dir2Itrf(
@@ -100,6 +101,7 @@ namespace LOFAR {
         string               itsName;
         DPBuffer             itsBuffer;
         bool                 itsInvert;
+        bool                 itsUpdateWeights;
         bool                 itsUseChannelFreq;
         Position             itsPhaseRef;
         BeamMode             itsMode;
