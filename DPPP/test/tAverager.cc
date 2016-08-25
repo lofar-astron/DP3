@@ -30,6 +30,8 @@
 #include <casa/Arrays/ArrayMath.h>
 #include <casa/Arrays/ArrayLogical.h>
 #include <casa/Arrays/ArrayIO.h>
+
+#include <casa/Quanta/Quantum.h>
 #include <iostream>
 
 using namespace LOFAR;
@@ -471,6 +473,37 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
   execute (step1);
 }
 
+// Like test 1, but specify target resolution
+void test1resolution(int ntime, int nbl, int nchan, int ncorr,
+                     double timeresolution, double freqresolution,
+                     string frequnit, bool flag)
+{
+  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+       << " ncorr=" << ncorr << " timeresolution=" << timeresolution
+       << " freqresolution=" << freqresolution << endl;
+  // Create the steps.
+  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
+  DPStep::ShPtr step1(in);
+  ParameterSet parset;
+  parset.add ("freqresolution", toString(freqresolution)+frequnit);
+  parset.add ("timeresolution", toString(timeresolution));
+  DPStep::ShPtr step2(new Averager(in, parset, ""));
+
+  if (!frequnit.empty()) {
+    Quantity q(freqresolution, frequnit);
+    freqresolution = q.getValue("Hz", true);
+  }
+
+  int navgchan = std::max(1, int(freqresolution / 100000 + 0.5));
+  int navgtime = std::max(1, int(timeresolution / 5. + 0.5));
+
+  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr,
+                                     navgtime, navgchan, flag));
+  step1->setNextStep (step2);
+  step2->setNextStep (step3);
+  execute (step1);
+}
+
 // Like test1, but the averaging is done in two steps.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
@@ -572,6 +605,10 @@ int main()
     test1(11, 3, 30, 2, 3, 3, false);
     test1(10, 3, 32, 4, 1, 32, false);
     test1(10, 3, 32, 1, 1, 1, false);
+
+    test1resolution(10, 3, 32, 4, 10., 100000, "Hz", false);
+    test1resolution(11, 3, 32, 4, 1., 800, "kHz", false);
+    test1resolution(11, 3, 32, 4, 15., 0.4, "MHz", false);
     test2(10, 3, 32, 2, true);
     test2(10, 3, 32, 2, false);
     test3(1, 1);

@@ -91,6 +91,10 @@ namespace LOFAR {
                              const casa::Cube<bool>& flags,
                              int timeIndex);
 
+      // Get the value in Hertz of a string like "1000 MHz". If unit is
+      // omitted it defaults to Hertz
+      double getFreqHz(const string& freqstr);
+
       //# Data members.
       DPInput*        itsInput;
       string          itsName;
@@ -101,6 +105,8 @@ namespace LOFAR {
       casa::Cube<casa::Complex> itsAvgAll;
       casa::Cube<float>         itsWeightAll;
       casa::Cube<bool>          itsFullResFlags;
+      double          itsFreqResolution;
+      double          itsTimeResolution;
       uint            itsNChanAvg;
       uint            itsNTimeAvg;
       uint            itsMinNPoint;
