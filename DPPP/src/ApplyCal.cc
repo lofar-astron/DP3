@@ -173,13 +173,13 @@ namespace LOFAR {
           itsParmExprs.push_back("Clock:1");
         }
       } else if (itsCorrectType == "commonrotationangle") {
-        itsParmExprs.push_back("CommonRotationAngle");
+        itsParmExprs.push_back("{Common,}RotationAngle");
       } else if (itsCorrectType == "commonscalarphase") {
-        itsParmExprs.push_back("CommonScalarPhase");
+        itsParmExprs.push_back("{Common,}ScalarPhase");
       } else if (itsCorrectType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure");
       } else if (itsCorrectType == "commonscalaramplitude") {
-        itsParmExprs.push_back("CommonScalarAmplitude");
+        itsParmExprs.push_back("{Common,}ScalarAmplitude");
       }
       else {
         THROW (Exception, "Correction type " + itsCorrectType +
