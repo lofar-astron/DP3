@@ -124,7 +124,7 @@ namespace LOFAR {
       ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
              itsMode=="fulljones" || itsMode=="scalarphase" ||
              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
-             itsMode=="tecandphase" || itsMode=="tec");
+             itsMode=="tec");
     }
 
     GainCal::~GainCal()
@@ -172,7 +172,7 @@ namespace LOFAR {
       itsSols.reserve(itsTimeSlotsPerParmUpdate);
 
       // Initialize phase fitters, set their frequency data
-      if (itsMode=="tecandphase" || itsMode=="tec") {
+      if (itsMode=="tec") {
         itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
 
         itsPhaseFitters.reserve(itsNFreqCells); // TODO: could be numthreads instead
@@ -260,7 +260,7 @@ namespace LOFAR {
       FlagCounter::showPerc1 (os, itsTimerSolve.getElapsed(), totaltime);
       os << " of it spent in estimating gains and computing residuals" << endl;
 
-      if (itsMode == "tec" || itsMode == "tecandphase") {
+      if (itsMode == "tec") {
         os << "          ";
         FlagCounter::showPerc1 (os, itsTimerPhaseFit.getElapsed(), totaltime);
         os << " of it spent in fitting phases" << endl;
@@ -451,7 +451,7 @@ namespace LOFAR {
             continue;
           }
 
-          if (itsMode=="tec" || itsMode=="tecandphase") {
+          if (itsMode=="tec") {
             iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
           }
 
@@ -540,7 +540,7 @@ namespace LOFAR {
 
       uint iter=0;
 
-      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1, info().antennaNames().size(), 0);
+      casa::Matrix<double> tecsol(2, info().antennaNames().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
@@ -556,7 +556,7 @@ namespace LOFAR {
           } 
         }
 
-        if (itsMode=="tec" || itsMode=="tecandphase") {
+        if (itsMode=="tec") {
           itsTimerSolve.stop();
           itsTimerPhaseFit.start();
           casa::Matrix<casa::DComplex> sols_f(itsNFreqCells, info().antennaNames().size());
@@ -624,11 +624,7 @@ namespace LOFAR {
 
             if (numpoints>1) { // TODO: limit should be higher
               //cout<<"tecsol(0,"<<st<<")="<<tecsol(0,st)<<", tecsol(1,"<<st<<")="<<tecsol(1,st)<<endl;
-              if (itsMode=="tecandphase") {
-                cost=itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st), tecsol(1,st));
-              } else { // itsMode=="tec"
-                cost=itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
-              }
+              cost=itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st), tecsol(1,st));
               // Update solution in stefcal
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 ASSERT(isFinite(phases[freqCell]));
@@ -636,9 +632,7 @@ namespace LOFAR {
               }
             } else {
               tecsol(0, st) = 0; //std::numeric_limits<double>::quiet_NaN();
-              if (itsMode=="tecandphase") {
-                tecsol(1, st) = 0; //std::numeric_limits<double>::quiet_NaN();
-              }
+              tecsol(1, st) = 0; //std::numeric_limits<double>::quiet_NaN();
             }
 
             if (st==34 && itsDebugLevel>0) {
@@ -712,7 +706,7 @@ namespace LOFAR {
         }
       }
       itsSols.push_back(sol);
-      if (itsMode=="tec" || itsMode=="tecandphase") {
+      if (itsMode=="tec") {
         itsTECSols.push_back(tecsol);
       }
 
@@ -799,7 +793,7 @@ namespace LOFAR {
         name=string("CommonScalarPhase:");
       } else if (itsMode=="scalaramplitude") {
         name=string("CommonScalarAmplitude:");
-      } else if (itsMode=="tec" || itsMode=="tecandphase") {
+      } else if (itsMode=="tec") {
         name=string("TEC:");
       }
       else {
@@ -887,9 +881,9 @@ namespace LOFAR {
               itsMode=="tec") && pol>0) {
             continue;
           }
-          int realimmax; // For tecandphase, this functions as dummy between tec and commonscalarphase
+          int realimmax; // For tec, this functions as dummy between tec and commonscalarphase
           if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
-              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" || itsMode=="tec") {
+              itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
             realimmax=1;
           } else {
             realimmax=2;
@@ -907,7 +901,7 @@ namespace LOFAR {
                 name=name+strri[realim];
               }
             }
-            if (itsMode=="tecandphase" || itsMode=="tec") {
+            if (itsMode=="tec") {
               if (realim==0) {
                 name="TEC:";
               } else {
@@ -936,7 +930,7 @@ namespace LOFAR {
                   values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
                 } else if (itsMode=="scalaramplitude" || itsMode=="amplitudeonly") {
                   values(freqCell, ts) = abs(itsSols[ts](pol/3,st,freqCell));
-                } else if (itsMode=="tec" || itsMode=="tecandphase") {
+                } else if (itsMode=="tec") {
                   if (realim==0) {
                     values(freqCell, ts) = itsTECSols[ts](realim,st) / 8.44797245e9;
                   } else {

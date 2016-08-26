@@ -285,7 +285,6 @@ class PhaseFitter
 	void bruteForceSearchTEC2Model(double& lowerAlpha, double& upperAlpha, double& beta) const;
 	double ternarySearchTEC2ModelAlpha(double startAlpha, double endAlpha, double& beta) const;
 	void fillDataWithTEC2Model(double alpha, double beta);
-	void fillDataWithTEC1Model(double alpha);
 	
 	void bruteForceSearchTEC1Model(double& lowerAlpha, double& upperAlpha) const;
 	double ternarySearchTEC1ModelAlpha(double startAlpha, double endAlpha) const;
