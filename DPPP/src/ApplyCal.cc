@@ -330,8 +330,16 @@ namespace LOFAR {
       for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
         // parmMap contains parameter values for all antennas
         parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
-        minFreq, maxFreq, freqInterval,
-        bufStartTime, itsLastTime, itsTimeInterval, true);
+                               minFreq, maxFreq, freqInterval,
+                               bufStartTime, itsLastTime, itsTimeInterval,
+                               true);
+
+        // Resolve {Common,}Bla to CommonBla or Bla
+        if (!parmMap.empty() &&
+            itsParmExprs[parmExprNum].find("{") != std::string::npos) {
+          uint colonPos = (parmMap.begin()->first).find(":");
+          itsParmExprs[parmExprNum] = (parmMap.begin()->first).substr(0, colonPos);
+        }
 
         for (int ant = 0; ant < numAnts; ++ant) {
           parmIt = parmMap.find(
