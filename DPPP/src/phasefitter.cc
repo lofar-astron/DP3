@@ -114,6 +114,12 @@ void PhaseFitter::fillDataWithTEC2Model(double alpha, double beta)
     _phases[ch] = TEC2ModelFunc(_frequencies[ch], alpha, beta);
 }
 
+void PhaseFitter::fillDataWithTEC1Model(double alpha)
+{
+  for(size_t ch=0; ch!=Size(); ++ch)
+    _phases[ch] = TEC1ModelFuncWrapped(_frequencies[ch], alpha);
+}
+
 void PhaseFitter::FitTEC2ModelParameters(double& alpha, double& beta) const
 {
   double lowerAlpha = -40000.0e6, upperAlpha = 40000.0e6;
@@ -128,6 +134,13 @@ double PhaseFitter::FitDataToTEC2Model(double& alpha, double& beta)
   FitTEC2ModelParameters(alpha, beta);
   fillDataWithTEC2Model(alpha, beta);
 	return TEC2ModelCost(alpha, beta);
+}
+
+double PhaseFitter::FitDataToTEC1Model(double& alpha)
+{
+  FitTEC1ModelParameters(alpha);
+  fillDataWithTEC1Model(alpha);
+  return TEC1ModelCost(alpha);
 }
 
 void PhaseFitter::FitTEC1ModelParameters(double& alpha) const
