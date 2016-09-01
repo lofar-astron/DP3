@@ -13,6 +13,8 @@ if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
   exit 3   # untested
 fi
 
+set -e # Stop on any error
+
 rm -rf tApplyCal2_tmp
 mkdir -p tApplyCal2_tmp
 # Unpack the MS and other files and do the DPPP run.
@@ -41,3 +43,22 @@ echo; echo "Testing with updateweights"
 $taqlexe 'select from tNDPPP-generic.MS where not(all(WEIGHTS_NEW~=81*WEIGHT_SPECTRUM))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
+echo; echo "Testing CommonScalarPhase"
+rm -rf tApplyCal.parmdb
+../../../../ParmDB/src/parmdbm <<EOL
+open table="tApplyCal.parmdb"
+adddef CommonScalarPhase values=0
+EOL
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Testing ScalarPhase"
+rm -rf tApplyCal.parmdb
+../../../../ParmDB/src/parmdbm <<EOL
+open table="tApplyCal.parmdb"
+adddef ScalarPhase values=0
+EOL
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
+diff taql.out taql.ref  ||  exit 1
