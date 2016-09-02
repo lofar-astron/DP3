@@ -884,7 +884,7 @@ namespace LOFAR {
             continue;
           }
           if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ||
-              itsMode=="tec") && pol>0) {
+              itsMode=="tec" || itsMode=="tecandphase") && pol>0) {
             continue;
           }
           int realimmax; // For tecandphase, this functions as dummy between tec and commonscalarphase
