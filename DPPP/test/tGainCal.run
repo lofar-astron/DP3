@@ -100,11 +100,11 @@ $taqlexe 'select from tNDPPP-generic.MS/inst-tec where (select NAME from ::NAMES
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test caltype=tecandphase"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tec gaincal.caltype=tecandphase gaincal.solint=2
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tecandphase gaincal.caltype=tecandphase gaincal.solint=2
 # For now, only testing that the right parameter names are in the output
 echo "    select result of 1 rows" > taql1.ref
-$taqlexe 'select from tNDPPP-generic.MS/inst-tec where (select NAME from ::NAMES)[NAMEID]=="TEC:CS001HBA0"' > taql.out
+$taqlexe 'select from tNDPPP-generic.MS/inst-tecandphase where (select NAME from ::NAMES)[NAMEID]=="TEC:CS001HBA0"' > taql.out
 diff taql.out taql1.ref  ||  exit 1
-$taqlexe 'select from tNDPPP-generic.MS/inst-tec where (select NAME from ::NAMES)[NAMEID]=="CommonScalarPhase:CS001HBA0"' > taql.out
+$taqlexe 'select from tNDPPP-generic.MS/inst-tecandphase where (select NAME from ::NAMES)[NAMEID]=="CommonScalarPhase:CS001HBA0"' > taql.out
 diff taql.out taql1.ref  ||  exit 1
 

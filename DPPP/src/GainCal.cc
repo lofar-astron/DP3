@@ -648,7 +648,11 @@ namespace LOFAR {
                 cout<<phases[freqCell]<<",";
               }
               cout<<phases[freqCell]<<"]"<<endl;
-              cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << ", " << tecsol(1,1) << ", " << cost << "];" << endl;
+              if (itsMode=="tecandphase") {
+                cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << ", " << tecsol(1,1) << ", " << cost << "];" << endl;
+              } else {
+                cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << "];" << endl;
+              }
             }
           }
           itsTimerPhaseFit.stop();
@@ -821,7 +825,7 @@ namespace LOFAR {
 
       uint ntime=itsSols.size();
       uint nchan, nfreqs;
-      if (itsMode=="tec") {
+      if (itsMode=="tec" || itsMode=="tecandphase") {
         nfreqs = 1;
         nchan = info().nchan();
       } else {
