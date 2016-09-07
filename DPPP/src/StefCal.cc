@@ -309,21 +309,21 @@ namespace LOFAR {
         double ww=0; // Same as w, but specifically for pol==false
         DComplex tt=0; // Same as t, but specifically for pol==false
 
-        DComplex* z_p=_z.data();
         mvis_p=&_mvis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
         vis_p = &_vis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
         for (uint st1pol=0;st1pol<_nSp;++st1pol) {
           for (uint ch=0;ch<_nChan;++ch) {
             for (uint time=0;time<_solInt;++time) {
-              DComplex* h_p=_h.data();
-              for (uint st2=0;st2<_nUn;++st2) {
-                *z_p = h_p[st2] * *mvis_p; //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-                ASSERT(isFinite(*z_p));
-                ww+=norm(*z_p);
-                tt+=conj(*z_p) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-                mvis_p++;
-                vis_p++;
-                z_p++;
+              for (uint st2pol=0;st2pol<_nSp;++st2pol) {
+                DComplex* h_p=_h.data();
+                for (uint st2=0;st2<_nUn;++st2) {
+                  DComplex z(h_p[st2] * *mvis_p); //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
+                  ASSERT(isFinite(z));
+                  ww+=norm(z);
+                  tt+=conj(z) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
+                  mvis_p++;
+                  vis_p++;
+                }
               }
               //cout<<"iS.z bij ch="<<ch<<"="<<iS.z<<endl<<"----"<<endl;
             }
