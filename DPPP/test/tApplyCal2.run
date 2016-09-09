@@ -79,3 +79,21 @@ EOL
 ../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Testing ScalarAmplitude values"
+rm -rf tApplyCal.parmdb
+../../../../ParmDB/src/parmdbm <<EOL
+open table="tApplyCal.parmdb"
+add ScalarAmplitude:CS001HBA0 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:CS002HBA0 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:CS002HBA1 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:CS004HBA1 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:RS106HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:RS208HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:RS305HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add ScalarAmplitude:RS307HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+EOL
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=scalaramplitude showcounts=false
+$taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
+diff taql.out taql.ref  ||  exit 1
+

@@ -70,6 +70,15 @@ namespace LOFAR {
       if (itsCorrectType=="fulljones" && itsUpdateWeights) {
         ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
       }
+      ASSERT(itsCorrectType=="gain" || itsCorrectType=="fulljones" || 
+             itsCorrectType=="tec" || itsCorrectType=="clock" ||
+             itsCorrectType=="scalarphase" || itsCorrectType=="commonscalarphase" ||
+             itsCorrectType=="scalaramplitude" || itsCorrectType=="commonscalaramplitude" ||
+             itsCorrectType=="rotationangle" || itsCorrectType=="commonrotationangle" ||
+             itsCorrectType=="rotationmeasure");
+      if (itsCorrectType.substr(0,6)=="common") {
+        itsCorrectType=itsCorrectType.substr(6);
+      }
     }
 
     ApplyCal::ApplyCal()
@@ -172,13 +181,13 @@ namespace LOFAR {
           itsParmExprs.push_back("Clock:0");
           itsParmExprs.push_back("Clock:1");
         }
-      } else if (itsCorrectType == "commonrotationangle") {
+      } else if (itsCorrectType == "rotationangle") {
         itsParmExprs.push_back("{Common,}RotationAngle");
-      } else if (itsCorrectType == "commonscalarphase") {
+      } else if (itsCorrectType == "scalarphase") {
         itsParmExprs.push_back("{Common,}ScalarPhase");
       } else if (itsCorrectType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure");
-      } else if (itsCorrectType == "commonscalaramplitude") {
+      } else if (itsCorrectType == "scalaramplitude") {
         itsParmExprs.push_back("{Common,}ScalarAmplitude");
       }
       else {
@@ -448,7 +457,7 @@ namespace LOFAR {
                   parmvalues[1][ant][tf] * freq * casa::C::_2pi);
             }
           }
-          else if (itsCorrectType=="commonrotationangle") {
+          else if (itsCorrectType=="rotationangle") {
             double phi=parmvalues[0][ant][tf];
             if (itsInvert) {
               phi = -phi;
@@ -474,11 +483,11 @@ namespace LOFAR {
             itsParms(2, ant, tf) =  sinv;
             itsParms(3, ant, tf) =  cosv;
           }
-          else if (itsCorrectType=="commonscalarphase") {
+          else if (itsCorrectType=="scalarphase") {
             itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
             itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
           }
-          else if (itsCorrectType=="commonscalaramplitude") {
+          else if (itsCorrectType=="scalaramplitude") {
             itsParms(0, ant, tf) = parmvalues[0][ant][tf];
             itsParms(1, ant, tf) = parmvalues[0][ant][tf];
           }
@@ -501,7 +510,7 @@ namespace LOFAR {
 
       uint numParms;
       if (itsCorrectType=="fulljones" || 
-          itsCorrectType=="commonrotationangle" || 
+          itsCorrectType=="rotationangle" || 
           itsCorrectType=="rotationmeasure") {
         numParms = 4;
       }
