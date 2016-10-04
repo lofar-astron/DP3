@@ -28,6 +28,8 @@
 // @brief DPPP step writing to an MS
 
 #include <DPPP/DPStep.h>
+#include <DPPP/StManParsetKeys.h>
+
 #include <Common/LofarTypes.h>
 #include <tables/Tables/ColumnDesc.h>
 #include <tables/Tables/RefRows.h>
@@ -122,6 +124,8 @@ namespace LOFAR {
       bool         itsWeightColAdded; //# has weight column been added?
       bool         itsWriteHistory; //# Should history be written?
       NSTimer      itsTimer;
+      uint itsTileSize;
+      StManParsetKeys itsStManKeys;
     };
 
   } //# end namespace

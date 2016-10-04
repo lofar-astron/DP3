@@ -47,6 +47,7 @@
 #include <casa/Containers/Record.h>
 #include <casa/OS/Path.h>
 #include <iostream>
+#include <limits>
 
 using namespace casa;
 
@@ -78,6 +79,8 @@ namespace LOFAR {
                  " can be used as output when writing a new MS");
       ASSERTSTR (itsWeightColName == "WEIGHT_SPECTRUM", "Currently only the "
           "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
+      
+      itsStManKeys.Set(parset, prefix);
     }
 
     MSWriter::~MSWriter()
@@ -181,6 +184,17 @@ namespace LOFAR {
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
       os << "  WEIGHT column:  " << itsWeightColName << std::endl;
+      if(itsStManKeys.stManName == "dysco") {
+        os
+          << "  Compressed:     yes\n"
+          << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
+          << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
+          << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' ' 
+            << itsStManKeys.dyscoDistribution << '(' << itsStManKeys.dyscoDistTruncation << ")\n";
+      }
+      else {
+        os << "  Compressed:     no\n";
+      }
     }
 
     void MSWriter::showTimings (std::ostream& os, double duration) const
@@ -191,19 +205,24 @@ namespace LOFAR {
     }
 
     void MSWriter::makeArrayColumn (ColumnDesc desc, const IPosition& ipos,
-                                    TiledColumnStMan* tsm, Table& table)
+                                    DataManager* dm, Table& table, bool makeDirectColumn)
     {
       desc.setOptions(0);
       desc.setShape(ipos);
-      desc.setOptions(ColumnDesc::FixedShape);
+      if (makeDirectColumn) {
+        desc.setOptions(ColumnDesc::Direct | ColumnDesc::FixedShape);
+      }
+      else {
+        desc.setOptions(ColumnDesc::FixedShape);
+      }
       if (table.tableDesc().isColumn(desc.name())) {
         table.removeColumn(desc.name());
       }
-      // Use tiled storage manager if given.
-      if (tsm == 0) {
+      // Use storage manager if given.
+      if (dm == 0) {
         table.addColumn (desc);
       } else {
-        table.addColumn (desc, *tsm);
+        table.addColumn (desc, *dm);
       }
     }
 
@@ -300,6 +319,7 @@ namespace LOFAR {
       // Setup table creation. Exception is thrown if it exists already.
       Table::TableOption opt = itsOverwrite ? Table::New : Table::NewNoReplace;
       SetupNewTable newtab(outName, newdesc, opt);
+
       // First bind all columns to SSM.
       // For all columns defined in dminfo the bindings will be overwritten.
       // In this way variable columns like ANTENNA1/2 are bound to SSM.
@@ -308,22 +328,35 @@ namespace LOFAR {
         StandardStMan ssm("SSMVar", 32768);
         newtab.bindAll (ssm);
       }
+
       // Bind all columns according to dminfo.
       newtab.bindCreate (dminfo);
+      DataManagerCtor dyscoConstructor = 0;
+      Record dyscoSpec;
+      if(itsStManKeys.stManName == "dysco") {
+        dyscoSpec = itsStManKeys.GetDyscoSpec();
+        dyscoConstructor = DataManager::getCtor("DyscoStMan");
+      }
       itsMS = Table(newtab);
-      {
+
+      if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0) {
+        // Add DATA column using Dysco stman.
+        CountedPtr<DataManager> dyscoStMan(dyscoConstructor("DyscoData", dyscoSpec));
+        makeArrayColumn (tdesc["DATA"], dataShape, dyscoStMan.get(), itsMS, true);
+      }
+      else {
         // Add DATA column using tsm.
         TiledColumnStMan tsm("TiledData", tileShape);
         makeArrayColumn (tdesc["DATA"], dataShape, &tsm, itsMS);
       }
-      {
-        // Add FLAG column using tsm.
-        // Use larger tile shape because flags are stored as bits.
-        IPosition tileShapeF(tileShape);
-        tileShapeF[2] *= 8;
-        TiledColumnStMan tsmf("TiledFlag", tileShapeF);
-        makeArrayColumn(tdesc["FLAG"], dataShape, &tsmf, itsMS);
-      }
+
+      // Add FLAG column using tsm.
+      // Use larger tile shape because flags are stored as bits.
+      IPosition tileShapeF(tileShape);
+      tileShapeF[2] *= 8;
+      TiledColumnStMan tsmf("TiledFlag", tileShapeF);
+      makeArrayColumn(tdesc["FLAG"], dataShape, &tsmf, itsMS);
+
       if (itsWriteFullResFlags) {
         // Add LOFAR_FULL_RES_FLAG column using tsm.
         // The input can already be averaged and averaging can be done in
@@ -337,7 +370,17 @@ namespace LOFAR {
                                       dataShapeF, ColumnDesc::FixedShape);
         makeArrayColumn(padesc, dataShapeF, &tsmf, itsMS);
       }
-      {
+      if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoWeightBitRate != 0) {
+        // Add WEIGHT_SPECTRUM column using Dysco stman.
+        CountedPtr<DataManager> dyscoStMan(dyscoConstructor(
+                                             "DyscoWeightSpectrum", dyscoSpec)
+                                          );
+        ArrayColumnDesc<float> wsdesc("WEIGHT_SPECTRUM", "weight per corr/chan",
+                                   dataShape, 
+                                   ColumnDesc::FixedShape | ColumnDesc::Direct);
+        makeArrayColumn (wsdesc, dataShape, dyscoStMan.get(), itsMS, true);
+      }
+      else {
         // Add WEIGHT_SPECTRUM column using tsm.
         TiledColumnStMan tsmw("TiledWeightSpectrum", tileShape);
         ArrayColumnDesc<float> wsdesc("WEIGHT_SPECTRUM", "weight per corr/chan",
@@ -355,7 +398,7 @@ namespace LOFAR {
         TiledColumnStMan tsmc("CorrectedData", tileShape);
         makeArrayColumn(tdesc["CORRECTED_DATA"], dataShape, &tsmc,
                         itsMS);
-        
+
         IPosition iwShape(1, dataShape[1]);
         IPosition iwShapeTile(2, tileShape[1], tileShape[2]);
         TiledColumnStMan tsmw("TiledImagingWeight", iwShapeTile);
@@ -513,7 +556,23 @@ namespace LOFAR {
         return;
       }
 
-      dataCol.putColumn (buf.getData());
+      // If compressing, flagged values need to be set to NaN to decrease the dynamic range
+      if(itsStManKeys.stManName == "dysco")
+      {
+        casa::Cube<casa::Complex> dataCopy = buf.getData().copy();
+        casa::Cube<casa::Complex>::iterator dataIter = dataCopy.begin();
+        for(casa::Cube<bool>::const_iterator flagIter = buf.getFlags().begin(); flagIter != buf.getFlags().end(); ++flagIter)
+        {
+          if(*flagIter)
+            *dataIter = casa::Complex(std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
+          ++dataIter;
+        }
+        dataCol.putColumn (dataCopy);
+      }
+      else {
+        dataCol.putColumn (buf.getData());
+      }
+      
       flagCol.putColumn (buf.getFlags());
       // A row is flagged if no flags in the row are False.
       Vector<Bool> rowFlags (partialNFalse(buf.getFlags(), IPosition(2,0,1)) == 0u);
