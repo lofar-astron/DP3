@@ -436,7 +436,7 @@ namespace LOFAR {
           if (_debugLevel>3) {
             cout<<"Detected fail"<<endl;
           }
-          return FAILED;
+          return STALLED;
         }
       }
 
