@@ -331,7 +331,10 @@ namespace LOFAR {
         }
         //cout<<"st1="<<st1%nSt<<(st1>=nSt?"y":"x")<<", t="<<tt<<"       ";
         //cout<<", w="<<ww<<"       ";
-        ASSERT(ww!=0);
+        if (ww==0) {
+          _stationFlagged[st1%_nSt]=true;
+          continue;
+        }
         _g(st1,0)=tt/ww;
         //cout<<", g="<<iS.g(st1,0)<<endl;
         if (_mode=="phaseonly" || _mode=="scalarphase" || _mode=="tec" || _mode=="tecandphase") {
