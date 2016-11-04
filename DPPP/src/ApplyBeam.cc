@@ -54,10 +54,11 @@ namespace LOFAR {
   namespace DPPP {
 
     ApplyBeam::ApplyBeam(DPInput* input, const ParameterSet& parset,
-                     const string& prefix, bool substep)
+                         const string& prefix, bool substep)
         :
           itsInput(input),
           itsName(prefix),
+          itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
@@ -94,6 +95,9 @@ namespace LOFAR {
       info() = infoIn;
       info().setNeedVisData();
       info().setWriteData();
+      if (itsUpdateWeights) {
+        info().setWriteWeights();
+      }
 
       MDirection dirJ2000(
           MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
@@ -136,6 +140,7 @@ namespace LOFAR {
       os << endl;
       os << "  use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
       os << "  invert:            " << boolalpha << itsInvert << endl;
+      os << "  update weights:    " << boolalpha << itsUpdateWeights << endl;
     }
 
     void ApplyBeam::showTimings(std::ostream& os, double duration) const
@@ -150,6 +155,11 @@ namespace LOFAR {
       itsTimer.start();
       itsBuffer.copy (bufin);
       Complex* data=itsBuffer.getData().data();
+
+      if (itsUpdateWeights) {
+        itsInput->fetchWeights (bufin, itsBuffer, itsTimer);
+      }
+      float* weight = itsBuffer.getWeights().data();
 
       double time = itsBuffer.getTime();
 
@@ -168,9 +178,9 @@ namespace LOFAR {
       uint thread = OpenMP::threadNum();
 
       StationResponse::vector3r_t srcdir = refdir;
-      applyBeam(info(), time, data, srcdir, refdir, tiledir,
+      applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                 itsAntBeamInfo[thread], itsBeamValues[thread],
-                itsUseChannelFreq, itsInvert, itsMode);
+                itsUseChannelFreq, itsInvert, itsMode, itsUpdateWeights);
 
       itsTimer.stop();
       getNextStep()->process(itsBuffer);

@@ -66,13 +66,13 @@ namespace LOFAR {
 // applyBeam is templated on the type of the data, could be double or float
 template<typename T>
 void ApplyBeam::applyBeam(
-        const DPInfo& info, double time, T* data0,
+        const DPInfo& info, double time, T* data0, float* weight0,
         const StationResponse::vector3r_t& srcdir,
         const StationResponse::vector3r_t& refdir,
         const StationResponse::vector3r_t& tiledir,
         const vector<StationResponse::Station::Ptr>& antBeamInfo,
         vector<StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-        bool invert, int mode)
+        bool invert, int mode, bool doUpdateWeights)
     { 
       // Get the beam values for each station.
       uint nCh = info.chanFreqs().size();
@@ -162,6 +162,10 @@ void ApplyBeam::applyBeam(
           data[1] = tmp[0] * r[1] + tmp[1] * r[3];
           data[2] = tmp[2] * r[0] + tmp[3] * r[2];
           data[3] = tmp[2] * r[1] + tmp[3] * r[3];
+
+          if (doUpdateWeights) {
+            ApplyCal::applyWeights(l, r, weight0 + bl * 4 * nCh + ch * 4);
+          }
         }
       }
     }

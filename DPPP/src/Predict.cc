@@ -337,9 +337,12 @@ namespace LOFAR {
                       MDirection::J2000);
       StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
 
-      ApplyBeam::applyBeam(info(), time, data0, srcdir, refdir,
+      float* dummyweight = 0;
+
+      ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
                            tiledir, itsAntBeamInfo[thread],
-                           itsBeamValues[thread], itsUseChannelFreq, false, itsBeamMode);
+                           itsBeamValues[thread], itsUseChannelFreq, false,
+                           itsBeamMode, false);
 
       //Add temporary buffer to itsModelVis
       std::transform(itsModelVis[thread].data(),

@@ -28,6 +28,8 @@
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <Common/StringUtil.h>
+
 #include <iostream>
 #include <iomanip>
 
@@ -41,22 +43,35 @@ namespace LOFAR {
                         const string& prefix)
       : itsInput     (input),
         itsName      (prefix),
-        itsNChanAvg  (parset.getUint  (prefix+"freqstep", 1)),
-        itsNTimeAvg  (parset.getUint  (prefix+"timestep", 1)),
         itsMinNPoint (parset.getUint  (prefix+"minpoints", 1)),
         itsMinPerc   (parset.getFloat (prefix+"minperc", 0.) / 100.),
         itsNTimes    (0),
-        itsTimeInterval (0)
+        itsTimeInterval (0),
+        itsNoAvg (true)
     {
-      if (itsNChanAvg <= 0) itsNChanAvg = 1;
-      if (itsNTimeAvg <= 0) itsNTimeAvg = 1;
-      itsNoAvg = (itsNChanAvg == 1  &&  itsNTimeAvg == 1);
+      string freqResolutionStr = parset.getString(prefix+"freqresolution","0");
+      itsFreqResolution = getFreqHz(freqResolutionStr);
+
+      if (itsFreqResolution > 0) {
+        itsNChanAvg = 0; // Will be set later in updateinfo
+      } else {
+        itsNChanAvg = parset.getUint  (prefix+"freqstep", 1);
+      }
+
+      itsTimeResolution = parset.getFloat(prefix+"timeresolution", 0.);
+      if (itsTimeResolution > 0) {
+        itsNTimeAvg = 0; // Will be set later in updateInfo
+      } else {
+        itsNTimeAvg = parset.getUint(prefix+"timestep", 1);
+      }
     }
 
     Averager::Averager (DPInput* input, const string& stepName,
                         uint nchanAvg, uint ntimeAvg)
       : itsInput     (input),
         itsName      (stepName),
+        itsFreqResolution (0),
+        itsTimeResolution (0),
         itsNChanAvg  (nchanAvg),
         itsNTimeAvg  (ntimeAvg),
         itsMinNPoint (1),
@@ -79,7 +94,27 @@ namespace LOFAR {
       info().setWriteData();
       info().setWriteFlags();
       info().setMetaChanged();
+
+      if (itsNChanAvg <= 0) {
+        if (itsFreqResolution > 0) {
+          double chanwidth = infoIn.chanWidths()[0];
+          itsNChanAvg = std::max(1, (int)(itsFreqResolution / chanwidth + 0.5));
+        } else {
+          itsNChanAvg = 1;
+        }
+      }
+
       itsTimeInterval = infoIn.timeInterval();
+      if (itsNTimeAvg <= 0) {
+        if (itsTimeResolution > 0) {
+          itsNTimeAvg = std::max(1, (int)(itsTimeResolution / itsTimeInterval + 0.5));
+        } else {
+          itsNTimeAvg = 1;
+        }
+      }
+
+      itsNoAvg = (itsNChanAvg == 1  &&  itsNTimeAvg == 1);
+
       // Adapt averaging to available nr of channels and times.
       itsNTimeAvg = std::min (itsNTimeAvg, infoIn.ntime());
       itsNChanAvg = info().update (itsNChanAvg, itsNTimeAvg);
@@ -88,8 +123,15 @@ namespace LOFAR {
     void Averager::show (std::ostream& os) const
     {
       os << "Averager " << itsName << std::endl;
-      os << "  freqstep:       " << itsNChanAvg << std::endl;
-      os << "  timestep:       " << itsNTimeAvg << std::endl;
+      os << "  freqstep:       " << itsNChanAvg;
+      if (itsFreqResolution>0) {
+        os << " (set by freqresolution: " << itsFreqResolution << " Hz)" << std::endl;
+      }
+      os << "  timestep:       " << itsNTimeAvg;
+      if (itsTimeResolution>0) {
+        os << " (set by timeresolution: " << itsTimeResolution << ")";
+      }
+      os << std::endl;
       os << "  minpoints:      " << itsMinNPoint << std::endl;
       os << "  minperc:        " << 100*itsMinPerc << std::endl;
     }
@@ -336,6 +378,29 @@ namespace LOFAR {
             flagPtr += ncorr;
           }
         }
+      }
+    }
+
+    double Averager::getFreqHz(const string& freqstr) {
+      String unit;
+      // See if a unit is given at the end.
+      String v(freqstr);
+      // Remove possible trailing blanks.
+      rtrim(v);
+      Regex regex("[a-zA-Z]+$");
+      string::size_type pos = v.index (regex);
+      if (pos != String::npos) {
+        unit = v.from   (pos);
+        v    = v.before (pos);
+      }
+      // Set value and unit.
+
+      double value = strToDouble(v);
+      if (unit.empty()) {
+        return value;
+      } else {
+        Quantity q(value, unit);
+        return q.getValue("Hz", true);
       }
     }
 

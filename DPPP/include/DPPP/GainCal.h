@@ -29,6 +29,8 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/phasefitter.h>
+#include <DPPP/BaselineSelection.h>
 #include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
 #include <DPPP/Predict.h>
@@ -134,6 +136,9 @@ namespace LOFAR {
 
       vector<casa::Matrix<casa::DComplex> > itsPrevSol; // previous solution, for propagating solutions, for each freq
       vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
+      vector<casa::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
+
+      vector<casa::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
 
       std::vector<StefCal>  iS;
 
@@ -142,7 +147,8 @@ namespace LOFAR {
       ResultStep*      itsResultStep; // For catching results from Predict or Beam
       bool             itsApplyBeamToModelColumn;
 
-      casa::Vector<casa::String> itsAntennaUsedNames;
+      BaselineSelection itsBaselineSelection; // Filter
+
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;
@@ -156,8 +162,9 @@ namespace LOFAR {
       uint             itsTimeSlotsPerParmUpdate;
       uint             itsConverged;
       uint             itsNonconverged;
+      uint             itsFailed;
       uint             itsStalled;
-      vector<uint>     itsNIter; // Total iterations made (for converged, stalled and nonconverged)
+      vector<uint>     itsNIter; // Total iterations made (for converged, stalled, nonconverged, failed)
       uint             itsStepInParmUpdate; // Timestep within parameter update
       double           itsChunkStartTime; // First time value of chunk to be stored
       uint             itsStepInSolInt;  // Timestep within solint
@@ -167,6 +174,7 @@ namespace LOFAR {
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
       NSTimer          itsTimerSolve;
+      NSTimer          itsTimerPhaseFit;
       NSTimer          itsTimerWrite;
       NSTimer          itsTimerFill;
     };

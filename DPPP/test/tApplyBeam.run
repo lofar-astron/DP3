@@ -58,3 +58,9 @@ NDPPP msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybe
 # Compare the DATA column of the output MS with the BBS reference output.
 $taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ELEMENT,1e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ELEMENT)))' > taql.out
 diff taql.out taql.ref  ||  exit 1
+
+echo; echo "Test with updateweights=true"; echo
+../../src/NDPPP msin=tNDPPP-generic.MS msout=. steps=[applybeam] applybeam.updateweights=truue msout.weightcolumn=NEW_WEIGHT_SPECTRUM
+# Check that the weights have changed
+$taqlexe 'select from tNDPPP-generic.MS where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))' > taql.out
+diff taql.out taql.ref  ||  exit 1

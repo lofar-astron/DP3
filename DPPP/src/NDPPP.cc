@@ -68,11 +68,12 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    string parsetName("");
-    if (argc > 1 && string(argv[1]).find('=')==string::npos) {
+    string parsetName;
+    if (argc > 1  &&  string(argv[1]).find('=') == string::npos) {
       // First argument is parset name (except if it's a key-value pair)
       parsetName = argv[1];
-    } else if (argc==1) { // If no arguments given: try to load [N]DPPP.parset
+    } else if (argc==1) {
+      // No arguments given: try to load [N]DPPP.parset
       if (casa::File("NDPPP.parset").exists()) {
         parsetName="NDPPP.parset";
       } else if (casa::File("DPPP.parset").exists()) {

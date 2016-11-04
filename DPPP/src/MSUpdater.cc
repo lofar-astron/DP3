@@ -32,10 +32,12 @@
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/ArrColDesc.h>
 #include <tables/Tables/ColumnDesc.h>
+#include <tables/Tables/StandardStMan.h>
 #include <casa/Containers/Record.h>
 #include <casa/Utilities/LinearSearch.h>
 #include <ms/MeasurementSets/MeasurementSet.h>
 #include <iostream>
+#include <limits>
 
 using namespace casa;
 
@@ -60,6 +62,8 @@ namespace LOFAR {
       itsDataColName   = parset.getString (prefix+"datacolumn",  "");
       itsWeightColName = parset.getString (prefix+"weightcolumn","");
       itsNrTimesFlush  = parset.getUint (prefix+"flush", 0);
+      itsTileSize      = parset.getUint (prefix+"tilesize", 1024);
+      itsStManKeys.Set(parset, prefix);
     }
 
     MSUpdater::~MSUpdater()
@@ -76,24 +80,51 @@ namespace LOFAR {
         return false;
       }
 
-      TableDesc td;
-      td.addColumn (cd, colName);
-
-      // Use the same data manager as the DATA column.
-      // Get the data manager info and find the DATA column in it.
-      Record dminfo = itsMS.dataManagerInfo();
-      Record colinfo;
-      for (uInt i=0; i<dminfo.nfields(); ++i) {
-        const Record& subrec = dminfo.subRecord(i);
-        if (linearSearch1 (Vector<String>(subrec.asArrayString("COLUMNS")),
-                           "DATA") >= 0) {
-          colinfo = subrec;
-          break;
+      if(itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0)
+      {
+        casa::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
+        DataManagerCtor dyscoConstructor = DataManager::getCtor("DyscoStMan");
+        CountedPtr<DataManager> dyscoStMan(dyscoConstructor(colName + "_dm", dyscoSpec));
+        ColumnDesc directColumnDesc(cd);
+        directColumnDesc.setOptions(casacore::ColumnDesc::Direct | casacore::ColumnDesc::FixedShape);
+        TableDesc td;
+        td.addColumn (directColumnDesc, colName);
+        itsMS.addColumn (td, *dyscoStMan);
+      }
+      else {
+        // When no specific storage manager is requested, use the same
+        // as for the DATA column.
+        // Get the data manager info and find the DATA column in it.
+        Record dminfo = itsMS.dataManagerInfo();
+        Record colinfo;
+        for (uInt i=0; i<dminfo.nfields(); ++i) {
+          const Record& subrec = dminfo.subRecord(i);
+          if (linearSearch1 (Vector<String>(subrec.asArrayString("COLUMNS")),
+                            "DATA") >= 0) {
+            colinfo = subrec;
+            break;
+          }
+        }
+        ASSERT(colinfo.nfields()>0);
+        // When the storage manager is compressed, do not implicitly (re)compress it. Use TiledStMan instead.
+        std::string dmType = colinfo.asString("TYPE");
+        TableDesc td;
+        td.addColumn (cd, colName);
+        if(dmType == "DyscoStMan")
+        {
+          IPosition tileShape(3, info().ncorr(), info().nchan(), 1);
+          tileShape[2] = itsTileSize * 1024 / (8 * tileShape[0] * tileShape[1]);
+          if (tileShape[2] < 1) {
+            tileShape[2] = 1;
+          }
+          TiledColumnStMan tsm(colName + "_dm", tileShape);
+          itsMS.addColumn (td, tsm);
+        }
+        else {
+          colinfo.define ("NAME", colName + "_dm");
+          itsMS.addColumn (td, colinfo);
         }
       }
-      ASSERT(colinfo.nfields()>0);
-      colinfo.define ("NAME", colName + "_dm");
-      itsMS.addColumn (td, colinfo);
       return true;
     }
 
@@ -104,7 +135,22 @@ namespace LOFAR {
         putFlags (buf.getRowNrs(), buf.getFlags());
       }
       if (itsWriteData) {
-        putData (buf.getRowNrs(), buf.getData());
+        // If compressing, flagged values need to be set to NaN to decrease the dynamic range
+        if(itsStManKeys.stManName == "dysco")
+        {
+          casa::Cube<casa::Complex> dataCopy = buf.getData().copy();
+          casa::Cube<casa::Complex>::iterator dataIter = dataCopy.begin();
+          for(casa::Cube<bool>::const_iterator flagIter = buf.getFlags().begin(); flagIter != buf.getFlags().end(); ++flagIter)
+          {
+            if(*flagIter)
+              *dataIter = casa::Complex(std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
+            ++dataIter;
+          }
+          putData (buf.getRowNrs(), dataCopy);
+        }
+        else {
+          putData (buf.getRowNrs(), buf.getData());
+        }
       }
       if (itsWriteWeights) {
         if (!buf.getWeights().empty()) {
@@ -214,6 +260,17 @@ namespace LOFAR {
         if (itsWriteFlags)   os << " flags";
         if (itsWriteWeights) os << " weights";
         os << std::endl;
+      }
+      if(itsStManKeys.stManName == "dysco") {
+	os
+	  << "  Compressed:     yes\n"
+	  << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
+	  << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
+	  << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' '
+	  << itsStManKeys.dyscoDistribution << '(' << itsStManKeys.dyscoDistTruncation << ")\n";
+      }
+      else {
+	os << "  Compressed:     no\n";
       }
       os << std::endl;
       os << "  flush:          " << itsNrTimesFlush << std::endl;

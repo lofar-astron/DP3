@@ -70,6 +70,15 @@ namespace LOFAR {
       if (itsCorrectType=="fulljones" && itsUpdateWeights) {
         ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
       }
+      ASSERT(itsCorrectType=="gain" || itsCorrectType=="fulljones" || 
+             itsCorrectType=="tec" || itsCorrectType=="clock" ||
+             itsCorrectType=="scalarphase" || itsCorrectType=="commonscalarphase" ||
+             itsCorrectType=="scalaramplitude" || itsCorrectType=="commonscalaramplitude" ||
+             itsCorrectType=="rotationangle" || itsCorrectType=="commonrotationangle" ||
+             itsCorrectType=="rotationmeasure");
+      if (itsCorrectType.substr(0,6)=="common") {
+        itsCorrectType=itsCorrectType.substr(6);
+      }
     }
 
     ApplyCal::ApplyCal()
@@ -172,12 +181,14 @@ namespace LOFAR {
           itsParmExprs.push_back("Clock:0");
           itsParmExprs.push_back("Clock:1");
         }
-      } else if (itsCorrectType == "commonrotationangle") {
-        itsParmExprs.push_back("CommonRotationAngle");
-      } else if (itsCorrectType == "commonscalarphase") {
-        itsParmExprs.push_back("CommonScalarPhase");
+      } else if (itsCorrectType == "rotationangle") {
+        itsParmExprs.push_back("{Common,}RotationAngle");
+      } else if (itsCorrectType == "scalarphase") {
+        itsParmExprs.push_back("{Common,}ScalarPhase");
       } else if (itsCorrectType == "rotationmeasure") {
         itsParmExprs.push_back("RotationMeasure");
+      } else if (itsCorrectType == "scalaramplitude") {
+        itsParmExprs.push_back("{Common,}ScalarAmplitude");
       }
       else {
         THROW (Exception, "Correction type " + itsCorrectType +
@@ -328,8 +339,16 @@ namespace LOFAR {
       for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
         // parmMap contains parameter values for all antennas
         parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
-        minFreq, maxFreq, freqInterval,
-        bufStartTime, itsLastTime, itsTimeInterval, true);
+                               minFreq, maxFreq, freqInterval,
+                               bufStartTime, itsLastTime, itsTimeInterval,
+                               true);
+
+        // Resolve {Common,}Bla to CommonBla or Bla
+        if (!parmMap.empty() &&
+            itsParmExprs[parmExprNum].find("{") != std::string::npos) {
+          uint colonPos = (parmMap.begin()->first).find(":");
+          itsParmExprs[parmExprNum] = (parmMap.begin()->first).substr(0, colonPos);
+        }
 
         for (int ant = 0; ant < numAnts; ++ant) {
           parmIt = parmMap.find(
@@ -438,7 +457,7 @@ namespace LOFAR {
                   parmvalues[1][ant][tf] * freq * casa::C::_2pi);
             }
           }
-          else if (itsCorrectType=="commonrotationangle") {
+          else if (itsCorrectType=="rotationangle") {
             double phi=parmvalues[0][ant][tf];
             if (itsInvert) {
               phi = -phi;
@@ -464,9 +483,13 @@ namespace LOFAR {
             itsParms(2, ant, tf) =  sinv;
             itsParms(3, ant, tf) =  cosv;
           }
-          else if (itsCorrectType=="commonscalarphase") {
+          else if (itsCorrectType=="scalarphase") {
             itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
             itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
+          }
+          else if (itsCorrectType=="scalaramplitude") {
+            itsParms(0, ant, tf) = parmvalues[0][ant][tf];
+            itsParms(1, ant, tf) = parmvalues[0][ant][tf];
           }
 
           // Invert (rotationmeasure and commonrotationangle are already inverted)
@@ -487,7 +510,7 @@ namespace LOFAR {
 
       uint numParms;
       if (itsCorrectType=="fulljones" || 
-          itsCorrectType=="commonrotationangle" || 
+          itsCorrectType=="rotationangle" || 
           itsCorrectType=="rotationmeasure") {
         numParms = 4;
       }
@@ -548,7 +571,7 @@ namespace LOFAR {
 
     void ApplyCal::applyFull (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool updateWeights,
+                              uint bl, uint chan, bool doUpdateWeights,
                               FlagCounter& flagCounter) {
       DComplex gainAxvis[4];
 
@@ -589,46 +612,44 @@ namespace LOFAR {
         }
       }
 
-      // The code below does the same as the combination of BBS + python script
-      // covariance2weight.py (cookbook), except it stores weights per freq.
-      // The diagonal of covariance matrix is transferred to the weights.
-      // Note that the real covariance (mixing of noise terms after which they
-      // are not independent anymore) is not stored.
-      // The input covariance matrix C is assumed to be diagonal with elements
-      // w_i (the weights), the result the diagonal of
-      // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      if (updateWeights) {
-        float cov[4], normGainA[4], normGainB[4];
-        for (uint i=0;i<4;++i) {
-          cov[i]=1./weight[i];
-          normGainA[i]=norm(gainA[i]);
-          normGainB[i]=norm(gainB[i]);
-        }
-
-        weight[0]=cov[0]*(normGainA[0]*normGainB[0])
-                 +cov[1]*(normGainA[0]*normGainB[1])
-                 +cov[2]*(normGainA[1]*normGainB[0])
-                 +cov[3]*(normGainA[1]*normGainB[1]);
-        weight[0]=1./weight[0];
-
-        weight[1]=cov[0]*(normGainA[0]*normGainB[2])
-                 +cov[1]*(normGainA[0]*normGainB[3])
-                 +cov[2]*(normGainA[1]*normGainB[2])
-                 +cov[3]*(normGainA[1]*normGainB[3]);
-        weight[1]=1./weight[1];
-
-        weight[2]=cov[0]*(normGainA[2]*normGainB[0])
-                 +cov[1]*(normGainA[2]*normGainB[1])
-                 +cov[2]*(normGainA[3]*normGainB[0])
-                 +cov[3]*(normGainA[3]*normGainB[1]);
-        weight[2]=1./weight[2];
-
-        weight[3]=cov[0]*(normGainA[2]*normGainB[2])
-                 +cov[1]*(normGainA[2]*normGainB[3])
-                 +cov[2]*(normGainA[3]*normGainB[2])
-                 +cov[3]*(normGainA[3]*normGainB[3]);
-        weight[3]=1./weight[3];
+      if (doUpdateWeights) {
+        applyWeights(gainA, gainB, weight);
       }
+    }
+
+    void ApplyCal::applyWeights(const DComplex* gainA,
+                                const DComplex* gainB,
+                                float* weight) {
+      float cov[4], normGainA[4], normGainB[4];
+      for (uint i=0;i<4;++i) {
+        cov[i]=1./weight[i];
+        normGainA[i]=norm(gainA[i]);
+        normGainB[i]=norm(gainB[i]);
+      }
+
+      weight[0]=cov[0]*(normGainA[0]*normGainB[0])
+                     +cov[1]*(normGainA[0]*normGainB[1])
+                     +cov[2]*(normGainA[1]*normGainB[0])
+                     +cov[3]*(normGainA[1]*normGainB[1]);
+      weight[0]=1./weight[0];
+
+      weight[1]=cov[0]*(normGainA[0]*normGainB[2])
+                     +cov[1]*(normGainA[0]*normGainB[3])
+                     +cov[2]*(normGainA[1]*normGainB[2])
+                     +cov[3]*(normGainA[1]*normGainB[3]);
+      weight[1]=1./weight[1];
+
+      weight[2]=cov[0]*(normGainA[2]*normGainB[0])
+                     +cov[1]*(normGainA[2]*normGainB[1])
+                     +cov[2]*(normGainA[3]*normGainB[0])
+                     +cov[3]*(normGainA[3]*normGainB[1]);
+      weight[2]=1./weight[2];
+
+      weight[3]=cov[0]*(normGainA[2]*normGainB[2])
+                     +cov[1]*(normGainA[2]*normGainB[3])
+                     +cov[2]*(normGainA[3]*normGainB[2])
+                     +cov[3]*(normGainA[3]*normGainB[3]);
+      weight[3]=1./weight[3];
     }
 
     void ApplyCal::showCounts (std::ostream& os) const

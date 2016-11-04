@@ -37,7 +37,7 @@ namespace LOFAR {
     class StefCal
     {
     public:
-      enum Status {CONVERGED=1, NOTCONVERGED=2, STALLED=3};
+      enum Status {CONVERGED=1, NOTCONVERGED=2, STALLED=3, FAILED=4};
 
       // mode can be "diagonal", "fulljones", "phaseonly", "scalarphase"
       StefCal(uint solInt, uint nChan, const string& mode, double tolerance,
@@ -61,6 +61,13 @@ namespace LOFAR {
       // The mapping is stored in the antenna map
       casa::Matrix<casa::DComplex> getSolution(bool setNaNs);
 
+      double getWeight() {
+        return _totalWeight;
+      }
+
+      // Increments the weight (only relevant for TEC-fitting)
+      void incrementWeight(float weight);
+
       // Returns a reference to the visibility matrix
       casa::Array<casa::DComplex>& getVis() {
         return _vis;
@@ -71,7 +78,7 @@ namespace LOFAR {
         return _mvis;
       }
 
-      std::vector<bool>& getStationFlagged() {
+      casa::Vector<bool>& getStationFlagged() {
         return _stationFlagged;
       }
 
@@ -101,7 +108,7 @@ namespace LOFAR {
       double getAverageUnflaggedSolution();
 
       uint _savedNCr;
-      std::vector<bool> _stationFlagged ; // Contains true for totally flagged stations
+      casa::Vector<bool> _stationFlagged ; // Contains true for totally flagged stations
       casa::Array<casa::DComplex> _vis; // Visibility matrix
       casa::Array<casa::DComplex> _mvis; // Model visibility matrix
       casa::Matrix<casa::DComplex> _g; // Solution, indexed by station, correlation
@@ -121,6 +128,7 @@ namespace LOFAR {
       uint _nChan;  // number of channels
       string _mode; // diagonal, scalarphase, fulljones or phaseonly
       double _tolerance;
+      double _totalWeight;
       bool _detectStalling;
       uint _debugLevel;
 

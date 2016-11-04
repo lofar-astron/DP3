@@ -29,6 +29,8 @@
 
 #include <DPPP/DPStep.h>
 #include <DPPP/MSReader.h>
+#include <DPPP/StManParsetKeys.h>
+
 #include <tables/Tables/Table.h>
 #include <tables/Tables/ColumnDesc.h>
 #include <tables/Tables/ScalarColumn.h>
@@ -93,7 +95,7 @@ namespace LOFAR {
       // Create an array column description and add to table with given
       // stoage manager (if given).
       void makeArrayColumn (casa::ColumnDesc desc, const casa::IPosition& shape,
-                            casa::TiledColumnStMan* tsm, casa::Table& table);
+                            casa::DataManager* dm, casa::Table& table, bool makeDirectColumn = false);
 
       // Create the MS by cloning all subtables from the input MS.
       // All output columns in the main table are using normal storage managers.
@@ -189,6 +191,7 @@ namespace LOFAR {
       std::string     itsVdsDir;      //# directory where to put VDS file
       std::string     itsClusterDesc; //# name of clusterdesc file
       NSTimer         itsTimer;
+      StManParsetKeys itsStManKeys;
     };
 
   } //# end namespace

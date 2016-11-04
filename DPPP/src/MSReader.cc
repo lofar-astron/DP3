@@ -131,7 +131,7 @@ namespace LOFAR {
         }
       }
       // Prepare the MS access and get time info.
-      double startTime, endTime;
+      double startTime=0., endTime=0.;
       prepare (startTime, endTime, itsTimeInterval);
       // Start and end time can be given in the parset in case leading
       // or trailing time slots are missing.
@@ -258,8 +258,9 @@ namespace LOFAR {
           itsLastMSTime = mstime;
           itsIter.next();
         }
-        // Stop if at the end.
-        if (itsNextTime > itsLastTime  &&  !near(itsNextTime, itsLastTime)) {
+        // Stop if at the end, or if there is no data at all
+        if ((itsNextTime > itsLastTime  &&  !near(itsNextTime, itsLastTime)) ||
+            itsNextTime==0.) {
           return false;
         }
         // Fill the buffer.
@@ -390,7 +391,7 @@ namespace LOFAR {
         os << "  ncorrelations:  " << getInfo().ncorr() << std::endl;
         uint nrbl = getInfo().nbaselines();
         os << "  nbaselines:     " << nrbl << std::endl;
-        os << "  ntimes:         " << itsSelMS.nrow() / nrbl << std::endl;
+        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << std::endl;
         os << "  time interval:  " << getInfo().timeInterval() << std::endl;
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
@@ -421,7 +422,9 @@ namespace LOFAR {
     void MSReader::prepare (double& firstTime, double& lastTime,
                             double& interval)
     {
-      ASSERT (itsSelMS.nrow() > 0);
+      if (itsSelMS.nrow() == 0) {
+        DPLOG_WARN_STR ("The selected input does not contain any data.");  
+      }
       TableDesc tdesc = itsMS.tableDesc();
 
       itsHasWeightSpectrum = false;
@@ -495,9 +498,11 @@ namespace LOFAR {
         sortms = itsSelMS.sort(sortCols);
       }
       // Get first and last time and interval from MS.
-      firstTime = ROScalarColumn<double>(sortms, "TIME")(0);
-      lastTime  = ROScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
-      interval  = ROScalarColumn<double>(sortms, "INTERVAL")(0);
+      if (itsSelMS.nrow() > 0) {
+        firstTime = ROScalarColumn<double>(sortms, "TIME")(0);
+        lastTime  = ROScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
+        interval  = ROScalarColumn<double>(sortms, "INTERVAL")(0);
+      }
       // Create iterator over time. Do not sort again.
       itsIter = TableIterator (sortms, Block<String>(1, "TIME"),
                                TableIterator::Ascending,
