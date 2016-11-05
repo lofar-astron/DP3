@@ -91,7 +91,7 @@ $taqlexe 'select from tNDPPP-generic.MS where not(all(DPPP_DIAGONAL_NCHAN_7_GAIN
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test caltype=tec"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tec gaincal.caltype=tec gaincal.solint=2
+NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tec gaincal.caltype=tec gaincal.solint=2
 # For now, only testing that the right parameter names are in the output
 echo "    select result of 1 rows" > taql1.ref
 $taqlexe 'select from tNDPPP-generic.MS/inst-tec where (select NAME from ::NAMES)[NAMEID]=="TEC:CS001HBA0"' > taql.out
@@ -100,7 +100,7 @@ $taqlexe 'select from tNDPPP-generic.MS/inst-tec where (select NAME from ::NAMES
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test caltype=tecandphase"; echo
-../../src/NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tecandphase gaincal.caltype=tecandphase gaincal.solint=2
+NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DPPP_TEC steps=[gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-tecandphase gaincal.caltype=tecandphase gaincal.solint=2
 # For now, only testing that the right parameter names are in the output
 echo "    select result of 1 rows" > taql1.ref
 $taqlexe 'select from tNDPPP-generic.MS/inst-tecandphase where (select NAME from ::NAMES)[NAMEID]=="TEC:CS001HBA0"' > taql.out
