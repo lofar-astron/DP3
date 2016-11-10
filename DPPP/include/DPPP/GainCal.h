@@ -95,14 +95,6 @@ namespace LOFAR {
       // Invert solution (for applying it)
       casa::Cube<casa::DComplex> invertSol(const casa::Cube<casa::DComplex>& sol);
 
-      // Counts the number of antennas with non-flagged data,
-      // Set a map for the used antennas in iS, returns the number of antennas
-      void setAntennaMaps (const casa::Bool* flag, uint freqCell);
-
-      // Remove rows and colums corresponding to antennas with too much
-      // flagged data from vis and mvis
-      void removeDeadAntennas ();
-
       // Fills the matrices itsVis and itsMVis
       void fillMatrices (casa::Complex* model, casa::Complex* data,
                          float* weight, const casa::Bool* flag);
@@ -153,11 +145,10 @@ namespace LOFAR {
 
       uint             itsMaxIter;
       double           itsTolerance;
-      bool             itsPropagateSolutions; // Not used currently, TODO: use this
+      bool             itsPropagateSolutions;
       uint             itsSolInt;  // Time cell size
       uint             itsNChan;   // Frequency cell size
       uint             itsNFreqCells;
-      uint             itsMinBLperAnt;
 
       uint             itsTimeSlotsPerParmUpdate;
       uint             itsConverged;

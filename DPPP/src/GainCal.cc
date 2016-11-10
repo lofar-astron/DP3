@@ -83,7 +83,6 @@ namespace LOFAR {
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
         itsNChan         (parset.getInt(prefix + "nchan", 0)),
         itsNFreqCells    (0),
-        itsMinBLperAnt   (parset.getInt(prefix + "minblperant", 4)),
         itsTimeSlotsPerParmUpdate
                          (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
         itsConverged     (0),
@@ -329,7 +328,7 @@ namespace LOFAR {
         // Start new solution interval
 
         for (uint freqCell=0; freqCell<itsNFreqCells; freqCell++) {
-          setAntennaMaps(flag, freqCell);
+          iS[freqCell].clearStationFlagged();
           iS[freqCell].resetVis();
         }
       }
@@ -472,58 +471,6 @@ namespace LOFAR {
                 DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
           }
         }
-      }
-    }
-
-    void GainCal::setAntennaMaps (const Bool* flag, uint freqCell) {
-      uint nCr=info().ncorr();
-      uint nCh=info().nchan();
-      uint nBl=info().nbaselines();
-
-      iS[freqCell].clearStationFlagged();
-
-      casa::Vector<casa::uInt> dataPerAntenna; // nAnt
-      dataPerAntenna.resize(info().antennaNames().size());
-
-      // TODO: implement smarter graph algorithm here that requires
-      // less than O(n_ant^3) worst case operations.
-      bool flaggedAntsAdded=true;
-      uint loopcount=0;
-      while (flaggedAntsAdded) {
-        dataPerAntenna=0;
-        for (uint bl=0;bl<nBl;++bl) {
-          uint ant1=info().getAnt1()[bl];
-          uint ant2=info().getAnt2()[bl];
-          if (ant1==ant2) {
-            continue;
-          }
-          uint chmax=min((freqCell+1)*itsNChan, nCh);
-          for (uint ch=freqCell*itsNChan;ch<chmax;++ch) {
-            for (uint cr=0;cr<nCr;++cr) {
-              if (!(flag[bl*nCr*nCh + ch*nCr + cr]
-                    || iS[freqCell].getStationFlagged()[ant1]
-                    || iS[freqCell].getStationFlagged()[ant2]
-                   )) {
-                dataPerAntenna(ant1)++;
-                dataPerAntenna(ant2)++;
-              }
-            }
-          }
-        }
-
-        flaggedAntsAdded=false;
-        for (uint ant=0; ant<info().antennaNames().size(); ++ant) {
-          if (dataPerAntenna(ant)>nCr*itsMinBLperAnt) {
-            iS[freqCell].getStationFlagged()[ant]=false; // Index in stefcal numbering
-          } else { // Not enough data
-            //cout<<"flagging station "<<ant<<", "<<dataPerAntenna(ant)<<endl;
-            if (!iS[freqCell].getStationFlagged()[ant]) {
-              iS[freqCell].getStationFlagged()[ant]=true;
-              flaggedAntsAdded=true;
-            }
-          }
-        }
-        loopcount++;
       }
     }
 

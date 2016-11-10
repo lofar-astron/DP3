@@ -285,7 +285,13 @@ namespace LOFAR {
             vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
           }
         }
-        DComplex invdet= 1./(w(0) * w (3) - w(1)*w(2));
+        DComplex invdet= w(0) * w (3) - w(1)*w(2);
+        if (abs(invdet)==0) {
+          _stationFlagged[st1] = true;
+          _g(st1,0) = 0;
+          continue;
+        }
+        invdet= 1./invdet;
         _g(st1,0) = invdet * ( w(3) * t(0) - w(1) * t(2) );
         _g(st1,1) = invdet * ( w(3) * t(1) - w(1) * t(3) );
         _g(st1,2) = invdet * ( w(0) * t(2) - w(2) * t(0) );
@@ -333,6 +339,7 @@ namespace LOFAR {
         //cout<<", w="<<ww<<"       ";
         if (ww==0) {
           _stationFlagged[st1%_nSt]=true;
+          _g(st1,0)=0;
           continue;
         }
         _g(st1,0)=tt/ww;
