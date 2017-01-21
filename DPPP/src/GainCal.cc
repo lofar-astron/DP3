@@ -74,7 +74,6 @@ namespace LOFAR {
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
-        itsBaselines     (),
         itsBaselineSelection (parset, prefix),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
@@ -129,12 +128,23 @@ namespace LOFAR {
     GainCal::~GainCal()
     {}
 
+    void GainCal::setAntennaUsed() {
+      Matrix<bool> selbl(itsBaselineSelection.apply (info()));
+      uint nBl=info().getAnt1().size();
+      itsAntennaUsed.resize(info().antennaNames().size());
+      itsAntennaUsed=false;
+      for (uint bl=0; bl<nBl; ++bl) {
+        if (selbl(info().getAnt1()[bl], info().getAnt2()[bl])) {
+          itsAntennaUsed[info().getAnt1()[bl]] = true;
+          itsAntennaUsed[info().getAnt2()[bl]] = true;
+        }
+      }
+    }
+
     void GainCal::updateInfo (const DPInfo& infoIn)
     {
       info() = infoIn;
       info().setNeedVisData();
-
-      const size_t nBl=info().nbaselines();
 
       if (itsUseModelColumn) {
         if (itsApplyBeamToModelColumn) {
@@ -146,11 +156,6 @@ namespace LOFAR {
       if (itsApplySolution) {
         info().setWriteData();
         info().setWriteFlags();
-      }
-
-      for (uint i=0; i<nBl; ++i) {
-        itsBaselines.push_back (Baseline(info().getAnt1()[i],
-                                         info().getAnt2()[i]));
       }
 
       if (itsSolInt==0) {
@@ -170,6 +175,9 @@ namespace LOFAR {
 
       itsSols.reserve(itsTimeSlotsPerParmUpdate);
 
+      itsSelectedBL = itsBaselineSelection.applyVec(info());
+      setAntennaUsed();
+
       // Initialize phase fitters, set their frequency data
       if (itsMode=="tecandphase" || itsMode=="tec") {
         itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
@@ -187,7 +195,7 @@ namespace LOFAR {
           freqData[freqCell] = meanfreq / (chmax-chmin);
         }
 
-        uint nSt=info().antennaNames().size();
+        uint nSt=info().antennaUsed().size();
         for (uint st=0; st<nSt; ++st) {
           itsPhaseFitters.push_back(CountedPtr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
           double* nu = itsPhaseFitters[st]->FrequencyData();
@@ -204,7 +212,7 @@ namespace LOFAR {
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
         iS.push_back(StefCal(itsSolInt, chMax, itsMode,
-                             itsTolerance, info().antennaNames().size(),
+                             itsTolerance, info().antennaUsed().size(),
                              itsDetectStalling, itsDebugLevel));
       }
 
@@ -233,6 +241,7 @@ namespace LOFAR {
       os << "  timeslotsperparmupdate: " << itsTimeSlotsPerParmUpdate << endl;
       os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
       os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
+      itsBaselineSelection.show (os);
       if (!itsUseModelColumn) {
         itsPredictStep.show(os);
       } else if (itsApplyBeamToModelColumn) {
@@ -407,8 +416,9 @@ namespace LOFAR {
 
       for (size_t bl=0; bl<nbl; ++bl) {
         for (size_t chan=0;chan<nchan;chan++) {
-          uint antA = info().getAnt1()[bl];
-          uint antB = info().getAnt2()[bl];
+          uint antA = info().antennaMap()[info().getAnt1()[bl]];
+          uint antB = info().antennaMap()[info().getAnt2()[bl]];
+          DBGASSERT(antA>=0 && antB>=0);
           uint freqCell = chan / itsNChan;
           if (nCr>2) {
             ApplyCal::applyFull( &invsol(0, antA, freqCell),
@@ -441,34 +451,37 @@ namespace LOFAR {
 
       for (uint ch=0;ch<nCh;++ch) {
         for (uint bl=0;bl<nBl;++bl) {
-          int ant1=info().getAnt1()[bl];
-          int ant2=info().getAnt2()[bl];
-          if (ant1==ant2 ||
-              iS[ch/itsNChan].getStationFlagged()[ant1] ||
-              iS[ch/itsNChan].getStationFlagged()[ant2] ||
-              flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
-            continue;
-          }
+          if (itsSelectedBL[bl]) {
+            int ant1=info().antennaMap()[info().getAnt1()[bl]];
+            int ant2=info().antennaMap()[info().getAnt2()[bl]];
+            DBGASSERT(ant1>=0 && ant2>=0);
+            if (ant1==ant2 ||
+                iS[ch/itsNChan].getStationFlagged()[ant1] ||
+                iS[ch/itsNChan].getStationFlagged()[ant2] ||
+                flag[bl*nCr*nCh+ch*nCr]) { // Only check flag of cr==0
+              continue;
+            }
 
-          if (itsMode=="tec" || itsMode=="tecandphase") {
-            iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
-          }
+            if (itsMode=="tec" || itsMode=="tecandphase") {
+              iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
+            }
 
-          for (uint cr=0;cr<nCr;++cr) {
-            iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
-                DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
-                DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
+            for (uint cr=0;cr<nCr;++cr) {
+              iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
+                  DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
+                  DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
+              iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
+                  DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
+                  DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
 
-            // conjugate transpose
-            iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
-                DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-            iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
-                DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
-                DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
+              // conjugate transpose
+              iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
+                  DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
+                  DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
+              iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
+                  DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
+                  DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
+            }
           }
         }
       }
@@ -487,7 +500,7 @@ namespace LOFAR {
 
       uint iter=0;
 
-      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1, info().antennaNames().size(), 0);
+      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1, info().antennaUsed().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
@@ -506,20 +519,20 @@ namespace LOFAR {
         if (itsMode=="tec" || itsMode=="tecandphase") {
           itsTimerSolve.stop();
           itsTimerPhaseFit.start();
-          casa::Matrix<casa::DComplex> sols_f(itsNFreqCells, info().antennaNames().size());
+          casa::Matrix<casa::DComplex> sols_f(itsNFreqCells, info().antennaUsed().size());
 
-          uint nSt = info().antennaNames().size();
+          uint nSt = info().antennaUsed().size();
 
           // TODO: set phase reference so something smarter that station 0
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution(false);
             if (iS[freqCell].getStationFlagged()[0]) {
               // If reference station flagged, flag whole channel
-              for (uint st=0; st<info().antennaNames().size(); ++st) {
+              for (uint st=0; st<info().antennaUsed().size(); ++st) {
                 iS[freqCell].getStationFlagged()[st] = true;
               }
             } else {
-              for (uint st=0; st<info().antennaNames().size(); ++st) {
+              for (uint st=0; st<info().antennaUsed().size(); ++st) {
                 sols_f(freqCell, st) = sol(st, 0)/sol(0, 0);
                 ASSERT(isFinite(sols_f(freqCell, st)));
               }
@@ -643,11 +656,11 @@ namespace LOFAR {
 
       // Stefcal terminated (either by maxiter or by converging)
 
-      Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaNames().size(), itsNFreqCells);
+      Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaUsed().size(), itsNFreqCells);
 
       uint transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
 
-      uint nSt = info().antennaNames().size();
+      uint nSt = info().antennaUsed().size();
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         casa::Matrix<casa::DComplex> tmpsol = iS[freqCell].getSolution(true);
@@ -826,9 +839,14 @@ namespace LOFAR {
 
       DComplex sol;
 
-      uint nSt=info().antennaNames().size();
+      uint nSt=info().antennaUsed().size();
 
       for (size_t st=0; st<nSt; ++st) {
+        // Do not write NaN solutions for stations that were not used
+        if (!itsAntennaUsed[info().antennaUsed()[st]]) {
+          // itsAntennaUsed is indexed with real antenna numbers, so antennaUsed() is needed
+          continue;
+        }
         for (int pol=0; pol<4; ++pol) { // For 0101
           if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
                itsMode=="amplitudeonly") && (pol==1||pol==2)) {
@@ -866,7 +884,7 @@ namespace LOFAR {
               }
             }
 
-            name+=info().antennaNames()[st];
+            name+=info().antennaNames()[info().antennaUsed()[st]];
 
             // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {

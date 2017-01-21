@@ -105,6 +105,9 @@ namespace LOFAR {
       // Get parmdbname from itsMode
       string parmName();
 
+      // Determine which stations are used
+      void setAntennaUsed();
+
       // Write out the solutions of the current parameter chunk (timeslotsperparmupdate)
       void writeSolutions (double startTime);
 
@@ -124,9 +127,6 @@ namespace LOFAR {
 
       bool             itsApplySolution;
 
-      vector<Baseline> itsBaselines;
-
-      vector<casa::Matrix<casa::DComplex> > itsPrevSol; // previous solution, for propagating solutions, for each freq
       vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
       vector<casa::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
 
@@ -140,6 +140,10 @@ namespace LOFAR {
       bool             itsApplyBeamToModelColumn;
 
       BaselineSelection itsBaselineSelection; // Filter
+      casa::Vector<bool> itsSelectedBL; // Vector (length nBl) telling
+                                        // which baselines are selected
+      casa::Vector<bool> itsAntennaUsed; // Vector (length nBl) telling
+                                         // which stations are solved for
 
       map<string,int>  itsParmIdMap; //# -1 = new parm name
 
