@@ -54,7 +54,7 @@ public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
         size_t nChannel, const casa::Vector<Baseline>& baselines,
         const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-        casa::Cube<dcomplex>& buffer);
+        casa::Cube<dcomplex>& buffer, bool stokesIOnly=false);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -65,6 +65,7 @@ private:
 private:
     Position                     itsReference;
     size_t                       itsNStation, itsNBaseline, itsNChannel;
+    bool                         itsStokesIOnly;
     const casa::Vector<Baseline> itsBaselines;
     const casa::Vector<double>   itsFreq;
     const casa::Matrix<double>   itsUVW;
