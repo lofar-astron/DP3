@@ -85,6 +85,14 @@ namespace LOFAR {
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
+      // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
+      // where the solution is equal for both polarizations
+      static void applyScalar(const casa::DComplex* gainA,
+                              const casa::DComplex* gainB,
+                              casa::Complex* vis, float* weight, bool* flag,
+                              uint bl, uint chan, bool updateWeights,
+                              FlagCounter& flagCounter);
+
       // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
       static void applyFull (const casa::DComplex* gainA,
                              const casa::DComplex* gainB,

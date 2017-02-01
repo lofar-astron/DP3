@@ -554,6 +554,37 @@ namespace LOFAR {
       }
     }
 
+    void ApplyCal::applyScalar(const DComplex* gainA, const DComplex* gainB,
+                              Complex* vis, float* weight, bool* flag,
+                              uint bl, uint chan, bool updateWeights,
+                              FlagCounter& flagCounter) {
+      // If parameter is NaN or inf, do not apply anything and flag the data
+      if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
+             isFinite(gainB[0].real()) && isFinite(gainB[0].imag())) ) {
+        // Only update flagcounter for first correlation
+        if (!flag[0]) {
+          flagCounter.incrChannel(chan);
+          flagCounter.incrBaseline(bl);
+        }
+        for (uint corr=0; corr<4; ++corr) {
+          flag[corr]=true;
+        }
+        return;
+      }
+
+      vis[0] *= gainA[0] * conj(gainB[0]);
+      vis[1] *= gainA[0] * conj(gainB[0]);
+      vis[2] *= gainA[0] * conj(gainB[0]);
+      vis[3] *= gainA[0] * conj(gainB[0]);
+
+      if (updateWeights) {
+        weight[0] /= norm(gainA[0]) * norm(gainB[0]);
+        weight[1] /= norm(gainA[0]) * norm(gainB[0]);
+        weight[2] /= norm(gainA[0]) * norm(gainB[0]);
+        weight[3] /= norm(gainA[0]) * norm(gainB[0]);
+      }
+    }
+
     // Inverts complex 2x2 input matrix
     void ApplyCal::invert (DComplex* v, double sigmaMMSE)
     {

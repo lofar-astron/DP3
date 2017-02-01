@@ -428,7 +428,14 @@ namespace LOFAR {
                        &flag[  bl * 4 * nchan + chan * 4 ],
                        bl, chan, false, itsFlagCounter); // Update weights is disabled here
           }
-          else {
+          else if (scalarMode()) {
+            ApplyCal::applyScalar( &invsol(0, antA, freqCell),
+                       &invsol(0, antB, freqCell),
+                       &data[bl * 4 * nchan + chan * 4 ],
+                       &weight[bl * 4 * nchan + chan * 4 ], // Not passing weights, any pointer should do
+                       &flag[  bl * 4 * nchan + chan * 4 ],
+                       bl, chan, false, itsFlagCounter); // Update weights is disabled here
+          } else {
             ApplyCal::applyDiag( &invsol(0, antA, freqCell),
                        &invsol(0, antB, freqCell),
                        &data[bl * 4 * nchan + chan * 4 ],
@@ -485,6 +492,11 @@ namespace LOFAR {
           }
         }
       }
+    }
+
+    bool GainCal::scalarMode() {
+      return (itsMode=="tecandphase" || itsMode=="tec" || itsMode=="scalarphase" || 
+              itsMode=="scalaramplitude");
     }
 
     void GainCal::stefcal () {
@@ -848,12 +860,10 @@ namespace LOFAR {
           continue;
         }
         for (int pol=0; pol<4; ++pol) { // For 0101
-          if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
-               itsMode=="amplitudeonly") && (pol==1||pol==2)) {
+          if (scalarMode() && pol>0) {
             continue;
-          }
-          if ((itsMode=="scalarphase" || itsMode=="scalaramplitude" ||
-              itsMode=="tec" || itsMode=="tecandphase") && pol>0) {
+          } else if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
+                      itsMode=="amplitudeonly") && (pol==1||pol==2)) {
             continue;
           }
           int realimmax; // For tecandphase, this functions as dummy between tec and commonscalarphase
