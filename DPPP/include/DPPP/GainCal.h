@@ -89,9 +89,6 @@ namespace LOFAR {
       // Perform stefcal (polarized or unpolarized)
       void stefcal();
 
-      // Check for scalar mode
-      bool scalarMode();
-
       // Apply the solution
       void applySolution(DPBuffer& buf, const casa::Cube<casa::DComplex>& invsol);
 
