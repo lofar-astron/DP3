@@ -559,7 +559,6 @@ namespace LOFAR {
 
       // Write WEIGHT_SPECTRUM and DATA
       ArrayColumn<Float> weightCol(out, "WEIGHT_SPECTRUM");
-      ArrayColumn<Double> uvwCol(out, "UVW");
       itsBuffer.referenceFilled (buf);
       const Array<Float>& weights = itsReader->fetchWeights (buf, itsBuffer,
                                                              itsTimer);
@@ -582,6 +581,7 @@ namespace LOFAR {
           ++weightsIter;
         }
         dataCol.putColumn (dataCopy);
+        weightCol.putColumn (weightsCopy);
       }
       else {
         dataCol.putColumn (buf.getData());
@@ -597,6 +597,7 @@ namespace LOFAR {
       }
 
       // Write UVW
+      ArrayColumn<Double> uvwCol(out, "UVW");
       const Array<Double>& uvws = itsReader->fetchUVW (buf, itsBuffer,
                                                        itsTimer);
       uvwCol.putColumn (uvws);
