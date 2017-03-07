@@ -233,5 +233,36 @@ vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
     return vector<string>(patches.begin(), patches.end());
 }
 
+
+bool checkPolarized(SourceDB &sourceDB,
+                    const vector<string> &patchNames,
+                    uint nModel)
+{
+  bool polarized = false;
+
+  // Loop over all sources.
+  sourceDB.lock();
+  sourceDB.rewind();
+  SourceData src;
+  while (! sourceDB.atEnd()) {
+    sourceDB.getNextSource (src);
+    // Use the source if its patch matches a patch name.
+    for (uint i=0; i<nModel; ++i) {
+      if (src.getPatchName() == patchNames[i]) {
+        // Determine whether source is unpolarized.
+        if (src.getV() > 0.0 || src.getQ() > 0.0 || src.getU() > 0.0) {
+          polarized = true;
+          break;
+        }
+      }
+    }
+    if (polarized) {
+      break;
+    }
+  }
+  sourceDB.unlock();
+  return polarized;
+}
+
 } //# namespace DPPP
 } //# namespace LOFAR

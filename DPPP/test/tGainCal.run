@@ -108,3 +108,8 @@ diff taql.out taql1.ref  ||  exit 1
 $taqlexe 'select from tNDPPP-generic.MS/inst-tecandphase where (select NAME from ::NAMES)[NAMEID]=="CommonScalarPhase:CS001HBA0"' > taql.out
 diff taql.out taql1.ref  ||  exit 1
 
+echo; echo "Test filter"; echo
+NDPPP msin=tNDPPP-generic.MS msout=tNDPPP-filtered.MS steps=[filter,gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-filter filter.baseline='!CS001HBA0&&*' gaincal.baseline='!CS002HBA1,RS305HBA&&*' gaincal.caltype=diagonal
+$taqlexe 'select from tNDPPP-generic.MS/inst-filter::NAMES where NAME LIKE "CS001HBA0%" OR NAME LIKE "%CS002HBA1%" OR NAME LIKE "%RS305HBA%"' > taql.out
+diff taql.out taql.ref || exit 1
+
