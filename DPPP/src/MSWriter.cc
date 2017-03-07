@@ -184,14 +184,13 @@ namespace LOFAR {
       os << "  time interval:  " << itsInterval << std::endl;
       os << "  DATA column:    " << itsDataColName << std::endl;
       os << "  WEIGHT column:  " << itsWeightColName << std::endl;
-      if (itsStManKeys.stManName == "dysco") {
+      if(itsStManKeys.stManName == "dysco") {
         os
           << "  Compressed:     yes\n"
           << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
           << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
           << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' ' 
-            << itsStManKeys.dyscoDistribution << '(' 
-            << itsStManKeys.dyscoDistTruncation << ")\n";
+            << itsStManKeys.dyscoDistribution << '(' << itsStManKeys.dyscoDistTruncation << ")\n";
       }
       else {
         os << "  Compressed:     no\n";
@@ -334,7 +333,7 @@ namespace LOFAR {
       newtab.bindCreate (dminfo);
       DataManagerCtor dyscoConstructor = 0;
       Record dyscoSpec;
-      if (itsStManKeys.stManName == "dysco") {
+      if(itsStManKeys.stManName == "dysco") {
         dyscoSpec = itsStManKeys.GetDyscoSpec();
         dyscoConstructor = DataManager::getCtor("DyscoStMan");
       }
@@ -557,35 +556,21 @@ namespace LOFAR {
         return;
       }
 
-      // Write WEIGHT_SPECTRUM and DATA
-      ArrayColumn<Float> weightCol(out, "WEIGHT_SPECTRUM");
-      itsBuffer.referenceFilled (buf);
-      const Array<Float>& weights = itsReader->fetchWeights (buf, itsBuffer,
-                                                             itsTimer);
-
-      // If compressing, flagged values need to be set to NaN, and flagged
-      // weights to zero, to decrease the dynamic range
-      if (itsStManKeys.stManName == "dysco") {
-        Cube<Complex> dataCopy = buf.getData().copy();
-        Cube<Complex>::iterator dataIter = dataCopy.begin();
-        Cube<float> weightsCopy = weights.copy();
-        Cube<float>::iterator weightsIter = weightsCopy.begin();
-        for (Cube<bool>::const_iterator flagIter = buf.getFlags().begin();
-             flagIter != buf.getFlags().end(); ++flagIter) {
-          if (*flagIter) {
-            *dataIter = Complex(std::numeric_limits<float>::quiet_NaN(),
-                                std::numeric_limits<float>::quiet_NaN());
-            *weightsIter = 0.;
-          }
+      // If compressing, flagged values need to be set to NaN to decrease the dynamic range
+      if(itsStManKeys.stManName == "dysco")
+      {
+        casa::Cube<casa::Complex> dataCopy = buf.getData().copy();
+        casa::Cube<casa::Complex>::iterator dataIter = dataCopy.begin();
+        for(casa::Cube<bool>::const_iterator flagIter = buf.getFlags().begin(); flagIter != buf.getFlags().end(); ++flagIter)
+        {
+          if(*flagIter)
+            *dataIter = casa::Complex(std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
           ++dataIter;
-          ++weightsIter;
         }
         dataCol.putColumn (dataCopy);
-        weightCol.putColumn (weightsCopy);
       }
       else {
         dataCol.putColumn (buf.getData());
-        weightCol.putColumn (weights);
       }
       
       flagCol.putColumn (buf.getFlags());
@@ -595,9 +580,14 @@ namespace LOFAR {
       if (itsWriteFullResFlags) {
         writeFullResFlags (out, buf);
       }
-
-      // Write UVW
+      // Write WEIGHT_SPECTRUM and UVW.
+      ArrayColumn<Float> weightCol(out, "WEIGHT_SPECTRUM");
       ArrayColumn<Double> uvwCol(out, "UVW");
+      // Do not account for getting the data in the timings.
+      itsBuffer.referenceFilled (buf);
+      const Array<Float>& weights = itsReader->fetchWeights (buf, itsBuffer,
+                                                             itsTimer);
+      weightCol.putColumn (weights);
       const Array<Double>& uvws = itsReader->fetchUVW (buf, itsBuffer,
                                                        itsTimer);
       uvwCol.putColumn (uvws);

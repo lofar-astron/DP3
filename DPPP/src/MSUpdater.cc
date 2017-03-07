@@ -80,7 +80,8 @@ namespace LOFAR {
         return false;
       }
 
-      if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0) {
+      if(itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0)
+      {
         casa::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
         DataManagerCtor dyscoConstructor = DataManager::getCtor("DyscoStMan");
         CountedPtr<DataManager> dyscoStMan(dyscoConstructor(colName + "_dm", dyscoSpec));
@@ -135,15 +136,14 @@ namespace LOFAR {
       }
       if (itsWriteData) {
         // If compressing, flagged values need to be set to NaN to decrease the dynamic range
-        if (itsStManKeys.stManName == "dysco") {
-          Cube<Complex> dataCopy = buf.getData().copy();
-          Cube<Complex>::iterator dataIter = dataCopy.begin();
-          for (Cube<bool>::const_iterator flagIter = buf.getFlags().begin();
-               flagIter != buf.getFlags().end(); ++flagIter) {
-            if(*flagIter) {
-              *dataIter = Complex(std::numeric_limits<float>::quiet_NaN(),
-                                  std::numeric_limits<float>::quiet_NaN());
-            }
+        if(itsStManKeys.stManName == "dysco")
+        {
+          casa::Cube<casa::Complex> dataCopy = buf.getData().copy();
+          casa::Cube<casa::Complex>::iterator dataIter = dataCopy.begin();
+          for(casa::Cube<bool>::const_iterator flagIter = buf.getFlags().begin(); flagIter != buf.getFlags().end(); ++flagIter)
+          {
+            if(*flagIter)
+              *dataIter = casa::Complex(std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
             ++dataIter;
           }
           putData (buf.getRowNrs(), dataCopy);
@@ -153,30 +153,13 @@ namespace LOFAR {
         }
       }
       if (itsWriteWeights) {
-        Cube<float> weights;
         if (!buf.getWeights().empty()) {
           // Use weights from buffer
-          weights = buf.getWeights();
+          putWeights (buf.getRowNrs(), buf.getWeights());
         } else {
           itsBuffer.referenceFilled (buf);
-          weights = itsReader->fetchWeights(buf, itsBuffer, itsTimer);
-        }
-
-        // If compressing, set weights of flagged points to zero to decrease the
-        // dynamic range
-        if (itsStManKeys.stManName == "dysco") {
-          Cube<float> weightsCopy = weights.copy();
-          Cube<float>::iterator weightsIter = weightsCopy.begin();
-          for (Cube<bool>::const_iterator flagIter = buf.getFlags().begin();
-               flagIter != buf.getFlags().end(); ++flagIter) {
-            if(*flagIter) {
-              *weightsIter = 0.;
-            }
-            ++weightsIter;
-          }
-          putWeights (buf.getRowNrs(), weightsCopy);
-        } else {
-          putWeights (buf.getRowNrs(), weights);
+          putWeights (buf.getRowNrs(),
+                      itsReader->fetchWeights(buf, itsBuffer, itsTimer));
         }
       }
       itsNrDone++;

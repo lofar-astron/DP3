@@ -95,7 +95,6 @@ namespace LOFAR {
       string           itsSourceDBName;
       string           itsOperation;
       bool             itsApplyBeam;
-      bool             itsStokesIOnly;
       bool             itsUseChannelFreq;
       bool             itsOneBeamPerPatch;
       Position         itsPhaseRef;

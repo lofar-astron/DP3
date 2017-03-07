@@ -116,14 +116,6 @@ namespace LOFAR {
       }
 
       itsSourceList = makeSourceList(itsPatchList);
-
-      // Determine whether any sources are polarized. If not, enable Stokes-I-
-      // only mode (note that this mode cannot be used with itsApplyBeam)
-      if (itsApplyBeam) {
-        itsStokesIOnly = false;
-      } else {
-        itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
-      }
     }
 
     Predict::Predict()
@@ -170,11 +162,7 @@ namespace LOFAR {
       itsAntBeamInfo.resize(OpenMP::maxThreads());
 
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
-        if (itsStokesIOnly) {
-          itsModelVis[thread].resize(1,nCh,nBl);
-        } else {
-          itsModelVis[thread].resize(nCr,nCh,nBl);
-        }
+        itsModelVis[thread].resize(nCr,nCh,nBl);
         if (itsApplyBeam) {
           itsModelVisPatch[thread].resize(nCr,nCh,nBl);
           itsBeamValues[thread].resize(nSt*nCh);
@@ -198,7 +186,6 @@ namespace LOFAR {
       os << "  sourcedb:           " << itsSourceDBName << endl;
       os << "   number of patches: " << itsPatchList.size() << endl;
       os << "   number of sources: " << itsSourceList.size() << endl;
-      os << "   all unpolarized:   " << boolalpha << itsStokesIOnly << endl;
       os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
       if (itsApplyBeam) {
         os << "   mode:              ";
@@ -271,8 +258,7 @@ namespace LOFAR {
                                                 :itsModelVis[thread]);
 
       Simulator simulator(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                          info().chanFreqs(), itsUVW, simulatedest,
-                          itsStokesIOnly);
+                          info().chanFreqs(), itsUVW, simulatedest);
 
       Patch::ConstPtr curPatch;
 #pragma omp for
@@ -297,15 +283,8 @@ namespace LOFAR {
       itsTempBuffer.getData()=Complex();
       Complex* tdata=itsTempBuffer.getData().data();
       for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
-        if (itsStokesIOnly) {
-          for (uint i=0,j=0;i<nSamples;i+=nCr,j++) {
-            tdata[i] += itsModelVis[thread].data()[j];
-            tdata[i+nCr-1] += itsModelVis[thread].data()[j];
-          }
-        } else {
-          std::transform(tdata, tdata+nSamples, itsModelVis[thread].data(),
-                         tdata, std::plus<dcomplex>());
-        }
+        std::transform(tdata, tdata+nSamples, itsModelVis[thread].data(),
+                       tdata, std::plus<dcomplex>());
       }
 
       // Call ApplyCal step

@@ -59,10 +59,6 @@ namespace DPPP
   vector<string>  makePatchList(BBS::SourceDB &sourceDB,
                                 vector<string> patterns);
 
-  bool checkPolarized(BBS::SourceDB &sourceDB,
-                      const vector<string> &patchNames,
-                      uint nModel);
-
 // @}
 
 } //# namespace DPPP

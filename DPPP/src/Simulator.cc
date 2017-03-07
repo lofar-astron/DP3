@@ -53,18 +53,17 @@ void phases(size_t nStation, size_t nChannel, const double* lmn,
 
 void spectrum(const PointSource &component, size_t nChannel,
               const casa::Vector<double>& freq,
-              casa::Matrix<dcomplex>& spectrum, bool stokesIOnly);
+              casa::Matrix<dcomplex>& spectrum);
 } // Unnamed namespace.
 
 Simulator::Simulator(const Position &reference, size_t nStation,
     size_t nBaseline, size_t nChannel, const casa::Vector<Baseline>& baselines,
     const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-    casa::Cube<dcomplex>& buffer, bool stokesIOnly)
+    casa::Cube<dcomplex>& buffer)
     :   itsReference(reference),
         itsNStation(nStation),
         itsNBaseline(nBaseline),
         itsNChannel(nChannel),
-        itsStokesIOnly(stokesIOnly),
         itsBaselines(baselines),
         itsFreq(freq),
         itsUVW(uvw),
@@ -73,11 +72,7 @@ Simulator::Simulator(const Position &reference, size_t nStation,
         itsSpectrumBuffer()
 {
   itsShiftBuffer.resize(nChannel,nStation);
-  if (stokesIOnly) {
-    itsSpectrumBuffer.resize(1,nChannel);
-  } else {
-    itsSpectrumBuffer.resize(4,nChannel);
-  }
+  itsSpectrumBuffer.resize(4,nChannel);
 }
 
 void Simulator::simulate(const ModelComponent::ConstPtr &component)
@@ -95,13 +90,7 @@ void Simulator::visit(const PointSource &component) {
   phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
 
   // Compute component spectrum.
-  spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
-
-  // Set number of correlations
-  int nCorr = 4;
-  if (itsStokesIOnly) {
-    nCorr = 1;
-  }
+  spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
   // Compute visibilities.
 #pragma omp parallel for
@@ -111,36 +100,24 @@ void Simulator::visit(const PointSource &component) {
     const size_t q = itsBaselines[bl].second;
 
     if(p == q) {
-      buffer+=itsNChannel*nCorr;
+      buffer+=itsNChannel*4;
     } else {
       const dcomplex *shiftP = &(itsShiftBuffer(0,p));
       const dcomplex *shiftQ = &(itsShiftBuffer(0,q));
       const dcomplex *spectrum = itsSpectrumBuffer.data();
+      for(size_t ch = 0; ch < itsNChannel; ++ch)
+      {
+        // Compute baseline phase shift.
+        const dcomplex blShift = (*shiftQ) * conj(*shiftP);
+        ++shiftP;
+        ++shiftQ;
 
-      if (itsStokesIOnly) {
-        for (size_t ch = 0; ch < itsNChannel; ++ch)
-        {
-          // Compute baseline phase shift.
-          // Compute visibilities.
-          *buffer++ += (*shiftQ) * conj(*shiftP) * (*spectrum++);
-          ++shiftP;
-          ++shiftQ;
-        } // Channels.
-      } else {
-        for(size_t ch = 0; ch < itsNChannel; ++ch)
-        {
-          // Compute baseline phase shift.
-          const dcomplex blShift = (*shiftQ) * conj(*shiftP);
-          ++shiftP;
-          ++shiftQ;
-
-          // Compute visibilities.
-          *buffer++ += blShift * (*spectrum++);
-          *buffer++ += blShift * (*spectrum++);
-          *buffer++ += blShift * (*spectrum++);
-          *buffer++ += blShift * (*spectrum++);
-        } // Channels.
-      }
+        // Compute visibilities.
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+        *buffer++ += blShift * (*spectrum++);
+      } // Channels.
     }
   } // Baselines.
 }
@@ -155,7 +132,7 @@ void Simulator::visit(const GaussianSource &component)
     phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
 
     // Compute component spectrum.
-    spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
+    spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer);
 
     // Convert position angle from North over East to the angle used to
     // rotate the right-handed UV-plane.
@@ -172,12 +149,6 @@ void Simulator::visit(const GaussianSource &component)
     const double uScale = component.majorAxis() * fwhm2sigma;
     const double vScale = component.minorAxis() * fwhm2sigma;
 
-    // Set number of correlations
-    int nCorr = 4;
-    if (itsStokesIOnly) {
-      nCorr = 1;
-    }
-
     for(size_t bl = 0; bl < itsNBaseline; ++bl)
     {
         dcomplex* buffer=&itsBuffer(0,0,bl);
@@ -185,7 +156,7 @@ void Simulator::visit(const GaussianSource &component)
         const size_t q = itsBaselines[bl].second;
 
         if(p == q) {
-          buffer+=itsNChannel*nCorr;
+          buffer+=itsNChannel*4;
         } else {
             double u = itsUVW(0,q);
             double v = itsUVW(1,q);
@@ -207,42 +178,24 @@ void Simulator::visit(const GaussianSource &component)
             const dcomplex *shiftQ = &(itsShiftBuffer(0,q));
             const dcomplex *spectrum = itsSpectrumBuffer.data();
 
-            if (itsStokesIOnly) {
-                for (size_t ch = 0; ch < itsNChannel; ++ch)
-                {
-                    // Compute baseline phase shift.
-                    dcomplex blShift = (*shiftQ) * conj(*shiftP);
-                    ++shiftP;
-                    ++shiftQ;
+            for(size_t ch = 0; ch < itsNChannel; ++ch)
+            {
+                // Compute baseline phase shift.
+                dcomplex blShift = (*shiftQ) * conj(*shiftP);
+                ++shiftP;
+                ++shiftQ;
 
-                    const double ampl = exp((itsFreq[ch] * itsFreq[ch])
-                        / (casa::C::c * casa::C::c) * uvPrime);
+                const double ampl = exp((itsFreq[ch] * itsFreq[ch])
+                    / (casa::C::c * casa::C::c) * uvPrime);
 
-                    blShift *= ampl;
+                blShift *= ampl;
 
-                    // Compute visibilities.
-                    *buffer++ += blShift * (*spectrum++);
-                } // Channels.
-            } else {
-                for(size_t ch = 0; ch < itsNChannel; ++ch)
-                {
-                    // Compute baseline phase shift.
-                    dcomplex blShift = (*shiftQ) * conj(*shiftP);
-                    ++shiftP;
-                    ++shiftQ;
-
-                    const double ampl = exp((itsFreq[ch] * itsFreq[ch])
-                        / (casa::C::c * casa::C::c) * uvPrime);
-
-                    blShift *= ampl;
-
-                    // Compute visibilities.
-                    *buffer++ += blShift * (*spectrum++);
-                    *buffer++ += blShift * (*spectrum++);
-                    *buffer++ += blShift * (*spectrum++);
-                    *buffer++ += blShift * (*spectrum++);
-                } // Channels.
-            }
+                // Compute visibilities.
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+                *buffer++ += blShift * (*spectrum++);
+            } // Channels.
         }
     } // Baselines.
 }
@@ -290,20 +243,16 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
 // Compute component spectrum.
 inline void spectrum(const PointSource &component, size_t nChannel,
                      const casa::Vector<double>& freq,
-                     casa::Matrix<dcomplex>& spectrum, bool stokesIOnly=false)
+                     casa::Matrix<dcomplex>& spectrum)
 {
     for(size_t ch = 0; ch < nChannel; ++ch)
     {
         Stokes stokes = component.stokes(freq[ch]);
 
-        if (stokesIOnly) {
-          spectrum(0,ch) = dcomplex(stokes.I, 0.0);
-        } else {
-          spectrum(0,ch) = dcomplex(stokes.I + stokes.Q, 0.0);
-          spectrum(1,ch) = dcomplex(stokes.U, stokes.V);
-          spectrum(2,ch) = dcomplex(stokes.U, -stokes.V);
-          spectrum(3,ch) = dcomplex(stokes.I - stokes.Q, 0.0);
-        }
+        spectrum(0,ch) = dcomplex(stokes.I + stokes.Q, 0.0);
+        spectrum(1,ch) = dcomplex(stokes.U, stokes.V);
+        spectrum(2,ch) = dcomplex(stokes.U, -stokes.V);
+        spectrum(3,ch) = dcomplex(stokes.I - stokes.Q, 0.0);
     }
 }
 } // Unnamed namespace.
