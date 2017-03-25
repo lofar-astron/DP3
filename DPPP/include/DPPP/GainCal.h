@@ -46,6 +46,13 @@
 #include <measures/Measures/MEpoch.h>
 #include <casa/Arrays/ArrayMath.h>
 
+// Convince HDF5 to use new API, even when system is configured to use 1.6 API
+#define H5Acreate_vers 2
+#define H5Tarray_create_vers 2
+#define H5Dcreate_vers 2
+#define H5Gcreate_vers 2
+#include <H5Cpp.h>
+
 namespace LOFAR {
 
   class ParameterSet;
@@ -166,6 +173,8 @@ namespace LOFAR {
       uint             itsStepInParmUpdate; // Timestep within parameter update
       double           itsChunkStartTime; // First time value of chunk to be stored
       uint             itsStepInSolInt;  // Timestep within solint
+
+      casa::Array<casa::DComplex>  itsAllSolutions; // Array that holds all solutions for all iterations
 
       FlagCounter      itsFlagCounter;
 
