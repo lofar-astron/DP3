@@ -90,7 +90,8 @@ namespace LOFAR {
         itsStalled       (0),
         itsStepInParmUpdate      (0),
         itsChunkStartTime(0),
-        itsStepInSolInt        (0)
+        itsStepInSolInt        (0),
+        itsAllSolutions ()
     {
       if (itsParmDBName=="") {
         itsParmDBName=parset.getString("msin")+"/instrument";
@@ -219,6 +220,19 @@ namespace LOFAR {
       itsFlagCounter.init(getInfo());
 
       itsChunkStartTime = info().startTime();
+
+      if (itsDebugLevel>0) {
+        ASSERT(OpenMP::maxThreads()==1);
+        ASSERT(itsTimeSlotsPerParmUpdate >= info().ntime());
+        itsAllSolutions.resize(IPosition(6,
+                               iS[0].numCorrelations(),
+                               info().antennaUsed().size(),
+                               (itsMode=="tec"||itsMode=="tecandphase"?2:1),
+                               itsNFreqCells,
+                               itsMaxIter,
+                               info().ntime()
+                              ));
+      }
     }
 
     void GainCal::show (std::ostream& os) const
@@ -495,7 +509,7 @@ namespace LOFAR {
     }
 
     bool GainCal::scalarMode() {
-      return (itsMode=="tecandphase" || itsMode=="tec" || itsMode=="scalarphase" || 
+      return (itsMode=="tecandphase" || itsMode=="tec" || itsMode=="scalarphase" ||
               itsMode=="scalaramplitude");
     }
 
@@ -512,20 +526,39 @@ namespace LOFAR {
 
       uint iter=0;
 
-      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1, info().antennaUsed().size(), 0);
+      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1,
+                                  info().antennaUsed().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
 #pragma omp parallel for
         for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-          if (converged[freqCell]==StefCal::CONVERGED) { // Do another step when stalled and not all converged
+          // Do another step when stalled and not all converged
+          if (converged[freqCell]==StefCal::CONVERGED) {
             continue;
           }
           converged[freqCell] = iS[freqCell].doStep(iter);
-          if (converged[freqCell]==StefCal::NOTCONVERGED) { // Only continue if there are steps worth continuing (so not converged, failed or stalled)
+          // Only continue if there are steps worth continuing
+          // (so not converged, failed or stalled)
+          if (converged[freqCell]==StefCal::NOTCONVERGED) {
             allConverged = false;
-          } 
+          }
+        }
+
+        if (itsDebugLevel>0) {
+          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
+            std::copy(fullSolution.begin(),
+                      fullSolution.end(),
+                      &(itsAllSolutions(IPosition(6, 0,
+                                                     0,
+                                                     0,
+                                                     freqCell,
+                                                     iter,
+                                                     itsStepInParmUpdate
+                                                 ))));
+          }
         }
 
         if (itsMode=="tec" || itsMode=="tecandphase") {
@@ -558,7 +591,7 @@ namespace LOFAR {
             double* phases = itsPhaseFitters[st]->PhaseData();
             double* weights = itsPhaseFitters[st]->WeightData();
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-              if (iS[freqCell].getStationFlagged()[st%nSt] || 
+              if (iS[freqCell].getStationFlagged()[st%nSt] ||
                   converged[freqCell]==StefCal::FAILED) {
                 phases[freqCell] = 0;
                 weights[freqCell] = 0;
@@ -570,24 +603,8 @@ namespace LOFAR {
                 }
                 ASSERT(iS[freqCell].getWeight()>0);
                 weights[freqCell] = iS[freqCell].getWeight();
-                if (itsDebugLevel > 0 && st==34) {
-                  cout<<"w["<<freqCell<<"]="<<weights[freqCell]<<endl;
-                }
                 numpoints++;
               }
-            }
-
-            if (itsDebugLevel>0) {
-              cout<<"st="<<st<<", numpoints="<<numpoints<<endl;
-            }
-
-            if (itsDebugLevel>0 && st==34) {
-              cout<<"t="<<itsStepInParmUpdate<<", st="<<st<<", unfitted["<<iter<<"]=[";
-              uint freqCell2=0;
-              for (; freqCell2<itsNFreqCells-1; ++freqCell2) {
-                cout<<phases[freqCell2]<<",";
-              }
-              cout<<phases[freqCell2]<<"];"<<endl;
             }
 
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -613,19 +630,20 @@ namespace LOFAR {
               }
             }
 
-            if (st==34 && itsDebugLevel>0) {
-              cout<<"fitted["<<st<<"]=[";
-              uint freqCell=0;
-              for (; freqCell<itsNFreqCells-1; ++freqCell) {
-                cout<<phases[freqCell]<<",";
-              }
-              cout<<phases[freqCell]<<"]"<<endl;
-              if (itsMode=="tecandphase") {
-                cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << ", " << tecsol(1,1) << ", " << cost << "];" << endl;
-              } else {
-                cout << "fitdata["<<st<<"]=[" << tecsol(0,1) << "];" << endl;
-              }
-            }
+	    if (itsDebugLevel>0) {
+	      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+		Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
+		std::copy(fullSolution.begin(),
+			  fullSolution.end(),
+			  &(itsAllSolutions(IPosition(6, 0,
+							 0,
+							 1,
+							 freqCell,
+							 iter,
+							 itsStepInParmUpdate
+						     ))));
+	      }
+	    }
           }
           itsTimerPhaseFit.stop();
           itsTimerSolve.start();
@@ -635,24 +653,6 @@ namespace LOFAR {
           break;
         }
 
-#ifdef DEBUG
-        if (itsDebugLevel>1) { // Only antenna 1
-          cout<<"phases["<<iter<<"]=[";
-          uint freqCell=0;
-          for (; freqCell<itsNFreqCells-1; ++freqCell) {
-            cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<",";
-          }
-          cout<<arg(iS[freqCell].getSolution(false)(1, 0)/iS[freqCell].getSolution(false)(0,0))<<"];"<<endl;
-        }
-        if (itsDebugLevel>2) { // Statistics about nStalled
-          cout<<"convstatus["<<iter<<"]=[";
-          uint freqCell=0;
-          for (; freqCell<itsNFreqCells-1; ++freqCell) {
-            cout<<converged[freqCell]<<",";
-          }
-          cout<<converged[freqCell]<<"]"<<endl;
-        }
-#endif
       } // End niter
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -974,6 +974,22 @@ namespace LOFAR {
 
       if (!itsSols.empty()) {
         writeSolutions(itsChunkStartTime);
+        if (itsDebugLevel>0) {
+	  H5::H5File hdf5file = H5::H5File("debug.h5", H5F_ACC_TRUNC);
+	  std::vector<hsize_t> dims(6);
+	  for (uint i=0; i<6; ++i) {
+	    dims[i] = itsAllSolutions.shape()[5-i];
+	  }
+	  H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
+	  H5::CompType complex_data_type(sizeof(DComplex));
+	  complex_data_type.insertMember( "r", 0, H5::PredType::IEEE_F64LE);
+	  complex_data_type.insertMember( "i", sizeof(double), H5::PredType::IEEE_F64LE);
+	  H5::DataSet dataset = hdf5file.createDataSet("val",
+						       complex_data_type,
+						       dataspace);
+	  dataset.write(itsAllSolutions.data(), complex_data_type);
+	  hdf5file.close();
+        }
       }
 
       // Let the next steps finish.

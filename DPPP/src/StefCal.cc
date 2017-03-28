@@ -351,16 +351,6 @@ namespace LOFAR {
         } else if (_mode=="amplitudeonly" || _mode=="scalaramplitude") {
           _g(st1,0) = abs(_g(st1,0));
         }
-
-        if (_debugLevel>2) {
-          cout<<endl<<"gi=[";
-          ASSERT(isFinite(_g(0,0)));
-          for (uint ant=0; ant<_nUn; ++ant) {
-            if (ant>0) cout<<",";
-            cout<<_g(ant,0);
-          }
-          cout<<"]"<<endl;
-        }
       }
     }
 
@@ -369,24 +359,6 @@ namespace LOFAR {
     }
 
     casa::Matrix<casa::DComplex> StefCal::getSolution(bool setNaNs) {
-      if (setNaNs && _debugLevel>0) {
-        cout<<endl<<"dg=[";
-        for (uint iter=0; iter<_dgs.size(); ++iter) {
-          if (iter>0) cout<<",";
-          cout<<_dgs[iter];
-        }
-        cout<<"]"<<endl;
-      }
-
-      if (_debugLevel>2) {
-        cout<<endl<<"g=[";
-        for (uint ant=0; ant<_nUn; ++ant) {
-          if (ant>0) cout<<",";
-          cout<<_g(ant,0);
-        }
-        cout<<"]"<<endl;
-      }
-
       if (setNaNs) {
         for (uint ant=0; ant<_nUn; ++ant) {
           if (_stationFlagged[ant%_nSt]) {
@@ -466,7 +438,7 @@ namespace LOFAR {
       fronormg=sqrt(fronormg);
 
       _dg = fronormdiff/fronormg;
-      if (_debugLevel>0) {
+      if (_debugLevel>2) {
         _dgs.push_back(_dg);
       }
 
