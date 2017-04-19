@@ -50,10 +50,10 @@
 #include <Common/StreamUtil.h>
 #include <Common/OpenMP.h>
 
-#include <casa/OS/Path.h>
-#include <casa/OS/DirectoryIterator.h>
-#include <casa/OS/Timer.h>
-#include <casa/OS/DynLib.h>
+#include <casacore/casa/OS/Path.h>
+#include <casacore/casa/OS/DirectoryIterator.h>
+#include <casacore/casa/OS/Timer.h>
+#include <casacore/casa/OS/DynLib.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -83,7 +83,7 @@ namespace LOFAR {
         libname = libname.substr (0, pos);
       }
       // Try to load and initialize the dynamic library.
-      casa::DynLib dl(libname, string("libdppp_"), "register_"+libname, false);
+      casacore::DynLib dl(libname, string("libdppp_"), "register_"+libname, false);
       if (dl.getHandle()) {
         // See if registered now.
         iter = theirStepMap.find (type);
@@ -99,7 +99,7 @@ namespace LOFAR {
 
     void DPRun::execute (const string& parsetName, int argc, char* argv[])
     {
-      casa::Timer timer;
+      casacore::Timer timer;
       NSTimer nstimer;
       nstimer.start();
       ParameterSet parset;
@@ -243,12 +243,12 @@ namespace LOFAR {
         if (inNames[0].find_first_of ("*?{['") != string::npos) {
           vector<string> names;
           names.reserve (80);
-          casa::Path path(inNames[0]);
-          casa::String dirName(path.dirName());
-          casa::Directory dir(dirName);
+          casacore::Path path(inNames[0]);
+          casacore::String dirName(path.dirName());
+          casacore::Directory dir(dirName);
           // Use the basename as the file name pattern.
-          casa::DirectoryIterator dirIter (dir,
-                                           casa::Regex::fromPattern(path.baseName()));
+          casacore::DirectoryIterator dirIter (dir,
+                                           casacore::Regex::fromPattern(path.baseName()));
           while (!dirIter.pastEnd()) {
             names.push_back (dirName + '/' + dirIter.name());
             dirIter++;
@@ -270,8 +270,8 @@ namespace LOFAR {
       } else {
         reader = new MultiMSReader (inNames, parset, "msin.");
       }
-      casa::Path pathIn (reader->msName());
-      casa::String currentMSName (pathIn.absoluteName());
+      casacore::Path pathIn (reader->msName());
+      casacore::String currentMSName (pathIn.absoluteName());
 
       // Create the other steps.
       firstStep = DPStep::ShPtr (reader);
@@ -352,10 +352,10 @@ namespace LOFAR {
                                          const ParameterSet& parset,
                                          const string& prefix,
                                          bool multipleInputs,
-                                         casa::String& currentMSName)
+                                         casacore::String& currentMSName)
     {
       DPStep::ShPtr step;
-      casa::String outName;
+      casacore::String outName;
       bool doUpdate = false;
       if (prefix == "msout.") {
         // The last output step.
@@ -373,7 +373,7 @@ namespace LOFAR {
         outName  = currentMSName;
         doUpdate = true;
       } else {
-        casa::Path pathOut(outName);
+        casacore::Path pathOut(outName);
         if (currentMSName == pathOut.absoluteName()) {
           outName  = currentMSName;
           doUpdate = true;
@@ -391,7 +391,7 @@ namespace LOFAR {
         step = DPStep::ShPtr(new MSWriter (reader, outName, parset, prefix));
         reader->setReadVisData (true);
       }
-      casa::Path pathOut(outName);
+      casacore::Path pathOut(outName);
       currentMSName = pathOut.absoluteName();
       return step;
     }

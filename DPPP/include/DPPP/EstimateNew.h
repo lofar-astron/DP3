@@ -35,7 +35,7 @@
 #include <Common/lofar_vector.h>
 
 //# Use Block<bool> instead of vector<bool> (because testing bits is slower).
-#include <casa/Containers/Block.h>
+#include <casacore/casa/Containers/Block.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -131,8 +131,8 @@ namespace LOFAR {
       size_t itsNrIter;
       size_t itsNrDir;
       bool   itsPropagateSolution;
-      casa::Block<bool>  itsSolveStation;  //# solve station i?
-      vector<casa::uInt> itsDerivIndex;    //# index for LSQFit::makeIndex
+      casacore::Block<bool>  itsSolveStation;  //# solve station i?
+      vector<casacore::uInt> itsDerivIndex;    //# index for LSQFit::makeIndex
       vector<double>     itsUnknowns;
       vector<double>     itsSolution;
       vector<dcomplex>   itsM;

@@ -5,13 +5,13 @@
 
 #include <string>
 
-#include <casa/Containers/Record.h>
+#include <casacore/casa/Containers/Record.h>
 
 namespace LOFAR {
   namespace DPPP {
     struct StManParsetKeys
     {
-      casa::String    stManName;
+      casacore::String    stManName;
       uint            dyscoDataBitRate;     //# Bits per data float, or 0 if data column is not compressed
       uint            dyscoWeightBitRate;   //# Bits per weight float, or 0 if weight column is not compressed
       std::string     dyscoDistribution;    //# Distribution assumed for compression; e.g. "Uniform" or "TruncatedGaussian"
@@ -36,9 +36,9 @@ namespace LOFAR {
         }
       }
       
-      casa::Record GetDyscoSpec() const
+      casacore::Record GetDyscoSpec() const
       {
-        casa::Record dyscoSpec;
+        casacore::Record dyscoSpec;
         dyscoSpec.define ("distribution", dyscoDistribution);
         dyscoSpec.define ("normalization", dyscoNormalization);
         dyscoSpec.define ("distributionTruncation", dyscoDistTruncation);

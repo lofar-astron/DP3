@@ -33,9 +33,9 @@
 #include <DPPP/ModelComponentVisitor.h>
 #include <DPPP/Position.h>
 
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
 
 #include <Common/lofar_complex.h>
 #include <Common/lofar_vector.h>
@@ -52,9 +52,9 @@ class Simulator: public ModelComponentVisitor
 {
 public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
-        size_t nChannel, const casa::Vector<Baseline>& baselines,
-        const casa::Vector<double>& freq, const casa::Matrix<double>& uvw,
-        casa::Cube<dcomplex>& buffer, bool stokesIOnly=false);
+        size_t nChannel, const casacore::Vector<Baseline>& baselines,
+        const casacore::Vector<double>& freq, const casacore::Matrix<double>& uvw,
+        casacore::Cube<dcomplex>& buffer, bool stokesIOnly=false);
 
     void simulate(const ModelComponent::ConstPtr &component);
 
@@ -66,12 +66,12 @@ private:
     Position                     itsReference;
     size_t                       itsNStation, itsNBaseline, itsNChannel;
     bool                         itsStokesIOnly;
-    const casa::Vector<Baseline> itsBaselines;
-    const casa::Vector<double>   itsFreq;
-    const casa::Matrix<double>   itsUVW;
-    casa::Cube<dcomplex>         itsBuffer;
-    casa::Matrix<dcomplex>       itsShiftBuffer;
-    casa::Matrix<dcomplex>       itsSpectrumBuffer;
+    const casacore::Vector<Baseline> itsBaselines;
+    const casacore::Vector<double>   itsFreq;
+    const casacore::Matrix<double>   itsUVW;
+    casacore::Cube<dcomplex>         itsBuffer;
+    casacore::Matrix<dcomplex>       itsShiftBuffer;
+    casacore::Matrix<dcomplex>       itsSpectrumBuffer;
 };
 
 // @}

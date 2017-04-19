@@ -32,8 +32,8 @@
 #include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
 #include <ParmDB/Parm.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
 #include <DPPP/FlagCounter.h>
 
 namespace LOFAR {
@@ -76,27 +76,27 @@ namespace LOFAR {
       }
 
       // Invert a 2x2 matrix in place
-      static void invert (casa::DComplex* v, double sigmaMMSE=0);
+      static void invert (casacore::DComplex* v, double sigmaMMSE=0);
 
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyDiag (const casa::DComplex* gainA,
-                             const casa::DComplex* gainB,
-                             casa::Complex* vis, float* weight, bool* flag,
+      static void applyDiag (const casacore::DComplex* gainA,
+                             const casacore::DComplex* gainB,
+                             casacore::Complex* vis, float* weight, bool* flag,
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
       // where the solution is equal for both polarizations
-      static void applyScalar(const casa::DComplex* gainA,
-                              const casa::DComplex* gainB,
-                              casa::Complex* vis, float* weight, bool* flag,
+      static void applyScalar(const casacore::DComplex* gainA,
+                              const casacore::DComplex* gainB,
+                              casacore::Complex* vis, float* weight, bool* flag,
                               uint bl, uint chan, bool updateWeights,
                               FlagCounter& flagCounter);
 
       // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyFull (const casa::DComplex* gainA,
-                             const casa::DComplex* gainB,
-                             casa::Complex* vis, float* weight, bool* flag,
+      static void applyFull (const casacore::DComplex* gainA,
+                             const casacore::DComplex* gainB,
+                             casacore::Complex* vis, float* weight, bool* flag,
                              uint bl, uint chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
@@ -108,8 +108,8 @@ namespace LOFAR {
       // The input covariance matrix C is assumed to be diagonal with elements
       // w_i (the weights), the result the diagonal of
       // (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      static void applyWeights (const casa::DComplex* gainA,
-                                const casa::DComplex* gainB,
+      static void applyWeights (const casacore::DComplex* gainA,
+                                const casacore::DComplex* gainB,
                                 float* weight);
 
     private:
@@ -136,10 +136,10 @@ namespace LOFAR {
       uint             itsCount; // number of steps
 
       // Expressions to search for in itsParmDB
-      vector<casa::String>   itsParmExprs;
+      vector<casacore::String>   itsParmExprs;
 
       // parameters, numparms, antennas, time x frequency
-      casa::Cube<casa::DComplex> itsParms;
+      casacore::Cube<casacore::DComplex> itsParms;
       uint            itsTimeStep; // time step within current chunk
       uint            itsNCorr;
       double          itsTimeInterval;

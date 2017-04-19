@@ -110,7 +110,7 @@ namespace LOFAR {
       string               itsName;
       DPBuffer             itsBuffer;
       uint                 itsNTimes;
-      casa::Vector<double> itsRecWavel; //# reciprokes of wavelengths
+      casacore::Vector<double> itsRecWavel; //# reciprokes of wavelengths
       vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
       vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged
       vector<double>       itsRangeVm;  //# V  ranges (in m) to be flagged

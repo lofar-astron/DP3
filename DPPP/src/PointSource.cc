@@ -25,7 +25,7 @@
 #include <DPPP/PointSource.h>
 #include <DPPP/ModelComponentVisitor.h>
 #include <Common/lofar_math.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace LOFAR
 {
@@ -101,7 +101,7 @@ Stokes PointSource::stokes(double freq) const
 
     if(hasRotationMeasure())
     {
-        double lambda = casa::C::c / freq;
+        double lambda = casacore::C::c / freq;
         double chi = 2.0 * (itsPolarizationAngle + itsRotationMeasure
             * lambda * lambda);
         double stokesQU = stokes.I * itsPolarizedFraction;

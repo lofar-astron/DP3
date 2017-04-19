@@ -40,10 +40,10 @@
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 #include <ParmDB/Parm.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Quanta/MVEpoch.h>
-#include <measures/Measures/MEpoch.h>
-#include <casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Quanta/MVEpoch.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
 
 namespace LOFAR {
 
@@ -105,18 +105,18 @@ namespace LOFAR {
 
       // The time of the current buffer (in case of solint, average time)
       double           itsAvgTime;
-      std::vector<casa::Complex*> itsDataPtrs;
+      std::vector<casacore::Complex*> itsDataPtrs;
 
       // For each timeslot, a vector of nDir buffers
-      std::vector<std::vector<casa::Complex*> > itsModelDataPtrs;
+      std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
 
       // For each time, for each channel block, a vector of size nAntennas * nDirections
-      std::vector<std::vector<std::vector<casa::DComplex> > > itsSols;
+      std::vector<std::vector<std::vector<casacore::DComplex> > > itsSols;
 
       // For each time, for each constraint, a vector of results (e.g. tec and phase)
       std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
 
-      casa::Cube<casa::Complex> itsModelData;
+      casacore::Cube<casacore::Complex> itsModelData;
       string           itsH5ParmName;
       H5Parm           itsH5Parm;
 
@@ -127,7 +127,7 @@ namespace LOFAR {
       uint             itsNChan;
       uint             itsNFreqCells;
       vector<vector<string> > itsDirections; // For each direction, a vector of patches
-      vector<casa::CountedPtr<Constraint> > itsConstraints;
+      vector<casacore::CountedPtr<Constraint> > itsConstraints;
 
       vector<Predict>     itsPredictSteps;
       vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times

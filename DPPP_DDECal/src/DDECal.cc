@@ -43,13 +43,13 @@
 #include <ctime>
 #include <utility>
 
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCDirection.h>
-#include <casa/Quanta/Quantum.h>
-#include <casa/OS/File.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/OS/File.h>
 
 #include <vector>
 #include <algorithm>
@@ -58,7 +58,7 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace casa;
+using namespace casacore;
 using namespace LOFAR::BBS;
 
 namespace LOFAR {
@@ -94,22 +94,22 @@ namespace LOFAR {
 
       itsMode = toLower(parset.getString(prefix + "mode", "complexgain"));
       if(itsCoreConstraint != 0.0) {
-        itsConstraints.push_back(casa::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
           new CoreConstraint()));
       }
       if (itsMode == "phaseonly") {
-        itsConstraints.push_back(casa::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new PhaseConstraint()));
       } else if (itsMode == "tec") {
-        itsConstraints.push_back(casa::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECOnlyMode)));
       } else if (itsMode == "tecandphase"){
-        itsConstraints.push_back(casa::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
       } else if (itsMode == "complexgain") {
         // no constraints
       } else if (itsMode == "tecscreen") {
-        itsConstraints.push_back(casa::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new ScreenConstraint()));
       } else {
         THROW (Exception, "Unexpected mode: " << itsMode);
@@ -174,7 +174,7 @@ namespace LOFAR {
         itsNFreqCells++;
       }
 
-      // Convert from casa::Vector to std::vector
+      // Convert from casacore::Vector to std::vector
       vector<int> ant1(info().getAnt1().size());
       vector<int> ant2(info().getAnt2().size());
       for (uint i=0; i<ant1.size(); ++i) {
@@ -187,7 +187,7 @@ namespace LOFAR {
       std::vector<std::vector<double> > antennaPos(info().antennaPos().size());
       for (uint i=0; i<info().antennaNames().size(); ++i) {
         antennaNames[i]=info().antennaNames()[i];
-        casa::Quantum<casa::Vector<double> > pos = info().antennaPos()[i].get("m");
+        casacore::Quantum<casacore::Vector<double> > pos = info().antennaPos()[i].get("m");
         antennaPos[i].resize(3);
         antennaPos[i][0] = pos.getValue()[0];
         antennaPos[i][1] = pos.getValue()[1];
@@ -534,9 +534,9 @@ namespace LOFAR {
 
       if (itsStepInSolInt!=0) {
         //shrink itsDataPtrs, itsModelDataPtrs
-        std::vector<casa::Complex*>(itsDataPtrs.begin(),
+        std::vector<casacore::Complex*>(itsDataPtrs.begin(),
             itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
-        std::vector<std::vector<casa::Complex*> >(itsModelDataPtrs.begin(),
+        std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
                     itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
         itsTimerSolve.start();
         itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,

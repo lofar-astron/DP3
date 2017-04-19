@@ -52,11 +52,11 @@ void ScreenConstraint::setDirections(const std::vector<std::pair<double, double>
 
 void ScreenConstraint::initPiercePoints(){
   for(uint ipos=0;ipos<itsAntennaPos.size();ipos++){
-    casa::MPosition ant(casa::MVPosition(itsAntennaPos[ipos][0],itsAntennaPos[ipos][1],itsAntennaPos[ipos][2]),
-			casa::MPosition::ITRF);
+    casacore::MPosition ant(casacore::MVPosition(itsAntennaPos[ipos][0],itsAntennaPos[ipos][1],itsAntennaPos[ipos][2]),
+			casacore::MPosition::ITRF);
     for(uint isrc=0;isrc<itsSourcePos.size();isrc++){
-      casa::MDirection src(casa::MVDirection(itsSourcePos[isrc][0],itsSourcePos[isrc][1]),
-			   casa::MDirection::J2000);
+      casacore::MDirection src(casacore::MVDirection(itsSourcePos[isrc][0],itsSourcePos[isrc][1]),
+			   casacore::MDirection::J2000);
 	  
       itsPiercePoints[ipos][isrc]=PiercePoint(ant,src);
     }
@@ -77,7 +77,7 @@ void ScreenConstraint::setTime(double time){
 }
 
 void ScreenConstraint::CalculatePiercepoints(){
-   casa::MEpoch time(casa::MVEpoch(itsCurrentTime/(24.*3600.))); //convert to MJD
+   casacore::MEpoch time(casacore::MVEpoch(itsCurrentTime/(24.*3600.))); //convert to MJD
   for (uint i=0;i<itsPiercePoints.size();i++)
     for (uint j=0;j<itsPiercePoints[i].size();j++)
       itsPiercePoints[i][j].evaluate(time);

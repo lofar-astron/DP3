@@ -25,7 +25,7 @@
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h> ///
 
-#include <scimath/Fitting/LSQFit.h>
+#include <casacore/scimath/Fitting/LSQFit.h>
 
 
 namespace LOFAR {
@@ -211,7 +211,7 @@ namespace LOFAR {
         cout<<"unkindex="<<unknownsIndex<<endl;
       }
       // Initialize LSQ solver.
-      casa::LSQFit solver(nUnknowns);
+      casacore::LSQFit solver(nUnknowns);
       // Iterate until convergence.
       itsNrIter = 0;
       while (!solver.isReady()  &&  itsNrIter < itsMaxIter) {
@@ -453,7 +453,7 @@ namespace LOFAR {
         baselines -= itsNrBaselines;
 
         // Perform LSQ iteration.
-        casa::uInt rank;
+        casacore::uInt rank;
         bool status = solver.solveLoop(rank, &(itsUnknowns[0]), true);
         ASSERT(status);
         // Copy the unknowns to the full solution.
@@ -465,8 +465,8 @@ namespace LOFAR {
         // Update iteration count.
         itsNrIter++;
       }
-      bool converged = (solver.isReady() == casa::LSQFit::SOLINCREMENT  ||
-                        solver.isReady() == casa::LSQFit::DERIVLEVEL);
+      bool converged = (solver.isReady() == casacore::LSQFit::SOLINCREMENT  ||
+                        solver.isReady() == casacore::LSQFit::DERIVLEVEL);
       ///      clearNonSolvable (unknownsIndex, srcSet);
       return converged;
     }

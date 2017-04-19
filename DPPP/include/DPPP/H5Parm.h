@@ -7,8 +7,8 @@
 #include <H5Cpp.h>
 
 #include <utility>
-#include <casa/Arrays/Vector.h>
-#include <measures/Measures/MPosition.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/measures/Measures/MPosition.h>
 
 namespace LOFAR {
   class H5Parm

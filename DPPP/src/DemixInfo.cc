@@ -32,11 +32,11 @@
 #include <Common/StreamUtil.h>
 #include <Common/OpenMP.h>
 
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MeasConvert.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -90,7 +90,7 @@ namespace LOFAR {
       }
       // Get delta in arcsec and take cosine of it (convert to radians first).
       double delta = parset.getDouble (prefix+"target.delta", 60.);
-      itsCosTargetDelta = cos (delta / 3600. * casa::C::pi / 180.);
+      itsCosTargetDelta = cos (delta / 3600. * casacore::C::pi / 180.);
       ASSERTSTR (!(itsTargetModelName.empty() || itsDemixModelName.empty()),
                  "An empty name is given for a sky model");
       // If the estimate source model is given, read it.
@@ -320,7 +320,7 @@ namespace LOFAR {
       os << "  ateam.threshold:    " << itsAteamAmplThreshold << endl;
       os << "  target.threshold:   " << itsTargetAmplThreshold << endl;
       os << "  target.delta:       "
-         << acos(itsCosTargetDelta) * 3600. / casa::C::pi * 180.
+         << acos(itsCosTargetDelta) * 3600. / casacore::C::pi * 180.
          << " arcsec" << endl;
       os << "  distance.threshold: " << itsAngdistThreshold << " deg" << endl;
       os << "  distance.reffreq:   " << itsAngdistRefFreq << " Hz" << endl;
@@ -401,9 +401,9 @@ namespace LOFAR {
           case BBS::SourceInfo::GAUSSIAN:
             {
               GaussianSource::Ptr gauss(new GaussianSource(position, stokes));
-              const double deg2rad = (casa::C::pi / 180.0);
+              const double deg2rad = (casacore::C::pi / 180.0);
               gauss->setPositionAngle(src.getOrientation() * deg2rad);
-              const double arcsec2rad = (casa::C::pi / 3600.0) / 180.0;
+              const double arcsec2rad = (casacore::C::pi / 3600.0) / 180.0;
               gauss->setMajorAxis(src.getMajorAxis() * arcsec2rad);
               gauss->setMinorAxis(src.getMinorAxis() * arcsec2rad);
               source = gauss;

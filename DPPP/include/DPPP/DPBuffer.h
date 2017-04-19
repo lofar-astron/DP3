@@ -27,9 +27,9 @@
 /// @file
 /// @brief Buffer holding the data of a timeslot/band
 
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/BasicSL/Complex.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/BasicSL/Complex.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -135,35 +135,35 @@ namespace LOFAR {
       void referenceFilled (const DPBuffer& that);
 
       // Set or get the visibility data per corr,chan,baseline.
-      void setData (const casa::Cube<casa::Complex>& data)
+      void setData (const casacore::Cube<casacore::Complex>& data)
         { itsData.reference (data); }
-      const casa::Cube<casa::Complex>& getData() const
+      const casacore::Cube<casacore::Complex>& getData() const
         { return itsData; }
-      casa::Cube<casa::Complex>& getData()
+      casacore::Cube<casacore::Complex>& getData()
         { return itsData; }
 
       // Set or get the flags per corr,chan,baseline.
-      void setFlags (const casa::Cube<bool>& flags)
+      void setFlags (const casacore::Cube<bool>& flags)
         { itsFlags.reference (flags); }
-      const casa::Cube<bool>& getFlags() const
+      const casacore::Cube<bool>& getFlags() const
         { return itsFlags; }
-      casa::Cube<bool>& getFlags()
+      casacore::Cube<bool>& getFlags()
         { return itsFlags; }
 
       // Set or get the weights per corr,chan,baseline.
-      void setWeights (const casa::Cube<float>& weights)
+      void setWeights (const casacore::Cube<float>& weights)
         { itsWeights.reference (weights); }
-      const casa::Cube<float>& getWeights() const
+      const casacore::Cube<float>& getWeights() const
         { return itsWeights; }
-      casa::Cube<float>& getWeights()
+      casacore::Cube<float>& getWeights()
         { return itsWeights; }
 
       // Set or get the flags at the full resolution per chan,timeavg,baseline.
-      void setFullResFlags (const casa::Cube<bool>& flags)
+      void setFullResFlags (const casacore::Cube<bool>& flags)
         { itsFullResFlags.reference (flags); }
-      const casa::Cube<bool>& getFullResFlags() const
+      const casacore::Cube<bool>& getFullResFlags() const
         { return itsFullResFlags; }
-      casa::Cube<bool>& getFullResFlags()
+      casacore::Cube<bool>& getFullResFlags()
         { return itsFullResFlags; }
 
       // Get or set the time.
@@ -180,33 +180,33 @@ namespace LOFAR {
 
       // Get or set the row numbers used by the DPInput class.
       // It can be empty (e.g. when MSReader inserted a dummy time slot).
-      void setRowNrs (const casa::Vector<uint>& rownrs)
+      void setRowNrs (const casacore::Vector<uint>& rownrs)
         { itsRowNrs.reference (rownrs); }
-      const casa::Vector<uint>& getRowNrs() const
+      const casacore::Vector<uint>& getRowNrs() const
         { return itsRowNrs; }
 
       // Get or set the UVW coordinates per baseline.
-      void setUVW (const casa::Matrix<double>& uvw)
+      void setUVW (const casacore::Matrix<double>& uvw)
         { itsUVW.reference (uvw); }
-      const casa::Matrix<double>& getUVW() const
+      const casacore::Matrix<double>& getUVW() const
         { return itsUVW; }
-      casa::Matrix<double>& getUVW()
+      casacore::Matrix<double>& getUVW()
         { return itsUVW; }
 
       // Merge the flags into the pre-average flags.
       // For each flagged point, the corresponding pre-average flags are set.
-      static void mergeFullResFlags (casa::Cube<bool>& fullResFlags,
-                                     const casa::Cube<bool>& flags);
+      static void mergeFullResFlags (casacore::Cube<bool>& fullResFlags,
+                                     const casacore::Cube<bool>& flags);
 
     private:
       double                    itsTime;
       double                    itsExposure;
-      casa::Vector<uint>        itsRowNrs;
-      casa::Cube<casa::Complex> itsData;        //# ncorr,nchan,nbasel
-      casa::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
-      casa::Matrix<double>      itsUVW;         //# 3,nbasel
-      casa::Cube<float>         itsWeights;     //# ncorr,nchan,nbasel
-      casa::Cube<bool>          itsFullResFlags; //# fullres_nchan,ntimeavg,nbl
+      casacore::Vector<uint>        itsRowNrs;
+      casacore::Cube<casacore::Complex> itsData;        //# ncorr,nchan,nbasel
+      casacore::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
+      casacore::Matrix<double>      itsUVW;         //# 3,nbasel
+      casacore::Cube<float>         itsWeights;     //# ncorr,nchan,nbasel
+      casacore::Cube<bool>          itsFullResFlags; //# fullres_nchan,ntimeavg,nbl
     };
 
   } //# end namespace

@@ -24,10 +24,10 @@
 // Note: this code is used by LOFAR and APERTIF software.
 
 #include <DPPP/UVWCalculator.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/Muvw.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/Muvw.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

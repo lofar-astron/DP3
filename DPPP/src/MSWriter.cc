@@ -30,26 +30,26 @@
 #include <DPPP/DPLogger.h>
 #include <MS/VdsMaker.h>
 #include <Common/ParameterSet.h>
-#include <tables/Tables/TableCopy.h>
+#include <casacore/tables/Tables/TableCopy.h>
 #if defined(casacore)
-#include <tables/DataMan/DataManInfo.h>
+#include <casacore/tables/DataMan/DataManInfo.h>
 #else
-#include <tables/Tables/DataManInfo.h>
+#include <casacore/tables/DataMan/DataManInfo.h>
 #endif
-#include <tables/Tables/SetupNewTab.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/DataMan/StandardStMan.h>
-#include <tables/DataMan/TiledStManAccessor.h>
-#include <measures/TableMeasures/ArrayMeasColumn.h>
-#include <measures/Measures/MCDirection.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Containers/Record.h>
-#include <casa/OS/Path.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/DataMan/StandardStMan.h>
+#include <casacore/tables/DataMan/TiledStManAccessor.h>
+#include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/OS/Path.h>
 #include <iostream>
 #include <limits>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -135,7 +135,7 @@ namespace LOFAR {
           if (itsVdsDir[itsVdsDir.size() - 1] != '/') {
             itsVdsDir.append ("/");
           }
-          vdsName = itsVdsDir + string(casa::Path(vdsName).baseName());
+          vdsName = itsVdsDir + string(casacore::Path(vdsName).baseName());
         }
         // Create VDS file without detailed time info.
         LOFAR::VdsMaker::create (itsMS.tableName(), vdsName,

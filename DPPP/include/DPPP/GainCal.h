@@ -41,10 +41,10 @@
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 #include <ParmDB/Parm.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Quanta/MVEpoch.h>
-#include <measures/Measures/MEpoch.h>
-#include <casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Quanta/MVEpoch.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
 
 // Convince HDF5 to use new API, even when system is configured to use 1.6 API
 #define H5Acreate_vers 2
@@ -100,14 +100,14 @@ namespace LOFAR {
       bool scalarMode();
 
       // Apply the solution
-      void applySolution(DPBuffer& buf, const casa::Cube<casa::DComplex>& invsol);
+      void applySolution(DPBuffer& buf, const casacore::Cube<casacore::DComplex>& invsol);
 
       // Invert solution (for applying it)
-      casa::Cube<casa::DComplex> invertSol(const casa::Cube<casa::DComplex>& sol);
+      casacore::Cube<casacore::DComplex> invertSol(const casacore::Cube<casacore::DComplex>& sol);
 
       // Fills the matrices itsVis and itsMVis
-      void fillMatrices (casa::Complex* model, casa::Complex* data,
-                         float* weight, const casa::Bool* flag);
+      void fillMatrices (casacore::Complex* model, casacore::Complex* data,
+                         float* weight, const casacore::Bool* flag);
 
       // Initialize the parmdb
       void initParmDB();
@@ -126,7 +126,7 @@ namespace LOFAR {
       string           itsName;
       vector<DPBuffer> itsBuf;
       bool             itsUseModelColumn;
-      casa::Cube<casa::Complex> itsModelData;
+      casacore::Cube<casacore::Complex> itsModelData;
       string           itsParmDBName;
       shared_ptr<BBS::ParmDB> itsParmDB;
 
@@ -137,10 +137,10 @@ namespace LOFAR {
 
       bool             itsApplySolution;
 
-      vector<casa::Cube<casa::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
-      vector<casa::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
+      vector<casacore::Cube<casacore::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
+      vector<casacore::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
 
-      vector<casa::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
+      vector<casacore::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
 
       std::vector<StefCal>  iS;
 
@@ -150,9 +150,9 @@ namespace LOFAR {
       bool             itsApplyBeamToModelColumn;
 
       BaselineSelection itsBaselineSelection; // Filter
-      casa::Vector<bool> itsSelectedBL; // Vector (length nBl) telling
+      casacore::Vector<bool> itsSelectedBL; // Vector (length nBl) telling
                                         // which baselines are selected
-      casa::Vector<bool> itsAntennaUsed; // Vector (length nBl) telling
+      casacore::Vector<bool> itsAntennaUsed; // Vector (length nBl) telling
                                          // which stations are solved for
 
       map<string,int>  itsParmIdMap; //# -1 = new parm name
@@ -174,7 +174,7 @@ namespace LOFAR {
       double           itsChunkStartTime; // First time value of chunk to be stored
       uint             itsStepInSolInt;  // Timestep within solint
 
-      casa::Array<casa::DComplex>  itsAllSolutions; // Array that holds all solutions for all iterations
+      casacore::Array<casacore::DComplex>  itsAllSolutions; // Array that holds all solutions for all iterations
 
       FlagCounter      itsFlagCounter;
 

@@ -31,9 +31,9 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
 #include <DPPP/FlagCounter.h>
-#include <tables/Tables/TableIter.h>
-#include <tables/Tables/RefRows.h>
-#include <casa/Arrays/Slicer.h>
+#include <casacore/tables/Tables/TableIter.h>
+#include <casacore/tables/Tables/RefRows.h>
+#include <casacore/casa/Arrays/Slicer.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -166,59 +166,59 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Read the UVW at the given row numbers into the buffer.
-      virtual void getUVW (const casa::RefRows& rowNrs,
+      virtual void getUVW (const casacore::RefRows& rowNrs,
                            double time,
                            DPBuffer&);
 
       // Read the weights at the given row numbers into the buffer.
       // Note: the buffer must contain DATA if autoweighting is in effect.
-      virtual void getWeights (const casa::RefRows& rowNrs,
+      virtual void getWeights (const casacore::RefRows& rowNrs,
                                DPBuffer&);
 
       // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
       // into the buffer.
       // If there is no such column, the flags are set to false and false is
       // returned.
-      virtual bool getFullResFlags (const casa::RefRows& rowNrs,
+      virtual bool getFullResFlags (const casacore::RefRows& rowNrs,
                                     DPBuffer&);
 
       // Read the model data at the given row numbers into the array.
-      virtual void getModelData (const casa::RefRows& rowNrs,
-                                 casa::Cube<casa::Complex>&);
+      virtual void getModelData (const casacore::RefRows& rowNrs,
+                                 casacore::Cube<casacore::Complex>&);
 
       // Fill the vector with station beam info from the input MS.
       // Only fill it for the given station names.
       virtual void fillBeamInfo (vector<StationResponse::Station::Ptr>&,
-                                 const casa::Vector<casa::String>& antNames);
+                                 const casacore::Vector<casacore::String>& antNames);
 
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 
       // Get the main MS table.
-      casa::Table& table()
+      casacore::Table& table()
         { return itsMS; }
 
       // Get the name of the data column to be used.
-      const casa::String& dataColumnName() const
+      const casacore::String& dataColumnName() const
         { return itsDataColName; }
 
-      const casa::String& weightColumnName() const
+      const casacore::String& weightColumnName() const
         { return itsWeightColName; }
 
-      const casa::String& modelColumnName() const
+      const casacore::String& modelColumnName() const
         { return itsModelColName; }
 
       // Get the slicer in the FLAG and DATA column.
-      const casa::Slicer& colSlicer() const
+      const casacore::Slicer& colSlicer() const
         { return itsColSlicer; }
 
       // Get the rownrs for meta info of missing time slots.
       // It uses the rows of the first time slot.
-      const casa::Vector<uint>& getBaseRowNrs() const
+      const casacore::Vector<uint>& getBaseRowNrs() const
         { return itsBaseRowNrs; }
 
       // Get the name of the MS.
-      virtual casa::String msName() const;
+      virtual casacore::String msName() const;
 
       // Get the time information.
       double firstTime() const
@@ -258,8 +258,8 @@ namespace LOFAR {
         { return itsBuffer; }
 
       // Flags inf and NaN
-      static void flagInfNaN(const casa::Cube<casa::Complex>& dataCube,
-                       casa::Cube<bool>& flagsCube, FlagCounter& flagCounter);
+      static void flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
+                       casacore::Cube<bool>& flagsCube, FlagCounter& flagCounter);
 
     private:
       // Prepare the access to the MS.
@@ -278,19 +278,19 @@ namespace LOFAR {
       void calcUVW (double time, DPBuffer&);
 
       // Calculate the weights from the autocorrelations.
-      void autoWeight (casa::Cube<float>& weights, const DPBuffer& buf);
+      void autoWeight (casacore::Cube<float>& weights, const DPBuffer& buf);
 
     protected:
       //# Data members.
-      casa::String        itsMSName;
-      casa::Table         itsMS;
-      casa::Table         itsSelMS;         //# possible selection of spw, baseline
-      casa::TableIterator itsIter;
-      casa::String        itsDataColName;
-      casa::String        itsWeightColName;
-      casa::String        itsModelColName;
-      casa::String        itsStartChanStr;  //# startchan expression
-      casa::String        itsNrChanStr;     //# nchan expression
+      casacore::String        itsMSName;
+      casacore::Table         itsMS;
+      casacore::Table         itsSelMS;         //# possible selection of spw, baseline
+      casacore::TableIterator itsIter;
+      casacore::String        itsDataColName;
+      casacore::String        itsWeightColName;
+      casacore::String        itsModelColName;
+      casacore::String        itsStartChanStr;  //# startchan expression
+      casacore::String        itsNrChanStr;     //# nchan expression
       string              itsSelBL;         //# Baseline selection string
       bool                itsReadVisData;   //# read visibility data?
       bool                itsNeedSort;      //# sort needed on time,baseline?
@@ -314,14 +314,14 @@ namespace LOFAR {
       double              itsLastMSTime;
       uint                itsNrRead;        //# nr of time slots read from MS
       uint                itsNrInserted;    //# nr of inserted time slots
-      casa::Slicer        itsColSlicer;     //# slice in corr,chan column
-      casa::Slicer        itsArrSlicer;     //# slice in corr,chan,bl array
+      casacore::Slicer        itsColSlicer;     //# slice in corr,chan column
+      casacore::Slicer        itsArrSlicer;     //# slice in corr,chan,bl array
       bool                itsHasFullResFlags;
       uint                itsFullResNChanAvg;
       uint                itsFullResNTimeAvg;
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
-      casa::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
+      casacore::Vector<uint>  itsBaseRowNrs;    //# rownrs for meta of missing times
       FlagCounter         itsFlagCounter;
       NSTimer             itsTimer;
     };

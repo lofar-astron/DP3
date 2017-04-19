@@ -7,41 +7,41 @@ const double PiercePoint::EarthRadius = 6371000.; //default Earth radius in mete
 PiercePoint::PiercePoint():
   itsValue(3)
 {
-  casa::MPosition ant;//ITRF
-  casa::MDirection source;//J2000 pole
+  casacore::MPosition ant;//ITRF
+  casacore::MDirection source;//J2000 pole
   init(ant,source,PiercePoint::IONOheight);
 }
 
-PiercePoint::PiercePoint(const casa::MPosition &ant,const casa::MDirection &source,const double height):
+PiercePoint::PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height):
   itsValue(3)
 {
   init(ant,source,height);
 };
 
-PiercePoint::PiercePoint(const casa::MPosition &ant,const casa::MDirection &source):
+PiercePoint::PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source):
    itsValue(3)
   { 
     init(ant,source,PiercePoint::IONOheight);
 };
 
-void  PiercePoint::init(const casa::MPosition &ant,const casa::MDirection &source,const double height){
+void  PiercePoint::init(const casacore::MPosition &ant,const casacore::MDirection &source,const double height){
   
-  itsPosition=casa::MPosition::Convert(ant,casa::MPosition::ITRF)();
+  itsPosition=casacore::MPosition::Convert(ant,casacore::MPosition::ITRF)();
   itsDirection=source;
   itsIonoHeight=height;
-  const casa::MVPosition &mPosition = itsPosition.getValue();
+  const casacore::MVPosition &mPosition = itsPosition.getValue();
   itsC = mPosition(0)*mPosition(0)+mPosition(1)*mPosition(1)+mPosition(2)*mPosition(2)-
     (itsIonoHeight+PiercePoint::EarthRadius)*(itsIonoHeight+PiercePoint::EarthRadius);
   
 }
 
-void  PiercePoint::evaluate(casa::MEpoch time){
+void  PiercePoint::evaluate(casacore::MEpoch time){
   //Convert direction to ITRF vector
-  casa::MeasFrame myframe(itsPosition,time);
-  casa::MDirection::Ref myref(casa::MDirection::ITRF,myframe);
-  const casa::MDirection dir = casa::MDirection::Convert(itsDirection,myref)();
-  const casa::MVDirection &mDir = dir.getValue();
-  const casa::MVPosition &mPos = itsPosition.getValue();
+  casacore::MeasFrame myframe(itsPosition,time);
+  casacore::MDirection::Ref myref(casacore::MDirection::ITRF,myframe);
+  const casacore::MDirection dir = casacore::MDirection::Convert(itsDirection,myref)();
+  const casacore::MVDirection &mDir = dir.getValue();
+  const casacore::MVPosition &mPos = itsPosition.getValue();
   double A = mDir(0)*mDir(0)+mDir(1)*mDir(1)+mDir(2)*mDir(2);
   double B = mDir(0)*mPos(0) + mDir(1)*mPos(1) +mDir(2)*mPos(2);
   double alpha = (-B + sqrt(B*B - A*itsC))/A;

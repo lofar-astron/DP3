@@ -27,7 +27,7 @@
 // Helper functions for creating cursors for CASA arrays.
 
 #include <DPPP/Cursor.h>
-#include <casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Array.h>
 
 namespace LOFAR
 {
@@ -38,26 +38,26 @@ namespace DPPP
 // @{
 
 template <typename T>
-cursor<T> casa_cursor(casa::Array<T> &array)
+cursor<T> casa_cursor(casacore::Array<T> &array)
 {
     return cursor<T>(array.data(), array.ndim(), array.steps().storage());
 }
 
 template <typename T>
-cursor<T> casa_cursor(casa::Array<T> &array, const casa::IPosition &offset)
+cursor<T> casa_cursor(casacore::Array<T> &array, const casacore::IPosition &offset)
 {
     return cursor<T>(&(array(offset)), array.ndim(), array.steps().storage());
 }
 
 template <typename T>
-const_cursor<T> casa_const_cursor(const casa::Array<T> &array)
+const_cursor<T> casa_const_cursor(const casacore::Array<T> &array)
 {
     return const_cursor<T>(array.data(), array.ndim(), array.steps().storage());
 }
 
 template <typename T>
-const_cursor<T> casa_const_cursor(const casa::Array<T> &array,
-    const casa::IPosition &offset)
+const_cursor<T> casa_const_cursor(const casacore::Array<T> &array,
+    const casacore::IPosition &offset)
 {
     return const_cursor<T>(&(array(offset)), array.ndim(),
         array.steps().storage());

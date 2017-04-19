@@ -31,15 +31,15 @@
 
 #include <Common/LofarLogger.h>
 #include <Common/lofar_vector.h>
-#include <measures/Measures/MeasFrame.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MBaseline.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MCPosition.h>
-#include <measures/Measures/MCBaseline.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/measures/Measures/MeasFrame.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MBaseline.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/measures/Measures/MCBaseline.h>
+#include <casacore/casa/Arrays/Vector.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -61,22 +61,22 @@ namespace LOFAR {
 
       // Construct the object for the given phase direction, array position,
       // and station positions.
-      UVWCalculator (const casa::MDirection& phaseDir,
-                     const casa::MPosition& arrayPosition,
-                     const vector<casa::MPosition>& stationPositions);
+      UVWCalculator (const casacore::MDirection& phaseDir,
+                     const casacore::MPosition& arrayPosition,
+                     const vector<casacore::MPosition>& stationPositions);
 
       // get the UVW coordinates for the given baseline and time.
-      casa::Vector<double> getUVW (uint ant1, uint ant2, double time);
+      casacore::Vector<double> getUVW (uint ant1, uint ant2, double time);
 
     private:
-      casa::MDirection              itsPhaseDir;
+      casacore::MDirection              itsPhaseDir;
       bool                          itsMovingPhaseDir;  
-      casa::MDirection::Convert     itsDirToJ2000;   //# direction to J2000
-      casa::MBaseline::Convert      itsBLToJ2000;    //# convert ITRF to J2000
-      casa::MeasFrame               itsFrame;
-      vector<casa::MBaseline>       itsAntMB;
-      vector<casa::Vector<double> > itsAntUvw;
-      casa::Block<bool>             itsUvwFilled;
+      casacore::MDirection::Convert     itsDirToJ2000;   //# direction to J2000
+      casacore::MBaseline::Convert      itsBLToJ2000;    //# convert ITRF to J2000
+      casacore::MeasFrame               itsFrame;
+      vector<casacore::MBaseline>       itsAntMB;
+      vector<casacore::Vector<double> > itsAntUvw;
+      casacore::Block<bool>             itsUvwFilled;
       double                        itsLastTime;
     };
 

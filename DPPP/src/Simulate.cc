@@ -26,12 +26,12 @@
 
 // Only required for rotateUVW().
 #include <DPPP/PhaseShift.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR
 {
@@ -138,12 +138,12 @@ void nsplitUVW (const vector<int>& blindex,
 void rotateUVW(const Position &from, const Position &to, size_t nUVW,
     double *uvw)
 {
-    casa::Matrix<double> oldUVW(3,3);
-    casa::Matrix<double> newUVW(3,3);
+    casacore::Matrix<double> oldUVW(3,3);
+    casacore::Matrix<double> newUVW(3,3);
     PhaseShift::fillTransMatrix(oldUVW, from[0], from[1]);
     PhaseShift::fillTransMatrix(newUVW, to[0], to[1]);
 
-    casa::Matrix<double> tmp(casa::product(casa::transpose(newUVW), oldUVW));
+    casacore::Matrix<double> tmp(casacore::product(casacore::transpose(newUVW), oldUVW));
     const double *R = tmp.data();
 
     for(size_t i = 0; i < 3*nUVW; i+=3)

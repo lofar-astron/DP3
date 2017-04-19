@@ -31,9 +31,9 @@
 #include <DPPP/StManParsetKeys.h>
 
 #include <Common/LofarTypes.h>
-#include <tables/Tables/ColumnDesc.h>
-#include <tables/Tables/RefRows.h>
-#include <tables/Tables/Table.h>
+#include <casacore/tables/Tables/ColumnDesc.h>
+#include <casacore/tables/Tables/RefRows.h>
+#include <casacore/tables/Tables/Table.h>
 
 namespace LOFAR {
 
@@ -55,7 +55,7 @@ namespace LOFAR {
     class MSUpdater: public DPStep
     {
     public:
-      MSUpdater (MSReader* reader, casa::String msName,
+      MSUpdater (MSReader* reader, casacore::String msName,
                 const ParameterSet& parset, const std::string& prefix,
                 bool writeHistory=true);
 
@@ -84,37 +84,37 @@ namespace LOFAR {
       // Tests if an update of the buffer described in info to the MS msName
       // is possible. When throwError is true, it will throw an error with a
       // descriptive string before returning false
-      static bool updateAllowed (const DPInfo& info, casa::String msName,
+      static bool updateAllowed (const DPInfo& info, casacore::String msName,
                                   bool throwError=true);
 
     private:
       // Write the flags at the given row numbers.
-      void putFlags (const casa::RefRows& rowNrs,
-                     const casa::Cube<bool>& flags);
+      void putFlags (const casacore::RefRows& rowNrs,
+                     const casacore::Cube<bool>& flags);
 
       // Write the weights at the given row numbers
-      void putWeights (const casa::RefRows& rowNrs,
-                       const casa::Cube<float>& weights);
+      void putWeights (const casacore::RefRows& rowNrs,
+                       const casacore::Cube<float>& weights);
 
       // Write the data at the given row numbers.
-      void putData (const casa::RefRows& rowNrs,
-                    const casa::Cube<casa::Complex>& data);
+      void putData (const casacore::RefRows& rowNrs,
+                    const casacore::Cube<casacore::Complex>& data);
 
       // If not existing yet, add the column specified by colname.
       // Column will containt arrays of type datatype.
       // If the column has been added, this function returns true
-      bool addColumn(const string& colname, const casa::DataType dataType,
-          const casa::ColumnDesc& cd);
+      bool addColumn(const string& colname, const casacore::DataType dataType,
+          const casacore::ColumnDesc& cd);
 
       //# Data members
       MSReader*    itsReader;
       string       itsName;
-      casa::String itsMSName;
-      casa::Table  itsMS;
+      casacore::String itsMSName;
+      casacore::Table  itsMS;
       const ParameterSet& itsParset;
       DPBuffer     itsBuffer;
-      casa::String itsDataColName;
-      casa::String itsWeightColName;
+      casacore::String itsDataColName;
+      casacore::String itsWeightColName;
       uint         itsNrTimesFlush; //# flush every N time slots (0=no flush)
       bool         itsWriteData;
       bool         itsWriteWeights;

@@ -26,7 +26,7 @@
 #include <lofar_config.h>
 #include <DPPP/EstimateMixed.h>
 #include <Common/LofarLogger.h>
-#include <scimath/Fitting/LSQFit.h>
+#include <casacore/scimath/Fitting/LSQFit.h>
 #include <Common/StreamUtil.h> ///
 
 namespace LOFAR
@@ -78,7 +78,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
     // Initialize LSQ solver.
     const size_t nUnknowns = nDirection * nStation * 4 * 2;
-    casa::LSQFit solver(nUnknowns);
+    casacore::LSQFit solver(nUnknowns);
 
     // Each visibility provides information about two (complex) unknowns per
     // station per direction. A visibility is measured by a specific
@@ -317,7 +317,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
         baselines -= nBaseline;
 
         // Perform LSQ iteration.
-        casa::uInt rank;
+        casacore::uInt rank;
         bool status = solver.solveLoop(rank, unknowns, true);
         ASSERT(status);
         if (sh) {
@@ -332,8 +332,8 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
         ++nIterations;
     }
 
-    const bool converged = (solver.isReady() == casa::LSQFit::SOLINCREMENT
-        || solver.isReady() == casa::LSQFit::DERIVLEVEL);
+    const bool converged = (solver.isReady() == casacore::LSQFit::SOLINCREMENT
+        || solver.isReady() == casacore::LSQFit::DERIVLEVEL);
     return converged;
 }
 

@@ -27,7 +27,7 @@
 #include <Common/ParameterSet.h>
 #include <iostream>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

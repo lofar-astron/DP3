@@ -30,18 +30,18 @@
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 
-#include <tables/Tables/Table.h>
-#include <tables/Tables/TableRecord.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Utilities/Regex.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/TableRecord.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Utilities/Regex.h>
 
 #include <iostream>
 
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -206,7 +206,7 @@ namespace LOFAR {
       arrayContTransform (static_cast<const Array<Complex>&>(buf.getData()),
                           static_cast<const Array<double>&>(itsFactors),
                           data,
-                          casa::Multiplies<Complex,double,Complex>());
+                          casacore::Multiplies<Complex,double,Complex>());
       bufNew.setData (data);
       itsTimer.stop();
       getNextStep()->process (bufNew);

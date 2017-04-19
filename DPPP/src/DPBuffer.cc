@@ -23,7 +23,7 @@
 
 #include <DPPP/DPBuffer.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

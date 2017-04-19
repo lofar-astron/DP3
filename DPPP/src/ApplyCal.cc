@@ -29,12 +29,12 @@
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
 #include <Common/LofarLogger.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/OS/File.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/OS/File.h>
 #include <iostream>
 #include <iomanip>
 
-using namespace casa;
+using namespace casacore;
 using namespace LOFAR::BBS;
 
 /// Look at BBSKernel MeasurementExprLOFARUtil.cc and Apply.cc
@@ -447,14 +447,14 @@ namespace LOFAR {
           }
           else if (itsCorrectType=="clock") {
             itsParms(0, ant, tf)=polar(1.,
-                parmvalues[0][ant][tf] * freq * casa::C::_2pi);
+                parmvalues[0][ant][tf] * freq * casacore::C::_2pi);
             if (itsParmExprs.size() == 1) { // No Clock:0, only Clock:
               itsParms(1, ant, tf)=polar(1.,
-                  parmvalues[0][ant][tf] * freq * casa::C::_2pi);
+                  parmvalues[0][ant][tf] * freq * casacore::C::_2pi);
             }
             else { // Clock:0 and Clock:1
               itsParms(1, ant, tf)=polar(1.,
-                  parmvalues[1][ant][tf] * freq * casa::C::_2pi);
+                  parmvalues[1][ant][tf] * freq * casacore::C::_2pi);
             }
           }
           else if (itsCorrectType=="rotationangle") {
@@ -470,7 +470,7 @@ namespace LOFAR {
             itsParms(3, ant, tf) =  cosv;
           }
           else if (itsCorrectType=="rotationmeasure") {
-            double lambda2 = casa::C::c / freq;
+            double lambda2 = casacore::C::c / freq;
             lambda2 *= lambda2;
             double chi = parmvalues[0][ant][tf] * lambda2;
             if (itsInvert) {

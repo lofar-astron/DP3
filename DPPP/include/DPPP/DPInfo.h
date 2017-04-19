@@ -29,11 +29,11 @@
 
 #include <Common/LofarTypes.h>
 #include <Common/lofar_vector.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MeasureHolder.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Containers/Record.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MeasureHolder.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Containers/Record.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -68,33 +68,33 @@ namespace LOFAR {
       // An empty resolutions or effectiveBW is default to chanWidths.
       // If totalBW is 0, it is set to the sum of effectiveBW.
       // If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
-      void set (const casa::Vector<double>& chanFreqs,
-                const casa::Vector<double>& chanWidths,
-                const casa::Vector<double>& resolutions= casa::Vector<double>(),
-                const casa::Vector<double>& effectiveBW= casa::Vector<double>(),
+      void set (const casacore::Vector<double>& chanFreqs,
+                const casacore::Vector<double>& chanWidths,
+                const casacore::Vector<double>& resolutions= casacore::Vector<double>(),
+                const casacore::Vector<double>& effectiveBW= casacore::Vector<double>(),
                 double totalBW = 0,
                 double refFreq = 0);
 
       // Set array info.
-      void set (const casa::MPosition& arrayPos,
-                const casa::MDirection& phaseCenter,
-                const casa::MDirection& delayCenter,
-                const casa::MDirection& tileBeamDir);
+      void set (const casacore::MPosition& arrayPos,
+                const casacore::MDirection& phaseCenter,
+                const casacore::MDirection& delayCenter,
+                const casacore::MDirection& tileBeamDir);
 
       // Set the info for the given antennae and baselines.
-      void set (const casa::Vector<casa::String>& antNames,
-                const casa::Vector<casa::Double>& antDiam,
-                const vector<casa::MPosition>& antPos,
-                const casa::Vector<casa::Int>& ant1,
-                const casa::Vector<casa::Int>& ant2);
+      void set (const casacore::Vector<casacore::String>& antNames,
+                const casacore::Vector<casacore::Double>& antDiam,
+                const vector<casacore::MPosition>& antPos,
+                const casacore::Vector<casacore::Int>& ant1,
+                const casacore::Vector<casacore::Int>& ant2);
 
       // Set the name of the data column
-      void setDataColName(const casa::String& dataColName) {
+      void setDataColName(const casacore::String& dataColName) {
         itsDataColName=dataColName;
       }
 
       // Set the name of the weight column
-      void setWeightColName(const casa::String& weightColName) {
+      void setWeightColName(const casacore::String& weightColName) {
         itsWeightColName=weightColName;
       }
 
@@ -114,7 +114,7 @@ namespace LOFAR {
 
       // Set the phase center.
       // If original=true, it is set to the original phase center.
-      void setPhaseCenter (const casa::MDirection& phaseCenter, bool original)
+      void setPhaseCenter (const casacore::MDirection& phaseCenter, bool original)
         { itsPhaseCenter=phaseCenter; itsPhaseCenterIsOriginal = original; }
 
 
@@ -145,45 +145,45 @@ namespace LOFAR {
         { return itsStartTime; }
       double timeInterval() const
         { return itsTimeInterval; }
-      const casa::Vector<casa::Int>& getAnt1() const
+      const casacore::Vector<casacore::Int>& getAnt1() const
         { return itsAnt1; }
-      const casa::Vector<casa::Int>& getAnt2() const
+      const casacore::Vector<casacore::Int>& getAnt2() const
         { return itsAnt2; }
-      const casa::Vector<casa::String>& antennaNames() const
+      const casacore::Vector<casacore::String>& antennaNames() const
         { return itsAntNames; }
-      const casa::Vector<casa::Double>& antennaDiam() const
+      const casacore::Vector<casacore::Double>& antennaDiam() const
         { return itsAntDiam; }
-      const vector<casa::MPosition>& antennaPos() const
+      const vector<casacore::MPosition>& antennaPos() const
         { return itsAntPos; }
-      const casa::MPosition& arrayPos() const
+      const casacore::MPosition& arrayPos() const
         { return itsArrayPos; }
-      const casa::MPosition arrayPosCopy() const
-        {  return copyMeasure(casa::MeasureHolder(itsArrayPos)).asMPosition(); }
-      const casa::MDirection& phaseCenter() const
+      const casacore::MPosition arrayPosCopy() const
+        {  return copyMeasure(casacore::MeasureHolder(itsArrayPos)).asMPosition(); }
+      const casacore::MDirection& phaseCenter() const
         { return itsPhaseCenter; }
-      const casa::MDirection phaseCenterCopy() const
-      {  return copyMeasure(casa::MeasureHolder(itsPhaseCenter)).asMDirection(); }
+      const casacore::MDirection phaseCenterCopy() const
+      {  return copyMeasure(casacore::MeasureHolder(itsPhaseCenter)).asMDirection(); }
       bool phaseCenterIsOriginal() const
         { return itsPhaseCenterIsOriginal; }
-      const casa::MDirection& delayCenter() const
+      const casacore::MDirection& delayCenter() const
         { return itsDelayCenter; }
-      const casa::MDirection delayCenterCopy() const
-        { return copyMeasure(casa::MeasureHolder(itsDelayCenter)).asMDirection(); }
-      const casa::MDirection& tileBeamDir() const
+      const casacore::MDirection delayCenterCopy() const
+        { return copyMeasure(casacore::MeasureHolder(itsDelayCenter)).asMDirection(); }
+      const casacore::MDirection& tileBeamDir() const
         { return itsTileBeamDir; }
-      const casa::MDirection tileBeamDirCopy() const
-        { return copyMeasure(casa::MeasureHolder(itsTileBeamDir)).asMDirection(); }
-      const casa::Vector<double>& chanFreqs() const
+      const casacore::MDirection tileBeamDirCopy() const
+        { return copyMeasure(casacore::MeasureHolder(itsTileBeamDir)).asMDirection(); }
+      const casacore::Vector<double>& chanFreqs() const
         { return itsChanFreqs; }
-      const casa::Vector<double>& chanWidths() const
+      const casacore::Vector<double>& chanWidths() const
         { return itsChanWidths; }
-      const casa::Vector<double>& resolutions() const
+      const casacore::Vector<double>& resolutions() const
         { return itsResolutions; }
-      const casa::Vector<double>& effectiveBW() const
+      const casacore::Vector<double>& effectiveBW() const
         { return itsEffectiveBW; }
-      const casa::String& getDataColName() const
+      const casacore::String& getDataColName() const
         { return itsDataColName; }
-      const casa::String& getWeightColName() const
+      const casacore::String& getWeightColName() const
         { return itsWeightColName; }
       double totalBW() const
         { return itsTotalBW; }
@@ -245,18 +245,18 @@ namespace LOFAR {
 
       // Convert to a Record.
       // The names of the fields in the record are the data names without 'its'.
-      casa::Record toRecord() const;
+      casacore::Record toRecord() const;
 
       // Update the DPInfo object from a Record.
       // It is possible that only a few fields are defined in the record.
-      void fromRecord (const casa::Record& rec);
+      void fromRecord (const casacore::Record& rec);
 
     private:
       // Set which antennae are actually used.
       void setAntUsed();
 
-      // Creates a real copy of a casa::Measure by exporting to a Record
-      static casa::MeasureHolder copyMeasure(const casa::MeasureHolder fromMeas);
+      // Creates a real copy of a casacore::Measure by exporting to a Record
+      static casacore::MeasureHolder copyMeasure(const casacore::MeasureHolder fromMeas);
 
       //# Data members.
       bool   itsNeedVisData;    //# Are the visibility data needed?
@@ -265,8 +265,8 @@ namespace LOFAR {
       bool   itsWriteWeights;   //# Must the weights be written?
       bool   itsMetaChanged;    //# Are meta data changed? (e.g., by averaging)
       string itsMSName;
-      casa::String itsDataColName;
-      casa::String itsWeightColName;
+      casacore::String itsDataColName;
+      casacore::String itsWeightColName;
       string itsAntennaSet;
       uint   itsNCorr;
       uint   itsStartChan;
@@ -277,24 +277,24 @@ namespace LOFAR {
       uint   itsTimeAvg;
       double itsStartTime;
       double itsTimeInterval;
-      casa::MDirection itsPhaseCenter;
+      casacore::MDirection itsPhaseCenter;
       bool             itsPhaseCenterIsOriginal;
-      casa::MDirection itsDelayCenter;
-      casa::MDirection itsTileBeamDir;
-      casa::MPosition  itsArrayPos;
-      casa::Vector<double>       itsChanFreqs;
-      casa::Vector<double>       itsChanWidths;
-      casa::Vector<double>       itsResolutions;
-      casa::Vector<double>       itsEffectiveBW;
+      casacore::MDirection itsDelayCenter;
+      casacore::MDirection itsTileBeamDir;
+      casacore::MPosition  itsArrayPos;
+      casacore::Vector<double>       itsChanFreqs;
+      casacore::Vector<double>       itsChanWidths;
+      casacore::Vector<double>       itsResolutions;
+      casacore::Vector<double>       itsEffectiveBW;
       double                     itsTotalBW;
       double                     itsRefFreq;
-      casa::Vector<casa::String> itsAntNames;
-      casa::Vector<casa::Double> itsAntDiam;
-      vector<casa::MPosition>    itsAntPos;
+      casacore::Vector<casacore::String> itsAntNames;
+      casacore::Vector<casacore::Double> itsAntDiam;
+      vector<casacore::MPosition>    itsAntPos;
       vector<int>                itsAntUsed;
       vector<int>                itsAntMap;
-      casa::Vector<casa::Int>    itsAnt1;          //# ant1 of all baselines
-      casa::Vector<casa::Int>    itsAnt2;          //# ant2 of all baselines
+      casacore::Vector<casacore::Int>    itsAnt1;          //# ant1 of all baselines
+      casacore::Vector<casacore::Int>    itsAnt2;          //# ant2 of all baselines
       mutable vector<double>     itsBLength;       //# baseline lengths
       mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
     };
