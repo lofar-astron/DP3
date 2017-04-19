@@ -85,11 +85,25 @@ namespace LOFAR {
                           parset.getDouble (prefix + "tolerance", 1.e-5),
                           parset.getDouble (prefix + "stepsize", 0.2))
     {
-      vector<string> strDirections = parset.getStringVector (prefix + "directions");
-      itsDirections.resize(strDirections.size());
-      for (uint i=0; i<strDirections.size(); ++i) {
-        ParameterValue dirStr(strDirections[i]);
-        itsDirections[i] = dirStr.getStringVector();
+      vector<string> strDirections = 
+         parset.getStringVector (prefix + "directions",
+                                 vector<string> ());
+
+      // Default directions are all patches
+      if (strDirections.empty()) {
+        string sourceDBName = parset.getString(prefix+"sourcedb");
+        BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
+        vector<string> patchNames = makePatchList(sourceDB, vector<string>());
+        itsDirections.resize(patchNames.size());
+        for (uint i=0; i<patchNames.size(); ++i) {
+          itsDirections[i] = vector<string>(1, patchNames[i]);
+        }
+      } else {
+        itsDirections.resize(strDirections.size());
+        for (uint i=0; i<strDirections.size(); ++i) {
+          ParameterValue dirStr(strDirections[i]);
+          itsDirections[i] = dirStr.getStringVector();
+        }
       }
 
       itsMode = toLower(parset.getString(prefix + "mode", "complexgain"));
