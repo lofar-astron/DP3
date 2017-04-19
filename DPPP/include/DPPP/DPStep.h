@@ -218,6 +218,9 @@ namespace LOFAR {
     class MultiResultStep: public DPStep
     {
     public:
+      // Define the shared pointer for this type.
+      typedef shared_ptr<MultiResultStep> ShPtr;
+
       // Create the object. By default it sets its next step to the NullStep.
       MultiResultStep (uint size);
 

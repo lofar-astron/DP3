@@ -39,6 +39,7 @@
 #include <casa/Quanta/MVEpoch.h>
 #include <measures/Measures/MEpoch.h>
 #include <casa/Arrays/ArrayMath.h>
+#include <utility>
 
 namespace LOFAR {
 
@@ -58,6 +59,14 @@ namespace LOFAR {
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
+
+      // Constructor with explicit sourcelist
+      Predict (DPInput*, const ParameterSet&, const string& prefix,
+               const vector<string>& sourcePatterns);
+
+      // The actual constructor
+      void init (DPInput*, const ParameterSet&, const string& prefix,
+                 const vector<string>& sourcePatterns);
 
       Predict();
 
@@ -79,6 +88,12 @@ namespace LOFAR {
 
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
+
+      // Prepare the sources
+      void setSources(const vector<string>& sourcePatterns);
+
+      // Return the direction of the first patch
+      std::pair<double, double> getFirstDirection() const;
 
     private:
       StationResponse::vector3r_t dir2Itrf (const casa::MDirection& dir,

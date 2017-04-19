@@ -38,8 +38,8 @@
 #endif
 #include <tables/Tables/SetupNewTab.h>
 #include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/StandardStMan.h>
-#include <tables/Tables/TiledStManAccessor.h>
+#include <tables/DataMan/StandardStMan.h>
+#include <tables/DataMan/TiledStManAccessor.h>
 #include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <measures/Measures/MCDirection.h>
 #include <casa/Arrays/ArrayMath.h>
