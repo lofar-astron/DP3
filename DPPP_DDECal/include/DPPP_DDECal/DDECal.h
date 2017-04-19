@@ -1,0 +1,147 @@
+//# DDE.h: DPPP step class to calibrate direction dependent gains
+//# Copyright (C) 2013
+//# ASTRON (Netherlands Institute for Radio Astronomy)
+//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//#
+//# This file is part of the LOFAR software suite.
+//# The LOFAR software suite is free software: you can redistribute it and/or
+//# modify it under the terms of the GNU General Public License as published
+//# by the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The LOFAR software suite is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License along
+//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//#
+//# $Id: DDECal.h 21598 2012-07-16 08:07:34Z diepen $
+//#
+//# @author Tammo Jan Dijkema
+
+#ifndef DPPP_DDECAL_H
+#define DPPP_DDECAL_H
+
+// @file
+// @brief DPPP step class to apply a calibration correction to the data
+
+#include <DPPP/DPInput.h>
+#include <DPPP/DPBuffer.h>
+#include <DPPP/H5Parm.h>
+#include <DPPP/BaselineSelection.h>
+#include <DPPP/Patch.h>
+#include <DPPP/Predict.h>
+#include <DPPP/SourceDBUtil.h>
+#include <DPPP/ApplyBeam.h>
+#include <DPPP_DDECal/multidirsolver.h>
+#include <DPPP_DDECal/Constraint.h>
+#include <StationResponse/Station.h>
+#include <StationResponse/Types.h>
+#include <ParmDB/Parm.h>
+#include <casa/Arrays/Cube.h>
+#include <casa/Quanta/MVEpoch.h>
+#include <measures/Measures/MEpoch.h>
+#include <casa/Arrays/ArrayMath.h>
+
+namespace LOFAR {
+
+  class ParameterSet;
+
+  namespace DPPP {
+    // @ingroup NDPPP
+
+    // This class is a DPStep class to calibrate (direction independent) gains.
+
+    typedef vector<Patch::ConstPtr> PatchList;
+    typedef std::pair<size_t, size_t >Baseline;
+
+    class DDECal: public DPStep
+    {
+    public:
+      // Construct the object.
+      // Parameters are obtained from the parset using the given prefix.
+      DDECal (DPInput*, const ParameterSet&, const string& prefix);
+
+      virtual ~DDECal();
+
+      // Create an DDECal object using the given parset.
+      static DPStep::ShPtr makeStep (DPInput*, const ParameterSet&,
+                                     const std::string&);
+
+      // Process the data.
+      // It keeps the data.
+      // When processed, it invokes the process function of the next step.
+      virtual bool process (const DPBuffer&);
+
+      // Initialize H5parm-file
+      void initH5parm();
+
+      // Write out the solutions
+      void writeSolutions();
+
+      // Finish the processing of this step and subsequent steps.
+      virtual void finish();
+
+      // Update the general info.
+      virtual void updateInfo (const DPInfo&);
+
+      // Show the step parameters.
+      virtual void show (std::ostream&) const;
+
+      // Show the timings.
+      virtual void showTimings (std::ostream&, double duration) const;
+
+
+    private:
+      // Initialize the parmdb
+      void initH5Parm();
+
+      //# Data members.
+      DPInput*         itsInput;
+      string           itsName;
+      vector<DPBuffer> itsBufs;
+
+      // The time of the current buffer (in case of solint, average time)
+      double           itsAvgTime;
+      std::vector<casa::Complex*> itsDataPtrs;
+
+      // For each timeslot, a vector of nDir buffers
+      std::vector<std::vector<casa::Complex*> > itsModelDataPtrs;
+
+      // For each time, for each channel block, a vector of size nAntennas * nDirections
+      std::vector<std::vector<std::vector<casa::DComplex> > > itsSols;
+
+      // For each time, for each constraint, a vector of results (e.g. tec and phase)
+      std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
+
+      casa::Cube<casa::Complex> itsModelData;
+      string           itsH5ParmName;
+      H5Parm           itsH5Parm;
+
+      string           itsMode;
+      uint             itsTimeStep;
+      uint             itsSolInt;
+      uint             itsStepInSolInt;
+      uint             itsNChan;
+      uint             itsNFreqCells;
+      vector<vector<string> > itsDirections; // For each direction, a vector of patches
+      vector<casa::CountedPtr<Constraint> > itsConstraints;
+
+      vector<Predict>     itsPredictSteps;
+      vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times
+
+      NSTimer          itsTimer;
+      NSTimer          itsTimerPredict;
+      NSTimer          itsTimerSolve;
+      NSTimer          itsTimerWrite;
+      double           itsCoreConstraint;
+
+      MultiDirSolver   itsMultiDirSolver;
+    };
+
+  } //# end namespace
+}
+
+#endif
