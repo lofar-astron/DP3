@@ -79,6 +79,7 @@ namespace LOFAR {
       itsNrChanStr        = parset.getString (prefix+"nchan", "0");
       string startTimeStr = parset.getString (prefix+"starttime", "");
       string endTimeStr   = parset.getString (prefix+"endtime", "");
+      uint nTimes         = parset.getInt    (prefix+"ntimes", 0);
       itsTimeTolerance    = parset.getDouble (prefix+"timetolerance", 1e-2);
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
@@ -151,6 +152,9 @@ namespace LOFAR {
           THROW (LOFAR::Exception, endTimeStr << " is an invalid date/time");
         }
         itsLastTime = qtime.getValue("s");
+      }
+      if (nTimes > 0) {
+        itsLastTime = itsFirstTime + (nTimes-1) * itsTimeInterval;
       }
       ASSERT (itsLastTime >= itsFirstTime);
       // If needed, skip the first times in the MS.
