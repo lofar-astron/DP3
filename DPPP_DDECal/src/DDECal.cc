@@ -220,6 +220,7 @@ namespace LOFAR {
 
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       itsSols.resize(nSolTimes);
+      itsNIter.resize(nSolTimes);
       itsConstraintSols.resize(nSolTimes);
 
       vector<double> chanFreqs(info().nchan());  //nChannelBlocks
@@ -306,6 +307,12 @@ namespace LOFAR {
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerWrite.getElapsed(), totaltime);
       os << " of it spent in writing gain solutions to disk" << endl;
+
+      os << "Iterations taken: [";
+      for (uint i=0; i<itsNIter.size()-1; ++i) {
+        os<<itsNIter[i]<<",";
+      }
+      os<<itsNIter[itsNIter.size()-1]<<"]"<<endl;
     }
 
     bool DDECal::process (const DPBuffer& bufin)
@@ -376,6 +383,7 @@ namespace LOFAR {
                   itsAvgTime / itsSolInt);
         itsTimerSolve.stop();
 
+        itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
         // Store constraint solutions
         if (itsMode!="complexgain" && itsMode!="phaseonly") {
           itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;

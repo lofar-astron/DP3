@@ -112,6 +112,7 @@ namespace LOFAR {
 
       // For each time, for each channel block, a vector of size nAntennas * nDirections
       std::vector<std::vector<std::vector<casacore::DComplex> > > itsSols;
+      std::vector<uint> itsNIter; // Number of iterations taken
 
       // For each time, for each constraint, a vector of results (e.g. tec and phase)
       std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
