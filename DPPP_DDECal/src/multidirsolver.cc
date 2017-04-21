@@ -55,7 +55,7 @@ MultiDirSolver::SolveResult MultiDirSolver::process(std::vector<Complex *>& data
   std::vector<std::vector<cx_vec> > vs(_nChannelBlocks);
   for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
   {
-    solutions[chBlock].assign(_nDirections * _nAntennas, 1.0);
+    //solutions[chBlock].assign(_nDirections * _nAntennas, 1.0);
     nextSolutions[chBlock].resize(_nDirections * _nAntennas);
     const size_t
       channelIndexStart = chBlock * _nChannels / _nChannelBlocks,

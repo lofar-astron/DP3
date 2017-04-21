@@ -359,6 +359,16 @@ namespace LOFAR {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
+        if (itsTimeStep/itsSolInt>0) {
+          // initialize solutions with those of the previous step
+          itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+        } else {
+          // initialize solutions with 1.
+          for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
+               solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
+             (*solveciter).assign(itsDirections.size()*info().antennaNames().size(), 1.0);
+          }
+        }
         itsTimerSolve.start();
         MultiDirSolver::SolveResult solveResult = 
                   itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
@@ -547,6 +557,8 @@ namespace LOFAR {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
+        // initialize solutions with those of the previous step
+        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
         //shrink itsDataPtrs, itsModelDataPtrs
         std::vector<casacore::Complex*>(itsDataPtrs.begin(),
             itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
