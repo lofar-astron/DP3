@@ -75,6 +75,8 @@ namespace LOFAR {
                                             parset.getString("msin")+
                                               "/instrument.h5")),
         itsH5Parm        (itsH5ParmName),
+        itsPropagateSolutions (parset.getBool (prefix + "propagatesolutions",
+                                               false)),
         itsTimeStep      (0),
         itsSolInt        (parset.getInt (prefix + "solint", 1)),
         itsStepInSolInt  (0),
@@ -315,6 +317,19 @@ namespace LOFAR {
       os<<itsNIter[itsNIter.size()-1]<<"]"<<endl;
     }
 
+    void DDECal::initializeSolutions() {
+      if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
+        // initialize solutions with those of the previous step
+        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+      } else {
+        // initialize solutions with 1.
+        for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
+             solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
+           (*solveciter).assign(itsDirections.size()*info().antennaNames().size(), 1.0);
+        }
+      }
+    }
+
     bool DDECal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
@@ -366,16 +381,8 @@ namespace LOFAR {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
-        if (itsTimeStep/itsSolInt>0) {
-          // initialize solutions with those of the previous step
-          itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
-        } else {
-          // initialize solutions with 1.
-          for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
-               solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
-             (*solveciter).assign(itsDirections.size()*info().antennaNames().size(), 1.0);
-          }
-        }
+        initializeSolutions();
+
         itsTimerSolve.start();
         MultiDirSolver::SolveResult solveResult = 
                   itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
@@ -565,8 +572,8 @@ namespace LOFAR {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
-        // initialize solutions with those of the previous step
-        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+         initializeSolutions();
+
         //shrink itsDataPtrs, itsModelDataPtrs
         std::vector<casacore::Complex*>(itsDataPtrs.begin(),
             itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);

@@ -95,8 +95,8 @@ namespace LOFAR {
 
 
     private:
-      // Initialize the parmdb
-      void initH5Parm();
+      // Initialize solutions
+      void initializeSolutions();
 
       //# Data members.
       DPInput*         itsInput;
@@ -122,6 +122,7 @@ namespace LOFAR {
       H5Parm           itsH5Parm;
 
       string           itsMode;
+      bool             itsPropagateSolutions;
       uint             itsTimeStep;
       uint             itsSolInt;
       uint             itsStepInSolInt;
