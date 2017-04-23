@@ -37,14 +37,14 @@
 #include <StationResponse/Station.h>
 #include <ParmDB/ParmDB.h>
 
-#include <casa/Arrays/Cube.h>
-#include <casa/Quanta/Quantum.h>
-#include <measures/Measures/MeasureHolder.h>
-#include <measures/Measures/MeasFrame.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MCDirection.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MeasureHolder.h>
+#include <casacore/measures/Measures/MeasFrame.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MCDirection.h>
 
 namespace LOFAR {
 
@@ -99,19 +99,19 @@ namespace LOFAR {
       uint nDeprojectTarget() const
         { return itsNrDeprojectTarget; }
       // Get nr of times a source was demixed.
-      const casa::Vector<uint>& nsourcesDemixed() const
+      const casacore::Vector<uint>& nsourcesDemixed() const
         { return itsNrSourcesDemixed; }
       // Get nr of times a station was demixed.
-      const casa::Vector<uint>& nstationsDemixed() const
+      const casacore::Vector<uint>& nstationsDemixed() const
         { return itsNrStationsDemixed; }
       // Get nr of times a station/source was demixed.
-      const casa::Matrix<uint>& statSourceDemixed() const
+      const casacore::Matrix<uint>& statSourceDemixed() const
         { return itsStatSourceDemixed; }
-      const casa::Matrix<double>& amplSubtrMean() const
+      const casacore::Matrix<double>& amplSubtrMean() const
         { return itsAmplSubtrMean; }
-      const casa::Matrix<double>& amplSubtrM2() const
+      const casacore::Matrix<double>& amplSubtrM2() const
         { return itsAmplSubtrM2; }
-      const casa::Matrix<size_t>& amplSubtrNr() const
+      const casacore::Matrix<size_t>& amplSubtrNr() const
         { return itsAmplSubtrNr; }
 
       // Get the timings of the various processing steps.
@@ -140,7 +140,7 @@ namespace LOFAR {
 
       // Find the median ampltitude for the selected baselines.
       // It uses itsTmpAmpl as temporary buffer.
-      float findMedian (const casa::Cube<float>& ampl, const bool* selbl);
+      float findMedian (const casacore::Cube<float>& ampl, const bool* selbl);
 
       // Average the baseline UVWs in bufin and split them into UVW per station.
       // It returns the number of time averages.
@@ -159,7 +159,7 @@ namespace LOFAR {
                          uint ntime, double time, double timeStep);
 
       // Add the StokesI of itsPredictVis to ampl.
-      void addStokesI (casa::Matrix<float>& ampl);
+      void addStokesI (casacore::Matrix<float>& ampl);
 
       // Calculate the beam for demix resolution and apply to itsPredictVis.
       // If apply==False, nothing is done.
@@ -169,15 +169,15 @@ namespace LOFAR {
       // Apply it to the data.
       // If apply==False, nothing is done.
       void applyBeam (double time, const Position& pos, bool apply,
-                      const casa::Vector<double>& chanFreqs,
+                      const casacore::Vector<double>& chanFreqs,
                       dcomplex* data);
 
       // Convert a direction to ITRF.
-      StationResponse::vector3r_t dir2Itrf (const casa::MDirection&);
+      StationResponse::vector3r_t dir2Itrf (const casacore::MDirection&);
 
       // Calculate the StokesI amplitude from the predicted visibilities.
       // (0.5 * (XX+YY))
-      void calcStokesI (casa::Matrix<float>& ampl);
+      void calcStokesI (casacore::Matrix<float>& ampl);
 
       // Simply average the data if no demixing needs to bedone.
       void average (const DPBuffer* bufin, uint nbufin,
@@ -185,18 +185,18 @@ namespace LOFAR {
 
       // Add the decorrelation factor contribution for each time slot.
       void addFactors (const DPBuffer& newBuf,
-                       casa::Array<casa::DComplex>& factorBuf);
+                       casacore::Array<casacore::DComplex>& factorBuf);
 
       // Calculate the decorrelation factors by averaging them.
       // Apply the P matrix to deproject the sources without a model.
-      void makeFactors (const casa::Array<casa::DComplex>& bufIn,
-                        casa::Array<casa::DComplex>& bufOut,
-                        const casa::Cube<float>& weightSums,
+      void makeFactors (const casacore::Array<casacore::DComplex>& bufIn,
+                        casacore::Array<casacore::DComplex>& bufOut,
+                        const casacore::Cube<float>& weightSums,
                         uint nChanOut,
                         uint nChanAvg);
 
       // Deproject the sources without a model.
-      void deproject (casa::Array<casa::DComplex>& factors,
+      void deproject (casacore::Array<casacore::DComplex>& factors,
                       vector<MultiResultStep*> avgResults,
                       uint resultIndex);
 
@@ -237,9 +237,9 @@ namespace LOFAR {
       vector<StationResponse::Station::Ptr> itsAntBeamInfo;
       //# Measure objects unique to this worker (thread).
       //# This is needed because they are not thread-safe.
-      casa::MPosition                       itsArrayPos;
-      casa::MDirection                      itsDelayCenter;
-      casa::MDirection                      itsTileBeamDir;
+      casacore::MPosition                       itsArrayPos;
+      casacore::MDirection                      itsDelayCenter;
+      casacore::MDirection                      itsTileBeamDir;
 
       //# Variables set by setupDemix and used by handleDemix.
       uint                                  itsNDir;
@@ -250,37 +250,37 @@ namespace LOFAR {
       //# Accumulator used for computing the demixing weights at the demix
       //# resolution. The shape of this buffer is #correlations x #channels
       //# x #baselines x #directions x #directions (fastest axis first).
-      casa::Array<casa::DComplex>           itsFactorBuf;
+      casacore::Array<casacore::DComplex>           itsFactorBuf;
       //# Buffer of demixing weights at the demix resolution. Each Array is a
       //# cube of shape #correlations x #channels x #baselines of matrices of
       //# shape #directions x #directions.
-      vector<casa::Array<casa::DComplex> >  itsFactors;
+      vector<casacore::Array<casacore::DComplex> >  itsFactors;
       //# Accumulator used for computing the demixing weights. The shape of this
       //# buffer is #correlations x #channels x #baselines x #directions
       //# x #directions (fastest axis first).
-      casa::Array<casa::DComplex>           itsFactorBufSubtr;
+      casacore::Array<casacore::DComplex>           itsFactorBufSubtr;
       //# Buffer of demixing weights at the subtract resolution. Each Array is a
       //# cube of shape #correlations x #channels x #baselines of matrices of
       //# shape #directions x #directions.
-      vector<casa::Array<casa::DComplex> >  itsFactorsSubtr;
+      vector<casacore::Array<casacore::DComplex> >  itsFactorsSubtr;
 
       //# Variables for conversion of directions to ITRF.
-      casa::MeasFrame                       itsMeasFrame;
-      casa::MDirection::Convert             itsMeasConverter;
+      casacore::MeasFrame                       itsMeasFrame;
+      casacore::MDirection::Convert             itsMeasConverter;
       vector<StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
 
       //# Indices telling which Ateam sources to use.
       vector<uint>                          itsSrcSet;
       //# UVW per station per demix time slot
-      casa::Cube<double>                    itsStationUVW;  //# UVW per station
-      casa::Matrix<double>                  itsAvgUVW;      //# temp buffer
-      casa::Cube<dcomplex>                  itsPredictVis;  //# temp buffer
+      casacore::Cube<double>                    itsStationUVW;  //# UVW per station
+      casacore::Matrix<double>                  itsAvgUVW;      //# temp buffer
+      casacore::Cube<dcomplex>                  itsPredictVis;  //# temp buffer
       //# #nfreq x #bl x #time StokesI amplitude per A-source.
-      vector<casa::Cube<float> >            itsAteamAmpl;
+      vector<casacore::Cube<float> >            itsAteamAmpl;
       //# #bl x #src telling if baseline has sufficient Ateam flux.
-      casa::Matrix<bool>                    itsAteamAmplSel;
+      casacore::Matrix<bool>                    itsAteamAmplSel;
       //# #nfreq x #bl x #time StokesI amplitude of target.
-      casa::Cube<float>                     itsTargetAmpl;
+      casacore::Cube<float>                     itsTargetAmpl;
       //# Temporary buffer to determine medians.
       vector<float>                         itsTmpAmpl;
       //# Per A-source and for target the min and max amplitude.
@@ -290,16 +290,16 @@ namespace LOFAR {
       double                                itsTargetMaxAmpl;
       //# Per A-source the stations to use (matching the minimum amplitude).
       vector<vector<uint> >                 itsStationsToUse;
-      casa::Block<bool>                     itsSolveStation; //# solve station i?
+      casacore::Block<bool>                     itsSolveStation; //# solve station i?
       //# Per station and source the index in the unknowns vector.
       //# Note there are 8 unknowns (4 pol, ampl/phase) per source/station.
       vector<vector<int> >                  itsUnknownsIndex;
       //# The estimater (solver).
       EstimateNew                           itsEstimate;
       //# Variables for the predict.
-      casa::Matrix<double>                  itsUVW;
-      vector<casa::Cube<dcomplex> >         itsModelVisDemix;
-      vector<casa::Cube<dcomplex> >         itsModelVisSubtr;
+      casacore::Matrix<double>                  itsUVW;
+      vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
+      vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
       uint                                  itsNTimeOut;
       uint                                  itsNTimeOutSubtr;
       uint                                  itsTimeIndex;
@@ -316,17 +316,17 @@ namespace LOFAR {
       uint                                  itsNrIgnoreTarget;
       uint                                  itsNrDeprojectTarget;
       //# Nr of times a source is demixed.
-      casa::Vector<uint>                    itsNrSourcesDemixed;
+      casacore::Vector<uint>                    itsNrSourcesDemixed;
       //# Nr of times a station is demixed.
-      casa::Vector<uint>                    itsNrStationsDemixed;
+      casacore::Vector<uint>                    itsNrStationsDemixed;
       //# Nr of times a source/station is demixed.
-      casa::Matrix<uint>                    itsStatSourceDemixed;
+      casacore::Matrix<uint>                    itsStatSourceDemixed;
       //# Average amplitude subtracted for middle channel [nbl,nsrc]
-      casa::Matrix<double>                  itsAmplSubtrMean;
+      casacore::Matrix<double>                  itsAmplSubtrMean;
       //# M2n to calculate stddev online in stable way (see Wikipedia)
-      casa::Matrix<double>                  itsAmplSubtrM2;
+      casacore::Matrix<double>                  itsAmplSubtrM2;
       //# N for mean/stddev amplitude calculations.
-      casa::Matrix<size_t>                  itsAmplSubtrNr;
+      casacore::Matrix<size_t>                  itsAmplSubtrNr;
       //# Timers.
       NSTimer                               itsTimer;
       NSTimer                               itsTimerCoarse;

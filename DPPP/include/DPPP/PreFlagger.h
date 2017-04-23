@@ -31,7 +31,7 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/BaselineSelection.h>
 #include <Common/lofar_vector.h>
-#include <measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MDirection.h>
 
 namespace LOFAR {
   class ParameterSet;
@@ -127,8 +127,8 @@ namespace LOFAR {
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 
         // Set and return the flags.
-        casa::Cube<bool>* process (const DPBuffer&, DPBuffer&, uint timeSlot,
-                                   const casa::Block<bool>& matchBL,
+        casacore::Cube<bool>* process (const DPBuffer&, DPBuffer&, uint timeSlot,
+                                   const casacore::Block<bool>& matchBL,
                                    NSTimer& timer);
 
         // Update the general info.
@@ -151,7 +151,7 @@ namespace LOFAR {
 
         // Clear itsMatchBL for baselines with mismatching UV distances.
         // If returns false if no matches were found.
-        bool flagUV (const casa::Matrix<double>& uvw);
+        bool flagUV (const casacore::Matrix<double>& uvw);
 
         // Clear itsMatchBL for baselines with mismatching AzEl.
         // If returns false if no matches were found.
@@ -159,19 +159,19 @@ namespace LOFAR {
 
         // Test if azimuth or elevation of given antenna mismatches.
         // If so, clear itsMatchBL for all baselines containing the antenna.
-        void testAzEl (casa::MDirection::Convert& converter,
+        void testAzEl (casacore::MDirection::Convert& converter,
                        uint blnr, int ant,
                        const int* ant1, const int* ant2);
 
         // Set the flags based on amplitude threshold per correlation.
-        void flagAmpl (const casa::Cube<float>& amplitudes);
+        void flagAmpl (const casacore::Cube<float>& amplitudes);
 
         // Set the flags based on phase threshold per correlation.
-        void flagPhase (const casa::Cube<casa::Complex>& data);
+        void flagPhase (const casacore::Cube<casacore::Complex>& data);
 
         // Set the flags based on real/imaginary threshold per correlation.
-        void flagReal (const casa::Cube<casa::Complex>& data);
-        void flagImag (const casa::Cube<casa::Complex>& data);
+        void flagReal (const casacore::Cube<casacore::Complex>& data);
+        void flagImag (const casacore::Cube<casacore::Complex>& data);
 
         // Flag the channels given in itsChannels.
         void flagChannels();
@@ -205,15 +205,15 @@ namespace LOFAR {
 
         // Handle the frequency ranges given and determine which channels
         // have to be flagged.
-        casa::Vector<bool> handleFreqRanges
-        (const casa::Vector<double>& chanFreqs);
+        casacore::Vector<bool> handleFreqRanges
+        (const casacore::Vector<double>& chanFreqs);
 
         // Get the value and possible unit.
         // If no unit is given, the argument is left untouched.
-        void getValue (const string& str, double& value, casa::String& unit);
+        void getValue (const string& str, double& value, casacore::String& unit);
 
         // Get the frequency in Hz using the value and unit.
-        double getFreqHz (double value, const casa::String& unit);
+        double getFreqHz (double value, const casacore::String& unit);
 
         // Convert a PSet expression to Reversed Polish Notation in itsRpn.
         // It returns the names of all PSets.
@@ -236,7 +236,7 @@ namespace LOFAR {
         BaselineSelection  itsSelBL;
         double             itsMinUV;    //# minimum UV distance; <0 means ignore
         double             itsMaxUV;    //# maximum UV distance; <0 means ignore
-        casa::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
+        casacore::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
         vector<double>     itsAzimuth;  //# azimuth ranges to be flagged
         vector<double>     itsElevation;//# elevation ranges to be flagged
         vector<double>     itsTimes;    //# time of day ranges to be flagged
@@ -263,9 +263,9 @@ namespace LOFAR {
         vector<string>     itsStrElev;  //# elevation ranges to be flagged
         vector<int>         itsRpn;     //# PSet expression in RPN form
         vector<PSet::ShPtr> itsPSets;   //# PSets used in itsRpn
-        casa::Matrix<bool>  itsChanFlags; //# flags for channels to be flagged
-        casa::Cube<bool>    itsFlags;
-        casa::Block<bool>   itsMatchBL; //# true = baseline in buffer matches 
+        casacore::Matrix<bool>  itsChanFlags; //# flags for channels to be flagged
+        casacore::Cube<bool>    itsFlags;
+        casacore::Block<bool>   itsMatchBL; //# true = baseline in buffer matches 
       };
 
       // Set the flags in outPtr where inPtr matches mode.

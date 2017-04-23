@@ -34,12 +34,12 @@
 #include <StationResponse/Station.h>
 #include <Common/lofar_vector.h>
 
-#include <tables/Tables/TableIter.h>
-#include <tables/Tables/RefRows.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Slicer.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
+#include <casacore/tables/Tables/TableIter.h>
+#include <casacore/tables/Tables/RefRows.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Slicer.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MPosition.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -67,36 +67,36 @@ namespace LOFAR {
 
       // Read the UVW at the given row numbers into the buffer.
       // The default implementation throws an exception.
-      virtual void getUVW (const casa::RefRows& rowNrs,
+      virtual void getUVW (const casacore::RefRows& rowNrs,
                            double time,
                            DPBuffer&);
 
       // Read the weights at the given row numbers into the buffer.
       // The default implementation throws an exception.
-      virtual void getWeights (const casa::RefRows& rowNrs,
+      virtual void getWeights (const casacore::RefRows& rowNrs,
                                DPBuffer&);
 
       // Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
       // into the buffer.
       // If undefined, false is returned.
       // The default implementation throws an exception.
-      virtual bool getFullResFlags (const casa::RefRows& rowNrs,
+      virtual bool getFullResFlags (const casacore::RefRows& rowNrs,
                                     DPBuffer&);
 
       // Read the model data at the given row numbers into the array.
       // The default implementation throws an exception.
-      virtual void getModelData (const casa::RefRows& rowNrs,
-                                 casa::Cube<casa::Complex>&);
+      virtual void getModelData (const casacore::RefRows& rowNrs,
+                                 casacore::Cube<casacore::Complex>&);
 
       // Get the MS name.
       // The default implementation returns an empty string.
-      virtual casa::String msName() const;
+      virtual casacore::String msName() const;
 
       // Fill the vector with station beam info from the input source (MS).
       // Only fill it for the given station names.
       // The default implementation throws an exception.
       virtual void fillBeamInfo (vector<StationResponse::Station::Ptr>&,
-                                 const casa::Vector<casa::String>& antNames);
+                                 const casacore::Vector<casacore::String>& antNames);
 
       // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.
@@ -107,7 +107,7 @@ namespace LOFAR {
       // that if an averaged channel is flagged, the corresponding FullRes
       // flags are set.
       // <br>It does a stop/start of the timer when actually reading the data.
-      const casa::Cube<bool>& fetchFullResFlags (const DPBuffer& bufin,
+      const casacore::Cube<bool>& fetchFullResFlags (const DPBuffer& bufin,
                                                  DPBuffer& bufout,
                                                  NSTimer& timer,
                                                  bool merge=false);
@@ -118,7 +118,7 @@ namespace LOFAR {
       // If they have to be read and if autoweighting is in effect, the buffer
       // must contain DATA to calculate the weights.
       // <br>It does a stop/start of the timer when actually reading the data.
-      const casa::Cube<float>& fetchWeights (const DPBuffer& bufin,
+      const casacore::Cube<float>& fetchWeights (const DPBuffer& bufin,
                                              DPBuffer& bufout,
                                              NSTimer& timer);
 
@@ -126,7 +126,7 @@ namespace LOFAR {
       // If defined in the buffer, they are taken from there.
       // Otherwise there are read from the input.
       // <br>It does a stop/start of the timer when actually reading the data.
-      const casa::Matrix<double>& fetchUVW (const DPBuffer& bufin,
+      const casacore::Matrix<double>& fetchUVW (const DPBuffer& bufin,
                                             DPBuffer& bufout,
                                             NSTimer& timer);
     };

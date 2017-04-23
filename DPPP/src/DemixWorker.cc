@@ -49,24 +49,24 @@
 #include <Common/lofar_iostream.h>
 #include <Common/lofar_fstream.h>
 
-#include <casa/Quanta/MVAngle.h>
-#include <casa/Quanta/MVEpoch.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <casa/Arrays/MatrixIter.h>
-#include <casa/Containers/Record.h>
-#include <scimath/Mathematics/MatrixMathLA.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasureHolder.h>
+#include <casacore/casa/Quanta/MVAngle.h>
+#include <casacore/casa/Quanta/MVEpoch.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Arrays/MatrixIter.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/scimath/Mathematics/MatrixMathLA.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasureHolder.h>
 
 #include <sstream>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

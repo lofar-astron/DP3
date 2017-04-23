@@ -32,7 +32,7 @@
 #include <DPPP/Position.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
-#include <casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/Cube.h>
 
 namespace LOFAR {
 
@@ -93,8 +93,8 @@ namespace LOFAR {
 
       private:
         StationResponse::vector3r_t dir2Itrf(
-            const casa::MDirection& dir,
-            casa::MDirection::Convert& measConverter);
+            const casacore::MDirection& dir,
+            casacore::MDirection::Convert& measConverter);
 
         //# Data members.
         DPInput*             itsInput;
@@ -110,8 +110,8 @@ namespace LOFAR {
 
         // The info needed to calculate the station beams.
         vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
-        vector<casa::MeasFrame> itsMeasFrames;
-        vector<casa::MDirection::Convert> itsMeasConverters;
+        vector<casacore::MeasFrame> itsMeasFrames;
+        vector<casacore::MDirection::Convert> itsMeasConverters;
         vector<vector<StationResponse::matrix22c_t> > itsBeamValues;
 
         NSTimer itsTimer;

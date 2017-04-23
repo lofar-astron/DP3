@@ -36,9 +36,9 @@
 #include <Common/lofar_iostream.h>
 #include <Common/lofar_iomanip.h>
 
-#include <casa/Arrays/ArrayPartMath.h>
+#include <casacore/casa/Arrays/ArrayPartMath.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

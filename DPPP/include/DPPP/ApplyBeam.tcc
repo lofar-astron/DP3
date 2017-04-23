@@ -46,12 +46,12 @@
 #include <DPPP/GaussianSource.h>
 #include <ParmDB/SourceDB.h>
 
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Quanta/Quantum.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MeasConvert.h>
-#include <tables/Tables/RefRows.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/tables/Tables/RefRows.h>
 
 #include <stddef.h>
 #include <string>

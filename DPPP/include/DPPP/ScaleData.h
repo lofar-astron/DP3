@@ -29,7 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/Cube.h>
 
 namespace LOFAR {
 
@@ -90,7 +90,7 @@ namespace LOFAR {
       vector<string>     itsStationExp;  // station regex strings
       vector<string>     itsCoeffStr;    // coeff per station regex
       vector<vector<double> > itsStationFactors; // scale factor per station,freq
-      casa::Cube<double> itsFactors;     // scale factor per baseline,freq,pol
+      casacore::Cube<double> itsFactors;     // scale factor per baseline,freq,pol
       NSTimer            itsTimer;
     };
 

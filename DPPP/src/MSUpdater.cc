@@ -27,19 +27,19 @@
 #include <DPPP/MSWriter.h>
 #include <DPPP/DPBuffer.h>
 #include <Common/ParameterSet.h>
-#include <tables/Tables/Table.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ColumnDesc.h>
-#include <tables/Tables/StandardStMan.h>
-#include <casa/Containers/Record.h>
-#include <casa/Utilities/LinearSearch.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ColumnDesc.h>
+#include <casacore/tables/DataMan/StandardStMan.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Utilities/LinearSearch.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <iostream>
 #include <limits>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -69,7 +69,7 @@ namespace LOFAR {
     MSUpdater::~MSUpdater()
     {}
 
-    bool MSUpdater::addColumn (const string& colName, const casa::DataType
+    bool MSUpdater::addColumn (const string& colName, const casacore::DataType
                                dataType, const ColumnDesc& cd)
     {
       if (itsMS.tableDesc().isColumn(colName)) {
@@ -81,7 +81,7 @@ namespace LOFAR {
       }
 
       if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0) {
-        casa::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
+        casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
         DataManagerCtor dyscoConstructor = DataManager::getCtor("DyscoStMan");
         CountedPtr<DataManager> dyscoStMan(dyscoConstructor(colName + "_dm", dyscoSpec));
         ColumnDesc directColumnDesc(cd);

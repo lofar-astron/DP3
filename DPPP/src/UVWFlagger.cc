@@ -28,15 +28,15 @@
 #include <Common/ParameterSet.h>
 #include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <casa/Quanta/Quantum.h>
-#include <casa/Quanta/MVAngle.h>
-#include <casa/Utilities/GenSort.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/MVAngle.h>
+#include <casacore/casa/Utilities/GenSort.h>
 #include <iostream>
 #include <algorithm>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -115,7 +115,7 @@ namespace LOFAR {
       info().setWriteFlags();
       // Convert the given frequencies to possibly averaged frequencies.
       // Divide it by speed of light to get reciproke of wavelengths.
-      itsRecWavel = infoIn.chanFreqs() / casa::C::c;
+      itsRecWavel = infoIn.chanFreqs() / casacore::C::c;
       // Handle the phase center (if given).
       if (! itsCenter.empty()) {
         handleCenter();

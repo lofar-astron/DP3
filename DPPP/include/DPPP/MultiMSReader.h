@@ -31,9 +31,9 @@
 #include <DPPP/DPBuffer.h>
 #include <DPPP/UVWCalculator.h>
 #include <DPPP/FlagCounter.h>
-#include <tables/Tables/TableIter.h>
-#include <tables/Tables/RefRows.h>
-#include <casa/Arrays/Slicer.h>
+#include <casacore/tables/Tables/TableIter.h>
+#include <casacore/tables/Tables/RefRows.h>
+#include <casacore/casa/Arrays/Slicer.h>
 #include <Common/lofar_vector.h>
 
 namespace LOFAR {
@@ -155,18 +155,18 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Read the UVW at the given row numbers.
-      virtual void getUVW (const casa::RefRows& rowNrs,
+      virtual void getUVW (const casacore::RefRows& rowNrs,
                            double time,
                            DPBuffer& buf);
 
       // Read the weights at the given row numbers.
-      virtual void getWeights (const casa::RefRows& rowNrs,
+      virtual void getWeights (const casacore::RefRows& rowNrs,
                                DPBuffer& buf);
 
       // Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
       // It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
       // If undefined, false is returned.
-      virtual bool getFullResFlags (const casa::RefRows& rowNrs,
+      virtual bool getFullResFlags (const casacore::RefRows& rowNrs,
                                     DPBuffer& buf);
 
       // Tell if the visibility data are to be read.

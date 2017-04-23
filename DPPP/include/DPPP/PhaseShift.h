@@ -29,7 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Matrix.h>
 
 namespace LOFAR {
 
@@ -79,12 +79,12 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Fill the transformation matrix for given ra/dec.
-      static void fillTransMatrix (casa::Matrix<double>& mat,
+      static void fillTransMatrix (casacore::Matrix<double>& mat,
                                    double ra, double dec);
 
       // Get the phasors resulting from the last process step.
       // This is used in the Demixer.
-      const casa::Matrix<casa::DComplex>& getPhasors() const
+      const casacore::Matrix<casacore::DComplex>& getPhasors() const
         { return itsPhasors; }
 
       // Get the phase center.
@@ -94,7 +94,7 @@ namespace LOFAR {
     private:
       // Interpret the phase center specification.
       // Currently only J2000 RA and DEC can be given.
-      casa::MDirection handleCenter();
+      casacore::MDirection handleCenter();
       
       //# Data members.
       DPInput*             itsInput;
@@ -102,9 +102,9 @@ namespace LOFAR {
       DPBuffer             itsBuf;
       vector<string>       itsCenter;
       vector<double>       itsFreqC;      //# freq/C
-      casa::Matrix<double> itsMat1;       //# TT in phasehift.py
+      casacore::Matrix<double> itsMat1;       //# TT in phasehift.py
       double               itsXYZ[3];     //# numpy.dot((w-w1).T, T)
-      casa::Matrix<casa::DComplex> itsPhasors; //# phase factor per chan,bl
+      casacore::Matrix<casacore::DComplex> itsPhasors; //# phase factor per chan,bl
       NSTimer              itsTimer;
     };
 

@@ -80,7 +80,7 @@ namespace LOFAR {
       // reader should be the original reader
       static DPStep::ShPtr makeOutputStep(MSReader* reader,
           const ParameterSet& parset, const string& prefix, bool multipleInputs,
-          casa::String& currentMSName);
+          casacore::String& currentMSName);
 
       // The map to create a step object from its type name.
       static std::map<std::string, StepCtor*> theirStepMap;

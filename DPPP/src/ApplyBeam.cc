@@ -34,12 +34,12 @@
 #include <DPPP/FlagCounter.h>
 #include <DPPP/Position.h>
 
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Quanta/Quantum.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasConvert.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasConvert.h>
 
 #include <stddef.h>
 #include <string>
@@ -47,7 +47,7 @@
 #include <utility>
 #include <vector>
 
-using namespace casa;
+using namespace casacore;
 using namespace LOFAR::BBS;
 
 namespace LOFAR {

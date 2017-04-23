@@ -31,7 +31,7 @@
 #include <Common/StringUtil.h>
 #include <Common/StreamUtil.h>
 
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 namespace LOFAR {

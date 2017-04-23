@@ -33,7 +33,7 @@
 #include <DPPP/Patch.h>
 #include <Common/ParameterSet.h>
 
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Vector.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -98,9 +98,9 @@ namespace LOFAR {
       const vector<string>& sourceNames() const  {return itsSourceNames;}
       const Position& phaseRef() const           {return itsPhaseRef;}
       const vector<Baseline>& baselines() const  {return itsBaselines;}
-      const casa::Vector<bool> selTarget() const {return itsSelTarget;}
-      const casa::Vector<double>& freqDemix() const      {return itsFreqDemix;}
-      const casa::Vector<double>& freqSubtr() const      {return itsFreqSubtr;}
+      const casacore::Vector<bool> selTarget() const {return itsSelTarget;}
+      const casacore::Vector<double>& freqDemix() const      {return itsFreqDemix;}
+      const casacore::Vector<double>& freqSubtr() const      {return itsFreqSubtr;}
       const vector<Patch::ConstPtr>& ateamList() const   {return itsAteamList;}
       const vector<Patch::ConstPtr>& targetList() const  {return itsTargetList;}
       const vector<Patch::ConstPtr>& ateamDemixList() const
@@ -109,13 +109,13 @@ namespace LOFAR {
         {return itsTargetDemixList;}
 
       // Get the baselines.
-      const casa::Vector<casa::Int>& getAnt1() const
+      const casacore::Vector<casacore::Int>& getAnt1() const
         { return itsInfoSel.getAnt1(); }
-      const casa::Vector<casa::Int>& getAnt2() const
+      const casacore::Vector<casacore::Int>& getAnt2() const
         { return itsInfoSel.getAnt2(); }
 
       // Get the antenna names and used antennas.
-      const casa::Vector<casa::String>& antennaNames() const
+      const casacore::Vector<casacore::String>& antennaNames() const
         { return itsInfoSel.antennaNames(); }
 
       // Get cosine of the angular distance between two sky positions.
@@ -185,9 +185,9 @@ namespace LOFAR {
       double                  itsTimeIntervalAvg;
       Position                itsPhaseRef;          //# original phaseref
       vector<Baseline>        itsBaselines;
-      casa::Vector<bool>      itsSelTarget;     //# baselines in target estimate
-      casa::Vector<double>    itsFreqDemix;
-      casa::Vector<double>    itsFreqSubtr;
+      casacore::Vector<bool>      itsSelTarget;     //# baselines in target estimate
+      casacore::Vector<double>    itsFreqDemix;
+      casacore::Vector<double>    itsFreqSubtr;
       vector<Patch::ConstPtr> itsAteamList;
       vector<Patch::ConstPtr> itsTargetList;
       vector<Patch::ConstPtr> itsAteamDemixList;

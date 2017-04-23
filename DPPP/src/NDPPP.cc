@@ -30,7 +30,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <casa/OS/File.h>
+#include <casacore/casa/OS/File.h>
 
 using namespace LOFAR::DPPP;
 using namespace LOFAR;
@@ -74,9 +74,9 @@ int main(int argc, char *argv[])
       parsetName = argv[1];
     } else if (argc==1) {
       // No arguments given: try to load [N]DPPP.parset
-      if (casa::File("NDPPP.parset").exists()) {
+      if (casacore::File("NDPPP.parset").exists()) {
         parsetName="NDPPP.parset";
-      } else if (casa::File("DPPP.parset").exists()) {
+      } else if (casacore::File("DPPP.parset").exists()) {
         parsetName="DPPP.parset";
       } else { // No default file, show usage and exit
         showUsage();

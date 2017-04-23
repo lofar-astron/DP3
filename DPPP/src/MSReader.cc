@@ -30,27 +30,27 @@
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 
-#include <tables/Tables/TableRecord.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ExprNode.h>
-#include <tables/Tables/RecordGram.h>
-#include <measures/Measures/MeasTable.h>
-#include <measures/TableMeasures/ScalarMeasColumn.h>
-#include <measures/TableMeasures/ArrayMeasColumn.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/TableRecord.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/tables/TaQL/RecordGram.h>
+#include <casacore/measures/Measures/MeasTable.h>
+#include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #if defined(casacore)
-#include <ms/MSSel/MSSelection.h>
+#include <casacore/ms/MSSel/MSSelection.h>
 #else
-#include <ms/MeasurementSets/MSSelection.h>
+#include <casacore/ms/MSSel/MSSelection.h>
 #endif
-#include <casa/Containers/Record.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Quanta/MVTime.h>
-#include <casa/OS/Conversion.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Quanta/MVTime.h>
+#include <casacore/casa/OS/Conversion.h>
 #include <iostream>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -79,6 +79,7 @@ namespace LOFAR {
       itsNrChanStr        = parset.getString (prefix+"nchan", "0");
       string startTimeStr = parset.getString (prefix+"starttime", "");
       string endTimeStr   = parset.getString (prefix+"endtime", "");
+      uint nTimes         = parset.getInt    (prefix+"ntimes", 0);
       itsTimeTolerance    = parset.getDouble (prefix+"timetolerance", 1e-2);
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
@@ -152,6 +153,9 @@ namespace LOFAR {
         }
         itsLastTime = qtime.getValue("s");
       }
+      if (nTimes > 0) {
+        itsLastTime = itsFirstTime + (nTimes-1) * itsTimeInterval;
+      }
       ASSERT (itsLastTime >= itsFirstTime);
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
@@ -202,7 +206,7 @@ namespace LOFAR {
     void MSReader::updateInfo (const DPInfo&)
     {}
 
-    casa::String MSReader::msName() const
+    casacore::String MSReader::msName() const
     {
       return itsMSName;
     }
@@ -343,8 +347,8 @@ namespace LOFAR {
       return true;
     }
 
-    void MSReader::flagInfNaN(const casa::Cube<casa::Complex>& dataCube,
-                              casa::Cube<bool>& flagsCube,
+    void MSReader::flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
+                              casacore::Cube<bool>& flagsCube,
                               FlagCounter& flagCounter) {
       int ncorr=dataCube.shape()[0];
       const Complex* dataPtr = dataCube.data();
@@ -823,8 +827,8 @@ namespace LOFAR {
       return true;
     }
 
-    void MSReader::getModelData (const casa::RefRows& rowNrs,
-                                 casa::Cube<casa::Complex>& arr)
+    void MSReader::getModelData (const casacore::RefRows& rowNrs,
+                                 casacore::Cube<casacore::Complex>& arr)
     {
       NSTimer::StartStop sstime(itsTimer);
       if (rowNrs.rowVector().empty()) {

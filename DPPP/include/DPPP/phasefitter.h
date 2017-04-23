@@ -54,6 +54,13 @@
 class PhaseFitter
 {
  public:
+	 PhaseFitter() :
+    _phases(),
+    _frequencies(),
+    _weights(),
+    _fittingAccuracy(1e-6)
+  { }
+	 
   /**
    * Construct a phase fitter for the given number of channels.
    * Weights are initialized to unity. The fitting accuracy is
@@ -67,8 +74,16 @@ class PhaseFitter
     _fittingAccuracy(1e-6)
   { }
 
-  PhaseFitter(const PhaseFitter&);
-  PhaseFitter& operator=(const PhaseFitter&);
+	/**
+	 * Change the number of channels to be fitted. All phase, weight and frequency data is discarded.
+	 * @param channelCount New number of channels
+	 */
+	void SetChannelCount(size_t channelCount)
+	{
+		_phases.assign(channelCount, 0.0);
+		_frequencies.assign(channelCount, 0.0);
+		_weights.assign(channelCount, 1.0);
+	}
 
   /**
    * Fits the given phase values to a TEC model and returns the parameters. This function is

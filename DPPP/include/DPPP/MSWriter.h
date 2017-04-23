@@ -31,11 +31,11 @@
 #include <DPPP/MSReader.h>
 #include <DPPP/StManParsetKeys.h>
 
-#include <tables/Tables/Table.h>
-#include <tables/Tables/ColumnDesc.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/TiledColumnStMan.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/ColumnDesc.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
 
 namespace LOFAR {
   class ParameterSet;
@@ -88,14 +88,14 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Write the parset info into the HISTORY table of the MS.
-      static void writeHistory (casa::Table& ms,
+      static void writeHistory (casacore::Table& ms,
                                 const ParameterSet& parset);
 
     private:
       // Create an array column description and add to table with given
       // stoage manager (if given).
-      void makeArrayColumn (casa::ColumnDesc desc, const casa::IPosition& shape,
-                            casa::DataManager* dm, casa::Table& table, bool makeDirectColumn = false);
+      void makeArrayColumn (casacore::ColumnDesc desc, const casacore::IPosition& shape,
+                            casacore::DataManager* dm, casacore::Table& table, bool makeDirectColumn = false);
 
       // Create the MS by cloning all subtables from the input MS.
       // All output columns in the main table are using normal storage managers.
@@ -113,54 +113,54 @@ namespace LOFAR {
       void updateField (const string& outName, const DPInfo& info);
 
       // Write the data, flags, etc.
-      void writeData (casa::Table& out, const DPBuffer& buf);
+      void writeData (casacore::Table& out, const DPBuffer& buf);
 
       // Write the full resolution flags (flags before any averaging).
-      void writeFullResFlags (casa::Table& out, const DPBuffer& buf);
+      void writeFullResFlags (casacore::Table& out, const DPBuffer& buf);
 
       // Write all meta data columns for a time slot (ANTENNA1, etc.)
-      void writeMeta (casa::Table& out, const DPBuffer& buf);
+      void writeMeta (casacore::Table& out, const DPBuffer& buf);
 
       // Copy meta data columns for a time slot (ANTENNA1, etc.)
       // It also copies all time info if possible.
-      void copyMeta (const casa::Table& in, casa::Table& out,
+      void copyMeta (const casacore::Table& in, casacore::Table& out,
                      bool copyTimeInfo);
 
       // Copy the contents of a scalar column.
       template<typename T> void fillSca (const T& value,
-                                         casa::Table& out,
-                                         const casa::String& columnName)
+                                         casacore::Table& out,
+                                         const casacore::String& columnName)
       {
-        casa::ScalarColumn<T>  outCol(out, columnName);
+        casacore::ScalarColumn<T>  outCol(out, columnName);
         outCol.fillColumn (value);
       }
 
       // Copy the contents of an array column.
-      template<typename T> void fillArr (const casa::Array<T>& value,
-                                         casa::Table& out,
-                                         const casa::String& columnName)
+      template<typename T> void fillArr (const casacore::Array<T>& value,
+                                         casacore::Table& out,
+                                         const casacore::String& columnName)
       {
-        casa::ArrayColumn<T> outCol(out, columnName);
+        casacore::ArrayColumn<T> outCol(out, columnName);
         outCol.fillColumn (value);
       }
 
       // Copy the contents of a scalar column.
-      template<typename T> void copySca (const casa::Table& in,
-                                         casa::Table& out,
-                                         const casa::String& columnName)
+      template<typename T> void copySca (const casacore::Table& in,
+                                         casacore::Table& out,
+                                         const casacore::String& columnName)
       {
-        casa::ROScalarColumn<T> inCol(in, columnName);
-        casa::ScalarColumn<T>  outCol(out, columnName);
+        casacore::ROScalarColumn<T> inCol(in, columnName);
+        casacore::ScalarColumn<T>  outCol(out, columnName);
         outCol.putColumn (inCol.getColumn());
       }
 
       // Copy the contents of an array column.
-      template<typename T> void copyArr (const casa::Table& in,
-                                         casa::Table& out,
-                                         const casa::String& columnName)
+      template<typename T> void copyArr (const casacore::Table& in,
+                                         casacore::Table& out,
+                                         const casacore::String& columnName)
       {
-        casa::ROArrayColumn<T> inCol(in, columnName);
-        casa::ArrayColumn<T>  outCol(out, columnName);
+        casacore::ROArrayColumn<T> inCol(in, columnName);
+        casacore::ArrayColumn<T>  outCol(out, columnName);
         outCol.putColumn (inCol.getColumn());
       }
 
@@ -169,10 +169,10 @@ namespace LOFAR {
       string          itsName;
       string          itsOutName;
       DPBuffer        itsBuffer;
-      casa::Table     itsMS;
+      casacore::Table     itsMS;
       const ParameterSet&   itsParset; //# parset for writing history
-      casa::String    itsDataColName;
-      casa::String    itsWeightColName;
+      casacore::String    itsDataColName;
+      casacore::String    itsWeightColName;
       double          itsInterval;
       bool            itsOverwrite;   //# Overwrite an existing output MS?
       bool            itsCopyCorrData;

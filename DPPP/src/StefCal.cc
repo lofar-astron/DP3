@@ -31,7 +31,7 @@
 
 #include <iostream>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {
@@ -358,7 +358,7 @@ namespace LOFAR {
       _totalWeight += weight;
     }
 
-    casa::Matrix<casa::DComplex> StefCal::getSolution(bool setNaNs) {
+    casacore::Matrix<casacore::DComplex> StefCal::getSolution(bool setNaNs) {
       if (setNaNs) {
         for (uint ant=0; ant<_nUn; ++ant) {
           if (_stationFlagged[ant%_nSt]) {

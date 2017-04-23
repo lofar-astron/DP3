@@ -43,12 +43,12 @@
 #include <fstream>
 #include <ctime>
 
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCDirection.h>
-#include <casa/OS/File.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/casa/OS/File.h>
 
 #include <vector>
 #include <algorithm>
@@ -57,7 +57,7 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace casa;
+using namespace casacore;
 using namespace LOFAR::BBS;
 
 namespace LOFAR {
@@ -464,8 +464,8 @@ namespace LOFAR {
     // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
     // top left, all 11 polarizations in the bottom right, etc.
     // For TEC fitting, it also sets weights for the frequency cells
-    void GainCal::fillMatrices (casa::Complex* model, casa::Complex* data, float* weight,
-                                const casa::Bool* flag) {
+    void GainCal::fillMatrices (casacore::Complex* model, casacore::Complex* data, float* weight,
+                                const casacore::Bool* flag) {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
@@ -526,7 +526,7 @@ namespace LOFAR {
 
       uint iter=0;
 
-      casa::Matrix<double> tecsol(itsMode=="tecandphase"?2:1,
+      casacore::Matrix<double> tecsol(itsMode=="tecandphase"?2:1,
                                   info().antennaUsed().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
@@ -564,13 +564,13 @@ namespace LOFAR {
         if (itsMode=="tec" || itsMode=="tecandphase") {
           itsTimerSolve.stop();
           itsTimerPhaseFit.start();
-          casa::Matrix<casa::DComplex> sols_f(itsNFreqCells, info().antennaUsed().size());
+          casacore::Matrix<casacore::DComplex> sols_f(itsNFreqCells, info().antennaUsed().size());
 
           uint nSt = info().antennaUsed().size();
 
           // TODO: set phase reference so something smarter that station 0
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-            casa::Matrix<casa::DComplex> sol = iS[freqCell].getSolution(false);
+            casacore::Matrix<casacore::DComplex> sol = iS[freqCell].getSolution(false);
             if (iS[freqCell].getStationFlagged()[0]) {
               // If reference station flagged, flag whole channel
               for (uint st=0; st<info().antennaUsed().size(); ++st) {
@@ -675,7 +675,7 @@ namespace LOFAR {
       uint nSt = info().antennaUsed().size();
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-        casa::Matrix<casa::DComplex> tmpsol = iS[freqCell].getSolution(true);
+        casacore::Matrix<casacore::DComplex> tmpsol = iS[freqCell].getSolution(true);
 
         for (uint st=0; st<nSt; st++) {
           for (uint cr=0; cr<iS[0].nCr(); ++cr) {

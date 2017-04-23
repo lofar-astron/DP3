@@ -25,13 +25,13 @@
 #include <DPPP/DPInfo.h>
 #include <DPPP/DPInput.h>
 #include <Common/LofarLogger.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MCPosition.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <casa/Containers/ContainerIO.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/BasicSL/STLIO.h>
 
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 namespace LOFAR {

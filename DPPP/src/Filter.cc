@@ -28,13 +28,13 @@
 #include <DPPP/DPLogger.h>
 #include <Common/ParameterSet.h>
 
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/TableRecord.h>
-#include <tables/Tables/ExprNode.h>
-#include <tables/Tables/RecordGram.h>
-#include <casa/Containers/Record.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/TableRecord.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/tables/TaQL/RecordGram.h>
+#include <casacore/casa/Containers/Record.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace LOFAR {
   namespace DPPP {

@@ -141,7 +141,7 @@ namespace LOFAR {
       double           itsMaxBLength;    //# maximum baseline length
       vector<double>   itsBLength;       //# length of each baseline
       vector<DPBuffer> itsBuf;
-      vector<casa::Cube<float> > itsAmpl; //# amplitudes of the data
+      vector<casacore::Cube<float> > itsAmpl; //# amplitudes of the data
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
       NSTimer          itsComputeTimer;  //# move/median timer

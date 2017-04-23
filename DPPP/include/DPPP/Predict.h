@@ -35,10 +35,11 @@
 #include <DPPP/ModelComponent.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Quanta/MVEpoch.h>
-#include <measures/Measures/MEpoch.h>
-#include <casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Quanta/MVEpoch.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <utility>
 
 namespace LOFAR {
 
@@ -58,6 +59,14 @@ namespace LOFAR {
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
+
+      // Constructor with explicit sourcelist
+      Predict (DPInput*, const ParameterSet&, const string& prefix,
+               const vector<string>& sourcePatterns);
+
+      // The actual constructor
+      void init (DPInput*, const ParameterSet&, const string& prefix,
+                 const vector<string>& sourcePatterns);
 
       Predict();
 
@@ -80,9 +89,15 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Prepare the sources
+      void setSources(const vector<string>& sourcePatterns);
+
+      // Return the direction of the first patch
+      std::pair<double, double> getFirstDirection() const;
+
     private:
-      StationResponse::vector3r_t dir2Itrf (const casa::MDirection& dir,
-                                     casa::MDirection::Convert& measConverter);
+      StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
+                                     casacore::MDirection::Convert& measConverter);
       void addBeamToData (Patch::ConstPtr patch, double time,
                                    const StationResponse::vector3r_t& refdir,
                                    const StationResponse::vector3r_t& tiledir,
@@ -113,12 +128,12 @@ namespace LOFAR {
       vector<int>      itsUVWSplitIndex;
 
       // UVW coordinates per station (3 coordinates per station)
-      casa::Matrix<double>   itsUVW;
+      casacore::Matrix<double>   itsUVW;
 
       // The info needed to calculate the station beams.
       vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
-      vector<casa::MeasFrame>                       itsMeasFrames;
-      vector<casa::MDirection::Convert>             itsMeasConverters;
+      vector<casacore::MeasFrame>                       itsMeasFrames;
+      vector<casacore::MDirection::Convert>             itsMeasConverters;
       vector<vector<StationResponse::matrix22c_t> > itsBeamValues;
       ApplyBeam::BeamMode                           itsBeamMode;
 
@@ -126,8 +141,8 @@ namespace LOFAR {
       vector<Patch::ConstPtr> itsPatchList;
       vector<Source> itsSourceList;
 
-      vector<casa::Cube<dcomplex> > itsModelVis; // one for every thread
-      vector<casa::Cube<dcomplex> > itsModelVisPatch;
+      vector<casacore::Cube<dcomplex> > itsModelVis; // one for every thread
+      vector<casacore::Cube<dcomplex> > itsModelVisPatch;
 
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
