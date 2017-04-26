@@ -5,11 +5,11 @@
 #include <DPPP_DDECal/PiercePoint.h>
 
 using namespace arma;
-
+namespace LOFAR{
 class KLFitter
 {//creates KH base and fits screens from collection of PiercePoints
 public:
-  KLFitter(double r0=1000.,double beta=5./3.,int order=9);
+  KLFitter(double r0=1000.,double beta=5./3.,int order=3);
   void calculateCorrMatrix(const vector<PiercePoint> pp);
   void doFit();
   size_t getOrder() const {return itsOrder;}
@@ -32,5 +32,5 @@ private:
   Mat<double>             itsTECFitWhite;
   Col<double>             itsPar;
 };
-
+}
 #endif

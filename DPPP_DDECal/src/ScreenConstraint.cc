@@ -1,13 +1,21 @@
 #include <DPPP_DDECal/ScreenConstraint.h>
 #include <Common/OpenMP.h>
 
+namespace LOFAR{
 
-ScreenConstraint::ScreenConstraint() :
+ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
+                      const string& prefix)
+ :
   _nAntennas(0),
   _nDirections(0),
   _nChannelBlocks(0),
   itsCurrentTime(0)
 {
+  itsBeta=5./3.;
+  itsHeight=400e3;
+  itsOrder=3;
+  itsRdiff=1e3;
+  itsMode=0;
 }
 
 void ScreenConstraint::init(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
@@ -114,7 +122,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
   res[3].dims.resize(2);
   res[3].dims[0]=_nAntennas;
   res[3].dims[1]=_nDirections;
-  res[3].name="phases";
+  res[3].name="tec";
 
   //TODOEstimate Weights
   
@@ -128,19 +136,19 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
 	for(size_t ch=0;ch<_nChannelBlocks; ++ch){
 	  double refphase=std::arg(solutions[ch][dirIndex]);
 	  //TODO: more advance frequency averaging...
-	  avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch];
+	  avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
 	}
- 	res[3].vals[antIndex*_nDirections+dirIndex]= avgTEC/_nChannelBlocks;
+ 	//res[3].vals[antIndex*_nDirections+dirIndex]= avgTEC/_nChannelBlocks;
 	_screenFitters[antIndex].PhaseData()[dirIndex] = avgTEC/_nChannelBlocks;
       }
       
-        _screenFitters[antIndex].doFit();
-    
+      _screenFitters[antIndex].doFit();
+      
       for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex){
 	size_t solutionIndex=antIndex*_nDirections+dirIndex;
 	for(size_t ch=0;ch<_nChannelBlocks; ++ch)
-	  solutions[ch][solutionIndex] = std::polar<double>(1.0, _screenFitters[antIndex].PhaseData()[dirIndex]/itsFrequencies[ch]);
-	//res[3].vals[antIndex*_nDirections+dirIndex]= _screenFitters[antIndex].PhaseData()[dirIndex];
+	  solutions[ch][solutionIndex] = std::polar<double>(1.0, _screenFitters[antIndex].PhaseData()[dirIndex]*TECtoph/itsFrequencies[ch]);
+	res[3].vals[antIndex*_nDirections+dirIndex]= _screenFitters[antIndex].PhaseData()[dirIndex];
 	for (size_t i=0;i<3;i++)
 	  res[1].vals[antIndex*_nDirections*3+dirIndex*3+i]= _screenFitters[antIndex].PPData()[i*_nDirections+dirIndex]; 
       }
@@ -149,10 +157,11 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex)
 	res[2].vals[antIndex*_nDirections+dirIndex]=
 	  _screenFitters[antIndex].TECFitWhiteData()[dirIndex];
-	
+      
       
     }
    
   
   return res;
 }
+} //namespace LOFAR

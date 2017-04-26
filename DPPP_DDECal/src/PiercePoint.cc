@@ -1,6 +1,7 @@
 #include <DPPP_DDECal/PiercePoint.h>
 using namespace arma;
 
+namespace LOFAR{
 const double PiercePoint::IONOheight = 300000.; //default height in meter
 const double PiercePoint::EarthRadius = 6371000.; //default Earth radius in meter
 
@@ -48,3 +49,4 @@ void  PiercePoint::evaluate(casacore::MEpoch time){
   for(uword i=0;i<3;i++)
     itsValue(i) = mPos(i) + alpha*mDir(i);
 };
+}

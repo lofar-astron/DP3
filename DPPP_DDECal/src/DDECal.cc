@@ -126,7 +126,7 @@ namespace LOFAR {
         // no constraints
       } else if (itsMode == "tecscreen") {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new ScreenConstraint()));
+		  new ScreenConstraint(parset, prefix+".tecscreen")));
       } else {
         THROW (Exception, "Unexpected mode: " << itsMode);
       }

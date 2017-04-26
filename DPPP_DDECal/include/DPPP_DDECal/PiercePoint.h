@@ -12,7 +12,7 @@
 #include <armadillo>
 
 using namespace arma;
-
+namespace LOFAR{
 class PiercePoint 
 {
 public:
@@ -37,5 +37,5 @@ private:
   double              itsC;
   Col<double>         itsValue; //PiercePoint in ITRF coordinates
 };
-
+}
 #endif
