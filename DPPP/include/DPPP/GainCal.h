@@ -68,6 +68,10 @@ namespace LOFAR {
     class GainCal: public DPStep
     {
     public:
+
+      enum CalType {COMPLEXGAIN, PHASEONLY, FULLJONES, SCALARPHASE, AMPLITUDEONLY,
+                    SCALARAMPLITUDE, TECANDPHASE, TEC, TECSCREEN};
+
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       GainCal (DPInput*, const ParameterSet&, const string& prefix);
@@ -91,13 +95,18 @@ namespace LOFAR {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
+      // Convert string to a CalType
+      static CalType stringToCalType(const string& mode);
+
+      // Convert CalType to a string
+      static string calTypeToString(CalType caltype);
 
     private:
       // Perform stefcal (polarized or unpolarized)
       void stefcal();
 
       // Check for scalar mode
-      bool scalarMode();
+      static bool scalarMode(CalType caltype);
 
       // Apply the solution
       void applySolution(DPBuffer& buf, const casacore::Cube<casacore::DComplex>& invsol);
@@ -130,7 +139,7 @@ namespace LOFAR {
       string           itsParmDBName;
       shared_ptr<BBS::ParmDB> itsParmDB;
 
-      string           itsMode;
+      CalType          itsMode;
 
       uint             itsDebugLevel;
       bool             itsDetectStalling;

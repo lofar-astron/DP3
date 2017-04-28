@@ -70,7 +70,6 @@ namespace LOFAR {
         itsName          (prefix),
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb", "")),
-        itsMode          (parset.getString (prefix + "caltype")),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
@@ -120,14 +119,39 @@ namespace LOFAR {
         itsBuf.resize(1);
       }
 
-      ASSERT(itsMode=="diagonal" || itsMode=="phaseonly" ||
-             itsMode=="fulljones" || itsMode=="scalarphase" ||
-             itsMode=="amplitudeonly" || itsMode=="scalaramplitude" ||
-             itsMode=="tecandphase" || itsMode=="tec");
+      string modestr = parset.getString (prefix + "caltype");
+      itsMode = stringToCalType(modestr);
+      ASSERT(itsMode!=TECSCREEN);
     }
 
     GainCal::~GainCal()
     {}
+
+    GainCal::CalType GainCal::stringToCalType(const string &modestr) {
+      if (modestr=="diagonal"||modestr=="complexgain") return COMPLEXGAIN;
+      else if (modestr=="phaseonly") return PHASEONLY;
+      else if (modestr=="fulljones") return FULLJONES;
+      else if (modestr=="scalarphase") return SCALARPHASE;
+      else if (modestr=="amplitudeonly") return AMPLITUDEONLY;
+      else if (modestr=="scalaramplitude") return SCALARAMPLITUDE;
+      else if (modestr=="tecandphase") return TECANDPHASE;
+      else if (modestr=="tec") return TEC;
+      else if (modestr=="tecscreen") return TECSCREEN;
+      THROW(Exception, "Unknown mode: "<<modestr);
+    }
+
+    string GainCal::calTypeToString(GainCal::CalType caltype) {
+      if (caltype==COMPLEXGAIN) return "complexgain";
+      else if (caltype==PHASEONLY) return "phaseonly";
+      else if (caltype==FULLJONES) return "fulljones";
+      else if (caltype==SCALARPHASE) return "scalarphase";
+      else if (caltype==AMPLITUDEONLY) return "amplitudeonly";
+      else if (caltype==SCALARAMPLITUDE) return "scalaramplitude";
+      else if (caltype==TECANDPHASE) return "tecandphase";
+      else if (caltype==TEC) return "tec";
+      else if (caltype==TECSCREEN) return "tecscreen";
+      THROW(Exception, "Unknown caltype: "<< caltype);
+    }
 
     void GainCal::setAntennaUsed() {
       Matrix<bool> selbl(itsBaselineSelection.apply (info()));
@@ -180,7 +204,7 @@ namespace LOFAR {
       setAntennaUsed();
 
       // Initialize phase fitters, set their frequency data
-      if (itsMode=="tecandphase" || itsMode=="tec") {
+      if (itsMode==TECANDPHASE || itsMode==TEC) {
         itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
 
         itsPhaseFitters.reserve(itsNFreqCells); // TODO: could be numthreads instead
@@ -212,7 +236,22 @@ namespace LOFAR {
         if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
-        iS.push_back(StefCal(itsSolInt, chMax, itsMode,
+
+        StefCal::StefCalMode smode;
+        switch (itsMode)
+        {
+        case COMPLEXGAIN: smode = StefCal::DEFAULT; break;
+        case FULLJONES: smode = StefCal::FULLJONES; break;
+        case SCALARPHASE:
+        case PHASEONLY:
+        case TEC:
+        case TECANDPHASE: smode = StefCal::PHASEONLY; break;
+        case AMPLITUDEONLY:
+        case SCALARAMPLITUDE: smode = StefCal::AMPLITUDEONLY; break;
+        default: THROW(Exception, "Unhandled mode");
+        }
+
+        iS.push_back(StefCal(itsSolInt, chMax, smode, scalarMode(itsMode),
                              itsTolerance, info().antennaUsed().size(),
                              itsDetectStalling, itsDebugLevel));
       }
@@ -227,7 +266,7 @@ namespace LOFAR {
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),
                                info().antennaUsed().size(),
-                               (itsMode=="tec"||itsMode=="tecandphase"?2:1),
+                               (itsMode==TEC||itsMode==TECANDPHASE?2:1),
                                itsNFreqCells,
                                itsMaxIter,
                                info().ntime()
@@ -249,7 +288,7 @@ namespace LOFAR {
       os << "  nchan:               " << itsNChan <<endl;
       os << "  max iter:            " << itsMaxIter << endl;
       os << "  tolerance:           " << itsTolerance << endl;
-      os << "  caltype:             " << itsMode << endl;
+      os << "  caltype:             " << calTypeToString(itsMode) << endl;
       os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
       os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
       os << "  timeslotsperparmupdate: " << itsTimeSlotsPerParmUpdate << endl;
@@ -282,7 +321,7 @@ namespace LOFAR {
       FlagCounter::showPerc1 (os, itsTimerSolve.getElapsed(), totaltime);
       os << " of it spent in estimating gains and computing residuals" << endl;
 
-      if (itsMode == "tec" || itsMode == "tecandphase") {
+      if (itsMode == TEC || itsMode == TECANDPHASE) {
         os << "          ";
         FlagCounter::showPerc1 (os, itsTimerPhaseFit.getElapsed(), totaltime);
         os << " of it spent in fitting phases" << endl;
@@ -432,7 +471,6 @@ namespace LOFAR {
         for (size_t chan=0;chan<nchan;chan++) {
           uint antA = info().antennaMap()[info().getAnt1()[bl]];
           uint antB = info().antennaMap()[info().getAnt2()[bl]];
-          DBGASSERT(antA>=0 && antB>=0);
           uint freqCell = chan / itsNChan;
           if (nCr>2) {
             ApplyCal::applyFull( &invsol(0, antA, freqCell),
@@ -442,7 +480,7 @@ namespace LOFAR {
                        &flag[  bl * 4 * nchan + chan * 4 ],
                        bl, chan, false, itsFlagCounter); // Update weights is disabled here
           }
-          else if (scalarMode()) {
+          else if (scalarMode(itsMode)) {
             ApplyCal::applyScalar( &invsol(0, antA, freqCell),
                        &invsol(0, antB, freqCell),
                        &data[bl * 4 * nchan + chan * 4 ],
@@ -483,7 +521,7 @@ namespace LOFAR {
               continue;
             }
 
-            if (itsMode=="tec" || itsMode=="tecandphase") {
+            if (itsMode==TEC || itsMode==TECANDPHASE) {
               iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
             }
 
@@ -508,9 +546,9 @@ namespace LOFAR {
       }
     }
 
-    bool GainCal::scalarMode() {
-      return (itsMode=="tecandphase" || itsMode=="tec" || itsMode=="scalarphase" ||
-              itsMode=="scalaramplitude");
+    bool GainCal::scalarMode(CalType caltype) {
+      return (caltype==TECANDPHASE || caltype==TEC || caltype==SCALARPHASE ||
+              caltype==SCALARAMPLITUDE);
     }
 
     void GainCal::stefcal () {
@@ -526,7 +564,7 @@ namespace LOFAR {
 
       uint iter=0;
 
-      casacore::Matrix<double> tecsol(itsMode=="tecandphase"?2:1,
+      casacore::Matrix<double> tecsol(itsMode==TECANDPHASE?2:1,
                                   info().antennaUsed().size(), 0);
 
       std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
@@ -561,7 +599,7 @@ namespace LOFAR {
           }
         }
 
-        if (itsMode=="tec" || itsMode=="tecandphase") {
+        if (itsMode==TEC || itsMode==TECANDPHASE) {
           itsTimerSolve.stop();
           itsTimerPhaseFit.start();
           casacore::Matrix<casacore::DComplex> sols_f(itsNFreqCells, info().antennaUsed().size());
@@ -587,7 +625,6 @@ namespace LOFAR {
 #pragma omp parallel for
           for (uint st=0; st<nSt; ++st) {
             uint numpoints=0;
-            double cost=0;
             double* phases = itsPhaseFitters[st]->PhaseData();
             double* weights = itsPhaseFitters[st]->WeightData();
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -613,10 +650,10 @@ namespace LOFAR {
 
             if (numpoints>1) { // TODO: limit should be higher
               //cout<<"tecsol(0,"<<st<<")="<<tecsol(0,st)<<", tecsol(1,"<<st<<")="<<tecsol(1,st)<<endl;
-              if (itsMode=="tecandphase") {
-                cost=itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st), tecsol(1,st));
-              } else { // itsMode=="tec"
-                cost=itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
+              if (itsMode==TECANDPHASE) {
+                itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st), tecsol(1,st));
+              } else { // itsMode==TEC
+                itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
               }
               // Update solution in stefcal
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -625,7 +662,7 @@ namespace LOFAR {
               }
             } else {
               tecsol(0, st) = 0; //std::numeric_limits<double>::quiet_NaN();
-              if (itsMode=="tecandphase") {
+              if (itsMode==TECANDPHASE) {
                 tecsol(1, st) = 0; //std::numeric_limits<double>::quiet_NaN();
               }
             }
@@ -681,14 +718,14 @@ namespace LOFAR {
           for (uint cr=0; cr<iS[0].nCr(); ++cr) {
             uint crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
             sol(crt, st, freqCell) = conj(tmpsol(st, cr));        // Conjugate transpose
-            if (itsMode=="diagonal" || itsMode=="phaseonly" || itsMode=="amplitudeonly") {
+            if (itsMode==COMPLEXGAIN || itsMode==PHASEONLY || itsMode==AMPLITUDEONLY) {
               sol(crt+1, st, freqCell) = conj(tmpsol(st+nSt,cr)); // Conjugate transpose
             }
           }
         }
       }
       itsSols.push_back(sol);
-      if (itsMode=="tec" || itsMode=="tecandphase") {
+      if (itsMode==TEC || itsMode==TECANDPHASE) {
         itsTECSols.push_back(tecsol);
       }
 
@@ -739,7 +776,7 @@ namespace LOFAR {
       ParmMap parmset;
 
       // Write out default amplitudes
-      if (itsMode=="phaseonly" || itsMode=="scalarphase") {
+      if (itsMode==PHASEONLY || itsMode==SCALARPHASE) {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Ampl");
         if (parmset.empty()) {
           ParmValueSet pvset(ParmValue(1.0));
@@ -749,7 +786,7 @@ namespace LOFAR {
       }
 
       // Write out default phases
-      if (itsMode=="amplitudeonly" || itsMode=="scalaramplitude") {
+      if (itsMode==AMPLITUDEONLY || itsMode==SCALARAMPLITUDE) {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Phase");
         if (parmset.empty()) {
           ParmValueSet pvset(ParmValue(0.0));
@@ -759,7 +796,7 @@ namespace LOFAR {
       }
 
       // Write out default gains
-      if (itsMode=="diagonal" || itsMode=="fulljones") {
+      if (itsMode==COMPLEXGAIN || itsMode==FULLJONES) {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
         if (parmset.empty()) {
           ParmValueSet pvset(ParmValue(1.0));
@@ -771,11 +808,11 @@ namespace LOFAR {
 
     string GainCal::parmName() {
       string name;
-      if (itsMode=="scalarphase") {
+      if (itsMode==SCALARPHASE) {
         name=string("CommonScalarPhase:");
-      } else if (itsMode=="scalaramplitude") {
+      } else if (itsMode==SCALARAMPLITUDE) {
         name=string("CommonScalarAmplitude:");
-      } else if (itsMode=="tec" || itsMode=="tecandphase") {
+      } else if (itsMode==TEC || itsMode==TECANDPHASE) {
         name=string("TEC:");
       }
       else {
@@ -797,7 +834,7 @@ namespace LOFAR {
 
       uint ntime=itsSols.size();
       uint nchan, nfreqs;
-      if (itsMode=="tec" || itsMode=="tecandphase") {
+      if (itsMode==TEC || itsMode==TECANDPHASE) {
         nfreqs = 1;
         nchan = info().nchan();
       } else {
@@ -860,15 +897,15 @@ namespace LOFAR {
           continue;
         }
         for (int pol=0; pol<4; ++pol) { // For 0101
-          if (scalarMode() && pol>0) {
+          if (scalarMode(itsMode) && pol>0) {
             continue;
-          } else if ((itsMode=="diagonal" || itsMode=="phaseonly" ||
-                      itsMode=="amplitudeonly") && (pol==1||pol==2)) {
+          } else if ((itsMode==COMPLEXGAIN || itsMode==PHASEONLY ||
+                      itsMode==AMPLITUDEONLY) && (pol==1||pol==2)) {
             continue;
           }
           int realimmax; // For tecandphase, this functions as dummy between tec and commonscalarphase
-          if (itsMode=="phaseonly" || itsMode=="scalarphase" ||
-              itsMode=="amplitudeonly" || itsMode=="scalaramplitude" || itsMode=="tec") {
+          if (itsMode==PHASEONLY || itsMode==SCALARPHASE ||
+              itsMode==AMPLITUDEONLY || itsMode==SCALARAMPLITUDE || itsMode==TEC) {
             realimmax=1;
           } else {
             realimmax=2;
@@ -876,17 +913,17 @@ namespace LOFAR {
           for (int realim=0; realim<realimmax; ++realim) { // For real and imaginary
             string name = parmName();
 
-            if (itsMode!="scalarphase" && itsMode!="scalaramplitude") {
+            if (itsMode!=SCALARPHASE && itsMode!=SCALARAMPLITUDE) {
               name+=str0101[pol];
-              if (itsMode=="phaseonly") {
+              if (itsMode==PHASEONLY) {
                 name=name+"Phase:";
-              } else if (itsMode=="amplitudeonly") {
+              } else if (itsMode==AMPLITUDEONLY) {
                 name=name+"Ampl:";
               } else {
                 name=name+strri[realim];
               }
             }
-            if (itsMode=="tecandphase" || itsMode=="tec") {
+            if (itsMode==TECANDPHASE || itsMode==TEC) {
               if (realim==0) {
                 name="TEC:";
               } else {
@@ -899,23 +936,23 @@ namespace LOFAR {
             // Collect its solutions for all times and frequency cells in a single array.
             for (uint ts=0; ts<ntime; ++ts) {
               for (uint freqCell=0; freqCell<nfreqs; ++freqCell) {
-                if (itsMode=="fulljones") {
+                if (itsMode==FULLJONES) {
                   if (realim==0) {
                     values(freqCell, ts) = real(itsSols[ts](pol,st,freqCell));
                   } else {
                     values(freqCell, ts) = imag(itsSols[ts](pol,st,freqCell));
                   }
-                } else if (itsMode=="diagonal") {
+                } else if (itsMode==COMPLEXGAIN) {
                   if (realim==0) {
                     values(freqCell, ts) = real(itsSols[ts](pol/3,st,freqCell));
                   } else {
                     values(freqCell, ts) = imag(itsSols[ts](pol/3,st,freqCell));
                   }
-                } else if (itsMode=="scalarphase" || itsMode=="phaseonly") {
+                } else if (itsMode==SCALARPHASE || itsMode==PHASEONLY) {
                   values(freqCell, ts) = arg(itsSols[ts](pol/3,st,freqCell));
-                } else if (itsMode=="scalaramplitude" || itsMode=="amplitudeonly") {
+                } else if (itsMode==SCALARAMPLITUDE || itsMode==AMPLITUDEONLY) {
                   values(freqCell, ts) = abs(itsSols[ts](pol/3,st,freqCell));
-                } else if (itsMode=="tec" || itsMode=="tecandphase") {
+                } else if (itsMode==TEC || itsMode==TECANDPHASE) {
                   if (realim==0) {
                     values(freqCell, ts) = itsTECSols[ts](realim,st) / 8.44797245e9;
                   } else {

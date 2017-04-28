@@ -39,9 +39,12 @@ namespace LOFAR {
     public:
       enum Status {CONVERGED=1, NOTCONVERGED=2, STALLED=3, FAILED=4};
 
+      enum StefCalMode {DEFAULT, PHASEONLY, AMPLITUDEONLY, FULLJONES};
+
       // mode can be "diagonal", "fulljones", "phaseonly", "scalarphase"
-      StefCal(uint solInt, uint nChan, const string& mode, double tolerance,
-              uint maxAntennas, bool detectStalling, uint debugLevel);
+      StefCal(uint solInt, uint nChan, StefCalMode mode, bool scalar,
+              double tolerance, uint maxAntennas, bool detectStalling,
+              uint debugLevel);
 
       // Sets visibility matrices to zero
       void resetVis();
@@ -96,9 +99,6 @@ namespace LOFAR {
       void clearStationFlagged();
 
     private:
-      // Number of unknowns (nSt or 2*nSt, depending on _mode)
-      uint nUn();
-
       // Perform relaxation
       Status relax(uint iter);
 
@@ -126,7 +126,8 @@ namespace LOFAR {
       uint _veryBadIters; // number of iterations where solution got worse
       uint _solInt; // solution interval
       uint _nChan;  // number of channels
-      string _mode; // diagonal, scalarphase, fulljones or phaseonly
+      StefCalMode _mode; // diagonal, scalarphase, fulljones or phaseonly
+      bool _scalar; // false if each polarization has a separate solution
       double _tolerance;
       double _totalWeight;
       bool _detectStalling;
