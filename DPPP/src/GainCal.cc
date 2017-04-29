@@ -79,7 +79,6 @@ namespace LOFAR {
         itsPropagateSolutions
                          (parset.getBool(prefix + "propagatesolutions", true)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
-        itsNChan         (parset.getInt(prefix + "nchan", 0)),
         itsNFreqCells    (0),
         itsTimeSlotsPerParmUpdate
                          (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
@@ -121,6 +120,11 @@ namespace LOFAR {
 
       string modestr = parset.getString (prefix + "caltype");
       itsMode = stringToCalType(modestr);
+      uint defaultNChan = 0;
+      if (itsMode == TECANDPHASE || itsMode == TEC) {
+        defaultNChan = 1;
+      }
+      itsNChan = parset.getInt(prefix + "nchan", defaultNChan);
       ASSERT(itsMode!=TECSCREEN);
     }
 
