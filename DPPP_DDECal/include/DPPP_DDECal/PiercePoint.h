@@ -13,10 +13,13 @@
 
 using namespace arma;
 namespace LOFAR{
+ 
 class PiercePoint 
 {
+static const double IONOheight = 300000.; //default height in meter
+static const double EarthRadius = 6371000.; //default Earth radius in meter
 public:
-  PiercePoint();
+  PiercePoint(double height=PiercePoint::IONOheight);
   PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height);
   PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source);
   void init(const casacore::MPosition &ant,const casacore::MDirection &source,const double height);
@@ -25,8 +28,6 @@ public:
   casacore::MPosition  getPos() const {return itsPosition;}
   casacore::MDirection  getDir() const {return itsDirection;}
 private:
-  static const double IONOheight; //default height in meter
-  static const double EarthRadius; //default Earth radius in meter
   //station position
   casacore::MPosition     itsPosition;
   //source position

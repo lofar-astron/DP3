@@ -2,15 +2,13 @@
 using namespace arma;
 
 namespace LOFAR{
-const double PiercePoint::IONOheight = 300000.; //default height in meter
-const double PiercePoint::EarthRadius = 6371000.; //default Earth radius in meter
 
-PiercePoint::PiercePoint():
+PiercePoint::PiercePoint(double height):
   itsValue(3)
 {
   casacore::MPosition ant;//ITRF
   casacore::MDirection source;//J2000 pole
-  init(ant,source,PiercePoint::IONOheight);
+  init(ant,source,height);
 }
 
 PiercePoint::PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height):

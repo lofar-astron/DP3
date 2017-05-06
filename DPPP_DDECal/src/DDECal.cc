@@ -82,7 +82,7 @@ namespace LOFAR {
         itsStepInSolInt  (0),
         itsNChan         (parset.getInt (prefix + "nchan", 0)),
         itsNFreqCells    (0),
-        itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
+        itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 2000.0)),
         itsMultiDirSolver(parset.getInt (prefix + "maxiter", 50),
                           parset.getDouble (prefix + "tolerance", 1.e-5),
                           parset.getDouble (prefix + "stepsize", 0.2))
@@ -128,7 +128,7 @@ namespace LOFAR {
         // no constraints
       } else if (itsMode == GainCal::TECSCREEN) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-		  new ScreenConstraint(parset, prefix+".tecscreen")));
+		  new ScreenConstraint(parset, prefix+"tecscreen.")));
       } else {
         THROW (Exception, "Unexpected mode: " << 
                           GainCal::calTypeToString(itsMode));
@@ -269,7 +269,27 @@ namespace LOFAR {
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
           screenConstraint->initPiercePoints();
-          //itsConstraints.setHeight(...);
+          double
+            refX = antennaPos[i][0],
+            refY = antennaPos[i][1],
+            refZ = antennaPos[i][2];
+          std::vector<size_t> coreAntennaIndices;
+          std::vector<size_t> otherAntennaIndices;
+          const double coreDistSq = itsCoreConstraint*itsCoreConstraint;
+          for(size_t ant=0; ant!=antennaPos.size(); ++ant)
+          {
+            double
+              dx = refX - antennaPos[ant][0],
+              dy = refY - antennaPos[ant][1],
+              dz = refZ - antennaPos[ant][2],
+              distSq = dx*dx + dy*dy + dz*dz;
+            if(distSq <= coreDistSq)
+              coreAntennaIndices.push_back(ant);
+	    else
+	      otherAntennaIndices.push_back(ant);
+          }
+          screenConstraint->setCoreAntennas(coreAntennaIndices);
+          screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
       }
 

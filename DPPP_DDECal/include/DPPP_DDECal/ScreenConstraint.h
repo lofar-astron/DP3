@@ -1,5 +1,6 @@
 #ifndef SCREEN_CONSTRAINT_H
 #define SCREEN_CONSTRAINT_H
+#include <DPPP/phasefitter.h>
 
 #include <DPPP_DDECal/multidirsolver.h>
 #include <DPPP_DDECal/PiercePoint.h>
@@ -9,12 +10,12 @@
 #include <cmath>
 #include <vector>
 #include <memory>
-static const  double phtoTEC=1./8.4479745e9;
-static const  double TECtoph=8.4479745e9;
 namespace LOFAR {
 class ParameterSet;
 class ScreenConstraint : public Constraint
 { 
+static const  double phtoTEC=1./8.4479745e9;
+static const  double TECtoph=8.4479745e9;
 
 public:
   ScreenConstraint(const ParameterSet& parset,
@@ -28,23 +29,37 @@ public:
   void setDirections(const std::vector<std::pair<double, double> > source_pos);
   void setTime(double time);
   void initPiercePoints();
-
+  void setCoreAntennas(const std::vector<size_t>& coreAntennas)
+  {
+    _coreAntennas = coreAntennas;
+    if (itsMode == "csfull")
+       _screenFitters.resize(_nAntennas-_coreAntennas.size()+1);
+  }
+ void setOtherAntennas(const std::vector<size_t>& otherAntennas)
+  {
+    _otherAntennas = otherAntennas;
+  }
+  void getPPValue(std::vector<std::vector<std::complex<double> > >&, size_t, size_t, double&) const;
 private:
   size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<std::vector<double> > itsAntennaPos;
   std::vector<std::vector<double> > itsSourcePos;
   std::vector<double>               itsFrequencies;
+  std::vector<double>               itsprevsol;
   // antenna positions
   // source positions
   // measures instance ofzo               
   std::vector<std::vector<PiercePoint> > itsPiercePoints;  //temporary hold calculated piercepoints per antenna
   std::vector<KLFitter> _screenFitters;
+  std::vector<size_t> _coreAntennas;
+  std::vector<size_t> _otherAntennas; //has to be a vector for openmp looping
   double itsCurrentTime;
   double itsBeta;
   double itsHeight;
   double itsOrder;
   double itsRdiff;
-  double itsMode;
+  string itsMode;
+  string itsAVGMode;
 };
 }
 #endif
