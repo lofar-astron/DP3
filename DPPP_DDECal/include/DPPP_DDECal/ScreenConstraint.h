@@ -14,8 +14,8 @@ namespace LOFAR {
 class ParameterSet;
 class ScreenConstraint : public Constraint
 { 
-static const  double phtoTEC=1./8.4479745e9;
-static const  double TECtoph=8.4479745e9;
+  static const  double phtoTEC;//=1./8.4479745e9;
+  static const  double TECtoph;//=8.4479745e9;
 
 public:
   ScreenConstraint(const ParameterSet& parset,

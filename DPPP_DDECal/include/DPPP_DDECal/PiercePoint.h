@@ -16,8 +16,8 @@ namespace LOFAR{
  
 class PiercePoint 
 {
-static const double IONOheight = 300000.; //default height in meter
-static const double EarthRadius = 6371000.; //default Earth radius in meter
+  static const double IONOheight; //= 300000.; //default height in meter
+  static const double EarthRadius;// = 6371000.; //default Earth radius in meter
 public:
   PiercePoint(double height=PiercePoint::IONOheight);
   PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height);

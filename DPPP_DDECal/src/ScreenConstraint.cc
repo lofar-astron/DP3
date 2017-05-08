@@ -2,7 +2,8 @@
 #include <Common/OpenMP.h>
 
 namespace LOFAR{
-
+const  double ScreenConstraint::phtoTEC = 1./8.4479745e9;
+const  double ScreenConstraint::TECtoph = 8.4479745e9;
 ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
                       const string& prefix)
  :
