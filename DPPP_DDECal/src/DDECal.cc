@@ -82,7 +82,8 @@ namespace LOFAR {
         itsStepInSolInt  (0),
         itsNChan         (parset.getInt (prefix + "nchan", 0)),
         itsNFreqCells    (0),
-        itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 2000.0)),
+        itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
+        itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsMultiDirSolver(parset.getInt (prefix + "maxiter", 50),
                           parset.getDouble (prefix + "tolerance", 1.e-5),
                           parset.getDouble (prefix + "stepsize", 0.2))
@@ -275,7 +276,7 @@ namespace LOFAR {
             refZ = antennaPos[i][2];
           std::vector<size_t> coreAntennaIndices;
           std::vector<size_t> otherAntennaIndices;
-          const double coreDistSq = itsCoreConstraint*itsCoreConstraint;
+          const double coreDistSq = itsScreenCoreConstraint*itsScreenCoreConstraint;
           for(size_t ant=0; ant!=antennaPos.size(); ++ant)
           {
             double

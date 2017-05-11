@@ -16,6 +16,7 @@ class ScreenConstraint : public Constraint
 { 
   static const  double phtoTEC;//=1./8.4479745e9;
   static const  double TECtoph;//=8.4479745e9;
+  static const  size_t maxIter;//number of iterations to store in debug mode
 
 public:
   ScreenConstraint(const ParameterSet& parset,
@@ -46,6 +47,7 @@ private:
   std::vector<std::vector<double> > itsSourcePos;
   std::vector<double>               itsFrequencies;
   std::vector<double>               itsprevsol;
+  std::vector<double>               _iterphases;
   // antenna positions
   // source positions
   // measures instance ofzo               
@@ -60,6 +62,9 @@ private:
   double itsRdiff;
   string itsMode;
   string itsAVGMode;
+  int itsDebugMode;
+  size_t itsIter;
+
 };
 }
 #endif

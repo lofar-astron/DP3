@@ -140,6 +140,7 @@ namespace LOFAR {
       NSTimer          itsTimerSolve;
       NSTimer          itsTimerWrite;
       double           itsCoreConstraint;
+      double           itsScreenCoreConstraint;
 
       MultiDirSolver   itsMultiDirSolver;
     };

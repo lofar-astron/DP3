@@ -4,6 +4,7 @@
 namespace LOFAR{
 const  double ScreenConstraint::phtoTEC = 1./8.4479745e9;
 const  double ScreenConstraint::TECtoph = 8.4479745e9;
+const  size_t ScreenConstraint::maxIter=30;
 ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
                       const string& prefix)
  :
@@ -19,6 +20,7 @@ ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
   itsRdiff=parset.getDouble (prefix +"rdiff",1e3);
   itsMode=toLower(parset.getString(prefix+"mode","station") );
   itsAVGMode=toLower(parset.getString(prefix+"average","tec") );
+  itsDebugMode=parset.getInt(prefix + "debug", 0);
 }
 
 void ScreenConstraint::init(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
@@ -53,6 +55,10 @@ void ScreenConstraint::init(size_t nAntennas, size_t nDirections, size_t nChanne
     _screenFitters[i].setOrder(itsOrder);
     
   }
+  if (itsDebugMode>0)
+    {
+      _iterphases.resize(_nAntennas*_nDirections*_nChannelBlocks*maxIter);
+    }
   
 }
 
@@ -90,6 +96,8 @@ void ScreenConstraint::setTime(double time){
   if (itsCurrentTime!=time){
       
       itsCurrentTime=time;
+      itsIter=0;
+      
       CalculatePiercepoints();
       
       if (itsMode=="station")
@@ -132,6 +140,8 @@ void ScreenConstraint::setTime(double time){
 	THROW (Exception, "Unexpected tecscreen mode: " << itsMode); 
       
   }
+  else
+    itsIter+=1;
   
 }
 
@@ -177,8 +187,10 @@ void ScreenConstraint::CalculatePiercepoints(){
 std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,double time) {
   //check if we need to reinitialize piercepoints
   setTime(time);
-
-  std::vector<Result> res(4);
+  size_t nrresults=4;
+  if (itsDebugMode>0)
+    nrresults=5;
+  std::vector<Result> res(nrresults);
   size_t numberofPar=_screenFitters[0].getOrder();
   res[0].vals.resize(_screenFitters.size()*numberofPar);
   res[0].axes="screennr,par";
@@ -206,6 +218,16 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
   res[3].dims[1]=_nDirections;
   res[3].dims[2]=1;
   res[3].name="tec";
+  if (itsDebugMode>0){
+    res[4].vals.resize(_nAntennas*_nDirections*_nChannelBlocks*maxIter);
+    res[4].axes="ant,dir,freq,iter";
+    res[4].dims.resize(4);
+    res[4].dims[0]=_nAntennas;
+    res[4].dims[1]=_nDirections;
+    res[4].dims[2]=_nChannelBlocks;
+    res[4].dims[3]=maxIter;
+    res[4].name="phases";
+  }
 
   //TODOEstimate Weights
   
@@ -216,7 +238,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
 
       int foundantcs=-999;
       int foundantoth=-999;
-      if (itsMode=="csfull")
+      if (itsMode=="csfull"){
 	for(size_t iant=0; iant<_coreAntennas.size(); iant++){
 	  if (_coreAntennas[iant]==antIndex){
 	    foundantcs=iant;
@@ -230,9 +252,16 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
 	    break;
 	  }
 	}
+      }
       for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex){
 	double avgTEC;
 	size_t solutionIndex=antIndex*_nDirections+dirIndex;
+	if (itsDebugMode>0 and itsIter<maxIter)
+	  for (size_t ch=0; ch<_nChannelBlocks;ch++)
+	    {
+	      //cout<<"writing "<<antIndex<<":"<<dirIndex<<":"<<ch<<":"<<itsIter<<":"<<antIndex*_nDirections*30*_nChannelBlocks+dirIndex*30*_nChannelBlocks+ch*30+itsIter<<" "<<res[4].vals.size()<<","<<solutionIndex<<":"<<solutions[ch].size()<<std::arg(solutions[ch][solutionIndex])<<endl;
+	      _iterphases[antIndex*_nDirections*maxIter*_nChannelBlocks+dirIndex*maxIter*_nChannelBlocks+ch*maxIter+itsIter]= std::arg(solutions[ch][solutionIndex]);
+	    }
 	getPPValue(solutions,solutionIndex,dirIndex,avgTEC);
 	if (itsMode=="station")
 	  _screenFitters[antIndex].PhaseData()[dirIndex] = avgTEC;
@@ -334,7 +363,8 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
     for(size_t j=0;j<numberofPar;j++)
       res[0].vals[i*numberofPar+j]= _screenFitters[i].ParData()[j];
    
-  
+  if (itsDebugMode>0)
+    res[4].vals=_iterphases;
   return res;
 }
 } //namespace LOFAR
