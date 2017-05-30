@@ -16,7 +16,7 @@ install(TARGETS _pythondppp
 
 # We only need this library because dependent packages need to link against
 # this package's version info.
-lofar_add_library(pythondppp
+lofar_add_library(dppp_pythondppp
   Package__Version.cc
   PythonStep.cc
   DPStepBase.cc
