@@ -28,6 +28,7 @@
 // @brief DPPP step class to apply a calibration correction to the data
 
 #include <DPPP/DPInput.h>
+#include <DPPP/GainCal.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/H5Parm.h>
 #include <DPPP/BaselineSelection.h>
@@ -121,7 +122,7 @@ namespace LOFAR {
       string           itsH5ParmName;
       H5Parm           itsH5Parm;
 
-      string           itsMode;
+      GainCal::CalType itsMode;
       bool             itsPropagateSolutions;
       uint             itsTimeStep;
       uint             itsSolInt;
@@ -139,6 +140,7 @@ namespace LOFAR {
       NSTimer          itsTimerSolve;
       NSTimer          itsTimerWrite;
       double           itsCoreConstraint;
+      double           itsScreenCoreConstraint;
 
       MultiDirSolver   itsMultiDirSolver;
     };

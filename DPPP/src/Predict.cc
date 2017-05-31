@@ -44,6 +44,7 @@
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/OS/File.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MeasConvert.h>
@@ -88,6 +89,7 @@ namespace LOFAR {
       itsDebugLevel = parset.getInt (prefix + "debuglevel", 0);
       itsPatchList = vector<Patch::ConstPtr> ();
 
+      ASSERT(File(itsSourceDBName).exists());
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);

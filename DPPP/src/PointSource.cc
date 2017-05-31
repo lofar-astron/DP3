@@ -38,7 +38,8 @@ PointSource::PointSource(const Position &position)
         itsPolarizedFraction(0.0),
         itsPolarizationAngle(0.0),
         itsRotationMeasure(0.0),
-        itsHasRotationMeasure(false)
+        itsHasRotationMeasure(false),
+        itsHasLogarithmicSI(true)
 {
 }
 
@@ -49,7 +50,8 @@ PointSource::PointSource(const Position &position, const Stokes &stokes)
         itsPolarizedFraction(0.0),
         itsPolarizationAngle(0.0),
         itsRotationMeasure(0.0),
-        itsHasRotationMeasure(false)
+        itsHasRotationMeasure(false),
+        itsHasLogarithmicSI(true)
 {
 }
 
@@ -75,28 +77,42 @@ Stokes PointSource::stokes(double freq) const
 {
     Stokes stokes(itsStokes);
 
-    if(hasSpectralIndex())
+    if(hasSpectralTerms())
     {
+      if(itsHasLogarithmicSI)
+      {
         // Compute spectral index as:
         // (v / v0) ^ (c0 + c1 * log10(v / v0) + c2 * log10(v / v0)^2 + ...)
         // Where v is the frequency and v0 is the reference frequency.
-
+        
         // Compute log10(v / v0).
         double base = log10(freq) - log10(itsRefFreq);
-
+        
         // Compute c0 + log10(v / v0) * c1 + log10(v / v0)^2 * c2 + ...
         // using Horner's rule.
         double exponent = 0.0;
         typedef vector<double>::const_reverse_iterator iterator_type;
-        for(iterator_type it = itsSpectralIndex.rbegin(),
-            end = itsSpectralIndex.rend(); it != end; ++it)
+        for(iterator_type it = itsSpectralTerms.rbegin(),
+          end = itsSpectralTerms.rend(); it != end; ++it)
         {
-            exponent = exponent * base + *it;
+          exponent = exponent * base + *it;
         }
-
+      
         // Compute I * (v / v0) ^ exponent, where I is the value of Stokes
         // I at the reference frequency.
         stokes.I *= pow(10., base * exponent);
+      }
+      else {
+        double x = freq / itsRefFreq - 1.0;
+        typedef vector<double>::const_reverse_iterator iterator_type;
+	double val = 0.0;
+	for(iterator_type it = itsSpectralTerms.rbegin(),
+	      end = itsSpectralTerms.rend(); it != end; ++it)
+        {
+          val = val * x + *it;
+        }
+        stokes.I += val * x;
+      }
     }
 
     if(hasRotationMeasure())
@@ -117,9 +133,9 @@ void PointSource::accept(ModelComponentVisitor &visitor) const
     visitor.visit(*this);
 }
 
-bool PointSource::hasSpectralIndex() const
+bool PointSource::hasSpectralTerms() const
 {
-    return !itsSpectralIndex.empty();
+    return !itsSpectralTerms.empty();
 }
 
 bool PointSource::hasRotationMeasure() const

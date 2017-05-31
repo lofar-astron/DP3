@@ -91,7 +91,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
       _phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
     }
 
-    res[0].vals[solutionIndex] = alpha / 8.44797245e9;
+    res[0].vals[solutionIndex] = alpha / -8.44797245e9;
     res[1].vals[solutionIndex] = beta;
     
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {

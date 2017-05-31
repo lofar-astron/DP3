@@ -103,10 +103,12 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
         }
 
         // Fetch spectral index attributes (if applicable).
-        if (src.getSpectralIndex().size() > 0) {
-          source->setSpectralIndex(src.getInfo().getSpectralIndexRefFreq(),
-                                   src.getSpectralIndex().begin(),
-                                   src.getSpectralIndex().end());
+        bool isLogarithmic = src.getInfo().getHasLogarithmicSI();
+        if (src.getSpectralTerms().size() > 0) {
+          source->setSpectralTerms(src.getInfo().getSpectralTermsRefFreq(),
+                                   isLogarithmic,
+                                   src.getSpectralTerms().begin(),
+                                   src.getSpectralTerms().end());
         }
 
         // Fetch rotation measure attributes (if applicable).

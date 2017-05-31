@@ -83,6 +83,7 @@ namespace LOFAR {
         itsNChan         (parset.getInt (prefix + "nchan", 0)),
         itsNFreqCells    (0),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
+        itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsMultiDirSolver(parset.getInt (prefix + "maxiter", 50),
                           parset.getDouble (prefix + "tolerance", 1.e-5),
                           parset.getDouble (prefix + "stepsize", 0.2))
@@ -108,27 +109,30 @@ namespace LOFAR {
         }
       }
 
-      itsMode = toLower(parset.getString(prefix + "mode", "complexgain"));
+      itsMode = GainCal::stringToCalType(
+                   toLower(parset.getString(prefix + "mode",
+                                            "complexgain")));
       if(itsCoreConstraint != 0.0) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
           new CoreConstraint()));
       }
-      if (itsMode == "phaseonly") {
+      if (itsMode == GainCal::PHASEONLY) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new PhaseConstraint()));
-      } else if (itsMode == "tec") {
+      } else if (itsMode == GainCal::TEC) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECOnlyMode)));
-      } else if (itsMode == "tecandphase"){
+      } else if (itsMode == GainCal::TECANDPHASE){
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
-      } else if (itsMode == "complexgain") {
+      } else if (itsMode == GainCal::COMPLEXGAIN) {
         // no constraints
-      } else if (itsMode == "tecscreen") {
+      } else if (itsMode == GainCal::TECSCREEN) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new ScreenConstraint()));
+		  new ScreenConstraint(parset, prefix+"tecscreen.")));
       } else {
-        THROW (Exception, "Unexpected mode: " << itsMode);
+        THROW (Exception, "Unexpected mode: " << 
+                          GainCal::calTypeToString(itsMode));
       }
 
       itsDataPtrs.resize(itsSolInt);
@@ -266,7 +270,27 @@ namespace LOFAR {
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
           screenConstraint->initPiercePoints();
-          //itsConstraints.setHeight(...);
+          double
+            refX = antennaPos[i][0],
+            refY = antennaPos[i][1],
+            refZ = antennaPos[i][2];
+          std::vector<size_t> coreAntennaIndices;
+          std::vector<size_t> otherAntennaIndices;
+          const double coreDistSq = itsScreenCoreConstraint*itsScreenCoreConstraint;
+          for(size_t ant=0; ant!=antennaPos.size(); ++ant)
+          {
+            double
+              dx = refX - antennaPos[ant][0],
+              dy = refY - antennaPos[ant][1],
+              dz = refZ - antennaPos[ant][2],
+              distSq = dx*dx + dy*dy + dz*dz;
+            if(distSq <= coreDistSq)
+              coreAntennaIndices.push_back(ant);
+	    else
+	      otherAntennaIndices.push_back(ant);
+          }
+          screenConstraint->setCoreAntennas(coreAntennaIndices);
+          screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
       }
 
@@ -284,7 +308,8 @@ namespace LOFAR {
       os << "  solint:              " << itsSolInt <<endl;
       os << "  nchan:               " << itsNChan <<endl;
       os << "  directions:          " << itsDirections << endl;
-      os << "  mode (constraints):  " << itsMode << endl;
+      os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
+         << endl;
       os << "  coreconstraint:      " << itsCoreConstraint << endl;
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
@@ -392,7 +417,7 @@ namespace LOFAR {
 
         itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
         // Store constraint solutions
-        if (itsMode!="complexgain" && itsMode!="phaseonly") {
+        if (itsMode!=GainCal::COMPLEXGAIN && itsMode!=GainCal::PHASEONLY) {
           itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
         }
 
@@ -445,14 +470,14 @@ namespace LOFAR {
         dims[2]=info().nchan();
         dims[3]=itsSols.size();
 
-        uint numsols=(itsMode=="complexgain"?2:1);
+        uint numsols=(itsMode==GainCal::COMPLEXGAIN?2:1);
         for (uint solnum=0; solnum<numsols; ++solnum) {
           string solTabName;
-          if (itsMode=="phaseonly") {
+          if (itsMode==GainCal::PHASEONLY) {
             solTabName = "phaseonly000";
             itsH5Parm.addSolution(solTabName, "scalarphase", axesnames,
                                   dims, sols, weights, false);
-          } else if (itsMode=="complexgain") {
+          } else if (itsMode==GainCal::COMPLEXGAIN) {
             if (solnum==0) {
               solTabName = "scalarphase000";
               itsH5Parm.addSolution(solTabName, "scalarphase", axesnames,

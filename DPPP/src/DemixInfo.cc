@@ -417,10 +417,12 @@ namespace LOFAR {
           }
 
           // Fetch spectral index attributes (if applicable).
-          if (src.getSpectralIndex().size() > 0) {
-            source->setSpectralIndex(src.getInfo().getSpectralIndexRefFreq(),
-                                     src.getSpectralIndex().begin(),
-                                     src.getSpectralIndex().end());
+          if (src.getSpectralTerms().size() > 0) {
+            bool isLogarithmic = true;
+            source->setSpectralTerms(src.getInfo().getSpectralTermsRefFreq(),
+                                     isLogarithmic,
+                                     src.getSpectralTerms().begin(),
+                                     src.getSpectralTerms().end());
           }
 
           // Fetch rotation measure attributes (if applicable).

@@ -56,7 +56,7 @@ public:
     void setStokes(const Stokes &stokes);
 
     template <typename T>
-    void setSpectralIndex(double refFreq, T first, T last);
+    void setSpectralTerms(double refFreq, bool isLogarithmic, T first, T last);
 
     void setRotationMeasure(double fraction, double angle, double rm);
 
@@ -65,17 +65,18 @@ public:
     virtual void accept(ModelComponentVisitor &visitor) const;
 
 private:
-    bool hasSpectralIndex() const;
+    bool hasSpectralTerms() const;
     bool hasRotationMeasure() const;
 
     Position        itsPosition;
     Stokes          itsStokes;
     double          itsRefFreq;
-    vector<double>  itsSpectralIndex;
+    vector<double>  itsSpectralTerms;
     double          itsPolarizedFraction;
     double          itsPolarizationAngle;
     double          itsRotationMeasure;
     bool            itsHasRotationMeasure;
+    bool            itsHasLogarithmicSI;
 };
 
 // @}
@@ -85,11 +86,12 @@ private:
 // -------------------------------------------------------------------------- //
 
 template <typename T>
-void PointSource::setSpectralIndex(double refFreq, T first, T last)
+void PointSource::setSpectralTerms(double refFreq, bool isLogarithmic, T first, T last)
 {
     itsRefFreq = refFreq;
-    itsSpectralIndex.clear();
-    itsSpectralIndex.insert(itsSpectralIndex.begin(), first, last);
+    itsHasLogarithmicSI = isLogarithmic;
+    itsSpectralTerms.clear();
+    itsSpectralTerms.insert(itsSpectralTerms.begin(), first, last);
 }
 
 inline const Position &PointSource::position() const

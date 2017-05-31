@@ -1,15 +1,17 @@
 #include <DPPP_DDECal/PiercePoint.h>
 using namespace arma;
 
-const double PiercePoint::IONOheight = 300000.; //default height in meter
-const double PiercePoint::EarthRadius = 6371000.; //default Earth radius in meter
+namespace LOFAR{
 
-PiercePoint::PiercePoint():
+  const double PiercePoint::IONOheight = 300000.;
+  const double PiercePoint::EarthRadius = 6371000.;
+
+PiercePoint::PiercePoint(double height):
   itsValue(3)
 {
   casacore::MPosition ant;//ITRF
   casacore::MDirection source;//J2000 pole
-  init(ant,source,PiercePoint::IONOheight);
+  init(ant,source,height);
 }
 
 PiercePoint::PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height):
@@ -48,3 +50,4 @@ void  PiercePoint::evaluate(casacore::MEpoch time){
   for(uword i=0;i<3;i++)
     itsValue(i) = mPos(i) + alpha*mDir(i);
 };
+}
