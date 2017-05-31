@@ -181,13 +181,13 @@ void MultiDirSolver::performSolveIteration(size_t channelBlockIndex,
             
             size_t solIndex1 = antenna1*_nDirections + d;
             size_t solIndex2 = antenna2*_nDirections + d;
-            gTimesC1(dataIndex2, d) = std::conj(solutions[solIndex2] * predicted); // using a* b* = (ab)*
-            gTimesC2(dataIndex1, d) = std::conj(solutions[solIndex1]) * predicted;
+            gTimesC2(dataIndex1, d) = std::conj(solutions[solIndex1] * predicted); // using a* b* = (ab)*
+            gTimesC1(dataIndex2, d) = std::conj(solutions[solIndex2]) * predicted;
             
             modelPtrs[d] += 4; // Goto the next 2x2 matrix.
           }
-          v2(dataIndex1) = dataPtr[0] + dataPtr[3]; // Solve using Stokes I
-          v1(dataIndex2) = std::conj(v2(dataIndex1));
+          v1(dataIndex2) = dataPtr[0] + dataPtr[3]; // Solve using Stokes I
+          v2(dataIndex1) = std::conj(v1(dataIndex2));
           dataPtr += 4; // Goto the next 2x2 matrix.
         }
       }
