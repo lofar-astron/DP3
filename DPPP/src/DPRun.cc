@@ -54,6 +54,7 @@
 #include <casacore/casa/OS/DirectoryIterator.h>
 #include <casacore/casa/OS/Timer.h>
 #include <casacore/casa/OS/DynLib.h>
+#include <casacore/casa/Utilities/Regex.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -280,8 +281,12 @@ namespace LOFAR {
       for (vector<string>::const_iterator iter = steps.begin();
            iter != steps.end(); ++iter) {
         string prefix(*iter + '.');
-        // The name is the default step type.
-        string type = toLower(parset.getString (prefix+"type", *iter));
+        // The alphabetic part of the name is the default step type.
+        // This allows names like average1, out3.
+        int res = casacore::Regex("[a-z]+").match((*iter).c_str(), (*iter).size());
+        string defaulttype = (*iter).substr(0,res);
+
+        string type = toLower(parset.getString (prefix+"type", defaulttype));
         // Define correct name for AOFlagger synonyms.
         if (type == "aoflagger"  ||  type == "rficonsole") {
           type = "aoflag";
