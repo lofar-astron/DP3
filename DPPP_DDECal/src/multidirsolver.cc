@@ -68,9 +68,9 @@ MultiDirSolver::SolveResult MultiDirSolver::process(std::vector<Complex *>& data
     {
       // Model matrix [N x D] and visibility matrix x [N x 1]
       // Also space for the auto correlation is reserved, but it will be set to 0.
-      gTimesCs[chBlock][ant] = cx_mat(_nAntennas * nTimes * curChannelBlockSize,
+      gTimesCs[chBlock][ant] = cx_mat(_nAntennas * nTimes * curChannelBlockSize * 4,
                                       _nDirections, fill::zeros);
-      vs[chBlock][ant] = cx_vec(_nAntennas * nTimes * curChannelBlockSize, fill::zeros);
+      vs[chBlock][ant] = cx_vec(_nAntennas * nTimes * curChannelBlockSize * 4, fill::zeros);
     }
   }
   
@@ -171,24 +171,28 @@ void MultiDirSolver::performSolveIteration(size_t channelBlockIndex,
         const Complex* dataPtr = data[timeIndex] + (channelIndexStart + baseline * _nChannels) * 4;
         for(size_t ch=channelIndexStart; ch!=channelIndexEnd; ++ch)
         {
-          size_t dataIndex1 = ch-channelIndexStart + (timeIndex + antenna1 * nTimes) * curChannelBlockSize;
-          size_t dataIndex2 = ch-channelIndexStart + (timeIndex + antenna2 * nTimes) * curChannelBlockSize;
-          //std::cout << "timeindex" << timeIndex << ' ';
-          for(size_t d=0; d!=_nDirections; ++d)
-          {
-            std::complex<double> predicted = modelPtrs[d][0] + modelPtrs[d][3];
-            //std::cout << predicted << ' ';
-            
-            size_t solIndex1 = antenna1*_nDirections + d;
-            size_t solIndex2 = antenna2*_nDirections + d;
-            gTimesC2(dataIndex1, d) = std::conj(solutions[solIndex1] * predicted); // using a* b* = (ab)*
-            gTimesC1(dataIndex2, d) = std::conj(solutions[solIndex2]) * predicted;
-            
-            modelPtrs[d] += 4; // Goto the next 2x2 matrix.
-          }
-          v1(dataIndex2) = dataPtr[0] + dataPtr[3]; // Solve using Stokes I
-          v2(dataIndex1) = std::conj(v1(dataIndex2));
-          dataPtr += 4; // Goto the next 2x2 matrix.
+					const size_t
+						dataIndex1 = ch-channelIndexStart + (timeIndex + antenna1 * nTimes) * curChannelBlockSize,
+						dataIndex2 = ch-channelIndexStart + (timeIndex + antenna2 * nTimes) * curChannelBlockSize;
+					for(size_t p=0; p!=4; ++p)
+					{
+						//std::cout << "timeindex" << timeIndex << ' ';
+						for(size_t d=0; d!=_nDirections; ++d)
+						{
+							std::complex<double> predicted = *modelPtrs[d];
+							//std::cout << predicted << ' ';
+							
+							size_t solIndex1 = antenna1*_nDirections + d;
+							size_t solIndex2 = antenna2*_nDirections + d;
+							gTimesC2(dataIndex1*4+p, d) = std::conj(solutions[solIndex1] * predicted); // using a* b* = (ab)*
+							gTimesC1(dataIndex2*4+p, d) = std::conj(solutions[solIndex2]) * predicted;
+							
+							++modelPtrs[d]; // Goto the next polarization of this 2x2 matrix.
+						}
+						v1(dataIndex2*4+p) = dataPtr[p];
+						v2(dataIndex1*4+p) = std::conj(dataPtr[p]);
+						++dataPtr; // Goto the next polarization of this 2x2 matrix.
+					}
         }
       }
     }
