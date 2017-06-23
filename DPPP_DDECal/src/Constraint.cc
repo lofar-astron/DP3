@@ -69,6 +69,28 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res[0].dims[2]=1;
   res[1]=res[0];
   res[1].name="scalarphase";
+
+  // TODO chose this more cleverly?
+  size_t refAntenna = 0;
+
+  // Divide out the reference antenna
+  for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
+  {
+    for(size_t antennaIndex=0; antennaIndex!=_nAntennas; ++antennaIndex)
+    {
+      for(size_t d=0; d!=_nDirections; ++d)
+      {
+        size_t solutionIndex = refAntenna*_nDirections + d;
+        size_t refAntennaIndex = d + refAntenna*_nDirections;
+        if(antennaIndex != refAntenna)
+        {
+          solutions[ch][solutionIndex] = solutions[ch][solutionIndex] / solutions[ch][refAntennaIndex];
+        }
+      }
+    }
+    for(size_t d=0; d!=_nDirections; ++d)
+      solutions[ch][refAntenna*_nDirections + d] = 1.0;
+  }
   
 #pragma omp parallel for
   for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
@@ -83,6 +105,14 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
       _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
+    /*if(solutionIndex == _nDirections*60)
+    {
+      std::cout << "BEFORE ";
+      for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
+        std::cout << _phaseFitters[thread].PhaseData()[ch] << ' ';
+      }
+      std::cout << '\n';
+    }*/
     
     double alpha, beta=0.0;
     if(_mode == TECOnlyMode) {
@@ -94,9 +124,18 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     res[0].vals[solutionIndex] = alpha / -8.44797245e9;
     res[1].vals[solutionIndex] = beta;
     
-    for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
+    for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
+    {
      solutions[ch][solutionIndex] = std::polar<double>(1.0, _phaseFitters[thread].PhaseData()[ch]);
     }
+    /*if(solutionIndex == _nDirections*60)
+    {
+      std::cout << "AFTER ";
+      for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
+        std::cout << _phaseFitters[thread].PhaseData()[ch] << ' ';
+      }
+      std::cout << " (a=" << (alpha / -8.44797245e9) << ", b=" << beta << ")\n";
+    }*/
   }
 
   return res;

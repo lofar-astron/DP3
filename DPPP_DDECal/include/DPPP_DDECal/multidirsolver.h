@@ -33,7 +33,7 @@ public:
                          CalibrateTEC2, 
                          CalibratePhase };
   
-  MultiDirSolver(size_t maxIterations, double accuracy, double stepSize);
+  MultiDirSolver(size_t maxIterations, double accuracy, double stepSize, bool phaseOnly = true);
   
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
@@ -73,6 +73,7 @@ private:
   size_t _maxIterations;
   double _accuracy;
   double _stepSize;
+  bool _phaseOnly;
   std::vector<Constraint*> _constraints;
 };
 

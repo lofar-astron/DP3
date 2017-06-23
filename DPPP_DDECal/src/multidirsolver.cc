@@ -1,3 +1,4 @@
+
 #ifdef AOPROJECT
 #include "multidirsolver.h"
 #else
@@ -6,7 +7,7 @@
 
 using namespace arma;
 
-MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double stepSize) :
+MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double stepSize, bool phaseOnly) :
   _nAntennas(0),
   _nDirections(0),
   _nChannels(0),
@@ -14,7 +15,8 @@ MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double ste
   _mode(CalibrateComplexGain),
   _maxIterations(maxIterations),
   _accuracy(accuracy),
-  _stepSize(stepSize)
+  _stepSize(stepSize),
+  _phaseOnly(phaseOnly)
 {
 }
 
@@ -97,10 +99,17 @@ MultiDirSolver::SolveResult MultiDirSolver::process(std::vector<Complex *>& data
     {
       for(size_t i=0; i!=_nAntennas*_nDirections; ++i)
       {
+        if(_phaseOnly)
+        {
+          double ab = std::abs(nextSolutions[chBlock][i]);
+          if(ab != 0.0)
+            nextSolutions[chBlock][i] /= ab;
+        }
         nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
           nextSolutions[chBlock][i] * _stepSize;
       }
     }
+    
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
@@ -146,6 +155,12 @@ void MultiDirSolver::performSolveIteration(size_t channelBlockIndex,
                        const std::vector<Complex *>& data,
                        const std::vector<std::vector<Complex *> >& modelData) const
 {
+  for(size_t ant=0; ant!=_nAntennas; ++ant)
+  {
+    gTimesCs[ant].zeros();
+    vs[ant].zeros();
+  }
+  
   const size_t
     channelIndexStart = channelBlockIndex * _nChannels / _nChannelBlocks,
     channelIndexEnd = (channelBlockIndex+1) * _nChannels / _nChannelBlocks,
@@ -169,30 +184,30 @@ void MultiDirSolver::performSolveIteration(size_t channelBlockIndex,
         for(size_t d=0; d!=_nDirections; ++d)
           modelPtrs[d] = modelData[timeIndex][d] + (channelIndexStart + baseline * _nChannels) * 4;
         const Complex* dataPtr = data[timeIndex] + (channelIndexStart + baseline * _nChannels) * 4;
+        const size_t p1top2[4] = {0, 2, 1, 3};
         for(size_t ch=channelIndexStart; ch!=channelIndexEnd; ++ch)
         {
-					const size_t
-						dataIndex1 = ch-channelIndexStart + (timeIndex + antenna1 * nTimes) * curChannelBlockSize,
-						dataIndex2 = ch-channelIndexStart + (timeIndex + antenna2 * nTimes) * curChannelBlockSize;
-					for(size_t p=0; p!=4; ++p)
-					{
-						//std::cout << "timeindex" << timeIndex << ' ';
-						for(size_t d=0; d!=_nDirections; ++d)
-						{
-							std::complex<double> predicted = *modelPtrs[d];
-							//std::cout << predicted << ' ';
-							
-							size_t solIndex1 = antenna1*_nDirections + d;
-							size_t solIndex2 = antenna2*_nDirections + d;
-							gTimesC2(dataIndex1*4+p, d) = std::conj(solutions[solIndex1] * predicted); // using a* b* = (ab)*
-							gTimesC1(dataIndex2*4+p, d) = std::conj(solutions[solIndex2]) * predicted;
-							
-							++modelPtrs[d]; // Goto the next polarization of this 2x2 matrix.
-						}
-						v1(dataIndex2*4+p) = dataPtr[p];
-						v2(dataIndex1*4+p) = std::conj(dataPtr[p]);
-						++dataPtr; // Goto the next polarization of this 2x2 matrix.
-					}
+          const size_t
+            dataIndex1 = ch-channelIndexStart + (timeIndex + antenna1 * nTimes) * curChannelBlockSize,
+            dataIndex2 = ch-channelIndexStart + (timeIndex + antenna2 * nTimes) * curChannelBlockSize;
+          for(size_t p1=0; p1!=4; ++p1)
+          {
+            size_t p2 = p1top2[p1];
+            for(size_t d=0; d!=_nDirections; ++d)
+            {
+              std::complex<double> predicted = *modelPtrs[d];
+              
+              size_t solIndex1 = antenna1*_nDirections + d;
+              size_t solIndex2 = antenna2*_nDirections + d;
+              gTimesC2(dataIndex1*4+p1, d) = std::conj(solutions[solIndex1] * predicted); // using a* b* = (ab)*
+              gTimesC1(dataIndex2*4+p2, d) = std::conj(solutions[solIndex2]) * predicted;
+              
+              ++modelPtrs[d]; // Goto the next polarization of this 2x2 matrix.
+            }
+            v1(dataIndex2*4+p2) = *dataPtr;
+            v2(dataIndex1*4+p1) = std::conj(*dataPtr);
+            ++dataPtr; // Goto the next polarization of this 2x2 matrix.
+          }
         }
       }
     }
@@ -202,7 +217,6 @@ void MultiDirSolver::performSolveIteration(size_t channelBlockIndex,
   // for each antenna.
   for(size_t ant=0; ant!=_nAntennas; ++ant)
   {
-    //std::cout << ant << '\n';
     cx_mat& gTimesC = gTimesCs[ant];
     cx_vec& v = vs[ant];
     // solve [g* C] x  = v
