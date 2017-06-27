@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Define the path for finding the library.
-LD_LIBRARY_PATH=../src:$LD_LIBRARYPATH
-DYLD_LIBRARY_PATH=../src:$DYLD_LIBRARYPATH
+LD_LIBRARY_PATH=../src:$LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../src:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
 
