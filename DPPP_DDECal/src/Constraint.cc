@@ -80,7 +80,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     {
       for(size_t d=0; d!=_nDirections; ++d)
       {
-        size_t solutionIndex = refAntenna*_nDirections + d;
+        size_t solutionIndex = antennaIndex*_nDirections + d;
         size_t refAntennaIndex = d + refAntenna*_nDirections;
         if(antennaIndex != refAntenna)
         {
