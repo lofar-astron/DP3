@@ -1,29 +1,95 @@
 #include <lofar_config.h>
 #include <DPPP/H5Parm.h>
 #include <Common/Exception.h>
+#include <Common/StringUtil.h>
+#include <Common/LofarLogger.h>
 #include <cstring>
-#include <iostream>
+#include <complex>
+#include <sstream>
+#include <iomanip>
+#include <sys/stat.h>
+
+#include <hdf5.h>
+
+using namespace std;
 
 namespace LOFAR {
-  H5Parm::H5Parm(const std::string& filename) {
-    // ACC_EXCL to give error when file already exists.
-    try {
-//      H5::Exception::dontPrint();
-      _hdf5file = H5::H5File(filename, H5F_ACC_TRUNC);
-    }
-    catch (H5::FileIException err) {
-      throw Exception ("H5Parm: not able to open file "+filename+" for writing, does it exist already?");
-    }
+  H5Parm::H5Parm(const std::string& filename, bool forceNewSolSet,
+                 const std::string& solSetName):
+      H5::H5File(filename,
+                 access(filename.c_str(),F_OK)!=-1?H5F_ACC_RDWR:H5F_ACC_TRUNC
+                )
+  {
+    if (forceNewSolSet || getNumObjs()==0) { // Create a new solSet
+      if (solSetName=="") {
+        // Get the name of first non-existing solset
+        stringstream newSolSetName;
+        H5::Group tryGroup;
+        for (uint solSetNum=0; solSetNum<100; ++solSetNum) {
+          try {
+            H5::Exception::dontPrint();
+            newSolSetName<<"sol"<<setfill('0')<<setw(3)<<solSetNum;
+            tryGroup = openGroup(newSolSetName.str());
+            newSolSetName.str("");
+          }
+          catch (H5::FileIException& not_found_error ) {
+            // solSetName does not exist yet
+            break;
+          }
+          tryGroup.close();
+        }
+        _solSet = createGroup("/"+newSolSetName.str(), H5P_DEFAULT);
+      } else {
+        // Create solset with the given name
+        _solSet = createGroup("/"+solSetName, H5P_DEFAULT);
+      }
+      addVersionStamp(_solSet);
+    } else {
+      string solSetNameToOpen=solSetName;
+      if (solSetNameToOpen=="") {
+        if (this->getNumObjs()==1) {
+          solSetNameToOpen=this->getObjnameByIdx(0);
+        } else {
+          THROW(Exception, "H5Parm "<<filename<<" contains more than one SolSet, "<<
+              "please specify which one to use.");
+        }
+      }
 
-    // Make a new group
-    _solSet = _hdf5file.createGroup("/sol000", H5P_DEFAULT);
+      _solSet = openGroup(solSetNameToOpen);
 
-    addVersionStamp(_solSet);
+      vector<string> solTabNames;
+      for (uint i=0; i<_solSet.getNumObjs();++i) {
+        if (_solSet.getObjTypeByIdx(i)==H5G_GROUP) {
+          solTabNames.push_back(_solSet.getObjnameByIdx(i));
+        }
+      }
+
+      for (vector<string>::iterator solTabName=solTabNames.begin();
+           solTabName!=solTabNames.end(); ++solTabName) {
+        H5::Group group = _solSet.openGroup(*solTabName);
+        _solTabs.insert(
+            std::map<std::string, SolTab>::value_type (*solTabName, SolTab(group)));
+      }
+    }
+  }
+
+
+  H5Parm::H5Parm() {
   }
 
   H5Parm::~H5Parm() {
+    // Throw an error if the antenna or source table is not present
+    //_solSet.openDataSet("antenna");
+    //_solSet.openDataSet("source");
     _solSet.close();
-    _hdf5file.close();
+  }
+
+  string H5Parm::getSolSetName() const {
+    char buffer[100];
+    hsize_t namelen = H5Iget_name(_solSet.getId(),buffer,100);
+    buffer[namelen+1]=0;
+    // Strip leading '/'
+    return buffer+1;
   }
 
   void H5Parm::addVersionStamp(H5::Group &node) {
@@ -91,134 +157,24 @@ namespace LOFAR {
     dataset.write(&(ants[0]), antennaType);
   }
 
-  void H5Parm::addSolution (const std::string& solName,
-                            const std::string& solType,
-                            const std::string& axesstr,
-                            const std::vector<hsize_t>& dims,
-                            const std::vector<double>& vals,
-                            const std::vector<double>& weights) {
-    H5::Group solTab = _solSet.createGroup(solName);
-    H5::Attribute attr = solTab.createAttribute("TITLE",
-                                H5::StrType(H5::PredType::C_S1, solType.size()),
-                                H5::DataSpace());
-    attr.write(H5::StrType(H5::PredType::C_S1, solType.size()), solType);
-    addVersionStamp(solTab);
-
-    // ASSERT dims product == vals.size()
-    // ASSERT dims.size() - 1 == aantal komma's in axesstr
-
-    H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
-    H5::DataSet dataset = solTab.createDataSet("val", 
-                                           H5::PredType::IEEE_F64LE, dataspace);
-
-    dataset.write(&(vals[0]), H5::PredType::IEEE_F64LE);
-
-    // Write an attribute with the axes
-    attr = dataset.createAttribute("AXES",
-                             H5::StrType(H5::PredType::C_S1, axesstr.size()),
-                             H5::DataSpace());
-    attr.write(H5::StrType(H5::PredType::C_S1, axesstr.size()), axesstr);
-
-    // Add weights
-    H5::DataSet weightset = solTab.createDataSet("weight", H5::PredType::IEEE_F64LE, dataspace);
-
-    // If weights are empty, write ones everywhere
-    if (weights.empty()) {
-      vector<double> fullweights(vals.size(), 1);
-      weightset.write(&(fullweights[0]), H5::PredType::IEEE_F64LE);
-    } else {
-      weightset.write(&(weights[0]), H5::PredType::IEEE_F64LE);
+  H5Parm::SolTab& H5Parm::getSolTab(const std::string& name) {
+    if (!hasSolTab(name)) {
+      THROW(Exception, "SolTab "<<name<<" does not exist in solset "<<
+                       getSolSetName());
     }
-
-    attr = weightset.createAttribute("AXES",
-                             H5::StrType(H5::PredType::C_S1, axesstr.size()),
-                             H5::DataSpace());
-    attr.write(H5::StrType(H5::PredType::C_S1, axesstr.size()), axesstr);
+    return _solTabs.find(name)->second;
   }
 
-  void H5Parm::addSolution (const std::string& solName,
-                            const std::string& solType,
-                            const std::string& axesstr,
-                            const std::vector<hsize_t>& dims,
-                            const std::vector<std::complex<double> >& vals,
-                            const std::vector<double>& weights,
-                            bool toAmplitudes) {
-    // Convert values to real numbers by taking amplitude or argument
-    vector<double> realvals(vals.size());
-
-    if (toAmplitudes) {
-      transform(vals.begin(), vals.end(), realvals.begin(), takeAbs);
-    } else { // Phase only
-      transform(vals.begin(), vals.end(), realvals.begin(), takeArg);
-    }
-
-    addSolution(solName, solType, axesstr, dims, realvals, weights);
+  bool H5Parm::hasSolTab(const string& solTabName) const {
+    return _solTabs.find(solTabName) != _solTabs.end();
   }
 
-  void H5Parm::setSolAntennas(const std::string& solName,
-                              const std::vector<std::string>& solAntennas) {
-    H5::Group solTab(_solSet.openGroup(solName));
-
-    // TODO: assert that antenna is present in antenna table in solution set
-    hsize_t dims[1];
-    dims[0]=solAntennas.size();
-
-    // Create dataset
-    H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = solTab.createDataSet("ant", H5::StrType(H5::PredType::C_S1, 16), dataspace);
-
-    // Prepare data
-    char antArray[solAntennas.size()][16];
-    for (uint i=0; i<solAntennas.size(); ++i) {
-      std::strncpy(antArray[i], solAntennas[i].c_str(), 16);
-    }
-
-    dataset.write(antArray, H5::StrType(H5::PredType::C_S1, 16));
-  }
-
-  void H5Parm::setSolSources(const std::string& solName,
-                             const std::vector<std::string>& solSources) {
-    H5::Group solTab(_solSet.openGroup(solName));
-    // TODO: assert that source is present in source table of solution set
-    hsize_t dims[1];
-    dims[0]=solSources.size();
-
-    // Create dataset
-    H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = solTab.createDataSet("dir", H5::StrType(H5::PredType::C_S1, 128), dataspace);
-
-    // Prepare data
-    char srcArray[solSources.size()][128];
-    for (uint i=0; i<solSources.size(); ++i) {
-      std::strncpy(srcArray[i], solSources[i].c_str(), 128);
-    }
-
-    dataset.write(srcArray, H5::StrType(H5::PredType::C_S1, 128));
-  }
-
-  void H5Parm::setFreqs(const std::string& solName,
-                        const std::vector<double>& freqs) {
-    H5::Group solTab(_solSet.openGroup(solName));
-    hsize_t dims[1];
-    dims[0]=freqs.size();
-
-    // Create dataset
-    H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = solTab.createDataSet("freq", H5::PredType::IEEE_F64LE, dataspace);
-
-    dataset.write(&(freqs[0]), H5::PredType::IEEE_F64LE);
-  }
-
-  void H5Parm::setTimes(const std::string& solName,
-                        const std::vector<double>& times) {
-    H5::Group solTab(_solSet.openGroup(solName));
-    hsize_t dims[1];
-    dims[0]=times.size();
-
-    // Create dataset
-    H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = solTab.createDataSet("time", H5::PredType::IEEE_F64LE, dataspace);
-
-    dataset.write(&(times[0]), H5::PredType::IEEE_F64LE);
+  H5Parm::SolTab& H5Parm::createSolTab(const std::string& name,
+                                       const std::string& type,
+                                       const std::vector<H5Parm::AxisInfo> axes) {
+    H5::Group newgroup = _solSet.createGroup(name);
+    _solTabs.insert(std::map<std::string, SolTab>::value_type
+                    (name, SolTab(newgroup, type, axes)));
+    return _solTabs.find(name)->second;
   }
 }

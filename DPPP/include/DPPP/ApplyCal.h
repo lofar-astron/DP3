@@ -29,6 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
+#include <DPPP/H5Parm.h>
 #include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
 #include <ParmDB/Parm.h>
@@ -41,10 +42,13 @@ namespace LOFAR {
     // @ingroup NDPPP
 
     // This class is a DPStep class applying calibration parameters to the data.
-
     class ApplyCal: public DPStep
     {
     public:
+
+      enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE,
+                        ROTATIONMEASURE, SCALARAMPLITUDE};
+
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       ApplyCal (DPInput*, const ParameterSet&, const string& prefix,
@@ -121,13 +125,22 @@ namespace LOFAR {
 
       void initDataArrays();
 
+      // Check the number of polarizations in the parmdb or h5parm
+      uint nPol(const std::string& parmName);
+
+      static std::string correctTypeToString(CorrectType);
+      static CorrectType stringToCorrectType(const string&);
+
       //# Data members.
       DPInput*         itsInput;
       DPBuffer         itsBuffer;
-      string           itsName;
-      string           itsParmDBName;
+      string      itsName;
+      string      itsParmDBName;
+      bool             itsUseH5Parm;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
-      string           itsCorrectType;
+      H5Parm           itsH5Parm;
+      H5Parm::SolTab   itsSolTab;
+      CorrectType      itsCorrectType;
       bool             itsInvert;
       uint             itsTimeSlotsPerParmUpdate;
       double           itsSigmaMMSE;
@@ -146,6 +159,7 @@ namespace LOFAR {
       double          itsLastTime; // last time of current chunk
       FlagCounter     itsFlagCounter;
       bool            itsUseAP;      //# use ampl/phase or real/imag
+      hsize_t         itsDirection;
       NSTimer         itsTimer;
     };
 

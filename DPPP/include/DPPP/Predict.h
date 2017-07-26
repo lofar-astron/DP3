@@ -132,10 +132,10 @@ namespace LOFAR {
 
       // The info needed to calculate the station beams.
       vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
-      vector<casacore::MeasFrame>                       itsMeasFrames;
-      vector<casacore::MDirection::Convert>             itsMeasConverters;
-      vector<vector<StationResponse::matrix22c_t> > itsBeamValues;
-      ApplyBeam::BeamMode                           itsBeamMode;
+      vector<casacore::MeasFrame>                    itsMeasFrames;
+      vector<casacore::MDirection::Convert>          itsMeasConverters;
+      vector<vector<StationResponse::matrix22c_t> >  itsBeamValues;
+      ApplyBeam::BeamMode                            itsBeamMode;
 
       // Vector of patches, and a bool indicating if it contains only one source
       vector<Patch::ConstPtr> itsPatchList;

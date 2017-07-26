@@ -20,7 +20,7 @@ lofar_add_library(dppp
   DemixerNew.cc DemixInfo.cc DemixWorker.cc
   Predict.cc
   ApplyBeam.cc
-  phasefitter.cc H5Parm.cc
+  phasefitter.cc H5Parm.cc SolTab.cc
 )
 
 lofar_add_bin_program(NDPPP NDPPP.cc)

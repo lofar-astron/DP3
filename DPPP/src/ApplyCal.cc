@@ -49,7 +49,7 @@ namespace LOFAR {
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
-        itsCorrectType (toLower(parset.getString (prefix + "correction", "gain"))),
+        itsUseH5Parm   (itsParmDBName.find(".h5")!=string::npos),
         itsTimeSlotsPerParmUpdate (parset.getInt (prefix +
             "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (parset.getDouble (prefix + "MMSE.Sigma", 0)),
@@ -62,27 +62,63 @@ namespace LOFAR {
         itsUseAP       (false)
     {
       ASSERT (!itsParmDBName.empty());
+
+      string directionStr;
       if (substep) {
         itsInvert=false;
       } else {
-        itsInvert=parset.getBool (prefix + "invert", true);
+        itsInvert = parset.getBool (prefix + "invert", true);
       }
-      if (itsCorrectType=="fulljones" && itsUpdateWeights) {
+
+      if (itsUseH5Parm) {
+        directionStr = parset.getString (prefix + "direction", "");
+        itsH5Parm = H5Parm(itsParmDBName);
+        string solTabName = toLower(parset.getString (prefix + "correction"));
+        itsSolTab = itsH5Parm.getSolTab(solTabName);
+        itsCorrectType = stringToCorrectType(itsSolTab.getType());
+        if (directionStr!="") {
+          itsDirection = itsSolTab.getDirIndex(directionStr);
+        } else {
+          ASSERT(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
+        }
+      } else {
+        string correctTypeStr = toLower(parset.getString (prefix + "correction", "gain"));
+        itsCorrectType = stringToCorrectType(correctTypeStr);
+      }
+
+      if (itsCorrectType==FULLJONES && itsUpdateWeights) {
         ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
-      }
-      ASSERT(itsCorrectType=="gain" || itsCorrectType=="fulljones" || 
-             itsCorrectType=="tec" || itsCorrectType=="clock" ||
-             itsCorrectType=="scalarphase" || itsCorrectType=="commonscalarphase" ||
-             itsCorrectType=="scalaramplitude" || itsCorrectType=="commonscalaramplitude" ||
-             itsCorrectType=="rotationangle" || itsCorrectType=="commonrotationangle" ||
-             itsCorrectType=="rotationmeasure");
-      if (itsCorrectType.substr(0,6)=="common") {
-        itsCorrectType=itsCorrectType.substr(6);
       }
     }
 
     ApplyCal::ApplyCal()
     {}
+
+    string ApplyCal::correctTypeToString(CorrectType ct) {
+      if (ct==GAIN) return "gain";
+      if (ct==FULLJONES) return "fulljones";
+      if (ct==TEC) return "tec";
+      if (ct==CLOCK) return "clock";
+      if (ct==SCALARPHASE) return "scalarphase";
+      if (ct==SCALARAMPLITUDE) return "scalaramplitude";
+      if (ct==ROTATIONANGLE) return "rotationangle";
+      if (ct==ROTATIONMEASURE) return "rotationmeasure";
+      THROW(Exception, "Unknown correction type: "<<ct);
+      return "";
+    }
+
+    ApplyCal::CorrectType ApplyCal::stringToCorrectType(const string& ctStr) {
+      if (ctStr=="gain") return GAIN;
+      if (ctStr=="fulljones") return FULLJONES;
+      if (ctStr=="tec") return TEC;
+      if (ctStr=="clock") return CLOCK;
+      if (ctStr=="scalarphase" || ctStr=="commonscalarphase") return SCALARPHASE;
+      if (ctStr=="scalaramplitude" || ctStr=="commonscalaramplitude") return SCALARAMPLITUDE;
+      if (ctStr=="rotationangle" || ctStr=="commonrotationangle") return ROTATIONANGLE;
+      if (ctStr=="rotationmeasure") return ROTATIONMEASURE;
+      THROW(Exception, "Unknown correction type: "<<ctStr);
+      return GAIN;
+    }
 
     ApplyCal::~ApplyCal()
     {}
@@ -101,37 +137,46 @@ namespace LOFAR {
 
       ASSERT(itsNCorr==4);
 
-      itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
-
-      // Detect if full jones solutions are present
-      if ((itsCorrectType == "gain" || itsCorrectType=="fulljones") &&
-          (itsParmDB->getNames("Gain:0:1:*").size() +
-           itsParmDB->getDefNames("Gain:0:1:*").size() >0 )) {
-        itsCorrectType="fulljones";
+      if (!itsUseH5Parm) { // Use ParmDB
+        itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
       }
 
-      // Detect if solutions are saved as Real/Imag or Ampl/Phase 
-      if (itsCorrectType == "gain" || itsCorrectType == "fulljones" ){
-        if (!itsParmDB->getNames("Gain:0:0:Real*").empty()) {
-          // Values with :Real present
-          itsUseAP = false; 
-        } else if (!itsParmDB->getNames("Gain:0:0:Ampl*").empty() || 
-                   !itsParmDB->getNames("Phase:0:0:Ampl*").empty()) {
-          // Values with :Ampl present
-          itsUseAP = true;
-        } else if (!itsParmDB->getDefNames("Gain:0:0:Real*").empty()) {
-          // Defvalues with :Real present
-          itsUseAP = false;
-        } else if (!itsParmDB->getDefNames("Gain:0:0:Ampl*").empty() ||
-                   !itsParmDB->getDefNames("Gain:0:0:Phase*").empty()) {
-          // Defvalues with :Ampl present
+      // Detect if full jones solutions are present
+      if (!itsUseH5Parm &&
+          (itsCorrectType == GAIN || itsCorrectType==FULLJONES) &&
+          (itsParmDB->getNames("Gain:0:1:*").size() +
+           itsParmDB->getDefNames("Gain:0:1:*").size() >0 )) {
+        itsCorrectType=FULLJONES;
+      }
+
+      // Detect if solutions are saved as Real/Imag or Ampl/Phase
+      if (itsCorrectType == GAIN || itsCorrectType == FULLJONES ){
+        if (itsUseH5Parm) {
+          // H5Parm uses amplitude / phase by definition
           itsUseAP = true;
         } else {
-          THROW (Exception, "No gains found in parmdb "+itsParmDBName);
+          // Determine from values present in parmdb what to use
+          if (!itsParmDB->getNames("Gain:0:0:Real*").empty()) {
+            // Values with :Real present
+            itsUseAP = false;
+          } else if (!itsParmDB->getNames("Gain:0:0:Ampl*").empty() ||
+                     !itsParmDB->getNames("Phase:0:0:Ampl*").empty()) {
+            // Values with :Ampl present
+            itsUseAP = true;
+          } else if (!itsParmDB->getDefNames("Gain:0:0:Real*").empty()) {
+            // Defvalues with :Real present
+            itsUseAP = false;
+          } else if (!itsParmDB->getDefNames("Gain:0:0:Ampl*").empty() ||
+                     !itsParmDB->getDefNames("Gain:0:0:Phase*").empty()) {
+            // Defvalues with :Ampl present
+            itsUseAP = true;
+          } else {
+            THROW (Exception, "No gains found in parmdb "+itsParmDBName);
+          }
         }
       }
 
-      if (itsCorrectType == "gain") {
+      if (itsCorrectType == GAIN) {
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl");
           itsParmExprs.push_back("Gain:0:0:Phase");
@@ -143,7 +188,7 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Real");
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      } else if (itsCorrectType == "fulljones") {
+      } else if (itsCorrectType == FULLJONES) {
         if (itsUseAP) {
           itsParmExprs.push_back("Gain:0:0:Ampl");
           itsParmExprs.push_back("Gain:0:0:Phase");
@@ -163,36 +208,34 @@ namespace LOFAR {
           itsParmExprs.push_back("Gain:1:1:Real");
           itsParmExprs.push_back("Gain:1:1:Imag");
         }
-      } else if (itsCorrectType == "tec") {
-        if (itsParmDB->getNames("TEC:0:*").empty() &&
-                    itsParmDB->getDefNames("TEC:0:*").empty() ) {
+      } else if (itsCorrectType == TEC) {
+        if (nPol("TEC")==1) {
           itsParmExprs.push_back("TEC");
         }
         else {
           itsParmExprs.push_back("TEC:0");
           itsParmExprs.push_back("TEC:1");
         }
-      } else if (itsCorrectType == "clock") {
-        if (itsParmDB->getNames("Clock:0:*").empty() &&
-            itsParmDB->getDefNames("Clock:0:*").empty() ) {
+      } else if (itsCorrectType == CLOCK) {
+        if (nPol("Clock")==1) {
           itsParmExprs.push_back("Clock");
         }
         else {
           itsParmExprs.push_back("Clock:0");
           itsParmExprs.push_back("Clock:1");
         }
-      } else if (itsCorrectType == "rotationangle") {
+      } else if (itsCorrectType == ROTATIONANGLE) {
         itsParmExprs.push_back("{Common,}RotationAngle");
-      } else if (itsCorrectType == "scalarphase") {
+      } else if (itsCorrectType == SCALARPHASE) {
         itsParmExprs.push_back("{Common,}ScalarPhase");
-      } else if (itsCorrectType == "rotationmeasure") {
+      } else if (itsCorrectType == ROTATIONMEASURE) {
         itsParmExprs.push_back("RotationMeasure");
-      } else if (itsCorrectType == "scalaramplitude") {
+      } else if (itsCorrectType == SCALARAMPLITUDE) {
         itsParmExprs.push_back("{Common,}ScalarAmplitude");
       }
       else {
-        THROW (Exception, "Correction type " + itsCorrectType +
-                         " is unknown");
+        THROW (Exception, "Correction type "<<
+                          correctTypeToString(itsCorrectType)<<" is unknown");
       }
 
       initDataArrays();
@@ -219,9 +262,13 @@ namespace LOFAR {
     void ApplyCal::show (std::ostream& os) const
     {
       os << "ApplyCal " << itsName << std::endl;
-      os << "  parmdb:         " << itsParmDBName << endl;
-      os << "  correction:     " << itsCorrectType << endl;
-      if (itsCorrectType=="gain" || itsCorrectType=="fulljones") {
+      if (itsUseH5Parm) {
+        os << "  H5Parm:         " << itsParmDBName <<endl;
+      } else {
+        os << "  parmdb:         " << itsParmDBName << endl;
+      }
+      os << "  correction:     " << correctTypeToString(itsCorrectType) << endl;
+      if (itsCorrectType==GAIN || itsCorrectType==FULLJONES) {
         os << "    Ampl/Phase:   " << boolalpha << itsUseAP << endl;
       }
       os << "  update weights: " << boolalpha << itsUpdateWeights << endl;
@@ -241,10 +288,9 @@ namespace LOFAR {
     {
       itsTimer.start();
       itsBuffer.copy (bufin);
-      double bufStartTime = bufin.getTime() - 0.5*itsTimeInterval;
 
       if (bufin.getTime() > itsLastTime) {
-        updateParms(bufStartTime);
+        updateParms(bufin.getTime());
         itsTimeStep=0;
       }
       else {
@@ -304,7 +350,7 @@ namespace LOFAR {
 
     void ApplyCal::updateParms (const double bufStartTime)
     {
-      int numAnts = info().antennaNames().size();
+      uint numAnts = info().antennaNames().size();
 
       // itsParms contains the parameters to a grid, first for all parameters
       // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq * time
@@ -322,7 +368,8 @@ namespace LOFAR {
       }
       double minFreq       (info().chanFreqs()[0]-0.5*freqInterval);
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
-      itsLastTime = bufStartTime + itsTimeSlotsPerParmUpdate * itsTimeInterval;
+      itsLastTime = bufStartTime - 0.5*itsTimeInterval + 
+                    itsTimeSlotsPerParmUpdate * itsTimeInterval;
       uint numTimes = itsTimeSlotsPerParmUpdate;
 
       double lastMSTime = info().startTime() + info().ntime() * itsTimeInterval;
@@ -336,54 +383,102 @@ namespace LOFAR {
 
       uint tfDomainSize=numTimes*numFreqs;
 
-      for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
-        // parmMap contains parameter values for all antennas
-        parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
-                               minFreq, maxFreq, freqInterval,
-                               bufStartTime, itsLastTime, itsTimeInterval,
-                               true);
+      // Fill parmvalues here, get raw data from H5Parm or ParmDB
+      if (itsUseH5Parm) {
+        // TODO: understand polarization etc.
+        ASSERT(itsParmExprs.size()==1);
+        for (uint ant = 0; ant < numAnts; ++ant) {
+          hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
 
-        // Resolve {Common,}Bla to CommonBla or Bla
-        if (!parmMap.empty() &&
-            itsParmExprs[parmExprNum].find("{") != std::string::npos) {
-          uint colonPos = (parmMap.begin()->first).find(":");
-          itsParmExprs[parmExprNum] = (parmMap.begin()->first).substr(0, colonPos);
+          uint freqUpsampleFactor = numFreqs;
+          if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
+            double h5freqinterval = itsSolTab.getFreqInterval();
+            freqUpsampleFactor = h5freqinterval/info().chanWidths()[0];
+            ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
+          }
+
+          double h5timeInterval = itsSolTab.getTimeInterval();
+          uint timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
+          ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
+          uint nfreqsinhdf5 = (!itsSolTab.hasAxis("freq")?1:itsSolTab.getAxis("freq").size);
+
+          vector<double> rawsols = itsSolTab.getValues(info().antennaNames()[ant],
+                                      startTime, numTimes/timeUpsampleFactor, 1,
+                                      0, nfreqsinhdf5, 1, 0, itsDirection);
+
+          parmvalues[0][ant].resize(tfDomainSize);
+
+          // Figure out whether time or frequency is first axis
+          bool freqvariesfastest = true;
+          if (itsSolTab.hasAxis("freq") &&
+              itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
+            freqvariesfastest = false;
+          }
+          ASSERT(freqvariesfastest);
+
+          // TODO: upsample frequency properly
+          // Below just upsamples frequency from one to numfreqs or takes raw frequencies
+          size_t tf=0;
+          for (uint t=0; t<numTimes/timeUpsampleFactor; ++t) {
+            for (uint ti=0; ti<timeUpsampleFactor; ++ti) {
+              for (uint f=0; f<numFreqs/freqUpsampleFactor; ++f) {
+                for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
+                  parmvalues[0][ant][tf++] = rawsols[t*nfreqsinhdf5 + f];
+                }
+              }
+            }
+          }
         }
+      } else { // Use ParmDB
+        for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
+          // parmMap contains parameter values for all antennas
+          parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
+                                 minFreq, maxFreq, freqInterval,
+                                 bufStartTime-0.5*itsTimeInterval, itsLastTime,
+                                 itsTimeInterval, true);
 
-        for (int ant = 0; ant < numAnts; ++ant) {
-          parmIt = parmMap.find(
-                    itsParmExprs[parmExprNum] + ":" + info().antennaNames()[ant]);
+          // Resolve {Common,}Bla to CommonBla or Bla
+          if (!parmMap.empty() &&
+              itsParmExprs[parmExprNum].find("{") != std::string::npos) {
+            uint colonPos = (parmMap.begin()->first).find(":");
+            itsParmExprs[parmExprNum] = (parmMap.begin()->first).substr(0, colonPos);
+          }
 
-          if (parmIt != parmMap.end()) {
-            parmvalues[parmExprNum][ant].swap(parmIt->second);
-            ASSERT(parmvalues[parmExprNum][ant].size()==tfDomainSize);
-          } else {// No value found, try default
-            Array<double> defValues;
-            double defValue;
+          for (uint ant = 0; ant < numAnts; ++ant) {
+            parmIt = parmMap.find(
+                      itsParmExprs[parmExprNum] + ":" + info().antennaNames()[ant]);
 
-            if (itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
-                info().antennaNames()[ant]).size()==1) { // Default for antenna
-              itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
-                  info().antennaNames()[ant]).get(0,defValues);
-              ASSERT(defValues.size()==1);
-              defValue=defValues.data()[0];
-            }
-            else if (itsParmDB->getDefValues(itsParmExprs[parmExprNum]).size()
-                == 1) { //Default value
-              itsParmDB->getDefValues(itsParmExprs[parmExprNum]).get(0,defValues);
-              ASSERT(defValues.size()==1);
-              defValue=defValues.data()[0];
-            } else if (itsParmExprs[parmExprNum].substr(0,5)=="Gain:") {
-              defValue=0.;
-            }
-            else {
-              THROW (Exception, "No parameter value found for "+
-                 itsParmExprs[parmExprNum]+":"+info().antennaNames()[ant]);
-            }
+            if (parmIt != parmMap.end()) {
+              parmvalues[parmExprNum][ant].swap(parmIt->second);
+              ASSERT(parmvalues[parmExprNum][ant].size()==tfDomainSize);
+            } else {// No value found, try default
+              Array<double> defValues;
+              double defValue;
 
-            parmvalues[parmExprNum][ant].resize(tfDomainSize);
-            for (uint tf=0; tf<tfDomainSize;++tf) {
-              parmvalues[parmExprNum][ant][tf]=defValue;
+              if (itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
+                  info().antennaNames()[ant]).size()==1) { // Default for antenna
+                itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
+                    info().antennaNames()[ant]).get(0,defValues);
+                ASSERT(defValues.size()==1);
+                defValue=defValues.data()[0];
+              }
+              else if (itsParmDB->getDefValues(itsParmExprs[parmExprNum]).size()
+                  == 1) { //Default value
+                itsParmDB->getDefValues(itsParmExprs[parmExprNum]).get(0,defValues);
+                ASSERT(defValues.size()==1);
+                defValue=defValues.data()[0];
+              } else if (itsParmExprs[parmExprNum].substr(0,5)=="Gain:") {
+                defValue=0.;
+              }
+              else {
+                THROW (Exception, "No parameter value found for "+
+                   itsParmExprs[parmExprNum]+":"+info().antennaNames()[ant]);
+              }
+
+              parmvalues[parmExprNum][ant].resize(tfDomainSize);
+              for (uint tf=0; tf<tfDomainSize;++tf) {
+                parmvalues[parmExprNum][ant][tf]=defValue;
+              }
             }
           }
         }
@@ -395,11 +490,11 @@ namespace LOFAR {
 
       // Make parameters complex
       for (uint tf=0;tf<tfDomainSize;++tf) {
-        for (int ant=0;ant<numAnts;++ant) {
+        for (uint ant=0;ant<numAnts;++ant) {
 
           freq=info().chanFreqs()[tf % numFreqs];
 
-          if (itsCorrectType=="gain") {
+          if (itsCorrectType==GAIN) {
             if (itsUseAP) { // Data as Amplitude / Phase
               itsParms(0, ant, tf) = polar(parmvalues[0][ant][tf],
                                            parmvalues[1][ant][tf]);
@@ -412,7 +507,7 @@ namespace LOFAR {
                                               parmvalues[3][ant][tf]);
             }
           }
-          else if (itsCorrectType=="fulljones") {
+          else if (itsCorrectType==FULLJONES) {
             if (itsUseAP) { // Data as Amplitude / Phase
               itsParms(0, ant, tf) = polar(parmvalues[0][ant][tf],
                                            parmvalues[1][ant][tf]);
@@ -433,7 +528,7 @@ namespace LOFAR {
                                               parmvalues[7][ant][tf]);
             }
           }
-          else if (itsCorrectType=="tec") {
+          else if (itsCorrectType==TEC) {
             itsParms(0, ant, tf)=polar(1.,
                 parmvalues[0][ant][tf] * -8.44797245e9 / freq);
             if (itsParmExprs.size() == 1) { // No TEC:0, only TEC:
@@ -445,7 +540,7 @@ namespace LOFAR {
                   parmvalues[1][ant][tf] * -8.44797245e9 / freq);
             }
           }
-          else if (itsCorrectType=="clock") {
+          else if (itsCorrectType==CLOCK) {
             itsParms(0, ant, tf)=polar(1.,
                 parmvalues[0][ant][tf] * freq * casacore::C::_2pi);
             if (itsParmExprs.size() == 1) { // No Clock:0, only Clock:
@@ -457,7 +552,7 @@ namespace LOFAR {
                   parmvalues[1][ant][tf] * freq * casacore::C::_2pi);
             }
           }
-          else if (itsCorrectType=="rotationangle") {
+          else if (itsCorrectType==ROTATIONANGLE) {
             double phi=parmvalues[0][ant][tf];
             if (itsInvert) {
               phi = -phi;
@@ -469,7 +564,7 @@ namespace LOFAR {
             itsParms(2, ant, tf) =  sinv;
             itsParms(3, ant, tf) =  cosv;
           }
-          else if (itsCorrectType=="rotationmeasure") {
+          else if (itsCorrectType==ROTATIONMEASURE) {
             double lambda2 = casacore::C::c / freq;
             lambda2 *= lambda2;
             double chi = parmvalues[0][ant][tf] * lambda2;
@@ -483,23 +578,44 @@ namespace LOFAR {
             itsParms(2, ant, tf) =  sinv;
             itsParms(3, ant, tf) =  cosv;
           }
-          else if (itsCorrectType=="scalarphase") {
+          else if (itsCorrectType==SCALARPHASE) {
             itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
             itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
           }
-          else if (itsCorrectType=="scalaramplitude") {
+          else if (itsCorrectType==SCALARAMPLITUDE) {
             itsParms(0, ant, tf) = parmvalues[0][ant][tf];
             itsParms(1, ant, tf) = parmvalues[0][ant][tf];
           }
 
-          // Invert (rotationmeasure and commonrotationangle are already inverted)
-          if (itsInvert && itsParms.shape()[0]==2) {
+          // Invert
+          if (itsInvert) {
+            if (itsParms.shape()[0]==2) {
             itsParms(0, ant, tf) = 1./itsParms(0, ant, tf);
             itsParms(1, ant, tf) = 1./itsParms(1, ant, tf);
+            } else if (itsCorrectType==FULLJONES) {
+              invert(&itsParms(0, ant, tf),itsSigmaMMSE);
+            } else {
+              ASSERT (itsCorrectType==ROTATIONMEASURE || itsCorrectType==ROTATIONANGLE);
+              // rotationmeasure and commonrotationangle are already inverted above
+            }
           }
-          else if (itsInvert && itsCorrectType=="fulljones") {
-            invert(&itsParms(0, ant, tf),itsSigmaMMSE);
-          }
+        }
+      }
+    }
+
+    uint ApplyCal::nPol(const string& parmName) {
+      if (itsUseH5Parm) {
+        if (!itsSolTab.hasAxis("pol")) {
+          return 1;
+        } else {
+          return itsSolTab.getAxis("pol").size;
+        }
+      } else { // Use ParmDB
+        if (itsParmDB->getNames(parmName+":0:*").empty() &&
+                    itsParmDB->getDefNames(parmName+":0:*").empty() ) {
+          return 1;
+        } else {
+          return 2;
         }
       }
     }
@@ -509,9 +625,9 @@ namespace LOFAR {
       uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
       uint numParms;
-      if (itsCorrectType=="fulljones" || 
-          itsCorrectType=="rotationangle" || 
-          itsCorrectType=="rotationmeasure") {
+      if (itsCorrectType==FULLJONES ||
+          itsCorrectType==ROTATIONANGLE ||
+          itsCorrectType==ROTATIONMEASURE) {
         numParms = 4;
       }
       else {
