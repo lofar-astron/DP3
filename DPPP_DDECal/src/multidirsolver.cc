@@ -7,16 +7,15 @@
 
 using namespace arma;
 
-MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double stepSize, bool phaseOnly) :
+MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double stepSize) :
   _nAntennas(0),
   _nDirections(0),
   _nChannels(0),
   _nChannelBlocks(0),
-  _mode(CalibrateComplexGain),
   _maxIterations(maxIterations),
   _accuracy(accuracy),
   _stepSize(stepSize),
-  _phaseOnly(phaseOnly)
+  _phaseOnly(false)
 {
 }
 

@@ -28,12 +28,7 @@ public:
     std::vector<std::vector<Constraint::Result> > _results;
   };
   
-  enum CalibrationMode { CalibrateComplexGain, 
-                         CalibrateTEC1, 
-                         CalibrateTEC2, 
-                         CalibratePhase };
-  
-  MultiDirSolver(size_t maxIterations, double accuracy, double stepSize, bool phaseOnly = true);
+  MultiDirSolver(size_t maxIterations, double accuracy, double stepSize);
   
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
@@ -44,7 +39,7 @@ public:
   SolveResult process(std::vector<Complex*>& data, std::vector<std::vector<Complex* > >& modelData,
     std::vector<std::vector<DComplex> >& solutions, double time) const;
   
-  void set_mode(CalibrationMode mode) { _mode = mode; }
+  void set_phase_only(bool phaseOnly) { _phaseOnly = phaseOnly; }
   
   void set_channel_blocks(size_t nChannelBlocks) { _nChannelBlocks = nChannelBlocks; }
   
@@ -69,7 +64,6 @@ private:
   std::vector<int> _ant1, _ant2;
   
   // Calibration setup
-  enum CalibrationMode _mode;
   size_t _maxIterations;
   double _accuracy;
   double _stepSize;

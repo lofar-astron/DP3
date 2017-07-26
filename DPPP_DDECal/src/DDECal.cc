@@ -116,21 +116,32 @@ namespace LOFAR {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
           new CoreConstraint()));
       }
-      if (itsMode == GainCal::PHASEONLY) {
+      switch(itsMode) {
+        case GainCal::PHASEONLY:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new PhaseConstraint()));
-      } else if (itsMode == GainCal::TEC) {
+        itsMultiDirSolver.set_phase_only(true);
+        break;
+        case GainCal::TEC:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECOnlyMode)));
-      } else if (itsMode == GainCal::TECANDPHASE){
+        itsMultiDirSolver.set_phase_only(true);
+        break;
+        case GainCal::TECANDPHASE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
-      } else if (itsMode == GainCal::COMPLEXGAIN) {
+        itsMultiDirSolver.set_phase_only(true);
+        break;
+        case GainCal::COMPLEXGAIN:
         // no constraints
-      } else if (itsMode == GainCal::TECSCREEN) {
+        itsMultiDirSolver.set_phase_only(false);
+        break;
+        case GainCal::TECSCREEN:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-		  new ScreenConstraint(parset, prefix+"tecscreen.")));
-      } else {
+                  new ScreenConstraint(parset, prefix+"tecscreen.")));
+        itsMultiDirSolver.set_phase_only(true);
+        break;
+        default:
         THROW (Exception, "Unexpected mode: " << 
                           GainCal::calTypeToString(itsMode));
       }
