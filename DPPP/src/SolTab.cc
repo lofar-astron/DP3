@@ -115,9 +115,9 @@ namespace LOFAR {
     attr.write(H5::StrType(H5::PredType::C_S1, axesstr.size()), axesstr);
   }
 
-  void H5Parm::SolTab::setValues(const std::vector<std::complex<double> >& vals,
-                                 const std::vector<double>& weights,
-                                 bool toAmplitudes) {
+  void H5Parm::SolTab::setComplexValues(const std::vector<std::complex<double> >& vals,
+                                       const std::vector<double>& weights,
+                                       bool toAmplitudes) {
     // Convert values to real numbers by taking amplitude or argument
     vector<double> realvals(vals.size());
 

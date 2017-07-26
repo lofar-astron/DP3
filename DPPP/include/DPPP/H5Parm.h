@@ -109,9 +109,9 @@ namespace LOFAR {
                          const std::vector<double>& weights);
 
           // Add a complex solution, taking either amplitude or phase
-          void setValues(const std::vector<std::complex<double> >& vals,
-                         const std::vector<double>& weights,
-                         bool toAmplitudes);
+          void setComplexValues(const std::vector<std::complex<double> >& vals,
+                                const std::vector<double>& weights,
+                                bool toAmplitudes);
 
           // Get the values of this SolTab for a given antenna.
           std::vector<double> getValues(const std::string& antName,
