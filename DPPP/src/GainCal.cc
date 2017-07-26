@@ -510,7 +510,8 @@ namespace LOFAR {
                                 const casacore::Bool* flag) {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
-      const size_t nCr = 4;
+      const size_t nCr = info().ncorr();
+      ASSERT(nCr==4 || nCr==2 || nCr==1);
 
       for (uint ch=0;ch<nCh;++ch) {
         for (uint bl=0;bl<nBl;++bl) {
@@ -530,18 +531,20 @@ namespace LOFAR {
             }
 
             for (uint cr=0;cr<nCr;++cr) {
-              iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
+              // The nCrDiv is there such that for nCr==2 the visibilities end up at (0,0) for cr==0, (1,1) for cr==1
+              uint nCrDiv = (nCr==4?2:1);
+              iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/nCrDiv,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                   DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
                   DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-              iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/2,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
+              iS[ch/itsNChan].getMVis()(IPosition(6,ant1,cr/nCrDiv,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                   DComplex(model[bl*nCr*nCh+ch*nCr+cr]) *
                   DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
 
               // conjugate transpose
-              iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
+              iS[ch/itsNChan].getVis() (IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/nCrDiv,ant1)) =
                   DComplex(conj(data [bl*nCr*nCh+ch*nCr+cr])) *
                   DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
-              iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/2,ant1)) =
+              iS[ch/itsNChan].getMVis()(IPosition(6,ant2,cr%2,itsStepInSolInt,ch%itsNChan,cr/nCrDiv,ant1)) =
                   DComplex(conj(model[bl*nCr*nCh+ch*nCr+cr] )) *
                   DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
             }

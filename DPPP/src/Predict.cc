@@ -260,7 +260,7 @@ namespace LOFAR {
       const size_t nSt = info().nantenna();
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
-      const size_t nCr = 4;
+      const size_t nCr = info().ncorr();
       const size_t nSamples = nBl * nCh * nCr;
 
       double time = itsTempBuffer.getTime();
