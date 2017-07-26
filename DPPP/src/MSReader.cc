@@ -512,7 +512,7 @@ namespace LOFAR {
                                TableIterator::Ascending,
                                TableIterator::NoSort);
       // Find the nr of corr, chan, and baseline.
-      IPosition shp (ROArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
+      IPosition shp (ROArrayColumn<Complex>(itsSelMS, itsDataColName).shape(0));
       itsNrCorr = shp[0];
       itsNrChan = shp[1];
       itsNrBl   = itsIter.table().nrow();
