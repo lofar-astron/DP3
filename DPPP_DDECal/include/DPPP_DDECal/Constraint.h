@@ -55,13 +55,29 @@ public:
 };
 
 /**
- * Awkwardly named, this class constraints the amplitudes of the solution to be unity, but
+ * This class constraints the amplitudes of the solution to be unity, but
  * keeps the phase.
  */
-class PhaseConstraint : public Constraint
+class PhaseOnlyConstraint : public Constraint
 {
 public:
-  PhaseConstraint() {};
+  PhaseOnlyConstraint() {};
+
+  virtual void init(size_t, size_t, size_t, const double*) {};
+
+  virtual std::vector<Result> Apply(
+                    std::vector<std::vector<dcomplex> >& solutions,
+                    double time);
+};
+
+/**
+ * This class constraints the phases of the solution to be zero, but
+ * keeps the amplitude information.
+ */
+class AmplitudeOnlyConstraint : public Constraint
+{
+public:
+  AmplitudeOnlyConstraint() {};
 
   virtual void init(size_t, size_t, size_t, const double*) {};
 

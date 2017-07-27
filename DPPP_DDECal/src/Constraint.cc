@@ -7,12 +7,24 @@
 #endif
 
 
-std::vector<Constraint::Result> PhaseConstraint::Apply(
+std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double)
 {
   for (uint ch=0; ch<solutions.size(); ++ch) {
     for (uint solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
       solutions[ch][solIndex] /= std::abs(solutions[ch][solIndex]);
+    }
+  }
+
+  return std::vector<Constraint::Result>();
+}
+
+std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
+    std::vector<std::vector<dcomplex> >& solutions, double)
+{
+  for (uint ch=0; ch<solutions.size(); ++ch) {
+    for (uint solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
+      solutions[ch][solIndex] = std::abs(solutions[ch][solIndex]);
     }
   }
 

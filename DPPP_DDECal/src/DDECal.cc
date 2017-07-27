@@ -119,8 +119,13 @@ namespace LOFAR {
       switch(itsMode) {
         case GainCal::PHASEONLY:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new PhaseConstraint()));
+                  new PhaseOnlyConstraint()));
         itsMultiDirSolver.set_phase_only(true);
+        break;
+        case GainCal::AMPLITUDEONLY:
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new AmplitudeOnlyConstraint()));
+        itsMultiDirSolver.set_phase_only(false);
         break;
         case GainCal::TEC:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(

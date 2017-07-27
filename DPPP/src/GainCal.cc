@@ -145,16 +145,19 @@ namespace LOFAR {
     }
 
     string GainCal::calTypeToString(GainCal::CalType caltype) {
-      if (caltype==COMPLEXGAIN) return "complexgain";
-      else if (caltype==PHASEONLY) return "phaseonly";
-      else if (caltype==FULLJONES) return "fulljones";
-      else if (caltype==SCALARPHASE) return "scalarphase";
-      else if (caltype==AMPLITUDEONLY) return "amplitudeonly";
-      else if (caltype==SCALARAMPLITUDE) return "scalaramplitude";
-      else if (caltype==TECANDPHASE) return "tecandphase";
-      else if (caltype==TEC) return "tec";
-      else if (caltype==TECSCREEN) return "tecscreen";
-      THROW(Exception, "Unknown caltype: "<< caltype);
+      switch(caltype)
+      {
+        case COMPLEXGAIN: return "complexgain";
+        case PHASEONLY: return "phaseonly";
+        case FULLJONES: return "fulljones";
+        case SCALARPHASE: return "scalarphase";
+        case AMPLITUDEONLY: return "amplitudeonly";
+        case SCALARAMPLITUDE: return "scalaramplitude";
+        case TECANDPHASE: return "tecandphase";
+        case TEC: return "tec";
+        case TECSCREEN: return "tecscreen";
+        default: THROW(Exception, "Unknown caltype: "<< caltype);
+      }
     }
 
     void GainCal::setAntennaUsed() {
