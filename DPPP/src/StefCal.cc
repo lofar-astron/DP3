@@ -332,7 +332,8 @@ namespace LOFAR {
           }
         }
 
-        if (ww==0) {
+        // Flag a station if all baselines are flagged or all data is zero
+        if (ww==0 || abs(tt)==0) {
           _stationFlagged[st1%_nSt]=true;
           _g(st1,0)=0;
           continue;
