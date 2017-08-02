@@ -557,7 +557,7 @@ namespace LOFAR {
             vector<string> firstaxesnames = StringUtil::tokenize(firstResult.axes,",");
 
             vector<H5Parm::AxisInfo> axes;
-            for (size_t axisNum=0; axisNum<axes.size()-1; ++axisNum) {
+            for (size_t axisNum=0; axisNum<firstaxesnames.size(); ++axisNum) {
               axes.push_back(H5Parm::AxisInfo(firstaxesnames[axisNum], firstResult.dims[axisNum]));
             }
             axes.push_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
