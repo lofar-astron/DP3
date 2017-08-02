@@ -393,7 +393,7 @@ namespace LOFAR {
           uint freqUpsampleFactor = numFreqs;
           if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
             double h5freqinterval = itsSolTab.getFreqInterval();
-            freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5 // Round;
+            freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
             ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
           }
 
