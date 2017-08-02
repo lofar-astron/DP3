@@ -404,7 +404,7 @@ namespace LOFAR {
     H5::DataSet dataset;
     H5::DataSpace dataspace;
     try {
-      dataset = openDataSet("time");
+      dataset = openDataSet(axisName);
       dataspace = dataset.getSpace();
     } catch (H5::GroupIException& e) {
       THROW(Exception, "SolTab "<<getName()<<" has no axis table for "<<axisName);
@@ -419,7 +419,7 @@ namespace LOFAR {
     count[0]=2; offset[0]=0;
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
-    // Get only two time values
+    // Get only two values
     vector<double> values(2);
     dataset.read(&(values[0]), H5::PredType::NATIVE_DOUBLE, dataspace, dataspace);
 
