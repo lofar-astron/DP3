@@ -17,7 +17,7 @@ set(inst_HEADERS
   ApplyBeam.h ApplyBeam.tcc
   Predict.h
   GainCal.h StefCal.h phasefitter.h
-  StManParsetKeys.h H5Parm.h DummyStep.h
+  StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h
 )
 
 # Create symbolic link to include directory.

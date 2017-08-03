@@ -369,6 +369,7 @@ namespace LOFAR {
     return 0;
   }
 
+
   hsize_t H5Parm::SolTab::getTimeIndex(double time) const {
     H5::DataSet timeset;
     H5::DataSpace dataspace;

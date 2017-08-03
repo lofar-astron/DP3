@@ -75,6 +75,31 @@ namespace LOFAR {
 
           void setFreqs(const std::vector<double>& freqs);
 
+          template <typename T>
+          vector<T> H5Parm::SolTab::getAxisData(string axisname) const {
+            H5::DataSet dataset;
+            H5::DataSpace dataspace;
+            H5::DataType datatype;
+
+            try {
+              dataset = openDataSet(axisname);
+              dataspace = dataset.getSpace();
+            } catch (H5::GroupIException& e) {
+              THROW(Exception, "SolTab "<<getName()<<" has no axis "<<axisname);
+            }
+            datatype = openDataType(axisname);
+
+            ASSERT(dataspace.getSimpleExtentNdims()==1);
+
+            hsize_t dims[1];
+            dataspace.getSimpleExtentDims(dims);
+
+            vector<T> data(dims[0]);
+
+            //freqset.read(&(data[0]), dataspace.)
+            return data;
+          }
+
           // Get the index of freq, using nearest neighbor
           // This assumes that the frequencies are in increasing order.
           hsize_t getFreqIndex(double freq) const;
