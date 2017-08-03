@@ -49,7 +49,7 @@ namespace LOFAR {
                           itsH5ParmName(parset.getString(prefix+"h5parm")),
                           itsDirections(parset.getStringVector(
                               prefix+"directions", vector<string> ())),
-                          itsSolTabName(parset.getStringVector("correction"))
+                          itsSolTabName(parset.getString("correction"))
     {
 
     }

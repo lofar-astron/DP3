@@ -85,8 +85,8 @@ namespace LOFAR {
       string           itsName;
       DPBuffer         itsBuffer;
 
-      std::vector<std::string> itsDirections;
       std::string      itsH5ParmName;
+      std::vector<std::string> itsDirections;
       H5Parm           itsH5Parm;
       std::string      itsSolTabName;
       H5Parm::SolTab   itsSolTab;
