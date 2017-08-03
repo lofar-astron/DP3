@@ -386,13 +386,13 @@ namespace LOFAR {
     if (axisName=="dir") {
       if (_dirMap.empty()) {
         fillCache(_dirMap, "dir");
-        cachemap = _dirMap;
       }
+      cachemap = _dirMap;
     } else if (axisName=="ant") {
       if (_antMap.empty()) {
         fillCache(_antMap, "ant");
-        cachemap = _antMap;
       }
+      cachemap = _antMap;
     } else {
       THROW(Exception, "Only string axes 'ant' and 'dir' supported for now.");
     }

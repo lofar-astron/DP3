@@ -131,7 +131,6 @@ int main(int, char**) {
       ASSERT(casa::near(soltab.getTimeInterval(),2.));
       vector<string> antennas = soltab.getStringAxis("ant");
       cout<<"reading the antennas into a vector"<<endl;
-      cout<<"antennas.size()="<<antennas.size()<<endl;
       ASSERT(antennas.size()==3);
       ASSERT(antennas[0]=="Antenna1");
       ASSERT(antennas[1]=="Antenna2");
