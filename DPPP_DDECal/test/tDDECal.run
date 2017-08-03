@@ -43,15 +43,12 @@ NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
     predict1.sourcedb=tDDECal.MS/sky\
     predict1.applycal.parmdb=instrument.h5 predict1.sources=[center,dec_off]\
     predict1.operation=subtract predict1.applycal.correction=scalaramplitude000 \
-    predict1.applycal.direction=[center,dec_off] \
     predict2.sourcedb=tDDECal.MS/sky\
     predict2.applycal.parmdb=instrument.h5 predict2.sources=[radec_off]\
     predict2.operation=subtract predict2.applycal.correction=scalaramplitude000 \
-    predict2.applycal.direction=[radec_off] \
     predict3.sourcedb=tDDECal.MS/sky\
     predict3.applycal.parmdb=instrument.h5 predict3.sources=[ra_off]\
     predict3.operation=subtract predict3.applycal.correction=scalaramplitude000 \
-    predict3.applycal.direction=[ra_off]
 
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
