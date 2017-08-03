@@ -8,4 +8,4 @@ lofar_find_package(Armadillo REQUIRED)
 
 add_subdirectory(include/DPPP_DDECal)
 add_subdirectory(src)
-# add_subdirectory(test)
+add_subdirectory(test)

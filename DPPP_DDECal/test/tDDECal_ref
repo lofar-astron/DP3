@@ -1,0 +1,33 @@
+#!/bin/bash
+
+cat << EOF > tDDECal_tmp.skymodel
+FORMAT = Name, Type, Ra, Dec, I
+
+radec_off, POINT, 01:33:40,        +32.09.0,        10
+ra_off,    POINT, 01:29:40,        +33.09.35.13240, 20
+dec_off,   POINT, 01:37:41.299440, +32.09.0,        20
+center,    POINT, 01:37:41.299440, +33.09.35.13240, 10
+EOF
+
+# Corruptions:
+# [center, dec_off] :  5
+# [radec_off] :       13
+# [ra_off] :           9
+
+cat << EOF > tDDECal_tmp_corrupted.skymodel
+FORMAT = Name, Type, Ra, Dec, I
+
+radec_off, POINT, 01:33:40,        +32.09.0,        130
+ra_off,    POINT, 01:29:40,        +33.09.35.13240, 180
+dec_off,   POINT, 01:37:41.299440, +32.09.0,        100
+center,    POINT, 01:37:41.299440, +33.09.35.13240,  50
+EOF
+
+rm -rf tDDECal.MS/sky
+rm -rf tDDECal.MS/sky_corrupted
+makesourcedb in=tDDECal_tmp.skymodel out=tDDECal.MS/sky format='<'
+makesourcedb in=tDDECal_tmp_corrupted.skymodel out=tDDECal.MS/sky_corrupted format='<'
+rm tDDECal_tmp.skymodel
+rm tDDECal_tmp_corrupted.skymodel
+
+tar czf tDDECal.in_MS.tgz tDDECal.MS

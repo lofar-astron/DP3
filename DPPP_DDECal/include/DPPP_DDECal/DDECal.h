@@ -99,6 +99,10 @@ namespace LOFAR {
       // Initialize solutions
       void initializeSolutions();
 
+      // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
+      // Used for setting source names.
+      std::vector<std::string> getDirectionNames();
+
       //# Data members.
       DPInput*         itsInput;
       string           itsName;

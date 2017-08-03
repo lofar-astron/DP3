@@ -36,6 +36,7 @@
 #include <ParmDB/SourceDB.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
+#include <Common/StreamUtil.h>
 #include <Common/LofarLogger.h>
 #include <Common/OpenMP.h>
 
@@ -56,6 +57,7 @@
 
 #include <limits>
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 
 using namespace casacore;
@@ -232,13 +234,11 @@ namespace LOFAR {
 
       itsH5Parm.addAntennas(antennaNames, antennaPos);
 
-      std::vector<std::string> sourceNames(itsDirections.size());
       std::vector<std::pair<double, double> > sourcePositions(itsDirections.size());
       for (uint i=0; i<itsDirections.size(); ++i) {
-        sourceNames[i]=itsDirections[i][0]; // This only gives the name of the first patch
-        sourcePositions[i]=itsPredictSteps[i].getFirstDirection();
+        sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
       }
-      itsH5Parm.addSources(sourceNames, sourcePositions);
+      itsH5Parm.addSources(getDirectionNames(), sourcePositions);
 
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       itsSols.resize(nSolTimes);
@@ -302,8 +302,8 @@ namespace LOFAR {
               distSq = dx*dx + dy*dy + dz*dz;
             if(distSq <= coreDistSq)
               coreAntennaIndices.push_back(ant);
-	    else
-	      otherAntennaIndices.push_back(ant);
+            else
+              otherAntennaIndices.push_back(ant);
           }
           screenConstraint->setCoreAntennas(coreAntennaIndices);
           screenConstraint->setOtherAntennas(otherAntennaIndices);
@@ -371,6 +371,19 @@ namespace LOFAR {
       }
     }
 
+    vector<string> DDECal::getDirectionNames() {
+      vector<string> res;
+      
+      for (vector<vector<string> >::iterator dirIter = itsDirections.begin();
+           dirIter != itsDirections.end();
+           dirIter++) {
+        stringstream ss;
+        ss << (*dirIter);
+        res.push_back(ss.str());
+      }
+      return res;
+    }
+
     bool DDECal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
@@ -432,8 +445,16 @@ namespace LOFAR {
         itsTimerSolve.stop();
 
         itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
-        // Store constraint solutions
-        if (itsMode!=GainCal::COMPLEXGAIN && itsMode!=GainCal::PHASEONLY) {
+
+        // Store constraint solutions if any constaint has a non-empty result
+        bool someConstraintHasResult = false;
+        for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
+          if (!solveResult._results[constraintnum].empty()) {
+            someConstraintHasResult = true;
+            break;
+          }
+        }
+        if (someConstraintHasResult) {
           itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
         }
 
@@ -466,10 +487,10 @@ namespace LOFAR {
         size_t i=0;
 
         // Put solutions in a contiguous piece of memory
-        for (uint dir=0; dir<nDir; ++dir) {
-          for (uint ant=0; ant<info().nantenna(); ++ant) {
-            for (uint chan=0; chan<info().nchan(); ++chan) {
-              for (uint time=0; time<itsSols.size(); ++time) {
+        for (uint time=0; time<itsSols.size(); ++time) {
+          for (uint chan=0; chan<info().nchan(); ++chan) {
+            for (uint ant=0; ant<info().nantenna(); ++ant) {
+              for (uint dir=0; dir<nDir; ++dir) {
                 ASSERT(!itsSols[time].empty());
                 sols[i] = itsSols[time][chan][ant*nDir+dir];
                 ++i;
@@ -478,31 +499,39 @@ namespace LOFAR {
           }
         }
         vector<H5Parm::AxisInfo> axes;
-        axes.push_back(H5Parm::AxisInfo("dir", nDir));
-        axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
-        axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
         axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
+        axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
+        axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
+        axes.push_back(H5Parm::AxisInfo("dir", nDir));
 
         uint numsols=(itsMode==GainCal::COMPLEXGAIN?2:1);
         for (uint solnum=0; solnum<numsols; ++solnum) {
           string solTabName;
           H5Parm::SolTab soltab;
-          if (itsMode==GainCal::PHASEONLY) {
-            solTabName = "phaseonly000";
-            soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
-            soltab.setComplexValues(sols, vector<double>(), false);
-          } else if (itsMode==GainCal::COMPLEXGAIN) {
-            if (solnum==0) {
-              solTabName = "scalarphase000";
+          switch (itsMode) {
+            case  GainCal::PHASEONLY:
+              solTabName = "phaseonly000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
               soltab.setComplexValues(sols, vector<double>(), false);
-            } else {
+              break;
+            case GainCal::COMPLEXGAIN:
+              if (solnum==0) {
+                solTabName = "scalarphase000";
+                soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
+                soltab.setComplexValues(sols, vector<double>(), false);
+              } else {
+                solTabName = "scalaramplitude000";
+                soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
+                soltab.setComplexValues(sols, vector<double>(), true);
+              }
+              break;
+            case GainCal::AMPLITUDEONLY:
               solTabName = "scalaramplitude000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
               soltab.setComplexValues(sols, vector<double>(), true);
-            }
-          } else {
-            THROW(Exception, "Constraint should have produced output");
+              break;
+            default: 
+              THROW(Exception, "Constraint should have produced output");
           }
           // Tell H5Parm that all antennas and directions were used 
           // TODO: do this more cleanly
@@ -512,11 +541,7 @@ namespace LOFAR {
           }
           soltab.setAntennas(antennaNames);
     
-          std::vector<std::string> sourceNames(itsDirections.size());
-          for (uint i=0; i<itsDirections.size(); ++i) {
-            sourceNames[i]=itsDirections[i][0]; // This only gives the name of the first patch
-          }
-          soltab.setSources(sourceNames);
+          soltab.setSources(getDirectionNames());
    
           // Set channel to frequency of middle channel 
           vector<double> chanFreqs(info().nchan());
@@ -546,30 +571,30 @@ namespace LOFAR {
             // Get the result of the constraint solution at first time to get metadata
             Constraint::Result firstResult = itsConstraintSols[0][constraintNum][solNameNum];
 
-            vector<hsize_t> dims(firstResult.dims.size()+1); // Add time dimension at end
-            dims[dims.size()-1]=itsConstraintSols.size();
-            size_t numSols=dims[dims.size()-1];
-            for (uint i=0; i<dims.size()-1; ++i) {
-              dims[i] = firstResult.dims[i]; 
+            vector<hsize_t> dims(firstResult.dims.size()+1); // Add time dimension at beginning
+            dims[0]=itsConstraintSols.size(); // Number of times
+            size_t numSols=dims[0];
+            for (uint i=1; i<dims.size(); ++i) {
+              dims[i] = firstResult.dims[i-1];
               numSols *= dims[i];
             }
 
             vector<string> firstaxesnames = StringUtil::tokenize(firstResult.axes,",");
 
             vector<H5Parm::AxisInfo> axes;
+            axes.push_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
             for (size_t axisNum=0; axisNum<firstaxesnames.size(); ++axisNum) {
               axes.push_back(H5Parm::AxisInfo(firstaxesnames[axisNum], firstResult.dims[axisNum]));
             }
-            axes.push_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
 
             // Put solutions in a contiguous piece of memory
             vector<double> sols(numSols);
-            size_t posInFlatSol=0;
-            for (uint i=0; i<firstResult.vals.size(); ++i) {
-              for (uint time=0; time<itsSols.size(); ++time) {
-                sols[posInFlatSol++] = 
-                  itsConstraintSols[time][constraintNum][solNameNum].vals[i];
-              }
+            vector<double>::iterator nextpos = sols.begin();
+            for (uint time=0; time<itsSols.size(); ++time) {
+              nextpos = std::copy(
+                itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
+                itsConstraintSols[time][constraintNum][solNameNum].vals.end(),
+                nextpos);
             }
 
             string solTabName = firstResult.name+"000";
@@ -584,11 +609,7 @@ namespace LOFAR {
             }
             soltab.setAntennas(antennaNames);
       
-            std::vector<std::string> sourceNames(itsDirections.size());
-            for (uint i=0; i<itsDirections.size(); ++i) {
-              sourceNames[i]=itsDirections[i][0]; // This only gives the name of the first patch
-            }
-            soltab.setSources(sourceNames);
+            soltab.setSources(getDirectionNames());
      
             // Set channel to frequency of middle channel 
             vector<double> oneFreq(1);

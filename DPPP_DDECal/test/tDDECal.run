@@ -1,0 +1,54 @@
+#!/bin/sh
+
+# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
+set -e
+source findenv.run_script
+echo "srcdirx=$rt_srcdir"
+
+if test ! -f ${srcdir}/tDDECal.in_MS.tgz; then
+  exit 3   # untested
+fi
+
+mkdir -p tDDECal_tmp
+# Unpack the MS and other files and do the DPPP run.
+cd tDDECal_tmp
+rm -rf instrument.h5 # Remove h5parm if it exists
+tar zxf ${srcdir}/tDDECal.in_MS.tgz
+
+echo "Running tDDECal"
+
+$taqlexe 'update tDDECal.MS set WEIGHT_SPECTRUM=1, FLAG=False'
+
+# Predict corrupted visibilities
+NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=DATA\
+  steps=[predict] predict.sourcedb=tDDECal.MS/sky_corrupted
+
+# Calibrate on the original sources
+NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
+  ddecal.sourcedb=tDDECal.MS/sky \
+   ddecal.directions=[[center,dec_off],[ra_off],[radec_off]] \
+   ddecal.h5parm=instrument.h5 ddecal.mode=complexgain
+
+# Apply solutions
+NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
+  steps=[predict1,predict2,predict3]\
+    predict1.sourcedb=tDDECal.MS/sky\
+    predict1.applycal.parmdb=instrument.h5 predict1.sources=[center,dec_off]\
+    predict1.operation=subtract predict1.applycal.correction=scalaramplitude000 \
+    predict1.applycal.direction=[center,dec_off] \
+    predict2.sourcedb=tDDECal.MS/sky\
+    predict2.applycal.parmdb=instrument.h5 predict2.sources=[radec_off]\
+    predict2.operation=subtract predict2.applycal.correction=scalaramplitude000 \
+    predict2.applycal.direction=[radec_off] \
+    predict3.sourcedb=tDDECal.MS/sky\
+    predict3.applycal.parmdb=instrument.h5 predict3.sources=[ra_off]\
+    predict3.operation=subtract predict3.applycal.correction=scalaramplitude000 \
+    predict3.applycal.direction=[ra_off]
+
+# Create expected taql output.
+echo "    select result of 0 rows" > taql.ref
+
+# Check that residual is small
+$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.005' > taql.out
+
+diff taql.out taql.ref || exit 1
