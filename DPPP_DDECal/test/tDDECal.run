@@ -5,6 +5,14 @@ set -e
 source findenv.run_script
 echo "srcdirx=$rt_srcdir"
 
+LD_LIBRARY_PATH=$(realpath ../../../../lib):$LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=$(realpath ../../../../lib):$DYLD_LIBRARY_PATH
+pwd
+export LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH
+echo $LD_LIBRARY_PATH
+echo $DYLD_LIBRARY_PATH
+
 if test ! -f ${srcdir}/tDDECal.in_MS.tgz; then
   exit 3   # untested
 fi
