@@ -137,7 +137,7 @@ namespace LOFAR {
       vector<vector<StationResponse::matrix22c_t> >  itsBeamValues;
       ApplyBeam::BeamMode                            itsBeamMode;
 
-      // Vector of patches, and a bool indicating if it contains only one source
+      std::string itsDirectionsStr; // Definition of patches, to pass to applycal
       vector<Patch::ConstPtr> itsPatchList;
       vector<Source> itsSourceList;
 

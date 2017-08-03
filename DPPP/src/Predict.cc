@@ -29,6 +29,7 @@
 #include <Common/ParameterSet.h>
 #include <Common/Timer.h>
 #include <Common/OpenMP.h>
+#include <Common/StreamUtil.h>
 #include <ParmDB/ParmDBMeta.h>
 #include <ParmDB/PatchInfo.h>
 #include <DPPP/DPInfo.h>
@@ -92,6 +93,11 @@ namespace LOFAR {
       ASSERT(File(itsSourceDBName).exists());
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
+      // Save directions specifications to pass to applycal
+      stringstream ss;
+      ss << sourcePatterns;
+      itsDirectionsStr = ss.str();
+
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
       itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
 
@@ -122,7 +128,8 @@ namespace LOFAR {
 
       if (parset.isDefined(prefix + "applycal.parmdb")) {
         itsDoApplyCal=true;
-        itsApplyCalStep=ApplyCal(input, parset, prefix + "applycal.", true);
+        itsApplyCalStep=ApplyCal(input, parset, prefix + "applycal.", true,
+                                 itsDirectionsStr);
         ASSERT(!(itsOperation!="replace" &&
                  parset.getBool(prefix + "applycal.updateweights", false)));
         itsResultStep=new ResultStep();
