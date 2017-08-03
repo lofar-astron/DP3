@@ -35,6 +35,7 @@
 #include <vector>
 
 #include <Common/StreamUtil.h>
+#include <Common/StringUtil.h>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -48,25 +49,13 @@ namespace LOFAR {
                           itsInput(input),
                           itsH5ParmName(parset.getString(prefix+"h5parm")),
                           itsDirections(parset.getStringVector(
-                              prefix+"directions", vector<string> ())),
-                          itsSolTabName(parset.getString("correction"))
+                              prefix+"directions", vector<string> ()))
     {
+      H5Parm h5parm = H5Parm(itsH5ParmName, false);
+      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString("correction"));
 
-    }
+      vector<string> h5directions = soltab.getStringAxis("dir");
 
-    H5ParmPredict::~H5ParmPredict()
-    {}
-
-    void H5ParmPredict::updateInfo (const DPInfo& infoIn)
-    {
-      info() = infoIn;
-      info().setNeedVisData();
-      info().setWriteData();
-
-      itsH5Parm = H5Parm(itsH5ParmName, false);
-      itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
-
-      vector<string> h5directions = itsSolTab.getStringAxis("dir");
       if (itsDirections.empty()) {
         itsDirections = h5directions;
       } else {
@@ -79,6 +68,27 @@ namespace LOFAR {
           }
         }
       }
+
+      for (string directionStr: itsDirections) {
+        vector<string> directionVec; // each direction should be like '[patch1,patch2]'
+        ASSERT(directionStr.size()>2 && directionStr[0]=='[' &&
+               directionStr[directionStr.size()-1]==']');
+        directionVec = StringUtil::tokenize(directionStr.substr(1, directionStr.size()-2), ",");
+        cout<<"TAMMO :"<<directionVec[0]<<endl;
+        //itsPredictSteps.push_back(Predict(input, parset, prefix, directionVec));
+      }
+
+    }
+
+    H5ParmPredict::~H5ParmPredict()
+    {}
+
+    void H5ParmPredict::updateInfo (const DPInfo& infoIn)
+    {
+      info() = infoIn;
+      info().setNeedVisData();
+      info().setWriteData();
+
     }
 
     void H5ParmPredict::show (std::ostream& os) const

@@ -41,6 +41,7 @@
 #include <DPPP/ScaleData.h>
 #include <DPPP/ApplyCal.h>
 #include <DPPP/Predict.h>
+#include <DPPP/H5ParmPredict.h>
 #include <DPPP/GainCal.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
@@ -317,6 +318,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ApplyCal (reader, parset, prefix));
         } else if (type == "predict") {
           step = DPStep::ShPtr(new Predict (reader, parset, prefix));
+        } else if (type == "h5parmpredict") {
+          step = DPStep::ShPtr(new H5ParmPredict (reader, parset, prefix));
         } else if (type == "applybeam") {
           step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
         } else if (type == "gaincal"  ||  type == "calibrate") {

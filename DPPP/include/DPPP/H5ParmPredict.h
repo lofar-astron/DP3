@@ -29,16 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/Patch.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/ApplyBeam.h>
-#include <DPPP/ModelComponent.h>
-#include <StationResponse/Station.h>
-#include <StationResponse/Types.h>
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Quanta/MVEpoch.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
+#include <DPPP/Predict.h>
 #include <utility>
 
 namespace LOFAR {
@@ -85,11 +76,10 @@ namespace LOFAR {
       string           itsName;
       DPBuffer         itsBuffer;
 
+      std::vector<Predict> itsPredictSteps;
+
       std::string      itsH5ParmName;
       std::vector<std::string> itsDirections;
-      H5Parm           itsH5Parm;
-      std::string      itsSolTabName;
-      H5Parm::SolTab   itsSolTab;
 
       NSTimer          itsTimer;
     };
