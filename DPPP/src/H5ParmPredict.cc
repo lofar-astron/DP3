@@ -64,8 +64,21 @@ namespace LOFAR {
       info().setWriteData();
 
       itsH5Parm = H5Parm(itsH5ParmName, false);
+      itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
 
-
+      vector<string> h5directions = itsSolTab.getStringAxis("dir");
+      if (itsDirections.empty()) {
+        itsDirections = h5directions;
+      } else {
+        for (vector<string>::iterator it = itsDirections.begin();
+          // Check that all specified directions are in the h5parm
+          it != itsDirections.end(); ++it) {
+          if (find(h5directions.begin(), h5directions.end(), *it) ==
+              h5directions.end()) {
+            THROW(Exception, "Direction "<<*it<<" not found in "<<itsH5ParmName);
+          }
+        }
+      }
     }
 
     void H5ParmPredict::show (std::ostream& os) const
