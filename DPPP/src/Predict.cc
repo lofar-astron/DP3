@@ -68,23 +68,20 @@ namespace LOFAR {
                       const string& prefix)
     {
       init(input, parset, prefix, parset.getStringVector(prefix + "sources",
-                                                         vector<string>()),
-                                                         true);
+                                                         vector<string>()));
     }
 
     Predict::Predict (DPInput* input,
                       const ParameterSet& parset,
                       const string& prefix,
-                      const vector<string>& sourcePatterns,
-                      bool canSpecifyApplyCal)
+                      const vector<string>& sourcePatterns)
     {
-      init(input, parset, prefix, sourcePatterns, canSpecifyApplyCal);
+      init(input, parset, prefix, sourcePatterns);
     }
 
     void Predict::init(DPInput* input,
               const ParameterSet& parset,
-              const string& prefix, const vector<string>& sourcePatterns,
-              bool canSpecifyApplyCal) {
+              const string& prefix, const vector<string>& sourcePatterns) {
       itsInput = input;
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
@@ -131,7 +128,7 @@ namespace LOFAR {
 
       // If called from h5parmpredict, applycal gets set by that step,
       // so must not be read from parset
-      if (canSpecifyApplyCal && parset.isDefined(prefix + "applycal.parmdb")) {
+      if (parset.isDefined(prefix + "applycal.parmdb")) {
         setApplyCal(input, parset, prefix + "applycal.");
       } else {
         itsDoApplyCal=false;

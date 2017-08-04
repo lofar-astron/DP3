@@ -64,13 +64,11 @@ namespace LOFAR {
 
       // Constructor with explicit sourcelist
       Predict (DPInput*, const ParameterSet&, const string& prefix,
-               const vector<string>& sourcePatterns,
-               bool canSpecifyApplyCal=true);
+               const vector<string>& sourcePatterns);
 
       // The actual constructor
       void init (DPInput*, const ParameterSet&, const string& prefix,
-                 const vector<string>& sourcePatterns,
-                 bool canSpecifyApplyCal);
+                 const vector<string>& sourcePatterns);
 
       // Set the applycal substep
       void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);

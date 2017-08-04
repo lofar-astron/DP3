@@ -47,12 +47,12 @@ namespace LOFAR {
                       const ParameterSet& parset,
                       const string& prefix):
                           itsInput(input),
-                          itsH5ParmName(parset.getString(prefix+"parmdb")),
+                          itsH5ParmName(parset.getString(prefix+"applycal.parmdb")),
                           itsDirections(parset.getStringVector(
                               prefix+"directions", vector<string> ()))
     {
       H5Parm h5parm = H5Parm(itsH5ParmName, false);
-      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString(prefix+"correction"));
+      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString(prefix+"applycal.correction"));
 
       vector<string> h5directions = soltab.getStringAxis("dir");
 
@@ -75,8 +75,8 @@ namespace LOFAR {
         ASSERT(directionStr.size()>2 && directionStr[0]=='[' &&
                directionStr[directionStr.size()-1]==']');
         directionVec = StringUtil::tokenize(directionStr.substr(1, directionStr.size()-2), ",");
-        Predict* predictStep = new Predict(input, parset, prefix, directionVec, false);
-        predictStep->setApplyCal(input, parset, prefix);
+        Predict* predictStep = new Predict(input, parset, prefix, directionVec);
+
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
         if (i>0) {
           itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
