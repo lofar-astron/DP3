@@ -76,7 +76,8 @@ namespace LOFAR {
       string           itsName;
       DPBuffer         itsBuffer;
 
-      std::vector<Predict> itsPredictSteps;
+      std::vector<Predict::ShPtr> itsPredictSteps;
+      ResultStep*      itsResultStep;
 
       std::string      itsH5ParmName;
       std::vector<std::string> itsDirections;

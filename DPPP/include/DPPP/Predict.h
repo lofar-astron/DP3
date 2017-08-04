@@ -56,17 +56,24 @@ namespace LOFAR {
     class Predict: public DPStep
     {
     public:
+      typedef shared_ptr<Predict> ShPtr;
+
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
 
       // Constructor with explicit sourcelist
       Predict (DPInput*, const ParameterSet&, const string& prefix,
-               const vector<string>& sourcePatterns);
+               const vector<string>& sourcePatterns,
+               bool canSpecifyApplyCal=true);
 
       // The actual constructor
       void init (DPInput*, const ParameterSet&, const string& prefix,
-                 const vector<string>& sourcePatterns);
+                 const vector<string>& sourcePatterns,
+                 bool canSpecifyApplyCal);
+
+      // Set the applycal substep
+      void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
 
       Predict();
 

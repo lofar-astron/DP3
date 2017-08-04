@@ -68,20 +68,23 @@ namespace LOFAR {
                       const string& prefix)
     {
       init(input, parset, prefix, parset.getStringVector(prefix + "sources",
-                                                         vector<string>()));
+                                                         vector<string>()),
+                                                         true);
     }
 
     Predict::Predict (DPInput* input,
                       const ParameterSet& parset,
                       const string& prefix,
-                      const vector<string>& sourcePatterns)
+                      const vector<string>& sourcePatterns,
+                      bool canSpecifyApplyCal)
     {
-      init(input, parset, prefix, sourcePatterns);
+      init(input, parset, prefix, sourcePatterns, canSpecifyApplyCal);
     }
 
     void Predict::init(DPInput* input,
               const ParameterSet& parset,
-              const string& prefix, const vector<string>& sourcePatterns) {
+              const string& prefix, const vector<string>& sourcePatterns,
+              bool canSpecifyApplyCal) {
       itsInput = input;
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
@@ -126,14 +129,10 @@ namespace LOFAR {
         }
       }
 
-      if (parset.isDefined(prefix + "applycal.parmdb")) {
-        itsDoApplyCal=true;
-        itsApplyCalStep=ApplyCal(input, parset, prefix + "applycal.", true,
-                                 itsDirectionsStr);
-        ASSERT(!(itsOperation!="replace" &&
-                 parset.getBool(prefix + "applycal.updateweights", false)));
-        itsResultStep=new ResultStep();
-        itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
+      // If called from h5parmpredict, applycal gets set by that step,
+      // so must not be read from parset
+      if (canSpecifyApplyCal && parset.isDefined(prefix + "applycal.parmdb")) {
+        setApplyCal(input, parset, prefix + "applycal.");
       } else {
         itsDoApplyCal=false;
       }
@@ -147,6 +146,18 @@ namespace LOFAR {
       } else {
         itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
       }
+    }
+
+    void Predict::setApplyCal(DPInput* input,
+                              const ParameterSet& parset,
+                              const string& prefix) {
+      itsDoApplyCal=true;
+      itsApplyCalStep=ApplyCal(input, parset, prefix, true,
+                               itsDirectionsStr);
+      ASSERT(!(itsOperation!="replace" &&
+               parset.getBool(prefix + "applycal.updateweights", false)));
+      itsResultStep=new ResultStep();
+      itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
     }
 
     Predict::Predict()

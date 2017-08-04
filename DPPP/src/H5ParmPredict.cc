@@ -47,12 +47,12 @@ namespace LOFAR {
                       const ParameterSet& parset,
                       const string& prefix):
                           itsInput(input),
-                          itsH5ParmName(parset.getString(prefix+"h5parm")),
+                          itsH5ParmName(parset.getString(prefix+"parmdb")),
                           itsDirections(parset.getStringVector(
                               prefix+"directions", vector<string> ()))
     {
       H5Parm h5parm = H5Parm(itsH5ParmName, false);
-      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString("correction"));
+      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString(prefix+"correction"));
 
       vector<string> h5directions = soltab.getStringAxis("dir");
 
@@ -69,15 +69,22 @@ namespace LOFAR {
         }
       }
 
-      for (string directionStr: itsDirections) {
+      for (uint i=0; i<itsDirections.size(); ++i) {
+        string directionStr = itsDirections[i];
         vector<string> directionVec; // each direction should be like '[patch1,patch2]'
         ASSERT(directionStr.size()>2 && directionStr[0]=='[' &&
                directionStr[directionStr.size()-1]==']');
         directionVec = StringUtil::tokenize(directionStr.substr(1, directionStr.size()-2), ",");
-        cout<<"TAMMO :"<<directionVec[0]<<endl;
-        //itsPredictSteps.push_back(Predict(input, parset, prefix, directionVec));
+        Predict* predictStep = new Predict(input, parset, prefix, directionVec, false);
+        predictStep->setApplyCal(input, parset, prefix);
+        itsPredictSteps.push_back(Predict::ShPtr(predictStep));
+        if (i>1) {
+          itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
+        }
       }
 
+      itsResultStep=new ResultStep();
+      itsPredictSteps[itsPredictSteps.size()-1]->setNextStep(DPStep::ShPtr(itsResultStep));
     }
 
     H5ParmPredict::~H5ParmPredict()
@@ -89,13 +96,16 @@ namespace LOFAR {
       info().setNeedVisData();
       info().setWriteData();
 
+      for (auto predictstep: itsPredictSteps) {
+        predictstep->updateInfo(infoIn);
+      }
     }
 
     void H5ParmPredict::show (std::ostream& os) const
     {
       os << "H5ParmPredict " << itsName << endl;
-      os << "  H5Parm:     " << itsH5ParmName;
-      os << "  directions: " << itsDirections;
+      os << "  H5Parm:     " << itsH5ParmName << endl;
+      os << "  directions: " << itsDirections << endl;
     }
 
     void H5ParmPredict::showTimings (std::ostream& os, double duration) const
@@ -111,6 +121,9 @@ namespace LOFAR {
       itsBuffer.copy (bufin);
       itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
       itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
+
+      itsPredictSteps[0]->process(itsBuffer);
+      itsBuffer = itsResultStep->get();
 
       itsTimer.stop();
       getNextStep()->process(itsBuffer);
