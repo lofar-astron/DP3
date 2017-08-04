@@ -78,7 +78,7 @@ namespace LOFAR {
         Predict* predictStep = new Predict(input, parset, prefix, directionVec, false);
         predictStep->setApplyCal(input, parset, prefix);
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
-        if (i>1) {
+        if (i>0) {
           itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
         }
       }
