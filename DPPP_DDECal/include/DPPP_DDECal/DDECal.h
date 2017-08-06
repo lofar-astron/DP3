@@ -36,7 +36,7 @@
 #include <DPPP/Predict.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/ApplyBeam.h>
-#include <DPPP_DDECal/multidirsolver.h>
+#include <DPPP_DDECal/MultiDirSolver.h>
 #include <DPPP_DDECal/Constraint.h>
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>

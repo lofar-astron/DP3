@@ -25,7 +25,7 @@
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/ApplyCal.h>
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 #include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>

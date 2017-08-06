@@ -2,11 +2,11 @@
 #define MULTI_DIR_SOLVER_H
 
 #ifdef AOPROJECT
-#include "phasefitter.h"
+#include "PhaseFitter.h"
 #include "Constraint.h"
 #define UPTR std::unique_ptr
 #else
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 #include <DPPP_DDECal/Constraint.h>
 #define UPTR std::auto_ptr
 #endif

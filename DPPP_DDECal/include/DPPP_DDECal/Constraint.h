@@ -2,10 +2,10 @@
 #define CONSTRAINT_H
 
 #ifdef AOPROJECT
-#include "phasefitter.h"
+#include "PhaseFitter.h"
 #define UPTR std::unique_ptr
 #else
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 #define UPTR std::auto_ptr
 #endif
 

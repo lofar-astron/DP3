@@ -1,8 +1,8 @@
 
 #ifdef AOPROJECT
-#include "multidirsolver.h"
+#include "MultiDirSolver.h"
 #else
-#include <DPPP_DDECal/multidirsolver.h>
+#include <DPPP_DDECal/MultiDirSolver.h>
 #endif
 
 using namespace arma;
