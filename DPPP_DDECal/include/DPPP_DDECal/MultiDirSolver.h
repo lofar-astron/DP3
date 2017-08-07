@@ -36,7 +36,18 @@ public:
   // data[i] is een pointer naar de data voor tijdstap i, vanaf die pointer staat het in volgorde als in MS (bl, chan, pol)
   // mdata[i] is een pointer voor tijdstap i naar arrays van ndir model data pointers (elk van die data pointers staat in zelfde volgorde als data)
   // solutions[ch] is een pointer voor channelblock ch naar antenna x directions oplossingen.
-  SolveResult process(std::vector<Complex*>& data, std::vector<std::vector<Complex* > >& modelData,
+  SolveResult processScalar(std::vector<Complex*>& data, std::vector<std::vector<Complex* > >& modelData,
+    std::vector<std::vector<DComplex> >& solutions, double time) const;
+  
+  /**
+   * Same as @ref processScalar(), but solves full Jones matrices.
+   * @param data als in @ref processScalar()
+   * @param modelData als in @ref processScalar()
+   * @param solutions An array, where @c solutions[ch] is a pointer to channelblock @c ch, that points to
+   * antenna x directions solutions. Each solution consists of 4 complex values forming the full Jones matrix.
+   */
+  SolveResult processFullJones(std::vector<Complex *>& data,
+    std::vector<std::vector<Complex *> >& modelData,
     std::vector<std::vector<DComplex> >& solutions, double time) const;
   
   void set_phase_only(bool phaseOnly) { _phaseOnly = phaseOnly; }
@@ -52,14 +63,22 @@ public:
   void add_constraint(Constraint* constraint) { _constraints.push_back(constraint); }
   
 private:
-  void performSolveIteration(size_t channelBlockIndex,
+  void performScalarIteration(size_t channelBlockIndex,
                              std::vector<arma::cx_mat>& gTimesCs,
                              std::vector<arma::cx_vec>& vs,
                              const std::vector<DComplex>& solutions,
                              std::vector<DComplex>& nextSolutions,
                              const std::vector<Complex *>& data,
                              const std::vector<std::vector<Complex *> >& modelData) const;
-  
+                             
+  void performFullJonesIteration(size_t channelBlockIndex,
+                             std::vector<arma::cx_mat>& gTimesCs,
+                             std::vector<arma::cx_mat>& vs,
+                             const std::vector<DComplex>& solutions,
+                             std::vector<DComplex>& nextSolutions,
+                             const std::vector<Complex *>& data,
+                             const std::vector<std::vector<Complex *> >& modelData) const;
+
   size_t _nAntennas, _nDirections, _nChannels, _nChannelBlocks;
   std::vector<int> _ant1, _ant2;
   

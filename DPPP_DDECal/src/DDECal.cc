@@ -439,7 +439,7 @@ namespace LOFAR {
 
         itsTimerSolve.start();
         MultiDirSolver::SolveResult solveResult = 
-                  itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
+                  itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
                   itsSols[itsTimeStep/itsSolInt],
                   itsAvgTime / itsSolInt);
         itsTimerSolve.stop();
@@ -646,7 +646,7 @@ namespace LOFAR {
         std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
                     itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
         itsTimerSolve.start();
-        itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
+        itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
                                   itsSols[itsTimeStep/itsSolInt],
                                   itsAvgTime/itsStepInSolInt);
         itsTimerSolve.stop();
