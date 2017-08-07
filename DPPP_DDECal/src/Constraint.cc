@@ -33,22 +33,14 @@ std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
 
 TECConstraint::TECConstraint(Mode mode) :
   _mode(mode),
-  _nAntennas(0)
-  ,_nDirections(0),
+  _nAntennas(0),
+  _nDirections(0),
   _nChannelBlocks(0),
   _phaseFitters()
 {
 }
 
-TECConstraint::TECConstraint(Mode mode, size_t nAntennas, size_t nDirections, 
-                             size_t nChannelBlocks, const double* frequencies) :
-  _mode(mode)
-{
-  init(nAntennas, nDirections, nChannelBlocks, frequencies);
-}
-
-void TECConstraint::init(size_t nAntennas, size_t nDirections, 
-                         size_t nChannelBlocks, const double* frequencies) {
+void TECConstraint::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
   _nAntennas = nAntennas;
   _nDirections = nDirections;
   _nChannelBlocks = nChannelBlocks;

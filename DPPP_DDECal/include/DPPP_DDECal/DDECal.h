@@ -56,7 +56,7 @@ namespace LOFAR {
     // This class is a DPStep class to calibrate (direction independent) gains.
 
     typedef vector<Patch::ConstPtr> PatchList;
-    typedef std::pair<size_t, size_t >Baseline;
+    typedef std::pair<size_t, size_t> Baseline;
 
     class DDECal: public DPStep
     {

@@ -251,13 +251,8 @@ namespace LOFAR {
       }
 
       for (uint i=0; i<itsConstraints.size();++i) {
-        itsConstraints[i]->init(
-            info().antennaNames().size(),
-            itsDirections.size(),
-            info().nchan(), //nChannelBlocks
-            &(chanFreqs[0])
-        );
-        
+        // Different constraints need different information. Determine if the constraint is
+        // of a type that needs more information, and if so initialize the constraint.
         CoreConstraint* coreConstraint = dynamic_cast<CoreConstraint*>(itsConstraints[i].get());
         if(coreConstraint != 0)
         {
@@ -277,12 +272,21 @@ namespace LOFAR {
             if(distSq <= coreDistSq)
               coreAntennaIndices.insert(ant);
           }
-          coreConstraint->setCoreAntennas(coreAntennaIndices);
+          coreConstraint->initialize(info().antennaNames().size(),
+            itsDirections.size(),
+            info().nchan(),
+            coreAntennaIndices);
         }
         
         ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
         if(screenConstraint != 0)
         {
+          screenConstraint->initialize(
+              info().antennaNames().size(),
+              itsDirections.size(),
+              info().nchan(), //nChannelBlocks
+              &(chanFreqs[0])
+          );
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
           screenConstraint->initPiercePoints();
@@ -307,6 +311,15 @@ namespace LOFAR {
           }
           screenConstraint->setCoreAntennas(coreAntennaIndices);
           screenConstraint->setOtherAntennas(otherAntennaIndices);
+        }
+        
+        TECConstraint* tecConstraint = dynamic_cast<TECConstraint*>(itsConstraints[i].get());
+        if(tecConstraint != 0)
+        {
+          tecConstraint->initialize(info().antennaNames().size(),
+              itsDirections.size(),
+              info().nchan(), //nChannelBlocks
+              &(chanFreqs[0]));
         }
       }
 
