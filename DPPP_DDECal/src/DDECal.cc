@@ -119,34 +119,60 @@ namespace LOFAR {
           new CoreConstraint()));
       }
       switch(itsMode) {
+        case GainCal::COMPLEXGAIN:
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new DiagonalConstraint(4)));
+        itsMultiDirSolver.set_phase_only(false);
+        itsFullMatrixMinimalization = true;
+        break;
+        case GainCal::SCALARCOMPLEXGAIN:
+        // no constraints
+        itsMultiDirSolver.set_phase_only(false);
+        itsFullMatrixMinimalization = false;
+        break;
+        case GainCal::PHASEONLY:
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new PhaseOnlyConstraint()));
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new DiagonalConstraint(4)));
+        itsMultiDirSolver.set_phase_only(true);
+        itsFullMatrixMinimalization = true;
+        break;
         case GainCal::SCALARPHASE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new PhaseOnlyConstraint()));
         itsMultiDirSolver.set_phase_only(true);
         break;
+        case GainCal::AMPLITUDEONLY:
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new DiagonalConstraint(4)));
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                  new AmplitudeOnlyConstraint()));
+        itsMultiDirSolver.set_phase_only(false);
+        itsFullMatrixMinimalization = true;
         case GainCal::SCALARAMPLITUDE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new AmplitudeOnlyConstraint()));
         itsMultiDirSolver.set_phase_only(false);
+        itsFullMatrixMinimalization = false;
         break;
         case GainCal::TEC:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECOnlyMode)));
         itsMultiDirSolver.set_phase_only(true);
+        itsFullMatrixMinimalization = false;
         break;
         case GainCal::TECANDPHASE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
         itsMultiDirSolver.set_phase_only(true);
-        break;
-        case GainCal::SCALARCOMPLEXGAIN:
-        // no constraints
-        itsMultiDirSolver.set_phase_only(false);
+        itsFullMatrixMinimalization = false;
         break;
         case GainCal::TECSCREEN:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new ScreenConstraint(parset, prefix+"tecscreen.")));
         itsMultiDirSolver.set_phase_only(true);
+        itsFullMatrixMinimalization = false;
         break;
         default:
         THROW (Exception, "Unexpected mode: " << 
@@ -451,10 +477,18 @@ namespace LOFAR {
         initializeSolutions();
 
         itsTimerSolve.start();
-        MultiDirSolver::SolveResult solveResult = 
-                  itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
-                  itsSols[itsTimeStep/itsSolInt],
-                  itsAvgTime / itsSolInt);
+        MultiDirSolver::SolveResult solveResult;
+        if(itsFullMatrixMinimalization)
+        {
+          solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
+            itsSols[itsTimeStep/itsSolInt],
+            itsAvgTime / itsSolInt);
+        }
+        else {
+          solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
+            itsSols[itsTimeStep/itsSolInt],
+            itsAvgTime / itsSolInt);
+        }
         itsTimerSolve.stop();
 
         itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
@@ -517,17 +551,17 @@ namespace LOFAR {
         axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
 
-        uint numsols=(itsMode==GainCal::COMPLEXGAIN?2:1);
+        uint numsols=(itsMode==GainCal::SCALARCOMPLEXGAIN?2:1);
         for (uint solnum=0; solnum<numsols; ++solnum) {
           string solTabName;
           H5Parm::SolTab soltab;
           switch (itsMode) {
-            case  GainCal::PHASEONLY:
-              solTabName = "phaseonly000";
+            case  GainCal::SCALARPHASE:
+              solTabName = "scalarphase000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
               soltab.setComplexValues(sols, vector<double>(), false);
               break;
-            case GainCal::COMPLEXGAIN:
+            case GainCal::SCALARCOMPLEXGAIN:
               if (solnum==0) {
                 solTabName = "scalarphase000";
                 soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
@@ -538,7 +572,7 @@ namespace LOFAR {
                 soltab.setComplexValues(sols, vector<double>(), true);
               }
               break;
-            case GainCal::AMPLITUDEONLY:
+            case GainCal::SCALARAMPLITUDE:
               solTabName = "scalaramplitude000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
               soltab.setComplexValues(sols, vector<double>(), true);

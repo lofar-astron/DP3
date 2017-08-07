@@ -76,6 +76,18 @@ public:
                     double time);
 };
 
+class DiagonalConstraint : public Constraint
+{
+public:
+  DiagonalConstraint(size_t polsPerSolution) : _polsPerSolution(polsPerSolution) {};
+  
+  virtual std::vector<Result> Apply(
+                    std::vector<std::vector<dcomplex> >& solutions,
+                    double time);
+private:
+  const size_t _polsPerSolution;
+};
+
 class TECConstraint : public Constraint
 {
 public:

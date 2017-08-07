@@ -147,6 +147,7 @@ namespace LOFAR {
       double           itsScreenCoreConstraint;
 
       MultiDirSolver   itsMultiDirSolver;
+      bool itsFullMatrixMinimalization;
     };
 
   } //# end namespace

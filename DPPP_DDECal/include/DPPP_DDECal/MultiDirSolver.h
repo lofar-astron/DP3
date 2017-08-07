@@ -46,7 +46,7 @@ public:
    * @param solutions An array, where @c solutions[ch] is a pointer to channelblock @c ch, that points to
    * antenna x directions solutions. Each solution consists of 4 complex values forming the full Jones matrix.
    */
-  SolveResult processFullJones(std::vector<Complex *>& data,
+  SolveResult processFullMatrix(std::vector<Complex *>& data,
     std::vector<std::vector<Complex *> >& modelData,
     std::vector<std::vector<DComplex> >& solutions, double time) const;
   
@@ -71,7 +71,7 @@ private:
                              const std::vector<Complex *>& data,
                              const std::vector<std::vector<Complex *> >& modelData) const;
                              
-  void performFullJonesIteration(size_t channelBlockIndex,
+  void performFullMatrixIteration(size_t channelBlockIndex,
                              std::vector<arma::cx_mat>& gTimesCs,
                              std::vector<arma::cx_mat>& vs,
                              const std::vector<DComplex>& solutions,

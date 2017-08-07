@@ -230,7 +230,7 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
   }
 }
 
-MultiDirSolver::SolveResult MultiDirSolver::processFullJones(std::vector<Complex *>& data,
+MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Complex *>& data,
   std::vector<std::vector<Complex *> >& modelData,
   std::vector<std::vector<DComplex> >& solutions, double time) const
 {
@@ -315,7 +315,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullJones(std::vector<Complex
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
     {
-      performFullJonesIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
+      performFullMatrixIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                                 solutions[chBlock], nextSolutions[chBlock],
                                 data, modelData);
     }
@@ -367,7 +367,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullJones(std::vector<Complex
   return result;
 }
 
-void MultiDirSolver::performFullJonesIteration(size_t channelBlockIndex,
+void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
                              std::vector<arma::cx_mat>& gTimesCs,
                              std::vector<arma::cx_mat>& vs,
                              const std::vector<DComplex>& solutions,

@@ -10,8 +10,8 @@
 std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double)
 {
-  for (uint ch=0; ch<solutions.size(); ++ch) {
-    for (uint solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
+  for (size_t ch=0; ch<solutions.size(); ++ch) {
+    for (size_t solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
       solutions[ch][solIndex] /= std::abs(solutions[ch][solIndex]);
     }
   }
@@ -22,9 +22,25 @@ std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
 std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double)
 {
-  for (uint ch=0; ch<solutions.size(); ++ch) {
-    for (uint solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
+  for (size_t ch=0; ch<solutions.size(); ++ch) {
+    for (size_t solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
       solutions[ch][solIndex] = std::abs(solutions[ch][solIndex]);
+    }
+  }
+
+  return std::vector<Constraint::Result>();
+}
+
+std::vector<Constraint::Result> DiagonalConstraint::Apply(
+    std::vector<std::vector<dcomplex> >& solutions, double)
+{
+  if(_polsPerSolution == 4)
+  {
+    for (size_t ch=0; ch<solutions.size(); ++ch) {
+      for (size_t solIndex=0; solIndex<solutions[ch].size(); solIndex += 4) {
+        solutions[ch][solIndex+1] = 0.0;
+        solutions[ch][solIndex+2] = 0.0;
+      }
     }
   }
 
@@ -109,14 +125,6 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
       _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
-    /*if(solutionIndex == _nDirections*60)
-    {
-      std::cout << "BEFORE ";
-      for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
-        std::cout << _phaseFitters[thread].PhaseData()[ch] << ' ';
-      }
-      std::cout << '\n';
-    }*/
     
     double alpha, beta=0.0;
     if(_mode == TECOnlyMode) {
@@ -132,14 +140,6 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     {
      solutions[ch][solutionIndex] = std::polar<double>(1.0, _phaseFitters[thread].PhaseData()[ch]);
     }
-    /*if(solutionIndex == _nDirections*60)
-    {
-      std::cout << "AFTER ";
-      for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
-        std::cout << _phaseFitters[thread].PhaseData()[ch] << ' ';
-      }
-      std::cout << " (a=" << (alpha / -8.44797245e9) << ", b=" << beta << ")\n";
-    }*/
   }
 
   return res;
