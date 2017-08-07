@@ -120,62 +120,68 @@ namespace LOFAR {
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new DiagonalConstraint(4)));
-        itsMultiDirSolver.set_phase_only(false);
-        itsFullMatrixMinimalization = true;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
         case GainCal::SCALARCOMPLEXGAIN:
-        // no constraints
-        itsMultiDirSolver.set_phase_only(false);
-        itsFullMatrixMinimalization = false;
-        break;
+          // no constraints
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = false;
+          break;
+        case GainCal::FULLJONES:
+          // no constraints
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
         case GainCal::PHASEONLY:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new PhaseOnlyConstraint()));
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new DiagonalConstraint(4)));
-        itsMultiDirSolver.set_phase_only(true);
-        itsFullMatrixMinimalization = true;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new PhaseOnlyConstraint()));
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = true;
+          break;
         case GainCal::SCALARPHASE:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new PhaseOnlyConstraint()));
-        itsMultiDirSolver.set_phase_only(true);
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new PhaseOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(true);
+          break;
         case GainCal::AMPLITUDEONLY:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new DiagonalConstraint(4)));
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new AmplitudeOnlyConstraint()));
-        itsMultiDirSolver.set_phase_only(false);
-        itsFullMatrixMinimalization = true;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new AmplitudeOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
         case GainCal::SCALARAMPLITUDE:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new AmplitudeOnlyConstraint()));
-        itsMultiDirSolver.set_phase_only(false);
-        itsFullMatrixMinimalization = false;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new AmplitudeOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = false;
+          break;
         case GainCal::TEC:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new TECConstraint(TECConstraint::TECOnlyMode)));
-        itsMultiDirSolver.set_phase_only(true);
-        itsFullMatrixMinimalization = false;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new TECConstraint(TECConstraint::TECOnlyMode)));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = false;
+          break;
         case GainCal::TECANDPHASE:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
-        itsMultiDirSolver.set_phase_only(true);
-        itsFullMatrixMinimalization = false;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = false;
+          break;
         case GainCal::TECSCREEN:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new ScreenConstraint(parset, prefix+"tecscreen.")));
-        itsMultiDirSolver.set_phase_only(true);
-        itsFullMatrixMinimalization = false;
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new ScreenConstraint(parset, prefix+"tecscreen.")));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = false;
+          break;
         default:
-        THROW (Exception, "Unexpected mode: " << 
+          THROW (Exception, "Unexpected mode: " << 
                           GainCal::calTypeToString(itsMode));
       }
 
@@ -550,6 +556,13 @@ namespace LOFAR {
         axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
         axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
+        if(itsMode == GainCal::COMPLEXGAIN ||
+           itsMode == GainCal::PHASEONLY ||
+           itsMode == GainCal::AMPLITUDEONLY ||
+           itsMode == GainCal::FULLJONES)
+        {
+          axes.push_back(H5Parm::AxisInfo("pol", itsSols.size()));
+        }
 
         uint numsols=(itsMode==GainCal::SCALARCOMPLEXGAIN?2:1);
         for (uint solnum=0; solnum<numsols; ++solnum) {
@@ -674,7 +687,6 @@ namespace LOFAR {
           }
         }
       }
-
 
       itsTimerWrite.stop();
       itsTimer.stop();
