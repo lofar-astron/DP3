@@ -119,12 +119,12 @@ namespace LOFAR {
           new CoreConstraint()));
       }
       switch(itsMode) {
-        case GainCal::PHASEONLY:
+        case GainCal::SCALARPHASE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new PhaseOnlyConstraint()));
         itsMultiDirSolver.set_phase_only(true);
         break;
-        case GainCal::AMPLITUDEONLY:
+        case GainCal::SCALARAMPLITUDE:
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
                   new AmplitudeOnlyConstraint()));
         itsMultiDirSolver.set_phase_only(false);
@@ -139,7 +139,7 @@ namespace LOFAR {
                   new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
         itsMultiDirSolver.set_phase_only(true);
         break;
-        case GainCal::COMPLEXGAIN:
+        case GainCal::SCALARCOMPLEXGAIN:
         // no constraints
         itsMultiDirSolver.set_phase_only(false);
         break;
