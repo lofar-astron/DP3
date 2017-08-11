@@ -123,7 +123,16 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 #endif
 
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
-      _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
+      if(std::isfinite(solutions[ch][solutionIndex].real()) &&
+        std::isfinite(solutions[ch][solutionIndex].imag()))
+      {
+        _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
+        _phaseFitters[thread].WeightData()[ch] = 1.0;
+      }
+      else {
+        _phaseFitters[thread].PhaseData()[ch] = 0.0;
+        _phaseFitters[thread].WeightData()[ch] = 0.0;
+      }
     }
     
     double alpha, beta=0.0;
