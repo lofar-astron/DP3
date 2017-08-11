@@ -224,9 +224,17 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
     cx_mat& gTimesC = gTimesCs[ant];
     cx_vec& v = vs[ant];
     // solve [g* C] x  = v
-    cx_vec x = solve(gTimesC, v);
-    for(size_t d=0; d!=_nDirections; ++d)
-      nextSolutions[ant*_nDirections + d] = x(d);
+    cx_vec x;
+    bool success = solve(x, gTimesC, v);
+    if(success)
+    {
+      for(size_t d=0; d!=_nDirections; ++d)
+        nextSolutions[ant*_nDirections + d] = x(d);
+    }
+    else {
+      for(size_t d=0; d!=_nDirections; ++d)
+        nextSolutions[ant*_nDirections + d] = std::numeric_limits<double>::quiet_NaN();
+    }
   }
 }
 
@@ -446,12 +454,19 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
     cx_mat& gTimesC = gTimesCs[ant];
     cx_mat& v = vs[ant];
     // solve [g* C] x  = v
-    cx_mat x = solve(gTimesC, v);
-    for(size_t d=0; d!=_nDirections; ++d)
+    cx_mat x;
+    bool success = solve(x, gTimesC, v);
+    if(success)
     {
-      for(size_t p=0; p!=4; ++p)
-        nextSolutions[(ant*_nDirections + d)*4 + p] = x(d*2+p/2, p%2);
+      for(size_t d=0; d!=_nDirections; ++d)
+      {
+        for(size_t p=0; p!=4; ++p)
+          nextSolutions[(ant*_nDirections + d)*4 + p] = x(d*2+p/2, p%2);
+      }
+    }
+    else {
+      for(size_t d=0; d!=_nDirections*4; ++d)
+        nextSolutions[ant*_nDirections + d] = std::numeric_limits<double>::quiet_NaN();
     }
   }
 }
-
