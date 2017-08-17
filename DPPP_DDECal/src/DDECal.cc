@@ -366,7 +366,7 @@ namespace LOFAR {
           screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
         
-        TECConstraint* tecConstraint = dynamic_cast<TECConstraint*>(itsConstraints[i].get());
+        TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
         if(tecConstraint != 0)
         {
           tecConstraint->initialize(info().antennaNames().size(),

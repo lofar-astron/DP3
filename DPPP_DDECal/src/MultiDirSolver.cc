@@ -88,7 +88,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
   ///
   size_t iteration = 0;
   double normSum = 0.0, sum = 0.0;
-  bool hasConverged = false, constraintsSatisfied = false;
+  bool hasConverged = false, hasPreviouslyConverged = false, constraintsSatisfied = false;
   do {
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
@@ -122,7 +122,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       // iterate at least once more when a constrained is not yet satisfied, we
       // evaluate Satisfied() before preparing.
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
-      _constraints[i]->PrepareIteration(hasConverged, iteration+1 < _maxIterations);
+      _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration+1 >= _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
     
@@ -150,6 +150,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     iteration++;
     
     hasConverged = normSum/sum <= _accuracy;
+    hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
   if(normSum/sum <= _accuracy)

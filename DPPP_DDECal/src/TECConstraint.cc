@@ -32,7 +32,6 @@ void TECConstraintBase::initialize(size_t nAntennas, size_t nDirections, size_t 
     _phaseFitters[i].SetChannelCount(_nChannelBlocks);
     std::memcpy(_phaseFitters[i].FrequencyData(), frequencies, sizeof(double) * _nChannelBlocks);
   }
-  
   initializeChild();
 }
 
@@ -56,6 +55,8 @@ void ApproximateTECConstraint::initializeChild()
       startFreq = _phaseFitters.front().FrequencyData()[0],
       endFreq = _phaseFitters.front().FrequencyData()[n-1];
       _fittingChunkSize = PieceWisePhaseFitter::CalculateChunkSize(startFreq, endFreq, n);
+    for(size_t i=0; i!=_pwFitters.size(); ++i)
+      _pwFitters[i].SetChunkSize(_fittingChunkSize);
   }
 }
 
@@ -178,6 +179,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
       std::vector<double>& fittedData = _threadFittedData[thread];
       
       data.resize(_nChannelBlocks);
+      fittedData.resize(_nChannelBlocks);
 
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
         if(std::isfinite(solutions[ch][solutionIndex].real()) &&
@@ -196,7 +198,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
 
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
       {
-        solutions[ch][solutionIndex] = std::polar<double>(1.0, _phaseFitters[thread].PhaseData()[ch]);
+        solutions[ch][solutionIndex] = std::polar<double>(1.0, fittedData[ch]);
       }
     }
 
