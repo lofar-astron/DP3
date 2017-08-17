@@ -88,6 +88,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
   ///
   size_t iteration = 0;
   double normSum = 0.0, sum = 0.0;
+  bool hasConverged = false, constraintsSatisfied = false;
   do {
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
@@ -114,8 +115,14 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       }
     }
     
+    constraintsSatisfied = true;
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
+      // PrepareIteration() might change Satisfied(), and since we always want to
+      // iterate at least once more when a constrained is not yet satisfied, we
+      // evaluate Satisfied() before preparing.
+      constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
+      _constraints[i]->PrepareIteration(hasConverged, iteration+1 < _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
     
@@ -142,7 +149,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     sum /= _nChannelBlocks*_nAntennas*_nDirections;
     iteration++;
     
-  } while(iteration < _maxIterations && normSum/sum > _accuracy);
+    hasConverged = normSum/sum <= _accuracy;
+  } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
   if(normSum/sum <= _accuracy)
     result.iterations = iteration;
@@ -319,6 +327,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
   ///
   size_t iteration = 0;
   double normSum = 0.0, sum = 0.0;
+  bool hasConverged = false, constraintsSatisfied = false;
   do {
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
@@ -345,8 +354,11 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
       }
     }
     
+    constraintsSatisfied = true;
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
+      constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
+      _constraints[i]->PrepareIteration(hasConverged, iteration+1 < _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
     
@@ -366,7 +378,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     sum /= _nChannelBlocks*_nAntennas*_nDirections*4;
     iteration++;
     
-  } while(iteration < _maxIterations && normSum/sum > _accuracy);
+    hasConverged = normSum/sum <= _accuracy;
+  } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
   if(normSum/sum <= _accuracy)
     result.iterations = iteration;

@@ -23,22 +23,27 @@
 
 #include <lofar_config.h>
 #include <DPPP_DDECal/DDECal.h>
-#include <DPPP/Simulate.h>
+
 #include <DPPP/ApplyCal.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/MSReader.h>
 #include <DPPP/DPLogger.h>
+#include <DPPP/MSReader.h>
+#include <DPPP/Simulate.h>
+#include <DPPP/SourceDBUtil.h>
+
 #include <DPPP_DDECal/ScreenConstraint.h>
+#include <DPPP_DDECal/TECConstraint.h>
+
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
 #include <ParmDB/SourceDB.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
+
 #include <Common/LofarLogger.h>
 #include <Common/OpenMP.h>
+#include <Common/ParameterSet.h>
+#include <Common/StreamUtil.h>
+#include <Common/StringUtil.h>
 
 #include <fstream>
 #include <ctime>
@@ -88,7 +93,9 @@ namespace LOFAR {
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsMultiDirSolver(parset.getInt (prefix + "maxiter", 50),
                           parset.getDouble (prefix + "tolerance", 1.e-5),
-                          parset.getDouble (prefix + "stepsize", 0.2))
+                          parset.getDouble (prefix + "stepsize", 0.2)),
+        itsFullMatrixMinimalization(false),
+        itsApproximateTEC(false)
     {
       vector<string> strDirections = 
          parset.getStringVector (prefix + "directions",
@@ -163,14 +170,28 @@ namespace LOFAR {
           itsFullMatrixMinimalization = false;
           break;
         case GainCal::TEC:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                    new TECConstraint(TECConstraint::TECOnlyMode)));
-          itsMultiDirSolver.set_phase_only(true);
-          itsFullMatrixMinimalization = false;
-          break;
         case GainCal::TECANDPHASE:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                    new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+          itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
+          if(itsApproximateTEC)
+          {
+            casacore::CountedPtr<ApproximateTECConstraint> ptr;
+            if(itsMode == GainCal::TEC)
+              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
+            else
+              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
+            // user setting? : ptr->SetFittingChunkSize(fittingChunkSize);
+            itsConstraints.push_back(ptr);
+          }
+          else {
+            if(itsMode == GainCal::TEC)
+              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                new TECConstraint(TECConstraint::TECOnlyMode)));
+              else
+              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+          }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
           break;
@@ -372,6 +393,7 @@ namespace LOFAR {
       os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
          << endl;
       os << "  coreconstraint:      " << itsCoreConstraint << endl;
+      os << "  approximate fitter:  " << itsApproximateTEC << endl;
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }

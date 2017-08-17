@@ -1,14 +1,6 @@
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
 
-#ifdef AOPROJECT
-#include "PhaseFitter.h"
-#define UPTR std::unique_ptr
-#else
-#include <DPPP/PhaseFitter.h>
-#define UPTR std::auto_ptr
-#endif
-
 #include <complex>
 #include <memory>
 #include <set>
@@ -29,15 +21,41 @@ public:
   {
   public:
     std::vector<double> vals;
-    std::string axes; // Comma-separated string with axes names, fastest varying last
+    std::string axes; // Comma-separated string with axis names, fastest varying last
     std::vector<size_t> dims;
     std::string name;
   };
 
   virtual ~Constraint() { }
+
+  /**
+   * Function that initializes the constraint for the next calibration iteration.
+   * It should be called each time all antenna solutions have been calculated,
+   * but before the constraint has been applied to all those antenna solutions.
+   * 
+   * Unlike Apply(), this method is not thread safe.
+   * 
+   * @param bool This can be used to specify whether the previous solution "step" is
+   * smaller than the requested precision, i.e. calibration with the constrained
+   * has converged. This allows a constraint to apply
+   * its constraint in steps: apply a better-converging constraint as long as the
+   * solutions are far from the correct answer, then switch to a different constraint
+   * when hasReachedPrecision=true.
+   */
+  virtual void PrepareIteration(bool /*hasReachedPrecision*/, bool /*finalIter*/) { }
+  
+  /**
+   * Whether the constraint has been satisfied. The calibration process will continue
+   * at least as long as Satisfied()=false, and performs at least one more iteration
+   * after Satisfied()=true. Together with SetPrecisionReached(), this
+   * can make the algorithm change the constraining method based on amount of
+   * convergence.
+   */
+  virtual bool Satisfied() const { return true; }
    
   /**
-   * This method applies the constraints to the solutions.
+   * This method applies the constraints to the solutions. It should be implemented in
+   * a thread safe manner, allowing multiple Apply() calls to run in parallel.
    * @param solutions is an array of array, such that:
    * - solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
    * - directions is the dimension with the fastest changing index.
@@ -86,31 +104,6 @@ public:
                     double time);
 private:
   const size_t _polsPerSolution;
-};
-
-class TECConstraint : public Constraint
-{
-public:
-  enum Mode {
-    /** Solve for both a (differential) TEC and an XX/YY-common scalar */
-    TECAndCommonScalarMode,
-    /** Solve only for a (differential) TEC value */
-    TECOnlyMode
-  };
-  
-  TECConstraint(Mode mode);
-
-  void initialize(size_t nAntennas, size_t nDirections, 
-                  size_t nChannelBlocks, const double* frequencies);
-  
-  virtual std::vector<Result> Apply(
-                    std::vector<std::vector<dcomplex> >& solutions,
-                       double time);
-  
-private:
-  Mode _mode;
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
-  std::vector<PhaseFitter> _phaseFitters;
 };
 
 /**

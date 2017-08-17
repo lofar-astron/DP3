@@ -106,8 +106,7 @@ namespace LOFAR {
 
     // Create data type
     dims[0]=2;  // For ra, dec in directions
-    source_t tmp;
-    H5::CompType sourceType(sizeof tmp);
+    H5::CompType sourceType(sizeof(source_t));
     sourceType.insertMember("name", HOFFSET(antenna_t, name), H5::StrType(H5::PredType::C_S1, 128));
     sourceType.insertMember("dir", HOFFSET(source_t, dir), H5::ArrayType(H5::PredType::NATIVE_FLOAT, 1, dims));
 
@@ -134,8 +133,7 @@ namespace LOFAR {
 
     // Create data type
     dims[0]=3;  // For x,y,z in positions
-    antenna_t tmp;
-    H5::CompType antennaType(sizeof tmp);
+    H5::CompType antennaType(sizeof(antenna_t));
     antennaType.insertMember("name", HOFFSET(antenna_t, name), H5::StrType(H5::PredType::C_S1, 16));
     antennaType.insertMember("position", HOFFSET(antenna_t, position), H5::ArrayType(H5::PredType::NATIVE_FLOAT, 1, dims));
 
@@ -148,21 +146,45 @@ namespace LOFAR {
     vector<antenna_t> ants(names.size());
     for (uint ant=0; ant<ants.size(); ++ant) {
       std::strncpy(ants[ant].name, names[ant].c_str(), 16);
-      std::vector<double> pos = positions[ant];
-      ants[ant].position[0]=pos[0];
-      ants[ant].position[1]=pos[1];
-      ants[ant].position[2]=pos[2];
+      const std::vector<double>& pos = positions[ant];
+      ants[ant].position[0] = pos[0];
+      ants[ant].position[1] = pos[1];
+      ants[ant].position[2] = pos[2];
     }
 
     dataset.write(&(ants[0]), antennaType);
   }
 
+  void H5Parm::addPolarizations (const std::vector<std::string>& polarizations) {
+    hsize_t dims[1];
+
+    // Create data type
+    dims[0]=1;  // Only a name
+    H5::CompType polarizationType(sizeof(polarization_t));
+    polarizationType.insertMember("name", HOFFSET(polarization_t, name), H5::StrType(H5::PredType::C_S1, 2));
+
+    // Create dataset
+    dims[0] = polarizations.size();
+    H5::DataSpace dataspace(1, dims, NULL);
+    H5::DataSet dataset = _solSet.createDataSet("polarization", polarizationType, dataspace);
+
+    // Prepare data
+    vector<polarization_t> pols(polarizations.size());
+    for (uint p=0; p!=polarizations.size(); ++p) {
+      std::strncpy(pols[p].name, polarizations[p].c_str(), 2);
+    }
+
+    dataset.write(pols.data(), polarizationType);
+  }
+
   H5Parm::SolTab& H5Parm::getSolTab(const std::string& name) {
-    if (!hasSolTab(name)) {
+    std::map<std::string, SolTab>::iterator item =
+      _solTabs.find(name);
+    if (item == _solTabs.end()) {
       THROW(Exception, "SolTab "<<name<<" does not exist in solset "<<
                        getSolSetName());
     }
-    return _solTabs.find(name)->second;
+    return item->second;
   }
 
   bool H5Parm::hasSolTab(const string& solTabName) const {
@@ -173,8 +195,8 @@ namespace LOFAR {
                                        const std::string& type,
                                        const std::vector<H5Parm::AxisInfo> axes) {
     H5::Group newgroup = _solSet.createGroup(name);
-    _solTabs.insert(std::map<std::string, SolTab>::value_type
-                    (name, SolTab(newgroup, type, axes)));
-    return _solTabs.find(name)->second;
+    std::map<std::string, SolTab>::iterator newItem =
+      _solTabs.insert(std::make_pair(name, SolTab(newgroup, type, axes))).first;
+    return newItem->second;
   }
 }

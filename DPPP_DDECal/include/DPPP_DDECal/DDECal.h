@@ -148,6 +148,7 @@ namespace LOFAR {
 
       MultiDirSolver   itsMultiDirSolver;
       bool itsFullMatrixMinimalization;
+      bool itsApproximateTEC;
     };
 
   } //# end namespace

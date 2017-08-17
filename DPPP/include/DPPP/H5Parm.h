@@ -22,6 +22,10 @@ namespace LOFAR {
       char name[128];
       float dir[2];
     } source_t;
+    
+    typedef struct polarization_t {
+      char name[2];
+    } polarization_t;
 
     public:
     // A name and the length of an exis, e.g. ('freq', 800) for 800 frequencies
@@ -160,6 +164,9 @@ namespace LOFAR {
       // Add metadata (positions on earth in ITRF) about antennas
       void addAntennas(const std::vector<std::string>& names,
                        const std::vector<std::vector<double> >& positions);
+      
+      // Add metadata about polarizations
+      void addPolarizations(const std::vector<std::string>& polarizations);
 
       // Add a version stamp in the attributes of the group
       static void addVersionStamp(H5::Group &node);
