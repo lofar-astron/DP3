@@ -508,12 +508,12 @@ namespace LOFAR {
         MultiDirSolver::SolveResult solveResult;
         if(itsFullMatrixMinimalization)
         {
-          solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
+          solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
             itsSols[itsTimeStep/itsSolInt],
             itsAvgTime / itsSolInt);
         }
         else {
-          solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
+          solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
             itsSols[itsTimeStep/itsSolInt],
             itsAvgTime / itsSolInt);
         }
