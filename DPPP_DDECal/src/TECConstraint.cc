@@ -186,15 +186,13 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
           std::isfinite(solutions[ch][solutionIndex].imag()))
         {
           data[ch] = std::arg(solutions[ch][solutionIndex]);
-          // TODO weight
         }
         else {
           data[ch] = 0.0;
-          // TODO weight
         }
       }
       
-      _pwFitters[thread].SlidingFit(_phaseFitters[thread].FrequencyData(), data, fittedData);
+      _pwFitters[thread].SlidingFit(_phaseFitters[thread].FrequencyData(), data, _phaseFitters[thread].WeightData(), fittedData);
 
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
       {
