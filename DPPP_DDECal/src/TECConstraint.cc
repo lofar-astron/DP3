@@ -31,6 +31,8 @@ void TECConstraintBase::initialize(size_t nAntennas, size_t nDirections, size_t 
   {
     _phaseFitters[i].SetChannelCount(_nChannelBlocks);
     std::memcpy(_phaseFitters[i].FrequencyData(), frequencies, sizeof(double) * _nChannelBlocks);
+    
+    // TODO this should set the weights of the phase fitter!
   }
   initializeChild();
 }
@@ -46,6 +48,11 @@ void ApproximateTECConstraint::initializeChild()
    );
   _threadData.resize(_pwFitters.size());
   _threadFittedData.resize(_pwFitters.size());
+  for(size_t threadId=0; threadId!=_pwFitters.size(); ++threadId)
+  {
+    _threadData[threadId].resize(_nChannelBlocks);
+    _threadFittedData[threadId].resize(_nChannelBlocks);
+  }
   
   if(_fittingChunkSize == 0)
   {
@@ -57,6 +64,30 @@ void ApproximateTECConstraint::initializeChild()
       _fittingChunkSize = PieceWisePhaseFitter::CalculateChunkSize(startFreq, endFreq, n);
     for(size_t i=0; i!=_pwFitters.size(); ++i)
       _pwFitters[i].SetChunkSize(_fittingChunkSize);
+  }
+}
+
+void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const
+{
+  // TODO chose this more cleverly?
+  size_t refAntenna = 0;
+
+  for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
+  {
+    for(size_t antennaIndex=0; antennaIndex!=_nAntennas; ++antennaIndex)
+    {
+      for(size_t d=0; d!=_nDirections; ++d)
+      {
+        size_t solutionIndex = antennaIndex*_nDirections + d;
+        size_t refAntennaIndex = d + refAntenna*_nDirections;
+        if(antennaIndex != refAntenna)
+        {
+          solutions[ch][solutionIndex] = solutions[ch][solutionIndex] / solutions[ch][refAntennaIndex];
+        }
+      }
+    }
+    for(size_t d=0; d!=_nDirections; ++d)
+      solutions[ch][refAntenna*_nDirections + d] = 1.0;
   }
 }
 
@@ -75,27 +106,8 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res[1]=res[0];
   res[1].name="scalarphase";
 
-  // TODO chose this more cleverly?
-  size_t refAntenna = 0;
-
   // Divide out the reference antenna
-  for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
-  {
-    for(size_t antennaIndex=0; antennaIndex!=_nAntennas; ++antennaIndex)
-    {
-      for(size_t d=0; d!=_nDirections; ++d)
-      {
-        size_t solutionIndex = antennaIndex*_nDirections + d;
-        size_t refAntennaIndex = d + refAntenna*_nDirections;
-        if(antennaIndex != refAntenna)
-        {
-          solutions[ch][solutionIndex] = solutions[ch][solutionIndex] / solutions[ch][refAntennaIndex];
-        }
-      }
-    }
-    for(size_t d=0; d!=_nDirections; ++d)
-      solutions[ch][refAntenna*_nDirections + d] = 1.0;
-  }
+  applyReferenceAntenna(solutions);
   
 #pragma omp parallel for
   for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
@@ -145,42 +157,19 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   if(_finishedApproximateStage)
     return TECConstraint::Apply(solutions, time);
   else {
-    // TODO chose this more cleverly?
-    size_t refAntenna = 0;
-
-    // Divide out the reference antenna
-    for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
-    {
-      for(size_t antennaIndex=0; antennaIndex!=_nAntennas; ++antennaIndex)
-      {
-        for(size_t d=0; d!=_nDirections; ++d)
-        {
-          size_t solutionIndex = antennaIndex*_nDirections + d;
-          size_t refAntennaIndex = d + refAntenna*_nDirections;
-          if(antennaIndex != refAntenna)
-          {
-            solutions[ch][solutionIndex] = solutions[ch][solutionIndex] / solutions[ch][refAntennaIndex];
-          }
-        }
-      }
-      for(size_t d=0; d!=_nDirections; ++d)
-        solutions[ch][refAntenna*_nDirections + d] = 1.0;
-    }
+    applyReferenceAntenna(solutions);
     
-  #pragma omp parallel for
+#pragma omp parallel for
     for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
     {
-  #ifdef AOPROJECT
+#ifdef AOPROJECT
       size_t thread = omp_get_thread_num();
-  #else
+#else
       size_t thread = LOFAR::OpenMP::threadNum();
-  #endif
+#endif
       std::vector<double>& data = _threadData[thread];
       std::vector<double>& fittedData = _threadFittedData[thread];
       
-      data.resize(_nChannelBlocks);
-      fittedData.resize(_nChannelBlocks);
-
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
         if(std::isfinite(solutions[ch][solutionIndex].real()) &&
           std::isfinite(solutions[ch][solutionIndex].imag()))

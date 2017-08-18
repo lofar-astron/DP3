@@ -31,6 +31,8 @@ public:
 protected:
   virtual void initializeChild() { }
   
+  void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
+  
   Mode _mode;
   size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<PhaseFitter> _phaseFitters;
