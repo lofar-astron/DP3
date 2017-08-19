@@ -77,6 +77,7 @@ private:
   std::vector<PieceWisePhaseFitter> _pwFitters;
   std::vector<std::vector<double>> _threadData;
   std::vector<std::vector<double>> _threadFittedData;
+  std::vector<std::vector<double>> _threadWeights;
   size_t _fittingChunkSize;
 };
 

@@ -48,10 +48,12 @@ void ApproximateTECConstraint::initializeChild()
    );
   _threadData.resize(_pwFitters.size());
   _threadFittedData.resize(_pwFitters.size());
+  _threadWeights.resize(_pwFitters.size());
   for(size_t threadId=0; threadId!=_pwFitters.size(); ++threadId)
   {
     _threadData[threadId].resize(_nChannelBlocks);
     _threadFittedData[threadId].resize(_nChannelBlocks);
+    _threadWeights[threadId].resize(_nChannelBlocks);
   }
   
   if(_fittingChunkSize == 0)
@@ -169,19 +171,22 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
 #endif
       std::vector<double>& data = _threadData[thread];
       std::vector<double>& fittedData = _threadFittedData[thread];
+      std::vector<double>& weights = _threadWeights[thread];
       
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
         if(std::isfinite(solutions[ch][solutionIndex].real()) &&
           std::isfinite(solutions[ch][solutionIndex].imag()))
         {
           data[ch] = std::arg(solutions[ch][solutionIndex]);
+          weights[ch] = 1.0;
         }
         else {
           data[ch] = 0.0;
+          weights[ch] = 0.0;
         }
       }
       
-      _pwFitters[thread].SlidingFit(_phaseFitters[thread].FrequencyData(), data, _phaseFitters[thread].WeightData(), fittedData);
+      _pwFitters[thread].SlidingFit(_phaseFitters[thread].FrequencyData(), data, weights.data(), fittedData);
 
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
       {
