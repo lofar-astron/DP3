@@ -174,6 +174,7 @@ namespace LOFAR {
           itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
           if(itsApproximateTEC)
           {
+            int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
             casacore::CountedPtr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
               ptr = casacore::CountedPtr<ApproximateTECConstraint>(
@@ -182,6 +183,7 @@ namespace LOFAR {
               ptr = casacore::CountedPtr<ApproximateTECConstraint>(
                 new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
             // user setting? : ptr->SetFittingChunkSize(fittingChunkSize);
+            ptr->SetMaxApproximatingIterations(iters);
             itsConstraints.push_back(ptr);
           }
           else {
@@ -296,6 +298,7 @@ namespace LOFAR {
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       itsSols.resize(nSolTimes);
       itsNIter.resize(nSolTimes);
+      itsNApproxIter.resize(nSolTimes);
       itsConstraintSols.resize(nSolTimes);
 
       vector<double> chanFreqs(info().nchan());  //nChannelBlocks
@@ -420,9 +423,15 @@ namespace LOFAR {
 
       os << "Iterations taken: [";
       for (uint i=0; i<itsNIter.size()-1; ++i) {
-        os<<itsNIter[i]<<",";
+        os<<itsNIter[i];
+        if(itsNApproxIter[i]!=0)
+          os << '|' << itsNApproxIter[i];
+        os<<",";
       }
-      os<<itsNIter[itsNIter.size()-1]<<"]"<<endl;
+      os<<itsNIter[itsNIter.size()-1];
+        if(itsNApproxIter[itsNIter.size()-1]!=0)
+          os << '|' << itsNApproxIter[itsNIter.size()-1];
+      os<<"]"<<endl;
     }
 
     void DDECal::initializeSolutions() {
@@ -520,6 +529,7 @@ namespace LOFAR {
         itsTimerSolve.stop();
 
         itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
+        itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
         // Store constraint solutions if any constaint has a non-empty result
         bool someConstraintHasResult = false;

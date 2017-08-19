@@ -35,12 +35,59 @@ void MultiDirSolver::init(size_t nAntennas,
   _ant2 = ant2;
 }
 
+void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutions,
+                              std::vector<std::vector<DComplex> >& nextSolutions) const
+{
+  // Move the solutions towards nextSolutions
+  // (the moved solutions are stored in 'nextSolutions')
+  for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
+  {
+    for(size_t i=0; i!=nextSolutions[chBlock].size(); ++i)
+    {
+      if(_phaseOnly)
+      {
+        double ab = std::abs(nextSolutions[chBlock][i]);
+        if(ab != 0.0)
+          nextSolutions[chBlock][i] /= ab;
+      }
+      nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
+        nextSolutions[chBlock][i] * _stepSize;
+    }
+  }
+}
+
+bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& solutions,
+  std::vector<std::vector<DComplex> >& nextSolutions) const
+{
+  double normSum = 0.0, sum = 0.0;
+  //  Calculate the norm of the difference between the old and new solutions
+  size_t n = 0;
+  for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
+  {
+    n += solutions[chBlock].size();
+    for(size_t i=0; i!=solutions[chBlock].size(); ++i)
+    {
+      double e = std::norm(nextSolutions[chBlock][i] - solutions[chBlock][i]);
+      normSum += e;
+      sum += std::abs(solutions[chBlock][i]);
+      
+      solutions[chBlock][i] = nextSolutions[chBlock][i];
+    }
+  }
+  normSum /= n;
+  sum /= n;
+  return normSum/sum <= _accuracy;
+}
+
 MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>& data,
   std::vector<std::vector<Complex *> >& modelData,
   std::vector<std::vector<DComplex> >& solutions, double time) const
 {
   const size_t nTimes = data.size();
   SolveResult result;
+  
+  for(size_t i=0; i!=_constraints.size(); ++i)
+    _constraints[i]->PrepareIteration(false, 0, false);
   
   std::vector<std::vector<DComplex> > nextSolutions(_nChannelBlocks);
 
@@ -86,8 +133,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
   ///
   /// Start iterating
   ///
-  size_t iteration = 0;
-  double normSum = 0.0, sum = 0.0;
+  size_t iteration = 0, constrainedIterations = 0;
   bool hasConverged = false, hasPreviouslyConverged = false, constraintsSatisfied = false;
   do {
 #pragma omp parallel for
@@ -98,22 +144,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
                             data, modelData);
     }
       
-    // Move the solutions towards nextSolutions
-    // (the moved solutions are stored in 'nextSolutions')
-    for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
-    {
-      for(size_t i=0; i!=_nAntennas*_nDirections; ++i)
-      {
-        if(_phaseOnly)
-        {
-          double ab = std::abs(nextSolutions[chBlock][i]);
-          if(ab != 0.0)
-            nextSolutions[chBlock][i] /= ab;
-        }
-        nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
-          nextSolutions[chBlock][i] * _stepSize;
-      }
-    }
+    makeStep(solutions, nextSolutions);
     
     constraintsSatisfied = true;
     for(size_t i=0; i!=_constraints.size(); ++i)
@@ -122,41 +153,23 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       // iterate at least once more when a constrained is not yet satisfied, we
       // evaluate Satisfied() before preparing.
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
-      _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration+1 >= _maxIterations);
+      _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
+    if(constrainedIterations == 0 && constraintsSatisfied)
+      constrainedIterations = iteration+1;
     
-    //  Calculate the norm of the difference between the old and new solutions
-    for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
-    {
-      for(size_t i=0; i!=_nAntennas*_nDirections; ++i)
-      {
-        double e = std::norm(nextSolutions[chBlock][i] - solutions[chBlock][i]);
-        normSum += e;
-        sum += std::abs(solutions[chBlock][i]);
-        
-        solutions[chBlock][i] = nextSolutions[chBlock][i];
-        
-        // For debug: output the solutions of the first antenna
-        if(i<_nDirections && false)
-        {
-          std::cout << " |s_" << i << "|=|" << solutions[chBlock][i] << "|="
-                    << std::abs(solutions[chBlock][i]);
-        }
-      }
-    }
-    normSum /= _nChannelBlocks*_nAntennas*_nDirections;
-    sum /= _nChannelBlocks*_nAntennas*_nDirections;
+    hasConverged = assignSolutions(solutions, nextSolutions);
     iteration++;
     
-    hasConverged = normSum/sum <= _accuracy;
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
-  if(normSum/sum <= _accuracy)
+  if(hasConverged)
     result.iterations = iteration;
   else
     result.iterations = _maxIterations+1;
+  result.constraintIterations = constrainedIterations;
   return result;
 }
 
@@ -283,6 +296,9 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
   const size_t nTimes = data.size();
   SolveResult result;
   
+  for(size_t i=0; i!=_constraints.size(); ++i)
+    _constraints[i]->PrepareIteration(false, 0, false);
+  
   std::vector<std::vector<DComplex> > nextSolutions(_nChannelBlocks);
 
 #ifndef NDEBUG
@@ -326,9 +342,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
   ///
   /// Start iterating
   ///
-  size_t iteration = 0;
-  double normSum = 0.0, sum = 0.0;
-  bool hasConverged = false, constraintsSatisfied = false;
+  size_t iteration = 0, constrainedIterations = 0;
+  bool hasConverged = false, hasPreviouslyConverged = false, constraintsSatisfied = false;
   do {
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
@@ -338,54 +353,29 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
                                 data, modelData);
     }
       
-    // Move the solutions towards nextSolutions
-    // (the moved solutions are stored in 'nextSolutions')
-    for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
-    {
-      for(size_t i=0; i!=_nAntennas*_nDirections*4; ++i)
-      {
-        if(_phaseOnly)
-        {
-          double ab = std::abs(nextSolutions[chBlock][i]);
-          if(ab != 0.0)
-            nextSolutions[chBlock][i] /= ab;
-        }
-        nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
-          nextSolutions[chBlock][i] * _stepSize;
-      }
-    }
+    makeStep(solutions, nextSolutions);
     
     constraintsSatisfied = true;
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
-      _constraints[i]->PrepareIteration(hasConverged, iteration+1 < _maxIterations);
+      _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
+    if(constrainedIterations == 0 && constraintsSatisfied)
+      constrainedIterations = iteration+1;
     
-    //  Calculate the norm of the difference between the old and new solutions
-    for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
-    {
-      for(size_t i=0; i!=_nAntennas*_nDirections*4; ++i)
-      {
-        double e = std::norm(nextSolutions[chBlock][i] - solutions[chBlock][i]);
-        normSum += e;
-        sum += std::abs(solutions[chBlock][i]);
-        
-        solutions[chBlock][i] = nextSolutions[chBlock][i];
-      }
-    }
-    normSum /= _nChannelBlocks*_nAntennas*_nDirections*4;
-    sum /= _nChannelBlocks*_nAntennas*_nDirections*4;
+    hasConverged = assignSolutions(solutions, nextSolutions);
     iteration++;
     
-    hasConverged = normSum/sum <= _accuracy;
+    hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
-  if(normSum/sum <= _accuracy)
+  if(hasConverged)
     result.iterations = iteration;
   else
     result.iterations = _maxIterations+1;
+  result.constraintIterations = constrainedIterations;
   return result;
 }
 

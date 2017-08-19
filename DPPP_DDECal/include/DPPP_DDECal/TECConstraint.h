@@ -54,11 +54,12 @@ public:
   ApproximateTECConstraint(Mode mode) :
     TECConstraint(mode),
     _finishedApproximateStage(false),
-    _fittingChunkSize(0)
+    _fittingChunkSize(0),
+    _maxApproxIters(50)
     { }
 
-  virtual void PrepareIteration(bool hasReachedPrecision, bool finalIter) {
-    _finishedApproximateStage = hasReachedPrecision || finalIter;
+  virtual void PrepareIteration(bool hasReachedPrecision, size_t iteration, bool finalIter) {
+    _finishedApproximateStage = hasReachedPrecision || finalIter || iteration >= _maxApproxIters;
   }
   
   virtual bool Satisfied() const { return _finishedApproximateStage; }
@@ -69,6 +70,9 @@ public:
   
   void SetFittingChunkSize(size_t fittingChunkSize)
   { _fittingChunkSize = fittingChunkSize; }
+  
+  void SetMaxApproximatingIterations(size_t maxApproxIters)
+  { _maxApproxIters = maxApproxIters; }
 protected:
   virtual void initializeChild();
   
@@ -78,7 +82,7 @@ private:
   std::vector<std::vector<double>> _threadData;
   std::vector<std::vector<double>> _threadFittedData;
   std::vector<std::vector<double>> _threadWeights;
-  size_t _fittingChunkSize;
+  size_t _fittingChunkSize, _maxApproxIters;
 };
 
 #endif

@@ -42,7 +42,7 @@ public:
    * solutions are far from the correct answer, then switch to a different constraint
    * when hasReachedPrecision=true.
    */
-  virtual void PrepareIteration(bool /*hasReachedPrecision*/, bool /*finalIter*/) { }
+  virtual void PrepareIteration(bool /*hasReachedPrecision*/, size_t /*iteration*/, bool /*finalIter*/) { }
   
   /**
    * Whether the constraint has been satisfied. The calibration process will continue

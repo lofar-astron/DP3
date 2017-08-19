@@ -24,7 +24,7 @@ public:
   typedef std::complex<float> Complex;
   
   struct SolveResult {
-    size_t iterations;
+    size_t iterations, constraintIterations;
     std::vector<std::vector<Constraint::Result> > _results;
   };
   
@@ -54,6 +54,7 @@ public:
   
   void set_channel_blocks(size_t nChannelBlocks) { _nChannelBlocks = nChannelBlocks; }
   
+  size_t max_iterations() const { return _maxIterations; }
   void set_max_iterations(size_t maxIterations) { _maxIterations = maxIterations; }
   
   void set_accuracy(double accuracy) { _accuracy = accuracy; }
@@ -79,6 +80,16 @@ private:
                              const std::vector<Complex *>& data,
                              const std::vector<std::vector<Complex *> >& modelData) const;
 
+  void makeStep(const std::vector<std::vector<DComplex> >& solutions,
+    std::vector<std::vector<DComplex> >& nextSolutions) const;
+                
+  /**
+   * Assign the solutions in nextSolutions to the solutions.
+   * @returns whether the solutions have been converged.
+   */
+  bool assignSolutions(std::vector<std::vector<DComplex> >& solutions,
+    std::vector<std::vector<DComplex> >& nextSolutions) const;
+                             
   size_t _nAntennas, _nDirections, _nChannels, _nChannelBlocks;
   std::vector<int> _ant1, _ant2;
   
