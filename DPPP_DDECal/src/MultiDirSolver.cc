@@ -40,7 +40,8 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
 {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
+#pragma omp parallel for
+  for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
   {
     for(size_t i=0; i!=nextSolutions[chBlock].size(); ++i)
     {
@@ -62,7 +63,8 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   double normSum = 0.0, sum = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
   size_t n = 0;
-  for(size_t chBlock=0; chBlock!=_nChannelBlocks; ++chBlock)
+#pragma omp parallel for
+  for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
   {
     n += solutions[chBlock].size();
     for(size_t i=0; i!=solutions[chBlock].size(); ++i)
@@ -241,7 +243,8 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
   
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  for(size_t ant=0; ant!=_nAntennas; ++ant)
+#pragma omp parallel for
+  for(size_t ant=0; ant<_nAntennas; ++ant)
   {
     cx_mat& gTimesC = gTimesCs[ant];
     cx_vec& v = vs[ant];
@@ -453,7 +456,8 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
   
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  for(size_t ant=0; ant!=_nAntennas; ++ant)
+#pragma omp parallel for
+  for(size_t ant=0; ant<_nAntennas; ++ant)
   {
     cx_mat& gTimesC = gTimesCs[ant];
     cx_mat& v = vs[ant];
