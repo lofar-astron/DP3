@@ -476,7 +476,9 @@ namespace LOFAR {
 
       itsTimerPredict.start();
 
-#pragma omp parallel for
+      if(itsPredictSteps.size() < LOFAR::OpenMP::maxThreads())
+        LOFAR::OpenMP::setNested(true);
+#pragma omp parallel for schedule(dynamic)
       for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
         itsModelDataPtrs[itsStepInSolInt][dir] =
