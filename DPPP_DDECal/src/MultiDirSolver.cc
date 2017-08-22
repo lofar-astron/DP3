@@ -9,14 +9,15 @@
 
 using namespace arma;
 
-MultiDirSolver::MultiDirSolver(size_t maxIterations, double accuracy, double stepSize) :
+MultiDirSolver::MultiDirSolver() :
   _nAntennas(0),
   _nDirections(0),
   _nChannels(0),
   _nChannelBlocks(0),
-  _maxIterations(maxIterations),
-  _accuracy(accuracy),
-  _stepSize(stepSize),
+  _maxIterations(100),
+  _accuracy(1e-5),
+  _constraintAccuracy(1e-4),
+  _stepSize(0.2),
   _phaseOnly(false)
 {
 }
@@ -58,7 +59,7 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
 }
 
 bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& solutions,
-  std::vector<std::vector<DComplex> >& nextSolutions) const
+  std::vector<std::vector<DComplex> >& nextSolutions, bool useConstraintAccuracy) const
 {
   double normSum = 0.0, sum = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
@@ -78,7 +79,10 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   }
   normSum /= n;
   sum /= n;
-  return normSum/sum <= _accuracy;
+  if(useConstraintAccuracy)
+    return normSum/sum <= _constraintAccuracy;
+  else
+    return normSum/sum <= _accuracy;
 }
 
 MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>& data,
@@ -161,7 +165,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     if(constrainedIterations == 0 && constraintsSatisfied)
       constrainedIterations = iteration+1;
     
-    hasConverged = assignSolutions(solutions, nextSolutions);
+    hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied);
     iteration++;
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
@@ -368,7 +372,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     if(constrainedIterations == 0 && constraintsSatisfied)
       constrainedIterations = iteration+1;
     
-    hasConverged = assignSolutions(solutions, nextSolutions);
+    hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied);
     iteration++;
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;

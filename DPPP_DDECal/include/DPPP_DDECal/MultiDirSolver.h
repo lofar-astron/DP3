@@ -28,7 +28,7 @@ public:
     std::vector<std::vector<Constraint::Result> > _results;
   };
   
-  MultiDirSolver(size_t maxIterations, double accuracy, double stepSize);
+  MultiDirSolver();
   
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
@@ -57,8 +57,12 @@ public:
   size_t max_iterations() const { return _maxIterations; }
   void set_max_iterations(size_t maxIterations) { _maxIterations = maxIterations; }
   
-  void set_accuracy(double accuracy) { _accuracy = accuracy; }
-  
+  void set_accuracy(double accuracy) {
+    _accuracy = accuracy;
+  }
+  void set_constraint_accuracy(double constraintAccuracy) {
+    _constraintAccuracy = constraintAccuracy;
+  }
   void set_step_size(double stepSize) { _stepSize = stepSize; }
   
   void add_constraint(Constraint* constraint) { _constraints.push_back(constraint); }
@@ -88,14 +92,14 @@ private:
    * @returns whether the solutions have been converged.
    */
   bool assignSolutions(std::vector<std::vector<DComplex> >& solutions,
-    std::vector<std::vector<DComplex> >& nextSolutions) const;
+    std::vector<std::vector<DComplex> >& nextSolutions, bool useConstraintAccuracy) const;
                              
   size_t _nAntennas, _nDirections, _nChannels, _nChannelBlocks;
   std::vector<int> _ant1, _ant2;
   
   // Calibration setup
   size_t _maxIterations;
-  double _accuracy;
+  double _accuracy, _constraintAccuracy;
   double _stepSize;
   bool _phaseOnly;
   std::vector<Constraint*> _constraints;
