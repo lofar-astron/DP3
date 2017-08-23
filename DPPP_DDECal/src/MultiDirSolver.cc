@@ -140,7 +140,10 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
   /// Start iterating
   ///
   size_t iteration = 0, constrainedIterations = 0;
-  bool hasConverged = false, hasPreviouslyConverged = false, constraintsSatisfied = false;
+  bool
+    hasConverged = false,
+    hasPreviouslyConverged = false,
+    constraintsSatisfied = false;
   do {
 #pragma omp parallel for
     for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
@@ -162,13 +165,15 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
-    if(constrainedIterations == 0 && constraintsSatisfied)
+    
+    if(!constraintsSatisfied)
       constrainedIterations = iteration+1;
     
     hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied);
     iteration++;
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
+    
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied));
   
   if(hasConverged)
@@ -369,7 +374,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
       _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
       result._results[i] = _constraints[i]->Apply(nextSolutions, time);
     }
-    if(constrainedIterations == 0 && constraintsSatisfied)
+    
+    if(!constraintsSatisfied)
       constrainedIterations = iteration+1;
     
     hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied);
