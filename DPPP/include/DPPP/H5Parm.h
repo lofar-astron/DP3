@@ -79,6 +79,12 @@ namespace LOFAR {
 
           void setFreqs(const std::vector<double>& freqs);
 
+          // Get the values of a real-valued axis (e.g. "time" or "freq")
+          std::vector<double> getRealAxis(const std::string& axisname) const;
+
+          // Get the values of a string-valued axis (e.g. "dir" or "pol")
+          std::vector<std::string> getStringAxis(const std::string& axisname);
+
           // Get the index of freq, using nearest neighbor
           // This assumes that the frequencies are in increasing order.
           hsize_t getFreqIndex(double freq) const;
@@ -130,6 +136,9 @@ namespace LOFAR {
 
         private:
           void readAxes();
+
+          void fillCache(std::map<std::string, hsize_t>& cache,
+                         const std::string& tableName);
 
           // Get the interval of the axis axisName
           double getInterval(const std::string& axisName) const;
