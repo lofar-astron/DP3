@@ -1,6 +1,6 @@
 #ifdef AOPROJECT
 #include "TECConstraint.h"
-#include <omp.h> // for tec constraints
+#include "omptools.h"
 #else
 #include <DPPP_DDECal/TECConstraint.h>
 #include <Common/OpenMP.h>

@@ -276,10 +276,13 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
   std::vector<std::vector<Complex *> >& modelData,
   std::vector<std::vector<DComplex> >& solutions, double time) const
 {
-  // This algorithm is basically the same, but visibility values are
-  // extended to 2x2 matrices and concatenated in the matrices
-  // equations as block matrices.
-  
+  // This algorithm is basically the same as the scalar algorithm,
+  // but visibility values are extended to 2x2 matrices and concatenated
+  // in the matrix equations as block matrices. One difference is that
+  // order of operations are important because of the non-commutativity of
+  // matrix multiplication, as well as that A^H B^H = [BA]^H.
+  //  
+  // The approach:
   // First we pre-apply the left-hand solutions to the model to make JM. Each
   // 2x2 coherence matrix Ji is matrix-multied by the lh solutions, for all
   // directions, and visibilities (times x channels).
@@ -289,19 +292,17 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
   //   JM = JM0_d1 JM1_d1 
   //        ...          
   // such that JM is a (2D) rows x (2N) col matrix, N=nvis, D=ndir.
-  // The solved rh 2D x 2 solution matrix is similarly formed with the rh solution
+  // The solved 2D x 2 solution matrix is similarly formed with the solution
   // values:
-  //       J0
-  //   J = J1
-  //       ...
+  //       ( J0 )
+  //   J = ( J1 )
+  //       ( .. )
   // And the 2N x 2 visibility matrix as well:
-  //       V0
-  //   V = V1
-  //       ...
+  //       ( V0 )
+  //   V = ( V1 )
+  //       ( .. )
   // And we solve the equation:
-  //   'JM' J* = V
-  // Rewritten:
-  //   'JM'* J = V*
+  //   'JM' J^H = V
   // With dimensions:
   //   [ 2N x 2D ] [ 2D x 2 ] = [ 2N x 2 ]
 
@@ -323,8 +324,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
 
   result._results.resize(_constraints.size());
   
+  // Dimensions for each channelblock:
   // Model matrix ant x [2N x 2D] and visibility matrix ant x [2N x 2],
-  // for each channelblock
   // The following loop allocates all structures
   std::vector<std::vector<cx_mat> > gTimesCs(_nChannelBlocks);
   std::vector<std::vector<cx_mat> > vs(_nChannelBlocks);
@@ -422,6 +423,17 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
       size_t antenna2 = _ant2[baseline];
       if(antenna1 != antenna2)
       {
+        // This equation is solved:
+        //   J_1 M J_2^H = V
+        // for visibilities of the 'normal' correlation ant1 x ant2^H.
+        // Since in this equation antenna2 is solved, the solve matrices are
+        // called gTimesC2 and v2. The index into these matrices is depending
+        // on antenna1, hence the index is called dataIndex1.
+        //
+        // To use visibilities of correlation ant2 x ant1^H to solve ant1, an
+        // extra Herm transpose on M and V is required. The equation is:
+        //   J_2 M^H J_1^H = V^H,
+        // and the relevant matrices/index are called gTimesC1, v1 and dataIndex2.
         cx_mat
           &gTimesC1 = gTimesCs[antenna1],
           &v1 = vs[antenna1],
@@ -441,10 +453,10 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
             MC2x2
               modelMat(modelPtrs[d]),
               gTimesC1Mat, gTimesC2Mat;
-            size_t solIndex1 = antenna1*_nDirections + d;
-            size_t solIndex2 = antenna2*_nDirections + d;
-            Matrix2x2::HermATimesHermB(gTimesC2Mat.Data(), &solutions[solIndex1*4], modelMat.Data());
-            Matrix2x2::HermATimesB(gTimesC1Mat.Data(), &solutions[solIndex2*4], modelMat.Data());
+            size_t solIndex1 = (antenna1*_nDirections + d) * 4;
+            size_t solIndex2 = (antenna2*_nDirections + d) * 4;
+            Matrix2x2::ATimesB(gTimesC2Mat.Data(), &solutions[solIndex1], modelMat.Data());
+            Matrix2x2::ATimesHermB(gTimesC1Mat.Data(), &solutions[solIndex2], modelMat.Data());
             for(size_t p=0; p!=4; ++p)
             {
               gTimesC2(dataIndex1+(p/2), d*2+p%2) = gTimesC2Mat[p];
@@ -455,9 +467,9 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
           }
           for(size_t p=0; p!=4; ++p)
           {
-            v1(dataIndex2+(p/2), p%2) = *dataPtr;
-            v2(dataIndex1+(p%2), p/2) = std::conj(*dataPtr); // note that this also performs the Herm transpose
-            ++dataPtr;  // Goto the next element of 2x2 matrix.
+            v1(dataIndex2+(p%2), p/2) = std::conj(*dataPtr);
+            v2(dataIndex1+(p/2), p%2) = *dataPtr; // note that this also performs the Herm transpose
+            ++dataPtr;  // Goto the next element of the 2x2 matrix.
           }
         }
       }
@@ -471,20 +483,22 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
   {
     cx_mat& gTimesC = gTimesCs[ant];
     cx_mat& v = vs[ant];
-    // solve [g* C] x  = v
+    // solve x^H in [g C] x^H  = v
     cx_mat x;
-    bool success = solve(x, gTimesC, v);
+    const bool success = solve(x, gTimesC, v);
     if(success)
     {
       for(size_t d=0; d!=_nDirections; ++d)
       {
-        for(size_t p=0; p!=4; ++p)
-          nextSolutions[(ant*_nDirections + d)*4 + p] = x(d*2+p/2, p%2);
+        for(size_t p=0; p!=4; ++p) {
+          // The conj transpose is also performed at this point (note swap of % and /)
+          nextSolutions[(ant*_nDirections + d)*4 + p] = std::conj(x(d*2+p%2, p/2));
+        }
       }
     }
     else {
-      for(size_t d=0; d!=_nDirections*4; ++d)
-        nextSolutions[ant*_nDirections + d] = std::numeric_limits<double>::quiet_NaN();
+      for(size_t i=0; i!=_nDirections*4; ++i)
+        nextSolutions[ant*_nDirections + i] = std::numeric_limits<double>::quiet_NaN();
     }
   }
 }
