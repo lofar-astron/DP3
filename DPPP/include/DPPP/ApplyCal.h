@@ -51,10 +51,8 @@ namespace LOFAR {
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      // If substep==true, invert cannot and directions cannot be specified
-      // through the parset.
       ApplyCal (DPInput*, const ParameterSet&, const string& prefix,
-                bool substep=false, std::string predictDirection="");
+                bool substep=false);
 
       ApplyCal();
 

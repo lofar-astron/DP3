@@ -295,40 +295,35 @@ namespace LOFAR {
     return getNamedIndex(_antMap, "ant", antName);
   }
 
-  void H5Parm::SolTab::fillCache(map<string, hsize_t>& cache,
-                                 const string& tableName) {
-    H5::DataSet dataset;
-    H5::DataSpace dataspace;
-    try {
-      dataset = openDataSet(tableName);
-      dataspace = dataset.getSpace();
-    } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab has no table "<<tableName);
-    }
-    ASSERT(dataspace.getSimpleExtentNdims()==1);
-    hsize_t dims[1];
-    dataspace.getSimpleExtentDims(dims);
-
-    // TODO: assert that DataType is String
-    hsize_t strLen = dataset.getDataType().getSize();
-
-    char elNames[strLen*dims[0]];
-    dataset.read(elNames, H5::StrType(H5::PredType::C_S1, strLen));
-
-    for (hsize_t elNum=0; elNum<dims[0];++elNum) {
-      char elNamecstr[strLen+1];
-      std::copy(elNames+elNum*strLen,elNames+(elNum+1)*strLen, elNamecstr);
-      elNamecstr[strLen]='\0';
-      cache[elNamecstr]=elNum;
-    }
-  }
-
   hsize_t H5Parm::SolTab::getNamedIndex(map<string, hsize_t>& cache,
                                         const string& tableName,
                                         const string& elementName) {
     // Initialize _antMap on first use
     if (cache.empty()) {
-      fillCache(cache, tableName);
+      H5::DataSet dataset;
+      H5::DataSpace dataspace;
+      try {
+        dataset = openDataSet(tableName);
+        dataspace = dataset.getSpace();
+      } catch (H5::GroupIException& e) {
+        THROW(Exception, "SolTab has no table "<<tableName);
+      }
+      ASSERT(dataspace.getSimpleExtentNdims()==1);
+      hsize_t dims[1];
+      dataspace.getSimpleExtentDims(dims);
+
+      // TODO: assert that DataType is String
+      hsize_t strLen = dataset.getDataType().getSize();
+
+      char elNames[strLen*dims[0]];
+      dataset.read(elNames, H5::StrType(H5::PredType::C_S1, strLen));
+
+      for (hsize_t elNum=0; elNum<dims[0];++elNum) {
+        char elNamecstr[strLen+1];
+        std::copy(elNames+elNum*strLen,elNames+(elNum+1)*strLen, elNamecstr);
+        elNamecstr[strLen]='\0';
+        cache[elNamecstr]=elNum;
+      }
     }
     map<string, hsize_t>::iterator it = cache.find(elementName);
     if (it == cache.end()) {
@@ -339,11 +334,25 @@ namespace LOFAR {
   }
 
   hsize_t H5Parm::SolTab::getFreqIndex(double freq) const {
-    vector<double> freqs = getRealAxis("freq");
+    H5::DataSet freqset;
+    H5::DataSpace dataspace;
 
-    if (freqs.size()==1) {
+    try {
+      freqset = openDataSet("freq");
+      dataspace = freqset.getSpace();
+    } catch (H5::GroupIException& e) {
+      THROW(Exception, "SolTab "<<getName()<<" has no freq table");
+    }
+    ASSERT(dataspace.getSimpleExtentNdims()==1);
+
+    hsize_t dims[1];
+    dataspace.getSimpleExtentDims(dims);
+
+    if (dims[0]==1) {
       return 0;
     }
+    vector<double> freqs(dims[0]);
+    freqset.read(&(freqs[0]), H5::PredType::NATIVE_DOUBLE);
 
     for (size_t i = 0; i<freqs.size()-1; ++i) {
       if (freq>freqs[i] && freq<freqs[i+1]) {
@@ -360,55 +369,22 @@ namespace LOFAR {
     return 0;
   }
 
-  vector<double> H5Parm::SolTab::getRealAxis(const string& axisname) const {
-    H5::DataSet dataset;
+  hsize_t H5Parm::SolTab::getTimeIndex(double time) const {
+    H5::DataSet timeset;
     H5::DataSpace dataspace;
     try {
-      dataset = openDataSet(axisname);
-      dataspace = dataset.getSpace();
+      timeset = openDataSet("time");
+      dataspace = timeset.getSpace();
     } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab "<<getName()<<" has no axis '"<<axisname<<"'");
+      THROW(Exception, "SolTab "<<getName()<<" has no time table");
     }
     ASSERT(dataspace.getSimpleExtentNdims()==1);
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
 
-    vector<double> data(dims[0]);
-    dataset.read(&(data[0]), H5::PredType::NATIVE_DOUBLE);
-
-    return data;
-  }
-
-  vector<string> H5Parm::SolTab::getStringAxis(const string& axisName) {
-    map<string, hsize_t> cachemap;
-
-    if (axisName=="dir") {
-      if (_dirMap.empty()) {
-        fillCache(_dirMap, "dir");
-      }
-      cachemap = _dirMap;
-    } else if (axisName=="ant") {
-      if (_antMap.empty()) {
-        fillCache(_antMap, "ant");
-      }
-      cachemap = _antMap;
-    } else {
-      THROW(Exception, "Only string axes 'ant' and 'dir' supported for now.");
-    }
-
-    // Get the keys of the cache map and put them in a vector
-    vector<string> res;
-    for(map<string,hsize_t>::iterator it = cachemap.begin();
-        it != cachemap.end(); ++it) {
-      res.push_back(it->first);
-    }
-    return res;
-  }
-
-
-  hsize_t H5Parm::SolTab::getTimeIndex(double time) const {
-    vector<double> times = getRealAxis("time");
+    vector<double> times(dims[0]);
+    timeset.read(&(times[0]), H5::PredType::NATIVE_DOUBLE);
 
     double timeInterval = getTimeInterval();
 

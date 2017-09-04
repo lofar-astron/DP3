@@ -28,6 +28,7 @@
 
 // Define the function to make the DDECal 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).
+// Also make the SlidingFlagger known.
 void register_ddecal()
 {
   LOFAR::DPPP::DPRun::registerStepCtor ("ddecal",

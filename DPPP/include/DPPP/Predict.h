@@ -56,8 +56,6 @@ namespace LOFAR {
     class Predict: public DPStep
     {
     public:
-      typedef shared_ptr<Predict> ShPtr;
-
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
@@ -69,9 +67,6 @@ namespace LOFAR {
       // The actual constructor
       void init (DPInput*, const ParameterSet&, const string& prefix,
                  const vector<string>& sourcePatterns);
-
-      // Set the applycal substep
-      void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
 
       Predict();
 
@@ -142,7 +137,7 @@ namespace LOFAR {
       vector<vector<StationResponse::matrix22c_t> >  itsBeamValues;
       ApplyBeam::BeamMode                            itsBeamMode;
 
-      std::string itsDirectionsStr; // Definition of patches, to pass to applycal
+      // Vector of patches, and a bool indicating if it contains only one source
       vector<Patch::ConstPtr> itsPatchList;
       vector<Source> itsSourceList;
 

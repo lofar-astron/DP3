@@ -29,7 +29,6 @@
 #include <Common/ParameterSet.h>
 #include <Common/Timer.h>
 #include <Common/OpenMP.h>
-#include <Common/StreamUtil.h>
 #include <ParmDB/ParmDBMeta.h>
 #include <ParmDB/PatchInfo.h>
 #include <DPPP/DPInfo.h>
@@ -93,11 +92,6 @@ namespace LOFAR {
       ASSERT(File(itsSourceDBName).exists());
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
-      // Save directions specifications to pass to applycal
-      stringstream ss;
-      ss << sourcePatterns;
-      itsDirectionsStr = ss.str();
-
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
       itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
 
@@ -126,10 +120,13 @@ namespace LOFAR {
         }
       }
 
-      // If called from h5parmpredict, applycal gets set by that step,
-      // so must not be read from parset
       if (parset.isDefined(prefix + "applycal.parmdb")) {
-        setApplyCal(input, parset, prefix + "applycal.");
+        itsDoApplyCal=true;
+        itsApplyCalStep=ApplyCal(input, parset, prefix + "applycal.", true);
+        ASSERT(!(itsOperation!="replace" &&
+                 parset.getBool(prefix + "applycal.updateweights", false)));
+        itsResultStep=new ResultStep();
+        itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
       } else {
         itsDoApplyCal=false;
       }
@@ -143,18 +140,6 @@ namespace LOFAR {
       } else {
         itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
       }
-    }
-
-    void Predict::setApplyCal(DPInput* input,
-                              const ParameterSet& parset,
-                              const string& prefix) {
-      itsDoApplyCal=true;
-      itsApplyCalStep=ApplyCal(input, parset, prefix, true,
-                               itsDirectionsStr);
-      ASSERT(!(itsOperation!="replace" &&
-               parset.getBool(prefix + "applycal.updateweights", false)));
-      itsResultStep=new ResultStep();
-      itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
     }
 
     Predict::Predict()
