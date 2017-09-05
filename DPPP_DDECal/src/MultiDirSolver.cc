@@ -178,7 +178,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
       // PrepareIteration() might change Satisfied(), and since we always want to
-      // iterate at least once more when a constrained is not yet satisfied, we
+      // iterate at least once more when a constraint is not yet satisfied, we
       // evaluate Satisfied() before preparing.
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
       _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
@@ -518,7 +518,6 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
       }
     }
     else {
-      std::cout << "Solve failed.\n";
       for(size_t i=0; i!=_nDirections*4; ++i)
         nextSolutions[ant*_nDirections + i] = std::numeric_limits<double>::quiet_NaN();
     }
