@@ -8,7 +8,6 @@ lofar_add_package(SPW_Combine SPWCombine)
 
 lofar_find_package(Armadillo)
 if(${ARMADILLO_FOUND})
-  message(WARNING "TAMMO SAYS: ${CMAKE_CXX_FLAGS}")
   if(CMAKE_CXX_FLAGS MATCHES ".*c\\+\\+11.*")
     lofar_add_package(DPPP_DDECal)
   else()

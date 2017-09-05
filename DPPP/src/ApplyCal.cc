@@ -45,7 +45,9 @@ namespace LOFAR {
     ApplyCal::ApplyCal (DPInput* input,
                         const ParameterSet& parset,
                         const string& prefix,
-                        bool substep)
+                        bool substep,
+                        string predictDirection
+                        )
       : itsInput       (input),
         itsName        (prefix),
         itsParmDBName  (parset.getString (prefix + "parmdb")),
@@ -63,7 +65,6 @@ namespace LOFAR {
     {
       ASSERT (!itsParmDBName.empty());
 
-      string directionStr;
       if (substep) {
         itsInvert=false;
       } else {
@@ -71,7 +72,12 @@ namespace LOFAR {
       }
 
       if (itsUseH5Parm) {
-        directionStr = parset.getString (prefix + "direction", "");
+        string directionStr;
+        if (substep) {
+          directionStr = predictDirection;
+        } else {
+          directionStr = parset.getString (prefix + "direction", "");
+        }
         itsH5Parm = H5Parm(itsParmDBName);
         string solTabName = toLower(parset.getString (prefix + "correction"));
         itsSolTab = itsH5Parm.getSolTab(solTabName);

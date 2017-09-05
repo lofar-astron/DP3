@@ -79,9 +79,9 @@ protected:
 private:
   bool _finishedApproximateStage;
   std::vector<PieceWisePhaseFitter> _pwFitters;
-  std::vector<std::vector<double>> _threadData;
-  std::vector<std::vector<double>> _threadFittedData;
-  std::vector<std::vector<double>> _threadWeights;
+  std::vector<std::vector<double> > _threadData;
+  std::vector<std::vector<double> > _threadFittedData;
+  std::vector<std::vector<double> > _threadWeights;
   size_t _fittingChunkSize, _maxApproxIters;
 };
 
