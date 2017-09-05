@@ -29,7 +29,7 @@
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 #include <DPPP/BaselineSelection.h>
 #include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
@@ -69,7 +69,7 @@ namespace LOFAR {
     {
     public:
 
-      enum CalType {COMPLEXGAIN, PHASEONLY, FULLJONES, SCALARPHASE, AMPLITUDEONLY,
+      enum CalType {COMPLEXGAIN, SCALARCOMPLEXGAIN, FULLJONES, PHASEONLY, SCALARPHASE, AMPLITUDEONLY,
                     SCALARAMPLITUDE, TECANDPHASE, TEC, TECSCREEN};
 
       // Construct the object.

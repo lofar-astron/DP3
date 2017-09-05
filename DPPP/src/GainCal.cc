@@ -25,7 +25,7 @@
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/ApplyCal.h>
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 #include <DPPP/CursorUtilCasa.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
@@ -133,8 +133,9 @@ namespace LOFAR {
 
     GainCal::CalType GainCal::stringToCalType(const string &modestr) {
       if (modestr=="diagonal"||modestr=="complexgain") return COMPLEXGAIN;
-      else if (modestr=="phaseonly") return PHASEONLY;
+      else if (modestr=="scalarcomplexgain") return SCALARCOMPLEXGAIN;
       else if (modestr=="fulljones") return FULLJONES;
+      else if (modestr=="phaseonly") return PHASEONLY;
       else if (modestr=="scalarphase") return SCALARPHASE;
       else if (modestr=="amplitudeonly") return AMPLITUDEONLY;
       else if (modestr=="scalaramplitude") return SCALARAMPLITUDE;
@@ -148,8 +149,9 @@ namespace LOFAR {
       switch(caltype)
       {
         case COMPLEXGAIN: return "complexgain";
-        case PHASEONLY: return "phaseonly";
+        case SCALARCOMPLEXGAIN: return "scalarcomplexgain";
         case FULLJONES: return "fulljones";
+        case PHASEONLY: return "phaseonly";
         case SCALARPHASE: return "scalarphase";
         case AMPLITUDEONLY: return "amplitudeonly";
         case SCALARAMPLITUDE: return "scalaramplitude";

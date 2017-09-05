@@ -1,8 +1,8 @@
 #ifndef SCREEN_CONSTRAINT_H
 #define SCREEN_CONSTRAINT_H
-#include <DPPP/phasefitter.h>
+#include <DPPP/PhaseFitter.h>
 
-#include <DPPP_DDECal/multidirsolver.h>
+#include <DPPP_DDECal/MultiDirSolver.h>
 #include <DPPP_DDECal/PiercePoint.h>
 #include <DPPP_DDECal/KLFitter.h>
 #include <Common/ParameterSet.h>
@@ -21,8 +21,7 @@ class ScreenConstraint : public Constraint
 public:
   ScreenConstraint(const ParameterSet& parset,
                    const string& prefix);
-  virtual void init(size_t nAntennas, size_t nDirections, 
-                    size_t nChannelBlocks, const double* frequencies);
+  void initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies);
   virtual std::vector<Constraint::Result> Apply(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,double time);
   virtual void CalculatePiercepoints();
 

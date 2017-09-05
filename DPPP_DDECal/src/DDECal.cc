@@ -23,22 +23,27 @@
 
 #include <lofar_config.h>
 #include <DPPP_DDECal/DDECal.h>
-#include <DPPP/Simulate.h>
+
 #include <DPPP/ApplyCal.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/DPInfo.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/MSReader.h>
 #include <DPPP/DPLogger.h>
+#include <DPPP/MSReader.h>
+#include <DPPP/Simulate.h>
+#include <DPPP/SourceDBUtil.h>
+
 #include <DPPP_DDECal/ScreenConstraint.h>
+#include <DPPP_DDECal/TECConstraint.h>
+
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
 #include <ParmDB/SourceDB.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
+
 #include <Common/LofarLogger.h>
 #include <Common/OpenMP.h>
+#include <Common/ParameterSet.h>
+#include <Common/StreamUtil.h>
+#include <Common/StringUtil.h>
 
 #include <fstream>
 #include <ctime>
@@ -86,13 +91,18 @@ namespace LOFAR {
         itsNFreqCells    (0),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
-        itsMultiDirSolver(parset.getInt (prefix + "maxiter", 50),
-                          parset.getDouble (prefix + "tolerance", 1.e-5),
-                          parset.getDouble (prefix + "stepsize", 0.2))
+        itsFullMatrixMinimalization(false),
+        itsApproximateTEC(false)
     {
       vector<string> strDirections = 
          parset.getStringVector (prefix + "directions",
                                  vector<string> ());
+         
+      itsMultiDirSolver.set_max_iterations(parset.getInt(prefix + "maxiter", 50));
+      double tolerance = parset.getDouble(prefix + "tolerance", 1.e-5);
+      itsMultiDirSolver.set_accuracy(tolerance);
+      itsMultiDirSolver.set_constraint_accuracy(parset.getDouble(prefix + "approxtolerance", tolerance*10.0));
+      itsMultiDirSolver.set_step_size(parset.getDouble(prefix + "stepsize", 0.2));
 
       // Default directions are all patches
       if (strDirections.empty()) {
@@ -119,37 +129,85 @@ namespace LOFAR {
           new CoreConstraint()));
       }
       switch(itsMode) {
-        case GainCal::PHASEONLY:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new PhaseOnlyConstraint()));
-        itsMultiDirSolver.set_phase_only(true);
-        break;
-        case GainCal::AMPLITUDEONLY:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new AmplitudeOnlyConstraint()));
-        itsMultiDirSolver.set_phase_only(false);
-        break;
-        case GainCal::TEC:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new TECConstraint(TECConstraint::TECOnlyMode)));
-        itsMultiDirSolver.set_phase_only(true);
-        break;
-        case GainCal::TECANDPHASE:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
-        itsMultiDirSolver.set_phase_only(true);
-        break;
         case GainCal::COMPLEXGAIN:
-        // no constraints
-        itsMultiDirSolver.set_phase_only(false);
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
+        case GainCal::SCALARCOMPLEXGAIN:
+          // no constraints
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = false;
+          break;
+        case GainCal::FULLJONES:
+          // no constraints
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
+        case GainCal::PHASEONLY:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new PhaseOnlyConstraint()));
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = true;
+          break;
+        case GainCal::SCALARPHASE:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new PhaseOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(true);
+          break;
+        case GainCal::AMPLITUDEONLY:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new DiagonalConstraint(4)));
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new AmplitudeOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = true;
+          break;
+        case GainCal::SCALARAMPLITUDE:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new AmplitudeOnlyConstraint()));
+          itsMultiDirSolver.set_phase_only(false);
+          itsFullMatrixMinimalization = false;
+          break;
+        case GainCal::TEC:
+        case GainCal::TECANDPHASE:
+          itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
+          if(itsApproximateTEC)
+          {
+            int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
+            casacore::CountedPtr<ApproximateTECConstraint> ptr;
+            if(itsMode == GainCal::TEC)
+              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
+            else
+              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
+            // user setting? : ptr->SetFittingChunkSize(fittingChunkSize);
+            ptr->SetMaxApproximatingIterations(iters);
+            itsConstraints.push_back(ptr);
+          }
+          else {
+            if(itsMode == GainCal::TEC)
+              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                new TECConstraint(TECConstraint::TECOnlyMode)));
+              else
+              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+          }
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = false;
+          break;
         case GainCal::TECSCREEN:
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-                  new ScreenConstraint(parset, prefix+"tecscreen.")));
-        itsMultiDirSolver.set_phase_only(true);
-        break;
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+                    new ScreenConstraint(parset, prefix+"tecscreen.")));
+          itsMultiDirSolver.set_phase_only(true);
+          itsFullMatrixMinimalization = false;
+          break;
         default:
-        THROW (Exception, "Unexpected mode: " << 
+          THROW (Exception, "Unexpected mode: " << 
                           GainCal::calTypeToString(itsMode));
       }
 
@@ -243,6 +301,7 @@ namespace LOFAR {
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       itsSols.resize(nSolTimes);
       itsNIter.resize(nSolTimes);
+      itsNApproxIter.resize(nSolTimes);
       itsConstraintSols.resize(nSolTimes);
 
       vector<double> chanFreqs(info().nchan());  //nChannelBlocks
@@ -251,13 +310,8 @@ namespace LOFAR {
       }
 
       for (uint i=0; i<itsConstraints.size();++i) {
-        itsConstraints[i]->init(
-            info().antennaNames().size(),
-            itsDirections.size(),
-            info().nchan(), //nChannelBlocks
-            &(chanFreqs[0])
-        );
-        
+        // Different constraints need different information. Determine if the constraint is
+        // of a type that needs more information, and if so initialize the constraint.
         CoreConstraint* coreConstraint = dynamic_cast<CoreConstraint*>(itsConstraints[i].get());
         if(coreConstraint != 0)
         {
@@ -277,12 +331,21 @@ namespace LOFAR {
             if(distSq <= coreDistSq)
               coreAntennaIndices.insert(ant);
           }
-          coreConstraint->setCoreAntennas(coreAntennaIndices);
+          coreConstraint->initialize(info().antennaNames().size(),
+            itsDirections.size(),
+            info().nchan(),
+            coreAntennaIndices);
         }
         
         ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
         if(screenConstraint != 0)
         {
+          screenConstraint->initialize(
+              info().antennaNames().size(),
+              itsDirections.size(),
+              info().nchan(), //nChannelBlocks
+              &(chanFreqs[0])
+          );
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
           screenConstraint->initPiercePoints();
@@ -308,6 +371,15 @@ namespace LOFAR {
           screenConstraint->setCoreAntennas(coreAntennaIndices);
           screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
+        
+        TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
+        if(tecConstraint != 0)
+        {
+          tecConstraint->initialize(info().antennaNames().size(),
+              itsDirections.size(),
+              info().nchan(), //nChannelBlocks
+              &(chanFreqs[0]));
+        }
       }
 
       uint nSt = info().antennaNames().size();
@@ -327,6 +399,7 @@ namespace LOFAR {
       os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
          << endl;
       os << "  coreconstraint:      " << itsCoreConstraint << endl;
+      os << "  approximate fitter:  " << itsApproximateTEC << endl;
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }
@@ -353,9 +426,15 @@ namespace LOFAR {
 
       os << "Iterations taken: [";
       for (uint i=0; i<itsNIter.size()-1; ++i) {
-        os<<itsNIter[i]<<",";
+        os<<itsNIter[i];
+        if(itsNApproxIter[i]!=0)
+          os << '|' << itsNApproxIter[i];
+        os<<",";
       }
-      os<<itsNIter[itsNIter.size()-1]<<"]"<<endl;
+      os<<itsNIter[itsNIter.size()-1];
+        if(itsNApproxIter[itsNIter.size()-1]!=0)
+          os << '|' << itsNApproxIter[itsNIter.size()-1];
+      os<<"]"<<endl;
     }
 
     void DDECal::initializeSolutions() {
@@ -397,7 +476,9 @@ namespace LOFAR {
 
       itsTimerPredict.start();
 
-#pragma omp parallel for
+//      if(itsPredictSteps.size() < LOFAR::OpenMP::maxThreads())
+//        LOFAR::OpenMP::setNested(true);
+#pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
       for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
         itsModelDataPtrs[itsStepInSolInt][dir] =
@@ -438,13 +519,22 @@ namespace LOFAR {
         initializeSolutions();
 
         itsTimerSolve.start();
-        MultiDirSolver::SolveResult solveResult = 
-                  itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
-                  itsSols[itsTimeStep/itsSolInt],
-                  itsAvgTime / itsSolInt);
+        MultiDirSolver::SolveResult solveResult;
+        if(itsFullMatrixMinimalization)
+        {
+          solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
+            itsSols[itsTimeStep/itsSolInt],
+            itsAvgTime / itsSolInt);
+        }
+        else {
+          solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
+            itsSols[itsTimeStep/itsSolInt],
+            itsAvgTime / itsSolInt);
+        }
         itsTimerSolve.stop();
 
         itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
+        itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
         // Store constraint solutions if any constaint has a non-empty result
         bool someConstraintHasResult = false;
@@ -503,18 +593,25 @@ namespace LOFAR {
         axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
         axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
+        if(itsMode == GainCal::COMPLEXGAIN ||
+           itsMode == GainCal::PHASEONLY ||
+           itsMode == GainCal::AMPLITUDEONLY ||
+           itsMode == GainCal::FULLJONES)
+        {
+          axes.push_back(H5Parm::AxisInfo("pol", itsSols.size()));
+        }
 
-        uint numsols=(itsMode==GainCal::COMPLEXGAIN?2:1);
+        uint numsols=(itsMode==GainCal::SCALARCOMPLEXGAIN?2:1);
         for (uint solnum=0; solnum<numsols; ++solnum) {
           string solTabName;
           H5Parm::SolTab soltab;
           switch (itsMode) {
-            case  GainCal::PHASEONLY:
-              solTabName = "phaseonly000";
+            case  GainCal::SCALARPHASE:
+              solTabName = "scalarphase000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
               soltab.setComplexValues(sols, vector<double>(), false);
               break;
-            case GainCal::COMPLEXGAIN:
+            case GainCal::SCALARCOMPLEXGAIN:
               if (solnum==0) {
                 solTabName = "scalarphase000";
                 soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
@@ -525,7 +622,7 @@ namespace LOFAR {
                 soltab.setComplexValues(sols, vector<double>(), true);
               }
               break;
-            case GainCal::AMPLITUDEONLY:
+            case GainCal::SCALARAMPLITUDE:
               solTabName = "scalaramplitude000";
               soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
               soltab.setComplexValues(sols, vector<double>(), true);
@@ -628,7 +725,6 @@ namespace LOFAR {
         }
       }
 
-
       itsTimerWrite.stop();
       itsTimer.stop();
     }
@@ -646,7 +742,7 @@ namespace LOFAR {
         std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
                     itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
         itsTimerSolve.start();
-        itsMultiDirSolver.process(itsDataPtrs, itsModelDataPtrs,
+        itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
                                   itsSols[itsTimeStep/itsSolInt],
                                   itsAvgTime/itsStepInSolInt);
         itsTimerSolve.stop();

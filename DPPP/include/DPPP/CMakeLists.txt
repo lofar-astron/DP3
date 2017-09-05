@@ -16,7 +16,7 @@ set(inst_HEADERS
   DemixerNew.h DemixInfo.h DemixWorker.h
   ApplyBeam.h ApplyBeam.tcc
   Predict.h
-  GainCal.h StefCal.h phasefitter.h
+  GainCal.h StefCal.h PhaseFitter.h
   StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h
 )
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
 set -e
@@ -38,7 +38,7 @@ echo "Calibrate on the original sources"
 NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
   ddecal.sourcedb=tDDECal.MS/sky \
    ddecal.directions=[[center,dec_off],[ra_off],[radec_off]] \
-   ddecal.h5parm=instrument.h5 ddecal.mode=complexgain
+   ddecal.h5parm=instrument.h5 ddecal.mode=scalarcomplexgain
 
 echo "Apply solutions with multiple predict steps"
 NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
