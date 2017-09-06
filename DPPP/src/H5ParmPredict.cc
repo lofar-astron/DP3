@@ -96,8 +96,11 @@ namespace LOFAR {
       info().setNeedVisData();
       info().setWriteData();
 
-      for (auto predictstep: itsPredictSteps) {
-        predictstep->updateInfo(infoIn);
+      vector<Predict::ShPtr>::iterator predictstep;
+      for (predictstep=itsPredictSteps.begin();
+           predictstep!=itsPredictSteps.end();
+           predictstep++) {
+        (*predictstep)->updateInfo(infoIn);
       }
     }
 
