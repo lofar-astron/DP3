@@ -97,7 +97,9 @@ namespace LOFAR {
 
     private:
       // Initialize solutions
-      void initializeSolutions();
+      void initializeScalarSolutions();
+      
+      void initializeFullMatrixSolutions();
 
       // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
       // Used for setting source names.

@@ -437,19 +437,41 @@ namespace LOFAR {
       os<<"]"<<endl;
     }
 
-    void DDECal::initializeSolutions() {
+    void DDECal::initializeScalarSolutions() {
       if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
         // initialize solutions with those of the previous step
         itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
       } else {
         // initialize solutions with 1.
+        size_t n = itsDirections.size()*info().antennaNames().size();
         for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
              solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
-           (*solveciter).assign(itsDirections.size()*info().antennaNames().size(), 1.0);
+          solveciter->assign(n, 1.0);
         }
       }
     }
 
+    void DDECal::initializeFullMatrixSolutions() {
+      if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
+        // initialize solutions with those of the previous step
+        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+      } else {
+        // initialize solutions with unity matrix [1 0 ; 0 1].
+        size_t n = itsDirections.size()*info().antennaNames().size();
+        for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
+             solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
+          solveciter->resize(n*4);
+          for(size_t i=0; i!=n; ++i)
+          {
+            (*solveciter)[i*4 + 0] = 1.0;
+            (*solveciter)[i*4 + 1] = 0.0;
+            (*solveciter)[i*4 + 2] = 0.0;
+            (*solveciter)[i*4 + 3] = 1.0;
+          }
+        }
+      }
+    }
+    
     vector<string> DDECal::getDirectionNames() {
       vector<string> res;
       
@@ -516,7 +538,10 @@ namespace LOFAR {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
-        initializeSolutions();
+        if(itsFullMatrixMinimalization)
+          initializeFullMatrixSolutions();
+        else
+          initializeScalarSolutions();
 
         itsTimerSolve.start();
         MultiDirSolver::SolveResult solveResult;
@@ -734,7 +759,10 @@ namespace LOFAR {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
-         initializeSolutions();
+        if(itsFullMatrixMinimalization)
+          initializeFullMatrixSolutions();
+        else
+          initializeScalarSolutions();
 
         //shrink itsDataPtrs, itsModelDataPtrs
         std::vector<casacore::Complex*>(itsDataPtrs.begin(),
