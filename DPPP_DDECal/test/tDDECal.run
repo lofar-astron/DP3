@@ -21,6 +21,7 @@ mkdir -p tDDECal_tmp
 # Unpack the MS and other files and do the DPPP run.
 cd tDDECal_tmp
 rm -rf instrument.h5 # Remove h5parm if it exists
+rm -rf instrument2.h5 # Remove h5parm if it exists
 tar zxf ${srcdir}/tDDECal.in_MS.tgz
 
 echo "Running tDDECal"
@@ -49,18 +50,23 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DAT
   steps=[predict1,predict2,predict3]\
     predict1.sourcedb=tDDECal.MS/sky\
     predict1.applycal.parmdb=instrument.h5 predict1.sources=[center,dec_off]\
-    predict1.operation=subtract predict1.applycal.correction=scalaramplitude000 \
+    predict1.operation=subtract predict1.applycal.correction=amplitude000 \
     predict2.sourcedb=tDDECal.MS/sky\
     predict2.applycal.parmdb=instrument.h5 predict2.sources=[radec_off]\
-    predict2.operation=subtract predict2.applycal.correction=scalaramplitude000 \
+    predict2.operation=subtract predict2.applycal.correction=amplitude000 \
     predict3.sourcedb=tDDECal.MS/sky\
     predict3.applycal.parmdb=instrument.h5 predict3.sources=[ra_off]\
-    predict3.operation=subtract predict3.applycal.correction=scalaramplitude000"
+    predict3.operation=subtract predict3.applycal.correction=amplitude000"
 echo $cmd
 $cmd
 
 echo "Check that residual is small"
-$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.005' > taql.out
+cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS)'"
+echo $cmd
+eval $cmd
+cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.005' > taql.out"
+echo $cmd
+eval $cmd
 diff taql.out taql.ref || exit 1
 
 echo "Apply solutions with h5parmpredict"
@@ -69,12 +75,17 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DAT
     predict.type=h5parmpredict\
     predict.sourcedb=tDDECal.MS/sky\
     predict.applycal.parmdb=instrument.h5\
-    predict.operation=subtract predict.applycal.correction=scalaramplitude000"
+    predict.operation=subtract predict.applycal.correction=amplitude000"
 echo $cmd
 $cmd
 
 echo "Check that h5parmpredict creates the same output as multiple predict steps"
-$taqlexe 'select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA)) as diff from tDDECal.MS) where diff>1.e-6'
+cmd="$taqlexe 'select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA)) as diff from tDDECal.MS'"
+echo $cmd
+eval $cmd
+cmd="$taqlexe 'select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA)) as diff from tDDECal.MS) where diff>1.e-6' > taql.out"
+echo $cmd
+eval $cmd
 diff taql.out taql.ref || exit 1
 
 echo "Check pre-apply"
@@ -82,7 +93,7 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. numthreads=1\
   steps=[ddecal]\
     ddecal.sourcedb=tDDECal.MS/sky\
     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\
-    ddecal.applycal.parmdb=instrument.h5 ddecal.applycal.correction=scalaramplitude000\
+    ddecal.applycal.parmdb=instrument.h5 ddecal.applycal.correction=amplitude000\
     ddecal.h5parm=instrument2.h5 ddecal.mode=scalarcomplexgain"
 echo $cmd
 $cmd

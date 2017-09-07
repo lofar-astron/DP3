@@ -444,9 +444,8 @@ namespace LOFAR {
       } else {
         // initialize solutions with 1.
         size_t n = itsDirections.size()*info().antennaNames().size();
-        for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
-             solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
-          solveciter->assign(n, 1.0);
+        for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+          solvec.assign(n, 1.0);
         }
       }
     }
@@ -458,15 +457,14 @@ namespace LOFAR {
       } else {
         // initialize solutions with unity matrix [1 0 ; 0 1].
         size_t n = itsDirections.size()*info().antennaNames().size();
-        for (vector<vector<DComplex> >::iterator solveciter = itsSols[itsTimeStep/itsSolInt].begin();
-             solveciter != itsSols[itsTimeStep/itsSolInt].end(); ++solveciter) {
-          solveciter->resize(n*4);
+        for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+          solvec.resize(n*4);
           for(size_t i=0; i!=n; ++i)
           {
-            (*solveciter)[i*4 + 0] = 1.0;
-            (*solveciter)[i*4 + 1] = 0.0;
-            (*solveciter)[i*4 + 2] = 0.0;
-            (*solveciter)[i*4 + 3] = 1.0;
+            solvec[i*4 + 0] = 1.0;
+            solvec[i*4 + 1] = 0.0;
+            solvec[i*4 + 2] = 0.0;
+            solvec[i*4 + 3] = 1.0;
           }
         }
       }
@@ -595,20 +593,36 @@ namespace LOFAR {
       itsTimerWrite.start();
 
       uint nDir = itsDirections.size();
+      uint nPol = 1;
+      if(itsMode == GainCal::COMPLEXGAIN ||
+         itsMode == GainCal::PHASEONLY ||
+         itsMode == GainCal::AMPLITUDEONLY ||
+         itsMode == GainCal::FULLJONES) {
+        nPol = 2;
+      } else if (itsMode == GainCal::FULLJONES) {
+        nPol = 4;
+      }
 
       if (itsConstraintSols[0].empty()) {
         // Record the actual iterands of the solver
-        vector<DComplex> sols(info().nchan()*info().nantenna()*info().ntime()*nDir);
+        vector<DComplex> sols(info().nchan()*info().nantenna()*info().ntime()*nDir*nPol);
         size_t i=0;
 
+        // For nPol=1, loop over pol runs just once
+        // For nPol=2, it runs over values 0 and 2 (picking diagonal elements from 4 pols)
+        // For nPol=4, it runs over 0, 1, 2, 3
+        uint polIncr= (itsMode==GainCal::FULLJONES?1:2);
+        uint maxPol = (nPol>1?4:1);
         // Put solutions in a contiguous piece of memory
         for (uint time=0; time<itsSols.size(); ++time) {
           for (uint chan=0; chan<info().nchan(); ++chan) {
             for (uint ant=0; ant<info().nantenna(); ++ant) {
               for (uint dir=0; dir<nDir; ++dir) {
-                ASSERT(!itsSols[time].empty());
-                sols[i] = itsSols[time][chan][ant*nDir+dir];
-                ++i;
+                for (uint pol=0; pol<maxPol; pol+=polIncr) {
+                  ASSERT(!itsSols[time].empty());
+                  sols[i] = itsSols[time][chan][ant*nDir*nPol+dir*nPol+pol];
+                  ++i;
+                }
               }
             }
           }
@@ -618,38 +632,42 @@ namespace LOFAR {
         axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
         axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
-        if(itsMode == GainCal::COMPLEXGAIN ||
-           itsMode == GainCal::PHASEONLY ||
-           itsMode == GainCal::AMPLITUDEONLY ||
-           itsMode == GainCal::FULLJONES)
-        {
-          axes.push_back(H5Parm::AxisInfo("pol", itsSols.size()));
+        if (nPol>1) {
+          axes.push_back(H5Parm::AxisInfo("pol", nPol));
         }
 
-        uint numsols=(itsMode==GainCal::SCALARCOMPLEXGAIN?2:1);
+        uint numsols = 1;
+        // For [scalar]complexgain, store two soltabs: phase and amplitude
+        if (itsMode == GainCal::COMPLEXGAIN ||
+            itsMode == GainCal::SCALARCOMPLEXGAIN) {
+          numsols = 2;
+        }
         for (uint solnum=0; solnum<numsols; ++solnum) {
           string solTabName;
           H5Parm::SolTab soltab;
           switch (itsMode) {
-            case  GainCal::SCALARPHASE:
-              solTabName = "scalarphase000";
-              soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
+            case GainCal::SCALARPHASE:
+            case GainCal::PHASEONLY:
+              solTabName = "phase000";
+              soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
               soltab.setComplexValues(sols, vector<double>(), false);
               break;
             case GainCal::SCALARCOMPLEXGAIN:
+            case GainCal::COMPLEXGAIN:
               if (solnum==0) {
-                solTabName = "scalarphase000";
-                soltab = itsH5Parm.createSolTab(solTabName, "scalarphase", axes);
+                solTabName = "phase000";
+                soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
                 soltab.setComplexValues(sols, vector<double>(), false);
               } else {
-                solTabName = "scalaramplitude000";
-                soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
+                solTabName = "amplitude000";
+                soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
                 soltab.setComplexValues(sols, vector<double>(), true);
               }
               break;
             case GainCal::SCALARAMPLITUDE:
-              solTabName = "scalaramplitude000";
-              soltab = itsH5Parm.createSolTab(solTabName, "scalaramplitude", axes);
+            case GainCal::AMPLITUDEONLY:
+              solTabName = "amplitude000";
+              soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
               soltab.setComplexValues(sols, vector<double>(), true);
               break;
             default: 
