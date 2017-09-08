@@ -46,8 +46,8 @@ namespace LOFAR {
     {
     public:
 
-      enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE,
-                        ROTATIONMEASURE, SCALARAMPLITUDE};
+      enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE, PHASE,
+                        ROTATIONMEASURE, SCALARAMPLITUDE, AMPLITUDE};
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.

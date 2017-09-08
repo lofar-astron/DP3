@@ -82,10 +82,16 @@ namespace LOFAR {
         string solTabName = toLower(parset.getString (prefix + "correction"));
         itsSolTab = itsH5Parm.getSolTab(solTabName);
         itsCorrectType = stringToCorrectType(itsSolTab.getType());
-        if (directionStr!="") {
-          itsDirection = itsSolTab.getDirIndex(directionStr);
-        } else {
+        if (itsCorrectType==PHASE && nPol("")==1) {
+          itsCorrectType = SCALARPHASE;
+        }
+        if (itsCorrectType==AMPLITUDE && nPol("")==1) {
+          itsCorrectType = SCALARAMPLITUDE;
+        }
+        if (directionStr=="") {
           ASSERT(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
+        } else {
+          itsDirection = itsSolTab.getDirIndex(directionStr);
         }
       } else {
         string correctTypeStr = toLower(parset.getString (prefix + "correction", "gain"));
@@ -109,6 +115,8 @@ namespace LOFAR {
       if (ct==SCALARAMPLITUDE) return "scalaramplitude";
       if (ct==ROTATIONANGLE) return "rotationangle";
       if (ct==ROTATIONMEASURE) return "rotationmeasure";
+      if (ct==PHASE) return "phase";
+      if (ct==AMPLITUDE) return "amplitude";
       THROW(Exception, "Unknown correction type: "<<ct);
       return "";
     }
@@ -120,6 +128,8 @@ namespace LOFAR {
       if (ctStr=="clock") return CLOCK;
       if (ctStr=="scalarphase" || ctStr=="commonscalarphase") return SCALARPHASE;
       if (ctStr=="scalaramplitude" || ctStr=="commonscalaramplitude") return SCALARAMPLITUDE;
+      if (ctStr=="phase") return PHASE;
+      if (ctStr=="amplitude") return AMPLITUDE;
       if (ctStr=="rotationangle" || ctStr=="commonrotationangle") return ROTATIONANGLE;
       if (ctStr=="rotationmeasure") return ROTATIONMEASURE;
       THROW(Exception, "Unknown correction type: "<<ctStr);
@@ -238,8 +248,15 @@ namespace LOFAR {
         itsParmExprs.push_back("RotationMeasure");
       } else if (itsCorrectType == SCALARAMPLITUDE) {
         itsParmExprs.push_back("{Common,}ScalarAmplitude");
-      }
-      else {
+      } else if (itsCorrectType == PHASE) {
+        ASSERT(itsUseH5Parm);
+        itsParmExprs.push_back("Phase:0");
+        itsParmExprs.push_back("Phase:1");
+      } else if (itsCorrectType == AMPLITUDE) {
+        ASSERT(itsUseH5Parm);
+        itsParmExprs.push_back("Amplitude:0");
+        itsParmExprs.push_back("Amplitude:1");
+      } else {
         THROW (Exception, "Correction type "<<
                           correctTypeToString(itsCorrectType)<<" is unknown");
       }
@@ -392,7 +409,7 @@ namespace LOFAR {
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
         // TODO: understand polarization etc.
-        ASSERT(itsParmExprs.size()==1);
+        ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
         for (uint ant = 0; ant < numAnts; ++ant) {
           hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
 
@@ -408,12 +425,6 @@ namespace LOFAR {
           ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
           uint nfreqsinhdf5 = (!itsSolTab.hasAxis("freq")?1:itsSolTab.getAxis("freq").size);
 
-          vector<double> rawsols = itsSolTab.getValues(info().antennaNames()[ant],
-                                      startTime, numTimes/timeUpsampleFactor, 1,
-                                      0, nfreqsinhdf5, 1, 0, itsDirection);
-
-          parmvalues[0][ant].resize(tfDomainSize);
-
           // Figure out whether time or frequency is first axis
           bool freqvariesfastest = true;
           if (itsSolTab.hasAxis("freq") &&
@@ -422,14 +433,22 @@ namespace LOFAR {
           }
           ASSERT(freqvariesfastest);
 
-          // TODO: upsample frequency properly
-          // Below just upsamples frequency from one to numfreqs or takes raw frequencies
-          size_t tf=0;
-          for (uint t=0; t<numTimes/timeUpsampleFactor; ++t) {
-            for (uint ti=0; ti<timeUpsampleFactor; ++ti) {
-              for (uint f=0; f<numFreqs/freqUpsampleFactor; ++f) {
-                for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
-                  parmvalues[0][ant][tf++] = rawsols[t*nfreqsinhdf5 + f];
+          for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
+            vector<double> rawsols = itsSolTab.getValues(info().antennaNames()[ant],
+                                        startTime, numTimes/timeUpsampleFactor, 1,
+                                        0, nfreqsinhdf5, 1, pol, itsDirection);
+
+            parmvalues[pol][ant].resize(tfDomainSize);
+
+            // TODO: upsample frequency properly
+            // Below just upsamples frequency from one to numfreqs or takes raw frequencies
+            size_t tf=0;
+            for (uint t=0; t<numTimes/timeUpsampleFactor; ++t) {
+              for (uint ti=0; ti<timeUpsampleFactor; ++ti) {
+                for (uint f=0; f<numFreqs/freqUpsampleFactor; ++f) {
+                  for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
+                    parmvalues[pol][ant][tf++] = rawsols[t*nfreqsinhdf5 + f];
+                  }
                 }
               }
             }
@@ -584,13 +603,21 @@ namespace LOFAR {
             itsParms(2, ant, tf) =  sinv;
             itsParms(3, ant, tf) =  cosv;
           }
-          else if (itsCorrectType==SCALARPHASE) {
+          else if (itsCorrectType==PHASE || itsCorrectType==SCALARPHASE) {
             itsParms(0, ant, tf) = polar(1., parmvalues[0][ant][tf]);
-            itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
+            if (itsCorrectType==SCALARPHASE) { // Same value for x and y
+              itsParms(1, ant, tf) = polar(1., parmvalues[0][ant][tf]);
+            } else { // Different value for x and y
+              itsParms(1, ant, tf) = polar(1., parmvalues[1][ant][tf]);
+            }
           }
-          else if (itsCorrectType==SCALARAMPLITUDE) {
+          else if (itsCorrectType==AMPLITUDE || itsCorrectType==SCALARAMPLITUDE) {
             itsParms(0, ant, tf) = parmvalues[0][ant][tf];
-            itsParms(1, ant, tf) = parmvalues[0][ant][tf];
+            if (itsCorrectType==SCALARAMPLITUDE) { // Same value for x and y
+              itsParms(1, ant, tf) = parmvalues[0][ant][tf];
+            } else { // Different value for x and y
+              itsParms(1, ant, tf) = parmvalues[1][ant][tf];
+            }
           }
 
           // Invert

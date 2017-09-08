@@ -77,14 +77,18 @@ namespace LOFAR {
   void H5Parm::SolTab::setValues(const std::vector<double>& vals,
                                  const std::vector<double>& weights) {
     // Convert axes to comma separated string, fill dims
+    size_t expectedsize = 1;
     string axesstr = _axes[0].name;
     vector<hsize_t> dims(_axes.size());
     for (uint i=0; i<_axes.size(); ++i) {
       dims[i] = _axes[i].size;
+      expectedsize *= dims[i];
       if (i>0) {
         axesstr += ","+_axes[i].name;
       }
     }
+
+    ASSERTSTR(expectedsize == vals.size(), "Values for H5Parm do not have the expected size: they have size "<<vals.size()<<", expected is "<<expectedsize);
 
     H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
     H5::DataSet dataset = createDataSet("val", H5::PredType::IEEE_F64LE,
