@@ -8,7 +8,7 @@ lofar_add_package(SPW_Combine SPWCombine)
 
 lofar_find_package(Armadillo)
 if(${ARMADILLO_FOUND})
-  if(CMAKE_CXX_FLAGS MATCHES ".*c\\+\\+11.*")
+  if(CMAKE_CXX_FLAGS MATCHES ".*\\+\\+11.*")
     lofar_add_package(DPPP_DDECal)
   else()
     message(WARNING "DPPP_DDECal will not build if you have no C++11 support, please build in directory gnucxx11_opt")
