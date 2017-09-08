@@ -611,7 +611,7 @@ namespace LOFAR {
         // For nPol=1, loop over pol runs just once
         // For nPol=2, it runs over values 0 and 2 (picking diagonal elements from 4 pols)
         // For nPol=4, it runs over 0, 1, 2, 3
-        uint polIncr= (itsMode==GainCal::FULLJONES?1:2);
+        uint polIncr= (itsMode==GainCal::FULLJONES?1:3);
         uint maxPol = (nPol>1?4:1);
         // Put solutions in a contiguous piece of memory
         for (uint time=0; time<itsSols.size(); ++time) {
@@ -620,7 +620,7 @@ namespace LOFAR {
               for (uint dir=0; dir<nDir; ++dir) {
                 for (uint pol=0; pol<maxPol; pol+=polIncr) {
                   ASSERT(!itsSols[time].empty());
-                  sols[i] = itsSols[time][chan][ant*nDir*nPol+dir*nPol+pol];
+                  sols[i] = itsSols[time][chan][ant*nDir*maxPol+dir*maxPol+pol];
                   ++i;
                 }
               }
