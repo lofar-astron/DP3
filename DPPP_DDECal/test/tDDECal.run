@@ -92,7 +92,7 @@ eval $cmd
 diff taql.out taql.ref || exit 1
 
 echo "Check pre-apply"
-cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. numthreads=1\
+cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. numthreads=4\
   steps=[ddecal]\
     ddecal.sourcedb=tDDECal.MS/sky\
     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\

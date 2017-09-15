@@ -408,6 +408,8 @@ namespace LOFAR {
 
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
+#pragma omp critical(updateH5ParmValues)
+{
         // TODO: understand polarization etc.
         ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
         for (uint ant = 0; ant < numAnts; ++ant) {
@@ -434,7 +436,8 @@ namespace LOFAR {
           ASSERT(freqvariesfastest);
 
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
-            vector<double> rawsols = itsSolTab.getValues(info().antennaNames()[ant],
+            vector<double> rawsols;
+            rawsols = itsSolTab.getValues(info().antennaNames()[ant],
                                         startTime, numTimes/timeUpsampleFactor, 1,
                                         0, nfreqsinhdf5, 1, pol, itsDirection);
 
@@ -454,6 +457,7 @@ namespace LOFAR {
             }
           }
         }
+} // End pragma omp critical
       } else { // Use ParmDB
         for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
           // parmMap contains parameter values for all antennas
