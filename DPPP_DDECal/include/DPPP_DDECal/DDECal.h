@@ -76,6 +76,9 @@ namespace LOFAR {
       // When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
+      // Call the actual solver (called once per solution interval)
+      void doSolve();
+
       // Initialize H5parm-file
       void initH5parm();
 

@@ -422,10 +422,12 @@ namespace LOFAR {
             ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
           }
 
-          double h5timeInterval = itsSolTab.getTimeInterval();
-          uint timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
-          ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
-          uint nfreqsinhdf5 = (!itsSolTab.hasAxis("freq")?1:itsSolTab.getAxis("freq").size);
+          uint timeUpsampleFactor = numTimes;
+          if (itsSolTab.getAxis("time").size > 1) {
+            double h5timeInterval = itsSolTab.getTimeInterval();
+            timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
+            ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
+          }
 
           // Figure out whether time or frequency is first axis
           bool freqvariesfastest = true;
@@ -435,26 +437,31 @@ namespace LOFAR {
           }
           ASSERT(freqvariesfastest);
 
+          // Take the ceiling of numTimes/timeUpsampleFactor, same for freq
+          uint numTimesInH5Parm = (numTimes+timeUpsampleFactor-1)/timeUpsampleFactor;
+          uint numFreqsInH5Parm = (numFreqs+freqUpsampleFactor-1)/freqUpsampleFactor;
+
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
             vector<double> rawsols;
             rawsols = itsSolTab.getValues(info().antennaNames()[ant],
-                                        startTime, numTimes/timeUpsampleFactor, 1,
-                                        0, nfreqsinhdf5, 1, pol, itsDirection);
+                                        startTime, numTimesInH5Parm, 1,
+                                        0, numFreqsInH5Parm, 1, pol, itsDirection);
 
             parmvalues[pol][ant].resize(tfDomainSize);
 
-            // TODO: upsample frequency properly
-            // Below just upsamples frequency from one to numfreqs or takes raw frequencies
             size_t tf=0;
-            for (uint t=0; t<numTimes/timeUpsampleFactor; ++t) {
+            for (uint t=0; t<numTimesInH5Parm; ++t) {
               for (uint ti=0; ti<timeUpsampleFactor; ++ti) {
-                for (uint f=0; f<numFreqs/freqUpsampleFactor; ++f) {
+                for (uint f=0; f<numFreqsInH5Parm; ++f) {
                   for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
-                    parmvalues[pol][ant][tf++] = rawsols[t*nfreqsinhdf5 + f];
+                    if (tf<tfDomainSize) {
+                      parmvalues[pol][ant][tf++] = rawsols[t*numFreqsInH5Parm + f];
+                    }
                   }
                 }
               }
             }
+            ASSERT(tf==tfDomainSize);
           }
         }
 } // End pragma omp critical

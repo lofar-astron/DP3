@@ -155,28 +155,6 @@ namespace LOFAR {
     dataset.write(&(ants[0]), antennaType);
   }
 
-  void H5Parm::addPolarizations (const std::vector<std::string>& polarizations) {
-    hsize_t dims[1];
-
-    // Create data type
-    dims[0]=1;  // Only a name
-    H5::CompType polarizationType(sizeof(polarization_t));
-    polarizationType.insertMember("name", HOFFSET(polarization_t, name), H5::StrType(H5::PredType::C_S1, 2));
-
-    // Create dataset
-    dims[0] = polarizations.size();
-    H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = _solSet.createDataSet("polarization", polarizationType, dataspace);
-
-    // Prepare data
-    vector<polarization_t> pols(polarizations.size());
-    for (uint p=0; p!=polarizations.size(); ++p) {
-      std::strncpy(pols[p].name, polarizations[p].c_str(), 2);
-    }
-
-    dataset.write(pols.data(), polarizationType);
-  }
-
   H5Parm::SolTab& H5Parm::getSolTab(const std::string& name) {
     std::map<std::string, SolTab>::iterator item =
       _solTabs.find(name);

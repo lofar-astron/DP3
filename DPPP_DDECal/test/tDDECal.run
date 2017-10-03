@@ -34,42 +34,52 @@ echo "Predict corrupted visibilities"
 cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=DATA\
   steps=[predict] predict.sourcedb=tDDECal.MS/sky_corrupted"
 echo $cmd
-$cmd
+$cmd >& /dev/null
 
 for caltype in complexgain scalarcomplexgain amplitudeonly scalaramplitude
 do
-  rm -rf instrument.h5 # Remove h5parm if it exists
-  echo "Calibrate on the original sources, caltype=$caltype"
-  cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
-    ddecal.sourcedb=tDDECal.MS/sky \
-     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]] \
-     ddecal.h5parm=instrument.h5 ddecal.mode=$caltype"
-  echo $cmd
-  $cmd
+  for solint in 0 1 2 4
+  do
+    for nchan in 0 1 2 5
+    do
+          rm -rf instrument.h5 # Remove h5parm if it exists
+          echo "Calibrate on the original sources, caltype=$caltype"
+          cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
+             ddecal.sourcedb=tDDECal.MS/sky ddecal.solint=$solint ddecal.nchan=$nchan \
+             ddecal.directions=[[center,dec_off],[ra_off],[radec_off]] \
+             ddecal.h5parm=instrument.h5 ddecal.mode=$caltype"
+          echo $cmd
+          $cmd
 
-  echo "Apply solutions with multiple predict steps, caltype=$caltype"
-  cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
-    steps=[predict1,predict2,predict3]\
-      predict1.sourcedb=tDDECal.MS/sky\
-      predict1.applycal.parmdb=instrument.h5 predict1.sources=[center,dec_off]\
-      predict1.operation=subtract predict1.applycal.correction=amplitude000 \
-      predict2.sourcedb=tDDECal.MS/sky\
-      predict2.applycal.parmdb=instrument.h5 predict2.sources=[radec_off]\
-      predict2.operation=subtract predict2.applycal.correction=amplitude000 \
-      predict3.sourcedb=tDDECal.MS/sky\
-      predict3.applycal.parmdb=instrument.h5 predict3.sources=[ra_off]\
-      predict3.operation=subtract predict3.applycal.correction=amplitude000"
-  echo $cmd
-  $cmd
+          echo "Apply solutions with multiple predict steps, caltype=$caltype"
+          cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
+            steps=[predict1,predict2,predict3]\
+              predict1.sourcedb=tDDECal.MS/sky\
+              predict1.applycal.parmdb=instrument.h5 predict1.sources=[center,dec_off]\
+              predict1.operation=subtract predict1.applycal.correction=amplitude000 \
+              predict2.sourcedb=tDDECal.MS/sky\
+              predict2.applycal.parmdb=instrument.h5 predict2.sources=[radec_off]\
+              predict2.operation=subtract predict2.applycal.correction=amplitude000 \
+              predict3.sourcedb=tDDECal.MS/sky\
+              predict3.applycal.parmdb=instrument.h5 predict3.sources=[ra_off]\
+              predict3.operation=subtract predict3.applycal.correction=amplitude000"
+          echo $cmd
+          $cmd
 
-  echo "Check that residual is small, caltype=$caltype"
-  cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS)'"
-  echo $cmd
-  eval $cmd
-  cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.005' > taql.out"
-  echo $cmd
-  eval $cmd
-  diff taql.out taql.ref || exit 1
+          h5sols.py instrument.h5
+
+          echo "Check that residual is small, caltype=$caltype, nchan=$nchan, solint=$solint"
+          cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS)'"
+          echo $cmd
+          eval $cmd
+
+          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.01 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
+          echo $cmd
+          eval $cmd
+
+          diff taql.out taql.ref || exit 1
+    done # Loop over nchan
+  done # Loop over solint
 done # Loop over caltype
 
 echo "Apply solutions with h5parmpredict"

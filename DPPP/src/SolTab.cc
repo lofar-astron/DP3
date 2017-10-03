@@ -44,11 +44,11 @@ namespace LOFAR {
   H5Parm::SolTab::~SolTab() {
   }
 
-  H5Parm::AxisInfo H5Parm::SolTab::getAxis(uint i) {
+  H5Parm::AxisInfo H5Parm::SolTab::getAxis(uint i) const {
     return _axes[i];
   }
 
-  H5Parm::AxisInfo H5Parm::SolTab::getAxis(const std::string& axisName) {
+  H5Parm::AxisInfo H5Parm::SolTab::getAxis(const std::string& axisName) const {
     for (uint i=0; i<_axes.size(); ++i) {
       if (_axes[i].name == axisName) {
         return _axes[i];
@@ -254,24 +254,33 @@ namespace LOFAR {
     dataset.write(antArray, H5::StrType(H5::PredType::C_S1, 16));
   }
 
-  void H5Parm::SolTab::setSources(const std::vector<std::string>& solSources) {
-    // TODO: assert that source is present in source table of solset
-    hsize_t dims[1];
-    dims[0]=solSources.size();
+  void H5Parm::SolTab::setAxisMeta(const std::string& metaName,
+                                   size_t nChar,
+                                   const std::vector<std::string>& metaVals) {
+    hsize_t dims[1]; // Only a name
+    dims[0]=metaVals.size();
 
     // Create dataset
     H5::DataSpace dataspace(1, dims, NULL);
-    H5::DataSet dataset = createDataSet("dir",
-                                        H5::StrType(H5::PredType::C_S1, 128),
+    H5::DataSet dataset = createDataSet(metaName,
+                                        H5::StrType(H5::PredType::C_S1, nChar),
                                         dataspace);
 
     // Prepare data
-    char srcArray[solSources.size()][128];
-    for (uint i=0; i<solSources.size(); ++i) {
-      std::strncpy(srcArray[i], solSources[i].c_str(), 128);
+    char srcArray[metaVals.size()][nChar];
+    for (uint i=0; i<metaVals.size(); ++i) {
+      std::strncpy(srcArray[i], metaVals[i].c_str(), nChar);
     }
 
-    dataset.write(srcArray, H5::StrType(H5::PredType::C_S1, 128));
+    dataset.write(srcArray, H5::StrType(H5::PredType::C_S1, nChar));
+  }
+
+  void H5Parm::SolTab::setSources(const std::vector<std::string>& solSources) {
+    setAxisMeta("dir", 128, solSources);
+  }
+
+  void H5Parm::SolTab::setPolarizations(const std::vector<std::string>& polarizations) {
+    setAxisMeta("pol", 2, polarizations);
   }
 
   void H5Parm::SolTab::setFreqs(const std::vector<double>& freqs) {
@@ -281,6 +290,7 @@ namespace LOFAR {
   void H5Parm::SolTab::setTimes(const std::vector<double>& times) {
     setAxisMeta("time", times);
   }
+
 
   void H5Parm::SolTab::setAxisMeta(const std::string& metaName,
                                    const std::vector<double>& metaVals) {
@@ -343,11 +353,10 @@ namespace LOFAR {
   }
 
   hsize_t H5Parm::SolTab::getFreqIndex(double freq) const {
-    vector<double> freqs = getRealAxis("freq");
-
-    if (freqs.size()==1) {
+    if (getAxis("freq").size == 1) {
       return 0;
     }
+    vector<double> freqs = getRealAxis("freq");
 
     for (size_t i = 0; i<freqs.size()-1; ++i) {
       if (freq>freqs[i] && freq<freqs[i+1]) {
@@ -412,12 +421,15 @@ namespace LOFAR {
 
 
   hsize_t H5Parm::SolTab::getTimeIndex(double time) const {
+    if (getAxis("time").size == 1) {
+      return 0;
+    }
     vector<double> times = getRealAxis("time");
 
     double timeInterval = getTimeInterval();
 
     for (size_t i = 0; i<times.size(); ++i) {
-      if (abs(times[i]-time)<timeInterval*0.5)
+      if (abs(times[i]-time)<timeInterval*0.51) // 0.5 with some tolerance
         return i;
     }
     THROW(Exception,"Time "<<fixed<<time<<" not found in "<<getName());

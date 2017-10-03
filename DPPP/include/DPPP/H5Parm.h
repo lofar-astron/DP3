@@ -61,10 +61,10 @@ namespace LOFAR {
 
           std::vector<AxisInfo>& getAxes() {return _axes;}
 
-          AxisInfo getAxis(uint i);
+          AxisInfo getAxis(uint i) const;
 
           // Get an axis, throw an exception if it does not exist
-          AxisInfo getAxis(const std::string& axisName);
+          AxisInfo getAxis(const std::string& axisName) const;
 
           size_t nAxes() { return _axes.size(); }
 
@@ -76,6 +76,8 @@ namespace LOFAR {
           void setAntennas(const std::vector<std::string>& solAntennas);
 
           void setSources(const std::vector<std::string>& solSources);
+
+          void setPolarizations(const std::vector<std::string>& polarizations);
 
           void setFreqs(const std::vector<double>& freqs);
 
@@ -109,9 +111,14 @@ namespace LOFAR {
 
           void setTimes(const std::vector<double>& times);
 
-          // Set metadata about an axis
+          // Set metadata about an axis (like freq or time))
           void setAxisMeta(const std::string& metaName,
                            const std::vector<double>& metaVals);
+
+          // Set metadata about an axis (like polarization, direction)
+          void setAxisMeta(const std::string& metaName,
+                           size_t strLen,
+                           const std::vector<std::string>& metaVals);
 
           // Adds a real solution.
           // If weights are emtpy, write ones everywhere

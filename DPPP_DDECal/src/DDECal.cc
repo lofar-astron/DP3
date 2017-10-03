@@ -211,26 +211,10 @@ namespace LOFAR {
                           GainCal::calTypeToString(itsMode));
       }
 
-      itsDataPtrs.resize(itsSolInt);
-      itsModelDataPtrs.resize(itsSolInt);
-      for (uint t=0; t<itsSolInt; ++t) {
-        itsModelDataPtrs[t].resize(itsDirections.size());
-      }
-      for  (uint i=0;i<itsConstraints.size();i++) {
-        itsMultiDirSolver.add_constraint(itsConstraints[i].get());
-      }
-
       const size_t nDir = itsDirections.size();
-
-      itsBufs.resize(itsSolInt);
-
       itsPredictSteps.resize(nDir);
-
-      itsResultSteps.resize(nDir);
       for (size_t dir=0; dir<nDir; ++dir) {
-        itsResultSteps[dir] = MultiResultStep::ShPtr(new MultiResultStep(itsSolInt));
         itsPredictSteps[dir]=Predict(input, parset, prefix, itsDirections[dir]);
-        itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
       }
     }
 
@@ -257,6 +241,24 @@ namespace LOFAR {
 
       if (itsSolInt==0) {
         itsSolInt=info().ntime();
+      }
+
+      itsDataPtrs.resize(itsSolInt);
+      itsModelDataPtrs.resize(itsSolInt);
+      for (uint t=0; t<itsSolInt; ++t) {
+        itsModelDataPtrs[t].resize(nDir);
+      }
+      for  (uint i=0;i<itsConstraints.size();i++) {
+        itsMultiDirSolver.add_constraint(itsConstraints[i].get());
+      }
+
+
+      itsBufs.resize(itsSolInt);
+
+      itsResultSteps.resize(nDir);
+      for (size_t dir=0; dir<nDir; ++dir) {
+        itsResultSteps[dir] = MultiResultStep::ShPtr(new MultiResultStep(itsSolInt));
+        itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
       }
 
       if (itsNChan==0) {
@@ -483,6 +485,44 @@ namespace LOFAR {
       return res;
     }
 
+    void DDECal::doSolve ()
+    {
+      if(itsFullMatrixMinimalization)
+        initializeFullMatrixSolutions();
+      else
+        initializeScalarSolutions();
+
+      itsTimerSolve.start();
+      MultiDirSolver::SolveResult solveResult;
+      if(itsFullMatrixMinimalization)
+      {
+        solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
+          itsSols[itsTimeStep/itsSolInt],
+          itsAvgTime / itsSolInt);
+      }
+      else {
+        solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
+          itsSols[itsTimeStep/itsSolInt],
+          itsAvgTime / itsSolInt);
+      }
+      itsTimerSolve.stop();
+
+      itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
+      itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
+
+      // Store constraint solutions if any constaint has a non-empty result
+      bool someConstraintHasResult = false;
+      for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
+        if (!solveResult._results[constraintnum].empty()) {
+          someConstraintHasResult = true;
+          break;
+        }
+      }
+      if (someConstraintHasResult) {
+        itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
+      }
+    }
+
     bool DDECal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
@@ -536,42 +576,8 @@ namespace LOFAR {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
-        if(itsFullMatrixMinimalization)
-          initializeFullMatrixSolutions();
-        else
-          initializeScalarSolutions();
-
-        itsTimerSolve.start();
-        MultiDirSolver::SolveResult solveResult;
-        if(itsFullMatrixMinimalization)
-        {
-          solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
-            itsSols[itsTimeStep/itsSolInt],
-            itsAvgTime / itsSolInt);
-        }
-        else {
-          solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
-            itsSols[itsTimeStep/itsSolInt],
-            itsAvgTime / itsSolInt);
-        }
-        itsTimerSolve.stop();
-
-        itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
-        itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
-
-        // Store constraint solutions if any constaint has a non-empty result
-        bool someConstraintHasResult = false;
-        for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
-          if (!solveResult._results[constraintnum].empty()) {
-            someConstraintHasResult = true;
-            break;
-          }
-        }
-        if (someConstraintHasResult) {
-          itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
-        }
-
-        itsStepInSolInt=0;
+        doSolve();
+            itsStepInSolInt=0;
         itsAvgTime=0;
         for (size_t dir=0; dir<itsResultSteps.size(); ++dir) {
           itsResultSteps[dir]->clear();
@@ -593,19 +599,39 @@ namespace LOFAR {
       itsTimerWrite.start();
 
       uint nDir = itsDirections.size();
-      uint nPol = 1;
+      uint nPol;
+
+      vector<string> polarizations;
       if(itsMode == GainCal::COMPLEXGAIN ||
          itsMode == GainCal::PHASEONLY ||
          itsMode == GainCal::AMPLITUDEONLY ||
          itsMode == GainCal::FULLJONES) {
         nPol = 2;
+        polarizations.push_back("XX");
+        polarizations.push_back("YY");
       } else if (itsMode == GainCal::FULLJONES) {
+        polarizations.push_back("XX");
+        polarizations.push_back("XY");
+        polarizations.push_back("YX");
+        polarizations.push_back("YY");
         nPol = 4;
+      } else {
+        nPol = 1;
+      }
+
+      uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
+      ASSERT(nSolTimes==itsSols.size());
+      vector<double> solTimes(nSolTimes);
+      double starttime=info().startTime();
+      for (uint t=0; t<nSolTimes; ++t) {
+        solTimes[t] = starttime+(t+0.5)*info().timeInterval()*itsSolInt;
       }
 
       if (itsConstraintSols[0].empty()) {
-        // Record the actual iterands of the solver
-        vector<DComplex> sols(info().nchan()*info().nantenna()*info().ntime()*nDir*nPol);
+        // Record the actual iterands of the solver, not constraint results
+        uint nSolChan = itsSols[0].size();
+
+        vector<DComplex> sols(nSolChan*info().nantenna()*nSolTimes*nDir*nPol);
         size_t i=0;
 
         // For nPol=1, loop over pol runs just once
@@ -614,8 +640,8 @@ namespace LOFAR {
         uint polIncr= (itsMode==GainCal::FULLJONES?1:3);
         uint maxPol = (nPol>1?4:1);
         // Put solutions in a contiguous piece of memory
-        for (uint time=0; time<itsSols.size(); ++time) {
-          for (uint chan=0; chan<info().nchan(); ++chan) {
+        for (uint time=0; time<nSolTimes; ++time) {
+          for (uint chan=0; chan<nSolChan; ++chan) {
             for (uint ant=0; ant<info().nantenna(); ++ant) {
               for (uint dir=0; dir<nDir; ++dir) {
                 for (uint pol=0; pol<maxPol; pol+=polIncr) {
@@ -630,7 +656,7 @@ namespace LOFAR {
         vector<H5Parm::AxisInfo> axes;
         axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
         axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
-        axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
+        axes.push_back(H5Parm::AxisInfo("ant", itsSols[0].size()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
         if (nPol>1) {
           axes.push_back(H5Parm::AxisInfo("pol", nPol));
@@ -673,8 +699,8 @@ namespace LOFAR {
             default: 
               THROW(Exception, "Constraint should have produced output");
           }
+
           // Tell H5Parm that all antennas and directions were used 
-          // TODO: do this more cleanly
           std::vector<std::string> antennaNames(info().antennaNames().size());
           for (uint i=0; i<info().antennaNames().size(); ++i) {
             antennaNames[i]=info().antennaNames()[i];
@@ -682,21 +708,19 @@ namespace LOFAR {
           soltab.setAntennas(antennaNames);
     
           soltab.setSources(getDirectionNames());
+
+          if (nPol>1) {
+            soltab.setPolarizations(polarizations);
+          }
    
           // Set channel to frequency of middle channel 
-          vector<double> chanFreqs(info().nchan());
-          for (uint chan=0; chan<info().nchan(); ++chan) {
-            chanFreqs[chan] = info().chanFreqs()[chan];
+          // TODO fix this
+          vector<double> solFreqs(nSolChan);
+          for (uint chan=0; chan<nSolChan; ++chan) {
+            solFreqs[chan] = info().chanFreqs()[chan];
           }
-          soltab.setFreqs(chanFreqs);
-    
-          uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
-          vector<double> solTimes(nSolTimes);
-          double starttime=info().startTime();
-          for (uint t=0; t<nSolTimes; ++t) {
-            solTimes[t] = starttime+t*info().timeInterval()*itsSolInt+0.5*info().timeInterval();
-          }
-          // End TODO
+          soltab.setFreqs(solFreqs);
+
           soltab.setTimes(solTimes);
         } // solnums loop
       } else {
@@ -751,17 +775,16 @@ namespace LOFAR {
       
             soltab.setSources(getDirectionNames());
      
+            if (nPol>1) {
+              soltab.setPolarizations(polarizations);
+            }
+
             // Set channel to frequency of middle channel 
+            // TODO: fix this for nchan
             vector<double> oneFreq(1);
             oneFreq[0] = info().chanFreqs()[info().nchan()/2];
             soltab.setFreqs(oneFreq);
-      
-            uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
-            vector<double> solTimes(nSolTimes);
-            double starttime=info().startTime();
-            for (uint t=0; t<nSolTimes; ++t) {
-              solTimes[t] = starttime+t*info().timeInterval()*itsSolInt+0.5*info().timeInterval();
-            }
+ 
             soltab.setTimes(solTimes);
             // End TODO 
           }
@@ -777,21 +800,13 @@ namespace LOFAR {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
-        if(itsFullMatrixMinimalization)
-          initializeFullMatrixSolutions();
-        else
-          initializeScalarSolutions();
-
         //shrink itsDataPtrs, itsModelDataPtrs
         std::vector<casacore::Complex*>(itsDataPtrs.begin(),
             itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
         std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
                     itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
-        itsTimerSolve.start();
-        itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
-                                  itsSols[itsTimeStep/itsSolInt],
-                                  itsAvgTime/itsStepInSolInt);
-        itsTimerSolve.stop();
+
+        doSolve();
       }
 
       writeSolutions();
