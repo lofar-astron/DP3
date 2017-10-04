@@ -66,7 +66,7 @@ do
           echo $cmd
           $cmd
 
-          h5sols.py instrument.h5
+          #h5sols.py instrument.h5
 
           echo "Check that residual is small, caltype=$caltype, nchan=$nchan, solint=$solint"
           cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS)'"

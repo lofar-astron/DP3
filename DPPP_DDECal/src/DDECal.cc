@@ -655,8 +655,8 @@ namespace LOFAR {
         }
         vector<H5Parm::AxisInfo> axes;
         axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
-        axes.push_back(H5Parm::AxisInfo("freq", info().nchan()));
-        axes.push_back(H5Parm::AxisInfo("ant", itsSols[0].size()));
+        axes.push_back(H5Parm::AxisInfo("freq", nSolChan));
+        axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
         axes.push_back(H5Parm::AxisInfo("dir", nDir));
         if (nPol>1) {
           axes.push_back(H5Parm::AxisInfo("pol", nPol));
