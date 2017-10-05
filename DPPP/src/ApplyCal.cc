@@ -412,8 +412,9 @@ namespace LOFAR {
 {
         // TODO: understand polarization etc.
         ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
+        hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
+        hsize_t startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
         for (uint ant = 0; ant < numAnts; ++ant) {
-          hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
 
           uint freqUpsampleFactor = numFreqs;
           if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
@@ -445,7 +446,7 @@ namespace LOFAR {
             vector<double> rawsols;
             rawsols = itsSolTab.getValues(info().antennaNames()[ant],
                                         startTime, numTimesInH5Parm, 1,
-                                        0, numFreqsInH5Parm, 1, pol, itsDirection);
+                                        startFreq, numFreqsInH5Parm, 1, pol, itsDirection);
 
             parmvalues[pol][ant].resize(tfDomainSize);
 

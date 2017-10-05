@@ -359,7 +359,7 @@ namespace LOFAR {
     vector<double> freqs = getRealAxis("freq");
 
     for (size_t i = 0; i<freqs.size()-1; ++i) {
-      if (freq>freqs[i] && freq<freqs[i+1]) {
+      if (freqs[i]-0.001<=freq && freq<freqs[i+1]) { // Some tolerance
         // Nearest neighbor: i or i+1
         if (freq-freqs[i] < freqs[i+1]-freq) {
           return i;
