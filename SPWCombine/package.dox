@@ -1,5 +1,0 @@
-// \ingroup DP3
-// \defgroup SPWCombine Spectral Window Combine.
-// SPWCombines takes takes all Spectral windows in the input
-// measurementset(s), and writes their data as a single Spectral Window
-// into the output Measurementset.
