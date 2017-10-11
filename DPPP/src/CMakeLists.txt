@@ -18,7 +18,7 @@ lofar_add_library(dppp
   ModelComponent.cc PointSource.cc GaussianSource.cc Patch.cc
   ModelComponentVisitor.cc GainCal.cc StefCal.cc
   DemixerNew.cc DemixInfo.cc DemixWorker.cc
-  Predict.cc
+  Predict.cc OneApplyCal.cc
   ApplyBeam.cc
   PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc
 )

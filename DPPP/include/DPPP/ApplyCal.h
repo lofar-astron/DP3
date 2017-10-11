@@ -1,4 +1,4 @@
-//# ApplyCal.h: DPPP step class to apply a calibration correction to the data
+//# ApplyCal.h: DPPP step class to ApplyCal visibilities from a source model
 //# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,44 +17,43 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id: ApplyCal.h 21598 2012-07-16 08:07:34Z diepen $
+//# $Id:
 //#
 //# @author Tammo Jan Dijkema
 
-#ifndef DPPP_APPLYCAL_H
-#define DPPP_APPLYCAL_H
+#ifndef DPPP_ApplyCal_H
+#define DPPP_ApplyCal_H
 
 // @file
-// @brief DPPP step class to apply a calibration correction to the data
+// @brief DPPP step class to apply multiple calibration solutions
 
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
-#include <DPPP/H5Parm.h>
-#include <ParmDB/ParmFacade.h>
-#include <ParmDB/ParmSet.h>
-#include <ParmDB/Parm.h>
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <DPPP/FlagCounter.h>
+
+#include <DPPP/OneApplyCal.h>
+
+#include <utility>
 
 namespace LOFAR {
+
+  class ParameterSet;
+
   namespace DPPP {
     // @ingroup NDPPP
 
-    // This class is a DPStep class applying calibration parameters to the data.
+    // This class is a DPStep class to apply multiple ParmDB or H5Parm
+    // solutions to data.
+
     class ApplyCal: public DPStep
     {
     public:
-
-      enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE, PHASE,
-                        ROTATIONMEASURE, SCALARAMPLITUDE, AMPLITUDE};
-
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
       ApplyCal (DPInput*, const ParameterSet&, const string& prefix,
                 bool substep=false, std::string predictDirection="");
 
-      ApplyCal();
+      // Empty constructor
+      ApplyCal ();
 
       virtual ~ApplyCal();
 
@@ -66,18 +65,19 @@ namespace LOFAR {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
-      virtual void updateInfo (const DPInfo&);
+      // Set the next step. It squeezes in the actual OneApplyCal steps
+      // between this ApplyCal step and the next step.
+      virtual void setNextStep (DPStep::ShPtr nextStep);
 
-      // Show the step parameters.
-      virtual void show (std::ostream&) const;
+      // Show the step. When ApplyCal is a step in the main chain, this does
+      // nothing; the nextStep mechanism in DPRun will call show on the actual
+      // OneApplyCals.
+      virtual void show(std::ostream&) const;
 
-      // Show the timings.
+      // Show the timings. When ApplyCal is a step in the main chain, this does
+      // nothing; the nextStep mechanism in DPRun will call show on the actual
+      // OneApplyCals.
       virtual void showTimings (std::ostream&, double duration) const;
-
-      bool invert() {
-        return itsInvert;
-      }
 
       // Invert a 2x2 matrix in place
       static void invert (casacore::DComplex* v, double sigmaMMSE=0);
@@ -117,50 +117,11 @@ namespace LOFAR {
                                 float* weight);
 
     private:
-      // Read parameters from the associated parmdb and store them in itsParms
-      void updateParms (const double bufStartTime);
-
-      // If needed, show the flag counts.
-      virtual void showCounts (std::ostream&) const;
-
-      void initDataArrays();
-
-      // Check the number of polarizations in the parmdb or h5parm
-      uint nPol(const std::string& parmName);
-
-      static std::string correctTypeToString(CorrectType);
-      static CorrectType stringToCorrectType(const string&);
-
       //# Data members.
-      DPInput*         itsInput;
-      DPBuffer         itsBuffer;
-      string      itsName;
-      string      itsParmDBName;
-      bool             itsUseH5Parm;
-      boost::shared_ptr<BBS::ParmFacade> itsParmDB;
-      H5Parm           itsH5Parm;
-      H5Parm::SolTab   itsSolTab;
-      CorrectType      itsCorrectType;
-      bool             itsInvert;
-      uint             itsTimeSlotsPerParmUpdate;
-      double           itsSigmaMMSE;
-      bool             itsUpdateWeights;
+      bool             itsIsSubstep;
+      string           itsName;
 
-      uint             itsCount; // number of steps
-
-      // Expressions to search for in itsParmDB
-      vector<casacore::String>   itsParmExprs;
-
-      // parameters, numparms, antennas, time x frequency
-      casacore::Cube<casacore::DComplex> itsParms;
-      uint            itsTimeStep; // time step within current chunk
-      uint            itsNCorr;
-      double          itsTimeInterval;
-      double          itsLastTime; // last time of current chunk
-      FlagCounter     itsFlagCounter;
-      bool            itsUseAP;      //# use ampl/phase or real/imag
-      hsize_t         itsDirection;
-      NSTimer         itsTimer;
+      std::vector<OneApplyCal::ShPtr> itsApplyCals;
     };
 
   } //# end namespace

@@ -15,7 +15,7 @@ set(inst_HEADERS
   ModelComponentVisitor.h
   DemixerNew.h DemixInfo.h DemixWorker.h
   ApplyBeam.h ApplyBeam.tcc
-  Predict.h
+  Predict.h OneApplyCal.h
   GainCal.h StefCal.h PhaseFitter.h
   StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h
 )

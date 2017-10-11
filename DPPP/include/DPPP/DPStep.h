@@ -116,7 +116,7 @@ namespace LOFAR {
       { return itsPrevStep; }
 
       // Set the next step.
-      void setNextStep (DPStep::ShPtr nextStep)
+      virtual void setNextStep (DPStep::ShPtr nextStep)
         { itsNextStep = nextStep;
           nextStep->setPrevStep(this);
         }
@@ -129,11 +129,11 @@ namespace LOFAR {
       DPInfo& info()
         { return itsInfo; }
 
-    private:
       // Update the general info (called by setInfo).
       // The default implementation copies the info.
       virtual void updateInfo (const DPInfo&);
 
+    private:
       //# Data members.
       DPStep::ShPtr itsNextStep;
       DPStep*       itsPrevStep; // Normal pointer for back links, prevent

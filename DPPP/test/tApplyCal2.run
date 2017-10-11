@@ -32,14 +32,18 @@ adddef Gain:1:1:Real values=3.
 EOL
 
 echo; echo "Testing without updateweights"
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 $taqlexe 'select from tNDPPP-generic.MS where not(all(WEIGHTS_NEW~=WEIGHT_SPECTRUM))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Testing with updateweights"
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false applycal.updateweights=true
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 msout.weightcolumn=WEIGHTS_NEW steps=[applycal] applycal.parmdb=tApplyCal.parmdb showcounts=false applycal.updateweights=true'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(WEIGHTS_NEW~=81*WEIGHT_SPECTRUM))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
@@ -49,7 +53,9 @@ parmdbm <<EOL
 open table="tApplyCal.parmdb"
 adddef CommonScalarPhase values=0
 EOL
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
@@ -59,7 +65,9 @@ parmdbm <<EOL
 open table="tApplyCal.parmdb"
 adddef ScalarPhase values=0
 EOL
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
@@ -76,7 +84,9 @@ add ScalarPhase:RS208HBA values=[0.,0.,0.,0.], domain=[10e6, 200e6, 4472025735, 
 add ScalarPhase:RS305HBA values=[0.,0.,0.,0.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
 add ScalarPhase:RS307HBA values=[0.,0.,0.,0.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
 EOL
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=commonscalarphase showcounts=false'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
@@ -93,7 +103,9 @@ add ScalarAmplitude:RS208HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 44720257
 add ScalarAmplitude:RS305HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
 add ScalarAmplitude:RS307HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
 EOL
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=scalaramplitude showcounts=false
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=scalaramplitude showcounts=false'
+echo $cmd
+eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 

@@ -35,7 +35,6 @@
 #include <vector>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
 
 namespace LOFAR {
   namespace DPPP {
@@ -43,6 +42,7 @@ namespace LOFAR {
     DummyStep::DummyStep (DPInput* input,
                       const ParameterSet& parset,
                       const string& prefix)
+    : itsInput(input)
     {
 
     }

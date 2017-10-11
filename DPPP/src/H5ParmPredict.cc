@@ -137,6 +137,7 @@ namespace LOFAR {
     void H5ParmPredict::finish()
     {
       // Let the next steps finish.
+      itsPredictSteps[0]->finish();
       getNextStep()->finish();
     }
   } //# end namespace

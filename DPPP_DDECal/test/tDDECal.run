@@ -40,7 +40,7 @@ for caltype in complexgain scalarcomplexgain amplitudeonly scalaramplitude
 do
   for solint in 0 1 2 4
   do
-    for nchan in 0 1 2 5
+    for nchan in 1
     do
           rm -rf instrument.h5 # Remove h5parm if it exists
           echo "Calibrate on the original sources, caltype=$caltype"
@@ -106,7 +106,8 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. numthreads=4\
   steps=[ddecal]\
     ddecal.sourcedb=tDDECal.MS/sky\
     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\
-    ddecal.applycal.parmdb=instrument.h5 ddecal.applycal.correction=amplitude000\
+    ddecal.applycal.parmdb=instrument.h5 ddecal.applycal.steps=applyampl\
+    ddecal.applycal.applyampl.correction=amplitude000\
     ddecal.h5parm=instrument2.h5 ddecal.mode=scalarcomplexgain"
 echo $cmd
 $cmd

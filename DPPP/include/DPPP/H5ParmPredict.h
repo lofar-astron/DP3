@@ -30,6 +30,9 @@
 #include <DPPP/DPInput.h>
 #include <DPPP/DPBuffer.h>
 #include <DPPP/Predict.h>
+
+#include <DPPP/H5Parm.h>
+
 #include <utility>
 
 namespace LOFAR {
