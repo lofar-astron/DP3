@@ -514,7 +514,7 @@ namespace LOFAR {
           }
 
           for (uint ant = 0; ant < numAnts; ++ant) {
-            parmIt = parmMap.find(parmExpr + ":" + info().antennaNames()[ant]
+            parmIt = parmMap.find(parmExpr + ":" + string(info().antennaNames()[ant])
                                    + name_postfix);
 
             if (parmIt != parmMap.end()) {
@@ -525,14 +525,13 @@ namespace LOFAR {
               double defValue;
 
               if (itsParmDB->getDefValues(parmExpr + ":" +
-                  info().antennaNames()[ant] + name_postfix).size()==1) { // Default for antenna
-                itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
-                    info().antennaNames()[ant]).get(0,defValues);
+                  string(info().antennaNames()[ant]) + name_postfix).size()==1) { // Default for antenna
+                itsParmDB->getDefValues(string(itsParmExprs[parmExprNum]) + ":" +
+                  string(info().antennaNames()[ant]) + name_postfix).get(0,defValues);
                 ASSERT(defValues.size()==1);
                 defValue=defValues.data()[0];
               }
-              else if (itsParmDB->getDefValues(parmExpr).size()
-                  == 1) { //Default value
+              else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value
                 itsParmDB->getDefValues(parmExpr).get(0,defValues);
                 ASSERT(defValues.size()==1);
                 defValue=defValues.data()[0];
@@ -541,7 +540,7 @@ namespace LOFAR {
               }
               else {
                 THROW (Exception, "No parameter value found for "+
-                   parmExpr + ":" + info().antennaNames()[ant] + name_postfix);
+                   parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix);
               }
 
               parmvalues[parmExprNum][ant].resize(tfDomainSize);
