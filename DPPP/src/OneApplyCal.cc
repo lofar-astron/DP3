@@ -488,21 +488,34 @@ namespace LOFAR {
       } else { // Use ParmDB
         for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
           // parmMap contains parameter values for all antennas
-          parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "*",
+          parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "{:phase_center,}*",
                                  minFreq, maxFreq, freqInterval,
                                  bufStartTime-0.5*itsTimeInterval, itsLastTime,
                                  itsTimeInterval, true);
 
+          string parmExpr = itsParmExprs[parmExprNum];
+
           // Resolve {Common,}Bla to CommonBla or Bla
           if (!parmMap.empty() &&
-              itsParmExprs[parmExprNum].find("{") != std::string::npos) {
+              parmExpr.find("{Common,}") != string::npos) {
+            // Take the name of the first parm, e.g. Bla:CS001, and remove the antenna name
             uint colonPos = (parmMap.begin()->first).find(":");
-            itsParmExprs[parmExprNum] = (parmMap.begin()->first).substr(0, colonPos);
+            parmExpr = (parmMap.begin()->first).substr(0, colonPos);
+          }
+          
+          string name_postfix = "";
+          // Remove :phase_center postfix
+          if (!parmMap.empty()) {
+            // Take the name of the first parm, e.g. Bla:CS001, and remove the antenna name
+            // If necessary, append :phase_center
+            if ((parmMap.begin()->first).find(":phase_center") != string::npos) {
+              name_postfix = ":phase_center";
+            }
           }
 
           for (uint ant = 0; ant < numAnts; ++ant) {
-            parmIt = parmMap.find(
-                      itsParmExprs[parmExprNum] + ":" + info().antennaNames()[ant]);
+            parmIt = parmMap.find(parmExpr + ":" + string(info().antennaNames()[ant])
+                                   + name_postfix);
 
             if (parmIt != parmMap.end()) {
               parmvalues[parmExprNum][ant].swap(parmIt->second);
@@ -511,24 +524,23 @@ namespace LOFAR {
               Array<double> defValues;
               double defValue;
 
-              if (itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
-                  info().antennaNames()[ant]).size()==1) { // Default for antenna
-                itsParmDB->getDefValues(itsParmExprs[parmExprNum] + ":" +
-                    info().antennaNames()[ant]).get(0,defValues);
+              if (itsParmDB->getDefValues(parmExpr + ":" +
+                  string(info().antennaNames()[ant]) + name_postfix).size()==1) { // Default for antenna
+                itsParmDB->getDefValues(string(itsParmExprs[parmExprNum]) + ":" +
+                  string(info().antennaNames()[ant]) + name_postfix).get(0,defValues);
                 ASSERT(defValues.size()==1);
                 defValue=defValues.data()[0];
               }
-              else if (itsParmDB->getDefValues(itsParmExprs[parmExprNum]).size()
-                  == 1) { //Default value
-                itsParmDB->getDefValues(itsParmExprs[parmExprNum]).get(0,defValues);
+              else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value
+                itsParmDB->getDefValues(parmExpr).get(0,defValues);
                 ASSERT(defValues.size()==1);
                 defValue=defValues.data()[0];
-              } else if (itsParmExprs[parmExprNum].substr(0,5)=="Gain:") {
+              } else if (parmExpr.substr(0,5)=="Gain:") {
                 defValue=0.;
               }
               else {
                 THROW (Exception, "No parameter value found for "+
-                   itsParmExprs[parmExprNum]+":"+info().antennaNames()[ant]);
+                   parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix);
               }
 
               parmvalues[parmExprNum][ant].resize(tfDomainSize);
