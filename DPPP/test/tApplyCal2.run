@@ -109,3 +109,37 @@ eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
 
+echo; echo "Testing RotationAngle:*:phase_center values"
+rm -rf tApplyCal.parmdb
+parmdbm <<EOL
+open table="tApplyCal.parmdb"
+add RotationMeasure:CS001HBA0:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS002HBA0:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS002HBA1:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS004HBA1:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS106HBA:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS208HBA:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS305HBA:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS307HBA:phase_center values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+EOL
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=rotationmeasure showcounts=false'
+echo $cmd
+eval $cmd
+
+echo; echo "Testing RotationAngle:* values"
+rm -rf tApplyCal.parmdb
+parmdbm <<EOL
+open table="tApplyCal.parmdb"
+add RotationMeasure:CS001HBA0 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS002HBA0 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS002HBA1 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:CS004HBA1 values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS106HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS208HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS305HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+add RotationMeasure:RS307HBA values=[3.,3.,3.,3.], domain=[10e6, 200e6, 4472025735, 4972025795], shape=[2,2], shape=[2,2]
+EOL
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=rotationmeasure showcounts=false'
+echo $cmd
+eval $cmd
+
