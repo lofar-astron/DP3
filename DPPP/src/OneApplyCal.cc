@@ -432,7 +432,10 @@ namespace LOFAR {
         // TODO: understand polarization etc.
         ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
         hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
-        hsize_t startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
+        hsize_t startFreq = 0;
+        if (itsSolTab.hasAxis("freq")) {
+          startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
+        }
         for (uint ant = 0; ant < numAnts; ++ant) {
 
           uint freqUpsampleFactor = numFreqs;
