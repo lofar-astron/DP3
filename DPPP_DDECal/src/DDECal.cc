@@ -646,6 +646,7 @@ namespace LOFAR {
               for (uint dir=0; dir<nDir; ++dir) {
                 for (uint pol=0; pol<maxPol; pol+=polIncr) {
                   ASSERT(!itsSols[time].empty());
+                  ASSERT(!itsSols[time][chan].empty());
                   sols[i] = itsSols[time][chan][ant*nDir*maxPol+dir*maxPol+pol];
                   ++i;
                 }

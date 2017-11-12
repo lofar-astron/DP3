@@ -153,13 +153,13 @@ namespace LOFAR {
         }
         itsLastTime = qtime.getValue("s");
       }
-      if (nTimes > 0) {
-        itsLastTime = itsFirstTime + (nTimes-1) * itsTimeInterval;
-      }
       ASSERT (itsLastTime >= itsFirstTime);
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
+      if (nTimes > 0) {
+        itsLastTime = itsFirstTime + (nTimes-1) * itsTimeInterval;
+      }
       itsNextTime  = itsFirstTime;
       itsStartTime = itsFirstTime - 0.5*itsTimeInterval;
       // Parse the chan expressions.
