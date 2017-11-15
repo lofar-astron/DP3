@@ -57,24 +57,34 @@ public:
   void PieceWiseFit(const std::vector<double>& nu, const std::vector<double>& data, std::vector<double>& fittedData)
   {
     size_t chunkSize = std::min(data.size(), _chunkSize);
-    for(size_t ch=0; ch<data.size(); ch+=chunkSize)
+    if(chunkSize==1)
+      fittedData = data;
+    else
     {
-      size_t pos = ch;
-      if(pos > data.size() - chunkSize)
-        pos = data.size() - chunkSize;
-      fitChunk(chunkSize, pos, nu, data, fittedData);
+      for(size_t ch=0; ch<data.size(); ch+=chunkSize)
+      {
+        size_t pos = ch;
+        if(pos > data.size() - chunkSize)
+          pos = data.size() - chunkSize;
+        fitChunk(chunkSize, pos, nu, data, fittedData);
+      }
     }
   }
   
   void PieceWiseFit(const std::vector<double>& nu, const std::vector<double>& data, const double* weights, std::vector<double>& fittedData)
   {
     size_t chunkSize = std::min(data.size(), _chunkSize);
-    for(size_t ch=0; ch<data.size(); ch+=chunkSize)
+    if(chunkSize==1)
+      fittedData = data;
+    else
     {
-      size_t pos = ch;
-      if(pos > data.size() - chunkSize)
-        pos = data.size() - chunkSize;
-      fitChunk(chunkSize, pos, nu, data, weights, fittedData);
+      for(size_t ch=0; ch<data.size(); ch+=chunkSize)
+      {
+        size_t pos = ch;
+        if(pos > data.size() - chunkSize)
+          pos = data.size() - chunkSize;
+        fitChunk(chunkSize, pos, nu, data, weights, fittedData);
+      }
     }
   }
   
@@ -85,24 +95,30 @@ public:
   void SlidingFit(const double* nu, const std::vector<double>& data, std::vector<double>& fittedData)
   {
     const size_t
-      chunkSize = std::min(_chunkSize, data.size()),
-      leftEdge = chunkSize/2,
-      rightEdge = data.size() - chunkSize + chunkSize/2;
-    
-    double a, b;
-    PieceWisePhaseFitter::fitSlope(&data[0], &nu[0], chunkSize, a, b);
-    for(size_t ch=0; ch!=leftEdge; ++ch)
-      fittedData[ch] = a + b * nu[ch];
-    
-    for(size_t ch=0; ch!=data.size() - chunkSize; ++ch)
+      chunkSize = std::min(_chunkSize, data.size());
+    if(chunkSize==1)
+      fittedData = data;
+    else
     {
-      PieceWisePhaseFitter::fitSlope(&data[ch], &nu[ch], chunkSize, a, b);
-      fittedData[ch + chunkSize/2] = a + b * nu[ch + chunkSize/2];
+      const size_t
+        leftEdge = chunkSize/2,
+        rightEdge = data.size() - chunkSize + chunkSize/2;
+      
+      double a, b;
+      PieceWisePhaseFitter::fitSlope(&data[0], &nu[0], chunkSize, a, b);
+      for(size_t ch=0; ch!=leftEdge; ++ch)
+        fittedData[ch] = a + b * nu[ch];
+      
+      for(size_t ch=0; ch!=data.size() - chunkSize; ++ch)
+      {
+        PieceWisePhaseFitter::fitSlope(&data[ch], &nu[ch], chunkSize, a, b);
+        fittedData[ch + chunkSize/2] = a + b * nu[ch + chunkSize/2];
+      }
+      
+      PieceWisePhaseFitter::fitSlope(&data[data.size() - chunkSize], &nu[data.size() - chunkSize], chunkSize, a, b);
+      for(size_t ch=rightEdge; ch!=data.size(); ++ch)
+        fittedData[ch] = a + b * nu[ch];
     }
-    
-    PieceWisePhaseFitter::fitSlope(&data[data.size() - chunkSize], &nu[data.size() - chunkSize], chunkSize, a, b);
-    for(size_t ch=rightEdge; ch!=data.size(); ++ch)
-      fittedData[ch] = a + b * nu[ch];
   }
   
   /**
@@ -123,24 +139,30 @@ public:
   void SlidingFit(const double* nu, const std::vector<double>& data, const double* weights, std::vector<double>& fittedData)
   {
     const size_t
-      chunkSize = std::min(_chunkSize, data.size()),
+      chunkSize = std::min(_chunkSize, data.size());
+    if(chunkSize==1)
+      fittedData = data;
+    else
+    {
+    const size_t
       leftEdge = chunkSize/2,
       rightEdge = data.size() - chunkSize + chunkSize/2;
     
-    double a, b;
-    PieceWisePhaseFitter::fitSlope(&data[0], &nu[0], &weights[0], chunkSize, a, b);
-    for(size_t ch=0; ch!=leftEdge; ++ch)
-      fittedData[ch] = a + b * nu[ch];
-    
-    for(size_t ch=0; ch!=data.size() - chunkSize; ++ch)
-    {
-      PieceWisePhaseFitter::fitSlope(&data[ch], &nu[ch], &weights[ch], chunkSize, a, b);
-      fittedData[ch + chunkSize/2] = a + b * nu[ch + chunkSize/2];
+      double a, b;
+      PieceWisePhaseFitter::fitSlope(&data[0], &nu[0], &weights[0], chunkSize, a, b);
+      for(size_t ch=0; ch!=leftEdge; ++ch)
+        fittedData[ch] = a + b * nu[ch];
+      
+      for(size_t ch=0; ch!=data.size() - chunkSize; ++ch)
+      {
+        PieceWisePhaseFitter::fitSlope(&data[ch], &nu[ch], &weights[ch], chunkSize, a, b);
+        fittedData[ch + chunkSize/2] = a + b * nu[ch + chunkSize/2];
+      }
+      
+      PieceWisePhaseFitter::fitSlope(&data[data.size() - chunkSize], &nu[data.size() - chunkSize], &weights[data.size() - chunkSize], chunkSize, a, b);
+      for(size_t ch=rightEdge; ch!=data.size(); ++ch)
+        fittedData[ch] = a + b * nu[ch];
     }
-    
-    PieceWisePhaseFitter::fitSlope(&data[data.size() - chunkSize], &nu[data.size() - chunkSize], &weights[data.size() - chunkSize], chunkSize, a, b);
-    for(size_t ch=rightEdge; ch!=data.size(); ++ch)
-      fittedData[ch] = a + b * nu[ch];
   }
   
 private:

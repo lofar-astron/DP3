@@ -178,6 +178,7 @@ namespace LOFAR {
           if(itsApproximateTEC)
           {
             int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
+            int chunksize = parset.getInt(prefix + "approxchunksize", 0);
             casacore::CountedPtr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
               ptr = casacore::CountedPtr<ApproximateTECConstraint>(
@@ -185,8 +186,8 @@ namespace LOFAR {
             else
               ptr = casacore::CountedPtr<ApproximateTECConstraint>(
                 new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
-            // user setting? : ptr->SetFittingChunkSize(fittingChunkSize);
             ptr->SetMaxApproximatingIterations(iters);
+            ptr->SetFittingChunkSize(chunksize);
             itsConstraints.push_back(ptr);
           }
           else {
