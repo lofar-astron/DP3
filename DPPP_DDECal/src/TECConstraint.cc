@@ -64,9 +64,9 @@ void ApproximateTECConstraint::initializeChild()
       startFreq = _phaseFitters.front().FrequencyData()[0],
       endFreq = _phaseFitters.front().FrequencyData()[n-1];
       _fittingChunkSize = PieceWisePhaseFitter::CalculateChunkSize(startFreq, endFreq, n);
-    for(size_t i=0; i!=_pwFitters.size(); ++i)
-      _pwFitters[i].SetChunkSize(_fittingChunkSize);
   }
+  for(size_t i=0; i!=_pwFitters.size(); ++i)
+    _pwFitters[i].SetChunkSize(_fittingChunkSize);
 }
 
 void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const
