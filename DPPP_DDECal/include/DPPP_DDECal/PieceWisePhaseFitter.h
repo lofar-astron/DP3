@@ -130,7 +130,6 @@ public:
   * The fit is not necessarily entirely smooth, because the line fit tries to guess the right wrapping of the samples.
   * Since that is not a linear process, this can still cause slight jumps.
   * 
-  * @param chunkSize Size of chunk in number of samples.
   * @param nu Frequencies of the channels (in Hz).
   * @param data The values, same size as @c nu.
   * @param weights Inverse-variance weights.
@@ -165,12 +164,43 @@ public:
     }
   }
   
+  /**
+   * Calculates a weighted median. The weighted median is defined as the
+   * sample x for which the sum of all values smaller than x is less than half of the
+   * total weight, and idem for all values larger than x.
+   * For example, given the sequence
+   * 1,2,3,4,5 with weights 1,100,1,1,1; the weighted median is '2'.
+   * (sum of weight=104, values < 2 a have weight of 1, values > 2 have a weight of 3).
+   * This function is internally used by the piece-wise phase fitter.
+   * @param values A vector of (value, weight) pairs.
+   * @returns The weighted median.
+   */
+  static double WeightedMedian(std::vector<std::pair<double, double>>& values)
+  {
+    std::sort(values.begin(), values.end());
+    // calculate total weight
+    double sum = 0.0;
+    for(std::pair<double,double>& v : values)
+      sum += v.second;
+
+    int index = 0;
+    // prefixSum is the weight sum of everything after `index`
+    double prefixSum = sum - values[0].second;
+    while(prefixSum > sum/2)
+    {
+      ++index;
+      prefixSum -= values[index].second;
+    }
+    return values[index].first;
+  }
+  
 private:
   size_t _chunkSize;
   /**
    * This is used to avoid having to reallocate data every fit
    */
   std::vector<double> _tempArray;
+  std::vector<std::pair<double,double>> _tempWeightedArray;
   
   /**
   * Fit a + bx
@@ -184,8 +214,25 @@ private:
       ss_xy = 0.0;
     std::vector<double>& d = _tempArray;
     d.assign(data, data+n);
-    std::nth_element(d.data(), d.data()+n/2, d.data()+n);
-    double wrapTo = d[n/2];
+    size_t qCounts[4] = {0,0,0,0};
+    for(double& v : d)
+    {
+      if(v > M_PI*1.5)
+        ++qCounts[3];
+      else if(v > M_PI*1.0)
+        ++qCounts[2];
+      else if(v > M_PI*0.5)
+        ++qCounts[1];
+      else
+        ++qCounts[0];
+    }
+    size_t maxQ = 0;
+    for(size_t i=1; i!=4; ++i)
+    {
+      if(qCounts[i] > qCounts[maxQ])
+        maxQ = i;
+    }
+    double wrapTo = (maxQ*0.5+0.25)*M_PI;
     for(double& v : d)
     {
       if(v - wrapTo > M_PI)
@@ -215,29 +262,57 @@ private:
     a = mean_y - b * mean_x;
   }
   
+  template<typename Iter1, typename Iter2>
+  double weightedMedian(Iter1 valBegin, Iter1 valEnd, Iter2 weightBegin)
+  {
+    _tempWeightedArray.resize(std::distance(valBegin, valEnd));
+    auto wIter = _tempWeightedArray.begin();
+    while(valBegin != valEnd)
+    {
+      *wIter = std::make_pair(*valBegin, *weightBegin);
+      ++wIter;
+      ++valBegin;
+      ++weightBegin;
+    }
+    return WeightedMedian(_tempWeightedArray);
+  }
+  
   /**
   * Fit a + bx with weights
   */
   void fitSlope(const double* data, const double* frequencies, const double* weights, size_t n, double& a, double& b)
   {
-    std::vector<double>& d = _tempArray;
-    d.clear();
+    size_t qCounts[4] = {0,0,0,0};
     for(size_t i=0; i!=n; ++i)
     {
-      if(weights[i] > 0.0)
-        d.push_back(data[i]);
+      if(data[i] > M_PI*1.5)
+        qCounts[3] += weights[i];
+      else if(data[i] > M_PI*1.0)
+        qCounts[2] += weights[i];
+      else if(data[i] > M_PI*0.5)
+        qCounts[1] += weights[i];
+      else
+        qCounts[0] += weights[i];
     }
-    std::nth_element(d.data(), d.data()+n/2, d.data()+n);
-    double wrapTo = d[n/2];
-    for(double& v : d)
+    size_t maxQ = 0;
+    for(size_t i=1; i!=4; ++i)
     {
+      if(qCounts[i] > qCounts[maxQ])
+        maxQ = i;
+    }
+    double wrapTo = (maxQ*0.5+0.25)*M_PI;
+    std::vector<double>& d = _tempArray;
+    d.resize(n);
+    for(size_t i=n/4; i!=n*3/4; ++i)
+    {
+      double v = data[i];
       if(v - wrapTo > M_PI)
         v -= 2.0*M_PI;
       else if(v - wrapTo < -M_PI)
         v += 2.0*M_PI;
+      d[i] = v;
     }
-    std::nth_element(d.data(), d.data()+n/2, d.data()+n);
-    wrapTo = d[n/2];
+    wrapTo = weightedMedian(d.data()+n/4, d.data()+n*3/4, weights+n/4);
     
     double
       sum_x = 0.0,
@@ -266,7 +341,7 @@ private:
     b = ss_xy / ss_xx;
     a = mean_y - b * mean_x;
   }
-  
+    
   void fitChunk(size_t chunkSize, size_t pos, const std::vector<double>& nu, const std::vector<double>& data, std::vector<double>& fittedData)
   {
     double a, b;
