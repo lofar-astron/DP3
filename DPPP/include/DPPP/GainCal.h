@@ -62,7 +62,7 @@ namespace LOFAR {
 
     // This class is a DPStep class to calibrate (direction independent) gains.
 
-    typedef vector<Patch::ConstPtr> PatchList;
+    typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t >Baseline;
 
     class GainCal: public DPStep
@@ -74,7 +74,7 @@ namespace LOFAR {
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      GainCal (DPInput*, const ParameterSet&, const string& prefix);
+      GainCal (DPInput*, const ParameterSet&, const std::string& prefix);
 
       virtual ~GainCal();
 
@@ -96,10 +96,14 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Convert string to a CalType
-      static CalType stringToCalType(const string& mode);
+      static CalType stringToCalType(const std::string& mode);
 
       // Convert CalType to a string
-      static string calTypeToString(CalType caltype);
+      static std::string calTypeToString(CalType caltype);
+
+      // Make a soltab with the given type
+      static std::vector<H5Parm::SolTab> makeSolTab(H5Parm& h5parm, CalType caltype,
+                                                    std::vector<H5Parm::AxisInfo>& axes);
 
     private:
       // Perform stefcal (polarized or unpolarized)
@@ -107,6 +111,9 @@ namespace LOFAR {
 
       // Check for scalar mode
       static bool scalarMode(CalType caltype);
+
+      // Check for diagonal mode
+      static bool diagonalMode(CalType caltype);
 
       // Apply the solution
       void applySolution(DPBuffer& buf, const casacore::Cube<casacore::DComplex>& invsol);
@@ -122,22 +129,29 @@ namespace LOFAR {
       void initParmDB();
 
       // Get parmdbname from itsMode
-      string parmName();
+      std::string parmName();
 
       // Determine which stations are used
       void setAntennaUsed();
 
       // Write out the solutions of the current parameter chunk (timeslotsperparmupdate)
-      void writeSolutions (double startTime);
+      // Variant for writing ParmDB
+      void writeSolutionsParmDB(double startTime);
+
+      // Write out the solutions of the current parameter chunk (timeslotsperparmupdate)
+      // Variant for writing H5Parm
+      void writeSolutionsH5Parm(double startTime);
 
       //# Data members.
       DPInput*         itsInput;
-      string           itsName;
-      vector<DPBuffer> itsBuf;
+      std::string      itsName;
+      std::vector<DPBuffer> itsBuf;
       bool             itsUseModelColumn;
       casacore::Cube<casacore::Complex> itsModelData;
-      string           itsParmDBName;
-      shared_ptr<BBS::ParmDB> itsParmDB;
+      std::string      itsParmDBName;
+      bool             itsUseH5Parm;
+      boost::shared_ptr<BBS::ParmDB> itsParmDB;
+      std::string      itsParsetString; // Parset, for logging in H5Parm
 
       CalType          itsMode;
 
@@ -146,10 +160,10 @@ namespace LOFAR {
 
       bool             itsApplySolution;
 
-      vector<casacore::Cube<casacore::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
-      vector<casacore::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
+      std::vector<casacore::Cube<casacore::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
+      std::vector<casacore::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
 
-      vector<casacore::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
+      std::vector<casacore::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
 
       std::vector<StefCal>  iS;
 
@@ -161,10 +175,10 @@ namespace LOFAR {
       BaselineSelection itsBaselineSelection; // Filter
       casacore::Vector<bool> itsSelectedBL; // Vector (length nBl) telling
                                         // which baselines are selected
-      casacore::Vector<bool> itsAntennaUsed; // Vector (length nBl) telling
+      casacore::Vector<bool> itsAntennaUsed; // Vector (length nSt) telling
                                          // which stations are solved for
 
-      map<string,int>  itsParmIdMap; //# -1 = new parm name
+      std::map<std::string,int>  itsParmIdMap; //# -1 = new parm name
 
       uint             itsMaxIter;
       double           itsTolerance;
@@ -178,7 +192,7 @@ namespace LOFAR {
       uint             itsNonconverged;
       uint             itsFailed;
       uint             itsStalled;
-      vector<uint>     itsNIter; // Total iterations made (for converged, stalled, nonconverged, failed)
+      std::vector<uint>     itsNIter; // Total iterations made (for converged, stalled, nonconverged, failed)
       uint             itsStepInParmUpdate; // Timestep within parameter update
       double           itsChunkStartTime; // First time value of chunk to be stored
       uint             itsStepInSolInt;  // Timestep within solint

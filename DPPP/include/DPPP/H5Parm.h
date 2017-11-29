@@ -123,12 +123,13 @@ namespace LOFAR {
           // Adds a real solution.
           // If weights are emtpy, write ones everywhere
           void setValues(const std::vector<double>& vals,
-                         const std::vector<double>& weights);
+                         const std::vector<double>& weights,
+                         const std::string& history="");
 
           // Add a complex solution, taking either amplitude or phase
           void setComplexValues(const std::vector<std::complex<double> >& vals,
                                 const std::vector<double>& weights,
-                                bool toAmplitudes);
+                                bool toAmplitudes, const std::string& history="");
 
           // Get the values of this SolTab for a given antenna.
           std::vector<double> getValues(const std::string& antName,

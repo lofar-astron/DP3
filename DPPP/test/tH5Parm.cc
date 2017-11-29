@@ -69,7 +69,7 @@ int main(int, char**) {
       for (size_t ant=0; ant<3; ++ant)
         for (size_t time=0; time<4; ++time)
           vals[ant*4+time]=10*ant+time;
-      soltab.setValues(vals, vector<double>());
+      soltab.setValues(vals, vector<double>(), "CREATE with DPPP");
 
       // Add metadata for stations
       vector<string> someAntNames;

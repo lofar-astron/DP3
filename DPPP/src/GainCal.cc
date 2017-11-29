@@ -22,6 +22,7 @@
 //# @author Tammo Jan Dijkema
 
 #include <lofar_config.h>
+#include <DPPP/Package__Version.h>
 #include <DPPP/GainCal.h>
 #include <DPPP/Simulate.h>
 #include <DPPP/ApplyCal.h>
@@ -70,6 +71,7 @@ namespace LOFAR {
         itsName          (prefix),
         itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsParmDBName    (parset.getString (prefix + "parmdb", "")),
+        itsUseH5Parm     (itsParmDBName.find(".h5") != string::npos),
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
@@ -80,8 +82,6 @@ namespace LOFAR {
                          (parset.getBool(prefix + "propagatesolutions", true)),
         itsSolInt        (parset.getInt(prefix + "solint", 1)),
         itsNFreqCells    (0),
-        itsTimeSlotsPerParmUpdate
-                         (parset.getInt(prefix + "timeslotsperparmupdate", 500)),
         itsConverged     (0),
         itsNonconverged  (0),
         itsFailed        (0),
@@ -91,8 +91,20 @@ namespace LOFAR {
         itsStepInSolInt        (0),
         itsAllSolutions ()
     {
+      stringstream ss;
+      ss << parset;
+      itsParsetString = ss.str();
+
       if (itsParmDBName=="") {
         itsParmDBName=parset.getString("msin")+"/instrument";
+      }
+
+      if (!itsUseH5Parm) {
+        itsTimeSlotsPerParmUpdate = parset.getInt(prefix +
+                                                  "timeslotsperparmupdate",
+                                                  500);
+      } else {
+        itsTimeSlotsPerParmUpdate = 0;
       }
 
       if (!itsUseModelColumn) {
@@ -195,6 +207,9 @@ namespace LOFAR {
       if (itsSolInt==0) {
         itsSolInt=info().ntime();
       }
+      if (itsTimeSlotsPerParmUpdate==0) {
+        itsTimeSlotsPerParmUpdate = info().ntime();
+      }
 
       if (itsNChan==0) {
         itsNChan = info().nchan();
@@ -286,11 +301,15 @@ namespace LOFAR {
     void GainCal::show (std::ostream& os) const
     {
       os << "GainCal " << itsName << endl;
-      os << "  parmdb:             " << itsParmDBName;
-      if (Table::isReadable(itsParmDBName)) {
-        os << " (existing)";
+      if (itsUseH5Parm) {
+        os << "  H5Parm:              " << itsParmDBName;
       } else {
-        os << " (will be created)";
+        os << "  parmdb:              " << itsParmDBName;
+        if (Table::isReadable(itsParmDBName)) {
+          os << " (existing)";
+        } else {
+          os << " (will be created)";
+        }
       }
       os << endl;
       os << "  solint:              " << itsSolInt <<endl;
@@ -300,7 +319,9 @@ namespace LOFAR {
       os << "  caltype:             " << calTypeToString(itsMode) << endl;
       os << "  apply solution:      " << boolalpha << itsApplySolution << endl;
       os << "  propagate solutions: " << boolalpha << itsPropagateSolutions << endl;
-      os << "  timeslotsperparmupdate: " << itsTimeSlotsPerParmUpdate << endl;
+      if (!itsUseH5Parm) {
+        os << "  timeslotsperparmupdate: " << itsTimeSlotsPerParmUpdate << endl;
+      }
       os << "  detect stalling:     " << boolalpha << itsDetectStalling << endl;
       os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
       itsBaselineSelection.show (os);
@@ -432,8 +453,8 @@ namespace LOFAR {
 
       itsTimer.stop();
 
-      if (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate) {
-        writeSolutions(itsChunkStartTime);
+      if (!itsUseH5Parm && (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate)) {
+        writeSolutionsParmDB(itsChunkStartTime);
         itsChunkStartTime += itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
         itsSols.clear();
         itsTECSols.clear();
@@ -563,6 +584,11 @@ namespace LOFAR {
               caltype==SCALARAMPLITUDE);
     }
 
+    bool GainCal::diagonalMode(CalType caltype) {
+      return (caltype==COMPLEXGAIN || caltype==PHASEONLY ||
+              caltype==AMPLITUDEONLY);
+    }
+
     void GainCal::stefcal () {
       itsTimerSolve.start();
 
@@ -579,7 +605,7 @@ namespace LOFAR {
       casacore::Matrix<double> tecsol(itsMode==TECANDPHASE?2:1,
                                   info().antennaUsed().size(), 0);
 
-      std::vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
+      vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
 #pragma omp parallel for
@@ -679,20 +705,20 @@ namespace LOFAR {
               }
             }
 
-	    if (itsDebugLevel>0) {
-	      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-		Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
-		std::copy(fullSolution.begin(),
-			  fullSolution.end(),
-			  &(itsAllSolutions(IPosition(6, 0,
-							 0,
-							 1,
-							 freqCell,
-							 iter,
-							 itsStepInParmUpdate
-						     ))));
-	      }
-	    }
+            if (itsDebugLevel>0) {
+              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+                Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
+                std::copy(fullSolution.begin(),
+                          fullSolution.end(),
+                          &(itsAllSolutions(IPosition(6, 0,
+                                                         0,
+                                                         1,
+                                                         freqCell,
+                                                         iter,
+                                                         itsStepInParmUpdate
+                                                     ))));
+              }
+            }
           }
           itsTimerPhaseFit.stop();
           itsTimerSolve.start();
@@ -834,7 +860,189 @@ namespace LOFAR {
       return name;
     }
 
-    void GainCal::writeSolutions(double startTime) {
+    void GainCal::writeSolutionsH5Parm(double) {
+      itsTimer.start();
+      itsTimerWrite.start();
+
+      H5Parm h5parm(itsParmDBName);
+
+      uint nPol;
+      vector<string> polarizations;
+      if (scalarMode(itsMode)) {
+        nPol = 1;
+      } else if (diagonalMode(itsMode)) {
+        nPol = 2;
+        polarizations.push_back("XX");
+        polarizations.push_back("YY");
+      } else {
+        ASSERT(itsMode==FULLJONES);
+        polarizations.push_back("XX");
+        polarizations.push_back("XY");
+        polarizations.push_back("YX");
+        polarizations.push_back("YY");
+        nPol = 4;
+      }
+
+      // Construct time axis
+      uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
+      vector<double> solTimes(nSolTimes);
+      ASSERT(nSolTimes==itsSols.size());
+      double starttime=info().startTime();
+      for (uint t=0; t<nSolTimes; ++t) {
+        solTimes[t] = starttime+(t+0.5)*info().timeInterval()*itsSolInt;
+      }
+
+      // Construct frequency axis
+      uint nSolFreqs;
+      if (itsMode==TEC || itsMode==TECANDPHASE) {
+        nSolFreqs = 1;
+      } else {
+        nSolFreqs = itsNFreqCells;
+      }
+      vector<double> solFreqs;
+      double freqWidth = getInfo().chanWidths()[0];
+      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
+        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
+      }
+      for (uint f=0; f<nSolFreqs; ++f) {
+        solFreqs.push_back(info().chanFreqs()[0]+0.5*freqWidth+f*freqWidth*itsNChan);
+      }
+
+      vector<H5Parm::AxisInfo> axes;
+      axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
+      axes.push_back(H5Parm::AxisInfo("freq", nSolFreqs));
+      axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
+      if (nPol>1) {
+        axes.push_back(H5Parm::AxisInfo("pol", nPol));
+      }
+
+      vector<H5Parm::SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
+
+      std::vector<std::string> antennaNames;
+      for (uint st = 0; st<info().antennaNames().size(); ++st) {
+          antennaNames.push_back(info().antennaNames()[st]);
+      }
+
+      for (auto soltab: soltabs) {
+        soltab.setAntennas(antennaNames);
+        if (nPol>1) {
+          soltab.setPolarizations(polarizations);
+        }
+        soltab.setFreqs(solFreqs);
+        soltab.setTimes(solTimes);
+      }
+
+      // Put solutions in a contiguous piece of memory
+      string historyString = "CREATE by DPPP\n" +
+                  Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+                  "step " + itsName + " in parset: \n" + itsParsetString;
+
+      if (itsMode==TEC || itsMode==TECANDPHASE) {
+        vector<double> tecsols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        vector<double> phasesols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        size_t i=0;
+        for (uint time=0; time<nSolTimes; ++time) {
+          for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
+            for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
+              for (uint pol=0; pol<nPol; ++pol) {
+                ASSERT(!itsTECSols[time].empty());
+                tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
+                if (itsMode==TECANDPHASE) {
+                  phasesols[i] = -itsTECSols[time](0, ant);
+                }
+                ++i;
+              }
+            }
+          }
+        }
+        soltabs[0].setValues(tecsols, vector<double>(), historyString);
+        if (itsMode==TECANDPHASE) {
+          soltabs[1].setValues(phasesols, vector<double>(), historyString);
+        }
+      } else {
+        vector<DComplex> sols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        size_t i=0;
+        for (uint time=0; time<nSolTimes; ++time) {
+          for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
+            for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
+              for (uint pol=0; pol<nPol; ++pol) {
+                ASSERT(!itsSols[time].empty());
+                sols[i] = itsSols[time](pol, ant, freqCell);
+                ++i;
+              }
+            }
+          }
+        }
+
+        if (itsMode!=AMPLITUDEONLY) {
+          soltabs[0].setComplexValues(sols, vector<double>(), false, historyString);
+        } else {
+          soltabs[0].setComplexValues(sols, vector<double>(), true, historyString);
+        }
+        if (soltabs.size()>1) {
+          // Also write amplitudes
+          soltabs[1].setComplexValues(sols, vector<double>(), true, historyString);
+        }
+      }
+
+      itsTimerWrite.stop();
+      itsTimer.stop();
+    }
+
+    vector<H5Parm::SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
+                                               vector<H5Parm::AxisInfo>& axes) {
+      uint numsols = 1;
+      // For [scalar]complexgain, store two soltabs: phase and amplitude
+      if (caltype == GainCal::COMPLEXGAIN ||
+          caltype == GainCal::SCALARCOMPLEXGAIN ||
+          caltype == GainCal::TECANDPHASE) {
+        numsols = 2;
+      }
+      vector<H5Parm::SolTab> soltabs;
+      for (uint solnum=0; solnum<numsols; ++solnum) {
+        string solTabName;
+        H5Parm::SolTab soltab;
+        switch (caltype) {
+          case GainCal::SCALARPHASE:
+          case GainCal::PHASEONLY:
+            solTabName = "phase000";
+            soltab = h5parm.createSolTab(solTabName, "phase", axes);
+            break;
+          case GainCal::SCALARCOMPLEXGAIN:
+          case GainCal::COMPLEXGAIN:
+          case GainCal::FULLJONES:
+            if (solnum==0) {
+              solTabName = "phase000";
+              soltab = h5parm.createSolTab(solTabName, "phase", axes);
+            } else {
+              solTabName = "amplitude000";
+              soltab = h5parm.createSolTab(solTabName, "amplitude", axes);
+            }
+            break;
+          case GainCal::SCALARAMPLITUDE:
+          case GainCal::AMPLITUDEONLY:
+            solTabName = "amplitude000";
+            soltab = h5parm.createSolTab(solTabName, "amplitude", axes);
+            break;
+          case GainCal::TEC:
+          case GainCal::TECANDPHASE:
+            if (solnum==0) {
+              solTabName = "tec000";
+              soltab = h5parm.createSolTab(solTabName, "tec", axes);
+            } else {
+              solTabName = "phase000";
+              soltab = h5parm.createSolTab(solTabName, "phase", axes);
+            }
+            break;
+          default:
+            THROW(Exception, "Unhandled mode in writing H5Parm output: "<<calTypeToString(caltype));
+        }
+        soltabs.push_back(soltab);
+      }
+      return soltabs;
+    }
+
+    void GainCal::writeSolutionsParmDB(double startTime) {
       itsTimer.start();
       itsTimerWrite.start();
 
@@ -911,8 +1119,7 @@ namespace LOFAR {
         for (int pol=0; pol<4; ++pol) { // For 0101
           if (scalarMode(itsMode) && pol>0) {
             continue;
-          } else if ((itsMode==COMPLEXGAIN || itsMode==PHASEONLY ||
-                      itsMode==AMPLITUDEONLY) && (pol==1||pol==2)) {
+          } else if (diagonalMode(itsMode) && (pol==1||pol==2)) {
             continue;
           }
           int realimmax; // For tecandphase, this functions as dummy between tec and commonscalarphase
@@ -1022,22 +1229,26 @@ namespace LOFAR {
       itsTimer.stop();
 
       if (!itsSols.empty()) {
-        writeSolutions(itsChunkStartTime);
+        if (itsUseH5Parm) {
+          writeSolutionsH5Parm(itsChunkStartTime);
+        } else {
+          writeSolutionsParmDB(itsChunkStartTime);
+        }
         if (itsDebugLevel>0) {
-	  H5::H5File hdf5file = H5::H5File("debug.h5", H5F_ACC_TRUNC);
-	  std::vector<hsize_t> dims(6);
-	  for (uint i=0; i<6; ++i) {
-	    dims[i] = itsAllSolutions.shape()[5-i];
-	  }
-	  H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
-	  H5::CompType complex_data_type(sizeof(DComplex));
-	  complex_data_type.insertMember( "r", 0, H5::PredType::IEEE_F64LE);
-	  complex_data_type.insertMember( "i", sizeof(double), H5::PredType::IEEE_F64LE);
-	  H5::DataSet dataset = hdf5file.createDataSet("val",
-						       complex_data_type,
-						       dataspace);
-	  dataset.write(itsAllSolutions.data(), complex_data_type);
-	  hdf5file.close();
+          H5::H5File hdf5file = H5::H5File("debug.h5", H5F_ACC_TRUNC);
+          vector<hsize_t> dims(6);
+          for (uint i=0; i<6; ++i) {
+            dims[i] = itsAllSolutions.shape()[5-i];
+          }
+          H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
+          H5::CompType complex_data_type(sizeof(DComplex));
+          complex_data_type.insertMember( "r", 0, H5::PredType::IEEE_F64LE);
+          complex_data_type.insertMember( "i", sizeof(double), H5::PredType::IEEE_F64LE);
+          H5::DataSet dataset = hdf5file.createDataSet("val",
+                                                       complex_data_type,
+                                                       dataspace);
+          dataset.write(itsAllSolutions.data(), complex_data_type);
+          hdf5file.close();
         }
       }
 

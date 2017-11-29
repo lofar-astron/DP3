@@ -22,6 +22,7 @@
 //# @author Tammo Jan Dijkema
 
 #include <lofar_config.h>
+#include <DPPP/Package__Version.h>
 #include <DPPP_DDECal/DDECal.h>
 
 #include <DPPP/ApplyCal.h>
@@ -94,6 +95,10 @@ namespace LOFAR {
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false)
     {
+      stringstream ss;
+      ss << parset;
+      itsParsetString = ss.str();
+
       vector<string> strDirections = 
          parset.getStringVector (prefix + "directions",
                                  vector<string> ());
@@ -664,10 +669,13 @@ namespace LOFAR {
           axes.push_back(H5Parm::AxisInfo("pol", nPol));
         }
 
+        string historyString = "CREATE by DPPP\n" +
+            Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+            "step " + itsName + " in parset: \n" + itsParsetString;
         uint numsols = 1;
         // For [scalar]complexgain, store two soltabs: phase and amplitude
         if (itsMode == GainCal::COMPLEXGAIN ||
-            itsMode == GainCal::SCALARCOMPLEXGAIN) {
+            itsMode == GainCal::SCALARCOMPLEXGAIN || itsMode == GainCal::FULLJONES) {
           numsols = 2;
         }
         for (uint solnum=0; solnum<numsols; ++solnum) {
@@ -676,27 +684,28 @@ namespace LOFAR {
           switch (itsMode) {
             case GainCal::SCALARPHASE:
             case GainCal::PHASEONLY:
+            case GainCal::FULLJONES:
               solTabName = "phase000";
               soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-              soltab.setComplexValues(sols, vector<double>(), false);
+              soltab.setComplexValues(sols, vector<double>(), false, historyString);
               break;
             case GainCal::SCALARCOMPLEXGAIN:
             case GainCal::COMPLEXGAIN:
               if (solnum==0) {
                 solTabName = "phase000";
                 soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-                soltab.setComplexValues(sols, vector<double>(), false);
+                soltab.setComplexValues(sols, vector<double>(), false, historyString);
               } else {
                 solTabName = "amplitude000";
                 soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-                soltab.setComplexValues(sols, vector<double>(), true);
+                soltab.setComplexValues(sols, vector<double>(), true, historyString);
               }
               break;
             case GainCal::SCALARAMPLITUDE:
             case GainCal::AMPLITUDEONLY:
               solTabName = "amplitude000";
               soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-              soltab.setComplexValues(sols, vector<double>(), true);
+              soltab.setComplexValues(sols, vector<double>(), true, historyString);
               break;
             default: 
               THROW(Exception, "Constraint should have produced output");
@@ -765,10 +774,13 @@ namespace LOFAR {
 
             string solTabName = firstResult.name+"000";
             H5Parm::SolTab soltab = itsH5Parm.createSolTab(solTabName, firstResult.name, axes);
-            soltab.setValues(sols, vector<double>());
+            soltab.setValues(sols, vector<double>(),
+                             "CREATE by DPPP\n" +
+                             Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+                             "step " + itsName + " in parset: \n" +
+                             itsParsetString);
 
             // Tell H5Parm that all antennas and directions were used 
-            // TODO: do this more cleanly
             std::vector<std::string> antennaNames(info().antennaNames().size());
             for (uint i=0; i<info().antennaNames().size(); ++i) {
               antennaNames[i]=info().antennaNames()[i];

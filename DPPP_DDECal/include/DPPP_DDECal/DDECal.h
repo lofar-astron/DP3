@@ -63,7 +63,7 @@ namespace LOFAR {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      DDECal (DPInput*, const ParameterSet&, const string& prefix);
+      DDECal (DPInput*, const ParameterSet&, const std::string& prefix);
 
       virtual ~DDECal();
 
@@ -110,7 +110,7 @@ namespace LOFAR {
 
       //# Data members.
       DPInput*         itsInput;
-      string           itsName;
+      std::string      itsName;
       vector<DPBuffer> itsBufs;
 
       // The time of the current buffer (in case of solint, average time)
@@ -130,8 +130,9 @@ namespace LOFAR {
       std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
 
       casacore::Cube<casacore::Complex> itsModelData;
-      string           itsH5ParmName;
+      std::string      itsH5ParmName;
       H5Parm           itsH5Parm;
+      std::string      itsParsetString; // Parset, for logging in H5Parm
 
       GainCal::CalType itsMode;
       bool             itsPropagateSolutions;
