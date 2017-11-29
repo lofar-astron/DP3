@@ -292,6 +292,11 @@ class PhaseFitter
   {
     return fmod(alpha / nu, 2.0*M_PI);
   }
+  
+  static double AlphaToTEC(double alpha)
+  {
+    return alpha / -8.44797245e9;
+  }
  private:
 	std::vector<double> _phases, _frequencies, _weights;
 	double _fittingAccuracy;

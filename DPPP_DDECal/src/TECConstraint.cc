@@ -186,7 +186,8 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
         }
       }
       
-      _pwFitters[thread].SlidingFit(_phaseFitters[thread].FrequencyData(), data, weights.data(), fittedData);
+      // TODO might be nice to make it a user option whether to break or not
+      _pwFitters[thread].SlidingFitWithBreak(_phaseFitters[thread].FrequencyData(), data.data(), weights.data(), fittedData.data(), data.size());
 
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
       {
