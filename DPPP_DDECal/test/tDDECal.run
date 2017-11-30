@@ -40,7 +40,7 @@ for caltype in complexgain scalarcomplexgain amplitudeonly scalaramplitude
 do
   for solint in 0 1 2 4
   do
-    for nchan in 1
+    for nchan in 1 2 5
     do
           rm -rf instrument.h5 # Remove h5parm if it exists
           echo "Calibrate on the original sources, caltype=$caltype"
@@ -73,7 +73,7 @@ do
           echo $cmd
           eval $cmd
 
-          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.01 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
+          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.015 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
           echo $cmd
           eval $cmd
 

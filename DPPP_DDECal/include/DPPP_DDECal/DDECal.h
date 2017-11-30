@@ -140,7 +140,7 @@ namespace LOFAR {
       uint             itsSolInt;
       uint             itsStepInSolInt;
       uint             itsNChan;
-      uint             itsNFreqCells;
+      vector<double>   itsChanBlockFreqs;
       vector<vector<string> > itsDirections; // For each direction, a vector of patches
       vector<casacore::CountedPtr<Constraint> > itsConstraints;
 

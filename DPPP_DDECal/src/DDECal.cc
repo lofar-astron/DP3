@@ -89,7 +89,6 @@ namespace LOFAR {
         itsSolInt        (parset.getInt (prefix + "solint", 1)),
         itsStepInSolInt  (0),
         itsNChan         (parset.getInt (prefix + "nchan", 0)),
-        itsNFreqCells    (0),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
@@ -267,15 +266,8 @@ namespace LOFAR {
         itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
       }
 
-      if (itsNChan==0) {
+      if (itsNChan==0 || itsNChan>info().nchan()) {
         itsNChan = info().nchan();
-      }
-      if (itsNChan>info().nchan()) {
-        itsNChan=info().nchan();
-      }
-      itsNFreqCells = info().nchan() / itsNChan;
-      if (itsNChan*itsNFreqCells<info().nchan()) { // If last freq cell is smaller
-        itsNFreqCells++;
       }
 
       // Convert from casacore::Vector to std::vector
@@ -312,9 +304,18 @@ namespace LOFAR {
       itsNApproxIter.resize(nSolTimes);
       itsConstraintSols.resize(nSolTimes);
 
-      vector<double> chanFreqs(info().nchan());  //nChannelBlocks
-      for (uint i=0;i<info().chanFreqs().size();++i) {
-        chanFreqs[i]=info().chanFreqs()[i];
+      size_t nChannelBlocks = info().nchan()/itsNChan;
+      itsChanBlockFreqs.resize(nChannelBlocks);
+      for(size_t chBlock=0; chBlock!=nChannelBlocks; ++chBlock) {
+        const size_t
+          channelIndexStart = chBlock * info().nchan() / nChannelBlocks,
+          channelIndexEnd = (chBlock+1) * info().nchan() / nChannelBlocks,
+          curChannelBlockSize = channelIndexEnd - channelIndexStart;
+        double  meanfreq = std::accumulate(
+            info().chanFreqs().data()+channelIndexStart,
+            info().chanFreqs().data()+channelIndexEnd,
+            0.0) / curChannelBlockSize;
+        itsChanBlockFreqs[chBlock] = meanfreq;
       }
 
       for (uint i=0; i<itsConstraints.size();++i) {
@@ -351,8 +352,8 @@ namespace LOFAR {
           screenConstraint->initialize(
               info().antennaNames().size(),
               itsDirections.size(),
-              info().nchan(), //nChannelBlocks
-              &(chanFreqs[0])
+              nChannelBlocks,
+              &(itsChanBlockFreqs[0])
           );
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
@@ -385,15 +386,17 @@ namespace LOFAR {
         {
           tecConstraint->initialize(info().antennaNames().size(),
               itsDirections.size(),
-              info().nchan(), //nChannelBlocks
-              &(chanFreqs[0]));
+              nChannelBlocks,
+              &(itsChanBlockFreqs[0]));
         }
       }
 
       uint nSt = info().antennaNames().size();
       itsMultiDirSolver.init(nSt, nDir, info().nchan(), ant1, ant2);
+      itsMultiDirSolver.set_channel_blocks(nChannelBlocks);
+
       for (uint i=0; i<nSolTimes; ++i) {
-        itsSols[i].resize(info().nchan());
+        itsSols[i].resize(nChannelBlocks);
       }
     }
 
@@ -636,6 +639,7 @@ namespace LOFAR {
       if (itsConstraintSols[0].empty()) {
         // Record the actual iterands of the solver, not constraint results
         uint nSolChan = itsSols[0].size();
+        ASSERT(nSolChan == itsChanBlockFreqs.size());
 
         vector<DComplex> sols(nSolChan*info().nantenna()*nSolTimes*nDir*nPol);
         size_t i=0;
@@ -724,13 +728,7 @@ namespace LOFAR {
             soltab.setPolarizations(polarizations);
           }
    
-          // Set channel to frequency of middle channel 
-          // TODO fix this
-          vector<double> solFreqs(nSolChan);
-          for (uint chan=0; chan<nSolChan; ++chan) {
-            solFreqs[chan] = info().chanFreqs()[chan];
-          }
-          soltab.setFreqs(solFreqs);
+          soltab.setFreqs(itsChanBlockFreqs);
 
           soltab.setTimes(solTimes);
         } // solnums loop
