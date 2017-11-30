@@ -48,12 +48,18 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
     {
       if(_phaseOnly)
       {
-        double ab = std::abs(nextSolutions[chBlock][i]);
-        if(ab != 0.0)
-          nextSolutions[chBlock][i] /= ab;
+        // In phase only mode, a step is made along the complex circle,
+        // towards the shortest direction.
+        double phaseFrom = std::arg(solutions[chBlock][i]);
+        double distance = phaseFrom - std::arg(nextSolutions[chBlock][i]);
+        if(distance > M_PI) distance = distance - 2.0*M_PI;
+        else if(distance < -M_PI) distance = distance + 2.0*M_PI;
+        nextSolutions[chBlock][i] = std::polar(1.0, phaseFrom + _stepSize * distance);
       }
-      nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
-        nextSolutions[chBlock][i] * _stepSize;
+      else {
+        nextSolutions[chBlock][i] = solutions[chBlock][i]*(1.0-_stepSize) +
+          nextSolutions[chBlock][i] * _stepSize;
+      }
     }
   }
 }
