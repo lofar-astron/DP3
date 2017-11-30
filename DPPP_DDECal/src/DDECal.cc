@@ -88,7 +88,7 @@ namespace LOFAR {
         itsTimeStep      (0),
         itsSolInt        (parset.getInt (prefix + "solint", 1)),
         itsStepInSolInt  (0),
-        itsNChan         (parset.getInt (prefix + "nchan", 0)),
+        itsNChan         (parset.getInt (prefix + "nchan", 1)),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
