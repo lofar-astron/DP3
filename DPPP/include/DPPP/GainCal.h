@@ -162,6 +162,7 @@ namespace LOFAR {
 
       std::vector<casacore::Cube<casacore::DComplex> > itsSols; // for every timeslot, nCr x nSt x nFreqCells
       std::vector<casacore::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
+      std::vector<double> itsFreqData; // Mean frequency for every freqcell
 
       std::vector<casacore::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
 

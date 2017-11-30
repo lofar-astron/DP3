@@ -383,9 +383,20 @@ namespace LOFAR {
 
     double freqInterval = getFreqInterval();
 
-    for (size_t i = 0; i<freqs.size(); ++i) {
-      if (abs(freqs[i]-freq)<freqInterval*0.501) // 0.5 with some tolerance
-        return i;
+    // Special treatment for first frequency bin
+    if (abs(freqs[0]-freq)<0.501*freqInterval) {
+      return 0;
+    }
+    // No assumptions on regular spacing from here onwards:
+    for (size_t i = 0; i<freqs.size()-1; ++i) {
+      if (freqs[i]-0.001<=freq && freq<freqs[i+1]) { // Some tolerance
+        // Nearest neighbor: i or i+1
+        if (freq-freqs[i] < freqs[i+1]-freq) {
+          return i;
+        } else {
+          return i+1;
+        }
+      }
     }
 
     THROW(Exception,"Frequency "<<fixed<<freq<<" not found in "<<getName());

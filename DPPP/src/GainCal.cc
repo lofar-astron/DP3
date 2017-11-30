@@ -227,29 +227,31 @@ namespace LOFAR {
       itsSelectedBL = itsBaselineSelection.applyVec(info());
       setAntennaUsed();
 
+      // Compute average frequency for every freqcell
+      itsFreqData.resize(itsNFreqCells);
+      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+        double meanfreq=0;
+        uint chmin=itsNChan*freqCell;
+        uint chmax=min(info().nchan(), chmin+itsNChan);
+
+        meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
+                                   info().chanFreqs().data()+chmax, 0.0);
+
+        itsFreqData[freqCell] = meanfreq / (chmax-chmin);
+      }
+
       // Initialize phase fitters, set their frequency data
       if (itsMode==TECANDPHASE || itsMode==TEC) {
         itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
 
         itsPhaseFitters.reserve(itsNFreqCells); // TODO: could be numthreads instead
-        vector<double> freqData(itsNFreqCells);
-        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-          double meanfreq=0;
-          uint chmin=itsNChan*freqCell;
-          uint chmax=min(info().nchan(), chmin+itsNChan);
-
-          meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
-                                     info().chanFreqs().data()+chmax, 0.0);
-
-          freqData[freqCell] = meanfreq / (chmax-chmin);
-        }
 
         uint nSt=info().antennaUsed().size();
         for (uint st=0; st<nSt; ++st) {
           itsPhaseFitters.push_back(CountedPtr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
           double* nu = itsPhaseFitters[st]->FrequencyData();
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-            nu[freqCell] = freqData[freqCell];
+            nu[freqCell] = itsFreqData[freqCell];
           }
         }
       }
@@ -899,14 +901,6 @@ namespace LOFAR {
       } else {
         nSolFreqs = itsNFreqCells;
       }
-      vector<double> solFreqs;
-      double freqWidth = getInfo().chanWidths()[0];
-      if (getInfo().chanFreqs().size()>1) { // Handle data with evenly spaced gaps between channels
-        freqWidth = info().chanFreqs()[1]-info().chanFreqs()[0];
-      }
-      for (uint f=0; f<nSolFreqs; ++f) {
-        solFreqs.push_back(info().chanFreqs()[0]+0.5*freqWidth+f*freqWidth*itsNChan);
-      }
 
       vector<H5Parm::AxisInfo> axes;
       axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
@@ -923,13 +917,22 @@ namespace LOFAR {
           antennaNames.push_back(info().antennaNames()[st]);
       }
 
-      for (auto soltab: soltabs) {
-        soltab.setAntennas(antennaNames);
+      vector<H5Parm::SolTab>::iterator soltabiter = soltabs.begin();
+      for (; soltabiter != soltabs.end(); ++soltabiter) {
+        (*soltabiter).setAntennas(antennaNames);
         if (nPol>1) {
-          soltab.setPolarizations(polarizations);
+          (*soltabiter).setPolarizations(polarizations);
         }
-        soltab.setFreqs(solFreqs);
-        soltab.setTimes(solTimes);
+        if (itsMode==TEC || itsMode==TECANDPHASE) {
+          // Set channel to frequency of middle channel
+          // TODO: fix this for nchan
+          vector<double> oneFreq(1);
+          oneFreq[0] = info().chanFreqs()[info().nchan()/2];
+          (*soltabiter).setFreqs(oneFreq);
+        } else {
+          (*soltabiter).setFreqs(itsFreqData);
+        }
+        (*soltabiter).setTimes(solTimes);
       }
 
       // Put solutions in a contiguous piece of memory
