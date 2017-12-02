@@ -50,21 +50,21 @@ std::vector<Constraint::Result> CoreConstraint::Apply(
   for (uint ch=0; ch<solutions.size(); ++ch) {
     std::vector<dcomplex> coreSolutions(_nDirections, 0.0);
     // Calculate the sum of solutions over the core stations
-    for(std::set<size_t>::const_iterator antennaIter = _coreAntennas.begin(); antennaIter!=_coreAntennas.end(); ++antennaIter)
+    for(size_t antennaIndex : _coreAntennas)
     {
-      size_t startIndex = (*antennaIter)*_nDirections;
+      size_t startIndex = antennaIndex * _nDirections;
       for(size_t direction = 0; direction != _nDirections; ++direction)
         coreSolutions[direction] += solutions[ch][startIndex + direction];
     }
     
     // Divide by nr of core stations to get the mean solution
-    for(std::vector<dcomplex>::iterator solutionIter = coreSolutions.begin(); solutionIter!=coreSolutions.end(); ++solutionIter)
-      (*solutionIter) /= _coreAntennas.size();
+    for(dcomplex& solution : coreSolutions)
+      solution /= _coreAntennas.size();
     
     // Assign all core stations to the mean solution
-    for(std::set<size_t>::const_iterator antennaIter = _coreAntennas.begin(); antennaIter!=_coreAntennas.end(); ++antennaIter)
+    for(size_t antennaIndex : _coreAntennas)
     {
-      size_t startIndex = (*antennaIter)*_nDirections;
+      size_t startIndex = antennaIndex * _nDirections;
       for(size_t direction = 0; direction != _nDirections; ++direction)
         solutions[ch][startIndex + direction] = coreSolutions[direction];
     }
