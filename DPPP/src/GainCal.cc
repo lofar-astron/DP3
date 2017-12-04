@@ -868,6 +868,28 @@ namespace LOFAR {
 
       H5Parm h5parm(itsParmDBName);
 
+      // Fill antenna info in H5Parm, need to convert from casa types to std types
+      std::vector<std::string> allAntennaNames(info().antennaNames().size());
+      std::vector<std::vector<double> > antennaPos(info().antennaPos().size());
+      for (uint i=0; i<info().antennaNames().size(); ++i) {
+        allAntennaNames[i]=info().antennaNames()[i];
+        casacore::Quantum<casacore::Vector<double> > pos = info().antennaPos()[i].get("m");
+        antennaPos[i].resize(3);
+        antennaPos[i][0] = pos.getValue()[0];
+        antennaPos[i][1] = pos.getValue()[1];
+        antennaPos[i][2] = pos.getValue()[2];
+      }
+
+      h5parm.addAntennas(allAntennaNames, antennaPos);
+
+      vector<pair<double, double> > pointingPosition(1);
+      MDirection phasecenter = info().phaseCenter();
+      pointingPosition[0].first = phasecenter.getValue().get()[0];
+      pointingPosition[0].second = phasecenter.getValue().get()[1];
+      vector<string> pointingName(1, "POINTING");
+
+      h5parm.addSources(pointingName, pointingPosition);
+
       uint nPol;
       vector<string> polarizations;
       if (scalarMode(itsMode)) {
@@ -942,7 +964,11 @@ namespace LOFAR {
 
       if (itsMode==TEC || itsMode==TECANDPHASE) {
         vector<double> tecsols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
-        vector<double> phasesols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        vector<double> weights(nSolFreqs*antennaNames.size()*nSolTimes*nPol, 1.);
+        vector<double> phasesols;
+        if (itsMode==TECANDPHASE) {
+          phasesols.resize(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        }
         size_t i=0;
         for (uint time=0; time<nSolTimes; ++time) {
           for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
@@ -950,6 +976,9 @@ namespace LOFAR {
               for (uint pol=0; pol<nPol; ++pol) {
                 ASSERT(!itsTECSols[time].empty());
                 tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
+                if (isinf(tecsols[i]) || isnan(tecsols[i])) {
+                  weights[i] = 0.;
+                }
                 if (itsMode==TECANDPHASE) {
                   phasesols[i] = -itsTECSols[time](0, ant);
                 }
@@ -958,12 +987,13 @@ namespace LOFAR {
             }
           }
         }
-        soltabs[0].setValues(tecsols, vector<double>(), historyString);
+        soltabs[0].setValues(tecsols, weights, historyString);
         if (itsMode==TECANDPHASE) {
-          soltabs[1].setValues(phasesols, vector<double>(), historyString);
+          soltabs[1].setValues(phasesols, weights, historyString);
         }
       } else {
         vector<DComplex> sols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+        vector<double> weights(nSolFreqs*antennaNames.size()*nSolTimes*nPol, 1.);
         size_t i=0;
         for (uint time=0; time<nSolTimes; ++time) {
           for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
@@ -971,6 +1001,9 @@ namespace LOFAR {
               for (uint pol=0; pol<nPol; ++pol) {
                 ASSERT(!itsSols[time].empty());
                 sols[i] = itsSols[time](pol, ant, freqCell);
+                if (isinf(sols[i].real()) || isnan(sols[i].real())) {
+                  weights[i] = 0.;
+                }
                 ++i;
               }
             }
@@ -978,13 +1011,13 @@ namespace LOFAR {
         }
 
         if (itsMode!=AMPLITUDEONLY) {
-          soltabs[0].setComplexValues(sols, vector<double>(), false, historyString);
+          soltabs[0].setComplexValues(sols, weights, false, historyString);
         } else {
-          soltabs[0].setComplexValues(sols, vector<double>(), true, historyString);
+          soltabs[0].setComplexValues(sols, weights, true, historyString);
         }
         if (soltabs.size()>1) {
           // Also write amplitudes
-          soltabs[1].setComplexValues(sols, vector<double>(), true, historyString);
+          soltabs[1].setComplexValues(sols, weights, true, historyString);
         }
       }
 
