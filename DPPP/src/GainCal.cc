@@ -976,7 +976,7 @@ namespace LOFAR {
               for (uint pol=0; pol<nPol; ++pol) {
                 ASSERT(!itsTECSols[time].empty());
                 tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
-                if (isinf(tecsols[i]) || isnan(tecsols[i])) {
+                if (!std::isfinite(tecsols[i])) {
                   weights[i] = 0.;
                 }
                 if (itsMode==TECANDPHASE) {
@@ -1001,7 +1001,7 @@ namespace LOFAR {
               for (uint pol=0; pol<nPol; ++pol) {
                 ASSERT(!itsSols[time].empty());
                 sols[i] = itsSols[time](pol, ant, freqCell);
-                if (isinf(sols[i].real()) || isnan(sols[i].real())) {
+                if (!std::isfinite(sols[i].real())) {
                   weights[i] = 0.;
                 }
                 ++i;
