@@ -137,15 +137,17 @@ void PhaseFitter::FitTEC2ModelParameters(double& alpha, double& beta) const
 double PhaseFitter::FitDataToTEC2Model(double& alpha, double& beta)
 {
   FitTEC2ModelParameters(alpha, beta);
+  double cost = TEC2ModelCost(alpha, beta);
   fillDataWithTEC2Model(alpha, beta);
-	return TEC2ModelCost(alpha, beta);
+  return cost;
 }
 
 double PhaseFitter::FitDataToTEC1Model(double& alpha)
 {
   FitTEC1ModelParameters(alpha);
+  double cost = TEC1ModelCost(alpha);
   fillDataWithTEC1Model(alpha);
-  return TEC1ModelCost(alpha);
+  return cost;
 }
 
 void PhaseFitter::FitTEC1ModelParameters(double& alpha) const
