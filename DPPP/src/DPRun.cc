@@ -284,8 +284,10 @@ namespace LOFAR {
         string prefix(*iter + '.');
         // The alphabetic part of the name is the default step type.
         // This allows names like average1, out3.
-        int res = casacore::Regex("[a-z]+").match((*iter).c_str(), (*iter).size());
-        string defaulttype = (*iter).substr(0,res);
+        string defaulttype = (*iter);
+        while (defaulttype.size()>0 && std::isdigit(defaulttype.back())) {
+          defaulttype.resize(defaulttype.size()-1);
+        }
 
         string type = toLower(parset.getString (prefix+"type", defaulttype));
         // Define correct name for AOFlagger synonyms.
