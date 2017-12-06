@@ -96,8 +96,7 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
 std::vector<Constraint::Result> TECConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double)
 {
-  std::vector<Constraint::Result> res(2);
-
+  std::vector<Constraint::Result> res(3);
   res[0].vals.resize(_nAntennas*_nDirections);
   res[0].axes="ant,dir,freq";
   res[0].name="tec";
@@ -107,6 +106,8 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res[0].dims[2]=1;
   res[1]=res[0];
   res[1].name="scalarphase";
+  res[2]=res[0];
+  res[2].name="error";
 
   // Divide out the reference antenna
   applyReferenceAntenna(solutions);
@@ -136,9 +137,9 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     
     double alpha, beta=0.0;
     if(_mode == TECOnlyMode) {
-      _phaseFitters[thread].FitDataToTEC1Model(alpha);
+      res[2].vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC1Model(alpha);
     } else {
-      _phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
+      res[2].vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
     }
 
     res[0].vals[solutionIndex] = alpha / -8.44797245e9;

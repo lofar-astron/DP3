@@ -153,7 +153,7 @@ void ScreenConstraint::CalculatePiercepoints(){
       itsPiercePoints[i][j].evaluate(time);
 }
 
-void  ScreenConstraint::getPPValue(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,size_t solutionIndex,size_t dirIndex,double &avgTEC) const {
+  void  ScreenConstraint::getPPValue(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,size_t solutionIndex,size_t dirIndex,double &avgTEC,double &error) const {
   if (itsAVGMode=="simple"){
     avgTEC=0;
     for(size_t ch=0;ch<_nChannelBlocks; ++ch){
@@ -165,17 +165,21 @@ void  ScreenConstraint::getPPValue(std::vector<std::vector<MultiDirSolver::DComp
   }
   else{
     PhaseFitter phfit(_nChannelBlocks) ;
+    double offset;
     for(size_t ch=0;ch<_nChannelBlocks; ++ch){
       phfit.FrequencyData()[ch]=itsFrequencies.data()[ch];
       phfit.PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
-    if (itsprevsol[solutionIndex]<-100)
-      phfit.FitTEC1ModelParameters(avgTEC);
+    if (itsprevsol[solutionIndex]<-100){
+      phfit.FitTEC2ModelParameters(avgTEC,offset);
+      error=phfit.TEC2ModelCost(avgTEC,offset);
+	}
     else {
       avgTEC=itsprevsol[solutionIndex]*TECtoph;
-      phfit.FitTEC1ModelParameters(avgTEC);
-    }
-
+      phfit.FitTEC2ModelParameters(avgTEC,offset);
+      error=phfit.TEC2ModelCost(avgTEC,offset);
+	}
+    
     avgTEC*=phtoTEC;
   }
 }
@@ -252,7 +256,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       }
     }
     for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex){
-      double avgTEC;
+      double avgTEC,error;
       size_t solutionIndex=antIndex*_nDirections+dirIndex;
       if (itsDebugMode>0 and itsIter<maxIter)
       {
@@ -262,20 +266,29 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
           _iterphases[antIndex*_nDirections*maxIter*_nChannelBlocks+dirIndex*maxIter*_nChannelBlocks+ch*maxIter+itsIter]= std::arg(solutions[ch][solutionIndex]);
         }
       }
-      getPPValue(solutions,solutionIndex,dirIndex,avgTEC);
-      if (itsMode=="station")
+      getPPValue(solutions,solutionIndex,dirIndex,avgTEC,error);
+      if(error<=0) error=1;
+      if (itsMode=="station"){
         _screenFitters[antIndex].PhaseData()[dirIndex] = avgTEC;
-      else if (itsMode=="direction")
+	_screenFitters[antIndex].WData()[dirIndex] = 1./error;
+      }
+      else if (itsMode=="direction"){
         _screenFitters[dirIndex].PhaseData()[antIndex] = avgTEC;
-      else if (itsMode=="full")
+        _screenFitters[dirIndex].WData()[antIndex] = 1./error;
+      }
+      else if (itsMode=="full"){
         _screenFitters[0].PhaseData()[dirIndex*_nAntennas+antIndex] = avgTEC;
+        _screenFitters[0].WData()[dirIndex*_nAntennas+antIndex] = 1./error;
+      }
       else
       {//csfull mode
         if (foundantcs>=0){
           _screenFitters[0].PhaseData()[foundantcs*_nDirections+dirIndex]= avgTEC;
+          _screenFitters[0].WData()[foundantcs*_nDirections+dirIndex]= 1./error;
         }
         else if (foundantoth>=0){
           _screenFitters[foundantoth+1].PhaseData()[dirIndex]= avgTEC;
+          _screenFitters[foundantoth+1].WData()[dirIndex]= 1./error;
         }
       }
     }

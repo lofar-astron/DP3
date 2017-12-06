@@ -39,7 +39,7 @@ public:
   {
     _otherAntennas = otherAntennas;
   }
-  void getPPValue(std::vector<std::vector<std::complex<double> > >&, size_t, size_t, double&) const;
+ void getPPValue(std::vector<std::vector<std::complex<double> > >&, size_t, size_t, double&,double&) const;
 private:
   size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<std::vector<double> > itsAntennaPos;
