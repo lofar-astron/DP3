@@ -14,10 +14,10 @@
 using namespace std;
 
 namespace LOFAR {
-  H5Parm::H5Parm(const std::string& filename, bool forceNewSolSet,
-                 const std::string& solSetName):
+  H5Parm::H5Parm(const std::string& filename, bool forceNew,
+                 bool forceNewSolSet, const std::string& solSetName):
       H5::H5File(filename,
-                 access(filename.c_str(),F_OK)!=-1?H5F_ACC_RDWR:H5F_ACC_TRUNC
+                 !forceNew&&access(filename.c_str(),F_OK)!=-1?H5F_ACC_RDWR:H5F_ACC_TRUNC
                 )
   {
     if (forceNewSolSet || getNumObjs()==0) { // Create a new solSet

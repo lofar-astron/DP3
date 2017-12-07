@@ -166,8 +166,8 @@ namespace LOFAR {
       // searching for sol000, sol001, etc.
       // Only one solset of an H5Parm can be opened at once; this object only
       // provides info about one SolSet (even though the file can contain more).
-      H5Parm(const std::string& filename, bool forceNewSolSet=false,
-             const std::string& solSetName="");
+      H5Parm(const std::string& filename, bool forceNew=false, 
+             bool forceNewSolSet=false, const std::string& solSetName="");
 
 
       H5Parm();

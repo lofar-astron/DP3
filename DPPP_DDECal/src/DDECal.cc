@@ -82,7 +82,7 @@ namespace LOFAR {
         itsH5ParmName    (parset.getString (prefix + "h5parm",
                                             parset.getString("msin")+
                                               "/instrument.h5")),
-        itsH5Parm        (itsH5ParmName),
+        itsH5Parm        (itsH5ParmName, true),
         itsPropagateSolutions (parset.getBool (prefix + "propagatesolutions",
                                                false)),
         itsTimeStep      (0),

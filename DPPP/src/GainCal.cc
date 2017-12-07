@@ -866,7 +866,7 @@ namespace LOFAR {
       itsTimer.start();
       itsTimerWrite.start();
 
-      H5Parm h5parm(itsParmDBName);
+      H5Parm h5parm(itsParmDBName, true);
 
       // Fill antenna info in H5Parm, need to convert from casa types to std types
       std::vector<std::string> allAntennaNames(info().antennaNames().size());

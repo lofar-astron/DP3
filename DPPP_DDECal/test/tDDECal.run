@@ -20,7 +20,6 @@ fi
 mkdir -p tDDECal_tmp
 # Unpack the MS and other files and do the DPPP run.
 cd tDDECal_tmp
-rm -rf instrument2.h5 # Remove h5parm if it exists
 tar zxf ${srcdir}/tDDECal.in_MS.tgz
 
 echo "Running tDDECal"
@@ -42,7 +41,6 @@ do
   do
     for nchan in 1 2 5
     do
-          rm -rf instrument.h5 # Remove h5parm if it exists
           echo "Calibrate on the original sources, caltype=$caltype"
           cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
              ddecal.sourcedb=tDDECal.MS/sky ddecal.solint=$solint ddecal.nchan=$nchan \

@@ -88,19 +88,19 @@ int main(int, char**) {
 
     {
       cout<<"opening tH5Parm_tmp.h5 again, force a new soltab"<<endl;
-      H5Parm h5parm("tH5Parm_tmp.h5", true);
+      H5Parm h5parm("tH5Parm_tmp.h5", false, true);
       ASSERT(h5parm.getSolSetName()=="sol001");
     }
 
     {
       cout<<"opening tH5Parm_tmp.h5 again, force a new solset with name"<<endl;
-      H5Parm h5parm("tH5Parm_tmp.h5", true, "harry");
+      H5Parm h5parm("tH5Parm_tmp.h5", false, true, "harry");
       ASSERT(h5parm.getSolSetName()=="harry");
     }
 
     {
       cout<<"opening tH5Parm_tmp.h5 again, read existing soltab"<<endl;
-      H5Parm h5parm("tH5Parm_tmp.h5", false, "sol000");
+      H5Parm h5parm("tH5Parm_tmp.h5", false, false, "sol000");
       ASSERT(h5parm.getSolSetName()=="sol000");
       ASSERT(h5parm.nSolTabs() == 1);
       ASSERT(h5parm.hasSolTab("mysol"));
