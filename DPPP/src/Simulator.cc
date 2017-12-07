@@ -49,11 +49,11 @@ void radec2lmn(const Position &reference, const Position &position,
 
 void phases(size_t nStation, size_t nChannel, const double* lmn,
             const casacore::Matrix<double>& uvw, const casacore::Vector<double>& freq,
-            casacore::Matrix<dcomplex>& shift);
+            Simulator::Matrix<dcomplex>& shift);
 
 void spectrum(const PointSource &component, size_t nChannel,
               const casacore::Vector<double>& freq,
-              casacore::Matrix<dcomplex>& spectrum, bool stokesIOnly);
+              Simulator::Matrix<dcomplex>& spectrum, bool stokesIOnly);
 } // Unnamed namespace.
 
 Simulator::Simulator(const Position &reference, size_t nStation,
@@ -269,7 +269,7 @@ inline void radec2lmn(const Position &reference, const Position &position,
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const casacore::Matrix<double>& uvw,
                    const casacore::Vector<double>& freq,
-                   casacore::Matrix<dcomplex>& shift)
+                   Simulator::Matrix<dcomplex>& shift)
 {
     dcomplex* shiftdata=shift.data();
     for(size_t st = 0; st < nStation; ++st)
@@ -290,7 +290,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
 // Compute component spectrum.
 inline void spectrum(const PointSource &component, size_t nChannel,
                      const casacore::Vector<double>& freq,
-                     casacore::Matrix<dcomplex>& spectrum, bool stokesIOnly=false)
+                     Simulator::Matrix<dcomplex>& spectrum, bool stokesIOnly=false)
 {
     for(size_t ch = 0; ch < nChannel; ++ch)
     {

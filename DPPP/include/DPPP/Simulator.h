@@ -56,6 +56,36 @@ public:
         const casacore::Vector<double>& freq, const casacore::Matrix<double>& uvw,
         casacore::Cube<dcomplex>& buffer, bool stokesIOnly=false);
 
+    template <typename T>
+    class Matrix {
+      public:
+        Matrix():
+          itsNRows(0) {
+        } ;
+
+        Matrix(size_t nrows, size_t ncols)
+        {
+          resize(nrows, ncols);
+        }
+
+        void resize(size_t nrows, size_t ncols) {
+          itsNRows = nrows;
+          itsData.resize(nrows*ncols);
+        }
+
+        T& operator()(size_t row, size_t col) {
+          return itsData[col*itsNRows+row];
+        }
+
+        T* data() {
+          return &itsData[0];
+        }
+
+      private:
+        std::vector<T> itsData;
+        size_t itsNRows;
+    };
+
     void simulate(const ModelComponent::ConstPtr &component);
 
 private:
@@ -69,9 +99,9 @@ private:
     const casacore::Vector<Baseline> itsBaselines;
     const casacore::Vector<double>   itsFreq;
     const casacore::Matrix<double>   itsUVW;
-    casacore::Cube<dcomplex>         itsBuffer;
-    casacore::Matrix<dcomplex>       itsShiftBuffer;
-    casacore::Matrix<dcomplex>       itsSpectrumBuffer;
+    casacore::Cube<dcomplex>     itsBuffer;
+    Matrix<dcomplex>           itsShiftBuffer;
+    Matrix<dcomplex>           itsSpectrumBuffer;
 };
 
 // @}
