@@ -73,6 +73,9 @@ namespace LOFAR {
       // Set the applycal substep
       void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
 
+      // Set the operation type
+      void setOperation(const std::string& type);
+
       Predict();
 
       virtual ~Predict();

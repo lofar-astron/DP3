@@ -56,6 +56,8 @@ namespace LOFAR {
 
       vector<string> h5directions = soltab.getStringAxis("dir");
 
+      string operation = parset.getString("operation", "replace");
+
       if (itsDirections.empty()) {
         itsDirections = h5directions;
       } else {
@@ -69,6 +71,8 @@ namespace LOFAR {
         }
       }
 
+      ASSERT(!itsDirections.empty());
+
       for (uint i=0; i<itsDirections.size(); ++i) {
         string directionStr = itsDirections[i];
         vector<string> directionVec; // each direction should be like '[patch1,patch2]'
@@ -76,6 +80,10 @@ namespace LOFAR {
                directionStr[directionStr.size()-1]==']');
         directionVec = StringUtil::tokenize(directionStr.substr(1, directionStr.size()-2), ",");
         Predict* predictStep = new Predict(input, parset, prefix, directionVec);
+
+        if (operation=="replace" && i>0) {
+          predictStep->setOperation("add");
+        }
 
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
         if (i>0) {

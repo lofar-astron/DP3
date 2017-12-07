@@ -85,7 +85,7 @@ namespace LOFAR {
       itsInput = input;
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
-      itsOperation = parset.getString (prefix + "operation", "replace");
+      setOperation(parset.getString (prefix + "operation", "replace"));
       itsApplyBeam = parset.getBool (prefix + "usebeammodel", false);
       itsDebugLevel = parset.getInt (prefix + "debuglevel", 0);
       itsPatchList = vector<Patch::ConstPtr> ();
@@ -100,9 +100,6 @@ namespace LOFAR {
 
       vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
       itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
-
-      ASSERT(itsOperation=="replace" || itsOperation=="add" ||
-             itsOperation=="subtract");
 
       if (itsApplyBeam) {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
@@ -229,6 +226,13 @@ namespace LOFAR {
       res.second = itsPatchList[0]->position()[1];
       return res;
     }
+
+    void Predict::setOperation(const std::string& operation) {
+      itsOperation=operation;
+      ASSERT(itsOperation=="replace" || itsOperation=="add" ||
+             itsOperation=="subtract");
+    }
+
 
     void Predict::show (std::ostream& os) const
     {
