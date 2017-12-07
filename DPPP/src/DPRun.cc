@@ -285,7 +285,7 @@ namespace LOFAR {
         // The alphabetic part of the name is the default step type.
         // This allows names like average1, out3.
         string defaulttype = (*iter);
-        while (defaulttype.size()>0 && std::isdigit(defaulttype.back())) {
+        while (defaulttype.size()>0 && std::isdigit(*defaulttype.rbegin())) {
           defaulttype.resize(defaulttype.size()-1);
         }
 
