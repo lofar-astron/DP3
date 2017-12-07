@@ -431,7 +431,10 @@ namespace LOFAR {
 {
         // TODO: understand polarization etc.
         ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
-        hsize_t startTime = itsSolTab.getTimeIndex(bufStartTime);
+        hsize_t startTime = 0;
+        if (itsSolTab.hasAxis("time")) {
+          startTime = itsSolTab.getTimeIndex(bufStartTime);
+        }
         hsize_t startFreq = 0;
         if (itsSolTab.hasAxis("freq")) {
           startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
@@ -447,7 +450,7 @@ namespace LOFAR {
           }
 
           uint timeUpsampleFactor = numTimes;
-          if (itsSolTab.getAxis("time").size > 1) {
+          if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
             double h5timeInterval = itsSolTab.getTimeInterval();
             timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
             ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
@@ -455,7 +458,7 @@ namespace LOFAR {
 
           // Figure out whether time or frequency is first axis
           bool freqvariesfastest = true;
-          if (itsSolTab.hasAxis("freq") &&
+          if (itsSolTab.hasAxis("freq") && itsSolTab.hasAxis("time") &&
               itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
             freqvariesfastest = false;
           }
