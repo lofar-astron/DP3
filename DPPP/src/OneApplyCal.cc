@@ -33,6 +33,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/OS/File.h>
 #include <iostream>
+#include <algorithm>
 #include <iomanip>
 
 using namespace casacore;
@@ -440,35 +441,44 @@ namespace LOFAR {
         if (itsSolTab.hasAxis("freq")) {
           startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
         }
+        uint freqUpsampleFactor = numFreqs;
+        if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
+          double h5freqinterval = itsSolTab.getFreqInterval();
+          ASSERT(h5freqinterval>0);
+          freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
+          ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
+        }
+
+        uint timeUpsampleFactor = numTimes;
+        if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
+          double h5timeInterval = itsSolTab.getTimeInterval();
+          timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
+          ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
+        }
+
+        // Figure out whether time or frequency is first axis
+        bool freqvariesfastest = true;
+        if (itsSolTab.hasAxis("freq") && itsSolTab.hasAxis("time") &&
+            itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
+          freqvariesfastest = false;
+        }
+        ASSERT(freqvariesfastest);
+
+        // Take the ceiling of numTimes/timeUpsampleFactor, same for freq
+        uint numTimesInH5Parm = (numTimes+timeUpsampleFactor-1)/timeUpsampleFactor;
+        uint numFreqsInH5Parm = (numFreqs+freqUpsampleFactor-1)/freqUpsampleFactor;
+
+        // Check that frequencies match
+        if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
+          vector<double> h5parmfreqs = itsSolTab.getRealAxis("freq");
+          for (uint f=0; f<info().nchan(); ++f) {
+            ASSERT(nearAbs(h5parmfreqs[f/freqUpsampleFactor],
+                          info().chanFreqs()[f],
+                          freqInterval*0.501));
+          }
+        }
+
         for (uint ant = 0; ant < numAnts; ++ant) {
-
-          uint freqUpsampleFactor = numFreqs;
-          if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
-            double h5freqinterval = itsSolTab.getFreqInterval();
-            ASSERT(h5freqinterval>0);
-            freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
-            ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
-          }
-
-          uint timeUpsampleFactor = numTimes;
-          if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
-            double h5timeInterval = itsSolTab.getTimeInterval();
-            timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
-            ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
-          }
-
-          // Figure out whether time or frequency is first axis
-          bool freqvariesfastest = true;
-          if (itsSolTab.hasAxis("freq") && itsSolTab.hasAxis("time") &&
-              itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
-            freqvariesfastest = false;
-          }
-          ASSERT(freqvariesfastest);
-
-          // Take the ceiling of numTimes/timeUpsampleFactor, same for freq
-          uint numTimesInH5Parm = (numTimes+timeUpsampleFactor-1)/timeUpsampleFactor;
-          uint numFreqsInH5Parm = (numFreqs+freqUpsampleFactor-1)/freqUpsampleFactor;
-
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
             vector<double> rawsols;
             rawsols = itsSolTab.getValues(info().antennaNames()[ant],
