@@ -117,6 +117,7 @@ namespace LOFAR {
       os << "H5ParmPredict " << itsName << endl;
       os << "  H5Parm:     " << itsH5ParmName << endl;
       os << "  directions: " << itsDirections << endl;
+      itsPredictSteps[0]->show(os);
     }
 
     void H5ParmPredict::showTimings (std::ostream& os, double duration) const

@@ -105,6 +105,7 @@ namespace LOFAR {
       bool             itsUseH5Parm;
       boost::shared_ptr<BBS::ParmFacade> itsParmDB;
       H5Parm           itsH5Parm;
+      string           itsSolTabName;
       H5Parm::SolTab   itsSolTab;
       CorrectType      itsCorrectType;
       bool             itsInvert;

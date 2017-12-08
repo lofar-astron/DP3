@@ -95,11 +95,11 @@ namespace LOFAR {
                           predictDirection));
         itsH5Parm = H5Parm(itsParmDBName);
 
-        string solTabName = (parset.isDefined(prefix + "correction") ?
-                             parset.getString(prefix + "correction") :
-                             parset.getString(defaultPrefix + "correction"));
+        itsSolTabName = (parset.isDefined(prefix + "correction") ?
+                         parset.getString(prefix + "correction") :
+                         parset.getString(defaultPrefix + "correction"));
 
-        itsSolTab = itsH5Parm.getSolTab(solTabName);
+        itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
         itsCorrectType = stringToCorrectType(itsSolTab.getType());
         if (itsCorrectType==PHASE && nPol("")==1) {
           itsCorrectType = SCALARPHASE;
@@ -305,7 +305,8 @@ namespace LOFAR {
     {
       os << "ApplyCal " << itsName << std::endl;
       if (itsUseH5Parm) {
-        os << "  H5Parm:         " << itsParmDBName <<endl;
+        os << "  H5Parm:         " << itsParmDBName << endl;
+        os << "    SolTab:       " << itsSolTabName << endl;
       } else {
         os << "  parmdb:         " << itsParmDBName << endl;
       }
