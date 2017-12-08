@@ -381,13 +381,13 @@ namespace LOFAR {
     }
     vector<double> freqs = getRealAxis("freq");
 
-    double freqInterval = getFreqInterval();
+    double freqInterval = getFreqInterval(0);
 
-    // Special treatment for first frequency bin
+    // Half a cell width before the first frequency
     if (abs(freqs[0]-freq)<0.501*freqInterval) {
       return 0;
     }
-    // No assumptions on regular spacing from here onwards:
+    // No assumptions on regular spacing here
     for (size_t i = 0; i<freqs.size()-1; ++i) {
       if (freqs[i]-0.001<=freq && freq<freqs[i+1]) { // Some tolerance
         // Nearest neighbor: i or i+1
@@ -397,6 +397,12 @@ namespace LOFAR {
           return i+1;
         }
       }
+    }
+
+    // Half a cell width after the last frequency
+    freqInterval = getFreqInterval(freqs.size()-2);
+    if (abs(freqs[freqs.size()-1]-freq)<0.501*freqInterval) {
+      return freqs.size()-1;
     }
 
     THROW(Exception,"Frequency "<<fixed<<freq<<" not found in "<<getName());
@@ -470,7 +476,7 @@ namespace LOFAR {
     return getNamedIndex(_dirMap, "dir", dirName);
   }
 
-  double H5Parm::SolTab::getInterval(const string& axisName) const {
+  double H5Parm::SolTab::getInterval(const string& axisName, size_t start) const {
     H5::DataSet dataset;
     H5::DataSpace dataspace;
     try {
@@ -483,10 +489,10 @@ namespace LOFAR {
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
-    ASSERTSTR(dims[0]>1, "For reading the interval, more than one value is required.");
+    ASSERTSTR(dims[0]>start+1, "For reading the interval, more than one value is required.");
 
     hsize_t count[1], offset[1];
-    count[0]=2; offset[0]=0;
+    count[0]=2; offset[0]=start;
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
     // Get only two values

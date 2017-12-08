@@ -97,16 +97,16 @@ namespace LOFAR {
 
           hsize_t getDirIndex(const std::string& dirName);
 
-          // Gets the interval (in s.) between the first and second time slot
-          // Throws error if there is only one time slot
-          double getTimeInterval() const {
-            return getInterval("time");
+          // Gets the interval (in s.) between a time slot (default first) and
+          // the next. Throws error if there is only one time slot.
+          double getTimeInterval(size_t start=0) const {
+            return getInterval("time", start);
           }
 
-          // Gets the interval (in s.) between the first and second frequency
-          // Throws error if there is only one frequency
-          double getFreqInterval() const {
-            return getInterval("freq");
+          // Gets the interval (in s.) between a channel (default first) and
+          // the next. Throws error if there is only one frequency.
+          double getFreqInterval(size_t start=0) const {
+            return getInterval("freq", start);
           }
 
           void setTimes(const std::vector<double>& times);
@@ -149,7 +149,7 @@ namespace LOFAR {
                          const std::string& tableName);
 
           // Get the interval of the axis axisName
-          double getInterval(const std::string& axisName) const;
+          double getInterval(const std::string& axisName, size_t start=0) const;
           hsize_t getAntIndex(const std::string& antName);
           hsize_t getNamedIndex(std::map<std::string, hsize_t>& cache,
                                 const std::string& tableName,
