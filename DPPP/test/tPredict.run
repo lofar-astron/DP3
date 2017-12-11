@@ -24,15 +24,23 @@ tar zxf ${srcdir}/tPredict.tab.tgz
 echo "    select result of 0 rows" > taql.ref
 
 echo; echo "Test with beam, subtract"; echo
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true predict.operation=subtract
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true predict.operation=subtract'
+echo $cmd
+$cmd
 # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))'
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam, add"; echo
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false predict.operation=add
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false predict.operation=add'
+echo $cmd
+$cmd
 # Compare the MODEL_DATA column of the output MS with the original data plus the BBS reference output.
-$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA+t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA+t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))'
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam, with applycal, subtract (like peeling)"; echo
@@ -41,20 +49,31 @@ open table="tPredict.parmdb"
 adddef Gain:0:0:Real values=3.
 adddef Gain:1:1:Real values=3.
 EOL
-NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.applycal.parmdb=tPredict.parmdb predict.operation=subtract
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.applycal.parmdb=tPredict.parmdb predict.operation=subtract'
+echo $cmd
+$cmd
 # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-9.0*t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-9.0*t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))'
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam"; echo
-NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky'
+echo $cmd
+$cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select ANTENNA1, ANTENNA2, ctime(TIME), FLAG[0,0], t1.DATA[0,0], t2.PREDICT_nobeam[0,0] from tNDPPP-generic.MS t1, tPredict.tab t2 where not near(t1.DATA[0,0],t2.PREDICT_nobeam[0,0],5e-2)'
-$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))'
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beam"; echo
-NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true
+cmd='NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true'
+echo $cmd
+$cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
