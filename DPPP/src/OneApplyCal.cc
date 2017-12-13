@@ -469,6 +469,7 @@ namespace LOFAR {
         uint numFreqsInH5Parm = (numFreqs+freqUpsampleFactor-1)/freqUpsampleFactor;
 
         // Check that frequencies match
+/* Disable for now
         if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
           vector<double> h5parmfreqs = itsSolTab.getRealAxis("freq");
           for (uint f=0; f<info().nchan(); ++f) {
@@ -477,6 +478,7 @@ namespace LOFAR {
                           freqInterval*0.501));
           }
         }
+*/
 
         for (uint ant = 0; ant < numAnts; ++ant) {
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
