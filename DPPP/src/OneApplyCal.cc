@@ -480,8 +480,12 @@ namespace LOFAR {
 
         for (uint ant = 0; ant < numAnts; ++ant) {
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
-            vector<double> rawsols;
+            vector<double> rawsols, rawweights;
             rawsols = itsSolTab.getValues(info().antennaNames()[ant],
+                                        startTime, numTimesInH5Parm, 1,
+                                        startFreq, numFreqsInH5Parm, 1, pol, itsDirection);
+
+            rawweights = itsSolTab.getWeights(info().antennaNames()[ant],
                                         startTime, numTimesInH5Parm, 1,
                                         startFreq, numFreqsInH5Parm, 1, pol, itsDirection);
 
@@ -493,7 +497,11 @@ namespace LOFAR {
                 for (uint f=0; f<numFreqsInH5Parm; ++f) {
                   for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
                     if (tf<tfDomainSize) {
-                      parmvalues[pol][ant][tf++] = rawsols[t*numFreqsInH5Parm + f];
+                      if (rawweights[t*numFreqsInH5Parm + f]>0) {
+                        parmvalues[pol][ant][tf++] = rawsols[t*numFreqsInH5Parm + f];
+                      } else {
+                        parmvalues[pol][ant][tf++] = std::numeric_limits<double>::quiet_NaN();
+                      }
                     }
                   }
                 }

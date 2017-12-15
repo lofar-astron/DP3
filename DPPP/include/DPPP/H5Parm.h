@@ -131,18 +131,46 @@ namespace LOFAR {
                                 const std::vector<double>& weights,
                                 bool toAmplitudes, const std::string& history="");
 
-          // Get the values of this SolTab for a given antenna.
-          std::vector<double> getValues(const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep=1,
-                                        uint startfreq=0, uint nfreq=1, uint freqstep=1,
-                                        uint pol=0, uint dir=0);
+
 
           // Get the name of this SolTab
           std::string getName() const;
 
           std::string getType() const {return _type;}
 
+          // Get the values of this SolTab for a given antenna.
+          std::vector<double> getValues(
+                                        const std::string& antName,
+                                        uint starttimeslot, uint ntime, uint timestep=1,
+                                        uint startfreq=0, uint nfreq=1, uint freqstep=1,
+                                        uint pol=0, uint dir=0) {
+            return getValuesOrWeights("val", antName,
+                                      starttimeslot, ntime, timestep,
+                                      startfreq, nfreq, freqstep,
+                                      pol, dir);
+          }
+
+          // Get the weights of this SolTab for a given antenna.
+          std::vector<double> getWeights(
+                                        const std::string& antName,
+                                        uint starttimeslot, uint ntime, uint timestep=1,
+                                        uint startfreq=0, uint nfreq=1, uint freqstep=1,
+                                        uint pol=0, uint dir=0) {
+            return getValuesOrWeights("weight", antName,
+                                      starttimeslot, ntime, timestep,
+                                      startfreq, nfreq, freqstep,
+                                      pol, dir);
+          }
+
         private:
+          // Get the values or weights of this SolTab for a given antenna.
+          std::vector<double> getValuesOrWeights(
+                                        const std::string& valOrWeight,
+                                        const std::string& antName,
+                                        uint starttimeslot, uint ntime, uint timestep,
+                                        uint startfreq, uint nfreq, uint freqstep,
+                                        uint pol, uint dir);
+
           void readAxes();
 
           void fillCache(std::map<std::string, hsize_t>& cache,

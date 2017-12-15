@@ -200,13 +200,14 @@ namespace LOFAR {
     return buffer+1;
   }
 
-  vector<double> H5Parm::SolTab::getValues(
+  vector<double> H5Parm::SolTab::getValuesOrWeights(
+              const string& valOrWeight,
               const string& antName,
               uint starttimeslot, uint ntime, uint timestep,
               uint startfreq, uint nfreq, uint freqstep,
               uint pol, uint dir) {
     vector<double> res(ntime*nfreq);
-    H5::DataSet val = openDataSet("val");
+    H5::DataSet val = openDataSet(valOrWeight);
 
     // Set offsets and strides
     hsize_t memdims[_axes.size()];
