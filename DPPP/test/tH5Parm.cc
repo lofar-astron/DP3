@@ -27,7 +27,7 @@ int main(int, char**) {
     {
       // Create a new H5Parm
       cout<<"Create tH5Parm_tmp.h5"<<endl;
-      H5Parm h5parm("tH5Parm_tmp.h5");
+      H5Parm h5parm("tH5Parm_tmp.h5", true);
 
       // Check that something is created
       ASSERT(((H5::H5File&)(h5parm)).getNumObjs()==1);
@@ -84,6 +84,14 @@ int main(int, char**) {
       times.push_back(57880.5);
       times.push_back(57882.5);
       soltab.setTimes(times);
+
+      // Add metadata for freqs;
+      vector<double> freqs;
+      freqs.push_back(130e6);
+      freqs.push_back(131e6);
+      freqs.push_back(135e6);
+      freqs.push_back(137e6);
+      soltab.setFreqs(freqs);
     }
 
     {
@@ -129,12 +137,16 @@ int main(int, char**) {
       ASSERT(casa::near(val2[1],23.));
       cout<<"testing stride"<<endl;
       ASSERT(casa::near(soltab.getTimeInterval(),2.));
-      vector<string> antennas = soltab.getStringAxis("ant");
       cout<<"reading the antennas into a vector"<<endl;
+      vector<string> antennas = soltab.getStringAxis("ant");
       ASSERT(antennas.size()==3);
       ASSERT(antennas[0]=="Antenna1");
       ASSERT(antennas[1]=="Antenna2");
       ASSERT(antennas[2]=="Antenna3");
+      cout<<"Check frequency widths"<<endl;
+      ASSERT(casa::near(soltab.getFreqInterval(0),1e6));
+      ASSERT(casa::near(soltab.getFreqInterval(1),4e6));
+      ASSERT(casa::near(soltab.getFreqInterval(2),2e6));
     }
 
     // Remove the file

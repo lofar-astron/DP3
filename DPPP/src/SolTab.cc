@@ -491,14 +491,16 @@ namespace LOFAR {
     dataspace.getSimpleExtentDims(dims);
     ASSERTSTR(dims[0]>start+1, "For reading the interval, more than one value is required.");
 
-    hsize_t count[1], offset[1];
-    count[0]=2; offset[0]=start;
+    hsize_t count[1], offset[1], memoffset[1];
+    count[0]=2; offset[0]=start; memoffset[0]=0;
     dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+    H5::DataSpace memspace(1, count);
+    memspace.selectHyperslab(H5S_SELECT_SET, count, memoffset);
 
     // Get only two values
     vector<double> values(2);
-    dataset.read(&(values[0]), H5::PredType::NATIVE_DOUBLE, dataspace, dataspace);
-
+    dataset.read(&(values[0]), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
     return values[1]-values[0];
   }
 }
