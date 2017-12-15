@@ -1031,7 +1031,8 @@ namespace LOFAR {
       // For [scalar]complexgain, store two soltabs: phase and amplitude
       if (caltype == GainCal::COMPLEXGAIN ||
           caltype == GainCal::SCALARCOMPLEXGAIN ||
-          caltype == GainCal::TECANDPHASE) {
+          caltype == GainCal::TECANDPHASE ||
+          caltype == GainCal::FULLJONES) {
         numsols = 2;
       }
       vector<H5Parm::SolTab> soltabs;
