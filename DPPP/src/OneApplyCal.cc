@@ -443,8 +443,10 @@ namespace LOFAR {
           startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
         }
         uint freqUpsampleFactor = numFreqs;
+
+        double h5freqinterval = 0.;
         if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
-          double h5freqinterval = itsSolTab.getFreqInterval();
+          h5freqinterval = itsSolTab.getFreqInterval();
           ASSERT(h5freqinterval>0);
           freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
           ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
@@ -473,9 +475,9 @@ namespace LOFAR {
         if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
           vector<double> h5parmfreqs = itsSolTab.getRealAxis("freq");
           for (uint f=0; f<info().nchan(); ++f) {
-            ASSERT(nearAbs(h5parmfreqs[f/freqUpsampleFactor],
-                          info().chanFreqs()[f],
-                          freqInterval*0.501));
+            ASSERT(nearAbs(info().chanFreqs()[f],
+                           h5parmfreqs[startFreq + f/freqUpsampleFactor],
+                           h5freqinterval*0.501));
           }
         }
 
