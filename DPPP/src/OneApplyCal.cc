@@ -33,6 +33,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/OS/File.h>
 #include <iostream>
+#include <limits>
 #include <algorithm>
 #include <iomanip>
 
