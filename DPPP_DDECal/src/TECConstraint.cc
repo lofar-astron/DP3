@@ -96,7 +96,15 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
 std::vector<Constraint::Result> TECConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double)
 {
-  std::vector<Constraint::Result> res(3);
+  size_t nRes = 3;
+  if(_mode == TECOnlyMode) {
+    nRes = 2; // TEC and error
+  }
+  else {
+    nRes = 3; // TEC, phase and error
+  }
+
+  std::vector<Constraint::Result> res(nRes);
   res[0].vals.resize(_nAntennas*_nDirections);
   res[0].axes="ant,dir,freq";
   res[0].name="tec";
@@ -104,10 +112,12 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res[0].dims[0]=_nAntennas;
   res[0].dims[1]=_nDirections;
   res[0].dims[2]=1;
-  res[1]=res[0];
-  res[1].name="scalarphase";
-  res[2]=res[0];
-  res[2].name="error";
+  if(_mode == TECAndCommonScalarMode) {
+    res[1]=res[0];
+    res[1].name="phase";
+  }
+  res.back()=res[0];
+  res.back().name="error";
 
   // Divide out the reference antenna
   applyReferenceAntenna(solutions);
@@ -137,13 +147,15 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     
     double alpha, beta=0.0;
     if(_mode == TECOnlyMode) {
-      res[2].vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC1Model(alpha);
+      res.back().vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC1Model(alpha);
     } else {
-      res[2].vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
+      res.back().vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
     }
 
     res[0].vals[solutionIndex] = alpha / -8.44797245e9;
-    res[1].vals[solutionIndex] = beta;
+    if(_mode == TECAndCommonScalarMode) {
+      res[1].vals[solutionIndex] = beta;
+    }
     
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
     {
