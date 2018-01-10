@@ -88,7 +88,6 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   double normSum = 0.0, sum = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
   size_t n = 0;
-#pragma omp parallel for
   for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
   {
     n += solutions[chBlock].size();
