@@ -111,7 +111,8 @@ namespace LOFAR {
         }
         if (directionStr=="") {
           ASSERT(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
-        } else {
+        } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
+          // If there is only one direction, silently assume it is the right one
           itsDirection = itsSolTab.getDirIndex(directionStr);
         }
       } else {
@@ -317,9 +318,13 @@ namespace LOFAR {
         os << "    Ampl/Phase:   " << boolalpha << itsUseAP << endl;
       }
       os << "  update weights: " << boolalpha << itsUpdateWeights << endl;
-      os << "  sigmaMMSE:      " << itsSigmaMMSE << endl;
       os << "  invert:         " << boolalpha << itsInvert <<endl;
-      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
+      if (itsInvert) {
+      os << "    sigmaMMSE:    " << itsSigmaMMSE << endl;
+      }
+      if (!itsUseH5Parm) {
+        os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
+      }
     }
 
     void OneApplyCal::showTimings (std::ostream& os, double duration) const
