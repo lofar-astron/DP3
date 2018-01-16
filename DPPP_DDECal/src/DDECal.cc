@@ -431,6 +431,8 @@ namespace LOFAR {
       FlagCounter::showPerc1 (os, itsTimerSolve.getElapsed(), totaltime);
       os << " of it spent in estimating gains and computing residuals" << endl;
 
+      itsMultiDirSolver.showTimings(os, itsTimerSolve.getElapsed());
+
       os << "          ";
       FlagCounter::showPerc1 (os, itsTimerWrite.getElapsed(), totaltime);
       os << " of it spent in writing gain solutions to disk" << endl;

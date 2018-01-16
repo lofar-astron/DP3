@@ -4,7 +4,7 @@ include(LofarPackageVersion)
 
 lofar_add_library(dppp_ddecal
   Package__Version.cc
-  DDECal.cc Register.cc
+  DDECal.cc Register.cc Stopwatch.cc
   KLFitter.cc DDECal.cc MultiDirSolver.cc Constraint.cc PiercePoint.cc ScreenConstraint.cc TECConstraint.cc
 )
 

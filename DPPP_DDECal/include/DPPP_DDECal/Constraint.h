@@ -64,6 +64,8 @@ public:
   virtual std::vector<Result> Apply(
     std::vector<std::vector<dcomplex> >& solutions,
     double time) = 0;
+
+  virtual void showTimings (std::ostream&, double) const {}
 };
 
 /**
