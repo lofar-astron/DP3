@@ -223,7 +223,6 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
                        const std::vector<Complex *>& data,
                        const std::vector<std::vector<Complex *> >& modelData)
 {
-  _timerFillMatrices.Start();
   for(size_t ant=0; ant!=_nAntennas; ++ant)
   {
     gTimesCs[ant].zeros();
@@ -281,12 +280,10 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
       }
     }
   }
-  _timerFillMatrices.Pause();
   
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  _timerSolve.Start();
-  size_t m = _nAntennas * nTimes * curChannelBlockSize;
+  size_t m = _nAntennas * nTimes * curChannelBlockSize * 4;
   size_t n = _nDirections, nrhs = 1;
   QRSolver solver(m, n, nrhs);
   for(size_t ant=0; ant!=_nAntennas; ++ant) {
@@ -303,7 +300,6 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
         nextSolutions[ant*_nDirections + d] = std::numeric_limits<double>::quiet_NaN();
     }
   }
-  _timerSolve.Pause();
 }
 
 MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Complex *>& data,

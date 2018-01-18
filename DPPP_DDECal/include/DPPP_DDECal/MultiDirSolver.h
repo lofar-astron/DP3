@@ -22,6 +22,7 @@ class MultiDirSolver
 public:
   typedef std::complex<double> DComplex;
   typedef std::complex<float> Complex;
+  
   class Matrix : public std::vector<DComplex>
   {
   public:
@@ -36,8 +37,6 @@ public:
     {
       return (*this)[i + j*_m];
     }
-    void reshape(size_t m, size_t n) { _m = m; }
-    
   private:
     size_t _m;
   };
