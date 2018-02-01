@@ -215,7 +215,6 @@ namespace LOFAR {
     hsize_t count[_axes.size()];
     hsize_t stride[_axes.size()];
 
-    bool timeAxisFound = false;
     for (uint i=0; i<_axes.size(); ++i) {
       stride[i] = 1;
       count[i] = 1;
@@ -225,7 +224,6 @@ namespace LOFAR {
         stride[i] = timestep;
         count[i] = ntime;
         memdims[i] = ntime;
-        timeAxisFound = true;
       } else if (_axes[i].name=="freq") {
         offset[i] = startfreq;
         stride[i] = freqstep;
@@ -242,8 +240,6 @@ namespace LOFAR {
         offset[i] = 0;
       }
     }
-
-    ASSERT(timeAxisFound);
 
     H5::DataSpace dataspace = val.getSpace();
 
