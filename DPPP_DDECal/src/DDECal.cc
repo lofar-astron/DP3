@@ -92,7 +92,8 @@ namespace LOFAR {
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
-        itsApproximateTEC(false)
+        itsApproximateTEC(false),
+	itsStatFilename(parset.getString(prefix + "statfilename", ""))
     {
       stringstream ss;
       ss << parset;
@@ -108,6 +109,9 @@ namespace LOFAR {
       itsMultiDirSolver.set_constraint_accuracy(parset.getDouble(prefix + "approxtolerance", tolerance*10.0));
       itsMultiDirSolver.set_step_size(parset.getDouble(prefix + "stepsize", 0.2));
 
+      if(!itsStatFilename.empty())
+	itsStatStream.reset(new std::ofstream(itsStatFilename));
+      
       // Default directions are all patches
       if (strDirections.empty()) {
         string sourceDBName = parset.getString(prefix+"sourcedb");
@@ -509,12 +513,12 @@ namespace LOFAR {
       {
         solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
           itsSols[itsTimeStep/itsSolInt],
-          itsAvgTime / itsSolInt);
+	  itsAvgTime / itsSolInt, itsStatStream.get());
       }
       else {
         solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
           itsSols[itsTimeStep/itsSolInt],
-          itsAvgTime / itsSolInt);
+	  itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 

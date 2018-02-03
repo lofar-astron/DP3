@@ -157,6 +157,8 @@ namespace LOFAR {
       MultiDirSolver   itsMultiDirSolver;
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;
+      std::string itsStatFilename;
+      std::unique_ptr<std::ofstream> itsStatStream;
     };
 
   } //# end namespace

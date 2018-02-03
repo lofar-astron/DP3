@@ -55,8 +55,10 @@ public:
   // data[i] is een pointer naar de data voor tijdstap i, vanaf die pointer staat het in volgorde als in MS (bl, chan, pol)
   // mdata[i] is een pointer voor tijdstap i naar arrays van ndir model data pointers (elk van die data pointers staat in zelfde volgorde als data)
   // solutions[ch] is een pointer voor channelblock ch naar antenna x directions oplossingen.
-  SolveResult processScalar(std::vector<Complex*>& data, std::vector<std::vector<Complex* > >& modelData,
-    std::vector<std::vector<DComplex> >& solutions, double time);
+  SolveResult processScalar(std::vector<Complex*>& data,
+    std::vector<std::vector<Complex* > >& modelData,
+    std::vector<std::vector<DComplex> >& solutions, double time,
+    std::ostream* statStream);
   
   /**
    * Same as @ref processScalar(), but solves full Jones matrices.
@@ -67,7 +69,8 @@ public:
    */
   SolveResult processFullMatrix(std::vector<Complex *>& data,
     std::vector<std::vector<Complex *> >& modelData,
-    std::vector<std::vector<DComplex> >& solutions, double time);
+    std::vector<std::vector<DComplex> >& solutions, double time,
+    std::ostream* statStream);
   
   void set_phase_only(bool phaseOnly) { _phaseOnly = phaseOnly; }
   
@@ -114,8 +117,12 @@ private:
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have been converged.
    */
-  bool assignSolutions(std::vector<std::vector<DComplex> >& solutions,
-    std::vector<std::vector<DComplex> >& nextSolutions, bool useConstraintAccuracy) const;
+  bool assignSolutions(
+    std::vector<std::vector<DComplex> >& solutions,
+    std::vector<std::vector<DComplex> >& nextSolutions,
+    bool useConstraintAccuracy,
+    double& sum, double& normSum
+  ) const;
                              
   size_t _nAntennas, _nDirections, _nChannels, _nChannelBlocks;
   std::vector<int> _ant1, _ant2;
