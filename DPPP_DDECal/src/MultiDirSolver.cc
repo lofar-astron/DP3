@@ -100,7 +100,7 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
     {
       double e = std::norm(nextSolutions[chBlock][i] - solutions[chBlock][i]);
       normSum += e;
-      sum += std::abs(solutions[chBlock][i]);
+      sum += std::norm(solutions[chBlock][i]);
       
       solutions[chBlock][i] = nextSolutions[chBlock][i];
     }
