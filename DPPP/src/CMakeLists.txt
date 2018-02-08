@@ -21,6 +21,7 @@ lofar_add_library(dppp
   Predict.cc OneApplyCal.cc
   ApplyBeam.cc
   PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc
+  Upsample.cc
 )
 
 lofar_add_bin_program(NDPPP NDPPP.cc)

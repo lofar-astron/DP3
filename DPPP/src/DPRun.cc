@@ -43,6 +43,7 @@
 #include <DPPP/Predict.h>
 #include <DPPP/H5ParmPredict.h>
 #include <DPPP/GainCal.h>
+#include <DPPP/Upsample.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
 #include <DPPP/ProgressMeter.h>
@@ -326,6 +327,8 @@ namespace LOFAR {
           step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
         } else if (type == "gaincal"  ||  type == "calibrate") {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
+        } else if (type == "upsample") {
+          step = DPStep::ShPtr(new Upsample (reader, parset, prefix));
         } else if (type == "out" || type=="output") {
           step = makeOutputStep(reader, parset, prefix,
                                 inNames.size()>1, currentMSName);

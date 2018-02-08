@@ -64,6 +64,10 @@ namespace LOFAR {
       void setNChan (uint nchan)
         { itsNChan = nchan; }
 
+      // Set time interval
+      void setTimeInterval (double timeInterval)
+        { itsTimeInterval = timeInterval; }
+
       // Set the frequency info.
       // An empty resolutions or effectiveBW is default to chanWidths.
       // If totalBW is 0, it is set to the sum of effectiveBW.
