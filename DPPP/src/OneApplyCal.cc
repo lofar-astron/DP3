@@ -109,10 +109,11 @@ namespace LOFAR {
         if (itsCorrectType==AMPLITUDE && nPol("")==1) {
           itsCorrectType = SCALARAMPLITUDE;
         }
+        itsDirection = 0;
         if (directionStr=="") {
           ASSERT(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
-        } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
           // If there is only one direction, silently assume it is the right one
+        } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
           itsDirection = itsSolTab.getDirIndex(directionStr);
         }
       } else {
