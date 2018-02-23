@@ -70,7 +70,7 @@ namespace LOFAR {
     public:
 
       enum CalType {COMPLEXGAIN, SCALARCOMPLEXGAIN, FULLJONES, PHASEONLY, SCALARPHASE, AMPLITUDEONLY,
-                    SCALARAMPLITUDE, TECANDPHASE, TEC, TECSCREEN};
+                    SCALARAMPLITUDE, TECANDPHASE, TEC, TECSCREEN, ROTATIONANDDIAGONAL, ROTATION};
 
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.

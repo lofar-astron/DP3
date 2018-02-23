@@ -389,9 +389,6 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     }
   }
   
-  // TODO the data and model data needs to be preweighted.
-  // Maybe we can get a non-const pointer from DPPP, that saves copying/allocating
-  
   ///
   /// Start iterating
   ///

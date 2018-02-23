@@ -153,7 +153,7 @@ namespace LOFAR {
       if (ctStr=="scalaramplitude" || ctStr=="commonscalaramplitude") return SCALARAMPLITUDE;
       if (ctStr=="phase") return PHASE;
       if (ctStr=="amplitude") return AMPLITUDE;
-      if (ctStr=="rotationangle" || ctStr=="commonrotationangle") return ROTATIONANGLE;
+      if (ctStr=="rotationangle" || ctStr=="commonrotationangle" || ctStr=="rotation") return ROTATIONANGLE;
       if (ctStr=="rotationmeasure") return ROTATIONMEASURE;
       THROW(Exception, "Unknown correction type: "<<ctStr);
       return GAIN;

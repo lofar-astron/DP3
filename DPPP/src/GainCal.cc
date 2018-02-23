@@ -154,6 +154,8 @@ namespace LOFAR {
       else if (modestr=="tecandphase") return TECANDPHASE;
       else if (modestr=="tec") return TEC;
       else if (modestr=="tecscreen") return TECSCREEN;
+      else if (modestr=="rotation+diagonal") return ROTATIONANDDIAGONAL;
+      else if (modestr=="rotation") return ROTATION;
       THROW(Exception, "Unknown mode: "<<modestr);
     }
 
@@ -170,6 +172,8 @@ namespace LOFAR {
         case TECANDPHASE: return "tecandphase";
         case TEC: return "tec";
         case TECSCREEN: return "tecscreen";
+        case ROTATION: return "rotation";
+        case ROTATIONANDDIAGONAL: return "rotation+diagonal";
         default: THROW(Exception, "Unknown caltype: "<< caltype);
       }
     }

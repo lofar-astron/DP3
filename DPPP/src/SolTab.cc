@@ -486,7 +486,7 @@ namespace LOFAR {
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
-    ASSERTSTR(dims[0]>start+1, "For reading the interval, more than one value is required.");
+    ASSERTSTR(dims[0]>start+1, "For reading the " + axisName + " interval, more than one value is required.");
 
     hsize_t count[1], offset[1], memoffset[1];
     count[0]=2; offset[0]=start; memoffset[0]=0;

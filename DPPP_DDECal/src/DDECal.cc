@@ -35,6 +35,8 @@
 
 #include <DPPP_DDECal/ScreenConstraint.h>
 #include <DPPP_DDECal/TECConstraint.h>
+#include <DPPP_DDECal/RotationConstraint.h>
+#include <DPPP_DDECal/RotationAndDiagonalConstraint.h>
 
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
@@ -93,7 +95,7 @@ namespace LOFAR {
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
-	itsStatFilename(parset.getString(prefix + "statfilename", ""))
+        itsStatFilename(parset.getString(prefix + "statfilename", ""))
     {
       stringstream ss;
       ss << parset;
@@ -214,6 +216,16 @@ namespace LOFAR {
                     new ScreenConstraint(parset, prefix+"tecscreen.")));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
+          break;
+        case GainCal::ROTATIONANDDIAGONAL:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+              new RotationAndDiagonalConstraint()));
+          itsFullMatrixMinimalization = true;
+          break;
+        case GainCal::ROTATION:
+          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+              new RotationConstraint()));
+          itsFullMatrixMinimalization = true;
           break;
         default:
           THROW (Exception, "Unexpected mode: " << 
@@ -392,6 +404,17 @@ namespace LOFAR {
               itsDirections.size(),
               nChannelBlocks,
               &(itsChanBlockFreqs[0]));
+        }
+
+        RotationAndDiagonalConstraint* rotationAndDiagonalConstraint = dynamic_cast<RotationAndDiagonalConstraint*>(itsConstraints[i].get());
+        if(rotationAndDiagonalConstraint != 0)
+        {
+          rotationAndDiagonalConstraint->initialize(info().antennaNames().size(), itsDirections.size(), nChannelBlocks);
+        }
+        RotationConstraint* rotationConstraint = dynamic_cast<RotationConstraint*>(itsConstraints[i].get());
+        if(rotationConstraint != 0)
+        {
+          rotationConstraint->initialize(info().antennaNames().size(), itsDirections.size(), nChannelBlocks);
         }
       }
 
@@ -585,7 +608,7 @@ namespace LOFAR {
           }
         }
       }
-  
+
       itsTimerPredict.stop();
 
       itsAvgTime += itsAvgTime + bufin.getTime();
@@ -613,28 +636,8 @@ namespace LOFAR {
       itsTimer.start();
       itsTimerWrite.start();
 
-      uint nDir = itsDirections.size();
-      uint nPol;
-
-      vector<string> polarizations;
-      if(itsMode == GainCal::COMPLEXGAIN ||
-         itsMode == GainCal::PHASEONLY ||
-         itsMode == GainCal::AMPLITUDEONLY ||
-         itsMode == GainCal::FULLJONES) {
-        nPol = 2;
-        polarizations.push_back("XX");
-        polarizations.push_back("YY");
-      } else if (itsMode == GainCal::FULLJONES) {
-        polarizations.push_back("XX");
-        polarizations.push_back("XY");
-        polarizations.push_back("YX");
-        polarizations.push_back("YY");
-        nPol = 4;
-      } else {
-        nPol = 1;
-      }
-
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
+      uint nDir = itsDirections.size();
       ASSERT(nSolTimes==itsSols.size());
       vector<double> solTimes(nSolTimes);
       double starttime=info().startTime();
@@ -644,6 +647,26 @@ namespace LOFAR {
 
       if (itsConstraintSols[0].empty()) {
         // Record the actual iterands of the solver, not constraint results
+
+        uint nPol;
+
+        vector<string> polarizations;
+        if(itsMode == GainCal::COMPLEXGAIN ||
+           itsMode == GainCal::PHASEONLY ||
+           itsMode == GainCal::AMPLITUDEONLY) {
+          nPol = 2;
+          polarizations.push_back("XX");
+          polarizations.push_back("YY");
+        } else if (itsMode == GainCal::FULLJONES) {
+          polarizations.push_back("XX");
+          polarizations.push_back("XY");
+          polarizations.push_back("YX");
+          polarizations.push_back("YY");
+          nPol = 4;
+        } else {
+          nPol = 1;
+        }
+
         uint nSolChan = itsSols[0].size();
         ASSERT(nSolChan == itsChanBlockFreqs.size());
 
@@ -663,6 +686,10 @@ namespace LOFAR {
                 for (uint pol=0; pol<maxPol; pol+=polIncr) {
                   ASSERT(!itsSols[time].empty());
                   ASSERT(!itsSols[time][chan].empty());
+                  ASSERT(time<itsSols.size());
+                  ASSERT(chan<itsSols[time].size());
+                  ASSERT(ant*nDir*maxPol+dir*maxPol+pol<itsSols[time][chan].size());
+                  ASSERT(i<sols.size());
                   sols[i] = itsSols[time][chan][ant*nDir*maxPol+dir*maxPol+pol];
                   ++i;
                 }
@@ -695,9 +722,15 @@ namespace LOFAR {
             case GainCal::SCALARPHASE:
             case GainCal::PHASEONLY:
             case GainCal::FULLJONES:
-              solTabName = "phase000";
-              soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-              soltab.setComplexValues(sols, vector<double>(), false, historyString);
+              if (solnum==0) {
+                solTabName = "phase000";
+                soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
+                soltab.setComplexValues(sols, vector<double>(), false, historyString);
+              } else {
+                solTabName = "amplitude000";
+                soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
+                soltab.setComplexValues(sols, vector<double>(), true, historyString);
+              }
               break;
             case GainCal::SCALARCOMPLEXGAIN:
             case GainCal::COMPLEXGAIN:
@@ -792,16 +825,47 @@ namespace LOFAR {
             soltab.setAntennas(antennaNames);
       
             soltab.setSources(getDirectionNames());
-     
-            if (nPol>1) {
+ 
+            if (soltab.hasAxis("pol")) {
+              vector<string> polarizations;
+              switch (soltab.getAxis("pol").size) {
+                case 2: polarizations.push_back("XX");
+                        polarizations.push_back("YY");
+                        break;
+                case 4: polarizations.push_back("XX");
+                        polarizations.push_back("XY");
+                        polarizations.push_back("YX");
+                        polarizations.push_back("YY");
+                        break;
+                default:
+                        THROW (Exception, "No metadata for numpolarizations = " << soltab.getAxis("pol").size);
+              }
+              
               soltab.setPolarizations(polarizations);
             }
 
-            // Set channel to frequency of middle channel 
-            // TODO: fix this for nchan
-            vector<double> oneFreq(1);
-            oneFreq[0] = info().chanFreqs()[info().nchan()/2];
-            soltab.setFreqs(oneFreq);
+            // Set channel to frequencies
+            // Do not use itsChanBlockFreqs, because constraint may have changed size
+            uint nChannelBlocks = 1;
+            if (soltab.hasAxis("freq")) {
+              nChannelBlocks = soltab.getAxis("freq").size;
+            }
+            vector<double> chanBlockFreqs;
+
+            chanBlockFreqs.resize(nChannelBlocks);
+            for(size_t chBlock=0; chBlock!=nChannelBlocks; ++chBlock) {
+              const size_t
+                channelIndexStart = chBlock * info().nchan() / nChannelBlocks,
+                channelIndexEnd = (chBlock+1) * info().nchan() / nChannelBlocks,
+                curChannelBlockSize = channelIndexEnd - channelIndexStart;
+              double  meanfreq = std::accumulate(
+                  info().chanFreqs().data()+channelIndexStart,
+                  info().chanFreqs().data()+channelIndexEnd,
+                  0.0) / curChannelBlockSize;
+              chanBlockFreqs[chBlock] = meanfreq;
+            }
+
+            soltab.setFreqs(chanBlockFreqs);
  
             soltab.setTimes(solTimes);
             // End TODO 

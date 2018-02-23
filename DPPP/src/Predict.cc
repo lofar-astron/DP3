@@ -125,7 +125,8 @@ namespace LOFAR {
 
       // If called from h5parmpredict, applycal gets set by that step,
       // so must not be read from parset
-      if (parset.isDefined(prefix + "applycal.parmdb")) {
+      if (parset.isDefined(prefix + "applycal.parmdb") ||
+          parset.isDefined(prefix + "applycal.steps")) {
         setApplyCal(input, parset, prefix + "applycal.");
       } else {
         itsDoApplyCal=false;
