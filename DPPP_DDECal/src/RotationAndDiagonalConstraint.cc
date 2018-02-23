@@ -52,7 +52,11 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     for (uint ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
+
       double angle = RotationConstraint::get_rotation(data);
+      // Restrict angle between -pi/2 and pi/2
+  // Add 2pi to make sure that fmod doesn't see negative numbers
+      angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
       _resTemplate[0].vals[ant*_nChannelBlocks + ch] = angle;
  
       // Right multiply solution with inverse rotation,

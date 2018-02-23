@@ -37,11 +37,6 @@ double RotationConstraint::get_rotation(std::complex<double>* data) {
   ll = data[0] + data[3] - i*data[1] + i*data[2];
   rr = data[0] + data[3] + i*data[1] - i*data[2];
   double angle = 0.5 * (arg(ll) - arg(rr));
-  // Restrict angle between -pi and pi
-  // Add 2pi to make sure that fmod doesn't see negative numbers
-  // angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
-  // angle = fmod(angle + 3*M_PI, M_2_PI) - M_PI;
-  // TODO: this doesn't work with tRotationConstraint, so don't put in interval now
 
   return angle;
 }
