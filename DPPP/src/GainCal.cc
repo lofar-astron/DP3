@@ -75,6 +75,7 @@ namespace LOFAR {
         itsDebugLevel    (parset.getInt (prefix + "debuglevel", 0)),
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
+        itsUVWFlagStep   (input, parset, prefix),
         itsBaselineSelection (parset, prefix),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
@@ -107,18 +108,21 @@ namespace LOFAR {
         itsTimeSlotsPerParmUpdate = 0;
       }
 
+      itsDataResultStep = ResultStep::ShPtr(new ResultStep());
+      itsUVWFlagStep.setNextStep(itsDataResultStep);
+
       if (!itsUseModelColumn) {
         itsPredictStep=Predict(input, parset, prefix);
-        itsResultStep=new ResultStep();
-        itsPredictStep.setNextStep(DPStep::ShPtr(itsResultStep));
+        itsResultStep = ResultStep::ShPtr(new ResultStep());
+        itsPredictStep.setNextStep(itsResultStep);
       } else {
         itsApplyBeamToModelColumn=parset.getBool(prefix +
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep=ApplyBeam(input, parset, prefix, true);
           ASSERT(!itsApplyBeamStep.invert());
-          itsResultStep=new ResultStep();
-          itsApplyBeamStep.setNextStep(DPStep::ShPtr(itsResultStep));
+          itsResultStep = ResultStep::ShPtr(new ResultStep());
+          itsApplyBeamStep.setNextStep(itsResultStep);
         }
       }
 
@@ -195,6 +199,8 @@ namespace LOFAR {
     {
       info() = infoIn;
       info().setNeedVisData();
+
+      itsUVWFlagStep.updateInfo(infoIn);
 
       if (itsUseModelColumn) {
         if (itsApplyBeamToModelColumn) {
@@ -336,6 +342,7 @@ namespace LOFAR {
       } else if (itsApplyBeamToModelColumn) {
         itsApplyBeamStep.show(os);
       }
+      itsUVWFlagStep.show(os);
     }
 
     void GainCal::showTimings (std::ostream& os, double duration) const
@@ -383,14 +390,19 @@ namespace LOFAR {
       uint bufIndex=0;
 
       if (itsApplySolution) {
+        // Need to keep a copy of all solint buffers in this step
         bufIndex=itsStepInSolInt;
         itsBuf[bufIndex].copy(bufin);
       } else {
-        itsBuf[0].referenceFilled (bufin);
+        // We'll read the necessary info from the buffer and pass it on
+        itsBuf[bufIndex].referenceFilled (bufin);
       }
       itsInput->fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
       itsInput->fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
       itsInput->fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
+
+      // UVW flagging happens on a copy of the buffer, so these flags are not written
+      itsUVWFlagStep.process(itsBuf[bufIndex]);
 
       Cube<Complex> dataCube=itsBuf[bufIndex].getData();
       Complex* data=dataCube.data();

@@ -57,10 +57,10 @@ namespace LOFAR {
       itsRangeUl  = fillUVW (parset, prefix, "ulambda", false);
       itsRangeVl  = fillUVW (parset, prefix, "vlambda", false);
       itsRangeWl  = fillUVW (parset, prefix, "wlambda", false);
-      ASSERTSTR (itsRangeUVm.size() + itsRangeUVl.size() +
-                 itsRangeUm.size() + itsRangeVm.size() + itsRangeWm.size() +
-                 itsRangeUl.size() + itsRangeVl.size() + itsRangeWl.size() > 0,
-                 "One or more u,v,w ranges in UVWFlagger has to be filled in");
+      itsIsDegenerate = itsRangeUVm.size() + itsRangeUVl.size() +
+                        itsRangeUm.size() + itsRangeVm.size() +
+                        itsRangeWm.size() + itsRangeUl.size() +
+                        itsRangeVl.size() + itsRangeWl.size() == 0;
       itsCenter = parset.getStringVector (prefix+"phasecenter",
                                           vector<string>());
     }
@@ -70,6 +70,10 @@ namespace LOFAR {
 
     void UVWFlagger::show (std::ostream& os) const
     {
+      if (itsIsDegenerate) {
+        return;
+      }
+
       os << "UVWFlagger " << itsName << std::endl;
       vector<double> uvm(itsRangeUVm);
       for (uint i=0; i<uvm.size(); ++i) {
@@ -90,6 +94,9 @@ namespace LOFAR {
 
     void UVWFlagger::showCounts (std::ostream& os) const
     {
+      if (itsIsDegenerate) {
+        return;
+      }
       os << endl << "Flags set by UVWFlagger " << itsName;
       os << endl << "=======================" << endl;
       itsFlagCounter.showBaseline (os, itsNTimes);
@@ -126,6 +133,11 @@ namespace LOFAR {
 
     bool UVWFlagger::process (const DPBuffer& buf)
     {
+      if (itsIsDegenerate) {
+        getNextStep()->process (buf);
+        return true;
+      }
+
       itsTimer.start();
       // Because no buffers are kept, we can reference the filled arrays
       // in the input buffer instead of copying them.

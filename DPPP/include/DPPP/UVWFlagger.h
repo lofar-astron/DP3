@@ -110,6 +110,10 @@ namespace LOFAR {
       string               itsName;
       DPBuffer             itsBuffer;
       uint                 itsNTimes;
+
+      // If nothing is filled in, this step just passes through data
+      bool                 itsIsDegenerate;
+
       casacore::Vector<double> itsRecWavel; //# reciprokes of wavelengths
       vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
       vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged

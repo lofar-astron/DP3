@@ -91,6 +91,7 @@ namespace LOFAR {
         itsSolInt        (parset.getInt (prefix + "solint", 1)),
         itsStepInSolInt  (0),
         itsNChan         (parset.getInt (prefix + "nchan", 1)),
+        itsUVWFlagStep   (input, parset, prefix),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
@@ -256,6 +257,7 @@ namespace LOFAR {
 
       const size_t nDir=itsDirections.size();
 
+      itsUVWFlagStep.updateInfo(infoIn);
       for (size_t dir=0; dir<nDir; ++dir) {
         itsPredictSteps[dir].updateInfo(infoIn);
       }
@@ -275,6 +277,9 @@ namespace LOFAR {
 
 
       itsBufs.resize(itsSolInt);
+
+      itsDataResultStep = ResultStep::ShPtr(new ResultStep());
+      itsUVWFlagStep.setNextStep(itsDataResultStep);
 
       itsResultSteps.resize(nDir);
       for (size_t dir=0; dir<nDir; ++dir) {
@@ -441,6 +446,7 @@ namespace LOFAR {
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }
+      itsUVWFlagStep.show(os);
     }
 
     void DDECal::showTimings (std::ostream& os, double duration) const
@@ -568,9 +574,13 @@ namespace LOFAR {
       itsBufs[itsStepInSolInt].copy(bufin);
       itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
 
+      // Fetch inputs because parallel PredictSteps should not read it from disk
       itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchWeights(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchFullResFlags(bufin, itsBufs[itsStepInSolInt], itsTimer);
+
+      // UVW flagging happens on a copy of the buffer, so these flags are not written
+      itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
 
       itsTimerPredict.start();
 

@@ -33,6 +33,7 @@
 #include <DPPP/H5Parm.h>
 #include <DPPP/BaselineSelection.h>
 #include <DPPP/Patch.h>
+#include <DPPP/UVWFlagger.h>
 #include <DPPP/Predict.h>
 #include <DPPP/SourceDBUtil.h>
 #include <DPPP/ApplyBeam.h>
@@ -144,6 +145,8 @@ namespace LOFAR {
       vector<vector<string> > itsDirections; // For each direction, a vector of patches
       vector<casacore::CountedPtr<Constraint> > itsConstraints;
 
+      UVWFlagger       itsUVWFlagStep;
+      ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
       vector<Predict>     itsPredictSteps;
       vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times
 

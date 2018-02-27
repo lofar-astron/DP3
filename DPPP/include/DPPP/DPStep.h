@@ -177,6 +177,7 @@ namespace LOFAR {
     class ResultStep: public DPStep
     {
     public:
+      typedef shared_ptr<ResultStep> ShPtr;
       // Create the object. By default it sets its next step to the NullStep.
       ResultStep();
 

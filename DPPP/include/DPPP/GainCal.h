@@ -33,6 +33,7 @@
 #include <DPPP/BaselineSelection.h>
 #include <DPPP/StefCal.h>
 #include <DPPP/Patch.h>
+#include <DPPP/UVWFlagger.h>
 #include <DPPP/Predict.h>
 #include <ParmDB/ParmFacade.h>
 #include <ParmDB/ParmSet.h>
@@ -168,10 +169,13 @@ namespace LOFAR {
 
       std::vector<StefCal>  iS;
 
-      Predict          itsPredictStep;
-      ApplyBeam        itsApplyBeamStep; // Beam step for applying beam to modelcol
-      ResultStep*      itsResultStep; // For catching results from Predict or Beam
-      bool             itsApplyBeamToModelColumn;
+      UVWFlagger        itsUVWFlagStep;
+      ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
+
+      Predict           itsPredictStep;
+      ApplyBeam         itsApplyBeamStep; // Beam step for applying beam to modelcol
+      ResultStep::ShPtr itsResultStep; // For catching results from Predict or Beam
+      bool              itsApplyBeamToModelColumn;
 
       BaselineSelection itsBaselineSelection; // Filter
       casacore::Vector<bool> itsSelectedBL; // Vector (length nBl) telling
