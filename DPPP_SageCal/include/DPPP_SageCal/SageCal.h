@@ -32,7 +32,7 @@
 
 #include <sagecal/Dirac.h>
 #include <sagecal/data.h>
-#include <Radio.h>
+#include <sagecal/Radio.h>
 
 #include <utility>
 
@@ -78,12 +78,16 @@ namespace LOFAR {
     private:
       void readAuxData();
 
+      void loadData(const DPBuffer&, Data::IOData&, double*);
+
       //# Data members.
       DPInput*         _input;
-      std::string      _name;
       DPBuffer         _buffer;
+      std::string      _name;
 
       Data::IOData     _iodata;
+      std::vector<baseline_t>     _barr; // Mapping baseline -> sta1, sta2
+      clus_source_t*              _carr; // Sky model
       std::string      _skymodelfile;
       std::string      _clusterfile;
       int              _num_clusters;

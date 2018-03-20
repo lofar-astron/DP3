@@ -26,6 +26,8 @@
 #include <sagecal/data.h>
 #include <sagecal/Common.h>
 
+#include <complex>
+
 #include <iostream>
 #include <Common/ParameterSet.h>
 #include <Common/Timer.h>
@@ -46,7 +48,7 @@ namespace LOFAR {
                       const string& prefix)
     : _input(input)
     {
-      _iodata.tilesz = parset.getInt(prefix+"tilesize", Data::TileSize);
+      _iodata.tilesz = parset.getInt(prefix+"solint", Data::TileSize);
       string mode = parset.getString("mode", "replace");
       if (mode=="replace") {
         Data::DoSim = SIMUL_ONLY;
@@ -120,17 +122,12 @@ namespace LOFAR {
       readAuxData();
 
       // Initialize baselines
-      clus_source_t *carr;
-      baseline_t *barr;
-      if ((barr = (baseline_t*)calloc((size_t)_iodata.Nbase*_iodata.tilesz,
-                                      sizeof(baseline_t)))==0) {
-        THROW(Exception, "No memory could be allocated for baselines");
-       }
-       generate_baselines(_iodata.Nbase, _iodata.tilesz, _iodata.N, barr,
-                          Data::Nt);
+      _barr.resize(_iodata.Nbase * _iodata.tilesz);
+      generate_baselines(_iodata.Nbase, _iodata.tilesz, _iodata.N, &(_barr[0]),
+                         Data::Nt);
 
       // Read skymodel
-      read_sky_cluster(_skymodelfile.c_str(), _clusterfile.c_str(), &carr,
+      read_sky_cluster(_skymodelfile.c_str(), _clusterfile.c_str(), &_carr,
                        &_num_clusters, _iodata.freq0, _iodata.ra0,
                        _iodata.dec0, Data::format);
       ASSERTSTR(_num_clusters > 0, "No clusters found");
@@ -138,13 +135,12 @@ namespace LOFAR {
       /* update cluster array with correct pointers to parameters */
       size_t cj=0;
 
-      readAuxData();
       for (int ci=0; ci<_num_clusters; ci++) {
-        if ((carr[ci].p=(int*)calloc((size_t)carr[ci].nchunk,sizeof(int)))==0) {
+        if ((_carr[ci].p=(int*)calloc((size_t)_carr[ci].nchunk,sizeof(int)))==0) {
           THROW(Exception, "No memory could be allocated for clusters");
         }
-        for (int ck=0; ck<carr[ci].nchunk; ck++) {
-          carr[ci].p[ck]=cj*8*_iodata.N;
+        for (int ck=0; ck<_carr[ci].nchunk; ck++) {
+          _carr[ci].p[ck]=cj*8*_iodata.N;
           cj++;
         }
       }
@@ -165,23 +161,77 @@ namespace LOFAR {
       os << " SageCal " << _name << endl;
     }
 
+    void SageCal::loadData(const DPBuffer& bufin, Data::IOData& iodata,
+                           double *fratio) {
+      int countgood=0;
+      int countbad=0;
+
+      uint row0=0;
+
+      for (int time=0; time<1; time++) { // Todo: handle tilesz
+        for (int bl=0; bl<iodata.Nbase; ++bl) {
+          uint ant1 = info().getAnt1()[bl];
+          uint ant2 = info().getAnt2()[bl];
+          if (ant1==ant2) {
+            continue;
+          }
+
+          const double* uvw = &(bufin.getUVW().data()[time*info().nbaselines()*3+bl*3]);
+          const std::complex<float> *data = &(bufin.getData().data()[time*info().nbaselines()*4*info().nchan()+bl*4*info().nchan()]);
+          const bool* flag =    &(bufin.getFlags().data()[time*info().nbaselines()*4*info().nchan()+bl*4*info().nchan()]);
+          std::complex<double> cxx(0,0);
+          std::complex<double> cxy(0,0);
+          std::complex<double> cyx(0,0);
+          std::complex<double> cyy(0,0);
+
+          for (uint ch=0; ch<info().nchan(); ++ch) {
+            const std::complex<float> *ptr = &(data[4*ch]);
+            const bool *flagptr = &(flag[4*ch]);
+
+            if (!flagptr[0] && !flagptr[1] && !flagptr[2] && !flagptr[3]){
+              cxx+=ptr[0];
+              cxy+=ptr[1];
+              cyx+=ptr[2];
+              cyy+=ptr[3];
+            }
+
+            iodata.u[row0]=uvw[0];
+            iodata.v[row0]=uvw[1];
+            iodata.w[row0]=uvw[2]; 
+
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8]=ptr[0].real();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+1]=ptr[0].imag();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+2]=ptr[1].real();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+3]=ptr[1].imag();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+4]=ptr[2].real();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+5]=ptr[2].imag();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+6]=ptr[3].real();
+            iodata.xo[iodata.Nbase*iodata.tilesz*8*ch+row0*8+7]=ptr[3].imag();
+          }
+          // For now, we just let sagecal believe all timeslots are good
+          countgood++;
+        }
+      }
+
+      *fratio=(double)countbad/(double)(countgood+countbad);
+    }
+
     bool SageCal::process (const DPBuffer& bufin)
     {
       _timer.start();
-      _buffer.copy (bufin);
+      _buffer.copy(bufin);
       _input->fetchUVW(bufin, _buffer, _timer);
       _input->fetchWeights(bufin, _buffer, _timer);
 
-      // Fill U, V, W
-      // loadData(bufin, _iodata, &iodata.fratio)
+      // Fill U, V, W, data
+      loadData(_buffer, _iodata, &_iodata.fratio);
 
-      precalculate_coherencies(_iodata.u, _iodata.v, _iodata.w, coh,
-                               _iodata.N, _iodata.Nbase * _iodata.tilesz,
-                               barr, carr, 
-                               _num_clusters, _iodata.freq0, _iodata.deltaf,
-                               _iodata.deltat,
-                               _iodata.dec0, Data::min_uvcut, Data::max_uvcut,
-                               Data::Nt);
+      predict_visibilities_multifreq(_iodata.u, _iodata.v, _iodata.w,
+                                     _iodata.xo, _iodata.N, _iodata.Nbase,
+                                     _iodata.tilesz, _barr.data(), _carr,
+                                     _num_clusters, _iodata.freqs, _iodata.Nchan,
+                                     _iodata.deltaf, _iodata.deltat, _iodata.dec0,
+                                     Data::Nt, Data::DoSim);
 
       _timer.stop();
       getNextStep()->process(_buffer);
