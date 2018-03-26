@@ -4,7 +4,12 @@ lofar_add_package(DPPP)
 lofar_add_package(TestDynDPPP)
 lofar_add_package(PythonDPPP)
 lofar_add_package(DPPP_AOFlag)
-lofar_add_package(DPPP_SageCal)
+if(${SageCal_FOUND})
+  lofar_add_package(DPPP_SageCal)
+else()
+  message(WARNING "SageCal shared libraries were not found, not building DPPP_SageCal")
+endif()
+
 lofar_add_package(SPW_Combine SPWCombine)
 
 lofar_find_package(Armadillo)
