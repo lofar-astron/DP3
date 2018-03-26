@@ -80,6 +80,8 @@ namespace LOFAR {
 
       void loadData(const DPBuffer&, Data::IOData&, double*);
 
+      void writeData(DPBuffer&, const Data::IOData&);
+
       //# Data members.
       DPInput*         _input;
       DPBuffer         _buffer;

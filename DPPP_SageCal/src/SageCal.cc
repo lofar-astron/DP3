@@ -67,7 +67,16 @@ namespace LOFAR {
     }
 
     SageCal::~SageCal()
-    {}
+    {
+      delete [] _iodata.u;
+      delete [] _iodata.v;
+      delete [] _iodata.w;
+      delete [] _iodata.x;
+      delete [] _iodata.xo;
+      delete [] _iodata.freqs;
+      delete [] _iodata.flag;
+      delete [] _iodata.NchanMS;
+    }
 
     DPStep::ShPtr SageCal::makeStep (DPInput* input,
                                     const ParameterSet& parset,
@@ -89,6 +98,7 @@ namespace LOFAR {
       _iodata.dec0 = ref_dir.getValue().get()[1];
 
       _iodata.Nms = 1;
+      _iodata.Nchan = info().nchan();
       try {
         _iodata.u=new double[_iodata.Nbase*_iodata.tilesz];
         _iodata.v=new double[_iodata.Nbase*_iodata.tilesz];
@@ -210,10 +220,27 @@ namespace LOFAR {
           }
           // For now, we just let sagecal believe all timeslots are good
           countgood++;
+          row0++;
         }
       }
 
       *fratio=(double)countbad/(double)(countgood+countbad);
+    }
+
+    void SageCal::writeData(DPBuffer& buffer, const Data::IOData& iodata ) {
+      uint row0=0;
+
+      for (int time=0; time<1; time++) { // Todo: handle tilesz
+        for (int bl=0; bl<iodata.Nbase; ++bl) {
+          uint ant1 = info().getAnt1()[bl];
+          uint ant2 = info().getAnt2()[bl];
+          if (ant1==ant2) {
+            continue;
+          }
+
+          std::complex<float> *data = &(buffer.getData().data()[time*info().nbaselines()*4*info().nchan()+bl*4*info().nchan()]);
+        }
+      }
     }
 
     bool SageCal::process (const DPBuffer& bufin)
@@ -232,6 +259,8 @@ namespace LOFAR {
                                      _num_clusters, _iodata.freqs, _iodata.Nchan,
                                      _iodata.deltaf, _iodata.deltat, _iodata.dec0,
                                      Data::Nt, Data::DoSim);
+
+      //writeData(_buffer, _iodata);
 
       _timer.stop();
       getNextStep()->process(_buffer);
