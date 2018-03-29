@@ -108,9 +108,9 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   sum /= n;
   normSum /= n;
   if(useConstraintAccuracy)
-    return normSum*_stepSize/sum <= _constraintAccuracy;
+    return sqrt(normSum/sum)*_stepSize <= _constraintAccuracy;
   else
-    return normSum*_stepSize/sum <= _accuracy;
+    return sqrt(normSum/sum)*_stepSize <= _accuracy;
 }
 
 MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>& data,
