@@ -111,6 +111,7 @@ namespace LOFAR {
       itsMultiDirSolver.set_accuracy(tolerance);
       itsMultiDirSolver.set_constraint_accuracy(parset.getDouble(prefix + "approxtolerance", tolerance*10.0));
       itsMultiDirSolver.set_step_size(parset.getDouble(prefix + "stepsize", 0.2));
+      itsMultiDirSolver.set_detect_stalling(parset.getBool(prefix + "detectstalling", true));
 
       if(!itsStatFilename.empty())
 	itsStatStream.reset(new std::ofstream(itsStatFilename));
