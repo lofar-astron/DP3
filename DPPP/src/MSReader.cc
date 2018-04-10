@@ -558,12 +558,9 @@ namespace LOFAR {
       ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
-      if (fldtab.tableDesc().isColumn ("LOFAR_TILE_BEAM_DIR")) {
-        ROArrayMeasColumn<MDirection> fldcol3 (fldtab, "LOFAR_TILE_BEAM_DIR");
-        tileBeamDir = *(fldcol3(0).data());
-      } else {
-        tileBeamDir = delayCenter;
-      }
+
+      tileBeamDir = StationResponse::readTileBeamDirection(itsMS);
+
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
       Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
