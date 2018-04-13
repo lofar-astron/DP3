@@ -67,11 +67,11 @@ do
           #h5sols.py instrument.h5
 
           echo "Check that residual is small, caltype=$caltype, nchan=$nchan, solint=$solint"
-          cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS)'"
+          cmd="$taqlexe 'select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from tDDECal.MS)'"
           echo $cmd
           eval $cmd
 
-          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA[FLAG]))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA[FLAG]))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.015 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
+          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.015 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
           echo $cmd
           eval $cmd
 
