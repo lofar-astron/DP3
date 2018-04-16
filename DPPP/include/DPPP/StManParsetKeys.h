@@ -20,7 +20,9 @@ namespace LOFAR {
       
       void Set(const ParameterSet& parset, const std::string& prefix)
       {
-        stManName = toLower(parset.getString(prefix+"storagemanager", string()));
+        stManName = toLower(parset.getString(prefix+"storagemanager",
+                                             parset.getString(prefix+"storagemanager.name",
+                                                              string())));
         if(stManName == "dysco") {
           dyscoDataBitRate    = parset.getInt(
                                     prefix+"storagemanager.databitrate", 10);
