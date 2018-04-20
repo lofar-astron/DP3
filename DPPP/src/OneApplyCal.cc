@@ -59,10 +59,6 @@ namespace LOFAR {
             parset.getString(prefix + "parmdb") :
             parset.getString(defaultPrefix + "parmdb")),
         itsUseH5Parm   (itsParmDBName.find(".h5") != string::npos),
-        itsTimeSlotsPerParmUpdate (
-            parset.isDefined(prefix + "timeslotsperparmupdate") ?
-            parset.getInt (prefix + "timeslotsperparmupdate") :
-            parset.getInt (defaultPrefix + "timeslotsperparmupdate", 500)),
         itsSigmaMMSE   (
             parset.isDefined(prefix + "MMSE.Sigma") ?
             parset.getDouble(prefix + "MMSE.Sigma") :
@@ -90,6 +86,7 @@ namespace LOFAR {
       }
 
       if (itsUseH5Parm) {
+        itsTimeSlotsPerParmUpdate = 0;
         string directionStr;
         directionStr = (parset.isDefined(prefix + "direction") ?
                         parset.getString(prefix + "direction") :
@@ -117,6 +114,10 @@ namespace LOFAR {
           itsDirection = itsSolTab.getDirIndex(directionStr);
         }
       } else {
+        itsTimeSlotsPerParmUpdate =
+            parset.isDefined(prefix + "timeslotsperparmupdate") ?
+            parset.getInt (prefix + "timeslotsperparmupdate") :
+            parset.getInt (defaultPrefix + "timeslotsperparmupdate", 500);
         string correctTypeStr = toLower(
             parset.isDefined(prefix + "correction") ?
             parset.getString(prefix + "correction") :
@@ -176,7 +177,9 @@ namespace LOFAR {
 
       ASSERT(itsNCorr==4);
 
-      if (!itsUseH5Parm) { // Use ParmDB
+      if (itsUseH5Parm) {
+          itsTimeSlotsPerParmUpdate = info().ntime();
+      } else { // Use ParmDB
         itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
       }
 
@@ -323,9 +326,7 @@ namespace LOFAR {
       if (itsInvert) {
       os << "    sigmaMMSE:    " << itsSigmaMMSE << endl;
       }
-      if (!itsUseH5Parm) {
-        os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
-      }
+      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
     }
 
     void OneApplyCal::showTimings (std::ostream& os, double duration) const
@@ -455,14 +456,24 @@ namespace LOFAR {
           h5freqinterval = itsSolTab.getFreqInterval();
           ASSERT(h5freqinterval>0);
           freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
-          ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
+          ASSERTSTR(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5),
+                    "H5Parm freq interval ("<<h5freqinterval<<") is not an integer " <<
+                    "multiple of MS freq interval ("<<info().chanWidths()[0]<<")");
+          if (freqUpsampleFactor > numFreqs) {
+            freqUpsampleFactor = numFreqs;
+          }
         }
 
         uint timeUpsampleFactor = numTimes;
         if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
           double h5timeInterval = itsSolTab.getTimeInterval();
           timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
-          ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
+          ASSERTSTR(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5),
+                    "H5Parm time interval ("<<h5timeInterval<<") is not an integer " <<
+                    "multiple of MS time interval ("<<itsTimeInterval<<")");
+          if (timeUpsampleFactor > numTimes) {
+            timeUpsampleFactor = numTimes;
+          }
         }
 
         // Figure out whether time or frequency is first axis
