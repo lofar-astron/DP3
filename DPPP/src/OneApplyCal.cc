@@ -456,9 +456,13 @@ namespace LOFAR {
           h5freqinterval = itsSolTab.getFreqInterval();
           ASSERT(h5freqinterval>0);
           freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
-          ASSERTSTR(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5),
-                    "H5Parm freq interval ("<<h5freqinterval<<") is not an integer " <<
-                    "multiple of MS freq interval ("<<info().chanWidths()[0]<<")");
+          // If entire MS is within one channel of the H5parm, skip checking
+          // whether upsampling can be done.
+          if (!(h5freqinterval > info().chanWidths()[0]*info().nchan())) {
+            ASSERTSTR(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5),
+                      "H5Parm freq interval ("<<h5freqinterval<<") is not an integer " <<
+                      "multiple of MS freq interval ("<<info().chanWidths()[0]<<")");
+          }
           if (freqUpsampleFactor > numFreqs) {
             freqUpsampleFactor = numFreqs;
           }
