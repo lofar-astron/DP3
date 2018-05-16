@@ -21,7 +21,6 @@ lofar_find_package(CFITSIO REQUIRED)
 # Copied from AOFlagger CMakeLists to link in GTKMM if AOFlagger was built with it
 find_package(PkgConfig)
 pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
-pkg_check_modules(GLIBMM glibmm-2.4)
 pkg_check_modules(SIGCXX sigc++-2.0)
 
 if(GTKMM_FOUND)
