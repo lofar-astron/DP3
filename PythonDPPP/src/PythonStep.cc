@@ -72,7 +72,11 @@ namespace LOFAR {
       string workingDir = Path(".").absoluteName();
       char path[] = "path";    // needed to avoid warning if "path" used below
       PyObject* sysPath = PySys_GetObject(path);
+#if PYTHON_VERSION_MAJOR < 3
       PyList_Insert (sysPath, 0, PyString_FromString(workingDir.c_str()));
+#else
+      PyList_Insert (sysPath, 0, PyBytes_FromString(workingDir.c_str()));
+#endif
       // Register converters for casa types from/to python types
       casa::pyrap::register_convert_excp();
       casa::pyrap::register_convert_basicdata();

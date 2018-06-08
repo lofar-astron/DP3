@@ -19,6 +19,7 @@
 #
 # $Id: __init__.py 23074 2012-12-03 07:51:29Z diepen $
 
+from __future__ import print_function
 
 from lofar.pythondppp import DPStep
 from lofar.parameterset import parameterset
@@ -52,7 +53,7 @@ class tPythonStep(DPStep):
         self.getWeights (self.itsWeights);
         self.getUVW (self.itsUVW);
         # Process the data.
-        print "process tPythonStep", time-4.47203e9, exposure, self.itsData.sum(), self.itsFlags.sum(), self.itsWeights.sum(), self.itsUVW.sum()
+        print("process tPythonStep", time-4.47203e9, exposure, self.itsData.sum(), self.itsFlags.sum(), self.itsWeights.sum(), self.itsUVW.sum())
         # Execute the next step in the DPPP pipeline. TIME,UVW are changed.
         return self.processNext ({'TIME': time+self.itsIncr, 'UVW': self.itsUVW+self.itsIncr})
 
@@ -60,7 +61,7 @@ class tPythonStep(DPStep):
         # Finish the step as needed.
         # This function does not need to be implemented.
         # Note: finish of the next step is called by the C++ layer.
-        print "finish tPythonStep"
+        print("finish tPythonStep")
 
     def showCounts(self):
         # Show the counts of this test.
@@ -70,4 +71,4 @@ class tPythonStep(DPStep):
     def addToMS(self, msname):
         # Add some info the the output MeasurementSet.
         # This function does not need to be implemented.
-        print "addToMS tPythonStep", msname
+        print("addToMS tPythonStep", msname)
