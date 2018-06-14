@@ -136,7 +136,7 @@ class DPStep(_DPStepBase):
         The default implementation shows all parset keys.
         """
         s = ''
-        for k,v in self.itsParset.iteritems():
+        for k,v in self.itsParset.items():
             if k not in ['type', 'python.class', 'python.module']:
                 s += '  %-15s %s\n' % (k+':', v)
         return s
