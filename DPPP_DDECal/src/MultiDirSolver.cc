@@ -221,7 +221,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
 
-    if (_detectStalling)
+    if (_detectStalling && constraintsSatisfied)
       hasStalled = detectStall(iteration, step_magnitudes);
 
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied) && !hasStalled);
@@ -446,7 +446,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
 
-    if (_detectStalling)
+    if (_detectStalling && constraintsSatisfied)
       hasStalled = detectStall(iteration, step_magnitudes);
 
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied) && !hasStalled);

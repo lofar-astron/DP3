@@ -440,6 +440,7 @@ namespace LOFAR {
       os << "  solint:              " << itsSolInt <<endl;
       os << "  nchan:               " << itsNChan <<endl;
       os << "  directions:          " << itsDirections << endl;
+      os << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << endl;
       os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
          << endl;
       os << "  coreconstraint:      " << itsCoreConstraint << endl;
@@ -814,6 +815,7 @@ namespace LOFAR {
             vector<double> sols(numSols);
             vector<double>::iterator nextpos = sols.begin();
             for (uint time=0; time<itsSols.size(); ++time) {
+              ASSERTSTR(itsConstraintSols[time].size()==itsConstraintSols[0].size(), "Constraints did not produce enough output at time step "<<time);
               nextpos = std::copy(
                 itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
                 itsConstraintSols[time][constraintNum][solNameNum].vals.end(),

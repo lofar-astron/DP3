@@ -88,6 +88,8 @@ public:
   void set_step_size(double stepSize) { _stepSize = stepSize; }
 
   void set_detect_stalling(bool detectStalling) { _detectStalling = detectStalling; }
+
+  bool get_detect_stalling() const { return _detectStalling; }
   
   void add_constraint(Constraint* constraint) { _constraints.push_back(constraint); }
   
