@@ -10,19 +10,16 @@ using namespace std;
 
 namespace LOFAR {
 
-RotationAndDiagonalConstraint::RotationAndDiagonalConstraint():
-    _nAntennas(0), _nDirections(0)
-{
-}
+void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
+                                                         size_t nDirections,
+                                                         size_t nChannelBlocks) {
+  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-void RotationAndDiagonalConstraint::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks) {
-  _nAntennas = nAntennas;
-  _nDirections = nDirections;
-  assert(nDirections == 1);
-  _nChannelBlocks = nChannelBlocks;
+  assert(_nDirections == 1);
 
   _resTemplate.resize(3);
   _resTemplate[0].vals.resize(_nAntennas*_nChannelBlocks);
+  _resTemplate[0].weights.resize(_nAntennas*_nChannelBlocks);
   _resTemplate[0].axes="ant,freq";
   _resTemplate[0].dims.resize(2);
   _resTemplate[0].dims[0]=_nAntennas;
@@ -30,6 +27,7 @@ void RotationAndDiagonalConstraint::initialize(size_t nAntennas, size_t nDirecti
   _resTemplate[0].name="rotation";
 
   _resTemplate[1].vals.resize(_nAntennas*_nChannelBlocks*2);
+  _resTemplate[1].weights.resize(_nAntennas*_nChannelBlocks*2);
   _resTemplate[1].axes="ant,freq,pol";
   _resTemplate[1].dims.resize(3);
   _resTemplate[1].dims[0]=_nAntennas;
@@ -39,6 +37,20 @@ void RotationAndDiagonalConstraint::initialize(size_t nAntennas, size_t nDirecti
 
   _resTemplate[2] = _resTemplate[1];
   _resTemplate[2].name="phase";
+}
+
+void RotationAndDiagonalConstraint::SetWeights(vector<double>& weights) {
+  _resTemplate[0].weights.assign(weights.begin(), weights.end());
+
+  // Duplicate weights for two polarizations
+  _resTemplate[1].weights.resize(_nAntennas*_nChannelBlocks*2);
+  size_t indexInWeights = 0;
+  for (auto weight: weights) {
+    _resTemplate[1].weights[indexInWeights++] = weight;
+    _resTemplate[1].weights[indexInWeights++] = weight;
+  }
+
+  _resTemplate[2].weights = _resTemplate[1].weights;
 }
 
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
@@ -55,7 +67,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
 
       double angle = RotationConstraint::get_rotation(data);
       // Restrict angle between -pi/2 and pi/2
-  // Add 2pi to make sure that fmod doesn't see negative numbers
+      // Add 2pi to make sure that fmod doesn't see negative numbers
       angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
       _resTemplate[0].vals[ant*_nChannelBlocks + ch] = angle;
  

@@ -1,6 +1,8 @@
 #ifndef TEC_CONSTRAINT_H
 #define TEC_CONSTRAINT_H
 
+#include <vector>
+
 #ifdef AOPROJECT
 #include "Constraint.h"
 #include "PhaseFitter.h"
@@ -25,16 +27,20 @@ public:
   
   TECConstraintBase(Mode mode);
 
-  void initialize(size_t nAntennas, size_t nDirections, 
-                  size_t nChannelBlocks, const double* frequencies);
+  /** Initialize metadata with frequencies, resize some members.
+   * Should be called after InitializeDimensions.
+   */
+  void initialize(const double* frequencies);
   
+  /** Propagate weights to the phase fitters */
+  virtual void SetWeights(std::vector<double>& weights);
+
 protected:
   virtual void initializeChild() { }
   
   void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
   
   Mode _mode;
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<PhaseFitter> _phaseFitters;
 };
 

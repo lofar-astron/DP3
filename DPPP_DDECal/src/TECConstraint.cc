@@ -6,19 +6,15 @@
 #include <Common/OpenMP.h>
 #endif
 
+#include <assert.h>
+
 TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
-  _nAntennas(0),
-  _nDirections(0),
-  _nChannelBlocks(0),
   _phaseFitters()
 {
 }
 
-void TECConstraintBase::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
-  _nAntennas = nAntennas;
-  _nDirections = nDirections;
-  _nChannelBlocks = nChannelBlocks;
+void TECConstraintBase::initialize(const double* frequencies) {
   _phaseFitters.resize(
 #ifdef AOPROJECT
       omp_get_max_threads()
@@ -30,11 +26,29 @@ void TECConstraintBase::initialize(size_t nAntennas, size_t nDirections, size_t 
   for(size_t i=0; i!=_phaseFitters.size(); ++i)
   {
     _phaseFitters[i].SetChannelCount(_nChannelBlocks);
-    std::memcpy(_phaseFitters[i].FrequencyData(), frequencies, sizeof(double) * _nChannelBlocks);
-    
-    // TODO this should set the weights of the phase fitter!
+    std::memcpy(_phaseFitters[i].FrequencyData(), frequencies,
+                sizeof(double) * _nChannelBlocks);
   }
   initializeChild();
+}
+
+void TECConstraintBase::SetWeights(std::vector<double> &weights) {
+  std::vector<double> chanBlockWeights(_nChannelBlocks, 0.);
+#ifndef NDEBUG
+  assert(weights.size() == _nAntennas*_nChannelBlocks);
+#endif
+
+  size_t weightspos = 0;
+  for (size_t ant=0; ant < _nAntennas; ++ant) {
+    for (size_t chanBlock=0; chanBlock < _nChannelBlocks; ++chanBlock) {
+      chanBlockWeights[chanBlock] += weights[weightspos++];
+    }
+  }
+
+  for(size_t thread=0; thread!=_phaseFitters.size(); ++thread) {
+    std::copy(chanBlockWeights.begin(), chanBlockWeights.end(),
+              _phaseFitters[thread].WeightData());
+  }
 }
 
 void ApproximateTECConstraint::initializeChild()

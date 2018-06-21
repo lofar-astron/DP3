@@ -15,7 +15,7 @@ using namespace LOFAR;
 
 void test_rotation() {
   RotationConstraint constraint;
-  constraint.initialize(1, 1, 1);
+  constraint.InitializeDimensions(1, 1, 1);
 
   vector<vector<complex<double> > > onesolution(1);
   onesolution[0].resize(4);
@@ -46,7 +46,7 @@ void test_rotation() {
 
 void test_rotation_and_diagonal() {
   RotationAndDiagonalConstraint constraint;
-  constraint.initialize(1, 1, 1);
+  constraint.InitializeDimensions(1, 1, 1);
 
   vector<vector<complex<double> > > onesolution(1);
   onesolution[0].resize(4);

@@ -9,16 +9,12 @@ using namespace std;
 
 namespace LOFAR {
 
-RotationConstraint::RotationConstraint():
-    _nAntennas(0), _nDirections(0)
-{
-}
+  void RotationConstraint::InitializeDimensions(size_t nAntennas,
+                                                size_t nDirections,
+                                                size_t nChannelBlocks) {
+  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-void RotationConstraint::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks) {
-  _nAntennas = nAntennas;
-  _nDirections = nDirections;
-  assert(nDirections == 1);
-  _nChannelBlocks = nChannelBlocks;
+  assert(_nDirections == 1);
 
   _resTemplate.resize(1);
   _resTemplate[0].vals.resize(_nAntennas*_nChannelBlocks);
@@ -27,6 +23,10 @@ void RotationConstraint::initialize(size_t nAntennas, size_t nDirections, size_t
   _resTemplate[0].dims[0]=_nAntennas;
   _resTemplate[0].dims[1]=_nChannelBlocks;
   _resTemplate[0].name="rotation";
+}
+
+void RotationConstraint::SetWeights(vector<double>& weights) {
+  _resTemplate[0].weights.assign(weights.begin(), weights.end());
 }
 
 double RotationConstraint::get_rotation(std::complex<double>* data) {

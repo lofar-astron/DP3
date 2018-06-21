@@ -14,16 +14,19 @@ namespace LOFAR {
 class RotationAndDiagonalConstraint : public Constraint
 {
 public:
-  RotationAndDiagonalConstraint();
+  RotationAndDiagonalConstraint() {};
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
                     double time);
 
-  void initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks);
+  virtual void InitializeDimensions(size_t nAntennas,
+                                    size_t nDirections,
+                                    size_t nChannelBlocks);
+
+  virtual void SetWeights(std::vector<double>&);
 
 private:
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<Constraint::Result> _resTemplate;
 };
 

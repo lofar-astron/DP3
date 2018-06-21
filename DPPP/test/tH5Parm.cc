@@ -9,7 +9,7 @@
 using namespace std;
 using namespace LOFAR;
 
-void checkAxes(H5Parm::SolTab& soltab) {
+void checkAxes(H5Parm::SolTab& soltab, size_t ntimes) {
   ASSERT(soltab.nAxes()==3);
   ASSERT(soltab.hasAxis("ant"));
   ASSERT(soltab.hasAxis("time"));
@@ -18,12 +18,13 @@ void checkAxes(H5Parm::SolTab& soltab) {
   ASSERT(soltab.getAxis(1).name=="time");
   ASSERT(soltab.getAxis(2).name=="bla");
   ASSERT(soltab.getAxis(0).size==3);
-  ASSERT(soltab.getAxis(1).size==4);
+  ASSERT(soltab.getAxis(1).size==ntimes);
   ASSERT(soltab.getAxis(2).size==1);
 }
 
 int main(int, char**) {
   {
+    size_t ntimes=42;
     {
       // Create a new H5Parm
       cout<<"Create tH5Parm_tmp.h5"<<endl;
@@ -49,7 +50,7 @@ int main(int, char**) {
 
       vector<H5Parm::AxisInfo> axes;
       axes.push_back(H5Parm::AxisInfo("ant",3));
-      axes.push_back(H5Parm::AxisInfo("time",4));
+      axes.push_back(H5Parm::AxisInfo("time",ntimes));
       axes.push_back(H5Parm::AxisInfo("bla",1));
 
       cout<<"Create new SolTab"<<endl;
@@ -62,14 +63,19 @@ int main(int, char**) {
       // Check the axes
       H5Parm::SolTab soltab = h5parm.getSolTab("mysol");
       ASSERT(soltab.getType()=="mytype");
-      checkAxes(soltab);
+      checkAxes(soltab, ntimes);
 
       // Add some data
-      vector<double> vals(3*4);
-      for (size_t ant=0; ant<3; ++ant)
-        for (size_t time=0; time<4; ++time)
-          vals[ant*4+time]=10*ant+time;
-      soltab.setValues(vals, vector<double>(), "CREATE with DPPP");
+      vector<double> vals(3*ntimes);
+      vector<double> weights(3*ntimes);
+      for (size_t ant=0; ant<3; ++ant) {
+        for (size_t time=0; time<ntimes; ++time) {
+          vals[ant*ntimes+time]=10*ant+time;
+          weights[ant*ntimes+time]=0.4;
+        }
+      }
+
+      soltab.setValues(vals, weights, "CREATE with DPPP");
 
       // Add metadata for stations
       vector<string> someAntNames;
@@ -80,9 +86,9 @@ int main(int, char**) {
 
       // Add metadata for times
       vector<double> times;
-      times.push_back(57878.5);
-      times.push_back(57880.5);
-      times.push_back(57882.5);
+      for (size_t time=0; time<ntimes; ++time) {
+        times.push_back(57878.5+2.0*time);
+      }
       soltab.setTimes(times);
 
       // Add metadata for freqs;
@@ -117,13 +123,13 @@ int main(int, char**) {
       // Check the axes
       H5Parm::SolTab soltab = h5parm.getSolTab("mysol");
       ASSERT(soltab.getType()=="mytype");
-      checkAxes(soltab);
+      checkAxes(soltab, ntimes);
 
       cout<<"read some data"<<endl;
       double starttime = 57878.49999;
       hsize_t starttimeindex = soltab.getTimeIndex(starttime);
       cout<<"starttimeindex="<<starttimeindex<<endl;
-      vector<double> val = soltab.getValues("Antenna2", starttimeindex, 4);
+      vector<double> val = soltab.getValues("Antenna2", starttimeindex, ntimes);
       ASSERT(casa::near(val[0],10.));
       ASSERT(casa::near(val[1],11.));
       ASSERT(casa::near(val[2],12.));

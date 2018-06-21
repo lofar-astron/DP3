@@ -10,10 +10,8 @@ const  size_t ScreenConstraint::maxIter=30;
 ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
                       const string& prefix)
  :
-  _nAntennas(0),
-  _nDirections(0),
-  _nChannelBlocks(0),
-  itsCurrentTime(0)
+  itsCurrentTime(0),
+  itsIter(0)
 {
   cout<<"=========="<<(prefix + "order")<<"========\n";
   itsBeta=parset.getDouble (prefix + "beta", 5./3.);
@@ -25,10 +23,7 @@ ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
   itsDebugMode=parset.getInt(prefix + "debug", 0);
 }
 
-void ScreenConstraint::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
-  _nAntennas = nAntennas;
-  _nDirections = nDirections;
-  _nChannelBlocks = nChannelBlocks;
+void ScreenConstraint::initialize(const double* frequencies) {
   itsFrequencies.resize(_nChannelBlocks);
   itsprevsol.assign(_nDirections*_nAntennas,-999.);
   std::memcpy( itsFrequencies.data(),frequencies, sizeof(double) * _nChannelBlocks);

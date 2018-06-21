@@ -125,7 +125,12 @@ namespace LOFAR {
     }
 
     // Add weights
-    H5::DataSet weightset = createDataSet("weight", H5::PredType::IEEE_F64LE,
+    hid_t halffloat = H5Tcopy(H5T_IEEE_F32BE);
+    H5Tset_fields(halffloat, 15, 10, 5, 0, 10);
+    H5Tset_size(halffloat, 2);
+    H5Tset_ebias(halffloat, 15);
+    H5Tlock(halffloat);
+    H5::DataSet weightset = createDataSet("weight", H5::DataType(halffloat),
                                           dataspace);
 
     // If weights are empty, write ones everywhere
