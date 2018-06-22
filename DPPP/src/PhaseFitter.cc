@@ -36,27 +36,28 @@ double PhaseFitter::TEC2ModelCost(double alpha, double beta) const
   for(size_t i=0; i!=Size(); ++i) {
     double estphase = TEC2ModelFuncWrapped(_frequencies[i], alpha, beta);
     double dCost = fmod(std::fabs(estphase - _phases[i]), 2.0*M_PI);
-    if(dCost > M_PI) dCost = 2.0*M_PI - dCost;
-		dCost *= _weights[i];
+    if(dCost > M_PI)
+      dCost = 2.0*M_PI - dCost;
+    dCost *= _weights[i];
     costVal += dCost;
-		weightSum += _weights[i];
+    weightSum += _weights[i];
   }
   return costVal / weightSum;
 }
 
 double PhaseFitter::fitTEC2ModelBeta(double alpha, double betaEstimate) const {
-	double weightSum = 0.0;
+  double weightSum = 0.0;
   for(size_t iter=0; iter!=3; ++iter) {
     double sum = 0.0;
     for(size_t i=0; i!=Size(); ++i) {
       double p = _phases[i], e = TEC2ModelFunc(_frequencies[i], alpha, betaEstimate);
       double dist = fmod(p - e, 2.0*M_PI);
       if(dist < -M_PI)
-				dist += 2.0*M_PI;
+        dist += 2.0*M_PI;
       else if(dist > M_PI)
-				dist -= 2.0*M_PI;
+        dist -= 2.0*M_PI;
       sum += dist * _weights[i];
-			weightSum += _weights[i];
+      weightSum += _weights[i];
     }
     betaEstimate = betaEstimate + sum / weightSum;
   }
@@ -168,10 +169,10 @@ void PhaseFitter::bruteForceSearchTEC1Model(double& lowerAlpha, double& upperAlp
     // make r between [0, 1]
     double r = double(i)/alphaOversampling;
     double alpha = lowerAlpha + r*dAlpha;
-		// We have to have some freedom in the fit to make sure
-		// we do rule out an area with an unwripping that is correct
-		// Hence we use the two-parameter model and allow beta to be fitted.
-		// The ternary search will fix alpha to accomodate a zero beta.
+    // We have to have some freedom in the fit to make sure
+    // we do rule out an area with an unwripping that is correct
+    // Hence we use the two-parameter model and allow beta to be fitted.
+    // The ternary search will fix alpha to accomodate a zero beta.
     double curBeta = fitTEC2ModelBeta(alpha, 0.0);
     double costVal = TEC2ModelCost(alpha, curBeta);
     if(costVal < minCost) {
@@ -182,7 +183,7 @@ void PhaseFitter::bruteForceSearchTEC1Model(double& lowerAlpha, double& upperAlp
   double newLowerAlpha = double(alphaIndex-1)/alphaOversampling*dAlpha + lowerAlpha;
   upperAlpha = double(alphaIndex+1)/alphaOversampling*dAlpha + lowerAlpha;
   lowerAlpha = newLowerAlpha;
-	//std::cout << "alpha in " << lowerAlpha << "-" << upperAlpha << '\n';
+  //std::cout << "alpha in " << lowerAlpha << "-" << upperAlpha << '\n';
 }
 
 double PhaseFitter::TEC1ModelCost(double alpha) const
@@ -191,10 +192,11 @@ double PhaseFitter::TEC1ModelCost(double alpha) const
   for(size_t i=0; i!=Size(); ++i) {
     double estphase = TEC1ModelFuncWrapped(_frequencies[i], alpha);
     double dCost = fmod(std::fabs(estphase - _phases[i]), 2.0*M_PI);
-    if(dCost > M_PI) dCost = 2.0*M_PI - dCost;
-		dCost *= _weights[i];
+    if(dCost > M_PI)
+      dCost = 2.0*M_PI - dCost;
+    dCost *= _weights[i];
     costVal += dCost;
-		weightSum += _weights[i];
+    weightSum += _weights[i];
   }
   return costVal / weightSum;
 }
@@ -215,7 +217,7 @@ double PhaseFitter::ternarySearchTEC1ModelAlpha(double startAlpha, double endAlp
     }
     dCost = std::fabs(lCost - rCost);
     ++iter;
-		//std::cout << iter << '\t' << startAlpha << '\t' << endAlpha << '\n';
+    //std::cout << iter << '\t' << startAlpha << '\t' << endAlpha << '\n';
   } while(dCost > _fittingAccuracy && iter < 100);
   double finalAlpha = (lAlpha + rAlpha) * 0.5;
   return finalAlpha;
