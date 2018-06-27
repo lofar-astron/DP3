@@ -193,7 +193,9 @@ class PhaseFitter
 	 *
 	 * @returns Array of @ref Size() doubles with the weights.
    */
-  double* WeightData() { return _weights.data(); }
+  double* WeightData() {
+    return _weights.data();
+  }
   
   /**
 	 * Constant array of weights, as described above.

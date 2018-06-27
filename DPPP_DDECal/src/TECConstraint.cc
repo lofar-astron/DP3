@@ -146,12 +146,12 @@ std::vector<Constraint::Result> TECConstraint::Apply(
         LOFAR::OpenMP::threadNum();
 #endif
 
+    // Flag channels where calibration yielded inf or nan
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
       if(std::isfinite(solutions[ch][solutionIndex].real()) &&
         std::isfinite(solutions[ch][solutionIndex].imag()))
       {
         _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
-        _phaseFitters[thread].WeightData()[ch] = 1.0;
       }
       else {
         _phaseFitters[thread].PhaseData()[ch] = 0.0;
@@ -200,12 +200,12 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
       std::vector<double>& fittedData = _threadFittedData[thread];
       std::vector<double>& weights = _threadWeights[thread];
       
+      // Flag channels where calibration yielded inf or nan
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
         if(std::isfinite(solutions[ch][solutionIndex].real()) &&
           std::isfinite(solutions[ch][solutionIndex].imag()))
         {
           data[ch] = std::arg(solutions[ch][solutionIndex]);
-          weights[ch] = 1.0;
         }
         else {
           data[ch] = 0.0;

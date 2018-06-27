@@ -66,6 +66,11 @@ public:
 
   virtual void PrepareIteration(bool hasReachedPrecision, size_t iteration, bool finalIter) {
     _finishedApproximateStage = hasReachedPrecision || finalIter || iteration >= _maxApproxIters;
+    for(size_t thread=0; thread!=_phaseFitters.size(); ++thread) {
+       std::fill(_phaseFitters[thread].WeightData(),
+                 _phaseFitters[thread].WeightData()+_phaseFitters[thread].Size(),
+                 1.0);
+    }
   }
   
   virtual bool Satisfied() const { return _finishedApproximateStage; }
