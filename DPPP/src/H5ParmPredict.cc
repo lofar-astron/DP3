@@ -56,7 +56,7 @@ namespace LOFAR {
 
       vector<string> h5directions = soltab.getStringAxis("dir");
 
-      string operation = parset.getString("operation", "replace");
+      string operation = parset.getString(prefix+"operation", "replace");
 
       if (itsDirections.empty()) {
         itsDirections = h5directions;
@@ -83,6 +83,8 @@ namespace LOFAR {
 
         if (operation=="replace" && i>0) {
           predictStep->setOperation("add");
+        } else {
+          predictStep->setOperation(operation);
         }
 
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
@@ -117,7 +119,9 @@ namespace LOFAR {
       os << "H5ParmPredict " << itsName << endl;
       os << "  H5Parm:     " << itsH5ParmName << endl;
       os << "  directions: " << itsDirections << endl;
-      itsPredictSteps[0]->show(os);
+      for (uint dir=0; dir<itsPredictSteps.size(); ++dir) {
+        itsPredictSteps[dir]->show(os);
+      }
     }
 
     void H5ParmPredict::showTimings (std::ostream& os, double duration) const
