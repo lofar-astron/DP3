@@ -5,7 +5,8 @@
 #endif
 
 std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double)
+    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::ostream* statStream)
 {
   for (size_t ch=0; ch<solutions.size(); ++ch) {
     for (size_t solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
@@ -17,7 +18,8 @@ std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
 }
 
 std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double)
+    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::ostream* statStream)
 {
   for (size_t ch=0; ch<solutions.size(); ++ch) {
     for (size_t solIndex=0; solIndex<solutions[ch].size(); ++solIndex) {
@@ -29,7 +31,8 @@ std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
 }
 
 std::vector<Constraint::Result> DiagonalConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double)
+    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::ostream* statStream)
 {
   if(_polsPerSolution == 4)
   {
@@ -45,7 +48,8 @@ std::vector<Constraint::Result> DiagonalConstraint::Apply(
 }
 
 std::vector<Constraint::Result> CoreConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double)
+    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::ostream* statStream)
 {
   for (uint ch=0; ch<solutions.size(); ++ch) {
     std::vector<dcomplex> coreSolutions(_nDirections, 0.0);

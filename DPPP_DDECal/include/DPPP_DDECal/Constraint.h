@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <ostream>
 
 /**
  * This class is the base class for classes that implement a constraint on
@@ -64,7 +65,7 @@ public:
    */
   virtual std::vector<Result> Apply(
     std::vector<std::vector<dcomplex> >& solutions,
-    double time) = 0;
+    double time, std::ostream* statStream) = 0;
 
   /**
   * Initialize the dimensions for the constraint. Should be overridden when
@@ -103,7 +104,8 @@ public:
 
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                    double time);
+                    double time,
+                    std::ostream* statStream);
 };
 
 /**
@@ -117,7 +119,8 @@ public:
 
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                    double time);
+                    double time,
+                    std::ostream* statStream);
 };
 
 class DiagonalConstraint : public Constraint
@@ -127,7 +130,8 @@ public:
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                    double time);
+                    double time,
+                    std::ostream* statStream);
 private:
   const size_t _polsPerSolution;
 };
@@ -154,7 +158,8 @@ public:
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                    double time);
+                    double time,
+                    std::ostream* statStream);
   
 private:
   std::set<size_t> _coreAntennas;

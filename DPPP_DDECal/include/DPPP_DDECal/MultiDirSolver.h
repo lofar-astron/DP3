@@ -82,10 +82,12 @@ public:
   void set_accuracy(double accuracy) {
     _accuracy = accuracy;
   }
+  double get_accuracy() const { return _accuracy; }
   void set_constraint_accuracy(double constraintAccuracy) {
     _constraintAccuracy = constraintAccuracy;
   }
   void set_step_size(double stepSize) { _stepSize = stepSize; }
+  double get_step_size() const { return _stepSize; }
 
   void set_detect_stalling(bool detectStalling) { _detectStalling = detectStalling; }
 

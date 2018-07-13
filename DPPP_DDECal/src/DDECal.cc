@@ -429,7 +429,10 @@ namespace LOFAR {
       os << "  solint:              " << itsSolInt <<endl;
       os << "  nchan:               " << itsNChan <<endl;
       os << "  directions:          " << itsDirections << endl;
+      os << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << endl;
+      os << "  max iter:            " << itsMultiDirSolver.max_iterations() << endl;
       os << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << endl;
+      os << "  step size:           " << itsMultiDirSolver.get_step_size() << endl;
       os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
          << endl;
       os << "  coreconstraint:      " << itsCoreConstraint << endl;

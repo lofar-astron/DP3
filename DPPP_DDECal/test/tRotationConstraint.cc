@@ -31,7 +31,7 @@ void test_rotation() {
     onesolution[0][3] =  cos(phi);
 
     vector<Constraint::Result> constraint_result;
-    constraint_result = constraint.Apply(onesolution, 0.);
+    constraint_result = constraint.Apply(onesolution, 0., nullptr);
 
     ASSERT( constraint_result.size() == 1 );
     ASSERT( constraint_result[0].axes == "ant,freq" );
@@ -64,12 +64,12 @@ void test_rotation_and_diagonal() {
   onesolution[0][3] = b * cos(phi);
 
   vector<Constraint::Result> constraint_result;
-  constraint_result = constraint.Apply(onesolution, 0.);
+  constraint_result = constraint.Apply(onesolution, 0., nullptr);
 
   ASSERT( constraint_result.size() == 3 );
   ASSERT( constraint_result[0].name == "rotation" );
   ASSERT( constraint_result[0].axes == "ant,freq" );
-  ASSERT( near(constraint_result[0].vals[0], phi) );
+  ASSERT( near(constraint_result[0].vals[0], 0.) );
   ASSERT( constraint_result[0].dims.size() == 2 );
   ASSERT( constraint_result[0].dims[0] == 1 );
   ASSERT( constraint_result[0].dims[1] == 1 );

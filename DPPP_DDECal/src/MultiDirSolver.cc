@@ -112,8 +112,9 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
 
   if(useConstraintAccuracy)
     return sqrt(normSum/sum)*_stepSize <= _constraintAccuracy;
-  else
-    return sqrt(normSum/sum)*_stepSize <= _accuracy;
+  else {
+    return sqrt(normSum/sum)*_stepSize <= _accuracy; // Stepsize rechts???
+  }
 }
 
 MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>& data,
@@ -197,6 +198,12 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     
     constraintsSatisfied = true;
     _timerConstrain.Start();
+
+    if(statStream)
+    {
+      (*statStream) << iteration << '\t';
+    }
+
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
       // PrepareIteration() might change Satisfied(), and since we always want to
@@ -204,7 +211,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       // evaluate Satisfied() before preparing.
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
       _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
-      result._results[i] = _constraints[i]->Apply(nextSolutions, time);
+      result._results[i] = _constraints[i]->Apply(nextSolutions, time, statStream);
     }
     _timerConstrain.Pause();
     
@@ -213,9 +220,9 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     
     double sum, normSum;
     hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied, sum, normSum, step_magnitudes);
-    if(statStream != nullptr)
+    if(statStream)
     {
-      (*statStream) << iteration << '\t' << normSum*_stepSize/sum << '\t' << normSum << '\n';
+      (*statStream) << sqrt(normSum/sum)*_stepSize << '\t' << normSum << '\n';
     }
     iteration++;
     
@@ -424,13 +431,18 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     }
       
     makeStep(solutions, nextSolutions);
+
+    if(statStream)
+    {
+      (*statStream) << iteration << '\t';
+    }
     
     constraintsSatisfied = true;
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
       constraintsSatisfied = _constraints[i]->Satisfied() && constraintsSatisfied;
       _constraints[i]->PrepareIteration(hasPreviouslyConverged, iteration, iteration+1 >= _maxIterations);
-      result._results[i] = _constraints[i]->Apply(nextSolutions, time);
+      result._results[i] = _constraints[i]->Apply(nextSolutions, time, statStream);
     }
     
     if(!constraintsSatisfied)
@@ -438,9 +450,9 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     
     double sum, normSum;
     hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied, sum, normSum, step_magnitudes);
-    if(statStream != nullptr)
+    if(statStream)
     {
-      (*statStream) << iteration << '\t' << normSum*_stepSize/sum << '\t' << normSum << '\n';
+      (*statStream) << sqrt(normSum/sum)*_stepSize << '\t' << normSum << '\n';
     }
     iteration++;
     

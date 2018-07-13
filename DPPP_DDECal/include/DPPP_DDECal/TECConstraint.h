@@ -14,6 +14,7 @@
 #endif
 
 #include <vector>
+#include <ostream>
 
 class TECConstraintBase : public Constraint
 {
@@ -51,7 +52,8 @@ public:
 
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                       double time);
+                    double time,
+                    std::ostream* statStream);
 };
 
 class ApproximateTECConstraint : public TECConstraint
@@ -77,7 +79,8 @@ public:
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                       double time);
+                    double time,
+                    std::ostream* statStream);
   
   void SetFittingChunkSize(size_t fittingChunkSize)
   { _fittingChunkSize = fittingChunkSize; }

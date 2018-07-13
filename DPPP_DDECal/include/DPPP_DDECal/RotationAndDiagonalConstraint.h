@@ -8,6 +8,7 @@
 #endif
 
 #include <vector>
+#include <ostream>
 
 namespace LOFAR {
 
@@ -18,7 +19,7 @@ public:
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
-                    double time);
+                    double time, std::ostream* statStream);
 
   virtual void InitializeDimensions(size_t nAntennas,
                                     size_t nDirections,
@@ -27,7 +28,7 @@ public:
   virtual void SetWeights(std::vector<double>&);
 
 private:
-  std::vector<Constraint::Result> _resTemplate;
+  std::vector<Constraint::Result> _res;
 };
 
 } // namespace LOFAR

@@ -108,7 +108,8 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
 }
 
 std::vector<Constraint::Result> TECConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double)
+    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::ostream* statStream)
 {
   size_t nRes = 3;
   if(_mode == TECOnlyMode) {
@@ -181,10 +182,11 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 }
 
 std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double time)
+    std::vector<std::vector<dcomplex> >& solutions, double time,
+    std::ostream* statStream)
 {
   if(_finishedApproximateStage)
-    return TECConstraint::Apply(solutions, time);
+    return TECConstraint::Apply(solutions, time, statStream);
   else {
     applyReferenceAntenna(solutions);
     

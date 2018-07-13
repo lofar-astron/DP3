@@ -17,50 +17,49 @@ void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
 
   assert(_nDirections == 1);
 
-  _resTemplate.resize(3);
-  _resTemplate[0].vals.resize(_nAntennas*_nChannelBlocks);
-  _resTemplate[0].weights.resize(_nAntennas*_nChannelBlocks);
-  _resTemplate[0].axes="ant,freq";
-  _resTemplate[0].dims.resize(2);
-  _resTemplate[0].dims[0]=_nAntennas;
-  _resTemplate[0].dims[1]=_nChannelBlocks;
-  _resTemplate[0].name="rotation";
+  _res.resize(3);
+  _res[0].vals.resize(_nAntennas*_nChannelBlocks);
+  _res[0].weights.resize(_nAntennas*_nChannelBlocks);
+  _res[0].axes="ant,freq";
+  _res[0].dims.resize(2);
+  _res[0].dims[0]=_nAntennas;
+  _res[0].dims[1]=_nChannelBlocks;
+  _res[0].name="rotation";
 
-  _resTemplate[1].vals.resize(_nAntennas*_nChannelBlocks*2);
-  _resTemplate[1].weights.resize(_nAntennas*_nChannelBlocks*2);
-  _resTemplate[1].axes="ant,freq,pol";
-  _resTemplate[1].dims.resize(3);
-  _resTemplate[1].dims[0]=_nAntennas;
-  _resTemplate[1].dims[1]=_nChannelBlocks;
-  _resTemplate[1].dims[2]=2;
-  _resTemplate[1].name="amplitude";
+  _res[1].vals.resize(_nAntennas*_nChannelBlocks*2);
+  _res[1].weights.resize(_nAntennas*_nChannelBlocks*2);
+  _res[1].axes="ant,freq,pol";
+  _res[1].dims.resize(3);
+  _res[1].dims[0]=_nAntennas;
+  _res[1].dims[1]=_nChannelBlocks;
+  _res[1].dims[2]=2;
+  _res[1].name="amplitude";
 
-  _resTemplate[2] = _resTemplate[1];
-  _resTemplate[2].name="phase";
+  _res[2] = _res[1];
+  _res[2].name="phase";
 }
 
 void RotationAndDiagonalConstraint::SetWeights(vector<double>& weights) {
-  _resTemplate[0].weights.assign(weights.begin(), weights.end());
+  _res[0].weights.assign(weights.begin(), weights.end());
 
   // Duplicate weights for two polarizations
-  _resTemplate[1].weights.resize(_nAntennas*_nChannelBlocks*2);
+  _res[1].weights.resize(_nAntennas*_nChannelBlocks*2);
   size_t indexInWeights = 0;
   for (auto weight: weights) {
-    _resTemplate[1].weights[indexInWeights++] = weight;
-    _resTemplate[1].weights[indexInWeights++] = weight;
+    _res[1].weights[indexInWeights++] = weight;
+    _res[1].weights[indexInWeights++] = weight;
   }
 
-  _resTemplate[2].weights = _resTemplate[1].weights;
+  _res[2].weights = _res[1].weights;
 }
 
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
-    vector<vector<dcomplex> >& solutions, double) {
-  // Convert to circular
-  complex<double> ll, rr;
-  complex<double> i(0,1.);
-
-  // Find angle
+    vector<vector<dcomplex> >& solutions, double,
+    std::ostream* statStream) {
+  if (statStream) *statStream<<"["; // begin channel
+  double angle0;
   for (uint ch=0; ch<_nChannelBlocks; ++ch) {
+    if (statStream) *statStream<<"["; // begin antenna
     for (uint ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
@@ -69,28 +68,45 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       // Restrict angle between -pi/2 and pi/2
       // Add 2pi to make sure that fmod doesn't see negative numbers
       angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
-      _resTemplate[0].vals[ant*_nChannelBlocks + ch] = angle;
- 
+
       // Right multiply solution with inverse rotation,
       // save only the diagonal
       // Use sin(-phi) == -sin(phi)
       complex<double> a, b;
       a = data[0]*cos(angle) - data[1]*sin(angle);
       b = data[3]*cos(angle) + data[2]*sin(angle);
-      _resTemplate[1].vals[ant*_nChannelBlocks*2 + 2*ch    ] = abs(a);
-      _resTemplate[1].vals[ant*_nChannelBlocks*2 + 2*ch + 1] = abs(b);
-      _resTemplate[2].vals[ant*_nChannelBlocks*2 + 2*ch    ] = arg(a);
-      _resTemplate[2].vals[ant*_nChannelBlocks*2 + 2*ch  +1] = arg(b);
+
+      // Use station 0 as reference station (for every chanblock), to work
+      // around unitary ambiguity
+      if (ant==0) {
+        angle0 = angle;
+        angle = 0.;
+      } else {
+        angle -= angle0;
+        angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+      }
+      _res[0].vals[ant*_nChannelBlocks + ch] = angle;
+
+      _res[1].vals[ant*_nChannelBlocks*2 + 2*ch    ] = abs(a);
+      _res[1].vals[ant*_nChannelBlocks*2 + 2*ch + 1] = abs(b);
+      _res[2].vals[ant*_nChannelBlocks*2 + 2*ch    ] = arg(a);
+      _res[2].vals[ant*_nChannelBlocks*2 + 2*ch  +1] = arg(b);
 
       // Do the actual constraining
       data[0] =  a * cos(angle);
       data[1] = -a * sin(angle);
       data[2] =  b * sin(angle);
       data[3] =  b * cos(angle);
+      if (statStream) *statStream<<"["<<a.real()<<"+"<<a.imag()<<"j,"<<b.real()<<"+"<<b.imag()<<"j,"<<angle<<"]";
+      //if (pd) cout<<angle;
+      if (statStream && ant<_nAntennas-1) *statStream<<",";
     }
+    if (statStream) *statStream<<"]"; // end antenna
+    if (statStream && ch<_nChannelBlocks-1) *statStream<<",";
   }
+  if (statStream) *statStream<<"]\t"; //end channel
 
-  return _resTemplate;
+  return _res;
 }
 
 } //namespace LOFAR

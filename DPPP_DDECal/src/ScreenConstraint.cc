@@ -180,7 +180,8 @@ void ScreenConstraint::CalculatePiercepoints(){
 }
 
 
-std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,double time) {
+std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,
+      double time, std::ostream* statStream) {
   //check if we need to reinitialize piercepoints
   setTime(time);
   size_t nrresults=4;
