@@ -6,8 +6,6 @@
 #include <Common/OpenMP.h>
 #endif
 
-#include <assert.h>
-
 TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
   _phaseFitters()
@@ -29,26 +27,12 @@ void TECConstraintBase::initialize(const double* frequencies) {
     std::memcpy(_phaseFitters[i].FrequencyData(), frequencies,
                 sizeof(double) * _nChannelBlocks);
   }
+  _weights.assign(_nChannelBlocks*_nAntennas, 1.0);
   initializeChild();
 }
 
-void TECConstraintBase::SetWeights(std::vector<double> &weights) {
-  std::vector<double> chanBlockWeights(_nChannelBlocks, 0.);
-#ifndef NDEBUG
-  assert(weights.size() == _nAntennas*_nChannelBlocks);
-#endif
-
-  size_t weightspos = 0;
-  for (size_t ant=0; ant < _nAntennas; ++ant) {
-    for (size_t chanBlock=0; chanBlock < _nChannelBlocks; ++chanBlock) {
-      chanBlockWeights[chanBlock] += weights[weightspos++];
-    }
-  }
-
-  for(size_t thread=0; thread!=_phaseFitters.size(); ++thread) {
-    std::copy(chanBlockWeights.begin(), chanBlockWeights.end(),
-              _phaseFitters[thread].WeightData());
-  }
+void TECConstraintBase::SetWeights(std::vector<double>& weights) {
+  _weights = weights;
 }
 
 void ApproximateTECConstraint::initializeChild()
@@ -140,6 +124,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 #pragma omp parallel for
   for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
   {
+    size_t antennaIndex = solutionIndex/_nDirections;
     size_t thread =
 #ifdef AOPROJECT
         omp_get_thread_num();
@@ -153,6 +138,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
         std::isfinite(solutions[ch][solutionIndex].imag()))
       {
         _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
+        _phaseFitters[thread].WeightData()[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
       }
       else {
         _phaseFitters[thread].PhaseData()[ch] = 0.0;
@@ -193,6 +179,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
 #pragma omp parallel for
     for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
     {
+      size_t antennaIndex = solutionIndex/_nDirections;
 #ifdef AOPROJECT
       size_t thread = omp_get_thread_num();
 #else
@@ -208,6 +195,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
           std::isfinite(solutions[ch][solutionIndex].imag()))
         {
           data[ch] = std::arg(solutions[ch][solutionIndex]);
+          weights[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
         }
         else {
           data[ch] = 0.0;

@@ -34,7 +34,7 @@ public:
   void initialize(const double* frequencies);
   
   /** Propagate weights to the phase fitters */
-  virtual void SetWeights(std::vector<double>& weights);
+  virtual void SetWeights(std::vector<double>& weights) override;
 
 protected:
   virtual void initializeChild() { }
@@ -43,6 +43,7 @@ protected:
   
   Mode _mode;
   std::vector<PhaseFitter> _phaseFitters;
+  std::vector<double> _weights;
 };
 
 class TECConstraint : public TECConstraintBase
