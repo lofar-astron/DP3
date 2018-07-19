@@ -162,6 +162,12 @@ namespace LOFAR {
                                       pol, dir);
           }
 
+          std::vector<double> getValuesOrWeights(
+                                        const std::string& valOrWeight,
+                                        const std::string& antName,
+                                        const std::vector<double>& times,
+                                        const std::vector<double>& freqs,
+                                        uint pol, uint dir);
         private:
           // Get the values or weights of this SolTab for a given antenna.
           std::vector<double> getValuesOrWeights(

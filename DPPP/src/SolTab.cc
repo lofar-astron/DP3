@@ -1,5 +1,6 @@
 #include <lofar_config.h>
 #include <DPPP/H5Parm.h>
+#include <DPPP/GridInterpolate.h>
 #include <Common/Exception.h>
 #include <Common/StringUtil.h>
 #include <Common/LofarLogger.h>
@@ -211,6 +212,50 @@ namespace LOFAR {
   vector<double> H5Parm::SolTab::getValuesOrWeights(
               const string& valOrWeight,
               const string& antName,
+              const vector<double>& times,
+              const vector<double>& freqs,
+              uint pol, uint dir) {
+    vector<double> res(times.size()*freqs.size());
+
+    uint startTimeSlot = 0;
+    uint ntimeH5 = 1;
+
+    ASSERT(!freqs.empty());
+    uint startFreq = 0;
+    uint nfreqH5 = 1;
+
+    vector<double> interpolated(times.size()*freqs.size());
+
+    vector<double> freqAxisH5(1, 0.);
+    vector<double> timeAxisH5(1, 0.);
+    if (hasAxis("time")) {
+      timeAxisH5 = getRealAxis("time");
+      ntimeH5 = timeAxisH5.size();
+    }
+    if (hasAxis("freq")) {
+      vector<double> fullFreqAxisH5 = getRealAxis("freq");
+      startFreq = getFreqIndex(freqs[0]);
+      nfreqH5 = getFreqIndex(freqs[freqs.size()-1])-startFreq+1;
+      freqAxisH5 = vector<double>(fullFreqAxisH5.begin()+startFreq, fullFreqAxisH5.begin()+startFreq+nfreqH5);
+    }
+
+    vector<double> h5values = getValuesOrWeights(valOrWeight,
+                        antName,
+                        startTimeSlot, ntimeH5, 1,
+                        startFreq, nfreqH5, 1,
+                        pol, dir);
+
+    gridNearestNeighbor(timeAxisH5, freqAxisH5,
+                        times, freqs,
+                        &(h5values[0]),
+                        &(interpolated[0]));
+
+    return interpolated;
+  }
+
+  vector<double> H5Parm::SolTab::getValuesOrWeights(
+              const string& valOrWeight,
+              const string& antName,
               uint starttimeslot, uint ntime, uint timestep,
               uint startfreq, uint nfreq, uint freqstep,
               uint pol, uint dir) {
@@ -294,13 +339,15 @@ namespace LOFAR {
                                         H5::StrType(H5::PredType::C_S1, nChar),
                                         dataspace);
 
-    // Prepare data
-    char srcArray[metaVals.size()][nChar];
-    for (uint i=0; i<metaVals.size(); ++i) {
-      strncpy(srcArray[i], metaVals[i].c_str(), nChar);
-    }
+    if (metaVals.size()>0) {
+      // Prepare data
+      char srcArray[metaVals.size()][nChar];
+      for (uint i=0; i<metaVals.size(); ++i) {
+        strncpy(srcArray[i], metaVals[i].c_str(), nChar);
+      }
 
-    dataset.write(srcArray, H5::StrType(H5::PredType::C_S1, nChar));
+      dataset.write(srcArray, H5::StrType(H5::PredType::C_S1, nChar));
+    }
   }
 
   void H5Parm::SolTab::setSources(const vector<string>& solSources) {
@@ -330,7 +377,9 @@ namespace LOFAR {
     H5::DataSet dataset = createDataSet(metaName,
                                         H5::PredType::IEEE_F64LE, dataspace);
 
-    dataset.write(&(metaVals[0]), H5::PredType::IEEE_F64LE);
+    if (metaVals.size() > 0) {
+      dataset.write(&(metaVals[0]), H5::PredType::IEEE_F64LE);
+    }
   }
 
   hsize_t H5Parm::SolTab::getAntIndex(const string& antName) {

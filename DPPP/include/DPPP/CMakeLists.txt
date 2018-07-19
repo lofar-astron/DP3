@@ -17,7 +17,7 @@ set(inst_HEADERS
   ApplyBeam.h ApplyBeam.tcc
   Predict.h OneApplyCal.h
   GainCal.h StefCal.h PhaseFitter.h
-  StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h
+  StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h GridInterpolate.h
   Upsample.h
 )
 

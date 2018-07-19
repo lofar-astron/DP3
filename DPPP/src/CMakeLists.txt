@@ -20,7 +20,7 @@ lofar_add_library(dppp
   DemixerNew.cc DemixInfo.cc DemixWorker.cc
   Predict.cc OneApplyCal.cc
   ApplyBeam.cc
-  PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc
+  PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc GridInterpolate.cc
   Upsample.cc
 )
 

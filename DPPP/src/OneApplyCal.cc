@@ -303,8 +303,11 @@ namespace LOFAR {
         bool regularChannels=allNearAbs(upFreq-lowFreq, freqstep0, 1.e3) &&
                              allNearAbs(info().chanWidths(),
                                         info().chanWidths()(0), 1.e3);
-        ASSERTSTR(regularChannels, 
-                  "ApplyCal requires evenly spaced channels.");
+
+        if (!itsUseH5Parm) {
+          ASSERTSTR(regularChannels, 
+                    "ApplyCal with parmdb requires evenly spaced channels.");
+        }
       }
     }
 
@@ -441,44 +444,6 @@ namespace LOFAR {
 {
         // TODO: understand polarization etc.
         ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
-        hsize_t startTime = 0;
-        if (itsSolTab.hasAxis("time")) {
-          startTime = itsSolTab.getTimeIndex(bufStartTime);
-        }
-        hsize_t startFreq = 0;
-        if (itsSolTab.hasAxis("freq")) {
-          startFreq = itsSolTab.getFreqIndex(info().chanFreqs()[0]);
-        }
-        uint freqUpsampleFactor = numFreqs;
-
-        double h5freqinterval = 0.;
-        if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
-          h5freqinterval = itsSolTab.getFreqInterval();
-          ASSERT(h5freqinterval>0);
-          freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
-          // If entire MS is within one channel of the H5parm, skip checking
-          // whether upsampling can be done.
-          if (!(h5freqinterval > info().chanWidths()[0]*info().nchan())) {
-            ASSERTSTR(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5),
-                      "H5Parm freq interval ("<<h5freqinterval<<") is not an integer " <<
-                      "multiple of MS freq interval ("<<info().chanWidths()[0]<<")");
-          }
-          if (freqUpsampleFactor > numFreqs) {
-            freqUpsampleFactor = numFreqs;
-          }
-        }
-
-        uint timeUpsampleFactor = numTimes;
-        if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
-          double h5timeInterval = itsSolTab.getTimeInterval();
-          timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
-          ASSERTSTR(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5),
-                    "H5Parm time interval ("<<h5timeInterval<<") is not an integer " <<
-                    "multiple of MS time interval ("<<itsTimeInterval<<")");
-          if (timeUpsampleFactor > numTimes) {
-            timeUpsampleFactor = numTimes;
-          }
-        }
 
         // Figure out whether time or frequency is first axis
         bool freqvariesfastest = true;
@@ -488,50 +453,22 @@ namespace LOFAR {
         }
         ASSERT(freqvariesfastest);
 
-        // Take the ceiling of numTimes/timeUpsampleFactor, same for freq
-        uint numTimesInH5Parm = (numTimes+timeUpsampleFactor-1)/timeUpsampleFactor;
-        uint numFreqsInH5Parm = (numFreqs+freqUpsampleFactor-1)/freqUpsampleFactor;
-
-        // Check that frequencies match
-        if (itsSolTab.hasAxis("freq") && itsSolTab.getAxis("freq").size > 1) {
-          vector<double> h5parmfreqs = itsSolTab.getRealAxis("freq");
-          for (uint f=0; f<info().nchan(); ++f) {
-            ASSERT(nearAbs(info().chanFreqs()[f],
-                           h5parmfreqs[startFreq + f/freqUpsampleFactor],
-                           h5freqinterval*0.501));
-          }
+        vector<double> times(info().ntime());
+        for (uint t=0; t<times.size(); ++t) {
+          // time centroids
+          times[t] = info().startTime() + (t+0.5) * info().timeInterval();
+        }
+        vector<double> freqs(info().chanFreqs().size());
+        for (uint ch=0; ch<info().chanFreqs().size(); ++ch) {
+          freqs[ch] = info().chanFreqs()[ch];
         }
 
         for (uint ant = 0; ant < numAnts; ++ant) {
           for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
-            vector<double> rawsols, rawweights;
-            rawsols = itsSolTab.getValues(info().antennaNames()[ant],
-                                        startTime, numTimesInH5Parm, 1,
-                                        startFreq, numFreqsInH5Parm, 1, pol, itsDirection);
-
-            rawweights = itsSolTab.getWeights(info().antennaNames()[ant],
-                                        startTime, numTimesInH5Parm, 1,
-                                        startFreq, numFreqsInH5Parm, 1, pol, itsDirection);
-
-            parmvalues[pol][ant].resize(tfDomainSize);
-
-            size_t tf=0;
-            for (uint t=0; t<numTimesInH5Parm; ++t) {
-              for (uint ti=0; ti<timeUpsampleFactor; ++ti) {
-                for (uint f=0; f<numFreqsInH5Parm; ++f) {
-                  for (uint fi=0; fi<freqUpsampleFactor; ++fi) {
-                    if (tf<tfDomainSize) {
-                      if (rawweights[t*numFreqsInH5Parm + f]>0) {
-                        parmvalues[pol][ant][tf++] = rawsols[t*numFreqsInH5Parm + f];
-                      } else {
-                        parmvalues[pol][ant][tf++] = std::numeric_limits<double>::quiet_NaN();
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            ASSERT(tf==tfDomainSize);
+            parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
+                                      info().antennaNames()[ant],
+                                      times, freqs,
+                                      pol, itsDirection);
           }
         }
 } // End pragma omp critical
