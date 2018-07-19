@@ -42,7 +42,10 @@ double PhaseFitter::TEC2ModelCost(double alpha, double beta) const
     costVal += dCost;
     weightSum += _weights[i];
   }
-  return costVal / weightSum;
+  if(weightSum == 0.0)
+    return 0.0;
+  else
+    return costVal / weightSum;
 }
 
 double PhaseFitter::fitTEC2ModelBeta(double alpha, double betaEstimate) const {
@@ -59,7 +62,8 @@ double PhaseFitter::fitTEC2ModelBeta(double alpha, double betaEstimate) const {
       sum += dist * _weights[i];
       weightSum += _weights[i];
     }
-    betaEstimate = betaEstimate + sum / weightSum;
+    if(weightSum != 0.0)
+      betaEstimate = betaEstimate + sum / weightSum;
   }
   return fmod(betaEstimate, 2.0*M_PI);
 }
@@ -198,7 +202,10 @@ double PhaseFitter::TEC1ModelCost(double alpha) const
     costVal += dCost;
     weightSum += _weights[i];
   }
-  return costVal / weightSum;
+  if(weightSum == 0.0)
+    return 0.0;
+  else
+    return costVal / weightSum;
 }
 
 double PhaseFitter::ternarySearchTEC1ModelAlpha(double startAlpha, double endAlpha) const
