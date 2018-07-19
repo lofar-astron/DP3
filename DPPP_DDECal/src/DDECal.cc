@@ -107,7 +107,7 @@ namespace LOFAR {
                                  vector<string> ());
          
       itsMultiDirSolver.set_max_iterations(parset.getInt(prefix + "maxiter", 50));
-      double tolerance = parset.getDouble(prefix + "tolerance", 1.e-5);
+      double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
       itsMultiDirSolver.set_accuracy(tolerance);
       itsMultiDirSolver.set_constraint_accuracy(parset.getDouble(prefix + "approxtolerance", tolerance*10.0));
       itsMultiDirSolver.set_step_size(parset.getDouble(prefix + "stepsize", 0.2));
