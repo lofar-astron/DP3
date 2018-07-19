@@ -117,7 +117,7 @@ private:
   void makeStep(const std::vector<std::vector<DComplex> >& solutions,
     std::vector<std::vector<DComplex> >& nextSolutions) const;
 
-  bool detectStall(size_t iteration, const std::vector<double>& step_magnitudes) const;
+  bool detectStall(size_t iteration, const std::vector<double>& stepMagnitudes) const;
                 
   void makeSolutionsFinite(std::vector<std::vector<DComplex> >& solutions, size_t perPol) const;
                 

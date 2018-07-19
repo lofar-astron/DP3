@@ -21,9 +21,9 @@ MultiDirSolver::MultiDirSolver() :
   _accuracy(1e-5),
   _constraintAccuracy(1e-4),
   _stepSize(0.2),
+  _detectStalling(true),
   _phaseOnly(false)
-{
-}
+{ }
 
 void MultiDirSolver::init(size_t nAntennas,
                           size_t nDirections,
@@ -75,19 +75,35 @@ void MultiDirSolver::makeSolutionsFinite(std::vector<std::vector<DComplex> >& so
     std::vector<DComplex>::iterator iter = solVector.begin();
     for(size_t i=0; i!=n; ++i)
     {
+      bool hasNonFinite = false;
       for(size_t p=0; p!=perPol; ++p)
       {
-        if(!std::isfinite(iter->real()) || !std::isfinite(iter->imag()))
-          *iter = DComplex(1.0, 0.0);
-        ++iter;
+        hasNonFinite = hasNonFinite || !std::isfinite(iter->real()) || !std::isfinite(iter->imag());
       }
+      if(hasNonFinite)
+      {
+        if(perPol == 4)
+        {
+          iter[0] = DComplex(1.0, 0.0);
+          iter[1] = DComplex(0.0, 0.0);
+          iter[2] = DComplex(0.0, 0.0);
+          iter[3] = DComplex(1.0, 0.0);
+        }
+        else {
+          for(size_t p=0; p!=perPol; ++p)
+          {
+            iter[p] = DComplex(1.0, 0.0);
+          }
+        }
+      }
+      iter += perPol;
     }
   }
 }
 
 bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& solutions,
   std::vector<std::vector<DComplex> >& nextSolutions, bool useConstraintAccuracy,
-  double& sum, double& normSum, std::vector<double>& step_magnitudes) const
+  double& sum, double& normSum, std::vector<double>& stepMagnitudes) const
 {
   sum = 0.0;
   normSum = 0.0;
@@ -108,12 +124,13 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   sum /= n;
   normSum /= n;
 
-  step_magnitudes.push_back(sqrt(normSum/sum)*_stepSize);
+  double stepMagnitude = (sum==0.0) ? 0.0 : sqrt(normSum/sum)/_stepSize;
+  stepMagnitudes.push_back(stepMagnitude);
 
   if(useConstraintAccuracy)
-    return sqrt(normSum/sum)*_stepSize <= _constraintAccuracy;
+    return stepMagnitude <= _constraintAccuracy;
   else {
-    return sqrt(normSum/sum)*_stepSize <= _accuracy; // Stepsize rechts???
+    return stepMagnitude <= _accuracy;
   }
 }
 
@@ -167,9 +184,6 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     }
   }
   
-  // TODO the data and model data needs to be preweighted.
-  // Maybe we can get a non-const pointer from DPPP, that saves copying/allocating
-  
   ///
   /// Start iterating
   ///
@@ -180,8 +194,8 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
     constraintsSatisfied = false,
     hasStalled = false;
 
-  std::vector<double> step_magnitudes;
-  step_magnitudes.reserve(_maxIterations);
+  std::vector<double> stepMagnitudes;
+  stepMagnitudes.reserve(_maxIterations);
 
   do {
     makeSolutionsFinite(solutions, 1);
@@ -219,17 +233,17 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
       constrainedIterations = iteration+1;
     
     double sum, normSum;
-    hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied, sum, normSum, step_magnitudes);
+    hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied, sum, normSum, stepMagnitudes);
     if(statStream)
     {
-      (*statStream) << sqrt(normSum/sum)*_stepSize << '\t' << normSum << '\n';
+      (*statStream) << stepMagnitudes.back() << '\t' << normSum << '\n';
     }
     iteration++;
     
     hasPreviouslyConverged = hasConverged || hasPreviouslyConverged;
 
     if (_detectStalling && constraintsSatisfied)
-      hasStalled = detectStall(iteration, step_magnitudes);
+      hasStalled = detectStall(iteration, stepMagnitudes);
 
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied) && !hasStalled);
   
@@ -452,7 +466,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
     hasConverged = assignSolutions(solutions, nextSolutions, !constraintsSatisfied, sum, normSum, step_magnitudes);
     if(statStream)
     {
-      (*statStream) << sqrt(normSum/sum)*_stepSize << '\t' << normSum << '\n';
+      (*statStream) << step_magnitudes.back() << '\t' << normSum << '\n';
     }
     iteration++;
     

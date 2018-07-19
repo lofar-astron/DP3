@@ -1,6 +1,6 @@
 #include <lofar_config.h>
 #include <Common/LofarLogger.h>  // ASSERT
-#include <casa/BasicMath/Math.h> // near 
+#include <casacore/casa/BasicMath/Math.h> // near 
 
 #include <vector>
 #include <iostream>
