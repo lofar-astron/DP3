@@ -42,9 +42,9 @@ namespace LOFAR {
 
     double lowmatch, highmatch;
 
-    auto src_val = ax_src.begin();
-    auto tgt_val = ax_tgt.begin();
-    auto index_val = indices.begin();
+    vector<double>::const_iterator src_val = ax_src.begin();
+    vector<double>::const_iterator tgt_val = ax_tgt.begin();
+    vector<size_t>::iterator index_val = indices.begin();
 
     while (tgt_val != ax_tgt.end()) {
       while (*src_val < *tgt_val && src_val != ax_src.end()) {
