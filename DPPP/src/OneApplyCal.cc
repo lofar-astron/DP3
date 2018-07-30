@@ -59,6 +59,10 @@ namespace LOFAR {
             parset.getString(prefix + "parmdb") :
             parset.getString(defaultPrefix + "parmdb")),
         itsUseH5Parm   (itsParmDBName.find(".h5") != string::npos),
+        itsSolSetName  (
+            parset.isDefined(prefix + "solset") ?
+            parset.getString(prefix + "solset") :
+            parset.getString(defaultPrefix + "solset", "")),
         itsSigmaMMSE   (
             parset.isDefined(prefix + "MMSE.Sigma") ?
             parset.getDouble(prefix + "MMSE.Sigma") :
@@ -92,7 +96,7 @@ namespace LOFAR {
                         parset.getString(prefix + "direction") :
                         parset.getString(defaultPrefix + "direction",
                           predictDirection));
-        itsH5Parm = H5Parm(itsParmDBName);
+        itsH5Parm = H5Parm(itsParmDBName, false, false, itsSolSetName);
 
         itsSolTabName = (parset.isDefined(prefix + "correction") ?
                          parset.getString(prefix + "correction") :
