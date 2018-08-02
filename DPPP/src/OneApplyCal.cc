@@ -320,6 +320,7 @@ namespace LOFAR {
       os << "ApplyCal " << itsName << std::endl;
       if (itsUseH5Parm) {
         os << "  H5Parm:         " << itsParmDBName << endl;
+        os << "    SolSet:       " << itsH5Parm.getSolSetName() << endl;
         os << "    SolTab:       " << itsSolTabName << endl;
       } else {
         os << "  parmdb:         " << itsParmDBName << endl;
