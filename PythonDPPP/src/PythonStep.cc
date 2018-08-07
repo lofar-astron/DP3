@@ -321,6 +321,12 @@ namespace LOFAR {
       } else if (! itsNChanChg  &&  ! itsNBlChg) {
         itsBufOut.getFlags().assign (itsBufIn.getFlags());
       }
+      if (rec.isDefined("FULLRESFLAGS")) {
+        itsBufOut.getFullResFlags().assign (rec.toArrayBool("FULLRESFLAGS"));
+        narr++;
+      } else if (! itsNChanChg  &&  ! itsNBlChg) {
+        itsBufOut.getFullResFlags().assign (itsBufIn.getFullResFlags());
+      }
       if (rec.isDefined("WEIGHTS")) {
         itsBufOut.getWeights().assign (rec.toArrayFloat("WEIGHTS"));
         narr++;
