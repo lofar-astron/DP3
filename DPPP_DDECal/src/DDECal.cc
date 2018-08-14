@@ -343,7 +343,7 @@ namespace LOFAR {
       }
       itsChanBlockStart[itsChanBlockStart.size()-1] = info().nchan();
 
-      itsWeights.resize(itsChanBlockFreqs.size()*info().nantenna());
+      itsWeights.assign(itsChanBlockFreqs.size()*info().nantenna(), 0.0);
 
       for (uint i=0; i<itsConstraints.size();++i) {
         // Initialize the constraint with some common metadata
@@ -838,6 +838,7 @@ namespace LOFAR {
             // Put solution weights in a contiguous piece of memory
             vector<double> weights;
             if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
+	      std::cout << "Has weights.\n";
               weights.resize(numSols);
               vector<double>::iterator nextpos = weights.begin();
               for (uint time=0; time<itsSols.size(); ++time) {

@@ -93,7 +93,7 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
 
 std::vector<Constraint::Result> TECConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,
-    std::ostream* statStream)
+    std::ostream* /*statStream*/)
 {
   size_t nRes = 3;
   if(_mode == TECOnlyMode) {
@@ -105,6 +105,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 
   std::vector<Constraint::Result> res(nRes);
   res[0].vals.resize(_nAntennas*_nDirections);
+  res[0].weights.resize(_nAntennas*_nDirections);
   res[0].axes="ant,dir,freq";
   res[0].name="tec";
   res[0].dims.resize(3);
@@ -133,12 +134,14 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 #endif
 
     // Flag channels where calibration yielded inf or nan
+    double weightSum = 0.0;
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
       if(std::isfinite(solutions[ch][solutionIndex].real()) &&
         std::isfinite(solutions[ch][solutionIndex].imag()))
       {
         _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
         _phaseFitters[thread].WeightData()[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
+	weightSum += _weights[antennaIndex*_nChannelBlocks + ch];
       }
       else {
         _phaseFitters[thread].PhaseData()[ch] = 0.0;
@@ -152,10 +155,13 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     } else {
       res.back().vals[solutionIndex]=_phaseFitters[thread].FitDataToTEC2Model(alpha, beta);
     }
+    res.back().weights[solutionIndex] = weightSum;
 
     res[0].vals[solutionIndex] = alpha / -8.44797245e9;
+    res[0].weights[solutionIndex] = weightSum;
     if(_mode == TECAndCommonScalarMode) {
       res[1].vals[solutionIndex] = beta;
+      res[1].weights[solutionIndex] = weightSum;
     }
     
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) 
