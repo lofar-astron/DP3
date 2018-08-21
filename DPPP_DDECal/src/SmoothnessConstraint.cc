@@ -37,21 +37,20 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*)
 {
   std::vector<dcomplex> data(solutions.size());
-  const size_t thread =
-#ifdef AOPROJECT
-      omp_get_thread_num();
-#else
-      LOFAR::OpenMP::threadNum();
-#endif
       
   const size_t nPol = solutions.size() / (_nAntennas*_nDirections);
 #pragma omp parallel for
   for(size_t antDirIndex = 0; antDirIndex<_nAntennas*_nDirections; ++antDirIndex)
   {
+#ifdef AOPROJECT
+    const size_t thread = omp_get_thread_num();
+#else
+    const size_t thread = LOFAR::OpenMP::threadNum();
+#endif
     size_t antIndex = antDirIndex / _nDirections;
     for(size_t pol = 0; pol!=nPol; ++pol)
     {
-      size_t solutionIndex = antDirIndex*4 + pol;
+      size_t solutionIndex = antDirIndex*nPol + pol;
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
       {
         // Flag channels where calibration yielded inf or nan
