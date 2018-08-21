@@ -46,11 +46,12 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
       
   const size_t nPol = solutions.size() / (_nAntennas*_nDirections);
 #pragma omp parallel for
-  for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
+  for(size_t antDirIndex = 0; antDirIndex<_nAntennas*_nDirections; ++antDirIndex)
   {
+    size_t antIndex = antDirIndex / _nDirections;
     for(size_t pol = 0; pol!=nPol; ++pol)
     {
-      size_t antIndex = solutionIndex / _nDirections;
+      size_t solutionIndex = antDirIndex*4 + pol;
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
       {
         // Flag channels where calibration yielded inf or nan
