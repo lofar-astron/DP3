@@ -37,6 +37,7 @@
 #include <DPPP_DDECal/TECConstraint.h>
 #include <DPPP_DDECal/RotationConstraint.h>
 #include <DPPP_DDECal/RotationAndDiagonalConstraint.h>
+#include <DPPP_DDECal/SmoothnessConstraint.h>
 
 #include <ParmDB/ParmDB.h>
 #include <ParmDB/ParmValue.h>
@@ -93,6 +94,7 @@ namespace LOFAR {
         itsNChan         (parset.getInt (prefix + "nchan", 1)),
         itsUVWFlagStep   (input, parset, prefix),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
+	itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
@@ -139,6 +141,10 @@ namespace LOFAR {
       if(itsCoreConstraint != 0.0) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
           new CoreConstraint()));
+      }
+      if(itsSmoothnessConstraint != 0.0) {
+	itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
@@ -407,10 +413,15 @@ namespace LOFAR {
         }
         
         TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
-        if(tecConstraint != 0)
+        if(tecConstraint != nullptr)
         {
-          tecConstraint->initialize(&(itsChanBlockFreqs[0]));
+          tecConstraint->initialize(&itsChanBlockFreqs[0]);
         }
+	SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
+	if(sConstraint != nullptr)
+	{
+	  sConstraint->Initialize(&itsChanBlockFreqs[0], itsChanBlockFreqs.size());
+	}
       }
 
       uint nSt = info().antennaNames().size();
