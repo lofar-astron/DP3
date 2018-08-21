@@ -13,18 +13,11 @@ SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz) :
   _bandwidth(bandwidthHz)
 { }
 
-void SmoothnessConstraint::Initialize(const double* frequencies, size_t n)
+void SmoothnessConstraint::Initialize(const double* frequencies)
 {
-  _frequencies.assign(frequencies, frequencies+n);
-}
-
-void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
-  size_t nDirections,
-  size_t nChannelBlocks)
-{
-  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
+  _frequencies.assign(frequencies, frequencies+_nChannelBlocks);
   size_t nthreads =
- #ifdef AOPROJECT
+#ifdef AOPROJECT
     omp_get_max_threads();
 #else
     LOFAR::OpenMP::maxThreads();
@@ -33,41 +26,52 @@ void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType, _bandwidth);
 }
 
+void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
+  size_t nDirections,
+  size_t nChannelBlocks)
+{
+  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
+}
+
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*)
 {
   std::vector<dcomplex> data(solutions.size());
-  size_t thread =
+  const size_t thread =
 #ifdef AOPROJECT
       omp_get_thread_num();
 #else
       LOFAR::OpenMP::threadNum();
 #endif
-  
+      
+  const size_t nPol = solutions.size() / (_nAntennas*_nDirections);
 #pragma omp parallel for
   for(size_t solutionIndex = 0; solutionIndex<_nAntennas*_nDirections; ++solutionIndex)
   {
-    size_t antIndex = solutionIndex / _nDirections;
-    for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
+    for(size_t pol = 0; pol!=nPol; ++pol)
     {
-      // Flag channels where calibration yielded inf or nan
-      if(std::isfinite(solutions[ch][solutionIndex].real()) &&
-        std::isfinite(solutions[ch][solutionIndex].imag()))
+      size_t antIndex = solutionIndex / _nDirections;
+      for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
       {
-        _fitData[thread].data[ch] = solutions[ch][solutionIndex];
-        _fitData[thread].weight[ch] = _weights[antIndex];
+        // Flag channels where calibration yielded inf or nan
+        if(std::isfinite(solutions[ch][solutionIndex].real()) &&
+          std::isfinite(solutions[ch][solutionIndex].imag()))
+        {
+          _fitData[thread].data[ch] = solutions[ch][solutionIndex];
+          _fitData[thread].weight[ch] = _weights[antIndex];
+        }
+        else {
+          _fitData[thread].data[ch] = 0.0;
+          _fitData[thread].weight[ch] = 0.0;
+        }
       }
-      else {
-        _fitData[thread].data[ch] = 0.0;
-        _fitData[thread].weight[ch] = 0.0;
+      
+      _fitData[thread].smoother.Smooth(_fitData[thread].data.data(), _fitData[thread].weight.data());
+      
+      for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
+      {
+        solutions[ch][solutionIndex] = _fitData[thread].data[ch];
       }
-    }
-    
-    _fitData[thread].smoother.Smooth(_fitData[thread].data.data(), _fitData[thread].weight.data());
-    
-    for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
-    {
-      solutions[ch][solutionIndex] = _fitData[thread].data[ch];
     }
   }
   

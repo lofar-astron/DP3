@@ -25,7 +25,7 @@ public:
                                     size_t nDirections,
                                     size_t nChannelBlocks);
 
-  virtual void SetWeights(std::vector<double>&);
+  virtual void SetWeights(const std::vector<double>& weights);
 
   /* Compute the rotation from a 2x2 full jones solution */
   static double get_rotation(std::complex<double>* data);

@@ -56,11 +56,10 @@ public:
   virtual bool Satisfied() const { return true; }
    
   /**
-   * This method applies the constraints to the solutions. It should be implemented in
-   * a thread safe manner, allowing multiple Apply() calls to run in parallel.
+   * This method applies the constraints to the solutions.
    * @param solutions is an array of array, such that:
-   * - solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
-   * - directions is the dimension with the fastest changing index.
+   * - solutions[ch] is a pointer for channelblock ch to antenna x directions x pol solutions.
+   * - pol is the dimension with the fastest changing index.
    * @param time Central time of interval.
    */
   virtual std::vector<Result> Apply(
@@ -85,7 +84,7 @@ public:
    * Set weights. The vector should contain an array of size nAntennas * nChannelBlocks,
    * where the channel index varies fastest.
    */
-  virtual void SetWeights(std::vector<double> &) {}
+  virtual void SetWeights(const std::vector<double> &) {}
 
   virtual void showTimings (std::ostream&, double) const {}
 

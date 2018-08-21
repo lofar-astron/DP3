@@ -420,7 +420,7 @@ namespace LOFAR {
 	SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
 	if(sConstraint != nullptr)
 	{
-	  sConstraint->Initialize(&itsChanBlockFreqs[0], itsChanBlockFreqs.size());
+	  sConstraint->Initialize(&itsChanBlockFreqs[0]);
 	}
       }
 

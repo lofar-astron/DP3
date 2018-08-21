@@ -15,11 +15,11 @@ public:
   std::vector<Constraint::Result> Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream* statStream) final override;
   
-  void SetWeights(std::vector<double> &weights) final override {
+  void SetWeights(const std::vector<double> &weights) final override {
     _weights = weights;
   }
   
-  void Initialize(const double* frequencies, size_t n);
+  void Initialize(const double* frequencies);
   
   virtual void InitializeDimensions(size_t nAntennas,
                                     size_t nDirections,

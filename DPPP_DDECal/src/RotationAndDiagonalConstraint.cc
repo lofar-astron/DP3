@@ -39,8 +39,8 @@ void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
   _res[2].name="phase";
 }
 
-void RotationAndDiagonalConstraint::SetWeights(vector<double>& weights) {
-  _res[0].weights.assign(weights.begin(), weights.end());
+void RotationAndDiagonalConstraint::SetWeights(const vector<double>& weights) {
+  _res[0].weights = weights;
 
   // Duplicate weights for two polarizations
   _res[1].weights.resize(_nAntennas*_nChannelBlocks*2);

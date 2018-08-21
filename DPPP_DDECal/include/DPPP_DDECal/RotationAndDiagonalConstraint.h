@@ -25,7 +25,7 @@ public:
                                     size_t nDirections,
                                     size_t nChannelBlocks);
 
-  virtual void SetWeights(std::vector<double>&);
+  virtual void SetWeights(const std::vector<double>& weights);
 
 private:
   std::vector<Constraint::Result> _res;

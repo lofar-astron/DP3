@@ -31,7 +31,7 @@ void TECConstraintBase::initialize(const double* frequencies) {
   initializeChild();
 }
 
-void TECConstraintBase::SetWeights(std::vector<double>& weights) {
+void TECConstraintBase::SetWeights(const std::vector<double>& weights) {
   _weights = weights;
 }
 

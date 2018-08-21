@@ -25,8 +25,8 @@ namespace LOFAR {
   _res[0].name="rotation";
 }
 
-void RotationConstraint::SetWeights(vector<double>& weights) {
-  _res[0].weights.assign(weights.begin(), weights.end());
+void RotationConstraint::SetWeights(const vector<double>& weights) {
+  _res[0].weights = weights;
 }
 
 double RotationConstraint::get_rotation(std::complex<double>* data) {
