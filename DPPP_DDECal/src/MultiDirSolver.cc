@@ -114,29 +114,46 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
     n += solutions[chBlock].size();
     for(size_t i=0; i!=solutions[chBlock].size(); i += NPol)
     {
-      double nextSum, solSum;
+      // A normalized squared difference is calculated between the solutions of this
+      // and the previous step:
+      //   sqrt { 1/n sum over | (t1 - t0) t0^(-1) |_2 }
+      // This criterion is scale independent: all solutions can be scaled without
+      // affecting the number of iterations. Also, when the polarized version is given
+      // scalar matrices, it will use the same number of iterations as the scalar
+      // version.
       if(NPol == 1)
       {
-        solSum = std::abs(solutions[chBlock][i]);
-        nextSum = std::norm(nextSolutions[chBlock][i] - solutions[chBlock][i]);
+        if(solutions[chBlock][i] != 0.0)
+          avgSquaredDiff += std::norm((nextSolutions[chBlock][i] - solutions[chBlock][i]) / solutions[chBlock][i]);
         solutions[chBlock][i] = nextSolutions[chBlock][i];
       }
       else {
-        solSum = std::abs(solutions[chBlock][i]) + std::abs(solutions[chBlock][i+3]);
-        nextSum = 0.0;
+        MC2x2 s(&solutions[chBlock][i]), sInv(s);
+        if(sInv.Invert())
+        {
+          MC2x2 n(&nextSolutions[chBlock][i]);
+          n -= s;
+          n *= sInv;
+          for(size_t p=0; p!=NPol; ++p)
+            avgSquaredDiff += std::norm(n[p]);
+        }
         for(size_t p=0; p!=NPol; ++p)
         {
-          nextSum += std::norm(nextSolutions[chBlock][i+p] - solutions[chBlock][i+p]);
           solutions[chBlock][i+p] = nextSolutions[chBlock][i+p];
         }
       }
-      if(solSum != 0.0)
-        avgSquaredDiff += nextSum/solSum;
     }
   }
-  avgSquaredDiff /= n;
+  // The polarized version needs a factor of two normalization to make it work
+  // like the scalar version would and when given only scalar matrices.
+  if(NPol == 4)
+    avgSquaredDiff = sqrt(avgSquaredDiff*0.5/n) ;
+  else
+    avgSquaredDiff = sqrt(avgSquaredDiff/n);
 
-  double stepMagnitude = sqrt(avgSquaredDiff)/_stepSize;
+  // The stepsize is taken out, so that a small stepsize won't cause
+  // premiture succesful stopping criterion.
+  double stepMagnitude = avgSquaredDiff/_stepSize;
   stepMagnitudes.push_back(stepMagnitude);
 
   if(useConstraintAccuracy)
