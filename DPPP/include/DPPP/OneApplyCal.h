@@ -108,6 +108,7 @@ namespace LOFAR {
       H5Parm           itsH5Parm;
       string           itsSolTabName;
       H5Parm::SolTab   itsSolTab;
+      H5Parm::SolTab   itsSolTab2; // in the case of full Jones, amp and phase table need to be open
       CorrectType      itsCorrectType;
       bool             itsInvert;
       uint             itsTimeSlotsPerParmUpdate;

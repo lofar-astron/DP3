@@ -101,9 +101,14 @@ namespace LOFAR {
         itsSolTabName = (parset.isDefined(prefix + "correction") ?
                          parset.getString(prefix + "correction") :
                          parset.getString(defaultPrefix + "correction"));
-
-        itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
         itsCorrectType = stringToCorrectType(itsSolTab.getType());
+	if(itsCorrectType == FULLJONES)
+	{
+	  itsSolTab = itsH5Parm.getSolTab("amplitude");
+	  itsSolTab2 = itsH5Parm.getSolTab("phase");
+	}
+	else
+	  itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
         if (itsCorrectType==PHASE && nPol("")==1) {
           itsCorrectType = SCALARPHASE;
         }
@@ -448,7 +453,7 @@ namespace LOFAR {
 #pragma omp critical(updateH5ParmValues)
 {
         // TODO: understand polarization etc.
-        ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
+        //  ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
 
         // Figure out whether time or frequency is first axis
         bool freqvariesfastest = true;
@@ -469,12 +474,28 @@ namespace LOFAR {
         }
 
         for (uint ant = 0; ant < numAnts; ++ant) {
-          for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
-            parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
-                                      info().antennaNames()[ant],
-                                      times, freqs,
-                                      pol, itsDirection);
-          }
+	  if(itsCorrection == FULLJONES)
+	  {
+	    for (uint pol=0; pol<4; ++pol) {
+	      // Place amplitude in even and phase in odd elements
+	      parmvalues[pol*2][ant] = itsSolTab.getValuesOrWeights("val",
+	        info().antennaNames()[ant],
+		times, freqs,
+		pol, itsDirection);
+	      parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
+	        info().antennaNames()[ant],
+		times, freqs,
+		pol, itsDirection);
+	    }
+	  }
+	  else {
+	    for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
+	      parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
+	        info().antennaNames()[ant],
+		times, freqs,
+		pol, itsDirection);
+	    }
+	  }
         }
 } // End pragma omp critical
       } else { // Use ParmDB
