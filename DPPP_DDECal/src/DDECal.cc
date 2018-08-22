@@ -435,19 +435,20 @@ namespace LOFAR {
 
     void DDECal::show (std::ostream& os) const
     {
-      os << "DDECal " << itsName << endl;
-      os << "  H5Parm:              " << itsH5ParmName <<endl;
-      os << "  solint:              " << itsSolInt <<endl;
-      os << "  nchan:               " << itsNChan <<endl;
-      os << "  directions:          " << itsDirections << endl;
-      os << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << endl;
-      os << "  max iter:            " << itsMultiDirSolver.max_iterations() << endl;
-      os << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << endl;
-      os << "  step size:           " << itsMultiDirSolver.get_step_size() << endl;
-      os << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) 
-         << endl;
-      os << "  coreconstraint:      " << itsCoreConstraint << endl;
-      os << "  approximate fitter:  " << itsApproximateTEC << endl;
+      os
+	<< "DDECal " << itsName << '\n'
+        << "  H5Parm:              " << itsH5ParmName << '\n'
+        << "  solint:              " << itsSolInt << '\n'
+        << "  nchan:               " << itsNChan << '\n'
+        << "  directions:          " << itsDirections << '\n'
+        << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
+        << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
+        << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
+        << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
+        << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
+        << "  coreconstraint:      " << itsCoreConstraint << '\n'
+	<< "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
+        << "  approximate fitter:  " << itsApproximateTEC << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }
