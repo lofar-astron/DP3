@@ -474,7 +474,7 @@ namespace LOFAR {
         }
 
         for (uint ant = 0; ant < numAnts; ++ant) {
-	  if(itsCorrection == FULLJONES)
+	  if(itsCorrectType == FULLJONES)
 	  {
 	    for (uint pol=0; pol<4; ++pol) {
 	      // Place amplitude in even and phase in odd elements
