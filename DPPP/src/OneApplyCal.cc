@@ -101,14 +101,17 @@ namespace LOFAR {
         itsSolTabName = (parset.isDefined(prefix + "correction") ?
                          parset.getString(prefix + "correction") :
                          parset.getString(defaultPrefix + "correction"));
-        itsCorrectType = stringToCorrectType(itsSolTab.getType());
-	if(itsCorrectType == FULLJONES)
+	if(itsSolTabName == "fulljones")
 	{
-	  itsSolTab = itsH5Parm.getSolTab("amplitude");
-	  itsSolTab2 = itsH5Parm.getSolTab("phase");
+	  itsSolTab = itsH5Parm.getSolTab("amplitude000");
+	  itsSolTab2 = itsH5Parm.getSolTab("phase000");
+	  itsSolTabName = "amplitude000, phase000"; // this is only so that show() shows these tables
+	  itsCorrectType = FULLJONES;
 	}
-	else
+	else {
 	  itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
+	  itsCorrectType = stringToCorrectType(itsSolTab.getType());
+	}
         if (itsCorrectType==PHASE && nPol("")==1) {
           itsCorrectType = SCALARPHASE;
         }
