@@ -58,7 +58,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
           std::isfinite(solutions[ch][solutionIndex].imag()))
         {
           _fitData[thread].data[ch] = solutions[ch][solutionIndex];
-          _fitData[thread].weight[ch] = _weights[antIndex];
+          _fitData[thread].weight[ch] = _weights[antIndex*_nChannelBlocks + ch];
         }
         else {
           _fitData[thread].data[ch] = 0.0;
