@@ -104,14 +104,13 @@ void MultiDirSolver::makeSolutionsFinite(std::vector<std::vector<DComplex> >& so
 template<size_t NPol>
 bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& solutions,
   std::vector<std::vector<DComplex> >& nextSolutions, bool useConstraintAccuracy,
-  double& avgSquaredDiff, std::vector<double>& stepMagnitudes) const
+  double& avgAbsDiff, std::vector<double>& stepMagnitudes) const
 {
-  avgSquaredDiff = 0.0;
+  avgAbsDiff = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
   size_t n = 0;
   for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
   {
-    n += solutions[chBlock].size();
     for(size_t i=0; i!=solutions[chBlock].size(); i += NPol)
     {
       // A normalized squared difference is calculated between the solutions of this
@@ -124,18 +123,33 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
       if(NPol == 1)
       {
         if(solutions[chBlock][i] != 0.0)
-          avgSquaredDiff += std::norm((nextSolutions[chBlock][i] - solutions[chBlock][i]) / solutions[chBlock][i]);
+        {
+          double a = std::abs((nextSolutions[chBlock][i] - solutions[chBlock][i]) / solutions[chBlock][i]);
+          if(std::isfinite(a))
+          {
+            avgAbsDiff += a;
+            ++n;
+          }
+        }
         solutions[chBlock][i] = nextSolutions[chBlock][i];
       }
       else {
         MC2x2 s(&solutions[chBlock][i]), sInv(s);
         if(sInv.Invert())
         {
-          MC2x2 n(&nextSolutions[chBlock][i]);
-          n -= s;
-          n *= sInv;
+          MC2x2 ns(&nextSolutions[chBlock][i]);
+          ns -= s;
+          ns *= sInv;
+          double sumabs = 0.0;
           for(size_t p=0; p!=NPol; ++p)
-            avgSquaredDiff += std::norm(n[p]);
+          {
+            sumabs += std::abs(ns[p]);
+          }
+          if(std::isfinite(sumabs))
+          {
+            avgAbsDiff += sumabs;
+            n += 4;
+          }
         }
         for(size_t p=0; p!=NPol; ++p)
         {
@@ -146,15 +160,15 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
   }
   // The polarized version needs a factor of two normalization to make it work
   // like the scalar version would and when given only scalar matrices.
-  if(NPol == 4)
-    avgSquaredDiff = sqrt(avgSquaredDiff*0.5/n) ;
-  else
-    avgSquaredDiff = sqrt(avgSquaredDiff/n);
+  //if(NPol == 4)
+  //  avgSquaredDiff = sqrt(avgSquaredDiff*0.5/n) ;
+  //else
+  //  avgSquaredDiff = sqrt(avgSquaredDiff/n);
 
   // The stepsize is taken out, so that a small stepsize won't cause
-  // premiture succesful stopping criterion.
-  double stepMagnitude = avgSquaredDiff/_stepSize;
-  stepMagnitudes.push_back(stepMagnitude);
+  // a premature stopping criterion.
+  double stepMagnitude = avgAbsDiff/_stepSize/n;
+  stepMagnitudes.emplace_back(stepMagnitude);
 
   if(useConstraintAccuracy)
     return stepMagnitude <= _constraintAccuracy;
@@ -276,10 +290,12 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(std::vector<Complex *>
 
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied) && !hasStalled);
   
-  if(hasConverged)
-    result.iterations = iteration;
+  // When we have not converged yet, we set the nr of iterations to the max+1, so that
+  // non-converged iterations can be distinguished from converged ones.
+  if((!hasConverged || !constraintsSatisfied) && !hasStalled)
+    result.iterations = iteration+1;
   else
-    result.iterations = _maxIterations+1;
+    result.iterations = iteration;
   result.constraintIterations = constrainedIterations;
   return result;
 }
@@ -506,10 +522,12 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(std::vector<Comple
 
   } while(iteration < _maxIterations && (!hasConverged || !constraintsSatisfied) && !hasStalled);
  
-  if(hasConverged)
-    result.iterations = iteration;
+  // When we have not converged yet, we set the nr of iterations to the max+1, so that
+  // non-converged iterations can be distinguished from converged ones.
+  if((!hasConverged || !constraintsSatisfied) && !hasStalled)
+    result.iterations = iteration+1;
   else
-    result.iterations = _maxIterations+1;
+    result.iterations = iteration;
   result.constraintIterations = constrainedIterations;
   return result;
 }
