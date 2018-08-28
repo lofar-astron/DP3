@@ -114,6 +114,9 @@ namespace LOFAR {
       std::string      itsName;
       vector<DPBuffer> itsBufs;
 
+      bool             itsUseModelColumn;
+      std::vector<casacore::Cube<casacore::Complex>> itsModelData;
+
       // The time of the current buffer (in case of solint, average time)
       double           itsAvgTime;
       std::vector<casacore::Complex*> itsDataPtrs;
@@ -130,7 +133,6 @@ namespace LOFAR {
       // For each time, for each constraint, a vector of results (e.g. tec and phase)
       std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
 
-      casacore::Cube<casacore::Complex> itsModelData;
       std::string      itsH5ParmName;
       H5Parm           itsH5Parm;
       std::string      itsParsetString; // Parset, for logging in H5Parm

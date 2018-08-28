@@ -80,6 +80,7 @@ namespace LOFAR {
                       const string& prefix)
       : itsInput         (input),
         itsName          (prefix),
+        itsUseModelColumn(parset.getBool (prefix + "usemodelcolumn", false)),
         itsAvgTime       (0),
         itsSols          (),
         itsH5ParmName    (parset.getString (prefix + "h5parm",
@@ -104,10 +105,6 @@ namespace LOFAR {
       ss << parset;
       itsParsetString = ss.str();
 
-      vector<string> strDirections = 
-         parset.getStringVector (prefix + "directions",
-                                 vector<string> ());
-         
       itsMultiDirSolver.set_max_iterations(parset.getInt(prefix + "maxiter", 50));
       double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
       itsMultiDirSolver.set_accuracy(tolerance);
@@ -118,20 +115,29 @@ namespace LOFAR {
       if(!itsStatFilename.empty())
 	itsStatStream.reset(new std::ofstream(itsStatFilename));
       
-      // Default directions are all patches
-      if (strDirections.empty()) {
-        string sourceDBName = parset.getString(prefix+"sourcedb");
-        BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
-        vector<string> patchNames = makePatchList(sourceDB, vector<string>());
-        itsDirections.resize(patchNames.size());
-        for (uint i=0; i<patchNames.size(); ++i) {
-          itsDirections[i] = vector<string>(1, patchNames[i]);
-        }
+      vector<string> strDirections;
+      if (itsUseModelColumn) {
+        itsModelData.resize(itsSolInt);
+        strDirections.push_back("pointing");
+        itsDirections.push_back(vector<string>());
       } else {
-        itsDirections.resize(strDirections.size());
-        for (uint i=0; i<strDirections.size(); ++i) {
-          ParameterValue dirStr(strDirections[i]);
-          itsDirections[i] = dirStr.getStringVector();
+        strDirections = parset.getStringVector (prefix + "directions",
+                                                vector<string> ());
+        // Default directions are all patches
+        if (strDirections.empty()) {
+          string sourceDBName = parset.getString(prefix+"sourcedb");
+          BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
+          vector<string> patchNames = makePatchList(sourceDB, vector<string>());
+          itsDirections.resize(patchNames.size());
+          for (uint i=0; i<patchNames.size(); ++i) {
+            itsDirections[i] = vector<string>(1, patchNames[i]);
+          }
+        } else {
+          itsDirections.resize(strDirections.size());
+          for (uint i=0; i<strDirections.size(); ++i) {
+            ParameterValue dirStr(strDirections[i]);
+            itsDirections[i] = dirStr.getStringVector();
+          }
         }
       }
 
@@ -241,9 +247,13 @@ namespace LOFAR {
       }
 
       const size_t nDir = itsDirections.size();
-      itsPredictSteps.resize(nDir);
-      for (size_t dir=0; dir<nDir; ++dir) {
-        itsPredictSteps[dir]=Predict(input, parset, prefix, itsDirections[dir]);
+      if (itsUseModelColumn) {
+        ASSERT(nDir == 1);
+      } else {
+        itsPredictSteps.resize(nDir);
+        for (size_t dir=0; dir<nDir; ++dir) {
+          itsPredictSteps[dir]=Predict(input, parset, prefix, itsDirections[dir]);
+        }
       }
     }
 
@@ -262,10 +272,10 @@ namespace LOFAR {
       info() = infoIn;
       info().setNeedVisData();
 
-      const size_t nDir=itsDirections.size();
+      const size_t nDir = itsDirections.size();
 
       itsUVWFlagStep.updateInfo(infoIn);
-      for (size_t dir=0; dir<nDir; ++dir) {
+      for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsPredictSteps[dir].updateInfo(infoIn);
       }
 
@@ -288,8 +298,8 @@ namespace LOFAR {
       itsDataResultStep = ResultStep::ShPtr(new ResultStep());
       itsUVWFlagStep.setNextStep(itsDataResultStep);
 
-      itsResultSteps.resize(nDir);
-      for (size_t dir=0; dir<nDir; ++dir) {
+      itsResultSteps.resize(itsPredictSteps.size());
+      for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsResultSteps[dir] = MultiResultStep::ShPtr(new MultiResultStep(itsSolInt));
         itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
       }
@@ -321,8 +331,18 @@ namespace LOFAR {
       itsH5Parm.addAntennas(antennaNames, antennaPos);
 
       std::vector<std::pair<double, double> > sourcePositions(itsDirections.size());
-      for (uint i=0; i<itsDirections.size(); ++i) {
-        sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
+      if (itsUseModelColumn) {
+         MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+                                                 MDirection::J2000)());
+         Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+         sourcePositions[0] = std::pair<double, double> (
+                                     angles.getBaseValue()[0],
+                                     angles.getBaseValue()[1]);
+ 
+      } else {
+        for (uint i=0; i<itsDirections.size(); ++i) {
+          sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
+        }
       }
       itsH5Parm.addSources(getDirectionNames(), sourcePositions);
 
@@ -441,6 +461,7 @@ namespace LOFAR {
         << "  solint:              " << itsSolInt << '\n'
         << "  nchan:               " << itsNChan << '\n'
         << "  directions:          " << itsDirections << '\n'
+        << "  use model column:    " << boolalpha << itsUseModelColumn << '\n'
         << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
         << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
         << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
@@ -592,11 +613,17 @@ namespace LOFAR {
 
 //      if(itsPredictSteps.size() < LOFAR::OpenMP::maxThreads())
 //        LOFAR::OpenMP::setNested(true);
+      if (itsUseModelColumn) {
+        itsInput->getModelData (itsBufs[itsStepInSolInt].getRowNrs(),
+                                itsModelData[itsStepInSolInt]);
+        itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
+      } else {
 #pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
-      for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
-        itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
-        itsModelDataPtrs[itsStepInSolInt][dir] =
-                 itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
+        for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+          itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
+          itsModelDataPtrs[itsStepInSolInt][dir] =
+                   itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
+        }
       }
 
       // Handle weights and flags
@@ -618,7 +645,7 @@ namespace LOFAR {
             if (itsBufs[itsStepInSolInt].getFlags().data()[bl*nCr*nCh+ch*nCr+cr]) {
               // Flagged points: set data and model to 0
               itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] = 0;
-              for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
                 itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] = 0;
               }
             } else {
@@ -627,7 +654,7 @@ namespace LOFAR {
               itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
               itsWeights[info().getAnt1()[bl]*nchanblocks + chanblock] += weight;
               itsWeights[info().getAnt2()[bl]*nchanblocks + chanblock] += weight;
-              for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
                 itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
               }
             }
@@ -653,9 +680,9 @@ namespace LOFAR {
         // Clean up, prepare for next iteration
         itsStepInSolInt=0;
         itsAvgTime=0;
+        itsWeights.assign(itsWeights.size(), 0.);
         for (size_t dir=0; dir<itsResultSteps.size(); ++dir) {
           itsResultSteps[dir]->clear();
-          itsWeights.assign(itsWeights.size(), 0.);
         }
       } else {
         itsStepInSolInt++;
@@ -920,7 +947,6 @@ namespace LOFAR {
             soltab.setFreqs(chanBlockFreqs);
  
             soltab.setTimes(solTimes);
-            // End TODO 
           }
         }
       }

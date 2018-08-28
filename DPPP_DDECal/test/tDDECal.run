@@ -35,6 +35,12 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=DATA\
 echo $cmd
 $cmd >& /dev/null
 
+echo "Predict model data column"
+cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=MODEL_DATA\
+  steps=[]"
+echo $cmd
+$cmd >& /dev/null
+
 for caltype in complexgain scalarcomplexgain amplitudeonly scalaramplitude
 do
   for solint in 0 1 2 4
@@ -125,5 +131,16 @@ cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. numthreads=4\
     ddecal.sourcedb=tDDECal.MS/sky\
     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\
     ddecal.h5parm=instrument-tecandphase.h5 ddecal.mode=tecandphase"
+echo $cmd
+$cmd
+
+echo "Create MODEL_DATA"
+cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=MODEL_DATA\
+  steps=[]"
+echo $cmd
+$cmd >& /dev/null
+cmd="NDPPP checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
+  ddecal.usemodelcolumn=true ddecal.h5parm=instrument-modeldata \
+  ddecal.solint=2 ddecal.nchan=3"
 echo $cmd
 $cmd
