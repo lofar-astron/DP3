@@ -36,9 +36,7 @@ void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*)
 {
-  std::vector<dcomplex> data(solutions.size());
-      
-  const size_t nPol = solutions.size() / (_nAntennas*_nDirections);
+  const size_t nPol = solutions.front().size() / (_nAntennas*_nDirections);
 #pragma omp parallel for
   for(size_t antDirIndex = 0; antDirIndex<_nAntennas*_nDirections; ++antDirIndex)
   {
