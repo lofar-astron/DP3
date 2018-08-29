@@ -177,19 +177,18 @@ private:
     Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 1.0f, 0.0f);
 
-    vector<complex<float> > rightTimes(max(itsNTime, 5));
+    vector<double> rightTimes(max(itsNTime, 5));
     rightTimes[0] = 0;
-    rightTimes[1] = 1;
+    rightTimes[1] = 2;
     rightTimes[2] = 3;
-    rightTimes[3] = 3;
-    for (int t=4; t<itsNTime; ++t) {
+    for (int t=3; t<itsNTime; ++t) {
       rightTimes[t] = 4;
     }
     if (!itsSolsHadTimeAxis) {
       rightTimes.assign(itsNTime, 0);
     }
 
-    vector<complex<float> > rightFreqs(max(itsNChan, 5));
+    vector<double> rightFreqs(max(itsNChan, 5));
     rightFreqs[0] = 1;
     rightFreqs[1] = 1;
     rightFreqs[2] = 2;
