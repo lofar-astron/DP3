@@ -499,14 +499,14 @@ namespace LOFAR {
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
-              weights = itsSolTab.getValuesOrWeights("val",
+              weights = itsSolTab.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol*2][ant], weights);
 	      parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
-              weights = itsSolTab2.getValuesOrWeights("val",
+              weights = itsSolTab2.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol*2+1][ant], weights);
 	    }
@@ -517,7 +517,7 @@ namespace LOFAR {
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
-              weights = itsSolTab.getValuesOrWeights("val",
+              weights = itsSolTab.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol][ant], weights);
 	    }

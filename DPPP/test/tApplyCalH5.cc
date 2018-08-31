@@ -203,20 +203,19 @@ private:
 
     if (itsDoTest) {
       //cout<<endl;
-      for (int bl=0; bl<1; ++bl) {
+      for (uint bl=0; bl<info().nbaselines(); ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
             uint ant1 = info().getAnt1()[bl];
             uint ant2 = info().getAnt2()[bl];
             // Square root of autocorrelation for first antenna
             complex<float> val = sqrt(buf.getData().data()[bl*itsNCorr*itsNChan + chan*itsNCorr]);
-            //cout<<val<<"\t";
-            ASSERT(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
 
             bool flag = buf.getFlags().data()[bl*itsNCorr*itsNChan + chan*itsNCorr];
-            if ((ant1==1 || ant2==1) && itsTimeStep==2 && chan==3) {
+            if ((ant1==1 || ant2==1) && rightTimes[itsTimeStep]==2 && rightFreqs[chan]==2) {
               ASSERT(flag);
             } else {
               ASSERT(!flag);
+              ASSERT(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
             }
         }
       }
@@ -340,7 +339,7 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
       for (uint f=0; f<nfreqs; ++f) {
         values[ant*ntimes*nfreqs+t*nfreqs + f] = 1./(100.*(t%100)+(1+f));
         weights[ant*ntimes*nfreqs+t*nfreqs + f] = 1.;
-        if (ant==1 && t==2 && f==3) {
+        if (ant==1 && t==2 && f==1) {
           weights[ant*ntimes*nfreqs+t*nfreqs + f] = 0.;
         }
       }
