@@ -415,6 +415,19 @@ namespace LOFAR {
       getNextStep()->finish();
     }
 
+    void OneApplyCal::applyFlags(vector<double>& values,
+                                 const vector<double>& weights) {
+      ASSERT(values.size() == weights.size());
+      vector<double>::iterator values_it = values.begin();
+      vector<double>::const_iterator weights_it = weights.begin();
+
+      for (; values_it != values.end(); ++values_it) {
+        if (*weights_it == 0.) {
+          *values_it = std::numeric_limits<float>::quiet_NaN();
+        }
+        weights_it++;
+      } 
+    }
 
     void OneApplyCal::updateParms (const double bufStartTime)
     {
@@ -476,6 +489,7 @@ namespace LOFAR {
           freqs[ch] = info().chanFreqs()[ch];
         }
 
+        vector<double> weights;
         for (uint ant = 0; ant < numAnts; ++ant) {
 	  if(itsCorrectType == FULLJONES)
 	  {
@@ -485,10 +499,16 @@ namespace LOFAR {
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
+              weights = itsSolTab.getValuesOrWeights("val",
+                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+              applyFlags(parmvalues[pol*2][ant], weights);
 	      parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
+              weights = itsSolTab2.getValuesOrWeights("val",
+                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+              applyFlags(parmvalues[pol*2+1][ant], weights);
 	    }
 	  }
 	  else {
@@ -497,6 +517,9 @@ namespace LOFAR {
 	        info().antennaNames()[ant],
 		times, freqs,
 		pol, itsDirection);
+              weights = itsSolTab.getValuesOrWeights("val",
+                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+              applyFlags(parmvalues[pol][ant], weights);
 	    }
 	  }
         }

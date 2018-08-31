@@ -94,6 +94,10 @@ namespace LOFAR {
       // Check the number of polarizations in the parmdb or h5parm
       uint nPol(const std::string& parmName);
 
+      // Replace values by NaN on places where weight is zero
+      static void applyFlags(std::vector<double>& values,
+                             const std::vector<double>& weights);
+
       static std::string correctTypeToString(CorrectType);
       static CorrectType stringToCorrectType(const string&);
 

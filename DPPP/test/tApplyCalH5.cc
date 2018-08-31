@@ -205,10 +205,19 @@ private:
       //cout<<endl;
       for (int bl=0; bl<1; ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
+            uint ant1 = info().getAnt1()[bl];
+            uint ant2 = info().getAnt2()[bl];
             // Square root of autocorrelation for first antenna
             complex<float> val = sqrt(buf.getData().data()[bl*itsNCorr*itsNChan + chan*itsNCorr]);
             //cout<<val<<"\t";
             ASSERT(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
+
+            bool flag = buf.getFlags().data()[bl*itsNCorr*itsNChan + chan*itsNCorr];
+            if ((ant1==1 || ant2==1) && itsTimeStep==2 && chan==3) {
+              ASSERT(flag);
+            } else {
+              ASSERT(!flag);
+            }
         }
       }
     }
@@ -325,14 +334,19 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   uint ntimes = max(times.size(), 1);
   uint nfreqs = max(freqs.size(), 1);
   vector<double> values(ntimes*nfreqs*3);
+  vector<double> weights(ntimes*nfreqs*3);
   for (uint ant=0; ant<3; ++ant) {
     for (uint t=0; t<ntimes; ++t) {
       for (uint f=0; f<nfreqs; ++f) {
         values[ant*ntimes*nfreqs+t*nfreqs + f] = 1./(100.*(t%100)+(1+f));
+        weights[ant*ntimes*nfreqs+t*nfreqs + f] = 1.;
+        if (ant==1 && t==2 && f==3) {
+          weights[ant*ntimes*nfreqs+t*nfreqs + f] = 0.;
+        }
       }
     }
   }
-  soltab.setValues(values, vector<double>(), "CREATE with DPPP tApplyCalH5");
+  soltab.setValues(values, weights, "CREATE with DPPP tApplyCalH5");
 }
 
 int main()
