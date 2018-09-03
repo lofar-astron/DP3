@@ -18,7 +18,7 @@ set(inst_HEADERS
   Predict.h OneApplyCal.h
   GainCal.h StefCal.h PhaseFitter.h
   StManParsetKeys.h H5Parm.h DummyStep.h H5ParmPredict.h GridInterpolate.h
-  Upsample.h
+  Upsample.h Split.h
 )
 
 # Create symbolic link to include directory.

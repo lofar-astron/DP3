@@ -170,7 +170,7 @@ namespace LOFAR {
       string          itsOutName;
       DPBuffer        itsBuffer;
       casacore::Table     itsMS;
-      const ParameterSet&   itsParset; //# parset for writing history
+      ParameterSet    itsParset; //# parset for writing history
       casacore::String    itsDataColName;
       casacore::String    itsWeightColName;
       double          itsInterval;

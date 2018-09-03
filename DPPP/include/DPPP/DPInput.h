@@ -63,6 +63,9 @@ namespace LOFAR {
     class DPInput: public DPStep
     {
     public:
+      // Define the shared pointer for this type.
+      typedef shared_ptr<DPInput> ShPtr;
+
       virtual ~DPInput();
 
       // Read the UVW at the given row numbers into the buffer.

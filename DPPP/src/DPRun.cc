@@ -43,6 +43,7 @@
 #include <DPPP/Predict.h>
 #include <DPPP/H5ParmPredict.h>
 #include <DPPP/GainCal.h>
+#include <DPPP/Split.h>
 #include <DPPP/Upsample.h>
 #include <DPPP/Filter.h>
 #include <DPPP/Counter.h>
@@ -129,8 +130,12 @@ namespace LOFAR {
       uint numThreads = parset.getInt("numthreads", OpenMP::maxThreads());
       OpenMP::setNumThreads(numThreads);
 
-      // Create the steps and fill their DPInfo objects.
-      DPStep::ShPtr firstStep = makeSteps (parset);
+      // Create the steps, link them toggether
+      DPStep::ShPtr firstStep = makeSteps (parset, "", 0);
+
+      // Let all steps fill their DPInfo object using the info from the previous step.
+      DPInfo lastInfo = firstStep->setInfo (DPInfo());
+
       // Show the steps.
       DPStep::ShPtr step = firstStep;
       DPStep::ShPtr lastStep;
@@ -226,58 +231,62 @@ namespace LOFAR {
       // The destructors are called automatically at this point.
     }
 
-    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset)
+    DPStep::ShPtr DPRun::makeSteps (const ParameterSet& parset,
+                                    const string& prefix,
+                                    DPInput* reader)
     {
       DPStep::ShPtr firstStep;
       DPStep::ShPtr lastStep;
-      // Get input and output MS name.
-      // Those parameters were always called msin and msout.
-      // However, SAS/MAC cannot handle a parameter and a group with the same
-      // name, hence one can also use msin.name and msout.name.
-      vector<string> inNames = parset.getStringVector ("msin.name",
-                                                       vector<string>());
-      if (inNames.empty()) {
-        inNames = parset.getStringVector ("msin");
-      }
-      ASSERTSTR (inNames.size() > 0, "No input MeasurementSets given");
-      // Find all file names matching a possibly wildcarded input name.
-      // This is only possible if a single name is given.
-      if (inNames.size() == 1) {
-        if (inNames[0].find_first_of ("*?{['") != string::npos) {
-          vector<string> names;
-          names.reserve (80);
-          casacore::Path path(inNames[0]);
-          casacore::String dirName(path.dirName());
-          casacore::Directory dir(dirName);
-          // Use the basename as the file name pattern.
-          casacore::DirectoryIterator dirIter (dir,
-                                           casacore::Regex::fromPattern(path.baseName()));
-          while (!dirIter.pastEnd()) {
-            names.push_back (dirName + '/' + dirIter.name());
-            dirIter++;
-          }
-          ASSERTSTR (!names.empty(), "No datasets found matching msin "
-                     << inNames[0]);
-          inNames = names;
+      if (!reader) {
+        // Get input and output MS name.
+        // Those parameters were always called msin and msout.
+        // However, SAS/MAC cannot handle a parameter and a group with the same
+        // name, hence one can also use msin.name and msout.name.
+        vector<string> inNames = parset.getStringVector ("msin.name",
+                                                         vector<string>());
+        if (inNames.empty()) {
+          inNames = parset.getStringVector ("msin");
         }
+        ASSERTSTR (inNames.size() > 0, "No input MeasurementSets given");
+        // Find all file names matching a possibly wildcarded input name.
+        // This is only possible if a single name is given.
+        if (inNames.size() == 1) {
+          if (inNames[0].find_first_of ("*?{['") != string::npos) {
+            vector<string> names;
+            names.reserve (80);
+            casacore::Path path(inNames[0]);
+            casacore::String dirName(path.dirName());
+            casacore::Directory dir(dirName);
+            // Use the basename as the file name pattern.
+            casacore::DirectoryIterator dirIter (dir,
+                                             casacore::Regex::fromPattern(path.baseName()));
+            while (!dirIter.pastEnd()) {
+              names.push_back (dirName + '/' + dirIter.name());
+              dirIter++;
+            }
+            ASSERTSTR (!names.empty(), "No datasets found matching msin "
+                       << inNames[0]);
+            inNames = names;
+          }
+        }
+
+        // Get the steps.
+        // Currently the input MS must be given.
+        // In the future it might be possible to have a simulation step instead.
+        // Create MSReader step if input ms given.
+        if (inNames.size() == 1) {
+          reader = new MSReader (inNames[0], parset, "msin.");
+        } else {
+          reader = new MultiMSReader (inNames, parset, "msin.");
+        }
+        firstStep = DPStep::ShPtr (reader);
       }
 
-      // Get the steps.
-      vector<string> steps = parset.getStringVector ("steps");
-      // Currently the input MS must be given.
-      // In the future it might be possible to have a simulation step instead.
-      // Create MSReader step if input ms given.
-      MSReader* reader = 0;
-      if (inNames.size() == 1) {
-        reader = new MSReader (inNames[0], parset, "msin.");
-      } else {
-        reader = new MultiMSReader (inNames, parset, "msin.");
-      }
       casacore::Path pathIn (reader->msName());
       casacore::String currentMSName (pathIn.absoluteName());
 
       // Create the other steps.
-      firstStep = DPStep::ShPtr (reader);
+      vector<string> steps = parset.getStringVector (prefix + "steps");
       lastStep = firstStep;
       DPStep::ShPtr step;
       for (vector<string>::const_iterator iter = steps.begin();
@@ -329,27 +338,30 @@ namespace LOFAR {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else if (type == "upsample") {
           step = DPStep::ShPtr(new Upsample (reader, parset, prefix));
-        } else if (type == "out" || type=="output") {
-          step = makeOutputStep(reader, parset, prefix,
-                                inNames.size()>1, currentMSName);
+        } else if (type == "split" || type == "explode") {
+          step = DPStep::ShPtr(new Split (reader, parset, prefix));
+        } else if (type == "out" || type=="output" || type=="msout") {
+          step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix, currentMSName);
         } else {
           // Maybe the step is defined in a dynamic library.
           step = findStepCtor(type) (reader, parset, prefix);
         }
-        lastStep->setNextStep (step);
+        if (lastStep) {
+          lastStep->setNextStep (step);
+        }
         lastStep = step;
         // Define as first step if not defined yet.
         if (!firstStep) {
           firstStep = step;
         }
       }
-      step = makeOutputStep(reader, parset, "msout.",
-                            inNames.size()>1, currentMSName);
-      lastStep->setNextStep (step);
-      lastStep = step;
-
-      // Let all steps fill their info using the info from the previous step.
-      DPInfo lastInfo = firstStep->setInfo (DPInfo());
+      // Add an output step if not explicitly added in steps (unless last step is a 'split' step)
+      if (steps[steps.size()-1] != "out" && steps[steps.size()-1] != "output" &&
+          steps[steps.size()-1] != "msout" && steps[steps.size()-1] != "split") {
+        step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.", currentMSName);
+        lastStep->setNextStep (step);
+        lastStep = step;
+      }
 
       // Add a null step, so the last step can use getNextStep->process().
       DPStep::ShPtr nullStep(new NullStep());
@@ -364,7 +376,6 @@ namespace LOFAR {
     DPStep::ShPtr DPRun::makeOutputStep (MSReader* reader,
                                          const ParameterSet& parset,
                                          const string& prefix,
-                                         bool multipleInputs,
                                          casacore::String& currentMSName)
     {
       DPStep::ShPtr step;
@@ -396,9 +407,8 @@ namespace LOFAR {
         // Create MSUpdater.
         // Take care the history is not written twice.
         // Note that if there is nothing to write, the updater won't do anything.
-        ASSERTSTR (! multipleInputs,
-                   "No update can be done if multiple input MSs are used");
-        step = DPStep::ShPtr(new MSUpdater(reader, outName, parset, prefix,
+        step = DPStep::ShPtr(new MSUpdater(dynamic_cast<MSReader*>(reader),
+                                           outName, parset, prefix,
                                            outName!=currentMSName));
       } else {
         step = DPStep::ShPtr(new MSWriter (reader, outName, parset, prefix));

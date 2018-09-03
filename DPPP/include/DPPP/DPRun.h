@@ -64,10 +64,12 @@ namespace LOFAR {
       static void execute (const std::string& parsetName,
                            int argc=0, char* argv[] = 0);
 
-    private:
       // Create the step objects.
-      static DPStep::ShPtr makeSteps (const ParameterSet& parset);
+      static DPStep::ShPtr makeSteps (const ParameterSet& parset,
+                                      const std::string& prefix,
+                                      DPInput* reader);
 
+    private:
       // Create an output step, either an MSWriter or an MSUpdater
       // If no data are modified (for example if only count was done),
       // still an MSUpdater is created, but it will not write anything.
@@ -79,7 +81,7 @@ namespace LOFAR {
       // If there is a writer, the reader needs to read the visibility data.
       // reader should be the original reader
       static DPStep::ShPtr makeOutputStep(MSReader* reader,
-          const ParameterSet& parset, const string& prefix, bool multipleInputs,
+          const ParameterSet& parset, const string& prefix,
           casacore::String& currentMSName);
 
       // The map to create a step object from its type name.
