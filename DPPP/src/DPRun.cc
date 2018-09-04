@@ -356,8 +356,11 @@ namespace LOFAR {
         }
       }
       // Add an output step if not explicitly added in steps (unless last step is a 'split' step)
-      if (steps[steps.size()-1] != "out" && steps[steps.size()-1] != "output" &&
-          steps[steps.size()-1] != "msout" && steps[steps.size()-1] != "split") {
+      if (steps.size()==0 || (
+          steps[steps.size()-1] != "out" &&
+          steps[steps.size()-1] != "output" &&
+          steps[steps.size()-1] != "msout" &&
+          steps[steps.size()-1] != "split")) {
         step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.", currentMSName);
         lastStep->setNextStep (step);
         lastStep = step;
