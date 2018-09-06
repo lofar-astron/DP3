@@ -943,21 +943,21 @@ namespace LOFAR {
       vector<H5Parm::AxisInfo> axes;
       axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
       axes.push_back(H5Parm::AxisInfo("freq", nSolFreqs));
-      axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
+      axes.push_back(H5Parm::AxisInfo("ant", info().antennaUsed().size()));
       if (nPol>1) {
         axes.push_back(H5Parm::AxisInfo("pol", nPol));
       }
 
       vector<H5Parm::SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
 
-      std::vector<std::string> antennaNames;
-      for (uint st = 0; st<info().antennaNames().size(); ++st) {
-          antennaNames.push_back(info().antennaNames()[st]);
+      std::vector<std::string> antennaUsedNames;
+      for (uint st = 0; st<info().antennaUsed().size(); ++st) {
+          antennaUsedNames.push_back(info().antennaNames()[info().antennaUsed()[st]]);
       }
 
       vector<H5Parm::SolTab>::iterator soltabiter = soltabs.begin();
       for (; soltabiter != soltabs.end(); ++soltabiter) {
-        (*soltabiter).setAntennas(antennaNames);
+        (*soltabiter).setAntennas(antennaUsedNames);
         if (nPol>1) {
           (*soltabiter).setPolarizations(polarizations);
         }
@@ -979,11 +979,11 @@ namespace LOFAR {
                   "step " + itsName + " in parset: \n" + itsParsetString;
 
       if (itsMode==TEC || itsMode==TECANDPHASE) {
-        vector<double> tecsols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
-        vector<double> weights(nSolFreqs*antennaNames.size()*nSolTimes*nPol, 1.);
+        vector<double> tecsols(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol);
+        vector<double> weights(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol, 1.);
         vector<double> phasesols;
         if (itsMode==TECANDPHASE) {
-          phasesols.resize(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
+          phasesols.resize(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol);
         }
         size_t i=0;
         for (uint time=0; time<nSolTimes; ++time) {
@@ -1008,8 +1008,8 @@ namespace LOFAR {
           soltabs[1].setValues(phasesols, weights, historyString);
         }
       } else {
-        vector<DComplex> sols(nSolFreqs*antennaNames.size()*nSolTimes*nPol);
-        vector<double> weights(nSolFreqs*antennaNames.size()*nSolTimes*nPol, 1.);
+        vector<DComplex> sols(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol);
+        vector<double> weights(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol, 1.);
         size_t i=0;
         for (uint time=0; time<nSolTimes; ++time) {
           for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
