@@ -877,7 +877,6 @@ namespace LOFAR {
             // Put solution weights in a contiguous piece of memory
             vector<double> weights;
             if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
-	      std::cout << "Has weights.\n";
               weights.resize(numSols);
               vector<double>::iterator nextpos = weights.begin();
               for (uint time=0; time<itsSols.size(); ++time) {

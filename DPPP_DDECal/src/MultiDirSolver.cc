@@ -167,7 +167,7 @@ bool MultiDirSolver::assignSolutions(std::vector<std::vector<DComplex> >& soluti
 
   // The stepsize is taken out, so that a small stepsize won't cause
   // a premature stopping criterion.
-  double stepMagnitude = avgAbsDiff/_stepSize/n;
+  double stepMagnitude = (n==0 ? 0 : avgAbsDiff/_stepSize/n);
   stepMagnitudes.emplace_back(stepMagnitude);
 
   if(useConstraintAccuracy)
@@ -375,7 +375,7 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
     // solve x^H in [g C] x^H  = v
     bool success = solver.Solve(gTimesCs[ant].data(), vs[ant].data());
     Matrix& x = vs[ant];
-    if(success)
+    if(success && x(0, 0) != 0.)
     {
       for(size_t d=0; d!=_nDirections; ++d)
         nextSolutions[ant*_nDirections + d] = x(d, 0);
@@ -639,7 +639,7 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
     // solve x^H in [g C] x^H  = v
     bool success = solver.Solve(gTimesCs[ant].data(), vs[ant].data());
     Matrix& x = vs[ant];
-    if(success)
+    if(success && x(0, 0) != 0.)
     {
       for(size_t d=0; d!=_nDirections; ++d)
       {
@@ -650,8 +650,9 @@ void MultiDirSolver::performFullMatrixIteration(size_t channelBlockIndex,
       }
     }
     else {
-      for(size_t i=0; i!=_nDirections*4; ++i)
-        nextSolutions[ant*_nDirections + i] = std::numeric_limits<double>::quiet_NaN();
+      for(size_t i=0; i!=_nDirections*4; ++i) {
+        nextSolutions[ant*_nDirections*4 + i] = std::numeric_limits<double>::quiet_NaN();
+      }
     }
   }
   _timerSolve.Pause();
