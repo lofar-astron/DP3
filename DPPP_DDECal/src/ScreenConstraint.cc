@@ -1,6 +1,8 @@
 #include "ScreenConstraint.h"
 
-#include <Common/OpenMP.h>
+#include "../Common/OpenMP.h"
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 namespace LOFAR{
 
@@ -19,8 +21,8 @@ ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
   itsHeight=parset.getDouble (prefix + "height", 400e3);
   itsOrder=parset.getInt(prefix + "order", 3);
   itsRdiff=parset.getDouble (prefix +"rdiff",1e3);
-  itsMode=toLower(parset.getString(prefix+"mode","station") );
-  itsAVGMode=toLower(parset.getString(prefix+"average","tec") );
+  itsMode=boost::to_lower_copy(parset.getString(prefix+"mode","station") );
+  itsAVGMode=boost::to_lower_copy(parset.getString(prefix+"average","tec") );
   itsDebugMode=parset.getInt(prefix + "debug", 0);
 }
 
@@ -43,9 +45,8 @@ void ScreenConstraint::initialize(const double* frequencies) {
   else if (itsMode=="csfull")
     _screenFitters.resize(_nAntennas-_coreAntennas.size()+1);
   else
-    THROW (Exception, "Unexpected tecscreen mode: " << itsMode); 
+    throw std::runtime_error("Unexpected tecscreen mode: " + itsMode); 
   
-
   for(size_t i=0; i!=_screenFitters.size(); ++i)
   {
     _screenFitters[i].setR0(itsRdiff);
@@ -135,7 +136,7 @@ void ScreenConstraint::setTime(double time){
         }
       }
       else
-        THROW (Exception, "Unexpected tecscreen mode: " << itsMode); 
+        throw std::runtime_error("Unexpected tecscreen mode: " + itsMode); 
       
   }
   else

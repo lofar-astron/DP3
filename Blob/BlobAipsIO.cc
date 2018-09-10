@@ -20,10 +20,6 @@
 //#
 //# $Id: BlobAipsIO.cc 31210 2015-03-17 08:51:26Z diepen $
 
-#if !defined(HAVE_AIPSPP)
-#warning AIPS++ is not available, but BlobAipsIO needs it.
-#else
-
 #include "BlobAipsIO.h"
 
 using namespace casacore;
@@ -55,23 +51,23 @@ namespace LOFAR {
 
   void BlobAipsIO::write (Int64 size, const void* buf)
   {
-    itsOBuf->put (static_cast<const uchar*>(buf), size);
+    itsOBuf->put (static_cast<const unsigned char*>(buf), size);
   }
 
   void BlobAipsIO::write (uInt size, const void* buf)
   {
-    itsOBuf->put (static_cast<const uchar*>(buf), size);
+    itsOBuf->put (static_cast<const unsigned char*>(buf), size);
   }
 
   Int64 BlobAipsIO::read (Int64 size, void* buf, Bool)
   {
-    itsIBuf->get (static_cast<uchar*>(buf), size);
+    itsIBuf->get (static_cast<unsigned char*>(buf), size);
     return size;
   }
 
   Int BlobAipsIO::read (uInt size, void* buf, Bool)
   {
-    itsIBuf->get (static_cast<uchar*>(buf), size);
+    itsIBuf->get (static_cast<unsigned char*>(buf), size);
     return size;
   }
 
@@ -101,5 +97,3 @@ namespace LOFAR {
   }
 
 }
-
-#endif

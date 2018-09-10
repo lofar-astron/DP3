@@ -27,9 +27,9 @@
 // @file
 // @brief DPPP step class to flag using aoflagger's functionality
 
-#include "../../DPPP/src/DPInput.h"
-#include "../../DPPP/src/DPBuffer.h"
-#include "../../DPPP/src/FlagCounter.h"
+#include "../../DPPP/DPInput.h"
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/FlagCounter.h"
 
 #include <memory>
 

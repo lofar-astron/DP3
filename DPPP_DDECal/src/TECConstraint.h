@@ -9,7 +9,7 @@
 #ifdef AOPROJECT
 #include "PhaseFitter.h"
 #else
-#include "../../DPPP/src/PhaseFitter.h"
+#include "../../DPPP/PhaseFitter.h"
 #endif
 
 #include <vector>

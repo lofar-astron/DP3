@@ -5,12 +5,12 @@ project(DP3)
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-include_directories(${CASACORE_INCLUDE_DIR})
-
-find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
+find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
+
+find_package(Casacore COMPONENTS casa ms tables REQUIRED)
+include_directories(${CASACORE_INCLUDE_DIR})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)

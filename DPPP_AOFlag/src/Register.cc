@@ -24,7 +24,7 @@
 #include "Register.h"
 #include "AOFlaggerStep.h"
 
-#include "../../DPPP/src/DPRun.h"
+#include "../../DPPP/DPRun.h"
 
 // Define the function to make the AOFlaggerStep 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).

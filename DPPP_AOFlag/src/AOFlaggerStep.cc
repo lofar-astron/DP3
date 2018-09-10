@@ -23,8 +23,8 @@
 
 #include "AOFlaggerStep.h"
 
-#include "../../DPPP/src/DPBuffer.h"
-#include "../../DPPP/src/DPInfo.h"
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/DPInfo.h"
 
 #include "../../Common/ParameterSet.h"
 #include "../../Common/StreamUtil.h"

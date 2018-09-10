@@ -23,14 +23,14 @@
 
 #include "DDECal.h"
 
-#include "../../DPPP/src/ApplyCal.h"
-#include "../../DPPP/src/DPBuffer.h"
-#include "../../DPPP/src/DPInfo.h"
-#include "../../DPPP/src/DPLogger.h"
-#include "../../DPPP/src/MSReader.h"
-#include "../../DPPP/src/Simulate.h"
-#include "../../DPPP/src/SourceDBUtil.h"
-#include "../../DPPP/src/Version.h"
+#include "../../DPPP/ApplyCal.h"
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/DPInfo.h"
+#include "../../DPPP/DPLogger.h"
+#include "../../DPPP/MSReader.h"
+#include "../../DPPP/Simulate.h"
+#include "../../DPPP/SourceDBUtil.h"
+#include "../../DPPP/Version.h"
 
 #include "ScreenConstraint.h"
 #include "TECConstraint.h"

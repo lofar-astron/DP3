@@ -27,16 +27,16 @@
 // @file
 // @brief DPPP step class to apply a calibration correction to the data
 
-#include "../../DPPP/src/DPInput.h"
-#include "../../DPPP/src/GainCal.h"
-#include "../../DPPP/src/DPBuffer.h"
-#include "../../DPPP/src/H5Parm.h"
-#include "../../DPPP/src/BaselineSelection.h"
-#include "../../DPPP/src/Patch.h"
-#include "../../DPPP/src/UVWFlagger.h"
-#include "../../DPPP/src/Predict.h"
-#include "../../DPPP/src/SourceDBUtil.h"
-#include "../../DPPP/src/ApplyBeam.h"
+#include "../../DPPP/DPInput.h"
+#include "../../DPPP/GainCal.h"
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/H5Parm.h"
+#include "../../DPPP/BaselineSelection.h"
+#include "../../DPPP/Patch.h"
+#include "../../DPPP/UVWFlagger.h"
+#include "../../DPPP/Predict.h"
+#include "../../DPPP/SourceDBUtil.h"
+#include "../../DPPP/ApplyBeam.h"
 
 #include "MultiDirSolver.h"
 #include "Constraint.h"
