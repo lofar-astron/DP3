@@ -1,4 +1,5 @@
-#include <DPPP_DDECal/ScreenConstraint.h>
+#include "ScreenConstraint.h"
+
 #include <Common/OpenMP.h>
 
 namespace LOFAR{

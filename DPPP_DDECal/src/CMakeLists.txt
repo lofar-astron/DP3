@@ -1,14 +1,10 @@
-# $Id: CMakeLists.txt 30439 2014-11-19 15:04:34Z dijkema $
+# Required for the ObjectFactory
+include_directories(../../Common)
 
-include(LofarPackageVersion)
-
-lofar_add_library(dppp_ddecal
-  Package__Version.cc
+add_library(dppp_ddecal
   DDECal.cc Register.cc Stopwatch.cc
   KLFitter.cc DDECal.cc MultiDirSolver.cc Constraint.cc PiercePoint.cc
   ScreenConstraint.cc SmoothnessConstraint.cc
   TECConstraint.cc RotationConstraint.cc
   RotationAndDiagonalConstraint.cc
 )
-
-lofar_add_bin_program(versiondppp_ddecal versiondppp_ddecal.cc)

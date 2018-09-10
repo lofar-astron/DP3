@@ -5,6 +5,18 @@ project(DP3)
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
+find_package(Casacore COMPONENTS casa ms tables REQUIRED)
+include_directories(${CASACORE_INCLUDE_DIR})
+
+find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
+add_definitions(${HDF5_DEFINITIONS})
+include_directories(${HDF5_INCLUDE_DIRS})
+
+#Prevent accidentally finding old BoostConfig.cmake file from casapy
+set(Boost_NO_BOOST_CMAKE ON)
+find_package(Boost COMPONENTS filesystem system REQUIRED)
+include_directories(${BOOST_INCLUDE_DIR})
+
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
 find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
@@ -25,7 +37,7 @@ add_subdirectory(DPPP_AOFlag)
 
 find_package(Armadillo)
 if(${ARMADILLO_FOUND})
-#  add_subdirectory(DPPP_DDECal)
+  add_subdirectory(DPPP_DDECal)
 else()
   message(WARNING "Armadillo was not found, NOT building DPPP_DDECal")
 endif()

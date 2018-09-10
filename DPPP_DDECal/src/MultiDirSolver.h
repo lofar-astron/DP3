@@ -3,15 +3,12 @@
 
 #ifdef AOPROJECT
 #include "PhaseFitter.h"
+#else
+#include "../../DPPP/src/PhaseFitter.h"
+#endif
+
 #include "Constraint.h"
 #include "Stopwatch.h"
-#define UPTR std::unique_ptr
-#else
-#include <DPPP/PhaseFitter.h>
-#include <DPPP_DDECal/Constraint.h>
-#include <DPPP_DDECal/Stopwatch.h>
-#define UPTR std::auto_ptr
-#endif
 
 #include <complex>
 #include <vector>

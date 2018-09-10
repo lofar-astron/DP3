@@ -1,10 +1,12 @@
 #ifndef KLFITTER_H
 #define KLFITTER_H
-#include<vector>
-#include <armadillo>
-#include <DPPP_DDECal/PiercePoint.h>
 
-using namespace arma;
+#include <vector>
+
+#include <armadillo>
+
+#include "PiercePoint.h"
+
 namespace LOFAR{
 class KLFitter
 {//creates KH base and fits screens from collection of PiercePoints
@@ -27,15 +29,15 @@ public:
 private:
   size_t                  itsOrder;
   double                  itsR0,itsBeta;
-  Mat<double>             itsPiercePoints;
-  Col<double>             _phases;
-  Mat<double>             _weights; //weights of the data points
-  Mat<double>             itsCorrMatrix; //Correlation Matrix for KL fit
-  Mat<double>             itsinvC;  //for quick interpolation
-  Mat<double>             itsU;
-  Mat<double>             itsinvU;
-  Mat<double>             itsTECFitWhite;
-  Col<double>             itsPar;
+  arma::Mat<double>             itsPiercePoints;
+  arma::Col<double>             _phases;
+  arma::Mat<double>             _weights; //weights of the data points
+  arma::Mat<double>             itsCorrMatrix; //Correlation Matrix for KL fit
+  arma::Mat<double>             itsinvC;  //for quick interpolation
+  arma::Mat<double>             itsU;
+  arma::Mat<double>             itsinvU;
+  arma::Mat<double>             itsTECFitWhite;
+  arma::Col<double>             itsPar;
 };
 }
 #endif

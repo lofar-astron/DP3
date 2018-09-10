@@ -1,8 +1,4 @@
-#ifdef AOPROJECT
 #include "Constraint.h"
-#else
-#include <DPPP_DDECal/Constraint.h>
-#endif
 
 std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,

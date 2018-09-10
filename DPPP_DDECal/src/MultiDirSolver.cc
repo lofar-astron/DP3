@@ -1,13 +1,7 @@
 
-#ifdef AOPROJECT
 #include "MultiDirSolver.h"
 #include "Matrix2x2.h"
 #include "QRSolver.h"
-#else
-#include <DPPP_DDECal/MultiDirSolver.h>
-#include <DPPP_DDECal/Matrix2x2.h>
-#include <DPPP_DDECal/QRSolver.h>
-#endif
 
 #include <iomanip>
 #include <iostream>

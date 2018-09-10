@@ -1,10 +1,12 @@
 #ifndef SCREEN_CONSTRAINT_H
 #define SCREEN_CONSTRAINT_H
-#include <DPPP/PhaseFitter.h>
 
-#include <DPPP_DDECal/MultiDirSolver.h>
-#include <DPPP_DDECal/PiercePoint.h>
-#include <DPPP_DDECal/KLFitter.h>
+#include "../../DPPP/src/PhaseFitter.h"
+
+#include "MultiDirSolver.h"
+#include "PiercePoint.h"
+#include "KLFitter.h"
+
 #include <Common/ParameterSet.h>
 
 #include <cmath>

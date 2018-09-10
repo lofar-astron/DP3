@@ -1,11 +1,10 @@
-#ifdef AOPROJECT
 #include "KernelSmoother.h"
 #include "SmoothnessConstraint.h"
+
+#ifdef AOPROJECT
 #include "omptools.h"
 #else
-#include <DPPP_DDECal/KernelSmoother.h>
-#include <DPPP_DDECal/SmoothnessConstraint.h>
-#include <Common/OpenMP.h>
+#include "../../Common/OpenMP.h"
 #endif
 
 SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz) :

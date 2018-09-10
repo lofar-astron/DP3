@@ -27,21 +27,25 @@
 // @file
 // @brief DPPP step class to apply a calibration correction to the data
 
-#include <DPPP/DPInput.h>
-#include <DPPP/GainCal.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/H5Parm.h>
-#include <DPPP/BaselineSelection.h>
-#include <DPPP/Patch.h>
-#include <DPPP/UVWFlagger.h>
-#include <DPPP/Predict.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/ApplyBeam.h>
-#include <DPPP_DDECal/MultiDirSolver.h>
-#include <DPPP_DDECal/Constraint.h>
+#include "../../DPPP/src/DPInput.h"
+#include "../../DPPP/src/GainCal.h"
+#include "../../DPPP/src/DPBuffer.h"
+#include "../../DPPP/src/H5Parm.h"
+#include "../../DPPP/src/BaselineSelection.h"
+#include "../../DPPP/src/Patch.h"
+#include "../../DPPP/src/UVWFlagger.h"
+#include "../../DPPP/src/Predict.h"
+#include "../../DPPP/src/SourceDBUtil.h"
+#include "../../DPPP/src/ApplyBeam.h"
+
+#include "MultiDirSolver.h"
+#include "Constraint.h"
+
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
-#include <ParmDB/Parm.h>
+
+#include "../../ParmDB/Parm.h"
+
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
 #include <casacore/measures/Measures/MEpoch.h>

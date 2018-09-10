@@ -1,9 +1,9 @@
-#ifdef AOPROJECT
 #include "TECConstraint.h"
+
+#ifdef AOPROJECT
 #include "omptools.h"
 #else
-#include <DPPP_DDECal/TECConstraint.h>
-#include <Common/OpenMP.h>
+#include "../../Common/OpenMP.h"
 #endif
 
 TECConstraintBase::TECConstraintBase(Mode mode) :

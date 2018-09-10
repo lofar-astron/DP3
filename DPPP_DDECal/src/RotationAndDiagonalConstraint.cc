@@ -1,10 +1,10 @@
-#include <lofar_config.h>
+#include "RotationAndDiagonalConstraint.h"
+#include "RotationConstraint.h"
 
-#include <DPPP_DDECal/RotationAndDiagonalConstraint.h>
-#include <DPPP_DDECal/RotationConstraint.h>
-#include <Common/OpenMP.h>
+#include "../../Common/OpenMP.h"
+
+#include <cassert>
 #include <cmath>
-#include <assert.h>
 
 using namespace std;
 

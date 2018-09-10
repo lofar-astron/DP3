@@ -1,7 +1,4 @@
-# $Id: CMakeLists.txt 27640 2013-12-04 08:02:49Z diepen $
-
-find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-find_package(Boost REQUIRED COMPONENTS date_time thread filesystem system python)
+find_package(Boost REQUIRED COMPONENTS date_time filesystem system python)
 # AOFlagger depends on Python 2.7, see aoflagger CMake
 find_package(Python 2.7 REQUIRED)
 find_package(LibXml2 REQUIRED)

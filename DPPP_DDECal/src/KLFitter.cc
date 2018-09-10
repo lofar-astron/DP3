@@ -1,5 +1,7 @@
-#include "DPPP_DDECal/KLFitter.h"
+#include "KLFitter.h"
+
 using namespace arma;
+
 namespace LOFAR{
 KLFitter::KLFitter(double r0,double beta,int order):
   itsOrder(order),

@@ -21,10 +21,10 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP_DDECal/Register.h>
-#include <DPPP_DDECal/DDECal.h>
-#include <DPPP/DPRun.h>
+#include "Register.h"
+#include "DDECal.h"
+
+#include "../../DPPP/src/DPRun.h"
 
 // Define the function to make the DDECal 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).

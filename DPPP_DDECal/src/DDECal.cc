@@ -21,37 +21,37 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/Package__Version.h>
-#include <DPPP_DDECal/DDECal.h>
+#include "DDECal.h"
 
-#include <DPPP/ApplyCal.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/Simulate.h>
-#include <DPPP/SourceDBUtil.h>
+#include "../../DPPP/src/ApplyCal.h"
+#include "../../DPPP/src/DPBuffer.h"
+#include "../../DPPP/src/DPInfo.h"
+#include "../../DPPP/src/DPLogger.h"
+#include "../../DPPP/src/MSReader.h"
+#include "../../DPPP/src/Simulate.h"
+#include "../../DPPP/src/SourceDBUtil.h"
+#include "../../DPPP/src/Version.h"
 
-#include <DPPP_DDECal/ScreenConstraint.h>
-#include <DPPP_DDECal/TECConstraint.h>
-#include <DPPP_DDECal/RotationConstraint.h>
-#include <DPPP_DDECal/RotationAndDiagonalConstraint.h>
-#include <DPPP_DDECal/SmoothnessConstraint.h>
+#include "ScreenConstraint.h"
+#include "TECConstraint.h"
+#include "RotationConstraint.h"
+#include "RotationAndDiagonalConstraint.h"
+#include "SmoothnessConstraint.h"
 
-#include <ParmDB/ParmDB.h>
-#include <ParmDB/ParmValue.h>
-#include <ParmDB/SourceDB.h>
+#include "../../ParmDB/ParmDB.h"
+#include "../../ParmDB/ParmValue.h"
+#include "../../ParmDB/SourceDB.h"
 
-#include <Common/LofarLogger.h>
-#include <Common/OpenMP.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/StringUtil.h>
+#include "../../Common/OpenMP.h"
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+#include "../../Common/StringUtil.h"
 
 #include <fstream>
 #include <ctime>
 #include <utility>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
@@ -61,13 +61,12 @@
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/OS/File.h>
 
-#include <vector>
 #include <algorithm>
-
-#include <limits>
-#include <iostream>
-#include <sstream>
 #include <iomanip>
+#include <iostream>
+#include <limits>
+#include <sstream>
+#include <vector>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -142,7 +141,7 @@ namespace LOFAR {
       }
 
       itsMode = GainCal::stringToCalType(
-                   toLower(parset.getString(prefix + "mode",
+                   boost::to_lower_copy(parset.getString(prefix + "mode",
                                             "complexgain")));
       if(itsCoreConstraint != 0.0) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
@@ -242,13 +241,13 @@ namespace LOFAR {
           itsFullMatrixMinimalization = true;
           break;
         default:
-          THROW (Exception, "Unexpected mode: " << 
+          throw std::runtime_error("Unexpected mode: " + 
                           GainCal::calTypeToString(itsMode));
       }
 
       const size_t nDir = itsDirections.size();
       if (itsUseModelColumn) {
-        ASSERT(nDir == 1);
+        assert(nDir == 1);
       } else {
         itsPredictSteps.resize(nDir);
         for (size_t dir=0; dir<nDir; ++dir) {
@@ -702,7 +701,7 @@ namespace LOFAR {
 
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       uint nDir = itsDirections.size();
-      ASSERT(nSolTimes==itsSols.size());
+      assert(nSolTimes==itsSols.size());
       vector<double> solTimes(nSolTimes);
       double starttime=info().startTime();
       for (uint t=0; t<nSolTimes; ++t) {
@@ -732,7 +731,7 @@ namespace LOFAR {
         }
 
         uint nSolChan = itsSols[0].size();
-        ASSERT(nSolChan == itsChanBlockFreqs.size());
+        assert(nSolChan == itsChanBlockFreqs.size());
 
         vector<DComplex> sols(nSolChan*info().nantenna()*nSolTimes*nDir*nPol);
         size_t i=0;
@@ -748,12 +747,12 @@ namespace LOFAR {
             for (uint ant=0; ant<info().nantenna(); ++ant) {
               for (uint dir=0; dir<nDir; ++dir) {
                 for (uint pol=0; pol<maxPol; pol+=polIncr) {
-                  ASSERT(!itsSols[time].empty());
-                  ASSERT(!itsSols[time][chan].empty());
-                  ASSERT(time<itsSols.size());
-                  ASSERT(chan<itsSols[time].size());
-                  ASSERT(ant*nDir*maxPol+dir*maxPol+pol<itsSols[time][chan].size());
-                  ASSERT(i<sols.size());
+                  assert(!itsSols[time].empty());
+                  assert(!itsSols[time][chan].empty());
+                  assert(time<itsSols.size());
+                  assert(chan<itsSols[time].size());
+                  assert(ant*nDir*maxPol+dir*maxPol+pol<itsSols[time][chan].size());
+                  assert(i<sols.size());
                   sols[i] = itsSols[time][chan][ant*nDir*maxPol+dir*maxPol+pol];
                   ++i;
                 }
@@ -771,7 +770,7 @@ namespace LOFAR {
         }
 
         string historyString = "CREATE by DPPP\n" +
-            Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+            DPPPVersion::AsString() + "\n" +
             "step " + itsName + " in parset: \n" + itsParsetString;
         uint numsols = 1;
         // For [scalar]complexgain, store two soltabs: phase and amplitude
@@ -815,7 +814,7 @@ namespace LOFAR {
               soltab.setComplexValues(sols, vector<double>(), true, historyString);
               break;
             default: 
-              THROW(Exception, "Constraint should have produced output");
+              throw std::runtime_error("Constraint should have produced output");
           }
 
           // Tell H5Parm that all antennas and directions were used 
@@ -867,7 +866,8 @@ namespace LOFAR {
             vector<double> sols(numSols);
             vector<double>::iterator nextpos = sols.begin();
             for (uint time=0; time<itsSols.size(); ++time) {
-              ASSERTSTR(itsConstraintSols[time].size()==itsConstraintSols[0].size(), "Constraints did not produce enough output at time step "<<time);
+              if(itsConstraintSols[time].size()!=itsConstraintSols[0].size())
+								throw std::runtime_error("Constraints did not produce enough output at time step " + std::to_string(time));
               nextpos = std::copy(
                 itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
                 itsConstraintSols[time][constraintNum][solNameNum].vals.end(),
@@ -891,7 +891,7 @@ namespace LOFAR {
             H5Parm::SolTab soltab = itsH5Parm.createSolTab(solTabName, firstResult.name, axes);
             soltab.setValues(sols, weights,
                              "CREATE by DPPP\n" +
-                             Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+                             DPPPVersion::AsString() + "\n" +
                              "step " + itsName + " in parset: \n" +
                              itsParsetString);
 
@@ -916,7 +916,7 @@ namespace LOFAR {
                         polarizations.push_back("YY");
                         break;
                 default:
-                        THROW (Exception, "No metadata for numpolarizations = " << soltab.getAxis("pol").size);
+                        throw std::runtime_error("No metadata for numpolarizations = " + std::to_string(soltab.getAxis("pol").size));
               }
               
               soltab.setPolarizations(polarizations);

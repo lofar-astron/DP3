@@ -1,4 +1,5 @@
-#include <DPPP_DDECal/PiercePoint.h>
+#include "PiercePoint.h"
+
 using namespace arma;
 
 namespace LOFAR{

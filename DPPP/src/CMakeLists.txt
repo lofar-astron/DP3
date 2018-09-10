@@ -5,12 +5,6 @@ include(PythonInstall)
 # Required for the ObjectFactory
 include_directories(../../Common)
 
-add_definitions(${HDF5_DEFINITIONS})
-
-include_directories(${HDF5_INCLUDE_DIRS})
-include_directories(${CASACORE_INCLUDE_DIR})
-include_directories(${BOOST_INCLUDE_DIR})
-
 add_library(dppp
   DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc DPInfo.cc
   DPLogger.cc ProgressMeter.cc FlagCounter.cc

@@ -1,4 +1,4 @@
-#include <DPPP_DDECal/Stopwatch.h>
+#include "Stopwatch.h"
 
 #include <cmath>
 #include <sstream>

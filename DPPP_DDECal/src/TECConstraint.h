@@ -3,14 +3,13 @@
 
 #include <vector>
 
-#ifdef AOPROJECT
 #include "Constraint.h"
-#include "PhaseFitter.h"
 #include "PieceWisePhaseFitter.h"
+
+#ifdef AOPROJECT
+#include "PhaseFitter.h"
 #else
-#include <DPPP_DDECal/Constraint.h>
-#include <DPPP_DDECal/PieceWisePhaseFitter.h>
-#include <DPPP/PhaseFitter.h>
+#include "../../DPPP/src/PhaseFitter.h"
 #endif
 
 #include <vector>
