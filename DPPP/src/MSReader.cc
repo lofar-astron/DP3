@@ -21,14 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
+#include "MSReader.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
 #include <StationResponse/LofarMetaDataUtil.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
+#include "../../Common/ParameterSet.h"
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -103,12 +103,13 @@ namespace LOFAR {
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
-        DPLOG_INFO_STR (" MSReader selecting spectral window " << itsSpw << " ...");
+        DPLOG_INFO_STR (" MSReader selecting spectral window " + to_string(itsSpw) + " ...");
         Table subset = itsSelMS (itsSelMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
-          ASSERTSTR (subset.nrow() > 0, "Band " << itsSpw << " not found in "
-                     << itsMSName);
+          if(subset.nrow() <= 0)
+						throw Exception("Band " + std::to_string(itsSpw) + " not found in "
+                     + itsMSName);
           itsSelMS = subset;
         }
       } else {
@@ -126,8 +127,9 @@ namespace LOFAR {
         Table subset = itsSelMS(node);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
-          ASSERTSTR (subset.nrow() > 0, "Baselines " << itsSelBL
-                     << "not found in " << itsMSName);
+          if(subset.nrow() <= 0)
+						throw Exception("Baselines " + itsSelBL
+                     + "not found in " + itsMSName);
           itsSelMS = subset;
         }
       }
@@ -141,19 +143,19 @@ namespace LOFAR {
       itsFirstTime = startTime;
       if (!startTimeStr.empty()) {
         if (!MVTime::read (qtime, startTimeStr)) {
-          THROW (LOFAR::Exception, startTimeStr << " is an invalid date/time");
+          throw Exception(startTimeStr + " is an invalid date/time");
         }
         itsFirstTime = qtime.getValue("s");
-        ASSERT (itsFirstTime <= endTime);
+        assert (itsFirstTime <= endTime);
       }
       itsLastTime = endTime;
       if (!endTimeStr.empty()) {
         if (!MVTime::read (qtime, endTimeStr)) {
-          THROW (LOFAR::Exception, endTimeStr << " is an invalid date/time");
+          throw Exception(endTimeStr + " is an invalid date/time");
         }
         itsLastTime = qtime.getValue("s");
       }
-      ASSERT (itsLastTime >= itsFirstTime);
+      assert (itsLastTime >= itsFirstTime);
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
@@ -175,9 +177,10 @@ namespace LOFAR {
       node2.get (rec, result);
       uint nrChan = uint(result+0.0001);
       uint nAllChan = itsNrChan;
-      ASSERTSTR (itsStartChan < nAllChan,
-                 "startchan " << itsStartChan
-                 << " exceeds nr of channels in MS (" << nAllChan << ')');
+      if (itsStartChan >= nAllChan)
+				throw Exception(
+                 "startchan " + std::to_string(itsStartChan)
+                 + " exceeds nr of channels in MS (" + std::to_string(nAllChan) + ')');
       uint maxNrChan = nAllChan - itsStartChan;
       if (nrChan == 0) {
         itsNrChan = maxNrChan;
@@ -206,7 +209,7 @@ namespace LOFAR {
     void MSReader::updateInfo (const DPInfo&)
     {}
 
-    casacore::String MSReader::msName() const
+    std::string MSReader::msName() const
     {
       return itsMSName;
     }
@@ -237,10 +240,10 @@ namespace LOFAR {
           double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
-            LOG_WARN_STR ("Time at rownr "
-                          << itsIter.table().rowNumbers(itsMS)[0]
-                          << " of MS " << itsMSName
-                          << " is less than previous time slot");
+            DPLOG_WARN_STR ("Time at rownr "
+                          + std::to_string(itsIter.table().rowNumbers(itsMS)[0])
+                          + " of MS " + itsMSName
+                          + " is less than previous time slot");
           } else {
             // Use the time slot if near or < nexttime, but > starttime.
             // In this way we cater for irregular times in some WSRT MSs.
@@ -336,7 +339,8 @@ namespace LOFAR {
           itsNrRead++;
           itsIter.next();
         }
-        ASSERTSTR (itsBuffer.getFlags().shape()[2] == int(itsNrBl),
+        if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
+					throw Exception(
                    "#baselines is not the same for all time slots in the MS");
       }   // end of scope stops the timer.
       // Let the next step in the pipeline process this time slot.
@@ -441,7 +445,7 @@ namespace LOFAR {
           itsHasWeightSpectrum =
             ROArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
           if (!itsHasWeightSpectrum && itsWeightColName!="WEIGHT_SPECTRUM") {
-            LOG_WARN ("Specified weight column " + itsWeightColName +
+            DPLOG_WARN_STR ("Specified weight column " + itsWeightColName +
                 "is not a valid column, using WEIGHT instead");
           }
         }
@@ -453,11 +457,11 @@ namespace LOFAR {
       } else {
         if (itsMissingData) {
           // Only give warning if a missing data column is allowed.
-          LOG_WARN ("Data column " + itsDataColName +
+          DPLOG_WARN_STR ("Data column " + itsDataColName +
                     " is missing in " + itsMSName);
         } else {
-          THROW (Exception, ("Data column " + itsDataColName +
-                             " is missing in " + itsMSName));
+          throw Exception ("Data column " + itsDataColName +
+                             " is missing in " + itsMSName);
         }
       }
 
@@ -490,7 +494,7 @@ namespace LOFAR {
       if (itsAutoWeightForce) {
         itsAutoWeight = true;
       } else if (!useRaw && itsAutoWeight) {
-        THROW (Exception, "Using autoweight=true cannot be done on DPPP-ed MS");
+        throw Exception("Using autoweight=true cannot be done on DPPP-ed MS");
       }
       // If not in order, sort the table selection (also on baseline).
       Table sortms(itsSelMS);
@@ -519,7 +523,8 @@ namespace LOFAR {
       // Ensure we have only one band by checking the nr of unique baselines.
       Table sortab = itsIter.table().sort(sortCols, Sort::Ascending,
                                           Sort::QuickSort + Sort::NoDuplicates);
-      ASSERTSTR (sortab.nrow() == itsNrBl,
+      if (sortab.nrow() != itsNrBl)
+				throw Exception(
                  "The MS appears to have multiple subbands");
       // Get the baseline columns.
       ROScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
@@ -623,10 +628,10 @@ namespace LOFAR {
         double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
         // Skip time slot and give warning if MS data is not in time order.
         if (mstime < itsLastMSTime) {
-          LOG_WARN_STR ("Time at rownr "
-                        << itsIter.table().rowNumbers(itsMS)[0]
-                        << " of MS " << itsMSName
-                        << " is less than previous time slot");
+          DPLOG_WARN_STR ("Time at rownr "
+                        + std::to_string(itsIter.table().rowNumbers(itsMS)[0])
+                        + " of MS " + itsMSName
+                        + " is less than previous time slot");
         } else {
           // Stop skipping if time equal to itsFirstTime.
           if (near(mstime, itsFirstTime)) {
@@ -805,14 +810,14 @@ namespace LOFAR {
       // ntimeavg is the nr of times used when averaging.
       // Return it as Cube<bool>[norigchan,ntimeavg,nrbl].
       IPosition chShape = chars.shape();
-      ASSERT (chShape[1] == itsFullResNTimeAvg  &&  chShape[2] == itsNrBl);
+      assert (chShape[1] == itsFullResNTimeAvg  &&  chShape[2] == itsNrBl);
       // Now expand the bits to bools.
       // If all bits to convert are contiguous, do it all in one go.
       // Otherwise we have to iterate.
       if (norigchan == chShape[0]*8) {
         Conversion::bitToBool (flags.data(), chars.data(), flags.size());
       } else {
-        ASSERT (norigchan < chShape[0]*8);
+        assert (norigchan < chShape[0]*8);
         const uChar* charsPtr = chars.data();
         bool* flagsPtr = flags.data();
         for (int i=0; i<chShape[1]*chShape[2]; ++i) {
@@ -842,7 +847,7 @@ namespace LOFAR {
     }
 
     void MSReader::fillBeamInfo (vector<StationResponse::Station::Ptr>& vec,
-                                 const Vector<String>& antNames)
+                                 const casacore::Vector<casacore::String>& antNames)
     {
       // Get the names of all stations in the MS.
       const Vector<String>& allNames = getInfo().antennaNames();
@@ -859,7 +864,8 @@ namespace LOFAR {
           ant++;
         }
       }
-      ASSERTSTR (ant == vec.size(), "MSReader::fillBeamInfo -"
+      if (ant != vec.size())
+				throw Exception("MSReader::fillBeamInfo -"
                  " some stations miss the beam info");
     }
 

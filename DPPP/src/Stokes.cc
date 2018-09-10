@@ -20,8 +20,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Stokes.h>
+#include "Stokes.h"
 
 namespace LOFAR
 {

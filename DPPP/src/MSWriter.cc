@@ -21,21 +21,18 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Package__Version.h>
-#include <DPPP/MSWriter.h>
-#include <DPPP/MSUpdater.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
-#include <MS/VdsMaker.h>
-#include <Common/ParameterSet.h>
+#include "MSWriter.h"
+#include "MSUpdater.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Version.h"
+
+#include "../../Common/VdsMaker.h"
+#include "../../Common/ParameterSet.h"
+
 #include <casacore/tables/Tables/TableCopy.h>
-#if defined(casacore)
 #include <casacore/tables/DataMan/DataManInfo.h>
-#else
-#include <casacore/tables/DataMan/DataManInfo.h>
-#endif
 #include <casacore/tables/Tables/SetupNewTab.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/DataMan/StandardStMan.h>
@@ -46,6 +43,7 @@
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/OS/Path.h>
+
 #include <iostream>
 #include <limits>
 
@@ -75,9 +73,11 @@ namespace LOFAR {
                                "WEIGHT_SPECTRUM");
       itsVdsDir            = parset.getString (prefix+"vdsdir", string());
       itsClusterDesc       = parset.getString (prefix+"clusterdesc", string());
-      ASSERTSTR (itsDataColName == "DATA", "Currently only the DATA column"
+      if(itsDataColName != "DATA")
+        throw Exception("Currently only the DATA column"
                  " can be used as output when writing a new MS");
-      ASSERTSTR (itsWeightColName == "WEIGHT_SPECTRUM", "Currently only the "
+      if(itsWeightColName != "WEIGHT_SPECTRUM")
+        throw Exception("Currently only the "
           "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
       
       itsStManKeys.Set(parset, prefix);
@@ -441,7 +441,7 @@ namespace LOFAR {
       Table inSPW  = itsReader->table().keywordSet().asTable("SPECTRAL_WINDOW");
       Table outSPW = Table(outName + "/SPECTRAL_WINDOW", Table::Update);
       Table outDD  = Table(outName + "/DATA_DESCRIPTION", Table::Update);
-      ASSERT (outSPW.nrow() == outDD.nrow());
+      assert(outSPW.nrow() == outDD.nrow());
       uint spw = itsReader->spectralWindow();
       // Remove all rows before and after the selected band.
       // Do it from the end, otherwise row numbers change.
@@ -451,7 +451,7 @@ namespace LOFAR {
           outDD.removeRow (i);
         }
       }
-      ASSERT (outSPW.nrow() == 1);
+      assert (outSPW.nrow() == 1);
       // Set nr of channels.
       ScalarColumn<Int> channum(outSPW, "NUM_CHAN");
       channum.fillColumn (itsNrChan);
@@ -542,7 +542,7 @@ namespace LOFAR {
       message.put     (rownr, "parameters");
       application.put (rownr, "NDPPP");
       priority.put    (rownr, "NORMAL");
-      origin.put      (rownr, Version::getInfo<DPPPVersion>("DPPP", "full"));
+      origin.put      (rownr, DPPPVersion::AsString());
       parms.put       (rownr, appvec);
       cli.put         (rownr, clivec);
     }
@@ -609,9 +609,10 @@ namespace LOFAR {
       const Cube<bool>& flags = itsReader->fetchFullResFlags (buf, itsBuffer,
                                                               itsTimer);
       const IPosition& ofShape = flags.shape();
-      ASSERTSTR (uint(ofShape[0]) == itsNChanAvg * itsNrChan,
-          ofShape<<itsNChanAvg<<'*'<<itsNrChan);
-      ASSERTSTR (uint(ofShape[1]) == itsNTimeAvg, ofShape<<itsNTimeAvg);
+      if(uint(ofShape[0]) != itsNChanAvg * itsNrChan)
+        throw Exception(std::to_string(ofShape[0]) + std::to_string(itsNChanAvg) + '*' + std::to_string(itsNrChan));
+      if(uint(ofShape[1]) != itsNTimeAvg)
+        throw Exception(std::to_string(ofShape[1]) + std::to_string(itsNTimeAvg));
       // Convert the bools to uChar bits.
       IPosition chShape(ofShape);
       chShape[0] = (ofShape[0] + 7) / 8;
@@ -621,7 +622,7 @@ namespace LOFAR {
       if (ofShape[0] == chShape[0]*8) {
         Conversion::boolToBit (chars.data(), flags.data(), flags.size());
       } else {
-        ASSERT (ofShape[0] < chShape[0]*8);
+        assert(ofShape[0] < chShape[0]*8);
         const bool* flagsPtr = flags.data();
         uChar* charsPtr = chars.data();
         for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {

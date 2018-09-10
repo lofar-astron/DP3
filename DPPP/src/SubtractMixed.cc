@@ -21,8 +21,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/SubtractMixed.h>
+#include "SubtractMixed.h"
 
 namespace LOFAR
 {

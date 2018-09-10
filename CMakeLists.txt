@@ -1,19 +1,20 @@
-# $Id$
+cmake_minimum_required(VERSION 2.8.8)
 
-lofar_add_package(DPPP)
-lofar_add_package(TestDynDPPP)
-lofar_add_package(PythonDPPP)
-lofar_add_package(DPPP_AOFlag)
-lofar_add_package(SPW_Combine SPWCombine)
+project(DP3)
 
-lofar_find_package(Armadillo)
+# Casacore has a separate CMake file in this directory
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
+
+add_subdirectory(DPPP)
+#add_subdirectory(TestDynDPPP)
+#add_subdirectory(PythonDPPP)
+#add_subdirectory(DPPP_AOFlag)
+#add_subdirectory(SPW_Combine SPWCombine)
+#add_subdirectory(DPPP_Interpolate)
+
+find_package(Armadillo)
 if(${ARMADILLO_FOUND})
-  if(CMAKE_CXX_FLAGS MATCHES ".*\\+\\+11.*")
-    lofar_add_package(DPPP_DDECal)
-lofar_add_package(DPPP_Interpolate)
-  else()
-    message(WARNING "DPPP_DDECal and DPPP_Interpolate will not build if you have no C++11 support, please build in directory gnucxx11_opt")
-  endif()
+#  add_subdirectory(DPPP_DDECal)
 else()
   message(WARNING "Armadillo was not found, NOT building DPPP_DDECal")
 endif()

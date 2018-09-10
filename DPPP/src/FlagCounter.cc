@@ -21,12 +21,12 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/FlagCounter.h>
-#include <DPPP/DPInput.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "FlagCounter.h"
+#include "DPInput.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
@@ -99,36 +99,36 @@ namespace LOFAR {
     void FlagCounter::add (const FlagCounter& that)
     {
       // Add that to this after checking for equal sizes.
-      ASSERT (itsBLCounts.size()   == that.itsBLCounts.size());
-      ASSERT (itsChanCounts.size() == that.itsChanCounts.size());
-      ASSERT (itsCorrCounts.size() == that.itsCorrCounts.size());
+      assert (itsBLCounts.size()   == that.itsBLCounts.size());
+      assert (itsChanCounts.size() == that.itsChanCounts.size());
+      assert (itsCorrCounts.size() == that.itsCorrCounts.size());
       std::transform (itsBLCounts.begin(), itsBLCounts.end(),
                       that.itsBLCounts.begin(), itsBLCounts.begin(),
-                      std::plus<int64>());
+                      std::plus<int64_t>());
       std::transform (itsChanCounts.begin(), itsChanCounts.end(),
                       that.itsChanCounts.begin(), itsChanCounts.begin(),
-                      std::plus<int64>());
+                      std::plus<int64_t>());
       std::transform (itsCorrCounts.begin(), itsCorrCounts.end(),
                       that.itsCorrCounts.begin(), itsCorrCounts.begin(),
-                      std::plus<int64>());
+                      std::plus<int64_t>());
     }
 
-    void FlagCounter::showBaseline (ostream& os, int64 ntimes) const
+    void FlagCounter::showBaseline (std::ostream& os, int64_t ntimes) const
     {
       const Vector<Int>& ant1 = itsInfo->getAnt1();
       const Vector<Int>& ant2 = itsInfo->getAnt2();
       const Vector<String>& antNames = itsInfo->antennaNames();
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;
-      int64 npoints = ntimes * itsChanCounts.size();
+      int64_t npoints = ntimes * itsChanCounts.size();
       os << endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";
       uint nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
-      Vector<int64> nusedAnt(nrant, 0);
-      Vector<int64> countAnt(nrant, 0);
-      Matrix<int64> nusedBL (nrant, nrant, 0);
-      Matrix<int64> countBL (nrant, nrant, 0);
+      Vector<int64_t> nusedAnt(nrant, 0);
+      Vector<int64_t> countAnt(nrant, 0);
+      Matrix<int64_t> nusedBL (nrant, nrant, 0);
+      Matrix<int64_t> countBL (nrant, nrant, 0);
       for (uint i=0; i<itsBLCounts.size(); ++i) {
         countBL(ant1[i], ant2[i]) += itsBLCounts[i];
         nusedBL(ant1[i], ant2[i])++;
@@ -236,10 +236,10 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::showChannel (ostream& os, int64 ntimes) const
+    void FlagCounter::showChannel (std::ostream& os, int64_t ntimes) const
     {
-      int64 npoints = ntimes * itsBLCounts.size();
-      int64 nflagged = 0;
+      int64_t npoints = ntimes * itsBLCounts.size();
+      int64_t nflagged = 0;
       os << endl << "Percentage of visibilities flagged per channel:" << endl;
       if (npoints == 0) {
         return;
@@ -264,7 +264,7 @@ namespace LOFAR {
         }
         os << endl;
       }
-      int64 totalnpoints = npoints * itsChanCounts.size();
+      int64_t totalnpoints = npoints * itsChanCounts.size();
       // Prevent division by zero
       if (totalnpoints == 0) {
         totalnpoints = 1;
@@ -288,9 +288,9 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::showCorrelation (ostream& os, int64 ntimes) const
+    void FlagCounter::showCorrelation (ostream& os, int64_t ntimes) const
     {
-      int64 ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
+      int64_t ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
       // Prevent division by zero
       if (ntotal == 0) {
         ntotal = 1;
@@ -326,8 +326,8 @@ namespace LOFAR {
       os.fill (prev);
     }
 
-    void FlagCounter::saveStation (int64 npoints, const Vector<int64>& nused,
-                                   const Vector<int64>& count) const
+    void FlagCounter::saveStation (int64_t npoints, const Vector<int64_t>& nused,
+                                   const Vector<int64_t>& count) const
     {
       // Create the table.
       TableDesc td;
@@ -352,8 +352,8 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::saveChannel (int64 npoints,
-                                   const Vector<int64>& count) const
+    void FlagCounter::saveChannel (int64_t npoints,
+                                   const Vector<int64_t>& count) const
     {
       // Create the table.
       TableDesc td;

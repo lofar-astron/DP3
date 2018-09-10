@@ -20,8 +20,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Apply.h>
+#include "Apply.h"
 
 namespace LOFAR
 {

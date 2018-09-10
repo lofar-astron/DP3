@@ -21,37 +21,40 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPRun.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/MultiMSReader.h>
-#include <DPPP/MSWriter.h>
-#include <DPPP/MSUpdater.h>
-#include <DPPP/ApplyBeam.h>
-#include <DPPP/Averager.h>
-#include <DPPP/MedFlagger.h>
-#include <DPPP/PreFlagger.h>
-#include <DPPP/UVWFlagger.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/Demixer.h>
-#include <DPPP/DemixerNew.h>
-#include <DPPP/StationAdder.h>
-#include <DPPP/ScaleData.h>
-#include <DPPP/ApplyCal.h>
-#include <DPPP/Predict.h>
-#include <DPPP/H5ParmPredict.h>
-#include <DPPP/GainCal.h>
-#include <DPPP/Split.h>
-#include <DPPP/Upsample.h>
-#include <DPPP/Filter.h>
-#include <DPPP/Counter.h>
-#include <DPPP/ProgressMeter.h>
-#include <DPPP/DPLogger.h>
-#include <Common/Timer.h>
-#include <Common/StreamUtil.h>
-#include <Common/OpenMP.h>
+#include "DPRun.h"
+
+#include <boost/algorithm/string.hpp>
+
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "MSReader.h"
+#include "MultiMSReader.h"
+#include "MSWriter.h"
+#include "MSUpdater.h"
+#include "ApplyBeam.h"
+#include "Averager.h"
+#include "MedFlagger.h"
+#include "PreFlagger.h"
+#include "UVWFlagger.h"
+#include "PhaseShift.h"
+#include "Demixer.h"
+#include "DemixerNew.h"
+#include "StationAdder.h"
+#include "ScaleData.h"
+#include "ApplyCal.h"
+#include "Predict.h"
+#include "H5ParmPredict.h"
+#include "GainCal.h"
+#include "Split.h"
+#include "Upsample.h"
+#include "Filter.h"
+#include "Counter.h"
+#include "ProgressMeter.h"
+#include "DPLogger.h"
+
+#include "../../Common/Timer.h"
+#include "../../Common/StreamUtil.h"
+#include "../../Common/OpenMP.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
@@ -81,7 +84,8 @@ namespace LOFAR {
       // (in lowercase).
       // A dot can be used to have a specific library name (so multiple
       // steps can use the same shared library).
-      std::string libname(toLower(type));
+      std::string libname(type);
+			boost::algorithm::to_lower(libname);
       string::size_type pos = libname.find_first_of (".");
       if (pos != string::npos) {
         libname = libname.substr (0, pos);
@@ -95,7 +99,7 @@ namespace LOFAR {
           return iter->second;
         }
       }
-      THROW(Exception, "Step type " + type +
+      throw Exception("Step type " + type +
             " is unknown and no shared library lib" + libname + " or libdppp_" +
             libname + " found in (DY)LD_LIBRARY_PATH");
     }
@@ -157,7 +161,8 @@ namespace LOFAR {
              << "             maybe they are misspelled"
              << endl
              << "    " << unused << endl);
-          ASSERTSTR (checkparset==0, "Unused parset keywords found");
+          if (checkparset!=0)
+						throw Exception("Unused parset keywords found");
         }
       }
       // Process until the end.
@@ -247,7 +252,8 @@ namespace LOFAR {
         if (inNames.empty()) {
           inNames = parset.getStringVector ("msin");
         }
-        ASSERTSTR (inNames.size() > 0, "No input MeasurementSets given");
+        if (inNames.size() == 0)
+					throw Exception("No input MeasurementSets given");
         // Find all file names matching a possibly wildcarded input name.
         // This is only possible if a single name is given.
         if (inNames.size() == 1) {
@@ -264,8 +270,9 @@ namespace LOFAR {
               names.push_back (dirName + '/' + dirIter.name());
               dirIter++;
             }
-            ASSERTSTR (!names.empty(), "No datasets found matching msin "
-                       << inNames[0]);
+            if (names.empty())
+							throw Exception("No datasets found matching msin "
+                       + inNames[0]);
             inNames = names;
           }
         }
@@ -299,9 +306,10 @@ namespace LOFAR {
           defaulttype.resize(defaulttype.size()-1);
         }
 
-        string type = toLower(parset.getString (prefix+"type", defaulttype));
+        string type = parset.getString(prefix+"type", defaulttype);
+        boost::algorithm::to_lower(type);
         // Define correct name for AOFlagger synonyms.
-        if (type == "aoflagger"  ||  type == "rficonsole") {
+        if (type == "aoflagger") {
           type = "aoflag";
         }
         if (type == "averager"  ||  type == "average"  ||  type == "squash") {

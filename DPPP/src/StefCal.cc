@@ -21,9 +21,8 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/StefCal.h>
-#include <DPPP/DPInput.h>
+#include "StefCal.h"
+#include "DPInput.h"
 
 #include <vector>
 #include <algorithm>
@@ -55,7 +54,7 @@ namespace LOFAR {
 
       _nSt = maxAntennas;
       if (_mode==FULLJONES) {
-        ASSERT(!_scalar);
+        assert(!_scalar);
         _nCr=4;
         _nSp=1;
         _savedNCr=4;
@@ -321,7 +320,7 @@ namespace LOFAR {
                 DComplex* h_p=_h.data();
                 for (uint st2=0;st2<_nUn;++st2) {
                   DComplex z(h_p[st2] * *mvis_p); //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-                  ASSERT(isFinite(z));
+                  assert(isFinite(z));
                   ww+=norm(z);
                   tt+=conj(z) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
                   mvis_p++;
@@ -343,9 +342,9 @@ namespace LOFAR {
 
         // Constrain solutions
         if (_mode==PHASEONLY) {
-          ASSERT(abs(_g(st1,0))!=0);
+          assert(abs(_g(st1,0))!=0);
           _g(st1,0)/=abs(_g(st1,0));
-          ASSERT(isFinite(_g(st1,0)));
+          assert(isFinite(_g(st1,0)));
         } else if (_mode==AMPLITUDEONLY) {
           _g(st1,0) = abs(_g(st1,0));
         }

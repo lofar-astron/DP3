@@ -21,13 +21,14 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/PointSource.h>
-#include <DPPP/GaussianSource.h>
-#include <ParmDB/SourceDB.h>
-#include <Common/LofarLogger.h>
-#include <Common/lofar_vector.h>
+#include "SourceDBUtil.h"
+
+#include "Exceptions.h"
+#include "PointSource.h"
+#include "GaussianSource.h"
+
+#include "../../ParmDB/SourceDB.h"
+
 #include <sstream>
 #include <set>
 
@@ -57,7 +58,7 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
     for (uint i=0; i<nModel; ++i) {
       if (src.getPatchName() == patchNames[i]) {
         // Fetch position.
-        ASSERT (src.getInfo().getRefType() == "J2000");
+        assert (src.getInfo().getRefType() == "J2000");
         Position position;
         position[0] = src.getRa();
         position[1] = src.getDec();
@@ -97,7 +98,7 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
 
         default:
             {
-                ASSERTSTR(false, "Only point sources and Gaussian sources are"
+                throw Exception("Only point sources and Gaussian sources are"
                     " supported at this time.");
             }
         }
@@ -128,13 +129,14 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   vector<Patch::ConstPtr> patchList;
   patchList.reserve (componentsList.size());
   for (uint i=0; i<componentsList.size(); ++i) {
-    ASSERTSTR (!componentsList[i].empty(), "No sources found for patch "
-               << patchNames[i]);
+    if (componentsList[i].empty())
+			throw Exception("No sources found for patch "
+               + patchNames[i]);
     Patch::Ptr ppatch(new Patch(patchNames[i],
                                 componentsList[i].begin(),
                                 componentsList[i].end()));
     vector<BBS::PatchInfo> patchInfo(sourceDB.getPatchInfo(-1, patchNames[i]));
-    ASSERT (patchInfo.size() == 1);
+    assert (patchInfo.size() == 1);
     // Set the position and apparent flux of the patch.
     Position patchPosition;
     patchPosition[0] = patchInfo[0].getRa();
@@ -147,17 +149,17 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   return patchList;
 }
 
-vector<pair<ModelComponent::ConstPtr,Patch::ConstPtr> >
-makeSourceList (const vector<Patch::ConstPtr>& patchList) {
-  vector<Patch::ConstPtr>::const_iterator pIter=patchList.begin();
-  vector<Patch::ConstPtr>::const_iterator pEnd =patchList.end();
+std::vector<std::pair<ModelComponent::ConstPtr,Patch::ConstPtr> >
+makeSourceList (const std::vector<Patch::ConstPtr>& patchList) {
+  std::vector<Patch::ConstPtr>::const_iterator pIter=patchList.begin();
+  std::vector<Patch::ConstPtr>::const_iterator pEnd =patchList.end();
 
   uint nSources=0;
   for (; pIter!=pEnd; ++pIter) {
     nSources+=(*pIter)->nComponents();
   }
 
-  vector<pair<ModelComponent::ConstPtr,Patch::ConstPtr> > sourceList;
+  std::vector<std::pair<ModelComponent::ConstPtr,Patch::ConstPtr> > sourceList;
   sourceList.reserve(nSources);
 
   pIter=patchList.begin();
@@ -192,7 +194,7 @@ vector<Patch::ConstPtr> makeOnePatchPerComponent(
         size_t compNum=0;
         for (compIt=(*patchIt)->begin();compIt!=(*patchIt)->end();++compIt) {
             // convert compNum to string (blegh)
-            stringstream ss;
+            std::stringstream ss;
             ss<<compNum;
 
             Patch::Ptr ppatch(new Patch((*patchIt)->name()+"_"+ss.str(),

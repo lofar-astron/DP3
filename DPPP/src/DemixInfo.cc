@@ -21,16 +21,18 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DemixInfo.h>
-#include <DPPP/PointSource.h>
-#include <DPPP/GaussianSource.h>
-#include <DPPP/Stokes.h>
-#include <DPPP/Simulate.h>
-#include <ParmDB/SourceDB.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/OpenMP.h>
+#include "DemixInfo.h"
+#include "Exceptions.h"
+#include "PointSource.h"
+#include "GaussianSource.h"
+#include "Stokes.h"
+#include "Simulate.h"
+
+#include "../../ParmDB/SourceDB.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+#include "../../Common/OpenMP.h"
 
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
@@ -91,8 +93,8 @@ namespace LOFAR {
       // Get delta in arcsec and take cosine of it (convert to radians first).
       double delta = parset.getDouble (prefix+"target.delta", 60.);
       itsCosTargetDelta = cos (delta / 3600. * casacore::C::pi / 180.);
-      ASSERTSTR (!(itsTargetModelName.empty() || itsDemixModelName.empty()),
-                 "An empty name is given for a sky model");
+      if(itsTargetModelName.empty() || itsDemixModelName.empty())
+        throw Exception("An empty name is given for a sky model");
       // If the estimate source model is given, read it.
       if (! itsPredictModelName.empty()) {
         itsAteamList = makePatchList (itsPredictModelName, itsSourceNames);
@@ -122,20 +124,21 @@ namespace LOFAR {
       }
       // Note that the A-team models are in the same order of name.
       // Check they have matching positions.
-      ASSERT (itsAteamList.size() == itsAteamDemixList.size());
+      assert (itsAteamList.size() == itsAteamDemixList.size());
       for (size_t i=0; i<itsAteamList.size(); ++i) {
-        ASSERT (itsAteamList[i]->name() == itsAteamDemixList[i]->name());
-        ASSERTSTR (testAngDist (itsAteamDemixList[i]->position()[0],
+        assert (itsAteamList[i]->name() == itsAteamDemixList[i]->name());
+        if (!testAngDist (itsAteamDemixList[i]->position()[0],
                                 itsAteamDemixList[i]->position()[1],
                                 itsAteamList[i]->position()[0],
                                 itsAteamList[i]->position()[1],
-                                itsCosTargetDelta),
-                   "Position mismatch of source " << itsAteamList[i]->name()
-                   << " in A-team SourceDBs (["
-                   << itsAteamDemixList[i]->position()[0] << ", "
-                   << itsAteamDemixList[i]->position()[1] << "] and ["
-                   << itsAteamList[i]->position()[0] << ", "
-                   << itsAteamList[i]->position()[1] << "])");
+                                itsCosTargetDelta))
+					throw Exception(
+                   "Position mismatch of source " + itsAteamList[i]->name()
+                   + " in A-team SourceDBs (["
+                   + itsAteamDemixList[i]->position()[0] + ", "
+                   + itsAteamDemixList[i]->position()[1] + "] and ["
+                   + itsAteamList[i]->position()[0] + ", "
+                   + itsAteamList[i]->position()[1] + "])");
       }
       makeTargetDemixList();
     }
@@ -197,7 +200,8 @@ namespace LOFAR {
       // Get size info.
       itsNChanIn = infoSel.nchan();
       itsNCorr   = infoSel.ncorr();
-      ASSERTSTR (itsNCorr==4, "Demixing requires data with 4 polarizations");
+      if (itsNCorr!=4)
+				throw Exception("Demixing requires data with 4 polarizations");
       // NB. The number of baselines and stations refer to the number of
       // selected baselines and the number of unique stations participating
       // in the selected baselines.
@@ -252,18 +256,21 @@ namespace LOFAR {
       itsNTimeAvgSubtr = std::min (itsNTimeAvgSubtr, infoSel.ntime());
       itsNChanAvgSubtr = info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
       itsNChanOutSubtr = info.nchan();
-      ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0,
-        "Demix frequency averaging " << itsNChanAvg
-        << " must be a multiple of output averaging "
-        << itsNChanAvgSubtr);
-      ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0,
-        "Demix time averaging " << itsNTimeAvg
-        << " must be a multiple of output averaging "
-        << itsNTimeAvgSubtr);
-      ASSERTSTR (itsChunkSize % itsNTimeAvg == 0,
-        "Demix predict time chunk size " << itsChunkSize
-        << " must be a multiple of averaging time step "
-        << itsNTimeAvg);
+      if (itsNChanAvg % itsNChanAvgSubtr != 0)
+				throw Exception(
+        "Demix frequency averaging " + std::to_string(itsNChanAvg)
+        + " must be a multiple of output averaging "
+        + std::to_string(itsNChanAvgSubtr));
+      if (itsNTimeAvg % itsNTimeAvgSubtr != 0)
+				throw Exception(
+        "Demix time averaging " + std::to_string(itsNTimeAvg)
+        + " must be a multiple of output averaging "
+        + std::to_string(itsNTimeAvgSubtr));
+      if (itsChunkSize % itsNTimeAvg != 0)
+				throw Exception(
+        "Demix predict time chunk size " + std::to_string(itsChunkSize)
+        + " must be a multiple of averaging time step "
+        + std::to_string(itsNTimeAvg));
       itsNTimeOut = itsChunkSize / itsNTimeAvg;
       itsNTimeOutSubtr = itsChunkSize / itsNTimeAvgSubtr;
       // Store channel frequencies for the demix and subtract resolutions.
@@ -365,10 +372,11 @@ namespace LOFAR {
       vector<Patch::ConstPtr> patchList;
       patchList.reserve (patchNames.size());
       for (; pnamesIter != pnamesEnd; ++pnamesIter) {
-        ASSERTSTR (std::find (names.begin(), names.end(), *pnamesIter)
-                   != names.end(),
-                   "Demixer: sourcename " << *pnamesIter
-                   << " not found in SourceDB " << sdbName);
+        if (std::find (names.begin(), names.end(), *pnamesIter)
+                   == names.end())
+					throw Exception(
+                   "Demixer: sourcename " + *pnamesIter
+                   + " not found in SourceDB " + sdbName);
         // Use this patch; get all its sources.
         vector<BBS::SourceData> patch = sdb.getPatchSourceData (*pnamesIter);
         vector<ModelComponent::Ptr> componentList;
@@ -377,7 +385,7 @@ namespace LOFAR {
              iter!=patch.end(); ++iter) {
           const BBS::SourceData& src = *iter;
           // Fetch position.
-          ASSERT (src.getInfo().getRefType() == "J2000");
+          assert (src.getInfo().getRefType() == "J2000");
           Position position;
           position[0] = src.getRa();
           position[1] = src.getDec();
@@ -411,7 +419,7 @@ namespace LOFAR {
             break;
           default:
             {
-              ASSERTSTR(false, "Only point sources and Gaussian sources are"
+              throw Exception("Only point sources and Gaussian sources are"
                         " supported at this time.");
             }
           }
@@ -441,7 +449,7 @@ namespace LOFAR {
                                     componentList.begin(),
                                     componentList.end()));
         vector<BBS::PatchInfo> patchInfo(sdb.getPatchInfo(-1, *pnamesIter));
-        ASSERT (patchInfo.size() == 1);
+        assert (patchInfo.size() == 1);
         // Set the position and apparent flux of the patch.
         Position patchPosition;
         patchPosition[0] = patchInfo[0].getRa();

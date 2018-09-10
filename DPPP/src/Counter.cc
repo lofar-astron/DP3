@@ -21,10 +21,11 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Counter.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
+#include "Counter.h"
+#include "DPInfo.h"
+
+#include "../../Common/ParameterSet.h"
+
 #include <iostream>
 
 using namespace casacore;

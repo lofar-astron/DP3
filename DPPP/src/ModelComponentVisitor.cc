@@ -21,8 +21,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/ModelComponentVisitor.h>
+#include "ModelComponentVisitor.h"
 
 namespace LOFAR
 {

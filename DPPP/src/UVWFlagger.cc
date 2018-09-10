@@ -21,20 +21,24 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/UVWFlagger.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "UVWFlagger.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Utilities/GenSort.h>
+
 #include <iostream>
 #include <algorithm>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
 
@@ -149,7 +153,7 @@ namespace LOFAR {
       uint nrchan = shape[1];
       uint nrbl = shape[2];
       uint nr = nrcorr*nrchan;
-      ASSERT (nrchan == itsRecWavel.size());
+      assert (nrchan == itsRecWavel.size());
       // Input uvw coordinates are only needed if no new phase center is used.
       Matrix<double> uvws;
       if (itsCenter.empty()) {
@@ -278,8 +282,9 @@ namespace LOFAR {
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");
-          ASSERTSTR (pos != string::npos, "UVWFlagger " << name << "range '"
-                     << *str << "' should be range using .. or +-");
+          if (pos == string::npos)
+						throw Exception("UVWFlagger " + name + "range '"
+                     + *str + "' should be range using .. or +-");
         }
         string str1 = str->substr (0, pos);
         string str2 = str->substr (pos+2);
@@ -317,30 +322,33 @@ namespace LOFAR {
     {
       // The phase center can be given as one, two, or three values.
       // I.e., as source name, ra,dec or ra,dec,frame.
-      ASSERTSTR (itsCenter.size() < 4,
+      if (itsCenter.size() >= 4)
+				throw Exception(
                  "Up to 3 values can be given in UVWFlagger phasecenter");
       MDirection phaseCenter;
       if (itsCenter.size() == 1) {
-        string str = toUpper(itsCenter[0]);
+        string str = boost::to_upper_copy(itsCenter[0]);
         MDirection::Types tp;
-        ASSERTSTR (MDirection::getType(tp, str),
-                   str << " is an invalid source type"
+        if (!MDirection::getType(tp, str))
+					throw Exception(
+                   str + " is an invalid source type"
                    " in UVWFlagger phasecenter");
         phaseCenter = MDirection(tp);
       } else {
         Quantity q0, q1;
-        ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
-                   itsCenter[0] << " is an invalid RA or longitude"
+        if (!MVAngle::read (q0, itsCenter[0]))
+          throw Exception(itsCenter[0] + " is an invalid RA or longitude"
                    " in UVWFlagger phasecenter");
-        ASSERTSTR (MVAngle::read (q1, itsCenter[1]),
-                   itsCenter[1] << " is an invalid DEC or latitude"
+        if (!MVAngle::read (q1, itsCenter[1]))
+          throw Exception(itsCenter[1] + " is an invalid DEC or latitude"
                    " in UVWFlagger phasecenter");
         MDirection::Types type = MDirection::J2000;
         if (itsCenter.size() > 2) {
-          string str = toUpper(itsCenter[2]);
+          string str = boost::to_upper_copy(itsCenter[2]);
           MDirection::Types tp;
-          ASSERTSTR (MDirection::getType(tp, str),
-                     str << " is an invalid direction type in UVWFlagger"
+          if (!MDirection::getType(tp, str))
+						throw Exception(
+                     str + " is an invalid direction type in UVWFlagger"
                      " in UVWFlagger phasecenter");
         }
         phaseCenter = MDirection(q0, q1, type);

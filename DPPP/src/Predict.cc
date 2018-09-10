@@ -21,27 +21,29 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/Predict.h>
+#include "Predict.h"
 
 #include <iostream>
-//#include <iomanip>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
-#include <Common/OpenMP.h>
-#include <Common/StreamUtil.h>
-#include <ParmDB/ParmDBMeta.h>
-#include <ParmDB/PatchInfo.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/FlagCounter.h>
-#include <DPPP/Position.h>
-#include <DPPP/ApplyBeam.h>
-#include <DPPP/Simulator.h>
 
-#include <DPPP/Stokes.h>
-#include <DPPP/PointSource.h>
-#include <DPPP/GaussianSource.h>
-#include <ParmDB/SourceDB.h>
+#include "../../Common/ParameterSet.h"
+#include "../../Common/Timer.h"
+#include "../../Common/OpenMP.h"
+#include "../../Common/StreamUtil.h"
+
+#include "../../ParmDB/ParmDBMeta.h"
+#include "../../ParmDB/PatchInfo.h"
+
+#include "DPInfo.h"
+#include "Exceptions.h"
+#include "FlagCounter.h"
+#include "Position.h"
+#include "ApplyBeam.h"
+#include "Simulator.h"
+#include "Stokes.h"
+#include "PointSource.h"
+#include "GaussianSource.h"
+
+#include "../../ParmDB/SourceDB.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -56,6 +58,8 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -90,7 +94,7 @@ namespace LOFAR {
       itsDebugLevel = parset.getInt (prefix + "debuglevel", 0);
       itsPatchList = vector<Patch::ConstPtr> ();
 
-      ASSERT(File(itsSourceDBName).exists());
+      assert(File(itsSourceDBName).exists());
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
       // Save directions specifications to pass to applycal
@@ -105,8 +109,8 @@ namespace LOFAR {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
         itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", true);
 
-        string mode=toLower(parset.getString(prefix + "beammode","default"));
-        ASSERT (mode=="default" || mode=="array_factor" || mode=="element");
+        string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
+        assert (mode=="default" || mode=="array_factor" || mode=="element");
         if (mode=="default") {
           itsBeamMode=ApplyBeam::DEFAULT;
         } else if (mode=="array_factor") {
@@ -114,7 +118,7 @@ namespace LOFAR {
         } else if (mode=="element") {
           itsBeamMode=ApplyBeam::ELEMENT;
         } else {
-          THROW(Exception, "Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
+          throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
         }
 
         // Rework patch list to contain a patch for every source
@@ -149,7 +153,7 @@ namespace LOFAR {
       itsDoApplyCal=true;
       itsApplyCalStep=ApplyCal(input, parset, prefix, true,
                                itsDirectionsStr);
-      ASSERT(!(itsOperation!="replace" &&
+      assert(!(itsOperation!="replace" &&
                parset.getBool(prefix + "applycal.updateweights", false)));
       itsResultStep=new ResultStep();
       itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
@@ -230,7 +234,7 @@ namespace LOFAR {
 
     void Predict::setOperation(const std::string& operation) {
       itsOperation=operation;
-      ASSERT(itsOperation=="replace" || itsOperation=="add" ||
+      assert(itsOperation=="replace" || itsOperation=="add" ||
              itsOperation=="subtract");
     }
 

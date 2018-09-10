@@ -1,10 +1,12 @@
-#include <lofar_config.h>
-#include <DPPP/H5Parm.h>
-#include <Common/Exception.h>
-#include <Common/StringUtil.h>
-#include <Common/LofarLogger.h>
+#include "H5Parm.h"
+
+#include "Exceptions.h"
+
+#include "../../Common/StringUtil.h"
+
 #include <cstring>
 #include <complex>
+#include <boost/filesystem/operations.hpp>
 #include <sstream>
 #include <iomanip>
 #include <sys/stat.h>
@@ -17,7 +19,7 @@ namespace LOFAR {
   H5Parm::H5Parm(const std::string& filename, bool forceNew,
                  bool forceNewSolSet, const std::string& solSetName):
       H5::H5File(filename,
-                 !forceNew&&access(filename.c_str(),F_OK)!=-1?H5F_ACC_RDWR:H5F_ACC_TRUNC
+                 !forceNew&&boost::filesystem::exists(filename)?H5F_ACC_RDWR:H5F_ACC_TRUNC
                 )
   {
     if (forceNewSolSet || getNumObjs()==0) { // Create a new solSet
@@ -50,7 +52,7 @@ namespace LOFAR {
         if (this->getNumObjs()==1) {
           solSetNameToOpen=this->getObjnameByIdx(0);
         } else {
-          THROW(Exception, "H5Parm "<<filename<<" contains more than one SolSet, "<<
+          throw Exception("H5Parm " + filename + " contains more than one SolSet, " +
               "please specify which one to use.");
         }
       }
@@ -159,7 +161,7 @@ namespace LOFAR {
     std::map<std::string, SolTab>::iterator item =
       _solTabs.find(name);
     if (item == _solTabs.end()) {
-      THROW(Exception, "SolTab "<<name<<" does not exist in solset "<<
+      throw Exception("SolTab " + name + " does not exist in solset " +
                        getSolSetName());
     }
     return item->second;

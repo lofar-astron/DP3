@@ -20,8 +20,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/ModelComponent.h>
+#include "ModelComponent.h"
 
 namespace LOFAR
 {

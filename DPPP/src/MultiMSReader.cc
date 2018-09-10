@@ -21,14 +21,15 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/MultiMSReader.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPLogger.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "MultiMSReader.h"
+#include "DPBuffer.h"
+#include "DPLogger.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
@@ -56,7 +57,8 @@ namespace LOFAR {
         itsMSNames  (msNames),
         itsRegularChannels (true)
     {
-      ASSERTSTR (msNames.size() > 0, "No names of MeasurementSets given");
+      if(msNames.size() <= 0)
+        throw Exception("No names of MeasurementSets given");
       itsMSName           = itsMSNames[0];
       itsStartChanStr     = parset.getString (prefix+"startchan", "0");
       itsNrChanStr        = parset.getString (prefix+"nchan", "0");
@@ -91,7 +93,8 @@ namespace LOFAR {
       // TODO: check if frequencies are regular, insert some empy readers
       // if necessary
 
-      ASSERTSTR (itsFirst>=0, "All input MeasurementSets do not exist");
+      if(itsFirst<0)
+				throw Exception("All input MeasurementSets do not exist");
       itsBuffers.resize (itsReaders.size());
     }
 
@@ -157,7 +160,8 @@ namespace LOFAR {
 
     void MultiMSReader::fillBands()
     {
-      ASSERTSTR (!itsOrderMS, "Cannot order the MSs if some are missing");
+      if (itsOrderMS)
+				throw Exception("Cannot order the MSs if some are missing");
       // Get channel width (which should be the same for all bands).
       double chanw = itsReaders[itsFirst]->getInfo().chanWidths().data()[0];
       // Get frequency for first subband.
@@ -173,15 +177,15 @@ namespace LOFAR {
       // the same nr of channels and are in increasing order of freq.
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
-          ASSERTSTR (itsReaders[i]->getInfo().nchan() == itsFillNChan,
-                     "An MS is missing; the others should have equal nchan");
+          if (itsReaders[i]->getInfo().nchan() != itsFillNChan)
+						throw Exception("An MS is missing; the others should have equal nchan");
           // Check if all channels have the same width and are consecutive.
           const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
           const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
-          ASSERTSTR (freqs[0] > freq  ||  near(freqs[0], freq, 1e-5),
-              "Subbands should be in increasing order of frequency; found "
-              << freqs[0] << ", expected " << freq << " (diff="
-              << freqs[0]-freq << ')');
+          if(freqs[0] < freq && !near(freqs[0], freq, 1e-5))
+						throw Exception("Subbands should be in increasing order of frequency; found "
+              + std::to_string(freqs[0]) + ", expected " + std::to_string(freq) + " (diff="
+              + std::to_string(freqs[0]-freq) + ')');
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
           objcopy (chanFreqs.data()  + inx, freqs.data(), itsFillNChan);
           objcopy (chanWidths.data() + inx, width.data(), itsFillNChan);
@@ -228,9 +232,10 @@ namespace LOFAR {
             itsReaders[i]->process (buf);
           }
           const DPBuffer& msBuf = itsReaders[i]->getBuffer();
-          ASSERTSTR (! msBuf.getRowNrs().empty(),
+          if (msBuf.getRowNrs().empty())
+						throw Exception(
                      "When using multiple MSs, the times in all MSs have to be "
-                     "consecutive; this is not the case for MS " << i);
+                     "consecutive; this is not the case for MS " + std::to_string(i));
           // Copy data and flags.
           e[1] = s[1] + itsReaders[i]->getInfo().nchan() - 1;
           if (itsReadVisData) {
@@ -289,7 +294,7 @@ namespace LOFAR {
       for (uint i=0; i<itsMSNames.size(); ++i) {
         if (itsReaders[i]) {
           const DPInfo& rdinfo = itsReaders[i]->getInfo();
-          ASSERTSTR (near(itsStartTime, rdinfo.startTime())  &&
+          if (!(near(itsStartTime, rdinfo.startTime())  &&
                      near(itsLastTime, itsReaders[i]->lastTime())  &&
                      near(itsTimeInterval, rdinfo.timeInterval())  &&
                      itsNrCorr == rdinfo.ncorr()  &&
@@ -298,9 +303,10 @@ namespace LOFAR {
                      itsFullResNTimeAvg == itsReaders[i]->ntimeAvgFullRes()  &&
                      getInfo().antennaSet() == rdinfo.antennaSet()  &&
                      allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
-                     allEQ (getInfo().getAnt2(), rdinfo.getAnt2()),
-                     "Meta data of MS " << itsMSNames[i]
-                     << " differs from " << itsMSNames[itsFirst]);
+                     allEQ (getInfo().getAnt2(), rdinfo.getAnt2())))
+						throw Exception(
+                     "Meta data of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
           itsNrChan += rdinfo.nchan();
           itsHasFullResFlags = (itsHasFullResFlags  &&
                                 itsReaders[i]->hasFullResFlags());

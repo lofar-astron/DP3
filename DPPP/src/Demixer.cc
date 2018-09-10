@@ -21,35 +21,31 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Demixer.h>
-#include <DPPP/Apply.h>
-#include <DPPP/Averager.h>
-#include <DPPP/CursorUtilCasa.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/EstimateMixed.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/Simulate.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/SubtractMixed.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/Simulator.h>
+#include "Demixer.h"
+#include "Apply.h"
+#include "Averager.h"
+#include "CursorUtilCasa.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "EstimateMixed.h"
+#include "Exceptions.h"
+#include "PhaseShift.h"
+#include "Simulate.h"
+#include "SourceDBUtil.h"
+#include "SubtractMixed.h"
+#include "MSReader.h"
+#include "Simulator.h"
 
-#include <ParmDB/Axis.h>
-#include <ParmDB/SourceDB.h>
-#include <ParmDB/ParmDB.h>
-#include <ParmDB/ParmSet.h>
-#include <ParmDB/ParmCache.h>
-#include <ParmDB/Parm.h>
+#include "../../ParmDB/Axis.h"
+#include "../../ParmDB/SourceDB.h"
+#include "../../ParmDB/ParmDB.h"
+#include "../../ParmDB/ParmSet.h"
+#include "../../ParmDB/ParmCache.h"
+#include "../../ParmDB/Parm.h"
 
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/OpenMP.h>
-#include <Common/StreamUtil.h>
-#include <Common/lofar_iomanip.h>
-#include <Common/lofar_iostream.h>
-#include <Common/lofar_fstream.h>
+#include "../../Common/ParameterSet.h"
+#include "../../Common/OpenMP.h"
+#include "../../Common/StreamUtil.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -57,6 +53,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/scimath/Mathematics/MatrixMathLA.h>
+
+#include <iomanip>
 
 using namespace casacore;
 
@@ -139,10 +137,10 @@ namespace LOFAR {
       // Directions of unknown sources can be given in the PhaseShift step like
       //       demixstepname.sourcename.phasecenter
 
-      ASSERTSTR (!(itsSkyName.empty() || itsInstrumentName.empty()),
-                 "An empty name is given for the sky and/or instrument model");
-      ASSERTSTR (!itsIgnoreTarget || itsTargetSource.empty(),
-                 "Target source name cannot be given if ignoretarget=true");
+      if (itsSkyName.empty() || itsInstrumentName.empty())
+				throw Exception("An empty name is given for the sky and/or instrument model");
+      if (itsIgnoreTarget && !itsTargetSource.empty())
+				throw Exception("Target source name cannot be given if ignoretarget=true");
       // Add a null step as last step in the filter.
       DPStep::ShPtr nullStep(new NullStep());
       itsFilter.setNextStep (nullStep);
@@ -151,8 +149,8 @@ namespace LOFAR {
         itsNTimeChunk = OpenMP::maxThreads();
       }
       // Check that time windows fit integrally.
-      ASSERTSTR ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr == 0,
-                 "time window should fit final averaging integrally");
+      if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
+				throw Exception("time window should fit final averaging integrally");
       itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
       // Collect all source names.
       itsNModel = itsSubtrSources.size() + itsModelSources.size();
@@ -177,11 +175,12 @@ namespace LOFAR {
         // The target has to be the last demix direction.
         // If it has a source model, there cannot be any extra source
         // because the sources to be predicted have to be a consecutive vector.
-        ASSERTSTR (itsExtraSources.empty(), "Currently no extrasources can "
+        if (!itsExtraSources.empty())
+					throw Exception("Currently no extrasources can "
                    "be given if the targetsource is given");
       }
       itsPatchList = makePatches (sourceDB, patchNames, itsNModel);
-      ASSERT(itsPatchList.size() == itsNModel);
+      assert(itsPatchList.size() == itsNModel);
 
       // Size buffers.
       itsFactors.resize      (itsNTimeChunk);
@@ -267,7 +266,8 @@ namespace LOFAR {
       // Get size info.
       itsNChanIn = infoIn.nchan();
       itsNCorr   = infoIn.ncorr();
-      ASSERTSTR (itsNCorr==4, "Demixing requires data with 4 polarizations");
+      if (itsNCorr!=4)
+				throw Exception("Demixing requires data with 4 polarizations");
 
       // Handle possible data selection.
       itsFilter.setInfo (infoIn);
@@ -322,14 +322,14 @@ namespace LOFAR {
       itsNTimeAvgSubtr = std::min (itsNTimeAvgSubtr, infoSel.ntime());
       itsNChanAvgSubtr = info().update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
       itsNChanOutSubtr = info().nchan();
-      ASSERTSTR (itsNChanAvg % itsNChanAvgSubtr == 0,
-        "Demix averaging " << itsNChanAvg
-        << " must be multiple of output averaging "
-        << itsNChanAvgSubtr);
-      ASSERTSTR (itsNTimeAvg % itsNTimeAvgSubtr == 0,
-        "Demix averaging " << itsNTimeAvg
-        << " must be multiple of output averaging "
-        << itsNTimeAvgSubtr);
+      if (itsNChanAvg % itsNChanAvgSubtr != 0)
+        throw Exception("Demix averaging " + std::to_string(itsNChanAvg)
+        + " must be multiple of output averaging "
+        + std::to_string(itsNChanAvgSubtr));
+      if (itsNTimeAvg % itsNTimeAvgSubtr != 0)
+        throw Exception("Demix averaging " + std::to_string(itsNTimeAvg)
+        + " must be multiple of output averaging "
+        + std::to_string(itsNTimeAvgSubtr));
       // Store channel frequencies for the demix and subtract resolutions.
       itsFreqDemix = infoDemix.chanFreqs();
       itsFreqSubtr = getInfo().chanFreqs();
@@ -694,7 +694,7 @@ namespace LOFAR {
     {
       // Nothing to do if only target direction.
       if (itsNDir <= 1) return;
-      ASSERT (! weightSums.empty());
+      assert (! weightSums.empty());
       bufOut.resize (IPosition(5, itsNDir, itsNDir,
                                itsNCorr, nChanOut, itsNBl));
       bufOut = DComplex(1,0);
@@ -803,7 +803,7 @@ namespace LOFAR {
           if (ata.empty()) {
             ata.resize (nrDeproject, nrDeproject);
           }
-          DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
+          assert(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
           // Calculate P = I - A * ata * A.T.conj
           Matrix<DComplex> aata(product(a,ata));
           Matrix<DComplex> p (-product(product(a, ata), at));
@@ -964,7 +964,7 @@ namespace LOFAR {
         //
         // Note that the resolution of the residual can differ from the
         // resolution at which the Jones matrices were estimated.
-        for(size_t ts_subtr = multiplier * ts, ts_subtr_end = min(ts_subtr
+        for(size_t ts_subtr = multiplier * ts, ts_subtr_end = std::min(ts_subtr
           + multiplier, nTimeSubtr); ts_subtr != ts_subtr_end; ++ts_subtr)
         {
           for(size_t dr = 0; dr < nDrSubtr; ++dr)
@@ -1033,7 +1033,7 @@ namespace LOFAR {
               static_cast<size_t>(stride_mix_subtr[3]),
               static_cast<size_t>(stride_mix_subtr[4])
             };
-            ASSERT(stride_mix_subtr_slice[0] == itsNDir * itsNDir
+            assert(stride_mix_subtr_slice[0] == itsNDir * itsNDir
               && stride_mix_subtr_slice[1] == itsNDir * itsNDir * nCr
               && stride_mix_subtr_slice[2] == itsNDir * itsNDir * nCr * nChSubtr);
 
@@ -1149,10 +1149,10 @@ namespace LOFAR {
 
     namespace
     {
-      string toString (double value)
+      std::string toString (double value)
       {
-        ostringstream os;
-        os << setprecision(16) << value;
+        std::ostringstream os;
+        os << std::setprecision(16) << value;
         return os.str();
       }
     } //# end unnamed namespace

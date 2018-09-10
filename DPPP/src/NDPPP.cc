@@ -21,44 +21,36 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPRun.h>
-#include <DPPP/Package__Version.h>
-#include <Common/LofarLogger.h>
-#include <Common/SystemUtil.h>
-#include <Common/Exception.h>
+#include "DPRun.h"
+
 #include <iostream>
 #include <stdexcept>
 
 #include <casacore/casa/OS/File.h>
 
-using namespace LOFAR::DPPP;
-using namespace LOFAR;
-
 // Define handler that tries to print a backtrace.
-Exception::TerminateHandler t(Exception::terminate);
+//Exception::TerminateHandler t(Exception::terminate);
 
 void showUsage() {
-  std::cout<<"Usage: DPPP [-v] [parsetfile] [parsetkeys...]"<<std::endl;
-  std::cout<<"  parsetfile: a file containing one parset key=value pair "<<
-    "per line"<<std::endl;
-  std::cout<<"  parsetkeys: any number of parset key=value pairs, e.g. "<<
-    "msin=my.MS"<<std::endl<<std::endl;
-  std::cout<<"If both a file and command-line keys are specified, the "<<
-    "keys on the command line override those in the file."<<std::endl;
-  std::cout<<"If no arguments are specified, the program tries to read "<<
-    "\"NDPPP.parset\" or \"DPPP.parset\" as a default."<<std::endl;
-  std::cout<<"-v will show version info and exit."<<std::endl;
-  std::cout<<"Documentation is at http://www.lofar.org/wiki/doku.php?id="<<
-    "public:user_software:documentation:ndppp"<<std::endl;
+  std::cout <<
+    "Usage: DPPP [-v] [parsetfile] [parsetkeys...]\n"
+    "  parsetfile: a file containing one parset key=value pair per line\n"
+    "  parsetkeys: any number of parset key=value pairs, e.g. msin=my.MS\n\n"
+    "If both a file and command-line keys are specified, the keys on the command\n"
+    "line override those in the file.\n"
+    "If no arguments are specified, the program tries to read \"NDPPP.parset\"\n"
+    "or \"DPPP.parset\" as a default.\n"
+    "-v will show version info and exit.\n"
+    "Documentation is at:\n"
+    "http://www.lofar.org/wiki/doku.php?id=public:user_software:documentation:ndppp\n";
 }
 
 int main(int argc, char *argv[])
 {
   try
   {
-    TEST_SHOW_VERSION (argc, argv, DPPP);
-    INIT_LOGGER("DPPP");
+    //TEST_SHOW_VERSION (argc, argv, DPPP);
+    //INIT_LOGGER("DPPP");
     // Get the name of the parset file.
     if (argc>1 && (
           string(argv[1])=="--help" ||
@@ -85,22 +77,11 @@ int main(int argc, char *argv[])
     }
 
     // Execute the parset file.
-    DPRun::execute (parsetName, argc, argv);
-  } catch (LOFAR::APSException& err) {
-    // just send err.what() to the error stream
-    // this is just the error message, not a full backtrace
-    std::cerr << std::endl;
-    std::cerr << "ParameterSet Exception detected: "<< err.what() << std::endl;
-    return 1;
-  } catch (LOFAR::Exception& err) {
-    std::cerr << "LOFAR Exception detected: " << err << std::endl;
-    return 1;
-#ifdef __clang__
+    LOFAR::DPPP::DPRun::execute (parsetName, argc, argv);
   } catch (std::exception& err) {
     std::cerr << std::endl;
     std::cerr << "std exception detected: " << err.what() << std::endl;
     return 1;
-#endif
   }
   return 0;
 }

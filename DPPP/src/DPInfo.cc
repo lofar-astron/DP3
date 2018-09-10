@@ -21,15 +21,17 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPInput.h>
-#include <Common/LofarLogger.h>
+#include "DPInfo.h"
+#include "DPInput.h"
+#include "Exceptions.h"
+
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/BasicSL/STLIO.h>
+
+#include <cassert>
 
 using namespace casacore;
 using namespace std;
@@ -111,15 +113,15 @@ namespace LOFAR {
       itsTileBeamDir = tileBeamDir;
     }
 
-    void DPInfo::set (const Vector<String>& antNames,
+    void DPInfo::set (const Vector<casacore::String>& antNames,
                       const Vector<Double>& antDiam,
                       const vector<MPosition>& antPos,
                       const Vector<Int>& ant1,
                       const Vector<Int>& ant2)
     {
-      ASSERT (antNames.size() == antDiam.size()  &&
+      assert (antNames.size() == antDiam.size()  &&
               antNames.size() == antPos.size());
-      ASSERT (ant1.size() == ant2.size());
+      assert (ant1.size() == ant2.size());
       itsAntNames.reference (antNames);
       itsAntDiam.reference (antDiam);
       itsAntPos = antPos;
@@ -135,7 +137,7 @@ namespace LOFAR {
       itsAntMap.resize (itsAntNames.size());
       std::fill (itsAntMap.begin(), itsAntMap.end(), -1);
       for (uint i=0; i<itsAnt1.size(); ++i) {
-        ASSERT (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
+        assert (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
                 itsAnt2[i] >= 0  &&  itsAnt2[i] < int(itsAntMap.size()));
         itsAntMap[itsAnt1[i]] = 0;
         itsAntMap[itsAnt2[i]] = 0;
@@ -153,9 +155,9 @@ namespace LOFAR {
     {
       Record rec;
       String msg;
-      ASSERT (fromMeas.toRecord (msg, rec));
+      assert (fromMeas.toRecord (msg, rec));
       MeasureHolder mh2;
-      ASSERT (mh2.fromRecord (msg, rec));
+      assert (mh2.fromRecord (msg, rec));
       return mh2;
     }
 
@@ -167,9 +169,9 @@ namespace LOFAR {
       if (timeAvg > itsNTime) {
         timeAvg = itsNTime;
       }
-      ASSERTSTR (itsNChan % chanAvg == 0,
-                 "When averaging, nr of channels must divide integrally; "
-                 "itsNChan=" << itsNChan << " chanAvg=" << chanAvg);
+      if (itsNChan % chanAvg != 0)
+        throw Exception("When averaging, nr of channels must divide integrally; "
+                        "itsNChan=" + std::to_string(itsNChan) + " chanAvg=" + std::to_string(chanAvg));
       itsChanAvg *= chanAvg;
       itsNChan = (itsNChan + chanAvg - 1) / chanAvg;
       itsTimeAvg *= timeAvg;
@@ -233,7 +235,7 @@ namespace LOFAR {
     {
       if (itsAntUsed.size() < itsAntMap.size()) {
         // First remove stations.
-        Vector<String> antNames (itsAntUsed.size());
+        Vector<casacore::String> antNames (itsAntUsed.size());
         Vector<Double> antDiam (itsAntUsed.size());
         vector<MPosition> antPos;
         antPos.reserve (itsAntUsed.size());

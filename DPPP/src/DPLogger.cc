@@ -21,8 +21,7 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPLogger.h>
+#include "DPLogger.h"
 
 namespace LOFAR {
   namespace DPPP {

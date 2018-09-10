@@ -1,10 +1,11 @@
-#include <lofar_config.h>
-#include <DPPP/H5Parm.h>
-#include <DPPP/GridInterpolate.h>
-#include <Common/Exception.h>
-#include <Common/StringUtil.h>
-#include <Common/LofarLogger.h>
-#include <stdlib.h>
+#include "Exceptions.h"
+#include "H5Parm.h"
+#include "GridInterpolate.h"
+
+#include "../../Common/StringUtil.h"
+
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <ctime>
@@ -56,7 +57,7 @@ namespace LOFAR {
         return _axes[i];
       }
     }
-    THROW(Exception, "Axis "<<axisName<<" does not exist in "<<getName());
+    throw Exception("Axis " + axisName + " does not exist in " + getName());
   }
 
   bool H5Parm::SolTab::hasAxis(const string& axisName) {
@@ -73,7 +74,7 @@ namespace LOFAR {
         return i;
       }
     }
-    THROW(Exception, "Axis "<<axisName<<" does not exist in "<<getName());
+    throw Exception("Axis " + axisName + " does not exist in " + getName());
   }
 
   void H5Parm::SolTab::setValues(const vector<double>& vals,
@@ -91,7 +92,8 @@ namespace LOFAR {
       }
     }
 
-    ASSERTSTR(expectedsize == vals.size(), "Values for H5Parm do not have the expected size: they have size "<<vals.size()<<", expected is "<<expectedsize);
+    if(expectedsize != vals.size())
+			throw Exception("Values for H5Parm do not have the expected size: they have size " + std::to_string(vals.size()) + ", expected is " + std::to_string(expectedsize));
 
     H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
     H5::DataSet dataset = createDataSet("val", H5::PredType::IEEE_F64LE,
@@ -158,9 +160,9 @@ namespace LOFAR {
     vector<double> realvals(vals.size());
 
     if (toAmplitudes) {
-      transform(vals.begin(), vals.end(), realvals.begin(), takeAbs);
+      std::transform(vals.begin(), vals.end(), realvals.begin(), takeAbs);
     } else { // Phase only
-      transform(vals.begin(), vals.end(), realvals.begin(), takeArg);
+      std::transform(vals.begin(), vals.end(), realvals.begin(), takeArg);
     }
 
     setValues(realvals, weights, history);
@@ -171,14 +173,14 @@ namespace LOFAR {
     try {
       val = openDataSet("val");
     } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab "<<getName()<<" has no values");
+      throw Exception("SolTab " + getName() + " has no values");
     }
 
     H5::Attribute axesattr;
     try {
       axesattr = val.openAttribute("AXES");
     } catch (H5::AttributeIException& e) {
-      THROW(Exception, "Values of SolTab "<<getName()<<" has no AXIS attribute");
+      throw Exception("Values of SolTab " + getName() + " has no AXIS attribute");
     }
 
     hsize_t axesstrlen = axesattr.getDataType().getSize();
@@ -191,7 +193,7 @@ namespace LOFAR {
 
     // Get number of dimensions and size of all dimensions
     H5::DataSpace ds = val.getSpace();
-    ASSERT (ds.getSimpleExtentNdims() == int(ndims));
+    assert (ds.getSimpleExtentNdims() == int(ndims));
     hsize_t dims_out[ndims];
     ds.getSimpleExtentDims(dims_out);
 
@@ -220,7 +222,7 @@ namespace LOFAR {
     uint startTimeSlot = 0;
     uint ntimeH5 = 1;
 
-    ASSERT(!freqs.empty());
+    assert(!freqs.empty());
     uint startFreq = 0;
     uint nfreqH5 = 1;
 
@@ -289,7 +291,7 @@ namespace LOFAR {
       } else if (_axes[i].name=="pol") {
         offset[i] = pol;
       } else {
-        ASSERT(_axes[i].size == 1);
+        assert(_axes[i].size == 1);
         offset[i] = 0;
       }
     }
@@ -304,7 +306,7 @@ namespace LOFAR {
       val.read(&(res[0]), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
     } catch (H5::DataSetIException& e) {
       e.printError();
-      THROW(Exception, "Could not read data");
+      throw Exception("Could not read data");
     }
     return res;
   }
@@ -394,9 +396,9 @@ namespace LOFAR {
       dataset = openDataSet(tableName);
       dataspace = dataset.getSpace();
     } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab has no table "<<tableName);
+      throw Exception("SolTab has no table " + tableName);
     }
-    ASSERT(dataspace.getSimpleExtentNdims()==1);
+    assert(dataspace.getSimpleExtentNdims()==1);
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
 
@@ -423,8 +425,8 @@ namespace LOFAR {
     }
     map<string, hsize_t>::iterator it = cache.find(elementName);
     if (it == cache.end()) {
-      THROW(Exception, "SolTab has no element "<<elementName <<
-                       " in "<<tableName);
+      throw Exception("SolTab has no element " + elementName +
+                       " in " + tableName);
     }
     return cache.find(elementName)->second;
   }
@@ -459,7 +461,7 @@ namespace LOFAR {
       return freqs.size()-1;
     }
 
-    THROW(Exception,"Frequency "<<fixed<<freq<<" not found in "<<getName());
+    throw Exception("Frequency " + std::to_string(freq) + " not found in " + getName());
     return 0;
   }
 
@@ -470,9 +472,9 @@ namespace LOFAR {
       dataset = openDataSet(axisname);
       dataspace = dataset.getSpace();
     } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab "<<getName()<<" has no axis '"<<axisname<<"'");
+      throw Exception("SolTab " + getName() + " has no axis '" + axisname + "'");
     }
-    ASSERT(dataspace.getSimpleExtentNdims()==1);
+    assert(dataspace.getSimpleExtentNdims()==1);
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
@@ -497,7 +499,7 @@ namespace LOFAR {
       }
       cachemap = _antMap;
     } else {
-      THROW(Exception, "Only string axes 'ant' and 'dir' supported for now.");
+      throw Exception("Only string axes 'ant' and 'dir' supported for now.");
     }
 
     // Get the keys of the cache map and put them in a vector
@@ -522,7 +524,7 @@ namespace LOFAR {
       if (abs(times[i]-time)<timeInterval*0.501) // 0.5 with some tolerance
         return i;
     }
-    THROW(Exception,"Time "<<fixed<<time<<" not found in "<<getName());
+    throw Exception("Time " + std::to_string(time) + " not found in " + getName());
     return 0;
   }
 
@@ -537,13 +539,14 @@ namespace LOFAR {
       dataset = openDataSet(axisName);
       dataspace = dataset.getSpace();
     } catch (H5::GroupIException& e) {
-      THROW(Exception, "SolTab "<<getName()<<" has no axis table for "<<axisName);
+      throw Exception("SolTab " + getName() + " has no axis table for " + axisName);
     }
-    ASSERT(dataspace.getSimpleExtentNdims()==1);
+    assert(dataspace.getSimpleExtentNdims()==1);
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
-    ASSERTSTR(dims[0]>start+1, "For reading the " + axisName + " interval, more than one value is required.");
+    if(dims[0]<=start+1)
+			throw Exception("For reading the " + axisName + " interval, more than one value is required.");
 
     hsize_t count[1], offset[1], memoffset[1];
     count[0]=2; offset[0]=start; memoffset[0]=0;

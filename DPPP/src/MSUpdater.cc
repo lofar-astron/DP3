@@ -21,12 +21,13 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/MSUpdater.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/MSWriter.h>
-#include <DPPP/DPBuffer.h>
-#include <Common/ParameterSet.h>
+#include "MSUpdater.h"
+#include "MSReader.h"
+#include "MSWriter.h"
+#include "DPBuffer.h"
+
+#include "../../Common/ParameterSet.h"
+
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -74,9 +75,9 @@ namespace LOFAR {
     {
       if (itsMS.tableDesc().isColumn(colName)) {
         const ColumnDesc& cd = itsMS.tableDesc().columnDesc(colName);
-        ASSERTSTR (cd.dataType() == dataType  &&  cd.isArray(),
-                   "Column " << itsDataColName
-                   << " already exists, but is not of the right type");
+        if (cd.dataType() != dataType || !cd.isArray())
+                   "Column " + itsDataColName +
+                   " already exists, but is not of the right type";
         return false;
       }
 
@@ -104,7 +105,7 @@ namespace LOFAR {
             break;
           }
         }
-        ASSERT(colinfo.nfields()>0);
+        assert(colinfo.nfields()>0);
         // When the storage manager is compressed, do not implicitly (re)compress it. Use TiledStMan instead.
         std::string dmType = colinfo.asString("TYPE");
         TableDesc td;
@@ -212,14 +213,14 @@ namespace LOFAR {
           itsWeightColName = origWeightColName;
         }
       }
-      ASSERT(itsWeightColName != "WEIGHT");
+      assert(itsWeightColName != "WEIGHT");
       if (itsWeightColName != origWeightColName) {
         info().setWriteWeights();
       }
       itsWriteWeights = getInfo().writeWeights();
 
       if (getInfo().metaChanged()) {
-        THROW(Exception, "Update step " + itsName + 
+        throw Exception("Update step " + itsName + 
               " is not possible because meta data changes"
               " (by averaging, adding/removing stations, etc.)");
       }

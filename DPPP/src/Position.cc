@@ -20,8 +20,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Position.h>
+#include "Position.h"
 
 namespace LOFAR
 {

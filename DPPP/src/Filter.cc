@@ -21,12 +21,13 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Filter.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
-#include <Common/ParameterSet.h>
+#include "Filter.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
 
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -85,9 +86,9 @@ namespace LOFAR {
       node2.get (rec, result);
       uint nrChan = uint(result+0.0001);
       uint nAllChan = getInfo().nchan();
-      ASSERTSTR (itsStartChan < nAllChan,
-                 "startchan " << itsStartChan
-                 << " exceeds nr of available channels (" << nAllChan << ')');
+      if(itsStartChan >= nAllChan)
+        throw Exception("startchan " + std::to_string(itsStartChan)
+                 + " exceeds nr of available channels (" + std::to_string(nAllChan) + ')');
       uint maxNrChan = nAllChan - itsStartChan;
       if (nrChan == 0) {
         nrChan = maxNrChan;
@@ -331,7 +332,7 @@ namespace LOFAR {
       Vector<Int> antIds = antCol.getColumn();
       for (uint i=0; i<antIds.size(); ++i) {
         Int newId = antMap[antIds[i]];
-        ASSERT (newId >= 0);
+        assert (newId >= 0);
         antIds[i] = newId;
       }
       antCol.putColumn (antIds);

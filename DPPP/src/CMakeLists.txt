@@ -1,13 +1,31 @@
 # $Id$
 
-include(LofarPackageVersion)
 include(PythonInstall)
 
-lofar_add_library(dppp
-  Package__Version.cc
+# Required for the ObjectFactory
+include_directories(../../Common)
+
+add_definitions(${HDF5_DEFINITIONS})
+
+include_directories(${HDF5_INCLUDE_DIRS})
+include_directories(${CASACORE_INCLUDE_DIR})
+include_directories(${BOOST_INCLUDE_DIR})
+
+find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
+find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
+if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
+	include_directories(${LOFAR_STATION_RESPONSE_DIR})
+  set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
+  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp aterms/lofarbeamterm.cpp)
+  message("LOFAR beam library found.")
+else()
+  message(FATAL_ERROR "LOFAR beam library not found")
+endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
+
+add_library(dppp
   DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc DPInfo.cc
   DPLogger.cc ProgressMeter.cc FlagCounter.cc
-  UVWCalculator/UVWCalculator.cc  BaselineSelection.cc ApplyCal.cc
+  UVWCalculator.cc  BaselineSelection.cc ApplyCal.cc
   MSReader.cc MultiMSReader.cc MSWriter.cc MSUpdater.cc Counter.cc
   Averager.cc MedFlagger.cc PreFlagger.cc UVWFlagger.cc
   StationAdder.cc ScaleData.cc Filter.cc PhaseShift.cc
@@ -22,17 +40,62 @@ lofar_add_library(dppp
   ApplyBeam.cc
   PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc GridInterpolate.cc
   Upsample.cc Split.cc
+  
+  ../../Blob/BlobAipsIO.cc
+  ../../Blob/BlobArray.cc
+  ../../Blob/BlobHeader.cc
+  ../../Blob/BlobIBufStream.cc
+  ../../Blob/BlobIStream.cc
+  ../../Blob/BlobOBufStream.cc
+  ../../Blob/BlobOStream.cc
+  
+  ../../Common/BaselineSelect.cc
+  ../../Common/ClusterDesc.cc
+  ../../Common/DataConvert.cc
+  ../../Common/NodeDesc.cc
+  ../../Common/ParameterHandler.cc
+  ../../Common/ParameterRecord.cc
+  ../../Common/ParameterSet.cc
+  ../../Common/ParameterSetImpl.cc
+  ../../Common/ParameterValue.cc
+  ../../Common/PrettyUnits.cc
+  ../../Common/StringUtil.cc
+  ../../Common/Timer.cc
+  ../../Common/TypeNames.cc
+  ../../Common/VdsDesc.cc
+  ../../Common/VdsMaker.cc
+  ../../Common/VdsPartDesc.cc
+  
+  ../../ParmDB/Axis.cc
+  ../../ParmDB/AxisMapping.cc
+  ../../ParmDB/Box.cc
+  ../../ParmDB/Grid.cc
+  ../../ParmDB/Parm.cc
+  ../../ParmDB/ParmCache.cc
+  ../../ParmDB/ParmDB.cc
+  ../../ParmDB/ParmDBBlob.cc
+  ../../ParmDB/ParmDBCasa.cc
+  ../../ParmDB/ParmDBLocker.cc
+  ../../ParmDB/ParmDBMeta.cc
+  ../../ParmDB/ParmFacade.cc
+#  ../../ParmDB/ParmFacadeDistr.cc
+  ../../ParmDB/ParmFacadeLocal.cc
+  ../../ParmDB/ParmFacadeRep.cc
+  ../../ParmDB/ParmSet.cc
+  ../../ParmDB/ParmValue.cc
+  ../../ParmDB/PatchInfo.cc
+  ../../ParmDB/SourceData.cc
+  ../../ParmDB/SourceDB.cc
+  ../../ParmDB/SourceDBBlob.cc
+  ../../ParmDB/SourceDBCasa.cc
+  ../../ParmDB/SourceInfo.cc
 )
+target_link_libraries(dppp)
 
-lofar_add_bin_program(NDPPP NDPPP.cc)
-lofar_add_bin_program(versiondppp versiondppp.cc)
+add_executable(DPPP NDPPP.cc)
+target_link_libraries(DPPP dppp ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${CASACORE_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
-install(CODE "EXECUTE_PROCESS(
-  COMMAND \"${CMAKE_COMMAND}\" -E create_symlink NDPPP DPPP WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin
-  )"
-)
-
-lofar_add_bin_scripts(taqlflagger)
+# lofar_add_bin_scripts(taqlflagger)
 
 # Python modules.
 python_install(

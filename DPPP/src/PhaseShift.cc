@@ -21,21 +21,25 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/StreamUtil.h>
+#include "PhaseShift.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/BasicSL/Constants.h>
+
 #include <iostream>
 #include <iomanip>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
 
@@ -126,7 +130,7 @@ namespace LOFAR {
       int ncorr  = itsBuf.getData().shape()[0];
       int nchan  = itsBuf.getData().shape()[1];
       int nbl    = itsBuf.getData().shape()[2];
-      DBGASSERT (itsPhasors.nrow() == uint(nchan)  &&
+      assert (itsPhasors.nrow() == uint(nchan)  &&
                  itsPhasors.ncolumn() == uint(nbl));
       const double* mat1 = itsMat1.data();
       //# If ever in the future a time dependent phase center is used,
@@ -179,32 +183,33 @@ namespace LOFAR {
       }
       // The phase center must be given in J2000 as two values (ra,dec).
       // In the future time dependent frames can be done as in UVWFlagger.
-      ASSERTSTR (itsCenter.size() == 2,
+      if (itsCenter.size() != 2)
+				throw Exception(
                  "2 values must be given in PhaseShift phasecenter");
       ///ASSERTSTR (itsCenter.size() < 4,
       ///"Up to 3 values can be given in PhaseShift phasecenter");
-      MDirection phaseCenter;
+      casacore::MDirection phaseCenter;
       if (itsCenter.size() == 1) {
-        string str = toUpper(itsCenter[0]);
+        string str = boost::to_upper_copy(itsCenter[0]);
         MDirection::Types tp;
-        ASSERTSTR (MDirection::getType(tp, str),
-                   str << " is an invalid source type"
+        if (!MDirection::getType(tp, str))
+					throw Exception(str + " is an invalid source type"
                    " in PhaseShift phasecenter");
         return MDirection(tp);
       }
       Quantity q0, q1;
-      ASSERTSTR (MVAngle::read (q0, itsCenter[0]),
-                 itsCenter[0] << " is an invalid RA or longitude"
+      if (!MVAngle::read (q0, itsCenter[0]))
+        throw Exception(itsCenter[0] + " is an invalid RA or longitude"
                  " in PhaseShift phasecenter");
-      ASSERTSTR (MVAngle::read (q1, itsCenter[1]),
-                 itsCenter[1] << " is an invalid DEC or latitude"
+      if (!MVAngle::read (q1, itsCenter[1]))
+        throw Exception(itsCenter[1] + " is an invalid DEC or latitude"
                  " in PhaseShift phasecenter");
       MDirection::Types type = MDirection::J2000;
       if (itsCenter.size() > 2) {
-        string str = toUpper(itsCenter[2]);
+        string str = boost::to_upper_copy(itsCenter[2]);
         MDirection::Types tp;
-        ASSERTSTR (MDirection::getType(tp, str),
-                   str << " is an invalid direction type"
+        if (!MDirection::getType(tp, str))
+          throw Exception(str + " is an invalid direction type"
                    " in PhaseShift phasecenter");
       }
       return MDirection(q0, q1, type);
@@ -213,7 +218,7 @@ namespace LOFAR {
     void PhaseShift::fillTransMatrix (Matrix<double>& mat,
                                       double ra, double dec)
     {
-      DBGASSERT (mat.nrow()==3 && mat.ncolumn()==3);
+      assert (mat.nrow()==3 && mat.ncolumn()==3);
       double sinra  = sin(ra);
       double cosra  = cos(ra);
       double sindec = sin(dec);

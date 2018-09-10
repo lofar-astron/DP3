@@ -20,10 +20,10 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Patch.h>
-#include <DPPP/ModelComponentVisitor.h>
-#include <Common/lofar_math.h>
+#include "Patch.h"
+#include "ModelComponentVisitor.h"
+
+#include <cmath>
 
 namespace LOFAR
 {

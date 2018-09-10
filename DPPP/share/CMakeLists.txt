@@ -1,5 +1,3 @@
-# $Id$
-
 # Data files
 install(FILES
   LBAdefault

@@ -21,14 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Averager.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
+#include "Averager.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <Common/StringUtil.h>
 
 #include <iostream>
 #include <iomanip>
@@ -205,7 +205,7 @@ namespace LOFAR {
         // Not the first time.
         // For now we assume that all timeslots have the same nr of baselines,
         // so check if the buffer sizes are the same.
-        ASSERT (itsBuf.getData().shape() == buf.getData().shape());
+        assert (itsBuf.getData().shape() == buf.getData().shape());
         itsBufTmp.referenceFilled (buf);
         itsBuf.getUVW() += itsInput->fetchUVW (buf, itsBufTmp, itsTimer);
         copyFullResFlags (itsInput->fetchFullResFlags (buf, itsBufTmp, itsTimer),

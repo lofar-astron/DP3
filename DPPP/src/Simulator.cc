@@ -21,12 +21,13 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Simulator.h>
-#include <DPPP/GaussianSource.h>
-#include <DPPP/PointSource.h>
+#include "Simulator.h"
+#include "GaussianSource.h"
+#include "PointSource.h"
+
 #include <casacore/casa/BasicSL/Constants.h>
-#include <Common/StreamUtil.h> ///
+
+#include "../../Common/StreamUtil.h" ///
 
 namespace LOFAR
 {

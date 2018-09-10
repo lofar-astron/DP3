@@ -21,18 +21,18 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/ApplyBeam.h>
-
 #include <iostream>
-//#include <iomanip>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
-#include <Common/StringUtil.h>
-#include <Common/OpenMP.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/FlagCounter.h>
-#include <DPPP/Position.h>
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/Timer.h"
+#include "../../Common/StringUtil.h"
+#include "../../Common/OpenMP.h"
+
+#include "ApplyBeam.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+#include "FlagCounter.h"
+#include "Position.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -46,6 +46,8 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -69,8 +71,8 @@ namespace LOFAR {
       } else {
         itsInvert=parset.getBool(prefix + "invert", true);
       }
-      string mode=toLower(parset.getString(prefix + "beammode","default"));
-      ASSERT (mode=="default" || mode=="array_factor" || mode=="element");
+      string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
+      assert (mode=="default" || mode=="array_factor" || mode=="element");
       if (mode=="default") {
         itsMode=DEFAULT;
       } else if (mode=="array_factor") {
@@ -78,7 +80,7 @@ namespace LOFAR {
       } else if (mode=="element") {
         itsMode=ELEMENT;
       } else {
-        THROW(Exception, "Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
+        throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
     }
 

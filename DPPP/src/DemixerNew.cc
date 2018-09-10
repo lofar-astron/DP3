@@ -21,22 +21,23 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DemixerNew.h>
-#include <DPPP/DemixWorker.h>
-#include <DPPP/DemixInfo.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <ParmDB/ParmDB.h>
-#include <ParmDB/ParmValue.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/OpenMP.h>
-#include <Common/StreamUtil.h>
-#include <Common/lofar_iostream.h>
-#include <Common/lofar_iomanip.h>
+#include "DemixerNew.h"
+#include "DemixWorker.h"
+#include "DemixInfo.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+
+#include "../../ParmDB/ParmDB.h"
+#include "../../ParmDB/ParmValue.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/OpenMP.h"
+#include "../../Common/StreamUtil.h"
 
 #include <casacore/casa/Arrays/ArrayPartMath.h>
+
+#include <iomanip>
 
 using namespace casacore;
 
@@ -58,7 +59,8 @@ namespace LOFAR {
         itsNTimeOut       (0),
         itsNChunk         (0)
     {
-      ASSERTSTR (! itsInstrumentName.empty(),
+      if (itsInstrumentName.empty())
+				throw Exception(
                  "An empty name is given for the instrument model");
     }
 
@@ -158,19 +160,19 @@ namespace LOFAR {
       showStat (os, nincludeClose,  ntimes, "Close target included: ", "times");
       // Show how often a source/station is demixed.
       os << endl << "Percentage of times a station/source is demixed:" << endl;
-      os << setw(15) << " ";
+      os << std::setw(15) << " ";
       for (size_t dr=0; dr<ndir; ++dr) {
-        os << setw(8) << itsDemixInfo.ateamList()[dr]->name().substr(0,8);
+        os << std::setw(8) << itsDemixInfo.ateamList()[dr]->name().substr(0,8);
       }
       os << " Overall" << endl;
       for (size_t st=0; st<nstation.size(); ++st) {
-        os << setw(4) << st << ' ';
+        os << std::setw(4) << st << ' ';
         // Show 10 characters of the source names; append with blanks as needed.
         uint inx = itsFilter.getInfo().antennaUsed()[st];
         string nm = itsFilter.getInfo().antennaNames()[inx];
         os << nm.substr(0,10);
         if (nm.size() < 10) {
-          os << setw(10 - nm.size()) << ' ';
+          os << std::setw(10 - nm.size()) << ' ';
         }
         for (size_t dr=0; dr<ndir; ++dr) {
           os << "  ";
@@ -180,7 +182,7 @@ namespace LOFAR {
         showPerc1 (os, nstation(st) / double(ntimes));
         os << endl;
       }
-      os << "     Overall" << setw(3) << ' ';
+      os << "     Overall" << std::setw(3) << ' ';
       for (size_t dr=0; dr<ndir; ++dr) {
         os << "  ";
         showPerc1 (os, nsources[dr] / double(ntimes));
@@ -191,22 +193,22 @@ namespace LOFAR {
       if (itsDemixInfo.doSubtract()) {
         os << endl << "Mean/stddev percentage of subtracted Stokes I amplitude"
            << " for the middle channel" << endl;
-        os << setw(8) << ' ';
+        os << std::setw(8) << ' ';
         for (size_t dr=0; dr<ndir; ++dr) {
           if (nsources[dr] > 0) {
 	    // Print name a bit right of the center.
             const string& nm = itsDemixInfo.ateamList()[dr]->name().substr(0,13);
 	    if (nm.size() > 10) {
-	      cout << setw(13) << nm;
+	      cout << std::setw(13) << nm;
 	    } else {
 	      int szws = 13 - nm.size();    // whitespace
-	      os << setw(szws/2+1) << ' ';
+	      os << std::setw(szws/2+1) << ' ';
 	      os << nm;
-	      os << setw(szws-szws/2-1) << ' ';
+	      os << std::setw(szws-szws/2-1) << ' ';
 	    }
           }
         }
-        os << setw(10) << "Total" << endl;
+        os << std::setw(10) << "Total" << endl;
         os << "baseline";
         for (size_t dr=0; dr<ndir; ++dr) {
           if (nsources[dr] > 0) {
@@ -221,8 +223,8 @@ namespace LOFAR {
           // Do not show if nothing subtracted for this baseline.
           // Last entry contains the sum over all directions!!
           if (amplSubtrNr(bl,ndir)) {
-            os << setw(4) << itsDemixInfo.getAnt1()[bl] << '-'
-               << setw(2) << itsDemixInfo.getAnt2()[bl] << "  ";
+            os << std::setw(4) << itsDemixInfo.getAnt1()[bl] << '-'
+               << std::setw(2) << itsDemixInfo.getAnt2()[bl] << "  ";
             for (uint dr=0; dr<ndir+1; ++dr) {
               if (dr == ndir  ||  nsources[dr] > 0) {
                 showPerc1 (os, amplSubtrMean(bl,dr));

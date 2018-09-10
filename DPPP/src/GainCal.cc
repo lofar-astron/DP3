@@ -21,25 +21,26 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/Package__Version.h>
-#include <DPPP/GainCal.h>
-#include <DPPP/Simulate.h>
-#include <DPPP/ApplyCal.h>
-#include <DPPP/PhaseFitter.h>
-#include <DPPP/CursorUtilCasa.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/SourceDBUtil.h>
-#include <DPPP/MSReader.h>
-#include <DPPP/DPLogger.h>
-#include <ParmDB/ParmDB.h>
-#include <ParmDB/ParmValue.h>
-#include <ParmDB/SourceDB.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/LofarLogger.h>
-#include <Common/OpenMP.h>
+#include "GainCal.h"
+#include "Simulate.h"
+#include "ApplyCal.h"
+#include "PhaseFitter.h"
+#include "CursorUtilCasa.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+#include "SourceDBUtil.h"
+#include "MSReader.h"
+#include "Version.h"
+
+#include "../../ParmDB/ParmDB.h"
+#include "../../ParmDB/ParmValue.h"
+#include "../../ParmDB/SourceDB.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+#include "../../Common/OpenMP.h"
 
 #include <fstream>
 #include <ctime>
@@ -120,7 +121,7 @@ namespace LOFAR {
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep=ApplyBeam(input, parset, prefix, true);
-          ASSERT(!itsApplyBeamStep.invert());
+          assert(!itsApplyBeamStep.invert());
           itsResultStep = ResultStep::ShPtr(new ResultStep());
           itsApplyBeamStep.setNextStep(itsResultStep);
         }
@@ -141,7 +142,7 @@ namespace LOFAR {
         defaultNChan = 1;
       }
       itsNChan = parset.getInt(prefix + "nchan", defaultNChan);
-      ASSERT(itsMode!=TECSCREEN);
+      assert(itsMode!=TECSCREEN);
     }
 
     GainCal::~GainCal()
@@ -160,7 +161,7 @@ namespace LOFAR {
       else if (modestr=="tecscreen") return TECSCREEN;
       else if (modestr=="rotation+diagonal") return ROTATIONANDDIAGONAL;
       else if (modestr=="rotation") return ROTATION;
-      THROW(Exception, "Unknown mode: "<<modestr);
+      throw Exception("Unknown mode: " + modestr);
     }
 
     string GainCal::calTypeToString(GainCal::CalType caltype) {
@@ -178,7 +179,7 @@ namespace LOFAR {
         case TECSCREEN: return "tecscreen";
         case ROTATION: return "rotation";
         case ROTATIONANDDIAGONAL: return "rotation+diagonal";
-        default: THROW(Exception, "Unknown caltype: "<< caltype);
+				default: throw Exception("Unknown caltype: " + std::to_string(caltype));
       }
     }
 
@@ -284,7 +285,7 @@ namespace LOFAR {
         case TECANDPHASE: smode = StefCal::PHASEONLY; break;
         case AMPLITUDEONLY:
         case SCALARAMPLITUDE: smode = StefCal::AMPLITUDEONLY; break;
-        default: THROW(Exception, "Unhandled mode");
+        default: throw Exception("Unhandled mode");
         }
 
         iS.push_back(StefCal(itsSolInt, chMax, smode, scalarMode(itsMode),
@@ -297,8 +298,8 @@ namespace LOFAR {
       itsChunkStartTime = info().startTime();
 
       if (itsDebugLevel>0) {
-        ASSERT(OpenMP::maxThreads()==1);
-        ASSERT(itsTimeSlotsPerParmUpdate >= info().ntime());
+        assert(OpenMP::maxThreads()==1);
+        assert(itsTimeSlotsPerParmUpdate >= info().ntime());
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),
                                info().antennaUsed().size(),
@@ -555,14 +556,14 @@ namespace LOFAR {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = info().ncorr();
-      ASSERT(nCr==4 || nCr==2 || nCr==1);
+      assert(nCr==4 || nCr==2 || nCr==1);
 
       for (uint ch=0;ch<nCh;++ch) {
         for (uint bl=0;bl<nBl;++bl) {
           if (itsSelectedBL[bl]) {
             int ant1=info().antennaMap()[info().getAnt1()[bl]];
             int ant2=info().antennaMap()[info().getAnt2()[bl]];
-            DBGASSERT(ant1>=0 && ant2>=0);
+            assert(ant1>=0 && ant2>=0);
             if (ant1==ant2 ||
                 iS[ch/itsNChan].getStationFlagged()[ant1] ||
                 iS[ch/itsNChan].getStationFlagged()[ant2] ||
@@ -673,7 +674,7 @@ namespace LOFAR {
             } else {
               for (uint st=0; st<info().antennaUsed().size(); ++st) {
                 sols_f(freqCell, st) = sol(st, 0)/sol(0, 0);
-                ASSERT(isFinite(sols_f(freqCell, st)));
+                assert(isFinite(sols_f(freqCell, st)));
               }
             }
           }
@@ -692,16 +693,16 @@ namespace LOFAR {
                 phases[freqCell] = arg(sols_f(freqCell, st));
                 if (!isFinite(phases[freqCell])) {
                   cout<<"Yuk, phases[freqCell]="<<phases[freqCell]<<", sols_f(freqCell, st)="<<sols_f(freqCell, st)<<endl;
-                  ASSERT(isFinite(phases[freqCell]));
+                  assert(isFinite(phases[freqCell]));
                 }
-                ASSERT(iS[freqCell].getWeight()>0);
+                assert(iS[freqCell].getWeight()>0);
                 weights[freqCell] = iS[freqCell].getWeight();
                 numpoints++;
               }
             }
 
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-              ASSERT(isFinite(phases[freqCell]));
+              assert(isFinite(phases[freqCell]));
             }
 
             if (numpoints>1) { // TODO: limit should be higher
@@ -713,7 +714,7 @@ namespace LOFAR {
               }
               // Update solution in stefcal
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
-                ASSERT(isFinite(phases[freqCell]));
+                assert(isFinite(phases[freqCell]));
                 iS[freqCell].getSolution(false)(st, 0) = polar(1., phases[freqCell]);
               }
             } else {
@@ -755,7 +756,7 @@ namespace LOFAR {
         case StefCal::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
         case StefCal::FAILED: {itsFailed++; itsNIter[3]+=iter; break;}
         default:
-          THROW(Exception, "Unknown converged status");
+          throw Exception("Unknown converged status");
         }
       }
 
@@ -915,7 +916,7 @@ namespace LOFAR {
         polarizations.push_back("XX");
         polarizations.push_back("YY");
       } else {
-        ASSERT(itsMode==FULLJONES);
+        assert(itsMode==FULLJONES);
         polarizations.push_back("XX");
         polarizations.push_back("XY");
         polarizations.push_back("YX");
@@ -926,7 +927,7 @@ namespace LOFAR {
       // Construct time axis
       uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       vector<double> solTimes(nSolTimes);
-      ASSERT(nSolTimes==itsSols.size());
+      assert(nSolTimes==itsSols.size());
       double starttime=info().startTime();
       for (uint t=0; t<nSolTimes; ++t) {
         solTimes[t] = starttime+(t+0.5)*info().timeInterval()*itsSolInt;
@@ -975,7 +976,7 @@ namespace LOFAR {
 
       // Put solutions in a contiguous piece of memory
       string historyString = "CREATE by DPPP\n" +
-                  Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
+                  DPPPVersion::AsString() + "\n" +
                   "step " + itsName + " in parset: \n" + itsParsetString;
 
       if (itsMode==TEC || itsMode==TECANDPHASE) {
@@ -990,7 +991,7 @@ namespace LOFAR {
           for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
             for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
               for (uint pol=0; pol<nPol; ++pol) {
-                ASSERT(!itsTECSols[time].empty());
+                assert(!itsTECSols[time].empty());
                 tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
                 if (!std::isfinite(tecsols[i])) {
                   weights[i] = 0.;
@@ -1015,7 +1016,7 @@ namespace LOFAR {
           for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
             for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
               for (uint pol=0; pol<nPol; ++pol) {
-                ASSERT(!itsSols[time].empty());
+                assert(!itsSols[time].empty());
                 sols[i] = itsSols[time](pol, ant, freqCell);
                 if (!std::isfinite(sols[i].real())) {
                   weights[i] = 0.;
@@ -1088,7 +1089,7 @@ namespace LOFAR {
             }
             break;
           default:
-            THROW(Exception, "Unhandled mode in writing H5Parm output: "<<calTypeToString(caltype));
+            throw Exception("Unhandled mode in writing H5Parm output: " + calTypeToString(caltype));
         }
         soltabs.push_back(soltab);
       }
@@ -1232,7 +1233,7 @@ namespace LOFAR {
                   }
                 }
                 else {
-                  THROW (Exception, "Unhandled mode");
+                  throw Exception("Unhandled mode");
                 }
               }
             }

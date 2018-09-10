@@ -21,14 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/ScaleData.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/ParameterValue.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "ScaleData.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/ParameterValue.h"
+#include "../../Common/StreamUtil.h"
 
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -57,7 +57,8 @@ namespace LOFAR {
         itsCoeffStr       (parset.getStringVector(prefix+"coeffs",
                                                   vector<string>()))
     {
-      ASSERTSTR (itsStationExp.size() == itsCoeffStr.size(),
+      if (itsStationExp.size() != itsCoeffStr.size())
+				throw Exception(
                  "ScaleData parameters stations and coeffs differ in size");
       // Determine if scaling for size is explicitly given.
       if (parset.isDefined (prefix+"scalesize")) {
@@ -103,7 +104,8 @@ namespace LOFAR {
         // Convert coefficients from string to double.
         ParameterValue coeffPar(itsCoeffStr[i]);
         vector<double> coeff (coeffPar.getDoubleVector());
-        ASSERTSTR (coeff.size() > 0, "A ScaleData coeffs vector is empty");
+        if (coeff.size() <= 0)
+					throw Exception("A ScaleData coeffs vector is empty");
         vector<double>& scales = scaleVec[i];
         scales.reserve (freqs.size());
         // Evaluate the polynomial for each frequency giving the scale factors.
@@ -122,7 +124,8 @@ namespace LOFAR {
       vector<double> extraFactors(nant, 1.);
       if (itsScaleSize  ||  !itsScaleSizeGiven) {
         fillSizeScaleFactors (nNominal, extraFactors);
-        ASSERTSTR (extraFactors.size() == nant,
+        if (extraFactors.size() != nant)
+					throw Exception(
             "Maybe stations have been added before doing the scaling; "
             "that should not be done");
       }
@@ -146,7 +149,7 @@ namespace LOFAR {
           }
         }
       }
-      ASSERT (itsStationFactors.size() == nant);
+      assert (itsStationFactors.size() == nant);
       // Now calculate the factors per baseline,freq,pol.
       uint nb = infoIn.nbaselines();
       uint nf = freqs.size();
@@ -200,7 +203,7 @@ namespace LOFAR {
       // Apply the scale factors.
       DPBuffer bufNew(buf);
       const IPosition shp = itsFactors.shape();
-      ASSERT (buf.getData().shape() == shp);
+      assert (buf.getData().shape() == shp);
       // Multiply the data and factors giving a new data array.
       Array<Complex> data(shp);
       arrayContTransform (static_cast<const Array<Complex>&>(buf.getData()),
@@ -222,7 +225,8 @@ namespace LOFAR {
     void ScaleData::fillSizeScaleFactors (uint nNominal, vector<double>& fact)
     {
       Table ms(getInfo().msName());
-      ASSERTSTR (ms.keywordSet().isDefined ("LOFAR_ANTENNA_FIELD"),
+      if (!ms.keywordSet().isDefined ("LOFAR_ANTENNA_FIELD"))
+				throw Exception(
                  "ScaleData: subtable LOFAR_ANTENNA_FIELD is missing, but "
                  "is needed unless scalesize=false is given");
       Table tab(ms.keywordSet().asTable ("LOFAR_ANTENNA_FIELD"));

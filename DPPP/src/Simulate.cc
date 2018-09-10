@@ -20,12 +20,9 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/Simulate.h>
-#include <Common/LofarLogger.h>
+#include "Simulate.h"
+#include "PhaseShift.h"
 
-// Only required for rotateUVW().
-#include <DPPP/PhaseShift.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Cube.h>

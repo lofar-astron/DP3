@@ -20,9 +20,8 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/GaussianSource.h>
-#include <DPPP/ModelComponentVisitor.h>
+#include "GaussianSource.h"
+#include "ModelComponentVisitor.h"
 
 namespace LOFAR
 {

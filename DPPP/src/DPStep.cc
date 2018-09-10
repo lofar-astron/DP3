@@ -21,8 +21,9 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPStep.h>
+#include "DPStep.h"
+
+#include <assert.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -105,7 +106,7 @@ namespace LOFAR {
 
     bool MultiResultStep::process (const DPBuffer& buf)
     {
-      ASSERT (itsSize < itsBuffers.size());
+      assert (itsSize < itsBuffers.size());
       itsBuffers[itsSize].copy (buf);
       itsSize++;
       getNextStep()->process (buf);

@@ -21,11 +21,12 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/PointSource.h>
-#include <DPPP/ModelComponentVisitor.h>
-#include <Common/lofar_math.h>
+#include "PointSource.h"
+#include "ModelComponentVisitor.h"
+
 #include <casacore/casa/BasicSL/Constants.h>
+
+#include <cmath>
 
 namespace LOFAR
 {
@@ -91,7 +92,7 @@ Stokes PointSource::stokes(double freq) const
         // Compute c0 + log10(v / v0) * c1 + log10(v / v0)^2 * c2 + ...
         // using Horner's rule.
         double exponent = 0.0;
-        typedef vector<double>::const_reverse_iterator iterator_type;
+        typedef std::vector<double>::const_reverse_iterator iterator_type;
         for(iterator_type it = itsSpectralTerms.rbegin(),
           end = itsSpectralTerms.rend(); it != end; ++it)
         {
@@ -104,7 +105,7 @@ Stokes PointSource::stokes(double freq) const
       }
       else {
         double x = freq / itsRefFreq - 1.0;
-        typedef vector<double>::const_reverse_iterator iterator_type;
+        typedef std::vector<double>::const_reverse_iterator iterator_type;
 	double val = 0.0;
 	for(iterator_type it = itsSpectralTerms.rbegin(),
 	      end = itsSpectralTerms.rend(); it != end; ++it)

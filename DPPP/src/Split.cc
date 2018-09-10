@@ -21,13 +21,14 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/Split.h>
-#include <DPPP/DPRun.h>
+#include "Exceptions.h"
+#include "Split.h"
+#include "DPRun.h"
 
 #include <iostream>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/Timer.h"
 
 #include <stddef.h>
 #include <string>
@@ -56,8 +57,8 @@ namespace LOFAR {
         vector<string> parmValues = parset.getStringVector(*replaceParmIt);
         *(replaceParmValueIt++) = parmValues;
         if (numSteps > 0) {
-          ASSERTSTR(parmValues.size() == numSteps, "Each parameter in replaceparms should have the same number of items (expected "<<
-                    numSteps <<", got "<<parmValues.size() <<" for step "<<(*replaceParmIt));
+          if(parmValues.size() != numSteps)
+            throw Exception("Each parameter in replaceparms should have the same number of items (expected " + std::to_string(numSteps) + ", got " + std::to_string(parmValues.size()) + " for step " + *replaceParmIt);
         } else {
           numSteps = parmValues.size();
         }
@@ -76,7 +77,7 @@ namespace LOFAR {
         firstStep->setPrevStep(this);
         itsSubsteps.push_back(firstStep);
       }
-      ASSERT(itsSubsteps.size()>0);
+      assert(itsSubsteps.size()>0);
     }
 
     Split::~Split()

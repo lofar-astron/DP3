@@ -21,15 +21,18 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/BaselineSelection.h>
-#include <DPPP/DPLogger.h>
-#include <MS/BaselineSelect.h>
-#include <Common/ParameterSet.h>
-#include <Common/ParameterValue.h>
-#include <Common/LofarLogger.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
+#include "BaselineSelection.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
+#include <boost/algorithm/string/case_conv.hpp>
+
+#include "../../Common/BaselineSelect.h"
+#include "../../Common/ParameterSet.h"
+#include "../../Common/ParameterValue.h"
+#include "../../Common/StreamUtil.h"
+
+#include <cassert>
 
 using namespace casacore;
 using namespace std;
@@ -62,8 +65,8 @@ namespace LOFAR {
           itsRangeBL.push_back (1e30);
         }
       }
-      ASSERTSTR (itsRangeBL.size()%2 == 0,
-                 "NDPPP error: uneven number of lengths in baseline range"); 
+      if(itsRangeBL.size()%2 != 0)
+        throw Exception("NDPPP error: uneven number of lengths in baseline range"); 
     }
 
     bool BaselineSelection::hasSelection() const
@@ -122,9 +125,8 @@ namespace LOFAR {
       bool mssel = true;
       if (itsStrBL[0] == '[') {
         String::size_type rb = itsStrBL.find (']');
-        ASSERTSTR (rb != string::npos,
-                   "Baseline selection " + itsStrBL +
-                   " has no ending ]");
+        if (rb == string::npos)
+          throw Exception("Baseline selection " + itsStrBL + " has no ending ]");
         if (rb == itsStrBL.size()-1) {
           mssel = false;
         } else {
@@ -138,7 +140,7 @@ namespace LOFAR {
       } else {
         // Specified in casacore's MSSelection format.
         string msName = info.msName();
-        ASSERT (! msName.empty());
+        assert (! msName.empty());
         std::ostringstream os;
         Matrix<bool> sel(BaselineSelect::convert (msName, itsStrBL, os));
         // Show possible messages about unknown stations.
@@ -162,7 +164,7 @@ namespace LOFAR {
     }
 
     Matrix<bool> BaselineSelection::handleBLVector (const ParameterValue& pvBL,
-                                                    const Vector<String>& antNames) const
+                                                    const Vector<casacore::String>& antNames) const
     {
       Matrix<Bool> sel(antNames.size(), antNames.size());
       sel = false;
@@ -173,9 +175,9 @@ namespace LOFAR {
       // but one might think it means a baseline [[ant1,ant2]].
       if (pairs.size() == 2  &&
           !(pairs[0].isVector()  ||  pairs[1].isVector())) {
-        LOG_WARN_STR ("PreFlagger baseline " << pvBL.get()
-                      << " means two antennae, but is somewhat ambigious; "
-                      << "it's more clear to use [[ant1],[ant2]]");
+        DPLOG_WARN_STR ("PreFlagger baseline " + pvBL.get()
+                      + " means two antennae, but is somewhat ambigious; "
+                      + "it's more clear to use [[ant1],[ant2]]");
       }
       for (uint i=0; i<pairs.size(); ++i) {
         vector<string> bl = pairs[i].getStringVector();
@@ -185,7 +187,7 @@ namespace LOFAR {
           int nmatch = 0;
           // Loop through all antenna names and set matrix for matching ones.
           for (uint i2=0; i2<antNames.size(); ++i2) {
-            if (antNames[i2].matches (regex)) {
+            if (casacore::String(antNames[i2]).matches (regex)) {
               nmatch++;
               // Antenna matches, so set all corresponding flags.
               for (uint j=0; j<antNames.size(); ++j) {
@@ -199,7 +201,8 @@ namespace LOFAR {
                             << bl[0] << "]");
           }
         } else {
-          ASSERTSTR (bl.size() == 2, "PreFlagger baseline " << bl <<
+          if(bl.size() != 2)
+            throw Exception("PreFlagger baseline "
                      " should contain 1 or 2 antenna name patterns");
           // Turn the given antenna name pattern into a regex.
           Regex regex1(Regex::fromPattern (bl[0]));
@@ -207,10 +210,10 @@ namespace LOFAR {
           int nmatch = 0;
           // Loop through all antenna names and set matrix for matching ones.
           for (uint i2=0; i2<antNames.size(); ++i2) {
-            if (antNames[i2].matches (regex2)) {
+            if (casacore::String(antNames[i2]).matches (regex2)) {
               // Antenna2 matches, now try Antenna1.
               for (uint i1=0; i1<antNames.size(); ++i1) {
-                if (antNames[i1].matches (regex1)) {
+                if (casacore::String(antNames[i1]).matches (regex1)) {
                   nmatch++;
                   sel(i1,i2) = true;
                   sel(i2,i1) = true;
@@ -230,10 +233,10 @@ namespace LOFAR {
     void BaselineSelection::handleCorrType (Matrix<bool>& selectBL) const
     {
       // Process corrtype if given.
-      string corrType = toLower(itsCorrType);
-      ASSERTSTR (corrType == "auto"  ||  corrType == "cross",
-                 "NDPPP corrType " << corrType
-                 << " is invalid; must be auto, cross, or empty string");
+      string corrType = boost::to_lower_copy(itsCorrType);
+      if(corrType != "auto" && corrType != "cross")
+        throw Exception("NDPPP corrType " + corrType +
+                 " is invalid; must be auto, cross, or empty string");
       if (corrType == "auto") {
         Vector<bool> diag = selectBL.diagonal().copy();
         selectBL = false;

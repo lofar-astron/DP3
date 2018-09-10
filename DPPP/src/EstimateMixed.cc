@@ -23,11 +23,13 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/EstimateMixed.h>
-#include <Common/LofarLogger.h>
+#include "EstimateMixed.h"
+
 #include <casacore/scimath/Fitting/LSQFit.h>
-#include <Common/StreamUtil.h> ///
+
+#include "../../Common/StreamUtil.h" ///
+
+#include <iostream>
 
 namespace LOFAR
 {
@@ -73,7 +75,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     const_cursor<bool> flag, const_cursor<float> weight,
     const_cursor<dcomplex> mix, double *unknowns, size_t maxiter)
 {
-    ASSERT(data.size() == nDirection && model.size() == nDirection);
+    assert(data.size() == nDirection && model.size() == nDirection);
     bool sh=false;
 
     // Initialize LSQ solver.
@@ -98,7 +100,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     size_t nIterations = 0;
     while(!solver.isReady() && nIterations < maxiter)
     {
-      if (sh) cout<<endl<<"iteration " << nIterations << endl;
+      if (sh) std::cout<<"\niteration " << nIterations << endl;
         for(size_t bl = 0; bl < nBaseline; ++bl)
         {
             const size_t p = baselines->first;
@@ -319,7 +321,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
         // Perform LSQ iteration.
         casacore::uInt rank;
         bool status = solver.solveLoop(rank, unknowns, true);
-        ASSERT(status);
+        assert(status);
         if (sh) {
           cout<<"solution=[";
           for (uint i=0; i<nUnknowns; ++i) {

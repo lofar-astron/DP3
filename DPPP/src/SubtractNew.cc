@@ -21,8 +21,7 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/SubtractNew.h>
+#include "SubtractNew.h"
 
 namespace LOFAR {
   namespace DPPP {
@@ -30,7 +29,7 @@ namespace LOFAR {
     void subtract (size_t nBaseline, size_t nChannel,
                    const_cursor<Baseline> baselines, cursor<fcomplex> data,
                    const_cursor<dcomplex> model, const_cursor<dcomplex> weight,
-                   vector<float>& ampl)
+                   std::vector<float>& ampl)
     {
       dcomplex vis[4];
       for (size_t bl=0; bl<nBaseline; ++bl) {

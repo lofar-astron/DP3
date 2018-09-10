@@ -21,12 +21,7 @@
 //#
 //# @author Andre Offringa
 
-#ifdef AOPROJECT
 #include "PhaseFitter.h"
-#else
-#include <lofar_config.h>
-#include <DPPP/PhaseFitter.h>
-#endif
 
 #include <limits>
 

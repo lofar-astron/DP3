@@ -1,13 +1,11 @@
-# $Id$
+find_package(Casacore COMPONENTS casa ms tables REQUIRED)
 
-lofar_package(DPPP 1.0 DEPENDS LofarStMan Common MS ParmDB StationResponse)
+#Prevent accidentally finding old BoostConfig.cmake file from casapy
+set(Boost_NO_BOOST_CMAKE ON)
+find_package(Boost COMPONENTS filesystem system REQUIRED)
 
-include(LofarFindPackage)
-lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-lofar_find_package(HDF5 COMPONENTS CXX REQUIRED)
+find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
 
-add_subdirectory(include/DPPP)
 add_subdirectory(src)
 add_subdirectory(share)
-add_subdirectory(etc)
-add_subdirectory(test)
+#add_subdirectory(test)

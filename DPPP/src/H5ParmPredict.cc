@@ -21,21 +21,21 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/H5ParmPredict.h>
+#include "H5ParmPredict.h"
 
-#include <iostream>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/Timer.h"
+#include "../../Common/StreamUtil.h"
+#include "../../Common/StringUtil.h"
 
 #include <stddef.h>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
-
-#include <Common/StreamUtil.h>
-#include <Common/StringUtil.h>
+#include <iostream>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -66,17 +66,17 @@ namespace LOFAR {
           it != itsDirections.end(); ++it) {
           if (find(h5directions.begin(), h5directions.end(), *it) ==
               h5directions.end()) {
-            THROW(Exception, "Direction "<<*it<<" not found in "<<itsH5ParmName);
+            throw Exception("Direction " + *it + " not found in " + itsH5ParmName);
           }
         }
       }
 
-      ASSERT(!itsDirections.empty());
+      assert(!itsDirections.empty());
 
       for (uint i=0; i<itsDirections.size(); ++i) {
         string directionStr = itsDirections[i];
         vector<string> directionVec; // each direction should be like '[patch1,patch2]'
-        ASSERT(directionStr.size()>2 && directionStr[0]=='[' &&
+        assert(directionStr.size()>2 && directionStr[0]=='[' &&
                directionStr[directionStr.size()-1]==']');
         directionVec = StringUtil::tokenize(directionStr.substr(1, directionStr.size()-2), ",");
         Predict* predictStep = new Predict(input, parset, prefix, directionVec);

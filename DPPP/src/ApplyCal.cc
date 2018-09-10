@@ -21,13 +21,13 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/ApplyCal.h>
+#include "ApplyCal.h"
 
 #include <iostream>
-#include <Common/ParameterSet.h>
-#include <Common/ParameterValue.h>
-#include <Common/Timer.h>
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/ParameterValue.h"
+#include "../../Common/Timer.h"
 
 #include <stddef.h>
 #include <string>

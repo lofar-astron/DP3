@@ -21,7 +21,7 @@
 //#
 //# @author Ger van Diepen
 
-#include <DPPP/DPBuffer.h>
+#include "DPBuffer.h"
 
 using namespace casacore;
 

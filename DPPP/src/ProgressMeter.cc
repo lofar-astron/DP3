@@ -19,9 +19,11 @@
 //#
 //# $Id$
 
-#include <DPPP/ProgressMeter.h>
-#include <Common/lofar_iostream.h>
-#include <Common/lofar_vector.h>
+#include "ProgressMeter.h"
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace LOFAR {
 
@@ -33,23 +35,23 @@ namespace LOFAR {
 
 // If we have lots and lots of progress meters we should figure out
 // a way to reclaim the following storage.
-static vector<double> stderr_min, stderr_max, stderr_last;
+static std::vector<double> stderr_min, stderr_max, stderr_last;
 static int stderr_creation_function(double min, double max,
-    const string&, const string&,
-    const string&, const string&,
+    const std::string&, const std::string&,
+    const std::string&, const std::string&,
     bool)
 {
     stderr_min.push_back (min);
     stderr_max.push_back (max);
     stderr_last.push_back (min);
-    cerr << "\n0%";
+    std::cout << "\n0%";
     return stderr_min.size();
 }
 
 static void stderr_update_function(int id, double value)
 {
     if (id < 0 || id > int(stderr_min.size())) {
-      cerr << __FILE__ << " illegal id " << id << endl;
+      std::cerr << __FILE__ << " illegal id " << id << std::endl;
       return;
     }
     id--; // 0-relative
@@ -63,11 +65,11 @@ static void stderr_update_function(int id, double value)
       // "missing" ..'s etc if we have jumped a lot since our last updated.
       for (int i=lastpercent+1; i<=percent; i++) {
         if (i%2 == 0 && i%10 != 0) {
-          cerr << ".";
+          std::cout << ".";
         } else if (i %10 == 0) {
-          cerr << i;
+          std::cout << i;
           if (i >= 100) {
-            cerr << "%\n";
+            std::cout << "%\n";
           }
         }
       }
@@ -76,8 +78,8 @@ static void stderr_update_function(int id, double value)
 }
 
 int (*ProgressMeter::creation_function_p)(double, double, 
-    const string&, const string&,
-                              const string&, const string&,
+    const std::string&, const std::string&,
+                              const std::string&, const std::string&,
                               bool) = stderr_creation_function;
 void (*ProgressMeter::update_function_p)(int, double) = stderr_update_function;
 
@@ -87,8 +89,8 @@ ProgressMeter::ProgressMeter()
 }
 
 ProgressMeter::ProgressMeter(double min, double max, 
-    const string& title, const string& subtitle,
-    const string& minlabel, const string& maxlabel,
+    const std::string& title, const std::string& subtitle,
+    const std::string& minlabel, const std::string& maxlabel,
     bool estimateTime, int updateEvery)
     : id_p(-1), min_p(min), max_p(max), update_every_p(updateEvery),
       update_count_p(0)

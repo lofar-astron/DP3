@@ -20,7 +20,7 @@
 //# $Id: GridInterpolate.cc 37169 2017-04-19 12:41:21Z dijkema $
 //#
 
-#include <DPPP/GridInterpolate.h>
+#include "GridInterpolate.h"
 
 #include <iostream>
 #include <vector>

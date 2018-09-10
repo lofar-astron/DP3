@@ -21,33 +21,28 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DemixWorker.h>
-#include <DPPP/Apply.h>
-#include <DPPP/Averager.h>
-#include <DPPP/CursorUtilCasa.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/Simulate.h>
-#include <DPPP/Simulator.h>
-#include <DPPP/SubtractNew.h>
-#include <DPPP/DPLogger.h>
+#include "DemixWorker.h"
+#include "Apply.h"
+#include "Averager.h"
+#include "CursorUtilCasa.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "PhaseShift.h"
+#include "Simulate.h"
+#include "Simulator.h"
+#include "SubtractNew.h"
+#include "DPLogger.h"
 
-#include <ParmDB/Axis.h>
-#include <ParmDB/SourceDB.h>
-#include <ParmDB/ParmDB.h>
-#include <ParmDB/ParmSet.h>
-#include <ParmDB/ParmCache.h>
-#include <ParmDB/Parm.h>
+#include "../../ParmDB/Axis.h"
+#include "../../ParmDB/SourceDB.h"
+#include "../../ParmDB/ParmDB.h"
+#include "../../ParmDB/ParmSet.h"
+#include "../../ParmDB/ParmCache.h"
+#include "../../ParmDB/Parm.h"
 
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/OpenMP.h>
-#include <Common/StreamUtil.h>
-#include <Common/lofar_iomanip.h>
-#include <Common/lofar_iostream.h>
-#include <Common/lofar_fstream.h>
+#include "../../Common/ParameterSet.h"
+#include "../../Common/OpenMP.h"
+#include "../../Common/StreamUtil.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -65,6 +60,7 @@
 #include <casacore/measures/Measures/MeasureHolder.h>
 
 #include <sstream>
+#include <iomanip>
 
 using namespace casacore;
 
@@ -252,25 +248,25 @@ namespace LOFAR {
       {
         Record rec;
         MeasureHolder mh1(info.arrayPos());
-        ASSERT (mh1.toRecord (msg, rec));
+        assert (mh1.toRecord (msg, rec));
         MeasureHolder mh2;
-        ASSERT (mh2.fromRecord (msg, rec));
+        assert (mh2.fromRecord (msg, rec));
         itsArrayPos = mh2.asMPosition();
       }
       {
         Record rec;
         MeasureHolder mh1(info.delayCenter());
-        ASSERT (mh1.toRecord (msg, rec));
+        assert (mh1.toRecord (msg, rec));
         MeasureHolder mh2;
-        ASSERT (mh2.fromRecord (msg, rec));
+        assert (mh2.fromRecord (msg, rec));
         itsDelayCenter = mh2.asMDirection();
       }
       {
         Record rec;
         MeasureHolder mh1(info.tileBeamDir());
-        ASSERT (mh1.toRecord (msg, rec));
+        assert (mh1.toRecord (msg, rec));
         MeasureHolder mh2;
-        ASSERT (mh2.fromRecord (msg, rec));
+        assert (mh2.fromRecord (msg, rec));
         itsTileBeamDir = mh2.asMDirection();
       }
       // Create the Measure ITRF conversion info given the array position.
@@ -392,7 +388,7 @@ namespace LOFAR {
     uint DemixWorker::avgSplitUVW (const DPBuffer* bufin, uint nbufin,
                                    uint ntimeAvg, const vector<uint>& selbl)
     {
-      ASSERT (selbl.size() == size_t(itsAvgUVW.shape()[1]));
+      assert (selbl.size() == size_t(itsAvgUVW.shape()[1]));
       // First average the UVWs to the predict time window.
       uint ntime = (nbufin + ntimeAvg - 1) / ntimeAvg;
       const DPBuffer* buf = bufin;
@@ -468,7 +464,7 @@ namespace LOFAR {
 
     void DemixWorker::addStokesI (Matrix<float>& ampl)
     {
-      ASSERT (ampl.contiguousStorage());
+      assert (ampl.contiguousStorage());
       // Calculate the StokesI ampl ((XX+YY)/2).
       Array<dcomplex>::const_contiter iterEnd = itsPredictVis.cend();
       float* amplp = ampl.data();
@@ -581,7 +577,7 @@ namespace LOFAR {
         itsAvgStepSubtr->process (bufin[i]);
       }
       itsAvgStepSubtr->finish();
-      ASSERT (itsAvgResultFull->size() <= itsMix->ntimeOutSubtr());
+      assert (itsAvgResultFull->size() <= itsMix->ntimeOutSubtr());
       for (uint i=0; i<itsAvgResultFull->size(); ++i) {
         bufout[i] = itsAvgResultFull->get()[i];
       }
@@ -732,8 +728,8 @@ namespace LOFAR {
       }
       // Show info if needed.
       if (itsMix->verbose() > 0) {
-        ostringstream os;
-        os << "chunk" << setw(5) << chunkNr << ": ";
+        std::ostringstream os;
+        os << "chunk" << std::setw(5) << chunkNr << ": ";
         if (itsIncludeTarget) {
           os << " include target  ";
         } else if (itsIgnoreTarget) {
@@ -849,11 +845,11 @@ namespace LOFAR {
               const DComplex* phasor1 = itsPhaseShifts[i1]->getPhasors().data()
                                         + i*nchan;
               for (int j=0; j<nchan; ++j) {
-                DBGASSERT (phasor1 < itsPhaseShifts[i1]->getPhasors().data()+itsPhaseShifts[i1]->getPhasors().size());
+                assert (phasor1 < itsPhaseShifts[i1]->getPhasors().data()+itsPhaseShifts[i1]->getPhasors().size());
                 DComplex factor = conj(*phasor1++);
                 for (int k=0; k<ncorr; ++k) {
-                  DBGASSERT (flagPtr < newBuf.getFlags().data()+newBuf.getFlags().size());
-                  DBGASSERT (weightPtr < newBuf.getWeights().data()+newBuf.getWeights().size());
+                  assert (flagPtr < newBuf.getFlags().data()+newBuf.getFlags().size());
+                  assert (weightPtr < newBuf.getWeights().data()+newBuf.getWeights().size());
                   if (! *flagPtr) {
                     *factorPtr += factor * double(*weightPtr);
                   }
@@ -900,7 +896,7 @@ namespace LOFAR {
     {
       // Nothing to do if only target direction.
       if (itsNDir <= 1) return;
-      ASSERT (! weightSums.empty());
+      assert (! weightSums.empty());
       bufOut.resize (IPosition(5, itsNDir, itsNDir,
                                itsMix->ncorr(), nChanOut, itsMix->nbl()));
       bufOut = DComplex(1,0);
@@ -928,14 +924,14 @@ namespace LOFAR {
               uint nch = std::min(nChanAvg, itsMix->nchanIn()-c0*nChanAvg);
               for (uint c1=0; c1<nch; ++c1) {
                 for (uint j=0; j<itsMix->ncorr(); ++j) {
-                  DBGASSERT (phin < bufIn.data()+bufIn.size());
+                  assert (phin < bufIn.data()+bufIn.size());
                   sum[j] += *phin++;
                 }
               }
               for (uint j=0; j<itsMix->ncorr(); ++j) {
-                DBGASSERT (ph1 < bufOut.data()+bufOut.size());
-                DBGASSERT (ph2 < bufOut.data()+bufOut.size());
-                DBGASSERT (weightPtr < weightSums.data() + weightSums.size());
+                assert (ph1 < bufOut.data()+bufOut.size());
+                assert (ph2 < bufOut.data()+bufOut.size());
+                assert (weightPtr < weightSums.data() + weightSums.size());
                 if (*weightPtr == 0) {
                   *ph1 = 0;
                 } else {
@@ -1016,7 +1012,7 @@ namespace LOFAR {
           if (ata.empty()) {
             ata.resize (nrDeproject, nrDeproject);
           }
-          DBGASSERT(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
+          assert(ata.ncolumn()==nrDeproject && ata.nrow()==nrDeproject);
           // Calculate P = I - A * ata * A.T.conj
           Matrix<DComplex> aata(product(a,ata));
           Matrix<DComplex> p (-product(product(a, ata), at));
@@ -1207,7 +1203,7 @@ namespace LOFAR {
           // Get middle of first subtract time interval.
           double subtrTime = time - 0.5*(timeStep - subtrTimeStep);
           for (size_t ts_subtr = multiplier * ts,
-                 ts_subtr_end = min(ts_subtr + multiplier, nTimeSubtr);
+                 ts_subtr_end = std::min(ts_subtr + multiplier, nTimeSubtr);
                ts_subtr != ts_subtr_end; ++ts_subtr) {
             // Get the observed amplitude per baseline for the middle channel.
             const Complex* data =
@@ -1286,7 +1282,7 @@ namespace LOFAR {
                 static_cast<size_t>(stride_mix_subtr[3]),
                 static_cast<size_t>(stride_mix_subtr[4])
               };
-              ASSERT(stride_mix_subtr_slice[0] == itsNDir*itsNDir  &&
+              assert(stride_mix_subtr_slice[0] == itsNDir*itsNDir  &&
                      stride_mix_subtr_slice[1] == itsNDir*itsNDir*nCr  &&
                      stride_mix_subtr_slice[2] == itsNDir*itsNDir*nCr*nChSubtr);
               
@@ -1337,7 +1333,7 @@ namespace LOFAR {
       string toString (double value)
       {
         ostringstream os;
-        os << setprecision(16) << value;
+        os << std::setprecision(16) << value;
         return os.str();
       }
     } //# end unnamed namespace

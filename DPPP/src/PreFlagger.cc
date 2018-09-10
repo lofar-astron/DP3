@@ -21,14 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/PreFlagger.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "PreFlagger.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
 
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
@@ -42,6 +42,9 @@
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/measures/Measures/MCEpoch.h>
+
+#include <boost/algorithm/string/case_conv.hpp>
+
 #include <iostream>
 #include <stack>
 
@@ -60,7 +63,7 @@ namespace LOFAR {
         itsCount       (0),
         itsFlagCounter (input->msName(), parset, prefix+"count.")
     {
-      string mode = toLower(parset.getString(prefix+"mode", "set"));
+      string mode = boost::to_lower_copy(parset.getString(prefix+"mode", "set"));
       if (mode == "clear") {
         itsMode = ClearFlag;
       } else if (mode == "setcomplement"  ||  mode == "setother") {
@@ -68,7 +71,8 @@ namespace LOFAR {
       } else if (mode == "clearcomplement"  ||  mode == "clearother") {
         itsMode = ClearComp;
       } else {
-        ASSERTSTR (mode=="set",
+        if (mode!="set")
+					throw Exception(
                    "invalid preflagger mode: "
                    "only set, clear, and set/clearcomplement/other are valid");
       }
@@ -326,7 +330,8 @@ namespace LOFAR {
         // Make it a very high number.
         itsMaxUV = 1e30;
       }
-      ASSERTSTR (itsMinUV<itsMaxUV, "PreFlagger uvmmin should be < uvmmax");
+      if (itsMinUV>=itsMaxUV)
+				throw Exception("PreFlagger uvmmin should be < uvmmax");
       // Determine if only flagging on time info is done.
       itsFlagOnTimeOnly = ( !(itsFlagOnUV || itsFlagOnBL || itsFlagOnAzEl ||
                               itsFlagOnAmpl || itsFlagOnPhase ||
@@ -374,9 +379,10 @@ namespace LOFAR {
             startch = uint(result+0.001);
             endch   = startch;
           } else {
-            ASSERTSTR (pos != 0  &&  pos < itsStrChan[i].size() - 2,
+            if (pos == 0 || pos >= itsStrChan[i].size() - 2)
+							throw Exception(
                        "No start or end given in PreFlagger channel range "
-                       << itsStrChan[i]);
+                       + itsStrChan[i]);
             TableExprNode node1
               (RecordGram::parse(rec, itsStrChan[i].substr(0,pos)));
             node1.get (rec, result);
@@ -385,9 +391,10 @@ namespace LOFAR {
               (RecordGram::parse(rec, itsStrChan[i].substr(pos+2)));
             node2.get (rec, result);
             endch = uint(result+0.001);
-            ASSERTSTR (startch <= endch,
-                       "Start " << startch << " must be <= end " << endch
-                       << " in PreFlagger channel range " << itsStrChan[i]);
+            if(startch > endch)
+							throw Exception(
+                       "Start " + std::to_string(startch) + " must be <= end " + std::to_string(endch)
+                       + " in PreFlagger channel range " + itsStrChan[i]);
           }
           if (startch < nrchan) {
             for (uint ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
@@ -573,7 +580,7 @@ namespace LOFAR {
             transformInPlace (left->cbegin(), left->cend(),
                               std::logical_not<bool>());
           } else {
-            ASSERT (*oper==OpOr ||  *oper==OpAnd);
+            assert (*oper==OpOr ||  *oper==OpAnd);
             Cube<bool>* right = results.top();
             results.pop();
             Cube<bool>* left = results.top();
@@ -588,7 +595,7 @@ namespace LOFAR {
           }
         }
         // Finally AND the children's flags with the flags of this pset.
-        ASSERT (results.size() == 1);
+        assert (results.size() == 1);
         Cube<bool>* mflags = results.top();
         transformInPlace (itsFlags.cbegin(), itsFlags.cend(),
                           mflags->cbegin(), std::logical_and<bool>());
@@ -879,7 +886,7 @@ namespace LOFAR {
       // Operators & (or &&) | (or ||) and , are used as well as parentheses.
       // The operators must have a value in order of precedence, thus &&
       // has a higher precedence than || (as in C).
-      string expr = toUpper(origExpr);
+      string expr = boost::to_upper_copy(origExpr);
       std::stack<int> tokens;
       vector<string> names;
       uint i=0;
@@ -891,8 +898,9 @@ namespace LOFAR {
         if (expr[i] == ' '  ||  expr[i] == '\t') {
           i++;
         } else if (expr[i] == '(') {
-          ASSERTSTR (!hadName, "no operator before opening parenthesis at pos. "
-                     << i << " in expression: " << origExpr);
+          if(hadName)
+						throw Exception("no operator before opening parenthesis at pos. "
+                     + std::to_string(i) + " in expression: " + origExpr);
           oper = OpParen;
           tokens.push (oper);
           i++;
@@ -938,11 +946,13 @@ namespace LOFAR {
           i+=3;
         } else if (expr[i] == ')') {
           // Closing parenthesis. Push till opening parenthesis found.
-          ASSERTSTR (hadName, "no set name before closing parenthesis at pos. "
-                     << i << " in expression: " << origExpr);
+          if (!hadName)
+						throw Exception("no set name before closing parenthesis at pos. "
+                     + std::to_string(i) + " in expression: " + origExpr);
           while (true) {
-            ASSERTSTR (!tokens.empty(), "mismatched parentheses at pos. "
-                       << i << " in expression: " << origExpr);
+            if(tokens.empty())
+							throw Exception("mismatched parentheses at pos. "
+                       + std::to_string(i) + " in expression: " + origExpr);
             if (tokens.top() == OpParen) {
               tokens.pop();
               break;
@@ -954,8 +964,9 @@ namespace LOFAR {
         } else {
           // No operator, thus it must be an operand (a set name).
           int st=i;
-          ASSERTSTR (!hadName, "No operator between set names at pos. "
-                     << i << " in expression: " << origExpr);
+          if (hadName)
+						throw Exception("No operator between set names at pos. "
+                     + std::to_string(i) + " in expression: " + origExpr);
           while (i < expr.size() && 
                  expr[i] != ' ' && expr[i] != '\t' &&
                  expr[i] != '(' && expr[i] != ')' && expr[i] != '!' &&
@@ -966,19 +977,22 @@ namespace LOFAR {
           itsRpn.push_back (names.size());
           String setName (origExpr.substr(st, i-st));
           // Check the name is valid (no special characters).
-          ASSERTSTR (setName.matches (RXidentifier),
-                     "Invalid set name " << setName
-                     << " used in set expression " << origExpr);
+          if (!setName.matches (RXidentifier))
+						throw Exception(
+                     "Invalid set name " + std::string(setName)
+                     + " used in set expression " + origExpr);
           names.push_back (setName);
         }
         if (oper < OpParen) {
           // Check if an operator was preceeded correctly.
           if (oper == OpNot) {
-            ASSERTSTR (!hadName, "No set name before operator ! at pos. "
-                       << i << " in expression: " << origExpr);
+            if (hadName)
+							throw Exception("No set name before operator ! at pos. "
+                       + std::to_string(i) + " in expression: " + origExpr);
           } else {
-            ASSERTSTR (hadName, "No set name before operator at pos. "
-                       << i << " in expression: " << origExpr);
+            if (!hadName)
+							throw Exception("No set name before operator at pos. "
+                       + std::to_string(i) + " in expression: " + origExpr);
           }
           hadName = false;
           // Push till lower precedence found.
@@ -989,11 +1003,13 @@ namespace LOFAR {
           tokens.push (oper);
         }
       }
-      ASSERTSTR (hadName, "no set name after last operator in expression: "
-                 << origExpr);
+      if (!hadName)
+				throw Exception("no set name after last operator in expression: "
+                 + origExpr);
       while (!tokens.empty()) {
-        ASSERTSTR (tokens.top()<OpParen,
-                   "mismatched parentheses in expression: " << origExpr);
+        if (tokens.top()>=OpParen)
+					throw Exception(
+                   "mismatched parentheses in expression: " + origExpr);
         itsRpn.push_back (tokens.top());
         tokens.pop();
       }
@@ -1015,14 +1031,15 @@ namespace LOFAR {
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");
-          ASSERTSTR (pos != string::npos, "PreFlagger time range '" << *str
-                     << "' should be range using .. or +-");
+          if (pos == string::npos)
+						throw Exception("PreFlagger time range '" + *str
+                     + "' should be range using .. or +-");
         }
         // Get the time or datetime in seconds. The values must be positive.
         double v1 = getSeconds (str->substr(0, pos), asTime, false);
         double v2 = getSeconds (str->substr(pos+2),  asTime, usepm);
-        ASSERTSTR (v1>=0 && v2>=0, "PreFlagger time range " << *str
-                   << " must have positive values");
+        if(v1<0 || v2<0) throw Exception("PreFlagger time range " + *str
+                   + " must have positive values");
         if (usepm) {
           double pm = v2;
           v2 = v1 + pm;
@@ -1032,7 +1049,8 @@ namespace LOFAR {
         // Note there are 86400 seconds in a day.
         // They are split in 2 ranges.
         if (!canEndBeforeStart) {
-          ASSERTSTR (v1<v2, "PreFlagger time range " << *str << " is invalid");
+          if (v1>=v2)
+						throw Exception("PreFlagger time range " + *str + " is invalid");
         } else {
           if (v1 < 0) {
             v1 += 86400;
@@ -1059,21 +1077,24 @@ namespace LOFAR {
     {
       Quantity q;
       if (asTime || usepm) {
-        ASSERTSTR (MVAngle::read(q, str, true),
-                   "PreFlagger time " << str << " is invalid");
+        if (!MVAngle::read(q, str, true))
+					throw Exception(
+                   "PreFlagger time " + str + " is invalid");
       } else {
         // It should be a proper date/time, so MVAngle::read should fail.
-        ASSERTSTR (!MVAngle::read(q, str, true),
-                   "PreFlagger datetime " << str
-                   << " is not a proper date/time");
-        ASSERTSTR (MVTime::read(q, str, true),
-                   "PreFlagger datetime " << str << " is invalid"
-                   << " is not a proper date/time");
+        if (MVAngle::read(q, str, true))
+					throw Exception(
+                   "PreFlagger datetime " + str
+                   + " is not a proper date/time");
+        if (!MVTime::read(q, str, true))
+					throw Exception(
+                   "PreFlagger datetime " + str + " is invalid"
+                   + " is not a proper date/time");
       }
       double v = q.getValue ("s");
       if (usepm) {
-        ASSERTSTR (v>0, "Preflagger time plusminus value " << str
-                   << " must be positive");
+        if(v<=0) throw Exception("Preflagger time plusminus value " + str
+                   + " must be positive");
       }
       return v;
     }
@@ -1131,8 +1152,9 @@ namespace LOFAR {
         if (pos == string::npos) {
           usepm = true;
           pos = str->find ("+-");
-          ASSERTSTR (pos != string::npos, "PreFlagger freqrange '" << *str
-                     << "' should be range using .. or +-");
+          if (pos == string::npos)
+						throw Exception("PreFlagger freqrange '" + *str
+                     + "' should be range using .. or +-");
         }
         string str1 = str->substr (0, pos);
         string str2 = str->substr (pos+2);

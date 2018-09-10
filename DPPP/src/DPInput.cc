@@ -21,13 +21,15 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/DPInput.h>
-#include <Common/Exception.h>
+#include "DPInput.h"
+#include "Exceptions.h"
+
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
+
+#include <assert.h>
 
 using namespace casacore;
 
@@ -37,7 +39,7 @@ namespace LOFAR {
     DPInput::~DPInput()
     {}
 
-    casacore::String DPInput::msName() const
+    std::string DPInput::msName() const
     {
       return String();
     }
@@ -61,7 +63,7 @@ namespace LOFAR {
         // Only use the XX flags; no averaging done, thus navgtime=1.
         // (If any averaging was done, the flags would be in the buffer).
         IPosition shp(bufin.getFlags().shape());
-        ASSERT (fullResFlags.shape()[0] == shp[1]  &&
+        assert (fullResFlags.shape()[0] == shp[1]  &&
                 fullResFlags.shape()[1] == 1  &&
                 fullResFlags.shape()[2] == shp[2]);
         objcopy (fullResFlags.data(), bufin.getFlags().data(),
@@ -120,7 +122,7 @@ namespace LOFAR {
       { throw Exception ("DPInput::getModelData not implemented"); }
 
     void DPInput::fillBeamInfo (vector<StationResponse::Station::Ptr>&,
-                                const Vector<String>&)
+                                const Vector<casacore::String>&)
       { throw Exception ("DPInput::fillBeamInfo not implemented"); }
 
   } //# end namespace

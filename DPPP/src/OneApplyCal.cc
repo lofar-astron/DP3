@@ -21,21 +21,26 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/OneApplyCal.h>
-#include <DPPP/ApplyCal.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/MSReader.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/LofarLogger.h>
+#include "OneApplyCal.h"
+
+#include "ApplyCal.h"
+#include "Exceptions.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "MSReader.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/OS/File.h>
+
 #include <iostream>
 #include <limits>
 #include <algorithm>
 #include <iomanip>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
 using namespace LOFAR::BBS;
@@ -79,7 +84,7 @@ namespace LOFAR {
         itsUseAP       (false)
     {
 
-      ASSERT (!itsParmDBName.empty());
+      assert (!itsParmDBName.empty());
 
       if (substep) {
         itsInvert=false;
@@ -120,7 +125,7 @@ namespace LOFAR {
         }
         itsDirection = 0;
         if (directionStr=="") {
-          ASSERT(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
+          assert(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
           // If there is only one direction, silently assume it is the right one
         } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
           itsDirection = itsSolTab.getDirIndex(directionStr);
@@ -130,7 +135,7 @@ namespace LOFAR {
             parset.isDefined(prefix + "timeslotsperparmupdate") ?
             parset.getInt (prefix + "timeslotsperparmupdate") :
             parset.getInt (defaultPrefix + "timeslotsperparmupdate", 500);
-        string correctTypeStr = toLower(
+        string correctTypeStr = boost::to_lower_copy(
             parset.isDefined(prefix + "correction") ?
             parset.getString(prefix + "correction") :
             parset.getString (defaultPrefix + "correction", "gain"));
@@ -138,7 +143,8 @@ namespace LOFAR {
       }
 
       if (itsCorrectType==FULLJONES && itsUpdateWeights) {
-        ASSERTSTR (itsInvert, "Updating weights has not been implemented for invert=false and fulljones");
+        if (!itsInvert)
+					throw Exception("Updating weights has not been implemented for invert=false and fulljones");
       }
     }
 
@@ -153,7 +159,7 @@ namespace LOFAR {
       if (ct==ROTATIONMEASURE) return "rotationmeasure";
       if (ct==PHASE) return "phase";
       if (ct==AMPLITUDE) return "amplitude";
-      THROW(Exception, "Unknown correction type: "<<ct);
+      throw Exception("Unknown correction type: " + std::to_string(ct));
       return "";
     }
 
@@ -168,7 +174,7 @@ namespace LOFAR {
       if (ctStr=="amplitude") return AMPLITUDE;
       if (ctStr=="rotationangle" || ctStr=="commonrotationangle" || ctStr=="rotation") return ROTATIONANGLE;
       if (ctStr=="rotationmeasure") return ROTATIONMEASURE;
-      THROW(Exception, "Unknown correction type: "<<ctStr);
+      throw Exception("Unknown correction type: " + ctStr);
       return GAIN;
     }
 
@@ -187,7 +193,7 @@ namespace LOFAR {
       itsTimeInterval = infoIn.timeInterval();
       itsNCorr = infoIn.ncorr();
 
-      ASSERT(itsNCorr==4);
+      assert(itsNCorr==4);
 
       if (itsUseH5Parm) {
           itsTimeSlotsPerParmUpdate = info().ntime();
@@ -225,7 +231,7 @@ namespace LOFAR {
             // Defvalues with :Ampl present
             itsUseAP = true;
           } else {
-            THROW (Exception, "No gains found in parmdb "+itsParmDBName);
+            throw Exception("No gains found in parmdb "+itsParmDBName);
           }
         }
       }
@@ -287,16 +293,16 @@ namespace LOFAR {
       } else if (itsCorrectType == SCALARAMPLITUDE) {
         itsParmExprs.push_back("{Common,}ScalarAmplitude");
       } else if (itsCorrectType == PHASE) {
-        ASSERT(itsUseH5Parm);
+        assert(itsUseH5Parm);
         itsParmExprs.push_back("Phase:0");
         itsParmExprs.push_back("Phase:1");
       } else if (itsCorrectType == AMPLITUDE) {
-        ASSERT(itsUseH5Parm);
+        assert(itsUseH5Parm);
         itsParmExprs.push_back("Amplitude:0");
         itsParmExprs.push_back("Amplitude:1");
       } else {
-        THROW (Exception, "Correction type "<<
-                          correctTypeToString(itsCorrectType)<<" is unknown");
+        throw Exception("Correction type " +
+                          correctTypeToString(itsCorrectType) + " is unknown");
       }
 
       initDataArrays();
@@ -317,7 +323,8 @@ namespace LOFAR {
                                         info().chanWidths()(0), 1.e3);
 
         if (!itsUseH5Parm) {
-          ASSERTSTR(regularChannels, 
+          if(!regularChannels)
+						throw Exception(
                     "ApplyCal with parmdb requires evenly spaced channels.");
         }
       }
@@ -417,7 +424,7 @@ namespace LOFAR {
 
     void OneApplyCal::applyFlags(vector<double>& values,
                                  const vector<double>& weights) {
-      ASSERT(values.size() == weights.size());
+      assert(values.size() == weights.size());
       vector<double>::iterator values_it = values.begin();
       vector<double>::const_iterator weights_it = weights.begin();
 
@@ -469,7 +476,7 @@ namespace LOFAR {
 #pragma omp critical(updateH5ParmValues)
 {
         // TODO: understand polarization etc.
-        //  ASSERT(itsParmExprs.size()==1 || itsParmExprs.size()==2);
+        //  assert(itsParmExprs.size()==1 || itsParmExprs.size()==2);
 
         // Figure out whether time or frequency is first axis
         bool freqvariesfastest = true;
@@ -477,7 +484,7 @@ namespace LOFAR {
             itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
           freqvariesfastest = false;
         }
-        ASSERT(freqvariesfastest);
+        assert(freqvariesfastest);
 
         vector<double> times(info().ntime());
         for (uint t=0; t<times.size(); ++t) {
@@ -558,7 +565,7 @@ namespace LOFAR {
 
             if (parmIt != parmMap.end()) {
               parmvalues[parmExprNum][ant].swap(parmIt->second);
-              ASSERT(parmvalues[parmExprNum][ant].size()==tfDomainSize);
+              assert(parmvalues[parmExprNum][ant].size()==tfDomainSize);
             } else {// No value found, try default
               Array<double> defValues;
               double defValue;
@@ -567,18 +574,18 @@ namespace LOFAR {
                   string(info().antennaNames()[ant]) + name_postfix).size()==1) { // Default for antenna
                 itsParmDB->getDefValues(string(itsParmExprs[parmExprNum]) + ":" +
                   string(info().antennaNames()[ant]) + name_postfix).get(0,defValues);
-                ASSERT(defValues.size()==1);
+                assert(defValues.size()==1);
                 defValue=defValues.data()[0];
               }
               else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value
                 itsParmDB->getDefValues(parmExpr).get(0,defValues);
-                ASSERT(defValues.size()==1);
+                assert(defValues.size()==1);
                 defValue=defValues.data()[0];
               } else if (parmExpr.substr(0,5)=="Gain:") {
                 defValue=0.;
               }
               else {
-                THROW (Exception, "No parameter value found for "+
+                throw Exception("No parameter value found for "+
                    parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix);
               }
 
@@ -591,7 +598,7 @@ namespace LOFAR {
         }
       }
 
-      ASSERT(parmvalues[0][0].size() <= tfDomainSize); // Catches multiple matches
+      assert(parmvalues[0][0].size() <= tfDomainSize); // Catches multiple matches
 
       double freq;
 
@@ -710,7 +717,7 @@ namespace LOFAR {
             } else if (itsCorrectType==FULLJONES) {
               ApplyCal::invert(&itsParms(0, ant, tf),itsSigmaMMSE);
             } else {
-              ASSERT (itsCorrectType==ROTATIONMEASURE || itsCorrectType==ROTATIONANGLE);
+              assert (itsCorrectType==ROTATIONMEASURE || itsCorrectType==ROTATIONANGLE);
               // rotationmeasure and commonrotationangle are already inverted above
             }
           }

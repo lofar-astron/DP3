@@ -20,10 +20,9 @@
 //#
 //# $Id$
 
-#include <lofar_config.h>
-#include <DPPP/EstimateNew.h>
-#include <Common/LofarLogger.h>
-#include <Common/StreamUtil.h> ///
+#include "EstimateNew.h"
+
+#include "../../Common/StreamUtil.h" ///
 
 #include <casacore/scimath/Fitting/LSQFit.h>
 
@@ -455,7 +454,7 @@ namespace LOFAR {
         // Perform LSQ iteration.
         casacore::uInt rank;
         bool status = solver.solveLoop(rank, &(itsUnknowns[0]), true);
-        ASSERT(status);
+        assert(status);
         // Copy the unknowns to the full solution.
         fillSolution (unknownsIndex, srcSet);
         if (verbose > 13) {

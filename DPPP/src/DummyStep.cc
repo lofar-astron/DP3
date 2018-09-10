@@ -21,12 +21,12 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/DummyStep.h>
+#include "DummyStep.h"
 
 #include <iostream>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/Timer.h"
 
 #include <stddef.h>
 #include <string>

@@ -21,13 +21,15 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/MedFlagger.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StreamUtil.h>
-#include <Common/LofarLogger.h>
+#include "MedFlagger.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Containers/RecordField.h>
@@ -121,10 +123,9 @@ namespace LOFAR {
           itsNrAutoCorr++;
         }
       }
-      if (itsApplyAutoCorr) {
-        ASSERTSTR (itsNrAutoCorr > 0, "applyautocorr=True cannot be used if "
+      if (itsApplyAutoCorr && itsNrAutoCorr <= 0)
+				throw Exception("applyautocorr=True cannot be used if "
                    "the data does not contain autocorrelations");
-      }
       // Calculate the baseline lengths.
       itsBLength = info().getBaselineLengths();
       // Evaluate the window size expressions.
@@ -152,8 +153,8 @@ namespace LOFAR {
         }
         // If no valid left, use first one.
         if (flagCorr.empty()) {
-          LOG_INFO_STR ("No valid correlations given in MedFlagger "
-                        << itsName << "; first one will be used");
+          DPLOG_INFO_STR ("No valid correlations given in MedFlagger "
+                        + itsName + "; first one will be used");
           flagCorr.push_back (0);
         }
       }
@@ -238,7 +239,7 @@ namespace LOFAR {
         flag (itsNTimesDone, timeEntries);
         itsNTimesDone++;
       }
-      ASSERT (itsNTimes - itsNTimesDone == halfWindow);
+      assert (itsNTimes - itsNTimesDone == halfWindow);
       // Process the remaining time entries.
       while (itsNTimesDone < itsNTimes) {
         uint inx = 0;

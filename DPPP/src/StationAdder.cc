@@ -21,13 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/StationAdder.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPLogger.h>
-#include <Common/ParameterSet.h>
-#include <Common/ParameterRecord.h>
+#include "StationAdder.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
+#include "DPLogger.h"
+#include "Exceptions.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/ParameterRecord.h"
 
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
@@ -128,7 +129,7 @@ namespace LOFAR {
                       String(iter->first)) != antennaNames.end()  ||
             std::find(newNames.begin(),
                       newNames.end(), iter->first) != newNames.end()) {
-          THROW (Exception, "StationAdder: new station name " + iter->first +
+          throw Exception("StationAdder: new station name " + iter->first +
                             " already exists");
         }
         // Get the ids of the stations forming the new superstation.
@@ -143,7 +144,8 @@ namespace LOFAR {
         // Add their ITRF positions.
         for (uint i=0; i<parts.size(); ++i) {
           int inx = parts[i];
-          ASSERTSTR (newStations[inx] < 0, "Station " + antennaNames[inx] +
+          if(newStations[inx] >= 0)
+            throw Exception("Station " + antennaNames[inx] +
                      " is used in multiple superstations");
           newStations[inx] = newNames.size();
           newPosition += MPosition::Convert (antennaPos[inx],

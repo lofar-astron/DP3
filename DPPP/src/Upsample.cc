@@ -21,14 +21,14 @@
 //#
 //# @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/Upsample.h>
+#include "Upsample.h"
 
 #include <iostream>
-#include <Common/ParameterSet.h>
 
-#include <casa/BasicMath/Math.h> // nearAbs
-#include <casa/Arrays/ArrayLogical.h> // anyTrue
+#include "../../Common/ParameterSet.h"
+
+#include <casacore/casa/BasicMath/Math.h> // nearAbs
+#include <casacore/casa/Arrays/ArrayLogical.h> // anyTrue
 
 #include <iomanip>
 #include <stddef.h>
