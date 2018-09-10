@@ -21,11 +21,10 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP_AOFlag/Register.h>
-#include <DPPP_AOFlag/AOFlaggerStep.h>
-//#include <DPPP_AOFlag/SlidingFlagger.h>
-#include <DPPP/DPRun.h>
+#include "Register.h"
+#include "AOFlaggerStep.h"
+
+#include "../../DPPP/src/DPRun.h"
 
 // Define the function to make the AOFlaggerStep 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).

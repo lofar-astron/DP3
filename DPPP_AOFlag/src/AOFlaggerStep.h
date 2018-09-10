@@ -27,12 +27,11 @@
 // @file
 // @brief DPPP step class to flag using aoflagger's functionality
 
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/FlagCounter.h>
+#include "../../DPPP/src/DPInput.h"
+#include "../../DPPP/src/DPBuffer.h"
+#include "../../DPPP/src/FlagCounter.h"
 
-#include <Common/lofar_vector.h>
-#include <Common/lofar_smartptr.h>
+#include <memory>
 
 #include <aoflagger.h>
 
@@ -148,10 +147,10 @@ namespace LOFAR {
       double           itsMoveTime;      //# data move timer (sum all threads)
       double           itsFlagTime;      //# flag timer (sum of all threads)
       double           itsQualTime;      //# quality timer (sum of all threads)
-      casa::Vector<double>  itsFreqs;
+      casacore::Vector<double>  itsFreqs;
       aoflagger::AOFlagger  itsAOFlagger;
-      boost::scoped_ptr<aoflagger::Strategy> itsStrategy;
-      boost::scoped_ptr<aoflagger::QualityStatistics> itsRfiStats;
+      std::unique_ptr<aoflagger::Strategy> itsStrategy;
+      std::unique_ptr<aoflagger::QualityStatistics> itsRfiStats;
     };
 
   } //# end namespace

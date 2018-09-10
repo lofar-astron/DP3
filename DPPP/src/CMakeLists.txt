@@ -11,17 +11,6 @@ include_directories(${HDF5_INCLUDE_DIRS})
 include_directories(${CASACORE_INCLUDE_DIR})
 include_directories(${BOOST_INCLUDE_DIR})
 
-find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
-find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
-if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-	include_directories(${LOFAR_STATION_RESPONSE_DIR})
-  set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp aterms/lofarbeamterm.cpp)
-  message("LOFAR beam library found.")
-else()
-  message(FATAL_ERROR "LOFAR beam library not found")
-endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-
 add_library(dppp
   DPRun.cc DPStep.cc DPInput.cc DPBuffer.cc DPInfo.cc
   DPLogger.cc ProgressMeter.cc FlagCounter.cc

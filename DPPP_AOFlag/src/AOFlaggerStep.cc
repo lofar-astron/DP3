@@ -21,24 +21,22 @@
 //#
 //# @author Andre Offringa, Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP_AOFlag/AOFlaggerStep.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/StreamUtil.h>
-#include <Common/OpenMP.h>
+#include "AOFlaggerStep.h"
 
-#include <casa/OS/HostInfo.h>
-#include <casa/OS/File.h>
+#include "../../DPPP/src/DPBuffer.h"
+#include "../../DPPP/src/DPInfo.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StreamUtil.h"
+#include "../../Common/OpenMP.h"
+
+#include <casacore/casa/OS/HostInfo.h>
+#include <casacore/casa/OS/File.h>
 
 #include <aoflagger.h>
 
 #include <iostream>
 #include <algorithm>
-
-using namespace casa;
 
 namespace LOFAR {
   namespace DPPP {
@@ -109,9 +107,9 @@ namespace LOFAR {
       os.precision(1);
 
       if (exp==0) {
-        os<<fixed<<bytes<<" "<<"B";
+        os<<std::fixed<<bytes<<" "<<"B";
       } else {
-        os<<fixed<<bytes<<" "<<"KMGTPE"[exp-1]<<"B";
+        os<<std::fixed<<bytes<<" "<<"KMGTPE"[exp-1]<<"B";
       }
 
       os.precision(origPrec);
@@ -125,7 +123,7 @@ namespace LOFAR {
       // Get nr of threads.
       uint nthread = OpenMP::maxThreads();
       // Determine available memory.
-      double availMemory = HostInfo::memoryTotal() * 1024.;
+      double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
       // Determine how much memory can be used.
       double memoryMax = itsMemory * 1024*1024*1024;
       double memory    = memoryMax;
@@ -141,7 +139,7 @@ namespace LOFAR {
       }
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
-      double timeSize = (sizeof(Complex) + sizeof(bool)) *
+      double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *
         (infoIn.nbaselines() + 3*nthread) * infoIn.nchan() * infoIn.ncorr();
       // If no overlap percentage is given, set it to 1%.
       if (itsOverlapPerc < 0  &&  itsOverlap == 0) {
@@ -178,11 +176,12 @@ namespace LOFAR {
       }
       // Check if it all fits in memory.
       itsMemoryNeeded = (itsWindowSize + 2*itsOverlap) * timeSize;
-      ASSERTSTR (itsMemoryNeeded < availMemory,
-                 "Timewindow " << itsWindowSize
-                 << " and/or overlap " << itsOverlap
-                 << ' ' << memory
-                 << " too large for available memory " << availMemory);
+      if (itsMemoryNeeded >= availMemory)
+				throw std::runtime_error(
+                 "Timewindow " + std::to_string(itsWindowSize)
+                 + " and/or overlap " + std::to_string(itsOverlap)
+                 + ' ' + std::to_string(memory)
+                 + " too large for available memory " + std::to_string(availMemory));
       // Size the buffer (need overlap on both sides).
       itsBuf.resize (itsWindowSize + 2*itsOverlap);
       // Initialize the flag counters.
@@ -281,10 +280,11 @@ namespace LOFAR {
       // Note: OpenMP 2.5 needs signed iteration variables.
       int  nrbl   = itsBuf[0].getData().shape()[2];
       uint ncorr  = itsBuf[0].getData().shape()[0];
-      ASSERTSTR (ncorr==4, "AOFlaggerStep can only handle all 4 correlations");
+      if (ncorr!=4)
+				throw std::runtime_error("AOFlaggerStep can only handle all 4 correlations");
       // Get antenna numbers in case applyautocorr is true.
-      const Vector<Int>& ant1 = getInfo().getAnt1();
-      const Vector<Int>& ant2 = getInfo().getAnt2();
+      const casacore::Vector<int>& ant1 = getInfo().getAnt1();
+      const casacore::Vector<int>& ant2 = getInfo().getAnt2();
       itsComputeTimer.start();
       // Now flag each baseline for this time window.
       // The baselines can be processed in parallel.
@@ -379,7 +379,7 @@ namespace LOFAR {
       const uint iStride = imageSet.HorizontalStride();
       const uint fStride = origFlags.HorizontalStride();
       for (uint i=0; i<ntime; ++i) {
-        const Complex* data = itsBuf[i].getData().data()  + bl*blsize;
+        const casacore::Complex* data = itsBuf[i].getData().data()  + bl*blsize;
         const bool*   flags = itsBuf[i].getFlags().data() + bl*blsize;
         for (uint j=0; j<nchan; ++j) {
 	  for (uint p=0; p!=4; ++p) {
@@ -452,11 +452,11 @@ namespace LOFAR {
     void AOFlaggerStep::fillStrategy ()
     {
       if (! itsStrategyName.empty()) {
-        File file(itsStrategyName);
+        casacore::File file(itsStrategyName);
         if (! file.exists()) {
-          file = File("$LOFARROOT/share/rfistrategies/" + itsStrategyName);
+          file = casacore::File("$LOFARROOT/share/rfistrategies/" + itsStrategyName);
           if (! file.exists()) {
-            THROW (Exception, "Unknown rfistrategy file " << itsStrategyName);
+            throw std::runtime_error("Unknown rfistrategy file " + itsStrategyName);
           }
         }
 	itsStrategy.reset(new aoflagger::Strategy

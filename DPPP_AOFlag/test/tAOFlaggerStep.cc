@@ -21,22 +21,26 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP_AOFlag/AOFlaggerStep.h>
-#include <DPPP/DPRun.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
+#include "../src/AOFlaggerStep.h"
+
+#include "../../DPPP/src/DPRun.h"
+#include "../../DPPP/src/DPInput.h"
+#include "../../DPPP/src/DPBuffer.h"
+#include "../../DPPP/src/DPInfo.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+
+#include <cassert>
 #include <iostream>
 
 using namespace LOFAR;
 using namespace LOFAR::DPPP;
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 // Simple class to generate input arrays.
@@ -52,8 +56,8 @@ public:
   {
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    casacore::Vector<int> ant1(itsNBl);
+    casacore::Vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -160,9 +164,9 @@ private:
     }
     // Check the result.
     ///cout << buf.getData()<< result;
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-10));
-    ASSERT (near(buf.getTime(), 2+5.*itsCount));
+    assert (allNear(real(buf.getData()), real(result), 1e-10));
+    assert (allNear(imag(buf.getData()), imag(result), 1e-10));
+    assert (near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
   }
@@ -171,16 +175,16 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==itsNChan);
-    ASSERT (int(info.ntime())==itsNTime);
-    ASSERT (info.startTime()==100);
-    ASSERT (info.timeInterval()==5);
-    ASSERT (int(info.nchanAvg())==1);
-    ASSERT (int(info.ntimeAvg())==1);
-    ASSERT (int(info.chanFreqs().size()) == itsNChan);
-    ASSERT (int(info.chanWidths().size()) == itsNChan);
-    ASSERT (info.msName().empty());
+    assert (int(info.origNChan())==itsNChan);
+    assert (int(info.nchan())==itsNChan);
+    assert (int(info.ntime())==itsNTime);
+    assert (info.startTime()==100);
+    assert (info.timeInterval()==5);
+    assert (int(info.nchanAvg())==1);
+    assert (int(info.ntimeAvg())==1);
+    assert (int(info.chanFreqs().size()) == itsNChan);
+    assert (int(info.chanWidths().size()) == itsNChan);
+    assert (info.msName().empty());
   }
 
   int itsCount;
@@ -243,7 +247,6 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
 
 int main()
 {
-  INIT_LOGGER ("tAOFlaggerStep");
   try {
 
     for (uint i=0; i<2; ++i) {
