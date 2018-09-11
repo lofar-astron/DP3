@@ -141,7 +141,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
       {
         _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
         _phaseFitters[thread].WeightData()[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
-	weightSum += _weights[antennaIndex*_nChannelBlocks + ch];
+        weightSum += _weights[antennaIndex*_nChannelBlocks + ch];
       }
       else {
         _phaseFitters[thread].PhaseData()[ch] = 0.0;
