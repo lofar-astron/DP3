@@ -23,14 +23,14 @@
 
 #include "DDECal.h"
 
-#include "../../DPPP/ApplyCal.h"
-#include "../../DPPP/DPBuffer.h"
-#include "../../DPPP/DPInfo.h"
-#include "../../DPPP/DPLogger.h"
-#include "../../DPPP/MSReader.h"
-#include "../../DPPP/Simulate.h"
-#include "../../DPPP/SourceDBUtil.h"
-#include "../../DPPP/Version.h"
+#include "../DPPP/ApplyCal.h"
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/DPInfo.h"
+#include "../DPPP/DPLogger.h"
+#include "../DPPP/MSReader.h"
+#include "../DPPP/Simulate.h"
+#include "../DPPP/SourceDBUtil.h"
+#include "../DPPP/Version.h"
 
 #include "ScreenConstraint.h"
 #include "TECConstraint.h"
@@ -38,14 +38,14 @@
 #include "RotationAndDiagonalConstraint.h"
 #include "SmoothnessConstraint.h"
 
-#include "../../ParmDB/ParmDB.h"
-#include "../../ParmDB/ParmValue.h"
-#include "../../ParmDB/SourceDB.h"
+#include "../ParmDB/ParmDB.h"
+#include "../ParmDB/ParmValue.h"
+#include "../ParmDB/SourceDB.h"
 
-#include "../../Common/OpenMP.h"
-#include "../../Common/ParameterSet.h"
-#include "../../Common/StreamUtil.h"
-#include "../../Common/StringUtil.h"
+#include "../Common/OpenMP.h"
+#include "../Common/ParameterSet.h"
+#include "../Common/StreamUtil.h"
+#include "../Common/StringUtil.h"
 
 #include <fstream>
 #include <ctime>

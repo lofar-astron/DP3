@@ -27,16 +27,16 @@
 // @file
 // @brief DPPP step class to apply a calibration correction to the data
 
-#include "../../DPPP/DPInput.h"
-#include "../../DPPP/GainCal.h"
-#include "../../DPPP/DPBuffer.h"
-#include "../../DPPP/H5Parm.h"
-#include "../../DPPP/BaselineSelection.h"
-#include "../../DPPP/Patch.h"
-#include "../../DPPP/UVWFlagger.h"
-#include "../../DPPP/Predict.h"
-#include "../../DPPP/SourceDBUtil.h"
-#include "../../DPPP/ApplyBeam.h"
+#include "../DPPP/DPInput.h"
+#include "../DPPP/GainCal.h"
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/H5Parm.h"
+#include "../DPPP/BaselineSelection.h"
+#include "../DPPP/Patch.h"
+#include "../DPPP/UVWFlagger.h"
+#include "../DPPP/Predict.h"
+#include "../DPPP/SourceDBUtil.h"
+#include "../DPPP/ApplyBeam.h"
 
 #include "MultiDirSolver.h"
 #include "Constraint.h"
@@ -44,7 +44,7 @@
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
 
-#include "../../ParmDB/Parm.h"
+#include "../ParmDB/Parm.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>

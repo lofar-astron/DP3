@@ -3,7 +3,7 @@
 #ifdef AOPROJECT
 #include "omptools.h"
 #else
-#include "../../Common/OpenMP.h"
+#include "../Common/OpenMP.h"
 #endif
 
 TECConstraintBase::TECConstraintBase(Mode mode) :

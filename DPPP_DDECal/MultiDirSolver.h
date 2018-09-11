@@ -4,7 +4,7 @@
 #ifdef AOPROJECT
 #include "PhaseFitter.h"
 #else
-#include "../../DPPP/PhaseFitter.h"
+#include "../DPPP/PhaseFitter.h"
 #endif
 
 #include "Constraint.h"

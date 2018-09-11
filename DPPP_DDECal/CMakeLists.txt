@@ -1,8 +1,15 @@
-# $Id: CMakeLists.txt 27640 2013-12-04 08:02:49Z diepen $
+# Required for the ObjectFactory
+include_directories(../Common)
 
-find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-find_package(Armadillo REQUIRED)
-find_package(Boost REQUIRED COMPONENTS date_time)
+include_directories(${ARMADILLO_INCLUDE_DIRS})
 
-add_subdirectory(src)
+add_library(dppp_ddecal
+  DDECal.cc Register.cc Stopwatch.cc
+  KLFitter.cc DDECal.cc MultiDirSolver.cc Constraint.cc PiercePoint.cc
+  ScreenConstraint.cc SmoothnessConstraint.cc
+  TECConstraint.cc RotationConstraint.cc
+  RotationAndDiagonalConstraint.cc
+)
+target_link_libraries(dppp_ddecal ${ARMADILLO_LIBRARIES})
+
 #add_subdirectory(test)
