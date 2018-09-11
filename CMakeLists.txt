@@ -30,7 +30,7 @@ endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)
-#add_subdirectory(PythonDPPP)
+add_subdirectory(PythonDPPP)
 add_subdirectory(DPPP_AOFlag)
 # SPW Combine has dependencies to LOFAR
 #add_subdirectory(SPWCombine)

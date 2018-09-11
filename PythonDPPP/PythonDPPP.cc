@@ -19,21 +19,13 @@
 //#
 //# $Id: pyparameterset.cc 23074 2012-12-03 07:51:29Z diepen $
 
-#include <lofar_config.h>
-#include <PythonDPPP/DPStepBase.h>
+#include "DPStepBase.h"
 
-#if defined(casacore)
-#include <python/Converters/PycExcp.h>
-#include <python/Converters/PycBasicData.h>
-#include <python/Converters/PycValueHolder.h>
-#include <python/Converters/PycRecord.h>
-#define pyrap python
-#else
-#include <pyrap/Converters/PycExcp.h>
-#include <pyrap/Converters/PycBasicData.h>
-#include <pyrap/Converters/PycValueHolder.h>
-#include <pyrap/Converters/PycRecord.h>
-#endif
+#include <casacore/python/Converters/PycExcp.h>
+#include <casacore/python/Converters/PycBasicData.h>
+#include <casacore/python/Converters/PycValueHolder.h>
+#include <casacore/python/Converters/PycRecord.h>
+
 #include <boost/python.hpp>
 #include <boost/python/args.hpp>
 
@@ -86,10 +78,10 @@ namespace LOFAR {
 // Define the python module itself.
 BOOST_PYTHON_MODULE(_pythondppp)
 {
-  casa::pyrap::register_convert_excp();
-  casa::pyrap::register_convert_basicdata();
-  casa::pyrap::register_convert_casa_valueholder();
-  casa::pyrap::register_convert_casa_record();
+  casacore::python::register_convert_excp();
+  casacore::python::register_convert_basicdata();
+  casacore::python::register_convert_casa_valueholder();
+  casacore::python::register_convert_casa_record();
 
   LOFAR::DPPP::dpstepbase();
 }

@@ -27,15 +27,17 @@
 // @file
 // @brief Class to execute a DPStep in some Python module
 
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/Timer.h>
+#include "../DPPP/DPInput.h"
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/DPInfo.h"
 
-#include <casa/Containers/ValueHolder.h>
-#include <casa/Containers/Record.h>
+#include "../Common/ParameterSet.h"
+#include "../Common/Timer.h"
+
 #include <boost/python.hpp>
+
+#include <casacore/casa/Containers/ValueHolder.h>
+#include <casacore/casa/Containers/Record.h>
 
 namespace LOFAR {
   namespace DPPP {
@@ -120,18 +122,18 @@ namespace LOFAR {
       // Tell that the Python step needs data to be written.
       void setNeedWrite();
       // Get the data into the given Complex array.
-      void getData (const casa::ValueHolder&);
+      void getData (const casacore::ValueHolder&);
       // Get the flags into the given bool array.
-      void getFlags (const casa::ValueHolder&);
+      void getFlags (const casacore::ValueHolder&);
       // Get the weights into the given float array.
-      void getWeights (const casa::ValueHolder&);
+      void getWeights (const casacore::ValueHolder&);
       // Get the UVWs into the given double array.
-      void getUVW (const casa::ValueHolder&);
+      void getUVW (const casacore::ValueHolder&);
       // Get the model data into the given Complex array.
-      void getModelData (const casa::ValueHolder&);
+      void getModelData (const casacore::ValueHolder&);
       // Execute the process function of the next step.
       // The record should contain the changed buffer fields.
-      bool processNext (const casa::Record&);
+      bool processNext (const casacore::Record&);
       // </group>
 
     private:
