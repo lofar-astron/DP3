@@ -1,7 +1,5 @@
-add_library(dppp_testdyndppp
-  TestDynStep.cc
+add_library(dppp_testdyndppp SHARED
+  TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT}
 )
-
-target_link_libraries (dppp_testdyndppp dppp)
 
 #add_subdirectory(test)

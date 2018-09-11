@@ -1,4 +1,4 @@
-add_library(dppp_interpolate
+add_library(dppp_interpolate SHARED
   Interpolate.cc
 )
 

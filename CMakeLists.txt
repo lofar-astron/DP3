@@ -37,6 +37,8 @@ else()
   message(FATAL_ERROR "LOFAR beam library not found")
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_library(Common OBJECT 
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
@@ -93,6 +95,27 @@ add_library(Blob OBJECT
   Blob/BlobOStream.cc
 )
 set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
+
+add_library(DPPP_OBJ OBJECT
+  DPPP/DPRun.cc DPPP/DPStep.cc DPPP/DPInput.cc DPPP/DPBuffer.cc DPPP/DPInfo.cc
+  DPPP/DPLogger.cc DPPP/ProgressMeter.cc DPPP/FlagCounter.cc
+  DPPP/UVWCalculator.cc  DPPP/BaselineSelection.cc DPPP/ApplyCal.cc
+  DPPP/MSReader.cc DPPP/MultiMSReader.cc DPPP/MSWriter.cc DPPP/MSUpdater.cc DPPP/Counter.cc
+  DPPP/Averager.cc DPPP/MedFlagger.cc DPPP/PreFlagger.cc DPPP/UVWFlagger.cc
+  DPPP/StationAdder.cc DPPP/ScaleData.cc DPPP/Filter.cc DPPP/PhaseShift.cc
+  DPPP/Demixer.cc 
+  DPPP/Position.cc DPPP/Stokes.cc DPPP/SourceDBUtil.cc
+  DPPP/Apply.cc DPPP/EstimateMixed.cc DPPP/EstimateNew.cc DPPP/Simulate.cc DPPP/Simulator.cc
+  DPPP/SubtractMixed.cc DPPP/SubtractNew.cc
+  DPPP/ModelComponent.cc DPPP/PointSource.cc DPPP/GaussianSource.cc DPPP/Patch.cc
+  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/StefCal.cc
+  DPPP/DemixerNew.cc DPPP/DemixInfo.cc DPPP/DemixWorker.cc
+  DPPP/Predict.cc DPPP/OneApplyCal.cc
+  DPPP/ApplyBeam.cc
+  DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc DPPP/DummyStep.cc DPPP/H5ParmPredict.cc DPPP/GridInterpolate.cc
+  DPPP/Upsample.cc DPPP/Split.cc
+)
+set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)

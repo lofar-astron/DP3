@@ -3,7 +3,7 @@ include_directories(../Common)
 
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
-add_library(dppp_ddecal
+add_library(dppp_ddecal SHARED
   DDECal.cc Register.cc Stopwatch.cc
   KLFitter.cc DDECal.cc MultiDirSolver.cc Constraint.cc PiercePoint.cc
   ScreenConstraint.cc SmoothnessConstraint.cc
