@@ -143,16 +143,18 @@ namespace BBS {
     TableLocker lockerp(itsPatchTable, FileLocker::Read);
     Table tabp = itsPatchTable.sort ("PATCHNAME", Sort::Ascending,
                                      Sort::QuickSort + Sort::NoDuplicates);
-    ASSERTSTR (tabp.nrow() == itsPatchTable.nrow(),
-               "The PATCHES table has " <<
-               itsPatchTable.nrow() - tabp.nrow() <<
+    if (tabp.nrow() != itsPatchTable.nrow())
+			throw std::runtime_error(
+               "The PATCHES table has " +
+               std::to_string(itsPatchTable.nrow() - tabp.nrow()) +
                " duplicate patch names");
     TableLocker lockers(itsSourceTable, FileLocker::Read);
     Table tabs = itsSourceTable.sort ("SOURCENAME", Sort::Ascending,
                                      Sort::QuickSort + Sort::NoDuplicates);
-    ASSERTSTR (tabs.nrow() == itsSourceTable.nrow(),
-               "The SOURCES table has " <<
-               itsSourceTable.nrow() - tabs.nrow() <<
+    if (tabs.nrow() != itsSourceTable.nrow())
+			throw std::runtime_error(
+               "The SOURCES table has " +
+               std::to_string(itsSourceTable.nrow() - tabs.nrow()) +
                " duplicate source names");
   }
 
@@ -225,8 +227,9 @@ namespace BBS {
     TableLocker locker(itsPatchTable, FileLocker::Write);
     // See if already existing.
     if (check) {
-      ASSERTSTR (!patchExists(patchName),
-                 "Patch " << patchName << " already exists");
+      if (patchExists(patchName))
+				throw std::runtime_error(
+                 "Patch " + patchName + " already exists");
     }
     itsPatchSet.insert (patchName);
     uint rownr = itsPatchTable.nrow();
@@ -270,15 +273,17 @@ namespace BBS {
       TableLocker locker(itsPatchTable, FileLocker::Read);
       Table table = itsPatchTable(itsPatchTable.col("PATCHNAME") ==
                                   String(patchName));
-      ASSERTSTR (table.nrow() == 1,
-                 "Patch " << patchName << " does not exist");
+      if (table.nrow() != 1)
+				throw std::runtime_error(
+                 "Patch " + patchName + " does not exist");
       patchId = table.rowNumbers()[0];
     }
     itsSourceTable.reopenRW();
     TableLocker locker(itsSourceTable, FileLocker::Write);
     if (check) {
-      ASSERTSTR (!sourceExists(sourceInfo.getName()),
-                 "Source " << sourceInfo.getName() << " already exists");
+      if (sourceExists(sourceInfo.getName()))
+				throw std::runtime_error(
+                 "Source " + sourceInfo.getName() + " already exists");
     }
     itsSourceSet.insert (sourceInfo.getName());
     addSrc (sourceInfo, patchId, defaultParameters, ra, dec);
@@ -306,10 +311,12 @@ namespace BBS {
     TableLocker lockerp(itsPatchTable, FileLocker::Write);
     TableLocker lockers(itsSourceTable, FileLocker::Write);
     if (check) {
-      ASSERTSTR (!patchExists(patchName),
-                 "Patch " << patchName << " already exists");
-      ASSERTSTR (!sourceExists(sourceInfo.getName()),
-                 "Source " << sourceInfo.getName() << " already exists");
+      if (patchExists(patchName))
+				throw std::runtime_error(
+                 "Patch " + patchName + " already exists");
+      if (sourceExists(sourceInfo.getName()))
+				throw std::runtime_error(
+                 "Source " + sourceInfo.getName() + " already exists");
     }
     itsPatchSet.insert  (patchName);
     itsSourceSet.insert (sourceInfo.getName());
@@ -355,9 +362,10 @@ namespace BBS {
     uscalCol.put (rownr, sourceInfo.getShapeletScaleU());
     vscalCol.put (rownr, sourceInfo.getShapeletScaleV());
     if (sourceInfo.getType() == SourceInfo::SHAPELET) {
-      ASSERTSTR (! sourceInfo.getShapeletCoeffI().empty(),
+      if (sourceInfo.getShapeletCoeffI().empty())
+				throw std::runtime_error(
                  "No coefficients defined for shapelet source "
-                 << sourceInfo.getName());
+                 + sourceInfo.getName());
       icoefCol.put (rownr, sourceInfo.getShapeletCoeffI());
       qcoefCol.put (rownr, sourceInfo.getShapeletCoeffQ());
       ucoefCol.put (rownr, sourceInfo.getShapeletCoeffU());
@@ -493,8 +501,9 @@ namespace BBS {
     if (table.nrow() == 0) {
       return vector<SourceInfo>();
     }
-    ASSERTSTR (table.nrow() == 1, "Patch name " << patchName
-               << " multiply defined in " << itsPatchTable.tableName());
+    if (table.nrow() != 1)
+			throw std::runtime_error( "Patch name " + patchName
+               + " multiply defined in " + std::string(itsPatchTable.tableName()));
     uint patchid = table.rowNumbers()[0];
     table = itsSourceTable(itsSourceTable.col("PATCHID") == patchid);
     return readSources(table);
@@ -522,10 +531,12 @@ namespace BBS {
     TableLocker lockers(itsSourceTable, FileLocker::Read);
     Table table = itsSourceTable(itsSourceTable.col("SOURCENAME") ==
                                  String(sourceName));
-    ASSERTSTR (table.nrow() > 0,  "Source name " << sourceName
-               << " not found in " << itsSourceTable.tableName());
-    ASSERTSTR (table.nrow() == 1,  "Source name " << sourceName
-               << " multiply defined in " << itsSourceTable.tableName());
+    if (table.nrow() == 0)
+			throw std::runtime_error("Source name " + sourceName
+               + " not found in " + std::string(itsSourceTable.tableName()));
+    if (table.nrow() != 1)
+			throw std::runtime_error("Source name " + sourceName
+               + " multiply defined in " + std::string(itsSourceTable.tableName()));
     return readSources(table)[0];
   }
 
@@ -574,8 +585,9 @@ namespace BBS {
         }
         res.push_back (SourceInfo(nm[i], type, rt[i], useLogSI, sd[i], sr[i], rm[i]));
         if (type == SourceInfo::SHAPELET) {
-          ASSERTSTR (icoefCol.isDefined(i), "No coefficients defined for "
-                     " shapelet source " << nm[i]);
+          if (!icoefCol.isDefined(i))
+						throw std::runtime_error("No coefficients defined for "
+                     " shapelet source " + nm[i]);
           res[i].setShapeletScale (iscalCol(i), qscalCol(i),
                                    uscalCol(i), vscalCol(i));
           res[i].setShapeletCoeff (icoefCol(i), qcoefCol(i),
@@ -676,9 +688,9 @@ namespace BBS {
   double SourceDBCasa::getDefaultParmValue(const string& name)
   {
     ParmValueSet valueSet = getParmDB().getDefValue(name, ParmValue());
-    ASSERT(valueSet.empty() && valueSet.getType() == ParmValue::Scalar);
+    assert(valueSet.empty() && valueSet.getType() == ParmValue::Scalar);
     const casacore::Array<double> &values = valueSet.getDefParmValue().getValues();
-    ASSERT(values.size() == 1);
+    assert(values.size() == 1);
     return values.data()[0];
   }
 

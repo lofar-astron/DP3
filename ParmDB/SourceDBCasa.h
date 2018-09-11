@@ -28,12 +28,12 @@
 #define LOFAR_PARMDB_SOURCEDBCASA_H
 
 //# Includes
-#include <ParmDB/SourceDB.h>
-#include <ParmDB/PatchInfo.h>
-#include <Common/lofar_vector.h>
-#include <Common/lofar_set.h>
+#include "SourceDB.h"
+#include "PatchInfo.h"
+
 #include <casacore/tables/Tables/Table.h>
 
+#include <set>
 
 namespace LOFAR {
 namespace BBS {
@@ -193,8 +193,8 @@ namespace BBS {
     //# Data members
     casacore::Table      itsPatchTable;
     casacore::Table      itsSourceTable;
-    set<std::string> itsPatchSet;
-    set<std::string> itsSourceSet;
+    std::set<std::string> itsPatchSet;
+    std::set<std::string> itsSourceSet;
     bool             itsSetsFilled;
     casacore::Vector<casacore::uInt> itsRowNr;
   };
