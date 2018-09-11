@@ -1,14 +1,14 @@
-#include <DPPP_Interpolate/Interpolate.h>
-#include <DPPP_Interpolate/buffered_lane.h>
+#include "Interpolate.h"
+#include "buffered_lane.h"
 
-#include <lofar_config.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPRun.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/DPInfo.h"
+#include "../DPPP/DPRun.h"
+
+#include "../Common/ParameterSet.h"
+#include "../Common/StringUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <Common/StringUtil.h>
 
 #include <iostream>
 #include <iomanip>

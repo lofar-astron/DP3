@@ -4,10 +4,10 @@
 #include <deque>
 #include <string>
 
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
+#include "../DPPP/DPInput.h"
+#include "../DPPP/DPBuffer.h"
 
-#include <Common/ParameterSet.h>
+#include "../Common/ParameterSet.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 

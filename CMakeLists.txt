@@ -33,7 +33,7 @@ add_subdirectory(DPPP)
 #add_subdirectory(PythonDPPP)
 add_subdirectory(DPPP_AOFlag)
 #add_subdirectory(SPW_Combine SPWCombine)
-#add_subdirectory(DPPP_Interpolate)
+add_subdirectory(DPPP_Interpolate)
 
 find_package(Armadillo)
 if(${ARMADILLO_FOUND})

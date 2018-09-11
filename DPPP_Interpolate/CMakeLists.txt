@@ -1,10 +1,6 @@
-# $Id: CMakeLists.txt 27640 2013-12-04 08:02:49Z diepen $
+add_library(dppp_interpolate
+  Interpolate.cc
+)
 
-lofar_package(DPPP_Interpolate 1.0 DEPENDS DPPP)
+#add_subdirectory(test)
 
-include(LofarFindPackage)
-lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-
-add_subdirectory(include/DPPP_Interpolate)
-add_subdirectory(src)
-add_subdirectory(test)
