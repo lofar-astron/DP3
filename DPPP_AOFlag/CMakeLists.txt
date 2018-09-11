@@ -19,7 +19,10 @@ pkg_check_modules(SIGCXX sigc++-2.0)
 if(GTKMM_FOUND)
   set(LOFAR_EXTRA_LIBRARIES ${LOFAR_EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
 endif(GTKMM_FOUND)
-# End check for GTKMM
 
-add_subdirectory(src)
+add_library(dppp_aoflag SHARED
+  AOFlaggerStep.cc
+  Register.cc
+)
+
 #add_subdirectory(test)

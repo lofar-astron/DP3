@@ -1,4 +1,4 @@
-//# SlidingFlagger.h: DPPP step class to flag data using rficonsole's functionality
+//# AOFlaggerStep.h: DPPP step class to flag data using rficonsole's functionality
 //# Copyright (C) 2010
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,21 +17,21 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id: SlidingFlagger.h 26900 2013-10-08 20:12:58Z loose $
+//# $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
 //#
-//# @author Ger van Diepen
+//# @author Andre Offringa, Ger van Diepen
 
-#ifndef DPPP_AOFLAG_SLIDINGFLAGGER_H
-#define DPPP_AOFLAG_SLIDINGFLAGGER_H
+#ifndef DPPP_AOFLAGGERSTEP_H
+#define DPPP_AOFLAGGERSTEP_H
 
 // @file
-// @brief DPPP step class to flag using rficonsole's functionality
+// @brief DPPP step class to flag using aoflagger's functionality
 
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/FlagCounter.h>
-#include <Common/lofar_vector.h>
-#include <Common/lofar_smartptr.h>
+#include "../DPPP/DPInput.h"
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/FlagCounter.h"
+
+#include <memory>
 
 #include <aoflagger.h>
 
@@ -65,16 +65,16 @@ namespace LOFAR {
     // apply the resulting flags to the crosscorrelations, possibly selected
     // on baseline length.
 
-    class SlidingFlagger: public DPStep
+    class AOFlaggerStep : public DPStep
     {
     public:
       // Construct the object.
       // Parameters are obtained from the parset using the given prefix.
-      SlidingFlagger (DPInput*, const ParameterSet&, const string& prefix);
+      AOFlaggerStep(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~SlidingFlagger();
+      virtual ~AOFlaggerStep();
 
-      // Create an SlidingFlagger object using the given parset.
+      // Create an AOFlaggerStep object using the given parset.
       static DPStep::ShPtr makeStep (DPInput*, const ParameterSet&,
                                      const std::string&);
 
@@ -84,6 +84,9 @@ namespace LOFAR {
 
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
+
+      // Write the statistics into the MS.
+      virtual void addToMS (const string& msName);
 
       // Update the general info.
       // It is used to adjust the parms if needed.
@@ -99,18 +102,24 @@ namespace LOFAR {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      struct ThreadData {
-        FlagCounter flagCounter;
-        NSTimer     moveTimer;
-        NSTimer     flagTimer;
-      };
-
       // Flag all baselines in the time window (using OpenMP to parallellize).
       // Process the buffers in the next step.
-      void flag();
+      void flag (uint rightOverlap);
 
       // Flag a single baseline using the rfistrategy.
-      void flagBaseline (uint bl, ThreadData&);
+      void flagBaseline (uint leftOverlap, uint windowSize,
+                         uint rightOverlap, uint bl,
+                         FlagCounter& counter,
+                         aoflagger::QualityStatistics& rfiStats);
+
+      // Add the flags to the statistics.
+      void addStats (aoflagger::QualityStatistics& rfiStats,
+                     const aoflagger::ImageSet& values, 
+                     const aoflagger::FlagMask& rfiMask, const aoflagger::FlagMask& origMask,
+                     int bl);
+
+      // Format a number as kB, MB, etc.
+      static void formatBytes(std::ostream&, double);
 
       // Fill the rfi strategy.
       void fillStrategy();
@@ -119,25 +128,33 @@ namespace LOFAR {
       string           itsName;
       uint             itsBufIndex;
       uint             itsNTimes;
-      uint             itsNThreads;
       string           itsStrategyName;
       uint             itsWindowSize;
-      uint             itsBufferSize;
+      uint             itsOverlap;       //# extra time slots on both sides
+      double           itsOverlapPerc;
+      double           itsMemory;        //# Usable memory in GBytes
+      double           itsMemoryPerc;
       double           itsMemoryNeeded;  //# Memory needed for data/flags
       bool             itsPulsarMode;
       bool             itsPedantic;
       bool             itsDoAutoCorr;
+      bool             itsDoRfiStats;
       vector<DPBuffer> itsBuf;
+      FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
+      NSTimer          itsQualityTimer;  //# quality writing timer
       NSTimer          itsComputeTimer;  //# move/flag timer
-      mutable FlagCounter   itsFlagCounter;
-      vector<ThreadData>    itsTD;
-      casa::Vector<double>  itsFreqs;
+      double           itsMoveTime;      //# data move timer (sum all threads)
+      double           itsFlagTime;      //# flag timer (sum of all threads)
+      double           itsQualTime;      //# quality timer (sum of all threads)
+      casacore::Vector<double>  itsFreqs;
       aoflagger::AOFlagger  itsAOFlagger;
-      boost::scoped_ptr<aoflagger::Strategy> itsStrategy;
+      std::unique_ptr<aoflagger::Strategy> itsStrategy;
+      std::unique_ptr<aoflagger::QualityStatistics> itsRfiStats;
     };
 
   } //# end namespace
 }
+
 
 #endif

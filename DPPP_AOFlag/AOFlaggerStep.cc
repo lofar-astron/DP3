@@ -23,12 +23,12 @@
 
 #include "AOFlaggerStep.h"
 
-#include "../../DPPP/DPBuffer.h"
-#include "../../DPPP/DPInfo.h"
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/DPInfo.h"
 
-#include "../../Common/ParameterSet.h"
-#include "../../Common/StreamUtil.h"
-#include "../../Common/OpenMP.h"
+#include "../Common/ParameterSet.h"
+#include "../Common/StreamUtil.h"
+#include "../Common/OpenMP.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/OS/File.h>
