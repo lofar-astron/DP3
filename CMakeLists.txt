@@ -37,6 +37,63 @@ else()
   message(FATAL_ERROR "LOFAR beam library not found")
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
+add_library(Common OBJECT 
+  Common/BaselineSelect.cc
+  Common/ClusterDesc.cc
+  Common/DataConvert.cc
+  Common/NodeDesc.cc
+  Common/ParameterHandler.cc
+  Common/ParameterRecord.cc
+  Common/ParameterSet.cc
+  Common/ParameterSetImpl.cc
+  Common/ParameterValue.cc
+  Common/PrettyUnits.cc
+  Common/StringUtil.cc
+  Common/Timer.cc
+  Common/TypeNames.cc
+  Common/VdsDesc.cc
+  Common/VdsMaker.cc
+  Common/VdsPartDesc.cc
+)
+set(COMMON_OBJECT $<TARGET_OBJECTS:Common>)
+
+add_library(ParmDB OBJECT
+  ParmDB/Axis.cc
+  ParmDB/AxisMapping.cc
+  ParmDB/Box.cc
+  ParmDB/Grid.cc
+  ParmDB/Parm.cc
+  ParmDB/ParmCache.cc
+  ParmDB/ParmDB.cc
+  ParmDB/ParmDBBlob.cc
+  ParmDB/ParmDBCasa.cc
+  ParmDB/ParmDBLocker.cc
+  ParmDB/ParmDBMeta.cc
+  ParmDB/ParmFacade.cc
+  ParmDB/ParmFacadeLocal.cc
+  ParmDB/ParmFacadeRep.cc
+  ParmDB/ParmSet.cc
+  ParmDB/ParmValue.cc
+  ParmDB/PatchInfo.cc
+  ParmDB/SourceData.cc
+  ParmDB/SourceDB.cc
+  ParmDB/SourceDBBlob.cc
+  ParmDB/SourceDBCasa.cc
+  ParmDB/SourceInfo.cc
+)
+set(PARMDB_OBJECT $<TARGET_OBJECTS:ParmDB>)
+
+add_library(Blob OBJECT
+  Blob/BlobAipsIO.cc
+  Blob/BlobArray.cc
+  Blob/BlobHeader.cc
+  Blob/BlobIBufStream.cc
+  Blob/BlobIStream.cc
+  Blob/BlobOBufStream.cc
+  Blob/BlobOStream.cc
+)
+set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
+
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)
 add_subdirectory(PythonDPPP)
@@ -51,3 +108,9 @@ if(${ARMADILLO_FOUND})
 else()
   message(WARNING "Armadillo was not found, NOT building DPPP_DDECal")
 endif()
+
+# Required for the ObjectFactory
+include_directories(Common)
+
+add_executable(makesourcedb ParmDB/makesourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
+target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})

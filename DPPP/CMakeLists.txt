@@ -21,54 +21,7 @@ add_library(dppp
   ApplyBeam.cc
   PhaseFitter.cc H5Parm.cc SolTab.cc DummyStep.cc H5ParmPredict.cc GridInterpolate.cc
   Upsample.cc Split.cc
-  
-  ../Blob/BlobAipsIO.cc
-  ../Blob/BlobArray.cc
-  ../Blob/BlobHeader.cc
-  ../Blob/BlobIBufStream.cc
-  ../Blob/BlobIStream.cc
-  ../Blob/BlobOBufStream.cc
-  ../Blob/BlobOStream.cc
-  
-  ../Common/BaselineSelect.cc
-  ../Common/ClusterDesc.cc
-  ../Common/DataConvert.cc
-  ../Common/NodeDesc.cc
-  ../Common/ParameterHandler.cc
-  ../Common/ParameterRecord.cc
-  ../Common/ParameterSet.cc
-  ../Common/ParameterSetImpl.cc
-  ../Common/ParameterValue.cc
-  ../Common/PrettyUnits.cc
-  ../Common/StringUtil.cc
-  ../Common/Timer.cc
-  ../Common/TypeNames.cc
-  ../Common/VdsDesc.cc
-  ../Common/VdsMaker.cc
-  ../Common/VdsPartDesc.cc
-  
-  ../ParmDB/Axis.cc
-  ../ParmDB/AxisMapping.cc
-  ../ParmDB/Box.cc
-  ../ParmDB/Grid.cc
-  ../ParmDB/Parm.cc
-  ../ParmDB/ParmCache.cc
-  ../ParmDB/ParmDB.cc
-  ../ParmDB/ParmDBBlob.cc
-  ../ParmDB/ParmDBCasa.cc
-  ../ParmDB/ParmDBLocker.cc
-  ../ParmDB/ParmDBMeta.cc
-  ../ParmDB/ParmFacade.cc
-  ../ParmDB/ParmFacadeLocal.cc
-  ../ParmDB/ParmFacadeRep.cc
-  ../ParmDB/ParmSet.cc
-  ../ParmDB/ParmValue.cc
-  ../ParmDB/PatchInfo.cc
-  ../ParmDB/SourceData.cc
-  ../ParmDB/SourceDB.cc
-  ../ParmDB/SourceDBBlob.cc
-  ../ParmDB/SourceDBCasa.cc
-  ../ParmDB/SourceInfo.cc
+  ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT}
 )
 target_link_libraries(dppp)
 
