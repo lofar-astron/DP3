@@ -29,7 +29,6 @@ if(BOOST_PYTHON_FOUND)
 
 	find_package(PythonInterp REQUIRED)
   find_package(PythonLibs 2.6 REQUIRED)
-  find_package(Python 2.6 REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
 
   find_package(Casacore COMPONENTS python)
