@@ -1,6 +1,7 @@
 find_package(Boost REQUIRED COMPONENTS date_time filesystem system python)
 # AOFlagger depends on Python 2.7, see aoflagger CMake
-find_package(Python 2.7 REQUIRED)
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs 2.7 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
