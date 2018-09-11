@@ -42,7 +42,7 @@ namespace casacore
   class MPosition;
 }
 
-namespace LOFAR
+namespace DP3
 {
 
 // @ingroup MS

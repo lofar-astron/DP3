@@ -30,7 +30,7 @@
 #include "../Common/Singleton.h"
 #include "../Common/ObjectFactory.h"
 
-namespace LOFAR
+namespace DP3
 {
   //# Forward Declarations.
   class BlobIStream;

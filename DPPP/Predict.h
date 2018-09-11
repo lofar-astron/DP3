@@ -42,7 +42,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <utility>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 
@@ -105,11 +105,11 @@ namespace LOFAR {
       std::pair<double, double> getFirstDirection() const;
 
     private:
-      StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
+      LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
                                      casacore::MDirection::Convert& measConverter);
       void addBeamToData (Patch::ConstPtr patch, double time,
-                                   const StationResponse::vector3r_t& refdir,
-                                   const StationResponse::vector3r_t& tiledir,
+                                   const LOFAR::StationResponse::vector3r_t& refdir,
+                                   const LOFAR::StationResponse::vector3r_t& tiledir,
                                    uint thread, uint nSamples, dcomplex* data0);
 
       //# Data members.
@@ -140,10 +140,10 @@ namespace LOFAR {
       casacore::Matrix<double>   itsUVW;
 
       // The info needed to calculate the station beams.
-      vector<vector<StationResponse::Station::Ptr> > itsAntBeamInfo;
+      vector<vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
       vector<casacore::MeasFrame>                    itsMeasFrames;
       vector<casacore::MDirection::Convert>          itsMeasConverters;
-      vector<vector<StationResponse::matrix22c_t> >  itsBeamValues;
+      vector<vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
       ApplyBeam::BeamMode                            itsBeamMode;
 
       std::string itsDirectionsStr; // Definition of patches, to pass to applycal

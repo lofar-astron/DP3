@@ -35,7 +35,7 @@
 
 //# Never #include <config.h> or #include <lofar_config.h> in a header file!
 
-namespace LOFAR
+namespace DP3
 {
   
   enum DataFormat {LittleEndian=0, BigEndian=1};

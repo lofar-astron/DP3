@@ -32,9 +32,9 @@
 #include "../Blob/BlobIStream.h"
 #include "../Blob/BlobOStream.h"
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
-  //# Put ParameterSet into LOFAR::CEP namespace for ease of use.
+  //# Put ParameterSet into DP3CEP namespace for ease of use.
 
   // @ingroup LMWCommon
   // @brief Handle a LOFAR .parset file
@@ -101,8 +101,8 @@ namespace LOFAR { namespace CEP {
 
   // Write/read a ParameterSet into/from a blob.
   // @{
-  LOFAR::BlobOStream& operator<< (LOFAR::BlobOStream&, const ParameterSet&);
-  LOFAR::BlobIStream& operator>> (LOFAR::BlobIStream&, ParameterSet&);
+  DP3::BlobOStream& operator<< (DP3::BlobOStream&, const ParameterSet&);
+  DP3::BlobIStream& operator>> (DP3::BlobIStream&, ParameterSet&);
   // @}
 
   inline std::string ParameterHandler::getString (const std::string& parm) const

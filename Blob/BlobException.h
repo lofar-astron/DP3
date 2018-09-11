@@ -30,7 +30,7 @@
 
 //# Includes
 
-namespace LOFAR {
+namespace DP3 {
 
   typedef std::runtime_error BlobException;
 

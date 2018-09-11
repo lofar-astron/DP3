@@ -31,7 +31,7 @@
 #include <cassert>
 #include <stdexcept>
 
-namespace LOFAR {
+namespace DP3 {
   //! Get the nearest-neighbor indices
   ///*! \param ax_src[in]    Vector with points where the data is defined.
   //                         Should be increasing.

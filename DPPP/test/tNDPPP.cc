@@ -32,7 +32,7 @@
 #include <iostream>
 #include <stdexcept>
 
-using namespace LOFAR::DPPP;
+using namespace DP3::DPPP;
 using namespace casa;
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.

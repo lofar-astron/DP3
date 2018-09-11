@@ -37,7 +37,7 @@
 #endif
 
 
-namespace LOFAR
+namespace DP3
 {
 
 // \ingroup %pkgname%
@@ -235,7 +235,7 @@ namespace LOFAR
 
 
   // Convert the array header data.
-  void convertArrayHeader (LOFAR::DataFormat, char* header,
+  void convertArrayHeader (DP3::DataFormat, char* header,
 			   bool useBlobHeader);
 
   // Get the shape of an array from the blob.
@@ -283,17 +283,17 @@ BLOBARRAY_PUTGET_SPEC(std::string)
 
 #include "BlobArray.tcc"
 
-using LOFAR::operator<<;
-using LOFAR::operator>>;
-using LOFAR::putBlobArray;
-using LOFAR::putBlobVector;
-using LOFAR::setSpaceBlobArray1;
-using LOFAR::setSpaceBlobArray2;
-using LOFAR::setSpaceBlobArray3;
-using LOFAR::setSpaceBlobArray4;
-using LOFAR::setSpaceBlobArray;
-using LOFAR::getBlobVector;
-using LOFAR::getBlobArray;
-using LOFAR::getSpaceBlobArray;
+using DP3::operator<<;
+using DP3::operator>>;
+using DP3::putBlobArray;
+using DP3::putBlobVector;
+using DP3::setSpaceBlobArray1;
+using DP3::setSpaceBlobArray2;
+using DP3::setSpaceBlobArray3;
+using DP3::setSpaceBlobArray4;
+using DP3::setSpaceBlobArray;
+using DP3::getBlobVector;
+using DP3::getBlobArray;
+using DP3::getSpaceBlobArray;
 
 #endif

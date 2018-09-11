@@ -30,8 +30,8 @@
 #include <casa/Quanta/MVTime.h>
 #include <iostream>
 
-using namespace LOFAR;
-using namespace LOFAR::DPPP;
+using namespace DP3;
+using namespace DP3::DPPP;
 using namespace casa;
 using namespace std;
 
@@ -84,7 +84,7 @@ private:
 };
 
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
     // This class name should match the friend in PreFlagger.
     class TestPSet

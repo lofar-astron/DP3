@@ -29,7 +29,7 @@
 //# Includes
 #include "StringUtil.h"
 
-namespace LOFAR { 
+namespace DP3 { 
 
   // Forward declaration.
   class ParameterRecord;
@@ -165,12 +165,12 @@ namespace LOFAR {
     // Return the position of the first non-whitespace character in itsValue
     // starting at st.
     uint lskipws (uint st, uint end) const
-      { return LOFAR::lskipws (itsValue, st, end); }
+      { return DP3::lskipws (itsValue, st, end); }
   
     // Return the position after the last non-whitespace character in itsValue
     // back from end.
     uint rskipws (uint st, uint end) const
-      { return LOFAR::rskipws (itsValue, st, end); }
+      { return DP3::rskipws (itsValue, st, end); }
 
     // Return the substring with left and right whitespace removed.
     ParameterValue substr (int st, int end) const

@@ -126,7 +126,6 @@
 
 #include "../Common/StringUtil.h"
 #include "../Common/StreamUtil.h"
-//#include "../Common/SystemUtil.h"
 
 #include <string>                //# for getline
 #include <iostream>
@@ -142,7 +141,7 @@
 
 using namespace std;
 using namespace casacore;
-using namespace LOFAR;
+using namespace DP3;
 using namespace BBS;
 
 // Define the sequence nrs of the various fields.

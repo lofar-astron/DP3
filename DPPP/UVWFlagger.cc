@@ -42,7 +42,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     UVWFlagger::UVWFlagger (DPInput* input,

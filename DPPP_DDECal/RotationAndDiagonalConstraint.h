@@ -6,7 +6,7 @@
 #include <vector>
 #include <ostream>
 
-namespace LOFAR {
+namespace DP3 {
 
 class RotationAndDiagonalConstraint : public Constraint
 {

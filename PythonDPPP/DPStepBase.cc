@@ -30,7 +30,7 @@
 // PythonWorker doing the actual work. Its pointer is kept in a static
 // and thereafter used to create a PythonStep.
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // Define the static.

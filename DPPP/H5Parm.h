@@ -10,7 +10,7 @@
 
 #include <utility>
 
-namespace LOFAR {
+namespace DP3 {
   class H5Parm : private H5::H5File
   {
     typedef struct antenna_t {

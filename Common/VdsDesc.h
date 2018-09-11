@@ -33,7 +33,7 @@
 
 #include <casacore/casa/Utilities/Regex.h>
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   // @ingroup LMWCommon
   // @brief Describe an entire visibility data set

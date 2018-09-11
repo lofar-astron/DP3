@@ -37,7 +37,7 @@
 #include <vector>
 #include <iosfwd>
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   // @ingroup LMWCommon
   // @brief Description of a visibility data set or part thereof.

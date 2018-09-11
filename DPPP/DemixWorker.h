@@ -48,7 +48,7 @@
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   namespace DPPP {
     // @ingroup NDPPP
@@ -175,7 +175,7 @@ namespace LOFAR {
                       dcomplex* data);
 
       // Convert a direction to ITRF.
-      StationResponse::vector3r_t dir2Itrf (const casacore::MDirection&);
+      LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection&);
 
       // Calculate the StokesI amplitude from the predicted visibilities.
       // (0.5 * (XX+YY))
@@ -236,7 +236,7 @@ namespace LOFAR {
       //# The sources to demix (excluding target).
       vector<Patch::ConstPtr>               itsDemixList;
       //# The info needed to calculate the station beams.
-      vector<StationResponse::Station::Ptr> itsAntBeamInfo;
+      vector<LOFAR::StationResponse::Station::Ptr> itsAntBeamInfo;
       //# Measure objects unique to this worker (thread).
       //# This is needed because they are not thread-safe.
       casacore::MPosition                       itsArrayPos;
@@ -269,7 +269,7 @@ namespace LOFAR {
       //# Variables for conversion of directions to ITRF.
       casacore::MeasFrame                       itsMeasFrame;
       casacore::MDirection::Convert             itsMeasConverter;
-      vector<StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
+      vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
 
       //# Indices telling which Ateam sources to use.
       vector<uint>                          itsSrcSet;

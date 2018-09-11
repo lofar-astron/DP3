@@ -17,7 +17,7 @@ void TECConstraintBase::initialize(const double* frequencies) {
 #ifdef AOPROJECT
       omp_get_max_threads()
 #else
-      LOFAR::OpenMP::maxThreads()
+      DP3::OpenMP::maxThreads()
 #endif
    );
 
@@ -41,7 +41,7 @@ void ApproximateTECConstraint::initializeChild()
 #ifdef AOPROJECT
       omp_get_max_threads()
 #else
-      LOFAR::OpenMP::maxThreads()
+      DP3::OpenMP::maxThreads()
 #endif
    );
   _threadData.resize(_pwFitters.size());
@@ -130,7 +130,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 #ifdef AOPROJECT
         omp_get_thread_num();
 #else
-        LOFAR::OpenMP::threadNum();
+        DP3::OpenMP::threadNum();
 #endif
 
     // Flag channels where calibration yielded inf or nan
@@ -189,7 +189,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
 #ifdef AOPROJECT
       size_t thread = omp_get_thread_num();
 #else
-      size_t thread = LOFAR::OpenMP::threadNum();
+      size_t thread = DP3::OpenMP::threadNum();
 #endif
       std::vector<double>& data = _threadData[thread];
       std::vector<double>& fittedData = _threadFittedData[thread];

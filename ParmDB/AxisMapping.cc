@@ -22,7 +22,7 @@
 
 #include "AxisMapping.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   // Map one axis onto another.

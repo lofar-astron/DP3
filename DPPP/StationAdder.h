@@ -35,7 +35,7 @@
 
 #include <casacore/measures/Measures/MPosition.h>
 
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {

@@ -39,7 +39,7 @@
 #include <casacore/casa/Containers/ValueHolder.h>
 #include <casacore/casa/Containers/Record.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // @ingroup NDPPP

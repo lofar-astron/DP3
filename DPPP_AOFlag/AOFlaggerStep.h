@@ -35,7 +35,7 @@
 
 #include <aoflagger.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

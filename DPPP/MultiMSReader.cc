@@ -46,7 +46,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     MultiMSReader::MultiMSReader (const vector<string>& msNames,

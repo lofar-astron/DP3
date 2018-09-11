@@ -24,7 +24,7 @@
 
 #include <string>
 
-namespace LOFAR {
+namespace DP3 {
 
 // @ingroup NDPPP
 

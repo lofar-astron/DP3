@@ -41,10 +41,10 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
-    using LOFAR::operator<<;
+    using DP3::operator<<;
 
     DemixerNew::DemixerNew (DPInput* input,
                             const ParameterSet& parset,
@@ -460,7 +460,7 @@ namespace LOFAR {
       // Open the ParmDB at the first write.
       // In that way the instrumentmodel ParmDB can be in the MS directory.
       if (! itsParmDB) {
-        itsParmDB = boost::shared_ptr<BBS::ParmDB>
+        itsParmDB = std::shared_ptr<BBS::ParmDB>
           (new BBS::ParmDB(BBS::ParmDBMeta("casa", itsInstrumentName),
                            true));
         itsParmDB->lock();
@@ -497,7 +497,7 @@ namespace LOFAR {
                 pv->setScalars (solGrid, values);
                 BBS::ParmValueSet pvs(domainGrid,
                                       vector<BBS::ParmValue::ShPtr>(1, pv));
-                map<string,int>::const_iterator pit = itsParmIdMap.find(name);
+                std::map<std::string,int>::const_iterator pit = itsParmIdMap.find(name);
                 if (pit == itsParmIdMap.end()) {
                   // First time, so a new nameId will be set.
                   int nameId = -1;

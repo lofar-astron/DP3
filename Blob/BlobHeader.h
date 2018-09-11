@@ -30,7 +30,7 @@
 
 #include <cstring>
 
-namespace LOFAR {
+namespace DP3 {
 
 // \ingroup %pkgname%
   // @{
@@ -94,8 +94,8 @@ namespace LOFAR {
       BlobHeader (int version=0, uint level=0);
       
       // Get the data format.
-      LOFAR::DataFormat getDataFormat() const
-	{ return LOFAR::DataFormat (itsDataFormat); }
+      DP3::DataFormat getDataFormat() const
+	{ return DP3::DataFormat (itsDataFormat); }
       
       // Set the data format to local. Useful after data is converted in place.
       void setLocalDataFormat();
@@ -103,12 +103,12 @@ namespace LOFAR {
       // Get the version. Data will be converted if needed.
       int getVersion() const
 	{ return (mustConvert()  ?
-		  LOFAR::dataConvert(getDataFormat(), itsVersion) : itsVersion); }
+		  DP3::dataConvert(getDataFormat(), itsVersion) : itsVersion); }
       
       // Get the length of the blob. Data will be converted if needed.
       uint64_t getLength() const
 	{ return (mustConvert()  ?
-		  LOFAR::dataConvert(getDataFormat(), itsLength) : itsLength); }
+		  DP3::dataConvert(getDataFormat(), itsLength) : itsLength); }
       
       // Set the length of the blob.
       void setLength (uint64_t length)
@@ -117,7 +117,7 @@ namespace LOFAR {
       // Test if the data format in the header mismatches the data format of
       // this machine, thus if data have to be converted.
       bool mustConvert() const
-	{ return itsDataFormat != LOFAR::dataFormat(); }
+	{ return itsDataFormat != DP3::dataFormat(); }
       
       // Get the offset of the length.
       uint lengthOffset() const

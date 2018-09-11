@@ -37,7 +37,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     Filter::Filter (DPInput* input,

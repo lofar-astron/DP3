@@ -29,7 +29,7 @@
 #include <omp.h>
 #endif
 
-namespace LOFAR {
+namespace DP3 {
   namespace OpenMP {
 
     // Get the maximum number of threads.

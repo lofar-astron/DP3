@@ -39,7 +39,7 @@ using namespace boost::python;
 // PythonWorker doing the actual work. Its pointer is kept in a static
 // and thereafter used to create a PythonStep.
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // Define the interface for the PythonStep C++ functions callable
@@ -83,5 +83,5 @@ BOOST_PYTHON_MODULE(_pythondppp)
   casacore::python::register_convert_casa_valueholder();
   casacore::python::register_convert_casa_record();
 
-  LOFAR::DPPP::dpstepbase();
+  DP3::DPPP::dpstepbase();
 }

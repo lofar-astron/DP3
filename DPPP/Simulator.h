@@ -37,7 +37,7 @@
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Cube.h>
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

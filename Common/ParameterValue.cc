@@ -29,7 +29,7 @@
 typedef std::runtime_error ParException;
 	
 
-namespace LOFAR { 
+namespace DP3 { 
 
   ParameterValue::ParameterValue (const std::string& value, bool trim)
     : itsValue (value)

@@ -38,9 +38,9 @@
 #include <iostream>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     H5ParmPredict::H5ParmPredict (DPInput* input,

@@ -27,7 +27,7 @@
 #include <casacore/scimath/Fitting/LSQFit.h>
 
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     EstimateNew::EstimateNew()

@@ -49,7 +49,7 @@
 
 using namespace casa;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     PythonStep::PythonStep (DPInput* input,
@@ -364,6 +364,6 @@ namespace LOFAR {
 // Define the function to make the PythonStep 'constructor' known.
 void register_pythondppp()
 {
-  LOFAR::DPPP::DPRun::registerStepCtor ("pythondppp",
-                                        LOFAR::DPPP::PythonStep::makeStep);
+  DP3::DPPP::DPRun::registerStepCtor ("pythondppp",
+                                        DP3::DPPP::PythonStep::makeStep);
 }

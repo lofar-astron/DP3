@@ -26,7 +26,7 @@
 #include "ParmCache.h"
 #include "Parm.h"
 
-#include <Common/StringUtil.h>
+#include "../Common/StringUtil.h"
 
 #include <casacore/casa/Utilities/Regex.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -43,7 +43,7 @@ using namespace casacore;
 //   add parm2 domain=[1,4,5,10],values=[2,0.1],nx=2
 //   add parm3 type='expression',expression='parm1*parm2'
 
-namespace LOFAR {
+namespace DP3 {
   namespace BBS {
 
     ParmFacadeLocal::ParmFacadeLocal (const string& tableName, bool create)
@@ -606,7 +606,7 @@ namespace LOFAR {
       } else if (strc == "polclog") {
         return ParmValue::PolcLog;
       }
-      throw Exception (strc + " is an unknown funklet type");
+      throw std::runtime_error (strc + " is an unknown funklet type");
     }
 
   } // namespace ParmDB

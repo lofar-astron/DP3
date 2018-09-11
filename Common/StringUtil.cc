@@ -34,7 +34,7 @@
 #include <sstream>
 #include <iomanip>
 
-namespace LOFAR
+namespace DP3
 {
 
 enum rangeElementEnum

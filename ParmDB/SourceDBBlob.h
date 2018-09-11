@@ -36,7 +36,7 @@
 #include "../Blob/BlobOStream.h"
 #include "../Blob/BlobIStream.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   // @ingroup ParmDB

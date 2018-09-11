@@ -33,7 +33,7 @@
 #include <iosfwd>
 #include <string>
 
-namespace LOFAR {
+namespace DP3 {
 // \addtogroup Common
 // @{
 
@@ -75,7 +75,7 @@ public:
 
 // @} addgroup
 
-std::ostream& operator<< (std::ostream& os, const LOFAR::KVpair& kv);
+std::ostream& operator<< (std::ostream& os, const DP3::KVpair& kv);
 
 
 } // namespace LOFAR

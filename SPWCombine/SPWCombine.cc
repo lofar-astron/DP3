@@ -23,7 +23,7 @@
 #include <lofar_config.h>
 #include <SPWCombine/SPWCombine.h>
 
-namespace LOFAR
+namespace DP3
 {
   namespace CS1
   {

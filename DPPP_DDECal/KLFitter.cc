@@ -2,7 +2,7 @@
 
 using namespace arma;
 
-namespace LOFAR{
+namespace DP3{
 KLFitter::KLFitter(double r0,double beta,int order):
   itsOrder(order),
   itsR0(r0),

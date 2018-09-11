@@ -57,7 +57,7 @@
 #define H5Gcreate_vers 2
 #include <H5Cpp.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

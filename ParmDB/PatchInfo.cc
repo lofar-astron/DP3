@@ -37,7 +37,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   void PatchSumInfo::add (double ra, double dec, double flux)

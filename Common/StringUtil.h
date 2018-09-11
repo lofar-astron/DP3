@@ -29,7 +29,7 @@
 // \file
 // Useful string manipulation methods
 
-namespace LOFAR
+namespace DP3
 {
 
   // Useful string manipulation methods and classes.

@@ -60,7 +60,7 @@
 #include <utility>
 #include <vector>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
 
@@ -68,11 +68,11 @@ namespace LOFAR {
 template<typename T>
 void ApplyBeam::applyBeam(
         const DPInfo& info, double time, T* data0, float* weight0,
-        const StationResponse::vector3r_t& srcdir,
-        const StationResponse::vector3r_t& refdir,
-        const StationResponse::vector3r_t& tiledir,
-        const vector<StationResponse::Station::Ptr>& antBeamInfo,
-        vector<StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
+        const LOFAR::StationResponse::vector3r_t& srcdir,
+        const LOFAR::StationResponse::vector3r_t& refdir,
+        const LOFAR::StationResponse::vector3r_t& tiledir,
+        const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+        vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
         bool invert, int mode, bool doUpdateWeights)
     { 
       // Get the beam values for each station.
@@ -82,7 +82,7 @@ void ApplyBeam::applyBeam(
 
       // Store array factor in diagonal matrix (in other modes this variable
       // is not used).
-      StationResponse::diag22c_t af_tmp;
+      LOFAR::StationResponse::diag22c_t af_tmp;
 
       double reffreq=info.refFreq();
 
@@ -144,9 +144,9 @@ void ApplyBeam::applyBeam(
         // that r and l are diagonal
         for (size_t bl = 0; bl < nBl; ++bl) {
           T* data = data0 + bl * 4 * nCh + ch * 4;
-          StationResponse::matrix22c_t *left = &(beamValues[nCh
+          LOFAR::StationResponse::matrix22c_t *left = &(beamValues[nCh
               * info.getAnt1()[bl]]);
-          StationResponse::matrix22c_t *right = &(beamValues[nCh
+          LOFAR::StationResponse::matrix22c_t *right = &(beamValues[nCh
               * info.getAnt2()[bl]]);
           dcomplex l[] = { left[ch][0][0], left[ch][0][1],
                            left[ch][1][0], left[ch][1][1] };

@@ -50,9 +50,9 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     ApplyBeam::ApplyBeam(DPInput* input, const ParameterSet& parset,
@@ -166,7 +166,7 @@ namespace LOFAR {
       double time = itsBuffer.getTime();
 
       //Set up directions for beam evaluation
-      StationResponse::vector3r_t refdir, tiledir;
+      LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
       for (uint thread = 0; thread < OpenMP::maxThreads(); ++thread) {
         itsMeasFrames[thread].resetEpoch(
@@ -179,7 +179,7 @@ namespace LOFAR {
 
       uint thread = OpenMP::threadNum();
 
-      StationResponse::vector3r_t srcdir = refdir;
+      LOFAR::StationResponse::vector3r_t srcdir = refdir;
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                 itsAntBeamInfo[thread], itsBeamValues[thread],
                 itsUseChannelFreq, itsInvert, itsMode, itsUpdateWeights);
@@ -189,12 +189,12 @@ namespace LOFAR {
       return false;
     }
 
-    StationResponse::vector3r_t ApplyBeam::dir2Itrf(
+    LOFAR::StationResponse::vector3r_t ApplyBeam::dir2Itrf(
         const MDirection& dir, MDirection::Convert& measConverter)
     {
       const MDirection& itrfDir = measConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      StationResponse::vector3r_t vec;
+      LOFAR::StationResponse::vector3r_t vec;
       vec[0] = itrf[0];
       vec[1] = itrf[1];
       vec[2] = itrf[2];

@@ -62,9 +62,9 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     Predict::Predict (DPInput* input,
@@ -294,7 +294,7 @@ namespace LOFAR {
       nsplitUVW(itsUVWSplitIndex, itsBaselines, itsTempBuffer.getUVW(), itsUVW);
 
       //Set up directions for beam evaluation
-      StationResponse::vector3r_t refdir, tiledir;
+      LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
       if (itsApplyBeam) {
         for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
@@ -387,11 +387,11 @@ namespace LOFAR {
       return false;
     }
 
-    StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir,
+    LOFAR::StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir,
                                       MDirection::Convert& measConverter) {
       const MDirection& itrfDir = measConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      StationResponse::vector3r_t vec;
+      LOFAR::StationResponse::vector3r_t vec;
       vec[0] = itrf[0];
       vec[1] = itrf[1];
       vec[2] = itrf[2];
@@ -399,14 +399,14 @@ namespace LOFAR {
     }
 
     void Predict::addBeamToData (Patch::ConstPtr patch, double time,
-                                 const StationResponse::vector3r_t& refdir,
-                                 const StationResponse::vector3r_t& tiledir,
+                                 const LOFAR::StationResponse::vector3r_t& refdir,
+                                 const LOFAR::StationResponse::vector3r_t& tiledir,
                                  uint thread, uint nSamples, dcomplex* data0) {
       //Apply beam for a patch, add result to itsModelVis
       MDirection dir (MVDirection(patch->position()[0],
                                   patch->position()[1]),
                       MDirection::J2000);
-      StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
 
       float* dummyweight = 0;
 

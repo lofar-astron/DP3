@@ -60,9 +60,9 @@
 #include <iomanip>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     GainCal::GainCal (DPInput* input,
@@ -1242,7 +1242,7 @@ namespace LOFAR {
 
             BBS::ParmValueSet pvs(domainGrid,
                                   vector<BBS::ParmValue::ShPtr>(1, pv));
-            map<string,int>::const_iterator pit = itsParmIdMap.find(name);
+            std::map<std::string,int>::const_iterator pit = itsParmIdMap.find(name);
 
             if (pit == itsParmIdMap.end()) {
               // First time, so a new nameId will be set.

@@ -39,7 +39,7 @@
 // 0.21 Fixed calculation of REF_FREQUENCY
 // 0.22 Added handing of Measurementsets with different numbers of timesamples
 
-namespace LOFAR
+namespace DP3
 {
   namespace CS1
   {

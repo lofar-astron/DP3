@@ -24,7 +24,7 @@
 
 using namespace std;
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   ParameterHandler::ParameterHandler (const ParameterSet& parSet)
     : itsParms (parSet)
@@ -116,7 +116,7 @@ namespace LOFAR { namespace CEP {
   }
 
 
-  LOFAR::BlobOStream& operator<< (LOFAR::BlobOStream& bs, const ParameterSet& m)
+  DP3::BlobOStream& operator<< (DP3::BlobOStream& bs, const ParameterSet& m)
   {
     bs.putStart ("ParameterSet", 1);
     bs << static_cast<uint32_t>(m.size());
@@ -129,7 +129,7 @@ namespace LOFAR { namespace CEP {
     return bs;
   }
 
-  LOFAR::BlobIStream& operator>> (LOFAR::BlobIStream& bs, ParameterSet& m)
+  DP3::BlobIStream& operator>> (DP3::BlobIStream& bs, ParameterSet& m)
   {
     bs.getStart ("ParameterSet");
     m.clear();

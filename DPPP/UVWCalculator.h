@@ -39,7 +39,7 @@
 #include <casacore/measures/Measures/MCBaseline.h>
 #include <casacore/casa/Arrays/Vector.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // @ingroup NDPPP

@@ -28,7 +28,7 @@
 
 #include "ParameterSet.h"
 
-namespace LOFAR { 
+namespace DP3 { 
 
   class ParameterRecord: public ParameterSet
   {

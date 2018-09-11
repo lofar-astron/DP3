@@ -33,7 +33,7 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     //# Forward declarations.

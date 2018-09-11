@@ -24,7 +24,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   ParmDBBlob::ParmDBBlob (const string&, bool)

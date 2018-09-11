@@ -31,7 +31,7 @@
 
 #include <iostream>
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

@@ -27,10 +27,10 @@
 #ifndef LOFAR_PARMDB_PARMDBLOCKER_H
 #define LOFAR_PARMDB_PARMDBLOCKER_H
 
-#include <Common/lofar_smartptr.h>
-#include <Common/lofar_vector.h>
+#include <memory>
+#include <vector>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   //# Forward Declarations
@@ -49,7 +49,7 @@ namespace BBS {
   {
   public:
     // Define a shared pointer for this type.
-    typedef shared_ptr<ParmDBLocker> ShPtr;
+    typedef std::shared_ptr<ParmDBLocker> ShPtr;
 
     // Create a read or write lock on all ParmDBs in the ParmSet.
     explicit ParmDBLocker (const ParmSet& parmSet, bool write=false);
@@ -68,7 +68,7 @@ namespace BBS {
     // </group>
 
     //# The locked DBs.
-    vector<ParmDB*> itsDBs;
+    std::vector<ParmDB*> itsDBs;
   };
 
   // @}

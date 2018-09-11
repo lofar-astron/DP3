@@ -36,7 +36,7 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 
@@ -188,7 +188,7 @@ namespace LOFAR {
 
       // Fill the vector with station beam info from the input MS.
       // Only fill it for the given station names.
-      virtual void fillBeamInfo (vector<StationResponse::Station::Ptr>&,
+      virtual void fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                  const casacore::Vector<casacore::String>& antNames);
 
       // Tell if the visibility data are to be read.

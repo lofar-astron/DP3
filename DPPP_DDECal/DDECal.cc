@@ -69,9 +69,9 @@
 #include <vector>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     DDECal::DDECal (DPInput* input,
@@ -610,8 +610,8 @@ namespace LOFAR {
 
       itsTimerPredict.start();
 
-//      if(itsPredictSteps.size() < LOFAR::OpenMP::maxThreads())
-//        LOFAR::OpenMP::setNested(true);
+//      if(itsPredictSteps.size() < DP3OpenMP::maxThreads())
+//        DP3OpenMP::setNested(true);
       if (itsUseModelColumn) {
         itsInput->getModelData (itsBufs[itsStepInSolInt].getRowNrs(),
                                 itsModelData[itsStepInSolInt]);

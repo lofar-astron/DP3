@@ -32,7 +32,7 @@
 
 #include <iosfwd>
 
-namespace LOFAR {
+namespace DP3 {
 
   //# Forward Declarations.
   class BlobIStream;

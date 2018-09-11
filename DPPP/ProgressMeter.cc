@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace LOFAR {
+namespace DP3 {
 
 // First implement a simple stderr based progress meter that just prints out
 // 0%....10....20....30....40....50....60....70....80....90....100%

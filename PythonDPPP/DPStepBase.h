@@ -27,7 +27,7 @@
 #include "../DPPP/DPInfo.h"
 
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // DPStepBase is the interface for callbacks from the DPPP PythonStep

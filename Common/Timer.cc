@@ -33,7 +33,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
 
 
 double NSTimer::CPU_speed_in_MHz = NSTimer::get_CPU_speed_in_MHz();

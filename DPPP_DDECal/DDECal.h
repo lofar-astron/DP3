@@ -51,7 +51,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

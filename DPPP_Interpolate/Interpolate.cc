@@ -18,10 +18,10 @@ using namespace casacore;
 
 void register_interpolate()
 {
-	LOFAR::DPPP::DPRun::registerStepCtor("interpolate", LOFAR::DPPP::Interpolate::makeStep);
+	DP3::DPPP::DPRun::registerStepCtor("interpolate", DP3::DPPP::Interpolate::makeStep);
 }
 
-namespace LOFAR { namespace DPPP {
+namespace DP3 { namespace DPPP {
 	
 Interpolate::Interpolate(DPInput* /*input*/, const ParameterSet& parset, const string& prefix) :
 	_name(prefix),

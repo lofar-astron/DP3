@@ -26,7 +26,7 @@
 #include <string>
 
 
-namespace LOFAR {
+namespace DP3 {
 
   class PrettyUnits : public std::string
   {

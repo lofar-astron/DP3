@@ -38,7 +38,7 @@
 
 typedef std::runtime_error APSException;
 
-namespace LOFAR {
+namespace DP3 {
 
 //-------------------------- creation and destroy ---------------------------
 //

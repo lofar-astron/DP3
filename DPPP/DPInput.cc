@@ -33,7 +33,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     DPInput::~DPInput()
@@ -121,7 +121,7 @@ namespace LOFAR {
     void DPInput::getModelData (const RefRows&, Cube<Complex>&)
       { throw Exception ("DPInput::getModelData not implemented"); }
 
-    void DPInput::fillBeamInfo (vector<StationResponse::Station::Ptr>&,
+    void DPInput::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                 const Vector<casacore::String>&)
       { throw Exception ("DPInput::fillBeamInfo not implemented"); }
 

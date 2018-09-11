@@ -34,7 +34,7 @@
 #include <casacore/casa/Arrays/Array.h>
 
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   SourceInfo::SourceInfo (const string& name, Type type,

@@ -45,7 +45,7 @@
 # define LFDC_TMPL_FP
 #endif
 
-namespace LOFAR
+namespace DP3
 {
 // \ingroup Common
 // \addtogroup DataConvert Data conversion functions
@@ -181,7 +181,7 @@ namespace LOFAR
 } // end namespace LOFAR
 
 
-namespace LOFAR
+namespace DP3
 {
   template<class T>
   inline void dataConvert (DataFormat fmt, std::complex<T>* inout, uint nrval)

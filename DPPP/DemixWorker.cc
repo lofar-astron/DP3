@@ -64,10 +64,10 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
-    using LOFAR::operator<<;
+    using DP3::operator<<;
 
     namespace
     {
@@ -765,10 +765,10 @@ namespace LOFAR {
       }
       // Convert the directions to ITRF for the given time.
       itsMeasFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-      StationResponse::vector3r_t refdir  = dir2Itrf(itsDelayCenter);
-      StationResponse::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
+      LOFAR::StationResponse::vector3r_t refdir  = dir2Itrf(itsDelayCenter);
+      LOFAR::StationResponse::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
       MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
-      StationResponse::vector3r_t srcdir = dir2Itrf(dir);
+      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir);
       // Get the beam values for each station.
       uint nchan = chanFreqs.size();
       for (size_t st=0; st<itsMix->nstation(); ++st) {
@@ -780,9 +780,9 @@ namespace LOFAR {
       // Apply the beam values of both stations to the predicted data.
       dcomplex tmp[4];
       for (size_t bl=0; bl<itsMix->nbl(); ++bl) {
-        const StationResponse::matrix22c_t* left =
+        const LOFAR::StationResponse::matrix22c_t* left =
           &(itsBeamValues[nchan * itsMix->getAnt1()[bl]]);
-        const StationResponse::matrix22c_t* right =
+        const LOFAR::StationResponse::matrix22c_t* right =
           &(itsBeamValues[nchan * itsMix->getAnt2()[bl]]);
         for (size_t ch=0; ch<nchan; ++ch) {
           dcomplex l[] = {left[ch][0][0], left[ch][0][1],
@@ -805,11 +805,11 @@ namespace LOFAR {
       }
     }
 
-    StationResponse::vector3r_t DemixWorker::dir2Itrf (const MDirection& dir)
+    LOFAR::StationResponse::vector3r_t DemixWorker::dir2Itrf (const MDirection& dir)
     {
       const MDirection& itrfDir = itsMeasConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      StationResponse::vector3r_t vec;
+      LOFAR::StationResponse::vector3r_t vec;
       vec[0] = itrf[0];
       vec[1] = itrf[1];
       vec[2] = itrf[2];

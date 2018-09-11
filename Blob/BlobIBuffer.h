@@ -28,7 +28,7 @@
 // \file
 // Abstract base class for input buffer for a blob
 
-namespace LOFAR {
+namespace DP3 {
 
 // \ingroup %pkgname%
   // @{

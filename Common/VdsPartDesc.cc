@@ -33,12 +33,12 @@
 #include <ostream>
 
 namespace std {
-  using LOFAR::operator<<;
+  using DP3::operator<<;
 }
 using namespace std;
 using namespace casacore;
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   VdsPartDesc::VdsPartDesc (const ParameterSet& parset)
   {

@@ -23,7 +23,7 @@
 #include "ParmSet.h"
 #include "ParmDB.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   ParmSet::ParmSet()

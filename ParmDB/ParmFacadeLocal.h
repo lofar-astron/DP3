@@ -34,7 +34,7 @@
 #include <casacore/casa/Arrays/Vector.h>
 
 
-namespace LOFAR { namespace BBS {
+namespace DP3 { namespace BBS {
 
 
   // \ingroup ParmDB

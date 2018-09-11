@@ -216,7 +216,7 @@ namespace LOFAR { namespace BBS {
     // </group>
 
     // Check the return status of a client.
-    bool checkStatus (LOFAR::CEP::MWBlobIn& bbi, int i) const;
+    bool checkStatus (DP3CEP::MWBlobIn& bbi, int i) const;
 
     // Check the return status of all clients.
     void checkStatusAll() const;
@@ -247,7 +247,7 @@ namespace LOFAR { namespace BBS {
 
     //# Data members
     string                itsPort;      //# declare this before itsConn!!
-    mutable LOFAR::CEP::SocketConnectionSet itsConn;
+    mutable DP3CEP::SocketConnectionSet itsConn;
     vector<string>        itsPartNames;
     vector<string>        itsParmNames;
     casacore::Record          itsDefValues;

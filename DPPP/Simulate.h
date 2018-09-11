@@ -40,7 +40,7 @@ namespace casa
   template<typename T> class Matrix;
 }
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

@@ -35,7 +35,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
 

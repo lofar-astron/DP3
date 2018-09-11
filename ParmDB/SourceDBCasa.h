@@ -35,7 +35,7 @@
 
 #include <set>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   // @ingroup ParmDB

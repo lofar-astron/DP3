@@ -54,8 +54,8 @@
 #include <fstream>
 #include <sstream>
 
-using namespace LOFAR;
-using namespace LOFAR::CEP;
+using namespace DP3;
+using namespace DP3::CEP;
 using namespace casacore;
 using namespace std;
 

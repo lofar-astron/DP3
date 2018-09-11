@@ -32,7 +32,7 @@
 
 #include <casacore/casa/Arrays/Array.h>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   //# Forward declarations

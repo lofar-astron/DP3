@@ -30,10 +30,10 @@
 
 #include <casacore/casa/BasicMath/Math.h>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
-  using LOFAR::operator<<;
+  using DP3::operator<<;
 
   // Initialize static.
   uint Axis::theirId = 0;

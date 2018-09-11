@@ -43,11 +43,11 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
-using namespace LOFAR::BBS;
+using namespace DP3::BBS;
 
 /// Look at BBSKernel MeasurementExprLOFARUtil.cc and Apply.cc
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     OneApplyCal::OneApplyCal (DPInput* input,
@@ -466,8 +466,8 @@ namespace LOFAR {
         numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
       }
 
-      map<string, vector<double> > parmMap;
-      map<string, vector<double> >::iterator parmIt;
+      std::map<std::string, std::vector<double> > parmMap;
+      std::map<std::string, std::vector<double> >::iterator parmIt;
 
       uint tfDomainSize=numTimes*numFreqs;
 

@@ -44,7 +44,7 @@
 using namespace casacore;
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   ParmDBCasa::ParmDBCasa (const string& tableName, bool forceNew)

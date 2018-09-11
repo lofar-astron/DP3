@@ -29,7 +29,7 @@
 #include <cmath>
 
 
-namespace LOFAR {
+namespace DP3 {
 
 PrettyUnits::PrettyUnits(double value, const char *unit, unsigned precision)
 {

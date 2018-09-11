@@ -32,7 +32,7 @@
 
 #include <cassert>
 
-namespace LOFAR
+namespace DP3
 {
 
 template<typename T>
@@ -41,7 +41,7 @@ BlobOStream& putBlobArray (BlobOStream& bs, const T* data,
 			   bool fortranOrder)
 {
   uint64_t n = putBlobArrayHeader (bs, true,
-				 LOFAR::typeName((const T**)0),
+				 DP3::typeName((const T**)0),
 				 shape, ndim, fortranOrder, 1);
   putBlobArrayData (bs, data, n);
   bs.putEnd();
@@ -106,7 +106,7 @@ uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
     alignment = std::min((size_t) 8, sizeof(T));
   }
   uint64_t n = putBlobArrayHeader (bs, useBlobHeader,
-				 LOFAR::typeName((const T**)0),
+				 DP3::typeName((const T**)0),
 				 shape, ndim, fortranOrder, alignment);
   uint64_t pos = bs.setSpace (n*sizeof(T));
   if (useBlobHeader) {
@@ -170,7 +170,7 @@ BlobOStream& operator<< (BlobOStream& bs, const casacore::Array<T>& arr)
 template<typename T>
 BlobIStream& operator>> (BlobIStream& bs, casacore::Array<T>& arr)
 {
-  bs.getStart (LOFAR::typeName((const T**)0));
+  bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
@@ -193,7 +193,7 @@ BlobIStream& operator>> (BlobIStream& bs, casacore::Array<T>& arr)
 template<typename T>
 BlobIStream& getBlobVector (BlobIStream& bs, T*& arr, uint64_t& size)
 {
-  bs.getStart (LOFAR::typeName((const T**)0));
+  bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
@@ -209,7 +209,7 @@ template<typename T>
 BlobIStream& getBlobArray (BlobIStream& bs, T*& arr,
 	                   std::vector<uint64_t>& shape, bool fortranOrder)
 {
-  bs.getStart (LOFAR::typeName((const T**)0));
+  bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder1;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder1, ndim);
@@ -228,7 +228,7 @@ uint64_t getSpaceBlobArray (BlobIStream& bs, bool useBlobHeader,
                           bool fortranOrder)
 {
   if (useBlobHeader) {
-    bs.getStart (LOFAR::typeName((const T**)0));
+    bs.getStart (DP3::typeName((const T**)0));
   }
   bool fortranOrder1;
   uint16_t ndim;
@@ -246,7 +246,7 @@ uint64_t getSpaceBlobArray (BlobIStream& bs, bool useBlobHeader,
 template<typename T>
 BlobIStream& operator>> (BlobIStream& bs, std::vector<T>& arr)
 {
-  bs.getStart (LOFAR::typeName((const T**)0));
+  bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);

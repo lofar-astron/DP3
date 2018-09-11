@@ -32,7 +32,7 @@
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/casa/Arrays/Vector.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   // @ingroup MS
   // @brief Class to create the description of an MS

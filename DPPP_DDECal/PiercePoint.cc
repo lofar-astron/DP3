@@ -2,7 +2,7 @@
 
 using namespace arma;
 
-namespace LOFAR{
+namespace DP3{
 
   const double PiercePoint::IONOheight = 300000.;
   const double PiercePoint::EarthRadius = 6371000.;

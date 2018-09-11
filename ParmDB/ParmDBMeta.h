@@ -29,7 +29,7 @@
 
 #include <string>
 
-namespace LOFAR {
+namespace DP3 {
 //# Forward Declarations.
 class BlobOStream;
 class BlobIStream;

@@ -35,7 +35,7 @@
 #include <queue>
 #include <deque>
 
-namespace LOFAR
+namespace DP3
 {
 
 // \ingroup %pkgname%
@@ -135,7 +135,7 @@ namespace LOFAR
 
 #include "BlobSTL.tcc"
 
-using LOFAR::operator<<;
-using LOFAR::operator>>;
+using DP3::operator<<;
+using DP3::operator>>;
 
 #endif

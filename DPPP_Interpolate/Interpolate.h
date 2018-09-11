@@ -15,7 +15,7 @@
 
 extern "C" void register_interpolate();
 
-namespace LOFAR { namespace DPPP {
+namespace DP3 { namespace DPPP {
 		
 	class Interpolate : public DPStep
 	{

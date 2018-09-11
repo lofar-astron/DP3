@@ -44,7 +44,7 @@
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/measures/Measures/MCPosition.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

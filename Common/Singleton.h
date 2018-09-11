@@ -28,7 +28,7 @@
 
 //# Includes
 
-namespace LOFAR
+namespace DP3
 {
   // \addtogroup Common
   // @{

@@ -31,7 +31,7 @@
 #include "DPBuffer.h"
 #include "BaselineSelection.h"
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

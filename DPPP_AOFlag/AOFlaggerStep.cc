@@ -38,7 +38,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     AOFlaggerStep::AOFlaggerStep (DPInput* input,
@@ -195,8 +195,8 @@ namespace LOFAR {
 
     void AOFlaggerStep::showCounts (std::ostream& os) const
     {
-      os << endl << "Flags set by AOFlaggerStep " << itsName;
-      os << endl << "===========================" << endl;
+      os << "\nFlags set by AOFlaggerStep " << itsName;
+      os << "\n===========================\n";
       itsFlagCounter.showBaseline (os, itsNTimes);
       itsFlagCounter.showChannel  (os, itsNTimes);
       itsFlagCounter.showCorrelation (os, itsNTimes);
@@ -207,22 +207,22 @@ namespace LOFAR {
       double flagDur = itsTimer.getElapsed();
       os << "  ";
       FlagCounter::showPerc1 (os, flagDur, duration);
-      os << " AOFlaggerStep " << itsName << endl;
+      os << " AOFlaggerStep " << itsName << '\n';
       os << "          ";
       // move time and flag time are sum of all threads.
       // Scale them to a single elapsed time.
       double factor = (itsComputeTimer.getElapsed() /
                        (itsMoveTime + itsFlagTime + itsQualTime));
       FlagCounter::showPerc1 (os, itsMoveTime*factor, flagDur);
-      os << " of it spent in shuffling data" << endl;
+      os << " of it spent in shuffling data" << '\n';
       os << "          ";
       FlagCounter::showPerc1 (os, itsFlagTime*factor, flagDur);
-      os << " of it spent in calculating flags" << endl;
+      os << " of it spent in calculating flags" << '\n';
       if (itsDoRfiStats) {
         os << "          ";
         FlagCounter::showPerc1 (os, itsQualTime*factor +  itsQualityTimer.getElapsed(),
                                 flagDur);
-        os << " of it spent in making quality statistics" << endl;
+        os << " of it spent in making quality statistics" << '\n';
       }
     }
 
@@ -247,8 +247,7 @@ namespace LOFAR {
 
     void AOFlaggerStep::finish()
     {
-      cerr << "  " << itsBufIndex << " time slots to finish in AOFlaggerStep ..."
-           << endl;
+      std::cerr << "  " << itsBufIndex << " time slots to finish in AOFlaggerStep ...\n";
       itsTimer.start();
       // Set window size to all entries left.
       itsWindowSize = itsBufIndex;

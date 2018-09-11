@@ -26,7 +26,7 @@
 
 #include <vector>
 
-namespace LOFAR
+namespace DP3
 {
 
 uint64_t putBlobArrayHeader (BlobOStream& bs, bool useBlobHeader,
@@ -84,7 +84,7 @@ uint64_t getBlobArrayShape (BlobIStream& bs, uint64_t* shape, uint ndim,
   return n;
 }
 
-void convertArrayHeader (LOFAR::DataFormat fmt, char* header,
+void convertArrayHeader (DP3::DataFormat fmt, char* header,
 			 bool useBlobHeader)
 {
   char* buf = header;
@@ -108,7 +108,7 @@ BlobOStream& operator<< (BlobOStream& bs, const std::vector<bool>& vec)
 {
   uint64_t size = vec.size();
   putBlobArrayHeader (bs, true,
-		      LOFAR::typeName((const bool**)0),
+		      DP3::typeName((const bool**)0),
 		      &size, 1, true, 1);
   bs.putBoolVec (vec);
   bs.putEnd();
@@ -117,7 +117,7 @@ BlobOStream& operator<< (BlobOStream& bs, const std::vector<bool>& vec)
 
 BlobIStream& operator>> (BlobIStream& bs, std::vector<bool>& vec)
 {
-  bs.getStart (LOFAR::typeName((const bool**)0));
+  bs.getStart (DP3::typeName((const bool**)0));
   bool fortranOrder;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
@@ -133,7 +133,7 @@ BlobOStream& operator<< (BlobOStream& bs, const casacore::IPosition& ipos)
 {
   uint64_t size = ipos.size();
   putBlobArrayHeader (bs, true,
-		      LOFAR::typeName((const int64_t**)0),
+		      DP3::typeName((const int64_t**)0),
 		      &size, 1, true, 1);
   std::vector<int64_t> ivec(ipos.begin(), ipos.end());
   bs.put (&(ivec[0]), size);
@@ -143,7 +143,7 @@ BlobOStream& operator<< (BlobOStream& bs, const casacore::IPosition& ipos)
 
 BlobIStream& operator>> (BlobIStream& bs, casacore::IPosition& ipos)
 {
-  bs.getStart (LOFAR::typeName((const int64_t**)0));
+  bs.getStart (DP3::typeName((const int64_t**)0));
   bool fortranOrder;
   uint16_t ndim;
   uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);

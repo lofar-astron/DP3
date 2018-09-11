@@ -34,7 +34,7 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/tables/Tables/Table.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 

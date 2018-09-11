@@ -37,7 +37,7 @@
 using namespace casacore;
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     BaselineSelection::BaselineSelection()

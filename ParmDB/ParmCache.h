@@ -32,7 +32,7 @@
 #include "ParmValue.h"
 #include "AxisMapping.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   //# Forward Declarations.

@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-namespace LOFAR {
+namespace DP3 {
 
 BlobOBufStream::BlobOBufStream (std::ostream& os)
 : itsStream (os.rdbuf())

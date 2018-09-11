@@ -63,7 +63,7 @@
 #      define OBJECT_FACTORY_MAX_CTOR_ARG 8
 #    endif
 
-namespace LOFAR
+namespace DP3
 {
   // \addtogroup Common
   // @{
@@ -84,7 +84,7 @@ namespace LOFAR
 #  define n BOOST_PP_ITERATION()
 // \endcond
 
-namespace LOFAR
+namespace DP3
 {
   // \addtogroup Common
   // @{

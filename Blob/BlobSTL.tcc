@@ -28,7 +28,7 @@
 
 #include "../Common/TypeNames.h"
 
-namespace LOFAR
+namespace DP3
 {
   template<typename T, typename U>
   BlobOStream& operator<< (BlobOStream& bs, const std::map<T,U>& m)
@@ -66,7 +66,7 @@ namespace LOFAR
   {
     uint64_t n = s.size();
     putBlobArrayHeader (bs, true,
-                        LOFAR::typeName((const typename Seq::value_type**)0),
+                        DP3::typeName((const typename Seq::value_type**)0),
                         &n, 1, true, 1);
     for (typename Seq::const_iterator it=s.begin();
          it!=s.end();
@@ -79,7 +79,7 @@ namespace LOFAR
   template<typename Seq>
   void sequenceFromBlob (BlobIStream& bs, Seq& s)
   {
-    bs.getStart (LOFAR::typeName((const typename Seq::value_type**)0));
+    bs.getStart (DP3::typeName((const typename Seq::value_type**)0));
     bool fortranOrder;
     uint16_t ndim;
     uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
@@ -98,7 +98,7 @@ namespace LOFAR
   template<typename T>
   void sequenceFromBlob (BlobIStream& bs, std::set<T>& s)
   {
-    bs.getStart (LOFAR::typeName((const T**)0));
+    bs.getStart (DP3::typeName((const T**)0));
     bool fortranOrder;
     uint16_t ndim;
     uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);

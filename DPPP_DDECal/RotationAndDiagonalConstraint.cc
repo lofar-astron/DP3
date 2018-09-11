@@ -8,7 +8,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
 
 void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nDirections,

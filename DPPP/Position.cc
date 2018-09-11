@@ -22,7 +22,7 @@
 
 #include "Position.h"
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

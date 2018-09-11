@@ -41,7 +41,9 @@
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MPosition.h>
 
-namespace LOFAR {
+#include <memory>
+
+namespace DP3 {
   namespace DPPP {
 
     // @ingroup NDPPP
@@ -64,7 +66,7 @@ namespace LOFAR {
     {
     public:
       // Define the shared pointer for this type.
-      typedef shared_ptr<DPInput> ShPtr;
+      typedef std::shared_ptr<DPInput> ShPtr;
 
       virtual ~DPInput();
 
@@ -98,7 +100,7 @@ namespace LOFAR {
       // Fill the vector with station beam info from the input source (MS).
       // Only fill it for the given station names.
       // The default implementation throws an exception.
-      virtual void fillBeamInfo (vector<StationResponse::Station::Ptr>&,
+      virtual void fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                  const casacore::Vector<casacore::String>& antNames);
 
       // Fetch the FullRes flags.

@@ -29,7 +29,7 @@
 
 #include "Grid.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   // @ingroup ParmDB

@@ -58,10 +58,10 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
-    using LOFAR::operator<<;
+    using DP3::operator<<;
 
     namespace
     {

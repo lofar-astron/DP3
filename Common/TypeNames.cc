@@ -25,7 +25,7 @@
 //# Includes
 #include "TypeNames.h"
 
-namespace LOFAR
+namespace DP3
 {
   const std::string& typeName (const void*)
     {

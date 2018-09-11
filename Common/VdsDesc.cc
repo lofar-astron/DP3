@@ -29,11 +29,11 @@
 #include <ostream>
 
 namespace std {
-  using LOFAR::operator<<;
+  using DP3::operator<<;
 }
 using namespace std;
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
     VdsDesc::VdsDesc (const VdsPartDesc& desc)
     : itsDesc (desc)

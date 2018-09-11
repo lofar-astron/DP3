@@ -29,7 +29,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

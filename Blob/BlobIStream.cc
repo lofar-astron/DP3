@@ -30,7 +30,7 @@
 
 #include <cassert>
 
-namespace LOFAR {
+namespace DP3 {
 
 BlobIStream::BlobIStream (BlobIBuffer& bb)
 : itsMustConvert   (false),
@@ -79,7 +79,7 @@ const std::string& BlobIStream::getNextType (uint64_t& size)
   // Determine if data has to be converted (in case data format mismatches).
   if (itsLevel == 0) {
     itsMustConvert = hdr.mustConvert();
-    itsDataFormat  = LOFAR::DataFormat(hdr.itsDataFormat);
+    itsDataFormat  = DP3::DataFormat(hdr.itsDataFormat);
   } else {
     assert (hdr.itsDataFormat == itsDataFormat);
   }
@@ -176,7 +176,7 @@ BlobIStream& BlobIStream::operator>> (int16_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -184,7 +184,7 @@ BlobIStream& BlobIStream::operator>> (uint16_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -192,7 +192,7 @@ BlobIStream& BlobIStream::operator>> (int32_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -200,7 +200,7 @@ BlobIStream& BlobIStream::operator>> (uint32_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -208,7 +208,7 @@ BlobIStream& BlobIStream::operator>> (int64_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -216,7 +216,7 @@ BlobIStream& BlobIStream::operator>> (uint64_t& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    var = LOFAR::dataConvert (itsDataFormat, var);
+    var = DP3::dataConvert (itsDataFormat, var);
   }
   return *this;
 }
@@ -224,7 +224,7 @@ BlobIStream& BlobIStream::operator>> (float& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    LOFAR::dataConvertFloat (itsDataFormat, &var);
+    DP3::dataConvertFloat (itsDataFormat, &var);
   }
   return *this;
 }
@@ -232,7 +232,7 @@ BlobIStream& BlobIStream::operator>> (double& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    LOFAR::dataConvertDouble (itsDataFormat, &var);
+    DP3::dataConvertDouble (itsDataFormat, &var);
   }
   return *this;
 }
@@ -240,7 +240,7 @@ BlobIStream& BlobIStream::operator>> (std::complex<float>& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    LOFAR::dataConvertFloat (itsDataFormat, &var, 2);
+    DP3::dataConvertFloat (itsDataFormat, &var, 2);
   }
   return *this;
 }
@@ -248,7 +248,7 @@ BlobIStream& BlobIStream::operator>> (std::complex<double>& var)
 {
   getBuf (&var, sizeof(var));
   if (itsMustConvert) {
-    LOFAR::dataConvertDouble (itsDataFormat, &var, 2);
+    DP3::dataConvertDouble (itsDataFormat, &var, 2);
   }
   return *this;
 }
@@ -270,7 +270,7 @@ void BlobIStream::get (bool* values, uint64_t nrval)
     // Get and convert bits to bools.
     int nrb = (nr+7)/8;
     getBuf (buf, nrb);
-    LOFAR::bitToBool (values, buf, nr);
+    DP3::bitToBool (values, buf, nr);
     nrval -= nr;
     values += nr;
   }
@@ -291,70 +291,70 @@ void BlobIStream::get (int16_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(int16_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert16 (itsDataFormat, values, nrval);
+    DP3::dataConvert16 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (uint16_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(uint16_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert16 (itsDataFormat, values, nrval);
+    DP3::dataConvert16 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (int32_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(int32_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert32 (itsDataFormat, values, nrval);
+    DP3::dataConvert32 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (uint32_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(uint32_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert32 (itsDataFormat, values, nrval);
+    DP3::dataConvert32 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (int64_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(int64_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert64 (itsDataFormat, values, nrval);
+    DP3::dataConvert64 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (uint64_t* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(uint64_t));
   if (itsMustConvert) {
-    LOFAR::dataConvert64 (itsDataFormat, values, nrval);
+    DP3::dataConvert64 (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (float* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(float));
   if (itsMustConvert) {
-    LOFAR::dataConvertFloat (itsDataFormat, values, nrval);
+    DP3::dataConvertFloat (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (double* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(double));
   if (itsMustConvert) {
-    LOFAR::dataConvertDouble (itsDataFormat, values, nrval);
+    DP3::dataConvertDouble (itsDataFormat, values, nrval);
   }
 }
 void BlobIStream::get (std::complex<float>* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(std::complex<float>));
   if (itsMustConvert) {
-    LOFAR::dataConvertFloat (itsDataFormat, values, 2*nrval);
+    DP3::dataConvertFloat (itsDataFormat, values, 2*nrval);
   }
 }
 void BlobIStream::get (std::complex<double>* values, uint64_t nrval)
 {
   getBuf (values, nrval*sizeof(std::complex<double>));
   if (itsMustConvert) {
-    LOFAR::dataConvertDouble (itsDataFormat, values, 2*nrval);
+    DP3::dataConvertDouble (itsDataFormat, values, 2*nrval);
   }
 }
 void BlobIStream::get (std::string* values, uint64_t nrval)

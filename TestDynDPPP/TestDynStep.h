@@ -32,7 +32,7 @@
 #include "../DPPP/DPInput.h"
 #include "../Common/ParameterSet.h"
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
     // @ingroup NDPPP
 

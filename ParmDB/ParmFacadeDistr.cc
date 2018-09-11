@@ -33,11 +33,11 @@
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Utilities/GenSort.h>
 
-using namespace LOFAR::CEP;
+using namespace DP3::CEP;
 using namespace casacore;
 
 
-namespace LOFAR {
+namespace DP3 {
   namespace BBS {
 
     // Initialize statics.

@@ -62,9 +62,9 @@
 #include <casacore/casa/OS/DynLib.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
-
+		
     // Initialize the statics.
     std::map<std::string, DPRun::StepCtor*> DPRun::theirStepMap;
 
@@ -144,7 +144,7 @@ namespace LOFAR {
       DPStep::ShPtr step = firstStep;
       DPStep::ShPtr lastStep;
       while (step) {
-        ostringstream os;
+        std::ostringstream os;
         step->show (os);
         DPLOG_INFO (os.str(), true);
         lastStep = step;
@@ -152,15 +152,13 @@ namespace LOFAR {
       }
       if (checkparset >= 0) {
         // Show unused parameters (might be misspelled).
-        vector<string> unused = parset.unusedKeys();
+        std::vector<std::string> unused = parset.unusedKeys();
         if (! unused.empty()) {
           DPLOG_WARN_STR
-            (endl
-             << "*** WARNING: the following parset keywords were not used ***"
-             << endl
-             << "             maybe they are misspelled"
-             << endl
-             << "    " << unused << endl);
+            (
+                "\n*** WARNING: the following parset keywords were not used ***"
+             << "\n             maybe they are misspelled"
+             << "\n    " << unused << std::endl);
           if (checkparset!=0)
 						throw Exception("Unused parset keywords found");
         }
@@ -201,7 +199,7 @@ namespace LOFAR {
       if (showcounts) {
       step = firstStep;
         while (step) {
-          ostringstream os;
+          std::ostringstream os;
           step->showCounts (os);
           DPLOG_INFO (os.str(), true);
           step = step->getNextStep();
@@ -210,11 +208,11 @@ namespace LOFAR {
       // Show the overall timer.
       nstimer.stop();
       double duration = nstimer.getElapsed();
-      ostringstream ostr;
-      ostr << endl;
+      std::ostringstream ostr;
+      ostr << std::endl;
       // Output special line for pipeline use.
       if (DPLogger::useLogger) {
-        ostr << "Start timer output" << endl;
+        ostr << "Start timer output" << std::endl;
       }
       timer.show (ostr, "Total NDPPP time");
       DPLOG_INFO (ostr.str(), true);
@@ -222,7 +220,7 @@ namespace LOFAR {
         // Show the timings per step.
         step = firstStep;
         while (step) {
-          ostringstream os;
+          std::ostringstream os;
           step->showTimings (os, duration);
         if (! os.str().empty()) {
           DPLOG_INFO (os.str(), true);
@@ -231,7 +229,7 @@ namespace LOFAR {
         }
       }
       if (DPLogger::useLogger) {
-        ostr << "End timer output" << endl;
+        ostr << "End timer output\n";
       }
       // The destructors are called automatically at this point.
     }

@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     }
 
     // Execute the parset file.
-    LOFAR::DPPP::DPRun::execute (parsetName, argc, argv);
+    DP3::DPPP::DPRun::execute (parsetName, argc, argv);
   } catch (std::exception& err) {
     std::cerr << std::endl;
     std::cerr << "std exception detected: " << err.what() << std::endl;

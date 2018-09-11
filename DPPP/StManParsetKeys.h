@@ -11,7 +11,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
     struct StManParsetKeys
     {

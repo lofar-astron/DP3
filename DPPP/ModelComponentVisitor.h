@@ -27,7 +27,7 @@
 // \file
 // Base class for visitors that visit model component hierarchies.
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

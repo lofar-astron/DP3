@@ -37,7 +37,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/DataMan/TiledColumnStMan.h>
 
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {

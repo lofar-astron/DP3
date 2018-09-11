@@ -27,7 +27,7 @@
 // @brief Basic exception for master/worker related errors.
 // @author Ger van Diepen (diepen AT astron nl)
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   // @ingroup LMWCommon
   // @brief Basic exception for master/worker related errors.

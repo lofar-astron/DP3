@@ -29,7 +29,7 @@
 
 #include <iostream>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // This class contains the flag to choose between cout/cerr and logging
@@ -44,11 +44,11 @@ namespace LOFAR {
 
 // Log an informational message.
 #define DPLOG_INFO_STR(stream)       \
-  std::cout << stream << endl;
+  std::cout << stream << std::endl;
 
 // Log a fatal message.
 #define DPLOG_WARN_STR(stream)       \
-    std::cerr << stream << endl;
+    std::cerr << stream << std::endl;
 
 // Log an informational message.
 #define DPLOG_INFO(msg, removeEndl)    \
@@ -56,7 +56,7 @@ namespace LOFAR {
   if (removeEndl  &&  str.size() > 0  &&  str[str.size()-1] == '\n') { \
     str = str.substr(0, str.size()-1); \
   }                                    \
-  std::cout << str << endl;
+  std::cout << str << std::endl;
 
 #define LOGCOUT(msg) \
   { std::ostringstream ostr; ostr<<msg; printf("%s\n", ostr.str().c_str()); }

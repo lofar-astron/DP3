@@ -24,7 +24,7 @@
 
 #include <iostream>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   Box::Box (double x1, double x2, double y1, double y2, bool asStartEnd)

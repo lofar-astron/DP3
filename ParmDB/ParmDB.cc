@@ -35,7 +35,7 @@
 using namespace std;
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   map<string,int>    ParmDB::theirDBNames;

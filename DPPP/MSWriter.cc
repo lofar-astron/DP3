@@ -49,7 +49,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     MSWriter::MSWriter (MSReader* reader, const string& outName,
@@ -138,7 +138,7 @@ namespace LOFAR {
           vdsName = itsVdsDir + string(casacore::Path(vdsName).baseName());
         }
         // Create VDS file without detailed time info.
-        LOFAR::VdsMaker::create (itsMS.tableName(), vdsName,
+        DP3::VdsMaker::create (itsMS.tableName(), vdsName,
                                  itsClusterDesc, "", false);
       }
     }

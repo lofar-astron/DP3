@@ -35,13 +35,13 @@ namespace casa
   class MeasurementSet; //foreward declaration
 }
 
-namespace LOFAR
+namespace DP3
 {
   namespace CS1
   {
     class SPWCombine; //foreward declaration
 
-    class CombinerProcessControl : public LOFAR::ACC::PLC::ProcessControl
+    class CombinerProcessControl : public DP3ACC::PLC::ProcessControl
     {
     private:
       vector<std::string> itsInMS;

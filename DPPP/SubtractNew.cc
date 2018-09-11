@@ -23,7 +23,7 @@
 
 #include "SubtractNew.h"
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     void subtract (size_t nBaseline, size_t nChannel,

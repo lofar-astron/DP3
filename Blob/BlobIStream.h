@@ -36,7 +36,7 @@
 #include <string>
 #include <complex>
 
-namespace LOFAR {
+namespace DP3 {
 
 // \ingroup %pkgname%
 // <group>
@@ -177,7 +177,7 @@ namespace LOFAR {
       // This can be done after a getStart.
       // <group>
       bool mustConvert() const;
-      LOFAR::DataFormat dataFormat() const;
+      DP3::DataFormat dataFormat() const;
       // </group>
       
     private:
@@ -198,7 +198,7 @@ namespace LOFAR {
       uint   itsLevel;
       int    itsVersion;
       // The endian type of the data in the blob.
-      LOFAR::DataFormat  itsDataFormat;
+      DP3::DataFormat  itsDataFormat;
       // The cached object type.
       std::string        itsObjectType;
       // Object length to read at each level
@@ -228,7 +228,7 @@ namespace LOFAR {
   inline bool BlobIStream::mustConvert() const
     { return itsMustConvert; }
   
-  inline LOFAR::DataFormat BlobIStream::dataFormat() const
+  inline DP3::DataFormat BlobIStream::dataFormat() const
     { return itsDataFormat; }
   
   template<typename T>
@@ -236,7 +236,7 @@ namespace LOFAR {
     {
       getBuf (&value, sizeof(std::complex<T>));
       if (itsMustConvert) {
-	LOFAR::dataConvert (itsDataFormat, &value, 1);
+	DP3::dataConvert (itsDataFormat, &value, 1);
       }
       return *this;
     }
@@ -245,7 +245,7 @@ namespace LOFAR {
     {
       getBuf (values, nrval*sizeof(std::complex<T>));
       if (itsMustConvert) {
-	LOFAR::dataConvert (itsDataFormat, values, nrval);
+	DP3::dataConvert (itsDataFormat, values, nrval);
       }
     }
 

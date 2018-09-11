@@ -23,7 +23,7 @@
 
 #include "DPLogger.h"
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
     bool DPLogger::useLogger = false;
   }

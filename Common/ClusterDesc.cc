@@ -30,7 +30,7 @@
 using namespace std;
 using namespace casacore;
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   ClusterDesc::ClusterDesc (const string& parsetName)
   {

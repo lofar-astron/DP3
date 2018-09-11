@@ -29,7 +29,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
   void getAxisIndices(const vector<double>& ax_src,
                       const vector<double>& ax_tgt,
                       vector<size_t>& indices,

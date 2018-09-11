@@ -24,7 +24,7 @@
 #include "ParmDB.h"
 #include "ParmSet.h"
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   ParmDBLocker::ParmDBLocker (const ParmSet& parmSet, bool lockForWrite)

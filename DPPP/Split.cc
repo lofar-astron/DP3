@@ -29,6 +29,7 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/Timer.h"
+#include "../Common/StreamUtil.h"
 
 #include <stddef.h>
 #include <string>
@@ -38,7 +39,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     Split::Split (DPInput* input,
@@ -95,8 +96,8 @@ namespace LOFAR {
 
     void Split::show (std::ostream& os) const
     {
-      os << "Split " << itsName << endl;
-      os << "  replace parameters:" << itsReplaceParms << endl;
+      os << "Split " << itsName << '\n'
+         << "  replace parameters:" << itsReplaceParms << '\n';
       // Show the steps.
       for (uint i=0; i<itsSubsteps.size(); ++i) {
         os << "Split substep "<<(i+1)<<" of "<<itsSubsteps.size()<<endl;

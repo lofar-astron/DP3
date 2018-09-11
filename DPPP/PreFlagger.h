@@ -33,7 +33,7 @@
 
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
   class ParameterValue;
 
@@ -117,7 +117,7 @@ namespace LOFAR {
         };
 
         // Define the shared pointer for this type.
-        typedef shared_ptr<PSet> ShPtr;
+        typedef std::shared_ptr<PSet> ShPtr;
 
         // Default constructor (for test purposes).
         PSet()

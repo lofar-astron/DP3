@@ -31,7 +31,7 @@
 #include "ParameterSetImpl.h"
 #include "KVpair.h"
 
-namespace LOFAR {
+namespace DP3 {
 
 // \addtogroup Common
 // @{

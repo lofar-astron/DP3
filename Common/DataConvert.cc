@@ -23,67 +23,67 @@
 //# Always #include <lofar_config.h> first!
 #include "DataConvert.h"
 
-void LOFAR::byteSwap16 (void* val, uint nrval)
+void DP3::byteSwap16 (void* val, uint nrval)
 {
   char* v = (char*)val;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap16 (v);
+    DP3::byteSwap16 (v);
     v += 2;
   }
 }
 
-void LOFAR::byteSwap16 (void* out, const void* in, uint nrval)
+void DP3::byteSwap16 (void* out, const void* in, uint nrval)
 {
   char* vout = (char*)out;
   const char* vin = (const char*)in;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap16 (vout, vin);
+    DP3::byteSwap16 (vout, vin);
     vout += 2;
     vin += 2;
   }
 }
 
-void LOFAR::byteSwap32 (void* val, uint nrval)
+void DP3::byteSwap32 (void* val, uint nrval)
 {
   char* v = (char*)val;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap32 (v);
+    DP3::byteSwap32 (v);
     v += 4;
   }
 }
 
-void LOFAR::byteSwap32 (void* out, const void* in, uint nrval)
+void DP3::byteSwap32 (void* out, const void* in, uint nrval)
 {
   char* vout = (char*)out;
   const char* vin = (const char*)in;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap32 (vout, vin);
+    DP3::byteSwap32 (vout, vin);
     vout += 4;
     vin += 4;
   }
 }
 
-void LOFAR::byteSwap64 (void* val, uint nrval)
+void DP3::byteSwap64 (void* val, uint nrval)
 {
   char* v = (char*)val;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap64 (v);
+    DP3::byteSwap64 (v);
     v += 8;
   }
 }
 
-void LOFAR::byteSwap64 (void* out, const void* in, uint nrval)
+void DP3::byteSwap64 (void* out, const void* in, uint nrval)
 {
   char* vout = (char*)out;
   const char* vin = (const char*)in;
   for (uint i=0; i<nrval; i++) {
-    LOFAR::byteSwap64 (vout, vin);
+    DP3::byteSwap64 (vout, vin);
     vout += 8;
     vin += 8;
   }
 }
 
-uint LOFAR::boolToBit (void* to, const void* from, uint nvalues, uint startbit)
+uint DP3::boolToBit (void* to, const void* from, uint nvalues, uint startbit)
 {
   if (nvalues == 0) {
     return 0;
@@ -126,7 +126,7 @@ uint LOFAR::boolToBit (void* to, const void* from, uint nvalues, uint startbit)
   return nbytes;
 }
 
-uint LOFAR::bitToBool (void* to, const void* from, uint nvalues, uint startbit)
+uint DP3::bitToBool (void* to, const void* from, uint nvalues, uint startbit)
 {
   bool* data = (bool*)to;
   const unsigned char* bits = (const unsigned char*)from + startbit/8;

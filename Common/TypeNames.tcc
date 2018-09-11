@@ -27,7 +27,7 @@
 //# Includes
 #include "TypeNames.h"
 
-namespace LOFAR
+namespace DP3
 {
   template<typename T>
   const std::string& typeName (T const* const*)

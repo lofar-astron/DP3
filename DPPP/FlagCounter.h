@@ -32,7 +32,7 @@
 #include <cstdint>
 #include <ostream>
 
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {

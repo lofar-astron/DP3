@@ -32,7 +32,7 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>
 
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
   class ParameterValue;
 

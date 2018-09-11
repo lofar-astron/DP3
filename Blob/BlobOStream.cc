@@ -31,7 +31,7 @@
 #include <cassert>
 #include <iostream>
 
-namespace LOFAR {
+namespace DP3 {
 
 BlobOStream::BlobOStream (BlobOBuffer& bb)
 : itsCurLength (0),
@@ -200,7 +200,7 @@ void BlobOStream::put (const bool* values, uint64_t nrval)
   while (nrval > 0) {
     uint nr = std::min(nrval, uint64_t(8*256));
     // Convert to bits and put.
-    uint nrb = LOFAR::boolToBit (buf, values, nr);
+    uint nrb = DP3::boolToBit (buf, values, nr);
     putBuf (buf, nrb);
     nrval -= nr;
     values += nr;

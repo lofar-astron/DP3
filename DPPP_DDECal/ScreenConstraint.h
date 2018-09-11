@@ -14,7 +14,7 @@
 #include <memory>
 #include <ostream>
 
-namespace LOFAR {
+namespace DP3 {
 class ParameterSet;
 class ScreenConstraint : public Constraint
 { 

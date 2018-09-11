@@ -36,11 +36,11 @@
 #include <iosfwd>
 
 //# Forard Declarations;
-namespace LOFAR {
+namespace DP3 {
   class ParameterSet;
 }
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   // @ingroup LMWCommon
   // @brief Description of a cluster and the nodes in it.

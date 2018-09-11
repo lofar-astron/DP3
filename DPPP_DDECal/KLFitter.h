@@ -7,7 +7,7 @@
 
 #include "PiercePoint.h"
 
-namespace LOFAR{
+namespace DP3{
 class KLFitter
 {//creates KH base and fits screens from collection of PiercePoints
 public:

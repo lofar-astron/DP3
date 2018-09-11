@@ -25,7 +25,7 @@
 #include "ParameterSet.h"
 #include "ParameterRecord.h"
 
-namespace LOFAR {
+namespace DP3 {
 
 //-------------------------- creation and destroy ---------------------------
 

@@ -26,7 +26,7 @@
 #include <ostream>
 #include <string>
 
-namespace LOFAR { 
+namespace DP3 { 
 
   std::ostream& operator<< (std::ostream& os, const ParameterRecord& prec)
   {

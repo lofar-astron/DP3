@@ -39,7 +39,7 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
     // @ingroup NDPPP
 

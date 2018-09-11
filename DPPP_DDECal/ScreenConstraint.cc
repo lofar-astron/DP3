@@ -4,7 +4,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-namespace LOFAR{
+namespace DP3{
 
 const  double ScreenConstraint::phtoTEC = 1./8.4479745e9;
 const  double ScreenConstraint::TECtoph = 8.4479745e9;

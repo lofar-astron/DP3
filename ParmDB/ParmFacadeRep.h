@@ -31,7 +31,7 @@
 
 #include <casacore/casa/Containers/Record.h>
 
-namespace LOFAR { namespace BBS {
+namespace DP3 { namespace BBS {
 
 
   // \ingroup ParmDB

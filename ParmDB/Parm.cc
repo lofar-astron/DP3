@@ -29,7 +29,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   Parm::Parm (ParmCache& cache, ParmId parmid)

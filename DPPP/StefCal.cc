@@ -32,7 +32,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     StefCal::StefCal(uint solInt, uint nChan, StefCalMode mode,

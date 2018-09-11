@@ -31,8 +31,8 @@
 // Also make the SlidingFlagger known.
 void register_aoflag()
 {
-  LOFAR::DPPP::DPRun::registerStepCtor ("aoflag",
-                                        LOFAR::DPPP::AOFlaggerStep::makeStep);
-  //  LOFAR::DPPP::DPRun::registerStepCtor ("aoflag.sliding",
-  //                                        LOFAR::DPPP::SlidingFlagger::makeStep);
+  DP3::DPPP::DPRun::registerStepCtor ("aoflag",
+                                        DP3::DPPP::AOFlaggerStep::makeStep);
+  //  DP3::DPPP::DPRun::registerStepCtor ("aoflag.sliding",
+  //                                        DP3::DPPP::SlidingFlagger::makeStep);
 }

@@ -30,6 +30,6 @@
 // Its suffix must be the (lowercase) name of the package (library).
 void register_ddecal()
 {
-  LOFAR::DPPP::DPRun::registerStepCtor ("ddecal",
-                                        LOFAR::DPPP::DDECal::makeStep);
+  DP3::DPPP::DPRun::registerStepCtor ("ddecal",
+                                        DP3::DPPP::DDECal::makeStep);
 }

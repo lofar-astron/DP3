@@ -31,7 +31,7 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   //# Forward Declaration.
   class BlobIStream;

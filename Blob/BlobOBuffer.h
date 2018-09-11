@@ -28,7 +28,7 @@
 
 #include <cinttypes>
 
-namespace LOFAR {
+namespace DP3 {
 
 // \ingroup %pkgname%
   // @{

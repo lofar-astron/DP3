@@ -24,9 +24,6 @@
 #include "FlagCounter.h"
 #include "DPInput.h"
 
-#include "../Common/ParameterSet.h"
-#include "../Common/StreamUtil.h"
-
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
@@ -35,13 +32,18 @@
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
+
+#include "../Common/ParameterSet.h"
+#include "../Common/StreamUtil.h"
+
 #include <vector>
 #include <map>
 #include <iomanip>
+#include <ostream>
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     FlagCounter::FlagCounter()
@@ -121,7 +123,7 @@ namespace LOFAR {
       // Keep track of fully flagged baselines.
       std::vector<std::pair<int,int> > fullyFlagged;
       int64_t npoints = ntimes * itsChanCounts.size();
-      os << endl << "Percentage of visibilities flagged per baseline"
+      os << std::endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";
       uint nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
@@ -159,7 +161,7 @@ namespace LOFAR {
         int nra = std::min(nantpl, nrused - i*nantpl);
         // Print the header for the antennae being used.
         // It also updates ant for the next iteration.
-        os << endl << " ant";
+        os << std::endl << " ant";
         for (int j=0; j<nra;) {
           if (nusedAnt[ant] > 0) {
             os << std::setw(5) << ant;
@@ -167,7 +169,7 @@ namespace LOFAR {
           }
           ant++;
         }
-        os << endl;
+        os << std::endl;
         // Print the percentages per antenna pair.
         for (uint k=0; k<nrant; ++k) {
           if (nusedAnt[k] > 0) {
@@ -194,7 +196,7 @@ namespace LOFAR {
               }
               ia++;
             }
-            os << endl;
+            os << std::endl;
           }
         }
         // Print the percentages per antenna.
@@ -208,7 +210,7 @@ namespace LOFAR {
           }
           ia++;
         }
-        os << endl;
+        os << std::endl;
       }
       if (itsWarnPerc > 0) {
         for (uint i=0; i<nrant; ++i) {
@@ -218,7 +220,7 @@ namespace LOFAR {
               os << "** NOTE: ";
               showPerc1 (os, perc, 100);
               os << " of data are flagged for station " << i
-                 << " (" << antNames[i] << ')' << endl;
+                 << " (" << antNames[i] << ')' << std::endl;
             }
           }
         }
@@ -229,7 +231,7 @@ namespace LOFAR {
           if (i>0) os << "; ";
           os << fullyFlagged[i].first << '&' << fullyFlagged[i].second;
         }
-        os << endl;
+        os << std::endl;
       }
       if (! itsSaveName.empty()) {
         saveStation (npoints, nusedAnt, countAnt);
@@ -240,7 +242,7 @@ namespace LOFAR {
     {
       int64_t npoints = ntimes * itsBLCounts.size();
       int64_t nflagged = 0;
-      os << endl << "Percentage of visibilities flagged per channel:" << endl;
+      os << std::endl << "Percentage of visibilities flagged per channel:" << std::endl;
       if (npoints == 0) {
         return;
       }
@@ -250,7 +252,7 @@ namespace LOFAR {
       for (int i=0; i<std::min(nchpl, int(itsChanCounts.size())); ++i) {
         os << std::setw(5) << i;
       }
-      os << endl;
+      os << std::endl;
       int nrl = (itsChanCounts.size() + nchpl - 1) / nchpl;
       int ch = 0;
       for (int i=0; i<nrl; ++i) {
@@ -262,7 +264,7 @@ namespace LOFAR {
              << '%';
           ch++;
         }
-        os << endl;
+        os << std::endl;
       }
       int64_t totalnpoints = npoints * itsChanCounts.size();
       // Prevent division by zero
@@ -272,14 +274,14 @@ namespace LOFAR {
       os << "Total flagged: ";
       showPerc3 (os, nflagged, totalnpoints);
       os << "   (" << nflagged << " out of " << totalnpoints
-         << " visibilities)" << endl;
+         << " visibilities)" << std::endl;
       if (itsWarnPerc > 0) {
         for (uint i=0; i<itsChanCounts.size(); ++i) {
           double perc = (100. * itsChanCounts[i]) / npoints;
           if (perc >= itsWarnPerc) {
             os << "** NOTE: ";
             showPerc1 (os, perc, 100);
-            os << " of data are flagged for channel " << i << endl;
+            os << " of data are flagged for channel " << i << std::endl;
           }
         }
       }
@@ -288,17 +290,17 @@ namespace LOFAR {
       }
     }
 
-    void FlagCounter::showCorrelation (ostream& os, int64_t ntimes) const
+    void FlagCounter::showCorrelation (std::ostream& os, int64_t ntimes) const
     {
       int64_t ntotal = ntimes * itsBLCounts.size() * itsChanCounts.size();
       // Prevent division by zero
       if (ntotal == 0) {
         ntotal = 1;
       }
-      os << endl
+      os << '\n'
          << "Percentage of flagged visibilities detected per correlation:"
-         << endl;
-      os << "  " << itsCorrCounts << " out of " << ntotal
+         << '\n'
+         << "  " << itsCorrCounts << " out of " << ntotal
          << " visibilities   [";
       for (uint i=0; i<itsCorrCounts.size(); ++i) {
         if (i > 0) {
@@ -306,7 +308,7 @@ namespace LOFAR {
         }
         os << int(100. * itsCorrCounts[i] / ntotal + 0.5) << '%';
       }
-      os << ']' << endl;
+      os << ']' << std::endl;
     }
 
     void FlagCounter::showPerc1 (ostream& os, double value, double total)

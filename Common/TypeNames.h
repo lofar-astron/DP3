@@ -32,7 +32,7 @@
 #include <complex>
 #include <string>
 
-namespace LOFAR
+namespace DP3
 {
   // \addtogroup TypeNames
   //

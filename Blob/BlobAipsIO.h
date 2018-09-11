@@ -31,7 +31,7 @@
 // \file
 // A Blob buffer for Aips++ ByteIO
 
-namespace LOFAR {
+namespace DP3 {
 
   // \ingroup %pkgname%
   // @{

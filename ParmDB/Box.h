@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   // Point: A point in a 2-D space.

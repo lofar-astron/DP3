@@ -36,7 +36,7 @@
 #include <mutex>
 #include <set>
 
-namespace LOFAR {
+namespace DP3 {
 
 // \addtogroup Common
 // @{

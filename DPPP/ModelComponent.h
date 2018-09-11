@@ -28,7 +28,7 @@
 // \file
 // Base class for model components.
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

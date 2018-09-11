@@ -31,7 +31,7 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/BasicSL/Complex.h>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // @ingroup NDPPP

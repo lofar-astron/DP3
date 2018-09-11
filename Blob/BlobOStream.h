@@ -37,7 +37,7 @@
 typedef std::complex<double> dcomplex;
 typedef std::complex<float> fcomplex;
 
-namespace LOFAR {
+namespace DP3 {
 
 // \ingroup %pkgname%
 // <group>

@@ -32,11 +32,11 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 namespace std {
-  using LOFAR::operator<<;
+  using DP3::operator<<;
 }
 using namespace std;
 
-namespace LOFAR { namespace CEP {
+namespace DP3 { namespace CEP {
 
   NodeDesc::NodeDesc (const ParameterSet& parset)
   {

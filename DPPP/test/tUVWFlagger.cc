@@ -34,7 +34,7 @@
 #include <iostream>
 
 using namespace LOFAR;
-using namespace LOFAR::DPPP;
+using namespace DP3::DPPP;
 using namespace casa;
 using namespace std;
 

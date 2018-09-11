@@ -37,7 +37,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     ApplyCal::ApplyCal (DPInput* input,

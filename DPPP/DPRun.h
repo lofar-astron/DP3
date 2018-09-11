@@ -32,7 +32,7 @@
 
 #include <map>
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     // @ingroup NDPPP

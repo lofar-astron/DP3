@@ -35,7 +35,7 @@ using namespace casacore;
 //   add parm2 domain=[1,5,4,10],values=[2,0.1],nx=2
 //   add parm3 type='expression',expression='parm1*parm2'
 
-namespace LOFAR {
+namespace DP3 {
   namespace BBS {
 
     ParmFacade::ParmFacade (const string& tableName, bool create)

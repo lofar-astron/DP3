@@ -31,7 +31,7 @@
 using namespace casacore;
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
 namespace BBS {
 
   SourceDBBlob::SourceDBBlob (const ParmDBMeta& pdm, bool forceNew)

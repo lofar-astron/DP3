@@ -15,7 +15,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
   H5Parm::H5Parm(const std::string& filename, bool forceNew,
                  bool forceNewSolSet, const std::string& solSetName):
       H5::H5File(filename,

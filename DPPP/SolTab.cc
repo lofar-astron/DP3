@@ -15,7 +15,7 @@
 
 using namespace std;
 
-namespace LOFAR {
+namespace DP3 {
   H5Parm::SolTab::SolTab(H5::Group group,
                          const string& type,
                          const vector<AxisInfo> axes):

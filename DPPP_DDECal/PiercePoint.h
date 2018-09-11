@@ -12,7 +12,7 @@
 #include <armadillo>
 
 using namespace arma;
-namespace LOFAR{
+namespace DP3{
  
 class PiercePoint 
 {

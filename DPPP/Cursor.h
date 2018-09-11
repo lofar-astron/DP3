@@ -32,7 +32,7 @@ typedef std::complex<float> fcomplex;
 // \file
 // Multi-dimensional iterators.
 
-namespace LOFAR
+namespace DP3
 {
 namespace DPPP
 {

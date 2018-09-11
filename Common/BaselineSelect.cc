@@ -42,7 +42,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
 
   Matrix<bool> BaselineSelect::convert (const string& msName,
                                         const string& baselineSelection,

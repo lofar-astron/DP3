@@ -19,7 +19,7 @@ void SmoothnessConstraint::Initialize(const double* frequencies)
 #ifdef AOPROJECT
     omp_get_max_threads();
 #else
-    LOFAR::OpenMP::maxThreads();
+    DP3::OpenMP::maxThreads();
 #endif
   for(size_t i=0; i!=nthreads; ++i)
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType, _bandwidth);
@@ -42,7 +42,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
 #ifdef AOPROJECT
     const size_t thread = omp_get_thread_num();
 #else
-    const size_t thread = LOFAR::OpenMP::threadNum();
+    const size_t thread = DP3::OpenMP::threadNum();
 #endif
     size_t antIndex = antDirIndex / _nDirections;
     for(size_t pol = 0; pol!=nPol; ++pol)

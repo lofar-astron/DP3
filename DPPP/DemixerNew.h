@@ -34,7 +34,9 @@
 
 #include "../ParmDB/ParmDB.h"
 
-namespace LOFAR {
+#include <ostream>
+
+namespace DP3 {
 
   class ParameterSet;
 
@@ -107,24 +109,24 @@ namespace LOFAR {
                       double partmean, double partm2, size_t partnr) const;
 
       // Show a statistic.
-      void showStat (ostream& os, double n, double ntot,
-                     const string& str1, const string& str2) const;
+      void showStat (std::ostream& os, double n, double ntot,
+                     const std::string& str1, const std::string& str2) const;
 
       // Show a percentage with 1 decimal.
-      void showPerc1 (ostream& os, float perc) const;
+      void showPerc1 (std::ostream& os, float perc) const;
 
       //# Data members.
       DPInput*                itsInput;
       string                  itsName;
       DemixInfo               itsDemixInfo;
       string                  itsInstrumentName;
-      shared_ptr<BBS::ParmDB> itsParmDB;
+      std::shared_ptr<BBS::ParmDB> itsParmDB;
       Filter                  itsFilter;    //# only used for getInfo()
-      vector<DemixWorker>     itsWorkers;
-      vector<DPBuffer>        itsBufIn;
-      vector<DPBuffer>        itsBufOut;
-      vector<vector<double> > itsSolutions; //# all solutions in a time window
-      map<string,int>         itsParmIdMap; //# -1 = new parm name
+      std::vector<DemixWorker>     itsWorkers;
+      std::vector<DPBuffer>        itsBufIn;
+      std::vector<DPBuffer>        itsBufOut;
+      std::vector<std::vector<double> > itsSolutions; //# all solutions in a time window
+      std::map<std::string,int>         itsParmIdMap; //# -1 = new parm name
       uint                    itsNTime;
       uint                    itsNTimeOut;
       uint                    itsNChunk;

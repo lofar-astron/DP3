@@ -53,7 +53,7 @@
 
 using namespace casacore;
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     MSReader::MSReader()
@@ -416,7 +416,7 @@ namespace LOFAR {
     {
       os << endl << "NaN/infinite data flagged in reader";
       os << endl << "===================================" << endl;
-      int64 nrtim = itsNrRead;
+      int64_t nrtim = itsNrRead;
       itsFlagCounter.showCorrelation (os, nrtim);
       os << itsNrInserted << " missing time slots were inserted" << endl;
     }
@@ -565,7 +565,7 @@ namespace LOFAR {
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
 
-      tileBeamDir = StationResponse::readTileBeamDirection(itsMS);
+      tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
 
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
@@ -847,14 +847,14 @@ namespace LOFAR {
       }
     }
 
-    void MSReader::fillBeamInfo (vector<StationResponse::Station::Ptr>& vec,
+    void MSReader::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>& vec,
                                  const casacore::Vector<casacore::String>& antNames)
     {
       // Get the names of all stations in the MS.
       const Vector<String>& allNames = getInfo().antennaNames();
       // Create a vector holding the beam info of all stations.
-      vector<StationResponse::Station::Ptr> beams (allNames.size());
-      StationResponse::readStations (itsMS, beams.begin());
+      vector<LOFAR::StationResponse::Station::Ptr> beams (allNames.size());
+      LOFAR::StationResponse::readStations (itsMS, beams.begin());
       // Copy only the ones for which the station name matches.
       // Note: the order of the station names in both vectors match.
       vec.resize (antNames.size());

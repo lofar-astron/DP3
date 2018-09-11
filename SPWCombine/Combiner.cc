@@ -38,8 +38,8 @@ using namespace LOFAR;
 int main(int argc, char *argv[])
 {
   try {
-    LOFAR::CS1::CombinerProcessControl myProcess;
-    return LOFAR::ACC::PLC::ACCmain(argc, argv, &myProcess);
+    DP3CS1::CombinerProcessControl myProcess;
+    return DP3ACC::PLC::ACCmain(argc, argv, &myProcess);
   } catch(Exception& ex) {
     std::cerr << ex << std::endl;
     return 1;

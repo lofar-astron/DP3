@@ -29,7 +29,7 @@
 #include "../DPPP/DPBuffer.h"
 #include "../DPPP/DPRun.h"
 
-namespace LOFAR {
+namespace DP3 {
   namespace DPPP {
 
     TestDynStep::TestDynStep (DPInput* input, const ParameterSet& pset,
@@ -52,6 +52,6 @@ namespace LOFAR {
 // Its suffix must be the (lowercase) name of the package (library).
 void register_testdyndppp()
 {
-  LOFAR::DPPP::DPRun::registerStepCtor ("TestDynDPPP",
-                                        LOFAR::DPPP::TestDynStep::makeStep);
+  DP3::DPPP::DPRun::registerStepCtor ("TestDynDPPP",
+                                        DP3::DPPP::TestDynStep::makeStep);
 }

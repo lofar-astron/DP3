@@ -36,7 +36,7 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
-namespace LOFAR {
+namespace DP3 {
 
   class ParameterSet;
 
