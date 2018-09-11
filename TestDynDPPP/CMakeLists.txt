@@ -1,9 +1,7 @@
-# $Id: CMakeLists.txt 27640 2013-12-04 08:02:49Z diepen $
+add_library(dppp_testdyndppp
+  TestDynStep.cc
+)
 
-lofar_package(TestDynDPPP 0.1 DEPENDS DPPP)
+target_link_libraries (dppp_testdyndppp dppp)
 
-include(LofarFindPackage)
-lofar_find_package(Casacore COMPONENTS casa ms tables REQUIRED)
-
-add_subdirectory(src)
-add_subdirectory(test)
+#add_subdirectory(test)

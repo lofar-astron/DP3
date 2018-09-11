@@ -20,26 +20,28 @@
 //#
 //# @author Adriaan Renting
 
-#include <lofar_config.h>
-#include <Common/lofar_iostream.h>
-#include <Common/SystemUtil.h>
-#include <Common/Exceptions.h>
+#include "../Common/SystemUtil.h"
+
+#include "../DPPP/Exceptions.h"
+
 #include <PLC/ACCmain.h>
-#include <SPWCombine/CombinerProcessControl.h>
+
+#include "CombinerProcessControl.h"
+
+#include <iostream>
 
 using namespace LOFAR;
 
 // Use a terminate handler that can produce a backtrace.
-Exception::TerminateHandler t(Exception::terminate);
+//Exception::TerminateHandler t(Exception::terminate);
 
 int main(int argc, char *argv[])
 {
   try {
-    INIT_LOGGER(LOFAR::basename(argv[0]));
     LOFAR::CS1::CombinerProcessControl myProcess;
     return LOFAR::ACC::PLC::ACCmain(argc, argv, &myProcess);
   } catch(Exception& ex) {
-    cerr << ex << endl;
+    std::cerr << ex << std::endl;
     return 1;
   }
   return 0;

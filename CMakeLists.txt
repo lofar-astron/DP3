@@ -29,10 +29,11 @@ else()
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
 add_subdirectory(DPPP)
-#add_subdirectory(TestDynDPPP)
+add_subdirectory(TestDynDPPP)
 #add_subdirectory(PythonDPPP)
 add_subdirectory(DPPP_AOFlag)
-#add_subdirectory(SPW_Combine SPWCombine)
+# SPW Combine has dependencies to LOFAR
+#add_subdirectory(SPWCombine)
 add_subdirectory(DPPP_Interpolate)
 
 find_package(Armadillo)

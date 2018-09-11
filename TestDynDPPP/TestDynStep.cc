@@ -24,10 +24,10 @@
 // @file
 // @brief Test of a dynamically loaded DPPP step
 
-#include <lofar_config.h>
 #include "TestDynStep.h"
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPRun.h>
+
+#include "../DPPP/DPBuffer.h"
+#include "../DPPP/DPRun.h"
 
 namespace LOFAR {
   namespace DPPP {

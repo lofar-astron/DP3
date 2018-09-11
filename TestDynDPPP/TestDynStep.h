@@ -27,10 +27,10 @@
 // @file
 // @brief Test of a dynamically loaded DPPP step
 
-#include <DPPP/DPStep.h>
-#include <DPPP/Averager.h>
-#include <DPPP/DPInput.h>
-#include <Common/ParameterSet.h>
+#include "../DPPP/DPStep.h"
+#include "../DPPP/Averager.h"
+#include "../DPPP/DPInput.h"
+#include "../Common/ParameterSet.h"
 
 namespace LOFAR {
   namespace DPPP {
