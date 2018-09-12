@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "../Common/ParameterSet.h"
+#include "../Common/ThreadPool.h"
 #include "../Common/Timer.h"
 #include "../Common/OpenMP.h"
 #include "../Common/StreamUtil.h"
@@ -69,7 +70,8 @@ namespace DP3 {
 
     Predict::Predict (DPInput* input,
                       const ParameterSet& parset,
-                      const string& prefix)
+                      const string& prefix) :
+      itsThreadPool(nullptr)
     {
       init(input, parset, prefix, parset.getStringVector(prefix + "sources",
                                                          vector<string>()));
@@ -78,7 +80,8 @@ namespace DP3 {
     Predict::Predict (DPInput* input,
                       const ParameterSet& parset,
                       const string& prefix,
-                      const vector<string>& sourcePatterns)
+                      const vector<string>& sourcePatterns) :
+      itsThreadPool(nullptr)
     {
       init(input, parset, prefix, sourcePatterns);
     }
@@ -310,6 +313,7 @@ namespace DP3 {
         }
       }
 
+/*
 #pragma omp parallel
 {
       uint thread=OpenMP::threadNum();
@@ -325,6 +329,50 @@ namespace DP3 {
                           itsStokesIOnly);
 
       Patch::ConstPtr curPatch;
+*/
+			std::unique_ptr<ThreadPool> localThreadPool;
+			ThreadPool* pool = itsThreadPool;
+			if(pool == nullptr)
+			{
+				localThreadPool.reset(new ThreadPool());
+				pool = localThreadPool.get();
+			}
+			std::vector<Simulator> simulators;
+			simulators.reserve(itsThreadPool->NThreads());
+      for(size_t thread=0; thread!=itsThreadPool->NThreads(); ++thread)
+			{
+				itsModelVis[thread]=dcomplex();
+				itsModelVisPatch[thread]=dcomplex();
+
+				//When applying beam, simulate into patch vector,
+				Cube<dcomplex>& simulatedest=(itsApplyBeam ? itsModelVisPatch[thread]
+					: itsModelVis[thread]);
+
+				simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
+					info().chanFreqs(), itsUVW, simulatedest,
+					itsStokesIOnly);
+			}
+			std::vector<Patch::ConstPtr> curPatches(itsThreadPool->NThreads());
+			
+			pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
+				// Keep on predicting, only apply beam when an entire patch is done
+				Patch::ConstPtr& curPatch = curPatches[thread];
+				if (itsApplyBeam && curPatch!=itsSourceList[iter].second && curPatch!=nullptr) {
+						addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
+													itsModelVisPatch[thread].data());
+					}
+					simulators[thread].simulate(itsSourceList[iter].first);
+					curPatch=itsSourceList[iter].second;
+			});
+      // Apply beam to the last patch
+			for(size_t thread=0; thread!=itsThreadPool->NThreads(); ++thread)
+			{
+				if (itsApplyBeam && curPatches[thread]!=nullptr) {
+					addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
+						itsModelVisPatch[thread].data());
+				}
+			}
+/*
 #pragma omp for
       for (uint i=0;i<itsSourceList.size();++i) {
         // Keep on predicting, only apply beam when an entire patch is done
@@ -334,14 +382,9 @@ namespace DP3 {
         }
         simulator.simulate(itsSourceList[i].first);
         curPatch=itsSourceList[i].second;
-      }
+      }}*/
 
-      // Apply beam to the last patch
-      if (itsApplyBeam && curPatch!=0) {
-        addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
-                       itsModelVisPatch[thread].data());
-      }
-}
+
 
       // Add all thread model data to one buffer
       itsTempBuffer.getData()=Complex();
