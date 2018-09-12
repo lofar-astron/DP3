@@ -623,7 +623,7 @@ namespace DP3 {
 				ThreadPool pool;
 				for(DP3::DPPP::Predict& predict : itsPredictSteps)
 					predict.setThreadPool(pool);
-				pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t thread) {
+				pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
                    itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
