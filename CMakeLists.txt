@@ -39,6 +39,8 @@ endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Object libraries (which are just file groups, not actual libraries) are made in order
+# to avoid compiling everything multiple times for multiple executables.
 add_library(Common OBJECT 
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
