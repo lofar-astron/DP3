@@ -313,50 +313,50 @@ namespace DP3 {
         }
       }
 
-			std::unique_ptr<ThreadPool> localThreadPool;
-			ThreadPool* pool = itsThreadPool;
-			if(pool == nullptr)
-			{
-				// If no ThreadPool was specified, we create a temporary one just
-				// for executation of this part.
-				localThreadPool.reset(new ThreadPool());
-				pool = localThreadPool.get();
-			}
-			std::vector<Simulator> simulators;
-			simulators.reserve(pool->NThreads());
+      std::unique_ptr<ThreadPool> localThreadPool;
+      ThreadPool* pool = itsThreadPool;
+      if(pool == nullptr)
+      {
+        // If no ThreadPool was specified, we create a temporary one just
+        // for executation of this part.
+        localThreadPool.reset(new ThreadPool());
+        pool = localThreadPool.get();
+      }
+      std::vector<Simulator> simulators;
+      simulators.reserve(pool->NThreads());
       for(size_t thread=0; thread!=pool->NThreads(); ++thread)
-			{
-				itsModelVis[thread]=dcomplex();
-				itsModelVisPatch[thread]=dcomplex();
+      {
+        itsModelVis[thread]=dcomplex();
+        itsModelVisPatch[thread]=dcomplex();
 
-				//When applying beam, simulate into patch vector
-				Cube<dcomplex>& simulatedest=(itsApplyBeam ? itsModelVisPatch[thread]
-					: itsModelVis[thread]);
+        //When applying beam, simulate into patch vector
+        Cube<dcomplex>& simulatedest=(itsApplyBeam ? itsModelVisPatch[thread]
+          : itsModelVis[thread]);
 
-				simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-					info().chanFreqs(), itsUVW, simulatedest,
-					itsStokesIOnly);
-			}
-			std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
-			
-			pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
-				// Keep on predicting, only apply beam when an entire patch is done
-				Patch::ConstPtr& curPatch = curPatches[thread];
-				if (itsApplyBeam && curPatch!=itsSourceList[iter].second && curPatch!=nullptr) {
-						addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
-													itsModelVisPatch[thread].data());
-					}
-					simulators[thread].simulate(itsSourceList[iter].first);
-					curPatch=itsSourceList[iter].second;
-			});
+        simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
+          info().chanFreqs(), itsUVW, simulatedest,
+          itsStokesIOnly);
+      }
+      std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
+      
+      pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
+        // Keep on predicting, only apply beam when an entire patch is done
+        Patch::ConstPtr& curPatch = curPatches[thread];
+        if (itsApplyBeam && curPatch!=itsSourceList[iter].second && curPatch!=nullptr) {
+            addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
+                          itsModelVisPatch[thread].data());
+          }
+          simulators[thread].simulate(itsSourceList[iter].first);
+          curPatch=itsSourceList[iter].second;
+      });
       // Apply beam to the last patch
-			for(size_t thread=0; thread!=pool->NThreads(); ++thread)
-			{
-				if (itsApplyBeam && curPatches[thread]!=nullptr) {
-					addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
-						itsModelVisPatch[thread].data());
-				}
-			}
+      for(size_t thread=0; thread!=pool->NThreads(); ++thread)
+      {
+        if (itsApplyBeam && curPatches[thread]!=nullptr) {
+          addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
+            itsModelVisPatch[thread].data());
+        }
+      }
 
       // Add all thread model data to one buffer
       itsTempBuffer.getData()=Complex();

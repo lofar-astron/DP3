@@ -95,7 +95,7 @@ namespace DP3 {
         itsNChan         (parset.getInt (prefix + "nchan", 1)),
         itsUVWFlagStep   (input, parset, prefix),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
-	itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
+  itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
@@ -113,7 +113,7 @@ namespace DP3 {
       itsMultiDirSolver.set_detect_stalling(parset.getBool(prefix + "detectstalling", true));
 
       if(!itsStatFilename.empty())
-	itsStatStream.reset(new std::ofstream(itsStatFilename));
+  itsStatStream.reset(new std::ofstream(itsStatFilename));
       
       vector<string> strDirections;
       if (itsUseModelColumn) {
@@ -149,7 +149,7 @@ namespace DP3 {
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
-	itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+  itsConstraints.push_back(casacore::CountedPtr<Constraint>(
         new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
@@ -437,11 +437,11 @@ namespace DP3 {
         {
           tecConstraint->initialize(&itsChanBlockFreqs[0]);
         }
-	SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
-	if(sConstraint != nullptr)
-	{
-	  sConstraint->Initialize(&itsChanBlockFreqs[0]);
-	}
+  SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
+  if(sConstraint != nullptr)
+  {
+    sConstraint->Initialize(&itsChanBlockFreqs[0]);
+  }
       }
 
       uint nSt = info().antennaNames().size();
@@ -456,7 +456,7 @@ namespace DP3 {
     void DDECal::show (std::ostream& os) const
     {
       os
-	<< "DDECal " << itsName << '\n'
+  << "DDECal " << itsName << '\n'
         << "  H5Parm:              " << itsH5ParmName << '\n'
         << "  solint:              " << itsSolInt << '\n'
         << "  nchan:               " << itsNChan << '\n'
@@ -468,7 +468,7 @@ namespace DP3 {
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
         << "  coreconstraint:      " << itsCoreConstraint << '\n'
-	<< "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
+  << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
         << "  approximate fitter:  " << itsApproximateTEC << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
@@ -569,12 +569,12 @@ namespace DP3 {
       {
         solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
           itsSols[itsTimeStep/itsSolInt],
-	  itsAvgTime / itsSolInt, itsStatStream.get());
+    itsAvgTime / itsSolInt, itsStatStream.get());
       }
       else {
         solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
           itsSols[itsTimeStep/itsSolInt],
-	  itsAvgTime / itsSolInt, itsStatStream.get());
+    itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 
@@ -620,10 +620,10 @@ namespace DP3 {
       } else {
 //#pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
 //        for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
-				ThreadPool pool;
-				for(DP3::DPPP::Predict& predict : itsPredictSteps)
-					predict.setThreadPool(pool);
-				pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
+        ThreadPool pool;
+        for(DP3::DPPP::Predict& predict : itsPredictSteps)
+          predict.setThreadPool(pool);
+        pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
                    itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
@@ -872,7 +872,7 @@ namespace DP3 {
             vector<double>::iterator nextpos = sols.begin();
             for (uint time=0; time<itsSols.size(); ++time) {
               if(itsConstraintSols[time].size()!=itsConstraintSols[0].size())
-								throw std::runtime_error("Constraints did not produce enough output at time step " + std::to_string(time));
+                throw std::runtime_error("Constraints did not produce enough output at time step " + std::to_string(time));
               nextpos = std::copy(
                 itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
                 itsConstraintSols[time][constraintNum][solNameNum].vals.end(),

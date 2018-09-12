@@ -87,7 +87,7 @@ namespace DP3 {
       std::vector<std::string> itsDirections;
 
       NSTimer          itsTimer;
-			ThreadPool itsThreadPool;
+      ThreadPool itsThreadPool;
     };
 
   } //# end namespace
