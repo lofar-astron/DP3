@@ -26,6 +26,9 @@ public:
 		_tasks.resize(nthreads);
 	}
 	
+	ThreadPool(const ThreadPool&) = delete;
+	ThreadPool& operator=(const ThreadPool&) = delete;
+	
 	~ThreadPool()
 	{
 		_tasks.write_end();
