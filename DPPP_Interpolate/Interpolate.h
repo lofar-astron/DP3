@@ -7,11 +7,10 @@
 #include "../DPPP/DPInput.h"
 #include "../DPPP/DPBuffer.h"
 
+#include "../Common/Lane.h"
 #include "../Common/ParameterSet.h"
 
 #include <casacore/casa/Arrays/Cube.h>
-
-#include "lane.h"
 
 extern "C" void register_interpolate();
 

@@ -42,6 +42,7 @@
 #include "../ParmDB/ParmValue.h"
 #include "../ParmDB/SourceDB.h"
 
+#include "../Common/ThreadPool.h"
 #include "../Common/OpenMP.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
@@ -617,12 +618,16 @@ namespace DP3 {
                                 itsModelData[itsStepInSolInt]);
         itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
       } else {
-#pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
-        for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+//#pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
+//        for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+				ThreadPool pool;
+				for(DP3::DPPP::Predict& predict : itsPredictSteps)
+					predict.setThreadPool(pool);
+				pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
                    itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
-        }
+        });
       }
 
       // Handle weights and flags

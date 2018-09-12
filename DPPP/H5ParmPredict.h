@@ -32,6 +32,8 @@
 #include "Predict.h"
 #include "H5Parm.h"
 
+#include "../Common/ThreadPool.h"
+
 #include <utility>
 
 namespace DP3 {
@@ -85,6 +87,7 @@ namespace DP3 {
       std::vector<std::string> itsDirections;
 
       NSTimer          itsTimer;
+			ThreadPool itsThreadPool;
     };
 
   } //# end namespace
