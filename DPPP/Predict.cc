@@ -334,12 +334,14 @@ namespace DP3 {
 			ThreadPool* pool = itsThreadPool;
 			if(pool == nullptr)
 			{
+				// If no ThreadPool was specified, we create a temporary one just
+				// for executation of this part.
 				localThreadPool.reset(new ThreadPool());
 				pool = localThreadPool.get();
 			}
 			std::vector<Simulator> simulators;
-			simulators.reserve(itsThreadPool->NThreads());
-      for(size_t thread=0; thread!=itsThreadPool->NThreads(); ++thread)
+			simulators.reserve(pool->NThreads());
+      for(size_t thread=0; thread!=pool->NThreads(); ++thread)
 			{
 				itsModelVis[thread]=dcomplex();
 				itsModelVisPatch[thread]=dcomplex();
@@ -352,7 +354,7 @@ namespace DP3 {
 					info().chanFreqs(), itsUVW, simulatedest,
 					itsStokesIOnly);
 			}
-			std::vector<Patch::ConstPtr> curPatches(itsThreadPool->NThreads());
+			std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
 			
 			pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
 				// Keep on predicting, only apply beam when an entire patch is done
@@ -365,7 +367,7 @@ namespace DP3 {
 					curPatch=itsSourceList[iter].second;
 			});
       // Apply beam to the last patch
-			for(size_t thread=0; thread!=itsThreadPool->NThreads(); ++thread)
+			for(size_t thread=0; thread!=pool->NThreads(); ++thread)
 			{
 				if (itsApplyBeam && curPatches[thread]!=nullptr) {
 					addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
