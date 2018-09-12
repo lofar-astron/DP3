@@ -51,7 +51,7 @@ public:
 	{
 		while(start!=end)
 		{
-			_tasks.emplace(std::bind(func, std::placeholders::_1, start));
+			_tasks.emplace(std::bind(func, start, std::placeholders::_1));
 			++start;
 		}
 	}
