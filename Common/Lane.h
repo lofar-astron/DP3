@@ -395,6 +395,18 @@ class lane
 			_status = status_normal;
 		}
 		
+		/**
+		 * Wait until this lane is empty.
+		 */
+		void wait_for_empty()
+		{
+			std::unique_lock<std::mutex> lock(_mutex);
+			while(_capacity != _free_write_space)
+			{
+				_reading_possible_condition.wait(lock);
+			}
+		}
+		
 #ifdef LANE_DEBUG_MODE
 		/**
 		 * Change the name of this lane to make it appear in the output along

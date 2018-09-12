@@ -89,12 +89,13 @@ namespace DP3 {
 
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
         if (i>0) {
-          itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
+          itsPredictSteps.back()->setNextStep(itsPredictSteps[i]);
         }
+        itsPredictSteps.back()->setThreadPool(itsThreadPool);
       }
 
       itsResultStep=new ResultStep();
-      itsPredictSteps[itsPredictSteps.size()-1]->setNextStep(DPStep::ShPtr(itsResultStep));
+      itsPredictSteps.back()->setNextStep(DPStep::ShPtr(itsResultStep));
     }
 
     H5ParmPredict::~H5ParmPredict()

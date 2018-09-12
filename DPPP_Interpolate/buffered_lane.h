@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "lane.h"
+#include "../Common/Lane.h"
 
 template<typename Tp>
 class lane_write_buffer 

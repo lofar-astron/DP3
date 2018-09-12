@@ -45,6 +45,7 @@
 namespace DP3 {
 
   class ParameterSet;
+	class ThreadPool;
 
   namespace DPPP {
     // @ingroup NDPPP
@@ -76,6 +77,8 @@ namespace DP3 {
 
       // Set the operation type
       void setOperation(const std::string& type);
+			
+			void setThreadPool(ThreadPool& pool) { itsThreadPool = &pool; }
 
       Predict();
 
@@ -155,6 +158,8 @@ namespace DP3 {
 
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
+			
+			ThreadPool* itsThreadPool;
     };
 
   } //# end namespace
