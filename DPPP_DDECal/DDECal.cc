@@ -611,22 +611,18 @@ namespace DP3 {
 
       itsTimerPredict.start();
 
-//      if(itsPredictSteps.size() < DP3OpenMP::maxThreads())
-//        DP3OpenMP::setNested(true);
       if (itsUseModelColumn) {
         itsInput->getModelData (itsBufs[itsStepInSolInt].getRowNrs(),
                                 itsModelData[itsStepInSolInt]);
         itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
       } else {
-//#pragma omp parallel for schedule(dynamic) if(itsPredictSteps.size()>1)
-//        for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
         ThreadPool pool;
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
           predict.setThreadPool(pool);
         pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
-                   itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
+            itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
         });
       }
 
