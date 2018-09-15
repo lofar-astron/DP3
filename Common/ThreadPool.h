@@ -63,7 +63,7 @@ public:
 		++_priority;
 		lock.unlock();
 		
-	  size_t progress = end-start;
+		size_t progress = end-start;
 		
 		std::thread localThread(&ThreadPool::threadSpecificPriorityFunc, this, 0, thisPriority, &progress);
 		
