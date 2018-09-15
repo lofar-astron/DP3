@@ -105,7 +105,13 @@ void Simulator::visit(const PointSource &component) {
   }
 
   // Compute visibilities.
-#pragma omp parallel for
+  // The following loop can be parallelized, but because there is already
+  // a parallelization over sources, this is not necessary.
+  // It used to be parallelized with a #pragma omp parallel for, but since
+  // the outer loop was also parallelized with omp, this had no effect
+  // (since omp by default doesn't parallelize nested loops). After the change
+  // to a ThreadPool, this would parallize each separate source, which started
+  // hundreds of threads on many-core machines.
   for(size_t bl = 0; bl < itsNBaseline; ++bl) {
     dcomplex* buffer=&itsBuffer(0,0,bl);
     const size_t p = itsBaselines[bl].first;
