@@ -10,21 +10,22 @@
 #include <thread>
 #include <vector>
 
-#include "Lane.h"
-
 namespace DP3
 {
 
 class ThreadPool
 {
 public:
-	ThreadPool()
+	ThreadPool() :
+		_isStopped(false),
+		_priority(0)
 	{
 		size_t nthreads = cpus();
-		_freeThreads = nthreads;
-		_tasks.resize(nthreads);
-		_threads.reserve(nthreads);
-		for(size_t i=0; i!=nthreads; ++i)
+		
+		// We reserve one thread less, because we always want a new For loop
+		// to be able to add a new thread (with index 0).
+		_threads.reserve(nthreads-1);
+		for(size_t i=1; i!=nthreads; ++i)
 			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
 	}
 	
@@ -33,14 +34,17 @@ public:
 	
 	~ThreadPool()
 	{
-		_tasks.write_end();
+		std::unique_lock<std::mutex> lock(_mutex);
+		_isStopped = true;
+		_onProgress.notify_all();
+		lock.unlock();
 		for(std::thread& t : _threads)
 			t.join();
 	}
 	
 	size_t NThreads() const
 	{
-		return _threads.size();
+		return _threads.size()+1;
 	}
 	
 	/**
@@ -54,54 +58,107 @@ public:
 	template<typename Func>
 	void For(size_t start, size_t end, Func func)
 	{
-	  size_t progress = 0, n = end-start;
-		
 		std::unique_lock<std::mutex> lock(_mutex);
-		if(_freeThreads == 0)
+		size_t thisPriority = _priority;
+		++_priority;
+		lock.unlock();
+		
+	  size_t progress = end-start;
+		
+		std::thread localThread(&ThreadPool::threadSpecificPriorityFunc, this, 0, thisPriority, &progress);
+		
+		// Queue tasks for all iterations
+		while(start!=end)
 		{
-			lock.unlock();
-			// All our threads are busy
-			while(start!=end)
-			{
-				func(start, 0);
-				++start;
-			}
+			write(thisPriority, std::bind(func, start, std::placeholders::_1), &progress);
+			++start;
 		}
-		else {
-			lock.unlock();
-			// Queue tasks for all iterations
-			while(start!=end)
-			{
-				_tasks.emplace(std::bind(func, start, std::placeholders::_1), &progress);
-				++start;
-			}
 			
-			// Wait untill we have performed all iterations
-			std::unique_lock<std::mutex> lock(_mutex);
-			while(progress != n)
-			{
-				_onProgress.wait(lock);
-			}
-		}
+		// Wait untill we have performed all iterations
+		/*lock.lock();
+		while(progress != 0)
+		{
+			_onProgress.wait(lock);
+		}*/
+		localThread.join();
 	}
 	
 private:
 	void threadFunc(size_t threadId)
 	{
 		std::pair<std::function<void(size_t)>, size_t*> func;
-		while(_tasks.read(func))
+		while(read_highest_priority(func))
 		{
-			std::unique_lock<std::mutex> lock(_mutex);
-			_freeThreads--;
-			lock.unlock();
-			
 			func.first(threadId);
 			
-			lock.lock();
-			++_freeThreads;
-			++(*func.second);
+			std::unique_lock<std::mutex> lock(_mutex);
+			--(*func.second); // decrease progress counter (requires lock)
 			_onProgress.notify_all();
 		}
+	}
+	
+	void threadSpecificPriorityFunc(size_t threadId, size_t priority, size_t* progressPtr)
+	{
+		std::pair<std::function<void(size_t)>, size_t*> func;
+		while(read_specific_priority(priority, func, progressPtr))
+		{
+			func.first(threadId);
+			
+			std::unique_lock<std::mutex> lock(_mutex);
+			--(*progressPtr);
+			_onProgress.notify_all();
+		}
+	}
+	
+	bool read_highest_priority(std::pair<std::function<void(size_t)>, size_t*>& func)
+	{
+		std::unique_lock<std::mutex> lock(_mutex);
+		while(!_isStopped && _tasks.empty())
+			_onProgress.wait(lock);
+		if(!_tasks.empty())
+		{
+			func = std::move(_tasks.begin()->second);
+			_tasks.erase(_tasks.begin());
+			_onProgress.notify_all();
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	bool read_specific_priority(size_t priority, std::pair<std::function<void(size_t)>, size_t*>& func, size_t* progress)
+	{
+		std::unique_lock<std::mutex> lock(_mutex);
+		auto iter = _tasks.find(priority);
+		while(!_isStopped && (*progress)>0 && iter == _tasks.end())
+		{
+			_onProgress.wait(lock);
+			iter = _tasks.find(priority);
+		}
+		if(iter != _tasks.end())
+		{
+			func = std::move(iter->second);
+			_tasks.erase(iter);
+			_onProgress.notify_all();
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	void write(size_t priority, std::function<void(size_t)>&& func, size_t* progressPtr)
+	{
+		// Wait until there is space in the map (so that the map
+		// doesn't get too large)
+		std::unique_lock<std::mutex> lock(_mutex);
+		while(_tasks.count(priority) >= NThreads())
+		{
+			_onProgress.wait(lock);
+		}
+		_tasks.emplace(priority, std::make_pair(std::move(func), progressPtr));
+		_onProgress.notify_all();
 	}
 	
 	static unsigned cpus()
@@ -123,11 +180,17 @@ private:
 #endif
 	}
 	
-	ao::lane<std::pair<std::function<void(size_t)>, size_t*>> _tasks;
+	// Priority, (function, progress*)
+	bool _isStopped;
+	size_t _priority;
+	std::multimap<
+		size_t,
+		std::pair<std::function<void(size_t)>, size_t*>,
+		std::greater<size_t>
+	> _tasks;
 	std::vector<std::thread> _threads;
 	std::mutex _mutex;
 	std::condition_variable _onProgress;
-	size_t _freeThreads;
 };
 
 };
