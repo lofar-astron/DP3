@@ -92,9 +92,9 @@ namespace DP3 {
 
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
         if (i>0) {
-          itsPredictSteps.back()->setNextStep(itsPredictSteps[i]);
+          itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
         }
-        itsPredictSteps.back()->setThreadPool(itsThreadPool);
+        itsPredictSteps[i]->setThreadPool(itsThreadPool);
       }
 
       itsResultStep=new ResultStep();
