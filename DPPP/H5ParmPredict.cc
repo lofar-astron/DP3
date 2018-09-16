@@ -52,7 +52,10 @@ namespace DP3 {
                               prefix+"directions", vector<string> ()))
     {
       H5Parm h5parm = H5Parm(itsH5ParmName, false);
-      H5Parm::SolTab soltab = h5parm.getSolTab(parset.getString(prefix+"applycal.correction"));
+      std::string soltabName = parset.getString(prefix+"applycal.correction"); 
+      if(soltabName == "fulljones")
+        soltabName = "amplitude000";
+      H5Parm::SolTab soltab = h5parm.getSolTab(soltabName);
 
       vector<string> h5directions = soltab.getStringAxis("dir");
 
@@ -89,9 +92,9 @@ namespace DP3 {
 
         itsPredictSteps.push_back(Predict::ShPtr(predictStep));
         if (i>0) {
-          itsPredictSteps.back()->setNextStep(itsPredictSteps[i]);
+          itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
         }
-        itsPredictSteps.back()->setThreadPool(itsThreadPool);
+        itsPredictSteps[i]->setThreadPool(itsThreadPool);
       }
 
       itsResultStep=new ResultStep();
