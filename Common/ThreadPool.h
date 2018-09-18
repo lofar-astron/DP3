@@ -20,12 +20,23 @@ public:
 		_isStopped(false),
 		_priority(0)
 	{
-		size_t nthreads = cpus();
+		size_t nThreads = cpus();
 		
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
-		_threads.reserve(nthreads-1);
-		for(size_t i=1; i!=nthreads; ++i)
+		_threads.reserve(nThreads-1);
+		for(size_t i=1; i!=nThreads; ++i)
+			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
+	}
+	
+	ThreadPool(size_t nThreads) :
+		_isStopped(false),
+		_priority(0)
+	{
+		// We reserve one thread less, because we always want a new For loop
+		// to be able to add a new thread (with index 0).
+		_threads.reserve(nThreads-1);
+		for(size_t i=1; i!=nThreads; ++i)
 			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
 	}
 	
