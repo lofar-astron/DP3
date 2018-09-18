@@ -616,10 +616,11 @@ namespace DP3 {
                                 itsModelData[itsStepInSolInt]);
         itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
       } else {
-        ThreadPool pool;
+        if(itsThreadPool == nullptr)
+          itsThreadPool.reset(new ThreadPool(OpenMP::maxThreads()));
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
-          predict.setThreadPool(pool);
-        pool.For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
+          predict.setThreadPool(*itsThreadPool);
+        itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
             itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();

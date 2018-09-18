@@ -319,7 +319,7 @@ namespace DP3 {
       {
         // If no ThreadPool was specified, we create a temporary one just
         // for executation of this part.
-        localThreadPool.reset(new ThreadPool());
+        localThreadPool.reset(new ThreadPool(OpenMP::maxThreads()));
         pool = localThreadPool.get();
       }
       std::vector<Simulator> simulators;

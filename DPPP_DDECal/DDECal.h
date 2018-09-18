@@ -54,6 +54,7 @@
 namespace DP3 {
 
   class ParameterSet;
+	class ThreadPool;
 
   namespace DPPP {
     // @ingroup NDPPP
@@ -171,6 +172,7 @@ namespace DP3 {
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;
       std::string itsStatFilename;
+			std::unique_ptr<ThreadPool> itsThreadPool;
       std::unique_ptr<std::ofstream> itsStatStream;
     };
 
