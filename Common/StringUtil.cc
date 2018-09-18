@@ -382,7 +382,7 @@ uint strToUint (const std::string& aString)
   unsigned long val = strToUlong (aString);
   if (sizeof(uint) != sizeof(unsigned long)) {
     if (sizeof(uint) == 4) {
-      if (val < 4294967295UL)
+      if (val > 4294967295UL)
         throw std::runtime_error(std::to_string(val) + " is outside 4-byte uint range");
     }
   }
