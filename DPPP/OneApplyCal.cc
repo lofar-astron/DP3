@@ -337,7 +337,7 @@ namespace DP3 {
         os << "  H5Parm:         " << itsParmDBName << '\n';
         os << "    SolSet:       " << itsH5Parm.getSolSetName() << '\n';
         os << "    SolTab:       " << itsSolTabName << '\n';
-        os << "  Direction:       " << itsDirection << '\n';
+        os << " Direction:       " << itsDirection << '\n';
       } else {
         os << "  parmdb:         " << itsParmDBName << '\n';
       }
