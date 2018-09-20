@@ -332,31 +332,32 @@ namespace DP3 {
 
     void OneApplyCal::show (std::ostream& os) const
     {
-      os << "ApplyCal " << itsName << std::endl;
+      os << "ApplyCal " << itsName << '\n';
       if (itsUseH5Parm) {
-        os << "  H5Parm:         " << itsParmDBName << endl;
-        os << "    SolSet:       " << itsH5Parm.getSolSetName() << endl;
-        os << "    SolTab:       " << itsSolTabName << endl;
+        os << "  H5Parm:         " << itsParmDBName << '\n';
+        os << "    SolSet:       " << itsH5Parm.getSolSetName() << '\n';
+        os << "    SolTab:       " << itsSolTabName << '\n';
+        os << "  Direction:       " << itsDirection << '\n';
       } else {
-        os << "  parmdb:         " << itsParmDBName << endl;
+        os << "  parmdb:         " << itsParmDBName << '\n';
       }
-      os << "  correction:     " << correctTypeToString(itsCorrectType) << endl;
+      os << "  correction:     " << correctTypeToString(itsCorrectType) << '\n';
       if (itsCorrectType==GAIN || itsCorrectType==FULLJONES) {
-        os << "    Ampl/Phase:   " << boolalpha << itsUseAP << endl;
+        os << "    Ampl/Phase:   " << boolalpha << itsUseAP << '\n';
       }
-      os << "  update weights: " << boolalpha << itsUpdateWeights << endl;
-      os << "  invert:         " << boolalpha << itsInvert <<endl;
+      os << "  update weights: " << boolalpha << itsUpdateWeights << '\n';
+      os << "  invert:         " << boolalpha << itsInvert <<'\n';
       if (itsInvert) {
-      os << "    sigmaMMSE:    " << itsSigmaMMSE << endl;
+      os << "    sigmaMMSE:    " << itsSigmaMMSE << '\n';
       }
-      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<endl;
+      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<'\n';
     }
 
     void OneApplyCal::showTimings (std::ostream& os, double duration) const
     {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
-      os << " OneApplyCal " << itsName << endl;
+      os << " OneApplyCal " << itsName << '\n';
     }
 
     bool OneApplyCal::process (const DPBuffer& bufin)
@@ -761,8 +762,8 @@ namespace DP3 {
 
     void OneApplyCal::showCounts (std::ostream& os) const
     {
-      os << endl << "Flags set by OneApplyCal " << itsName;
-      os << endl << "=======================" << endl;
+      os << "\nFlags set by OneApplyCal " << itsName;
+      os << "\n=======================\n";
       itsFlagCounter.showBaseline (os, itsCount);
       itsFlagCounter.showChannel  (os, itsCount);
     }
