@@ -8,12 +8,13 @@ This repository is a continuation of the one at svn.astron.nl/LOFAR. In particul
 ## Installation
 Some non-standard dependencies of this project are: armadillo, boost, boost-python, casacore, hdf5, aoflagger, and the LOFAR beam model libstationresponse. These can be installed using KERN, see the file .travis/Dockerfile in this repository for an example installation.
 
-Typical installation commands (note that currently there is no `make install`, see https://github.com/lofar-astron/DP3/issues/8 ):
+Typical installation commands:
 ```
 mkdir build
 cd build
 cmake ..
-make
+make -j4
+make install
 ```
 
 [![Build Status](https://travis-ci.org/lofar-astron/DP3.svg?branch=master)](https://travis-ci.org/lofar-astron/DP3)

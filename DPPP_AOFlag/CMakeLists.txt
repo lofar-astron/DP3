@@ -25,4 +25,6 @@ add_library(dppp_aoflag SHARED
   Register.cc
 )
 
+install (TARGETS dppp_aoflag DESTINATION lib) 
+
 #add_subdirectory(test)

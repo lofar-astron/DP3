@@ -137,3 +137,5 @@ include_directories(Common)
 
 add_executable(makesourcedb ParmDB/makesourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
 target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+
+install (TARGETS makesourcedb DESTINATION bin) 

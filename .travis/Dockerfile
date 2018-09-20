@@ -13,3 +13,5 @@ WORKDIR /src
 RUN mkdir /build && cd /build && cmake ../src
 RUN ln -s /usr/include/casacore/measures /usr/include && ln -s /usr/include/casacore/ms /usr/include
 RUN cd /build && make -j2
+RUN cd /build && make install
+RUN DPPP
