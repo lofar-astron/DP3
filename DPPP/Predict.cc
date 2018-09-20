@@ -110,7 +110,7 @@ namespace DP3 {
 
       if (itsApplyBeam) {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
-        itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", true);
+        itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", false);
 
         string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
         assert (mode=="default" || mode=="array_factor" || mode=="element");
