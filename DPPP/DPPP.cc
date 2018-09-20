@@ -22,11 +22,12 @@
 //# @author Ger van Diepen
 
 #include "DPRun.h"
+#include "Version.h"
+
+#include <boost/filesystem/operations.hpp>
 
 #include <iostream>
 #include <stdexcept>
-
-#include <casacore/casa/OS/File.h>
 
 // Define handler that tries to print a backtrace.
 //Exception::TerminateHandler t(Exception::terminate);
@@ -49,15 +50,20 @@ int main(int argc, char *argv[])
 {
   try
   {
-    //TEST_SHOW_VERSION (argc, argv, DPPP);
-    //INIT_LOGGER("DPPP");
     // Get the name of the parset file.
-    if (argc>1 && (
-          string(argv[1])=="--help" ||
-          string(argv[1])=="-help"   || string(argv[1])=="-h" || 
-          string(argv[1])=="--usage" || string(argv[1])=="-usage")) {
-      showUsage();
-      return 0;
+    if (argc>1) {
+      string param = argv[1];
+      if(param=="--help" ||
+        param=="-help" || param=="-h" || 
+        param=="--usage" || param=="-usage") {
+        showUsage();
+        return 0;
+      }
+      else if(param == "-v" || param == "--version")
+      {
+        std::cout << DPPPVersion::AsString() << '\n';
+        return 0;
+      }
     }
 
     string parsetName;
@@ -66,10 +72,10 @@ int main(int argc, char *argv[])
       parsetName = argv[1];
     } else if (argc==1) {
       // No arguments given: try to load [N]DPPP.parset
-      if (casacore::File("NDPPP.parset").exists()) {
-        parsetName="NDPPP.parset";
-      } else if (casacore::File("DPPP.parset").exists()) {
+      if (boost::filesystem::exists("DPPP.parset")) {
         parsetName="DPPP.parset";
+      } else if (boost::filesystem::exists("NDPPP.parset")) {
+        parsetName="NDPPP.parset";
       } else { // No default file, show usage and exit
         showUsage();
         return 0;
@@ -79,8 +85,7 @@ int main(int argc, char *argv[])
     // Execute the parset file.
     DP3::DPPP::DPRun::execute (parsetName, argc, argv);
   } catch (std::exception& err) {
-    std::cerr << std::endl;
-    std::cerr << "std exception detected: " << err.what() << std::endl;
+    std::cerr << "\nstd exception detected: " << err.what() << std::endl;
     return 1;
   }
   return 0;
