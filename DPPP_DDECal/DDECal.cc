@@ -99,7 +99,8 @@ namespace DP3 {
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
-        itsStatFilename(parset.getString(prefix + "statfilename", ""))
+        itsSubtract(parset.getBool(prefix + "subtract", false)),
+        itsStatFilename(parset.getString(prefix + "statfilename", "")),
     {
       stringstream ss;
       ss << parset;
@@ -113,7 +114,7 @@ namespace DP3 {
       itsMultiDirSolver.set_detect_stalling(parset.getBool(prefix + "detectstalling", true));
 
       if(!itsStatFilename.empty())
-  itsStatStream.reset(new std::ofstream(itsStatFilename));
+        itsStatStream.reset(new std::ofstream(itsStatFilename));
       
       vector<string> strDirections;
       if (itsUseModelColumn) {
@@ -149,7 +150,7 @@ namespace DP3 {
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
-  itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
         new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
@@ -284,6 +285,7 @@ namespace DP3 {
       }
 
       itsDataPtrs.resize(itsSolInt);
+			itsWeightPtrs.resize(itsSolInt);
       itsModelDataPtrs.resize(itsSolInt);
       for (uint t=0; t<itsSolInt; ++t) {
         itsModelDataPtrs[t].resize(nDir);
@@ -567,16 +569,18 @@ namespace DP3 {
       MultiDirSolver::SolveResult solveResult;
       if(itsFullMatrixMinimalization)
       {
-        solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep/itsSolInt],
-    itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
       }
       else {
-        solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep/itsSolInt],
-    itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
+
+      if(itsSubtract)
+      {
+        // Our original data & modeldata is still in the data buffers, since the solver
+        // doesn't change those.
+      }
 
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
       itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
@@ -600,6 +604,7 @@ namespace DP3 {
 
       itsBufs[itsStepInSolInt].copy(bufin);
       itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
+      itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
 
       // Fetch inputs because parallel PredictSteps should not read it from disk
       itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
@@ -633,31 +638,28 @@ namespace DP3 {
       const size_t nCr = 4;
       
       size_t nchanblocks = itsChanBlockFreqs.size();
-      size_t chanblock = 0;
 
       double weightFactor = 1./(nCh*(info().nantenna()-1)*nCr*itsSolInt);
 
-      for (size_t ch=0; ch<nCh; ++ch) {
-        if (ch == itsChanBlockStart[chanblock+1]) {
-          chanblock++;
-        }
-        for (size_t bl=0; bl<nBl; ++bl) {
+      for (size_t bl=0; bl<nBl; ++bl) {
+        size_t 
+          chanblock = 0,
+          ant1 = info().getAnt1()[bl],
+          ant2 = info().getAnt2()[bl];
+        for (size_t ch=0; ch<nCh; ++ch) {
+          if (ch == itsChanBlockStart[chanblock+1]) {
+            chanblock++;
+          }
           for (size_t cr=0; cr<nCr; ++cr) {
-            if (itsBufs[itsStepInSolInt].getFlags().data()[bl*nCr*nCh+ch*nCr+cr]) {
-              // Flagged points: set data and model to 0
-              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] = 0;
-              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
-                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] = 0;
-              }
+            const size_t index = (bl*nCh+ch)*nCr+cr;
+            if (itsBufs[itsStepInSolInt].getFlags().data()[index]) {
+              // Flagged points: set weight to 0
+              itsWeightPtrs[itsStepInSolInt][index] = 0;
             } else {
-              // Premultiply non-flagged data with sqrt(weight)
-              double weight = itsBufs[itsStepInSolInt].getWeights().data()[bl*nCr*nCh+ch*nCr+cr];
-              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
-              itsWeights[info().getAnt1()[bl]*nchanblocks + chanblock] += weight;
-              itsWeights[info().getAnt2()[bl]*nchanblocks + chanblock] += weight;
-              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
-                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
-              }
+              // Add this weight to both involved antennas
+              double weight = itsBufs[itsStepInSolInt].getWeights().data()[index];
+              itsWeights[ant1*nchanblocks + chanblock] += weight;
+              itsWeights[ant2*nchanblocks + chanblock] += weight;
             }
           }
         }
@@ -671,7 +673,8 @@ namespace DP3 {
 
       itsAvgTime += itsAvgTime + bufin.getTime();
 
-      if (itsStepInSolInt==itsSolInt-1) {
+      if (itsStepInSolInt==itsSolInt-1)
+      {
         for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
           itsConstraints[constraint_num]->SetWeights(itsWeights);
         }
@@ -964,6 +967,8 @@ namespace DP3 {
         //shrink itsDataPtrs, itsModelDataPtrs
         std::vector<casacore::Complex*>(itsDataPtrs.begin(),
             itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
+        std::vector<float*>(itsWeightPtrs.begin(),
+            itsWeightPtrs.begin()+itsStepInSolInt).swap(itsWeightPtrs);
         std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
                     itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
 

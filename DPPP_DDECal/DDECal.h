@@ -125,6 +125,7 @@ namespace DP3 {
       // The time of the current buffer (in case of solint, average time)
       double           itsAvgTime;
       std::vector<casacore::Complex*> itsDataPtrs;
+      std::vector<float*> itsWeightPtrs;
 
       // For each timeslot, a vector of nDir buffers
       std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
@@ -171,6 +172,7 @@ namespace DP3 {
       MultiDirSolver   itsMultiDirSolver;
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;
+			bool itsSubtract;
       std::string itsStatFilename;
 			std::unique_ptr<ThreadPool> itsThreadPool;
       std::unique_ptr<std::ofstream> itsStatStream;
