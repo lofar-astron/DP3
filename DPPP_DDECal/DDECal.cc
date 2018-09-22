@@ -608,6 +608,7 @@ namespace DP3 {
 
       itsBufs[itsStepInSolInt].copy(bufin);
       itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
+      itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
 
       // Fetch inputs because parallel PredictSteps should not read it from disk
       itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
