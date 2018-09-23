@@ -100,7 +100,7 @@ namespace DP3 {
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
         itsSubtract(parset.getBool(prefix + "subtract", false)),
-        itsStatFilename(parset.getString(prefix + "statfilename", "")),
+        itsStatFilename(parset.getString(prefix + "statfilename", ""))
     {
       stringstream ss;
       ss << parset;
@@ -583,8 +583,7 @@ namespace DP3 {
 
       if(itsSubtract)
       {
-        // Our original data & modeldata is still in the data buffers, since the solver
-        // doesn't change those.
+        subtractCorrectedModel();
       }
 
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
@@ -986,6 +985,16 @@ namespace DP3 {
 
       // Let the next steps finish.
       getNextStep()->finish();
+    }
+    
+    void DDECal::subtractCorrectedModel()
+    {
+      // Our original data & modeldata is still in the data buffers (the solver
+      // doesn't change those). Here we apply the solutions to all the model data
+      // directions and subtract them from the data.
+      for(size_t time=0; time!=itsStepInSolInt; ++time)
+      {
+      }
     }
 
   } //# end namespace

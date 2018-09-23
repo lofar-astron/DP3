@@ -115,6 +115,8 @@ namespace DP3 {
       // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
       // Used for setting source names.
       std::vector<std::string> getDirectionNames();
+      
+      void subtractCorrectedModel();
 
       //# Data members.
       DPInput*         itsInput;
