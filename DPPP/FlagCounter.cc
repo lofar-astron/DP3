@@ -36,6 +36,7 @@
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
+#include <cassert>
 #include <vector>
 #include <map>
 #include <iomanip>

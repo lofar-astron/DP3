@@ -38,8 +38,8 @@
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Utilities/Regex.h>
 
+#include <cassert>
 #include <iostream>
-
 
 using namespace casacore;
 

@@ -110,7 +110,7 @@ namespace DP3 {
       string           itsParmDBName;
       bool             itsUseH5Parm;
       string           itsSolSetName;
-      boost::shared_ptr<BBS::ParmFacade> itsParmDB;
+      std::shared_ptr<BBS::ParmFacade> itsParmDB;
       H5Parm           itsH5Parm;
       string           itsSolTabName;
       H5Parm::SolTab   itsSolTab;

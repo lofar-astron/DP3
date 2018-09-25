@@ -24,6 +24,7 @@
 #include "StefCal.h"
 #include "DPInput.h"
 
+#include <cassert>
 #include <vector>
 #include <algorithm>
 #include <limits>

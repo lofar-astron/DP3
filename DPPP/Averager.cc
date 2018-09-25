@@ -30,6 +30,7 @@
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <cassert>
 #include <iostream>
 #include <iomanip>
 

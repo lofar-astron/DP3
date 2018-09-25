@@ -41,8 +41,10 @@
 #include "MultiDirSolver.h"
 #include "Constraint.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
+#endif
 
 #include "../ParmDB/Parm.h"
 

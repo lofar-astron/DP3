@@ -27,6 +27,7 @@
 // @file
 // @brief DPPP step class to predict visibilities from a source model
 
+#include "ApplyCal.h"
 #include "DPInput.h"
 #include "DPBuffer.h"
 #include "Patch.h"
@@ -34,8 +35,11 @@
 #include "ApplyBeam.h"
 #include "ModelComponent.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
+#endif
+
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
 #include <casacore/measures/Measures/MEpoch.h>
@@ -54,6 +58,7 @@ namespace DP3 {
 
     typedef std::pair<size_t, size_t> Baseline;
     typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
+    typedef std::complex<double> dcomplex;
 
     class Predict: public DPStep
     {
@@ -108,23 +113,26 @@ namespace DP3 {
       std::pair<double, double> getFirstDirection() const;
 
     private:
+#ifdef HAVE_LOFAR_BEAM
       LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
                                      casacore::MDirection::Convert& measConverter);
       void addBeamToData (Patch::ConstPtr patch, double time,
                                    const LOFAR::StationResponse::vector3r_t& refdir,
                                    const LOFAR::StationResponse::vector3r_t& tiledir,
                                    uint thread, uint nSamples, dcomplex* data0);
-
+#endif
       //# Data members.
       DPInput*         itsInput;
       string           itsName;
       DPBuffer         itsBuffer;
       string           itsSourceDBName;
       string           itsOperation;
+#ifdef HAVE_LOFAR_BEAM
       bool             itsApplyBeam;
-      bool             itsStokesIOnly;
       bool             itsUseChannelFreq;
       bool             itsOneBeamPerPatch;
+#endif
+      bool             itsStokesIOnly;
       Position         itsPhaseRef;
 
       bool             itsDoApplyCal;
@@ -142,12 +150,14 @@ namespace DP3 {
       // UVW coordinates per station (3 coordinates per station)
       casacore::Matrix<double>   itsUVW;
 
+#ifdef HAVE_LOFAR_BEAM
       // The info needed to calculate the station beams.
       vector<vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
-      vector<casacore::MeasFrame>                    itsMeasFrames;
-      vector<casacore::MDirection::Convert>          itsMeasConverters;
       vector<vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
       ApplyBeam::BeamMode                            itsBeamMode;
+#endif
+      vector<casacore::MeasFrame>                    itsMeasFrames;
+      vector<casacore::MDirection::Convert>          itsMeasConverters;
 
       std::string itsDirectionsStr; // Definition of patches, to pass to applycal
       vector<Patch::ConstPtr> itsPatchList;

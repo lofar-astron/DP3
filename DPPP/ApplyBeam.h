@@ -21,6 +21,8 @@
 //#
 //# @author Tammo Jan Dijkema
 
+#ifdef HAVE_LOFAR_BEAM
+
 #ifndef DPPP_APPLYBEAM_H
 #define DPPP_APPLYBEAM_H
 
@@ -31,8 +33,10 @@
 #include "DPBuffer.h"
 #include "Position.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
+#endif
 
 #include <casacore/casa/Arrays/Cube.h>
 
@@ -124,3 +128,5 @@ namespace DP3 {
 #endif
 
 #include "ApplyBeam.tcc"
+
+#endif // HAVE_LOFAR_BEAM

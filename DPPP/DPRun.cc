@@ -322,10 +322,14 @@ namespace DP3 {
           step = DPStep::ShPtr(new Counter (reader, parset, prefix));
         } else if (type == "phaseshifter"  ||  type == "phaseshift") {
           step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
+#ifdef HAVE_LOFAR_BEAM
         } else if (type == "demixer"  ||  type == "demix") {
           step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
         } else if (type == "smartdemixer"  ||  type == "smartdemix") {
           step = DPStep::ShPtr(new DemixerNew (reader, parset, prefix));
+        } else if (type == "applybeam") {
+          step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
+#endif
         } else if (type == "stationadder"  ||  type == "stationadd") {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "scaledata") {
@@ -338,8 +342,6 @@ namespace DP3 {
           step = DPStep::ShPtr(new Predict (reader, parset, prefix));
         } else if (type == "h5parmpredict") {
           step = DPStep::ShPtr(new H5ParmPredict (reader, parset, prefix));
-        } else if (type == "applybeam") {
-          step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
         } else if (type == "gaincal"  ||  type == "calibrate") {
           step = DPStep::ShPtr(new GainCal (reader, parset, prefix));
         } else if (type == "upsample") {

@@ -25,13 +25,14 @@
 #include "Split.h"
 #include "DPRun.h"
 
-#include <iostream>
-
 #include "../Common/ParameterSet.h"
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
 
 #include <stddef.h>
+
+#include <cassert>
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <utility>

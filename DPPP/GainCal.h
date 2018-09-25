@@ -42,8 +42,10 @@
 #include "../ParmDB/ParmFacade.h"
 #include "../ParmDB/ParmSet.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
+#endif
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -154,7 +156,7 @@ namespace DP3 {
       casacore::Cube<casacore::Complex> itsModelData;
       std::string      itsParmDBName;
       bool             itsUseH5Parm;
-      boost::shared_ptr<BBS::ParmDB> itsParmDB;
+      std::shared_ptr<BBS::ParmDB> itsParmDB;
       std::string      itsParsetString; // Parset, for logging in H5Parm
 
       CalType          itsMode;
@@ -176,7 +178,9 @@ namespace DP3 {
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
 
       Predict           itsPredictStep;
+#ifdef HAVE_LOFAR_BEAM
       ApplyBeam         itsApplyBeamStep; // Beam step for applying beam to modelcol
+#endif
       ResultStep::ShPtr itsResultStep; // For catching results from Predict or Beam
       bool              itsApplyBeamToModelColumn;
 

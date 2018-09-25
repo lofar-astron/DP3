@@ -121,9 +121,11 @@ namespace DP3 {
     void DPInput::getModelData (const RefRows&, Cube<Complex>&)
       { throw Exception ("DPInput::getModelData not implemented"); }
 
+#ifdef HAVE_LOFAR_BEAM
     void DPInput::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                 const Vector<casacore::String>&)
       { throw Exception ("DPInput::fillBeamInfo not implemented"); }
+#endif
 
   } //# end namespace
 }

@@ -50,7 +50,6 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 using namespace casacore;
-using namespace DP3::BBS;
 
 namespace DP3 {
   namespace DPPP {

@@ -35,8 +35,10 @@
 #include <casacore/casa/Containers/RecordField.h>
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
-#include <iostream>
+
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 
 using namespace casacore;
 

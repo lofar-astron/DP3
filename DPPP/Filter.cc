@@ -35,6 +35,8 @@
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
 
+#include <cassert>
+
 using namespace casacore;
 
 namespace DP3 {
