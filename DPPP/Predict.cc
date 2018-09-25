@@ -383,7 +383,7 @@ namespace DP3 {
       // Add all thread model data to one buffer
       itsTempBuffer.getData()=Complex();
       Complex* tdata=itsTempBuffer.getData().data();
-      for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+      for (uint thread=0; thread<pool->NThreads(); ++thread) {
         if (itsStokesIOnly) {
           for (uint i=0,j=0;i<nSamples;i+=nCr,j++) {
             tdata[i] += itsModelVis[thread].data()[j];
