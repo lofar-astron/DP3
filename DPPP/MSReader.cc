@@ -27,7 +27,9 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/LofarMetaDataUtil.h>
+#endif
 
 #include "../Common/ParameterSet.h"
 
@@ -49,6 +51,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
+
+#include <cassert>
 #include <iostream>
 
 using namespace casacore;
@@ -565,8 +569,10 @@ namespace DP3 {
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
 
+#ifdef HAVE_LOFAR_BEAM
       tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
-
+#endif
+      
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
       Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
@@ -847,6 +853,7 @@ namespace DP3 {
       }
     }
 
+#ifdef HAVE_LOFAR_BEAM
     void MSReader::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>& vec,
                                  const casacore::Vector<casacore::String>& antNames)
     {
@@ -869,6 +876,7 @@ namespace DP3 {
 				throw Exception("MSReader::fillBeamInfo -"
                  " some stations miss the beam info");
     }
+#endif
 
   } //# end namespace
 }

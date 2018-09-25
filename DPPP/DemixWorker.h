@@ -24,6 +24,8 @@
 #ifndef DPPP_DEMIXWORKER_H
 #define DPPP_DEMIXWORKER_H
 
+#ifdef HAVE_LOFAR_BEAM
+
 // @file
 // @brief DPPP step class to average in time and/or freq
 
@@ -176,7 +178,7 @@ namespace DP3 {
 
       // Convert a direction to ITRF.
       LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection&);
-
+      
       // Calculate the StokesI amplitude from the predicted visibilities.
       // (0.5 * (XX+YY))
       void calcStokesI (casacore::Matrix<float>& ampl);
@@ -235,8 +237,10 @@ namespace DP3 {
       MultiResultStep*                      itsAvgResultSubtr;
       //# The sources to demix (excluding target).
       vector<Patch::ConstPtr>               itsDemixList;
+#ifdef HAVE_LOFAR_BEAM
       //# The info needed to calculate the station beams.
       vector<LOFAR::StationResponse::Station::Ptr> itsAntBeamInfo;
+#endif
       //# Measure objects unique to this worker (thread).
       //# This is needed because they are not thread-safe.
       casacore::MPosition                       itsArrayPos;
@@ -341,5 +345,7 @@ namespace DP3 {
 
   } //# end namespace
 } //# end namespace
+
+#endif // HAVE_LOFAR_BEAM
 
 #endif

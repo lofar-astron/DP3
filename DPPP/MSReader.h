@@ -186,11 +186,13 @@ namespace DP3 {
       virtual void getModelData (const casacore::RefRows& rowNrs,
                                  casacore::Cube<casacore::Complex>&);
 
+#ifdef HAVE_LOFAR_BEAM
       // Fill the vector with station beam info from the input MS.
       // Only fill it for the given station names.
       virtual void fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                  const casacore::Vector<casacore::String>& antNames);
-
+#endif
+      
       // Tell if the visibility data are to be read.
       virtual void setReadVisData (bool readVisData);
 

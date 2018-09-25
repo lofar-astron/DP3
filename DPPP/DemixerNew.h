@@ -24,6 +24,8 @@
 #ifndef DPPP_DEMIXERNEW_H
 #define DPPP_DEMIXERNEW_H
 
+#ifdef HAVE_LOFAR_BEAM
+
 // @file
 // @brief DPPP step class to subtract A-team sources in adaptive way
 
@@ -139,5 +141,7 @@ namespace DP3 {
 
   } //# end namespace
 } //# end namespace
+
+#endif // HAVE_LOFAR_BEAM
 
 #endif

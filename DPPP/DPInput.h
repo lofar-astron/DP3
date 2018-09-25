@@ -32,7 +32,9 @@
 #include "UVWCalculator.h"
 #include "FlagCounter.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
+#endif
 
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/RefRows.h>
@@ -97,11 +99,13 @@ namespace DP3 {
       // The default implementation returns an empty string.
       virtual std::string msName() const;
 
+#ifdef HAVE_LOFAR_BEAM
       // Fill the vector with station beam info from the input source (MS).
       // Only fill it for the given station names.
       // The default implementation throws an exception.
       virtual void fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
                                  const casacore::Vector<casacore::String>& antNames);
+#endif
 
       // Fetch the FullRes flags.
       // If defined in the buffer, they are taken from there.

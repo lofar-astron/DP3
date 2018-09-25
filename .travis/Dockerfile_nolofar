@@ -1,0 +1,17 @@
+FROM kernsuite/base:4
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
+    apt-get install -y casacore-data casacore-dev \
+    libboost-python-dev libcfitsio-dev python-dev python-numpy cmake \
+    build-essential libhdf5-serial-dev libarmadillo-dev \
+    libboost-filesystem-dev libboost-system-dev libboost-date-time-dev \
+    libxml2-dev libpng-dev pkg-config aoflagger-dev
+
+ADD . /src
+WORKDIR /src
+
+RUN mkdir /build && cd /build && cmake ../src
+RUN ln -s /usr/include/casacore/measures /usr/include && ln -s /usr/include/casacore/ms /usr/include
+RUN cd /build && make -j2
+RUN cd /build && make install
+RUN DPPP

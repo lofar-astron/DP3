@@ -25,10 +25,11 @@
 
 #include "Exceptions.h"
 
+#include "../Common/OpenMP.h"
 #include "../Common/ParameterSet.h"
-#include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
+#include "../Common/Timer.h"
 
 #include <stddef.h>
 #include <string>

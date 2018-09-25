@@ -41,7 +41,9 @@
 #include "Simulate.h"
 #include "ApplyCal.h"
 
+#ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/AntennaField.h>
+#endif
 
 #include "Stokes.h"
 #include "PointSource.h"

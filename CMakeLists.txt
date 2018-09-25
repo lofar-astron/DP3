@@ -29,12 +29,25 @@ include_directories(${BOOST_INCLUDE_DIR})
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
 find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-	include_directories(${LOFAR_STATION_RESPONSE_DIR})
-  set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp aterms/lofarbeamterm.cpp)
+  include_directories(${LOFAR_STATION_RESPONSE_DIR})
+  add_definitions(-DHAVE_LOFAR_BEAM)
   message("LOFAR beam library found.")
+  
+  set(LOFAR_DEPENDENT_FILES
+    DPPP/ApplyBeam.cc
+    DPPP/DemixerNew.cc 
+    DPPP/DemixInfo.cc
+    DPPP/DemixWorker.cc 
+  )
+  
 else()
-  message(FATAL_ERROR "LOFAR beam library not found")
+  if(WITH_LOFAR_BEAM)
+    message(FATAL_ERROR "LOFAR beam library not found")
+  else()
+    message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
+    set(LOFAR_STATION_RESPONSE_LIB "")
+    set(LOFAR_DEPENDENT_FILES "")
+  endif(WITH_LOFAR_BEAM)
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -109,11 +122,12 @@ add_library(DPPP_OBJ OBJECT
   DPPP/SourceDBUtil.cc DPPP/Apply.cc DPPP/EstimateMixed.cc DPPP/EstimateNew.cc 
   DPPP/Simulate.cc DPPP/Simulator.cc DPPP/SubtractMixed.cc DPPP/SubtractNew.cc
   DPPP/ModelComponent.cc DPPP/PointSource.cc DPPP/GaussianSource.cc DPPP/Patch.cc
-  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/StefCal.cc DPPP/DemixerNew.cc 
-  DPPP/DemixInfo.cc DPPP/DemixWorker.cc DPPP/Predict.cc DPPP/OneApplyCal.cc
-  DPPP/ApplyBeam.cc DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc 
+  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/StefCal.cc
+  DPPP/Predict.cc DPPP/OneApplyCal.cc
+  DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc 
   DPPP/DummyStep.cc DPPP/H5ParmPredict.cc DPPP/GridInterpolate.cc DPPP/Upsample.cc
   DPPP/Split.cc
+  ${LOFAR_DEPENDENT_FILES}
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
