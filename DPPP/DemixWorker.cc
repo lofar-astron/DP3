@@ -78,7 +78,7 @@ namespace DP3 {
                               const string& prefix,
                               const DemixInfo& mixInfo,
                               const DPInfo& info,
-			      int workerNr)
+                              int workerNr)
       : itsWorkerNr    (workerNr),
         itsMix         (&mixInfo),
         itsFilter      (input, mixInfo.selBL()),
@@ -1044,7 +1044,7 @@ namespace DP3 {
       // If selection was done, merge the subtract results back into the
       // buffer.
       if (itsMix->doSubtract()  &&  itsMix->selBL().hasSelection()) {
-	mergeSubtractResult();
+        mergeSubtractResult();
       }
       // Clear the input buffers.
       for (size_t i=0; i<itsAvgResults.size(); ++i) {
@@ -1178,7 +1178,7 @@ namespace DP3 {
                                                cr_baseline, cr_data,
                                                cr_model, cr_flag,
                                                cr_weight, cr_mix,
-					       itsMix->defaultGain(),
+                                               itsMix->defaultGain(),
                                                itsMix->solveBoth(),
                                                itsMix->verbose());
         // Copy solutions to overall solution array.

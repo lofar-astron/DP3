@@ -94,7 +94,7 @@ namespace DP3 {
       // if necessary
 
       if(itsFirst<0)
-				throw Exception("All input MeasurementSets do not exist");
+        throw Exception("All input MeasurementSets do not exist");
       itsBuffers.resize (itsReaders.size());
     }
 
@@ -161,7 +161,7 @@ namespace DP3 {
     void MultiMSReader::fillBands()
     {
       if (itsOrderMS)
-				throw Exception("Cannot order the MSs if some are missing");
+        throw Exception("Cannot order the MSs if some are missing");
       // Get channel width (which should be the same for all bands).
       double chanw = itsReaders[itsFirst]->getInfo().chanWidths().data()[0];
       // Get frequency for first subband.
@@ -178,12 +178,12 @@ namespace DP3 {
       for (uint i=0; i<itsReaders.size(); ++i) {
         if (itsReaders[i]) {
           if (itsReaders[i]->getInfo().nchan() != itsFillNChan)
-						throw Exception("An MS is missing; the others should have equal nchan");
+            throw Exception("An MS is missing; the others should have equal nchan");
           // Check if all channels have the same width and are consecutive.
           const Vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
           const Vector<double>& width = itsReaders[i]->getInfo().chanWidths();
           if(freqs[0] < freq && !near(freqs[0], freq, 1e-5))
-						throw Exception("Subbands should be in increasing order of frequency; found "
+            throw Exception("Subbands should be in increasing order of frequency; found "
               + std::to_string(freqs[0]) + ", expected " + std::to_string(freq) + " (diff="
               + std::to_string(freqs[0]-freq) + ')');
           freq = freqs[itsFillNChan-1] + width[itsFillNChan-1];
@@ -233,7 +233,7 @@ namespace DP3 {
           }
           const DPBuffer& msBuf = itsReaders[i]->getBuffer();
           if (msBuf.getRowNrs().empty())
-						throw Exception(
+            throw Exception(
                      "When using multiple MSs, the times in all MSs have to be "
                      "consecutive; this is not the case for MS " + std::to_string(i));
           // Copy data and flags.
@@ -304,7 +304,7 @@ namespace DP3 {
                      getInfo().antennaSet() == rdinfo.antennaSet()  &&
                      allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
                      allEQ (getInfo().getAnt2(), rdinfo.getAnt2())))
-						throw Exception(
+            throw Exception(
                      "Meta data of MS " + itsMSNames[i]
                      + " differs from " + itsMSNames[itsFirst]);
           itsNrChan += rdinfo.nchan();

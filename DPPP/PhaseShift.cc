@@ -184,7 +184,7 @@ namespace DP3 {
       // The phase center must be given in J2000 as two values (ra,dec).
       // In the future time dependent frames can be done as in UVWFlagger.
       if (itsCenter.size() != 2)
-				throw Exception(
+        throw Exception(
                  "2 values must be given in PhaseShift phasecenter");
       ///ASSERTSTR (itsCenter.size() < 4,
       ///"Up to 3 values can be given in PhaseShift phasecenter");
@@ -193,7 +193,7 @@ namespace DP3 {
         string str = boost::to_upper_copy(itsCenter[0]);
         MDirection::Types tp;
         if (!MDirection::getType(tp, str))
-					throw Exception(str + " is an invalid source type"
+          throw Exception(str + " is an invalid source type"
                    " in PhaseShift phasecenter");
         return MDirection(tp);
       }

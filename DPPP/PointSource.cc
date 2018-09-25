@@ -106,9 +106,9 @@ Stokes PointSource::stokes(double freq) const
       else {
         double x = freq / itsRefFreq - 1.0;
         typedef std::vector<double>::const_reverse_iterator iterator_type;
-	double val = 0.0;
-	for(iterator_type it = itsSpectralTerms.rbegin(),
-	      end = itsSpectralTerms.rend(); it != end; ++it)
+        double val = 0.0;
+        for(iterator_type it = itsSpectralTerms.rbegin(),
+            end = itsSpectralTerms.rend(); it != end; ++it)
         {
           val = val * x + *it;
         }

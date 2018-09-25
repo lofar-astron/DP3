@@ -280,15 +280,15 @@ namespace DP3 {
         os << std::endl;
       }
       if(itsStManKeys.stManName == "dysco") {
-	os
-	  << "  Compressed:     yes\n"
-	  << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
-	  << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
-	  << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' '
-	  << itsStManKeys.dyscoDistribution << '(' << itsStManKeys.dyscoDistTruncation << ")\n";
+        os
+          << "  Compressed:     yes\n"
+          << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
+          << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
+          << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' '
+          << itsStManKeys.dyscoDistribution << '(' << itsStManKeys.dyscoDistTruncation << ")\n";
       }
       else {
-	os << "  Compressed:     no\n";
+        os << "  Compressed:     no\n";
       }
       os << std::endl;
       os << "  flush:          " << itsNrTimesFlush << std::endl;

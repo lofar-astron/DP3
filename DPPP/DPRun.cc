@@ -64,7 +64,7 @@
 
 namespace DP3 {
   namespace DPPP {
-		
+
     // Initialize the statics.
     std::map<std::string, DPRun::StepCtor*> DPRun::theirStepMap;
 
@@ -85,7 +85,7 @@ namespace DP3 {
       // A dot can be used to have a specific library name (so multiple
       // steps can use the same shared library).
       std::string libname(type);
-			boost::algorithm::to_lower(libname);
+      boost::algorithm::to_lower(libname);
       string::size_type pos = libname.find_first_of (".");
       if (pos != string::npos) {
         libname = libname.substr (0, pos);
@@ -160,7 +160,7 @@ namespace DP3 {
              << "\n             maybe they are misspelled"
              << "\n    " << unused << std::endl);
           if (checkparset!=0)
-						throw Exception("Unused parset keywords found");
+            throw Exception("Unused parset keywords found");
         }
       }
       // Process until the end.
@@ -251,7 +251,7 @@ namespace DP3 {
           inNames = parset.getStringVector ("msin");
         }
         if (inNames.size() == 0)
-					throw Exception("No input MeasurementSets given");
+          throw Exception("No input MeasurementSets given");
         // Find all file names matching a possibly wildcarded input name.
         // This is only possible if a single name is given.
         if (inNames.size() == 1) {
@@ -269,7 +269,7 @@ namespace DP3 {
               dirIter++;
             }
             if (names.empty())
-							throw Exception("No datasets found matching msin "
+              throw Exception("No datasets found matching msin "
                        + inNames[0]);
             inNames = names;
           }

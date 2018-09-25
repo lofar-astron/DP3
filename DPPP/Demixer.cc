@@ -138,9 +138,9 @@ namespace DP3 {
       //       demixstepname.sourcename.phasecenter
 
       if (itsSkyName.empty() || itsInstrumentName.empty())
-				throw Exception("An empty name is given for the sky and/or instrument model");
+        throw Exception("An empty name is given for the sky and/or instrument model");
       if (itsIgnoreTarget && !itsTargetSource.empty())
-				throw Exception("Target source name cannot be given if ignoretarget=true");
+        throw Exception("Target source name cannot be given if ignoretarget=true");
       // Add a null step as last step in the filter.
       DPStep::ShPtr nullStep(new NullStep());
       itsFilter.setNextStep (nullStep);
@@ -150,7 +150,7 @@ namespace DP3 {
       }
       // Check that time windows fit integrally.
       if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
-				throw Exception("time window should fit final averaging integrally");
+        throw Exception("time window should fit final averaging integrally");
       itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
       // Collect all source names.
       itsNModel = itsSubtrSources.size() + itsModelSources.size();
@@ -176,7 +176,7 @@ namespace DP3 {
         // If it has a source model, there cannot be any extra source
         // because the sources to be predicted have to be a consecutive vector.
         if (!itsExtraSources.empty())
-					throw Exception("Currently no extrasources can "
+          throw Exception("Currently no extrasources can "
                    "be given if the targetsource is given");
       }
       itsPatchList = makePatches (sourceDB, patchNames, itsNModel);
@@ -267,7 +267,7 @@ namespace DP3 {
       itsNChanIn = infoIn.nchan();
       itsNCorr   = infoIn.ncorr();
       if (itsNCorr!=4)
-				throw Exception("Demixing requires data with 4 polarizations");
+        throw Exception("Demixing requires data with 4 polarizations");
 
       // Handle possible data selection.
       itsFilter.setInfo (infoIn);

@@ -124,7 +124,7 @@ namespace DP3 {
         }
       }
       if (itsApplyAutoCorr && itsNrAutoCorr <= 0)
-				throw Exception("applyautocorr=True cannot be used if "
+        throw Exception("applyautocorr=True cannot be used if "
                    "the data does not contain autocorrelations");
       // Calculate the baseline lengths.
       itsBLength = info().getBaselineLengths();

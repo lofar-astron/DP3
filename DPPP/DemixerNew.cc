@@ -60,7 +60,7 @@ namespace DP3 {
         itsNChunk         (0)
     {
       if (itsInstrumentName.empty())
-				throw Exception(
+        throw Exception(
                  "An empty name is given for the instrument model");
     }
 
@@ -196,16 +196,16 @@ namespace DP3 {
         os << std::setw(8) << ' ';
         for (size_t dr=0; dr<ndir; ++dr) {
           if (nsources[dr] > 0) {
-	    // Print name a bit right of the center.
+            // Print name a bit right of the center.
             const string& nm = itsDemixInfo.ateamList()[dr]->name().substr(0,13);
-	    if (nm.size() > 10) {
-	      cout << std::setw(13) << nm;
-	    } else {
-	      int szws = 13 - nm.size();    // whitespace
-	      os << std::setw(szws/2+1) << ' ';
-	      os << nm;
-	      os << std::setw(szws-szws/2-1) << ' ';
-	    }
+            if (nm.size() > 10) {
+              cout << std::setw(13) << nm;
+            } else {
+              int szws = 13 - nm.size();    // whitespace
+              os << std::setw(szws/2+1) << ' ';
+              os << nm;
+              os << std::setw(szws-szws/2-1) << ' ';
+            }
           }
         }
         os << std::setw(10) << "Total" << endl;
