@@ -2,8 +2,13 @@ language: generic
 
 sudo: required
 
+env:
+  matrix:
+    - DOCKERFILE=.travis/Dockerfile_lofar
+    - DOCKERFILE=.travis/Dockerfile_nolofar
+
 services:
   - docker
 
 before_install:
-- docker build -f .travis/Dockerfile .
+- docker build -f $DOCKERFILE .
