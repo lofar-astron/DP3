@@ -58,7 +58,7 @@ namespace DP3 {
     // Set to 0 and diagonal to defaultGaib for solvable ones if no propagation.
     void EstimateNew::initSolution (const vector<vector<int> >& unknownsIndex,
                                     const vector<uint>& srcSet,
-				    double defaultGain)
+                                    double defaultGain)
     {
       uint dr=0;
       double* solution = &(itsSolution[0]);
@@ -185,7 +185,7 @@ namespace DP3 {
                                 const_cursor<bool> flag,
                                 const_cursor<float> weight,
                                 const_cursor<dcomplex> mix,
-				double defaultGain,
+                                double defaultGain,
                                 bool solveBoth,
                                 uint verbose)
     {

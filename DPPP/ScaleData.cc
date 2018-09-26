@@ -58,7 +58,7 @@ namespace DP3 {
                                                   vector<string>()))
     {
       if (itsStationExp.size() != itsCoeffStr.size())
-				throw Exception(
+        throw Exception(
                  "ScaleData parameters stations and coeffs differ in size");
       // Determine if scaling for size is explicitly given.
       if (parset.isDefined (prefix+"scalesize")) {
@@ -105,7 +105,7 @@ namespace DP3 {
         ParameterValue coeffPar(itsCoeffStr[i]);
         vector<double> coeff (coeffPar.getDoubleVector());
         if (coeff.size() <= 0)
-					throw Exception("A ScaleData coeffs vector is empty");
+          throw Exception("A ScaleData coeffs vector is empty");
         vector<double>& scales = scaleVec[i];
         scales.reserve (freqs.size());
         // Evaluate the polynomial for each frequency giving the scale factors.
@@ -125,7 +125,7 @@ namespace DP3 {
       if (itsScaleSize  ||  !itsScaleSizeGiven) {
         fillSizeScaleFactors (nNominal, extraFactors);
         if (extraFactors.size() != nant)
-					throw Exception(
+          throw Exception(
             "Maybe stations have been added before doing the scaling; "
             "that should not be done");
       }
@@ -226,7 +226,7 @@ namespace DP3 {
     {
       Table ms(getInfo().msName());
       if (!ms.keywordSet().isDefined ("LOFAR_ANTENNA_FIELD"))
-				throw Exception(
+        throw Exception(
                  "ScaleData: subtable LOFAR_ANTENNA_FIELD is missing, but "
                  "is needed unless scalesize=false is given");
       Table tab(ms.keywordSet().asTable ("LOFAR_ANTENNA_FIELD"));

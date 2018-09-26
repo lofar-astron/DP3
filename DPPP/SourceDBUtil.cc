@@ -130,7 +130,7 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   patchList.reserve (componentsList.size());
   for (uint i=0; i<componentsList.size(); ++i) {
     if (componentsList[i].empty())
-			throw Exception("No sources found for patch "
+      throw Exception("No sources found for patch "
                + patchNames[i]);
     Patch::Ptr ppatch(new Patch(patchNames[i],
                                 componentsList[i].begin(),

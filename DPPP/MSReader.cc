@@ -113,7 +113,7 @@ namespace DP3 {
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
           if(subset.nrow() <= 0)
-						throw Exception("Band " + std::to_string(itsSpw) + " not found in "
+            throw Exception("Band " + std::to_string(itsSpw) + " not found in "
                      + itsMSName);
           itsSelMS = subset;
         }
@@ -133,7 +133,7 @@ namespace DP3 {
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {
           if(subset.nrow() <= 0)
-						throw Exception("Baselines " + itsSelBL
+            throw Exception("Baselines " + itsSelBL
                      + "not found in " + itsMSName);
           itsSelMS = subset;
         }
@@ -183,7 +183,7 @@ namespace DP3 {
       uint nrChan = uint(result+0.0001);
       uint nAllChan = itsNrChan;
       if (itsStartChan >= nAllChan)
-				throw Exception(
+        throw Exception(
                  "startchan " + std::to_string(itsStartChan)
                  + " exceeds nr of channels in MS (" + std::to_string(nAllChan) + ')');
       uint maxNrChan = nAllChan - itsStartChan;
@@ -345,7 +345,7 @@ namespace DP3 {
           itsIter.next();
         }
         if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
-					throw Exception(
+          throw Exception(
                    "#baselines is not the same for all time slots in the MS");
       }   // end of scope stops the timer.
       // Let the next step in the pipeline process this time slot.
@@ -529,7 +529,7 @@ namespace DP3 {
       Table sortab = itsIter.table().sort(sortCols, Sort::Ascending,
                                           Sort::QuickSort + Sort::NoDuplicates);
       if (sortab.nrow() != itsNrBl)
-				throw Exception(
+        throw Exception(
                  "The MS appears to have multiple subbands");
       // Get the baseline columns.
       ROScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
@@ -873,7 +873,7 @@ namespace DP3 {
         }
       }
       if (ant != vec.size())
-				throw Exception("MSReader::fillBeamInfo -"
+        throw Exception("MSReader::fillBeamInfo -"
                  " some stations miss the beam info");
     }
 #endif

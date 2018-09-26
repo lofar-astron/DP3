@@ -87,7 +87,7 @@ namespace DP3 {
                      const_cursor<bool> flag,
                      const_cursor<float> weight,
                      const_cursor<dcomplex> mix,
-		     double defaultGain,
+                     double defaultGain,
                      bool solveBoth,
                      uint verbose);
 
@@ -105,7 +105,7 @@ namespace DP3 {
       // The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
       void initSolution (const std::vector<std::vector<int> >& unknownsIndex,
                          const std::vector<uint>& srcSet,
-			 double defaultGain);
+                         double defaultGain);
 
       // Clear the solution for unsolvable stations
       // (essentially changing 1e-8 to 0).

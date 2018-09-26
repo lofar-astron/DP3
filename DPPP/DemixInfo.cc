@@ -132,7 +132,7 @@ namespace DP3 {
                                 itsAteamList[i]->position()[0],
                                 itsAteamList[i]->position()[1],
                                 itsCosTargetDelta))
-					throw Exception(
+          throw Exception(
                    "Position mismatch of source " + itsAteamList[i]->name()
                    + " in A-team SourceDBs (["
                    + itsAteamDemixList[i]->position()[0] + ", "
@@ -201,7 +201,7 @@ namespace DP3 {
       itsNChanIn = infoSel.nchan();
       itsNCorr   = infoSel.ncorr();
       if (itsNCorr!=4)
-				throw Exception("Demixing requires data with 4 polarizations");
+        throw Exception("Demixing requires data with 4 polarizations");
       // NB. The number of baselines and stations refer to the number of
       // selected baselines and the number of unique stations participating
       // in the selected baselines.
@@ -257,17 +257,17 @@ namespace DP3 {
       itsNChanAvgSubtr = info.update (itsNChanAvgSubtr, itsNTimeAvgSubtr);
       itsNChanOutSubtr = info.nchan();
       if (itsNChanAvg % itsNChanAvgSubtr != 0)
-				throw Exception(
+        throw Exception(
         "Demix frequency averaging " + std::to_string(itsNChanAvg)
         + " must be a multiple of output averaging "
         + std::to_string(itsNChanAvgSubtr));
       if (itsNTimeAvg % itsNTimeAvgSubtr != 0)
-				throw Exception(
+        throw Exception(
         "Demix time averaging " + std::to_string(itsNTimeAvg)
         + " must be a multiple of output averaging "
         + std::to_string(itsNTimeAvgSubtr));
       if (itsChunkSize % itsNTimeAvg != 0)
-				throw Exception(
+        throw Exception(
         "Demix predict time chunk size " + std::to_string(itsChunkSize)
         + " must be a multiple of averaging time step "
         + std::to_string(itsNTimeAvg));
@@ -374,7 +374,7 @@ namespace DP3 {
       for (; pnamesIter != pnamesEnd; ++pnamesIter) {
         if (std::find (names.begin(), names.end(), *pnamesIter)
                    == names.end())
-					throw Exception(
+          throw Exception(
                    "Demixer: sourcename " + *pnamesIter
                    + " not found in SourceDB " + sdbName);
         // Use this patch; get all its sources.

@@ -93,7 +93,7 @@ namespace DP3 {
     }
 
     if(expectedsize != vals.size())
-			throw Exception("Values for H5Parm do not have the expected size: they have size " + std::to_string(vals.size()) + ", expected is " + std::to_string(expectedsize));
+      throw Exception("Values for H5Parm do not have the expected size: they have size " + std::to_string(vals.size()) + ", expected is " + std::to_string(expectedsize));
 
     H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
     H5::DataSet dataset = createDataSet("val", H5::PredType::IEEE_F64LE,
@@ -546,7 +546,7 @@ namespace DP3 {
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
     if(dims[0]<=start+1)
-			throw Exception("For reading the " + axisName + " interval, more than one value is required.");
+      throw Exception("For reading the " + axisName + " interval, more than one value is required.");
 
     hsize_t count[1], offset[1], memoffset[1];
     count[0]=2; offset[0]=start; memoffset[0]=0;

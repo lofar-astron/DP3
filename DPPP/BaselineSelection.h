@@ -57,7 +57,7 @@ namespace DP3 {
       // </ul>
       BaselineSelection (const ParameterSet&, const string& prefix,
                          bool minmax=false,
-			 const string& defaultCorrType=string(),
+                         const string& defaultCorrType=string(),
                          const string& defaultBaseline=string());
 
       // Is there any selection?

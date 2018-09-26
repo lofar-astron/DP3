@@ -73,7 +73,7 @@ namespace DP3 {
                    const string& prefix,
                    const DemixInfo& info,
                    const DPInfo& dpinfo,
-		   int workernr);
+                   int workernr);
 
 
       // Process the data in the input buffers and store the result in the

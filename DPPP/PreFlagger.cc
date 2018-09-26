@@ -72,7 +72,7 @@ namespace DP3 {
         itsMode = ClearComp;
       } else {
         if (mode!="set")
-					throw Exception(
+          throw Exception(
                    "invalid preflagger mode: "
                    "only set, clear, and set/clearcomplement/other are valid");
       }
@@ -331,7 +331,7 @@ namespace DP3 {
         itsMaxUV = 1e30;
       }
       if (itsMinUV>=itsMaxUV)
-				throw Exception("PreFlagger uvmmin should be < uvmmax");
+        throw Exception("PreFlagger uvmmin should be < uvmmax");
       // Determine if only flagging on time info is done.
       itsFlagOnTimeOnly = ( !(itsFlagOnUV || itsFlagOnBL || itsFlagOnAzEl ||
                               itsFlagOnAmpl || itsFlagOnPhase ||
@@ -380,7 +380,7 @@ namespace DP3 {
             endch   = startch;
           } else {
             if (pos == 0 || pos >= itsStrChan[i].size() - 2)
-							throw Exception(
+              throw Exception(
                        "No start or end given in PreFlagger channel range "
                        + itsStrChan[i]);
             TableExprNode node1
@@ -392,7 +392,7 @@ namespace DP3 {
             node2.get (rec, result);
             endch = uint(result+0.001);
             if(startch > endch)
-							throw Exception(
+              throw Exception(
                        "Start " + std::to_string(startch) + " must be <= end " + std::to_string(endch)
                        + " in PreFlagger channel range " + itsStrChan[i]);
           }
@@ -899,7 +899,7 @@ namespace DP3 {
           i++;
         } else if (expr[i] == '(') {
           if(hadName)
-						throw Exception("no operator before opening parenthesis at pos. "
+            throw Exception("no operator before opening parenthesis at pos. "
                      + std::to_string(i) + " in expression: " + origExpr);
           oper = OpParen;
           tokens.push (oper);
@@ -947,11 +947,11 @@ namespace DP3 {
         } else if (expr[i] == ')') {
           // Closing parenthesis. Push till opening parenthesis found.
           if (!hadName)
-						throw Exception("no set name before closing parenthesis at pos. "
+            throw Exception("no set name before closing parenthesis at pos. "
                      + std::to_string(i) + " in expression: " + origExpr);
           while (true) {
             if(tokens.empty())
-							throw Exception("mismatched parentheses at pos. "
+              throw Exception("mismatched parentheses at pos. "
                        + std::to_string(i) + " in expression: " + origExpr);
             if (tokens.top() == OpParen) {
               tokens.pop();
@@ -965,7 +965,7 @@ namespace DP3 {
           // No operator, thus it must be an operand (a set name).
           int st=i;
           if (hadName)
-						throw Exception("No operator between set names at pos. "
+            throw Exception("No operator between set names at pos. "
                      + std::to_string(i) + " in expression: " + origExpr);
           while (i < expr.size() && 
                  expr[i] != ' ' && expr[i] != '\t' &&
@@ -978,7 +978,7 @@ namespace DP3 {
           String setName (origExpr.substr(st, i-st));
           // Check the name is valid (no special characters).
           if (!setName.matches (RXidentifier))
-						throw Exception(
+            throw Exception(
                      "Invalid set name " + std::string(setName)
                      + " used in set expression " + origExpr);
           names.push_back (setName);
@@ -987,11 +987,11 @@ namespace DP3 {
           // Check if an operator was preceeded correctly.
           if (oper == OpNot) {
             if (hadName)
-							throw Exception("No set name before operator ! at pos. "
+              throw Exception("No set name before operator ! at pos. "
                        + std::to_string(i) + " in expression: " + origExpr);
           } else {
             if (!hadName)
-							throw Exception("No set name before operator at pos. "
+              throw Exception("No set name before operator at pos. "
                        + std::to_string(i) + " in expression: " + origExpr);
           }
           hadName = false;
@@ -1004,11 +1004,11 @@ namespace DP3 {
         }
       }
       if (!hadName)
-				throw Exception("no set name after last operator in expression: "
+        throw Exception("no set name after last operator in expression: "
                  + origExpr);
       while (!tokens.empty()) {
         if (tokens.top()>=OpParen)
-					throw Exception(
+          throw Exception(
                    "mismatched parentheses in expression: " + origExpr);
         itsRpn.push_back (tokens.top());
         tokens.pop();
@@ -1032,7 +1032,7 @@ namespace DP3 {
           usepm = true;
           pos = str->find ("+-");
           if (pos == string::npos)
-						throw Exception("PreFlagger time range '" + *str
+            throw Exception("PreFlagger time range '" + *str
                      + "' should be range using .. or +-");
         }
         // Get the time or datetime in seconds. The values must be positive.
@@ -1050,7 +1050,7 @@ namespace DP3 {
         // They are split in 2 ranges.
         if (!canEndBeforeStart) {
           if (v1>=v2)
-						throw Exception("PreFlagger time range " + *str + " is invalid");
+            throw Exception("PreFlagger time range " + *str + " is invalid");
         } else {
           if (v1 < 0) {
             v1 += 86400;
@@ -1078,16 +1078,16 @@ namespace DP3 {
       Quantity q;
       if (asTime || usepm) {
         if (!MVAngle::read(q, str, true))
-					throw Exception(
+          throw Exception(
                    "PreFlagger time " + str + " is invalid");
       } else {
         // It should be a proper date/time, so MVAngle::read should fail.
         if (MVAngle::read(q, str, true))
-					throw Exception(
+          throw Exception(
                    "PreFlagger datetime " + str
                    + " is not a proper date/time");
         if (!MVTime::read(q, str, true))
-					throw Exception(
+          throw Exception(
                    "PreFlagger datetime " + str + " is invalid"
                    + " is not a proper date/time");
       }
@@ -1153,7 +1153,7 @@ namespace DP3 {
           usepm = true;
           pos = str->find ("+-");
           if (pos == string::npos)
-						throw Exception("PreFlagger freqrange '" + *str
+            throw Exception("PreFlagger freqrange '" + *str
                      + "' should be range using .. or +-");
         }
         string str1 = str->substr (0, pos);

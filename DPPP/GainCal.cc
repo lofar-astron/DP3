@@ -181,7 +181,7 @@ namespace DP3 {
         case TECSCREEN: return "tecscreen";
         case ROTATION: return "rotation";
         case ROTATIONANDDIAGONAL: return "rotation+diagonal";
-				default: throw Exception("Unknown caltype: " + std::to_string(caltype));
+        default: throw Exception("Unknown caltype: " + std::to_string(caltype));
       }
     }
 

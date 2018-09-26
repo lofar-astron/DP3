@@ -106,17 +106,17 @@ namespace DP3 {
         itsSolTabName = (parset.isDefined(prefix + "correction") ?
                          parset.getString(prefix + "correction") :
                          parset.getString(defaultPrefix + "correction"));
-	if(itsSolTabName == "fulljones")
-	{
-	  itsSolTab = itsH5Parm.getSolTab("amplitude000");
-	  itsSolTab2 = itsH5Parm.getSolTab("phase000");
-	  itsSolTabName = "amplitude000, phase000"; // this is only so that show() shows these tables
-	  itsCorrectType = FULLJONES;
-	}
-	else {
-	  itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
-	  itsCorrectType = stringToCorrectType(itsSolTab.getType());
-	}
+        if(itsSolTabName == "fulljones")
+        {
+          itsSolTab = itsH5Parm.getSolTab("amplitude000");
+          itsSolTab2 = itsH5Parm.getSolTab("phase000");
+          itsSolTabName = "amplitude000, phase000"; // this is only so that show() shows these tables
+          itsCorrectType = FULLJONES;
+        }
+        else {
+          itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
+          itsCorrectType = stringToCorrectType(itsSolTab.getType());
+        }
         if (itsCorrectType==PHASE && nPol("")==1) {
           itsCorrectType = SCALARPHASE;
         }
@@ -144,7 +144,7 @@ namespace DP3 {
 
       if (itsCorrectType==FULLJONES && itsUpdateWeights) {
         if (!itsInvert)
-					throw Exception("Updating weights has not been implemented for invert=false and fulljones");
+          throw Exception("Updating weights has not been implemented for invert=false and fulljones");
       }
     }
 
@@ -324,7 +324,7 @@ namespace DP3 {
 
         if (!itsUseH5Parm) {
           if(!regularChannels)
-						throw Exception(
+            throw Exception(
                     "ApplyCal with parmdb requires evenly spaced channels.");
         }
       }
@@ -499,37 +499,37 @@ namespace DP3 {
 
         vector<double> weights;
         for (uint ant = 0; ant < numAnts; ++ant) {
-	  if(itsCorrectType == FULLJONES)
-	  {
-	    for (uint pol=0; pol<4; ++pol) {
-	      // Place amplitude in even and phase in odd elements
-	      parmvalues[pol*2][ant] = itsSolTab.getValuesOrWeights("val",
-	        info().antennaNames()[ant],
-		times, freqs,
-		pol, itsDirection);
+          if(itsCorrectType == FULLJONES)
+          {
+            for (uint pol=0; pol<4; ++pol) {
+              // Place amplitude in even and phase in odd elements
+              parmvalues[pol*2][ant] = itsSolTab.getValuesOrWeights("val",
+                info().antennaNames()[ant],
+                times, freqs,
+                pol, itsDirection);
               weights = itsSolTab.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol*2][ant], weights);
-	      parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
-	        info().antennaNames()[ant],
-		times, freqs,
-		pol, itsDirection);
+              parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
+                info().antennaNames()[ant],
+                times, freqs,
+                pol, itsDirection);
               weights = itsSolTab2.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol*2+1][ant], weights);
-	    }
-	  }
-	  else {
-	    for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
-	      parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
-	        info().antennaNames()[ant],
-		times, freqs,
-		pol, itsDirection);
+            }
+          }
+          else {
+            for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
+              parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
+                info().antennaNames()[ant],
+                times, freqs,
+                pol, itsDirection);
               weights = itsSolTab.getValuesOrWeights("weight",
                 info().antennaNames()[ant], times, freqs, pol, itsDirection);
               applyFlags(parmvalues[pol][ant], weights);
-	    }
-	  }
+            }
+          }
         }
 } // End pragma omp critical
       } else { // Use ParmDB
