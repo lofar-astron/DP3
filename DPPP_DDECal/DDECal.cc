@@ -95,7 +95,7 @@ namespace DP3 {
         itsNChan         (parset.getInt (prefix + "nchan", 1)),
         itsUVWFlagStep   (input, parset, prefix),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
-  itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
+        itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
@@ -113,7 +113,7 @@ namespace DP3 {
       itsMultiDirSolver.set_detect_stalling(parset.getBool(prefix + "detectstalling", true));
 
       if(!itsStatFilename.empty())
-  itsStatStream.reset(new std::ofstream(itsStatFilename));
+        itsStatStream.reset(new std::ofstream(itsStatFilename));
       
       vector<string> strDirections;
       if (itsUseModelColumn) {
@@ -149,7 +149,7 @@ namespace DP3 {
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
-  itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
         new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
@@ -456,7 +456,7 @@ namespace DP3 {
     void DDECal::show (std::ostream& os) const
     {
       os
-  << "DDECal " << itsName << '\n'
+        << "DDECal " << itsName << '\n'
         << "  H5Parm:              " << itsH5ParmName << '\n'
         << "  solint:              " << itsSolInt << '\n'
         << "  nchan:               " << itsNChan << '\n'
@@ -468,7 +468,7 @@ namespace DP3 {
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
         << "  coreconstraint:      " << itsCoreConstraint << '\n'
-  << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
+        << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
         << "  approximate fitter:  " << itsApproximateTEC << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
@@ -558,6 +558,10 @@ namespace DP3 {
 
     void DDECal::doSolve ()
     {
+      for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
+        itsConstraints[constraint_num]->SetWeights(itsWeights);
+      }
+      
       if(itsFullMatrixMinimalization)
         initializeFullMatrixSolutions();
       else
@@ -672,9 +676,6 @@ namespace DP3 {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
-        for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
-          itsConstraints[constraint_num]->SetWeights(itsWeights);
-        }
 
         doSolve();
 
