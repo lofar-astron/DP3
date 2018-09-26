@@ -1,6 +1,8 @@
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
+#include "../Common/ParallelFor.h"
+
 #ifndef SMOOTHNESS_CONSTRAINT_H
 #define SMOOTHNESS_CONSTRAINT_H
 
@@ -40,6 +42,7 @@ public:
   std::vector<double> _frequencies, _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
+  DP3::ParallelFor<size_t> _loop;
 };
 
 #endif
