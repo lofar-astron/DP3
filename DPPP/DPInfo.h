@@ -54,7 +54,7 @@ namespace DP3 {
       DPInfo();
 
       // Set the initial info from the input.
-      void init (uint ncorr, uint nchan,
+      void init (uint ncorr, uint startChan, uint nchan,
                  uint ntime, double startTime, double timeInterval,
                  const string& msName, const string& antennaSet);
 
