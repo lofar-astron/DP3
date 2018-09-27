@@ -61,7 +61,7 @@ namespace DP3 {
                        const string& msName, const string& antennaSet)
     {
       itsNCorr        = ncorr;
-      itsStartChan = startChan;
+      itsStartChan    = startChan;
       itsNChan        = nchan;
       itsOrigNChan    = nchan;
       itsNTime        = ntime;
