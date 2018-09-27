@@ -20,6 +20,9 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(Casacore COMPONENTS casa ms tables REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
+# Add old casacore include directory because LOFAR beam library did
+# not use the casacore/ prefix in the includes until 3.2 (Sep '18)
+include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
