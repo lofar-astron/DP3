@@ -204,18 +204,18 @@ namespace DP3 {
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
 
-      itsModelVis.resize(OpenMP::maxThreads());
-      itsModelVisPatch.resize(OpenMP::maxThreads());
+      itsModelVis.resize(NThreads());
+      itsModelVisPatch.resize(NThreads());
 #ifdef HAVE_LOFAR_BEAM
-      itsBeamValues.resize(OpenMP::maxThreads());
-      itsAntBeamInfo.resize(OpenMP::maxThreads());
+      itsBeamValues.resize(NThreads());
+      itsAntBeamInfo.resize(NThreads());
 #endif
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
-      itsMeasConverters.resize(OpenMP::maxThreads());
-      itsMeasFrames.resize(OpenMP::maxThreads());
+      itsMeasConverters.resize(NThreads());
+      itsMeasFrames.resize(NThreads());
 
-      for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
+      for (uint thread=0; thread<NThreads(); ++thread) {
         if (itsStokesIOnly) {
           itsModelVis[thread].resize(1,nCh,nBl);
         } else {
@@ -253,7 +253,6 @@ namespace DP3 {
              itsOperation=="subtract");
     }
 
-
     void Predict::show (std::ostream& os) const
     {
       os << "Predict " << itsName << endl;
@@ -276,7 +275,7 @@ namespace DP3 {
       }
 #endif
       os << "  operation:          "<<itsOperation << endl;
-      os << "  threads:            "<<OpenMP::maxThreads()<<endl;
+      os << "  threads:            "<<NThreads()<<endl;
       if (itsDoApplyCal) {
         itsApplyCalStep.show(os);
       }
@@ -314,16 +313,13 @@ namespace DP3 {
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
       if (itsApplyBeam) {
-        for (uint thread=0;thread<OpenMP::maxThreads();++thread) {
-#pragma omp critical(initialmeasuresconversion)
-          {
+        for (uint thread=0;thread<NThreads();++thread) {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
           //Do a conversion on all threads, because converters are not
           //thread safe and apparently need to be used at least once
           refdir  = dir2Itrf(info().delayCenter(),itsMeasConverters[thread]);
           tiledir = dir2Itrf(info().tileBeamDir(),itsMeasConverters[thread]);
-          }
         }
       }
 #endif
@@ -334,7 +330,7 @@ namespace DP3 {
       {
         // If no ThreadPool was specified, we create a temporary one just
         // for executation of this part.
-        localThreadPool.reset(new ThreadPool(OpenMP::maxThreads()));
+        localThreadPool.reset(new ThreadPool(NThreads()));
         pool = localThreadPool.get();
       }
       std::vector<Simulator> simulators;

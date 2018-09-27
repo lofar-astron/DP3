@@ -302,7 +302,7 @@ namespace DP3 {
       itsChunkStartTime = info().startTime();
 
       if (itsDebugLevel>0) {
-        assert(OpenMP::maxThreads()==1);
+        assert(NThreads()==1);
         assert(itsTimeSlotsPerParmUpdate >= info().ntime());
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),

@@ -28,7 +28,7 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
-#include "../Common/OpenMP.h"
+#include "../Common/ParallelFor.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/OS/File.h>
@@ -41,8 +41,7 @@
 namespace DP3 {
   namespace DPPP {
 
-    AOFlaggerStep::AOFlaggerStep (DPInput* input,
-                                  const ParameterSet& parset,
+    AOFlaggerStep::AOFlaggerStep (DPInput* input, const ParameterSet& parset,
                                   const string& prefix)
       : itsName        (prefix),
         itsBufIndex    (0),
@@ -90,7 +89,7 @@ namespace DP3 {
       os << "  pedantic:       " << itsPedantic << std::endl;
       os << "  keepstatistics: " << itsDoRfiStats << std::endl;
       os << "  autocorr:       " << itsDoAutoCorr << std::endl;
-      os << "  nthreads (omp)  " << OpenMP::maxThreads() << std::endl;
+      os << "  nthreads (omp)  " << NThreads() << std::endl;
       os << "  max memory used ";
       formatBytes(os, itsMemoryNeeded);
       os << std::endl;
@@ -120,8 +119,6 @@ namespace DP3 {
       info() = infoIn;
       info().setNeedVisData();
       info().setWriteFlags();
-      // Get nr of threads.
-      uint nthread = OpenMP::maxThreads();
       // Determine available memory.
       double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
       // Determine how much memory can be used.
@@ -140,7 +137,7 @@ namespace DP3 {
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *
-        (infoIn.nbaselines() + 3*nthread) * infoIn.nchan() * infoIn.ncorr();
+        (infoIn.nbaselines() + 3*NThreads()) * infoIn.nchan() * infoIn.ncorr();
       // If no overlap percentage is given, set it to 1%.
       if (itsOverlapPerc < 0  &&  itsOverlap == 0) {
         itsOverlapPerc = 1;
@@ -266,7 +263,7 @@ namespace DP3 {
       itsTimer.start();
       if (itsDoRfiStats) {
         itsQualityTimer.start();
-	itsAOFlagger.WriteStatistics(*itsRfiStats, msName);
+        itsAOFlagger.WriteStatistics(*itsRfiStats, msName);
         itsQualityTimer.stop();
       }
       itsTimer.stop();
@@ -280,64 +277,72 @@ namespace DP3 {
       int  nrbl   = itsBuf[0].getData().shape()[2];
       uint ncorr  = itsBuf[0].getData().shape()[0];
       if (ncorr!=4)
-				throw std::runtime_error("AOFlaggerStep can only handle all 4 correlations");
+        throw std::runtime_error("AOFlaggerStep can only handle all 4 correlations");
       // Get antenna numbers in case applyautocorr is true.
       const casacore::Vector<int>& ant1 = getInfo().getAnt1();
       const casacore::Vector<int>& ant2 = getInfo().getAnt2();
       itsComputeTimer.start();
       // Now flag each baseline for this time window.
       // The baselines can be processed in parallel.
-#pragma omp parallel
-      {
-        // Create thread-private counter object.
+      
+      struct ThreadData {
         FlagCounter counter;
-        counter.init (getInfo());
-	
+        std::vector<double> scanTimes;
+        // QualityStatistics object is nullable from aoflagger 2.13, but
+        // wrapped for compatibility with older aoflaggers.
+        std::unique_ptr<aoflagger::QualityStatistics> rfiStats;
+      };
+      std::vector<ThreadData> threadData(NThreads());
+      
+      // Create thread-private counter object.
+      for(size_t t=0; t!=NThreads(); ++t)
+      {
+        threadData[t].counter.init (getInfo());
         // Create a statistics object for all polarizations.
-	std::vector<double> scanTimes(itsBuf.size());
-	for (size_t i=0; i<itsBuf.size(); ++i) {
-	  scanTimes[i] = itsBuf[i].getTime();
+        threadData[t].scanTimes.resize(itsBuf.size());
+        for (size_t i=0; i<itsBuf.size(); ++i) {
+          threadData[t].scanTimes[i] = itsBuf[i].getTime();
         }
-	aoflagger::QualityStatistics rfiStats =
-	  itsAOFlagger.MakeQualityStatistics (scanTimes.data(),
-                                              scanTimes.size(),
-                                              itsFreqs.data(),
-                                              itsFreqs.size(),
-                                              4, false);   // no histograms
-
-        // The for loop can be parallellized. This must be done dynamically,
-        // because the execution times of iterations can vary.
-#pragma omp for schedule(dynamic)
-        // GCC-4.3 only supports OpenMP 2.5 that needs signed iteration
-        // variables.
-        for (int ib=0; ib<nrbl; ++ib) {
-          // Do autocorrelations only if told so.
-          if (ant1[ib] == ant2[ib]) {
-            if (itsDoAutoCorr) {
-              flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
-                            counter, rfiStats);
-            }
-          } else {
+        threadData[t].rfiStats.reset(new aoflagger::QualityStatistics(
+          itsAOFlagger.MakeQualityStatistics(threadData[t].scanTimes.data(),
+                                             threadData[t].scanTimes.size(),
+                                             itsFreqs.data(),
+                                             itsFreqs.size(),
+                                             4, false)));
+      }
+      
+      ParallelFor<int> loop(NThreads());
+      loop.Run(0, nrbl, [&](size_t ib, size_t thread)
+      {
+        // Do autocorrelations only if told so.
+        if (ant1[ib] == ant2[ib]) {
+          if (itsDoAutoCorr) {
             flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
-                          counter, rfiStats);
+                          threadData[thread].counter, *threadData[thread].rfiStats);
           }
-        } // end of OMP for
-#pragma omp critical(aorflagger_updatecounts)
-        {
-          // Add the counters to the overall object.
-          itsFlagCounter.add (counter);
-          if (itsDoRfiStats) {
-            itsQualityTimer.stop();
-            // Add the rfi statistics to the global object.
-            if (itsRfiStats == 0) {
-              itsRfiStats.reset(new aoflagger::QualityStatistics(rfiStats));
-            } else {
-              (*itsRfiStats) += rfiStats;
-            }
-            itsQualityTimer.start();
-          }
+        } else {
+          flagBaseline (0, itsWindowSize+rightOverlap, 0, ib,
+                        threadData[thread].counter, *threadData[thread].rfiStats);
         }
-      } // end of OMP parallel
+      }); // end of parallel for
+        
+      // Add the counters to the overall object.
+      for(size_t t=0; t!=NThreads(); ++t)
+      {
+        itsFlagCounter.add (threadData[t].counter);
+        if (itsDoRfiStats)
+        {
+          itsQualityTimer.stop();
+          // Add the rfi statistics to the global object.
+          if (itsRfiStats == nullptr) {
+            itsRfiStats = std::move(threadData[t].rfiStats);
+          } else {
+            (*itsRfiStats) += *threadData[t].rfiStats;
+          }
+          itsQualityTimer.start();
+        }
+      }
+      
       itsComputeTimer.stop();
       itsTimer.stop();
       // Let the next step process the buffers.
@@ -372,21 +377,21 @@ namespace DP3 {
       // Fill the rficonsole buffers and flag.
       // Create the objects for the real and imaginary data of all corr.
       aoflagger::ImageSet imageSet =
-	itsAOFlagger.MakeImageSet(ntime, nchan, 8);
+        itsAOFlagger.MakeImageSet(ntime, nchan, 8);
       aoflagger::FlagMask origFlags =
-	itsAOFlagger.MakeFlagMask(ntime, nchan);
+        itsAOFlagger.MakeFlagMask(ntime, nchan);
       const uint iStride = imageSet.HorizontalStride();
       const uint fStride = origFlags.HorizontalStride();
       for (uint i=0; i<ntime; ++i) {
         const casacore::Complex* data = itsBuf[i].getData().data()  + bl*blsize;
         const bool*   flags = itsBuf[i].getFlags().data() + bl*blsize;
         for (uint j=0; j<nchan; ++j) {
-	  for (uint p=0; p!=4; ++p) {
-	    imageSet.ImageBuffer(p*2  )[i + j*iStride] = data->real();
-	    imageSet.ImageBuffer(p*2+1)[i + j*iStride] = data->imag();
-	    data++;
-	  }
-	  origFlags.Buffer()[i + j*fStride] = *flags;
+          for (uint p=0; p!=4; ++p) {
+            imageSet.ImageBuffer(p*2  )[i + j*iStride] = data->real();
+            imageSet.ImageBuffer(p*2+1)[i + j*iStride] = data->imag();
+            data++;
+          }
+          origFlags.Buffer()[i + j*fStride] = *flags;
           flags += 4;
         }
       }
@@ -430,13 +435,11 @@ namespace DP3 {
         addStats (rfiStats, imageSet, rfiMask, origFlags, bl);
         qualTimer.stop();
       }
-#pragma omp critical(aorflagger_updatetimers)
-      {
-        // Add the timings.
-        itsMoveTime += moveTimer.getElapsed();
-        itsFlagTime += flagTimer.getElapsed();
-        itsQualTime += qualTimer.getElapsed();
-      } // end of OMP critical
+      std::lock_guard<std::mutex> lock(itsMutex);
+      // Add the timings.
+      itsMoveTime += moveTimer.getElapsed();
+      itsFlagTime += flagTimer.getElapsed();
+      itsQualTime += qualTimer.getElapsed();
     }
 
     void AOFlaggerStep::addStats (aoflagger::QualityStatistics& rfiStats,
@@ -458,7 +461,7 @@ namespace DP3 {
             throw std::runtime_error("Unknown rfistrategy file " + itsStrategyName);
           }
         }
-	itsStrategy.reset(new aoflagger::Strategy
+        itsStrategy.reset(new aoflagger::Strategy
                           (itsAOFlagger.LoadStrategy(file.path().absoluteName())));
       } else {
         double centralFrequency = 0.5*(itsFreqs[0] + itsFreqs[itsFreqs.size()-1]);

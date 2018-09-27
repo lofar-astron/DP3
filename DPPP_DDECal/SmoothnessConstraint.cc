@@ -2,20 +2,10 @@
 #include "SmoothnessConstraint.h"
 #include "ParallelFor.h"
 
-#ifdef AOPROJECT
-#include "omptools.h"
-#else
-#include "../Common/OpenMP.h"
-#endif
-
-SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz) :
+SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz, size_t threads) :
   _kernelType(Smoother::GaussianKernel),
   _bandwidth(bandwidthHz),
-#ifdef AOPROJECT
-  _loop(omp_get_max_threads())
-#else
-  _loop(DP3::OpenMP::maxThreads())
-#endif
+  _loop(threads)
 { }
 
 void SmoothnessConstraint::Initialize(const double* frequencies)

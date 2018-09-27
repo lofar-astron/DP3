@@ -25,7 +25,7 @@ public:
     TECOnlyMode
   };
   
-  TECConstraintBase(Mode mode);
+  TECConstraintBase(Mode mode, size_t nThreads);
 
   /** Initialize metadata with frequencies, resize some members.
    * Should be called after InitializeDimensions.
@@ -41,6 +41,7 @@ protected:
   void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
   
   Mode _mode;
+  size_t _nThreads;
   std::vector<PhaseFitter> _phaseFitters;
   std::vector<double> _weights;
 };
@@ -48,7 +49,7 @@ protected:
 class TECConstraint : public TECConstraintBase
 {
 public:
-  TECConstraint(Mode mode) : TECConstraintBase(mode) { }
+  TECConstraint(Mode mode, size_t nThreads) : TECConstraintBase(mode, nThreads) { }
 
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
@@ -59,8 +60,8 @@ public:
 class ApproximateTECConstraint : public TECConstraint
 {
 public:
-  ApproximateTECConstraint(Mode mode) :
-    TECConstraint(mode),
+  ApproximateTECConstraint(Mode mode, size_t nThreads) :
+    TECConstraint(mode, nThreads),
     _finishedApproximateStage(false),
     _fittingChunkSize(0),
     _maxApproxIters(50)
