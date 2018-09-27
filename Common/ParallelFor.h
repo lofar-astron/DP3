@@ -17,18 +17,18 @@ namespace DP3 {
     ParallelFor(size_t nThreads) : _nThreads(nThreads)
     { }
     
-	/**
-	 * Iteratively call a function in parallel.
-	 * 
-	 * The function is expected to accept two size_t parameters, the loop
-	 * index and the thread id, e.g.:
-	 *   void loopFunction(size_t iteration, size_t threadID);
-	 * It is called (end-start) times.
+  /**
+   * Iteratively call a function in parallel.
+   * 
+   * The function is expected to accept two size_t parameters, the loop
+   * index and the thread id, e.g.:
+   *   void loopFunction(size_t iteration, size_t threadID);
+   * It is called (end-start) times.
    * 
    * This function is very similar to ThreadPool::For(), but does not
    * support recursion. For non-recursive loop, this function will be
    * faster.
-	 */
+   */
     template<typename Function>
     void Run(Iter start, Iter end, Function function)
     {
