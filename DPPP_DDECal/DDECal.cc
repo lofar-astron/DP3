@@ -113,7 +113,7 @@ namespace DP3 {
       itsMultiDirSolver.set_detect_stalling(parset.getBool(prefix + "detectstalling", true));
 
       if(!itsStatFilename.empty())
-  itsStatStream.reset(new std::ofstream(itsStatFilename));
+        itsStatStream.reset(new std::ofstream(itsStatFilename));
       
       vector<string> strDirections;
       if (itsUseModelColumn) {
@@ -149,7 +149,7 @@ namespace DP3 {
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
-  itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
         new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
@@ -545,7 +545,12 @@ namespace DP3 {
     
     vector<string> DDECal::getDirectionNames() {
       vector<string> res;
-      
+
+      if (itsUseModelColumn) {
+        res.push_back("pointing");
+        return res;
+      }
+
       for (vector<vector<string> >::iterator dirIter = itsDirections.begin();
            dirIter != itsDirections.end();
            dirIter++) {
