@@ -599,7 +599,7 @@ namespace DP3 {
           obstab.tableDesc().isColumn ("LOFAR_ANTENNA_SET")) {
         antennaSet = ROScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
       }
-      info().init (itsNrCorr, itsNrChan, ntime, itsStartTime,
+      info().init (itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
                    itsTimeInterval, itsMSName, antennaSet);
       info().setDataColName(itsDataColName);
       info().setWeightColName(itsWeightColName);

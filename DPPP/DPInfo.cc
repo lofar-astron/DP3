@@ -56,11 +56,12 @@ namespace DP3 {
         itsPhaseCenterIsOriginal (true)
     {}
 
-    void DPInfo::init (uint ncorr, uint nchan,
+    void DPInfo::init (uint ncorr, uint startChan, uint nchan,
                        uint ntime, double startTime, double timeInterval,
                        const string& msName, const string& antennaSet)
     {
       itsNCorr        = ncorr;
+      itsStartChan    = startChan;
       itsNChan        = nchan;
       itsOrigNChan    = nchan;
       itsNTime        = ntime;
