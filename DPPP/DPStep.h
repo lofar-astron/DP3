@@ -71,7 +71,7 @@ namespace DP3 {
 
       // Constructor to initialize.
       DPStep()
-        : itsPrevStep(0)
+        : itsPrevStep(0), itsNThreads(0)
       {}
 
       // Destructor.
