@@ -150,7 +150,7 @@ namespace DP3 {
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(casacore::CountedPtr<Constraint>(
-        new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
