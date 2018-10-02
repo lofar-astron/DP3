@@ -116,7 +116,7 @@ namespace DP3 {
       // Used for setting source names.
       std::vector<std::string> getDirectionNames();
       
-      void subtractCorrectedModel();
+      void subtractCorrectedModel(bool fullJones);
 
       //# Data members.
       DPInput*         itsInput;

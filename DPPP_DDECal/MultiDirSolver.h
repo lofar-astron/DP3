@@ -50,9 +50,11 @@ public:
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
   
-  // data[i] is een pointer naar de data voor tijdstap i, vanaf die pointer staat het in volgorde als in MS (bl, chan, pol)
-  // mdata[i] is een pointer voor tijdstap i naar arrays van ndir model data pointers (elk van die data pointers staat in zelfde volgorde als data)
-  // solutions[ch] is een pointer voor channelblock ch naar antenna x directions oplossingen.
+  // data[i] is a pointer to the data for timestep i. Those data are then ordered 
+  // as they are in the MS (bl, chan, pol).
+  // mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
+  // Each of these pointers is in the same order as the data.
+  // solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
   SolveResult processScalar(const std::vector<Complex*>& data,
     const std::vector<float*>& weights,
     const std::vector<std::vector<Complex* > >& modelData,

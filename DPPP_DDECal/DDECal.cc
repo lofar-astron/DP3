@@ -32,6 +32,7 @@
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 
+#include "Matrix2x2.h"
 #include "ScreenConstraint.h"
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
@@ -95,7 +96,7 @@ namespace DP3 {
         itsNChan         (parset.getInt (prefix + "nchan", 1)),
         itsUVWFlagStep   (input, parset, prefix),
         itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
-  itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
+        itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
@@ -439,11 +440,11 @@ namespace DP3 {
         {
           tecConstraint->initialize(&itsChanBlockFreqs[0]);
         }
-  SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
-  if(sConstraint != nullptr)
-  {
-    sConstraint->Initialize(&itsChanBlockFreqs[0]);
-  }
+        SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
+        if(sConstraint != nullptr)
+        {
+          sConstraint->Initialize(&itsChanBlockFreqs[0]);
+        }
       }
 
       uint nSt = info().antennaNames().size();
@@ -583,7 +584,7 @@ namespace DP3 {
 
       if(itsSubtract)
       {
-        subtractCorrectedModel();
+        subtractCorrectedModel(itsFullMatrixMinimalization);
       }
 
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
@@ -988,15 +989,57 @@ namespace DP3 {
       getNextStep()->finish();
     }
     
-    void DDECal::subtractCorrectedModel()
+    void DDECal::subtractCorrectedModel(bool fullJones)
     {
       // Our original data & modeldata is still in the data buffers (the solver
       // doesn't change those). Here we apply the solutions to all the model data
       // directions and subtract them from the data.
-      for(size_t time=0; time!=itsStepInSolInt; ++time)
+      std::vector<std::vector<DComplex>>& solutions = itsSols[itsTimeStep/itsSolInt];
+      const size_t nBl = info().nbaselines();
+      const size_t nCh = info().nchan();
+      const size_t nDir = itsDirections.size();
+      for(size_t time=0; time!=itsSolInt; ++time)
       {
-      }
+        std::complex<float>* data = itsDataPtrs[time];
+        std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
+        for (size_t bl=0; bl<nBl; ++bl)
+        {
+          MC2x2 value(MC2x2::Zero());
+          size_t 
+            chanblock = 0,
+            ant1 = info().getAnt1()[bl],
+            ant2 = info().getAnt2()[bl];
+            
+          for (size_t ch=0; ch<nCh; ++ch)
+          {
+            if (ch == itsChanBlockStart[chanblock+1])
+            {
+              chanblock++;
+            }
+            const size_t index = (bl*nCh+ch)*4;
+            for (size_t dir=0; dir!=nDir; ++dir)
+            {
+              if(fullJones)
+              {
+                MC2x2
+                  sol1(&solutions[chanblock][(ant1*nDir + dir)*4]),
+                  sol2(&solutions[chanblock][(ant2*nDir + dir)*4]);
+                  sol1.Multiply(MC2x2(&modelData[dir][index]));
+                  sol1.MultiplyHerm(sol2);
+                  value += sol1;
+              }
+              else {
+                std::complex<double> solfactor(
+                  solutions[chanblock][ant1*nDir + dir] * std::conj(solutions[chanblock][ant2*nDir + dir]));
+                for (size_t cr=0; cr<4; ++cr)
+                  value[cr] += solfactor * std::complex<double>(modelData[dir][index + cr]);
+              }
+            }
+            for (size_t cr=0; cr<4; ++cr)
+              data[index + cr] -= value[cr];
+          } // channel loop
+        } //bl loop
+      } //time loop
     }
-
   } //# end namespace
 }
