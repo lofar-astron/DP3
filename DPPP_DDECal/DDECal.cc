@@ -1024,9 +1024,8 @@ namespace DP3 {
                 MC2x2
                   sol1(&solutions[chanblock][(ant1*nDir + dir)*4]),
                   sol2(&solutions[chanblock][(ant2*nDir + dir)*4]);
-                  sol1.Multiply(MC2x2(&modelData[dir][index]));
-                  sol1.MultiplyHerm(sol2);
-                  value += sol1;
+                  value +=
+                    sol1.Multiply(MC2x2(&modelData[dir][index])).MultiplyHerm(sol2);
               }
               else {
                 std::complex<double> solfactor(
