@@ -170,7 +170,7 @@ namespace DP3 {
       std::vector<casacore::Matrix<double> > itsTECSols; // for every timeslot, 2 x nSt (alpha and beta)
       std::vector<double> itsFreqData; // Mean frequency for every freqcell
 
-      std::vector<casacore::CountedPtr<PhaseFitter> > itsPhaseFitters; // Length nSt
+      std::vector<std::unique_ptr<PhaseFitter> > itsPhaseFitters; // Length nSt
 
       std::vector<StefCal>  iS;
 

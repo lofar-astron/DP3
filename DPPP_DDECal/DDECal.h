@@ -153,7 +153,7 @@ namespace DP3 {
       vector<size_t>   itsChanBlockStart;    // For each channel block, the index in the channels at which this channel block starts
       vector<double>   itsChanBlockFreqs;
       vector<vector<string> > itsDirections; // For each direction, a vector of patches
-      vector<casacore::CountedPtr<Constraint> > itsConstraints;
+      vector<std::unique_ptr<Constraint> > itsConstraints;
 
       vector<double>   itsWeights;
 

@@ -342,7 +342,7 @@ namespace DP3 {
 
       if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0) {
         // Add DATA column using Dysco stman.
-        CountedPtr<DataManager> dyscoStMan(dyscoConstructor("DyscoData", dyscoSpec));
+        std::unique_ptr<DataManager> dyscoStMan(dyscoConstructor("DyscoData", dyscoSpec));
         makeArrayColumn (tdesc["DATA"], dataShape, dyscoStMan.get(), itsMS, true);
       }
       else {
@@ -373,9 +373,8 @@ namespace DP3 {
       }
       if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoWeightBitRate != 0) {
         // Add WEIGHT_SPECTRUM column using Dysco stman.
-        CountedPtr<DataManager> dyscoStMan(dyscoConstructor(
-                                             "DyscoWeightSpectrum", dyscoSpec)
-                                          );
+        std::unique_ptr<DataManager> dyscoStMan(dyscoConstructor(
+          "DyscoWeightSpectrum", dyscoSpec) );
         ArrayColumnDesc<float> wsdesc("WEIGHT_SPECTRUM", "weight per corr/chan",
                                    dataShape, 
                                    ColumnDesc::FixedShape | ColumnDesc::Direct);
