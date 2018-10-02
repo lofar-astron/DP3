@@ -273,6 +273,8 @@ namespace DP3 {
     {
       info() = infoIn;
       info().setNeedVisData();
+      if(itsSubtract)
+        info().setWriteData();
 
       const size_t nDir = itsDirections.size();
 
