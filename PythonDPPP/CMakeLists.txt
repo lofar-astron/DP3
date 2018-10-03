@@ -8,6 +8,7 @@ if(BOOST_PYTHON_FOUND)
 
   add_library(_pythondppp MODULE PythonDPPP.cc)
   set_target_properties(_pythondppp PROPERTIES 
+    SOVERSION 2
     PREFIX ""
     LIBRARY_OUTPUT_DIRECTORY ${PYTHON_BUILD_DIR}/lofar/pythondppp)
 

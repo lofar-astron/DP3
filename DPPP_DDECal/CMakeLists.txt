@@ -11,6 +11,7 @@ add_library(dppp_ddecal SHARED
   RotationAndDiagonalConstraint.cc
 )
 target_link_libraries(dppp_ddecal ${ARMADILLO_LIBRARIES})
+set_target_properties(dppp_ddecal PROPERTIES VERSION 2)
 
 install (TARGETS dppp_ddecal DESTINATION lib) 
 
