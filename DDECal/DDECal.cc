@@ -152,7 +152,7 @@ namespace DP3 {
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
-        new SmoothnessConstraint(itsSmoothnessConstraint))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
@@ -208,10 +208,10 @@ namespace DP3 {
             std::unique_ptr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
+                new ApproximateTECConstraint(TECConstraint::TECOnlyMode, NThreads()));
             else
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
+                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads()));
             ptr->SetMaxApproximatingIterations(iters);
             ptr->SetFittingChunkSize(chunksize);
             itsConstraints.push_back(std::move(ptr));
@@ -219,10 +219,10 @@ namespace DP3 {
           else {
             if(itsMode == GainCal::TEC)
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECOnlyMode)));
+                new TECConstraint(TECConstraint::TECOnlyMode, NThreads())));
               else
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+                new TECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads())));
           }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
@@ -254,7 +254,7 @@ namespace DP3 {
       } else {
         itsPredictSteps.resize(nDir);
         for (size_t dir=0; dir<nDir; ++dir) {
-          itsPredictSteps[dir]=Predict(input, parset, prefix, itsDirections[dir]);
+          itsPredictSteps[dir] = Predict(input, parset, prefix, itsDirections[dir]);
         }
       }
     }
@@ -462,7 +462,7 @@ namespace DP3 {
     void DDECal::show (std::ostream& os) const
     {
       os
-  << "DDECal " << itsName << '\n'
+        << "DDECal " << itsName << '\n'
         << "  H5Parm:              " << itsH5ParmName << '\n'
         << "  solint:              " << itsSolInt << '\n'
         << "  nchan:               " << itsNChan << '\n'
@@ -474,7 +474,7 @@ namespace DP3 {
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
         << "  coreconstraint:      " << itsCoreConstraint << '\n'
-  << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
+        << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
         << "  approximate fitter:  " << itsApproximateTEC << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
@@ -569,6 +569,10 @@ namespace DP3 {
 
     void DDECal::doSolve ()
     {
+      for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
+        itsConstraints[constraint_num]->SetWeights(itsWeights);
+      }
+      
       if(itsFullMatrixMinimalization)
         initializeFullMatrixSolutions();
       else
@@ -647,7 +651,7 @@ namespace DP3 {
         itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
       } else {
         if(itsThreadPool == nullptr)
-          itsThreadPool.reset(new ThreadPool(OpenMP::maxThreads()));
+          itsThreadPool.reset(new ThreadPool(NThreads()));
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
           predict.setThreadPool(*itsThreadPool);
         itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
@@ -700,10 +704,6 @@ namespace DP3 {
 
       if (itsStepInSolInt==itsSolInt-1)
       {
-        for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
-          itsConstraints[constraint_num]->SetWeights(itsWeights);
-        }
-
         doSolve();
 
         // Clean up, prepare for next iteration

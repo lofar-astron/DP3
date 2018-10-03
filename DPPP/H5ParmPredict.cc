@@ -49,8 +49,7 @@ namespace DP3 {
                       const string& prefix) :
       itsInput(input),
       itsH5ParmName(parset.getString(prefix+"applycal.parmdb")),
-      itsDirections(parset.getStringVector(prefix+"directions", vector<string> ())),
-      itsThreadPool(OpenMP::maxThreads())
+      itsDirections(parset.getStringVector(prefix+"directions", vector<string> ()))
     {
       H5Parm h5parm = H5Parm(itsH5ParmName, false);
       std::string soltabName = parset.getString(prefix+"applycal.correction"); 
@@ -138,6 +137,8 @@ namespace DP3 {
 
     bool H5ParmPredict::process (const DPBuffer& bufin)
     {
+      itsThreadPool.SetNThreads(NThreads());
+      
       itsTimer.start();
       itsBuffer.copy (bufin);
       itsInput->fetchUVW(bufin, itsBuffer, itsTimer);

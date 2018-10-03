@@ -32,6 +32,7 @@
 #include "../DPPP/FlagCounter.h"
 
 #include <memory>
+#include <mutex>
 
 #include <aoflagger.h>
 
@@ -149,6 +150,7 @@ namespace DP3 {
       double           itsQualTime;      //# quality timer (sum of all threads)
       casacore::Vector<double>  itsFreqs;
       aoflagger::AOFlagger  itsAOFlagger;
+      std::mutex itsMutex;
       std::unique_ptr<aoflagger::Strategy> itsStrategy;
       std::unique_ptr<aoflagger::QualityStatistics> itsRfiStats;
     };
