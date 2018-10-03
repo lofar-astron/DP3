@@ -8,3 +8,5 @@ add_library(dppp_ddecal
   TECConstraint.cc RotationConstraint.cc
   RotationAndDiagonalConstraint.cc
 )
+
+set_target_properties(dppp_ddecal PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})

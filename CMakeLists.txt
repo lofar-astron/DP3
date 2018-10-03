@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
+# FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
+# CMake 3.9.
+cmake_minimum_required(VERSION 3.9)
 
 project(DP3)
 
@@ -20,6 +22,9 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(Casacore COMPONENTS casa ms tables REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
+# Add old casacore include directory because LOFAR beam library did
+# not use the casacore/ prefix in the includes until 3.2 (Sep '18)
+include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
@@ -130,6 +135,8 @@ add_library(DPPP_OBJ OBJECT
   ${LOFAR_DEPENDENT_FILES}
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
+
+set(DPPP_GLOBAL_SOVERSION 2)
 
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)

@@ -1,7 +1,7 @@
-find_package(Boost REQUIRED COMPONENTS date_time filesystem system python)
 # AOFlagger depends on Python 2.7, see aoflagger CMake
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs 2.7 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS date_time filesystem python signals system)
 find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
@@ -17,13 +17,21 @@ pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
 pkg_check_modules(SIGCXX sigc++-2.0)
 
 if(GTKMM_FOUND)
-  set(LOFAR_EXTRA_LIBRARIES ${LOFAR_EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
+  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
 endif(GTKMM_FOUND)
 
 add_library(dppp_aoflag SHARED
   AOFlaggerStep.cc
   Register.cc
 )
+target_link_libraries(dppp_aoflag
+  ${AOFLAGGER_LIB}
+  ${CASACORE_LIBRARIES}
+  ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
+  ${EXTRA_LIBRARIES}
+  ${PYTHON_LIBRARIES})
+
+set_target_properties(dppp_aoflag PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
 
 install (TARGETS dppp_aoflag DESTINATION lib) 
 

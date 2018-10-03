@@ -263,7 +263,7 @@ namespace DP3 {
 
         uint nSt=info().antennaUsed().size();
         for (uint st=0; st<nSt; ++st) {
-          itsPhaseFitters.push_back(CountedPtr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
+          itsPhaseFitters.push_back(std::unique_ptr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
           double* nu = itsPhaseFitters[st]->FrequencyData();
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             nu[freqCell] = itsFreqData[freqCell];

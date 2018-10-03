@@ -462,7 +462,7 @@ namespace DP3 {
           }
         }
         itsStrategy.reset(new aoflagger::Strategy
-                          (itsAOFlagger.LoadStrategy(file.path().absoluteName())));
+          (itsAOFlagger.LoadStrategy(file.path().absoluteName())));
       } else {
         double centralFrequency = 0.5*(itsFreqs[0] + itsFreqs[itsFreqs.size()-1]);
         double timeRes;
