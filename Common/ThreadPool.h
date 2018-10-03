@@ -16,11 +16,30 @@ namespace DP3
 class ThreadPool
 {
 public:
+	static unsigned NCPUS()
+	{
+#ifdef __APPLE__
+		return sysconf(_SC_NPROCESSORS_ONLN);
+#else
+		cpu_set_t cs;
+		CPU_ZERO(&cs);
+		sched_getaffinity(0, sizeof cs , &cs);
+
+		int count = 0;
+		for (int i = 0; i < CPU_SETSIZE; i++)
+		{
+			if (CPU_ISSET(i, &cs))
+				++count;
+		}
+		return count;
+#endif
+	}
+	
 	ThreadPool() :
 		_isStopped(false),
 		_priority(0)
 	{
-		size_t nThreads = cpus();
+		size_t nThreads = NCPUS();
 		
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
@@ -57,6 +76,25 @@ public:
 	{
 		return _threads.size()+1;
 	}
+	
+  void SetNThreads(size_t nThreads)
+  {
+    if(nThreads != NThreads())
+    {
+      std::unique_lock<std::mutex> lock(_mutex);
+      _isStopped = true;
+      _onProgress.notify_all();
+      lock.unlock();
+      for(std::thread& t : _threads)
+        t.join();
+      
+      _threads.clear();
+      
+      _threads.reserve(nThreads-1);
+      for(size_t i=1; i!=nThreads; ++i)
+        _threads.emplace_back(&ThreadPool::threadFunc, this, i);
+    }
+  }
 	
 	/**
 	 * Iteratively call a function in parallel.
@@ -170,25 +208,6 @@ private:
 		}
 		_tasks.emplace(priority, std::make_pair(std::move(func), progressPtr));
 		_onProgress.notify_all();
-	}
-	
-	static unsigned cpus()
-	{
-#ifdef __APPLE__
-		return sysconf(_SC_NPROCESSORS_ONLN);
-#else
-		cpu_set_t cs;
-		CPU_ZERO(&cs);
-		sched_getaffinity(0, sizeof cs , &cs);
-
-		int count = 0;
-		for (int i = 0; i < CPU_SETSIZE; i++)
-		{
-			if (CPU_ISSET(i, &cs))
-				++count;
-		}
-		return count;
-#endif
 	}
 	
 	// Priority, (function, progress*)

@@ -1,27 +1,17 @@
 #include "KernelSmoother.h"
 #include "SmoothnessConstraint.h"
+#include "ParallelFor.h"
 
-#ifdef AOPROJECT
-#include "omptools.h"
-#else
-#include "../Common/OpenMP.h"
-#endif
-
-SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz) :
+SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz, size_t threads) :
   _kernelType(Smoother::GaussianKernel),
-  _bandwidth(bandwidthHz)
+  _bandwidth(bandwidthHz),
+  _loop(threads)
 { }
 
 void SmoothnessConstraint::Initialize(const double* frequencies)
 {
   _frequencies.assign(frequencies, frequencies+_nChannelBlocks);
-  size_t nthreads =
-#ifdef AOPROJECT
-    omp_get_max_threads();
-#else
-    DP3::OpenMP::maxThreads();
-#endif
-  for(size_t i=0; i!=nthreads; ++i)
+  for(size_t i=0; i!=_loop.NThreads(); ++i)
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType, _bandwidth);
 }
 
@@ -36,14 +26,9 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*)
 {
   const size_t nPol = solutions.front().size() / (_nAntennas*_nDirections);
-#pragma omp parallel for
-  for(size_t antDirIndex = 0; antDirIndex<_nAntennas*_nDirections; ++antDirIndex)
+
+  _loop.Run(0, _nAntennas*_nDirections, [&](size_t antDirIndex, size_t thread)
   {
-#ifdef AOPROJECT
-    const size_t thread = omp_get_thread_num();
-#else
-    const size_t thread = DP3::OpenMP::threadNum();
-#endif
     size_t antIndex = antDirIndex / _nDirections;
     for(size_t pol = 0; pol!=nPol; ++pol)
     {
@@ -70,7 +55,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
         solutions[ch][solutionIndex] = _fitData[thread].data[ch];
       }
     }
-  }
+  });
   
   return std::vector<Constraint::Result>();
 }

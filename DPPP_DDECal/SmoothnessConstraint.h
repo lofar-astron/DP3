@@ -1,6 +1,8 @@
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
+#include "../Common/ParallelFor.h"
+
 #ifndef SMOOTHNESS_CONSTRAINT_H
 #define SMOOTHNESS_CONSTRAINT_H
 
@@ -10,7 +12,7 @@ public:
   typedef std::complex<double> dcomplex;
   typedef KernelSmoother<dcomplex, double> Smoother;
   
-  SmoothnessConstraint(double bandwidthHz);
+  SmoothnessConstraint(double bandwidthHz, size_t threads);
   
   std::vector<Constraint::Result> Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream* statStream) final override;
@@ -40,6 +42,7 @@ public:
   std::vector<double> _frequencies, _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
+  DP3::ParallelFor<size_t> _loop;
 };
 
 #endif

@@ -131,8 +131,7 @@ namespace DP3 {
 
       bool showcounts = parset.getBool ("showcounts", true);
 
-      uint numThreads = parset.getInt("numthreads", OpenMP::maxThreads());
-      OpenMP::setNumThreads(numThreads);
+      uint numThreads = parset.getInt("numthreads", ThreadPool::NCPUS());
 
       // Create the steps, link them toggether
       DPStep::ShPtr firstStep = makeSteps (parset, "", 0);
@@ -140,12 +139,13 @@ namespace DP3 {
       // Let all steps fill their DPInfo object using the info from the previous step.
       DPInfo lastInfo = firstStep->setInfo (DPInfo());
 
-      // Show the steps.
+      // Show the steps & set nthreads.
       DPStep::ShPtr step = firstStep;
       DPStep::ShPtr lastStep;
       while (step) {
         std::ostringstream os;
         step->show (os);
+        step->setNThreads(numThreads);
         DPLOG_INFO (os.str(), true);
         lastStep = step;
         step = step->getNextStep();
