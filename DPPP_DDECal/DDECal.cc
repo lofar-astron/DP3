@@ -32,6 +32,7 @@
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 
+#include "Matrix2x2.h"
 #include "ScreenConstraint.h"
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
@@ -99,6 +100,7 @@ namespace DP3 {
         itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
         itsFullMatrixMinimalization(false),
         itsApproximateTEC(false),
+        itsSubtract(parset.getBool(prefix + "subtract", false)),
         itsStatFilename(parset.getString(prefix + "statfilename", ""))
     {
       stringstream ss;
@@ -271,6 +273,8 @@ namespace DP3 {
     {
       info() = infoIn;
       info().setNeedVisData();
+      if(itsSubtract)
+        info().setWriteData();
 
       const size_t nDir = itsDirections.size();
 
@@ -284,6 +288,7 @@ namespace DP3 {
       }
 
       itsDataPtrs.resize(itsSolInt);
+			itsWeightPtrs.resize(itsSolInt);
       itsModelDataPtrs.resize(itsSolInt);
       for (uint t=0; t<itsSolInt; ++t) {
         itsModelDataPtrs[t].resize(nDir);
@@ -292,8 +297,9 @@ namespace DP3 {
         itsMultiDirSolver.add_constraint(itsConstraints[i].get());
       }
 
-
       itsBufs.resize(itsSolInt);
+      itsOriginalFlags.resize(itsSolInt);
+      itsOriginalWeights.resize(itsSolInt);
 
       itsDataResultStep = ResultStep::ShPtr(new ResultStep());
       itsUVWFlagStep.setNextStep(itsDataResultStep);
@@ -437,11 +443,11 @@ namespace DP3 {
         {
           tecConstraint->initialize(&itsChanBlockFreqs[0]);
         }
-  SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
-  if(sConstraint != nullptr)
-  {
-    sConstraint->Initialize(&itsChanBlockFreqs[0]);
-  }
+        SmoothnessConstraint* sConstraint = dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
+        if(sConstraint != nullptr)
+        {
+          sConstraint->Initialize(&itsChanBlockFreqs[0]);
+        }
       }
 
       uint nSt = info().antennaNames().size();
@@ -576,16 +582,17 @@ namespace DP3 {
       MultiDirSolver::SolveResult solveResult;
       if(itsFullMatrixMinimalization)
       {
-        solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep/itsSolInt],
-    itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
       }
       else {
-        solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep/itsSolInt],
-    itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
+
+      if(itsSubtract)
+      {
+        subtractCorrectedModel(itsFullMatrixMinimalization);
+      }
 
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
       itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
@@ -601,21 +608,39 @@ namespace DP3 {
       if (someConstraintHasResult) {
         itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
       }
+      
+      itsTimer.stop();
+
+      for(size_t time=0; time<=itsStepInSolInt; ++time)
+      {
+        // Restore the weights and flags
+        itsBufs[time].getFlags().assign( itsOriginalFlags[time] );
+        itsBufs[time].getWeights().assign( itsOriginalWeights[time] );
+        // Push data (possibly changed) to next step
+        getNextStep()->process(itsBufs[time]);
+      }
+      
+      itsTimer.start();
     }
 
     bool DDECal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
 
-      itsBufs[itsStepInSolInt].copy(bufin);
-      itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
-
       // Fetch inputs because parallel PredictSteps should not read it from disk
       itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchWeights(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchFullResFlags(bufin, itsBufs[itsStepInSolInt], itsTimer);
 
-      // UVW flagging happens on a copy of the buffer, so these flags are not written
+      itsBufs[itsStepInSolInt].copy(bufin);
+      itsOriginalFlags[itsStepInSolInt].assign( bufin.getFlags() );
+      itsOriginalWeights[itsStepInSolInt].assign( bufin.getWeights() );
+      
+      itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
+      itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
+      
+      // UVW flagging happens on the copy of the buffer
+      // These flags are later restored and therefore not written
       itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
 
       itsTimerPredict.start();
@@ -642,31 +667,28 @@ namespace DP3 {
       const size_t nCr = 4;
       
       size_t nchanblocks = itsChanBlockFreqs.size();
-      size_t chanblock = 0;
 
       double weightFactor = 1./(nCh*(info().nantenna()-1)*nCr*itsSolInt);
 
-      for (size_t ch=0; ch<nCh; ++ch) {
-        if (ch == itsChanBlockStart[chanblock+1]) {
-          chanblock++;
-        }
-        for (size_t bl=0; bl<nBl; ++bl) {
+      for (size_t bl=0; bl<nBl; ++bl) {
+        size_t 
+          chanblock = 0,
+          ant1 = info().getAnt1()[bl],
+          ant2 = info().getAnt2()[bl];
+        for (size_t ch=0; ch<nCh; ++ch) {
+          if (ch == itsChanBlockStart[chanblock+1]) {
+            chanblock++;
+          }
           for (size_t cr=0; cr<nCr; ++cr) {
-            if (itsBufs[itsStepInSolInt].getFlags().data()[bl*nCr*nCh+ch*nCr+cr]) {
-              // Flagged points: set data and model to 0
-              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] = 0;
-              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
-                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] = 0;
-              }
+            const size_t index = (bl*nCh+ch)*nCr+cr;
+            if (itsBufs[itsStepInSolInt].getFlags().data()[index]) {
+              // Flagged points: set weight to 0
+              itsWeightPtrs[itsStepInSolInt][index] = 0;
             } else {
-              // Premultiply non-flagged data with sqrt(weight)
-              double weight = itsBufs[itsStepInSolInt].getWeights().data()[bl*nCr*nCh+ch*nCr+cr];
-              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
-              itsWeights[info().getAnt1()[bl]*nchanblocks + chanblock] += weight;
-              itsWeights[info().getAnt2()[bl]*nchanblocks + chanblock] += weight;
-              for (size_t dir=0; dir<itsModelDataPtrs[0].size(); ++dir) {
-                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
-              }
+              // Add this weight to both involved antennas
+              double weight = itsBufs[itsStepInSolInt].getWeights().data()[index];
+              itsWeights[ant1*nchanblocks + chanblock] += weight;
+              itsWeights[ant2*nchanblocks + chanblock] += weight;
             }
           }
         }
@@ -680,8 +702,8 @@ namespace DP3 {
 
       itsAvgTime += itsAvgTime + bufin.getTime();
 
-      if (itsStepInSolInt==itsSolInt-1) {
-
+      if (itsStepInSolInt==itsSolInt-1)
+      {
         doSolve();
 
         // Clean up, prepare for next iteration
@@ -698,12 +720,11 @@ namespace DP3 {
       itsTimeStep++;
       itsTimer.stop();
 
-      getNextStep()->process(bufin);
-
       return false;
     }
 
-    void DDECal::writeSolutions() {
+    void DDECal::writeSolutions()
+    {
       itsTimer.start();
       itsTimerWrite.start();
 
@@ -831,7 +852,6 @@ namespace DP3 {
             antennaNames[i]=info().antennaNames()[i];
           }
           soltab.setAntennas(antennaNames);
-    
           soltab.setSources(getDirectionNames());
 
           if (nPol>1) {
@@ -839,7 +859,6 @@ namespace DP3 {
           }
    
           soltab.setFreqs(itsChanBlockFreqs);
-
           soltab.setTimes(solTimes);
         } // solnums loop
       } else {
@@ -967,11 +986,9 @@ namespace DP3 {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
-        //shrink itsDataPtrs, itsModelDataPtrs
-        std::vector<casacore::Complex*>(itsDataPtrs.begin(),
-            itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
-        std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
-                    itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
+        itsDataPtrs.resize(itsStepInSolInt);
+        itsWeightPtrs.resize(itsStepInSolInt);
+        itsModelDataPtrs.resize(itsStepInSolInt);
 
         doSolve();
       }
@@ -983,6 +1000,57 @@ namespace DP3 {
       // Let the next steps finish.
       getNextStep()->finish();
     }
-
+    
+    void DDECal::subtractCorrectedModel(bool fullJones)
+    {
+      // Our original data & modeldata is still in the data buffers (the solver
+      // doesn't change those). Here we apply the solutions to all the model data
+      // directions and subtract them from the data.
+      std::vector<std::vector<DComplex>>& solutions = itsSols[itsTimeStep/itsSolInt];
+      const size_t nBl = info().nbaselines();
+      const size_t nCh = info().nchan();
+      const size_t nDir = itsDirections.size();
+      for(size_t time=0; time<=itsStepInSolInt; ++time)
+      {
+        std::complex<float>* data = itsDataPtrs[time];
+        std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
+        for (size_t bl=0; bl<nBl; ++bl)
+        {
+          size_t 
+            chanblock = 0,
+            ant1 = info().getAnt1()[bl],
+            ant2 = info().getAnt2()[bl];
+            
+          for (size_t ch=0; ch<nCh; ++ch)
+          {
+            MC2x2 value(MC2x2::Zero());
+            if (ch == itsChanBlockStart[chanblock+1])
+            {
+              chanblock++;
+            }
+            const size_t index = (bl*nCh+ch)*4;
+            for (size_t dir=0; dir!=nDir; ++dir)
+            {
+              if(fullJones)
+              {
+                MC2x2
+                  sol1(&solutions[chanblock][(ant1*nDir + dir)*4]),
+                  sol2(&solutions[chanblock][(ant2*nDir + dir)*4]);
+                  value +=
+                    sol1.Multiply(MC2x2(&modelData[dir][index])).MultiplyHerm(sol2);
+              }
+              else {
+                std::complex<double> solfactor(
+                  solutions[chanblock][ant1*nDir + dir] * std::conj(solutions[chanblock][ant2*nDir + dir]));
+                for (size_t cr=0; cr<4; ++cr)
+                  value[cr] += solfactor * std::complex<double>(modelData[dir][index + cr]);
+              }
+            }
+            for (size_t cr=0; cr<4; ++cr)
+              data[index + cr] -= value[cr];
+          } // channel loop
+        } //bl loop
+      } //time loop
+    }
   } //# end namespace
 }
