@@ -188,6 +188,8 @@ else()
   message(WARNING "Armadillo was not found, not including DDECal")
 endif()
 
+set(DPPP_GLOBAL_SOVERSION 2)
+
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)
 add_subdirectory(PythonDPPP)
