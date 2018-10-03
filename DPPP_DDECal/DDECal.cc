@@ -607,7 +607,7 @@ namespace DP3 {
       
       itsTimer.stop();
 
-      for(size_t time=0; time!=itsStepInSolInt; ++time)
+      for(size_t time=0; time<=itsStepInSolInt; ++time)
       {
         // Restore the weights and flags
         itsBufs[time].getFlags().assign( itsOriginalFlags[time] );
@@ -1010,7 +1010,7 @@ namespace DP3 {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nDir = itsDirections.size();
-      for(size_t time=0; time!=itsStepInSolInt; ++time)
+      for(size_t time=0; time<=itsStepInSolInt; ++time)
       {
         std::complex<float>* data = itsDataPtrs[time];
         std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
