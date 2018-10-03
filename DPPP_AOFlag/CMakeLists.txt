@@ -31,6 +31,8 @@ target_link_libraries(dppp_aoflag
   ${EXTRA_LIBRARIES}
   ${PYTHON_LIBRARIES})
 
+set_target_properties(dppp_aoflag PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+
 install (TARGETS dppp_aoflag DESTINATION lib) 
 
 #add_subdirectory(test)

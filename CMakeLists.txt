@@ -136,6 +136,8 @@ add_library(DPPP_OBJ OBJECT
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
+set(DPPP_GLOBAL_SOVERSION 2)
+
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)
 add_subdirectory(PythonDPPP)

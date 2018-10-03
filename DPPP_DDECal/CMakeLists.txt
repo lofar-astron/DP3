@@ -12,6 +12,8 @@ add_library(dppp_ddecal SHARED
 )
 target_link_libraries(dppp_ddecal ${ARMADILLO_LIBRARIES})
 
+set_target_properties(dppp_ddecal PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+
 install (TARGETS dppp_ddecal DESTINATION lib) 
 
 #add_subdirectory(test)
