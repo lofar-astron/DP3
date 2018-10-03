@@ -1016,7 +1016,6 @@ namespace DP3 {
         std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
         for (size_t bl=0; bl<nBl; ++bl)
         {
-          MC2x2 value(MC2x2::Zero());
           size_t 
             chanblock = 0,
             ant1 = info().getAnt1()[bl],
@@ -1024,6 +1023,7 @@ namespace DP3 {
             
           for (size_t ch=0; ch<nCh; ++ch)
           {
+            MC2x2 value(MC2x2::Zero());
             if (ch == itsChanBlockStart[chanblock+1])
             {
               chanblock++;
