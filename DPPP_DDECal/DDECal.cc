@@ -297,8 +297,9 @@ namespace DP3 {
         itsMultiDirSolver.add_constraint(itsConstraints[i].get());
       }
 
-
       itsBufs.resize(itsSolInt);
+      itsOriginalFlags.resize(itsSolInt);
+      itsOriginalWeights.resize(itsSolInt);
 
       itsDataResultStep = ResultStep::ShPtr(new ResultStep());
       itsUVWFlagStep.setNextStep(itsDataResultStep);
@@ -603,23 +604,39 @@ namespace DP3 {
       if (someConstraintHasResult) {
         itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
       }
+      
+      itsTimer.stop();
+
+      for(size_t time=0; time!=itsStepInSolInt; ++time)
+      {
+        // Restore the weights and flags
+        itsBufs[time].getFlags() = itsOriginalFlags[time];
+        itsBufs[time].getWeights() = itsOriginalWeights[time];
+        // Push data (possibly changed) to next step
+        getNextStep()->process(itsBufs[time]);
+      }
+      
+      itsTimer.start();
     }
 
     bool DDECal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
 
-      itsBufs[itsStepInSolInt].copy(bufin);
-      itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
-
       // Fetch inputs because parallel PredictSteps should not read it from disk
       itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchWeights(bufin, itsBufs[itsStepInSolInt], itsTimer);
       itsInput->fetchFullResFlags(bufin, itsBufs[itsStepInSolInt], itsTimer);
 
+      itsBufs[itsStepInSolInt].copy(bufin);
+      itsOriginalFlags[itsStepInSolInt].assign( bufin.getFlags() );
+      itsOriginalWeights[itsStepInSolInt].assign( bufin.getWeights() );
+      
+      itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
       itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
       
-      // UVW flagging happens on a copy of the buffer, so these flags are not written
+      // UVW flagging happens on the copy of the buffer
+      // These flags are later restored and therefore not written
       itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
 
       itsTimerPredict.start();
@@ -703,12 +720,11 @@ namespace DP3 {
       itsTimeStep++;
       itsTimer.stop();
 
-      getNextStep()->process(bufin);
-
       return false;
     }
 
-    void DDECal::writeSolutions() {
+    void DDECal::writeSolutions()
+    {
       itsTimer.start();
       itsTimerWrite.start();
 
@@ -836,7 +852,6 @@ namespace DP3 {
             antennaNames[i]=info().antennaNames()[i];
           }
           soltab.setAntennas(antennaNames);
-    
           soltab.setSources(getDirectionNames());
 
           if (nPol>1) {
@@ -844,7 +859,6 @@ namespace DP3 {
           }
    
           soltab.setFreqs(itsChanBlockFreqs);
-
           soltab.setTimes(solTimes);
         } // solnums loop
       } else {
@@ -972,13 +986,9 @@ namespace DP3 {
       itsTimer.start();
 
       if (itsStepInSolInt!=0) {
-        //shrink itsDataPtrs, itsModelDataPtrs
-        std::vector<casacore::Complex*>(itsDataPtrs.begin(),
-            itsDataPtrs.begin()+itsStepInSolInt).swap(itsDataPtrs);
-        std::vector<float*>(itsWeightPtrs.begin(),
-            itsWeightPtrs.begin()+itsStepInSolInt).swap(itsWeightPtrs);
-        std::vector<std::vector<casacore::Complex*> >(itsModelDataPtrs.begin(),
-                    itsModelDataPtrs.begin()+itsStepInSolInt).swap(itsModelDataPtrs);
+        itsDataPtrs.resize(itsStepInSolInt);
+        itsWeightPtrs.resize(itsStepInSolInt);
+        itsModelDataPtrs.resize(itsStepInSolInt);
 
         doSolve();
       }
@@ -1000,7 +1010,7 @@ namespace DP3 {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nDir = itsDirections.size();
-      for(size_t time=0; time!=itsSolInt; ++time)
+      for(size_t time=0; time!=itsStepInSolInt; ++time)
       {
         std::complex<float>* data = itsDataPtrs[time];
         std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
