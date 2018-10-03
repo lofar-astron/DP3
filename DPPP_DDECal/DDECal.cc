@@ -150,7 +150,7 @@ namespace DP3 {
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
-        new SmoothnessConstraint(itsSmoothnessConstraint))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
@@ -206,10 +206,10 @@ namespace DP3 {
             std::unique_ptr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
+                new ApproximateTECConstraint(TECConstraint::TECOnlyMode, NThreads()));
             else
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
+                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads()));
             ptr->SetMaxApproximatingIterations(iters);
             ptr->SetFittingChunkSize(chunksize);
             itsConstraints.push_back(std::move(ptr));
@@ -217,10 +217,10 @@ namespace DP3 {
           else {
             if(itsMode == GainCal::TEC)
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECOnlyMode)));
+                new TECConstraint(TECConstraint::TECOnlyMode, NThreads())));
               else
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+                new TECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads())));
           }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
