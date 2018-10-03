@@ -610,8 +610,8 @@ namespace DP3 {
       for(size_t time=0; time!=itsStepInSolInt; ++time)
       {
         // Restore the weights and flags
-        itsBufs[time].getFlags() = itsOriginalFlags[time];
-        itsBufs[time].getWeights() = itsOriginalWeights[time];
+        itsBufs[time].getFlags().assign( itsOriginalFlags[time] );
+        itsBufs[time].getWeights().assign( itsOriginalWeights[time] );
         // Push data (possibly changed) to next step
         getNextStep()->process(itsBufs[time]);
       }
