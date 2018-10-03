@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
+# FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
+# CMake 3.9.
+cmake_minimum_required(VERSION 3.9)
 
 project(DP3)
 
