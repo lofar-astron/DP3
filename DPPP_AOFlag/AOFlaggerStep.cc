@@ -458,8 +458,8 @@ namespace DP3 {
             throw std::runtime_error("Unknown rfistrategy file " + itsStrategyName);
           }
         }
-	itsStrategy.reset(new aoflagger::Strategy
-                          (itsAOFlagger.LoadStrategy(file.path().absoluteName())));
+          itsStrategy.reset(new aoflagger::Strategy
+            (itsAOFlagger.LoadStrategy(file.path().absoluteName())));
       } else {
         double centralFrequency = 0.5*(itsFreqs[0] + itsFreqs[itsFreqs.size()-1]);
         double timeRes;

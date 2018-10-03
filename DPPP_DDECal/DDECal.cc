@@ -147,16 +147,16 @@ namespace DP3 {
                    boost::to_lower_copy(parset.getString(prefix + "mode",
                                             "complexgain")));
       if(itsCoreConstraint != 0.0) {
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        itsConstraints.push_back(std::unique_ptr<Constraint>(
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
-        itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+        itsConstraints.push_back(std::unique_ptr<Constraint>(
         new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new DiagonalConstraint(4)));
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = true;
@@ -172,28 +172,28 @@ namespace DP3 {
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::PHASEONLY:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new PhaseOnlyConstraint()));
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new DiagonalConstraint(4)));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::SCALARPHASE:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new PhaseOnlyConstraint()));
           itsMultiDirSolver.set_phase_only(true);
           break;
         case GainCal::AMPLITUDEONLY:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new DiagonalConstraint(4)));
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new AmplitudeOnlyConstraint()));
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::SCALARAMPLITUDE:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new AmplitudeOnlyConstraint()));
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = false;
@@ -205,41 +205,41 @@ namespace DP3 {
           {
             int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
             int chunksize = parset.getInt(prefix + "approxchunksize", 0);
-            casacore::CountedPtr<ApproximateTECConstraint> ptr;
+            std::unique_ptr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
-              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+              ptr = std::unique_ptr<ApproximateTECConstraint>(
                 new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
             else
-              ptr = casacore::CountedPtr<ApproximateTECConstraint>(
+              ptr = std::unique_ptr<ApproximateTECConstraint>(
                 new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
             ptr->SetMaxApproximatingIterations(iters);
             ptr->SetFittingChunkSize(chunksize);
-            itsConstraints.push_back(ptr);
+            itsConstraints.push_back(std::move(ptr));
           }
           else {
             if(itsMode == GainCal::TEC)
-              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+              itsConstraints.push_back(std::unique_ptr<Constraint>(
                 new TECConstraint(TECConstraint::TECOnlyMode)));
               else
-              itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+              itsConstraints.push_back(std::unique_ptr<Constraint>(
                 new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
           }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
           break;
         case GainCal::TECSCREEN:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new ScreenConstraint(parset, prefix+"tecscreen.")));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
           break;
         case GainCal::ROTATIONANDDIAGONAL:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
               new RotationAndDiagonalConstraint()));
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::ROTATION:
-          itsConstraints.push_back(casacore::CountedPtr<Constraint>(
+          itsConstraints.push_back(std::unique_ptr<Constraint>(
               new RotationConstraint()));
           itsFullMatrixMinimalization = true;
           break;
