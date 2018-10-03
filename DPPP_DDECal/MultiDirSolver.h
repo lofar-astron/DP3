@@ -8,6 +8,7 @@
 #endif
 
 #include "Constraint.h"
+#include "MultiDirBuffer.h"
 #include "Stopwatch.h"
 
 #include <complex>
@@ -49,11 +50,14 @@ public:
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
   
-  // data[i] is een pointer naar de data voor tijdstap i, vanaf die pointer staat het in volgorde als in MS (bl, chan, pol)
-  // mdata[i] is een pointer voor tijdstap i naar arrays van ndir model data pointers (elk van die data pointers staat in zelfde volgorde als data)
-  // solutions[ch] is een pointer voor channelblock ch naar antenna x directions oplossingen.
-  SolveResult processScalar(std::vector<Complex*>& data,
-    std::vector<std::vector<Complex* > >& modelData,
+  // data[i] is a pointer to the data for timestep i. Those data are then ordered 
+  // as they are in the MS (bl, chan, pol).
+  // mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
+  // Each of these pointers is in the same order as the data.
+  // solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
+  SolveResult processScalar(const std::vector<Complex*>& data,
+    const std::vector<float*>& weights,
+    const std::vector<std::vector<Complex* > >& modelData,
     std::vector<std::vector<DComplex> >& solutions, double time,
     std::ostream* statStream);
   
@@ -64,8 +68,9 @@ public:
    * @param solutions An array, where @c solutions[ch] is a pointer to channelblock @c ch, that points to
    * antenna x directions solutions. Each solution consists of 4 complex values forming the full Jones matrix.
    */
-  SolveResult processFullMatrix(std::vector<Complex *>& data,
-    std::vector<std::vector<Complex *> >& modelData,
+  SolveResult processFullMatrix(const std::vector<Complex *>& data,
+    const std::vector<float*>& weights,
+    const std::vector<std::vector<Complex *> >& modelData,
     std::vector<std::vector<DComplex> >& solutions, double time,
     std::ostream* statStream);
   
@@ -100,16 +105,16 @@ private:
                              std::vector<Matrix>& vs,
                              const std::vector<DComplex>& solutions,
                              std::vector<DComplex>& nextSolutions,
-                             const std::vector<Complex *>& data,
-                             const std::vector<std::vector<Complex *> >& modelData);
+                             const std::vector<std::vector<Complex>>& data,
+                             const std::vector<std::vector<std::vector<Complex>>>& modelData);
                              
   void performFullMatrixIteration(size_t channelBlockIndex,
                              std::vector<Matrix>& gTimesCs,
                              std::vector<Matrix>& vs,
                              const std::vector<DComplex>& solutions,
                              std::vector<DComplex>& nextSolutions,
-                             const std::vector<Complex *>& data,
-                             const std::vector<std::vector<Complex *> >& modelData);
+                             const std::vector<std::vector<Complex>>& data,
+                             const std::vector<std::vector<std::vector<Complex>>>& modelData);
 
   void makeStep(const std::vector<std::vector<DComplex> >& solutions,
     std::vector<std::vector<DComplex> >& nextSolutions) const;
@@ -133,6 +138,7 @@ private:
                              
   size_t _nAntennas, _nDirections, _nChannels, _nChannelBlocks;
   std::vector<int> _ant1, _ant2;
+  MultiDirBuffer _buffer;
   
   // Calibration setup
   size_t _maxIterations;

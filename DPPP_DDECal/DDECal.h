@@ -53,6 +53,9 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <string>
+#include <vector>
+
 namespace DP3 {
 
   class ParameterSet;
@@ -63,7 +66,7 @@ namespace DP3 {
 
     // This class is a DPStep class to calibrate (direction independent) gains.
 
-    typedef vector<Patch::ConstPtr> PatchList;
+    typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t> Baseline;
 
     class DDECal: public DPStep
@@ -115,18 +118,23 @@ namespace DP3 {
       // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
       // Used for setting source names.
       std::vector<std::string> getDirectionNames();
+      
+      void subtractCorrectedModel(bool fullJones);
 
       //# Data members.
       DPInput*         itsInput;
       std::string      itsName;
-      vector<DPBuffer> itsBufs;
+      std::vector<DPBuffer> itsBufs;
+      std::vector<casacore::Cube<bool>> itsOriginalFlags;
+      std::vector<casacore::Cube<float>> itsOriginalWeights;
 
-      bool             itsUseModelColumn;
+      bool itsUseModelColumn;
       std::vector<casacore::Cube<casacore::Complex>> itsModelData;
 
       // The time of the current buffer (in case of solint, average time)
       double           itsAvgTime;
       std::vector<casacore::Complex*> itsDataPtrs;
+      std::vector<float*> itsWeightPtrs;
 
       // For each timeslot, a vector of nDir buffers
       std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
@@ -150,17 +158,17 @@ namespace DP3 {
       uint             itsSolInt;
       uint             itsStepInSolInt;
       uint             itsNChan;
-      vector<size_t>   itsChanBlockStart;    // For each channel block, the index in the channels at which this channel block starts
-      vector<double>   itsChanBlockFreqs;
-      vector<vector<string> > itsDirections; // For each direction, a vector of patches
-      vector<std::unique_ptr<Constraint> > itsConstraints;
+      std::vector<size_t>   itsChanBlockStart;    // For each channel block, the index in the channels at which this channel block starts
+      std::vector<double>   itsChanBlockFreqs;
+      std::vector<std::vector<string> > itsDirections; // For each direction, a vector of patches
+      std::vector<std::unique_ptr<Constraint> > itsConstraints;
 
-      vector<double>   itsWeights;
+      std::vector<double>   itsWeights;
 
       UVWFlagger       itsUVWFlagStep;
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
-      vector<Predict>     itsPredictSteps;
-      vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times
+      std::vector<Predict>     itsPredictSteps;
+      std::vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times
 
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
@@ -173,6 +181,7 @@ namespace DP3 {
       MultiDirSolver   itsMultiDirSolver;
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;
+			bool itsSubtract;
       std::string itsStatFilename;
 			std::unique_ptr<ThreadPool> itsThreadPool;
       std::unique_ptr<std::ofstream> itsStatStream;
