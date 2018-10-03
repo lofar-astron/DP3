@@ -1,7 +1,7 @@
-find_package(Boost REQUIRED COMPONENTS date_time filesystem system python)
 # AOFlagger depends on Python 2.7, see aoflagger CMake
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs 2.7 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS date_time filesystem python signals system)
 find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
@@ -25,10 +25,11 @@ add_library(dppp_aoflag SHARED
   Register.cc
 )
 target_link_libraries(dppp_aoflag
+  ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
   ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
   ${EXTRA_LIBRARIES}
-  ${AOFLAGGER_LIB})
+  ${PYTHON_LIBRARIES})
 
 install (TARGETS dppp_aoflag DESTINATION lib) 
 
