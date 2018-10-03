@@ -77,7 +77,6 @@ add_library(Common OBJECT
   Common/VdsMaker.cc
   Common/VdsPartDesc.cc
 )
-set_target_properties(Common PROPERTIES VERSION 2)
 set(COMMON_OBJECT $<TARGET_OBJECTS:Common>)
 
 add_library(ParmDB OBJECT
@@ -104,7 +103,6 @@ add_library(ParmDB OBJECT
   ParmDB/SourceDBCasa.cc
   ParmDB/SourceInfo.cc
 )
-set_target_properties(ParmDB PROPERTIES VERSION 2)
 set(PARMDB_OBJECT $<TARGET_OBJECTS:ParmDB>)
 
 add_library(Blob OBJECT
@@ -116,7 +114,6 @@ add_library(Blob OBJECT
   Blob/BlobOBufStream.cc
   Blob/BlobOStream.cc
 )
-set_target_properties(Blob PROPERTIES VERSION 2)
 set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(DPPP_OBJ OBJECT
@@ -137,8 +134,9 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Split.cc
   ${LOFAR_DEPENDENT_FILES}
 )
-set_target_properties(DPPP_OBJ PROPERTIES VERSION 2)
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
+
+set(DPPP_GLOBAL_SOVERSION 2)
 
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)

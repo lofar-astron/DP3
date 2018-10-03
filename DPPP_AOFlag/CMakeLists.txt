@@ -25,7 +25,7 @@ add_library(dppp_aoflag SHARED
   Register.cc
 )
 
-set_target_properties(dppp_aoflag PROPERTIES VERSION 2)
+set_target_properties(dppp_aoflag PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
 
 install (TARGETS dppp_aoflag DESTINATION lib) 
 
