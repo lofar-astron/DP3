@@ -9,4 +9,4 @@ add_library(dppp_ddecal
   RotationAndDiagonalConstraint.cc
 )
 
-set_target_properties(dppp_ddecal PROPERTIES VERSION 2)
+set_target_properties(dppp_ddecal PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
