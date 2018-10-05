@@ -488,7 +488,8 @@ namespace DP3 {
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
         << "  coreconstraint:      " << itsCoreConstraint << '\n'
         << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
-        << "  approximate fitter:  " << itsApproximateTEC << '\n';
+        << "  approximate fitter:  " << itsApproximateTEC << '\n'
+        << "  subtract model:      " << itsSubtract << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }
