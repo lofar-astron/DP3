@@ -45,6 +45,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <mutex>
 #include <utility>
 
 namespace DP3 {
