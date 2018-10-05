@@ -255,6 +255,7 @@ namespace DP3 {
         itsPredictSteps.resize(nDir);
         for (size_t dir=0; dir<nDir; ++dir) {
           itsPredictSteps[dir] = Predict(input, parset, prefix, itsDirections[dir]);
+          itsPredictSteps[dir].setNThreads(NThreads());
         }
       }
     }
