@@ -110,6 +110,9 @@ namespace DP3 {
 
 
     private:
+      void initializeConstraints(const ParameterSet& parset, const string& prefix);
+      void initializePredictSteps(const ParameterSet& parset, const string& prefix);
+      
       // Initialize solutions
       void initializeScalarSolutions();
       

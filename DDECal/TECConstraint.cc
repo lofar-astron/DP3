@@ -2,9 +2,8 @@
 
 #include "../Common/ParallelFor.h"
 
-TECConstraintBase::TECConstraintBase(Mode mode, size_t nThreads) :
+TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
-  _nThreads(nThreads),
   _phaseFitters()
 {
 }

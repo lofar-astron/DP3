@@ -28,6 +28,11 @@ public:
     std::string name;
   };
 
+  Constraint() :
+    _nAntennas(0), _nDirections(0), _nChannelBlocks(0),
+    _nThreads(0)
+  { }
+  
   virtual ~Constraint() { }
 
   /**
@@ -86,10 +91,12 @@ public:
    */
   virtual void SetWeights(const std::vector<double> &) {}
 
+  void SetNThreads(size_t nThreads) { _nThreads = nThreads; }
+
   virtual void showTimings (std::ostream&, double) const {}
 
 protected:
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
+  size_t _nAntennas, _nDirections, _nChannelBlocks, _nThreads;
 };
 
 /**
