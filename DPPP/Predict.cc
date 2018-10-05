@@ -209,11 +209,11 @@ namespace DP3 {
 #ifdef HAVE_LOFAR_BEAM
       itsBeamValues.resize(NThreads());
       itsAntBeamInfo.resize(NThreads());
-#endif
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
       itsMeasConverters.resize(NThreads());
       itsMeasFrames.resize(NThreads());
+#endif
 
       for (uint thread=0; thread<NThreads(); ++thread) {
         if (itsStokesIOnly) {
@@ -313,13 +313,18 @@ namespace DP3 {
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
       if (itsApplyBeam) {
+        // Because multiple predict steps might be predicting simultaneously, and
+        // Casacore is not thread safe, this needs synchronization.
+        std::unique_lock<std::mutex> lock;
+        if(itsMeasuresMutex != nullptr)
+          lock = std::unique_lock<std::mutex>(*itsMeasuresMutex);
         for (uint thread=0;thread<NThreads();++thread) {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
           //Do a conversion on all threads, because converters are not
           //thread safe and apparently need to be used at least once
-          refdir  = dir2Itrf(info().delayCenter(),itsMeasConverters[thread]);
-          tiledir = dir2Itrf(info().tileBeamDir(),itsMeasConverters[thread]);
+          refdir  = dir2Itrf(info().delayCenter(), itsMeasConverters[thread]);
+          tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
         }
       }
 #endif
@@ -440,7 +445,7 @@ namespace DP3 {
       MDirection dir (MVDirection(patch->position()[0],
                                   patch->position()[1]),
                       MDirection::J2000);
-      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir,itsMeasConverters[thread]);
+      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
 
       float* dummyweight = 0;
 

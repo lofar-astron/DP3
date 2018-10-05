@@ -665,8 +665,10 @@ namespace DP3 {
       } else {
         if(itsThreadPool == nullptr)
           itsThreadPool.reset(new ThreadPool(NThreads()));
+        std::mutex measuresMutex;
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
-          predict.setThreadPool(*itsThreadPool);
+          predict.setThreadData(*itsThreadPool, measuresMutex);
+        
         itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
