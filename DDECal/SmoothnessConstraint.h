@@ -12,7 +12,7 @@ public:
   typedef std::complex<double> dcomplex;
   typedef KernelSmoother<dcomplex, double> Smoother;
   
-  SmoothnessConstraint(double bandwidthHz, size_t threads);
+  SmoothnessConstraint(double bandwidthHz);
   
   std::vector<Constraint::Result> Apply(
     std::vector<std::vector<dcomplex> >& solutions, double, std::ostream* statStream) final override;
@@ -42,7 +42,7 @@ public:
   std::vector<double> _frequencies, _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
-  DP3::ParallelFor<size_t> _loop;
+  std::unique_ptr<DP3::ParallelFor<size_t>> _loop;
 };
 
 #endif

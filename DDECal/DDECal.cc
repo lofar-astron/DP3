@@ -169,7 +169,7 @@ namespace DP3 {
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
-          new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
