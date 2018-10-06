@@ -28,7 +28,7 @@ include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS filesystem system REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem python signals system REQUIRED)
 include_directories(${BOOST_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
@@ -36,7 +36,7 @@ find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
   include_directories(${LOFAR_STATION_RESPONSE_DIR})
   add_definitions(-DHAVE_LOFAR_BEAM)
-  message("LOFAR beam library found.")
+  message(STATUS "LOFAR beam library found.")
   
   set(LOFAR_DEPENDENT_FILES
     DPPP/ApplyBeam.cc
@@ -132,26 +132,69 @@ add_library(DPPP_OBJ OBJECT
   DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc 
   DPPP/DummyStep.cc DPPP/H5ParmPredict.cc DPPP/GridInterpolate.cc DPPP/Upsample.cc
   DPPP/Split.cc
+  DPPP/Interpolate.cc
   ${LOFAR_DEPENDENT_FILES}
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
+
+#
+# Dependencies of AOFlagger
+#
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs 2.7 REQUIRED)
+find_package(LibXml2 REQUIRED)
+find_package(PNG REQUIRED)
+find_library(FFTW3_LIB fftw3 REQUIRED)
+find_package(CFITSIO REQUIRED)
+find_library(AOFLAGGER_LIB aoflagger REQUIRED)
+find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
+include_directories(${AOFLAGGER_INCLUDE_DIR})
+find_package(PkgConfig)
+pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
+pkg_check_modules(SIGCXX sigc++-2.0)
+if(GTKMM_FOUND)
+  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
+endif(GTKMM_FOUND)
+
+add_library(AOFlaggerStep_OBJ OBJECT
+  AOFlaggerStep/AOFlaggerStep.cc
+  AOFlaggerStep/Register.cc
+)
+set(AOFLAGGERSTEP_OBJECT $<TARGET_OBJECTS:AOFlaggerStep_OBJ>)
+
+set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
+  ${AOFLAGGER_LIB}
+  ${CASACORE_LIBRARIES}
+  ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
+  ${EXTRA_LIBRARIES}
+  ${PYTHON_LIBRARIES})
+  
+#
+# DDECal dependencies
+#
+find_package(Armadillo)
+if(${ARMADILLO_FOUND})
+  include_directories(${ARMADILLO_INCLUDE_DIRS})
+  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
+  add_library(DDECal_OBJ OBJECT
+    DDECal/DDECal.cc DDECal/Register.cc DDECal/Stopwatch.cc
+    DDECal/KLFitter.cc DDECal/MultiDirSolver.cc
+    DDECal/Constraint.cc DDECal/PiercePoint.cc
+    DDECal/ScreenConstraint.cc DDECal/SmoothnessConstraint.cc
+    DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
+    DDECal/RotationAndDiagonalConstraint.cc)
+  set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
+else()
+  message(WARNING "Armadillo was not found, not including DDECal")
+endif()
 
 set(DPPP_GLOBAL_SOVERSION 2)
 
 add_subdirectory(DPPP)
 add_subdirectory(TestDynDPPP)
 add_subdirectory(PythonDPPP)
-add_subdirectory(DPPP_AOFlag)
 # SPW Combine has dependencies to LOFAR
 #add_subdirectory(SPWCombine)
-add_subdirectory(DPPP_Interpolate)
-
-find_package(Armadillo)
-if(${ARMADILLO_FOUND})
-  add_subdirectory(DPPP_DDECal)
-else()
-  message(WARNING "Armadillo was not found, NOT building DPPP_DDECal")
-endif()
 
 # Required for the ObjectFactory
 include_directories(Common)

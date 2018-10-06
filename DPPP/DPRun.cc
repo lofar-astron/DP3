@@ -25,36 +25,41 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "DPBuffer.h"
-#include "DPInfo.h"
-#include "MSReader.h"
-#include "MultiMSReader.h"
-#include "MSWriter.h"
-#include "MSUpdater.h"
 #include "ApplyBeam.h"
+#include "ApplyCal.h"
 #include "Averager.h"
-#include "MedFlagger.h"
-#include "PreFlagger.h"
-#include "UVWFlagger.h"
-#include "PhaseShift.h"
+#include "Counter.h"
 #include "Demixer.h"
 #include "DemixerNew.h"
-#include "StationAdder.h"
-#include "ScaleData.h"
-#include "ApplyCal.h"
-#include "Predict.h"
-#include "H5ParmPredict.h"
-#include "GainCal.h"
-#include "Split.h"
-#include "Upsample.h"
-#include "Filter.h"
-#include "Counter.h"
-#include "ProgressMeter.h"
+#include "DPBuffer.h"
+#include "DPInfo.h"
 #include "DPLogger.h"
+#include "Filter.h"
+#include "GainCal.h"
+#include "H5ParmPredict.h"
+#include "Interpolate.h"
+#include "MedFlagger.h"
+#include "MSReader.h"
+#include "MSUpdater.h"
+#include "MSWriter.h"
+#include "MultiMSReader.h"
+#include "PhaseShift.h"
+#include "Predict.h"
+#include "PreFlagger.h"
+#include "ProgressMeter.h"
+#include "ScaleData.h"
+#include "Split.h"
+#include "StationAdder.h"
+#include "UVWFlagger.h"
+#include "Upsample.h"
 
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/OpenMP.h"
+
+#include "../AOFlaggerStep/AOFlaggerStep.h"
+
+#include "../DDECal/DDECal.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
@@ -307,10 +312,9 @@ namespace DP3 {
         string type = parset.getString(prefix+"type", defaulttype);
         boost::algorithm::to_lower(type);
         // Define correct name for AOFlagger synonyms.
-        if (type == "aoflagger") {
-          type = "aoflag";
-        }
-        if (type == "averager"  ||  type == "average"  ||  type == "squash") {
+        if (type == "aoflagger" || type == "aoflag") {
+          step = DPStep::ShPtr(new AOFlaggerStep (reader, parset, prefix));
+        } else if (type == "averager"  ||  type == "average"  ||  type == "squash") {
           step = DPStep::ShPtr(new Averager (reader, parset, prefix));
         } else if (type == "madflagger"  ||  type == "madflag") {
           step = DPStep::ShPtr(new MedFlagger (reader, parset, prefix));
@@ -348,6 +352,10 @@ namespace DP3 {
           step = DPStep::ShPtr(new Upsample (reader, parset, prefix));
         } else if (type == "split" || type == "explode") {
           step = DPStep::ShPtr(new Split (reader, parset, prefix));
+        } else if (type == "ddecal") {
+          step = DPStep::ShPtr(new DDECal (reader, parset, prefix));
+        } else if (type == "interpolate") {
+          step = DPStep::ShPtr(new Interpolate (reader, parset, prefix));
         } else if (type == "out" || type=="output" || type=="msout") {
           step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix, currentMSName);
         } else {
