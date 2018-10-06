@@ -108,9 +108,12 @@ namespace DP3 {
                          parset.getString(defaultPrefix + "correction"));
         if(itsSolTabName == "fulljones")
         {
-          itsSolTab = itsH5Parm.getSolTab("amplitude000");
-          itsSolTab2 = itsH5Parm.getSolTab("phase000");
-          itsSolTabName = "amplitude000, phase000"; // this is only so that show() shows these tables
+          std::vector<string> solTabs = parset.getStringVector(prefix + "soltab", std::vector<string>{"amplitude000", "phase000"});
+          if(solTabs.size() != 2)
+            throw std::runtime_error("The soltab parameter requires two soltabs for fulljones correction (amplitude and phase)");
+          itsSolTab = itsH5Parm.getSolTab(solTabs[0]);
+          itsSolTab2 = itsH5Parm.getSolTab(solTabs[1]);
+          itsSolTabName = solTabs[0] + ", " + solTabs[1]; // this is only so that show() shows these tables
           itsCorrectType = FULLJONES;
         }
         else {

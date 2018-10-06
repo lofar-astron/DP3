@@ -40,7 +40,7 @@ ParameterSet* globalParameterSet()
 //
 // Default constructor
 //
-ParameterSet::ParameterSet(KeyCompare::Mode	mode)
+ParameterSet::ParameterSet(KeyCompare::Mode mode)
   : itsSet (new ParameterSetImpl(mode))
 {}
 
@@ -60,13 +60,13 @@ ParameterSet::ParameterSet(const std::string& theFilename, bool caseInsensitive)
 //
 // Construction by reading a parameter file.
 //
-ParameterSet::ParameterSet(const std::string&	theFilename,
-			   KeyCompare::Mode	mode)
+ParameterSet::ParameterSet(const std::string& theFilename,
+         KeyCompare::Mode mode)
   : itsSet (new ParameterSetImpl(theFilename, mode))
 {}
 
-ParameterSet::ParameterSet(const char*	theFilename,
-			   KeyCompare::Mode	mode)
+ParameterSet::ParameterSet(const char*  theFilename,
+         KeyCompare::Mode mode)
   : itsSet (new ParameterSetImpl(std::string(theFilename), mode))
 {}
 
@@ -90,7 +90,7 @@ ParameterSet::operator=(const ParameterSet& that)
 }
 
 //
-//	Destructor
+//  Destructor
 //
 ParameterSet::~ParameterSet()
 {}
@@ -103,7 +103,7 @@ ParameterRecord ParameterSet::getRecord (const std::string& aKey) const
 //
 // operator<<
 //
-std::ostream&	operator<< (std::ostream& os, const ParameterSet &thePS)
+std::ostream& operator<< (std::ostream& os, const ParameterSet &thePS)
 {
   os << *thePS.itsSet;
   return os;
