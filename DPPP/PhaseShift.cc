@@ -26,6 +26,7 @@
 #include "DPInfo.h"
 #include "Exceptions.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
@@ -136,11 +137,11 @@ namespace DP3 {
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
-#pragma omp parallel for
-      for (int i=0; i<nbl; ++i) {
-        Complex*  __restrict__ data    = itsBuf.getData().data() + i*nchan*ncorr;
-        double*   __restrict__ uvw     = itsBuf.getUVW().data() + i*3;
-        DComplex* __restrict__ phasors = itsPhasors.data() + i*nchan;
+      ParallelFor<size_t> loop(NThreads());
+      loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
+        Complex*  __restrict__ data    = itsBuf.getData().data() + bl*nchan*ncorr;
+        double*   __restrict__ uvw     = itsBuf.getUVW().data() + bl*3;
+        DComplex* __restrict__ phasors = itsPhasors.data() + bl*nchan;
         double u = uvw[0]*mat1[0] + uvw[1]*mat1[3] + uvw[2]*mat1[6];
         double v = uvw[0]*mat1[1] + uvw[1]*mat1[4] + uvw[2]*mat1[7];
         double w = uvw[0]*mat1[2] + uvw[1]*mat1[5] + uvw[2]*mat1[8];
@@ -162,7 +163,7 @@ namespace DP3 {
         uvw[1] = v;
         uvw[2] = w;
         uvw += 3;
-      }  //# end omp parallel for
+      });
       itsTimer.stop();
       getNextStep()->process (itsBuf);
       return true;

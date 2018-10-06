@@ -25,6 +25,7 @@
 #include "DPBuffer.h"
 #include "DPInfo.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
 
@@ -279,11 +280,10 @@ namespace DP3 {
       itsBufOut.getFlags().resize (shp);
       uint ncorr = shp[0];
       uint nchan = shp[1];
-      int  nbl   = shp[2];
+      uint  nbl   = shp[2];
       uint npout = ncorr * nchan;
-      ///#pragma omp parallel for 
-      // GCC-4.3 only supports OpenMP 2.5 needing signed iteration variables.
-      for (int k=0; k<nbl; ++k) {
+      ParallelFor<uint> loop(NThreads());
+      loop.Run(0, nbl, [&](uint k, size_t /*thread*/) {
         const Complex* indata = itsBuf.getData().data() + k*npin;
         const Complex* inalld = itsAvgAll.data() + k*npin;
         const float* inwght = itsBuf.getWeights().data() + k*npin;
@@ -324,7 +324,7 @@ namespace DP3 {
             inxo += ncorr;
           }
         }
-      }
+      });
       // Set the remaining values in the output buffer.
       itsBufOut.setTime     (itsBuf.getTime());
       itsBufOut.setExposure (itsBuf.getExposure());
@@ -351,13 +351,11 @@ namespace DP3 {
       uint ntimavg  = shapeIn[1];    // nr of averaged times in input data
       uint nchanavg = nchan / shapeFlg[1]; // nr of avg chan in input data
       uint ntimout  = shapeOut[1];   // nr of averaged times in output data
-      int  nbl      = shapeIn[2];    // nr of baselines
+      uint nbl      = shapeIn[2];    // nr of baselines
       uint ncorr    = shapeFlg[0];   // nr of correlations (in FLAG)
       // in has to be copied to the correct time index in out.
       bool* outBase = itsBuf.getFullResFlags().data() + nchan*ntimavg*timeIndex;
-      ///#pragma omp parallel for
-      // GCC-4.3 only supports OpenMP 2.5 needing signed iteration variables.
-      for (int k=0; k<nbl; ++k) {
+      for (uint k=0; k<nbl; ++k) {
         const bool* inPtr   = fullResFlags.data() + k*nchan*ntimavg;
         const bool* flagPtr = flags.data() + k*ncorr*shapeFlg[1];
         bool* outPtr = outBase + k*nchan*ntimout;

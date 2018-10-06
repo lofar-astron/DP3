@@ -29,6 +29,7 @@
 #include "DPInfo.h"
 #include "MSReader.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
 
@@ -388,8 +389,8 @@ namespace DP3 {
 
       size_t nchan = itsBuffer.getData().shape()[1];
 
-#pragma omp parallel for
-      for (size_t bl=0; bl<nbl; ++bl) {
+      ParallelFor<size_t> loop(NThreads());
+      loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         for (size_t chan=0;chan<nchan;chan++) {
           uint timeFreqOffset=(itsTimeStep*info().nchan())+chan;
           uint antA = info().getAnt1()[bl];
@@ -411,7 +412,7 @@ namespace DP3 {
                        bl, chan, itsUpdateWeights, itsFlagCounter);
           }
         }
-      }
+      });
 
       itsTimer.stop();
       getNextStep()->process(itsBuffer);
@@ -477,8 +478,6 @@ namespace DP3 {
 
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
-#pragma omp critical(updateH5ParmValues)
-{
         // TODO: understand polarization etc.
         //  assert(itsParmExprs.size()==1 || itsParmExprs.size()==2);
 
@@ -534,7 +533,6 @@ namespace DP3 {
             }
           }
         }
-} // End pragma omp critical
       } else { // Use ParmDB
         for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
           // parmMap contains parameter values for all antennas

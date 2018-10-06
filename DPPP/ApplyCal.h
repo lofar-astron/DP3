@@ -53,9 +53,9 @@ namespace DP3 {
                 bool substep=false, std::string predictDirection="");
 
       // Empty constructor
-      ApplyCal ();
+      ApplyCal () = default;
 
-      virtual ~ApplyCal();
+      virtual ~ApplyCal() = default;
 
       // Process the data.
       // It keeps the data.

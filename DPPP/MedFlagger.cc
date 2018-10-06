@@ -27,6 +27,7 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
@@ -285,77 +286,83 @@ namespace DP3 {
       itsComputeTimer.start();
       // Now flag each baseline, channel and correlation for this time window.
       // This can be done in parallel.
-#pragma omp parallel
-      {
-        // Create a temporary buffer (per thread) to hold data for determining
-        // the medians.
-        // Also create thread-private counter and timer objects.
-        Block<float> tempBuf(itsFreqWindow*ntime);
+      struct ThreadData {
+        Block<float> tempBuf;
         FlagCounter counter;
-        counter.init (getInfo());
         NSTimer moveTimer;
         NSTimer medianTimer;
         float Z1, Z2;
-        // The for loop can be parallellized. This must be done dynamically,
-        // because the execution time of each iteration can vary a lot.
-#pragma omp for schedule(dynamic)
-        // GCC-4.3 only supports OpenMP 2.5 that needs signed iteration
-        // variables.
-        for (int ib=0; ib<nrbl; ++ib) {
-          const float* dataPtr = bufDataPtr + ib*blsize;
-          bool* flagPtr = bufFlagPtr + ib*blsize;
-          double threshold = itsThresholdArr[ib];
-          // Do only autocorrelations if told so.
-          // Otherwise do baseline only if length within min-max.
-          if ((!itsApplyAutoCorr  &&  itsBLength[ib] >= itsMinBLength  &&
-              itsBLength[ib] <= itsMaxBLength)  ||
-              (itsApplyAutoCorr  &&  ant1[ib] == ant2[ib])) {
-            for (uint ic=0; ic<nchan; ++ic) {
-              bool corrIsFlagged = false;
-              // Iterate over given correlations.
-              for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
-                  iter != itsFlagCorr.end(); ++iter) {
-                uint ip = *iter;
-                // If one correlation is flagged, all of them will be flagged.
-                // So no need to check others.
-                if (flagPtr[ip]) {
-                  corrIsFlagged = true;
-                  break;
-                }
-                // Calculate values from the median.
-                computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
-                    Z1, Z2, tempBuf.storage(),
-                    moveTimer, medianTimer);
-                if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
-                  corrIsFlagged = true;
-                  counter.incrBaseline(ib);
-                  counter.incrChannel(ic);
-                  counter.incrCorrelation(ip);
-                  break;
-                }
+      };
+      std::vector<ThreadData> threadData(NThreads());
+      
+      // Create a temporary buffer (per thread) to hold data for determining
+      // the medians.
+      // Also create thread-private counter and timer objects.
+      for(ThreadData& data : threadData)
+      {
+        data.tempBuf.resize(itsFreqWindow*ntime);
+        data.counter.init (getInfo());
+      }
+      
+      // The for loop can be parallellized. This must be done dynamically,
+      // because the execution time of each iteration can vary a lot.
+      ParallelFor<size_t> loop(NThreads());
+      loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
+        ThreadData& data = threadData[thread];
+        const float* dataPtr = bufDataPtr + ib*blsize;
+        bool* flagPtr = bufFlagPtr + ib*blsize;
+        double threshold = itsThresholdArr[ib];
+        // Do only autocorrelations if told so.
+        // Otherwise do baseline only if length within min-max.
+        if ((!itsApplyAutoCorr  &&  itsBLength[ib] >= itsMinBLength  &&
+            itsBLength[ib] <= itsMaxBLength)  ||
+            (itsApplyAutoCorr  &&  ant1[ib] == ant2[ib])) {
+          for (uint ic=0; ic<nchan; ++ic) {
+            bool corrIsFlagged = false;
+            // Iterate over given correlations.
+            for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
+                iter != itsFlagCorr.end(); ++iter) {
+              uint ip = *iter;
+              // If one correlation is flagged, all of them will be flagged.
+              // So no need to check others.
+              if (flagPtr[ip]) {
+                corrIsFlagged = true;
+                break;
               }
-              if (corrIsFlagged) {
-                for (uint ip=0; ip<ncorr; ++ip) {
-                  flagPtr[ip] = true;
-                }
+              // Calculate values from the median.
+              computeFactors (timeEntries, ib, ic, ip, nchan, ncorr,
+                  data.Z1, data.Z2, data.tempBuf.storage(),
+                  data.moveTimer, data.medianTimer);
+              if (dataPtr[ip] > data.Z1 + threshold * data.Z2 * MAD) {
+                corrIsFlagged = true;
+                data.counter.incrBaseline(ib);
+                data.counter.incrChannel(ic);
+                data.counter.incrCorrelation(ip);
+                break;
               }
-              dataPtr += ncorr;
-              flagPtr += ncorr;
             }
-          } else {
-            dataPtr += nchan*ncorr;
-            flagPtr += nchan*ncorr;
+            if (corrIsFlagged) {
+              for (uint ip=0; ip<ncorr; ++ip) {
+                flagPtr[ip] = true;
+              }
+            }
+            dataPtr += ncorr;
+            flagPtr += ncorr;
           }
-        } // end of OMP for
-#pragma omp critical(medflagger_updatecounts)
-        {
-          // Add the counters to the overall object.
-          itsFlagCounter.add (counter);
-          // Add the timings.
-          itsMoveTime   += moveTimer.getElapsed();
-          itsMedianTime += medianTimer.getElapsed();
-        } // end of OMP critical
-      } // end of OMP parallel
+        } else {
+          dataPtr += nchan*ncorr;
+          flagPtr += nchan*ncorr;
+        }
+      }); // end of parallel loop
+      
+      // Add the counters to the overall object.
+      for(ThreadData& data : threadData)
+      {
+        itsFlagCounter.add (data.counter);
+        // Add the timings.
+        itsMoveTime   += data.moveTimer.getElapsed();
+        itsMedianTime += data.medianTimer.getElapsed();
+      }
 
       itsComputeTimer.stop();
       // Apply autocorrelations flags if needed.

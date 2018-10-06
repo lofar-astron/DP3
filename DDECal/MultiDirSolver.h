@@ -98,6 +98,8 @@ public:
   void add_constraint(Constraint* constraint) { _constraints.push_back(constraint); }
   
   void showTimings (std::ostream& os, double duration) const;
+  
+  void set_nthreads(size_t nthreads) { _nThreads = nthreads; }
 
 private:
   void performScalarIteration(size_t channelBlockIndex,
@@ -141,7 +143,7 @@ private:
   MultiDirBuffer _buffer;
   
   // Calibration setup
-  size_t _maxIterations;
+  size_t _maxIterations, _nThreads;
   double _accuracy, _constraintAccuracy;
   double _stepSize;
   bool _detectStalling;

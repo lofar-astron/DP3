@@ -39,6 +39,8 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <mutex>
+
 namespace DP3 {
   namespace DPPP {
     // @ingroup NDPPP

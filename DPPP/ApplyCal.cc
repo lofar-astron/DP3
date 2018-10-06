@@ -81,12 +81,6 @@ namespace DP3 {
       }
     }
 
-    ApplyCal::ApplyCal()
-    {}
-
-    ApplyCal::~ApplyCal()
-    {}
-
     void ApplyCal::setNextStep (DPStep::ShPtr nextStep)
     {
       DPStep::setNextStep(itsApplyCals[0]);
