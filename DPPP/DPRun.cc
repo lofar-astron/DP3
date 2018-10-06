@@ -141,12 +141,18 @@ namespace DP3 {
       // Create the steps, link them toggether
       DPStep::ShPtr firstStep = makeSteps (parset, "", 0);
 
-      // Let all steps fill their DPInfo object using the info from the previous step.
-      DPInfo lastInfo = firstStep->setInfo (DPInfo());
-
-      // Show the steps & set nthreads.
       DPStep::ShPtr step = firstStep;
       DPStep::ShPtr lastStep;
+      while (step) {
+        step->setNThreads(numThreads);
+        step = step->getNextStep();
+      }
+      
+      // Call updateInfo() (after setting NThreads())
+      firstStep->setInfo (DPInfo());
+
+      // Show the steps.  
+      step = firstStep;
       while (step) {
         std::ostringstream os;
         step->show (os);

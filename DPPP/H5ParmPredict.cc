@@ -94,7 +94,7 @@ namespace DP3 {
         if (i>0) {
           itsPredictSteps[i-1]->setNextStep(itsPredictSteps[i]);
         }
-        itsPredictSteps[i]->setThreadPool(itsThreadPool);
+        itsPredictSteps[i]->setThreadData(itsThreadPool, itsMeasuresMutex);
       }
 
       itsResultStep=new ResultStep();

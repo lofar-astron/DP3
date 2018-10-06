@@ -88,6 +88,7 @@ namespace DP3 {
 
       NSTimer          itsTimer;
       ThreadPool itsThreadPool;
+      std::mutex itsMeasuresMutex;
     };
 
   } //# end namespace

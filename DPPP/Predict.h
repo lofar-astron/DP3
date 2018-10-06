@@ -45,6 +45,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <mutex>
 #include <utility>
 
 namespace DP3 {
@@ -84,7 +85,10 @@ namespace DP3 {
       // Set the operation type
       void setOperation(const std::string& type);
 
-      void setThreadPool(ThreadPool& pool) { itsThreadPool = &pool; }
+      void setThreadData(ThreadPool& pool, std::mutex& measuresMutex) {
+        itsThreadPool = &pool;
+        itsMeasuresMutex = &measuresMutex;
+      }
 
       Predict();
 
@@ -171,6 +175,7 @@ namespace DP3 {
       NSTimer          itsTimerPredict;
 
       ThreadPool* itsThreadPool;
+      std::mutex* itsMeasuresMutex;
     };
 
   } //# end namespace

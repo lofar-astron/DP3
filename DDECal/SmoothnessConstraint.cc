@@ -2,16 +2,17 @@
 #include "SmoothnessConstraint.h"
 #include "ParallelFor.h"
 
-SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz, size_t threads) :
+SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz) :
   _kernelType(Smoother::GaussianKernel),
-  _bandwidth(bandwidthHz),
-  _loop(threads)
+  _bandwidth(bandwidthHz)
 { }
 
 void SmoothnessConstraint::Initialize(const double* frequencies)
 {
   _frequencies.assign(frequencies, frequencies+_nChannelBlocks);
-  for(size_t i=0; i!=_loop.NThreads(); ++i)
+  if(!_loop)
+    _loop.reset(new DP3::ParallelFor<size_t>(_nThreads));
+  for(size_t i=0; i!=_nThreads; ++i)
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType, _bandwidth);
 }
 
@@ -27,7 +28,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
 {
   const size_t nPol = solutions.front().size() / (_nAntennas*_nDirections);
 
-  _loop.Run(0, _nAntennas*_nDirections, [&](size_t antDirIndex, size_t thread)
+  _loop->Run(0, _nAntennas*_nDirections, [&](size_t antDirIndex, size_t thread)
   {
     size_t antIndex = antDirIndex / _nDirections;
     for(size_t pol = 0; pol!=nPol; ++pol)

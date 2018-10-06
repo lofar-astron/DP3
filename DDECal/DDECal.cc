@@ -146,13 +146,30 @@ namespace DP3 {
       itsMode = GainCal::stringToCalType(
                    boost::to_lower_copy(parset.getString(prefix + "mode",
                                             "complexgain")));
+      
+      initializeConstraints(parset, prefix);
+      initializePredictSteps(parset, prefix);
+    }
+
+    DDECal::~DDECal()
+    {}
+
+    DPStep::ShPtr DDECal::makeStep (DPInput* input,
+                                    const ParameterSet& parset,
+                                    const std::string& prefix)
+    {
+      return DPStep::ShPtr(new DDECal(input, parset, prefix));
+    }
+    
+    void DDECal::initializeConstraints(const ParameterSet& parset, const string& prefix)
+    {
       if(itsCoreConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
           new CoreConstraint()));
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
-          new SmoothnessConstraint(itsSmoothnessConstraint, NThreads()))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint))); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
@@ -208,10 +225,10 @@ namespace DP3 {
             std::unique_ptr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECOnlyMode, NThreads()));
+                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
             else
               ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads()));
+                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
             ptr->SetMaxApproximatingIterations(iters);
             ptr->SetFittingChunkSize(chunksize);
             itsConstraints.push_back(std::move(ptr));
@@ -219,10 +236,10 @@ namespace DP3 {
           else {
             if(itsMode == GainCal::TEC)
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECOnlyMode, NThreads())));
+                new TECConstraint(TECConstraint::TECOnlyMode)));
               else
               itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECAndCommonScalarMode, NThreads())));
+                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
           }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
@@ -247,27 +264,20 @@ namespace DP3 {
           throw std::runtime_error("Unexpected mode: " + 
                           GainCal::calTypeToString(itsMode));
       }
-
+    }
+    
+    void DDECal::initializePredictSteps(const ParameterSet& parset, const string& prefix)
+    {
       const size_t nDir = itsDirections.size();
       if (itsUseModelColumn) {
         assert(nDir == 1);
       } else {
         itsPredictSteps.resize(nDir);
         for (size_t dir=0; dir<nDir; ++dir) {
-          itsPredictSteps[dir] = Predict(input, parset, prefix, itsDirections[dir]);
+          itsPredictSteps[dir] = Predict(itsInput, parset, prefix, itsDirections[dir]);
           itsPredictSteps[dir].setNThreads(NThreads());
         }
       }
-    }
-
-    DDECal::~DDECal()
-    {}
-
-    DPStep::ShPtr DDECal::makeStep (DPInput* input,
-                                    const ParameterSet& parset,
-                                    const std::string& prefix)
-    {
-      return DPStep::ShPtr(new DDECal(input, parset, prefix));
     }
 
     void DDECal::updateInfo (const DPInfo& infoIn)
@@ -279,8 +289,10 @@ namespace DP3 {
 
       const size_t nDir = itsDirections.size();
 
+      itsUVWFlagStep.setNThreads(NThreads());
       itsUVWFlagStep.updateInfo(infoIn);
       for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
+        itsPredictSteps[dir].setNThreads(NThreads());
         itsPredictSteps[dir].updateInfo(infoIn);
       }
 
@@ -294,8 +306,9 @@ namespace DP3 {
       for (uint t=0; t<itsSolInt; ++t) {
         itsModelDataPtrs[t].resize(nDir);
       }
-      for  (uint i=0;i<itsConstraints.size();i++) {
-        itsMultiDirSolver.add_constraint(itsConstraints[i].get());
+      for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
+        constraint->SetNThreads(NThreads());
+        itsMultiDirSolver.add_constraint(constraint.get());
       }
 
       itsBufs.resize(itsSolInt);
@@ -476,7 +489,8 @@ namespace DP3 {
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
         << "  coreconstraint:      " << itsCoreConstraint << '\n'
         << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
-        << "  approximate fitter:  " << itsApproximateTEC << '\n';
+        << "  approximate fitter:  " << itsApproximateTEC << '\n'
+        << "  subtract model:      " << itsSubtract << '\n';
       for (uint i=0; i<itsPredictSteps.size(); ++i) {
         itsPredictSteps[i].show(os);
       }
@@ -653,8 +667,10 @@ namespace DP3 {
       } else {
         if(itsThreadPool == nullptr)
           itsThreadPool.reset(new ThreadPool(NThreads()));
+        std::mutex measuresMutex;
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
-          predict.setThreadPool(*itsThreadPool);
+          predict.setThreadData(*itsThreadPool, measuresMutex);
+        
         itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
