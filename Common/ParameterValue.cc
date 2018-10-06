@@ -27,7 +27,7 @@
 #include <stdexcept>
 
 typedef std::runtime_error ParException;
-	
+  
 
 namespace DP3 { 
 
@@ -73,13 +73,13 @@ namespace DP3 {
           nrpar--;
         } else if (itsValue[i] == '[') {
           if (nrpar != 0)
-						throw ParException("Unbalanced () around '" + itsValue + '\'');
+            throw ParException("Unbalanced () around '" + itsValue + '\'');
           nrbracket++;
         } else if (itsValue[i] == ']') {
           nrbracket--;
         } else if (itsValue[i] == '{') {
           if(nrpar != 0)
-						throw ParException("Unbalanced () around '" + itsValue + '\'');
+            throw ParException("Unbalanced () around '" + itsValue + '\'');
           nrbrace++;
         } else if (itsValue[i] == '}') {
           nrbrace--;
@@ -90,14 +90,14 @@ namespace DP3 {
           }
         }
         if (nrpar < 0 || nrbracket < 0 || nrbrace < 0)
-					throw ParException(
+          throw ParException(
                    "Unbalanced () [] or {} in '" + itsValue + '\'');
         i++;
       }
     }
     result.push_back (ParameterValue(substr(st, last)));
     if (nrpar != 0  ||  nrbracket != 0 || nrbrace != 0)
-			throw ParException("Unbalanced () [] or {} in '" + itsValue + '\'');
+      throw ParException("Unbalanced () [] or {} in '" + itsValue + '\'');
     return result;
   }
 
@@ -115,7 +115,7 @@ namespace DP3 {
     }
     if (itsValue.size() < 2 || itsValue[0] != '[' ||
                itsValue[last] != ']')
-			throw ParException("Invalid vector specification in value '"
+      throw ParException("Invalid vector specification in value '"
                + itsValue + '\'');
     return splitValue (st, last);
   }
@@ -126,7 +126,7 @@ namespace DP3 {
     uint last = itsValue.size() - 1;
     if (itsValue.size() < 2 || itsValue[0] != '{' ||
                itsValue[last] != '}')
-			throw ParException("Invalid record specification in value '"
+      throw ParException("Invalid record specification in value '"
                + itsValue + '\'');
     std::vector<ParameterValue> values (splitValue (st, last));
     // Loop over all values and split in names and values.
@@ -140,7 +140,7 @@ namespace DP3 {
       }
       std::string::size_type pos = str.find(':', st);
       if (pos == std::string::npos)
-				throw ParException("Invalid record specification in value '"
+        throw ParException("Invalid record specification in value '"
                  + str + '\'');
       // Get name and value.
       // ParameterValue is used to remove possible whitespace.
