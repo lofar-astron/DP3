@@ -52,7 +52,6 @@ namespace DP3 {
       ApplyCal (DPInput*, const ParameterSet&, const string& prefix,
                 bool substep=false, std::string predictDirection="");
 
-      // Empty constructor
       ApplyCal () = default;
 
       virtual ~ApplyCal() = default;

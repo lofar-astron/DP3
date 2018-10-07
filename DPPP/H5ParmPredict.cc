@@ -25,7 +25,6 @@
 
 #include "Exceptions.h"
 
-#include "../Common/OpenMP.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"

@@ -28,7 +28,6 @@
 #include "../Common/ParameterSet.h"
 #include "../Common/ThreadPool.h"
 #include "../Common/Timer.h"
-#include "../Common/OpenMP.h"
 #include "../Common/StreamUtil.h"
 
 #include "../ParmDB/ParmDBMeta.h"
@@ -255,13 +254,13 @@ namespace DP3 {
 
     void Predict::show (std::ostream& os) const
     {
-      os << "Predict " << itsName << endl;
-      os << "  sourcedb:           " << itsSourceDBName << endl;
-      os << "   number of patches: " << itsPatchList.size() << endl;
-      os << "   number of sources: " << itsSourceList.size() << endl;
-      os << "   all unpolarized:   " << boolalpha << itsStokesIOnly << endl;
+      os << "Predict " << itsName << '\n';
+      os << "  sourcedb:           " << itsSourceDBName << '\n';
+      os << "   number of patches: " << itsPatchList.size() << '\n';
+      os << "   number of sources: " << itsSourceList.size() << '\n';
+      os << "   all unpolarized:   " << boolalpha << itsStokesIOnly << '\n';
 #ifdef HAVE_LOFAR_BEAM
-      os << "  apply beam:         " << boolalpha << itsApplyBeam << endl;
+      os << "  apply beam:         " << boolalpha << itsApplyBeam << '\n';
       if (itsApplyBeam) {
         os << "   mode:              ";
         if (itsBeamMode==ApplyBeam::DEFAULT)
@@ -269,13 +268,13 @@ namespace DP3 {
         else if (itsBeamMode==ApplyBeam::ARRAY_FACTOR)
           os<<"array_factor";
         else os<<"element";
-        os << endl;
-        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
-        os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << endl;
+        os << '\n';
+        os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n';
+        os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << '\n';
       }
 #endif
-      os << "  operation:          "<<itsOperation << endl;
-      os << "  threads:            "<<NThreads()<<endl;
+      os << "  operation:          "<<itsOperation << '\n';
+      os << "  threads:            "<<NThreads()<<'\n';
       if (itsDoApplyCal) {
         itsApplyCalStep.show(os);
       }
@@ -285,7 +284,7 @@ namespace DP3 {
     {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
-      os << " Predict " << itsName << endl;
+      os << " Predict " << itsName << '\n';
     }
 
     bool Predict::process (const DPBuffer& bufin)
@@ -459,7 +458,6 @@ namespace DP3 {
                      itsModelVis[thread].data()+nSamples,
                      data0,
                      itsModelVis[thread].data(), std::plus<dcomplex>());
-      //threadoutput<<"thread "<<thread<<" has "<<itsModelVis[thread]<<endl;
       itsModelVisPatch[thread]=dcomplex();
     }
 #endif

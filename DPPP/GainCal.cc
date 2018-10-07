@@ -41,7 +41,6 @@
 #include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
-#include "../Common/OpenMP.h"
 
 #include <fstream>
 #include <ctime>

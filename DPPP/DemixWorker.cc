@@ -41,7 +41,6 @@
 #include "../ParmDB/Parm.h"
 
 #include "../Common/ParameterSet.h"
-#include "../Common/OpenMP.h"
 #include "../Common/StreamUtil.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>

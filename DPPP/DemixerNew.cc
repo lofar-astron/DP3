@@ -31,8 +31,8 @@
 #include "../ParmDB/ParmDB.h"
 #include "../ParmDB/ParmValue.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
-#include "../Common/OpenMP.h"
 #include "../Common/StreamUtil.h"
 
 #include <casacore/casa/Arrays/ArrayPartMath.h>
@@ -74,17 +74,17 @@ namespace DP3 {
       // Handle possible data selection.
       itsFilter.updateInfo (getInfo());
       // Update itsDemixInfo and info().
-      itsDemixInfo.update (itsFilter.getInfo(), info());
+      itsDemixInfo.update (itsFilter.getInfo(), info(), NThreads());
       // Size the buffers.
       itsBufIn.resize (itsDemixInfo.ntimeChunk() * itsDemixInfo.chunkSize());
       itsBufOut.resize(itsDemixInfo.ntimeChunk() * itsDemixInfo.ntimeOutSubtr());
       itsSolutions.resize(itsDemixInfo.ntimeChunk() * itsDemixInfo.ntimeOut());
       // Create a worker per thread.
-      int nthread = OpenMP::maxThreads();
+      size_t nthread = NThreads();
       itsWorkers.reserve (nthread);
-      for (int i=0; i<nthread; ++i) {
-        itsWorkers.push_back (DemixWorker (itsInput, itsName, itsDemixInfo,
-                                           infoIn, i));
+      for (size_t i=0; i<nthread; ++i) {
+        itsWorkers.emplace_back (itsInput, itsName, itsDemixInfo,
+                                           infoIn, i);
       }
     }
 
@@ -369,22 +369,23 @@ namespace DP3 {
                       / itsDemixInfo.ntimeAvgSubtr());
       int ntimeSol = ((itsNTime + itsDemixInfo.ntimeAvg() - 1)
                       / itsDemixInfo.ntimeAvg());
-#pragma omp parallel for schedule(dynamic)
-      for (int i=0; i<=lastChunk; ++i) {
+      ParallelFor<int> loop(NThreads());
+      loop.Run(0, lastChunk, [&](int i, size_t thread)
+      {
         if (i == lastChunk) {
-          itsWorkers[OpenMP::threadNum()].process
+          itsWorkers[thread].process
             (&(itsBufIn[i*timeWindowIn]), lastNTimeIn,
              &(itsBufOut[i*timeWindowOut]),
              &(itsSolutions[i*timeWindowSol]),
              itsNChunk+i);
         } else {
-          itsWorkers[OpenMP::threadNum()].process
+          itsWorkers[thread].process
             (&(itsBufIn[i*timeWindowIn]), timeWindowIn,
              &(itsBufOut[i*timeWindowOut]),
              &(itsSolutions[i*timeWindowSol]),
              itsNChunk+i);
         }
-      }
+      });
       itsNChunk += lastChunk+1;
       itsTimerDemix.stop();
       // Write the solutions into the instrument ParmDB.

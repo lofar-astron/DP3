@@ -1,8 +1,6 @@
 #include "RotationAndDiagonalConstraint.h"
 #include "RotationConstraint.h"
 
-#include "../Common/OpenMP.h"
-
 #include <cassert>
 #include <cmath>
 
