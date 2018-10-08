@@ -173,6 +173,7 @@ namespace DP3 {
        * threads, it would imply process() is called multiple times,
        * and hence this initialization is already subject to a race
        * condition... ???
+       * itsMeasFrames seems not to be actually used.
        * André, 2018-10-07
        */
       for (size_t threadIter = 0; threadIter < NThreads(); ++threadIter) {

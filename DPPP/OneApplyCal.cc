@@ -364,13 +364,13 @@ namespace DP3 {
       os << " OneApplyCal " << itsName << '\n';
     }
 
-    bool OneApplyCal::process (const DPBuffer& bufin)
+    bool OneApplyCal::process (const DPBuffer& bufin, std::mutex* hdf5Mutex)
     {
       itsTimer.start();
       itsBuffer.copy (bufin);
 
       if (bufin.getTime() > itsLastTime) {
-        updateParms(bufin.getTime());
+        updateParms(bufin.getTime(), hdf5Mutex);
         itsTimeStep=0;
       }
       else {
@@ -441,7 +441,7 @@ namespace DP3 {
       } 
     }
 
-    void OneApplyCal::updateParms (const double bufStartTime)
+    void OneApplyCal::updateParms (const double bufStartTime, std::mutex* hdf5Mutex)
     {
       uint numAnts = info().antennaNames().size();
 
@@ -478,6 +478,10 @@ namespace DP3 {
 
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
+        std::unique_lock<std::mutex> lock;
+        if(hdf5Mutex != nullptr)
+          lock = std::unique_lock<std::mutex>(*hdf5Mutex);
+        
         // TODO: understand polarization etc.
         //  assert(itsParmExprs.size()==1 || itsParmExprs.size()==2);
 

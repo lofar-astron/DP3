@@ -114,9 +114,14 @@ namespace DP3 {
       }
     }
 
-    bool ApplyCal::process (const DPBuffer& bufin)
+    bool ApplyCal::process (const DPBuffer& bufin, std::mutex* hdf5Mutex)
     {
-      getNextStep()->process(bufin);
+      const DP3::DPPP::DPStep::ShPtr& step = getNextStep();
+      auto oneApplyCalPtr = std::dynamic_pointer_cast<OneApplyCal>(step);
+      if(oneApplyCalPtr == nullptr || hdf5Mutex == nullptr)
+        step->process(bufin);
+      else
+        oneApplyCalPtr->process(bufin, hdf5Mutex);
       return true;
     }
 

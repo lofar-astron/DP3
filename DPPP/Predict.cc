@@ -397,7 +397,10 @@ namespace DP3 {
 
       // Call ApplyCal step
       if (itsDoApplyCal) {
-        itsApplyCalStep.process(itsTempBuffer);
+        if(itsMeasuresMutex == nullptr)
+          itsApplyCalStep.process(itsTempBuffer);
+        else
+          itsApplyCalStep.process(itsTempBuffer, itsMeasuresMutex);
         itsTempBuffer=itsResultStep->get();
         tdata=itsTempBuffer.getData().data();
       }
