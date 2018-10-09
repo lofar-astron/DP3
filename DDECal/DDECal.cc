@@ -23,7 +23,6 @@
 
 #include "DDECal.h"
 
-#include "../DPPP/ApplyCal.h"
 #include "../DPPP/DPBuffer.h"
 #include "../DPPP/DPInfo.h"
 #include "../DPPP/DPLogger.h"
@@ -44,7 +43,6 @@
 #include "../ParmDB/SourceDB.h"
 
 #include "../Common/ThreadPool.h"
-#include "../Common/OpenMP.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
@@ -295,6 +293,7 @@ namespace DP3 {
         itsPredictSteps[dir].setNThreads(NThreads());
         itsPredictSteps[dir].updateInfo(infoIn);
       }
+      itsMultiDirSolver.set_nthreads(NThreads());
 
       if (itsSolInt==0) {
         itsSolInt=info().ntime();

@@ -50,7 +50,7 @@ namespace DP3 {
       DemixInfo (const ParameterSet&, const string& prefix);
 
       // Update the info.
-      void update (const DPInfo& infoSel, DPInfo& info);
+      void update (const DPInfo& infoSel, DPInfo& info, size_t nThreads);
 
       // Show parameters.
       void show (std::ostream&) const;

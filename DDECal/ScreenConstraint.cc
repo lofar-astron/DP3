@@ -1,6 +1,6 @@
 #include "ScreenConstraint.h"
 
-#include "../Common/OpenMP.h"
+#include "../Common/ParallelFor.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -93,21 +93,23 @@ void ScreenConstraint::setTime(double time){
       
       CalculatePiercepoints();
       
+      ParallelFor<size_t> loop(_nThreads);
       if (itsMode=="station")
       {
-#pragma omp parallel for
-        for(uint ipos=0;ipos<_nAntennas;ipos++)
+        loop.Run(0, _nAntennas, [&](size_t ipos, size_t /*thread*/)
+        {
           _screenFitters[ipos].calculateCorrMatrix(itsPiercePoints[ipos]);
+        });
       }
       else if (itsMode=="direction")
       {
-#pragma omp parallel for
-        for(uint idir=0;idir<_nDirections;idir++){
+        loop.Run(0, _nDirections, [&](size_t idir, size_t /*thread*/)
+        {
           std::vector<PiercePoint *> tmpV(_nAntennas);
           for(uint ipos=0;ipos<_nAntennas;ipos++)
             tmpV[ipos]=&(itsPiercePoints[ipos][idir]);
           _screenFitters[idir].calculateCorrMatrix(tmpV);
-        }
+        });
       }
       else if (itsMode=="full")
       {
@@ -129,11 +131,11 @@ void ScreenConstraint::setTime(double time){
             tmpV[iant*_nDirections+idir]=&(itsPiercePoints[ipos][idir]);
         }
         _screenFitters[0].calculateCorrMatrix(tmpV);
-#pragma omp parallel for
-        for(size_t iant=0; iant<_otherAntennas.size(); iant++){
+        loop.Run(0, _otherAntennas.size(), [&](size_t iant, size_t /*thread*/)
+        {
           size_t ipos=_otherAntennas[iant];
           _screenFitters[iant+1].calculateCorrMatrix(itsPiercePoints[ipos]);
-        }
+        });
       }
       else
         throw std::runtime_error("Unexpected tecscreen mode: " + itsMode); 
@@ -230,9 +232,8 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
 
   //TODOEstimate Weights
   
-
-#pragma omp parallel for
-  for(size_t antIndex = 0; antIndex<_nAntennas; ++antIndex)
+  ParallelFor<size_t> loop(_nThreads);
+  loop.Run(0, _nAntennas, [&](size_t antIndex, size_t /*thread*/)
   {
     int foundantcs=-999;
     int foundantoth=-999;
@@ -268,7 +269,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       if(error<=0) error=1;
       if (itsMode=="station"){
         _screenFitters[antIndex].PhaseData()[dirIndex] = avgTEC;
-	_screenFitters[antIndex].WData()[dirIndex] = 1./error;
+        _screenFitters[antIndex].WData()[dirIndex] = 1./error;
       }
       else if (itsMode=="direction"){
         _screenFitters[dirIndex].PhaseData()[antIndex] = avgTEC;
@@ -290,15 +291,15 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
         }
       }
     }
-  }
+  });
 
-#pragma omp parallel for
-  for(size_t isft=0;isft<_screenFitters.size();isft++)
+  loop.Run(0, _screenFitters.size(), [&](size_t isft, size_t /*thread*/)
+  {
     _screenFitters[isft].doFit();
+  });
   
-#pragma omp parallel for
-  for(size_t antIndex = 0; antIndex<_nAntennas; ++antIndex)
-  { 
+  loop.Run(0, _nAntennas, [&](size_t antIndex, size_t /*thread*/)
+  {
     int foundantcs=-999;
     int foundantoth=-999;
     if (itsMode=="csfull")
@@ -367,7 +368,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       else  //not implemented yet for other modes
         res[2].vals[antIndex*_nDirections+dirIndex]=0;
     }
-  }
+  });
   for(size_t i=0;i<_screenFitters.size();i++)
     for(size_t j=0;j<numberofPar;j++)
       res[0].vals[i*numberofPar+j]= _screenFitters[i].ParData()[j];

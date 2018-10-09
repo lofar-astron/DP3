@@ -26,7 +26,6 @@
 #include "../Common/ParameterSet.h"
 #include "../Common/Timer.h"
 #include "../Common/StringUtil.h"
-#include "../Common/OpenMP.h"
 
 #include "ApplyBeam.h"
 #include "DPInfo.h"
@@ -109,15 +108,15 @@ namespace DP3 {
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
 
-      itsBeamValues.resize(OpenMP::maxThreads());
+      itsBeamValues.resize(NThreads());
 
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
-      itsMeasConverters.resize(OpenMP::maxThreads());
-      itsMeasFrames.resize(OpenMP::maxThreads());
-      itsAntBeamInfo.resize(OpenMP::maxThreads());
+      itsMeasConverters.resize(NThreads());
+      itsMeasFrames.resize(NThreads());
+      itsAntBeamInfo.resize(NThreads());
 
-      for (uint thread = 0; thread < OpenMP::maxThreads(); ++thread) {
+      for (size_t thread = 0; thread < NThreads(); ++thread) {
         itsBeamValues[thread].resize(nSt * nCh);
         itsMeasFrames[thread].set(info().arrayPosCopy());
         itsMeasFrames[thread].set(
@@ -151,7 +150,7 @@ namespace DP3 {
       os << " ApplyBeam " << itsName << endl;
     }
 
-    bool ApplyBeam::process(const DPBuffer& bufin)
+    bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread)
     {
       itsTimer.start();
       itsBuffer.copy (bufin);
@@ -167,16 +166,24 @@ namespace DP3 {
       //Set up directions for beam evaluation
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
-      for (uint thread = 0; thread < OpenMP::maxThreads(); ++thread) {
-        itsMeasFrames[thread].resetEpoch(
+      /**
+       * I'm not sure this is correct the way it is. These loops
+       * seem to initialize variables that are never used in a
+       * multi-threaded way, and if they were used from multiple
+       * threads, it would imply process() is called multiple times,
+       * and hence this initialization is already subject to a race
+       * condition... ???
+       * itsMeasFrames seems not to be actually used.
+       * André, 2018-10-07
+       */
+      for (size_t threadIter = 0; threadIter < NThreads(); ++threadIter) {
+        itsMeasFrames[threadIter].resetEpoch(
             MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
         //Do a conversion on all threads, because converters are not
         //thread safe and apparently need to be used at least once
-        refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[thread]);
-        tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
+        refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[threadIter]);
+        tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[threadIter]);
       }
-
-      uint thread = OpenMP::threadNum();
 
       LOFAR::StationResponse::vector3r_t srcdir = refdir;
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,

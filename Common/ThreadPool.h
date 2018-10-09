@@ -123,12 +123,6 @@ public:
 			++start;
 		}
 			
-		// Wait untill we have performed all iterations
-		/*lock.lock();
-		while(progress != 0)
-		{
-			_onProgress.wait(lock);
-		}*/
 		localThread.join();
 	}
 	

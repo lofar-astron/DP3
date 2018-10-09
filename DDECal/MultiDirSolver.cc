@@ -3,6 +3,12 @@
 #include "Matrix2x2.h"
 #include "QRSolver.h"
 
+#ifdef AOPROJECT
+#include "ParallelFor.h"
+#else
+#include "../Common/ParallelFor.h"
+#endif
+
 #include <iomanip>
 #include <iostream>
 
@@ -39,8 +45,8 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
 {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-#pragma omp parallel for
-  for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
+  DP3::ParallelFor<size_t> loop(_nThreads);
+  loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/)
   {
     for(size_t i=0; i!=nextSolutions[chBlock].size(); ++i)
     {
@@ -59,7 +65,7 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
           nextSolutions[chBlock][i] * _stepSize;
       }
     }
-  }
+  });
 }
 
 void MultiDirSolver::makeSolutionsFinite(std::vector<std::vector<DComplex> >& solutions, size_t perPol) const
@@ -242,13 +248,13 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(
   do {
     makeSolutionsFinite(solutions, 1);
     
-#pragma omp parallel for
-    for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
+    DP3::ParallelFor<size_t> loop(_nThreads);
+    loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/)
     {
       performScalarIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                             solutions[chBlock], nextSolutions[chBlock],
                             _buffer.Data(), _buffer.ModelData());
-    }
+    });
       
     makeStep(solutions, nextSolutions);
     
@@ -484,13 +490,13 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(
   do {
     makeSolutionsFinite(solutions, 4);
     
-#pragma omp parallel for
-    for(size_t chBlock=0; chBlock<_nChannelBlocks; ++chBlock)
+    DP3::ParallelFor<size_t> loop(_nThreads);
+    loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/)
     {
       performFullMatrixIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                                 solutions[chBlock], nextSolutions[chBlock],
                                 _buffer.Data(), _buffer.ModelData());
-    }
+    });
     
     makeStep(solutions, nextSolutions);
 

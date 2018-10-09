@@ -32,7 +32,6 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
-#include "../Common/OpenMP.h"
 
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
@@ -87,9 +86,6 @@ namespace DP3 {
         itsNTimeChunk       (parset.getUint  (prefix+"ntimechunk", 0)),
         itsTimeIntervalAvg  (0)
     {
-      if (itsNTimeChunk == 0) {
-        itsNTimeChunk = OpenMP::maxThreads();
-      }
       // Get delta in arcsec and take cosine of it (convert to radians first).
       double delta = parset.getDouble (prefix+"target.delta", 60.);
       itsCosTargetDelta = cos (delta / 3600. * casacore::C::pi / 180.);
@@ -192,8 +188,11 @@ namespace DP3 {
       }
     }
  
-    void DemixInfo::update (const DPInfo& infoSel, DPInfo& info)
+    void DemixInfo::update (const DPInfo& infoSel, DPInfo& info, size_t nThreads)
     {
+      if (itsNTimeChunk == 0) {
+        itsNTimeChunk = nThreads;
+      }
       // Remove unused antennae and renumber remaining ones.
       itsInfoSel = infoSel;
       itsInfoSel.removeUnusedAnt();
@@ -229,7 +228,7 @@ namespace DP3 {
                                          itsInfoSel.getAnt1(),
                                          itsInfoSel.getAnt2());
       if (itsVerbose > 1) {
-        cout << "splitindex="<<itsUVWSplitIndex<<endl;
+        cout << "splitindex="<<itsUVWSplitIndex<<'\n';
       }
 
       // Determine which baselines to use when estimating A-team and target.
@@ -305,7 +304,7 @@ namespace DP3 {
         dist *= freqRatio;
         if (verbose() > 10) {
           cout << "Target distance to " << itsAteamList[i]->name()
-               << " = " << dist*180./C::pi << " deg" << endl;
+               << " = " << dist*180./C::pi << " deg" << '\n';
         }
         if (dist < minDist) minDist = dist;
       }
@@ -314,39 +313,39 @@ namespace DP3 {
 
     void DemixInfo::show (ostream& os) const
     {
-      os << "  estimate.skymodel:  " << itsPredictModelName << endl;
-      os << "  ateam.skymodel:     " << itsDemixModelName << endl;
-      os << "  target.skymodel:    " << itsTargetModelName << endl;
-      os << "  sources:            " << itsSourceNames << endl;
+      os << "  estimate.skymodel:  " << itsPredictModelName << '\n';
+      os << "  ateam.skymodel:     " << itsDemixModelName << '\n';
+      os << "  target.skymodel:    " << itsTargetModelName << '\n';
+      os << "  sources:            " << itsSourceNames << '\n';
       os << "                        " << itsAteamRemoved
-         << " removed from A-team model (in target)" << endl;
+         << " removed from A-team model (in target)" << '\n';
       os << "                        " << itsTargetReplaced
-         << " replaced in target model (better A-team model)" << endl;
-      os << "  ratio1:             " << itsRatio1 << endl;
-      os << "  ratio2:             " << itsRatio2 << endl;
-      os << "  ateam.threshold:    " << itsAteamAmplThreshold << endl;
-      os << "  target.threshold:   " << itsTargetAmplThreshold << endl;
+         << " replaced in target model (better A-team model)" << '\n';
+      os << "  ratio1:             " << itsRatio1 << '\n';
+      os << "  ratio2:             " << itsRatio2 << '\n';
+      os << "  ateam.threshold:    " << itsAteamAmplThreshold << '\n';
+      os << "  target.threshold:   " << itsTargetAmplThreshold << '\n';
       os << "  target.delta:       "
          << acos(itsCosTargetDelta) * 3600. / casacore::C::pi * 180.
-         << " arcsec" << endl;
-      os << "  distance.threshold: " << itsAngdistThreshold << " deg" << endl;
-      os << "  distance.reffreq:   " << itsAngdistRefFreq << " Hz" << endl;
-      os << "  minnbaseline:       " << itsMinNBaseline << endl;
-      os << "  minnstation:        " << itsMinNStation << endl;
-      os << "  maxiter:            " << itsMaxIter << endl;
-      os << "  defaultgain:        " << itsDefaultGain << endl;
+         << " arcsec" << '\n';
+      os << "  distance.threshold: " << itsAngdistThreshold << " deg" << '\n';
+      os << "  distance.reffreq:   " << itsAngdistRefFreq << " Hz" << '\n';
+      os << "  minnbaseline:       " << itsMinNBaseline << '\n';
+      os << "  minnstation:        " << itsMinNStation << '\n';
+      os << "  maxiter:            " << itsMaxIter << '\n';
+      os << "  defaultgain:        " << itsDefaultGain << '\n';
       os << "  propagatesolutions: " << (itsPropagateSolution ? "True":"False")
-         << endl;
-      os << "  applybeam:          " << (itsApplyBeam ? "True":"False") << endl;
-      os << "  solveboth:          " << (itsSolveBoth ? "True":"False") << endl;
+         << '\n';
+      os << "  applybeam:          " << (itsApplyBeam ? "True":"False") << '\n';
+      os << "  solveboth:          " << (itsSolveBoth ? "True":"False") << '\n';
       os << "  subtract:           " << (itsDoSubtract ? "True":"False")
-         << endl;
-      os << "  freqstep:           " << itsNChanAvgSubtr << endl;
-      os << "  timestep:           " << itsNTimeAvgSubtr << endl;
-      os << "  demixfreqstep:      " << itsNChanAvg << endl;
-      os << "  demixtimestep:      " << itsNTimeAvg << endl;
-      os << "  chunksize:          " << itsChunkSize << endl;
-      os << "  ntimechunk:         " << itsNTimeChunk << endl;
+         << '\n';
+      os << "  freqstep:           " << itsNChanAvgSubtr << '\n';
+      os << "  timestep:           " << itsNTimeAvgSubtr << '\n';
+      os << "  demixfreqstep:      " << itsNChanAvg << '\n';
+      os << "  demixtimestep:      " << itsNTimeAvg << '\n';
+      os << "  chunksize:          " << itsChunkSize << '\n';
+      os << "  ntimechunk:         " << itsNTimeChunk << '\n';
       os << "  target estimate";
       itsSelBLTarget.show (os, "    ");
       os << "  demix";

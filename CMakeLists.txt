@@ -9,13 +9,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 
-if(NOT DISABLE_OMP)
-  find_package( OpenMP REQUIRED)
-  if(OPENMP_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  endif(OPENMP_FOUND)
-endif(NOT DISABLE_OMP)
-
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})

@@ -68,8 +68,15 @@ namespace DP3 {
         // Process the data.
         // It keeps the data.
         // When processed, it invokes the process function of the next step.
-        virtual bool process(const DPBuffer&);
+        virtual bool process(const DPBuffer& buffer)
+        {
+          return processMultithreaded(buffer, 0);
+        }
 
+        // If apply beam is called from multiple threads, it needs the thread index
+        // to determine what scratch space to use etc.
+        bool processMultithreaded(const DPBuffer&, size_t thread);
+        
         // Finish the processing of this step and subsequent steps.
         virtual void finish();
 

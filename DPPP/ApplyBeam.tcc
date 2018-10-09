@@ -28,7 +28,6 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/Timer.h"
-#include "../Common/OpenMP.h"
 
 #include "../ParmDB/ParmDBMeta.h"
 #include "../ParmDB/PatchInfo.h"

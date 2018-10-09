@@ -43,8 +43,8 @@
 #include "../ParmDB/ParmCache.h"
 #include "../ParmDB/Parm.h"
 
+#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
-#include "../Common/OpenMP.h"
 #include "../Common/StreamUtil.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
@@ -146,7 +146,7 @@ namespace DP3 {
       itsFilter.setNextStep (nullStep);
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
-        itsNTimeChunk = OpenMP::maxThreads();
+        itsNTimeChunk = NThreads();
       }
       // Check that time windows fit integrally.
       if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
@@ -631,13 +631,14 @@ namespace DP3 {
       // source direction. By combining them you get the shift from one
       // source direction to another.
       int dirnr = 0;
+      ParallelFor<size_t> loop(NThreads());
       for (uint i1=0; i1<itsNDir-1; ++i1) {
         for (uint i0=i1+1; i0<itsNDir; ++i0) {
           if (i0 == itsNDir-1) {
             // The last direction is the target direction, so no need to
             // combine the factors. Take conj to get shift source to target.
-#pragma omp parallel for
-            for (int i=0; i<nbl; ++i) {
+            loop.Run(0, nbl, [&](size_t i, size_t /*thread*/)
+            {
               const bool*   flagPtr   = newBuf.getFlags().data() + i*ncc;
               const float*  weightPtr = newBuf.getWeights().data() + i*ncc;
               DComplex* factorPtr     = factorBuf.data() + (dirnr*nbl + i)*ncc;
@@ -654,11 +655,11 @@ namespace DP3 {
                   factorPtr++;
                 }
               }
-            } // end omp parallel for
+            }); // end parallel for
           } else {
             // Different source directions; take both phase terms into account.
-#pragma omp parallel for
-            for (int i=0; i<nbl; ++i) {
+            loop.Run(0, nbl, [&](size_t i, size_t /*thread*/)
+            {
               const bool*   flagPtr   = newBuf.getFlags().data() + i*ncc;
               const float*  weightPtr = newBuf.getWeights().data() + i*ncc;
               DComplex* factorPtr     = factorBuf.data() + (dirnr*nbl + i)*ncc;
@@ -677,7 +678,7 @@ namespace DP3 {
                   factorPtr++;
                 }
               }
-            } // end omp parallel for
+            }); // end parallel for
           }
 
           // Next direction pair.
@@ -705,12 +706,13 @@ namespace DP3 {
       uint dirnr = 0;
       for (uint d0=0; d0<itsNDir; ++d0) {
         for (uint d1=d0+1; d1<itsNDir; ++d1) {
-#pragma omp parallel for
           // Average factors by summing channels.
           // Note that summing in time is done in addFactors.
           // The sum per output channel is divided by the summed weight.
           // Note there is a summed weight per baseline,outchan,corr.
-          for (int k=0; k<int(itsNBl); ++k) {
+          ParallelFor<size_t> loop(NThreads());
+          loop.Run(0, itsNBl, [&](size_t k, size_t /*thread*/)
+          {
             const DComplex* phin = bufIn.data() + (dirnr*itsNBl + k)*nccin;
             DComplex* ph1 = bufOut.data() + k*nccdd + (d0*itsNDir + d1);
             DComplex* ph2 = bufOut.data() + k*nccdd + (d1*itsNDir + d0);
@@ -733,7 +735,7 @@ namespace DP3 {
                 ph2 += itsNDir*itsNDir;
               }
             }
-          } // end omp parallel for
+          });// end parallel for
           // Next input direction pair.
           dirnr++;
         }
@@ -855,7 +857,7 @@ namespace DP3 {
 
     void Demixer::demix()
     {
-      const size_t nThread = OpenMP::maxThreads();
+      const size_t nThread = NThreads();
       const size_t nTime = itsAvgResults[0]->size();
       const size_t nTimeSubtr = itsAvgResultSubtr->size();
       const size_t multiplier = itsNTimeAvg / itsNTimeAvgSubtr;
@@ -885,10 +887,9 @@ namespace DP3 {
 
       const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
 
-#pragma omp parallel for
-      for(size_t ts = 0; ts < nTime; ++ts)
+      ParallelFor<size_t> loop(NThreads());
+      loop.Run(0, nTime, [&](size_t ts, size_t thread)
       {
-        const size_t thread = OpenMP::threadNum();
         ThreadPrivateStorage &storage = threadStorage[thread];
 
         // If solution propagation is disabled, re-initialize the thread-private
@@ -1051,7 +1052,7 @@ namespace DP3 {
         // Copy solutions to global solution array.
         copy(storage.unknowns.begin(), storage.unknowns.end(),
           &(itsUnknowns[(itsTimeIndex + ts) * nDr * nSt * 8]));
-      }
+      });
 
       // Store last known solutions.
       if(itsPropagateSolutions && nTime > 0)

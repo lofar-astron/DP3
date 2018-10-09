@@ -55,7 +55,6 @@
 
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
-#include "../Common/OpenMP.h"
 
 #include "../AOFlaggerStep/AOFlaggerStep.h"
 
