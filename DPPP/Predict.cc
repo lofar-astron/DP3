@@ -311,7 +311,8 @@ namespace DP3 {
       //Set up directions for beam evaluation
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
 
-      if (itsApplyBeam) {
+      if (itsApplyBeam)
+      {
         // Because multiple predict steps might be predicting simultaneously, and
         // Casacore is not thread safe, this needs synchronization.
         std::unique_lock<std::mutex> lock;

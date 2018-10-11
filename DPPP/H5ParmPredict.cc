@@ -109,19 +109,18 @@ namespace DP3 {
       info().setNeedVisData();
       info().setWriteData();
 
-      vector<Predict::ShPtr>::iterator predictstep;
-      for (predictstep=itsPredictSteps.begin();
-           predictstep!=itsPredictSteps.end();
-           predictstep++) {
-        (*predictstep)->updateInfo(infoIn);
+      for(Predict::ShPtr& predictstep : itsPredictSteps)
+      {
+        predictstep->setNThreads(NThreads());
+        predictstep->updateInfo(infoIn);
       }
     }
 
     void H5ParmPredict::show (std::ostream& os) const
     {
-      os << "H5ParmPredict " << itsName << endl;
-      os << "  H5Parm:     " << itsH5ParmName << endl;
-      os << "  directions: " << itsDirections << endl;
+      os << "H5ParmPredict " << itsName << '\n';
+      os << "  H5Parm:     " << itsH5ParmName << '\n';
+      os << "  directions: " << itsDirections << '\n';
       for (uint dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsPredictSteps[dir]->show(os);
       }
@@ -131,7 +130,7 @@ namespace DP3 {
     {
       os << "  ";
       FlagCounter::showPerc1 (os, itsTimer.getElapsed(), duration);
-      os << " H5ParmPredict " << itsName << endl;
+      os << " H5ParmPredict " << itsName << '\n';
     }
 
     bool H5ParmPredict::process (const DPBuffer& bufin)
