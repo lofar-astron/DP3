@@ -167,19 +167,24 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
 #
 find_package(Armadillo)
 if(${ARMADILLO_FOUND})
-  include_directories(${ARMADILLO_INCLUDE_DIRS})
-  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
-  add_library(DDECal_OBJ OBJECT
-    DDECal/DDECal.cc DDECal/Register.cc DDECal/Stopwatch.cc
-    DDECal/KLFitter.cc DDECal/MultiDirSolver.cc
-    DDECal/Constraint.cc DDECal/PiercePoint.cc
-    DDECal/ScreenConstraint.cc DDECal/SmoothnessConstraint.cc
-    DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
-    DDECal/RotationAndDiagonalConstraint.cc)
-  set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
+  add_definitions(-DHAVE_ARMADILLO)
+  set(DDE_ARMADILLO_FILES DDECal/KLFitter.cc DDECal/ScreenConstraint.cc)
 else()
-  message(WARNING "Armadillo was not found, not including DDECal")
+  message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
+  set(DDE_ARMADILLO_FILES)
 endif()
+
+include_directories(${ARMADILLO_INCLUDE_DIRS})
+set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
+add_library(DDECal_OBJ OBJECT
+  DDECal/DDECal.cc DDECal/Register.cc DDECal/Stopwatch.cc
+  DDECal/MultiDirSolver.cc
+  DDECal/Constraint.cc DDECal/PiercePoint.cc
+  DDECal/SmoothnessConstraint.cc
+  DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
+  DDECal/RotationAndDiagonalConstraint.cc
+  ${DDE_ARMADILLO_FILES})
+set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
 
 set(DPPP_GLOBAL_SOVERSION 2)
 
