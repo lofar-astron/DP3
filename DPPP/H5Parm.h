@@ -57,8 +57,6 @@ namespace DP3 {
           // The destructor could check for valid subtables
           virtual ~SolTab();
 
-          SolTab operator=(H5::Group group);
-
           std::vector<AxisInfo>& getAxes() {return _axes;}
 
           AxisInfo getAxis(uint i) const;
