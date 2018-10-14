@@ -4,6 +4,8 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <iostream>
+
 namespace DP3{
 
 const  double ScreenConstraint::phtoTEC = 1./8.4479745e9;
@@ -16,7 +18,7 @@ ScreenConstraint::ScreenConstraint(const ParameterSet& parset,
   itsCurrentTime(0),
   itsIter(0)
 {
-  cout<<"=========="<<(prefix + "order")<<"========\n";
+  std::cout<<"=========="<<(prefix + "order")<<"========\n";
   itsBeta=parset.getDouble (prefix + "beta", 5./3.);
   itsHeight=parset.getDouble (prefix + "height", 400e3);
   itsOrder=parset.getInt(prefix + "order", 3);

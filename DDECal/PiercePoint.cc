@@ -2,7 +2,7 @@
 
 using namespace arma;
 
-namespace DP3{
+namespace DP3 {
 
   const double PiercePoint::IONOheight = 300000.;
   const double PiercePoint::EarthRadius = 6371000.;

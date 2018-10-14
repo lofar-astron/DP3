@@ -180,7 +180,6 @@ namespace DP3 {
       double           itsCoreConstraint;
       double           itsSmoothnessConstraint;
       double           itsScreenCoreConstraint;
-
       MultiDirSolver   itsMultiDirSolver;
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;

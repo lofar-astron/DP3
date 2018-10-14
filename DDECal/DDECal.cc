@@ -32,11 +32,14 @@
 #include "../DPPP/Version.h"
 
 #include "Matrix2x2.h"
-#include "ScreenConstraint.h"
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
 #include "RotationAndDiagonalConstraint.h"
 #include "SmoothnessConstraint.h"
+
+#ifdef HAVE_ARMADILLO
+#include "ScreenConstraint.h"
+#endif
 
 #include "../ParmDB/ParmDB.h"
 #include "../ParmDB/ParmValue.h"
@@ -243,10 +246,14 @@ namespace DP3 {
           itsFullMatrixMinimalization = false;
           break;
         case GainCal::TECSCREEN:
+#ifdef HAVE_ARMADILLO
           itsConstraints.push_back(std::unique_ptr<Constraint>(
                     new ScreenConstraint(parset, prefix+"tecscreen.")));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
+#else
+          throw std::runtime_error("Can not use TEC screen: Armadillo is not available. Recompile DP3 with Armadillo.");
+#endif
           break;
         case GainCal::ROTATIONANDDIAGONAL:
           itsConstraints.push_back(std::unique_ptr<Constraint>(
@@ -421,6 +428,7 @@ namespace DP3 {
           coreConstraint->initialize(coreAntennaIndices);
         }
         
+#ifdef HAVE_ARMADILLO
         ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
         if(screenConstraint != 0)
         {
@@ -450,6 +458,7 @@ namespace DP3 {
           screenConstraint->setCoreAntennas(coreAntennaIndices);
           screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
+#endif
         
         TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
         if(tecConstraint != nullptr)
