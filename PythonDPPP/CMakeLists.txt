@@ -1,8 +1,5 @@
-# Try to find Boost-Python.
-# If found, build this package. Otherwise give a warning.
-FIND_PATH(BOOST_PYTHON_FOUND "boost/python.hpp")
-
-if(BOOST_PYTHON_FOUND)
+# If Boost-Python found, build this package. Otherwise give a warning.
+if(${Boost_PYTHON_FOUND})
 
   include(PythonInstall)
 

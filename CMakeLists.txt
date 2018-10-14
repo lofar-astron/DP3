@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.9)
 
 project(DP3)
 
-# Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
@@ -18,6 +17,8 @@ include_directories(${CASACORE_INCLUDE_DIR})
 # Add old casacore include directory because LOFAR beam library did
 # not use the casacore/ prefix in the includes until 3.2 (Sep '18)
 include_directories(${CASACORE_INCLUDE_DIR}/casacore)
+
+find_package(Threads REQUIRED)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
@@ -160,7 +161,8 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${CASACORE_LIBRARIES}
   ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
   ${EXTRA_LIBRARIES}
-  ${PYTHON_LIBRARIES})
+  ${PYTHON_LIBRARIES}
+  Threads::Threads)
   
 #
 # DDECal dependencies
