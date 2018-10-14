@@ -1,7 +1,6 @@
 #ifndef PIERCEPOINT_H
 #define PIERCEPOINT_H
 
-#include <vector>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/measures/Measures/MCPosition.h>
@@ -11,22 +10,30 @@
 
 #include <armadillo>
 
-using namespace arma;
-namespace DP3{
+#include <vector>
+
+namespace DP3 {
  
 class PiercePoint 
 {
-  static const double IONOheight; //= 300000.; //default height in meter
-  static const double EarthRadius;// = 6371000.; //default Earth radius in meter
+  //default height in meter (300000)
+  static const double IONOheight;
+  
+  //default Earth radius in meter (6371000)
+  static const double EarthRadius;
+  
 public:
   PiercePoint(double height=PiercePoint::IONOheight);
   PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source,const double height);
   PiercePoint(const casacore::MPosition &ant,const casacore::MDirection &source);
+  
   void init(const casacore::MPosition &ant,const casacore::MDirection &source,const double height);
+  
   void evaluate(casacore::MEpoch time);
-  Col<double>  getValue() const {return itsValue;} 
+  arma::Col<double>  getValue() const {return itsValue;} 
   casacore::MPosition  getPos() const {return itsPosition;}
   casacore::MDirection  getDir() const {return itsDirection;}
+  
 private:
   //station position
   casacore::MPosition     itsPosition;
@@ -36,7 +43,9 @@ private:
   double              itsIonoHeight;
   //  square of length antenna vector (int ITRF) minus square of vector to piercepoint. This is constant for a assumed spherical Earth
   double              itsC;
-  Col<double>         itsValue; //PiercePoint in ITRF coordinates
+  arma::Col<double>         itsValue; //PiercePoint in ITRF coordinates
 };
+
 }
+
 #endif

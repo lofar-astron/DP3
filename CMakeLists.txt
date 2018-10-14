@@ -168,7 +168,10 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
 find_package(Armadillo)
 if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
-  set(DDE_ARMADILLO_FILES DDECal/KLFitter.cc DDECal/ScreenConstraint.cc)
+  set(DDE_ARMADILLO_FILES
+    DDECal/KLFitter.cc 
+    DDECal/PiercePoint.cc 
+    DDECal/ScreenConstraint.cc)
 else()
   message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
   set(DDE_ARMADILLO_FILES)
@@ -179,7 +182,7 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
 add_library(DDECal_OBJ OBJECT
   DDECal/DDECal.cc DDECal/Register.cc DDECal/Stopwatch.cc
   DDECal/MultiDirSolver.cc
-  DDECal/Constraint.cc DDECal/PiercePoint.cc
+  DDECal/Constraint.cc
   DDECal/SmoothnessConstraint.cc
   DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
   DDECal/RotationAndDiagonalConstraint.cc
