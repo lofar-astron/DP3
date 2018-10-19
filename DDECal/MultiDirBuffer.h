@@ -40,14 +40,30 @@ public:
       {
         for(size_t ch=0; ch!=_nChannels; ++ch)
         {
+          bool isFlagged = false;
           for (size_t cr=0; cr<4; ++cr)
           {
             const size_t index = (bl*_nChannels+ch)*4+cr;
-            // Premultiply non-flagged data with sqrt(weight)
-            float wSqrt = sqrt(weights[timestep][index]);
-            _data[timestep][index] = dataNoW[timestep][index] * wSqrt;
-            for (size_t dir=0; dir<_nDirections; ++dir) {
-              _modelData[timestep][dir][index] = modelDataNoW[timestep][dir][index] * wSqrt;
+            
+            float wSqrt;
+            if(!std::isfinite(dataNoW[timestep][index].real()) || !std::isfinite(dataNoW[timestep][index].imag()))
+              isFlagged = true;
+            else {
+              wSqrt = sqrt(weights[timestep][index]);
+              _data[timestep][index] = dataNoW[timestep][index] * wSqrt;
+              for (size_t dir=0; dir<_nDirections; ++dir) {
+                _modelData[timestep][dir][index] = modelDataNoW[timestep][dir][index] * wSqrt;
+              }
+            }
+          }
+          
+          if(isFlagged) {
+            for (size_t cr=0; cr<4; ++cr)
+            {
+              const size_t index = (bl*_nChannels+ch)*4+cr;
+              _data[timestep][index] = 0.0;
+              for (size_t dir=0; dir<_nDirections; ++dir)
+                _modelData[timestep][dir][index] = 0.0;
             }
           }
         }
