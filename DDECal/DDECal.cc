@@ -277,9 +277,9 @@ namespace DP3 {
       if (itsUseModelColumn) {
         assert(nDir == 1);
       } else {
-        itsPredictSteps.resize(nDir);
+        itsPredictSteps.reserve(nDir);
         for (size_t dir=0; dir<nDir; ++dir) {
-          itsPredictSteps[dir] = Predict(itsInput, parset, prefix, itsDirections[dir]);
+          itsPredictSteps.emplace_back(itsInput, parset, prefix, itsDirections[dir]);
           itsPredictSteps[dir].setNThreads(NThreads());
         }
       }

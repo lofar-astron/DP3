@@ -71,7 +71,8 @@ namespace DP3 {
     Predict::Predict (DPInput* input,
                       const ParameterSet& parset,
                       const string& prefix) :
-      itsThreadPool(nullptr)
+      itsThreadPool(nullptr),
+      itsMeasuresMutex(nullptr)
     {
       init(input, parset, prefix, parset.getStringVector(prefix + "sources",
                                                          vector<string>()));
@@ -81,7 +82,8 @@ namespace DP3 {
                       const ParameterSet& parset,
                       const string& prefix,
                       const vector<string>& sourcePatterns) :
-      itsThreadPool(nullptr)
+      itsThreadPool(nullptr),
+      itsMeasuresMutex(nullptr)
     {
       init(input, parset, prefix, sourcePatterns);
     }
@@ -169,9 +171,6 @@ namespace DP3 {
       itsResultStep=new ResultStep();
       itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
     }
-
-    Predict::Predict()
-    {}
 
     Predict::~Predict()
     {}
