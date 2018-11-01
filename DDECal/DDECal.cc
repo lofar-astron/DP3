@@ -131,15 +131,15 @@ namespace DP3 {
           string sourceDBName = parset.getString(prefix+"sourcedb");
           BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
           vector<string> patchNames = makePatchList(sourceDB, vector<string>());
-          itsDirections.resize(patchNames.size());
+          itsDirections.reserve(patchNames.size());
           for (uint i=0; i<patchNames.size(); ++i) {
-            itsDirections[i] = vector<string>(1, patchNames[i]);
+            itsDirections.emplace_back(1, patchNames[i]);
           }
         } else {
-          itsDirections.resize(strDirections.size());
+          itsDirections.reserve(strDirections.size());
           for (uint i=0; i<strDirections.size(); ++i) {
             ParameterValue dirStr(strDirections[i]);
-            itsDirections[i] = dirStr.getStringVector();
+            itsDirections.emplace_back(dirStr.getStringVector());
           }
         }
       }
@@ -274,14 +274,12 @@ namespace DP3 {
     void DDECal::initializePredictSteps(const ParameterSet& parset, const string& prefix)
     {
       const size_t nDir = itsDirections.size();
-      if (itsUseModelColumn) {
-        assert(nDir == 1);
-      } else {
-        itsPredictSteps.reserve(nDir);
-        for (size_t dir=0; dir<nDir; ++dir) {
-          itsPredictSteps.emplace_back(itsInput, parset, prefix, itsDirections[dir]);
-          itsPredictSteps[dir].setNThreads(NThreads());
-        }
+      if(nDir == 0)
+        throw std::runtime_error("DDECal initialized with 0 directions: something is wrong with your parset or your sourcedb");
+      itsPredictSteps.resize(nDir);
+      for (size_t dir=0; dir<nDir; ++dir) {
+        itsPredictSteps[dir] = Predict(itsInput, parset, prefix, itsDirections[dir]);
+        itsPredictSteps[dir].setNThreads(NThreads());
       }
     }
 
@@ -592,8 +590,8 @@ namespace DP3 {
 
     void DDECal::doSolve ()
     {
-      for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
-        itsConstraints[constraint_num]->SetWeights(itsWeights);
+      for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
+        constraint->SetWeights(itsWeights);
       }
       
       if(itsFullMatrixMinimalization)

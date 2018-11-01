@@ -340,7 +340,9 @@ void MultiDirSolver::performScalarIteration(size_t channelBlockIndex,
         Matrix& gTimesC2 = gTimesCs[antenna2];
         Matrix& v2 = vs[antenna2];
         for(size_t d=0; d!=_nDirections; ++d)
+        {
           modelPtrs[d] = &modelData[timeIndex][d][(channelIndexStart + baseline * _nChannels) * 4];
+        }
         const Complex* dataPtr = &data[timeIndex][(channelIndexStart + baseline * _nChannels) * 4];
         const size_t p1top2[4] = {0, 2, 1, 3};
         for(size_t ch=channelIndexStart; ch!=channelIndexEnd; ++ch)
