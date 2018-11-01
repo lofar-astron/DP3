@@ -276,9 +276,9 @@ namespace DP3 {
       const size_t nDir = itsDirections.size();
       if(nDir == 0)
         throw std::runtime_error("DDECal initialized with 0 directions: something is wrong with your parset or your sourcedb");
-      itsPredictSteps.resize(nDir);
+      itsPredictSteps.reserve(nDir);
       for (size_t dir=0; dir<nDir; ++dir) {
-        itsPredictSteps[dir] = Predict(itsInput, parset, prefix, itsDirections[dir]);
+        itsPredictSteps.emplace_back(itsInput, parset, prefix, itsDirections[dir]);
         itsPredictSteps[dir].setNThreads(NThreads());
       }
     }

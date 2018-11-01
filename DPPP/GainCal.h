@@ -177,7 +177,7 @@ namespace DP3 {
       UVWFlagger        itsUVWFlagStep;
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
 
-      Predict           itsPredictStep;
+      std::unique_ptr<Predict> itsPredictStep;
 #ifdef HAVE_LOFAR_BEAM
       ApplyBeam         itsApplyBeamStep; // Beam step for applying beam to modelcol
 #endif

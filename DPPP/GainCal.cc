@@ -113,9 +113,9 @@ namespace DP3 {
       itsUVWFlagStep.setNextStep(itsDataResultStep);
 
       if (!itsUseModelColumn) {
-        itsPredictStep=Predict(input, parset, prefix);
+        itsPredictStep.reset(new Predict(input, parset, prefix));
         itsResultStep = ResultStep::ShPtr(new ResultStep());
-        itsPredictStep.setNextStep(itsResultStep);
+        itsPredictStep->setNextStep(itsResultStep);
       } else {
 #ifdef HAVE_LOFAR_BEAM
         itsApplyBeamToModelColumn=parset.getBool(prefix +
@@ -212,7 +212,7 @@ namespace DP3 {
         }
 #endif
       } else {
-        itsPredictStep.updateInfo(infoIn);
+        itsPredictStep->updateInfo(infoIn);
       }
       if (itsApplySolution) {
         info().setWriteData();
@@ -343,7 +343,7 @@ namespace DP3 {
       os << "  use model column:    " << boolalpha << itsUseModelColumn << endl;
       itsBaselineSelection.show (os);
       if (!itsUseModelColumn) {
-        itsPredictStep.show(os);
+        itsPredictStep->show(os);
       }
 #ifdef HAVE_LOFAR_BEAM
       else if (itsApplyBeamToModelColumn) {
@@ -437,7 +437,7 @@ namespace DP3 {
         }
 #endif
       } else { // Predict
-        itsPredictStep.process(itsBuf[bufIndex]);
+        itsPredictStep->process(itsBuf[bufIndex]);
       }
 
       itsTimerPredict.stop();

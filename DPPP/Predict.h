@@ -90,8 +90,6 @@ namespace DP3 {
         itsMeasuresMutex = &measuresMutex;
       }
 
-      Predict();
-
       virtual ~Predict();
 
       // Process the data.
