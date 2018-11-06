@@ -213,6 +213,7 @@ namespace DP3 {
 #endif
       } else {
         itsPredictStep->updateInfo(infoIn);
+        itsPredictStep->setNThreads(NThreads());
       }
       if (itsApplySolution) {
         info().setWriteData();
