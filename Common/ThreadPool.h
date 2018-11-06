@@ -40,7 +40,8 @@ public:
 		_priority(0)
 	{
 		size_t nThreads = NCPUS();
-		
+		if(nThreads == 0)
+			nThreads = 1;
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
 		_threads.reserve(nThreads-1);
@@ -52,6 +53,8 @@ public:
 		_isStopped(false),
 		_priority(0)
 	{
+		if(nThreads == 0)
+			throw std::runtime_error("A threadPool was created with nThreads=0");
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
 		_threads.reserve(nThreads-1);
