@@ -174,46 +174,31 @@ namespace DP3 {
 
     Predict::~Predict()
     {}
-
-    void Predict::updateInfo (const DPInfo& infoIn)
+    
+    void Predict::initializeThreadData()
     {
-      info() = infoIn;
-      info().setNeedVisData();
-      info().setWriteData();
-
-      uint nBl=info().nbaselines();
-      for (uint i=0; i<nBl; ++i) {
-        itsBaselines.push_back (Baseline(info().getAnt1()[i],
-                                         info().getAnt2()[i]));
-      }
-
-      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
-                                              MDirection::J2000)());
-      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      itsPhaseRef = Position(angles.getBaseValue()[0],
-                             angles.getBaseValue()[1]);
-
-      //const size_t nDr = itsPatchList.size();
+      const size_t nBl=info().nbaselines();
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
       const size_t nCr = info().ncorr();
-
-      itsUVW.resize(3,nSt);
+      const size_t nThreads = getInfo().nThreads();
+      
+      itsUVW.resize(3, nSt);
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
-
-      itsModelVis.resize(NThreads());
-      itsModelVisPatch.resize(NThreads());
+      
+      itsModelVis.resize(nThreads);
+      itsModelVisPatch.resize(nThreads);
 #ifdef HAVE_LOFAR_BEAM
-      itsBeamValues.resize(NThreads());
-      itsAntBeamInfo.resize(NThreads());
+      itsBeamValues.resize(nThreads);
+      itsAntBeamInfo.resize(nThreads);
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
-      itsMeasConverters.resize(NThreads());
-      itsMeasFrames.resize(NThreads());
+      itsMeasConverters.resize(nThreads);
+      itsMeasFrames.resize(nThreads);
 #endif
 
-      for (uint thread=0; thread<NThreads(); ++thread) {
+      for (uint thread=0; thread<nThreads; ++thread) {
         if (itsStokesIOnly) {
           itsModelVis[thread].resize(1,nCh,nBl);
         } else {
@@ -232,6 +217,27 @@ namespace DP3 {
         }
 #endif
       }
+    }
+
+    void Predict::updateInfo (const DPInfo& infoIn)
+    {
+      info() = infoIn;
+      info().setNeedVisData();
+      info().setWriteData();
+
+      const size_t nBl=info().nbaselines();
+      for (size_t i=0; i!=nBl; ++i) {
+        itsBaselines.push_back (Baseline(info().getAnt1()[i],
+                                         info().getAnt2()[i]));
+      }
+
+      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+                                              MDirection::J2000)());
+      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+      itsPhaseRef = Position(angles.getBaseValue()[0],
+                             angles.getBaseValue()[1]);
+
+      initializeThreadData();
 
       if (itsDoApplyCal) {
         info()=itsApplyCalStep.setInfo(info());
@@ -272,8 +278,8 @@ namespace DP3 {
         os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << '\n';
       }
 #endif
-      os << "  operation:          "<<itsOperation << '\n';
-      os << "  threads:            "<<NThreads()<<'\n';
+      os << "  operation:          " << itsOperation << '\n';
+      os << "  threads:            " << getInfo().nThreads() << '\n';
       if (itsDoApplyCal) {
         itsApplyCalStep.show(os);
       }
@@ -317,7 +323,7 @@ namespace DP3 {
         std::unique_lock<std::mutex> lock;
         if(itsMeasuresMutex != nullptr)
           lock = std::unique_lock<std::mutex>(*itsMeasuresMutex);
-        for (uint thread=0;thread<NThreads();++thread) {
+        for (uint thread=0; thread!=getInfo().nThreads(); ++thread) {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
           //Do a conversion on all threads, because converters are not
@@ -334,8 +340,12 @@ namespace DP3 {
       {
         // If no ThreadPool was specified, we create a temporary one just
         // for executation of this part.
-        localThreadPool.reset(new ThreadPool(NThreads()));
+        localThreadPool.reset(new ThreadPool(info().nThreads()));
         pool = localThreadPool.get();
+      }
+      else {
+        if(pool->NThreads() != info().nThreads())
+          throw std::runtime_error("Thread pool has inconsistent number of threads!");
       }
       std::vector<Simulator> simulators;
       simulators.reserve(pool->NThreads());

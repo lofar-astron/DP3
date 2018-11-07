@@ -108,15 +108,16 @@ namespace DP3 {
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
 
-      itsBeamValues.resize(NThreads());
+      const size_t nThreads = getInfo().nThreads();
+      itsBeamValues.resize(nThreads);
 
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
-      itsMeasConverters.resize(NThreads());
-      itsMeasFrames.resize(NThreads());
-      itsAntBeamInfo.resize(NThreads());
+      itsMeasConverters.resize(nThreads);
+      itsMeasFrames.resize(nThreads);
+      itsAntBeamInfo.resize(nThreads);
 
-      for (size_t thread = 0; thread < NThreads(); ++thread) {
+      for (size_t thread = 0; thread < nThreads; ++thread) {
         itsBeamValues[thread].resize(nSt * nCh);
         itsMeasFrames[thread].set(info().arrayPosCopy());
         itsMeasFrames[thread].set(
@@ -176,7 +177,7 @@ namespace DP3 {
        * itsMeasFrames seems not to be actually used.
        * André, 2018-10-07
        */
-      for (size_t threadIter = 0; threadIter < NThreads(); ++threadIter) {
+      for (size_t threadIter = 0; threadIter < getInfo().nThreads(); ++threadIter) {
         itsMeasFrames[threadIter].resetEpoch(
             MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
         //Do a conversion on all threads, because converters are not

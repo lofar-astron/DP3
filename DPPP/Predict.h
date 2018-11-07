@@ -116,6 +116,7 @@ namespace DP3 {
       std::pair<double, double> getFirstDirection() const;
 
     private:
+      void initializeThreadData();
 #ifdef HAVE_LOFAR_BEAM
       LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
                                      casacore::MDirection::Convert& measConverter);

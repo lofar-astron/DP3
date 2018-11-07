@@ -244,6 +244,12 @@ namespace DP3 {
 
       // Get the lengths of the baselines (in meters).
       const vector<double>& getBaselineLengths() const;
+      
+      void setNThreads(uint nThreads)
+      { itsNThreads = nThreads; }
+      
+      uint nThreads() const
+        { return itsNThreads; }
 
       // Convert to a Record.
       // The names of the fields in the record are the data names without 'its'.
@@ -299,6 +305,7 @@ namespace DP3 {
       casacore::Vector<casacore::Int>    itsAnt2;          //# ant2 of all baselines
       mutable vector<double>     itsBLength;       //# baseline lengths
       mutable vector<int>        itsAutoCorrIndex; //# autocorr index per ant
+      uint itsNThreads;
     };
 
   } //# end namespace

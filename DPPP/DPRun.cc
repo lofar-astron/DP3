@@ -143,19 +143,19 @@ namespace DP3 {
       DPStep::ShPtr step = firstStep;
       DPStep::ShPtr lastStep;
       while (step) {
-        step->setNThreads(numThreads);
         step = step->getNextStep();
       }
       
-      // Call updateInfo() (after setting NThreads())
-      firstStep->setInfo (DPInfo());
+      // Call updateInfo()
+      DPInfo dpInfo;
+      dpInfo.setNThreads(numThreads);
+      firstStep->setInfo (std::move(dpInfo));
 
       // Show the steps.  
       step = firstStep;
       while (step) {
         std::ostringstream os;
         step->show (os);
-        step->setNThreads(numThreads);
         DPLOG_INFO (os.str(), true);
         lastStep = step;
         step = step->getNextStep();

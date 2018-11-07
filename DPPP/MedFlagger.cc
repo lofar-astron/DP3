@@ -293,7 +293,7 @@ namespace DP3 {
         NSTimer medianTimer;
         float Z1, Z2;
       };
-      std::vector<ThreadData> threadData(NThreads());
+      std::vector<ThreadData> threadData(getInfo().nThreads());
       
       // Create a temporary buffer (per thread) to hold data for determining
       // the medians.
@@ -306,7 +306,7 @@ namespace DP3 {
       
       // The for loop can be parallellized. This must be done dynamically,
       // because the execution time of each iteration can vary a lot.
-      ParallelFor<size_t> loop(NThreads());
+      ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
         ThreadData& data = threadData[thread];
         const float* dataPtr = bufDataPtr + ib*blsize;

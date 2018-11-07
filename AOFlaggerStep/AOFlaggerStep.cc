@@ -81,18 +81,18 @@ namespace DP3 {
 
     void AOFlaggerStep::show (std::ostream& os) const
     {
-      os << "AOFlaggerStep " << itsName << std::endl;
-      os << "  strategy:       " << itsStrategyName << std::endl;
-      os << "  timewindow:     " << itsWindowSize << std::endl;
-      os << "  overlap:        " << itsOverlap << std::endl;
-      os << "  pulsar:         " << itsPulsarMode << std::endl;
-      os << "  pedantic:       " << itsPedantic << std::endl;
-      os << "  keepstatistics: " << itsDoRfiStats << std::endl;
-      os << "  autocorr:       " << itsDoAutoCorr << std::endl;
-      os << "  nthreads (omp)  " << NThreads() << std::endl;
+      os << "AOFlaggerStep " << itsName << '\n';
+      os << "  strategy:       " << itsStrategyName << '\n';
+      os << "  timewindow:     " << itsWindowSize << '\n';
+      os << "  overlap:        " << itsOverlap << '\n';
+      os << "  pulsar:         " << itsPulsarMode << '\n';
+      os << "  pedantic:       " << itsPedantic << '\n';
+      os << "  keepstatistics: " << itsDoRfiStats << '\n';
+      os << "  autocorr:       " << itsDoAutoCorr << '\n';
+      os << "  nthreads (omp)  " << getInfo().nThreads() << '\n';
       os << "  max memory used ";
       formatBytes(os, itsMemoryNeeded);
-      os << std::endl;
+      os << '\n';
     }
 
     void AOFlaggerStep::formatBytes(std::ostream& os, double bytes) {
@@ -137,7 +137,7 @@ namespace DP3 {
       // Determine how much buffer space is needed per time slot.
       // The flagger needs 3 extra work buffers (data+flags) per thread.
       double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *
-        (infoIn.nbaselines() + 3*NThreads()) * infoIn.nchan() * infoIn.ncorr();
+        (infoIn.nbaselines() + 3*getInfo().nThreads()) * infoIn.nchan() * infoIn.ncorr();
       // If no overlap percentage is given, set it to 1%.
       if (itsOverlapPerc < 0  &&  itsOverlap == 0) {
         itsOverlapPerc = 1;
@@ -292,10 +292,10 @@ namespace DP3 {
         // wrapped for compatibility with older aoflaggers.
         std::unique_ptr<aoflagger::QualityStatistics> rfiStats;
       };
-      std::vector<ThreadData> threadData(NThreads());
+      std::vector<ThreadData> threadData(getInfo().nThreads());
       
       // Create thread-private counter object.
-      for(size_t t=0; t!=NThreads(); ++t)
+      for(size_t t=0; t!=getInfo().nThreads(); ++t)
       {
         threadData[t].counter.init (getInfo());
         // Create a statistics object for all polarizations.
@@ -311,7 +311,7 @@ namespace DP3 {
                                              4, false)));
       }
       
-      ParallelFor<int> loop(NThreads());
+      ParallelFor<int> loop(getInfo().nThreads());
       loop.Run(0, nrbl, [&](size_t ib, size_t thread)
       {
         // Do autocorrelations only if told so.
@@ -327,7 +327,7 @@ namespace DP3 {
       }); // end of parallel for
         
       // Add the counters to the overall object.
-      for(size_t t=0; t!=NThreads(); ++t)
+      for(size_t t=0; t!=getInfo().nThreads(); ++t)
       {
         itsFlagCounter.add (threadData[t].counter);
         if (itsDoRfiStats)

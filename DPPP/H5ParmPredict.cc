@@ -111,7 +111,6 @@ namespace DP3 {
 
       for(Predict::ShPtr& predictstep : itsPredictSteps)
       {
-        predictstep->setNThreads(NThreads());
         predictstep->updateInfo(infoIn);
       }
     }
@@ -135,7 +134,7 @@ namespace DP3 {
 
     bool H5ParmPredict::process (const DPBuffer& bufin)
     {
-      itsThreadPool.SetNThreads(NThreads());
+      itsThreadPool.SetNThreads(getInfo().nThreads());
       
       itsTimer.start();
       itsBuffer.copy (bufin);

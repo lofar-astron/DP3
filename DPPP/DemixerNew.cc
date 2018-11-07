@@ -74,13 +74,13 @@ namespace DP3 {
       // Handle possible data selection.
       itsFilter.updateInfo (getInfo());
       // Update itsDemixInfo and info().
-      itsDemixInfo.update (itsFilter.getInfo(), info(), NThreads());
+      itsDemixInfo.update (itsFilter.getInfo(), info(), getInfo().nThreads());
       // Size the buffers.
       itsBufIn.resize (itsDemixInfo.ntimeChunk() * itsDemixInfo.chunkSize());
       itsBufOut.resize(itsDemixInfo.ntimeChunk() * itsDemixInfo.ntimeOutSubtr());
       itsSolutions.resize(itsDemixInfo.ntimeChunk() * itsDemixInfo.ntimeOut());
       // Create a worker per thread.
-      size_t nthread = NThreads();
+      size_t nthread = getInfo().nThreads();
       itsWorkers.reserve (nthread);
       for (size_t i=0; i<nthread; ++i) {
         itsWorkers.emplace_back (itsInput, itsName, itsDemixInfo,
@@ -369,7 +369,7 @@ namespace DP3 {
                       / itsDemixInfo.ntimeAvgSubtr());
       int ntimeSol = ((itsNTime + itsDemixInfo.ntimeAvg() - 1)
                       / itsDemixInfo.ntimeAvg());
-      ParallelFor<int> loop(NThreads());
+      ParallelFor<int> loop(getInfo().nThreads());
       loop.Run(0, lastChunk, [&](int i, size_t thread)
       {
         if (i == lastChunk) {
