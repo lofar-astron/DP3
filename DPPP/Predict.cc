@@ -120,11 +120,11 @@ namespace DP3 {
         string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
         assert (mode=="default" || mode=="array_factor" || mode=="element");
         if (mode=="default") {
-          itsBeamMode=ApplyBeam::DEFAULT;
+          itsBeamMode=FullBeamCorrection;
         } else if (mode=="array_factor") {
-          itsBeamMode=ApplyBeam::ARRAY_FACTOR;
+          itsBeamMode=ArrayFactorBeamCorrection;
         } else if (mode=="element") {
-          itsBeamMode=ApplyBeam::ELEMENT;
+          itsBeamMode=ElementBeamCorrection;
         } else {
           throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
         }
@@ -268,9 +268,9 @@ namespace DP3 {
       os << "  apply beam:         " << boolalpha << itsApplyBeam << '\n';
       if (itsApplyBeam) {
         os << "   mode:              ";
-        if (itsBeamMode==ApplyBeam::DEFAULT)
+        if (itsBeamMode==FullBeamCorrection)
           os<<"default";
-        else if (itsBeamMode==ApplyBeam::ARRAY_FACTOR)
+        else if (itsBeamMode==ArrayFactorBeamCorrection)
           os<<"array_factor";
         else os<<"element";
         os << '\n';

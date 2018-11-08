@@ -54,9 +54,6 @@ namespace DP3 {
     class ApplyBeam: public DPStep
     {
       public:
-        // Modes for the beam: only array factor, only element beam, or both (default)
-        enum BeamMode {DEFAULT=1, ARRAY_FACTOR=2, ELEMENT=3};
-
         // Construct the object.
         // Parameters are obtained from the parset using the given prefix.
         ApplyBeam (DPInput*, const ParameterSet&, const string& prefix, bool substep=false);
@@ -116,8 +113,8 @@ namespace DP3 {
         bool                 itsInvert;
         bool                 itsUpdateWeights;
         bool                 itsUseChannelFreq;
-        Position             itsPhaseRef;
-        BeamMode             itsMode;
+        //Position             itsPhaseRef;
+        BeamCorrectionMode   itsMode;
 
         uint                 itsDebugLevel;
 
@@ -133,7 +130,5 @@ namespace DP3 {
   } //# end namespace
 }
 #endif
-
-#include "ApplyBeam.tcc"
 
 #endif // HAVE_LOFAR_BEAM
