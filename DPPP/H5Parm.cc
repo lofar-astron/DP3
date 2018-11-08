@@ -17,10 +17,8 @@ using namespace std;
 
 namespace DP3 {
   H5Parm::H5Parm(const std::string& filename, bool forceNew,
-                 bool forceNewSolSet, const std::string& solSetName):
-      H5::H5File(filename,
-                 !forceNew&&boost::filesystem::exists(filename)?H5F_ACC_RDWR:H5F_ACC_TRUNC
-                )
+                 bool forceNewSolSet, const std::string& solSetName) :
+      H5::H5File(filename, forceNew?H5F_ACC_TRUNC:H5F_ACC_RDONLY)
   {
     if (forceNewSolSet || getNumObjs()==0) { // Create a new solSet
       if (solSetName=="") {

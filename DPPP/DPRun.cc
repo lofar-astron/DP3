@@ -137,7 +137,7 @@ namespace DP3 {
 
       uint numThreads = parset.getInt("numthreads", ThreadPool::NCPUs());
 
-      // Create the steps, link them toggether
+      // Create the steps, link them together
       DPStep::ShPtr firstStep = makeSteps (parset, "", 0);
 
       DPStep::ShPtr step = firstStep;
