@@ -302,7 +302,7 @@ namespace DP3 {
       itsChunkStartTime = info().startTime();
 
       if (itsDebugLevel>0) {
-        assert(NThreads()==1);
+        assert(getInfo().nThreads()==1);
         assert(itsTimeSlotsPerParmUpdate >= info().ntime());
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),
@@ -636,7 +636,7 @@ namespace DP3 {
       vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
-        ParallelFor<size_t> loop(NThreads());
+        ParallelFor<size_t> loop(getInfo().nThreads());
         loop.Run(0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
           // Do another step when stalled and not all converged
           if (converged[freqCell]!=StefCal::CONVERGED)
@@ -688,7 +688,7 @@ namespace DP3 {
             }
           }
 
-          ParallelFor<size_t> loop(NThreads());
+          ParallelFor<size_t> loop(getInfo().nThreads());
           loop.Run(0, nSt, [&](size_t st, size_t /*thread*/) {
             uint numpoints=0;
             double* phases = itsPhaseFitters[st]->PhaseData();

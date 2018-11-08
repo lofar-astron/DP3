@@ -16,7 +16,10 @@ namespace DP3
 class ThreadPool
 {
 public:
-	static unsigned NCPUS()
+	/**
+	 * Returns the number of CPUs in this machine.
+	 */
+	static size_t NCPUs()
 	{
 #ifdef __APPLE__
 		return sysconf(_SC_NPROCESSORS_ONLN);
@@ -25,8 +28,8 @@ public:
 		CPU_ZERO(&cs);
 		sched_getaffinity(0, sizeof cs , &cs);
 
-		int count = 0;
-		for (int i = 0; i < CPU_SETSIZE; i++)
+		size_t count = 0;
+		for (size_t i = 0; i != CPU_SETSIZE; i++)
 		{
 			if (CPU_ISSET(i, &cs))
 				++count;
@@ -35,12 +38,16 @@ public:
 #endif
 	}
 	
+	/**
+	 * Create a thread pool with NThreads()==NCPUs().
+	 */
 	ThreadPool() :
 		_isStopped(false),
 		_priority(0)
 	{
-		size_t nThreads = NCPUS();
-		
+		size_t nThreads = NCPUs();
+		if(nThreads == 0)
+			nThreads = 1;
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
 		_threads.reserve(nThreads-1);
@@ -48,10 +55,15 @@ public:
 			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
 	}
 	
+	/**
+	 * Create a thread pool with the specified number of threads.
+	 */
 	ThreadPool(size_t nThreads) :
 		_isStopped(false),
 		_priority(0)
 	{
+		if(nThreads == 0)
+			throw std::runtime_error("A threadPool was created with nThreads=0");
 		// We reserve one thread less, because we always want a new For loop
 		// to be able to add a new thread (with index 0).
 		_threads.reserve(nThreads-1);

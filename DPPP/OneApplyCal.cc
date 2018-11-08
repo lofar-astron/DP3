@@ -389,7 +389,7 @@ namespace DP3 {
 
       size_t nchan = itsBuffer.getData().shape()[1];
 
-      ParallelFor<size_t> loop(NThreads());
+      ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         for (size_t chan=0;chan<nchan;chan++) {
           uint timeFreqOffset=(itsTimeStep*info().nchan())+chan;

@@ -146,7 +146,7 @@ namespace DP3 {
       itsFilter.setNextStep (nullStep);
       // Default nr of time chunks is maximum number of threads.
       if (itsNTimeChunk == 0) {
-        itsNTimeChunk = NThreads();
+        itsNTimeChunk = getInfo().nThreads();
       }
       // Check that time windows fit integrally.
       if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
@@ -631,7 +631,7 @@ namespace DP3 {
       // source direction. By combining them you get the shift from one
       // source direction to another.
       int dirnr = 0;
-      ParallelFor<size_t> loop(NThreads());
+      ParallelFor<size_t> loop(getInfo().nThreads());
       for (uint i1=0; i1<itsNDir-1; ++i1) {
         for (uint i0=i1+1; i0<itsNDir; ++i0) {
           if (i0 == itsNDir-1) {
@@ -710,7 +710,7 @@ namespace DP3 {
           // Note that summing in time is done in addFactors.
           // The sum per output channel is divided by the summed weight.
           // Note there is a summed weight per baseline,outchan,corr.
-          ParallelFor<size_t> loop(NThreads());
+          ParallelFor<size_t> loop(getInfo().nThreads());
           loop.Run(0, itsNBl, [&](size_t k, size_t /*thread*/)
           {
             const DComplex* phin = bufIn.data() + (dirnr*itsNBl + k)*nccin;
@@ -857,7 +857,7 @@ namespace DP3 {
 
     void Demixer::demix()
     {
-      const size_t nThread = NThreads();
+      const size_t nThread = getInfo().nThreads();
       const size_t nTime = itsAvgResults[0]->size();
       const size_t nTimeSubtr = itsAvgResultSubtr->size();
       const size_t multiplier = itsNTimeAvg / itsNTimeAvgSubtr;
@@ -887,7 +887,7 @@ namespace DP3 {
 
       const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
 
-      ParallelFor<size_t> loop(NThreads());
+      ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nTime, [&](size_t ts, size_t thread)
       {
         ThreadPrivateStorage &storage = threadStorage[thread];

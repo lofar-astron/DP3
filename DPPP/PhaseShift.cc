@@ -137,7 +137,7 @@ namespace DP3 {
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
       //# to process.
-      ParallelFor<size_t> loop(NThreads());
+      ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         Complex*  __restrict__ data    = itsBuf.getData().data() + bl*nchan*ncorr;
         double*   __restrict__ uvw     = itsBuf.getUVW().data() + bl*3;

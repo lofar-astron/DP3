@@ -211,8 +211,10 @@ namespace DP3 {
     MSReader::~MSReader()
     {}
 
-    void MSReader::updateInfo (const DPInfo&)
-    {}
+    void MSReader::updateInfo (const DPInfo& dpInfo)
+    {
+      info().setNThreads(dpInfo.nThreads());
+    }
 
     std::string MSReader::msName() const
     {

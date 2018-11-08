@@ -279,7 +279,6 @@ namespace DP3 {
       itsPredictSteps.reserve(nDir);
       for (size_t dir=0; dir<nDir; ++dir) {
         itsPredictSteps.emplace_back(itsInput, parset, prefix, itsDirections[dir]);
-        itsPredictSteps[dir].setNThreads(NThreads());
       }
     }
 
@@ -292,13 +291,11 @@ namespace DP3 {
 
       const size_t nDir = itsDirections.size();
 
-      itsUVWFlagStep.setNThreads(NThreads());
       itsUVWFlagStep.updateInfo(infoIn);
       for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
-        itsPredictSteps[dir].setNThreads(NThreads());
         itsPredictSteps[dir].updateInfo(infoIn);
       }
-      itsMultiDirSolver.set_nthreads(NThreads());
+      itsMultiDirSolver.set_nthreads(getInfo().nThreads());
 
       if (itsSolInt==0) {
         itsSolInt=info().ntime();
@@ -311,7 +308,7 @@ namespace DP3 {
         itsModelDataPtrs[t].resize(nDir);
       }
       for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
-        constraint->SetNThreads(NThreads());
+        constraint->SetNThreads(getInfo().nThreads());
         itsMultiDirSolver.add_constraint(constraint.get());
       }
 
@@ -672,7 +669,7 @@ namespace DP3 {
         itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
       } else {
         if(itsThreadPool == nullptr)
-          itsThreadPool.reset(new ThreadPool(NThreads()));
+          itsThreadPool.reset(new ThreadPool(getInfo().nThreads()));
         std::mutex measuresMutex;
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
           predict.setThreadData(*itsThreadPool, measuresMutex);

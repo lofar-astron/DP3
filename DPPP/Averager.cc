@@ -282,7 +282,7 @@ namespace DP3 {
       uint nchan = shp[1];
       uint  nbl   = shp[2];
       uint npout = ncorr * nchan;
-      ParallelFor<uint> loop(NThreads());
+      ParallelFor<uint> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](uint k, size_t /*thread*/) {
         const Complex* indata = itsBuf.getData().data() + k*npin;
         const Complex* inalld = itsAvgAll.data() + k*npin;
