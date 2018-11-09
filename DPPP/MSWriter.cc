@@ -46,6 +46,7 @@
 
 #include <iostream>
 #include <limits>
+#include <measures/TableMeasures/TableMeasDesc.h>
 
 using namespace casacore;
 
@@ -429,8 +430,9 @@ namespace DP3 {
       updateObs (outName);
       // Adjust the FIELD table as needed.
       if (! info.phaseCenterIsOriginal()) {
-        updateField (outName, info);
+        updatePhaseCentre (outName, info);
       }
+      updateBeam (outName, info);
     }
 
     void MSWriter::updateSpw (const string& outName, const DPInfo& info)
@@ -492,13 +494,75 @@ namespace DP3 {
       }
     }
 
-    void MSWriter::updateField (const string& outName, const DPInfo& info)
+    void MSWriter::updatePhaseCentre (const string& outName, const DPInfo& info)
     {
       Table outField = Table(outName + "/FIELD", Table::Update);
       // Write new phase center.
       ArrayMeasColumn<MDirection> phaseCol (outField, "PHASE_DIR");
       Vector<MDirection> dir(1, info.phaseCenter());
       phaseCol.put (0, dir);
+    }
+    
+    void MSWriter::updateBeam (const std::string& outName, const DPInfo& info)
+    {
+      const char
+        *beamModeColName = "LOFAR_APPLIED_BEAM_MODE",
+        *beamDirColName = "LOFAR_APPLIED_BEAM_DIR";
+      Table outField = Table(outName + "/FIELD", Table::Update);
+      bool
+        hasBeamModeCol = outField.tableDesc().isColumn(beamModeColName);
+      
+      if(info.beamCorrectionMode() == NoBeamCorrection)
+      {
+        // No beam correction has been applied. If the LOFAR beam columns don't
+        // exist, we have to do nothing (no columns implies no beam correction).
+        // If they do exist, we have to make sure they are set to indicate
+        // no beam correction.
+        if(hasBeamModeCol)
+        {
+          ScalarColumn<String> lofarBeamModeCol(outField, beamModeColName);
+          for(size_t row=0; row!=outField.nrow(); ++row)
+            lofarBeamModeCol.put(row, "None");
+        }
+      }
+      else {
+        // Beam correction is applied. If the LOFAR beam columns do not exist yet,
+        // they have to be created.
+        if(!hasBeamModeCol)
+        {
+          ScalarColumnDesc<String> lofarBeamModeColDesc =
+            ScalarColumnDesc<String>(beamModeColName);
+          outField.addColumn(lofarBeamModeColDesc);
+          
+          ArrayColumnDesc<double> lofarBeamDirColDesc =
+            ArrayColumnDesc<double>(beamDirColName);
+          outField.addColumn(lofarBeamDirColDesc);
+          casacore::Vector<Unit> unitVec(1);
+          unitVec[0] = Unit("rad");
+          TableMeasRefDesc measRef(MDirection::DEFAULT);
+          TableMeasValueDesc measVal(outField.tableDesc(), beamDirColName);
+          TableMeasDesc<MDirection> lofarBeamDirColMeasDesc(measVal, measRef, unitVec);
+          lofarBeamDirColMeasDesc.write(outField);
+        }
+        
+        ScalarColumn<String> lofarBeamModeCol(outField, beamModeColName);
+        ArrayMeasColumn<MDirection> lofarBeamDirCol(outField, beamDirColName);
+        std::string modeStr;
+        switch(info.beamCorrectionMode())
+        {
+          default:
+          case NoBeamCorrection: modeStr = "None"; break;
+          case ElementBeamCorrection: modeStr = "Element"; break;
+          case ArrayFactorBeamCorrection: modeStr = "ArrayFactor"; break;
+          case FullBeamCorrection: modeStr = "Full"; break;
+        }
+        Vector<MDirection> dir(1, info.beamCorrectionDir());
+        for(size_t row=0; row!=outField.nrow(); ++row)
+        {
+          lofarBeamModeCol.put(row, modeStr);
+          lofarBeamDirCol.put(row, dir);
+        }        
+      }
     }
 
     void MSWriter::writeHistory (Table& ms, const ParameterSet& parset)

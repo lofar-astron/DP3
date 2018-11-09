@@ -570,6 +570,24 @@ namespace DP3 {
       ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
+      
+      if(fldtab.tableDesc().isColumn("LOFAR_APPLIED_BEAM_MODE"))
+      {
+        ScalarColumn<String> beamModeCol(fldtab, "LOFAR_APPLIED_BEAM_MODE");
+        ArrayMeasColumn<MDirection> beamDirCol(fldtab, "LOFAR_APPLIED_BEAM_DIR");
+        std::string mode = beamModeCol(0);
+        if(mode == "None")
+          info().setBeamCorrectionMode(NoBeamCorrection);
+        else {
+          if(mode == "Element")
+            info().setBeamCorrectionMode(ElementBeamCorrection);
+          else if(mode == "ArrayFactor")
+            info().setBeamCorrectionMode(ArrayFactorBeamCorrection);
+          else if(mode == "Full")
+            info().setBeamCorrectionMode(FullBeamCorrection);
+          info().setBeamCorrectionDir(*beamDirCol(0).data());
+        }
+      }
 
 #ifdef HAVE_LOFAR_BEAM
       tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
