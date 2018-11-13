@@ -25,6 +25,7 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/Timer.h"
+#include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
 
 #include "ApplyBeam.h"
@@ -49,6 +50,8 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <casa/Quanta/MVAngle.h>
+
 using namespace casacore;
 
 namespace DP3 {
@@ -60,6 +63,7 @@ namespace DP3 {
           itsInput(input),
           itsName(prefix),
           itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
+          itsDirectionStr(parset.getStringVector(prefix+"direction", std::vector<std::string>())),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
@@ -100,16 +104,26 @@ namespace DP3 {
         info().setWriteWeights();
       }
       
+      // Parse direction parset value
+      if (itsDirectionStr.empty())
+        itsDirection = info().phaseCenter();
+      else {
+        if (itsDirectionStr.size() != 2)
+          throw std::runtime_error("2 values must be given in ApplyBeam");
+        casacore::MDirection phaseCenter;
+        Quantity q0, q1;
+        if (!MVAngle::read (q0, itsDirectionStr[0]))
+          throw Exception(itsDirectionStr[0] + " is an invalid RA or longitude in ApplyBeam direction");
+        if (!MVAngle::read (q1, itsDirectionStr[1]))
+          throw Exception(itsDirectionStr[1] + " is an invalid DEC or latitude in ApplyBeam direction");
+        MDirection::Types type = MDirection::J2000;
+        itsDirection = MDirection(q0, q1, type);
+      }
+      
       if(info().beamCorrectionMode() != NoBeamCorrection)
         throw std::runtime_error("In applying the beam: the metadata of this observation indicate that the beam has already been applied");
       info().setBeamCorrectionMode(itsMode);
-      info().setBeamCorrectionDir(info().delayCenter());
-
-      //MDirection dirJ2000(
-      //    MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-      //Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      //itsPhaseRef = Position(angles.getBaseValue()[0],
-      //                       angles.getBaseValue()[1]);
+      info().setBeamCorrectionDir(itsDirection);
 
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
@@ -137,24 +151,25 @@ namespace DP3 {
 
     void ApplyBeam::show(std::ostream& os) const
     {
-      os << "ApplyBeam " << itsName << endl;
+      os << "ApplyBeam " << itsName << '\n';
       os << "  mode:              ";
       if (itsMode==FullBeamCorrection)
         os<<"default";
       else if (itsMode==ArrayFactorBeamCorrection)
         os<<"array_factor";
       else os<<"element";
-      os << endl;
-      os << "  use channelfreq:   " << boolalpha << itsUseChannelFreq << endl;
-      os << "  invert:            " << boolalpha << itsInvert << endl;
-      os << "  update weights:    " << boolalpha << itsUpdateWeights << endl;
+      os << '\n';
+      os << "  use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n';
+      os << "  direction:         " << itsDirectionStr << '\n';
+      os << "  invert:            " << boolalpha << itsInvert << '\n';
+      os << "  update weights:    " << boolalpha << itsUpdateWeights << '\n';
     }
 
     void ApplyBeam::showTimings(std::ostream& os, double duration) const
     {
       os << "  ";
       FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
-      os << " ApplyBeam " << itsName << endl;
+      os << " ApplyBeam " << itsName << '\n';
     }
 
     bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread)
@@ -171,7 +186,7 @@ namespace DP3 {
       double time = itsBuffer.getTime();
 
       //Set up directions for beam evaluation
-      LOFAR::StationResponse::vector3r_t refdir, tiledir;
+      LOFAR::StationResponse::vector3r_t refdir, tiledir, srcdir;
 
       /**
        * I'm not sure this is correct the way it is. These loops
@@ -190,9 +205,9 @@ namespace DP3 {
         //thread safe and apparently need to be used at least once
         refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[threadIter]);
         tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[threadIter]);
+        srcdir = dir2Itrf(itsDirection, itsMeasConverters[threadIter]);
       }
 
-      LOFAR::StationResponse::vector3r_t srcdir = refdir;
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                 itsAntBeamInfo[thread], itsBeamValues[thread],
                 itsUseChannelFreq, itsInvert, itsMode, itsUpdateWeights);
