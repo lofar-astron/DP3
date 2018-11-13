@@ -461,6 +461,29 @@ namespace DP3 {
       // Test if the data column is present.
       if (tdesc.isColumn (itsDataColName)) {
         itsMissingData = false;
+        
+        // Read beam keywords of input datacolumn
+        ArrayColumn<Complex> dataCol(itsMS, itsDataColName);
+        if(dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE"))
+        {
+          std::string mode = dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE");
+          if(mode == "None")
+            info().setBeamCorrectionMode(NoBeamCorrection);
+          else {
+            if(mode == "Element")
+              info().setBeamCorrectionMode(ElementBeamCorrection);
+            else if(mode == "ArrayFactor")
+              info().setBeamCorrectionMode(ArrayFactorBeamCorrection);
+            else if(mode == "Full")
+              info().setBeamCorrectionMode(FullBeamCorrection);
+            
+            String error;
+            MeasureHolder mHolder;
+            if(!mHolder.fromRecord(error, dataCol.keywordSet().asRecord("LOFAR_APPLIED_BEAM_DIR")))
+              throw std::runtime_error(error);
+            info().setBeamCorrectionDir(mHolder.asMDirection());
+          }
+        }
       } else {
         if (itsMissingData) {
           // Only give warning if a missing data column is allowed.
@@ -570,7 +593,7 @@ namespace DP3 {
       ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
-
+      
 #ifdef HAVE_LOFAR_BEAM
       tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
 #endif

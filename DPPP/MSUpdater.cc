@@ -243,13 +243,14 @@ namespace DP3 {
           itsWeightColAdded = addColumn(itsWeightColName, TpFloat, cd);
         }
       }
+      MSWriter::updateBeam(itsMSName, info());
       // Subsequent steps have to set again if writes need to be done.
       info().clearWrites();
       info().clearMetaChanged();
       // Tell the reader if visibility data needs to be read.
       itsReader->setReadVisData (info().needVisData());
     }
-      
+    
     void MSUpdater::addToMS (const string&)
     {
       getPrevStep()->addToMS (itsMSName);

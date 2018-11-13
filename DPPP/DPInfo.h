@@ -38,6 +38,13 @@ namespace DP3 {
 
     //# Forward declarations.
     class DPInput;
+    
+    enum BeamCorrectionMode {
+      NoBeamCorrection = 0,
+      FullBeamCorrection = 1,
+      ArrayFactorBeamCorrection = 2,
+      ElementBeamCorrection = 3
+    };
 
     // @ingroup NDPPP
 
@@ -258,6 +265,16 @@ namespace DP3 {
       // Update the DPInfo object from a Record.
       // It is possible that only a few fields are defined in the record.
       void fromRecord (const casacore::Record& rec);
+      
+      enum BeamCorrectionMode beamCorrectionMode() const
+      { return itsBeamCorrectionMode; };
+      void setBeamCorrectionMode(enum BeamCorrectionMode mode)
+      { itsBeamCorrectionMode = mode; }
+      
+      const casacore::MDirection& beamCorrectionDir() const
+      { return itsBeamCorrectionDir; }
+      void setBeamCorrectionDir(const casacore::MDirection& dir)
+      { itsBeamCorrectionDir = dir; }
 
     private:
       // Set which antennae are actually used.
@@ -289,6 +306,8 @@ namespace DP3 {
       bool             itsPhaseCenterIsOriginal;
       casacore::MDirection itsDelayCenter;
       casacore::MDirection itsTileBeamDir;
+      enum BeamCorrectionMode itsBeamCorrectionMode;
+      casacore::MDirection itsBeamCorrectionDir;
       casacore::MPosition  itsArrayPos;
       casacore::Vector<double>       itsChanFreqs;
       casacore::Vector<double>       itsChanWidths;

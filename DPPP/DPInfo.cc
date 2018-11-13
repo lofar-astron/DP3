@@ -54,6 +54,7 @@ namespace DP3 {
         itsStartTime    (0),
         itsTimeInterval (0),
         itsPhaseCenterIsOriginal (true),
+        itsBeamCorrectionMode(NoBeamCorrection),
         itsNThreads     (0)
     {}
 

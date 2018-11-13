@@ -158,7 +158,7 @@ namespace DP3 {
       // The info needed to calculate the station beams.
       vector<vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
       vector<vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
-      ApplyBeam::BeamMode                            itsBeamMode;
+      BeamCorrectionMode itsBeamMode;
 #endif
       vector<casacore::MeasFrame>                    itsMeasFrames;
       vector<casacore::MDirection::Convert>          itsMeasConverters;

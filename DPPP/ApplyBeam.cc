@@ -28,6 +28,7 @@
 #include "../Common/StringUtil.h"
 
 #include "ApplyBeam.h"
+#include "ApplyCal.h" // for matrix inversion
 #include "DPInfo.h"
 #include "Exceptions.h"
 #include "FlagCounter.h"
@@ -72,11 +73,11 @@ namespace DP3 {
       string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
       assert (mode=="default" || mode=="array_factor" || mode=="element");
       if (mode=="default") {
-        itsMode=DEFAULT;
+        itsMode=FullBeamCorrection;
       } else if (mode=="array_factor") {
-        itsMode=ARRAY_FACTOR;
+        itsMode=ArrayFactorBeamCorrection;
       } else if (mode=="element") {
-        itsMode=ELEMENT;
+        itsMode=ElementBeamCorrection;
       } else {
         throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
@@ -98,12 +99,17 @@ namespace DP3 {
       if (itsUpdateWeights) {
         info().setWriteWeights();
       }
+      
+      if(info().beamCorrectionMode() != NoBeamCorrection)
+        throw std::runtime_error("In applying the beam: the metadata of this observation indicate that the beam has already been applied");
+      info().setBeamCorrectionMode(itsMode);
+      info().setBeamCorrectionDir(info().delayCenter());
 
-      MDirection dirJ2000(
-          MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      itsPhaseRef = Position(angles.getBaseValue()[0],
-                             angles.getBaseValue()[1]);
+      //MDirection dirJ2000(
+      //    MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
+      //Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+      //itsPhaseRef = Position(angles.getBaseValue()[0],
+      //                       angles.getBaseValue()[1]);
 
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
@@ -133,9 +139,9 @@ namespace DP3 {
     {
       os << "ApplyBeam " << itsName << endl;
       os << "  mode:              ";
-      if (itsMode==DEFAULT)
+      if (itsMode==FullBeamCorrection)
         os<<"default";
-      else if (itsMode==ARRAY_FACTOR)
+      else if (itsMode==ArrayFactorBeamCorrection)
         os<<"array_factor";
       else os<<"element";
       os << endl;
@@ -213,5 +219,123 @@ namespace DP3 {
       // Let the next steps finish.
       getNextStep()->finish();
     }
-  } //# end namespace
+    
+// applyBeam is templated on the type of the data, could be complex<double> or complex<float>
+template<typename T>
+void ApplyBeam::applyBeam(
+  const DPInfo& info, double time, T* data0, float* weight0,
+  const LOFAR::StationResponse::vector3r_t& srcdir,
+  const LOFAR::StationResponse::vector3r_t& refdir,
+  const LOFAR::StationResponse::vector3r_t& tiledir,
+  const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+  vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
+  bool invert, int mode, bool doUpdateWeights)
+{
+  using dcomplex = std::complex<double>;
+  // Get the beam values for each station.
+  uint nCh = info.chanFreqs().size();
+  uint nSt = beamValues.size() / nCh;
+  uint nBl = info.nbaselines();
+
+  // Store array factor in diagonal matrix (in other modes this variable
+  // is not used).
+  LOFAR::StationResponse::diag22c_t af_tmp;
+
+  double reffreq=info.refFreq();
+
+  // Apply the beam values of both stations to the ApplyBeamed data.
+  std::complex<double> tmp[4];
+  for (size_t ch = 0; ch < nCh; ++ch) {
+    if (useChannelFreq) {
+      reffreq=info.chanFreqs()[ch];
+    }
+
+    switch (mode) {
+    case FullBeamCorrection:
+      // Fill beamValues for channel ch
+      for (size_t st = 0; st < nSt; ++st) {
+        beamValues[nCh * st + ch] = antBeamInfo[st]->response(time,
+                                      info.chanFreqs()[ch], srcdir,
+                                      reffreq, refdir, tiledir);
+        if (invert) {
+          ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+        }
+      }
+      break;
+    case ArrayFactorBeamCorrection:
+      // Fill beamValues for channel ch
+      for (size_t st = 0; st < nSt; ++st) {
+        af_tmp = antBeamInfo[st]->arrayFactor(time,
+                                      info.chanFreqs()[ch], srcdir,
+                                      reffreq, refdir, tiledir);
+        beamValues[nCh * st + ch][0][1]=0.;
+        beamValues[nCh * st + ch][1][0]=0.;
+
+        if (invert) {
+          beamValues[nCh * st + ch][0][0]=1./af_tmp[0];
+          beamValues[nCh * st + ch][1][1]=1./af_tmp[1];
+        } else {
+          beamValues[nCh * st + ch][0][0]=af_tmp[0];
+          beamValues[nCh * st + ch][1][1]=af_tmp[1];
+        }
+      }
+      break;
+    case ElementBeamCorrection:
+      // Fill beamValues for channel ch
+      for (size_t st = 0; st < nSt; ++st) {
+        LOFAR::StationResponse::AntennaField::ConstPtr field =
+            *(antBeamInfo[st]->beginFields());
+
+        beamValues[nCh * st + ch] = field->elementResponse(time,
+                                              info.chanFreqs()[ch],
+                                              srcdir);
+        if (invert) {
+          ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+        }
+      }
+      break;
+    }
+
+    // Apply beam for channel ch on all baselines
+    // For mode=ARRAY_FACTOR, too much work is done here because we know
+    // that r and l are diagonal
+    for (size_t bl = 0; bl < nBl; ++bl) {
+      T* data = data0 + bl * 4 * nCh + ch * 4;
+      LOFAR::StationResponse::matrix22c_t *left = &(beamValues[nCh
+          * info.getAnt1()[bl]]);
+      LOFAR::StationResponse::matrix22c_t *right = &(beamValues[nCh
+          * info.getAnt2()[bl]]);
+      dcomplex l[] = { left[ch][0][0], left[ch][0][1],
+                        left[ch][1][0], left[ch][1][1] };
+      // Form transposed conjugate of right.
+      dcomplex r[] = { conj(right[ch][0][0]), conj(right[ch][1][0]),
+                        conj(right[ch][0][1]), conj(right[ch][1][1]) };
+      // left*data
+      tmp[0] = l[0] * dcomplex(data[0]) + l[1] * dcomplex(data[2]);
+      tmp[1] = l[0] * dcomplex(data[1]) + l[1] * dcomplex(data[3]);
+      tmp[2] = l[2] * dcomplex(data[0]) + l[3] * dcomplex(data[2]);
+      tmp[3] = l[2] * dcomplex(data[1]) + l[3] * dcomplex(data[3]);
+      // data*conj(right)
+      data[0] = tmp[0] * r[0] + tmp[1] * r[2];
+      data[1] = tmp[0] * r[1] + tmp[1] * r[3];
+      data[2] = tmp[2] * r[0] + tmp[3] * r[2];
+      data[3] = tmp[2] * r[1] + tmp[3] * r[3];
+
+      if (doUpdateWeights) {
+        ApplyCal::applyWeights(l, r, weight0 + bl * 4 * nCh + ch * 4);
+      }
+    }
+  }
 }
+
+template
+void ApplyBeam::applyBeam(const DPInfo& info, double time, std::complex<double>* data0, float* weight0,
+  const LOFAR::StationResponse::vector3r_t& srcdir,
+  const LOFAR::StationResponse::vector3r_t& refdir,
+  const LOFAR::StationResponse::vector3r_t& tiledir,
+  const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+  vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
+  bool invert, int mode, bool doUpdateWeights);
+    
+}} //# end namespaces
+

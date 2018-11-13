@@ -91,6 +91,8 @@ namespace DP3 {
       static void writeHistory (casacore::Table& ms,
                                 const ParameterSet& parset);
 
+      static void updateBeam (const std::string& outName, const DPInfo& info);
+
     private:
       // Create an array column description and add to table with given
       // stoage manager (if given).
@@ -110,8 +112,8 @@ namespace DP3 {
       void updateObs (const string& outName);
 
       // Update the FIELD table with the new phase center.
-      void updateField (const string& outName, const DPInfo& info);
-
+      void updatePhaseCentre (const string& outName, const DPInfo& info);
+      
       // Write the data, flags, etc.
       void writeData (casacore::Table& out, const DPBuffer& buf);
 

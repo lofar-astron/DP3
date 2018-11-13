@@ -46,6 +46,7 @@
 
 #include <iostream>
 #include <limits>
+#include <measures/TableMeasures/TableMeasDesc.h>
 
 using namespace casacore;
 
@@ -429,8 +430,9 @@ namespace DP3 {
       updateObs (outName);
       // Adjust the FIELD table as needed.
       if (! info.phaseCenterIsOriginal()) {
-        updateField (outName, info);
+        updatePhaseCentre (outName, info);
       }
+      updateBeam (outName, info);
     }
 
     void MSWriter::updateSpw (const string& outName, const DPInfo& info)
@@ -492,13 +494,44 @@ namespace DP3 {
       }
     }
 
-    void MSWriter::updateField (const string& outName, const DPInfo& info)
+    void MSWriter::updatePhaseCentre (const string& outName, const DPInfo& info)
     {
       Table outField = Table(outName + "/FIELD", Table::Update);
       // Write new phase center.
       ArrayMeasColumn<MDirection> phaseCol (outField, "PHASE_DIR");
       Vector<MDirection> dir(1, info.phaseCenter());
       phaseCol.put (0, dir);
+    }
+    
+    void MSWriter::updateBeam (const std::string& outName, const DPInfo& info)
+    {
+      const char
+        *beamModeFieldName = "LOFAR_APPLIED_BEAM_MODE",
+        *beamDirFieldName = "LOFAR_APPLIED_BEAM_DIR";
+      
+      Table mainTable(outName, Table::Update);
+      ArrayColumn<Complex> dataColumn(mainTable, info.getDataColName());
+      bool fieldsExist = dataColumn.keywordSet().isDefined(beamModeFieldName);
+      std::string modeStr;
+      switch(info.beamCorrectionMode())
+      {
+        default:
+        case NoBeamCorrection: modeStr = "None"; break;
+        case ElementBeamCorrection: modeStr = "Element"; break;
+        case ArrayFactorBeamCorrection: modeStr = "ArrayFactor"; break;
+        case FullBeamCorrection: modeStr = "Full"; break;
+      }
+      // If no beam correction has been applied and the LOFAR beam fields don't
+      // exist, we have to do nothing (no fields implies no beam correction).
+      // If they do exist, we have to make sure they are set to indicate
+      // no beam correction.
+      if(fieldsExist || info.beamCorrectionMode() != NoBeamCorrection)
+      {
+        dataColumn.rwKeywordSet().define(beamModeFieldName, modeStr);
+        Record record;
+        MeasureHolder(info.beamCorrectionDir()).toRecord(record);
+        dataColumn.rwKeywordSet().defineRecord(beamDirFieldName, record);
+      }
     }
 
     void MSWriter::writeHistory (Table& ms, const ParameterSet& parset)
