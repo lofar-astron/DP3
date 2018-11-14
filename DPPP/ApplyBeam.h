@@ -39,6 +39,7 @@
 #endif
 
 #include <casacore/casa/Arrays/Cube.h>
+#include <casacore/measures/Measures/MDirection.h>
 
 namespace DP3 {
 
@@ -112,6 +113,8 @@ namespace DP3 {
         DPBuffer             itsBuffer;
         bool                 itsInvert;
         bool                 itsUpdateWeights;
+        vector<string>       itsDirectionStr;
+        casacore::MDirection itsDirection;
         bool                 itsUseChannelFreq;
         //Position             itsPhaseRef;
         BeamCorrectionMode   itsMode;
