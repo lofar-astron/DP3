@@ -490,6 +490,7 @@ namespace DP3 {
         << "  use model column:    " << boolalpha << itsUseModelColumn << '\n'
         << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
         << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
+        << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
         << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
