@@ -91,7 +91,7 @@ namespace DP3 {
       static void writeHistory (casacore::Table& ms,
                                 const ParameterSet& parset);
 
-      static void updateBeam (const std::string& outName, const DPInfo& info);
+      static void updateBeam (const std::string& outName, const std::string& outColName, const DPInfo& info);
 
     private:
       // Create an array column description and add to table with given

@@ -432,7 +432,7 @@ namespace DP3 {
       if (! info.phaseCenterIsOriginal()) {
         updatePhaseCentre (outName, info);
       }
-      updateBeam (outName, info);
+      updateBeam (outName, "DATA", info);
     }
 
     void MSWriter::updateSpw (const string& outName, const DPInfo& info)
@@ -503,14 +503,14 @@ namespace DP3 {
       phaseCol.put (0, dir);
     }
     
-    void MSWriter::updateBeam (const std::string& outName, const DPInfo& info)
+    void MSWriter::updateBeam (const std::string& outName, const std::string& outColName, const DPInfo& info)
     {
       const char
         *beamModeFieldName = "LOFAR_APPLIED_BEAM_MODE",
         *beamDirFieldName = "LOFAR_APPLIED_BEAM_DIR";
       
       Table mainTable(outName, Table::Update);
-      ArrayColumn<Complex> dataColumn(mainTable, info.getDataColName());
+      ArrayColumn<Complex> dataColumn(mainTable, outColName);
       bool fieldsExist = dataColumn.keywordSet().isDefined(beamModeFieldName);
       std::string modeStr;
       switch(info.beamCorrectionMode())

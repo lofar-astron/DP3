@@ -243,7 +243,7 @@ namespace DP3 {
           itsWeightColAdded = addColumn(itsWeightColName, TpFloat, cd);
         }
       }
-      MSWriter::updateBeam(itsMSName, info());
+      MSWriter::updateBeam(itsMSName, itsDataColName, info());
       // Subsequent steps have to set again if writes need to be done.
       info().clearWrites();
       info().clearMetaChanged();
