@@ -96,6 +96,16 @@ namespace DP3 {
       }
 
       if (itsUseH5Parm) {
+        string interpolationStr = (parset.isDefined(prefix + "interpolation") ?
+                            parset.getString(prefix + "interpolation") :
+                            parset.getString(prefix + "interpolation", "nearest"));
+        if (interpolationStr == "nearest") {
+          itsInterpolationType = InterpolationType::NEAREST;
+        } else if (interpolationStr == "linear") {
+          itsInterpolationType = InterpolationType::LINEAR;
+        } else {
+          throw std::runtime_error("Unsupported interpolation mode: " + interpolationStr);
+        }
         itsTimeSlotsPerParmUpdate = 0;
         string directionStr;
         directionStr = (parset.isDefined(prefix + "direction") ?
@@ -341,20 +351,21 @@ namespace DP3 {
         os << "  H5Parm:         " << itsParmDBName << '\n';
         os << "    SolSet:       " << itsH5Parm.getSolSetName() << '\n';
         os << "    SolTab:       " << itsSolTabName << '\n';
-        os << " Direction:       " << itsDirection << '\n';
+        os << "  Direction:      " << itsDirection << '\n';
+        os << "  Interpolation:  " << (itsInterpolationType==InterpolationType::NEAREST?"nearest":"linear") << '\n';
       } else {
-        os << "  parmdb:         " << itsParmDBName << '\n';
+        os << "  Parmdb:         " << itsParmDBName << '\n';
       }
-      os << "  correction:     " << correctTypeToString(itsCorrectType) << '\n';
+      os << "  Correction:     " << correctTypeToString(itsCorrectType) << '\n';
       if (itsCorrectType==GAIN || itsCorrectType==FULLJONES) {
         os << "    Ampl/Phase:   " << boolalpha << itsUseAP << '\n';
       }
-      os << "  update weights: " << boolalpha << itsUpdateWeights << '\n';
-      os << "  invert:         " << boolalpha << itsInvert <<'\n';
+      os << "  Update weights: " << boolalpha << itsUpdateWeights << '\n';
+      os << "  Invert:         " << boolalpha << itsInvert <<'\n';
       if (itsInvert) {
-      os << "    sigmaMMSE:    " << itsSigmaMMSE << '\n';
+      os << "    SigmaMMSE:    " << itsSigmaMMSE << '\n';
       }
-      os << "  timeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<'\n';
+      os << "  TimeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate <<'\n';
     }
 
     void OneApplyCal::showTimings (std::ostream& os, double duration) const
@@ -512,16 +523,18 @@ namespace DP3 {
               parmvalues[pol*2][ant] = itsSolTab.getValuesOrWeights("val",
                 info().antennaNames()[ant],
                 times, freqs,
-                pol, itsDirection);
+                pol, itsDirection, itsInterpolationType==InterpolationType::NEAREST);
               weights = itsSolTab.getValuesOrWeights("weight",
-                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+                info().antennaNames()[ant], times, freqs, pol, itsDirection,
+                itsInterpolationType==InterpolationType::NEAREST);
               applyFlags(parmvalues[pol*2][ant], weights);
               parmvalues[pol*2+1][ant] = itsSolTab2.getValuesOrWeights("val",
                 info().antennaNames()[ant],
                 times, freqs,
-                pol, itsDirection);
+                pol, itsDirection, itsInterpolationType==InterpolationType::NEAREST);
               weights = itsSolTab2.getValuesOrWeights("weight",
-                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+                info().antennaNames()[ant], times, freqs, pol, itsDirection,
+                itsInterpolationType==InterpolationType::NEAREST);
               applyFlags(parmvalues[pol*2+1][ant], weights);
             }
           }
@@ -530,9 +543,10 @@ namespace DP3 {
               parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
                 info().antennaNames()[ant],
                 times, freqs,
-                pol, itsDirection);
+                pol, itsDirection, itsInterpolationType==InterpolationType::NEAREST);
               weights = itsSolTab.getValuesOrWeights("weight",
-                info().antennaNames()[ant], times, freqs, pol, itsDirection);
+                info().antennaNames()[ant], times, freqs, pol, itsDirection,
+                itsInterpolationType==InterpolationType::NEAREST);
               applyFlags(parmvalues[pol][ant], weights);
             }
           }
