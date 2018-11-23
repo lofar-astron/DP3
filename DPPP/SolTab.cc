@@ -216,7 +216,7 @@ namespace DP3 {
               const string& antName,
               const vector<double>& times,
               const vector<double>& freqs,
-              uint pol, uint dir) {
+              uint pol, uint dir, bool nearest) {
     vector<double> res(times.size()*freqs.size());
 
     uint startTimeSlot = 0;
@@ -250,7 +250,8 @@ namespace DP3 {
     gridNearestNeighbor(timeAxisH5, freqAxisH5,
                         times, freqs,
                         &(h5values[0]),
-                        &(interpolated[0]));
+                        &(interpolated[0]),
+                        nearest);
 
     return interpolated;
   }

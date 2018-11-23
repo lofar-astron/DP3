@@ -96,7 +96,50 @@ namespace DP3 {
         }
       }
     } else {
-      throw std::logic_error("Not implemented");
+      for (size_t i=0; i<nx; ++i) {
+        for (size_t j=0; j<ny; ++j) {
+          size_t y0_idx, y1_idx;
+          bool interpolate_y = true;
+          if (y_tgt[j]<=y_src.front()) {
+            y0_idx = 0;
+            y1_idx = 0;
+            interpolate_y = false;
+          } else if (y_tgt[j]>=y_src.back()) {
+            y0_idx = y_src.size()-1;
+            y1_idx = y_src.size()-1;
+            interpolate_y = false;
+          } else {
+            y0_idx = y_indices[j];
+            y1_idx = y_indices[j]+1;
+          }
+
+          double f_y0, f_y1;
+          if (x_tgt[i]<=x_src.front()) {
+            f_y0 = vals_src[y0_idx];
+            f_y1 = vals_src[y1_idx];
+          }
+          else if (x_tgt[i]>=x_src.back()) {
+            f_y0 = vals_src[(x_src.size()-1)*ny_src+y0_idx];
+            f_y1 = vals_src[(x_src.size()-1)*ny_src+y1_idx];
+          }
+          else {
+            size_t x0_idx = x_indices[i];
+            double x0 = x_src[x0_idx];
+            double x1 = x_src[x0_idx+1];
+            double x = x_tgt[i];
+            f_y0 = vals_src[x0_idx*ny_src+y0_idx] + (x-x0)/(x1-x0) *(vals_src[(x0_idx+1)*ny_src+y0_idx]-vals_src[x0_idx*ny_src+y0_idx]);
+            f_y1 = vals_src[x0_idx*ny_src+y1_idx] + (x-x0)/(x1-x0) *(vals_src[(x0_idx+1)*ny_src+y1_idx]-vals_src[x0_idx*ny_src+y1_idx]);
+          }
+          if (interpolate_y) {
+            double y0 = y_src[y0_idx];
+            double y1 = y_src[y0_idx+1];
+            double y = y_tgt[j];
+            vals_tgt[i*ny+j] = f_y0 + (y-y0)/(y1-y0)*(f_y1-f_y0);
+          } else {
+            vals_tgt[i*ny+j] = f_y0;
+          }
+        }
+      }
     }
   }
 }

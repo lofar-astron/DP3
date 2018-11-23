@@ -139,9 +139,9 @@ namespace DP3 {
           // Get the values of this SolTab for a given antenna.
           std::vector<double> getValues(
                                         const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep=1,
-                                        uint startfreq=0, uint nfreq=1, uint freqstep=1,
-                                        uint pol=0, uint dir=0) {
+                                        uint starttimeslot, uint ntime, uint timestep,
+                                        uint startfreq, uint nfreq, uint freqstep,
+                                        uint pol, uint dir) {
             return getValuesOrWeights("val", antName,
                                       starttimeslot, ntime, timestep,
                                       startfreq, nfreq, freqstep,
@@ -151,9 +151,9 @@ namespace DP3 {
           // Get the weights of this SolTab for a given antenna.
           std::vector<double> getWeights(
                                         const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep=1,
-                                        uint startfreq=0, uint nfreq=1, uint freqstep=1,
-                                        uint pol=0, uint dir=0) {
+                                        uint starttimeslot, uint ntime, uint timestep,
+                                        uint startfreq, uint nfreq, uint freqstep,
+                                        uint pol, uint dir) {
             return getValuesOrWeights("weight", antName,
                                       starttimeslot, ntime, timestep,
                                       startfreq, nfreq, freqstep,
@@ -165,7 +165,7 @@ namespace DP3 {
                                         const std::string& antName,
                                         const std::vector<double>& times,
                                         const std::vector<double>& freqs,
-                                        uint pol, uint dir);
+                                        uint pol, uint dir, bool nearest);
         private:
           // Get the values or weights of this SolTab for a given antenna.
           std::vector<double> getValuesOrWeights(
