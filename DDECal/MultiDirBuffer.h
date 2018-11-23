@@ -45,19 +45,22 @@ public:
           {
             const size_t index = (bl*_nChannels+ch)*4+cr;
             
-            float wSqrt;
-            if(!std::isfinite(dataNoW[timestep][index].real()) || !std::isfinite(dataNoW[timestep][index].imag()))
+            if(!isfinite(dataNoW[timestep][index]))
               isFlagged = true;
             else {
-              wSqrt = sqrt(weights[timestep][index]);
+              float wSqrt = sqrt(weights[timestep][index]);
               _data[timestep][index] = dataNoW[timestep][index] * wSqrt;
-              for (size_t dir=0; dir<_nDirections; ++dir) {
+              for (size_t dir=0; dir<_nDirections; ++dir)
+              {
+                if(!isfinite(modelDataNoW[timestep][dir][index]))
+                  isFlagged = true;
                 _modelData[timestep][dir][index] = modelDataNoW[timestep][dir][index] * wSqrt;
               }
             }
           }
           
-          if(isFlagged) {
+          if(isFlagged)
+          {
             for (size_t cr=0; cr<4; ++cr)
             {
               const size_t index = (bl*_nChannels+ch)*4+cr;
@@ -76,7 +79,7 @@ public:
     return _data;
   }
 
-  const std::vector<std::vector<std::vector<Complex>>> ModelData() const
+  const std::vector<std::vector<std::vector<Complex>>>& ModelData() const
   {
     return _modelData;
   }
@@ -85,6 +88,11 @@ private:
   
   std::vector<std::vector<Complex>> _data;
   std::vector<std::vector<std::vector<Complex>>> _modelData;
+  
+  static bool isfinite(Complex c)
+  {
+    return std::isfinite(c.real()) && std::isfinite(c.imag());
+  }  
 };
   
 #endif
