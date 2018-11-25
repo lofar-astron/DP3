@@ -58,7 +58,7 @@ namespace DP3 {
       // This is a constructor for Demixer where the phasecenter has the
       // given default value.
       PhaseShift (DPInput*, const ParameterSet&, const string& prefix,
-                  const vector<string>& defVal);
+                  const std::vector<string>& defVal);
 
       virtual ~PhaseShift();
 
@@ -89,7 +89,7 @@ namespace DP3 {
         { return itsPhasors; }
 
       // Get the phase center.
-      const vector<string>& getPhaseCenter() const
+      const std::vector<string>& getPhaseCenter() const
         { return itsCenter; }
 
     private:
@@ -101,8 +101,8 @@ namespace DP3 {
       DPInput*             itsInput;
       string               itsName;
       DPBuffer             itsBuf;
-      vector<string>       itsCenter;
-      vector<double>       itsFreqC;      //# freq/C
+      std::vector<string>       itsCenter;
+      std::vector<double>       itsFreqC;      //# freq/C
       casacore::Matrix<double> itsMat1;       //# TT in phasehift.py
       double               itsXYZ[3];     //# numpy.dot((w-w1).T, T)
       casacore::Matrix<casacore::DComplex> itsPhasors; //# phase factor per chan,bl

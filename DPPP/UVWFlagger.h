@@ -83,10 +83,10 @@ namespace DP3 {
 
     private:
       // Test if uvw matches a range in meters.
-      bool testUVWm (double uvw, const vector<double>& ranges);
+      bool testUVWm (double uvw, const std::vector<double>& ranges);
 
       // Set flags for channels where uvw (in m) matches a range in wavelengths.
-      void testUVWl (double uvw, const vector<double>& ranges,
+      void testUVWl (double uvw, const std::vector<double>& ranges,
                      bool* flagPtr, uint nrcorr);
 
       // Return a vector with UVW ranges.
@@ -95,7 +95,7 @@ namespace DP3 {
       // (min and max are also turned into a range).
       // Optionally the values are squared to avoid having to take a sqrt
       // of the data's UVW coordinates.
-      vector<double> fillUVW (const ParameterSet& parset,
+      std::vector<double> fillUVW (const ParameterSet& parset,
                               const string& prefix,
                               const string& name,
                               bool square);
@@ -114,16 +114,16 @@ namespace DP3 {
       bool                 itsIsDegenerate;
 
       casacore::Vector<double> itsRecWavel; //# reciprokes of wavelengths
-      vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
-      vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged
-      vector<double>       itsRangeVm;  //# V  ranges (in m) to be flagged
-      vector<double>       itsRangeWm;  //# W  ranges (in m) to be flagged
-      vector<double>       itsRangeUVl; //# UV ranges (in wavel) to be flagged
-      vector<double>       itsRangeUl;  //# U  ranges (in wavel) to be flagged
-      vector<double>       itsRangeVl;  //# V  ranges (in wavel) to be flagged
-      vector<double>       itsRangeWl;  //# W  ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeUVm; //# UV ranges (in m) to be flagged
+      std::vector<double>       itsRangeUm;  //# U  ranges (in m) to be flagged
+      std::vector<double>       itsRangeVm;  //# V  ranges (in m) to be flagged
+      std::vector<double>       itsRangeWm;  //# W  ranges (in m) to be flagged
+      std::vector<double>       itsRangeUVl; //# UV ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeUl;  //# U  ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeVl;  //# V  ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeWl;  //# W  ranges (in wavel) to be flagged
       UVWCalculator        itsUVWCalc;
-      vector<string>       itsCenter;
+      std::vector<string>       itsCenter;
       NSTimer              itsTimer;
       NSTimer              itsUVWTimer;
       FlagCounter          itsFlagCounter;

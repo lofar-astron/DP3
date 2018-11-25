@@ -70,13 +70,13 @@ namespace BBS {
     // </group>
 
     // Set the default step values.
-    virtual void setDefaultSteps (const vector<double>&);
+    virtual void setDefaultSteps (const std::vector<double>&);
 
     // Get the parameter values for the given parameters and domain.
     // The parmids form the indices in the result vector.
-    virtual void getValues (vector<ParmValueSet>& values,
-                            const vector<uint>& nameIds,
-                            const vector<ParmId>& parmIds,
+    virtual void getValues (std::vector<ParmValueSet>& values,
+                            const std::vector<uint>& nameIds,
+                            const std::vector<ParmId>& parmIds,
                             const Box& domain);
 
     // Put the values for the given parameter name and id.

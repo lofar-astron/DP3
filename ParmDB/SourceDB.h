@@ -77,10 +77,10 @@ namespace BBS {
     virtual void checkDuplicates() = 0;
 
     // Find non-unique patch names.
-    virtual vector<string> findDuplicatePatches() = 0;
+    virtual std::vector<string> findDuplicatePatches() = 0;
 
     // Find non-unique source names.
-    virtual vector<string> findDuplicateSources() = 0;
+    virtual std::vector<string> findDuplicateSources() = 0;
 
     // Test if the patch already exists.
     virtual bool patchExists (const string& patchName) = 0;
@@ -132,27 +132,27 @@ namespace BBS {
     // Get patch names in order of category and decreasing apparent flux.
     // category < 0 means all categories.
     // A brightness < 0 means no test on brightness.
-    virtual vector<string> getPatches (int category, const string& pattern,
+    virtual std::vector<string> getPatches (int category, const string& pattern,
                                        double minBrightness,
                                        double maxBrightness) = 0;
 
     // Get the info of selected patches (default all patches).
-    virtual vector<PatchInfo> getPatchInfo (int category,
+    virtual std::vector<PatchInfo> getPatchInfo (int category,
                                             const string& pattern,
                                             double minBrightness,
                                             double maxBrightness) = 0;
 
     // Get the sources belonging to the given patch.
-    virtual vector<SourceInfo> getPatchSources (const string& patchName) = 0;
+    virtual std::vector<SourceInfo> getPatchSources (const string& patchName) = 0;
 
     // Get all data of the sources belonging to the given patch.
-    virtual vector<SourceData> getPatchSourceData (const string& patchName) = 0;
+    virtual std::vector<SourceData> getPatchSourceData (const string& patchName) = 0;
 
     // Get the source type of the given source.
     virtual SourceInfo getSource (const string& sourceName) = 0;
 
     // Get the info of all sources matching the given (filename like) pattern.
-    virtual vector<SourceInfo> getSources (const string& pattern) = 0;
+    virtual std::vector<SourceInfo> getSources (const string& pattern) = 0;
 
     // Delete the sources records matching the given (filename like) pattern.
     virtual void deleteSources (const std::string& sourceNamePattern) = 0;
@@ -217,11 +217,11 @@ namespace BBS {
       { itsRep->checkDuplicates(); }
 
     // Find non-unique patch names.
-    vector<string> findDuplicatePatches() const
+    std::vector<string> findDuplicatePatches() const
       { return itsRep->findDuplicatePatches(); }
 
     // Find non-unique source names.
-    vector<string> findDuplicateSources() const
+    std::vector<string> findDuplicateSources() const
       { return itsRep->findDuplicateSources(); }
 
     // Test if the patch already exists.
@@ -283,7 +283,7 @@ namespace BBS {
     // Get patch names in order of category and decreasing apparent flux.
     // category < 0 means all categories.
     // A brightness < 0 means no test on brightness.
-    vector<string> getPatches (int category = -1,
+    std::vector<string> getPatches (int category = -1,
                                const string& pattern = string(),
                                double minBrightness = -1,
                                double maxBrightness = -1) const
@@ -291,7 +291,7 @@ namespace BBS {
                                    minBrightness, maxBrightness); }
 
     // Get the info of all patches (name, ra, dec).
-    vector<PatchInfo> getPatchInfo (int category = -1,
+    std::vector<PatchInfo> getPatchInfo (int category = -1,
                                     const string& pattern = string(),
                                     double minBrightness = -1,
                                     double maxBrightness = -1) const
@@ -299,11 +299,11 @@ namespace BBS {
                                      minBrightness, maxBrightness); }
 
     // Get the info of the sources belonging to the given patch.
-    vector<SourceInfo> getPatchSources (const string& patchName) const
+    std::vector<SourceInfo> getPatchSources (const string& patchName) const
       { return itsRep->getPatchSources (patchName); }
 
     // Get all data of the sources belonging to the given patch.
-    vector<SourceData> getPatchSourceData (const string& patchName) const
+    std::vector<SourceData> getPatchSourceData (const string& patchName) const
       { return itsRep->getPatchSourceData (patchName); }
 
     // Get the source info of the given source.
@@ -311,7 +311,7 @@ namespace BBS {
       { return itsRep->getSource (sourceName); }
 
     // Get the info of all sources matching the given (filename like) pattern.
-    vector<SourceInfo> getSources (const string& sourceNamePattern) const
+    std::vector<SourceInfo> getSources (const string& sourceNamePattern) const
       { return itsRep->getSources (sourceNamePattern); }
 
     // Delete the sources records matching the given (filename like) pattern.

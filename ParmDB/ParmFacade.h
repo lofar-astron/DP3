@@ -73,18 +73,18 @@ namespace DP3 { namespace BBS {
     // parameters in the table.
     // This is the minimum start value and maximum end value for all parameters.
     // An empty name pattern is the same as * (all parm names).
-    vector<double> getRange (const string& parmNamePattern = string()) const
+    std::vector<double> getRange (const string& parmNamePattern = string()) const
       { return itsRep->getRange (parmNamePattern); }
 
     // Get parameter names in the table matching the pattern.
     // An empty name pattern is the same as * (all parm names).
-    vector<string> getNames (const string& parmNamePattern = string(),
+    std::vector<string> getNames (const string& parmNamePattern = string(),
                              bool includeDefaults = false) const
     { return itsRep->getNames (parmNamePattern, includeDefaults); }
 
     // Get default parameter names in the table matching the pattern.
     // An empty name pattern is the same as * (all parm names).
-    vector<string> getDefNames (const string& parmNamePattern = string()) const
+    std::vector<string> getDefNames (const string& parmNamePattern = string()) const
       { return itsRep->getDefNames (parmNamePattern); }
 
     // Get default values of parameters in the table matching the pattern.
@@ -139,10 +139,10 @@ namespace DP3 { namespace BBS {
     // represents center/width or start/end.
     // The Record contains a map of parameter name to Array<double>.
     casacore::Record getValues (const string& parmNamePattern,
-                            const vector<double>& freqv1,
-                            const vector<double>& freqv2,
-                            const vector<double>& timev1,
-                            const vector<double>& timev2,
+                            const std::vector<double>& freqv1,
+                            const std::vector<double>& freqv2,
+                            const std::vector<double>& timev1,
+                            const std::vector<double>& timev2,
                             bool asStartEnd=true,
                             bool includeDefaults=false)
       { return itsRep->getValues (parmNamePattern, freqv1, freqv2,
@@ -209,11 +209,11 @@ namespace DP3 { namespace BBS {
     // </group>
 
     // Get the default step values for the frequency and time axis.
-    vector<double> getDefaultSteps() const
+    std::vector<double> getDefaultSteps() const
       { return itsRep->getDefaultSteps(); }
 
     // Set the default step values for the frequency and time axis.
-    void setDefaultSteps (const vector<double>& steps)
+    void setDefaultSteps (const std::vector<double>& steps)
       { itsRep->setDefaultSteps (steps); }
 
     // Add the values for the given parameter names and domain.

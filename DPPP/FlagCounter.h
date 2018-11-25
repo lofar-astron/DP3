@@ -80,11 +80,11 @@ namespace DP3 {
       void add (const FlagCounter& that);
 
       // Get the counts.
-      const vector<int64_t>& baselineCounts() const
+      const std::vector<int64_t>& baselineCounts() const
         { return itsBLCounts; }
-      const vector<int64_t>& channelCounts() const
+      const std::vector<int64_t>& channelCounts() const
         { return itsChanCounts; }
-      const vector<int64_t>& correlationCounts() const
+      const std::vector<int64_t>& correlationCounts() const
         { return itsCorrCounts; }
 
       // Print the counts and optionally save percentages in a table.
@@ -112,9 +112,9 @@ namespace DP3 {
       string        itsSaveName;
       double        itsWarnPerc;
       bool          itsShowFF;
-      vector<int64_t> itsBLCounts;
-      vector<int64_t> itsChanCounts;
-      vector<int64_t> itsCorrCounts;
+      std::vector<int64_t> itsBLCounts;
+      std::vector<int64_t> itsChanCounts;
+      std::vector<int64_t> itsCorrCounts;
     };
 
   } //# end namespace

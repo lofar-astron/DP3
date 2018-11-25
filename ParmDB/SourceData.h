@@ -89,7 +89,7 @@ namespace BBS {
       { return itsPolFrac; }
     double getRotationMeasure() const
       { return itsRM; }
-    const vector<double>& getSpectralTerms() const
+    const std::vector<double>& getSpectralTerms() const
       { return itsSpTerms; }
 
     // Set the various source parameters.
@@ -121,7 +121,7 @@ namespace BBS {
       { itsPolFrac =  polarizedFraction; }
     void setRotationMeasure (double potationMeasure)
       { itsRM = potationMeasure; }
-    void setSpectralTerms (const vector<double>& spectralTerms)
+    void setSpectralTerms (const std::vector<double>& spectralTerms)
       { itsSpTerms = spectralTerms; }
 
     // Set the parameters from a ParmMap object.
@@ -165,7 +165,7 @@ namespace BBS {
     double         itsPolAngle;
     double         itsPolFrac;
     double         itsRM;
-    vector<double> itsSpTerms;
+    std::vector<double> itsSpTerms;
   };
 
   // @}

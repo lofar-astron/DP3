@@ -13,7 +13,7 @@ KLFitter::KLFitter(double r0,double beta,int order):
 
 
 
-void KLFitter::calculateCorrMatrix(const vector<PiercePoint> pp){
+void KLFitter::calculateCorrMatrix(const std::vector<PiercePoint> pp){
   itsPiercePoints.set_size(pp.size(),3);
   _phases.set_size(pp.size());
   _weights=eye<mat>(pp.size(),pp.size()); //TODO, make weights sensible
@@ -35,7 +35,7 @@ void KLFitter::calculateCorrMatrix(const vector<PiercePoint> pp){
   itsinvU=inv(itsU.t()*(_weights*itsU)); 
 }
 
-void KLFitter::calculateCorrMatrix(const vector<PiercePoint*> pp){
+void KLFitter::calculateCorrMatrix(const std::vector<PiercePoint*> pp){
   itsPiercePoints.set_size(pp.size(),3);
   _phases.set_size(pp.size());
   _weights=eye<mat>(pp.size(),pp.size()); //TODO, make weights sensible

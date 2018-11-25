@@ -103,11 +103,11 @@ namespace DP3 {
       // Flag for the entry at the given index.
       // Use the given time entries for the medians.
       // Process the result in the next step.
-      void flag (uint index, const vector<uint>& timeEntries);
+      void flag (uint index, const std::vector<uint>& timeEntries);
 
       // Compute the median factors for given baseline, channel, and
       // correlation.
-      void computeFactors (const vector<uint>& timeEntries,
+      void computeFactors (const std::vector<uint>& timeEntries,
                            uint bl, int chan, int corr,
                            int nchan, int ncorr,
                            float& Z1, float& Z2,
@@ -124,23 +124,23 @@ namespace DP3 {
       string           itsThresholdStr;
       string           itsFreqWindowStr;
       string           itsTimeWindowStr;
-      vector<float>    itsThresholdArr;  //# threshold per baseline
-      vector<uint>     itsFreqWindowArr; //# freq window size per baseline
-      vector<uint>     itsTimeWindowArr; //# time window size per baseline
+      std::vector<float>    itsThresholdArr;  //# threshold per baseline
+      std::vector<uint>     itsFreqWindowArr; //# freq window size per baseline
+      std::vector<uint>     itsTimeWindowArr; //# time window size per baseline
       float            itsThreshold;
       uint             itsFreqWindow;
       uint             itsTimeWindow;
       uint             itsNTimes;
       uint             itsNTimesDone;
-      vector<uint>     itsFlagCorr;
+      std::vector<uint>     itsFlagCorr;
       bool             itsApplyAutoCorr;
-      vector<int>      itsAutoCorrIndex; //# baseline index of autocorrelations
+      std::vector<int>      itsAutoCorrIndex; //# baseline index of autocorrelations
       uint             itsNrAutoCorr;
       double           itsMinBLength;    //# minimum baseline length
       double           itsMaxBLength;    //# maximum baseline length
-      vector<double>   itsBLength;       //# length of each baseline
-      vector<DPBuffer> itsBuf;
-      vector<casacore::Cube<float> > itsAmpl; //# amplitudes of the data
+      std::vector<double>   itsBLength;       //# length of each baseline
+      std::vector<DPBuffer> itsBuf;
+      std::vector<casacore::Cube<float> > itsAmpl; //# amplitudes of the data
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
       NSTimer          itsComputeTimer;  //# move/median timer

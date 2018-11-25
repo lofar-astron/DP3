@@ -94,9 +94,9 @@ namespace DP3 {
       // with ! or ^ meaning that the the matches are discarded. In this
       // way first a broad pattern can be given, which can be narrowed down.
       // A warning is given if a pattern does not match any station name.
-      static vector<int> getMatchingStations
+      static std::vector<int> getMatchingStations
       (const casacore::Vector<casacore::String>& antennaNames,
-       const vector<string>& patterns);
+       const std::vector<string>& patterns);
 
     private:
       // Update the beam info subtables.
@@ -109,8 +109,8 @@ namespace DP3 {
       DPBuffer        itsBuf;
       DPBuffer        itsBufTmp;
       ParameterRecord itsStatRec;     // stations definitions
-      vector<casacore::Vector<int> > itsParts;  // the stations in each superstation
-      vector<vector<int> > itsBufRows; // old baseline rows in each new baseline
+      std::vector<casacore::Vector<int> > itsParts;  // the stations in each superstation
+      std::vector<std::vector<int> > itsBufRows; // old baseline rows in each new baseline
       uint            itsMinNPoint  ;  // flag data if too few unflagged data
       bool            itsMakeAutoCorr; // also form new auto-correlations?
       bool            itsSumAutoCorr;  // sum auto- or cross-correlations?

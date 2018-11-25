@@ -130,7 +130,7 @@ namespace DP3 {
     public:
       // Construct the object for the given MS.
       // Parameters are obtained from the parset using the given prefix.
-      MultiMSReader (const vector<string>& msNames,
+      MultiMSReader (const std::vector<string>& msNames,
                      const ParameterSet&, const string& prefix);
 
       virtual ~MultiMSReader();
@@ -186,10 +186,10 @@ namespace DP3 {
       bool                  itsOrderMS;   //# sort multi MS in order of freq?
       int                   itsFirst;     //# first valid MSReader (<0 = none)
       int                   itsNMissing;  //# nr of missing MSs
-      vector<string>        itsMSNames;
-      vector<MSReader*>     itsReaders;   //# same as itsSteps
-      vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
-      vector<DPBuffer>      itsBuffers;
+      std::vector<string>        itsMSNames;
+      std::vector<MSReader*>     itsReaders;   //# same as itsSteps
+      std::vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
+      std::vector<DPBuffer>      itsBuffers;
       uint                  itsFillNChan; //# nr of chans for missing MSs
       FlagCounter           itsFlagCounter;
       bool                  itsRegularChannels; // Are resulting channels regularly spaced

@@ -41,12 +41,12 @@ using BBS::SourceData;
 using BBS::SourceInfo;
 
 
-vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
-                                    const vector<string> &patchNames,
+std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
+                                    const std::vector<string> &patchNames,
                                     uint nModel)
 {
   // Create a component list for each patch name.
-  vector<vector<ModelComponent::Ptr> > componentsList(nModel);
+  std::vector<std::vector<ModelComponent::Ptr> > componentsList(nModel);
 
   // Loop over all sources.
   sourceDB.lock();
@@ -126,7 +126,7 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   }
   sourceDB.unlock();
 
-  vector<Patch::ConstPtr> patchList;
+  std::vector<Patch::ConstPtr> patchList;
   patchList.reserve (componentsList.size());
   for (uint i=0; i<componentsList.size(); ++i) {
     if (componentsList[i].empty())
@@ -135,7 +135,7 @@ vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
     Patch::Ptr ppatch(new Patch(patchNames[i],
                                 componentsList[i].begin(),
                                 componentsList[i].end()));
-    vector<BBS::PatchInfo> patchInfo(sourceDB.getPatchInfo(-1, patchNames[i]));
+    std::vector<BBS::PatchInfo> patchInfo(sourceDB.getPatchInfo(-1, patchNames[i]));
     assert (patchInfo.size() == 1);
     // Set the position and apparent flux of the patch.
     Position patchPosition;
@@ -176,16 +176,16 @@ makeSourceList (const std::vector<Patch::ConstPtr>& patchList) {
 }
 
 
-vector<Patch::ConstPtr> makeOnePatchPerComponent(
-    const vector<Patch::ConstPtr>& patchList) {
+std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
+    const std::vector<Patch::ConstPtr>& patchList) {
     size_t numComponents=0;
-    vector<Patch::ConstPtr>::const_iterator patchIt;
+    std::vector<Patch::ConstPtr>::const_iterator patchIt;
 
     for (patchIt=patchList.begin();patchIt!=patchList.end();++patchIt) {
         numComponents+=(*patchIt)->nComponents();
     }
 
-    vector<Patch::ConstPtr> largePatchList;
+    std::vector<Patch::ConstPtr> largePatchList;
     largePatchList.reserve(numComponents);
 
     for (patchIt=patchList.begin();patchIt!=patchList.end();++patchIt) {
@@ -210,7 +210,7 @@ vector<Patch::ConstPtr> makeOnePatchPerComponent(
 }
 
 
-vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
+std::vector<string> makePatchList(SourceDB &sourceDB, std::vector<string> patterns)
 {
     if(patterns.empty())
     {
@@ -218,7 +218,7 @@ vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
     }
 
     std::set<string> patches;
-    vector<string>::iterator it = patterns.begin();
+    std::vector<string>::iterator it = patterns.begin();
     while(it != patterns.end())
     {
         if(!it->empty() && (*it)[0] == '@')
@@ -228,18 +228,18 @@ vector<string> makePatchList(SourceDB &sourceDB, vector<string> patterns)
         }
         else
         {
-            vector<string> match(sourceDB.getPatches(-1, *it));
+            std::vector<string> match(sourceDB.getPatches(-1, *it));
             patches.insert(match.begin(), match.end());
             ++it;
         }
     }
 
-    return vector<string>(patches.begin(), patches.end());
+    return std::vector<string>(patches.begin(), patches.end());
 }
 
 
 bool checkPolarized(SourceDB &sourceDB,
-                    const vector<string> &patchNames,
+                    const std::vector<string> &patchNames,
                     uint nModel)
 {
   bool polarized = false;

@@ -71,16 +71,16 @@ namespace DP3 { namespace BBS {
     // parameters in the table.
     // This is the minimum start value and maximum end value for all parameters.
     // An empty name pattern is the same as * (all parm names).
-    virtual vector<double> getRange (const string& parmNamePattern) const;
+    virtual std::vector<double> getRange (const string& parmNamePattern) const;
 
     // Get parameter names in the table matching the pattern.
     // An empty name pattern is the same as * (all parm names).
-    virtual vector<string> getNames (const string& parmNamePattern,
+    virtual std::vector<string> getNames (const string& parmNamePattern,
                                      bool includeDefaults) const;
 
     // Get default parameter names matching the pattern.
     // An empty name pattern is the same as * (all parm names).
-    virtual vector<string> getDefNames (const string& parmNamePattern) const;
+    virtual std::vector<string> getDefNames (const string& parmNamePattern) const;
 
     // Get the default values of parameters matching the pattern.
     virtual casacore::Record getDefValues (const string& parmNamePattern) const;
@@ -106,10 +106,10 @@ namespace DP3 { namespace BBS {
     // represents center/width or start/end.
     // The Record contains a map of parameter name to Array<double>.
     virtual casacore::Record getValues (const string& parmNamePattern,
-                                    const vector<double>& freqv1,
-                                    const vector<double>& freqv2,
-                                    const vector<double>& timev1,
-                                    const vector<double>& timev2,
+                                    const std::vector<double>& freqv1,
+                                    const std::vector<double>& freqv2,
+                                    const std::vector<double>& timev1,
+                                    const std::vector<double>& timev2,
                                     bool asStartEnd,
                                     bool includeDefaults);
 
@@ -145,10 +145,10 @@ namespace DP3 { namespace BBS {
     // </group>
 
     // Get the default step values for the axes.
-    virtual vector<double> getDefaultSteps() const;
+    virtual std::vector<double> getDefaultSteps() const;
 
     // Set the default step values.
-    virtual void setDefaultSteps (const vector<double>&);
+    virtual void setDefaultSteps (const std::vector<double>&);
 
     // Add the values for the given parameter names and domain.
     virtual void addValues (const casacore::Record& rec);

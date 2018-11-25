@@ -79,7 +79,7 @@ namespace DP3 {
       // Process the data in the input buffers and store the result in the
       // output buffers.
       void process (const DPBuffer* bufin, uint nbufin,
-                    DPBuffer* bufout, vector<double>* solutions,
+                    DPBuffer* bufout, std::vector<double>* solutions,
                     uint chunkNr);
 
       // Get the number of solves.
@@ -149,17 +149,17 @@ namespace DP3 {
       // Average the baseline UVWs in bufin and split them into UVW per station.
       // It returns the number of time averages.
       uint avgSplitUVW (const DPBuffer* bufin, uint nbufin,
-                        uint ntimeAvg, const vector<uint>& selbl);
+                        uint ntimeAvg, const std::vector<uint>& selbl);
 
       // Predict the target StokesI amplitude.
       // It applies the beam at each target patch.
-      void predictTarget (const vector<Patch::ConstPtr>& patchList,
+      void predictTarget (const std::vector<Patch::ConstPtr>& patchList,
                           uint ntime, double time, double timeStep);
 
       // Predict the StokesI amplitude of the Ateam patches and determine
       // which antennae and sources to use when demixing.
       // It applies the beam at each patch center.
-      void predictAteam (const vector<Patch::ConstPtr>& patchList,
+      void predictAteam (const std::vector<Patch::ConstPtr>& patchList,
                          uint ntime, double time, double timeStep);
 
       // Add the StokesI of itsPredictVis to ampl.
@@ -201,18 +201,18 @@ namespace DP3 {
 
       // Deproject the sources without a model.
       void deproject (casacore::Array<casacore::DComplex>& factors,
-                      vector<MultiResultStep*> avgResults,
+                      std::vector<MultiResultStep*> avgResults,
                       uint resultIndex);
 
       // Do the demixing.
-      void handleDemix (DPBuffer* bufout, vector<double>* solutions,
+      void handleDemix (DPBuffer* bufout, std::vector<double>* solutions,
                         double time, double timeStep);
 
       // Solve gains and subtract sources.
-      void demix (vector<double>* solutions, double time, double timeStep);
+      void demix (std::vector<double>* solutions, double time, double timeStep);
 
       // Add amplitude subtracted to the arrays for mean and stddev.
-      void addMeanM2 (const vector<float>& sourceAmpl, uint src);
+      void addMeanM2 (const std::vector<float>& sourceAmpl, uint src);
 
       // Merge the data of the selected baselines from the subtract buffer
       // into the full buffer.
@@ -221,14 +221,14 @@ namespace DP3 {
       //# Data members.
       int                                   itsWorkerNr;
       const DemixInfo*                      itsMix;
-      vector<PhaseShift*>                   itsOrigPhaseShifts;
+      std::vector<PhaseShift*>                   itsOrigPhaseShifts;
       //# Phase shift and average steps for demix.
-      vector<DPStep::ShPtr>                 itsOrigFirstSteps;
+      std::vector<DPStep::ShPtr>                 itsOrigFirstSteps;
       //# Result of phase shifting and averaging the directions of interest
       //# at the demix resolution.
-      vector<MultiResultStep*>              itsAvgResults;
-      vector<PhaseShift*>                   itsPhaseShifts;
-      vector<DPStep::ShPtr>                 itsFirstSteps;
+      std::vector<MultiResultStep*>              itsAvgResults;
+      std::vector<PhaseShift*>                   itsPhaseShifts;
+      std::vector<DPStep::ShPtr>                 itsFirstSteps;
       DPStep::ShPtr                         itsAvgStepSubtr;
       Filter                                itsFilter;
       Filter*                               itsFilterSubtr;
@@ -236,10 +236,10 @@ namespace DP3 {
       MultiResultStep*                      itsAvgResultFull;
       MultiResultStep*                      itsAvgResultSubtr;
       //# The sources to demix (excluding target).
-      vector<Patch::ConstPtr>               itsDemixList;
+      std::vector<Patch::ConstPtr>               itsDemixList;
 #ifdef HAVE_LOFAR_BEAM
       //# The info needed to calculate the station beams.
-      vector<LOFAR::StationResponse::Station::Ptr> itsAntBeamInfo;
+      std::vector<LOFAR::StationResponse::Station::Ptr> itsAntBeamInfo;
 #endif
       //# Measure objects unique to this worker (thread).
       //# This is needed because they are not thread-safe.
@@ -260,7 +260,7 @@ namespace DP3 {
       //# Buffer of demixing weights at the demix resolution. Each Array is a
       //# cube of shape #correlations x #channels x #baselines of matrices of
       //# shape #directions x #directions.
-      vector<casacore::Array<casacore::DComplex> >  itsFactors;
+      std::vector<casacore::Array<casacore::DComplex> >  itsFactors;
       //# Accumulator used for computing the demixing weights. The shape of this
       //# buffer is #correlations x #channels x #baselines x #directions
       //# x #directions (fastest axis first).
@@ -268,50 +268,50 @@ namespace DP3 {
       //# Buffer of demixing weights at the subtract resolution. Each Array is a
       //# cube of shape #correlations x #channels x #baselines of matrices of
       //# shape #directions x #directions.
-      vector<casacore::Array<casacore::DComplex> >  itsFactorsSubtr;
+      std::vector<casacore::Array<casacore::DComplex> >  itsFactorsSubtr;
 
       //# Variables for conversion of directions to ITRF.
       casacore::MeasFrame                       itsMeasFrame;
       casacore::MDirection::Convert             itsMeasConverter;
-      vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
+      std::vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
 
       //# Indices telling which Ateam sources to use.
-      vector<uint>                          itsSrcSet;
+      std::vector<uint>                          itsSrcSet;
       //# UVW per station per demix time slot
       casacore::Cube<double>                    itsStationUVW;  //# UVW per station
       casacore::Matrix<double>                  itsAvgUVW;      //# temp buffer
       casacore::Cube<dcomplex>                  itsPredictVis;  //# temp buffer
       //# #nfreq x #bl x #time StokesI amplitude per A-source.
-      vector<casacore::Cube<float> >            itsAteamAmpl;
+      std::vector<casacore::Cube<float> >            itsAteamAmpl;
       //# #bl x #src telling if baseline has sufficient Ateam flux.
       casacore::Matrix<bool>                    itsAteamAmplSel;
       //# #nfreq x #bl x #time StokesI amplitude of target.
       casacore::Cube<float>                     itsTargetAmpl;
       //# Temporary buffer to determine medians.
-      vector<float>                         itsTmpAmpl;
+      std::vector<float>                         itsTmpAmpl;
       //# Per A-source and for target the min and max amplitude.
-      vector<double>                        itsAteamMinAmpl;
-      vector<double>                        itsAteamMaxAmpl;
+      std::vector<double>                        itsAteamMinAmpl;
+      std::vector<double>                        itsAteamMaxAmpl;
       double                                itsTargetMinAmpl;
       double                                itsTargetMaxAmpl;
       //# Per A-source the stations to use (matching the minimum amplitude).
-      vector<vector<uint> >                 itsStationsToUse;
+      std::vector<std::vector<uint> >                 itsStationsToUse;
       casacore::Block<bool>                     itsSolveStation; //# solve station i?
       //# Per station and source the index in the unknowns vector.
       //# Note there are 8 unknowns (4 pol, ampl/phase) per source/station.
-      vector<vector<int> >                  itsUnknownsIndex;
+      std::vector<std::vector<int> >                  itsUnknownsIndex;
       //# The estimater (solver).
       EstimateNew                           itsEstimate;
       //# Variables for the predict.
       casacore::Matrix<double>                  itsUVW;
-      vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
-      vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
+      std::vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
+      std::vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
       uint                                  itsNTimeOut;
       uint                                  itsNTimeOutSubtr;
       uint                                  itsTimeIndex;
-      vector<float>                         itsObservedAmpl;
-      vector<float>                         itsSourceAmpl;
-      vector<float>                         itsSumSourceAmpl;
+      std::vector<float>                         itsObservedAmpl;
+      std::vector<float>                         itsSourceAmpl;
+      std::vector<float>                         itsSumSourceAmpl;
       //# Statistics
       uint                                  itsNrSolves;
       uint                                  itsNrConverged;

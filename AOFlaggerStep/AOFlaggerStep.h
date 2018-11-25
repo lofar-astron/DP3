@@ -140,7 +140,7 @@ namespace DP3 {
       bool             itsPedantic;
       bool             itsDoAutoCorr;
       bool             itsDoRfiStats;
-      vector<DPBuffer> itsBuf;
+      std::vector<DPBuffer> itsBuf;
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
       NSTimer          itsQualityTimer;  //# quality writing timer

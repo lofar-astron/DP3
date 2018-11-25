@@ -68,32 +68,32 @@ namespace DP3 {
 
     // Combine the given VDS file into a global VDS file.
     static void combine (const string& gdsName,
-                         const vector<string>& vdsNames);
+                         const std::vector<string>& vdsNames);
 
   private:
     // Get the frequency info for each spectral window in the MS.
     // The vectors get the start and end frequency of each channel.
-    static void getFreqInfo (casacore::MS& ms, vector<int>& nrchan,
-			     vector<casacore::Vector<double> >& startFreq,
-			     vector<casacore::Vector<double> >& endFreq);
+    static void getFreqInfo (casacore::MS& ms, std::vector<int>& nrchan,
+			     std::vector<casacore::Vector<double> >& startFreq,
+			     std::vector<casacore::Vector<double> >& endFreq);
 
     // Get the directions of the fields.
     static void getFields (casacore::MS& ms,
-			   vector<double>& ra, vector<double>& dec,
-                           vector<string>& refType);
+			   std::vector<double>& ra, std::vector<double>& dec,
+                           std::vector<string>& refType);
 
     // Get the names of the antennae (stations).
-    static void getAntNames (casacore::MS& ms, vector<string>& antNames);
+    static void getAntNames (casacore::MS& ms, std::vector<string>& antNames);
 
     // Get the names of the correlations (polarisations).
-    static void getCorrInfo (casacore::MS& ms, vector<string>& corrTypes);
+    static void getCorrInfo (casacore::MS& ms, std::vector<string>& corrTypes);
 
     // Find out which file contains the DATA column.
     // Determine if the DATA are stored in a TSM file of itself.
     // Determine the cube and tile shape.
     static void getDataFileInfo (casacore::MS& ms, string& name, bool& regular,
-				 vector<int>& tileShape,
-				 vector<int>& cubeShape);
+				 std::vector<int>& tileShape,
+				 std::vector<int>& cubeShape);
 
     // Find the file system on which the given file is located.
     // If the host name is empty, gethostname() will be used.

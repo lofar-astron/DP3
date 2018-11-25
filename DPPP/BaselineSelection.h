@@ -94,7 +94,7 @@ namespace DP3 {
       //# Data members
       string itsStrBL;
       string itsCorrType;
-      vector<double> itsRangeBL;
+      std::vector<double> itsRangeBL;
     };
 
   } //# end namespace

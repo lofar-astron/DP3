@@ -82,15 +82,15 @@ namespace DP3 {
 
     private:
       // Fill the scale factors for stations having different nr of tiles.
-      void fillSizeScaleFactors (uint nNominal, vector<double>& fact);
+      void fillSizeScaleFactors (uint nNominal, std::vector<double>& fact);
 
       //# Data members.
       string             itsName;
       bool               itsScaleSizeGiven;
       bool               itsScaleSize;
-      vector<string>     itsStationExp;  // station regex strings
-      vector<string>     itsCoeffStr;    // coeff per station regex
-      vector<vector<double> > itsStationFactors; // scale factor per station,freq
+      std::vector<string>     itsStationExp;  // station regex strings
+      std::vector<string>     itsCoeffStr;    // coeff per station regex
+      std::vector<std::vector<double> > itsStationFactors; // scale factor per station,freq
       casacore::Cube<double> itsFactors;     // scale factor per baseline,freq,pol
       NSTimer            itsTimer;
     };
