@@ -80,11 +80,11 @@ namespace BBS {
 
     // Get the coefficients for the given location in the solve grid.
     // The solve grid must have been set before.
-    vector<double> getCoeff (const Location&, bool useMask=true);
+    std::vector<double> getCoeff (const Location&, bool useMask=true);
 
     // Get the errors for the given location in the solve grid.
     // The solve grid must have been set before.
-    vector<double> getErrors (const Location&, bool useMask=true);
+    std::vector<double> getErrors (const Location&, bool useMask=true);
 
     // Set the coefficients for the given location in the solve grid.
     // If given, the errors are set too.
@@ -101,7 +101,7 @@ namespace BBS {
 
     // Get the perturbations for the coefficients.
     // The possible mask is applied.
-    const vector<double>& getPerturbations() const
+    const std::vector<double>& getPerturbations() const
       { return itsPerturbations; }
 
     // Get a particular perturbation.
@@ -132,11 +132,11 @@ namespace BBS {
     // Otherwise only the first array in the vector is filled in.
     // As above, the shape of the array is normally [nx,ny],
     // but can be [1,1] if constant.
-    void getResult (vector<casacore::Array<double> >& result,
+    void getResult (std::vector<casacore::Array<double> >& result,
                     const Grid& predictGrid, bool perturb);
 
     // Form the vector from values and mask.
-    static vector<double> copyValues (const casacore::Array<double>& values,
+    static std::vector<double> copyValues (const casacore::Array<double>& values,
                                       const casacore::Array<bool>& mask,
                                       bool useMask);
 
@@ -144,7 +144,7 @@ namespace BBS {
     static void getResultCoeff (casacore::Array<double>* resultVec,
                                 const Grid& predictGrid,
                                 const ParmValueSet& pvset,
-                                const vector<double>& perturbations,
+                                const std::vector<double>& perturbations,
                                 AxisMappingCache& axisMappingCache);
 
     // Get the result for a single ParmValue with an array of scalars.
@@ -174,7 +174,7 @@ namespace BBS {
     ParmCache*     itsCache;
     ParmId         itsParmId;
     Grid           itsSolveGrid;
-    vector<double> itsPerturbations;
+    std::vector<double> itsPerturbations;
   };
 
   // @}

@@ -92,21 +92,21 @@ namespace DP3 {
       bool   solveBoth() const                   {return itsSolveBoth;}
       bool   doSubtract() const                  {return itsDoSubtract;}
       const BaselineSelection& selBL() const     {return itsSelBL;}
-      const vector<int>& uvwSplitIndex() const   {return itsUVWSplitIndex;}
+      const std::vector<int>& uvwSplitIndex() const   {return itsUVWSplitIndex;}
       const string& predictModelName() const     {return itsPredictModelName;}
       const string& demixModelName() const       {return itsDemixModelName;}
       const string& targetModelName() const      {return itsTargetModelName;}
-      const vector<string>& sourceNames() const  {return itsSourceNames;}
+      const std::vector<string>& sourceNames() const  {return itsSourceNames;}
       const Position& phaseRef() const           {return itsPhaseRef;}
-      const vector<Baseline>& baselines() const  {return itsBaselines;}
+      const std::vector<Baseline>& baselines() const  {return itsBaselines;}
       const casacore::Vector<bool> selTarget() const {return itsSelTarget;}
       const casacore::Vector<double>& freqDemix() const      {return itsFreqDemix;}
       const casacore::Vector<double>& freqSubtr() const      {return itsFreqSubtr;}
-      const vector<Patch::ConstPtr>& ateamList() const   {return itsAteamList;}
-      const vector<Patch::ConstPtr>& targetList() const  {return itsTargetList;}
-      const vector<Patch::ConstPtr>& ateamDemixList() const
+      const std::vector<Patch::ConstPtr>& ateamList() const   {return itsAteamList;}
+      const std::vector<Patch::ConstPtr>& targetList() const  {return itsTargetList;}
+      const std::vector<Patch::ConstPtr>& ateamDemixList() const
         {return itsAteamDemixList;}
-      const vector<Patch::ConstPtr>& targetDemixList() const
+      const std::vector<Patch::ConstPtr>& targetDemixList() const
         {return itsTargetDemixList;}
 
       // Get the baselines.
@@ -135,8 +135,8 @@ namespace DP3 {
 
     private:
       // Create a list of patches (and components).
-      vector<Patch::ConstPtr> makePatchList (const string& sdbName,
-                                             const vector<string>& patchNames);
+      std::vector<Patch::ConstPtr> makePatchList (const string& sdbName,
+                                             const std::vector<string>& patchNames);
 
       // Make the target list for demixing with a detailed model for the
       // possible Ateam sources in it.
@@ -146,11 +146,11 @@ namespace DP3 {
       DPInfo                  itsInfoSel;
       BaselineSelection       itsSelBL;
       BaselineSelection       itsSelBLTarget;
-      vector<int>             itsUVWSplitIndex;
+      std::vector<int>             itsUVWSplitIndex;
       string                  itsPredictModelName;
       string                  itsDemixModelName;
       string                  itsTargetModelName;
-      vector<string>          itsSourceNames;
+      std::vector<string>          itsSourceNames;
       double                  itsRatio1;
       double                  itsRatio2;
       double                  itsAteamAmplThreshold;
@@ -185,16 +185,16 @@ namespace DP3 {
       uint                    itsNTimeChunk;        //# nr chunks in parallel
       double                  itsTimeIntervalAvg;
       Position                itsPhaseRef;          //# original phaseref
-      vector<Baseline>        itsBaselines;
+      std::vector<Baseline>        itsBaselines;
       casacore::Vector<bool>      itsSelTarget;     //# baselines in target estimate
       casacore::Vector<double>    itsFreqDemix;
       casacore::Vector<double>    itsFreqSubtr;
-      vector<Patch::ConstPtr> itsAteamList;
-      vector<Patch::ConstPtr> itsTargetList;
-      vector<Patch::ConstPtr> itsAteamDemixList;
-      vector<Patch::ConstPtr> itsTargetDemixList;
-      vector<string>          itsAteamRemoved;
-      vector<string>          itsTargetReplaced;
+      std::vector<Patch::ConstPtr> itsAteamList;
+      std::vector<Patch::ConstPtr> itsTargetList;
+      std::vector<Patch::ConstPtr> itsAteamDemixList;
+      std::vector<Patch::ConstPtr> itsTargetDemixList;
+      std::vector<string>          itsAteamRemoved;
+      std::vector<string>          itsTargetReplaced;
     };
 
   } //# end namespace

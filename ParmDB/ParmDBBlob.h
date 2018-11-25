@@ -69,13 +69,13 @@ namespace BBS {
 
     // Set the default step values.
     // It throws a "not implemented" exception.
-    virtual void setDefaultSteps (const vector<double>&);
+    virtual void setDefaultSteps (const std::vector<double>&);
 
     // Get the parameter values for the given parameters and domain.
     // It throws a "not implemented" exception.
-    virtual void getValues (vector<ParmValueSet>& values,
-                            const vector<uint>& nameIds,
-                            const vector<ParmId>& parmIds,
+    virtual void getValues (std::vector<ParmValueSet>& values,
+                            const std::vector<uint>& nameIds,
+                            const std::vector<ParmId>& parmIds,
                             const Box& domain);
 
     // Put the values for the given parameter name and id.

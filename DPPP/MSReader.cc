@@ -108,7 +108,7 @@ namespace DP3 {
       // See if a selection on band needs to be done.
       // We assume that DATA_DESC_ID and SPW_ID map 1-1.
       if (itsSpw >= 0) {
-        DPLOG_INFO_STR (" MSReader selecting spectral window " + to_string(itsSpw) + " ...");
+        DPLOG_INFO_STR (" MSReader selecting spectral window " + std::to_string(itsSpw) + " ...");
         Table subset = itsSelMS (itsSelMS.col("DATA_DESC_ID") == itsSpw);
         // If not all is selected, use the selection.
         if (subset.nrow() < itsSelMS.nrow()) {

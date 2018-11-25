@@ -255,8 +255,8 @@ namespace DP3 {
         // Those parameters were always called msin and msout.
         // However, SAS/MAC cannot handle a parameter and a group with the same
         // name, hence one can also use msin.name and msout.name.
-        vector<string> inNames = parset.getStringVector ("msin.name",
-                                                         vector<string>());
+        std::vector<string> inNames = parset.getStringVector ("msin.name",
+                                                         std::vector<string>());
         if (inNames.empty()) {
           inNames = parset.getStringVector ("msin");
         }
@@ -266,7 +266,7 @@ namespace DP3 {
         // This is only possible if a single name is given.
         if (inNames.size() == 1) {
           if (inNames[0].find_first_of ("*?{['") != string::npos) {
-            vector<string> names;
+            std::vector<string> names;
             names.reserve (80);
             casacore::Path path(inNames[0]);
             casacore::String dirName(path.dirName());
@@ -301,10 +301,10 @@ namespace DP3 {
       casacore::String currentMSName (pathIn.absoluteName());
 
       // Create the other steps.
-      vector<string> steps = parset.getStringVector (prefix + "steps");
+      std::vector<string> steps = parset.getStringVector (prefix + "steps");
       lastStep = firstStep;
       DPStep::ShPtr step;
-      for (vector<string>::const_iterator iter = steps.begin();
+      for (std::vector<string>::const_iterator iter = steps.begin();
            iter != steps.end(); ++iter) {
         string prefix(*iter + '.');
         // The alphabetic part of the name is the default step type.

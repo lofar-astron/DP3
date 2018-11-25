@@ -12,8 +12,8 @@ class KLFitter
 {//creates KH base and fits screens from collection of PiercePoints
 public:
   KLFitter(double r0=1000.,double beta=5./3.,int order=3);
-  void calculateCorrMatrix(const vector<PiercePoint> pp);
-  void calculateCorrMatrix(const vector<PiercePoint*> pp);
+  void calculateCorrMatrix(const std::vector<PiercePoint> pp);
+  void calculateCorrMatrix(const std::vector<PiercePoint*> pp);
   void doFit();
   size_t getOrder() const {return itsOrder;}
   double* PhaseData() { return _phases.memptr(); }

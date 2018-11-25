@@ -111,7 +111,7 @@ namespace BBS {
 
     ParmSet*             itsParmSet;
     Box                  itsWorkDomain;
-    vector<ParmValueSet> itsValueSets;
+    std::vector<ParmValueSet> itsValueSets;
     AxisMappingCache     itsAxisCache;
   };
 

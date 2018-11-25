@@ -73,11 +73,11 @@ namespace DP3 {
 
       // Constructor with explicit sourcelist
       Predict (DPInput*, const ParameterSet&, const string& prefix,
-               const vector<string>& sourcePatterns);
+               const std::vector<string>& sourcePatterns);
 
       // The actual constructor
       void init (DPInput*, const ParameterSet&, const string& prefix,
-                 const vector<string>& sourcePatterns);
+                 const std::vector<string>& sourcePatterns);
 
       // Set the applycal substep
       void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
@@ -110,7 +110,7 @@ namespace DP3 {
       virtual void showTimings (std::ostream&, double duration) const;
 
       // Prepare the sources
-      void setSources(const vector<string>& sourcePatterns);
+      void setSources(const std::vector<string>& sourcePatterns);
 
       // Return the direction of the first patch
       std::pair<double, double> getFirstDirection() const;
@@ -146,29 +146,29 @@ namespace DP3 {
 
       uint             itsDebugLevel;
 
-      vector<Baseline> itsBaselines;
+      std::vector<Baseline> itsBaselines;
 
       // Vector containing info on converting baseline uvw to station uvw
-      vector<int>      itsUVWSplitIndex;
+      std::vector<int>      itsUVWSplitIndex;
 
       // UVW coordinates per station (3 coordinates per station)
       casacore::Matrix<double>   itsUVW;
 
 #ifdef HAVE_LOFAR_BEAM
       // The info needed to calculate the station beams.
-      vector<vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
-      vector<vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
+      std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
+      std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
       BeamCorrectionMode itsBeamMode;
 #endif
-      vector<casacore::MeasFrame>                    itsMeasFrames;
-      vector<casacore::MDirection::Convert>          itsMeasConverters;
+      std::vector<casacore::MeasFrame>                    itsMeasFrames;
+      std::vector<casacore::MDirection::Convert>          itsMeasConverters;
 
       std::string itsDirectionsStr; // Definition of patches, to pass to applycal
-      vector<Patch::ConstPtr> itsPatchList;
-      vector<Source> itsSourceList;
+      std::vector<Patch::ConstPtr> itsPatchList;
+      std::vector<Source> itsSourceList;
 
-      vector<casacore::Cube<dcomplex> > itsModelVis; // one for every thread
-      vector<casacore::Cube<dcomplex> > itsModelVisPatch;
+      std::vector<casacore::Cube<dcomplex> > itsModelVis; // one for every thread
+      std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
 
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;

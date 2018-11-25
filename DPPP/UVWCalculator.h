@@ -61,7 +61,7 @@ namespace DP3 {
       // and station positions.
       UVWCalculator (const casacore::MDirection& phaseDir,
                      const casacore::MPosition& arrayPosition,
-                     const vector<casacore::MPosition>& stationPositions);
+                     const std::vector<casacore::MPosition>& stationPositions);
 
       // get the UVW coordinates for the given baseline and time.
       casacore::Vector<double> getUVW (uint ant1, uint ant2, double time);
@@ -72,8 +72,8 @@ namespace DP3 {
       casacore::MDirection::Convert     itsDirToJ2000;   //# direction to J2000
       casacore::MBaseline::Convert      itsBLToJ2000;    //# convert ITRF to J2000
       casacore::MeasFrame               itsFrame;
-      vector<casacore::MBaseline>       itsAntMB;
-      vector<casacore::Vector<double> > itsAntUvw;
+      std::vector<casacore::MBaseline>       itsAntMB;
+      std::vector<casacore::Vector<double> > itsAntUvw;
       casacore::Block<bool>             itsUvwFilled;
       double                        itsLastTime;
     };

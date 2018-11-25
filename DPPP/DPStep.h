@@ -240,9 +240,9 @@ namespace DP3 {
       virtual void show (std::ostream&) const;
 
       // Get the result.
-      const vector<DPBuffer>& get() const
+      const std::vector<DPBuffer>& get() const
         { return itsBuffers; }
-      vector<DPBuffer>& get()
+      std::vector<DPBuffer>& get()
         { return itsBuffers; }
 
       // Get the size of the result.
@@ -254,7 +254,7 @@ namespace DP3 {
         { itsSize = 0; }
 
     private:
-      vector<DPBuffer> itsBuffers;
+      std::vector<DPBuffer> itsBuffers;
       size_t           itsSize;
     };
 

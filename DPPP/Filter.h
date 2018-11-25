@@ -160,7 +160,7 @@ namespace DP3 {
         { return itsDoSelect; }
 
       // Get the indices of the selected baselines.
-      const vector<uint>& getIndicesBL() const
+      const std::vector<uint>& getIndicesBL() const
         { return itsSelBL; }
 
       // Get the buffer.
@@ -195,7 +195,7 @@ namespace DP3 {
       bool              itsRemoveAnt;     //# Remove from ANTENNA table?
       BaselineSelection itsBaselines;
       uint              itsStartChan;
-      vector<uint>      itsSelBL;         //# Index of baselines to select
+      std::vector<uint>      itsSelBL;         //# Index of baselines to select
       bool              itsDoSelect;      //# Any selection?
       NSTimer           itsTimer;
     };

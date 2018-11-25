@@ -143,7 +143,7 @@ namespace DP3 {
         bool matchTime (double time, uint timeSlot) const;
 
         // Test if the value matches one of the ranges in the vector.
-        bool matchRange (double v, const vector<double>& ranges) const;
+        bool matchRange (double v, const std::vector<double>& ranges) const;
 
         // Clear itsMatchBL for mismatching baselines.
         // If returns false if no matches were found.
@@ -180,7 +180,7 @@ namespace DP3 {
         // must be given with .. or +-.
         // <tt>asTime=true</tt> means that the strings should contain times,
         // otherwise date/times.
-        vector<double> fillTimes (const vector<string>& str, bool asTime,
+        std::vector<double> fillTimes (const std::vector<string>& str, bool asTime,
                                   bool canEndBeforeStart);
 
         // Read the string as time or date/time and convert to seconds.
@@ -200,7 +200,7 @@ namespace DP3 {
         // default for non-given correlations.
         // If the parm value is a single value, use it for all correlations.
         // <br>doFlag is set if values are given.
-        vector<float> fillValuePerCorr (const ParameterValue& value,
+        std::vector<float> fillValuePerCorr (const ParameterValue& value,
                                         float defVal, bool& doFlag);
 
         // Handle the frequency ranges given and determine which channels
@@ -217,7 +217,7 @@ namespace DP3 {
 
         // Convert a PSet expression to Reversed Polish Notation in itsRpn.
         // It returns the names of all PSets.
-        vector<string> exprToRpn (const string& expr);
+        std::vector<string> exprToRpn (const string& expr);
 
         //# Data members of PreFlagger::PSet.
         DPInput*           itsInput;
@@ -237,32 +237,32 @@ namespace DP3 {
         double             itsMinUV;    //# minimum UV distance; <0 means ignore
         double             itsMaxUV;    //# maximum UV distance; <0 means ignore
         casacore::Matrix<bool> itsFlagBL;   //# true = flag baseline [i,j]
-        vector<double>     itsAzimuth;  //# azimuth ranges to be flagged
-        vector<double>     itsElevation;//# elevation ranges to be flagged
-        vector<double>     itsTimes;    //# time of day ranges to be flagged
-        vector<double>     itsLST;      //# sidereal time ranges to be flagged
-        vector<double>     itsATimes;   //# absolute time ranges to be flagged
-        vector<double>     itsRTimes;   //# relative time ranges to be flagged
-        vector<uint>       itsTimeSlot; //# time slots to be flagged
-        vector<float>      itsAmplMin;  //# minimum amplitude for each corr
-        vector<float>      itsAmplMax;  //# maximum amplitude for each corr
-        vector<float>      itsPhaseMin; //# minimum phase for each corr
-        vector<float>      itsPhaseMax; //# maximum phase for each corr
-        vector<float>      itsRealMin;  //# minimum real for each corr
-        vector<float>      itsRealMax;  //# maximum real for each corr
-        vector<float>      itsImagMin;  //# minimum imaginary for each corr
-        vector<float>      itsImagMax;  //# maximum imaginary for each corr
-        vector<uint>       itsChannels; //# channels to be flagged.
-        vector<string>     itsStrChan;  //# channel ranges to be flagged.
-        vector<string>     itsStrFreq;  //# frequency ranges to be flagged
-        vector<string>     itsStrTime;  //# time ranges to be flagged
-        vector<string>     itsStrLST;   //# LST ranges to be flagged
-        vector<string>     itsStrATime; //# absolute time ranges to be flagged
-        vector<string>     itsStrRTime; //# relative time ranges to be flagged
-        vector<string>     itsStrAzim;  //# azimuth ranges to be flagged
-        vector<string>     itsStrElev;  //# elevation ranges to be flagged
-        vector<int>         itsRpn;     //# PSet expression in RPN form
-        vector<PSet::ShPtr> itsPSets;   //# PSets used in itsRpn
+        std::vector<double>     itsAzimuth;  //# azimuth ranges to be flagged
+        std::vector<double>     itsElevation;//# elevation ranges to be flagged
+        std::vector<double>     itsTimes;    //# time of day ranges to be flagged
+        std::vector<double>     itsLST;      //# sidereal time ranges to be flagged
+        std::vector<double>     itsATimes;   //# absolute time ranges to be flagged
+        std::vector<double>     itsRTimes;   //# relative time ranges to be flagged
+        std::vector<uint>       itsTimeSlot; //# time slots to be flagged
+        std::vector<float>      itsAmplMin;  //# minimum amplitude for each corr
+        std::vector<float>      itsAmplMax;  //# maximum amplitude for each corr
+        std::vector<float>      itsPhaseMin; //# minimum phase for each corr
+        std::vector<float>      itsPhaseMax; //# maximum phase for each corr
+        std::vector<float>      itsRealMin;  //# minimum real for each corr
+        std::vector<float>      itsRealMax;  //# maximum real for each corr
+        std::vector<float>      itsImagMin;  //# minimum imaginary for each corr
+        std::vector<float>      itsImagMax;  //# maximum imaginary for each corr
+        std::vector<uint>       itsChannels; //# channels to be flagged.
+        std::vector<string>     itsStrChan;  //# channel ranges to be flagged.
+        std::vector<string>     itsStrFreq;  //# frequency ranges to be flagged
+        std::vector<string>     itsStrTime;  //# time ranges to be flagged
+        std::vector<string>     itsStrLST;   //# LST ranges to be flagged
+        std::vector<string>     itsStrATime; //# absolute time ranges to be flagged
+        std::vector<string>     itsStrRTime; //# relative time ranges to be flagged
+        std::vector<string>     itsStrAzim;  //# azimuth ranges to be flagged
+        std::vector<string>     itsStrElev;  //# elevation ranges to be flagged
+        std::vector<int>         itsRpn;     //# PSet expression in RPN form
+        std::vector<PSet::ShPtr> itsPSets;   //# PSets used in itsRpn
         casacore::Matrix<bool>  itsChanFlags; //# flags for channels to be flagged
         casacore::Cube<bool>    itsFlags;
         casacore::Block<bool>   itsMatchBL; //# true = baseline in buffer matches 

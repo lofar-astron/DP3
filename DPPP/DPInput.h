@@ -103,7 +103,7 @@ namespace DP3 {
       // Fill the vector with station beam info from the input source (MS).
       // Only fill it for the given station names.
       // The default implementation throws an exception.
-      virtual void fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>&,
+      virtual void fillBeamInfo (std::vector<LOFAR::StationResponse::Station::Ptr>&,
                                  const casacore::Vector<casacore::String>& antNames);
 #endif
 

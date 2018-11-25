@@ -134,7 +134,7 @@ namespace DP3 {
       uint             itsCount; // number of steps
 
       // Expressions to search for in itsParmDB
-      vector<casacore::String>   itsParmExprs;
+      std::vector<casacore::String>   itsParmExprs;
 
       // parameters, numparms, antennas, time x frequency
       casacore::Cube<casacore::DComplex> itsParms;
