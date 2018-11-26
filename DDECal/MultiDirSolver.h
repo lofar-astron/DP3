@@ -119,8 +119,16 @@ private:
 
   bool detectStall(size_t iteration, const std::vector<double>& stepMagnitudes) const;
                 
-  void makeSolutionsFinite(std::vector<std::vector<DComplex> >& solutions, size_t perPol) const;
-                
+  static void makeSolutionsFinite1pol(std::vector<std::vector<DComplex> >& solutions);
+  
+  static void makeSolutionsFinite4pol(std::vector<std::vector<DComplex> >& solutions);
+  
+  template<typename T>
+  static bool isfinite(const std::complex<T>& val)
+  {
+    return std::isfinite(val.real()) && std::isfinite(val.imag());
+  }
+  
   /**
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have converged. Appends the current step magnitude to step_magnitudes
