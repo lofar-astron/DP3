@@ -42,6 +42,7 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
+
 #include <iostream>
 
 using namespace casacore;
@@ -294,18 +295,35 @@ namespace DP3 {
       for (uint i=0; i<itsMSNames.size(); ++i) {
         if (itsReaders[i]) {
           const DPInfo& rdinfo = itsReaders[i]->getInfo();
-          if (!(near(itsStartTime, rdinfo.startTime())  &&
-                     near(itsLastTime, itsReaders[i]->lastTime())  &&
-                     near(itsTimeInterval, rdinfo.timeInterval())  &&
-                     itsNrCorr == rdinfo.ncorr()  &&
-                     itsNrBl   == rdinfo.nbaselines()  &&
-                     itsFullResNChanAvg == itsReaders[i]->nchanAvgFullRes()  &&
-                     itsFullResNTimeAvg == itsReaders[i]->ntimeAvgFullRes()  &&
-                     getInfo().antennaSet() == rdinfo.antennaSet()  &&
-                     allEQ (getInfo().getAnt1(), rdinfo.getAnt1())  &&
-                     allEQ (getInfo().getAnt2(), rdinfo.getAnt2())))
-            throw Exception(
-                     "Meta data of MS " + itsMSNames[i]
+          if (!near(itsStartTime, rdinfo.startTime()))
+            throw Exception("Start time of MS " + itsMSNames[i]
+              + " differs from " + itsMSNames[itsFirst]);
+          if (!near(itsLastTime, itsReaders[i]->lastTime()))
+            throw Exception("Last time of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (!near(itsTimeInterval, rdinfo.timeInterval()))
+            throw Exception("Time interval of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (itsNrCorr != rdinfo.ncorr())
+            throw Exception("Number of correlations of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (itsNrBl != rdinfo.nbaselines())
+            throw Exception("Number of baselines of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (itsFullResNChanAvg != itsReaders[i]->nchanAvgFullRes())
+            throw Exception("FullResNChanAvg of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (itsFullResNTimeAvg != itsReaders[i]->ntimeAvgFullRes())
+            throw Exception("FullResNTimeAvg of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (getInfo().antennaSet() != rdinfo.antennaSet())
+            throw Exception("Antenna set of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (!allEQ (getInfo().getAnt1(), rdinfo.getAnt1()))
+            throw Exception("Baseline order (ant1) of MS " + itsMSNames[i]
+                     + " differs from " + itsMSNames[itsFirst]);
+          if (!allEQ (getInfo().getAnt2(), rdinfo.getAnt2()))
+            throw Exception("Baseline order (ant2) of MS " + itsMSNames[i]
                      + " differs from " + itsMSNames[itsFirst]);
           itsNrChan += rdinfo.nchan();
           itsHasFullResFlags = (itsHasFullResFlags  &&
