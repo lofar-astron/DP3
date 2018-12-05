@@ -68,36 +68,66 @@ void MultiDirSolver::makeStep(const std::vector<std::vector<DComplex> >& solutio
   });
 }
 
-void MultiDirSolver::makeSolutionsFinite(std::vector<std::vector<DComplex> >& solutions, size_t perPol) const
+void MultiDirSolver::makeSolutionsFinite1pol(std::vector<std::vector<DComplex> >& solutions)
 {
   for(std::vector<DComplex>& solVector : solutions)
   {
-    size_t n = solVector.size() / perPol;
-    std::vector<DComplex>::iterator iter = solVector.begin();
-    for(size_t i=0; i!=n; ++i)
+    // Find the average solutions for this channel
+    size_t count = 0;
+    double average = 0.0;
+    for(const std::complex<double>& solution : solVector)
     {
-      bool hasNonFinite = false;
-      for(size_t p=0; p!=perPol; ++p)
+      if(isfinite(solution))
       {
-        hasNonFinite = hasNonFinite || !std::isfinite(iter->real()) || !std::isfinite(iter->imag());
+        average += std::abs(solution);
+        ++count;
       }
-      if(hasNonFinite)
+    }
+    // If no solution was found, replace it by the average abs value
+    if(count == 0)
+      average = 1.0;
+    else
+      average /= count;
+    for(std::complex<double>& solution : solVector)
+    {
+      if(!isfinite(solution))
+       solution = average;
+    }
+  }
+}
+
+void MultiDirSolver::makeSolutionsFinite4pol(std::vector<std::vector<DComplex> >& solutions)
+{
+  for(std::vector<DComplex>& solVector : solutions)
+  {
+    // Find the average abs solution for this channel
+    size_t count = 0;
+    double average[4] = { 0.0, 0.0, 0.0, 0.0 };
+    for(std::vector<DComplex>::iterator iter=solVector.begin(); iter!=solVector.end(); iter+=4)
+    {
+      if(Matrix2x2::IsFinite(&*iter))
       {
-        if(perPol == 4)
-        {
-          iter[0] = DComplex(1.0, 0.0);
-          iter[1] = DComplex(0.0, 0.0);
-          iter[2] = DComplex(0.0, 0.0);
-          iter[3] = DComplex(1.0, 0.0);
-        }
-        else {
-          for(size_t p=0; p!=perPol; ++p)
-          {
-            iter[p] = DComplex(1.0, 0.0);
-          }
-        }
+        for(size_t p=0; p!=4; ++p)
+          average[p] += std::abs(iter[0]);
+        ++count;
       }
-      iter += perPol;
+    }
+    if(count == 0)
+    {
+      average[0] = 1.0; average[1] = 0.0;
+      average[2] = 0.0; average[3] = 1.0;
+    }
+    else {
+      for(size_t p=0; p!=4; ++p)
+        average[p] /= count;
+    }
+    for(std::vector<DComplex>::iterator iter=solVector.begin(); iter!=solVector.end(); iter+=4)
+    {
+      if(!Matrix2x2::IsFinite(&*iter))
+      {
+        for(size_t p=0; p!=4; ++p)
+          iter[p] = average[p];
+      }
     }
   }
 }
@@ -246,7 +276,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(
   stepMagnitudes.reserve(_maxIterations);
 
   do {
-    makeSolutionsFinite(solutions, 1);
+    makeSolutionsFinite1pol(solutions);
     
     DP3::ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/)
@@ -485,7 +515,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(
   step_magnitudes.reserve(_maxIterations);
 
   do {
-    makeSolutionsFinite(solutions, 4);
+    makeSolutionsFinite4pol(solutions);
     
     DP3::ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/)
