@@ -58,6 +58,11 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
   double angle0;
   for (uint ch=0; ch<_nChannelBlocks; ++ch) {
     if (statStream) *statStream<<"["; // begin antenna
+
+    // First iterate over all antennas to find mean amplitudes, needed for
+    // maxratio constraint below
+    double amean = 0.0;
+    double bmean = 0.0;
     for (uint ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
@@ -73,6 +78,43 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       complex<double> a, b;
       a = data[0]*cos(angle) - data[1]*sin(angle);
       b = data[3]*cos(angle) + data[2]*sin(angle);
+      amean += abs(a);
+      bmean += abs(b);
+    }
+    amean /= _nAntennas;
+    bmean /= _nAntennas;
+
+    // Now iterate again to do the actual constraining
+    for (uint ant=0; ant<_nAntennas; ++ant) {
+      // Compute rotation
+      complex<double> *data = &(solutions[ch][4*ant]);
+
+      double angle = RotationConstraint::get_rotation(data);
+      // Restrict angle between -pi/2 and pi/2
+      // Add 2pi to make sure that fmod doesn't see negative numbers
+      angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+
+      // Right multiply solution with inverse rotation,
+      // save only the diagonal
+      // Use sin(-phi) == -sin(phi)
+      complex<double> a, b;
+      a = data[0]*cos(angle) - data[1]*sin(angle);
+      b = data[3]*cos(angle) + data[2]*sin(angle);
+
+      // Constrain amplitudes to 1/maxratio < amp < maxratio
+      double maxratio = 5.0;
+      do {
+        a *= 1.2;
+      } while (abs(a)/amean < 1.0/maxratio);
+      do {
+        a /= 1.2;
+      } while (abs(a)/amean > maxratio);
+      do {
+        b *= 1.2;
+      } while (abs(b)/bmean < 1.0/maxratio);
+      do {
+        b /= 1.2;
+      } while (abs(b)/bmean > maxratio);
 
       // Use station 0 as reference station (for every chanblock), to work
       // around unitary ambiguity
