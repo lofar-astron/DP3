@@ -489,7 +489,13 @@ void DDECal::show (std::ostream& os) const
     << "  solint:              " << itsSolInt << '\n'
     << "  nchan:               " << itsNChan << '\n'
     << "  directions:          " << itsDirections << '\n'
-    << "  use model column:    " << boolalpha << itsUseModelColumn << '\n'
+    << "  use model column:    " << boolalpha << itsUseModelColumn << '\n';
+  if(itsMinVisRatio != 0.0)
+  {
+    os
+      << "  min visib. ratio:    " << itsMinVisRatio << '\n';
+  }
+  os
     << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
     << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
     << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
