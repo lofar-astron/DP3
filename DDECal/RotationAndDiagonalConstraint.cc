@@ -78,8 +78,13 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       complex<double> a, b;
       a = data[0]*cos(angle) - data[1]*sin(angle);
       b = data[3]*cos(angle) + data[2]*sin(angle);
-      amean += abs(a);
-      bmean += abs(b);
+
+      if (isfinite(abs(a))) {
+        amean += abs(a);
+      }
+      if (isfinite(abs(b))) {
+        bmean += abs(b);
+      }
     }
     amean /= _nAntennas;
     bmean /= _nAntennas;
@@ -103,18 +108,22 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
 
       // Constrain amplitudes to 1/maxratio < amp < maxratio
       double maxratio = 5.0;
-      do {
-        a *= 1.2;
-      } while (abs(a)/amean < 1.0/maxratio);
-      do {
-        a /= 1.2;
-      } while (abs(a)/amean > maxratio);
-      do {
-        b *= 1.2;
-      } while (abs(b)/bmean < 1.0/maxratio);
-      do {
-        b /= 1.2;
-      } while (abs(b)/bmean > maxratio);
+      if (amean > 0.0) {
+        do {
+          a *= 1.2;
+        } while (abs(a)/amean < 1.0/maxratio);
+        do {
+          a /= 1.2;
+        } while (abs(a)/amean > maxratio);
+      }
+      if (bmean > 0.0) {
+        do {
+          b *= 1.2;
+        } while (abs(b)/bmean < 1.0/maxratio);
+        do {
+          b /= 1.2;
+        } while (abs(b)/bmean > maxratio);
+      }
 
       // Use station 0 as reference station (for every chanblock), to work
       // around unitary ambiguity
