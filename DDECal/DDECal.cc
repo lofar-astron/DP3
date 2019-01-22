@@ -91,6 +91,8 @@ namespace DP3 {
         itsH5Parm        (itsH5ParmName, true),
         itsPropagateSolutions (parset.getBool (prefix + "propagatesolutions",
                                                false)),
+        itsFlagUnconverged (parset.getBool (prefix + "flagunconverged",
+                                               false)),
         itsTimeStep      (0),
         itsSolInt        (parset.getInt (prefix + "solint", 1)),
         itsStepInSolInt  (0),
@@ -117,7 +119,7 @@ namespace DP3 {
 
       if(!itsStatFilename.empty())
         itsStatStream.reset(new std::ofstream(itsStatFilename));
-      
+
       vector<string> strDirections;
       if (itsUseModelColumn) {
         itsModelData.resize(itsSolInt);
@@ -147,7 +149,7 @@ namespace DP3 {
       itsMode = GainCal::stringToCalType(
                    boost::to_lower_copy(parset.getString(prefix + "mode",
                                             "complexgain")));
-      
+
       initializeConstraints(parset, prefix);
       initializePredictSteps(parset, prefix);
     }
@@ -161,7 +163,7 @@ namespace DP3 {
     {
       return DPStep::ShPtr(new DDECal(input, parset, prefix));
     }
-    
+
     void DDECal::initializeConstraints(const ParameterSet& parset, const string& prefix)
     {
       if(itsCoreConstraint != 0.0) {
@@ -170,7 +172,7 @@ namespace DP3 {
       }
       if(itsSmoothnessConstraint != 0.0) {
         itsConstraints.push_back(std::unique_ptr<Constraint>(
-          new SmoothnessConstraint(itsSmoothnessConstraint))); 
+          new SmoothnessConstraint(itsSmoothnessConstraint)));
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
@@ -266,11 +268,11 @@ namespace DP3 {
           itsFullMatrixMinimalization = true;
           break;
         default:
-          throw std::runtime_error("Unexpected mode: " + 
+          throw std::runtime_error("Unexpected mode: " +
                           GainCal::calTypeToString(itsMode));
       }
     }
-    
+
     void DDECal::initializePredictSteps(const ParameterSet& parset, const string& prefix)
     {
       const size_t nDir = itsDirections.size();
@@ -362,7 +364,7 @@ namespace DP3 {
          sourcePositions[0] = std::pair<double, double> (
                                      angles.getBaseValue()[0],
                                      angles.getBaseValue()[1]);
- 
+
       } else {
         for (uint i=0; i<itsDirections.size(); ++i) {
           sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
@@ -425,7 +427,7 @@ namespace DP3 {
           }
           coreConstraint->initialize(coreAntennaIndices);
         }
-        
+
 #ifdef HAVE_ARMADILLO
         ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
         if(screenConstraint != 0)
@@ -457,7 +459,7 @@ namespace DP3 {
           screenConstraint->setOtherAntennas(otherAntennaIndices);
         }
 #endif
-        
+
         TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
         if(tecConstraint != nullptr)
         {
@@ -490,6 +492,7 @@ namespace DP3 {
         << "  use model column:    " << boolalpha << itsUseModelColumn << '\n'
         << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
         << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
+        << "  flag unconverged:    " << std::boolalpha << itsFlagUnconverged << '\n'
         << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
         << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
@@ -570,7 +573,7 @@ namespace DP3 {
         }
       }
     }
-    
+
     vector<string> DDECal::getDirectionNames() {
       vector<string> res;
 
@@ -594,7 +597,7 @@ namespace DP3 {
       for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
         constraint->SetWeights(itsWeights);
       }
-      
+
       if(itsFullMatrixMinimalization)
         initializeFullMatrixSolutions();
       else
@@ -619,6 +622,15 @@ namespace DP3 {
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
       itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
+      // Check for nonconvergence and flag if desired
+      if (solveResult.iterations>itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
+        for(size_t i=0; i!=solveResult._results.size(); ++i) {
+          for(size_t j=0; j!=solveResult._results[i].size(); ++j) {
+            solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
+          }
+        }
+      }
+
       // Store constraint solutions if any constaint has a non-empty result
       bool someConstraintHasResult = false;
       for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
@@ -630,7 +642,7 @@ namespace DP3 {
       if (someConstraintHasResult) {
         itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
       }
-      
+
       itsTimer.stop();
 
       for(size_t time=0; time<=itsStepInSolInt; ++time)
@@ -641,7 +653,7 @@ namespace DP3 {
         // Push data (possibly changed) to next step
         getNextStep()->process(itsBufs[time]);
       }
-      
+
       itsTimer.start();
     }
 
@@ -657,10 +669,10 @@ namespace DP3 {
       itsBufs[itsStepInSolInt].copy(bufin);
       itsOriginalFlags[itsStepInSolInt].assign( bufin.getFlags() );
       itsOriginalWeights[itsStepInSolInt].assign( bufin.getWeights() );
-      
+
       itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
       itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
-      
+
       // UVW flagging happens on the copy of the buffer
       // These flags are later restored and therefore not written
       itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
@@ -677,7 +689,7 @@ namespace DP3 {
         std::mutex measuresMutex;
         for(DP3::DPPP::Predict& predict : itsPredictSteps)
           predict.setThreadData(*itsThreadPool, measuresMutex);
-        
+
         itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
           itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
           itsModelDataPtrs[itsStepInSolInt][dir] =
@@ -689,13 +701,13 @@ namespace DP3 {
       const size_t nBl = info().nbaselines();
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
-      
+
       size_t nchanblocks = itsChanBlockFreqs.size();
 
       double weightFactor = 1./(nCh*(info().nantenna()-1)*nCr*itsSolInt);
 
       for (size_t bl=0; bl<nBl; ++bl) {
-        size_t 
+        size_t
           chanblock = 0,
           ant1 = info().getAnt1()[bl],
           ant2 = info().getAnt2()[bl];
@@ -866,11 +878,11 @@ namespace DP3 {
               soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
               soltab.setComplexValues(sols, vector<double>(), true, historyString);
               break;
-            default: 
+            default:
               throw std::runtime_error("Constraint should have produced output");
           }
 
-          // Tell H5Parm that all antennas and directions were used 
+          // Tell H5Parm that all antennas and directions were used
           std::vector<std::string> antennaNames(info().antennaNames().size());
           for (uint i=0; i<info().antennaNames().size(); ++i) {
             antennaNames[i]=info().antennaNames()[i];
@@ -881,7 +893,7 @@ namespace DP3 {
           if (nPol>1) {
             soltab.setPolarizations(polarizations);
           }
-   
+
           soltab.setFreqs(itsChanBlockFreqs);
           soltab.setTimes(solTimes);
         } // solnums loop
@@ -946,15 +958,15 @@ namespace DP3 {
                              "step " + itsName + " in parset: \n" +
                              itsParsetString);
 
-            // Tell H5Parm that all antennas and directions were used 
+            // Tell H5Parm that all antennas and directions were used
             std::vector<std::string> antennaNames(info().antennaNames().size());
             for (uint i=0; i<info().antennaNames().size(); ++i) {
               antennaNames[i]=info().antennaNames()[i];
             }
             soltab.setAntennas(antennaNames);
-      
+
             soltab.setSources(getDirectionNames());
- 
+
             if (soltab.hasAxis("pol")) {
               vector<string> polarizations;
               switch (soltab.getAxis("pol").size) {
@@ -969,7 +981,7 @@ namespace DP3 {
                 default:
                         throw std::runtime_error("No metadata for numpolarizations = " + std::to_string(soltab.getAxis("pol").size));
               }
-              
+
               soltab.setPolarizations(polarizations);
             }
 
@@ -995,7 +1007,7 @@ namespace DP3 {
             }
 
             soltab.setFreqs(chanBlockFreqs);
- 
+
             soltab.setTimes(solTimes);
           }
         }
@@ -1024,7 +1036,7 @@ namespace DP3 {
       // Let the next steps finish.
       getNextStep()->finish();
     }
-    
+
     void DDECal::subtractCorrectedModel(bool fullJones)
     {
       // Our original data & modeldata is still in the data buffers (the solver
@@ -1040,11 +1052,11 @@ namespace DP3 {
         std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
         for (size_t bl=0; bl<nBl; ++bl)
         {
-          size_t 
+          size_t
             chanblock = 0,
             ant1 = info().getAnt1()[bl],
             ant2 = info().getAnt2()[bl];
-            
+
           for (size_t ch=0; ch<nCh; ++ch)
           {
             MC2x2 value(MC2x2::Zero());

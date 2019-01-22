@@ -112,16 +112,16 @@ namespace DP3 {
     private:
       void initializeConstraints(const ParameterSet& parset, const string& prefix);
       void initializePredictSteps(const ParameterSet& parset, const string& prefix);
-      
+
       // Initialize solutions
       void initializeScalarSolutions();
-      
+
       void initializeFullMatrixSolutions();
 
       // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
       // Used for setting source names.
       std::vector<std::string> getDirectionNames();
-      
+
       void subtractCorrectedModel(bool fullJones);
 
       //# Data members.
@@ -157,6 +157,7 @@ namespace DP3 {
 
       GainCal::CalType itsMode;
       bool             itsPropagateSolutions;
+      bool             itsFlagUnconverged;
       uint             itsTimeStep;
       uint             itsSolInt;
       uint             itsStepInSolInt;
