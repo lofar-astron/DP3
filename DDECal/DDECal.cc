@@ -91,6 +91,8 @@ namespace DP3 {
         itsH5Parm        (itsH5ParmName, true),
         itsPropagateSolutions (parset.getBool (prefix + "propagatesolutions",
                                                false)),
+        itsPropagateConvergedOnly (parset.getBool (prefix + "propagateconvergedonly",
+                                               false)),
         itsFlagUnconverged (parset.getBool (prefix + "flagunconverged",
                                                false)),
         itsTimeStep      (0),
@@ -493,7 +495,8 @@ namespace DP3 {
         << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
         << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
         << "  flag unconverged:    " << std::boolalpha << itsFlagUnconverged << '\n'
-        << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
+        << "  propagate solutions: " << std::boolalpha << itsPropagateSolutions << '\n'
+        << "       converged only: " << std::boolalpha << itsPropagateConvergedOnly << '\n'
         << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
         << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
         << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
@@ -544,7 +547,15 @@ namespace DP3 {
     void DDECal::initializeScalarSolutions() {
       if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
         // initialize solutions with those of the previous step
-        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+        if (itsNIter[itsTimeStep/itsSolInt-1]>itsMultiDirSolver.max_iterations() && itsPropagateConvergedOnly) {
+          // initialize solutions with 1.
+          size_t n = itsDirections.size()*info().antennaNames().size();
+          for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+            solvec.assign(n, 1.0);
+          }
+        } else {
+          itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+        }
       } else {
         // initialize solutions with 1.
         size_t n = itsDirections.size()*info().antennaNames().size();
@@ -557,7 +568,22 @@ namespace DP3 {
     void DDECal::initializeFullMatrixSolutions() {
       if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
         // initialize solutions with those of the previous step
-        itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+        if (itsNIter[itsTimeStep/itsSolInt-1]>itsMultiDirSolver.max_iterations() && itsPropagateConvergedOnly) {
+          // initialize solutions with unity matrix [1 0 ; 0 1].
+          size_t n = itsDirections.size()*info().antennaNames().size();
+          for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+            solvec.resize(n*4);
+            for(size_t i=0; i!=n; ++i)
+            {
+              solvec[i*4 + 0] = 1.0;
+              solvec[i*4 + 1] = 0.0;
+              solvec[i*4 + 2] = 0.0;
+              solvec[i*4 + 3] = 1.0;
+            }
+          }
+        } else {
+          itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+        }
       } else {
         // initialize solutions with unity matrix [1 0 ; 0 1].
         size_t n = itsDirections.size()*info().antennaNames().size();
@@ -624,8 +650,8 @@ namespace DP3 {
 
       // Check for nonconvergence and flag if desired
       if (solveResult.iterations>itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
-        for(size_t i=0; i!=solveResult._results.size(); ++i) {
-          for(size_t j=0; j!=solveResult._results[i].size(); ++j) {
+        for (size_t i=0; i!=solveResult._results.size(); ++i) {
+          for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
             solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
           }
         }

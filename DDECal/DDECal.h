@@ -157,6 +157,7 @@ namespace DP3 {
 
       GainCal::CalType itsMode;
       bool             itsPropagateSolutions;
+      bool             itsPropagateConvergedOnly;
       bool             itsFlagUnconverged;
       uint             itsTimeStep;
       uint             itsSolInt;
