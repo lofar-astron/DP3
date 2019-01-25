@@ -159,6 +159,7 @@ namespace DP3 {
       bool             itsPropagateSolutions;
       bool             itsPropagateConvergedOnly;
       bool             itsFlagUnconverged;
+      bool             itsFlagDivergedOnly;
       uint             itsTimeStep;
       uint             itsSolInt;
       uint             itsStepInSolInt;

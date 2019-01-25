@@ -109,6 +109,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       // Constrain amplitudes to 1/maxratio < amp < maxratio
       double maxratio = 5.0;
       if (amean > 0.0) {
+        _res[0].diverged = true;
         do {
           a *= 1.2;
         } while (abs(a)/amean < 1.0/maxratio);
@@ -117,6 +118,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         } while (abs(a)/amean > maxratio);
       }
       if (bmean > 0.0) {
+        _res[0].diverged = true;
         do {
           b *= 1.2;
         } while (abs(b)/bmean < 1.0/maxratio);
