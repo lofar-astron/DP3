@@ -651,17 +651,36 @@ namespace DP3 {
       itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
       itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
-      // Check for nonconvergence and flag if desired
+      // Check for nonconvergence and flag if desired. Unconverged solutions are
+      // identified by the number of iterations being one more than the max allowed
+      // number
       if (solveResult.iterations > itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
         for (size_t i=0; i!=solveResult._results.size(); ++i) {
           for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
             if (itsFlagDivergedOnly) {
-              ;
+              // Set weights with negative values (indicating unconverged
+              // solutions that diverged) to zero (all other unconverged
+              // solutions are unflagged already)
+              for (size_t k=0; k!=solveResult._results[i][j].weights.size(); ++k) {
+                if (solveResult._results[i][j].weights[k] < 0.) {
+                  solveResult._results[i][j].weights[k] = 0.;
+                }
+              }
             } else {
-              // Set all weights to zero instead of using the weights returned by the
-              // constraint (which is responsible for setting weights to zero for
-              // diverged solutions)
+              // Set all weights to zero
               solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
+            }
+          }
+        }
+      } else {
+        // Set any negative weights (indicating unconverged solutions that diverged) to
+        // one (all other unconverged solutions are unflagged already)
+        for (size_t i=0; i!=solveResult._results.size(); ++i) {
+          for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
+            for (size_t k=0; k!=solveResult._results[i][j].weights.size(); ++k) {
+              if (solveResult._results[i][j].weights[k] < 0.) {
+                solveResult._results[i][j].weights[k] = 1.;
+              }
             }
           }
         }

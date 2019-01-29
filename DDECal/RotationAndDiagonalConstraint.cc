@@ -110,7 +110,9 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       double maxratio = 5.0;
       bool diverged = false;
       if (amean > 0.0) {
-        diverged = true;
+        if (abs(a)/amean < 1.0/maxratio || abs(a)/amean > maxratio) {
+          diverged = true;
+        }
         do {
           a *= 1.2;
         } while (abs(a)/amean < 1.0/maxratio);
@@ -119,7 +121,9 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         } while (abs(a)/amean > maxratio);
       }
       if (bmean > 0.0) {
-        diverged = true;
+        if (abs(b)/bmean < 1.0/maxratio || abs(b)/bmean > maxratio) {
+          diverged = true;
+        }
         do {
           b *= 1.2;
         } while (abs(b)/bmean < 1.0/maxratio);
@@ -143,14 +147,14 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       _res[2].vals[ant*_nChannelBlocks*2 + 2*ch    ] = arg(a);
       _res[2].vals[ant*_nChannelBlocks*2 + 2*ch  +1] = arg(b);
 
-      // If the maxratio constraint above was enforced, set weights to zero
-      // for flagging later if desired
+      // If the maxratio constraint above was enforced, set weights to
+      // negative value for flagging later if desired
       if (diverged) {
-        _res[0].weights[ant*_nChannelBlocks + ch] = 0.0;
-        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch    ] = 0.0;
-        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = 0.0;
-        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch    ] = 0.0;
-        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = 0.0;
+        _res[0].weights[ant*_nChannelBlocks + ch] = -1.0;
+        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
+        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
+        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
+        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
       }
 
       // Do the actual constraining
