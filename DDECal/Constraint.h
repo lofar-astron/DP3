@@ -26,7 +26,6 @@ public:
     std::string axes; // Comma-separated string with axis names, fastest varying last
     std::vector<size_t> dims;
     std::string name;
-    bool diverged = false;
   };
 
   Constraint() :

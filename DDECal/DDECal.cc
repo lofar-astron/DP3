@@ -652,19 +652,15 @@ namespace DP3 {
       itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
       // Check for nonconvergence and flag if desired
-      if (solveResult.iterations>itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
-        if (itsFlagDivergedOnly) {
-          // Check for diverged solutions and flag; otherwise, ignore
-          if (solveResult._results[0][0].diverged) {
-            for (size_t i=0; i!=solveResult._results.size(); ++i) {
-              for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
-                solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
-              }
-            }
-          }
-        } else {
-          for (size_t i=0; i!=solveResult._results.size(); ++i) {
-            for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
+      if (solveResult.iterations > itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
+        for (size_t i=0; i!=solveResult._results.size(); ++i) {
+          for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
+            if (itsFlagDivergedOnly) {
+              ;
+            } else {
+              // Set all weights to zero instead of using the weights returned by the
+              // constraint (which is responsible for setting weights to zero for
+              // diverged solutions)
               solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
             }
           }
