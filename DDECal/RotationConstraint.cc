@@ -29,11 +29,10 @@ void RotationConstraint::SetWeights(const vector<double>& weights) {
 
 double RotationConstraint::get_rotation(std::complex<double>* data) {
   // Convert to circular
-  complex<double> ll, rr;
   complex<double> i(0,1.);
 
-  ll = data[0] + data[3] - i*data[1] + i*data[2];
-  rr = data[0] + data[3] + i*data[1] - i*data[2];
+  complex<double> ll = data[0] + data[3] - i*data[1] + i*data[2];
+  complex<double> rr = data[0] + data[3] + i*data[1] - i*data[2];
   double angle = 0.5 * (arg(ll) - arg(rr));
 
   return angle;
@@ -41,10 +40,7 @@ double RotationConstraint::get_rotation(std::complex<double>* data) {
 
 vector<Constraint::Result> RotationConstraint::Apply(
     vector<vector<dcomplex> >& solutions, double,
-    std::ostream* statStream) {
-  // Convert to circular
-  complex<double> ll, rr;
-  complex<double> i(0,1.);
+    std::ostream* /*statStream*/) {
 
   for (uint ch=0; ch<_nChannelBlocks; ++ch) {
     for (uint ant=0; ant<_nAntennas; ++ant) {
