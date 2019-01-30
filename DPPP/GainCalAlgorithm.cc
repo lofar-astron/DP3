@@ -1,4 +1,4 @@
-//# StefCal.cc: Perform StefCal algorithm for gain calibration
+//# GainCalAlgorithm.cc: Perform algorithm for gain calibration
 //# Copyright (C) 2013
 //# ASTRON (Netherlands Institute for Radio Astronomy)
 //# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,11 +17,11 @@
 //# You should have received a copy of the GNU General Public License along
 //# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //#
-//# $Id: StefCal.cc 21598 2012-07-16 08:07:34Z diepen $
+//# $Id: GainCalAlgorithm.cc 21598 2012-07-16 08:07:34Z diepen $
 //#
 //# @author Tammo Jan Dijkema
 
-#include "StefCal.h"
+#include "GainCalAlgorithm.h"
 #include "DPInput.h"
 
 #include <cassert>
@@ -36,9 +36,9 @@ using namespace casacore;
 namespace DP3 {
   namespace DPPP {
 
-    StefCal::StefCal(uint solInt, uint nChan, StefCalMode mode,
-                     bool scalar, double tolerance, uint maxAntennas,
-                     bool detectStalling, uint debugLevel)
+    GainCalAlgorithm::GainCalAlgorithm(uint solInt, uint nChan, Mode mode,
+      bool scalar, double tolerance, uint maxAntennas,
+      bool detectStalling, uint debugLevel)
     : _nSt    (maxAntennas),
       _badIters (0),
       _veryBadIters (0),
@@ -90,17 +90,17 @@ namespace DP3 {
       init(true);
     }
 
-    void StefCal::resetVis() {
+    void GainCalAlgorithm::resetVis() {
       _vis=0;
       _mvis=0;
       _totalWeight = 0.;
     }
 
-    void StefCal::clearStationFlagged() {
+    void GainCalAlgorithm::clearStationFlagged() {
       _stationFlagged=false;
     }
 
-    void StefCal::init(bool initSolutions) {
+    void GainCalAlgorithm::init(bool initSolutions) {
       _dg = 1.0e29;
       _dgx = 1.0e30;
       _dgs.clear();
@@ -170,7 +170,7 @@ namespace DP3 {
       }
     }
 
-    double StefCal::getAverageUnflaggedSolution() {
+    double GainCalAlgorithm::getAverageUnflaggedSolution() {
       // Get average solution of unflagged antennas only once
       // Unflagged means unflagged in previous time slot, so
       // look at NaNs, don't look at stationFlagged (that's for
@@ -194,7 +194,7 @@ namespace DP3 {
       }
     }
 
-    StefCal::Status StefCal::doStep(uint iter) {
+    GainCalAlgorithm::Status GainCalAlgorithm::doStep(uint iter) {
       _gxx = _gx;
       _gx = _g;
 
@@ -220,7 +220,7 @@ namespace DP3 {
       }
     }
 
-    void StefCal::doStep_polarized() {
+    void GainCalAlgorithm::doStep_polarized() {
       _gold = _g;
 
       for (uint st=0;st<_nSt;++st) {
@@ -296,7 +296,7 @@ namespace DP3 {
       }
     }
 
-    void StefCal::doStep_unpolarized() {
+    void GainCalAlgorithm::doStep_unpolarized() {
       _gold=_g;
 
       for (uint ant=0;ant<_nUn;++ant) {
@@ -352,11 +352,11 @@ namespace DP3 {
       }
     }
 
-    void StefCal::incrementWeight(float weight) {
+    void GainCalAlgorithm::incrementWeight(float weight) {
       _totalWeight += weight;
     }
 
-    casacore::Matrix<casacore::DComplex> StefCal::getSolution(bool setNaNs) {
+    casacore::Matrix<casacore::DComplex> GainCalAlgorithm::getSolution(bool setNaNs) {
       if (setNaNs) {
         for (uint ant=0; ant<_nUn; ++ant) {
           if (_stationFlagged[ant%_nSt]) {
@@ -370,7 +370,7 @@ namespace DP3 {
       return _g;
     }
 
-    StefCal::Status StefCal::relax(uint iter) {
+    GainCalAlgorithm::Status GainCalAlgorithm::relax(uint iter) {
       if (_nSt==0) {
         return CONVERGED;
       }
