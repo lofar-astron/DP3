@@ -121,8 +121,8 @@ namespace DP3 {
       vector<string> strDirections;
       if (itsUseModelColumn) {
         itsModelData.resize(itsSolInt);
-        strDirections.push_back("pointing");
-        itsDirections.push_back(vector<string>());
+        strDirections.emplace_back("pointing");
+        itsDirections.emplace_back(vector<string>());
       } else {
         strDirections = parset.getStringVector (prefix + "directions",
                                                 vector<string> ());
@@ -165,17 +165,14 @@ namespace DP3 {
     void DDECal::initializeConstraints(const ParameterSet& parset, const string& prefix)
     {
       if(itsCoreConstraint != 0.0) {
-        itsConstraints.push_back(std::unique_ptr<Constraint>(
-          new CoreConstraint()));
+        itsConstraints.emplace_back(new CoreConstraint());
       }
       if(itsSmoothnessConstraint != 0.0) {
-        itsConstraints.push_back(std::unique_ptr<Constraint>(
-          new SmoothnessConstraint(itsSmoothnessConstraint))); 
+        itsConstraints.emplace_back(new SmoothnessConstraint(itsSmoothnessConstraint)); 
       }
       switch(itsMode) {
         case GainCal::COMPLEXGAIN:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new DiagonalConstraint(4)));
+          itsConstraints.emplace_back(new DiagonalConstraint(4));
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = true;
           break;
@@ -190,29 +187,23 @@ namespace DP3 {
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::PHASEONLY:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new PhaseOnlyConstraint()));
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new DiagonalConstraint(4)));
+          itsConstraints.emplace_back(new PhaseOnlyConstraint());
+          itsConstraints.emplace_back(new DiagonalConstraint(4));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::SCALARPHASE:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new PhaseOnlyConstraint()));
+          itsConstraints.emplace_back(new PhaseOnlyConstraint());
           itsMultiDirSolver.set_phase_only(true);
           break;
         case GainCal::AMPLITUDEONLY:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new DiagonalConstraint(4)));
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new AmplitudeOnlyConstraint()));
+          itsConstraints.emplace_back(new DiagonalConstraint(4));
+          itsConstraints.emplace_back(new AmplitudeOnlyConstraint());
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::SCALARAMPLITUDE:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new AmplitudeOnlyConstraint()));
+          itsConstraints.emplace_back(new AmplitudeOnlyConstraint());
           itsMultiDirSolver.set_phase_only(false);
           itsFullMatrixMinimalization = false;
           break;
@@ -225,30 +216,25 @@ namespace DP3 {
             int chunksize = parset.getInt(prefix + "approxchunksize", 0);
             std::unique_ptr<ApproximateTECConstraint> ptr;
             if(itsMode == GainCal::TEC)
-              ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
+              ptr.reset(new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
             else
-              ptr = std::unique_ptr<ApproximateTECConstraint>(
-                new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
+              ptr.reset(new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
             ptr->SetMaxApproximatingIterations(iters);
             ptr->SetFittingChunkSize(chunksize);
-            itsConstraints.push_back(std::move(ptr));
+            itsConstraints.emplace_back(std::move(ptr));
           }
           else {
             if(itsMode == GainCal::TEC)
-              itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECOnlyMode)));
+              itsConstraints.emplace_back(new TECConstraint(TECConstraint::TECOnlyMode));
               else
-              itsConstraints.push_back(std::unique_ptr<Constraint>(
-                new TECConstraint(TECConstraint::TECAndCommonScalarMode)));
+              itsConstraints.emplace_back(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
           }
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
           break;
         case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-                    new ScreenConstraint(parset, prefix+"tecscreen.")));
+          itsConstraints.emplace_back(new ScreenConstraint(parset, prefix+"tecscreen."));
           itsMultiDirSolver.set_phase_only(true);
           itsFullMatrixMinimalization = false;
 #else
@@ -256,13 +242,11 @@ namespace DP3 {
 #endif
           break;
         case GainCal::ROTATIONANDDIAGONAL:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-              new RotationAndDiagonalConstraint()));
+          itsConstraints.emplace_back(new RotationAndDiagonalConstraint());
           itsFullMatrixMinimalization = true;
           break;
         case GainCal::ROTATION:
-          itsConstraints.push_back(std::unique_ptr<Constraint>(
-              new RotationConstraint()));
+          itsConstraints.emplace_back(new RotationConstraint());
           itsFullMatrixMinimalization = true;
           break;
         default:
@@ -449,9 +433,9 @@ namespace DP3 {
               dz = refZ - antennaPos[ant][2],
               distSq = dx*dx + dy*dy + dz*dz;
             if(distSq <= coreDistSq)
-              coreAntennaIndices.push_back(ant);
+              coreAntennaIndices.emplace_back(ant);
             else
-              otherAntennaIndices.push_back(ant);
+              otherAntennaIndices.emplace_back(ant);
           }
           screenConstraint->setCoreAntennas(coreAntennaIndices);
           screenConstraint->setOtherAntennas(otherAntennaIndices);
@@ -575,7 +559,7 @@ namespace DP3 {
       vector<string> res;
 
       if (itsUseModelColumn) {
-        res.push_back("pointing");
+        res.emplace_back("pointing");
         return res;
       }
 
@@ -584,7 +568,7 @@ namespace DP3 {
            dirIter++) {
         stringstream ss;
         ss << (*dirIter);
-        res.push_back(ss.str());
+        res.emplace_back(ss.str());
       }
       return res;
     }
@@ -771,13 +755,13 @@ namespace DP3 {
            itsMode == GainCal::PHASEONLY ||
            itsMode == GainCal::AMPLITUDEONLY) {
           nPol = 2;
-          polarizations.push_back("XX");
-          polarizations.push_back("YY");
+          polarizations.emplace_back("XX");
+          polarizations.emplace_back("YY");
         } else if (itsMode == GainCal::FULLJONES) {
-          polarizations.push_back("XX");
-          polarizations.push_back("XY");
-          polarizations.push_back("YX");
-          polarizations.push_back("YY");
+          polarizations.emplace_back("XX");
+          polarizations.emplace_back("XY");
+          polarizations.emplace_back("YX");
+          polarizations.emplace_back("YY");
           nPol = 4;
         } else {
           nPol = 1;
@@ -814,12 +798,12 @@ namespace DP3 {
           }
         }
         vector<H5Parm::AxisInfo> axes;
-        axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
-        axes.push_back(H5Parm::AxisInfo("freq", nSolChan));
-        axes.push_back(H5Parm::AxisInfo("ant", info().nantenna()));
-        axes.push_back(H5Parm::AxisInfo("dir", nDir));
+        axes.emplace_back(H5Parm::AxisInfo("time", itsSols.size()));
+        axes.emplace_back(H5Parm::AxisInfo("freq", nSolChan));
+        axes.emplace_back(H5Parm::AxisInfo("ant", info().nantenna()));
+        axes.emplace_back(H5Parm::AxisInfo("dir", nDir));
         if (nPol>1) {
-          axes.push_back(H5Parm::AxisInfo("pol", nPol));
+          axes.emplace_back(H5Parm::AxisInfo("pol", nPol));
         }
 
         string historyString = "CREATE by DPPP\n" +
@@ -908,9 +892,9 @@ namespace DP3 {
             vector<string> firstaxesnames = StringUtil::tokenize(firstResult.axes,",");
 
             vector<H5Parm::AxisInfo> axes;
-            axes.push_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
+            axes.emplace_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
             for (size_t axisNum=0; axisNum<firstaxesnames.size(); ++axisNum) {
-              axes.push_back(H5Parm::AxisInfo(firstaxesnames[axisNum], firstResult.dims[axisNum]));
+              axes.emplace_back(H5Parm::AxisInfo(firstaxesnames[axisNum], firstResult.dims[axisNum]));
             }
 
             // Put solutions in a contiguous piece of memory
@@ -958,13 +942,13 @@ namespace DP3 {
             if (soltab.hasAxis("pol")) {
               vector<string> polarizations;
               switch (soltab.getAxis("pol").size) {
-                case 2: polarizations.push_back("XX");
-                        polarizations.push_back("YY");
+                case 2: polarizations.emplace_back("XX");
+                        polarizations.emplace_back("YY");
                         break;
-                case 4: polarizations.push_back("XX");
-                        polarizations.push_back("XY");
-                        polarizations.push_back("YX");
-                        polarizations.push_back("YY");
+                case 4: polarizations.emplace_back("XX");
+                        polarizations.emplace_back("XY");
+                        polarizations.emplace_back("YX");
+                        polarizations.emplace_back("YY");
                         break;
                 default:
                         throw std::runtime_error("No metadata for numpolarizations = " + std::to_string(soltab.getAxis("pol").size));
