@@ -178,6 +178,8 @@ namespace DP3 {
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
 
       std::unique_ptr<Predict> itsPredictStep;
+      std::unique_ptr<class ThreadPool> itsThreadPool;
+      std::mutex itsMeasuresMutex;
 #ifdef HAVE_LOFAR_BEAM
       ApplyBeam         itsApplyBeamStep; // Beam step for applying beam to modelcol
 #endif

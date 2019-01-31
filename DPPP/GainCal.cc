@@ -41,6 +41,7 @@
 #include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
+#include "../Common/ThreadPool.h"
 
 #include <fstream>
 #include <ctime>
@@ -203,6 +204,11 @@ namespace DP3 {
       info() = infoIn;
       info().setNeedVisData();
 
+      // By giving a thread pool to the predicter, the threads are
+      // sustained.
+      itsThreadPool.reset(new ThreadPool(info().nThreads()));
+      itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
+        
       itsUVWFlagStep.updateInfo(infoIn);
 
       if (itsUseModelColumn) {
