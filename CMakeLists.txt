@@ -121,7 +121,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/SourceDBUtil.cc DPPP/Apply.cc DPPP/EstimateMixed.cc DPPP/EstimateNew.cc 
   DPPP/Simulate.cc DPPP/Simulator.cc DPPP/SubtractMixed.cc DPPP/SubtractNew.cc
   DPPP/ModelComponent.cc DPPP/PointSource.cc DPPP/GaussianSource.cc DPPP/Patch.cc
-  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/StefCal.cc
+  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/GainCalAlgorithm.cc
   DPPP/Predict.cc DPPP/OneApplyCal.cc
   DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc 
   DPPP/DummyStep.cc DPPP/H5ParmPredict.cc DPPP/GridInterpolate.cc DPPP/Upsample.cc

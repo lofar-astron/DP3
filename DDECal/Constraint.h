@@ -126,7 +126,7 @@ public:
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
                     double time,
-                    std::ostream* statStream);
+                    std::ostream* statStream) final override;
 };
 
 class DiagonalConstraint : public Constraint
@@ -137,7 +137,7 @@ public:
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
                     double time,
-                    std::ostream* statStream);
+                    std::ostream* statStream) final override;
 private:
   const size_t _polsPerSolution;
 };
@@ -165,7 +165,7 @@ public:
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
                     double time,
-                    std::ostream* statStream);
+                    std::ostream* statStream) final override;
 
 private:
   std::set<size_t> _coreAntennas;
