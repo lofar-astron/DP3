@@ -19,16 +19,18 @@ namespace DP3 {
   {
   public:
     ParallelFor(size_t nThreads) :
-      _nThreads(nThreads), _barrier(nThreads, [&]{ _hasTasks=false; } ), _stop(false), _hasTasks(false)
+      _nThreads(nThreads), _barrier(nThreads, [&](){ _hasTasks=false; } ), _stop(false), _hasTasks(false)
     {
       startThreads();
     }
     
     ~ParallelFor()
     {
+      std::unique_lock<std::mutex> lock(_mutex);
       _stop = true;
       _hasTasks = true;
       _conditionChanged.notify_all();
+      lock.unlock();
       for(std::thread& thr : _threads)
         thr.join();
     }
@@ -47,11 +49,13 @@ namespace DP3 {
    */
     void Run(Iter start, Iter end, std::function<void(size_t, size_t)> function)
     {
+      std::unique_lock<std::mutex> lock(_mutex);
       _current = start;
       _end = end;
       _loopFunction = std::move(function);
       _hasTasks = true;
       _conditionChanged.notify_all();
+      lock.unlock();
       loop(0);
       _barrier.wait();
     }
@@ -74,7 +78,7 @@ namespace DP3 {
       waitForTasks();
       while(!_stop) {
         loop(thread);
-        _barrier.wait();
+      _barrier.wait();
         waitForTasks();
       }
     }
