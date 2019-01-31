@@ -1,9 +1,13 @@
 #ifndef PARALLEL_FOR_H
 #define PARALLEL_FOR_H
 
+#include "Barrier.h"
+
+#include <atomic>
+#include <condition_variable>
 #include <cstring>
-#include <thread>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 #include <sched.h>
@@ -14,9 +18,21 @@ namespace DP3 {
   class ParallelFor
   {
   public:
-    ParallelFor(size_t nThreads) : _nThreads(nThreads)
-    { }
+    ParallelFor(size_t nThreads) :
+      _nThreads(nThreads), _barrier(nThreads, [&]{ _hasTasks=false; } ), _stop(false), _hasTasks(false)
+    {
+      startThreads();
+    }
     
+    ~ParallelFor()
+    {
+      _stop = true;
+      _hasTasks = true;
+      _conditionChanged.notify_all();
+      for(std::thread& thr : _threads)
+        thr.join();
+    }
+
   /**
    * Iteratively call a function in parallel.
    * 
@@ -29,31 +45,37 @@ namespace DP3 {
    * support recursion. For non-recursive loop, this function will be
    * faster.
    */
-    template<typename Function>
-    void Run(Iter start, Iter end, Function function)
+    void Run(Iter start, Iter end, std::function<void(size_t, size_t)> function)
     {
       _current = start;
       _end = end;
-      std::vector<std::thread> threads;
-      if(_nThreads > 1)
-      {
-        threads.reserve(_nThreads-1);
-        for(unsigned t=1; t!=_nThreads; ++t)
-          threads.emplace_back(&ParallelFor::run<Function>, this, t, function);
-      }
-      run<Function>(0, function);
-      for(std::thread& thr : threads)
-        thr.join();
+      _loopFunction = std::move(function);
+      _hasTasks = true;
+      _conditionChanged.notify_all();
+      loop(0);
+      _barrier.wait();
     }
     
     size_t NThreads() const { return _nThreads; }
+    
   private:
-    template<typename Function>
-    void run(size_t thread, Function function)
+    ParallelFor(const ParallelFor&) = delete;
+    
+    void loop(size_t thread)
     {
       Iter iter;
       while(next(iter)) {
-        function(iter, thread);
+        _loopFunction(iter, thread);
+      }
+    }
+
+    void run(size_t thread)
+    {
+      waitForTasks();
+      while(!_stop) {
+        loop(thread);
+        _barrier.wait();
+        waitForTasks();
       }
     }
     
@@ -69,9 +91,32 @@ namespace DP3 {
       }
     }
     
+    void waitForTasks()
+    {
+      std::unique_lock<std::mutex> lock(_mutex);
+      while(!_hasTasks)
+        _conditionChanged.wait(lock);
+    }
+    
+    void startThreads()
+    {
+      if(_nThreads > 1)
+      {
+        _threads.reserve(_nThreads-1);
+        for(unsigned t=1; t!=_nThreads; ++t)
+          _threads.emplace_back(&ParallelFor::run, this, t);
+      }
+    }
+    
     Iter _current, _end;
     std::mutex _mutex;
     size_t _nThreads;
+    Barrier _barrier;
+    std::atomic<bool> _stop;
+    bool _hasTasks;
+    std::condition_variable _conditionChanged;
+    std::vector<std::thread> _threads;
+    std::function<void(size_t, size_t)> _loopFunction;
   };
 }
 

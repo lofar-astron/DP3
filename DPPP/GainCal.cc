@@ -634,9 +634,9 @@ namespace DP3 {
                                   info().antennaUsed().size(), 0);
 
       vector<GainCalAlgorithm::Status> converged(itsNFreqCells,GainCalAlgorithm::NOTCONVERGED);
+      ParallelFor<size_t> loop(getInfo().nThreads());
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
-        ParallelFor<size_t> loop(getInfo().nThreads());
         loop.Run(0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
           // Do another step when stalled and not all converged
           if (converged[freqCell]!=GainCalAlgorithm::CONVERGED)
