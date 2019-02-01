@@ -90,6 +90,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     bmean /= _nAntennas;
 
     // Now iterate again to do the actual constraining
+    bool diverged = false;
     for (uint ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
@@ -108,7 +109,6 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
 
       // Constrain amplitudes to 1/maxratio < amp < maxratio
       double maxratio = 5.0;
-      bool diverged = false;
       if (amean > 0.0) {
         if (abs(a)/amean < 1.0/maxratio || abs(a)/amean > maxratio) {
           diverged = true;
@@ -147,16 +147,6 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       _res[2].vals[ant*_nChannelBlocks*2 + 2*ch    ] = arg(a);
       _res[2].vals[ant*_nChannelBlocks*2 + 2*ch  +1] = arg(b);
 
-      // If the maxratio constraint above was enforced, set weights to
-      // negative value for flagging later if desired
-      if (diverged) {
-        _res[0].weights[ant*_nChannelBlocks + ch] = -1.0;
-        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
-        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
-        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
-        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
-      }
-
       // Do the actual constraining
       data[0] =  a * cos(angle);
       data[1] = -a * sin(angle);
@@ -168,6 +158,18 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     }
     if (statStream) *statStream<<"]"; // end antenna
     if (statStream && ch<_nChannelBlocks-1) *statStream<<",";
+
+    // If the maxratio constraint above was enforced for any antenna, set weights of
+    // all antennas to a negative value for flagging later if desired
+    if (diverged) {
+      for (uint ant=0; ant<_nAntennas; ++ant) {
+        _res[0].weights[ant*_nChannelBlocks + ch] = -1.0;
+        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
+        _res[1].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
+        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
+        _res[2].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;
+      }
+    }
   }
   if (statStream) *statStream<<"]\t"; //end channel
 
