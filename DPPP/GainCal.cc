@@ -38,7 +38,6 @@
 #include "../ParmDB/ParmValue.h"
 #include "../ParmDB/SourceDB.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
 #include "../Common/ThreadPool.h"
@@ -78,6 +77,7 @@ namespace DP3 {
         itsDetectStalling (parset.getBool (prefix + "detectstalling", true)),
         itsApplySolution (parset.getBool (prefix + "applysolution", false)),
         itsUVWFlagStep   (input, parset, prefix),
+        itsParallelFor(1),
         itsBaselineSelection (parset, prefix),
         itsMaxIter       (parset.getInt (prefix + "maxiter", 50)),
         itsTolerance     (parset.getDouble (prefix + "tolerance", 1.e-5)),
@@ -207,8 +207,7 @@ namespace DP3 {
       // By giving a thread pool to the predicter, the threads are
       // sustained.
       itsThreadPool.reset(new ThreadPool(info().nThreads()));
-      itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
-        
+      itsParallelFor.SetNThreads(info().nThreads());
       itsUVWFlagStep.updateInfo(infoIn);
 
       if (itsUseModelColumn) {
@@ -219,6 +218,7 @@ namespace DP3 {
 #endif
       } else {
         itsPredictStep->updateInfo(infoIn);
+        itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
       }
       if (itsApplySolution) {
         info().setWriteData();
@@ -640,10 +640,10 @@ namespace DP3 {
                                   info().antennaUsed().size(), 0);
 
       vector<GainCalAlgorithm::Status> converged(itsNFreqCells,GainCalAlgorithm::NOTCONVERGED);
-      ParallelFor<size_t> loop(getInfo().nThreads());
+
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
-        loop.Run(0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
+        itsParallelFor.Run(0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
           // Do another step when stalled and not all converged
           if (converged[freqCell]!=GainCalAlgorithm::CONVERGED)
           {
@@ -678,7 +678,7 @@ namespace DP3 {
 
           uint nSt = info().antennaUsed().size();
 
-          // TODO: set phase reference so something smarter that station 0
+          // TODO: set phase reference to something smarter than station 0
           for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             casacore::Matrix<casacore::DComplex> sol = iS[freqCell].getSolution(false);
             if (iS[freqCell].getStationFlagged()[0]) {
@@ -694,8 +694,8 @@ namespace DP3 {
             }
           }
 
-          ParallelFor<size_t> loop(getInfo().nThreads());
-          loop.Run(0, nSt, [&](size_t st, size_t /*thread*/) {
+          // Fit the data for each station
+          itsParallelFor.Run(0, nSt, [&](size_t st, size_t /*thread*/) {
             uint numpoints=0;
             double* phases = itsPhaseFitters[st]->PhaseData();
             double* weights = itsPhaseFitters[st]->WeightData();
