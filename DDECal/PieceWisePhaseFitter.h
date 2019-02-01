@@ -57,7 +57,7 @@ public:
   void PieceWiseFit(const std::vector<double>& nu, const std::vector<double>& data, std::vector<double>& fittedData)
   {
     size_t chunkSize = std::min(data.size(), _chunkSize);
-    if(chunkSize==1)
+    if(chunkSize<=1)
       fittedData = data;
     else
     {
@@ -74,7 +74,7 @@ public:
   void PieceWiseFit(const std::vector<double>& nu, const std::vector<double>& data, const double* weights, std::vector<double>& fittedData)
   {
     size_t chunkSize = std::min(data.size(), _chunkSize);
-    if(chunkSize==1)
+    if(chunkSize<=1)
       fittedData = data;
     else
     {
@@ -96,7 +96,7 @@ public:
   {
     const size_t
       chunkSize = std::min(_chunkSize, n);
-    if(chunkSize==1)
+    if(chunkSize<=1)
       std::copy(data, data+n, fittedData);
     else
     {
@@ -139,7 +139,7 @@ public:
   {
     const size_t
       chunkSize = std::min(_chunkSize, n);
-    if(chunkSize==1)
+    if(chunkSize<=1)
       std::copy(data, data+n, fittedData);
     else
     {
@@ -166,11 +166,18 @@ public:
   
   size_t SlidingFitWithBreak(const double* nu, const double* data, const double* weights, double* fittedData, size_t n)
   {
-    SlidingFit(nu, data, weights, fittedData, n);
-    size_t bp = BreakPoint(data, weights, fittedData, n);
-    SlidingFit(nu, data, weights, fittedData, bp);
-    SlidingFit(nu+bp, data+bp, weights+bp, fittedData+bp, n-bp);
-    return bp;
+    if(std::min(_chunkSize, n) <= 1)
+    {
+      std::copy(data, data+n, fittedData);
+      return 0;
+    }
+    else {
+      SlidingFit(nu, data, weights, fittedData, n);
+      size_t bp = BreakPoint(data, weights, fittedData, n);
+      SlidingFit(nu, data, weights, fittedData, bp);
+      SlidingFit(nu+bp, data+bp, weights+bp, fittedData+bp, n-bp);
+      return bp;
+    }
   }
   
   /**
@@ -186,6 +193,8 @@ public:
    */
   static double WeightedMedian(std::vector<std::pair<double, double>>& values)
   {
+    if(values.empty())
+      return 0.0;
     std::sort(values.begin(), values.end());
     // calculate total weight
     double sum = 0.0;
@@ -207,10 +216,11 @@ public:
   {
     double largest = 0.0;
     size_t index = 0;
-    for(size_t i=0; i!=n-_chunkSize; ++i)
+    size_t ni = std::min(n, _chunkSize);
+    for(size_t i=0; i!=n - ni; ++i)
     {
       double curSum = 0.0;
-      for(size_t j=0; j!=_chunkSize; ++j)
+      for(size_t j=0; j!=ni; ++j)
       {
         double dist = data[i+j] - fittedData[i+j];
         curSum += fabs(dist) * weights[i+j];

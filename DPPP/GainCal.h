@@ -31,7 +31,7 @@
 #include "DPBuffer.h"
 #include "PhaseFitter.h"
 #include "BaselineSelection.h"
-#include "StefCal.h"
+#include "GainCalAlgorithm.h"
 #include "Patch.h"
 #include "UVWFlagger.h"
 #include "Predict.h"
@@ -112,8 +112,8 @@ namespace DP3 {
                                                     std::vector<H5Parm::AxisInfo>& axes);
 
     private:
-      // Perform stefcal (polarized or unpolarized)
-      void stefcal();
+      // Perform gaincal (polarized or unpolarized)
+      void calibrate();
 
       // Check for scalar mode
       static bool scalarMode(CalType caltype);
@@ -172,7 +172,7 @@ namespace DP3 {
 
       std::vector<std::unique_ptr<PhaseFitter> > itsPhaseFitters; // Length nSt
 
-      std::vector<StefCal>  iS;
+      std::vector<GainCalAlgorithm>  iS;
 
       UVWFlagger        itsUVWFlagStep;
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging

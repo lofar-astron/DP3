@@ -281,23 +281,23 @@ namespace DP3 {
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
 
-        StefCal::StefCalMode smode;
+        GainCalAlgorithm::Mode smode;
         switch (itsMode)
         {
-        case DIAGONAL: smode = StefCal::DEFAULT; break;
-        case FULLJONES: smode = StefCal::FULLJONES; break;
+        case DIAGONAL: smode = GainCalAlgorithm::DEFAULT; break;
+        case FULLJONES: smode = GainCalAlgorithm::FULLJONES; break;
         case SCALARPHASE:
         case PHASEONLY:
         case TEC:
-        case TECANDPHASE: smode = StefCal::PHASEONLY; break;
+        case TECANDPHASE: smode = GainCalAlgorithm::PHASEONLY; break;
         case AMPLITUDEONLY:
-        case SCALARAMPLITUDE: smode = StefCal::AMPLITUDEONLY; break;
+        case SCALARAMPLITUDE: smode = GainCalAlgorithm::AMPLITUDEONLY; break;
         default: throw Exception("Unhandled mode");
         }
 
-        iS.push_back(StefCal(itsSolInt, chMax, smode, scalarMode(itsMode),
-                             itsTolerance, info().antennaUsed().size(),
-                             itsDetectStalling, itsDebugLevel));
+        iS.emplace_back(GainCalAlgorithm(itsSolInt, chMax, smode, scalarMode(itsMode),
+          itsTolerance, info().antennaUsed().size(),
+          itsDetectStalling, itsDebugLevel));
       }
 
       itsFlagCounter.init(getInfo());
@@ -456,7 +456,7 @@ namespace DP3 {
         }
       }
 
-      // Store data in the stefcal object
+      // Store data in the GainCalAlgorithm object
       if (itsUseModelColumn && !itsApplyBeamToModelColumn) {
         fillMatrices(itsModelData.data(),data,weight,flag);
       } else {
@@ -466,7 +466,7 @@ namespace DP3 {
 
       if (itsStepInSolInt==itsSolInt-1) {
         // Solve past solution interval
-        stefcal();
+        calibrate();
         itsStepInParmUpdate++;
 
         if (itsApplySolution) {
@@ -620,7 +620,7 @@ namespace DP3 {
               caltype==AMPLITUDEONLY);
     }
 
-    void GainCal::stefcal () {
+    void GainCal::calibrate () {
       itsTimerSolve.start();
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
@@ -636,18 +636,18 @@ namespace DP3 {
       casacore::Matrix<double> tecsol(itsMode==TECANDPHASE?2:1,
                                   info().antennaUsed().size(), 0);
 
-      vector<StefCal::Status> converged(itsNFreqCells,StefCal::NOTCONVERGED);
+      vector<GainCalAlgorithm::Status> converged(itsNFreqCells,GainCalAlgorithm::NOTCONVERGED);
       for (;iter<itsMaxIter;++iter) {
         bool allConverged=true;
         ParallelFor<size_t> loop(getInfo().nThreads());
         loop.Run(0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
           // Do another step when stalled and not all converged
-          if (converged[freqCell]!=StefCal::CONVERGED)
+          if (converged[freqCell]!=GainCalAlgorithm::CONVERGED)
           {
             converged[freqCell] = iS[freqCell].doStep(iter);
             // Only continue if there are steps worth continuing
             // (so not converged, failed or stalled)
-            if (converged[freqCell]==StefCal::NOTCONVERGED) {
+            if (converged[freqCell]==GainCalAlgorithm::NOTCONVERGED) {
               allConverged = false;
             }
           }
@@ -698,7 +698,7 @@ namespace DP3 {
             double* weights = itsPhaseFitters[st]->WeightData();
             for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
               if (iS[freqCell].getStationFlagged()[st%nSt] ||
-                  converged[freqCell]==StefCal::FAILED) {
+                  converged[freqCell]==GainCalAlgorithm::FAILED) {
                 phases[freqCell] = 0;
                 weights[freqCell] = 0;
               } else {
@@ -724,7 +724,7 @@ namespace DP3 {
               } else { // itsMode==TEC
                 itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
               }
-              // Update solution in stefcal
+              // Update solution in GainCalAlgorithm object
               for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 assert(isFinite(phases[freqCell]));
                 iS[freqCell].getSolution(false)(st, 0) = polar(1., phases[freqCell]);
@@ -763,16 +763,16 @@ namespace DP3 {
 
       for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         switch (converged[freqCell]) {
-        case StefCal::CONVERGED: {itsConverged++; itsNIter[0]+=iter; break;}
-        case StefCal::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
-        case StefCal::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
-        case StefCal::FAILED: {itsFailed++; itsNIter[3]+=iter; break;}
+        case GainCalAlgorithm::CONVERGED: {itsConverged++; itsNIter[0]+=iter; break;}
+        case GainCalAlgorithm::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
+        case GainCalAlgorithm::NOTCONVERGED: {itsNonconverged++; itsNIter[2]+=iter; break;}
+        case GainCalAlgorithm::FAILED: {itsFailed++; itsNIter[3]+=iter; break;}
         default:
           throw Exception("Unknown converged status");
         }
       }
 
-      // Stefcal terminated (either by maxiter or by converging)
+      // Calibrate terminated (either by maxiter or by converging)
 
       Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaUsed().size(), itsNFreqCells);
 
@@ -799,7 +799,7 @@ namespace DP3 {
       }
 
       itsTimerSolve.stop();
-    } // End stefcal()
+    } // End calibrate()
 
 
     void GainCal::initParmDB() {
@@ -1281,7 +1281,7 @@ namespace DP3 {
 
       //Solve remaining time slots if any
       if (itsStepInSolInt!=0) {
-        stefcal();
+        calibrate();
 
         if (itsApplySolution) {
           Cube<DComplex> invsol = invertSol(itsSols.back());
