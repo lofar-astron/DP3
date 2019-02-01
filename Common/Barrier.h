@@ -9,7 +9,8 @@ namespace DP3 {
   
   /**
   * This class is unfortunately necessary because boost::barrier had a 
-  * bug in completion functions, and std::barrier is still experimental.
+  * bug in completion functions ( https://svn.boost.org/trac10/ticket/13561 ),
+  * and std::barrier is still experimental.
   */
   class Barrier
   {

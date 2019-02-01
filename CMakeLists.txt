@@ -6,7 +6,7 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native")
 
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
