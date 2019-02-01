@@ -53,7 +53,7 @@ namespace DP3 {
     {
       if(end == start+1)
       {
-        _loopFunction(start, 0);
+        function(start, 0);
       }
       else {
         if(_threads.empty())
