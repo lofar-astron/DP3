@@ -490,7 +490,10 @@ void DDECal::show (std::ostream& os) const
   os
     << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
     << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
-    << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
+    << "  flag unconverged:    " << std::boolalpha << itsFlagUnconverged << '\n'
+    << "     diverged only:    " << std::boolalpha << itsFlagDivergedOnly << '\n'
+    << "  propagate solutions: " << std::boolalpha << itsPropagateSolutions << '\n'
+    << "       converged only: " << std::boolalpha << itsPropagateConvergedOnly << '\n'
     << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
     << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
     << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
@@ -695,7 +698,7 @@ void DDECal::doSolve ()
         if (itsFlagDivergedOnly) {
           // Set weights with negative values (indicating unconverged
           // solutions that diverged) to zero (all other unconverged
-          // solutions are unflagged already)
+          // solutions remain unflagged)
           for (size_t k=0; k!=solveResult._results[i][j].weights.size(); ++k) {
             if (solveResult._results[i][j].weights[k] < 0.) {
               solveResult._results[i][j].weights[k] = 0.;
