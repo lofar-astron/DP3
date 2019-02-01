@@ -151,16 +151,19 @@ namespace DP3 {
     {}
 
     GainCal::CalType GainCal::stringToCalType(const string &modestr) {
-      if (modestr=="diagonal"||modestr=="complexgain") return COMPLEXGAIN;
-      else if (modestr=="scalarcomplexgain") return SCALARCOMPLEXGAIN;
-      else if (modestr=="fulljones") return FULLJONES;
+      // Diagonal modes
+      if (modestr=="diagonal"||modestr=="complexgain") return DIAGONAL;
       else if (modestr=="phaseonly") return PHASEONLY;
-      else if (modestr=="scalarphase") return SCALARPHASE;
       else if (modestr=="amplitudeonly") return AMPLITUDEONLY;
+      // Scalar modes
+      else if (modestr=="scalarcomplexgain"||modestr=="scalarcomplex") return SCALARCOMPLEXGAIN;
       else if (modestr=="scalaramplitude") return SCALARAMPLITUDE;
+      else if (modestr=="scalarphase") return SCALARPHASE;
       else if (modestr=="tecandphase") return TECANDPHASE;
       else if (modestr=="tec") return TEC;
       else if (modestr=="tecscreen") return TECSCREEN;
+      // Full jones
+      else if (modestr=="fulljones") return FULLJONES;
       else if (modestr=="rotation+diagonal") return ROTATIONANDDIAGONAL;
       else if (modestr=="rotation") return ROTATION;
       throw Exception("Unknown mode: " + modestr);
@@ -169,7 +172,7 @@ namespace DP3 {
     string GainCal::calTypeToString(GainCal::CalType caltype) {
       switch(caltype)
       {
-        case COMPLEXGAIN: return "complexgain";
+        case DIAGONAL: return "complexgain";
         case SCALARCOMPLEXGAIN: return "scalarcomplexgain";
         case FULLJONES: return "fulljones";
         case PHASEONLY: return "phaseonly";
@@ -281,7 +284,7 @@ namespace DP3 {
         GainCalAlgorithm::Mode smode;
         switch (itsMode)
         {
-        case COMPLEXGAIN: smode = GainCalAlgorithm::DEFAULT; break;
+        case DIAGONAL: smode = GainCalAlgorithm::DEFAULT; break;
         case FULLJONES: smode = GainCalAlgorithm::FULLJONES; break;
         case SCALARPHASE:
         case PHASEONLY:
@@ -613,7 +616,7 @@ namespace DP3 {
     }
 
     bool GainCal::diagonalMode(CalType caltype) {
-      return (caltype==COMPLEXGAIN || caltype==PHASEONLY ||
+      return (caltype==DIAGONAL || caltype==PHASEONLY ||
               caltype==AMPLITUDEONLY);
     }
 
@@ -784,7 +787,7 @@ namespace DP3 {
           for (uint cr=0; cr<iS[0].nCr(); ++cr) {
             uint crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
             sol(crt, st, freqCell) = conj(tmpsol(st, cr));        // Conjugate transpose
-            if (itsMode==COMPLEXGAIN || itsMode==PHASEONLY || itsMode==AMPLITUDEONLY) {
+            if (itsMode==DIAGONAL || itsMode==PHASEONLY || itsMode==AMPLITUDEONLY) {
               sol(crt+1, st, freqCell) = conj(tmpsol(st+nSt,cr)); // Conjugate transpose
             }
           }
@@ -862,7 +865,7 @@ namespace DP3 {
       }
 
       // Write out default gains
-      if (itsMode==COMPLEXGAIN || itsMode==FULLJONES) {
+      if (itsMode==DIAGONAL || itsMode==FULLJONES) {
         itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
         if (parmset.empty()) {
           ParmValueSet pvset(ParmValue(1.0));
@@ -1055,7 +1058,7 @@ namespace DP3 {
                                                vector<H5Parm::AxisInfo>& axes) {
       uint numsols = 1;
       // For [scalar]complexgain, store two soltabs: phase and amplitude
-      if (caltype == GainCal::COMPLEXGAIN ||
+      if (caltype == GainCal::DIAGONAL ||
           caltype == GainCal::SCALARCOMPLEXGAIN ||
           caltype == GainCal::TECANDPHASE ||
           caltype == GainCal::FULLJONES) {
@@ -1072,7 +1075,7 @@ namespace DP3 {
             soltab = h5parm.createSolTab(solTabName, "phase", axes);
             break;
           case GainCal::SCALARCOMPLEXGAIN:
-          case GainCal::COMPLEXGAIN:
+          case GainCal::DIAGONAL:
           case GainCal::FULLJONES:
             if (solnum==0) {
               solTabName = "phase000";
@@ -1224,7 +1227,7 @@ namespace DP3 {
                   } else {
                     values(freqCell, ts) = imag(itsSols[ts](pol,st,freqCell));
                   }
-                } else if (itsMode==COMPLEXGAIN) {
+                } else if (itsMode==DIAGONAL) {
                   if (realim==0) {
                     values(freqCell, ts) = real(itsSols[ts](pol/3,st,freqCell));
                   } else {

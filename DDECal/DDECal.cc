@@ -172,7 +172,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
     itsConstraints.emplace_back(new SmoothnessConstraint(itsSmoothnessConstraint)); 
   }
   switch(itsMode) {
-    case GainCal::COMPLEXGAIN:
+    case GainCal::DIAGONAL:
       itsConstraints.emplace_back(new DiagonalConstraint(4));
       itsMultiDirSolver.set_phase_only(false);
       itsFullMatrixMinimalization = true;
@@ -809,7 +809,7 @@ void DDECal::writeSolutions()
     uint nPol;
 
     vector<string> polarizations;
-    if(itsMode == GainCal::COMPLEXGAIN ||
+    if(itsMode == GainCal::DIAGONAL ||
         itsMode == GainCal::PHASEONLY ||
         itsMode == GainCal::AMPLITUDEONLY) {
       nPol = 2;
@@ -869,7 +869,7 @@ void DDECal::writeSolutions()
         "step " + itsName + " in parset: \n" + itsParsetString;
     uint numsols = 1;
     // For [scalar]complexgain, store two soltabs: phase and amplitude
-    if (itsMode == GainCal::COMPLEXGAIN ||
+    if (itsMode == GainCal::DIAGONAL ||
         itsMode == GainCal::SCALARCOMPLEXGAIN || itsMode == GainCal::FULLJONES) {
       numsols = 2;
     }
@@ -891,7 +891,7 @@ void DDECal::writeSolutions()
           }
           break;
         case GainCal::SCALARCOMPLEXGAIN:
-        case GainCal::COMPLEXGAIN:
+        case GainCal::DIAGONAL:
           if (solnum==0) {
             solTabName = "phase000";
             soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
