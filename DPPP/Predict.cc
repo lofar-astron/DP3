@@ -381,13 +381,12 @@ namespace DP3 {
       });
 #ifdef HAVE_LOFAR_BEAM
       // Apply beam to the last patch
-      for(size_t thread=0; thread!=pool->NThreads(); ++thread)
-      {
+      pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
         if (itsApplyBeam && curPatches[thread]!=nullptr) {
           addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
             itsModelVisPatch[thread].data());
         }
-      }
+      });
 #endif
 
       // Add all thread model data to one buffer

@@ -42,6 +42,8 @@
 #include "../ParmDB/ParmFacade.h"
 #include "../ParmDB/ParmSet.h"
 
+#include "../Common/ParallelFor.h"
+
 #ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #include <StationResponse/Types.h>
@@ -178,6 +180,9 @@ namespace DP3 {
       ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
 
       std::unique_ptr<Predict> itsPredictStep;
+      ParallelFor<size_t> itsParallelFor;
+      std::unique_ptr<class ThreadPool> itsThreadPool;
+      std::mutex itsMeasuresMutex;
 #ifdef HAVE_LOFAR_BEAM
       ApplyBeam         itsApplyBeamStep; // Beam step for applying beam to modelcol
 #endif
