@@ -224,7 +224,8 @@ namespace DP3 {
       info() = infoIn;
       info().setNeedVisData();
       info().setWriteData();
-
+      info().setBeamCorrectionMode(NoBeamCorrection);
+      
       const size_t nBl=info().nbaselines();
       for (size_t i=0; i!=nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
