@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 
 #include <hdf5.h>
-#include <string.h>
 
 using namespace std;
 
