@@ -86,9 +86,9 @@ namespace DP3 {
       // It keeps the data.
       // When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
-      
+
       void checkMinimumVisibilities();
-      
+
       void flagChannelBlock(size_t cbIndex);
 
       // Call the actual solver (called once per solution interval)
@@ -116,16 +116,16 @@ namespace DP3 {
     private:
       void initializeConstraints(const ParameterSet& parset, const string& prefix);
       void initializePredictSteps(const ParameterSet& parset, const string& prefix);
-      
+
       // Initialize solutions
       void initializeScalarSolutions();
-      
+
       void initializeFullMatrixSolutions();
 
       // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
       // Used for setting source names.
       std::vector<std::string> getDirectionNames();
-      
+
       void subtractCorrectedModel(bool fullJones);
 
       //# Data members.
@@ -161,6 +161,9 @@ namespace DP3 {
 
       GainCal::CalType itsMode;
       bool itsPropagateSolutions;
+      bool itsPropagateConvergedOnly;
+      bool itsFlagUnconverged;
+      bool itsFlagDivergedOnly;
       size_t itsTimeStep;
       size_t itsSolInt;
       double itsMinVisRatio;

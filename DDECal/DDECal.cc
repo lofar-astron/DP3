@@ -90,7 +90,13 @@ DDECal::DDECal (DPInput* input,
                                           "/instrument.h5")),
     itsH5Parm        (itsH5ParmName, true),
     itsPropagateSolutions (parset.getBool (prefix + "propagatesolutions",
-                                            false)),
+                                           false)),
+    itsPropagateConvergedOnly (parset.getBool (prefix + "propagateconvergedonly",
+                                           false)),
+    itsFlagUnconverged (parset.getBool (prefix + "flagunconverged",
+                                           false)),
+    itsFlagDivergedOnly (parset.getBool (prefix + "flagdivergedonly",
+                                           false)),
     itsTimeStep      (0),
     itsSolInt        (parset.getInt (prefix + "solint", 1)),
     itsMinVisRatio   (parset.getDouble (prefix + "minvisratio", 0.0)),
@@ -118,7 +124,7 @@ DDECal::DDECal (DPInput* input,
 
   if(!itsStatFilename.empty())
     itsStatStream.reset(new std::ofstream(itsStatFilename));
-  
+
   vector<string> strDirections;
   if (itsUseModelColumn) {
     itsModelData.resize(itsSolInt);
@@ -148,7 +154,7 @@ DDECal::DDECal (DPInput* input,
   itsMode = GainCal::stringToCalType(
                 boost::to_lower_copy(parset.getString(prefix + "mode",
                                         "complexgain")));
-  
+
   initializeConstraints(parset, prefix);
   initializePredictSteps(parset, prefix);
 }
@@ -169,7 +175,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
     itsConstraints.emplace_back(new CoreConstraint());
   }
   if(itsSmoothnessConstraint != 0.0) {
-    itsConstraints.emplace_back(new SmoothnessConstraint(itsSmoothnessConstraint)); 
+    itsConstraints.emplace_back(new SmoothnessConstraint(itsSmoothnessConstraint));
   }
   switch(itsMode) {
     case GainCal::DIAGONAL:
@@ -253,7 +259,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
       itsFullMatrixMinimalization = true;
       break;
     default:
-      throw std::runtime_error("Unexpected mode: " + 
+      throw std::runtime_error("Unexpected mode: " +
                       GainCal::calTypeToString(itsMode));
   }
 }
@@ -413,7 +419,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
       }
       coreConstraint->initialize(coreAntennaIndices);
     }
-    
+
 #ifdef HAVE_ARMADILLO
     ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
     if(screenConstraint != 0)
@@ -445,7 +451,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
       screenConstraint->setOtherAntennas(otherAntennaIndices);
     }
 #endif
-    
+
     TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
     if(tecConstraint != nullptr)
     {
@@ -484,7 +490,10 @@ void DDECal::show (std::ostream& os) const
   os
     << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
     << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
-    << "  propagatesolutions:  " << std::boolalpha << itsPropagateSolutions << '\n'
+    << "  flag unconverged:    " << std::boolalpha << itsFlagUnconverged << '\n'
+    << "     diverged only:    " << std::boolalpha << itsFlagDivergedOnly << '\n'
+    << "  propagate solutions: " << std::boolalpha << itsPropagateSolutions << '\n'
+    << "       converged only: " << std::boolalpha << itsPropagateConvergedOnly << '\n'
     << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
     << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
     << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
@@ -534,8 +543,16 @@ void DDECal::showTimings (std::ostream& os, double duration) const
 
 void DDECal::initializeScalarSolutions() {
   if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
-    // initialize solutions with those of the previous step
-    itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+    if (itsNIter[itsTimeStep/itsSolInt-1]>itsMultiDirSolver.max_iterations() && itsPropagateConvergedOnly) {
+      // initialize solutions with 1.
+      size_t n = itsDirections.size()*info().antennaNames().size();
+      for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+        solvec.assign(n, 1.0);
+      }
+    } else {
+      // initialize solutions with those of the previous step
+      itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+    }
   } else {
     // initialize solutions with 1.
     size_t n = itsDirections.size()*info().antennaNames().size();
@@ -547,8 +564,23 @@ void DDECal::initializeScalarSolutions() {
 
 void DDECal::initializeFullMatrixSolutions() {
   if (itsTimeStep/itsSolInt>0 && itsPropagateSolutions) {
-    // initialize solutions with those of the previous step
-    itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+    if (itsNIter[itsTimeStep/itsSolInt-1]>itsMultiDirSolver.max_iterations() && itsPropagateConvergedOnly) {
+      // initialize solutions with unity matrix [1 0 ; 0 1].
+      size_t n = itsDirections.size()*info().antennaNames().size();
+      for (vector<DComplex>& solvec : itsSols[itsTimeStep/itsSolInt]) {
+        solvec.resize(n*4);
+        for(size_t i=0; i!=n; ++i)
+        {
+          solvec[i*4 + 0] = 1.0;
+          solvec[i*4 + 1] = 0.0;
+          solvec[i*4 + 2] = 0.0;
+          solvec[i*4 + 3] = 1.0;
+        }
+      }
+    } else {
+      // initialize solutions with those of the previous step
+      itsSols[itsTimeStep/itsSolInt] = itsSols[itsTimeStep/itsSolInt-1];
+    }
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
     size_t n = itsDirections.size()*info().antennaNames().size();
@@ -592,7 +624,7 @@ void DDECal::flagChannelBlock(size_t cbIndex)
   // Set the antenna-based weights to zero
   for(size_t bl=0; bl<nBl; ++bl)
   {
-    size_t 
+    size_t
       ant1 = info().getAnt1()[bl],
       ant2 = info().getAnt2()[bl];
     for(size_t ch=itsChanBlockStart[cbIndex]; ch!=itsChanBlockStart[cbIndex+1]; ++ch)
@@ -628,11 +660,11 @@ void DDECal::checkMinimumVisibilities()
 void DDECal::doSolve ()
 {
   checkMinimumVisibilities();
-    
+
   for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
     constraint->SetWeights(itsWeightsPerAntenna);
   }
-  
+
   if(itsFullMatrixMinimalization)
     initializeFullMatrixSolutions();
   else
@@ -657,6 +689,41 @@ void DDECal::doSolve ()
   itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
   itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
+  // Check for nonconvergence and flag if desired. Unconverged solutions are
+  // identified by the number of iterations being one more than the max allowed
+  // number
+  if (solveResult.iterations > itsMultiDirSolver.max_iterations() && itsFlagUnconverged) {
+    for (size_t i=0; i!=solveResult._results.size(); ++i) {
+      for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
+        if (itsFlagDivergedOnly) {
+          // Set weights with negative values (indicating unconverged
+          // solutions that diverged) to zero (all other unconverged
+          // solutions remain unflagged)
+          for (size_t k=0; k!=solveResult._results[i][j].weights.size(); ++k) {
+            if (solveResult._results[i][j].weights[k] < 0.) {
+              solveResult._results[i][j].weights[k] = 0.;
+            }
+          }
+        } else {
+          // Set all weights to zero
+          solveResult._results[i][j].weights.assign(solveResult._results[i][j].weights.size(), 0.);
+        }
+      }
+    }
+  } else {
+    // Set any negative weights (indicating unconverged solutions that diverged) to
+    // one (all other unconverged solutions are unflagged already)
+    for (size_t i=0; i!=solveResult._results.size(); ++i) {
+      for (size_t j=0; j!=solveResult._results[i].size(); ++j) {
+        for (size_t k=0; k!=solveResult._results[i][j].weights.size(); ++k) {
+          if (solveResult._results[i][j].weights[k] < 0.) {
+            solveResult._results[i][j].weights[k] = 1.;
+          }
+        }
+      }
+    }
+  }
+
   // Store constraint solutions if any constaint has a non-empty result
   bool someConstraintHasResult = false;
   for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
@@ -668,7 +735,7 @@ void DDECal::doSolve ()
   if (someConstraintHasResult) {
     itsConstraintSols[itsTimeStep/itsSolInt]=solveResult._results;
   }
-  
+
   itsTimer.stop();
 
   for(size_t time=0; time<=itsStepInSolInt; ++time)
@@ -679,7 +746,7 @@ void DDECal::doSolve ()
     // Push data (possibly changed) to next step
     getNextStep()->process(itsBufs[time]);
   }
-  
+
   itsTimer.start();
 }
 
@@ -695,10 +762,10 @@ bool DDECal::process (const DPBuffer& bufin)
   itsBufs[itsStepInSolInt].copy(bufin);
   itsOriginalFlags[itsStepInSolInt].assign( bufin.getFlags() );
   itsOriginalWeights[itsStepInSolInt].assign( bufin.getWeights() );
-  
+
   itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
   itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
-  
+
   // UVW flagging happens on the copy of the buffer
   // These flags are later restored and therefore not written
   itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
@@ -715,7 +782,7 @@ bool DDECal::process (const DPBuffer& bufin)
     std::mutex measuresMutex;
     for(DP3::DPPP::Predict& predict : itsPredictSteps)
       predict.setThreadData(*itsThreadPool, measuresMutex);
-    
+
     itsThreadPool->For(0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
       itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
       itsModelDataPtrs[itsStepInSolInt][dir] =
@@ -727,13 +794,13 @@ bool DDECal::process (const DPBuffer& bufin)
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = 4;
-  
+
   size_t nchanblocks = itsChanBlockFreqs.size();
 
   double weightFactor = 1./(nCh*(info().nantenna()-1)*nCr*itsSolInt);
 
   for (size_t bl=0; bl<nBl; ++bl) {
-    size_t 
+    size_t
       chanblock = 0,
       ant1 = info().getAnt1()[bl],
       ant2 = info().getAnt2()[bl];
@@ -908,11 +975,11 @@ void DDECal::writeSolutions()
           soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
           soltab.setComplexValues(sols, vector<double>(), true, historyString);
           break;
-        default: 
+        default:
           throw std::runtime_error("Constraint should have produced output");
       }
 
-      // Tell H5Parm that all antennas and directions were used 
+      // Tell H5Parm that all antennas and directions were used
       std::vector<std::string> antennaNames(info().antennaNames().size());
       for (uint i=0; i<info().antennaNames().size(); ++i) {
         antennaNames[i]=info().antennaNames()[i];
@@ -988,13 +1055,13 @@ void DDECal::writeSolutions()
                           "step " + itsName + " in parset: \n" +
                           itsParsetString);
 
-        // Tell H5Parm that all antennas and directions were used 
+        // Tell H5Parm that all antennas and directions were used
         std::vector<std::string> antennaNames(info().antennaNames().size());
         for (uint i=0; i<info().antennaNames().size(); ++i) {
           antennaNames[i]=info().antennaNames()[i];
         }
         soltab.setAntennas(antennaNames);
-  
+
         soltab.setSources(getDirectionNames());
 
         if (soltab.hasAxis("pol")) {
@@ -1011,7 +1078,7 @@ void DDECal::writeSolutions()
             default:
                     throw std::runtime_error("No metadata for numpolarizations = " + std::to_string(soltab.getAxis("pol").size));
           }
-          
+
           soltab.setPolarizations(polarizations);
         }
 
@@ -1082,11 +1149,11 @@ void DDECal::subtractCorrectedModel(bool fullJones)
     std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
     for (size_t bl=0; bl<nBl; ++bl)
     {
-      size_t 
+      size_t
         chanblock = 0,
         ant1 = info().getAnt1()[bl],
         ant2 = info().getAnt2()[bl];
-        
+
       for (size_t ch=0; ch<nCh; ++ch)
       {
         MC2x2 value(MC2x2::Zero());
@@ -1118,5 +1185,5 @@ void DDECal::subtractCorrectedModel(bool fullJones)
     } //bl loop
   } //time loop
 }
-  
+
 } } //# end namespace
