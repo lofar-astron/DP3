@@ -118,7 +118,8 @@ namespace DP3 {
     // Prepare data
     vector<source_t> sources(names.size());
     for (uint src=0; src<sources.size(); ++src) {
-      std::strncpy(sources[src].name, names[src].c_str(), 128);
+      std::strncpy(sources[src].name, names[src].c_str(), 127);
+      sources[src].name[127] = 0;
       sources[src].dir[0] = dirs[src].first;
       sources[src].dir[1] = dirs[src].second;
     }
@@ -145,7 +146,8 @@ namespace DP3 {
     // Prepare data
     vector<antenna_t> ants(names.size());
     for (uint ant=0; ant<ants.size(); ++ant) {
-      std::strncpy(ants[ant].name, names[ant].c_str(), 16);
+      std::strncpy(ants[ant].name, names[ant].c_str(), 15);
+      ants[ant].name[15] = 0;
       const std::vector<double>& pos = positions[ant];
       ants[ant].position[0] = pos[0];
       ants[ant].position[1] = pos[1];
