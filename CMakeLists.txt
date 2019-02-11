@@ -208,4 +208,4 @@ target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY}
 add_executable(showsourcedb ParmDB/showsourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
 target_link_libraries(showsourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
-install (TARGETS makesourcedb DESTINATION bin) 
+install (TARGETS makesourcedb showsourcedb DESTINATION bin) 
