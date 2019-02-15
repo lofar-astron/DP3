@@ -138,7 +138,6 @@ namespace DP3 {
 #endif
       bool             itsStokesIOnly;
       Position         itsPhaseRef;
-      bool             itsMovingPhaseRef;
 
       bool             itsDoApplyCal;
       ApplyCal         itsApplyCalStep;

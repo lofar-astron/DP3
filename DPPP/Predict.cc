@@ -204,22 +204,15 @@ namespace DP3 {
         } else {
           itsModelVis[thread].resize(nCr,nCh,nBl);
         }
-        bool needMeasConverters = itsMovingPhaseRef;
 #ifdef HAVE_LOFAR_BEAM
-        needMeasConverters = needMeasConverters || itsApplyBeam;
-#endif
-        if (needMeasConverters) {
-          // Prepare measures converters
+        if (itsApplyBeam) {
+          itsModelVisPatch[thread].resize(nCr,nCh,nBl);
+          itsBeamValues[thread].resize(nSt*nCh);
           itsMeasFrames[thread].set (info().arrayPosCopy());
           itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
                                             MEpoch::UTC));
           itsMeasConverters[thread].set (MDirection::J2000,
                                          MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-        }
-#ifdef HAVE_LOFAR_BEAM
-        if (itsApplyBeam) {
-          itsModelVisPatch[thread].resize(nCr,nCh,nBl);
-          itsBeamValues[thread].resize(nSt*nCh);
           itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
         }
 #endif
@@ -239,17 +232,11 @@ namespace DP3 {
                                          info().getAnt2()[i]));
       }
 
-      try {
-        MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
-                                                MDirection::J2000)());
-        Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-        itsMovingPhaseRef = false;
-        itsPhaseRef = Position(angles.getBaseValue()[0],
-                               angles.getBaseValue()[1]);
-      } catch (AipsError) {
-        // Phase direction (in J2000) is time dependent
-        itsMovingPhaseRef = true;
-      }
+      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+                                              MDirection::J2000)());
+      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+      itsPhaseRef = Position(angles.getBaseValue()[0],
+                             angles.getBaseValue()[1]);
 
       initializeThreadData();
 
@@ -325,17 +312,12 @@ namespace DP3 {
 
       nsplitUVW(itsUVWSplitIndex, itsBaselines, itsTempBuffer.getUVW(), itsUVW);
 
-      double time = itsTempBuffer.getTime();
 #ifdef HAVE_LOFAR_BEAM
+      double time = itsTempBuffer.getTime();
       //Set up directions for beam evaluation
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
-#endif
 
-      bool needMeasConverters = itsMovingPhaseRef;
-#ifdef HAVE_LOFAR_BEAM
-      needMeasConverters = needMeasConverters || itsApplyBeam;
-#endif
-      if (needMeasConverters)
+      if (itsApplyBeam)
       {
         // Because multiple predict steps might be predicting simultaneously, and
         // Casacore is not thread safe, this needs synchronization.
@@ -345,22 +327,13 @@ namespace DP3 {
         for (uint thread=0; thread!=getInfo().nThreads(); ++thread) {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
-          //Do a conversion on all threads
-#ifdef HAVE_LOFAR_BEAM
+          //Do a conversion on all threads, because converters are not
+          //thread safe and apparently need to be used at least once
           refdir  = dir2Itrf(info().delayCenter(), itsMeasConverters[thread]);
           tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
-#endif
         }
       }
-
-      if (itsMovingPhaseRef) {
-      // Convert phase reference to J2000
-       MDirection dirJ2000(MDirection::Convert(info().phaseCenter(),
-           MDirection::Ref(MDirection::J2000, itsMeasFrames[0]))());
-         Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-          itsPhaseRef = Position(angles.getBaseValue()[0],
-                                 angles.getBaseValue()[1]);
-      }
+#endif
 
       std::unique_ptr<ThreadPool> localThreadPool;
       ThreadPool* pool = itsThreadPool;
