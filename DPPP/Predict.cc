@@ -204,7 +204,11 @@ namespace DP3 {
         } else {
           itsModelVis[thread].resize(nCr,nCh,nBl);
         }
-        if (itsApplyBeam || itsMovingPhaseRef) {
+        bool needMeasConverters = itsMovingPhaseRef;
+#ifdef HAVE_LOFAR_BEAM
+        needMeasConverters = needMeasConverters || itsApplyBeam;
+#endif
+        if (needMeasConverters) {
           // Prepare measures converters
           itsMeasFrames[thread].set (info().arrayPosCopy());
           itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
@@ -327,7 +331,11 @@ namespace DP3 {
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
 #endif
 
-      if (itsApplyBeam || itsMovingPhaseRef)
+      bool needMeasConverters = itsMovingPhaseRef;
+#ifdef HAVE_LOFAR_BEAM
+      needMeasConverters = needMeasConverters || itsApplyBeam;
+#endif
+      if (needMeasConverters)
       {
         // Because multiple predict steps might be predicting simultaneously, and
         // Casacore is not thread safe, this needs synchronization.
