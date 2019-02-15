@@ -246,7 +246,7 @@ namespace DP3 {
         itsMovingPhaseRef = false;
         itsPhaseRef = Position(angles.getBaseValue()[0],
                                angles.getBaseValue()[1]);
-      } catch (AipsError) {
+      } catch (AipsError&) {
         // Phase direction (in J2000) is time dependent
         itsMovingPhaseRef = true;
       }
