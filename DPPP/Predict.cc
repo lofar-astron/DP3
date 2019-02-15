@@ -325,7 +325,7 @@ namespace DP3 {
 #ifdef HAVE_LOFAR_BEAM
       //Set up directions for beam evaluation
       LOFAR::StationResponse::vector3r_t refdir, tiledir;
-#endif HAVE_LOFAR_BEAM
+#endif
 
       if (itsApplyBeam || itsMovingPhaseRef)
       {
