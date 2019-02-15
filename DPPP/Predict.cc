@@ -348,7 +348,7 @@ namespace DP3 {
       if (itsMovingPhaseRef) {
       // Convert phase reference to J2000
        MDirection dirJ2000(MDirection::Convert(info().phaseCenter(),
-           MDirection::Ref(MDirection::J2000, itsMeasFrames[thread]))());
+           MDirection::Ref(MDirection::J2000, itsMeasFrames[0]))());
          Quantum<Vector<Double> > angles = dirJ2000.getAngle();
           itsPhaseRef = Position(angles.getBaseValue()[0],
                                  angles.getBaseValue()[1]);
