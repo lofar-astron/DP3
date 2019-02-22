@@ -54,6 +54,7 @@ public:
     PointSource(const Position &position, const Stokes &stokes);
 
     virtual const Position &position() const;
+    virtual const Position &positionJ2000() const;
     void setPosition(const Position &position);
 
     void setStokes(const Stokes &stokes);
@@ -72,6 +73,7 @@ private:
     bool hasRotationMeasure() const;
 
     Position        itsPosition;
+    Position        itsPositionJ2000;
     Stokes          itsStokes;
     double          itsRefFreq;
     std::vector<double>  itsSpectralTerms;
@@ -95,6 +97,11 @@ void PointSource::setSpectralTerms(double refFreq, bool isLogarithmic, T first, 
     itsHasLogarithmicSI = isLogarithmic;
     itsSpectralTerms.clear();
     itsSpectralTerms.insert(itsSpectralTerms.begin(), first, last);
+}
+
+inline const Position &PointSource::positionJ2000() const
+{
+    return itsPositionJ2000;
 }
 
 inline const Position &PointSource::position() const

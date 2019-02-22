@@ -43,7 +43,7 @@ class ModelComponent
 {
 public:
     typedef std::shared_ptr<ModelComponent>          Ptr;
-    typedef std::shared_ptr<const ModelComponent>    ConstPtr;
+    typedef std::shared_ptr<ModelComponent>    ConstPtr;
 
     virtual ~ModelComponent();
     virtual const Position &position() const = 0;

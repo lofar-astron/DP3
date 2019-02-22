@@ -46,6 +46,7 @@ PointSource::PointSource(const Position &position)
 
 PointSource::PointSource(const Position &position, const Stokes &stokes)
     :   itsPosition(position),
+        itsPositionJ2000(position),
         itsStokes(stokes),
         itsRefFreq(0.0),
         itsPolarizedFraction(0.0),

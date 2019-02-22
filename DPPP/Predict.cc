@@ -208,13 +208,14 @@ namespace DP3 {
 #ifdef HAVE_LOFAR_BEAM
         needMeasConverters = needMeasConverters || itsApplyBeam;
 #endif
-        if (needMeasConverters) {
+        if (needMeasConverters || true) {
           // Prepare measures converters
           itsMeasFrames[thread].set (info().arrayPosCopy());
           itsMeasFrames[thread].set (MEpoch(MVEpoch(info().startTime()/86400),
                                             MEpoch::UTC));
+          // DO NOT MERGE: this change abuses the existing MeasConverters for the 2019 windmill test
           itsMeasConverters[thread].set (MDirection::J2000,
-                                         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
+                                         MDirection::Ref(MDirection::AZELGEO, itsMeasFrames[thread]));
         }
 #ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeam) {
@@ -240,15 +241,27 @@ namespace DP3 {
       }
 
       try {
-        MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
-                                                MDirection::J2000)());
-        Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+        //MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+        //                                        MDirection::J2000)());
+        //Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+
+        // Read pointing without reading frame
+        Quantum<Vector<Double> > angles = infoIn.phaseCenter().getAngle();
+        string phaseCenterFrame = infoIn.phaseCenter().toString();
+        //std::cout<<"Phase center: "<<phaseCenterFrame<<std::endl;
+        phaseCenterFrame = phaseCenterFrame.substr(phaseCenterFrame.rfind(" ")+1, 100);
+        if (phaseCenterFrame!="AZELGEO") {
+          throw(Exception("This version of DPPP only works if the phase center is in AZELGEO"));
+        }
         itsMovingPhaseRef = false;
         itsPhaseRef = Position(angles.getBaseValue()[0],
                                angles.getBaseValue()[1]);
       } catch (AipsError&) {
         // Phase direction (in J2000) is time dependent
-        itsMovingPhaseRef = true;
+        throw(Exception("Don't want to be here, should read azelgeo as if it were J2000"));
+        itsMovingPhaseRef = false;
+        itsPhaseRef = Position(infoIn.phaseCenter().getAngle().getBaseValue()[0],
+                               infoIn.phaseCenter().getAngle().getBaseValue()[1]);
       }
 
       initializeThreadData();
@@ -335,7 +348,7 @@ namespace DP3 {
 #ifdef HAVE_LOFAR_BEAM
       needMeasConverters = needMeasConverters || itsApplyBeam;
 #endif
-      if (needMeasConverters)
+      if (needMeasConverters || true)
       {
         // Because multiple predict steps might be predicting simultaneously, and
         // Casacore is not thread safe, this needs synchronization.
@@ -360,6 +373,7 @@ namespace DP3 {
          Quantum<Vector<Double> > angles = dirJ2000.getAngle();
           itsPhaseRef = Position(angles.getBaseValue()[0],
                                  angles.getBaseValue()[1]);
+          throw(Exception("Don't want to arrive here"));
       }
 
       std::unique_ptr<ThreadPool> localThreadPool;
@@ -404,6 +418,19 @@ namespace DP3 {
             itsModelVisPatch[thread].data());
         }
 #endif
+        if (true) {
+          std::shared_ptr<ModelComponent> curComp = itsSourceList[iter].first;
+          PointSource *curPt = dynamic_cast<PointSource*>(curComp.get());
+          //std::cout<<"Read position       : "<<curPt->positionJ2000()[0]<<", "<<curPt->positionJ2000()[1]<<std::endl;
+          MDirection posJ2000(MVDirection(curPt->positionJ2000()[0],
+                                          curPt->positionJ2000()[1]), MDirection::J2000);
+          MDirection dirAzelGeo = itsMeasConverters[thread](posJ2000);
+          Position posAzelGeo = Position(dirAzelGeo.getAngle().getBaseValue()[0],
+                                         dirAzelGeo.getAngle().getBaseValue()[1]);
+          //std::cout<<"Interpreted position: "<<posJ2000.getValue()<<std::endl;
+          //std::cout<<"Converted position  : "<<itsMeasConverters[thread](posJ2000).getAngle().getBaseValue()[0]<<", "<<itsMeasConverters[thread](posJ2000).getAngle().getBaseValue()[1]<<std::endl;
+          curPt->setPosition(posAzelGeo);
+        }
         simulators[thread].simulate(itsSourceList[iter].first);
         curPatch=itsSourceList[iter].second;
       });
