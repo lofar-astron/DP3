@@ -12,19 +12,20 @@ namespace DP3 {
                                                 size_t nChannelBlocks) {
   Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-  assert(_nDirections == 1);
+  assert(_nDirections == 1); // TODO directions!
 
   _res.resize(1);
   _res[0].vals.resize(_nAntennas*_nChannelBlocks);
-  _res[0].axes="ant,freq";
-  _res[0].dims.resize(2);
+  _res[0].axes="ant,dir,freq";
+  _res[0].dims.resize(3);
   _res[0].dims[0]=_nAntennas;
-  _res[0].dims[1]=_nChannelBlocks;
+  _res[0].dims[1]=_nDirections;
+  _res[0].dims[2]=_nChannelBlocks;
   _res[0].name="rotation";
 }
 
 void RotationConstraint::SetWeights(const vector<double>& weights) {
-  _res[0].weights = weights;
+  _res[0].weights = weights; // TODO directions!
 }
 
 double RotationConstraint::get_rotation(std::complex<double>* data) {
@@ -47,7 +48,7 @@ vector<Constraint::Result> RotationConstraint::Apply(
       // Compute rotation
       complex<double> *data= &(solutions[ch][4*ant]);
       double angle = get_rotation(data);
-      _res[0].vals[ant*_nChannelBlocks+ch] = angle;
+      _res[0].vals[ant*_nChannelBlocks+ch] = angle;  // TODO directions!
 
       // Constrain the data
       data[0] = cos(angle);
