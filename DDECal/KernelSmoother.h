@@ -4,7 +4,19 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include <limits>
 
+/**
+ * Smooths a series of possibly irregularly gridded values by a
+ * given kernel.
+ * 
+ * The class is optimized to smooth many series which are all placed on the same grid.
+ * This is the case when smoothing the solutions on a (a possibly irregular)
+ * channel grid.
+ * 
+ * This class uses internally stored scratch space, and is therefore not thread safe. To
+ * smooth with multiple threads, instantiate a KernelSmoother for each thread.
+ */
 template<typename DataType, typename NumType>
 class KernelSmoother
 {
@@ -18,6 +30,14 @@ public:
     EpanechnikovKernel
   };
   
+  /**
+   * Construct and initialize kernel smoother.
+   * @param frequencies Array size of @c n defining the grid: frequencies[i] specifies the frequency
+   * of channel i in Hz.
+   * @param n Size of the grid (number of channels).
+   * @param kernelType Type of kernel to use for smoothing
+   * @param kernelBandwidth size of the kernel (smoothing strength) in frequency units (Hz).
+   */
   KernelSmoother(const NumType* frequencies, size_t n, KernelType kernelType, NumType kernelBandwidth) :
     _frequencies(frequencies, frequencies+n),
     _scratch(n),
@@ -26,6 +46,12 @@ public:
   {
   }
   
+  /**
+   * Evaluate the kernel for a given position.
+   * @param distance Distance (positive or negative) from centre of the kernel to evaluate
+   * the kernel for, in units of frequency (Hz).
+   * @returns Unnormalized kernel value (i.e., integral of kernel is not necessarily unity).
+   */
   NumType Kernel(NumType distance) const
   {
     NumType x = distance / _bandwidth;
@@ -50,6 +76,11 @@ public:
     }
   }
   
+  /**
+   * Replaces the data with a smoothed version of the data.
+   * @param data Data array of size @c n (as specified in constructor) that is smoothed on output.
+   * @param weight Associated weights, array of size @c n.
+   */
   void Smooth(DataType* data, const NumType* weight)
   {
     size_t n = _frequencies.size();
@@ -83,7 +114,7 @@ public:
         weightSum += w;
       }
       if(weightSum == 0.0)
-        _scratch[i] = 0.0;
+        _scratch[i] = std::numeric_limits<DataType>::quiet_NaN();
       else
         _scratch[i] = sum / weightSum;
     }
