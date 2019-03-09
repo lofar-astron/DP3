@@ -13,24 +13,26 @@ void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nChannelBlocks) {
   Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-  assert(_nDirections == 1);
+  assert(_nDirections == 1); // TODO directions!
 
   _res.resize(3);
   _res[0].vals.resize(_nAntennas*_nChannelBlocks);
   _res[0].weights.resize(_nAntennas*_nChannelBlocks);
-  _res[0].axes="ant,freq";
-  _res[0].dims.resize(2);
+  _res[0].axes="ant,dir,freq";
+  _res[0].dims.resize(3);
   _res[0].dims[0]=_nAntennas;
-  _res[0].dims[1]=_nChannelBlocks;
+  _res[0].dims[1]=_nDirections;
+  _res[0].dims[2]=_nChannelBlocks;
   _res[0].name="rotation";
 
   _res[1].vals.resize(_nAntennas*_nChannelBlocks*2);
   _res[1].weights.resize(_nAntennas*_nChannelBlocks*2);
-  _res[1].axes="ant,freq,pol";
-  _res[1].dims.resize(3);
+  _res[1].axes="ant,dir,freq,pol";
+  _res[1].dims.resize(4);
   _res[1].dims[0]=_nAntennas;
-  _res[1].dims[1]=_nChannelBlocks;
-  _res[1].dims[2]=2;
+  _res[1].dims[1]=_nDirections;
+  _res[1].dims[2]=_nChannelBlocks;
+  _res[1].dims[3]=2;
   _res[1].name="amplitude";
 
   _res[2] = _res[1];
@@ -38,22 +40,23 @@ void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
 }
 
 void RotationAndDiagonalConstraint::SetWeights(const vector<double>& weights) {
-  _res[0].weights = weights;
+  _res[0].weights = weights; // TODO should be nDir times
 
   // Duplicate weights for two polarizations
-  _res[1].weights.resize(_nAntennas*_nChannelBlocks*2);
+  _res[1].weights.resize(_nAntennas*_nDirections*_nChannelBlocks*2);
   size_t indexInWeights = 0;
   for (auto weight: weights) {
-    _res[1].weights[indexInWeights++] = weight;
+    _res[1].weights[indexInWeights++] = weight; // TODO directions!
     _res[1].weights[indexInWeights++] = weight;
   }
 
-  _res[2].weights = _res[1].weights;
+  _res[2].weights = _res[1].weights; // TODO directions!
 }
 
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     vector<vector<dcomplex> >& solutions, double,
-    std::ostream* statStream) {
+    std::ostream* statStream)
+{
   if (statStream) *statStream<<"["; // begin channel
   double angle0;
   for (uint ch=0; ch<_nChannelBlocks; ++ch) {
@@ -141,7 +144,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         angle -= angle0;
         angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
       }
-      _res[0].vals[ant*_nChannelBlocks + ch] = angle;
+      _res[0].vals[ant*_nChannelBlocks + ch] = angle;  // TODO directions!
       _res[1].vals[ant*_nChannelBlocks*2 + 2*ch    ] = abs(a);
       _res[1].vals[ant*_nChannelBlocks*2 + 2*ch + 1] = abs(b);
       _res[2].vals[ant*_nChannelBlocks*2 + 2*ch    ] = arg(a);
