@@ -2,6 +2,7 @@
 #define KERNEL_SMOOTHER_H
 
 #include <cmath>
+#include <complex>
 #include <stdexcept>
 #include <vector>
 #include <limits>
@@ -114,7 +115,7 @@ public:
         weightSum += w;
       }
       if(weightSum == 0.0)
-        _scratch[i] = std::numeric_limits<DataType>::quiet_NaN();
+        _scratch[i] = quiet_NaN(_scratch[i]);
       else
         _scratch[i] = sum / weightSum;
     }
@@ -122,6 +123,12 @@ public:
   }
   
 private:
+  double quiet_NaN(double) { return std::numeric_limits<double>::quiet_NaN(); }
+
+  std::complex<double> quiet_NaN(std::complex<double>) {
+    return std::complex<double>(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
+  }
+  
   std::vector<NumType> _frequencies;
   std::vector<DataType> _scratch;
   enum KernelType _kernelType;
