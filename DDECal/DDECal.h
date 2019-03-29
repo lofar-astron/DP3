@@ -56,6 +56,8 @@
 #include <string>
 #include <vector>
 
+class FacetPredict;
+
 namespace DP3 {
 
   class ParameterSet;
@@ -115,6 +117,7 @@ namespace DP3 {
 
     private:
       void initializeConstraints(const ParameterSet& parset, const string& prefix);
+      void initializeIDG(const ParameterSet& parset, const string& prefix);
       void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
       // Initialize solutions
@@ -127,6 +130,8 @@ namespace DP3 {
       std::vector<std::string> getDirectionNames();
 
       void subtractCorrectedModel(bool fullJones);
+      
+      void idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values);
 
       //# Data members.
       DPInput*         itsInput;
@@ -143,8 +148,10 @@ namespace DP3 {
       std::vector<casacore::Complex*> itsDataPtrs;
       std::vector<float*> itsWeightPtrs;
 
-      // For each timeslot, a vector of nDir buffers
+      // For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
       std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
+      
+      std::vector<std::vector<std::vector<casacore::Complex>>> itsIDGBuffers;
 
       // For each time, for each channel block, a vector of size nAntennas * nDirections
       std::vector<std::vector<std::vector<casacore::DComplex> > > itsSols;
@@ -164,6 +171,7 @@ namespace DP3 {
       bool itsPropagateConvergedOnly;
       bool itsFlagUnconverged;
       bool itsFlagDivergedOnly;
+      bool itsUseIDG;
       size_t itsTimeStep;
       size_t itsSolInt;
       double itsMinVisRatio;
@@ -196,6 +204,7 @@ namespace DP3 {
 			bool itsSubtract;
       std::string itsStatFilename;
 			std::unique_ptr<ThreadPool> itsThreadPool;
+      std::unique_ptr<FacetPredict> itsFacetPredictor;
       std::unique_ptr<std::ofstream> itsStatStream;
     };
 

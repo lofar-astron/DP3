@@ -31,6 +31,8 @@
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 
+#include "../IDGPredict/FacetPredict.h"
+
 #include "Matrix2x2.h"
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
@@ -70,6 +72,7 @@
 #include <limits>
 #include <sstream>
 #include <vector>
+#include <functional>
 
 using namespace casacore;
 using namespace DP3::BBS;
@@ -97,6 +100,7 @@ DDECal::DDECal (DPInput* input,
                                            false)),
     itsFlagDivergedOnly (parset.getBool (prefix + "flagdivergedonly",
                                            false)),
+    itsUseIDG(parset.getBool (prefix + "useidg", false)),
     itsTimeStep      (0),
     itsSolInt        (parset.getInt (prefix + "solint", 1)),
     itsMinVisRatio   (parset.getDouble (prefix + "minvisratio", 0.0)),
@@ -125,13 +129,14 @@ DDECal::DDECal (DPInput* input,
   if(!itsStatFilename.empty())
     itsStatStream.reset(new std::ofstream(itsStatFilename));
 
-  vector<string> strDirections;
   if (itsUseModelColumn) {
     itsModelData.resize(itsSolInt);
-    strDirections.emplace_back("pointing");
     itsDirections.emplace_back();
+  } else if(itsUseIDG) {
+    // TODO handle directions key in parset
+    
   } else {
-    strDirections = parset.getStringVector (prefix + "directions",
+    vector<string> strDirections = parset.getStringVector (prefix + "directions",
                                             vector<string> ());
     // Default directions are all patches
     if (strDirections.empty()) {
@@ -156,7 +161,11 @@ DDECal::DDECal (DPInput* input,
                                         "complexgain")));
 
   initializeConstraints(parset, prefix);
-  initializePredictSteps(parset, prefix);
+  
+  if(itsUseIDG)
+    initializeIDG(parset, prefix);
+  else
+    initializePredictSteps(parset, prefix);
 }
 
 DDECal::~DDECal()
@@ -264,6 +273,18 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
   }
 }
 
+void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix)
+{
+  std::string
+    imageFilename = parset.getString(prefix + "idg.image"),
+    regionFilename = parset.getString(prefix + "idg.regions");
+  itsFacetPredictor.reset(new FacetPredict(imageFilename, regionFilename));
+  itsFacetPredictor->PredictCallback = std::bind(&DDECal::idgCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+  itsDirections.resize(itsFacetPredictor->NDirections());
+  for(size_t i=0; i!=itsDirections.size(); ++i)
+    itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
+}
+
 void DDECal::initializePredictSteps(const ParameterSet& parset, const string& prefix)
 {
   const size_t nDir = itsDirections.size();
@@ -349,13 +370,17 @@ void DDECal::updateInfo (const DPInfo& infoIn)
 
   std::vector<std::pair<double, double> > sourcePositions(itsDirections.size());
   if (itsUseModelColumn) {
-      MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
-                                              MDirection::J2000)());
-      Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-      sourcePositions[0] = std::pair<double, double> (
-                                  angles.getBaseValue()[0],
-                                  angles.getBaseValue()[1]);
-
+    MDirection dirJ2000(MDirection::Convert(infoIn.phaseCenter(),
+                                            MDirection::J2000)());
+    Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+    sourcePositions[0] = std::pair<double, double> (
+                                angles.getBaseValue()[0],
+                                angles.getBaseValue()[1]);
+  } else if(itsUseIDG) {
+    for(size_t i=0; i!=itsFacetPredictor->NDirections(); ++i)
+    {
+      sourcePositions[i] = itsFacetPredictor->Direction(i);
+    }
   } else {
     for (uint i=0; i<itsDirections.size(); ++i) {
       sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
@@ -597,20 +622,25 @@ void DDECal::initializeFullMatrixSolutions() {
   }
 }
 
-vector<string> DDECal::getDirectionNames() {
+vector<string> DDECal::getDirectionNames()
+{
   vector<string> res;
 
   if (itsUseModelColumn) {
     res.emplace_back("pointing");
     return res;
   }
-
-  for (vector<vector<string> >::iterator dirIter = itsDirections.begin();
-        dirIter != itsDirections.end();
-        dirIter++) {
-    stringstream ss;
-    ss << (*dirIter);
-    res.emplace_back(ss.str());
+  else if(itsUseIDG) {
+    size_t nDirections = itsFacetPredictor->NDirections();
+    for(size_t i=0; i!=nDirections; ++i)
+      res.emplace_back("dir" + std::to_string(i));
+  }
+  else {
+    for (vector<string>& dir : itsDirections) {
+      stringstream ss;
+      ss << dir;
+      res.emplace_back(ss.str());
+    }
   }
   return res;
 }
@@ -659,6 +689,11 @@ void DDECal::checkMinimumVisibilities()
 
 void DDECal::doSolve ()
 {
+  if(itsUseIDG)
+  {
+    itsFacetPredictor->Flush();
+  }
+  
   checkMinimumVisibilities();
 
   for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
@@ -776,7 +811,38 @@ bool DDECal::process (const DPBuffer& bufin)
     itsInput->getModelData (itsBufs[itsStepInSolInt].getRowNrs(),
                             itsModelData[itsStepInSolInt]);
     itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
-  } else {
+  }
+  else if(itsUseIDG) {
+    if(!itsFacetPredictor->IsStarted())
+    {
+      // if this is the first time, hand some meta info to IDG
+      std::vector<double> band1(info().chanFreqs().begin(), info().chanFreqs().end());
+      std::vector<std::vector<double>> bands({std::move(band1)});
+      size_t nAnt = info().nantenna();
+      itsFacetPredictor->SetMSInfo(std::move(bands), nAnt);
+      itsFacetPredictor->StartIDG();
+    }
+    
+    const size_t nBl = info().nbaselines();
+    Matrix<double> uvws;
+    uvws.reference (itsBufs[itsStepInSolInt].getUVW());
+    while(itsIDGBuffers.size() <= itsStepInSolInt)
+    {
+      itsIDGBuffers.emplace_back(itsFacetPredictor->NDirections());
+      for(std::vector<casacore::Complex>& vec : itsIDGBuffers.back())
+        vec.resize(info().nbaselines() * info().nchan() * 4);
+    }
+    for(size_t direction = 0; direction!=itsFacetPredictor->NDirections(); ++direction)
+    {
+      itsModelDataPtrs[itsStepInSolInt][direction] = itsIDGBuffers[itsStepInSolInt][direction].data();
+      for (size_t bl=0; bl<nBl; ++bl) {
+        casacore::Array<double> uvw = uvws[bl];
+        size_t id = bl + itsStepInSolInt * nBl;
+        itsFacetPredictor->RequestPredict(direction, 0, id, itsStepInSolInt, info().getAnt1()[bl], info().getAnt2()[bl], uvw.data() );
+      }
+    }
+  }
+  else {
     if(itsThreadPool == nullptr)
       itsThreadPool.reset(new ThreadPool(getInfo().nThreads()));
     std::mutex measuresMutex;
@@ -854,6 +920,19 @@ bool DDECal::process (const DPBuffer& bufin)
   itsTimer.stop();
 
   return false;
+}
+
+void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values)
+{
+  std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
+  size_t nBl = info().nbaselines();
+  size_t solTimestep = row / nBl;
+  size_t bl = row % nBl;
+  std::copy_n(
+    values,
+    info().nchan() * 4,
+    &itsIDGBuffers[solTimestep][direction][bl * info().nchan() * 4]
+  );
 }
 
 void DDECal::writeSolutions()
