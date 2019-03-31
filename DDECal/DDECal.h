@@ -172,6 +172,7 @@ namespace DP3 {
       bool itsFlagUnconverged;
       bool itsFlagDivergedOnly;
       bool itsUseIDG;
+      bool itsOnlyPredict;
       size_t itsTimeStep;
       size_t itsSolInt;
       double itsMinVisRatio;

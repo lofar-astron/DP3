@@ -129,7 +129,8 @@ set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 add_library(IDGPredict OBJECT
   IDGPredict/FitsIOChecker.cc
   IDGPredict/FitsReader.cc
-)
+  IDGPredict/FitsWriter.cc)
+  
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT

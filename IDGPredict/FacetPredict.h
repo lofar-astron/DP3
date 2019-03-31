@@ -8,10 +8,8 @@
 
 #include "IDGConfiguration.h"
 
-//#include "FFTResampler.h"
 #include "FitsReader.h"
-//#include "Image.h"
-//#include "System.h"
+#include "FitsWriter.h"
 
 #include "../Common/UVector.h"
 
@@ -54,9 +52,9 @@ public:
 	
 	void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
 	{
-    _max_baseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
-		_maxW = _max_baseline * 0.1;
-    std::cout << "Predicting baselines up to " << _max_baseline << " wavelengths.\n";
+        _maxBaseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
+		_maxW = _maxBaseline * 0.1;
+    std::cout << "Predicting baselines up to " << _maxBaseline << " wavelengths.\n";
 		_bands = std::move(bands);
 		_nr_stations = nr_stations;
 	}
@@ -66,7 +64,7 @@ public:
 		_maxW = maxW;
 		_bands = std::move(bands);
 		_nr_stations = nr_stations;
-		_max_baseline = max_baseline;
+		      _maxBaseline = max_baseline;
 	}
 	
 	bool IsStarted() const { return !_buffersets.empty(); }
@@ -79,35 +77,64 @@ public:
 		idg::api::options_type options;
 		IdgConfiguration::Read(proxyType, buffersize, options);
 		ao::uvector<double> data;
+		_metaData.clear();
 		for(FacetImage& img : _images)
 		{
 			double
-				dl = (img.OffsetX()+int(img.Width()/2) - int(_reader.ImageWidth()/2)) * _pixelSizeX,
+				dl = ( int(_reader.ImageWidth()/2) - (img.OffsetX()+int(img.Width()/2)) ) * _pixelSizeX,
 				dm = (img.OffsetY()+int(img.Height()/2) - int(_reader.ImageHeight()/2)) * _pixelSizeY;
 			std::cout << "Initializing gridder " << _buffersets.size() << " (" << img.Width() << " x " << img.Height() << ", +" << img.OffsetX() << "," << img.OffsetY() << ", dl=" << dl*180.0/M_PI << " deg, dm=" << dm*180.0/M_PI << " deg)\n";
 			
 			data.assign(img.Width() * img.Height() * 4, 0.0);
 			// TODO make full polarization
 			std::copy(img.Data(), img.Data()+img.Width()*img.Height(), data.data());
+      
 			_buffersets.emplace_back(idg::api::BufferSet::create(proxyType));
 			idg::api::BufferSet& bs = *_buffersets.back();
 			options["padded_size"] = size_t(1.2*img.Width());
 			//options["max_threads"] = int(1);
 			bs.init(img.Width(), _pixelSizeX, _maxW+1.0, dl, dm, 0, options);
 			bs.set_image(data.data());
-			bs.init_buffers(buffersize, _bands, _nr_stations, _max_baseline, options, idg::api::BufferSetType::degridding);
+			bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options, idg::api::BufferSetType::degridding);
+      
+      FitsWriter writer;
+      writer.SetImageDimensions(img.Width(), img.Height(), _reader.PhaseCentreRA(), _reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY);
+      writer.SetPhaseCentreShift(dl, dm);
+      writer.Write("facet" + std::to_string(_metaData.size()) + ".fits", img.Data());
+      
+			_metaData.emplace_back();
+			FacetMetaData& m = _metaData.back();
+			m.dl = dl;
+			m.dm = dm;
+      m.isInitialized = false;
+      m.rowIdOffset = 0;
 		}
 	}
 	
 	void RequestPredict(size_t direction, size_t dataDescId, size_t rowId, size_t timeIndex, size_t antenna1, size_t antenna2, const double* uvw)
 	{
-    if(uvw[2] > _maxW)
+    double uvwr2 = uvw[0]*uvw[0] + uvw[1]*uvw[1] + uvw[2]*uvw[2];
+    if(uvw[2] > _maxW && uvwr2 <= _maxBaseline*_maxBaseline)
     {
-      // TODO
-      throw std::runtime_error("W of " + std::to_string(uvw[2]) + " exceeded max of " + std::to_string(_maxW));
+      Flush();
+      _maxW *= 1.5;
+      std::cout << "Increasing maximum w to " << _maxW << '\n';
+      StartIDG();
     }
 		idg::api::BufferSet& bs = *_buffersets[direction];
-		while (bs.get_degridder(dataDescId)->request_visibilities(rowId, timeIndex, antenna1, antenna2, uvw))
+    FacetMetaData& meta = _metaData[direction];
+    if(!meta.isInitialized)
+    {
+      meta.rowIdOffset = rowId;
+      meta.isInitialized = true;
+    }
+    size_t localRowId = rowId - meta.rowIdOffset;
+    if(meta.uvws.size() <= localRowId*3)
+      meta.uvws.resize((localRowId+1)*3);
+    for(size_t i=0; i!=3; ++i)
+      meta.uvws[localRowId*3 + i] = uvw[i];
+    double uvwFlipped[3] = { uvw[0], -uvw[1], -uvw[2] }; // IDG uses a flipped coordinate system
+		while (bs.get_degridder(dataDescId)->request_visibilities(rowId, timeIndex, antenna1, antenna2, uvwFlipped))
 		{
 			computePredictionBuffer(dataDescId, direction);
 		}
@@ -136,14 +163,50 @@ private:
 		for(auto i : available_row_ids)
 		{
 			size_t row = i.first;
-			const std::complex<float>* values = i.second;
+			std::complex<float>* values = i.second;
+      size_t nChan = _bands[dataDescId].size();
+      size_t localRow = row - _metaData[direction].rowIdOffset;
+      double* uvw = &_metaData[direction].uvws[localRow*3];
+      double dlFact = 2.0 * M_PI * _metaData[direction].dl;
+      double dmFact = 2.0 * M_PI * _metaData[direction].dm;
+			for(size_t ch=0; ch!=nChan; ++ch)
+			{
+        double lambda = wavelength(dataDescId, ch);
+        double u = uvw[0] / lambda;
+        double v = uvw[1] / lambda;
+        double angle = u * dlFact + v * dmFact;
+        float
+          rotSin = sin(angle),
+          rotCos = cos(angle);
+        for(size_t p=0; p!=4; ++p) {
+          std::complex<float> s = values[ch*4 + p];
+          values[ch*4 + p] = std::complex<float>(
+            s.real() * rotCos  -  s.imag() * rotSin,
+            s.real() * rotSin  +  s.imag() * rotCos);
+        }
+			}
 			PredictCallback(row, direction, dataDescId, values);
 		}
 		bs.get_degridder(dataDescId)->finished_reading();
+		_metaData[direction].isInitialized = false;
 	}
 	
+  constexpr static double c() { return 299792458.0L; }
+  
+  double wavelength(size_t dataDescId, size_t channel) const
+  {
+    return c() / _bands[dataDescId][channel];
+  }
+  
 	std::vector<FacetImage> _images;
 	std::vector<std::unique_ptr<idg::api::BufferSet>> _buffersets;
+  struct FacetMetaData {
+    double dl, dm;
+    bool isInitialized;
+    size_t rowIdOffset;
+    std::vector<double> uvws;
+  };
+  std::vector<FacetMetaData> _metaData;
 	
 	size_t _fullWidth, _fullHeight;
 	double _pixelSizeX, _pixelSizeY;
@@ -154,7 +217,7 @@ private:
 	double _maxW;
 	std::vector<std::vector<double>> _bands;
 	size_t _nr_stations;
-	double _max_baseline;
+	double _maxBaseline;
   std::vector<std::pair<double, double>> _directions;
 };
 

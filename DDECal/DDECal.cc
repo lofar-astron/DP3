@@ -101,6 +101,7 @@ DDECal::DDECal (DPInput* input,
     itsFlagDivergedOnly (parset.getBool (prefix + "flagdivergedonly",
                                            false)),
     itsUseIDG(parset.getBool (prefix + "useidg", false)),
+      itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
     itsTimeStep      (0),
     itsSolInt        (parset.getInt (prefix + "solint", 1)),
     itsMinVisRatio   (parset.getDouble (prefix + "minvisratio", 0.0)),
@@ -525,6 +526,7 @@ void DDECal::show (std::ostream& os) const
     << "  coreconstraint:      " << itsCoreConstraint << '\n'
     << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
     << "  approximate fitter:  " << itsApproximateTEC << '\n'
+    << "  only predict:        " << itsOnlyPredict << '\n'
     << "  subtract model:      " << itsSubtract << '\n';
   for (uint i=0; i<itsPredictSteps.size(); ++i) {
     itsPredictSteps[i].show(os);
@@ -694,35 +696,38 @@ void DDECal::doSolve ()
     itsFacetPredictor->Flush();
   }
   
-  checkMinimumVisibilities();
-
-  for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
-    constraint->SetWeights(itsWeightsPerAntenna);
-  }
-
-  if(itsFullMatrixMinimalization)
-    initializeFullMatrixSolutions();
-  else
-    initializeScalarSolutions();
-
-  itsTimerSolve.start();
   MultiDirSolver::SolveResult solveResult;
-  if(itsFullMatrixMinimalization)
+  if(!itsOnlyPredict)
   {
-    solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
-  }
-  else {
-    solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
-  }
-  itsTimerSolve.stop();
+    checkMinimumVisibilities();
 
-  if(itsSubtract)
+    for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
+      constraint->SetWeights(itsWeightsPerAntenna);
+    }
+
+    if(itsFullMatrixMinimalization)
+      initializeFullMatrixSolutions();
+    else
+      initializeScalarSolutions();
+
+    itsTimerSolve.start();
+    if(itsFullMatrixMinimalization)
+    {
+      solveResult = itsMultiDirSolver.processFullMatrix(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
+    }
+    else {
+      solveResult = itsMultiDirSolver.processScalar(itsDataPtrs, itsWeightPtrs, itsModelDataPtrs, itsSols[itsTimeStep/itsSolInt], itsAvgTime / itsSolInt, itsStatStream.get());
+    }
+    itsTimerSolve.stop();
+    
+    itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
+    itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
+  }
+
+  if(itsSubtract || itsOnlyPredict)
   {
     subtractCorrectedModel(itsFullMatrixMinimalization);
   }
-
-  itsNIter[itsTimeStep/itsSolInt] = solveResult.iterations;
-  itsNApproxIter[itsTimeStep/itsSolInt] = solveResult.constraintIterations;
 
   // Check for nonconvergence and flag if desired. Unconverged solutions are
   // identified by the number of iterations being one more than the max allowed
@@ -924,7 +929,7 @@ bool DDECal::process (const DPBuffer& bufin)
 
 void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values)
 {
-  std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
+  //std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
   size_t nBl = info().nbaselines();
   size_t solTimestep = row / nBl;
   size_t bl = row % nBl;
@@ -1205,7 +1210,8 @@ void DDECal::finish()
     doSolve();
   }
 
-  writeSolutions();
+  if(!itsOnlyPredict)
+    writeSolutions();
 
   itsTimer.stop();
 
@@ -1235,31 +1241,43 @@ void DDECal::subtractCorrectedModel(bool fullJones)
 
       for (size_t ch=0; ch<nCh; ++ch)
       {
-        MC2x2 value(MC2x2::Zero());
         if (ch == itsChanBlockStart[chanblock+1])
         {
           chanblock++;
         }
         const size_t index = (bl*nCh+ch)*4;
-        for (size_t dir=0; dir!=nDir; ++dir)
+        if(itsOnlyPredict)
         {
-          if(fullJones)
+          MC2x2 value(MC2x2::Zero());
+          
+          for (size_t dir=0; dir!=nDir; ++dir)
+            value += MC2x2(&modelData[dir][index]);
+          
+          for (size_t cr=0; cr<4; ++cr)
+            data[index + cr] = value[cr];
+        }
+        else {
+          MC2x2 value(MC2x2::Zero());
+          for (size_t dir=0; dir!=nDir; ++dir)
           {
-            MC2x2
-              sol1(&solutions[chanblock][(ant1*nDir + dir)*4]),
-              sol2(&solutions[chanblock][(ant2*nDir + dir)*4]);
+            if(fullJones)
+            {
+              MC2x2
+                sol1(&solutions[chanblock][(ant1*nDir + dir)*4]),
+                sol2(&solutions[chanblock][(ant2*nDir + dir)*4]);
               value +=
                 sol1.Multiply(MC2x2(&modelData[dir][index])).MultiplyHerm(sol2);
+            }
+            else {
+              std::complex<double> solfactor(
+                solutions[chanblock][ant1*nDir + dir] * std::conj(solutions[chanblock][ant2*nDir + dir]));
+              for (size_t cr=0; cr<4; ++cr)
+                value[cr] += solfactor * std::complex<double>(modelData[dir][index + cr]);
+            }
           }
-          else {
-            std::complex<double> solfactor(
-              solutions[chanblock][ant1*nDir + dir] * std::conj(solutions[chanblock][ant2*nDir + dir]));
-            for (size_t cr=0; cr<4; ++cr)
-              value[cr] += solfactor * std::complex<double>(modelData[dir][index + cr]);
-          }
+          for (size_t cr=0; cr<4; ++cr)
+            data[index + cr] -= value[cr];
         }
-        for (size_t cr=0; cr<4; ++cr)
-          data[index + cr] -= value[cr];
       } // channel loop
     } //bl loop
   } //time loop
