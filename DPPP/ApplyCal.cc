@@ -35,6 +35,11 @@
 #include <utility>
 #include <vector>
 
+inline bool isfinite(casacore::DComplex val)
+{
+  return casacore::isFinite(val.real()) && casacore::isFinite(val.imag());
+}
+
 using namespace casacore;
 
 namespace DP3 {
@@ -137,10 +142,10 @@ namespace DP3 {
                               uint bl, uint chan, bool updateWeights,
                               FlagCounter& flagCounter) {
       // If parameter is NaN or inf, do not apply anything and flag the data
-      if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
-             isFinite(gainB[0].real()) && isFinite(gainB[0].imag()) &&
-             isFinite(gainA[1].real()) && isFinite(gainA[1].imag()) &&
-             isFinite(gainB[1].real()) && isFinite(gainB[1].imag())) ) {
+      if (! (isfinite(gainA[0]) &&
+             isfinite(gainB[0]) &&
+             isfinite(gainA[1]) &&
+             isfinite(gainB[1])) ) {
         // Only update flagcounter for first correlation
         if (!flag[0]) {
           flagCounter.incrChannel(chan);
@@ -170,8 +175,7 @@ namespace DP3 {
                               uint bl, uint chan, bool updateWeights,
                               FlagCounter& flagCounter) {
       // If parameter is NaN or inf, do not apply anything and flag the data
-      if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
-             isFinite(gainB[0].real()) && isFinite(gainB[0].imag())) ) {
+      if (! (isfinite(gainA[0]) && isfinite(gainB[0])) ) {
         // Only update flagcounter for first correlation
         if (!flag[0]) {
           flagCounter.incrChannel(chan);
@@ -220,8 +224,7 @@ namespace DP3 {
       // If parameter is NaN or inf, do not apply anything and flag the data
       bool anyinfnan = false;
       for (uint corr=0; corr<4; ++corr) {
-        if (! (isFinite(gainA[corr].real()) && isFinite(gainA[corr].imag()) &&
-               isFinite(gainB[corr].real()) && isFinite(gainB[corr].imag())) ) {
+        if (! (isfinite(gainA[corr]) && isfinite(gainB[corr])) ) {
           anyinfnan = true;
           break;
         }
