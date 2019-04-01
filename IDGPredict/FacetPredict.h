@@ -1,6 +1,8 @@
 #ifndef FACET_PREDICT_H
 #define FACET_PREDICT_H
 
+#ifdef HAVE_IDG
+
 #include "DS9FacetFile.h"
 #include "FacetImage.h"
 
@@ -14,6 +16,9 @@
 #include "../Common/UVector.h"
 
 #include <algorithm>
+#include <functional>
+#include <string>
+#include <vector>
 
 class FacetPredict
 {
@@ -221,5 +226,51 @@ private:
   std::vector<std::pair<double, double>> _directions;
 };
 
-#endif
+#else // HAVE_IDG
 
+#include <algorithm>
+#include <functional>
+#include <string>
+#include <vector>
+
+class FacetPredict
+{
+public:
+	FacetPredict(const std::string&, const std::string&)
+	{ notCompiled(); }
+	
+	void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
+	{ notCompiled(); }
+	
+	void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
+	{ notCompiled(); }
+	
+	bool IsStarted() const
+	{ notCompiled(); return false; }
+	
+	void StartIDG()
+	{ notCompiled(); }
+	
+	void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
+	{ notCompiled(); }
+	
+	std::function<void(size_t, size_t, size_t, const std::complex<float>*)> PredictCallback;
+	
+	size_t NDirections() const
+	{ notCompiled(); return 0; }
+	
+	std::pair<double, double> Direction(size_t) const
+	{ notCompiled(); return std::pair<double,double>(); }
+	
+	void Flush()
+	{ notCompiled(); }
+	
+private:
+  void notCompiled() const {
+    throw std::runtime_error("Facet prediction is not available, because DP3 was not compiled with IDG support");
+  }
+};
+
+#endif // HAVE_IDG
+
+#endif // header guard
