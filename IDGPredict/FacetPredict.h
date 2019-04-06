@@ -74,7 +74,7 @@ public:
   
   bool IsStarted() const { return !_buffersets.empty(); }
   
-  void StartIDG()
+  void StartIDG(bool saveFacets)
   {
     _buffersets.clear();
     idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
@@ -103,10 +103,13 @@ public:
       bs.set_image(data.data());
       bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options, idg::api::BufferSetType::degridding);
       
-      FitsWriter writer;
-      writer.SetImageDimensions(img.Width(), img.Height(), _reader.PhaseCentreRA(), _reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY);
-      writer.SetPhaseCentreShift(dl, dm);
-      writer.Write("facet" + std::to_string(_metaData.size()) + ".fits", img.Data());
+      if(saveFacets)
+      {
+        FitsWriter writer;
+        writer.SetImageDimensions(img.Width(), img.Height(), _reader.PhaseCentreRA(), _reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY);
+        writer.SetPhaseCentreShift(dl, dm);
+        writer.Write("facet" + std::to_string(_metaData.size()) + ".fits", img.Data());
+      }
       
       _metaData.emplace_back();
       FacetMetaData& m = _metaData.back();
@@ -126,7 +129,7 @@ public:
       Flush();
       _maxW *= 1.5;
       std::cout << "Increasing maximum w to " << _maxW << '\n';
-      StartIDG();
+      StartIDG(false);
     }
     idg::api::BufferSet& bs = *_buffersets[direction];
     FacetMetaData& meta = _metaData[direction];
