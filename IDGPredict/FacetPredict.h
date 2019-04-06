@@ -257,7 +257,7 @@ public:
 	bool IsStarted() const
 	{ notCompiled(); return false; }
 	
-	void StartIDG()
+	void StartIDG(bool)
 	{ notCompiled(); }
 	
 	void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
