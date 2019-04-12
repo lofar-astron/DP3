@@ -38,7 +38,7 @@ find_package(CFITSIO REQUIRED)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python program_options signals system REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem python program_options system REQUIRED)
 include_directories(${BOOST_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
@@ -163,9 +163,12 @@ find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIR})
+
 find_library(AOFLAGGER_LIB aoflagger REQUIRED)
 find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
+
 find_package(PkgConfig)
 pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
 pkg_check_modules(SIGCXX sigc++-2.0)
