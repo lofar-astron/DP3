@@ -203,6 +203,7 @@ namespace DP3 {
       bool itsFullMatrixMinimalization;
       bool itsApproximateTEC;
 			bool itsSubtract;
+      bool itsSaveFacets;
       std::string itsStatFilename;
 			std::unique_ptr<ThreadPool> itsThreadPool;
       std::unique_ptr<FacetPredict> itsFacetPredictor;

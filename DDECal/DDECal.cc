@@ -101,7 +101,7 @@ DDECal::DDECal (DPInput* input,
     itsFlagDivergedOnly (parset.getBool (prefix + "flagdivergedonly",
                                            false)),
     itsUseIDG(parset.getBool (prefix + "useidg", false)),
-      itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
+    itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
     itsTimeStep      (0),
     itsSolInt        (parset.getInt (prefix + "solint", 1)),
     itsMinVisRatio   (parset.getDouble (prefix + "minvisratio", 0.0)),
@@ -114,6 +114,7 @@ DDECal::DDECal (DPInput* input,
     itsFullMatrixMinimalization(false),
     itsApproximateTEC(false),
     itsSubtract(parset.getBool(prefix + "subtract", false)),
+    itsSaveFacets(parset.getBool(prefix + "savefacets", false)),
     itsStatFilename(parset.getString(prefix + "statfilename", ""))
 {
   stringstream ss;
@@ -825,7 +826,7 @@ bool DDECal::process (const DPBuffer& bufin)
       std::vector<std::vector<double>> bands({std::move(band1)});
       size_t nAnt = info().nantenna();
       itsFacetPredictor->SetMSInfo(std::move(bands), nAnt);
-      itsFacetPredictor->StartIDG();
+      itsFacetPredictor->StartIDG(itsSaveFacets);
     }
     
     const size_t nBl = info().nbaselines();
