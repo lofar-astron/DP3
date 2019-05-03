@@ -103,7 +103,7 @@ namespace DP3 {
     {
       map<string, vector<double> > out;
       // Copy all values from the record to the map.
-      for (uint i=0; i<rec.nfields(); ++i) {
+      for (unsigned int i=0; i<rec.nfields(); ++i) {
         const String& name = rec.name(i);
         Record subrec = rec.subRecord(i);
         // First make empty vector; thereafter copy values to it.

@@ -58,8 +58,8 @@ namespace DP3 {
         itsNThreads     (0)
     {}
 
-    void DPInfo::init (uint ncorr, uint startChan, uint nchan,
-                       uint ntime, double startTime, double timeInterval,
+    void DPInfo::init (unsigned int ncorr, unsigned int startChan, unsigned int nchan,
+                       unsigned int ntime, double startTime, double timeInterval,
                        const string& msName, const string& antennaSet)
     {
       itsNCorr        = ncorr;
@@ -139,14 +139,14 @@ namespace DP3 {
       itsAntUsed.clear();
       itsAntMap.resize (itsAntNames.size());
       std::fill (itsAntMap.begin(), itsAntMap.end(), -1);
-      for (uint i=0; i<itsAnt1.size(); ++i) {
+      for (unsigned int i=0; i<itsAnt1.size(); ++i) {
         assert (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
                 itsAnt2[i] >= 0  &&  itsAnt2[i] < int(itsAntMap.size()));
         itsAntMap[itsAnt1[i]] = 0;
         itsAntMap[itsAnt2[i]] = 0;
       }
       itsAntUsed.reserve (itsAntNames.size());
-      for (uint i=0; i<itsAntMap.size(); ++i) {
+      for (unsigned int i=0; i<itsAntMap.size(); ++i) {
         if (itsAntMap[i] == 0) {
           itsAntMap[i] = itsAntUsed.size();
           itsAntUsed.push_back (i);
@@ -164,7 +164,7 @@ namespace DP3 {
       return mh2;
     }
 
-    uint DPInfo::update (uint chanAvg, uint timeAvg)
+    unsigned int DPInfo::update (unsigned int chanAvg, unsigned int timeAvg)
     {
       if (chanAvg > itsNChan) {
         chanAvg = itsNChan;
@@ -185,10 +185,10 @@ namespace DP3 {
       Vector<double> resols(itsNChan, 0.);
       Vector<double> effBWs(itsNChan, 0.);
       double totBW = 0;
-      for (uint i=0; i<itsNChan; ++i) {
+      for (unsigned int i=0; i<itsNChan; ++i) {
         freqs[i] = 0.5 * (itsChanFreqs[i*chanAvg] +
                           itsChanFreqs[(i+1)*chanAvg - 1]);
-        for (uint j=0; j<chanAvg; ++j) {
+        for (unsigned int j=0; j<chanAvg; ++j) {
           widths[i] += itsChanWidths[i*chanAvg+j];
           resols[i] += itsResolutions[i*chanAvg+j];
           effBWs[i] += itsEffectiveBW[i*chanAvg+j];
@@ -203,8 +203,8 @@ namespace DP3 {
       return chanAvg;
     }
 
-    void DPInfo::update (uint startChan, uint nchan,
-                         const vector<uint>& baselines, bool removeAnt)
+    void DPInfo::update (unsigned int startChan, unsigned int nchan,
+                         const vector<unsigned int>& baselines, bool removeAnt)
     {
       Slice slice(startChan, nchan);
       itsStartChan=startChan;
@@ -217,7 +217,7 @@ namespace DP3 {
       if (! baselines.empty()) {
         Vector<Int> ant1 (baselines.size());
         Vector<Int> ant2 (baselines.size());
-        for (uint i=0; i<baselines.size(); ++i) {
+        for (unsigned int i=0; i<baselines.size(); ++i) {
           ant1[i] = itsAnt1[baselines[i]];
           ant2[i] = itsAnt2[baselines[i]];
         }
@@ -242,7 +242,7 @@ namespace DP3 {
         Vector<Double> antDiam (itsAntUsed.size());
         vector<MPosition> antPos;
         antPos.reserve (itsAntUsed.size());
-        for (uint i=0; i<itsAntUsed.size(); ++i) {
+        for (unsigned int i=0; i<itsAntUsed.size(); ++i) {
           antNames[i] = itsAntNames[itsAntUsed[i]];
           antDiam[i]  = itsAntDiam[itsAntUsed[i]];
           antPos.push_back (itsAntPos[itsAntUsed[i]]);
@@ -252,7 +252,7 @@ namespace DP3 {
         itsAntDiam.reference (antDiam);
         itsAntPos.swap (antPos);
         // Renumber the baselines.
-        for (uint i=0; i<itsAnt1.size(); ++i) {
+        for (unsigned int i=0; i<itsAnt1.size(); ++i) {
           itsAnt1[i] = itsAntMap[itsAnt1[i]];
           itsAnt2[i] = itsAntMap[itsAnt2[i]];
         }
@@ -281,7 +281,7 @@ namespace DP3 {
         // Fill in the length of each baseline.
         vector<double> blength;
         itsBLength.reserve (itsAnt1.size());
-        for (uint i=0; i<itsAnt1.size(); ++i) {
+        for (unsigned int i=0; i<itsAnt1.size(); ++i) {
           Array<double> diff(antVec[itsAnt2[i]] - antVec[itsAnt1[i]]);
           itsBLength.push_back (sqrt(sum(diff*diff)));
         }
@@ -296,7 +296,7 @@ namespace DP3 {
         itsAutoCorrIndex.resize (nant);
         std::fill (itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
         // Keep the baseline table index for the autocorrelations.
-        for (uint i=0; i<itsAnt1.size(); ++i) {
+        for (unsigned int i=0; i<itsAnt1.size(); ++i) {
           if (itsAnt1[i] == itsAnt2[i]) {
             itsAutoCorrIndex[itsAnt1[i]] = i;
           }

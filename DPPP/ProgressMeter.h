@@ -46,10 +46,10 @@ namespace DP3 {
 //
 // For example:
 // <srcblock>
-// void calculate(uint n) {
+// void calculate(unsigned int n) {
 //   int skip = n / 200;
 //   ProgressMeter meter(0, n, "Title", "Subtitle", "", "", true, skip);
-//   for (uint i=0; i<n; i++) {
+//   for (unsigned int i=0; i<n; i++) {
 //       ... calculate ...
 //       meter.update(i);
 //   }

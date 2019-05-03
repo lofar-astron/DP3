@@ -81,7 +81,7 @@ namespace DP3 {
       string antennaSet (infoIn.antennaSet());
       itsStationExp.push_back ("*");
       vector<double> defCoeff(5);
-      uint nNominal = 0;
+      unsigned int nNominal = 0;
       if (antennaSet.substr(0,3) == "LBA") {
         nNominal = 48;
         itsCoeffStr.push_back ("[1.02306755e+06, -7.31426342e+04,"
@@ -98,7 +98,7 @@ namespace DP3 {
       // Convert the coefficients to scale factors per freq per station regex.
       vector<vector<double> > scaleVec(itsStationExp.size());
       vector<Regex> stationRegex(itsStationExp.size());
-      for (uint i=0; i<scaleVec.size(); ++i) {
+      for (unsigned int i=0; i<scaleVec.size(); ++i) {
         // Convert the station string to a proper Regex object.
         stationRegex[i] = Regex(Regex::fromPattern(itsStationExp[i]));
         // Convert coefficients from string to double.
@@ -109,9 +109,9 @@ namespace DP3 {
         vector<double>& scales = scaleVec[i];
         scales.reserve (freqs.size());
         // Evaluate the polynomial for each frequency giving the scale factors.
-        for (uint j=0; j<freqs.size(); ++j) {
+        for (unsigned int j=0; j<freqs.size(); ++j) {
           double fact = coeff[coeff.size() -1];
-          for (uint k=coeff.size()-1; k>0; --k) {
+          for (unsigned int k=coeff.size()-1; k>0; --k) {
             fact *= freqs[j] / 1e6;     // use freq in MHz
             fact += coeff[k-1];
           }
@@ -120,7 +120,7 @@ namespace DP3 {
       }
       // If needed, find the nr of tiles/dipoles used for each station and
       // fill the size scale factors.
-      uint nant = infoIn.antennaNames().size();
+      unsigned int nant = infoIn.antennaNames().size();
       vector<double> extraFactors(nant, 1.);
       if (itsScaleSize  ||  !itsScaleSizeGiven) {
         fillSizeScaleFactors (nNominal, extraFactors);
@@ -133,15 +133,15 @@ namespace DP3 {
       // The first matching regex is used.
       // The nr of tiles in use gives an extra scale factor.
       itsStationFactors.reserve (nant);
-      for (uint i=0; i<nant; ++i) {
-        for (uint j=0; j<stationRegex.size(); ++j) {
+      for (unsigned int i=0; i<nant; ++i) {
+        for (unsigned int j=0; j<stationRegex.size(); ++j) {
           if (infoIn.antennaNames()[i].matches (stationRegex[j])) {
             itsStationFactors.push_back (scaleVec[j]);
             // If needed, scale with the nr of dipoles/tiles actually used.
             // Do that if explicitly told so or if default coeffs are used.
             if (itsScaleSize  ||
                 (!itsScaleSizeGiven  &&  j == stationRegex.size()-1)) {
-              for (uint k=0; k<itsStationFactors[i].size(); ++k) {
+              for (unsigned int k=0; k<itsStationFactors[i].size(); ++k) {
                 itsStationFactors[i][k] *= extraFactors[i];
               }
             }
@@ -151,17 +151,17 @@ namespace DP3 {
       }
       assert (itsStationFactors.size() == nant);
       // Now calculate the factors per baseline,freq,pol.
-      uint nb = infoIn.nbaselines();
-      uint nf = freqs.size();
-      uint nc = infoIn.ncorr();
+      unsigned int nb = infoIn.nbaselines();
+      unsigned int nf = freqs.size();
+      unsigned int nc = infoIn.ncorr();
       itsFactors.resize (nc, nf, nb);
       double* factPtr = itsFactors.data();
-      for (uint i=0; i<nb; ++i) {
+      for (unsigned int i=0; i<nb; ++i) {
         const vector<double>& f1 = itsStationFactors[infoIn.getAnt1()[i]];
         const vector<double>& f2 = itsStationFactors[infoIn.getAnt2()[i]];
-        for (uint j=0; j<nf; ++j) {
+        for (unsigned int j=0; j<nf; ++j) {
           double fact = sqrt(f1[j] * f2[j]);
-          for (uint k=0; k<nc; ++k) {
+          for (unsigned int k=0; k<nc; ++k) {
             *factPtr++ = fact;
           }
         }
@@ -184,7 +184,7 @@ namespace DP3 {
       }
       os << endl;
       os << "  Scale factors per station/frequency:" << endl;
-      for (uint i=0; i<itsStationFactors.size(); ++i) {
+      for (unsigned int i=0; i<itsStationFactors.size(); ++i) {
         os << "   " << getInfo().antennaNames()[i] << ' '
            << itsStationFactors[i] << endl;
       }
@@ -222,7 +222,7 @@ namespace DP3 {
       getNextStep()->finish();
     }
 
-    void ScaleData::fillSizeScaleFactors (uint nNominal, vector<double>& fact)
+    void ScaleData::fillSizeScaleFactors (unsigned int nNominal, vector<double>& fact)
     {
       Table ms(getInfo().msName());
       if (!ms.keywordSet().isDefined ("LOFAR_ANTENNA_FIELD"))
@@ -233,20 +233,20 @@ namespace DP3 {
       // Get nr of antennae from the table to be sure it matches the
       // contents of LOFAR_ANTENNA_FIELD. Later it is checked if it matches
       // the actual nr of antennae.
-      uint nant = ms.keywordSet().asTable("ANTENNA").nrow();
+      unsigned int nant = ms.keywordSet().asTable("ANTENNA").nrow();
       fact.resize (nant);
-      for (uint i=0; i<nant; ++i) {
+      for (unsigned int i=0; i<nant; ++i) {
         fact[i] = 0;
       }
       // Count the nr of used tiles (for which ELEMENT_FLAG is false).
       // A station can have multiple fields (e.g. both ears for HBA_JOINED).
       ROScalarColumn<Int> antId (tab, "ANTENNA_ID");
       ROArrayColumn<Bool> elemFlag (tab, "ELEMENT_FLAG");
-      for (uint i=0; i<tab.nrow(); ++i) {
+      for (unsigned int i=0; i<tab.nrow(); ++i) {
         fact[antId(i)] += 0.5*nfalse(elemFlag(i));  // X and Y are separate
       }
       // Determine the scale factor.
-      for (uint i=0; i<nant; ++i) {
+      for (unsigned int i=0; i<nant; ++i) {
         fact[i] = nNominal / fact[i];
       }
     }

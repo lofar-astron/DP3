@@ -103,7 +103,7 @@ namespace DP3 {
       // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
       const Vector<double>& freq = infoIn.chanFreqs();
       itsFreqC.reserve (freq.size());
-      for (uint i=0; i<freq.size(); ++i) {
+      for (unsigned int i=0; i<freq.size(); ++i) {
         itsFreqC.push_back (2. * C::pi * freq[i] / C::c);
       }
       itsPhasors.resize (infoIn.nchan(), infoIn.nbaselines());
@@ -131,8 +131,8 @@ namespace DP3 {
       int ncorr  = itsBuf.getData().shape()[0];
       int nchan  = itsBuf.getData().shape()[1];
       int nbl    = itsBuf.getData().shape()[2];
-      assert (itsPhasors.nrow() == uint(nchan)  &&
-                 itsPhasors.ncolumn() == uint(nbl));
+      assert (itsPhasors.nrow() == (unsigned int)(nchan)  &&
+                 itsPhasors.ncolumn() == (unsigned int)(nbl));
       const double* mat1 = itsMat1.data();
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call

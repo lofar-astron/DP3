@@ -78,38 +78,38 @@ namespace DP3 {
 
       // Process the data in the input buffers and store the result in the
       // output buffers.
-      void process (const DPBuffer* bufin, uint nbufin,
+      void process (const DPBuffer* bufin, unsigned int nbufin,
                     DPBuffer* bufout, std::vector<double>* solutions,
-                    uint chunkNr);
+                    unsigned int chunkNr);
 
       // Get the number of solves.
-      uint nSolves() const
+      unsigned int nSolves() const
         { return itsNrSolves; }
       // Get the number of converged solves.
-      uint nConverged() const
+      unsigned int nConverged() const
         { return itsNrConverged; }
       // Get the total nr of iterations used.
-      uint nIterations() const
+      unsigned int nIterations() const
         { return itsNrIter; }
       // Get the number of times no demix was needed.
-      uint nNoDemix() const
+      unsigned int nNoDemix() const
         { return itsNrNoDemix; }
-      uint nIncludeStrongTarget() const
+      unsigned int nIncludeStrongTarget() const
         { return itsNrIncludeStrongTarget; }
-      uint nIncludeCloseTarget() const
+      unsigned int nIncludeCloseTarget() const
         { return itsNrIncludeCloseTarget; }
-      uint nIgnoreTarget() const
+      unsigned int nIgnoreTarget() const
         { return itsNrIgnoreTarget; }
-      uint nDeprojectTarget() const
+      unsigned int nDeprojectTarget() const
         { return itsNrDeprojectTarget; }
       // Get nr of times a source was demixed.
-      const casacore::Vector<uint>& nsourcesDemixed() const
+      const casacore::Vector<unsigned int>& nsourcesDemixed() const
         { return itsNrSourcesDemixed; }
       // Get nr of times a station was demixed.
-      const casacore::Vector<uint>& nstationsDemixed() const
+      const casacore::Vector<unsigned int>& nstationsDemixed() const
         { return itsNrStationsDemixed; }
       // Get nr of times a station/source was demixed.
-      const casacore::Matrix<uint>& statSourceDemixed() const
+      const casacore::Matrix<unsigned int>& statSourceDemixed() const
         { return itsStatSourceDemixed; }
       const casacore::Matrix<double>& amplSubtrMean() const
         { return itsAmplSubtrMean; }
@@ -140,7 +140,7 @@ namespace DP3 {
       // Setup the demix processing steps for this piece of data.
       // It fills itsFirstSteps, etc. for the sources to be demixed.
       // It also determines how to handle the target (include,deproject,ignore).
-      void setupDemix (uint chunkNr);
+      void setupDemix (unsigned int chunkNr);
 
       // Find the median ampltitude for the selected baselines.
       // It uses itsTmpAmpl as temporary buffer.
@@ -148,19 +148,19 @@ namespace DP3 {
 
       // Average the baseline UVWs in bufin and split them into UVW per station.
       // It returns the number of time averages.
-      uint avgSplitUVW (const DPBuffer* bufin, uint nbufin,
-                        uint ntimeAvg, const std::vector<uint>& selbl);
+      unsigned int avgSplitUVW (const DPBuffer* bufin, unsigned int nbufin,
+                        unsigned int ntimeAvg, const std::vector<unsigned int>& selbl);
 
       // Predict the target StokesI amplitude.
       // It applies the beam at each target patch.
       void predictTarget (const std::vector<Patch::ConstPtr>& patchList,
-                          uint ntime, double time, double timeStep);
+                          unsigned int ntime, double time, double timeStep);
 
       // Predict the StokesI amplitude of the Ateam patches and determine
       // which antennae and sources to use when demixing.
       // It applies the beam at each patch center.
       void predictAteam (const std::vector<Patch::ConstPtr>& patchList,
-                         uint ntime, double time, double timeStep);
+                         unsigned int ntime, double time, double timeStep);
 
       // Add the StokesI of itsPredictVis to ampl.
       void addStokesI (casacore::Matrix<float>& ampl);
@@ -184,7 +184,7 @@ namespace DP3 {
       void calcStokesI (casacore::Matrix<float>& ampl);
 
       // Simply average the data if no demixing needs to bedone.
-      void average (const DPBuffer* bufin, uint nbufin,
+      void average (const DPBuffer* bufin, unsigned int nbufin,
                     DPBuffer* bufout);
 
       // Add the decorrelation factor contribution for each time slot.
@@ -196,13 +196,13 @@ namespace DP3 {
       void makeFactors (const casacore::Array<casacore::DComplex>& bufIn,
                         casacore::Array<casacore::DComplex>& bufOut,
                         const casacore::Cube<float>& weightSums,
-                        uint nChanOut,
-                        uint nChanAvg);
+                        unsigned int nChanOut,
+                        unsigned int nChanAvg);
 
       // Deproject the sources without a model.
       void deproject (casacore::Array<casacore::DComplex>& factors,
                       std::vector<MultiResultStep*> avgResults,
-                      uint resultIndex);
+                      unsigned int resultIndex);
 
       // Do the demixing.
       void handleDemix (DPBuffer* bufout, std::vector<double>* solutions,
@@ -212,7 +212,7 @@ namespace DP3 {
       void demix (std::vector<double>* solutions, double time, double timeStep);
 
       // Add amplitude subtracted to the arrays for mean and stddev.
-      void addMeanM2 (const std::vector<float>& sourceAmpl, uint src);
+      void addMeanM2 (const std::vector<float>& sourceAmpl, unsigned int src);
 
       // Merge the data of the selected baselines from the subtract buffer
       // into the full buffer.
@@ -248,9 +248,9 @@ namespace DP3 {
       casacore::MDirection                      itsTileBeamDir;
 
       //# Variables set by setupDemix and used by handleDemix.
-      uint                                  itsNDir;
-      uint                                  itsNModel;
-      uint                                  itsNSubtr;
+      unsigned int                                  itsNDir;
+      unsigned int                                  itsNModel;
+      unsigned int                                  itsNSubtr;
       bool                                  itsIgnoreTarget;
       bool                                  itsIncludeTarget;
       //# Accumulator used for computing the demixing weights at the demix
@@ -276,7 +276,7 @@ namespace DP3 {
       std::vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues;  //# [nst,nch]
 
       //# Indices telling which Ateam sources to use.
-      std::vector<uint>                          itsSrcSet;
+      std::vector<unsigned int>                          itsSrcSet;
       //# UVW per station per demix time slot
       casacore::Cube<double>                    itsStationUVW;  //# UVW per station
       casacore::Matrix<double>                  itsAvgUVW;      //# temp buffer
@@ -295,7 +295,7 @@ namespace DP3 {
       double                                itsTargetMinAmpl;
       double                                itsTargetMaxAmpl;
       //# Per A-source the stations to use (matching the minimum amplitude).
-      std::vector<std::vector<uint> >                 itsStationsToUse;
+      std::vector<std::vector<unsigned int> >                 itsStationsToUse;
       casacore::Block<bool>                     itsSolveStation; //# solve station i?
       //# Per station and source the index in the unknowns vector.
       //# Note there are 8 unknowns (4 pol, ampl/phase) per source/station.
@@ -306,27 +306,27 @@ namespace DP3 {
       casacore::Matrix<double>                  itsUVW;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
-      uint                                  itsNTimeOut;
-      uint                                  itsNTimeOutSubtr;
-      uint                                  itsTimeIndex;
+      unsigned int                                  itsNTimeOut;
+      unsigned int                                  itsNTimeOutSubtr;
+      unsigned int                                  itsTimeIndex;
       std::vector<float>                         itsObservedAmpl;
       std::vector<float>                         itsSourceAmpl;
       std::vector<float>                         itsSumSourceAmpl;
       //# Statistics
-      uint                                  itsNrSolves;
-      uint                                  itsNrConverged;
-      uint                                  itsNrIter;
-      uint                                  itsNrNoDemix;
-      uint                                  itsNrIncludeStrongTarget;
-      uint                                  itsNrIncludeCloseTarget;
-      uint                                  itsNrIgnoreTarget;
-      uint                                  itsNrDeprojectTarget;
+      unsigned int                                  itsNrSolves;
+      unsigned int                                  itsNrConverged;
+      unsigned int                                  itsNrIter;
+      unsigned int                                  itsNrNoDemix;
+      unsigned int                                  itsNrIncludeStrongTarget;
+      unsigned int                                  itsNrIncludeCloseTarget;
+      unsigned int                                  itsNrIgnoreTarget;
+      unsigned int                                  itsNrDeprojectTarget;
       //# Nr of times a source is demixed.
-      casacore::Vector<uint>                    itsNrSourcesDemixed;
+      casacore::Vector<unsigned int>                    itsNrSourcesDemixed;
       //# Nr of times a station is demixed.
-      casacore::Vector<uint>                    itsNrStationsDemixed;
+      casacore::Vector<unsigned int>                    itsNrStationsDemixed;
       //# Nr of times a source/station is demixed.
-      casacore::Matrix<uint>                    itsStatSourceDemixed;
+      casacore::Matrix<unsigned int>                    itsStatSourceDemixed;
       //# Average amplitude subtracted for middle channel [nbl,nsrc]
       casacore::Matrix<double>                  itsAmplSubtrMean;
       //# M2n to calculate stddev online in stable way (see Wikipedia)

@@ -73,12 +73,12 @@ namespace DP3 {
     bool Counter::process (const DPBuffer& buf)
     {
       const IPosition& shape = buf.getFlags().shape();
-      uint nrcorr = shape[0];
-      uint nrchan = shape[1];
-      uint nrbl   = shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nrchan = shape[1];
+      unsigned int nrbl   = shape[2];
       const bool* flagPtr = buf.getFlags().data();
-      for (uint i=0; i<nrbl; ++i) {
-        for (uint j=0; j<nrchan; ++j) {
+      for (unsigned int i=0; i<nrbl; ++i) {
+        for (unsigned int j=0; j<nrchan; ++j) {
           if (*flagPtr) {
             itsFlagCounter.incrBaseline(i);
             itsFlagCounter.incrChannel(j);

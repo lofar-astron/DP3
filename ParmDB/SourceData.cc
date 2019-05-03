@@ -86,7 +86,7 @@ namespace BBS {
     setParm (parms, "PolarizedFraction", 0, itsPolFrac);
     setParm (parms, "RotationMeasure", 0, itsRM);
     itsSpTerms.resize (itsInfo.getNSpectralTerms());
-    for (uint i=0; i<itsSpTerms.size(); ++i) {
+    for (unsigned int i=0; i<itsSpTerms.size(); ++i) {
       ostringstream ostr;
       ostr << "SpectralIndex:" << i;
       setParm (parms, ostr.str(), 0, itsSpTerms[i]);
@@ -118,7 +118,7 @@ namespace BBS {
       makeParm (parms, "PolarizedFraction", itsPolFrac);
       makeParm (parms, "RotationMeasure", itsRM);
     }
-    for (uint i=0; i<itsSpTerms.size(); ++i) {
+    for (unsigned int i=0; i<itsSpTerms.size(); ++i) {
       ostringstream ostr;
       ostr << "SpectralIndex:" << i;
       makeParm (parms, ostr.str(), itsSpTerms[i]);

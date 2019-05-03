@@ -101,9 +101,9 @@ namespace BBS {
                                     const Box& domain)
   {
     vector<string> parmNames = getNames (parmNamePattern);
-    vector<uint> nameIds;
+    vector<unsigned int> nameIds;
     nameIds.reserve (parmNames.size());
-    for (uint i=0; i<parmNames.size(); ++i) {
+    for (unsigned int i=0; i<parmNames.size(); ++i) {
       int id = getNameId (parmNames[i]);
       if (id >= 0) {
         nameIds.push_back (id);
@@ -111,12 +111,12 @@ namespace BBS {
     }
     vector<ParmId> parmIds;
     parmIds.reserve (nameIds.size());
-    for (uint i=0; i<nameIds.size(); ++i) {
+    for (unsigned int i=0; i<nameIds.size(); ++i) {
       parmIds.push_back (i);
     }
     vector<ParmValueSet> sets(nameIds.size());
     getValues (sets, nameIds, parmIds, domain);
-    for (uint i=0; i<sets.size(); ++i) {
+    for (unsigned int i=0; i<sets.size(); ++i) {
       if (sets[i].size() > 0) {
         result.define (parmNames[i], sets[i]);
       }
@@ -157,7 +157,7 @@ namespace BBS {
     itsRep->link();
     itsRep->setParmDBMeta (ptm);
     // Get the sequence number of the ParmDBs opened.
-    uint dbnr = theirParmDBs.size();
+    unsigned int dbnr = theirParmDBs.size();
     if (dbnr == theirDBNames.size()) {
       theirParmDBs.push_back (itsRep);
     } else {
@@ -210,7 +210,7 @@ namespace BBS {
     }
   }
 
-  ParmDB ParmDB::getParmDB (uint index)
+  ParmDB ParmDB::getParmDB (unsigned int index)
   {
     if (index >= theirParmDBs.size() || theirParmDBs[index] == 0)
 			throw std::runtime_error("ParmDB index " + std::to_string(index) + " is unknown");

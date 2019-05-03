@@ -257,7 +257,7 @@ void checkRaDec (const SdbFormat& sdbf, int nr,
             "No Ra or Dec info given");
 }
 
-uint ltrim (const string& value, uint st, uint end)
+unsigned int ltrim (const string& value, unsigned int st, unsigned int end)
 {
   for (; st<end; ++st) {
     if (value[st] != ' '  &&  value[st] != '\t') {
@@ -267,7 +267,7 @@ uint ltrim (const string& value, uint st, uint end)
   return st;
 }
   
-uint rtrim (const string& value, uint st, uint end)
+unsigned int rtrim (const string& value, unsigned int st, unsigned int end)
 {
   for (; end>st; --end) {
     if (value[end-1] != ' '  &&  value[end-1] != '\t') {
@@ -280,9 +280,9 @@ uint rtrim (const string& value, uint st, uint end)
 // Get the next value by looking for the separator.
 // The separator is ignored in parts enclosed in quotes or square brackets.
 // Square brackets can be nested (they indicate arrays).
-uint nextValue (const string& str, char sep, uint st, uint end)
+unsigned int nextValue (const string& str, char sep, unsigned int st, unsigned int end)
 {
-  uint posbracket = 0;
+  unsigned int posbracket = 0;
   int nbracket = 0;
   while (st < end) {
     if (str[st] == '\''  ||  str[st] == '"') {
@@ -317,24 +317,24 @@ SdbFormat getFormat (const string& format)
 {
   // Fill the map with known names.
   map<string,int> nameMap;
-  for (uint i=0; i<theFieldNames.size(); ++i) {
+  for (unsigned int i=0; i<theFieldNames.size(); ++i) {
     nameMap[boost::to_lower_copy(theFieldNames[i])] = i;
   }
   // Skip possible left and right whitespace.
-  uint end = format.size();
-  uint st  = ltrim (format, 0, end);
+  unsigned int end = format.size();
+  unsigned int st  = ltrim (format, 0, end);
   end      = rtrim (format, st, end);
   // Initialize the format.
   SdbFormat sdbf;
   sdbf.fieldNrs.resize (NrFields);
-  for (uint i=0; i<NrFields; ++i) {
+  for (unsigned int i=0; i<NrFields; ++i) {
     sdbf.fieldNrs[i] = -1;
   }
   // Use default if the string is empty.
   if (st >= end-1) {
     char sep = ',';
     if (st == end-1) sep = format[st];
-    for (uint i=0; i<NrKnownFields; ++i) {
+    for (unsigned int i=0; i<NrKnownFields; ++i) {
       sdbf.fieldNrs[i] = i;
       sdbf.sep.push_back (sep);
       sdbf.names.push_back (theFieldNames[i]);
@@ -344,8 +344,8 @@ SdbFormat getFormat (const string& format)
     return sdbf;
   }
   // Parse the format string.
-  uint nr = 0;
-  uint i = st;
+  unsigned int nr = 0;
+  unsigned int i = st;
   while (i < end) {
     if ((format[i] >= 'a'  &&  format[i] <= 'z')  ||
         (format[i] >= 'A'  &&  format[i] <= 'Z')  ||
@@ -524,16 +524,16 @@ vector<string> string2vector (const string& value, const vector<string>& defVal)
   if (value.empty()) {
     result = defVal;
   } else {
-    uint end = value.size();
+    unsigned int end = value.size();
     // If no brackets given, it is a single value.
     if (value.size() < 2  ||  value[0] != '['  ||  value[end-1] != ']') {
       result.push_back (value);
     } else {
       // Skip opening and closing bracket and possible whitespace.
-      uint st = ltrim(value, 1, end-1);
+      unsigned int st = ltrim(value, 1, end-1);
       end = rtrim(value, st, end-1);
       while (st < end) {
-        uint pos = nextValue (value, ',' , st, end);
+        unsigned int pos = nextValue (value, ',' , st, end);
         result.push_back (value.substr(st, rtrim(value, st, pos) - st));
         st = ltrim (value, pos+1, end);
       }
@@ -552,7 +552,7 @@ vector<double> vector2real (const vector<string>& values, double defVal)
 {
   vector<double> result;
   result.reserve (values.size());
-  for (uint i=0; i<values.size(); ++i) {
+  for (unsigned int i=0; i<values.size(); ++i) {
     result.push_back (string2real (values[i], defVal));
   }
   return result;
@@ -726,7 +726,7 @@ void addSpInx (ParmMap& fieldValues, const vector<double>& spinx,
 			throw std::runtime_error("SpectralIndex given, but no ReferenceFrequency");
     /// Remove the following lines if not needed anymore for BBS.
     addValue (fieldValues, "SpectralIndexDegree", int(spinx.size()) - 1);
-    for (uint i=0; i<spinx.size(); ++i) {
+    for (unsigned int i=0; i<spinx.size(); ++i) {
       ostringstream ostr;
       ostr << "SpectralIndex:" << i;
       addValue (fieldValues, ostr.str(), spinx[i]);
@@ -752,7 +752,7 @@ void readShapelet (const string& fileName, Array<double>& coeff,
 		throw std::runtime_error("Invalid order in shapelet line " + line);
   coeff.resize (IPosition(2, order, order));
   double* coeffData = coeff.data();
-  for (uint i=0; i<coeff.size(); ++i) {
+  for (unsigned int i=0; i<coeff.size(); ++i) {
     getInLine (file, line);    // index coeff
     vector<string> parts = StringUtil::split (line, ' ');
     if (parts.size() != 2)
@@ -818,7 +818,7 @@ void calcRMParam (double& polfrac, double& polang,
     double vv0 = rmFreq / refFreq;
     double factor = 1;
     double sum = 0;
-    for (uint i=0; i<spinx.size(); ++i) {
+    for (unsigned int i=0; i<spinx.size(); ++i) {
       sum += factor * spinx[i];
       factor *= log10(vv0);
     }
@@ -849,14 +849,14 @@ void process (const string& line, SourceDB& pdb, const SdbFormat& sdbf,
   ParmMap fieldValues;
   vector<string> values;
   // Process the line.
-  uint end = line.size();
-  uint st  = ltrim(line, 0, end);
-  for (uint i=0; i<sdbf.names.size(); ++i) {
+  unsigned int end = line.size();
+  unsigned int st  = ltrim(line, 0, end);
+  for (unsigned int i=0; i<sdbf.names.size(); ++i) {
     string value;
     if ((sdbf.types[i] & FIXEDVALUE) == FIXEDVALUE) {
       value = sdbf.values[i];
     } else if (st < end) {
-      uint pos = nextValue (line, sdbf.sep[i], st, end);
+      unsigned int pos = nextValue (line, sdbf.sep[i], st, end);
       value = line.substr(st, rtrim(line, st, pos) - st);
       st = ltrim (line, pos+1, end);
     }
@@ -994,7 +994,7 @@ void process (const string& line, SourceDB& pdb, const SdbFormat& sdbf,
     if (patch.empty())
 			throw std::runtime_error("Source and/or patch name must be filled in");
     if (matchSearchInfo (ra, dec, searchInfo)) {
-      uint patchId = pdb.addPatch (patch, cat, fluxI, ra, dec, check);
+      unsigned int patchId = pdb.addPatch (patch, cat, fluxI, ra, dec, check);
       nrpatchfnd++;
       // Create an entry to collect the ra/dec/flux of the sources in the patch.
       patchSumInfo.insert (make_pair(patch, PatchSumInfo(patchId)));
@@ -1046,7 +1046,7 @@ void make (const string& in, const string& out, const string& outType,
     while (infile) {
       // Remove comment lines, empty lines, and possible format line.
       bool skip = true;
-      for (uint i=0; i<line.size(); ++i) {
+      for (unsigned int i=0; i<line.size(); ++i) {
         if (line[i] == '#') {
           break;
         }

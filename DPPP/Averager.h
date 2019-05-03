@@ -60,7 +60,7 @@ namespace DP3 {
 
       // Construct the object using the given parameters.
       Averager (DPInput*, const string& stepname,
-                uint nchanAvg, uint ntimeAvg);
+                unsigned int nchanAvg, unsigned int ntimeAvg);
 
       virtual ~Averager();
 
@@ -108,11 +108,11 @@ namespace DP3 {
       casacore::Cube<bool>          itsFullResFlags;
       double          itsFreqResolution;
       double          itsTimeResolution;
-      uint            itsNChanAvg;
-      uint            itsNTimeAvg;
-      uint            itsMinNPoint;
+      unsigned int            itsNChanAvg;
+      unsigned int            itsNTimeAvg;
+      unsigned int            itsMinNPoint;
       float           itsMinPerc;
-      uint            itsNTimes;
+      unsigned int            itsNTimes;
       double          itsTimeInterval;
       bool            itsNoAvg;           //# No averaging (i.e. both 1)?
       NSTimer         itsTimer;

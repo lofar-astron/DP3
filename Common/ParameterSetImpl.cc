@@ -269,12 +269,12 @@ void ParameterSetImpl::readStream (std::istream& inputStream,
   getline (inputStream, line);
   while (inputStream) {
     // Skip leading and trailing whitespace.
-    uint st = lskipws (line, 0, line.size());
+    unsigned int st = lskipws (line, 0, line.size());
     if (line[st] != '#') {                         // skip if only comment
-      uint end = rskipws (line, st, line.size());
+      unsigned int end = rskipws (line, st, line.size());
       if (st < end) {                              // skip empty line
-        uint nonbl = st;               // Position of last non-blank character
-        uint stval = st;               // Start of value
+        unsigned int nonbl = st;               // Position of last non-blank character
+        unsigned int stval = st;               // Start of value
         while (st<end) {
           if (line[st] == '"'  ||  line[st] == '\'') {
             st = skipQuoted (line, st);
@@ -455,7 +455,7 @@ std::vector<TPL> ParameterSetImpl::get##TPC##Vector(const std::string& aKey, \
 
 PARAMETERSETIMPL_GETVECTOR (Bool, bool)
 PARAMETERSETIMPL_GETVECTOR (Int, int)
-PARAMETERSETIMPL_GETVECTOR (Uint, uint)
+PARAMETERSETIMPL_GETVECTOR (Uint, unsigned int)
 PARAMETERSETIMPL_GETVECTOR (Int16, int16_t)
 PARAMETERSETIMPL_GETVECTOR (Uint16, uint16_t)
 PARAMETERSETIMPL_GETVECTOR (Int32, int32_t)

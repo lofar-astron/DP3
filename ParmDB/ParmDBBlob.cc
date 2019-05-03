@@ -66,7 +66,7 @@ namespace BBS {
   }
 
   void ParmDBBlob::getValues (vector<ParmValueSet>&,
-                              const vector<uint>&,
+                              const vector<unsigned int>&,
                               const vector<ParmId>&,
                               const Box&)
   {

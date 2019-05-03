@@ -248,9 +248,9 @@ void ApplyBeam::applyBeam(
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
-  uint nCh = info.chanFreqs().size();
-  uint nSt = beamValues.size() / nCh;
-  uint nBl = info.nbaselines();
+  unsigned int nCh = info.chanFreqs().size();
+  unsigned int nSt = beamValues.size() / nCh;
+  unsigned int nBl = info.nbaselines();
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).

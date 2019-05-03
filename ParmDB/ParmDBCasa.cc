@@ -100,7 +100,7 @@ namespace BBS {
   {
     TableDesc td("ME parameter table", TableDesc::Scratch);
     td.comment() = String("Table containing ME parameters values");
-    td.addColumn (ScalarColumnDesc<uint>  ("NAMEID"));
+    td.addColumn (ScalarColumnDesc<unsigned int>  ("NAMEID"));
     td.addColumn (ScalarColumnDesc<double>("STARTX"));
     td.addColumn (ScalarColumnDesc<double>("ENDX"));
     td.addColumn (ScalarColumnDesc<double>("STARTY"));
@@ -158,7 +158,7 @@ namespace BBS {
   {
     for (int i=0; i<3; ++i) {
       TableLocker locker(itsTables[i], FileLocker::Write);
-      Vector<uint> rows = itsTables[i].rowNumbers();
+      Vector<unsigned int> rows = itsTables[i].rowNumbers();
       itsTables[i].removeRow(rows);
     }
   }
@@ -201,7 +201,7 @@ namespace BBS {
     return table.rowNumbers()[0];
   }
 
-  Vector<uint> ParmDBCasa::getNameIds (const string& parmNamePattern) const
+  Vector<unsigned int> ParmDBCasa::getNameIds (const string& parmNamePattern) const
   {
     Table table = itsTables[1];
     TableLocker locker(table, FileLocker::Read);
@@ -212,13 +212,13 @@ namespace BBS {
     return table.rowNumbers();
   }
 
-  Vector<uint> ParmDBCasa::getNameIds (const vector<string>& parmNames) const
+  Vector<unsigned int> ParmDBCasa::getNameIds (const vector<string>& parmNames) const
   {
     Table table = itsTables[1];
     TableLocker locker(table, FileLocker::Read);
     if (!parmNames.empty()) {
       Vector<String> nams(parmNames.size());
-      for (uint i=0; i<parmNames.size(); ++i) {
+      for (unsigned int i=0; i<parmNames.size(); ++i) {
         nams(i) = parmNames[i];
       }
       table = table(table.col("NAME").in (nams));
@@ -263,7 +263,7 @@ namespace BBS {
     defMap.clear();
     Table& table = itsTables[2];
     TableLocker locker(table, FileLocker::Read);
-    for (uint row=0; row<table.nrow(); ++row) {
+    for (unsigned int row=0; row<table.nrow(); ++row) {
       pair<string,ParmValueSet> val = extractDefValue(table, row);
       defMap.define (val.first, val.second);
     }
@@ -298,7 +298,7 @@ namespace BBS {
   }
 
   void ParmDBCasa::getValues (vector<ParmValueSet>& psets,
-                              const vector<uint>& nameIds,
+                              const vector<unsigned int>& nameIds,
                               const vector<ParmId>& parmIds,
                               const Box& domain)
   {
@@ -329,23 +329,23 @@ namespace BBS {
     // Form an index for the nameids.
     ColumnsIndex colInx(table, "NAMEID");
     // Create an accessor for the key in the index,
-    RecordFieldPtr<uint> idFld(colInx.accessKey(), "NAMEID");
+    RecordFieldPtr<unsigned int> idFld(colInx.accessKey(), "NAMEID");
     // Loop through the required nameids and retrieve their info.
-    for (uint inx=0; inx<nameIds.size(); ++inx) {
+    for (unsigned int inx=0; inx<nameIds.size(); ++inx) {
       ParmValueSet& pvset = psets[parmIds[inx]];
-      uint id = nameIds[inx];
+      unsigned int id = nameIds[inx];
       ParmValue::FunkletType type = ParmValue::FunkletType(typeCol(id));
       // Select the rows for the nameId.
       *idFld = id;
-      Vector<uint> rownrs = colInx.getRowNumbers();
-      uint nrow = rownrs.nelements();
+      Vector<unsigned int> rownrs = colInx.getRowNumbers();
+      unsigned int nrow = rownrs.nelements();
       if (nrow > 0) {
         // Retrieve the rows.
         vector<ParmValue::ShPtr> values;
         vector<Box> domains;
         values.reserve (nrow);
         domains.reserve (nrow);
-        for (uint i=0; i<nrow; ++i) {
+        for (unsigned int i=0; i<nrow; ++i) {
           int row = rownrs[i];
           double sx = sxCol(row);
           double sy = syCol(row);
@@ -356,8 +356,8 @@ namespace BBS {
             pval->setCoeff (valCol(row));
           } else {
             Array<double> values = valCol(row);
-            uint nx = values.shape()[0];
-            uint ny = values.shape()[1];
+            unsigned int nx = values.shape()[0];
+            unsigned int ny = values.shape()[1];
             pval->setScalars (Grid(getInterval(ivxCol, row, sx, ex, nx),
                                    getInterval(ivyCol, row, sy, ey, ny)),
                               values);
@@ -393,7 +393,7 @@ namespace BBS {
     Regex regex(Regex::fromPattern(parmNamePattern));
     Table sel = table(table.col("NAME") == regex);
     ROScalarColumn<String> nameCol(sel, "NAME");
-    for (uint row=0; row<sel.nrow(); ++row) {
+    for (unsigned int row=0; row<sel.nrow(); ++row) {
       pair<string,ParmValueSet> pset (extractDefValue(sel, row));
       result.define (pset.first, pset.second);
     }
@@ -410,7 +410,7 @@ namespace BBS {
                                ParmValueSet& pset)
   {
     const Grid& grid = pset.getGrid();
-    for (uint i=0; i<pset.size(); ++i) {
+    for (unsigned int i=0; i<pset.size(); ++i) {
       ParmValue& pval = pset.getParmValue(i);
       if (pval.getRowId() < 0) {
         // It is certainly a new row.
@@ -479,8 +479,8 @@ namespace BBS {
       nameId = putName (parmName, pset);
     }
     Table& table = itsTables[0];
-    uint rownr = table.nrow();
-    ScalarColumn<uint>   idCol   (table, "NAMEID");
+    unsigned int rownr = table.nrow();
+    ScalarColumn<unsigned int>   idCol   (table, "NAMEID");
     ScalarColumn<double> stxCol  (table, "STARTX");
     ScalarColumn<double> endxCol (table, "ENDX");
     ScalarColumn<double> styCol  (table, "STARTY");
@@ -514,7 +514,7 @@ namespace BBS {
   }
 
   void ParmDBCasa::putInterval (const Axis& axis, ArrayColumn<double>& col,
-                                uint rownr)
+                                unsigned int rownr)
   {
     int nv = axis.size();
     Array<double> arr(IPosition(2,2,nv));
@@ -526,8 +526,8 @@ namespace BBS {
     col.put (rownr, arr);
   }
 
-  Axis::ShPtr ParmDBCasa::getInterval (ROArrayColumn<double>& col, uint rownr,
-                                       double st, double end, uint n)
+  Axis::ShPtr ParmDBCasa::getInterval (ROArrayColumn<double>& col, unsigned int rownr,
+                                       double st, double end, unsigned int n)
   {
     if (! col.isDefined(rownr)) {
       return Axis::ShPtr(new RegularAxis (st, end, n, true));
@@ -541,7 +541,7 @@ namespace BBS {
     vector<double> vc, vw;
     vc.reserve(n);
     vw.reserve(n);
-    for (uint i=0; i<n; ++i) {
+    for (unsigned int i=0; i<n; ++i) {
       vc.push_back (*arrp++);
       vw.push_back (*arrp++);
     }
@@ -558,10 +558,10 @@ namespace BBS {
     ScalarColumn<double> pertCol(table, "PERTURBATION");
     ScalarColumn<bool>   prelCol(table, "PERT_REL");
     ArrayColumn<bool>    maskCol(table, "SOLVABLE");
-    uint rownr = table.nrow();
+    unsigned int rownr = table.nrow();
     table.addRow();
     // Create a unique id.
-    uint id = table.keywordSet().asuInt("UNIQUE_ID");
+    unsigned int id = table.keywordSet().asuInt("UNIQUE_ID");
     table.rwKeywordSet().define ("UNIQUE_ID", id+1);
     if (rownr != id)
 			throw std::runtime_error(
@@ -588,7 +588,7 @@ namespace BBS {
     } else {
       Table sel = table(table.col("NAME") == String(name));
       if (sel.nrow() == 1) {
-        uint rownr=0;
+        unsigned int rownr=0;
         ScalarColumn<int>    typeCol (sel, "FUNKLETTYPE");
         ArrayColumn<bool>    maskCol (sel, "SOLVABLE");
         ArrayColumn<double>  valCol  (sel, "VALUES");
@@ -615,7 +615,7 @@ namespace BBS {
   {
     const ParmValue& pval = pset.getFirstParmValue();
     Table& table = itsTables[2];
-    uint rownr = table.nrow();
+    unsigned int rownr = table.nrow();
     table.addRow();
     ScalarColumn<String> nameCol (table, "NAME");
     ScalarColumn<int>    typeCol (table, "FUNKLETTYPE");
@@ -637,7 +637,7 @@ namespace BBS {
     clearDefFilled();
   }
 
-  void ParmDBCasa::putDefDomain (const Box& domain, Table& tab, uint rownr)
+  void ParmDBCasa::putDefDomain (const Box& domain, Table& tab, unsigned int rownr)
   {
     if (! domain.empty()) {
       if (! tab.tableDesc().isColumn("SCALE_DOMAIN")) {
@@ -653,7 +653,7 @@ namespace BBS {
     }
   }
 
-  Box ParmDBCasa::getDefDomain (const Table& tab, uint rownr)
+  Box ParmDBCasa::getDefDomain (const Table& tab, unsigned int rownr)
   {
     Box domain;
     if (tab.tableDesc().isColumn("SCALE_DOMAIN")) {

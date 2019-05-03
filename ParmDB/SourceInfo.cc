@@ -40,7 +40,7 @@ namespace BBS {
   SourceInfo::SourceInfo (const string& name, Type type,
                           const string& refType,
                           bool useLogarithmicSI,
-                          uint nSpectralTerms,
+                          unsigned int nSpectralTerms,
                           double spectralTermsRefFreqHz,
                           bool useRotationMeasure)
     : itsName           (name),

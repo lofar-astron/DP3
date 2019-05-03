@@ -75,8 +75,8 @@ namespace DP3 {
                 predictDirection)));
       }
 
-      uint numSteps = itsApplyCals.size();
-      for (uint step=0; step<numSteps-1; ++step) {
+      unsigned int numSteps = itsApplyCals.size();
+      for (unsigned int step=0; step<numSteps-1; ++step) {
         itsApplyCals[step]->setNextStep(itsApplyCals[step+1]);
       }
     }
@@ -134,7 +134,7 @@ namespace DP3 {
 
     void ApplyCal::applyDiag (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool updateWeights,
+                              unsigned int bl, unsigned int chan, bool updateWeights,
                               FlagCounter& flagCounter) {
       // If parameter is NaN or inf, do not apply anything and flag the data
       if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
@@ -146,7 +146,7 @@ namespace DP3 {
           flagCounter.incrChannel(chan);
           flagCounter.incrBaseline(bl);
         }
-        for (uint corr=0; corr<4; ++corr) {
+        for (unsigned int corr=0; corr<4; ++corr) {
           flag[corr]=true;
         }
         return;
@@ -167,7 +167,7 @@ namespace DP3 {
 
     void ApplyCal::applyScalar(const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool updateWeights,
+                              unsigned int bl, unsigned int chan, bool updateWeights,
                               FlagCounter& flagCounter) {
       // If parameter is NaN or inf, do not apply anything and flag the data
       if (! (isFinite(gainA[0].real()) && isFinite(gainA[0].imag()) &&
@@ -177,7 +177,7 @@ namespace DP3 {
           flagCounter.incrChannel(chan);
           flagCounter.incrBaseline(bl);
         }
-        for (uint corr=0; corr<4; ++corr) {
+        for (unsigned int corr=0; corr<4; ++corr) {
           flag[corr]=true;
         }
         return;
@@ -213,13 +213,13 @@ namespace DP3 {
 
     void ApplyCal::applyFull (const DComplex* gainA, const DComplex* gainB,
                               Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool doUpdateWeights,
+                              unsigned int bl, unsigned int chan, bool doUpdateWeights,
                               FlagCounter& flagCounter) {
       DComplex gainAxvis[4];
 
       // If parameter is NaN or inf, do not apply anything and flag the data
       bool anyinfnan = false;
-      for (uint corr=0; corr<4; ++corr) {
+      for (unsigned int corr=0; corr<4; ++corr) {
         if (! (isFinite(gainA[corr].real()) && isFinite(gainA[corr].imag()) &&
                isFinite(gainB[corr].real()) && isFinite(gainB[corr].imag())) ) {
           anyinfnan = true;
@@ -232,23 +232,23 @@ namespace DP3 {
           flagCounter.incrChannel(chan);
           flagCounter.incrBaseline(bl);
         }
-        for (uint corr=0; corr<4; ++corr) {
+        for (unsigned int corr=0; corr<4; ++corr) {
           flag[corr]=true;
         }
         return;
       }
 
       // gainAxvis = gainA * vis
-      for (uint row=0;row<2;++row) {
-        for (uint col=0;col<2;++col) {
+      for (unsigned int row=0;row<2;++row) {
+        for (unsigned int col=0;col<2;++col) {
           gainAxvis[2*row+col]=gainA[2*row+0] * DComplex(vis[2*0+col]) +
                                gainA[2*row+1] * DComplex(vis[2*1+col]);
         }
       }
 
       // vis = gainAxvis * gainB^H
-      for (uint row=0;row<2;++row) {
-        for (uint col=0;col<2;++col) {
+      for (unsigned int row=0;row<2;++row) {
+        for (unsigned int col=0;col<2;++col) {
           vis[2*row+col]=gainAxvis[2*row+0] * conj(gainB[2*col+0])+
                          gainAxvis[2*row+1] * conj(gainB[2*col+1]);
         }
@@ -263,7 +263,7 @@ namespace DP3 {
                                 const DComplex* gainB,
                                 float* weight) {
       float cov[4], normGainA[4], normGainB[4];
-      for (uint i=0;i<4;++i) {
+      for (unsigned int i=0;i<4;++i) {
         cov[i]=1./weight[i];
         normGainA[i]=norm(gainA[i]);
         normGainB[i]=norm(gainB[i]);

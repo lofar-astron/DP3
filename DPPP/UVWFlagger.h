@@ -87,7 +87,7 @@ namespace DP3 {
 
       // Set flags for channels where uvw (in m) matches a range in wavelengths.
       void testUVWl (double uvw, const std::vector<double>& ranges,
-                     bool* flagPtr, uint nrcorr);
+                     bool* flagPtr, unsigned int nrcorr);
 
       // Return a vector with UVW ranges.
       // It looks for the named parameter suffixed with 'range', 'min', and
@@ -108,7 +108,7 @@ namespace DP3 {
       DPInput*             itsInput;
       string               itsName;
       DPBuffer             itsBuffer;
-      uint                 itsNTimes;
+      unsigned int                 itsNTimes;
 
       // If nothing is filled in, this step just passes through data
       bool                 itsIsDegenerate;

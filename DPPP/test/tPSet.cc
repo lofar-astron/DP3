@@ -218,7 +218,7 @@ void TestPSet::testChan()
     ASSERT (pset.itsChannels[2] == 12);
     ASSERT (pset.itsChannels[3] == 13);
     ASSERT (pset.itsChanFlags.shape() == IPosition(2,4,32));
-    for (uint i=0; i<32; ++i) {
+    for (unsigned int i=0; i<32; ++i) {
       if (i==4 || i==11 || i==12 || i==13) {
         ASSERT (allEQ(pset.itsChanFlags.column(i), true));
       } else {

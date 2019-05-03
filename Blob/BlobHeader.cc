@@ -28,7 +28,7 @@
 
 #include <cassert>
 
-DP3::BlobHeader::BlobHeader (int version, uint level)
+DP3::BlobHeader::BlobHeader (int version, unsigned int level)
 : itsLength         (0),
   itsMagicValue     (bobMagicValue()),
   itsVersion        (version),

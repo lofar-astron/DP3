@@ -139,9 +139,9 @@ namespace DP3 {
       Cube<bool>* flags = itsPSet.process (buf, itsBuffer, itsCount,
                                            Block<bool>(), itsTimer);
       const IPosition& shape = flags->shape();
-      uint nrcorr = shape[0];
-      uint nrchan = shape[1];
-      uint nrbl   = shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nrchan = shape[1];
+      unsigned int nrbl   = shape[2];
       const bool* inPtr = flags->data();
       bool* outPtr = itsBuffer.getFlags().data();
       switch (itsMode) {
@@ -166,16 +166,16 @@ namespace DP3 {
     }
 
     void PreFlagger::setFlags (const bool* inPtr, bool* outPtr,
-                               uint nrcorr, uint nrchan, uint nrbl,
+                               unsigned int nrcorr, unsigned int nrchan, unsigned int nrbl,
                                bool mode)
     {
-      for (uint i=0; i<nrbl; ++i) {
-        for (uint j=0; j<nrchan; ++j) {
+      for (unsigned int i=0; i<nrbl; ++i) {
+        for (unsigned int j=0; j<nrchan; ++j) {
           if (*inPtr == mode  &&  !*outPtr) {
             // Only 1st corr is counted.
             itsFlagCounter.incrBaseline(i);
             itsFlagCounter.incrChannel(j);
-            for (uint k=0; k<nrcorr; ++k) {
+            for (unsigned int k=0; k<nrcorr; ++k) {
               outPtr[k] = true;
             }
           }
@@ -186,19 +186,19 @@ namespace DP3 {
     }
 
     void PreFlagger::clearFlags (const bool* inPtr, bool* outPtr,
-                                 uint nrcorr, uint nrchan, uint nrbl,
+                                 unsigned int nrcorr, unsigned int nrchan, unsigned int nrbl,
                                  bool mode, const DPBuffer& buf)
     {
       const Complex* dataPtr = buf.getData().data();
       Cube<float> weights = itsInput->fetchWeights (buf, itsBuffer,
                                                     itsTimer);
       const float* weightPtr = weights.data();
-      for (uint i=0; i<nrbl; ++i) {
-        for (uint j=0; j<nrchan; ++j) {
+      for (unsigned int i=0; i<nrbl; ++i) {
+        for (unsigned int j=0; j<nrchan; ++j) {
           if (*inPtr == mode) {
             bool flag = false;
             // Flags for invalid data are not cleared.
-            for (uint k=0; k<nrcorr; ++k) {
+            for (unsigned int k=0; k<nrcorr; ++k) {
               if (!isFinite(dataPtr[k].real())  ||
                   !isFinite(dataPtr[k].imag())  ||
                   weightPtr[k] == 0) {
@@ -209,7 +209,7 @@ namespace DP3 {
             if (*outPtr != flag) {
               itsFlagCounter.incrBaseline(i);
               itsFlagCounter.incrChannel(j);
-              for (uint k=0; k<nrcorr; ++k) {
+              for (unsigned int k=0; k<nrcorr; ++k) {
                 outPtr[k] = flag;
               }
             }
@@ -253,7 +253,7 @@ namespace DP3 {
       itsStrRTime = parset.getStringVector (prefix+"reltime",
                                             vector<string>());
       itsTimeSlot = parset.getUintVector   (prefix+"timeslot",
-                                            vector<uint>(), true); // expand ..
+                                            vector<unsigned int>(), true); // expand ..
       itsStrAzim  = parset.getStringVector (prefix+"azimuth",
                                             vector<string>());
       itsStrElev  = parset.getStringVector (prefix+"elevation",
@@ -293,7 +293,7 @@ namespace DP3 {
         vector<string> names = exprToRpn (itsStrExpr);
         // Create PSet objects for all operands.
         itsPSets.reserve (names.size());
-        for (uint i=0; i<names.size(); ++i) {
+        for (unsigned int i=0; i<names.size(); ++i) {
           itsPSets.push_back
             (PSet::ShPtr(new PSet(itsInput, parset, prefix+names[i]+'.')));
         }
@@ -338,8 +338,8 @@ namespace DP3 {
                               itsFlagOnReal || itsFlagOnImag) &&
                             itsPSets.empty());
       // Size the object's buffers (used in process) correctly.
-      uint nrcorr = info.ncorr();
-      uint nrchan = info.nchan();
+      unsigned int nrcorr = info.ncorr();
+      unsigned int nrchan = info.nchan();
       itsFlags.resize (nrcorr, nrchan, info.nbaselines());
       itsMatchBL.resize (info.nbaselines());
       // Determine the channels to be flagged.
@@ -350,15 +350,15 @@ namespace DP3 {
         }
       }
       // Do the same for the child steps.
-      for (uint i=0; i<itsPSets.size(); ++i) {
+      for (unsigned int i=0; i<itsPSets.size(); ++i) {
         itsPSets[i]->updateInfo (info);
       }
     }
 
     void PreFlagger::PSet::fillChannels (const DPInfo& info)
     {
-      uint nrcorr = info.ncorr();
-      uint nrchan = info.nchan();
+      unsigned int nrcorr = info.ncorr();
+      unsigned int nrchan = info.nchan();
       Vector<bool> selChan(nrchan);
       if (itsStrChan.empty()) {
         selChan = true;
@@ -368,15 +368,15 @@ namespace DP3 {
         Record rec;
         rec.define ("nchan", nrchan);
         double result;
-        for (uint i=0; i<itsStrChan.size(); ++i) {
+        for (unsigned int i=0; i<itsStrChan.size(); ++i) {
           // Evaluate possible expressions.
           // Split the value if start..end is given.
-          uint startch, endch;
+          unsigned int startch, endch;
           string::size_type pos = itsStrChan[i].find ("..");
           if (pos == string::npos) {
             TableExprNode node (RecordGram::parse(rec, itsStrChan[i]));
             node.get (rec, result);
-            startch = uint(result+0.001);
+            startch = (unsigned int)(result+0.001);
             endch   = startch;
           } else {
             if (pos == 0 || pos >= itsStrChan[i].size() - 2)
@@ -386,18 +386,18 @@ namespace DP3 {
             TableExprNode node1
               (RecordGram::parse(rec, itsStrChan[i].substr(0,pos)));
             node1.get (rec, result);
-            startch = uint(result+0.001);
+            startch = (unsigned int)(result+0.001);
             TableExprNode node2
               (RecordGram::parse(rec, itsStrChan[i].substr(pos+2)));
             node2.get (rec, result);
-            endch = uint(result+0.001);
+            endch = (unsigned int)(result+0.001);
             if(startch > endch)
               throw Exception(
                        "Start " + std::to_string(startch) + " must be <= end " + std::to_string(endch)
                        + " in PreFlagger channel range " + itsStrChan[i]);
           }
           if (startch < nrchan) {
-            for (uint ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
+            for (unsigned int ch=startch; ch<std::min(endch+1, nrchan); ++ch) {
               selChan[ch] = true;
             }
           }
@@ -412,10 +412,10 @@ namespace DP3 {
       itsChannels.clear();
       itsChanFlags.resize (nrcorr, nrchan);
       itsChanFlags = false;
-      for (uint i=0; i<nrchan; ++i) {
+      for (unsigned int i=0; i<nrchan; ++i) {
         if (selChan[i]) {
           itsChannels.push_back (i);
-          for (uint j=0; j<nrcorr; ++j) {
+          for (unsigned int j=0; j<nrcorr; ++j) {
             itsChanFlags(j,i) = true;
           }
         }
@@ -482,14 +482,14 @@ namespace DP3 {
         os << "   imagmax:       " << itsImagMax << std::endl;
       }
       // Do it for the child steps.
-      for (uint i=0; i<itsPSets.size(); ++i) {
+      for (unsigned int i=0; i<itsPSets.size(); ++i) {
         itsPSets[i]->show (os, true);
       }
     }
 
     Cube<bool>* PreFlagger::PSet::process (const DPBuffer& in,
                                            DPBuffer& out,
-                                           uint timeSlot,
+                                           unsigned int timeSlot,
                                            const Block<bool>& matchBL,
                                            NSTimer& timer)
     {
@@ -507,7 +507,7 @@ namespace DP3 {
       // Initialize the flags.
       itsFlags = false;
       const IPosition& shape = out.getFlags().shape();
-      uint nr = shape[0] * shape[1];
+      unsigned int nr = shape[0] * shape[1];
       // Take over the baseline info from the parent. Default is all.
       if (matchBL.empty()) {
         itsMatchBL = true;
@@ -539,7 +539,7 @@ namespace DP3 {
       }
       // Convert each baseline flag to a flag per correlation/channel.
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<itsMatchBL.size(); ++i) {
+      for (unsigned int i=0; i<itsMatchBL.size(); ++i) {
         if (itsMatchBL[i]) {
           std::fill (flagPtr, flagPtr+nr, itsMatchBL[i]);
         }
@@ -603,7 +603,7 @@ namespace DP3 {
       return &itsFlags;
     }
 
-    bool PreFlagger::PSet::matchTime (double time, uint timeSlot) const
+    bool PreFlagger::PSet::matchTime (double time, unsigned int timeSlot) const
     {
       if (!itsATimes.empty()  &&
           !matchRange (time, itsATimes)) {
@@ -645,7 +645,7 @@ namespace DP3 {
     bool PreFlagger::PSet::matchRange (double v,
                                        const vector<double>& ranges) const
     {
-      for (uint i=0; i<ranges.size(); i+=2) {
+      for (unsigned int i=0; i<ranges.size(); i+=2) {
         if (v > ranges[i]  &&  v < ranges[i+1]) {
           return true;
         }
@@ -656,9 +656,9 @@ namespace DP3 {
     bool PreFlagger::PSet::flagUV (const Matrix<double>& uvw)
     {
       bool match = false;
-      uint nrbl = itsMatchBL.size();
+      unsigned int nrbl = itsMatchBL.size();
       const double* uvwPtr = uvw.data();
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         if (itsMatchBL[i]) {
           // UV-distance is sqrt(u^2 + v^2).
           // The sqrt is not needed because minuv and maxuv are squared.
@@ -678,10 +678,10 @@ namespace DP3 {
     bool PreFlagger::PSet::flagBL()
     {
       bool match = false;
-      uint nrbl = itsMatchBL.size();
+      unsigned int nrbl = itsMatchBL.size();
       const Int* ant1Ptr = itsInfo->getAnt1().data();
       const Int* ant2Ptr = itsInfo->getAnt2().data();
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         if (itsMatchBL[i]) {
           if (! itsFlagBL(ant1Ptr[i], ant2Ptr[i])) {
             // do not flag this baseline
@@ -697,7 +697,7 @@ namespace DP3 {
     bool PreFlagger::PSet::flagAzEl (double time)
     {
       bool match = false;
-      uint nrbl = itsMatchBL.size();
+      unsigned int nrbl = itsMatchBL.size();
       const Int* ant1Ptr = itsInfo->getAnt1().data();
       const Int* ant2Ptr = itsInfo->getAnt2().data();
       // Calculate AzEl for each flagged antenna for this time slot.
@@ -707,9 +707,9 @@ namespace DP3 {
       frame.set (epoch);
       MDirection::Convert converter (itsInfo->phaseCenter(),
                                      MDirection::Ref(MDirection::AZEL, frame));
-      uint nrant = itsInfo->antennaNames().size();
+      unsigned int nrant = itsInfo->antennaNames().size();
       Block<bool> done(nrant, false);
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         if (itsMatchBL[i]) {
           // If needed, check if ant1 matches AzEl criterium.
           // If not matching, itsMatchBL is cleared for this baseline and all
@@ -736,7 +736,7 @@ namespace DP3 {
     }
 
     void PreFlagger::PSet::testAzEl (MDirection::Convert& converter,
-                                     uint blnr, int ant,
+                                     unsigned int blnr, int ant,
                                      const int* ant1, const int* ant2)
     {
       // Calculate AzEl (n seconds because ranges are in seconds too).
@@ -753,7 +753,7 @@ namespace DP3 {
       bool res = ((itsAzimuth.empty()   || matchRange(az, itsAzimuth)) &&
                   (itsElevation.empty() || matchRange(el, itsElevation)));
       if (!res) {
-        for (uint i=blnr; i<itsMatchBL.size(); ++i) {
+        for (unsigned int i=blnr; i<itsMatchBL.size(); ++i) {
           if (ant1[i] == ant  ||  ant2[i] == ant) {
             itsMatchBL[i] = false;
           }
@@ -764,20 +764,20 @@ namespace DP3 {
     void PreFlagger::PSet::flagAmpl (const Cube<float>& values)
     {
       const IPosition& shape = values.shape();
-      uint nrcorr = shape[0];
-      uint nr = shape[1] * shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nr = shape[1] * shape[2];
       const float* valPtr = values.data();
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         bool flag = false;
-        for (uint j=0; j<nrcorr; ++j) {
+        for (unsigned int j=0; j<nrcorr; ++j) {
           if (valPtr[j] < itsAmplMin[j]  ||  valPtr[j] > itsAmplMax[j]) {
             flag = true;
             break;
           }
         }
         if (!flag) {
-          for (uint j=0; j<nrcorr; ++j) {
+          for (unsigned int j=0; j<nrcorr; ++j) {
             flagPtr[j] = false;
           }
         }
@@ -789,13 +789,13 @@ namespace DP3 {
     void PreFlagger::PSet::flagPhase (const Cube<Complex>& values)
     {
       const IPosition& shape = values.shape();
-      uint nrcorr = shape[0];
-      uint nr = shape[1] * shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nr = shape[1] * shape[2];
       const Complex* valPtr = values.data();
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         bool flag = false;
-        for (uint j=0; j<nrcorr; ++j) {
+        for (unsigned int j=0; j<nrcorr; ++j) {
           float phase = arg(valPtr[j]);
           if (phase < itsPhaseMin[j]  ||  phase > itsPhaseMax[j]) {
             flag = true;
@@ -803,7 +803,7 @@ namespace DP3 {
           }
         }
         if (!flag) {
-          for (uint j=0; j<nrcorr; ++j) {
+          for (unsigned int j=0; j<nrcorr; ++j) {
             flagPtr[j] = false;
           }
         }
@@ -815,13 +815,13 @@ namespace DP3 {
     void PreFlagger::PSet::flagReal (const Cube<Complex>& values)
     {
       const IPosition& shape = values.shape();
-      uint nrcorr = shape[0];
-      uint nr = shape[1] * shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nr = shape[1] * shape[2];
       const Complex* valPtr = values.data();
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         bool flag = false;
-        for (uint j=0; j<nrcorr; ++j) {
+        for (unsigned int j=0; j<nrcorr; ++j) {
           if (valPtr[j].real() < itsRealMin[j]  ||
                valPtr[j].real() > itsRealMax[j]) {
             flag = true;
@@ -829,7 +829,7 @@ namespace DP3 {
           }
         }
         if (!flag) {
-          for (uint j=0; j<nrcorr; ++j) {
+          for (unsigned int j=0; j<nrcorr; ++j) {
             flagPtr[j] = false;
           }
         }
@@ -841,13 +841,13 @@ namespace DP3 {
     void PreFlagger::PSet::flagImag (const Cube<Complex>& values)
     {
       const IPosition& shape = values.shape();
-      uint nrcorr = shape[0];
-      uint nr = shape[1] * shape[2];
+      unsigned int nrcorr = shape[0];
+      unsigned int nr = shape[1] * shape[2];
       const Complex* valPtr = values.data();
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         bool flag = false;
-        for (uint j=0; j<nrcorr; ++j) {
+        for (unsigned int j=0; j<nrcorr; ++j) {
           if (valPtr[j].imag() < itsImagMin[j]  ||
               valPtr[j].imag() > itsImagMax[j]) {
             flag = true;
@@ -855,7 +855,7 @@ namespace DP3 {
           }
         }
         if (!flag) {
-          for (uint j=0; j<nrcorr; ++j) {
+          for (unsigned int j=0; j<nrcorr; ++j) {
             flagPtr[j] = false;
           }
         }
@@ -867,10 +867,10 @@ namespace DP3 {
     void PreFlagger::PSet::flagChannels()
     {
       const IPosition& shape = itsFlags.shape();
-      uint nr   = shape[0] * shape[1];
-      uint nrbl = shape[2];
+      unsigned int nr   = shape[0] * shape[1];
+      unsigned int nrbl = shape[2];
       bool* flagPtr = itsFlags.data();
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         transformInPlace (flagPtr, flagPtr+nr,
                           itsChanFlags.cbegin(), std::logical_and<bool>());
         flagPtr += nr;
@@ -889,7 +889,7 @@ namespace DP3 {
       string expr = boost::to_upper_copy(origExpr);
       std::stack<int> tokens;
       vector<string> names;
-      uint i=0;
+      unsigned int i=0;
       bool hadName = false;    // the last token was a name.
       while (i < expr.size()) {
         int oper = 0;
@@ -1109,11 +1109,11 @@ namespace DP3 {
         if (value.isVector()) {
           // Defined as a vector, take the values given.
           vector<string> valstr = value.getStringVector();
-          uint sz = std::min(valstr.size(), result.size());
+          unsigned int sz = std::min(valstr.size(), result.size());
           if (sz > 0) {
             // It contains a value, so set that flagging is done.
             doFlag = true;
-            for (uint i=0; i<sz; ++i) {
+            for (unsigned int i=0; i<sz; ++i) {
               if (! valstr[i].empty()) {
                 result[i] = strToFloat(valstr[i]);
               }
@@ -1139,7 +1139,7 @@ namespace DP3 {
     Vector<bool> PreFlagger::PSet::handleFreqRanges
     (const Vector<double>& chanFreqs)
     {
-      uint nrchan = chanFreqs.size();
+      unsigned int nrchan = chanFreqs.size();
       Vector<bool> selChan(nrchan, false);
       // A frequency range can be given as  value..value or value+-value.
       // Units can be given for each value; if one is given it applies to both.
@@ -1180,7 +1180,7 @@ namespace DP3 {
           v1 -= pm;
         }
         // Add any channel inside this range.
-        for (uint i=0; i<chanFreqs.size(); ++i) {
+        for (unsigned int i=0; i<chanFreqs.size(); ++i) {
           if (chanFreqs[i] > v1  &&  chanFreqs[i] < v2) {
             selChan[i] = true;
           }

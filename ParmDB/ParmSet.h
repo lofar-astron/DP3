@@ -41,7 +41,7 @@ namespace BBS {
 
 
   // Define the type of a parmId.
-  typedef uint ParmId;
+  typedef unsigned int ParmId;
 
 
   // @ingroup ParmDB
@@ -94,7 +94,7 @@ namespace BBS {
     // Write the parm values for the given parmid.
     // For parms with a new name, ParmKey::itsNameId will get filled in.
     // For new values, the rowId in the ParmValueSet will be filled in.
-    void write (uint parmId, ParmValueSet&);
+    void write (unsigned int parmId, ParmValueSet&);
 
     // Clear the ParmSet.
     void clear();

@@ -125,10 +125,10 @@ namespace BBS {
   private:
     // Define the key consisting of both id-s.
     struct AxisKey {
-      AxisKey (uint fromId, uint toId)
+      AxisKey (unsigned int fromId, unsigned int toId)
         : itsFrom(fromId), itsTo(toId) {}
-      uint itsFrom;
-      uint itsTo;
+      unsigned int itsFrom;
+      unsigned int itsTo;
 
       bool operator== (const AxisKey that) const
         { return itsFrom==that.itsFrom  &&  itsTo==that.itsTo; }
@@ -177,19 +177,19 @@ namespace BBS {
 
     // Find the location in grid 'dest', given the cellId in grid 'src'.
     static Location findLocation (AxisMappingCache& cache,
-                                  uint cellId,
+                                  unsigned int cellId,
                                   const Grid& src,
                                   const Grid& dest);
 
     // Find the cellId in grid 'dest', given the location in grid 'src'.
-    static uint findCellId (AxisMappingCache& cache,
+    static unsigned int findCellId (AxisMappingCache& cache,
                             const Location& location,
                             const Grid& src,
                             const Grid& dest);
 
     // Find the cellId in grid 'dest', given the cellId in grid 'src'.
-    static uint findcellId (AxisMappingCache& cache,
-                            uint cellId,
+    static unsigned int findcellId (AxisMappingCache& cache,
+                            unsigned int cellId,
                             const Grid& src,
                             const Grid& dest);
   };

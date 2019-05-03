@@ -105,11 +105,11 @@ namespace DP3 {
     private:
       // Flag all baselines in the time window (using OpenMP to parallellize).
       // Process the buffers in the next step.
-      void flag (uint rightOverlap);
+      void flag (unsigned int rightOverlap);
 
       // Flag a single baseline using the rfistrategy.
-      void flagBaseline (uint leftOverlap, uint windowSize,
-                         uint rightOverlap, uint bl,
+      void flagBaseline (unsigned int leftOverlap, unsigned int windowSize,
+                         unsigned int rightOverlap, unsigned int bl,
                          FlagCounter& counter,
                          aoflagger::QualityStatistics& rfiStats);
 
@@ -127,11 +127,11 @@ namespace DP3 {
 
       //# Data members.
       string           itsName;
-      uint             itsBufIndex;
-      uint             itsNTimes;
+      unsigned int             itsBufIndex;
+      unsigned int             itsNTimes;
       string           itsStrategyName;
-      uint             itsWindowSize;
-      uint             itsOverlap;       //# extra time slots on both sides
+      unsigned int             itsWindowSize;
+      unsigned int             itsOverlap;       //# extra time slots on both sides
       double           itsOverlapPerc;
       double           itsMemory;        //# Usable memory in GBytes
       double           itsMemoryPerc;

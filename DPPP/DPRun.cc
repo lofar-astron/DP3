@@ -135,7 +135,7 @@ namespace DP3 {
 
       bool showcounts = parset.getBool ("showcounts", true);
 
-      uint numThreads = parset.getInt("numthreads", ThreadPool::NCPUs());
+      unsigned int numThreads = parset.getInt("numthreads", ThreadPool::NCPUs());
 
       // Create the steps, link them together
       DPStep::ShPtr firstStep = makeSteps (parset, "", 0);
@@ -174,7 +174,7 @@ namespace DP3 {
         }
       }
       // Process until the end.
-      uint ntodo = firstStep->getInfo().ntime();
+      unsigned int ntodo = firstStep->getInfo().ntime();
       DPLOG_INFO_STR ("Processing " << ntodo << " time slots ...");
       {
         ProgressMeter* progress = 0;

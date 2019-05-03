@@ -52,7 +52,7 @@ BlobOStream& putBlobArray (BlobOStream& bs, const T* data,
 template<typename T>
 uint64_t setSpaceBlobArray2 (BlobOStream& bs, bool useBlobHeader,
                            uint64_t size0, uint64_t size1,
-                           bool fortranOrder, uint alignment)
+                           bool fortranOrder, unsigned int alignment)
 {
   uint64_t shp[2];
   shp[0] = size0;
@@ -63,7 +63,7 @@ uint64_t setSpaceBlobArray2 (BlobOStream& bs, bool useBlobHeader,
 template<typename T>
 uint64_t setSpaceBlobArray3 (BlobOStream& bs,  bool useBlobHeader,
                            uint64_t size0, uint64_t size1, uint64_t size2,
-                           bool fortranOrder, uint alignment)
+                           bool fortranOrder, unsigned int alignment)
 {
   uint64_t shp[3];
   shp[0] = size0;
@@ -76,7 +76,7 @@ template<typename T>
 uint64_t setSpaceBlobArray4 (BlobOStream& bs, bool useBlobHeader,
                            uint64_t size0, uint64_t size1,
                            uint64_t size2, uint64_t size3,
-                           bool fortranOrder, uint alignment)
+                           bool fortranOrder, unsigned int alignment)
 {
   uint64_t shp[4];
   shp[0] = size0;
@@ -89,7 +89,7 @@ uint64_t setSpaceBlobArray4 (BlobOStream& bs, bool useBlobHeader,
 template<typename T>
 uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
                           const std::vector<uint64_t>& shape,
-                          bool fortranOrder, uint alignment)
+                          bool fortranOrder, unsigned int alignment)
 {
   return setSpaceBlobArray<T> (bs, useBlobHeader,
                                shape.empty() ? 0 : &shape[0], shape.size(),
@@ -99,7 +99,7 @@ uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
 template<typename T>
 uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
                           const uint64_t* shape, uint16_t ndim,
-                          bool fortranOrder, uint alignment)
+                          bool fortranOrder, unsigned int alignment)
 {
   // Default alignment is the size of an array element with a maximum of 8.
   if (alignment == 0) {
@@ -117,7 +117,7 @@ uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
 
 
 #if defined(HAVE_BLITZ) 
-template<typename T, uint NDIM>
+template<typename T, unsigned int NDIM>
 BlobOStream& operator<< (BlobOStream& bs, const blitz::Array<T,NDIM>& arr)
 {
   if (arr.isStorageContiguous()) {
@@ -131,13 +131,13 @@ BlobOStream& operator<< (BlobOStream& bs, const blitz::Array<T,NDIM>& arr)
   return bs;
 }
 
-template<typename T, uint NDIM>
+template<typename T, unsigned int NDIM>
 BlobIStream& operator>> (BlobIStream& bs, blitz::Array<T,NDIM>& arr)
 {
   bs.getStart (LOFAR::typeName((const T**)0));
   bool fortranOrder;
   uint16 ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   ASSERT (ndim == NDIM);
   blitz::TinyVector<uint64_t,NDIM> shape;
   getBlobArrayShape (bs, shape.data(), NDIM, fortranOrder!=arr.isMinorRank(),
@@ -173,12 +173,12 @@ BlobIStream& operator>> (BlobIStream& bs, casacore::Array<T>& arr)
   bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   std::vector<uint64_t> shp(ndim);
   getBlobArrayShape (bs, ndim==0 ? 0 : &shp[0], ndim,
                      !fortranOrder, nalign);
   casacore::IPosition shape(ndim);
-  for (uint i=0; i<ndim; i++) {
+  for (unsigned int i=0; i<ndim; i++) {
     shape[i] = shp[i];
   }
   arr.resize (shape);
@@ -196,7 +196,7 @@ BlobIStream& getBlobVector (BlobIStream& bs, T*& arr, uint64_t& size)
   bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   assert (ndim == 1);
   getBlobArrayShape (bs, &size, 1, false, nalign);
   arr = new T[size];
@@ -212,7 +212,7 @@ BlobIStream& getBlobArray (BlobIStream& bs, T*& arr,
   bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder1;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder1, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder1, ndim);
   shape.resize (ndim);
   uint64_t n = getBlobArrayShape (bs, ndim==0 ? 0 : &shape[0], ndim,
                                 fortranOrder!=fortranOrder1, nalign);
@@ -232,7 +232,7 @@ uint64_t getSpaceBlobArray (BlobIStream& bs, bool useBlobHeader,
   }
   bool fortranOrder1;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder1, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder1, ndim);
   shape.resize (ndim);
   uint64_t n = getBlobArrayShape (bs, ndim==0 ? 0 : &shape[0], ndim,
                                 fortranOrder!=fortranOrder1, nalign);
@@ -249,7 +249,7 @@ BlobIStream& operator>> (BlobIStream& bs, std::vector<T>& arr)
   bs.getStart (DP3::typeName((const T**)0));
   bool fortranOrder;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   assert (ndim == 1);
   uint64_t size;
   getBlobArrayShape (bs, &size, 1, false, nalign);

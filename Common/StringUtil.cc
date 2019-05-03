@@ -145,7 +145,7 @@ const std::string timeString(time_t		aTime,
 }
 
 
-uint lskipws (const std::string& value, uint st, uint end)
+unsigned int lskipws (const std::string& value, unsigned int st, unsigned int end)
 {
   for (; st<end && isspace(value[st]); ++st)
     ;
@@ -153,7 +153,7 @@ uint lskipws (const std::string& value, uint st, uint end)
   return st;
 }
   
-uint rskipws (const std::string& value, uint st, uint end)
+unsigned int rskipws (const std::string& value, unsigned int st, unsigned int end)
 {
   for (; end>st && isspace(value[end-1]); --end)
     ;
@@ -373,17 +373,17 @@ unsigned long strToUlong (const std::string& aString)
   if (endPtr != str+end)
 		throw std::runtime_error(aString + " is not an integer value");
   if (errno == ERANGE  ||  errno == EINVAL)
-    throw std::runtime_error(aString + " is invalid or outside long uint range");
+    throw std::runtime_error(aString + " is invalid or outside long unsigned int range");
   return val;
 }
 
-uint strToUint (const std::string& aString) 
+unsigned int strToUint (const std::string& aString) 
 {
   unsigned long val = strToUlong (aString);
-  if (sizeof(uint) != sizeof(unsigned long)) {
-    if (sizeof(uint) == 4) {
+  if (sizeof(unsigned int) != sizeof(unsigned long)) {
+    if (sizeof(unsigned int) == 4) {
       if (val > 4294967295UL)
-        throw std::runtime_error(std::to_string(val) + " is outside 4-byte uint range");
+        throw std::runtime_error(std::to_string(val) + " is outside 4-byte unsigned int range");
     }
   }
   return val;
@@ -491,7 +491,7 @@ uint64_t strToUint64 (const std::string& aString)
   if(endPtr != str+end)
 		throw std::runtime_error(aString + " is not an integer value");
   if(errno == ERANGE  ||  errno == EINVAL)
-    throw std::runtime_error(aString + " is invalid or outside long long uint range");
+    throw std::runtime_error(aString + " is invalid or outside long long unsigned int range");
   return val;
 }
  
@@ -646,8 +646,8 @@ std::string findRangeElement(const std::string& orgStr)
 std::string expandRangeString (const std::string& strng)
 {
   std::string str(strng);
-  uint i=0;
-  uint last = str.size();
+  unsigned int i=0;
+  unsigned int last = str.size();
   while (i < last-1) {
     if (str[i] == '\''  ||  str[i] == '"') {
       // Ignore a quoted part.
@@ -697,7 +697,7 @@ std::string expandRangeString (const std::string& strng)
           endnum = strToInt (str.substr(stnum, i-stnum));
           // We really have something like xxx000..004
           // Find a possible suffix.
-          uint stsuf = i;
+          unsigned int stsuf = i;
           while (i < last  &&
                str[i]!=')' && str[i]!=']' &&
                str[i]!=',' && str[i]!=';' && str[i]!='*' &&
@@ -743,8 +743,8 @@ std::string expandRangeString (const std::string& strng)
 std::string expandMultString (const std::string& strng)
 {
   std::string str(strng);
-  uint i=0;
-  uint last = str.size();
+  unsigned int i=0;
+  unsigned int last = str.size();
   while (i < last-1) {
     if (str[i] == '\''  ||  str[i] == '"') {
       // Ignore a quoted part.
@@ -761,7 +761,7 @@ std::string expandMultString (const std::string& strng)
         }
         stnum++;
         // Only use it if the number is at begin or preceeded by a delimiter.
-        uint j = rskipws(str, 0, stnum);
+        unsigned int j = rskipws(str, 0, stnum);
         int lennum = 0;
         if (j==0  ||  str[j-1]==','  ||  str[j-1]=='['  ||  str[j-1]=='(') {
           lennum = endnum - stnum;
@@ -776,7 +776,7 @@ std::string expandMultString (const std::string& strng)
           // This can be a single instance or a set indicated by () or [].
           // First skip possible whitespace after *.
           i = lskipws (str, i+1, last);
-          uint stval = i;
+          unsigned int stval = i;
           std::string val;
           if (str[i] == '[') {
             // A set in [].
@@ -787,7 +787,7 @@ std::string expandMultString (const std::string& strng)
             i = skipBalanced (str, i, last, ')');
             val = str.substr(stval+1, i-stval-2);
             // Replace ; by , (for backward compatibility).
-            uint stv = 0;
+            unsigned int stv = 0;
             while (stv < val.size()) {
               if (val[stv] == '"'  ||  val[stv] == '\'') {
                 stv = skipQuoted (val, stv);
@@ -845,7 +845,7 @@ std::string expandMultString (const std::string& strng)
   return str;
 }
 
-uint skipQuoted (const std::string& str, uint st)
+unsigned int skipQuoted (const std::string& str, unsigned int st)
 {
   std::string::size_type pos = str.find (str[st], st+1);
   if (pos == std::string::npos)
@@ -854,7 +854,7 @@ uint skipQuoted (const std::string& str, uint st)
   return pos+1;
 }
 
-uint skipBalanced (const std::string& str, uint st, uint end, char endChar)
+unsigned int skipBalanced (const std::string& str, unsigned int st, unsigned int end, char endChar)
 {
   char ch = str[st++];
   int nrp = 1;
@@ -879,8 +879,8 @@ uint skipBalanced (const std::string& str, uint st, uint end, char endChar)
 std::string expandArrayString (const std::string& str)
 {
   // Only do it if enclosed in brackets.
-  uint st  = lskipws (str, 0, str.size());
-  uint end = rskipws (str, st, str.size());
+  unsigned int st  = lskipws (str, 0, str.size());
+  unsigned int end = rskipws (str, st, str.size());
   if (st >= end  ||  str[st] != '['  ||  str[end-1] != ']') {
     return str;
   }

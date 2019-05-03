@@ -100,8 +100,8 @@ namespace DP3 {
       void makeFactors (const casacore::Array<casacore::DComplex>& bufIn,
                         casacore::Array<casacore::DComplex>& bufOut,
                         const casacore::Cube<float>& weightSums,
-                        uint nChanOut,
-                        uint nChanAvg);
+                        unsigned int nChanOut,
+                        unsigned int nChanAvg);
 
       // Do the demixing.
       void handleDemix();
@@ -109,7 +109,7 @@ namespace DP3 {
       // Deproject the sources without a model.
       void deproject (casacore::Array<casacore::DComplex>& factors,
                       std::vector<MultiResultStep*> avgResults,
-                      uint resultIndex);
+                      unsigned int resultIndex);
 
       // Solve gains and subtract sources.
       void demix();
@@ -152,24 +152,24 @@ namespace DP3 {
       std::vector<string>                        itsAllSources;
 //      std::vector<double>                        itsCutOffs;
       bool                                  itsPropagateSolutions;
-      uint                                  itsNDir;
-      uint                                  itsNModel;
-      uint                                  itsNStation;
-      uint                                  itsNBl;
-      uint                                  itsNCorr;
-      uint                                  itsNChanIn;
-      uint                                  itsNTimeIn;
-      uint                                  itsNTimeDemix;
-      uint                                  itsNChanAvgSubtr;
-      uint                                  itsNTimeAvgSubtr;
-      uint                                  itsNChanOutSubtr;
-      uint                                  itsNTimeOutSubtr;
-      uint                                  itsNTimeChunk;
-      uint                                  itsNTimeChunkSubtr;
-      uint                                  itsNChanAvg;
-      uint                                  itsNTimeAvg;
-      uint                                  itsNChanOut;
-      uint                                  itsNTimeOut;
+      unsigned int                                  itsNDir;
+      unsigned int                                  itsNModel;
+      unsigned int                                  itsNStation;
+      unsigned int                                  itsNBl;
+      unsigned int                                  itsNCorr;
+      unsigned int                                  itsNChanIn;
+      unsigned int                                  itsNTimeIn;
+      unsigned int                                  itsNTimeDemix;
+      unsigned int                                  itsNChanAvgSubtr;
+      unsigned int                                  itsNTimeAvgSubtr;
+      unsigned int                                  itsNChanOutSubtr;
+      unsigned int                                  itsNTimeOutSubtr;
+      unsigned int                                  itsNTimeChunk;
+      unsigned int                                  itsNTimeChunkSubtr;
+      unsigned int                                  itsNChanAvg;
+      unsigned int                                  itsNTimeAvg;
+      unsigned int                                  itsNChanOut;
+      unsigned int                                  itsNTimeOut;
       double                                itsTimeIntervalAvg;
 
       //# Accumulator used for computing the demixing weights at the demix
@@ -198,8 +198,8 @@ namespace DP3 {
       casacore::Vector<double>                  itsFreqSubtr;
       std::vector<double>                        itsUnknowns;
       std::vector<double>                        itsPrevSolution;
-      uint                                  itsTimeIndex;
-      uint                                  itsNConverged;
+      unsigned int                                  itsTimeIndex;
+      unsigned int                                  itsNConverged;
       FlagCounter                           itsFlagCounter;
 
       //# Timers.

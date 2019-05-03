@@ -90,9 +90,9 @@ namespace DP3 {
       //
       // The function returns the nesting level.
       // <group>
-      uint putStart (int objectVersion);
-      uint putStart (const std::string& objectType, int objectVersion);
-      uint putStart (const char* objectType, int objectVersion);
+      unsigned int putStart (int objectVersion);
+      unsigned int putStart (const std::string& objectType, int objectVersion);
+      unsigned int putStart (const char* objectType, int objectVersion);
       // </group>
       
       // End putting an object. It returns the object length (including
@@ -177,7 +177,7 @@ namespace DP3 {
       // In this way the next data are aligned properly.
       // It returns the number of filler bytes used.
       // It is only useful for seekable buffers.
-      uint align (uint n);
+      unsigned int align (unsigned int n);
       
       // Get the current stream position.
       // It returns -1 if the stream is not seekable.
@@ -185,7 +185,7 @@ namespace DP3 {
       
     private:
       // Function to do the actual putStart.
-      uint doPutStart (const char* objectType, uint nrc, int objectVersion);
+      unsigned int doPutStart (const char* objectType, unsigned int nrc, int objectVersion);
       
       // Write the buffer, increment itsCurLength, and check
       // if everything is written.
@@ -200,7 +200,7 @@ namespace DP3 {
       
       bool   itsSeekable;
       uint64_t itsCurLength;
-      uint   itsLevel;
+      unsigned int   itsLevel;
       // Object length at each level
       std::stack<uint64_t> itsObjLen;
       // Offset of length at each level
@@ -217,14 +217,14 @@ namespace DP3 {
       itsLevel     = 0;
     }
   
-  inline uint BlobOStream::putStart (int objectVersion)
+  inline unsigned int BlobOStream::putStart (int objectVersion)
     { return doPutStart ("", 0, objectVersion); }
   
-  inline uint BlobOStream::putStart (const std::string& objectType,
+  inline unsigned int BlobOStream::putStart (const std::string& objectType,
 				     int objectVersion)
     { return doPutStart (objectType.data(), objectType.size(), objectVersion); }
   
-  inline uint BlobOStream::putStart (const char* objectType,
+  inline unsigned int BlobOStream::putStart (const char* objectType,
 				     int objectVersion)
     { return doPutStart (objectType, strlen(objectType), objectVersion); }
   

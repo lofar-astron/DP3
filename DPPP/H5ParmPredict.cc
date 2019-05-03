@@ -75,7 +75,7 @@ namespace DP3 {
 
       assert(!itsDirections.empty());
 
-      for (uint i=0; i<itsDirections.size(); ++i) {
+      for (unsigned int i=0; i<itsDirections.size(); ++i) {
         string directionStr = itsDirections[i];
         vector<string> directionVec; // each direction should be like '[patch1,patch2]'
         assert(directionStr.size()>2 && directionStr[0]=='[' &&
@@ -120,7 +120,7 @@ namespace DP3 {
       os << "H5ParmPredict " << itsName << '\n';
       os << "  H5Parm:     " << itsH5ParmName << '\n';
       os << "  directions: " << itsDirections << '\n';
-      for (uint dir=0; dir<itsPredictSteps.size(); ++dir) {
+      for (unsigned int dir=0; dir<itsPredictSteps.size(); ++dir) {
         itsPredictSteps[dir]->show(os);
       }
     }

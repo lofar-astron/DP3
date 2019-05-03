@@ -35,7 +35,7 @@ void ScreenConstraint::initialize(const double* frequencies) {
   itsAntennaPos.resize(_nAntennas);
   itsSourcePos.resize(_nDirections);
   itsPiercePoints.resize(_nAntennas);
-  for(uint i=0;i<itsPiercePoints.size();i++)
+  for(unsigned int i=0;i<itsPiercePoints.size();i++)
     itsPiercePoints[i].resize(_nDirections);
   
   if (itsMode=="station")
@@ -67,7 +67,7 @@ void ScreenConstraint::setAntennaPositions(const std::vector<std::vector<double>
 }
 
 void ScreenConstraint::setDirections(const std::vector<std::pair<double, double> > source_pos) {
-  for(uint i=0;i<source_pos.size();i++){
+  for(unsigned int i=0;i<source_pos.size();i++){
     itsSourcePos[i].resize(2);
     itsSourcePos[i][0]=source_pos[i].first;
     itsSourcePos[i][1]=source_pos[i].second;
@@ -75,10 +75,10 @@ void ScreenConstraint::setDirections(const std::vector<std::pair<double, double>
 }
 
 void ScreenConstraint::initPiercePoints(){
-  for(uint ipos=0;ipos<itsAntennaPos.size();ipos++){
+  for(unsigned int ipos=0;ipos<itsAntennaPos.size();ipos++){
     casacore::MPosition ant(casacore::MVPosition(itsAntennaPos[ipos][0],itsAntennaPos[ipos][1],itsAntennaPos[ipos][2]),
 			casacore::MPosition::ITRF);
-    for(uint isrc=0;isrc<itsSourcePos.size();isrc++){
+    for(unsigned int isrc=0;isrc<itsSourcePos.size();isrc++){
       casacore::MDirection src(casacore::MVDirection(itsSourcePos[isrc][0],itsSourcePos[isrc][1]),
 			   casacore::MDirection::J2000);
 	  
@@ -108,7 +108,7 @@ void ScreenConstraint::setTime(double time){
         loop.Run(0, _nDirections, [&](size_t idir, size_t /*thread*/)
         {
           std::vector<PiercePoint *> tmpV(_nAntennas);
-          for(uint ipos=0;ipos<_nAntennas;ipos++)
+          for(unsigned int ipos=0;ipos<_nAntennas;ipos++)
             tmpV[ipos]=&(itsPiercePoints[ipos][idir]);
           _screenFitters[idir].calculateCorrMatrix(tmpV);
         });
@@ -117,9 +117,9 @@ void ScreenConstraint::setTime(double time){
       {
         std::vector<PiercePoint *> tmpV(_nAntennas*_nDirections);
         size_t i=0;
-        for(uint idir=0;idir<_nDirections;idir++)
+        for(unsigned int idir=0;idir<_nDirections;idir++)
         {
-          for(uint ipos=0;ipos<_nAntennas;ipos++)
+          for(unsigned int ipos=0;ipos<_nAntennas;ipos++)
             tmpV[i++]=&(itsPiercePoints[ipos][idir]);
         }
         _screenFitters[0].calculateCorrMatrix(tmpV);
@@ -129,7 +129,7 @@ void ScreenConstraint::setTime(double time){
         std::vector<PiercePoint *> tmpV(_coreAntennas.size()*itsSourcePos.size());
         for(size_t iant=0; iant<_coreAntennas.size(); iant++){
           size_t ipos=_coreAntennas[iant];
-          for(uint idir=0;idir<_nDirections;idir++)
+          for(unsigned int idir=0;idir<_nDirections;idir++)
             tmpV[iant*_nDirections+idir]=&(itsPiercePoints[ipos][idir]);
         }
         _screenFitters[0].calculateCorrMatrix(tmpV);
@@ -149,8 +149,8 @@ void ScreenConstraint::setTime(double time){
 
 void ScreenConstraint::CalculatePiercepoints(){
   casacore::MEpoch time(casacore::MVEpoch(itsCurrentTime/(24.*3600.))); //convert to MJD
-  for (uint i=0;i<itsPiercePoints.size();i++)
-    for (uint j=0;j<itsPiercePoints[i].size();j++)
+  for (unsigned int i=0;i<itsPiercePoints.size();i++)
+    for (unsigned int j=0;j<itsPiercePoints[i].size();j++)
       itsPiercePoints[i][j].evaluate(time);
 }
 

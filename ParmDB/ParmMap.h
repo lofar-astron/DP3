@@ -60,7 +60,7 @@ namespace BBS {
       { return itsValueSets.empty(); }
 
     // Return the size of the map.
-    uint size() const 
+    unsigned int size() const 
       { return itsValueSets.size(); }
 
     // Get the value belonging to the name.

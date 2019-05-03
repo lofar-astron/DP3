@@ -65,15 +65,15 @@ namespace DP3 {
       void init (const DPInfo& info);
 
       // Increment the count per baseline.
-      void incrBaseline (uint bl)
+      void incrBaseline (unsigned int bl)
         { itsBLCounts[bl]++; }
 
       // Increment the count per channel.
-      void incrChannel (uint chan)
+      void incrChannel (unsigned int chan)
         { itsChanCounts[chan]++; }
 
       // Increment the count per correlation.
-      void incrCorrelation (uint corr)
+      void incrCorrelation (unsigned int corr)
         { itsCorrCounts[corr]++; }
 
       // Add the contents of that to this.

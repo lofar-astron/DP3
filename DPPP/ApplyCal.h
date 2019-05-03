@@ -94,7 +94,7 @@ namespace DP3 {
       static void applyDiag (const casacore::DComplex* gainA,
                              const casacore::DComplex* gainB,
                              casacore::Complex* vis, float* weight, bool* flag,
-                             uint bl, uint chan, bool updateWeights,
+                             unsigned int bl, unsigned int chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
       // Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
@@ -102,14 +102,14 @@ namespace DP3 {
       static void applyScalar(const casacore::DComplex* gainA,
                               const casacore::DComplex* gainB,
                               casacore::Complex* vis, float* weight, bool* flag,
-                              uint bl, uint chan, bool updateWeights,
+                              unsigned int bl, unsigned int chan, bool updateWeights,
                               FlagCounter& flagCounter);
 
       // Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
       static void applyFull (const casacore::DComplex* gainA,
                              const casacore::DComplex* gainB,
                              casacore::Complex* vis, float* weight, bool* flag,
-                             uint bl, uint chan, bool updateWeights,
+                             unsigned int bl, unsigned int chan, bool updateWeights,
                              FlagCounter& flagCounter);
 
       // Do the same as the combination of BBS + python script

@@ -53,7 +53,7 @@ namespace DP3 {
 
       vector<vector<string> >::iterator replaceParmValueIt = replaceParmValues.begin();
       vector<string>::iterator replaceParmIt;
-      uint numSteps = 0;
+      unsigned int numSteps = 0;
       for (replaceParmIt = itsReplaceParms.begin();
            replaceParmIt != itsReplaceParms.end(); ++replaceParmIt) {
         vector<string> parmValues = parset.getStringVector(*replaceParmIt);
@@ -70,9 +70,9 @@ namespace DP3 {
       ParameterSet parsetCopy(parset);
 
       // Create the substeps
-      uint numParameters = itsReplaceParms.size();
-      for (uint i = 0; i<numSteps; ++i) {
-        for (uint j = 0; j<numParameters; ++j) {
+      unsigned int numParameters = itsReplaceParms.size();
+      for (unsigned int i = 0; i<numSteps; ++i) {
+        for (unsigned int j = 0; j<numParameters; ++j) {
           parsetCopy.replace(itsReplaceParms[j], replaceParmValues[j][i]);
         }
         DPStep::ShPtr firstStep = DPRun::makeSteps (parsetCopy, prefix, input);
@@ -100,7 +100,7 @@ namespace DP3 {
       os << "Split " << itsName << '\n'
          << "  replace parameters:" << itsReplaceParms << '\n';
       // Show the steps.
-      for (uint i=0; i<itsSubsteps.size(); ++i) {
+      for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         os << "Split substep "<<(i+1)<<" of "<<itsSubsteps.size()<<endl;
         DPStep::ShPtr step = itsSubsteps[0];
         DPStep::ShPtr lastStep;
@@ -114,7 +114,7 @@ namespace DP3 {
 
     void Split::showTimings (std::ostream& os, double duration) const
     {
-      for (uint i=0; i<itsSubsteps.size(); ++i) {
+      for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         DPStep::ShPtr step = itsSubsteps[i];
         while (step) {
           step->showTimings(os, duration);
@@ -125,7 +125,7 @@ namespace DP3 {
 
     bool Split::process (const DPBuffer& bufin)
     {
-      for (uint i=0; i<itsSubsteps.size(); ++i) {
+      for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         itsSubsteps[i]->process(bufin);
       }
       return false;
@@ -135,7 +135,7 @@ namespace DP3 {
     void Split::finish()
     {
       // Let the next steps finish.
-      for (uint i=0; i<itsSubsteps.size(); ++i) {
+      for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         itsSubsteps[i]->finish();
       }
     }

@@ -76,7 +76,7 @@ namespace BBS {
     void setSolveGrid (const Grid& solveGrid);
 
     // Get the nr of coefficients.
-    uint getCoeffSize (bool useMask=true);
+    unsigned int getCoeffSize (bool useMask=true);
 
     // Get the coefficients for the given location in the solve grid.
     // The solve grid must have been set before.
@@ -91,7 +91,7 @@ namespace BBS {
     // The solve grid must have been set before.
     // It sets the dirty flag, so the data are written when the ParmCache
     // is flushed.
-    void setCoeff (const Location&, const double* values, uint nvalues,
+    void setCoeff (const Location&, const double* values, unsigned int nvalues,
                    const double* errors=0, bool useMask=true);
 
     // Revert to the original coefficients (as on disk).
@@ -105,7 +105,7 @@ namespace BBS {
       { return itsPerturbations; }
 
     // Get a particular perturbation.
-    double getPerturbation (uint index)
+    double getPerturbation (unsigned int index)
       { return itsPerturbations.at (index); }
 
     // Get the result for the given grid. No perturbed values are calculated.

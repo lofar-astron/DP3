@@ -61,12 +61,12 @@ namespace DP3 {
       DPInfo();
 
       // Set the initial info from the input.
-      void init (uint ncorr, uint startChan, uint nchan,
-                 uint ntime, double startTime, double timeInterval,
+      void init (unsigned int ncorr, unsigned int startChan, unsigned int nchan,
+                 unsigned int ntime, double startTime, double timeInterval,
                  const string& msName, const string& antennaSet);
 
       // Set nr of channels.
-      void setNChan (uint nchan)
+      void setNChan (unsigned int nchan)
         { itsNChan = nchan; }
 
       // Set time interval
@@ -111,12 +111,12 @@ namespace DP3 {
       // If chanAvg is higher than the actual nr of channels, it is reset.
       // The same is true for timeAvg.
       // It returns the possibly reset nr of channels to average.
-      uint update (uint chanAvg, uint timeAvg);
+      unsigned int update (unsigned int chanAvg, unsigned int timeAvg);
 
       // Update the info from the given selection parameters.
       // Optionally unused stations are really removed from the antenna lists.
-      void update (uint startChan, uint nchan,
-                   const std::vector<uint>& baselines, bool remove);
+      void update (unsigned int startChan, unsigned int nchan,
+                   const std::vector<unsigned int>& baselines, bool remove);
 
       // Remove unused stations from the antenna lists.
       void removeUnusedAnt();
@@ -132,23 +132,23 @@ namespace DP3 {
         { return itsMSName; }
       const string& antennaSet() const
         { return itsAntennaSet; }
-      uint ncorr() const
+      unsigned int ncorr() const
         { return itsNCorr; }
-      uint nchan() const
+      unsigned int nchan() const
         { return itsNChan; }
-      uint startchan() const
+      unsigned int startchan() const
         { return itsStartChan; }
-      uint origNChan() const
+      unsigned int origNChan() const
         { return itsOrigNChan; }
-      uint nchanAvg() const
+      unsigned int nchanAvg() const
         { return itsChanAvg; }
-      uint nantenna() const
+      unsigned int nantenna() const
         { return itsAntNames.size(); }
-      uint nbaselines() const
+      unsigned int nbaselines() const
         { return itsAnt1.size(); }
-      uint ntime() const
+      unsigned int ntime() const
         { return itsNTime; }
-      uint ntimeAvg() const
+      unsigned int ntimeAvg() const
         { return itsTimeAvg; }
       double startTime() const
         { return itsStartTime; }
@@ -252,10 +252,10 @@ namespace DP3 {
       // Get the lengths of the baselines (in meters).
       const std::vector<double>& getBaselineLengths() const;
       
-      void setNThreads(uint nThreads)
+      void setNThreads(unsigned int nThreads)
       { itsNThreads = nThreads; }
       
-      uint nThreads() const
+      unsigned int nThreads() const
         { return itsNThreads; }
 
       // Convert to a Record.
@@ -293,13 +293,13 @@ namespace DP3 {
       std::string itsDataColName;
       std::string itsWeightColName;
       string itsAntennaSet;
-      uint   itsNCorr;
-      uint   itsStartChan;
-      uint   itsOrigNChan;
-      uint   itsNChan;
-      uint   itsChanAvg;
-      uint   itsNTime;
-      uint   itsTimeAvg;
+      unsigned int   itsNCorr;
+      unsigned int   itsStartChan;
+      unsigned int   itsOrigNChan;
+      unsigned int   itsNChan;
+      unsigned int   itsChanAvg;
+      unsigned int   itsNTime;
+      unsigned int   itsTimeAvg;
       double itsStartTime;
       double itsTimeInterval;
       casacore::MDirection itsPhaseCenter;
@@ -324,7 +324,7 @@ namespace DP3 {
       casacore::Vector<casacore::Int>    itsAnt2;          //# ant2 of all baselines
       mutable std::vector<double>     itsBLength;       //# baseline lengths
       mutable std::vector<int>        itsAutoCorrIndex; //# autocorr index per ant
-      uint itsNThreads;
+      unsigned int itsNThreads;
     };
 
   } //# end namespace

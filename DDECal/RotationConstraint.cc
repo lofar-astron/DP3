@@ -43,8 +43,8 @@ vector<Constraint::Result> RotationConstraint::Apply(
     vector<vector<dcomplex> >& solutions, double,
     std::ostream* /*statStream*/) {
 
-  for (uint ch=0; ch<_nChannelBlocks; ++ch) {
-    for (uint ant=0; ant<_nAntennas; ++ant) {
+  for (unsigned int ch=0; ch<_nChannelBlocks; ++ch) {
+    for (unsigned int ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data= &(solutions[ch][4*ant]);
       double angle = get_rotation(data);

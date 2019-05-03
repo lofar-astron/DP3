@@ -65,7 +65,7 @@ namespace BBS {
     // <br> useRotationMeasure indicates that Q and U have to be calculated
     // using a rotation measure, polarization angle, and polarized fraction.
     SourceInfo (const string& name, Type type, const string& refType="J2000",
-                bool useLogarithmicSI=true, uint spectralIndexNTerms=0,
+                bool useLogarithmicSI=true, unsigned int spectralIndexNTerms=0,
                 double spectralIndexRefFreqHz=0.,
                 bool useRotationMeasure=false);
 
@@ -95,7 +95,7 @@ namespace BBS {
       
     // Get the number of terms in the spectral index function.
     // A value 0 means that the spectral index is not used.
-    uint getNSpectralTerms() const
+    unsigned int getNSpectralTerms() const
       { return itsNSpTerms; }
 
     // Get the reference frequency (in Hz) for the spectral index.

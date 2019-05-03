@@ -99,19 +99,19 @@ void checkCopy (const String& in, const String& out, int nms)
     ASSERT (allEQ(ROScalarColumn<double>(t1,"INTERVAL").getColumn(), 30.));
     ASSERT (allEQ(ROScalarColumn<double>(t1,"EXPOSURE").getColumn(), 30.));
     double time = ROScalarColumn<double>(tin,"TIME")(0);
-    for (uint i=0; i<6; ++i) {
+    for (unsigned int i=0; i<6; ++i) {
       double timec = time - 30;
       ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
       ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
     }
     time = ROScalarColumn<double>(tin,"TIME")(2*6);
-    for (uint i=6; i<18; ++i) {
+    for (unsigned int i=6; i<18; ++i) {
       double timec = time + (i/6)*30.;
       ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
       ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
     }
     time = ROScalarColumn<double>(tin,"TIME")(17*6);
-    for (uint i=18; i<36; ++i) {
+    for (unsigned int i=18; i<36; ++i) {
       double timec = time + (i/6-2)*30.;
       ASSERT (near(ROScalarColumn<double>(t1,"TIME")(i), timec));
       ASSERT (near(ROScalarColumn<double>(t1,"TIME_CENTROID")(i), timec));
@@ -446,7 +446,7 @@ void testAvg4()
     Table t2 ("tNDPPP_tmp.MS5");
     ASSERT (t2.nrow() == 6*10);
     ROScalarColumn<double> timeCol(t2, "TIME");
-    for (uint i=0; i<t2.nrow(); ++i) {
+    for (unsigned int i=0; i<t2.nrow(); ++i) {
       ASSERT (near(timeCol(i), time));
       if (i%6 == 5) time += 60;
     }

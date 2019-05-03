@@ -206,7 +206,7 @@ namespace DP3 {
       //   no selection is done.
       // Note that multiple time chunks are handled jointly, so a
       // MultiResultStep is used to catch the results of all time chunks.
-      for (uint i=0; i<itsNDir-1; ++i) {
+      for (unsigned int i=0; i<itsNDir-1; ++i) {
         // First make the phaseshift and average steps for each demix source.
         // The resultstep gets the result.
         // The phasecenter can be given in a parameter. Its name is the default.
@@ -281,7 +281,7 @@ namespace DP3 {
       // Re-number the station IDs in the selected baselines, removing gaps in
       // the numbering due to unused stations.
       const vector<int> &antennaMap = infoSel.antennaMap();
-      for (uint i=0; i<itsNBl; ++i) {
+      for (unsigned int i=0; i<itsNBl; ++i) {
         itsBaselines.push_back(Baseline(antennaMap[infoSel.getAnt1()[i]],
           antennaMap[infoSel.getAnt2()[i]]));
       }
@@ -289,7 +289,7 @@ namespace DP3 {
       // Prepare conversion from relative to absolute UVW
       casacore::Vector<casacore::Int> newAnt1(itsNBl);
       casacore::Vector<casacore::Int> newAnt2(itsNBl);
-      for (uint i=0; i<itsNBl; ++i) {
+      for (unsigned int i=0; i<itsNBl; ++i) {
         newAnt1[i]=antennaMap[infoSel.getAnt1()[i]];
         newAnt2[i]=antennaMap[infoSel.getAnt2()[i]];
       }
@@ -311,7 +311,7 @@ namespace DP3 {
       itsNTimeDemix      = infoDemix.ntime();
 
       // Let the internal steps update their data.
-      for (uint i=0; i<itsFirstSteps.size(); ++i) {
+      for (unsigned int i=0; i<itsFirstSteps.size(); ++i) {
         itsFirstSteps[i]->setInfo (infoSel);
       }
       itsAvgStepSubtr->setInfo (infoIn);
@@ -378,18 +378,18 @@ namespace DP3 {
       }
       os << "  targetsource:       " << itsTargetSource << std::endl;
       os << "  subtractsources:    " << itsSubtrSources << std::endl;
-      uint inx=0;
-      for (uint i=0; i<itsSubtrSources.size(); ++i ) {
+      unsigned int inx=0;
+      for (unsigned int i=0; i<itsSubtrSources.size(); ++i ) {
         os << "                        "
            << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
       }
       os << "  modelsources:       " << itsModelSources << std::endl;
-      for (uint i=0; i<itsModelSources.size(); ++i ) {
+      for (unsigned int i=0; i<itsModelSources.size(); ++i ) {
         os << "                        "
            << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
       }
       os << "  extrasources:       " << itsExtraSources << std::endl;
-      for (uint i=0; i<itsExtraSources.size(); ++i ) {
+      for (unsigned int i=0; i<itsExtraSources.size(); ++i ) {
         os << "                        "
            << itsPhaseShifts[inx++]->getPhaseCenter() << std::endl;
       }
@@ -573,7 +573,7 @@ namespace DP3 {
         itsAvgResults[i]->clear();
       }
       // Let the next step process the data.
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+      for (unsigned int i=0; i<itsNTimeOutSubtr; ++i) {
         itsTimer.stop();
         DPBuffer* bufptr;
         if (itsSelBL.hasSelection()) {
@@ -602,7 +602,7 @@ namespace DP3 {
     {
       // Merge the selected baselines from the subtract buffer into the
       // full buffer. Do it for all timestamps.
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+      for (unsigned int i=0; i<itsNTimeOutSubtr; ++i) {
         const Array<Complex>& arr = itsAvgResultSubtr->get()[i].getData();
         size_t nr = arr.shape()[0] * arr.shape()[1];
         const Complex* in = arr.data();
@@ -632,8 +632,8 @@ namespace DP3 {
       // source direction to another.
       int dirnr = 0;
       ParallelFor<size_t> loop(getInfo().nThreads());
-      for (uint i1=0; i1<itsNDir-1; ++i1) {
-        for (uint i0=i1+1; i0<itsNDir; ++i0) {
+      for (unsigned int i1=0; i1<itsNDir-1; ++i1) {
+        for (unsigned int i0=i1+1; i0<itsNDir; ++i0) {
           if (i0 == itsNDir-1) {
             // The last direction is the target direction, so no need to
             // combine the factors. Take conj to get shift source to target.
@@ -690,8 +690,8 @@ namespace DP3 {
     void Demixer::makeFactors (const Array<DComplex>& bufIn,
                                Array<DComplex>& bufOut,
                                const Cube<float>& weightSums,
-                               uint nChanOut,
-                               uint nChanAvg)
+                               unsigned int nChanOut,
+                               unsigned int nChanAvg)
     {
       // Nothing to do if only target direction.
       if (itsNDir <= 1) return;
@@ -703,9 +703,9 @@ namespace DP3 {
       int nccdd = ncc*itsNDir*itsNDir;
       int nccin = itsNCorr*itsNChanIn;
       // Fill the factors for each combination of different directions.
-      uint dirnr = 0;
-      for (uint d0=0; d0<itsNDir; ++d0) {
-        for (uint d1=d0+1; d1<itsNDir; ++d1) {
+      unsigned int dirnr = 0;
+      for (unsigned int d0=0; d0<itsNDir; ++d0) {
+        for (unsigned int d1=d0+1; d1<itsNDir; ++d1) {
           // Average factors by summing channels.
           // Note that summing in time is done in addFactors.
           // The sum per output channel is divided by the summed weight.
@@ -717,18 +717,18 @@ namespace DP3 {
             DComplex* ph1 = bufOut.data() + k*nccdd + (d0*itsNDir + d1);
             DComplex* ph2 = bufOut.data() + k*nccdd + (d1*itsNDir + d0);
             const float* weightPtr = weightSums.data() + k*ncc;
-            for (uint c0=0; c0<nChanOut; ++c0) {
+            for (unsigned int c0=0; c0<nChanOut; ++c0) {
               // Sum the factors for the input channels to average.
               DComplex sum[4];
               // In theory the last output channel could consist of fewer
               // input channels, so take care of that.
-              uint nch = std::min(nChanAvg, itsNChanIn-c0*nChanAvg);
-              for (uint c1=0; c1<nch; ++c1) {
-                for (uint j=0; j<itsNCorr; ++j) {
+              unsigned int nch = std::min(nChanAvg, itsNChanIn-c0*nChanAvg);
+              for (unsigned int c1=0; c1<nch; ++c1) {
+                for (unsigned int j=0; j<itsNCorr; ++j) {
                   sum[j] += *phin++;
                 }
               }
-              for (uint j=0; j<itsNCorr; ++j) {
+              for (unsigned int j=0; j<itsNCorr; ++j) {
                 *ph1 = sum[j] / double(*weightPtr++);
                 *ph2 = conj(*ph1);
                 ph1 += itsNDir*itsNDir;
@@ -745,11 +745,11 @@ namespace DP3 {
 
     void Demixer::deproject (Array<DComplex>& factors,
                              vector<MultiResultStep*> avgResults,
-                             uint resultIndex)
+                             unsigned int resultIndex)
     {
       // Sources without a model have to be deprojected.
       // Optionally no deprojection of target direction.
-      uint nrDeproject = itsNDir - itsNModel;
+      unsigned int nrDeproject = itsNDir - itsNModel;
       if (itsIgnoreTarget) {
         nrDeproject--;
       }
@@ -757,7 +757,7 @@ namespace DP3 {
       if (itsNDir <= 1  ||  nrDeproject == 0) return;
       // Get pointers to the data for the various directions.
       vector<Complex*> resultPtr(itsNDir);
-      for (uint j=0; j<itsNDir; ++j) {
+      for (unsigned int j=0; j<itsNDir; ++j) {
         resultPtr[j] = avgResults[j]->get()[resultIndex].getData().data();
       }
       // The projection matrix is given by
@@ -815,13 +815,13 @@ namespace DP3 {
           out = product(p, ma);
           // Multiply the averaged data point with P.
           std::fill (vec.begin(), vec.end(), DComplex());
-          for (uint j=0; j<itsNDir; ++j) {
-            for (uint k=0; k<itsNDir; ++k) {
+          for (unsigned int j=0; j<itsNDir; ++j) {
+            for (unsigned int k=0; k<itsNDir; ++k) {
               vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
             }
           }
           // Put result back in averaged data for those sources.
-          for (uint j=0; j<itsNDir; ++j) {
+          for (unsigned int j=0; j<itsNDir; ++j) {
             resultPtr[j][i] = vec[j];
           }
         }
@@ -847,7 +847,7 @@ namespace DP3 {
         storage.unknowns.resize(nDirection * nStation * 8);
         storage.uvw.resize(3, nStation);
         storage.model.resize(nDirection);
-        for (uint dir=0;dir<nDirection; ++dir) {
+        for (unsigned int dir=0;dir<nDirection; ++dir) {
           storage.model[dir].resize(4, nChannel, nBaseline);
         }
         storage.model_subtr.resize(4, nChannelSubtr, nBaseline);

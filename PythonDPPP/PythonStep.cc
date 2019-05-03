@@ -294,8 +294,8 @@ namespace DP3 {
     bool PythonStep::processNext (const Record& rec)
     {
       itsTimer.stop();
-      uint nproc = 0;
-      uint narr  = 0;
+      unsigned int nproc = 0;
+      unsigned int narr  = 0;
       if (rec.isDefined("TIME")) {
         itsBufOut.setTime (rec.asDouble("TIME"));
         nproc++;

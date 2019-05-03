@@ -47,12 +47,12 @@ namespace DP3 {
   H5Parm::SolTab::~SolTab() {
   }
 
-  H5Parm::AxisInfo H5Parm::SolTab::getAxis(uint i) const {
+  H5Parm::AxisInfo H5Parm::SolTab::getAxis(unsigned int i) const {
     return _axes[i];
   }
 
   H5Parm::AxisInfo H5Parm::SolTab::getAxis(const string& axisName) const {
-    for (uint i=0; i<_axes.size(); ++i) {
+    for (unsigned int i=0; i<_axes.size(); ++i) {
       if (_axes[i].name == axisName) {
         return _axes[i];
       }
@@ -69,7 +69,7 @@ namespace DP3 {
   }
 
   size_t H5Parm::SolTab::getAxisIndex(const string& axisName) {
-    for (uint i=0; i<_axes.size(); ++i) {
+    for (unsigned int i=0; i<_axes.size(); ++i) {
       if (_axes[i].name == axisName) {
         return i;
       }
@@ -84,7 +84,7 @@ namespace DP3 {
     size_t expectedsize = 1;
     string axesstr = _axes[0].name;
     vector<hsize_t> dims(_axes.size());
-    for (uint i=0; i<_axes.size(); ++i) {
+    for (unsigned int i=0; i<_axes.size(); ++i) {
       dims[i] = _axes[i].size;
       expectedsize *= dims[i];
       if (i>0) {
@@ -189,7 +189,7 @@ namespace DP3 {
     axesattr.read(axesattr.getDataType(), &axescstr);
     vector<string> axesnames = StringUtil::tokenize(axescstr,",");
 
-    uint ndims = axesnames.size();
+    unsigned int ndims = axesnames.size();
 
     // Get number of dimensions and size of all dimensions
     H5::DataSpace ds = val.getSpace();
@@ -197,7 +197,7 @@ namespace DP3 {
     hsize_t dims_out[ndims];
     ds.getSimpleExtentDims(dims_out);
 
-    for (uint i=0; i<axesnames.size(); ++i) {
+    for (unsigned int i=0; i<axesnames.size(); ++i) {
       AxisInfo a(axesnames[i], dims_out[i]);
       _axes.push_back(a);
     }
@@ -216,15 +216,15 @@ namespace DP3 {
               const string& antName,
               const vector<double>& times,
               const vector<double>& freqs,
-              uint pol, uint dir, bool nearest) {
+              unsigned int pol, unsigned int dir, bool nearest) {
     vector<double> res(times.size()*freqs.size());
 
-    uint startTimeSlot = 0;
-    uint ntimeH5 = 1;
+    unsigned int startTimeSlot = 0;
+    unsigned int ntimeH5 = 1;
 
     assert(!freqs.empty());
-    uint startFreq = 0;
-    uint nfreqH5 = 1;
+    unsigned int startFreq = 0;
+    unsigned int nfreqH5 = 1;
 
     vector<double> interpolated(times.size()*freqs.size());
 
@@ -259,9 +259,9 @@ namespace DP3 {
   vector<double> H5Parm::SolTab::getValuesOrWeights(
               const string& valOrWeight,
               const string& antName,
-              uint starttimeslot, uint ntime, uint timestep,
-              uint startfreq, uint nfreq, uint freqstep,
-              uint pol, uint dir) {
+              unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
+              unsigned int startfreq, unsigned int nfreq, unsigned int freqstep,
+              unsigned int pol, unsigned int dir) {
     vector<double> res(ntime*nfreq);
     H5::DataSet val = openDataSet(valOrWeight);
 
@@ -271,7 +271,7 @@ namespace DP3 {
     hsize_t count[_axes.size()];
     hsize_t stride[_axes.size()];
 
-    for (uint i=0; i<_axes.size(); ++i) {
+    for (unsigned int i=0; i<_axes.size(); ++i) {
       stride[i] = 1;
       count[i] = 1;
       memdims[i] = 1;
@@ -323,7 +323,7 @@ namespace DP3 {
 
     // Prepare data
     char antArray[solAntennas.size()][16];
-    for (uint i=0; i<solAntennas.size(); ++i) {
+    for (unsigned int i=0; i<solAntennas.size(); ++i) {
       strncpy(antArray[i], solAntennas[i].c_str(), 16);
     }
 
@@ -345,7 +345,7 @@ namespace DP3 {
     if (metaVals.size()>0) {
       // Prepare data
       char srcArray[metaVals.size()][nChar];
-      for (uint i=0; i<metaVals.size(); ++i) {
+      for (unsigned int i=0; i<metaVals.size(); ++i) {
         strncpy(srcArray[i], metaVals[i].c_str(), nChar);
       }
 

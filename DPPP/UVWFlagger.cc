@@ -80,7 +80,7 @@ namespace DP3 {
 
       os << "UVWFlagger " << itsName << std::endl;
       vector<double> uvm(itsRangeUVm);
-      for (uint i=0; i<uvm.size(); ++i) {
+      for (unsigned int i=0; i<uvm.size(); ++i) {
         if (uvm[i] > 0) {
           uvm[i] = sqrt(uvm[i]);
         }
@@ -149,10 +149,10 @@ namespace DP3 {
       Cube<bool>& flags = itsBuffer.getFlags();
       // Loop over the baselines and flag as needed.
       const IPosition& shape = flags.shape();
-      uint nrcorr = shape[0];
-      uint nrchan = shape[1];
-      uint nrbl = shape[2];
-      uint nr = nrcorr*nrchan;
+      unsigned int nrcorr = shape[0];
+      unsigned int nrchan = shape[1];
+      unsigned int nrbl = shape[2];
+      unsigned int nr = nrcorr*nrchan;
       assert (nrchan == itsRecWavel.size());
       // Input uvw coordinates are only needed if no new phase center is used.
       Matrix<double> uvws;
@@ -162,7 +162,7 @@ namespace DP3 {
       const double* uvwPtr = uvws.data();
       bool* flagPtr = flags.data();
       const bool* origPtr = buf.getFlags().data();
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
           NSTimer::StartStop ssuvwtimer(itsUVWTimer);
@@ -207,7 +207,7 @@ namespace DP3 {
           }
         }
         // Count the flags set newly.
-        for (uint j=0; j<nrchan; ++j) {
+        for (unsigned int j=0; j<nrchan; ++j) {
           if (*flagPtr  &&  !*origPtr) {
             itsFlagCounter.incrBaseline(i);
             itsFlagCounter.incrChannel(j);
@@ -241,13 +241,13 @@ namespace DP3 {
     }
 
     void UVWFlagger::testUVWl (double uvw, const vector<double>& ranges,
-                               bool* flagPtr, uint nrcorr)
+                               bool* flagPtr, unsigned int nrcorr)
     {
       // This loop could be made more efficient if it is guaranteed that
       // itsRecWavel is in strict ascending or descending order.
       // It is expected that the nr of ranges is so small that it is not
       // worth the trouble, but it could be done if ever needed.
-      for (uint j=0; j<itsRecWavel.size(); ++j) {
+      for (unsigned int j=0; j<itsRecWavel.size(); ++j) {
         double uvwl = uvw * itsRecWavel[j];
         for (size_t i=0; i<ranges.size(); i+=2) {
           if (uvwl > ranges[i]  &&  uvwl < ranges[i+1]) {

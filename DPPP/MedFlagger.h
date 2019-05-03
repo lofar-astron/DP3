@@ -103,12 +103,12 @@ namespace DP3 {
       // Flag for the entry at the given index.
       // Use the given time entries for the medians.
       // Process the result in the next step.
-      void flag (uint index, const std::vector<uint>& timeEntries);
+      void flag (unsigned int index, const std::vector<unsigned int>& timeEntries);
 
       // Compute the median factors for given baseline, channel, and
       // correlation.
-      void computeFactors (const std::vector<uint>& timeEntries,
-                           uint bl, int chan, int corr,
+      void computeFactors (const std::vector<unsigned int>& timeEntries,
+                           unsigned int bl, int chan, int corr,
                            int nchan, int ncorr,
                            float& Z1, float& Z2,
                            float* tempBuf,
@@ -125,17 +125,17 @@ namespace DP3 {
       string           itsFreqWindowStr;
       string           itsTimeWindowStr;
       std::vector<float>    itsThresholdArr;  //# threshold per baseline
-      std::vector<uint>     itsFreqWindowArr; //# freq window size per baseline
-      std::vector<uint>     itsTimeWindowArr; //# time window size per baseline
+      std::vector<unsigned int>     itsFreqWindowArr; //# freq window size per baseline
+      std::vector<unsigned int>     itsTimeWindowArr; //# time window size per baseline
       float            itsThreshold;
-      uint             itsFreqWindow;
-      uint             itsTimeWindow;
-      uint             itsNTimes;
-      uint             itsNTimesDone;
-      std::vector<uint>     itsFlagCorr;
+      unsigned int             itsFreqWindow;
+      unsigned int             itsTimeWindow;
+      unsigned int             itsNTimes;
+      unsigned int             itsNTimesDone;
+      std::vector<unsigned int>     itsFlagCorr;
       bool             itsApplyAutoCorr;
       std::vector<int>      itsAutoCorrIndex; //# baseline index of autocorrelations
-      uint             itsNrAutoCorr;
+      unsigned int             itsNrAutoCorr;
       double           itsMinBLength;    //# minimum baseline length
       double           itsMaxBLength;    //# maximum baseline length
       std::vector<double>   itsBLength;       //# length of each baseline

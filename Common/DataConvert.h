@@ -65,21 +65,21 @@ namespace DP3
   // \name Convert the possible native types.
   // These functions can be used in templates.
   // <group>
-  void dataConvert (DataFormat, char* inout, uint nrval);
-  void dataConvert (DataFormat, int8_t* inout, uint nrval);
-  void dataConvert (DataFormat, uint8_t* inout, uint nrval);
-  void dataConvert (DataFormat, int16_t* inout, uint nrval);
-  void dataConvert (DataFormat, uint16_t* inout, uint nrval);
-  void dataConvert (DataFormat, int32_t* inout, uint nrval);
-  void dataConvert (DataFormat, uint32_t* inout, uint nrval);
-  void dataConvert (DataFormat, int64_t* inout, uint nrval);
-  void dataConvert (DataFormat, uint64_t* inout, uint nrval);
-  void dataConvert (DataFormat, float* inout, uint nrval);
-  void dataConvert (DataFormat, double* inout, uint nrval);
+  void dataConvert (DataFormat, char* inout, unsigned int nrval);
+  void dataConvert (DataFormat, int8_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, uint8_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, int16_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, uint16_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, int32_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, uint32_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, int64_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, uint64_t* inout, unsigned int nrval);
+  void dataConvert (DataFormat, float* inout, unsigned int nrval);
+  void dataConvert (DataFormat, double* inout, unsigned int nrval);
   template<class T> void dataConvert (DataFormat, std::complex<T>* inout,
-				      uint nrval);
-  LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<float>* inout, uint nrval);
-  LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<double>* inout, uint nrval);
+				      unsigned int nrval);
+  LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<float>* inout, unsigned int nrval);
+  LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<double>* inout, unsigned int nrval);
   // </group>
 
   // \name Convert char, int8, or uint8.
@@ -96,8 +96,8 @@ namespace DP3
   uint16_t dataConvert (DataFormat, uint16_t in);
   void dataConvert16 (DataFormat, void* out, const void* in);
   void dataConvert16 (DataFormat, void* inout);
-  void dataConvert16 (DataFormat, void* out, const void* in, uint nrval);
-  void dataConvert16 (DataFormat, void* inout, uint nrval);
+  void dataConvert16 (DataFormat, void* out, const void* in, unsigned int nrval);
+  void dataConvert16 (DataFormat, void* inout, unsigned int nrval);
   // </group>
 
   // \name Convert 32 bit integers.
@@ -106,8 +106,8 @@ namespace DP3
   uint32_t dataConvert (DataFormat, uint32_t in);
   void dataConvert32 (DataFormat, void* out, const void* in);
   void dataConvert32 (DataFormat, void* inout);
-  void dataConvert32 (DataFormat, void* out, const void* in, uint nrval);
-  void dataConvert32 (DataFormat, void* inout, uint nrval);
+  void dataConvert32 (DataFormat, void* out, const void* in, unsigned int nrval);
+  void dataConvert32 (DataFormat, void* inout, unsigned int nrval);
   // </group>
 
   // \name Convert 64 bit integers.
@@ -116,24 +116,24 @@ namespace DP3
   uint64_t dataConvert (DataFormat, uint64_t in);
   void dataConvert64 (DataFormat, void* out, const void* in);
   void dataConvert64 (DataFormat, void* inout);
-  void dataConvert64 (DataFormat, void* out, const void* in, uint nrval);
-  void dataConvert64 (DataFormat, void* inout, uint nrval);
+  void dataConvert64 (DataFormat, void* out, const void* in, unsigned int nrval);
+  void dataConvert64 (DataFormat, void* inout, unsigned int nrval);
   // </group>
 
   // \name Convert 32 bit floats.
   // <group>
   void dataConvertFloat (DataFormat, void* out, const void* in);
   void dataConvertFloat (DataFormat, void* inout);
-  void dataConvertFloat (DataFormat, void* out, const void* in, uint nrval);
-  void dataConvertFloat (DataFormat, void* inout, uint nrval);
+  void dataConvertFloat (DataFormat, void* out, const void* in, unsigned int nrval);
+  void dataConvertFloat (DataFormat, void* inout, unsigned int nrval);
   // </group>
 
   // \name Convert 64 bit floats.
   // <group>
   void dataConvertDouble (DataFormat, void* out, const void* in);
   void dataConvertDouble (DataFormat, void* inout);
-  void dataConvertDouble (DataFormat, void* out, const void* in, uint nrval);
-  void dataConvertDouble (DataFormat, void* inout, uint nrval);
+  void dataConvertDouble (DataFormat, void* out, const void* in, unsigned int nrval);
+  void dataConvertDouble (DataFormat, void* inout, unsigned int nrval);
   // </group>
 
   // \name Swap bytes in 16 bit values.
@@ -142,8 +142,8 @@ namespace DP3
   uint16_t byteSwap (uint16_t in);
   void byteSwap16 (void* out, const void* in);
   void byteSwap16 (void* inout);
-  void byteSwap16 (void* out, const void* in, uint nrval);
-  void byteSwap16 (void* inout, uint nrval);
+  void byteSwap16 (void* out, const void* in, unsigned int nrval);
+  void byteSwap16 (void* inout, unsigned int nrval);
   // </group>
 
   // \name Swap bytes in 32 bit values.
@@ -152,8 +152,8 @@ namespace DP3
   uint32_t byteSwap (uint32_t in);
   void byteSwap32 (void* out, const void* in);
   void byteSwap32 (void* inout);
-  void byteSwap32 (void* out, const void* in, uint nrval);
-  void byteSwap32 (void* inout, uint nrval);
+  void byteSwap32 (void* out, const void* in, unsigned int nrval);
+  void byteSwap32 (void* inout, unsigned int nrval);
   // </group>
 
   // \name Swap bytes in 64 bit values.
@@ -162,19 +162,19 @@ namespace DP3
   uint64_t byteSwap (uint64_t in);
   void byteSwap64 (void* out, const void* in);
   void byteSwap64 (void* inout);
-  void byteSwap64 (void* out, const void* in, uint nrval);
-  void byteSwap64 (void* inout, uint nrval);
+  void byteSwap64 (void* out, const void* in, unsigned int nrval);
+  void byteSwap64 (void* inout, unsigned int nrval);
   // </group>
 
   // Convert bools to bits.
   // startbit gives to first bit to use in the to buffer.
   // It returns the number of bytes used.
-  uint boolToBit (void* to, const void* from, uint nvalues, uint startbit=0);
+  unsigned int boolToBit (void* to, const void* from, unsigned int nvalues, unsigned int startbit=0);
 
   // Convert bits to bools.
   // startbit gives to first bit to use in the from buffer.
   // It returns the number of bytes used.
-  uint bitToBool (void* to, const void* from, uint nvalues, uint startbit=0);
+  unsigned int bitToBool (void* to, const void* from, unsigned int nvalues, unsigned int startbit=0);
 
   // </group>
 
@@ -184,36 +184,36 @@ namespace DP3
 namespace DP3
 {
   template<class T>
-  inline void dataConvert (DataFormat fmt, std::complex<T>* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, std::complex<T>* inout, unsigned int nrval)
     { dataConvert (fmt, (T*)inout, 2*nrval); }
 
-  inline void dataConvert (DataFormat, char*, uint)
+  inline void dataConvert (DataFormat, char*, unsigned int)
     {}
-  inline void dataConvert (DataFormat, int8_t*, uint)
+  inline void dataConvert (DataFormat, int8_t*, unsigned int)
     {}
-  inline void dataConvert (DataFormat, uint8_t*, uint)
+  inline void dataConvert (DataFormat, uint8_t*, unsigned int)
     {}
-  inline void dataConvert (DataFormat fmt, int16_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, int16_t* inout, unsigned int nrval)
     { dataConvert16 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, uint16_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, uint16_t* inout, unsigned int nrval)
     { dataConvert16 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, int32_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, int32_t* inout, unsigned int nrval)
     { dataConvert32 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, uint32_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, uint32_t* inout, unsigned int nrval)
     { dataConvert32 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, int64_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, int64_t* inout, unsigned int nrval)
     { dataConvert64 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, uint64_t* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, uint64_t* inout, unsigned int nrval)
     { dataConvert64 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, float* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, float* inout, unsigned int nrval)
     { dataConvert32 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, double* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, double* inout, unsigned int nrval)
     { dataConvert64 (fmt, inout, nrval); }
-  inline void dataConvert (DataFormat fmt, std::complex<int16_t>* inout, uint nrval)
+  inline void dataConvert (DataFormat fmt, std::complex<int16_t>* inout, unsigned int nrval)
     { dataConvert16 (fmt, inout, 2*nrval); }
-  LFDC_TMPL_FP inline void dataConvert (DataFormat fmt, std::complex<float>* inout, uint nrval)
+  LFDC_TMPL_FP inline void dataConvert (DataFormat fmt, std::complex<float>* inout, unsigned int nrval)
     { dataConvertFloat (fmt, inout, 2*nrval); }
-  LFDC_TMPL_FP inline void dataConvert (DataFormat fmt, std::complex<double>* inout, uint nrval)
+  LFDC_TMPL_FP inline void dataConvert (DataFormat fmt, std::complex<double>* inout, unsigned int nrval)
     { dataConvertDouble (fmt, inout, 2*nrval); }
 
   inline char dataConvert (DataFormat, char in)
@@ -231,9 +231,9 @@ namespace DP3
     { byteSwap16 (out, in); }
   inline void dataConvert16 (DataFormat, void* inout)
     { byteSwap16 (inout); }
-  inline void dataConvert16 (DataFormat, void* out, const void* in, uint nrval)
+  inline void dataConvert16 (DataFormat, void* out, const void* in, unsigned int nrval)
     { byteSwap16 (out, in, nrval); }
-  inline void dataConvert16 (DataFormat, void* inout, uint nrval)
+  inline void dataConvert16 (DataFormat, void* inout, unsigned int nrval)
     { byteSwap16 (inout, nrval); }
 
   inline int32_t dataConvert (DataFormat, int32_t in)
@@ -244,9 +244,9 @@ namespace DP3
     { byteSwap32 (out, in); }
   inline void dataConvert32 (DataFormat, void* inout)
     { byteSwap32 (inout); }
-  inline void dataConvert32 (DataFormat, void* out, const void* in, uint nrval)
+  inline void dataConvert32 (DataFormat, void* out, const void* in, unsigned int nrval)
     { byteSwap32 (out, in, nrval); }
-  inline void dataConvert32 (DataFormat, void* inout, uint nrval)
+  inline void dataConvert32 (DataFormat, void* inout, unsigned int nrval)
     { byteSwap32 (inout, nrval); }
 
   inline int64_t dataConvert (DataFormat, int64_t in)
@@ -257,27 +257,27 @@ namespace DP3
     { byteSwap64 (out, in); }
   inline void dataConvert64 (DataFormat, void* inout)
     { byteSwap64 (inout); }
-  inline void dataConvert64 (DataFormat, void* out, const void* in, uint nrval)
+  inline void dataConvert64 (DataFormat, void* out, const void* in, unsigned int nrval)
     { byteSwap64 (out, in, nrval); }
-  inline void dataConvert64 (DataFormat, void* inout, uint nrval)
+  inline void dataConvert64 (DataFormat, void* inout, unsigned int nrval)
     { byteSwap64 (inout, nrval); }
 
   inline void dataConvertFloat (DataFormat, void* out, const void* in)
     { byteSwap32 (out, in); }
   inline void dataConvertFloat (DataFormat, void* inout)
     { byteSwap32 (inout); }
-  inline void dataConvertFloat (DataFormat, void* out, const void* in, uint nrval)
+  inline void dataConvertFloat (DataFormat, void* out, const void* in, unsigned int nrval)
     { byteSwap32 (out, in, nrval); }
-  inline void dataConvertFloat (DataFormat, void* inout, uint nrval)
+  inline void dataConvertFloat (DataFormat, void* inout, unsigned int nrval)
     { byteSwap32 (inout, nrval); }
 
   inline void dataConvertDouble (DataFormat, void* out, const void* in)
     { byteSwap64 (out, in); }
   inline void dataConvertDouble (DataFormat, void* inout)
     { byteSwap64 (inout); }
-  inline void dataConvertDouble (DataFormat, void* out, const void* in, uint nrval)
+  inline void dataConvertDouble (DataFormat, void* out, const void* in, unsigned int nrval)
     { byteSwap64 (out, in, nrval); }
-  inline void dataConvertDouble (DataFormat, void* inout, uint nrval)
+  inline void dataConvertDouble (DataFormat, void* inout, unsigned int nrval)
     { byteSwap64 (inout, nrval); }
 
 

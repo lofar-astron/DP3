@@ -84,14 +84,14 @@ namespace DP3 {
       // nchan=0 means until the last channel.
       double result;
       node1.get (rec, result);
-      itsStartChan = uint(result+0.001);
+      itsStartChan = (unsigned int)(result+0.001);
       node2.get (rec, result);
-      uint nrChan = uint(result+0.0001);
-      uint nAllChan = getInfo().nchan();
+      unsigned int nrChan = (unsigned int)(result+0.0001);
+      unsigned int nAllChan = getInfo().nchan();
       if(itsStartChan >= nAllChan)
         throw Exception("startchan " + std::to_string(itsStartChan)
                  + " exceeds nr of available channels (" + std::to_string(nAllChan) + ')');
-      uint maxNrChan = nAllChan - itsStartChan;
+      unsigned int maxNrChan = nAllChan - itsStartChan;
       if (nrChan == 0) {
         nrChan = maxNrChan;
       } else {
@@ -104,7 +104,7 @@ namespace DP3 {
         const Vector<Int>& ant1 = getInfo().getAnt1();
         const Vector<Int>& ant2 = getInfo().getAnt2();
         itsSelBL.reserve (ant1.size());
-        for (uint i=0; i<ant1.size(); ++i) {
+        for (unsigned int i=0; i<ant1.size(); ++i) {
           if (selbl(ant1[i], ant2[i])) {
             itsSelBL.push_back (i);
           }
@@ -195,7 +195,7 @@ namespace DP3 {
         itsBuf.setUVW (buf.getUVW());
         itsBuf.setRowNrs (buf.getRowNrs());
       } else {
-        Vector<uint> rowNrs;
+        Vector<unsigned int> rowNrs;
         if (! buf.getRowNrs().empty()) {
           rowNrs.resize(getInfo().nbaselines());
         }
@@ -205,7 +205,7 @@ namespace DP3 {
         Float*   toWeight = itsBuf.getWeights().data();
         Double*  toUVW    = itsBuf.getUVW().data();
         Bool*    toFrf    = itsBuf.getFullResFlags().data();
-        uint off = data.shape()[0] * first[1];    // offset of first channel
+        unsigned int off = data.shape()[0] * first[1];    // offset of first channel
         const Complex* frData   = data.data()    + off;
         const Bool*    frFlag   = flags.data()   + off;
         const Float*   frWeight = weights.data() + off;
@@ -214,7 +214,7 @@ namespace DP3 {
         int ndto = itsBuf.getData().shape()[0] * itsBuf.getData().shape()[1];
         int nffr = frFlags.shape()[0];
         int nfto = itsBuf.getFullResFlags().shape()[0];
-        for (uint i=0; i<itsSelBL.size(); ++i) {
+        for (unsigned int i=0; i<itsSelBL.size(); ++i) {
           if (!buf.getRowNrs().empty()) {
             rowNrs[i] = buf.getRowNrs()[itsSelBL[i]];
           }
@@ -332,7 +332,7 @@ namespace DP3 {
       // Renumber the rest.
       ScalarColumn<Int> antCol(subTab, colName);
       Vector<Int> antIds = antCol.getColumn();
-      for (uint i=0; i<antIds.size(); ++i) {
+      for (unsigned int i=0; i<antIds.size(); ++i) {
         Int newId = antMap[antIds[i]];
         assert (newId >= 0);
         antIds[i] = newId;

@@ -96,10 +96,10 @@ namespace BBS {
 
     // Get the value shape.
     // <group>
-    uint nx() const
-      { return static_cast<uint>(itsValues.shape()[0]); }
-    uint ny() const
-      { return static_cast<uint>(itsValues.shape()[1]); }
+    unsigned int nx() const
+      { return static_cast<unsigned int>(itsValues.shape()[0]); }
+    unsigned int ny() const
+      { return static_cast<unsigned int>(itsValues.shape()[1]); }
     // </group>
 
     // Get the values.
@@ -231,7 +231,7 @@ namespace BBS {
       { return itsDomainGrid; }
 
     // Get the nr of ParmValues.
-    uint size() const
+    unsigned int size() const
       { return itsValues.size(); }
 
     // No ParmValues?

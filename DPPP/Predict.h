@@ -123,7 +123,7 @@ namespace DP3 {
       void addBeamToData (Patch::ConstPtr patch, double time,
                                    const LOFAR::StationResponse::vector3r_t& refdir,
                                    const LOFAR::StationResponse::vector3r_t& tiledir,
-                                   uint thread, uint nSamples, dcomplex* data0);
+                                   unsigned int thread, unsigned int nSamples, dcomplex* data0);
 #endif
       //# Data members.
       DPInput*         itsInput;
@@ -145,7 +145,7 @@ namespace DP3 {
       DPBuffer         itsTempBuffer;
       ResultStep*      itsResultStep; // For catching results from ApplyCal
 
-      uint             itsDebugLevel;
+      unsigned int             itsDebugLevel;
 
       std::vector<Baseline> itsBaselines;
 

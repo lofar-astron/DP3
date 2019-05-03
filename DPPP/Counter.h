@@ -72,7 +72,7 @@ namespace DP3 {
       //# Data members.
       string      itsName;
       bool        itsFlagData;
-      uint        itsCount;
+      unsigned int        itsCount;
       FlagCounter itsFlagCounter;
     };
 

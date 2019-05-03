@@ -198,7 +198,7 @@ namespace DP3 {
       itsMeasFrames.resize(nThreads);
 #endif
 
-      for (uint thread=0; thread<nThreads; ++thread) {
+      for (unsigned int thread=0; thread<nThreads; ++thread) {
         if (itsStokesIOnly) {
           itsModelVis[thread].resize(1,nCh,nBl);
         } else {
@@ -342,7 +342,7 @@ namespace DP3 {
         std::unique_lock<std::mutex> lock;
         if(itsMeasuresMutex != nullptr)
           lock = std::unique_lock<std::mutex>(*itsMeasuresMutex);
-        for (uint thread=0; thread!=getInfo().nThreads(); ++thread) {
+        for (unsigned int thread=0; thread!=getInfo().nThreads(); ++thread) {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
           //Do a conversion on all threads
@@ -420,9 +420,9 @@ namespace DP3 {
       // Add all thread model data to one buffer
       itsTempBuffer.getData()=Complex();
       Complex* tdata=itsTempBuffer.getData().data();
-      for (uint thread=0; thread<pool->NThreads(); ++thread) {
+      for (unsigned int thread=0; thread<pool->NThreads(); ++thread) {
         if (itsStokesIOnly) {
-          for (uint i=0,j=0;i<nSamples;i+=nCr,j++) {
+          for (unsigned int i=0,j=0;i<nSamples;i+=nCr,j++) {
             tdata[i] += itsModelVis[thread].data()[j];
             tdata[i+nCr-1] += itsModelVis[thread].data()[j];
           }
@@ -479,7 +479,7 @@ namespace DP3 {
     void Predict::addBeamToData (Patch::ConstPtr patch, double time,
                                  const LOFAR::StationResponse::vector3r_t& refdir,
                                  const LOFAR::StationResponse::vector3r_t& tiledir,
-                                 uint thread, uint nSamples, dcomplex* data0) {
+                                 unsigned int thread, unsigned int nSamples, dcomplex* data0) {
       //Apply beam for a patch, add result to itsModelVis
       MDirection dir (MVDirection(patch->position()[0],
                                   patch->position()[1]),

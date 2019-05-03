@@ -45,7 +45,7 @@ using namespace std;
 class TestInput: public DPInput
 {
 public:
-  TestInput(uint ntime, uint nchan)
+  TestInput(unsigned int ntime, unsigned int nchan)
     : itsCount(0), itsNTime(ntime), itsNChan(nchan), itsNBl(9), itsNCorr(4),
       itsTimeInterval(5.), itsFirstTime(4472025740.0)
   {
@@ -89,7 +89,7 @@ public:
     // Define the frequencies.
     Vector<double> chanWidth(nchan, 100.e6);
     Vector<double> chanFreqs(nchan);
-    for (uint ch=0; ch<nchan; ++ch) {
+    for (unsigned int ch=0; ch<nchan; ++ch) {
       double freq = 100.e6 + ch*10.e6;
       if (ch>2) {
         // Make frequencies unevenly spaced
@@ -203,10 +203,10 @@ private:
 
     if (itsDoTest) {
       //cout<<endl;
-      for (uint bl=0; bl<info().nbaselines(); ++bl) {
+      for (unsigned int bl=0; bl<info().nbaselines(); ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
-            uint ant1 = info().getAnt1()[bl];
-            uint ant2 = info().getAnt2()[bl];
+            unsigned int ant1 = info().getAnt1()[bl];
+            unsigned int ant2 = info().getAnt2()[bl];
             // Square root of autocorrelation for first antenna
             complex<float> val = sqrt(buf.getData().data()[bl*itsNCorr*itsNChan + chan*itsNCorr]);
 
@@ -306,7 +306,7 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   vector<string> antNames;
   vector<vector<double> > antPositions;
   vector<double> oneAntPos(3, 42.);
-  for (uint i=0; i<3; ++i) {
+  for (unsigned int i=0; i<3; ++i) {
     stringstream antNameStr;
     antNameStr<<"ant"<<(i+1);
     antNames.push_back(antNameStr.str());
@@ -330,13 +330,13 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   soltab.setFreqs(freqs);
   soltab.setAntennas(antNames);
 
-  uint ntimes = max(times.size(), 1);
-  uint nfreqs = max(freqs.size(), 1);
+  unsigned int ntimes = max(times.size(), 1);
+  unsigned int nfreqs = max(freqs.size(), 1);
   vector<double> values(ntimes*nfreqs*3);
   vector<double> weights(ntimes*nfreqs*3);
-  for (uint ant=0; ant<3; ++ant) {
-    for (uint t=0; t<ntimes; ++t) {
-      for (uint f=0; f<nfreqs; ++f) {
+  for (unsigned int ant=0; ant<3; ++ant) {
+    for (unsigned int t=0; t<ntimes; ++t) {
+      for (unsigned int f=0; f<nfreqs; ++f) {
         values[ant*ntimes*nfreqs+t*nfreqs + f] = 1./(100.*(t%100)+(1+f));
         weights[ant*ntimes*nfreqs+t*nfreqs + f] = 1.;
         if (ant==1 && t==2 && f==1) {

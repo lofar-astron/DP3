@@ -106,7 +106,7 @@ namespace DP3 {
       Matrix<bool> sel = apply(info);
       Vector<bool> vec;
       vec.resize (info.nbaselines());
-      for (uint i=0; i<info.nbaselines(); ++i) {
+      for (unsigned int i=0; i<info.nbaselines(); ++i) {
         vec[i] = sel(info.getAnt1()[i], info.getAnt2()[i]);
       }
       return vec;
@@ -179,18 +179,18 @@ namespace DP3 {
                       + " means two antennae, but is somewhat ambigious; "
                       + "it's more clear to use [[ant1],[ant2]]");
       }
-      for (uint i=0; i<pairs.size(); ++i) {
+      for (unsigned int i=0; i<pairs.size(); ++i) {
         vector<string> bl = pairs[i].getStringVector();
         if (bl.size() == 1) {
           // Turn the given antenna name pattern into a regex.
           Regex regex(Regex::fromPattern (bl[0]));
           int nmatch = 0;
           // Loop through all antenna names and set matrix for matching ones.
-          for (uint i2=0; i2<antNames.size(); ++i2) {
+          for (unsigned int i2=0; i2<antNames.size(); ++i2) {
             if (casacore::String(antNames[i2]).matches (regex)) {
               nmatch++;
               // Antenna matches, so set all corresponding flags.
-              for (uint j=0; j<antNames.size(); ++j) {
+              for (unsigned int j=0; j<antNames.size(); ++j) {
                 sel(i2,j) = true;
                 sel(j,i2) = true;
               }
@@ -209,10 +209,10 @@ namespace DP3 {
           Regex regex2(Regex::fromPattern (bl[1]));
           int nmatch = 0;
           // Loop through all antenna names and set matrix for matching ones.
-          for (uint i2=0; i2<antNames.size(); ++i2) {
+          for (unsigned int i2=0; i2<antNames.size(); ++i2) {
             if (casacore::String(antNames[i2]).matches (regex2)) {
               // Antenna2 matches, now try Antenna1.
-              for (uint i1=0; i1<antNames.size(); ++i1) {
+              for (unsigned int i1=0; i1<antNames.size(); ++i1) {
                 if (casacore::String(antNames[i1]).matches (regex1)) {
                   nmatch++;
                   sel(i1,i2) = true;
@@ -253,10 +253,10 @@ namespace DP3 {
       const vector<double>& blength = info.getBaselineLengths();
       const Vector<Int>& ant1 = info.getAnt1();
       const Vector<Int>& ant2 = info.getAnt2();
-      for (uint i=0; i<ant1.size(); ++i) {
+      for (unsigned int i=0; i<ant1.size(); ++i) {
         // Clear selection if no range matches.
         bool match = false;
-        for (uint j=0; j<itsRangeBL.size(); j+=2) {
+        for (unsigned int j=0; j<itsRangeBL.size(); j+=2) {
           if (blength[i] >= itsRangeBL[j]  &&  blength[i] <= itsRangeBL[j+1]) {
             match = true;
             break;

@@ -59,14 +59,14 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
 {
   if (statStream) *statStream<<"["; // begin channel
   double angle0;
-  for (uint ch=0; ch<_nChannelBlocks; ++ch) {
+  for (unsigned int ch=0; ch<_nChannelBlocks; ++ch) {
     if (statStream) *statStream<<"["; // begin antenna
 
     // First iterate over all antennas to find mean amplitudes, needed for
     // maxratio constraint below
     double amean = 0.0;
     double bmean = 0.0;
-    for (uint ant=0; ant<_nAntennas; ++ant) {
+    for (unsigned int ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
 
@@ -94,7 +94,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
 
     // Now iterate again to do the actual constraining
     bool diverged = false;
-    for (uint ant=0; ant<_nAntennas; ++ant) {
+    for (unsigned int ant=0; ant<_nAntennas; ++ant) {
       // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
 
@@ -165,7 +165,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     // If the maxratio constraint above was enforced for any antenna, set weights of
     // all antennas to a negative value for flagging later if desired
     if (diverged) {
-      for (uint ant=0; ant<_nAntennas; ++ant) {
+      for (unsigned int ant=0; ant<_nAntennas; ++ant) {
         _res[0].weights[ant*_nChannelBlocks + ch] = -1.0;
         _res[1].weights[ant*_nChannelBlocks*2 + 2*ch    ] = -1.0;
         _res[1].weights[ant*_nChannelBlocks*2 + 2*ch + 1] = -1.0;

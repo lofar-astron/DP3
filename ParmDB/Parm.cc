@@ -50,7 +50,7 @@ namespace BBS {
     calcPerturbations();
   }
   
-  uint Parm::getCoeffSize (bool useMask)
+  unsigned int Parm::getCoeffSize (bool useMask)
   {
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     // For a scalar array, only one coeff is used.
@@ -73,7 +73,7 @@ namespace BBS {
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     // Find the location in the ParmValueSet grid given the location in
     // the solve grid.
-    uint cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
+    unsigned int cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
                                            where, itsSolveGrid,
                                            pvset.getGrid());
     const ParmValue& pv = pvset.getParmValue(cellId);
@@ -93,7 +93,7 @@ namespace BBS {
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     // Find the location in the ParmValueSet grid given the location in
     // the solve grid.
-    uint cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
+    unsigned int cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
                                            where, itsSolveGrid,
                                            pvset.getGrid());
     const ParmValue& pv = pvset.getParmValue(cellId);
@@ -123,7 +123,7 @@ namespace BBS {
     solvCoeff.reserve (values.size());
     const double* valp = values.data();
     const bool* maskp  = mask.data();
-    for (uint i=0; i<values.size(); ++i) {
+    for (unsigned int i=0; i<values.size(); ++i) {
       if (maskp[i]) {
         solvCoeff.push_back (valp[i]);
       }
@@ -132,14 +132,14 @@ namespace BBS {
   }
 
   void Parm::setCoeff (const Location& where,
-                       const double* newValues, uint nvalues,
+                       const double* newValues, unsigned int nvalues,
                        const double* newErrors, bool useMask)
   {
     assert (! itsSolveGrid.isDefault());
     ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     pvset.setDirty();
     const Array<bool>& mask = pvset.getSolvableMask();
-    uint cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
+    unsigned int cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
                                            where, itsSolveGrid,
                                            pvset.getGrid());
     bool cell0changed = (cellId==0);
@@ -171,8 +171,8 @@ namespace BBS {
           errp = errors.data();
         }
         const bool* maskp  = mask.data();
-        uint inx=0;
-        for (uint i=0; i<values.size(); ++i) {
+        unsigned int inx=0;
+        for (unsigned int i=0; i<values.size(); ++i) {
           if (maskp[i]) {
             valp[i] = newValues[inx];
             if (newErrors) {
@@ -357,7 +357,7 @@ namespace BBS {
     // Now calculate all perturbed values if needed.
     if (! perturbations.empty()) {
       vector<double> pertCoeff(perturbations.size(), 0.);
-      for (uint ip=0; ip<perturbations.size(); ++ip) {
+      for (unsigned int ip=0; ip<perturbations.size(); ++ip) {
         pertCoeff[ip] = perturbations[ip];
         Array<double>& result = resultVec[ip+1];
         // Size the array as needed and get an iterator for it.
@@ -469,10 +469,10 @@ namespace BBS {
     const vector<int>& bordersx = mapx.getBorders();
     const vector<int>& bordersy = mapy.getBorders();
     int sty = 0;
-    for (uint iy=0; iy<bordersy.size(); ++iy) {
+    for (unsigned int iy=0; iy<bordersy.size(); ++iy) {
       int inxy = nrsx * mapy[sty];
       int stx = 0;
-      for (uint ix=0; ix<bordersx.size(); ++ix) {
+      for (unsigned int ix=0; ix<bordersx.size(); ++ix) {
         const ParmValue& pval = pvset.getParmValue (mapx[stx] + inxy);
         fillArrayPV (resData, nrx, stx, sty, bordersx[ix], bordersy[iy],
                      pval.getValues().data(), pval, predictGrid);
