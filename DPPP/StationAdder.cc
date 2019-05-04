@@ -74,7 +74,7 @@ namespace DP3 {
         int n=0;
         if (iter->size() > 1  &&  ((*iter)[0] == '!'  ||  (*iter)[0] == '^')) {
           Regex regex(Regex::fromPattern(iter->substr(1)));
-          for (uint i=0; i<antennaNames.size(); ++i) {
+          for (unsigned int i=0; i<antennaNames.size(); ++i) {
             if (antennaNames[i].matches (regex)) {
               used[i] = false;
               n++;
@@ -82,7 +82,7 @@ namespace DP3 {
           }
         } else {
           Regex regex(Regex::fromPattern(*iter));
-          for (uint i=0; i<antennaNames.size(); ++i) {
+          for (unsigned int i=0; i<antennaNames.size(); ++i) {
             if (antennaNames[i].matches (regex)) {
               used[i] = true;
               n++;
@@ -96,7 +96,7 @@ namespace DP3 {
       }
       vector<int> parts;
       parts.reserve (12);     // Usually up to 12 stations are used
-      for (uint i=0; i<used.size(); ++i) {
+      for (unsigned int i=0; i<used.size(); ++i) {
         if (used[i]) {
           parts.push_back (i);
         }
@@ -142,7 +142,7 @@ namespace DP3 {
         MVPosition newPosition;
         // Check if the stations exist and not used for other superstations.
         // Add their ITRF positions.
-        for (uint i=0; i<parts.size(); ++i) {
+        for (unsigned int i=0; i<parts.size(); ++i) {
           int inx = parts[i];
           if(newStations[inx] >= 0)
             throw Exception("Station " + antennaNames[inx] +
@@ -159,7 +159,7 @@ namespace DP3 {
         // Set the diameter of the new station by determining the
         // maximum distance to the center.
         double maxdist = 0;
-        for (uint i=0; i<parts.size(); ++i) {
+        for (unsigned int i=0; i<parts.size(); ++i) {
           int inx = parts[i];
           MVPosition mvdiff = newPosition - 
             MPosition::Convert (antennaPos[inx], MPosition::ITRF)().getValue();
@@ -174,12 +174,12 @@ namespace DP3 {
       // Add the new stations to the info's vectors.
       Vector<Int> ant1 (info().getAnt1());
       Vector<Int> ant2 (info().getAnt2());
-      uint nrold = antennaNames.size();
-      uint nrnew = nrold + newNames.size();
+      unsigned int nrold = antennaNames.size();
+      unsigned int nrnew = nrold + newNames.size();
       antennaNames.resize (nrnew, True);
       antennaDiam.resize (nrnew, True);
       antennaPos.reserve  (nrnew);
-      for (uint i=0; i<newNames.size(); ++i) {
+      for (unsigned int i=0; i<newNames.size(); ++i) {
         antennaNames[nrold+i] = newNames[i];
         antennaDiam[nrold+i]  = newDiam[i];
         antennaPos.push_back (newPoss[i]);
@@ -197,13 +197,13 @@ namespace DP3 {
       // to be added for the new baseline. If rownr<0, the conjugate has to be
       // added (1 is added to rownr, otherwise 0 is ambiguous).
       // Note that a rownr can be the rownr of a new baseline.
-      for (uint j=0; j<itsParts.size(); ++j) {
+      for (unsigned int j=0; j<itsParts.size(); ++j) {
         std::fill (newbl.begin(), newbl.end(), -1);
         vector<int> newAnt1;
         vector<int> newAnt2;
         // Loop through all baselines and find out if a baseline should
         // be used for a superstation.
-        for (uint i=0; i<ant1.size(); ++i) {
+        for (unsigned int i=0; i<ant1.size(); ++i) {
           bool havea1 = linearSearch1 (itsParts[j], ant1[i]) >= 0;
           bool havea2 = linearSearch1 (itsParts[j], ant2[i]) >= 0;
           int  ant    = nrold+j;
@@ -240,10 +240,10 @@ namespace DP3 {
         if (newAnt1.empty()) {
           DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
         } else {
-          uint oldsz = ant1.size();
+          unsigned int oldsz = ant1.size();
           ant1.resize (oldsz + newAnt1.size(), True);
           ant2.resize (oldsz + newAnt1.size(), True);
-          for (uint i=0; i<newAnt1.size(); ++i) {
+          for (unsigned int i=0; i<newAnt1.size(); ++i) {
             ant1[oldsz+i] = newAnt1[i];
             ant2[oldsz+i] = newAnt2[i];
           }
@@ -269,10 +269,10 @@ namespace DP3 {
       os << "StationAdder " << itsName << std::endl;
       os << "  stations:       " << itsStatRec << std::endl;
       // Show the stations used for the new stations.
-      uint nold = getInfo().antennaNames().size() - itsParts.size();
-      for (uint i=0; i<itsParts.size(); ++i) {
+      unsigned int nold = getInfo().antennaNames().size() - itsParts.size();
+      for (unsigned int i=0; i<itsParts.size(); ++i) {
         os << "      " << getInfo().antennaNames()[nold+i] << ": [";
-        for (uint j=0; j<itsParts[i].size(); ++j) {
+        for (unsigned int j=0; j<itsParts[i].size(); ++j) {
           if (j > 0) os << ", ";
           os << getInfo().antennaNames()[itsParts[i][j]];
         }
@@ -323,38 +323,38 @@ namespace DP3 {
       std::copy (frFlags.data(), frFlags.data() + frFlags.size(),
                  itsBuf.getFullResFlags().data());
       // Now calculate the data pointers of the new baselines.
-      uint nrOldBL = data.shape()[2];
-      uint nrcc    = data.shape()[0] * data.shape()[1];
-      uint nrfr    = frFlags.shape()[0] * frFlags.shape()[1];
+      unsigned int nrOldBL = data.shape()[2];
+      unsigned int nrcc    = data.shape()[0] * data.shape()[1];
+      unsigned int nrfr    = frFlags.shape()[0] * frFlags.shape()[1];
       Complex* dataPtr = itsBuf.getData().data() + data.size();
       Bool*    flagPtr = itsBuf.getFlags().data() + data.size();
       Float*   wghtPtr = itsBuf.getWeights().data() + data.size();
       Double*  uvwPtr  = itsBuf.getUVW().data() + uvws.size();
       Bool*    frfPtr  = itsBuf.getFullResFlags().data() + frFlags.size();
-      vector<uint> npoints(nrcc);
+      vector<unsigned int> npoints(nrcc);
       vector<Complex> dataFlg(nrcc);
       vector<Float>  wghtFlg(nrcc);
       // Loop over all new baselines.
-      for (uint i=0; i<itsBufRows.size(); ++i) {
+      for (unsigned int i=0; i<itsBufRows.size(); ++i) {
         // Clear the data for the new baseline.
-        for (uint k=0; k<nrcc; ++k) {
+        for (unsigned int k=0; k<nrcc; ++k) {
           dataPtr[k] = Complex();
           wghtPtr[k] = 0.;
           npoints[k] = 0;
           dataFlg[k] = Complex();
           wghtFlg[k] = 0.;
         }
-        for (uint k=0; k<nrfr; ++k) {
+        for (unsigned int k=0; k<nrfr; ++k) {
           frfPtr[k] = true;
         }
 
-        for (uint k=0; k<3; ++k) {
+        for (unsigned int k=0; k<3; ++k) {
           uvwPtr[k] = 0.;
         }
         double uvwWghtSum = 0.;
 
         // Sum the baselines forming the new baselines.
-        for (uint j=0; j<itsBufRows[i].size(); ++j) {
+        for (unsigned int j=0; j<itsBufRows[i].size(); ++j) {
           // Get the baseline number to use.
           // A negative one means using the conjugate.
           int blnr = itsBufRows[i][j];
@@ -381,7 +381,7 @@ namespace DP3 {
           // if too many points are flagged.
           if (useConj) {
             if (itsUseWeight) {
-              for (uint k=0; k<nrcc; ++k) {
+              for (unsigned int k=0; k<nrcc; ++k) {
                 if (inFlagPtr[k]) {
                   dataFlg[k] += conj(inDataPtr[k]) * inWghtPtr[k];
                   wghtFlg[k] += inWghtPtr[k];
@@ -396,7 +396,7 @@ namespace DP3 {
                 }
               }
             } else {
-              for (uint k=0; k<nrcc; ++k) {
+              for (unsigned int k=0; k<nrcc; ++k) {
                 if (inFlagPtr[k]) {
                   dataFlg[k] += conj(inDataPtr[k]);
                   wghtFlg[k] += 1.;
@@ -413,7 +413,7 @@ namespace DP3 {
             }
           } else {
             if (itsUseWeight) {
-              for (uint k=0; k<nrcc; ++k) {
+              for (unsigned int k=0; k<nrcc; ++k) {
                 if (inFlagPtr[k]) {
                   dataFlg[k] += inDataPtr[k] * inWghtPtr[k];
                   wghtFlg[k] += inWghtPtr[k];
@@ -428,7 +428,7 @@ namespace DP3 {
                 }
               }
             } else {
-              for (uint k=0; k<nrcc; ++k) {
+              for (unsigned int k=0; k<nrcc; ++k) {
                 if (inFlagPtr[k]) {
                   dataFlg[k] += inDataPtr[k];
                   wghtFlg[k] += 1.;
@@ -446,13 +446,13 @@ namespace DP3 {
           }
           // It is a bit hard to say what to do with FULL_RES_FLAGS.
           // Set it to true (=flagged) if the flag of all baselines is true.
-          for (uint k=0; k<nrfr; ++k) {
+          for (unsigned int k=0; k<nrfr; ++k) {
             frfPtr[k] = frfPtr[k] && inFrfPtr[k];
           }
         }
         // Set the resulting flags. Average if needed.
         // Set flag if too few unflagged data points; use flagged data too.
-        for (uint k=0; k<nrcc; ++k) {
+        for (unsigned int k=0; k<nrcc; ++k) {
           if (wghtPtr[k] == 0  ||  npoints[k] < itsMinNPoint) {
             flagPtr[k] = true;
             dataPtr[k] += dataFlg[k];
@@ -471,7 +471,7 @@ namespace DP3 {
             uvwPtr[ui] /= uvwWghtSum;
           }
         } else {
-          uint blnr = nrOldBL + i;
+          unsigned int blnr = nrOldBL + i;
           Vector<Double> uvws = itsUVWCalc.getUVW (getInfo().getAnt1()[blnr],
                                                    getInfo().getAnt2()[blnr],
                                                    buf.getTime());
@@ -524,7 +524,7 @@ namespace DP3 {
       if (antTab.tableDesc().isColumn ("LOFAR_PHASE_REFERENCE")) {
         phrefCol.attach (antTab, "LOFAR_PHASE_REFERENCE");
       }
-      uint origNant = antTab.nrow();
+      unsigned int origNant = antTab.nrow();
       // Take common info from the first row.
       String type, mount, stat;
       if (origNant > 0) {
@@ -536,7 +536,7 @@ namespace DP3 {
       }
       Vector<Double> offset(3, 0.);
       // Put the data for each new antenna.
-      for (uint i=origNant; i<getInfo().antennaNames().size(); ++i) {
+      for (unsigned int i=origNant; i<getInfo().antennaNames().size(); ++i) {
         antTab.addRow();
         nameCol.put   (i, getInfo().antennaNames()[i]);
         typeCol.put   (i, type);
@@ -560,7 +560,7 @@ namespace DP3 {
       Table feedTab (msName + "/FEED", Table::Update);
       TableRow feedRow(feedTab);
       ScalarColumn<Int> antidCol(feedTab, "ANTENNA_ID");
-      for (uint i=origNant; i<getInfo().antennaNames().size(); ++i) {
+      for (unsigned int i=origNant; i<getInfo().antennaNames().size(); ++i) {
         uInt rownr = feedTab.nrow();
         feedTab.addRow();
         feedRow.put (rownr, feedRow.get(0));
@@ -573,7 +573,7 @@ namespace DP3 {
       }
     }
 
-    void StationAdder::updateBeamInfo (const string& msName, uint origNant,
+    void StationAdder::updateBeamInfo (const string& msName, unsigned int origNant,
         Table& antTab)
     {
       // Update the LOFAR_ANTENNA_FIELD table.
@@ -582,8 +582,8 @@ namespace DP3 {
       Table afTab (msName + "/LOFAR_ANTENNA_FIELD", Table::Update);
       TableRow afRow (afTab);
       ScalarColumn<Int> antIdCol(afTab, "ANTENNA_ID");
-      for (uint i=0; i<afTab.nrow(); ++i) {
-        for (uint j=0; j<itsParts.size(); ++j) {
+      for (unsigned int i=0; i<afTab.nrow(); ++i) {
+        for (unsigned int j=0; j<itsParts.size(); ++j) {
           int inx = linearSearch1 (itsParts[j], antIdCol(i));
           if (inx >= 0) {
             int rownr = afTab.nrow();
@@ -608,14 +608,14 @@ namespace DP3 {
       Vector<Int> clockIds (clockCol.getColumn());
       int nextClockId = max(clockIds);
       // Loop over all new antennae.
-      for (uint i=0; i<itsParts.size(); ++i) {
+      for (unsigned int i=0; i<itsParts.size(); ++i) {
         if (itsParts[i].empty()) {
           break;
         }
         // Do all antennae of a new antenna share the same clock?
         // If so, use that clock-id, otherwise make a new one.
         int cid = clockIds[statIds[itsParts[i][0]]];
-        for (uint j=1; j<itsParts[i].size(); ++j) {
+        for (unsigned int j=1; j<itsParts[i].size(); ++j) {
           if (clockIds[statIds[itsParts[i][j]]] != cid) {
             cid = ++nextClockId;
             break;

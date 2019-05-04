@@ -103,7 +103,7 @@ void VdsMaker::getAntNames (MS& ms, vector<string>& antNames)
   ROMSAntennaColumns mssubc(mssub);
   Vector<String> names = mssubc.name().getColumn();
   antNames.resize (names.size());
-  for (uint i=0; i<names.size(); ++i) {
+  for (unsigned int i=0; i<names.size(); ++i) {
     antNames[i] = names[i];
   }
 }
@@ -128,7 +128,7 @@ void VdsMaker::getDataFileInfo (MS& ms, string& name, bool& regular,
   regular = false;
   Record rec = ms.dataManagerInfo();
   // Find the subrecord containing the DATA column.
-  for (uint i=0; i<rec.nfields(); ++i) {
+  for (unsigned int i=0; i<rec.nfields(); ++i) {
     const Record& subrec = rec.subRecord (i);
     Vector<String> colNames (subrec.asArrayString ("COLUMNS"));
     int inx = linearSearch1 (colNames, String("DATA"));
@@ -174,7 +174,7 @@ string VdsMaker::findFileSys (const string& fileName,
   if (nodeName.empty()) {
     nodeName = "localhost";
   }
-  uint i=0;
+  unsigned int i=0;
   // If no hostname is given, try localhost and the real hostname.
   for (int j=0; j<2; ++j) {
     i=0;
@@ -230,7 +230,7 @@ void VdsMaker::create (const string& msName, const string& outName,
   vector<int> nchan;
   vector<Vector<double> > startFreq, endFreq;
   getFreqInfo (ms, nchan, startFreq, endFreq);
-  for (uint i=0; i<nchan.size(); ++i) {
+  for (unsigned int i=0; i<nchan.size(); ++i) {
     vector<double> sfreq, efreq;
     startFreq[i].tovector (sfreq);
     endFreq[i].tovector   (efreq);
@@ -303,7 +303,7 @@ void VdsMaker::create (const string& msName, const string& outName,
       Vector<double> intv = ROScalarColumn<double>(msuniq,"INTERVAL").getColumn();
       vector<double> stimes(tims.size());
       vector<double> etimes(tims.size());
-      for (uint i=0; i<tims.size(); ++i) {
+      for (unsigned int i=0; i<tims.size(); ++i) {
         stimes[i] = tims[i] - intv[i]*0.5;
         etimes[i] = tims[i] + intv[i]*0.5;
       }
@@ -335,7 +335,7 @@ void VdsMaker::combine (const string& gdsName,
   double endTime = 0;
   vector<VdsPartDesc*> vpds;
   vpds.reserve (vdsNames.size());
-  for (uint j=0; j<vdsNames.size(); ++j) {
+  for (unsigned int j=0; j<vdsNames.size(); ++j) {
     VdsPartDesc* vpd = new VdsPartDesc(ParameterSet(vdsNames[j]));
     // Skip a VDS with an empty time (it has no data).
     casacore::Path path(vdsNames[j]);
@@ -348,7 +348,7 @@ void VdsMaker::combine (const string& gdsName,
     const vector<double>& sf = vpd->getStartFreqs();
     const vector<double>& ef = vpd->getEndFreqs();
     int inxf=0;
-    for (uint i=0; i<chans.size(); ++i) {
+    for (unsigned int i=0; i<chans.size(); ++i) {
       int nchan = chans[i];
       sfreq[0] = sf[inxf];
       // A band can be given with individual freqs or a single freq range.
@@ -398,7 +398,7 @@ void VdsMaker::combine (const string& gdsName,
   // Now add all parts to the global desc and write it.
   // Print a warning if times differ.
   // Also cleanup the objects.
-  for (uint i=0; i<vpds.size(); ++i) {
+  for (unsigned int i=0; i<vpds.size(); ++i) {
     vpds[i]->clearParms();
     gdesc.addPart (*vpds[i]);
     if (vpds[i]->getStartTime() != globalvpd.getStartTime()  ||

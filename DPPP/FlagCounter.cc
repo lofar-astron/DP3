@@ -126,13 +126,13 @@ namespace DP3 {
       int64_t npoints = ntimes * itsChanCounts.size();
       os << std::endl << "Percentage of visibilities flagged per baseline"
          " (antenna pair):";
-      uint nrant = 1 + std::max(max(ant1), max(ant2));
+      unsigned int nrant = 1 + std::max(max(ant1), max(ant2));
       // Collect counts per baseline and antenna.
       Vector<int64_t> nusedAnt(nrant, 0);
       Vector<int64_t> countAnt(nrant, 0);
       Matrix<int64_t> nusedBL (nrant, nrant, 0);
       Matrix<int64_t> countBL (nrant, nrant, 0);
-      for (uint i=0; i<itsBLCounts.size(); ++i) {
+      for (unsigned int i=0; i<itsBLCounts.size(); ++i) {
         countBL(ant1[i], ant2[i]) += itsBLCounts[i];
         nusedBL(ant1[i], ant2[i])++;
         countAnt[ant1[i]] += itsBLCounts[i];
@@ -146,7 +146,7 @@ namespace DP3 {
       }
       // Determine nr of antennae used.
       int nrused = 0;
-      for (uint i=0; i<nrant; ++i) {
+      for (unsigned int i=0; i<nrant; ++i) {
         if (nusedAnt[i] > 0) {
           nrused++;
         }
@@ -172,7 +172,7 @@ namespace DP3 {
         }
         os << std::endl;
         // Print the percentages per antenna pair.
-        for (uint k=0; k<nrant; ++k) {
+        for (unsigned int k=0; k<nrant; ++k) {
           if (nusedAnt[k] > 0) {
             os << std::setw(4) << k << " ";
             int ia = oldant;
@@ -214,7 +214,7 @@ namespace DP3 {
         os << std::endl;
       }
       if (itsWarnPerc > 0) {
-        for (uint i=0; i<nrant; ++i) {
+        for (unsigned int i=0; i<nrant; ++i) {
           if (nusedAnt[i] > 0) {
             double perc = (100. * countAnt[i]) / (nusedAnt[i] * npoints);
             if (perc >= itsWarnPerc) {
@@ -228,7 +228,7 @@ namespace DP3 {
       }
       if (itsShowFF) {
         os << "Fully flagged baselines: ";
-        for (uint i=0; i<fullyFlagged.size(); ++i) {
+        for (unsigned int i=0; i<fullyFlagged.size(); ++i) {
           if (i>0) os << "; ";
           os << fullyFlagged[i].first << '&' << fullyFlagged[i].second;
         }
@@ -277,7 +277,7 @@ namespace DP3 {
       os << "   (" << nflagged << " out of " << totalnpoints
          << " visibilities)" << std::endl;
       if (itsWarnPerc > 0) {
-        for (uint i=0; i<itsChanCounts.size(); ++i) {
+        for (unsigned int i=0; i<itsChanCounts.size(); ++i) {
           double perc = (100. * itsChanCounts[i]) / npoints;
           if (perc >= itsWarnPerc) {
             os << "** NOTE: ";
@@ -303,7 +303,7 @@ namespace DP3 {
          << '\n'
          << "  " << itsCorrCounts << " out of " << ntotal
          << " visibilities   [";
-      for (uint i=0; i<itsCorrCounts.size(); ++i) {
+      for (unsigned int i=0; i<itsCorrCounts.size(); ++i) {
         if (i > 0) {
           os << ", ";
         }
@@ -344,7 +344,7 @@ namespace DP3 {
       ScalarColumn<float>  percCol(tab, "Percentage");
       const Vector<String>& antNames = itsInfo->antennaNames();
       // Write if an antenna is used.
-      for (uint i=0; i<nused.size(); ++i) {
+      for (unsigned int i=0; i<nused.size(); ++i) {
         if (nused[i] > 0) {
           int rownr = tab.nrow();
           tab.addRow();
@@ -368,7 +368,7 @@ namespace DP3 {
       ScalarColumn<float>  percCol(tab, "Percentage");
       // Get the channel frequencies.
       const Vector<double>& chanFreqs = itsInfo->chanFreqs();
-      for (uint i=0; i<count.size(); ++i) {
+      for (unsigned int i=0; i<count.size(); ++i) {
         int rownr = tab.nrow();
         tab.addRow();
         freqCol.put (rownr, chanFreqs[i]);

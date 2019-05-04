@@ -75,7 +75,7 @@ namespace BBS {
     // Get the parameter values for the given parameters and domain.
     // The parmids form the indices in the result vector.
     virtual void getValues (std::vector<ParmValueSet>& values,
-                            const std::vector<uint>& nameIds,
+                            const std::vector<unsigned int>& nameIds,
                             const std::vector<ParmId>& parmIds,
                             const Box& domain);
 
@@ -120,16 +120,16 @@ namespace BBS {
 
     // If not empty, put the domain into the table.
     // The DOMAIN column is added to the table if it does not exist.
-    void putDefDomain (const Box& domain, casacore::Table& tab, uint rownr);
+    void putDefDomain (const Box& domain, casacore::Table& tab, unsigned int rownr);
 
     // If defined in the table, set the scale domain in the ParmValue.
-    Box getDefDomain (const casacore::Table& tab, uint row);
+    Box getDefDomain (const casacore::Table& tab, unsigned int row);
 
     // Get a selection from the NAME table.
     // <group>
     casacore::Table getNameSel (const std::string& parmNamePattern) const;
-    casacore::Vector<uint> getNameIds (const std::string& parmNamePattern) const;
-    casacore::Vector<uint> getNameIds (const std::vector<std::string>& parmNames) const;
+    casacore::Vector<unsigned int> getNameIds (const std::string& parmNamePattern) const;
+    casacore::Vector<unsigned int> getNameIds (const std::vector<std::string>& parmNames) const;
     // </group>
 
     // Find the minmax range in the table.
@@ -161,12 +161,12 @@ namespace BBS {
 
     // Put the begin/end of an irregular axis.
     void putInterval (const Axis& axis, casacore::ArrayColumn<double>& col,
-                      uint rownr);
+                      unsigned int rownr);
 
     // Form an axis from the interval array in the given row.
     // If no interval array, return a regular axis made from (st,end,n).
-    Axis::ShPtr getInterval (casacore::ROArrayColumn<double>& col, uint rownr,
-                             double st, double end, uint n);
+    Axis::ShPtr getInterval (casacore::ROArrayColumn<double>& col, unsigned int rownr,
+                             double st, double end, unsigned int n);
 
     // Find the table subset containing the parameter values for the
     // requested domain.

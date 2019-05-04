@@ -80,7 +80,7 @@ namespace DP3 {
       double exposure = bufin.getExposure() / itsTimeStep;
 
       // Duplicate the input buffer itsTimeStep times
-      for (uint i=0; i<itsTimeStep; ++i) {
+      for (unsigned int i=0; i<itsTimeStep; ++i) {
         itsBuffers[i].copy (bufin);
         // Update the time centroid and time exposure
         itsBuffers[i].setTime(time0 + info().timeInterval() * (i+0.5));
@@ -90,7 +90,7 @@ namespace DP3 {
       if (itsPrevBuffers.empty()) {
         // First time slot, ask for next time slot first
         itsPrevBuffers.resize(itsTimeStep);
-        for (uint i=0; i<itsTimeStep; ++i) {
+        for (unsigned int i=0; i<itsTimeStep; ++i) {
           itsPrevBuffers[i].copy(itsBuffers[i]); // No shallow copy
         }
         return false;
@@ -100,8 +100,8 @@ namespace DP3 {
       // in the previous call to process. Skip parts at the end as determined
       // now. Also, determine at which step the next buffer should start to
       // flush in the next call of process.
-      uint curIndex = 0; // Index in the current buffers
-      for (uint prevIndex=itsFirstToFlush; prevIndex<itsTimeStep; prevIndex++) {
+      unsigned int curIndex = 0; // Index in the current buffers
+      for (unsigned int prevIndex=itsFirstToFlush; prevIndex<itsTimeStep; prevIndex++) {
         itsFirstToFlush = 0; // reset for next use
         // Advance curIndex until
         // buffers[curIndex].time >= prevBuffers[prevIndex].time
@@ -141,7 +141,7 @@ namespace DP3 {
     void Upsample::finish()
     {
       // Flush itsPrevBuffers
-      for (uint i=itsFirstToFlush; i<itsTimeStep; ++i) {
+      for (unsigned int i=itsFirstToFlush; i<itsTimeStep; ++i) {
         getNextStep()->process(itsPrevBuffers[i]);
       }
 

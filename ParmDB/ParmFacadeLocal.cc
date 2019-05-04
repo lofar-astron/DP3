@@ -398,20 +398,20 @@ namespace DP3 {
       // Form the names to get.
       // The returned parmId should be the index.
       ParmSet parmSet;
-      for (uint i=0; i<names.size(); ++i) {
+      for (unsigned int i=0; i<names.size(); ++i) {
         assert (parmSet.addParm (itsPDB, names[i]) == i);
       }
       const Axis& axisx = *predictGrid[0];
       const Axis& axisy = *predictGrid[1];
-      uint nfreq = axisx.size();
-      uint ntime = axisy.size();
+      unsigned int nfreq = axisx.size();
+      unsigned int ntime = axisy.size();
       // Create and fill the cache for the given domain.
       Box domain (Point(axisx.lower(0), axisy.lower(0)),
                   Point(axisx.upper(nfreq-1), axisy.upper(ntime-1)));
       ParmCache parmCache(parmSet, domain);
       // Now create the Parm object for each parm and get the values.
       Array<double> result;
-      for (uint i=0; i<names.size(); ++i) {
+      for (unsigned int i=0; i<names.size(); ++i) {
         Parm parm(parmCache, i);
         parm.getResult (result, predictGrid, !includeDefaults);
         if (result.size() > 0) {
@@ -448,14 +448,14 @@ namespace DP3 {
       // Form the names to get.
       // The returned parmId should be the index.
       ParmSet parmSet;
-      for (uint i=0; i<names.size(); ++i) {
+      for (unsigned int i=0; i<names.size(); ++i) {
         assert (parmSet.addParm (itsPDB, names[i]) == i);
       }
       // Create and fill the cache for the given domain.
       ParmCache parmCache(parmSet, domain);
       // Now create the Parm object for each parm and get the values.
       Array<double> result;
-      for (uint i=0; i<names.size(); ++i) {
+      for (unsigned int i=0; i<names.size(); ++i) {
         Grid grid (getGrid (parmCache.getValueSet(i), domain));
         if (!grid.isDefault()) {
           // There should be data in this domain. 
@@ -484,7 +484,7 @@ namespace DP3 {
         // For scalars the detailed grids have to be combined.
         vector<Grid> grids;
         grids.reserve (valueSet.size());
-        for (uint i=0; i<valueSet.size(); ++i) {
+        for (unsigned int i=0; i<valueSet.size(); ++i) {
           grids.push_back (valueSet.getParmValue(i).getGrid());
         }
         grid = Grid(grids, true);
@@ -548,7 +548,7 @@ namespace DP3 {
       // Fill the arrays by iterating over them and each funklet.
       ArrayIterator<double> coeffIter(coeff, 2);
       ArrayIterator<double> errorIter(errors, 2);
-      for (uint i=0; i<pvset.size(); ++i) {
+      for (unsigned int i=0; i<pvset.size(); ++i) {
         const ParmValue& pval = pvset.getParmValue(i);
         coeffIter.array() = pval.getValues();
         if (pval.hasErrors()) {
@@ -582,7 +582,7 @@ namespace DP3 {
 
     Axis::ShPtr ParmFacadeLocal::makeAxis (const Vector<double>& centers,
                                            const Vector<double>& widths,
-                                           uint n) const
+                                           unsigned int n) const
     {
       if (centers.size() == 1) {
         return Axis::ShPtr(new RegularAxis (centers[0] - 0.5*widths[0],

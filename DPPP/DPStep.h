@@ -225,7 +225,7 @@ namespace DP3 {
       typedef std::shared_ptr<MultiResultStep> ShPtr;
 
       // Create the object. By default it sets its next step to the NullStep.
-      MultiResultStep (uint size);
+      MultiResultStep (unsigned int size);
 
       virtual ~MultiResultStep();
 

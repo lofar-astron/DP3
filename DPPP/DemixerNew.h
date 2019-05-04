@@ -129,9 +129,9 @@ namespace DP3 {
       std::vector<DPBuffer>        itsBufOut;
       std::vector<std::vector<double> > itsSolutions; //# all solutions in a time window
       std::map<std::string,int>         itsParmIdMap; //# -1 = new parm name
-      uint                    itsNTime;
-      uint                    itsNTimeOut;
-      uint                    itsNChunk;
+      unsigned int                    itsNTime;
+      unsigned int                    itsNTimeOut;
+      unsigned int                    itsNChunk;
       //# Timers.
       NSTimer itsTimer;
       NSTimer itsTimerDemix;

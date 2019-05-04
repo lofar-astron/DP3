@@ -249,7 +249,7 @@ int main()
 {
   try {
 
-    for (uint i=0; i<2; ++i) {
+    for (unsigned int i=0; i<2; ++i) {
       test1(10, 2, 32, 4, false, 1);
       test1(10, 5, 32, 4, true, 1);
       test2( 4, 2,  8, 4, false, 100);

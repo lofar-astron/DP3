@@ -228,7 +228,7 @@ namespace BBS {
       if (defaultValue.getValues().size() != 1)
 				throw std::runtime_error(
                  "Default value of funklet type SCALAR can have one value only");
-      for (uint i=0; i<values.size(); ++i) {
+      for (unsigned int i=0; i<values.size(); ++i) {
         if (values[i]->getValues().size() != values[i]->getGrid().size())
 					throw std::runtime_error(
                    "ParmValues of funklet type SCALAR must contain scalar values");
@@ -287,11 +287,11 @@ namespace BBS {
       itsDomainGrid = solveGrid;
       const Axis& xaxis = *itsDomainGrid[0];
       const Axis& yaxis = *itsDomainGrid[1];
-      uint nrx = itsDomainGrid.nx();
-      uint nry = itsDomainGrid.ny();
+      unsigned int nrx = itsDomainGrid.nx();
+      unsigned int nry = itsDomainGrid.ny();
       itsValues.reserve (nrx*nry);
-      for (uint iy=0; iy<nry; ++iy) {
-        for (uint ix=0; ix<nrx; ++ix) {
+      for (unsigned int iy=0; iy<nry; ++iy) {
+        for (unsigned int ix=0; ix<nrx; ++ix) {
           ParmValue::ShPtr pval(new ParmValue(itsDefaultValue));
           itsValues.push_back (pval);
           if (! itsScaleDomain.empty()) {
@@ -328,7 +328,7 @@ namespace BBS {
       } else {
         // The domain grid is split, so check each part with the corresponding
         // subset of the solve grid.
-        for (uint i=0; i<itsDomainGrid.size(); ++i) {
+        for (unsigned int i=0; i<itsDomainGrid.size(); ++i) {
           assert (itsValues[i]->getGrid().checkIntervals (solveGrid));
         }
       }

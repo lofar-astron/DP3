@@ -118,7 +118,7 @@ namespace BBS {
   public:
     // Create from patch name, category, ra, dec, and apparent brightness (Jy).
     // Ra and dec must be in radians in J2000.
-    explicit PatchSumInfo (uint patchId)
+    explicit PatchSumInfo (unsigned int patchId)
       : itsSumX    (0),
         itsSumY    (0),
         itsSumZ    (0),
@@ -140,7 +140,7 @@ namespace BBS {
       { return std::asin(itsSumZ/itsSumFlux); }
 
     // Get the patchId.
-    uint getPatchId() const
+    unsigned int getPatchId() const
       { return itsPatchId; }
 
   private:
@@ -148,7 +148,7 @@ namespace BBS {
     double itsSumY;
     double itsSumZ;
     double itsSumFlux;
-    uint   itsPatchId;
+    unsigned int   itsPatchId;
   };
 
 

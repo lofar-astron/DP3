@@ -77,7 +77,7 @@ namespace DP3 {
       { return strToBool(itsValue); }
     int    getInt() const
       { return strToInt(itsValue); }
-    uint   getUint() const
+    unsigned int   getUint() const
       { return strToUint(itsValue); }
     int16_t  getInt16() const
       { return strToInt16(itsValue); }
@@ -100,7 +100,7 @@ namespace DP3 {
       { return StringToTime_t(itsValue); }
     std::vector<bool>   getBoolVector() const;
     std::vector<int>    getIntVector() const;
-    std::vector<uint>   getUintVector() const;
+    std::vector<unsigned int>   getUintVector() const;
     std::vector<int16_t>  getInt16Vector() const;
     std::vector<uint16_t> getUint16Vector() const;
     std::vector<int32_t>  getInt32Vector() const;
@@ -119,7 +119,7 @@ namespace DP3 {
       { return getBool(); }
     operator int() const
       { return getInt(); }
-    operator uint() const
+    operator unsigned int() const
       { return getUint(); }
     operator float() const
       { return getFloat(); }
@@ -133,7 +133,7 @@ namespace DP3 {
       { return getBoolVector(); }
     operator std::vector<int>() const
       { return getIntVector(); }
-    operator std::vector<uint>() const
+    operator std::vector<unsigned int>() const
       { return getUintVector(); }
     operator std::vector<float>() const
       { return getFloatVector(); }
@@ -160,16 +160,16 @@ namespace DP3 {
     // Split itsValue into individual values using the comma as separator.
     // It takes the commas in quoted strings or in compound values into
     // account.
-    std::vector<ParameterValue> splitValue (uint st, uint last) const;
+    std::vector<ParameterValue> splitValue (unsigned int st, unsigned int last) const;
 
     // Return the position of the first non-whitespace character in itsValue
     // starting at st.
-    uint lskipws (uint st, uint end) const
+    unsigned int lskipws (unsigned int st, unsigned int end) const
       { return DP3::lskipws (itsValue, st, end); }
   
     // Return the position after the last non-whitespace character in itsValue
     // back from end.
-    uint rskipws (uint st, uint end) const
+    unsigned int rskipws (unsigned int st, unsigned int end) const
       { return DP3::rskipws (itsValue, st, end); }
 
     // Return the substring with left and right whitespace removed.

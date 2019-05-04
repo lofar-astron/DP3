@@ -107,19 +107,19 @@ namespace DP3 {
       os << endl << "Statistics for SmartDemixer " << itsName;
       os << endl << "===========================" << endl;
       // Add the statistics of all workers.
-      uint nsolves        = 0;
-      uint nconverged     = 0;
-      uint niter          = 0;
-      uint nnodemix       = 0;
-      uint nincludeStrong = 0;
-      uint nincludeClose  = 0;
-      uint nignore        = 0;
-      uint ndeproject     = 0;
+      unsigned int nsolves        = 0;
+      unsigned int nconverged     = 0;
+      unsigned int niter          = 0;
+      unsigned int nnodemix       = 0;
+      unsigned int nincludeStrong = 0;
+      unsigned int nincludeClose  = 0;
+      unsigned int nignore        = 0;
+      unsigned int ndeproject     = 0;
       // Sum the counts from all workers.
-      uint ndir           = itsDemixInfo.ateamList().size();
-      Vector<uint> nsources(ndir, 0);
-      Vector<uint> nstation(itsDemixInfo.nstation(), 0);
-      Matrix<uint> statsrcs(ndir, nstation.size(), 0);
+      unsigned int ndir           = itsDemixInfo.ateamList().size();
+      Vector<unsigned int> nsources(ndir, 0);
+      Vector<unsigned int> nstation(itsDemixInfo.nstation(), 0);
+      Matrix<unsigned int> statsrcs(ndir, nstation.size(), 0);
       Matrix<double> amplSubtrMean (itsDemixInfo.nbl(), ndir+1, 0.);
       Matrix<double> amplSubtrM2   (itsDemixInfo.nbl(), ndir+1, 0.);
       Matrix<size_t> amplSubtrNr   (itsDemixInfo.nbl(), ndir+1, 0);
@@ -141,18 +141,18 @@ namespace DP3 {
         const double* partmean = itsWorkers[i].amplSubtrMean().data();
         const double* partm2   = itsWorkers[i].amplSubtrM2().data();
         const size_t* partnr   = itsWorkers[i].amplSubtrNr().data();
-        for (uint j=0; j<amplSubtrNr.size(); ++j) {
+        for (unsigned int j=0; j<amplSubtrNr.size(); ++j) {
           // Calculate overall mean and m2 for each baseline/direction.
           addMeanM2 (amplmean[j], amplm2[j], amplnr[j],
                      partmean[j], partm2[j], partnr[j]);
         }
       }
-      uint ntimes = (nnodemix + nignore + ndeproject +
+      unsigned int ntimes = (nnodemix + nignore + ndeproject +
                      nincludeStrong + nincludeClose);
       // Show statistics.
       showStat (os, nconverged,    nsolves, "Converged solves:      ", "cells");
       os << "  Average nr of iterations in converged solves: "
-         << uint(double(niter)/nconverged + 0.5) << endl;
+         << (unsigned int)(double(niter)/nconverged + 0.5) << endl;
       showStat (os, nnodemix,       ntimes, "No demixing:           ", "times");
       showStat (os, nignore,        ntimes, "Target ignored:        ", "times");
       showStat (os, ndeproject,     ntimes, "Target deprojected:    ", "times");
@@ -168,7 +168,7 @@ namespace DP3 {
       for (size_t st=0; st<nstation.size(); ++st) {
         os << std::setw(4) << st << ' ';
         // Show 10 characters of the source names; append with blanks as needed.
-        uint inx = itsFilter.getInfo().antennaUsed()[st];
+        unsigned int inx = itsFilter.getInfo().antennaUsed()[st];
         string nm = itsFilter.getInfo().antennaNames()[inx];
         os << nm.substr(0,10);
         if (nm.size() < 10) {
@@ -225,7 +225,7 @@ namespace DP3 {
           if (amplSubtrNr(bl,ndir)) {
             os << std::setw(4) << itsDemixInfo.getAnt1()[bl] << '-'
                << std::setw(2) << itsDemixInfo.getAnt2()[bl] << "  ";
-            for (uint dr=0; dr<ndir+1; ++dr) {
+            for (unsigned int dr=0; dr<ndir+1; ++dr) {
               if (dr == ndir  ||  nsources[dr] > 0) {
                 showPerc1 (os, amplSubtrMean(bl,dr));
                 double variance = 0;
@@ -243,7 +243,7 @@ namespace DP3 {
           } // end if show
         } // end for bl
         os << "  Total  ";
-        for (uint dr=0; dr<ndir+1; ++dr) {
+        for (unsigned int dr=0; dr<ndir+1; ++dr) {
           if (dr == ndir  ||  nsources[dr] > 0) {
             double variance = 0;
             if (totnrp[dr] > 1) {
@@ -299,7 +299,7 @@ namespace DP3 {
       double pretime = 0;
       double soltime = 0;
       double subtime = 0;
-      for (uint i=0; i<itsWorkers.size(); ++i) {
+      for (unsigned int i=0; i<itsWorkers.size(); ++i) {
         tottime += itsWorkers[i].getTotalTime();
         coatime += itsWorkers[i].getCoarseTime();
         psatime += itsWorkers[i].getPhaseShiftTime();
@@ -360,9 +360,9 @@ namespace DP3 {
     {
       itsTimerDemix.start();
       // Last batch might contain fewer time slots.
-      uint timeWindowIn  = itsDemixInfo.chunkSize();
-      uint timeWindowOut = itsDemixInfo.ntimeOutSubtr();
-      uint timeWindowSol = itsDemixInfo.ntimeOut();
+      unsigned int timeWindowIn  = itsDemixInfo.chunkSize();
+      unsigned int timeWindowOut = itsDemixInfo.ntimeOutSubtr();
+      unsigned int timeWindowSol = itsDemixInfo.ntimeOut();
       int lastChunk = (itsNTime - 1) / timeWindowIn;
       int lastNTimeIn = itsNTime - lastChunk*timeWindowIn;
       int ntimeOut = ((itsNTime + itsDemixInfo.ntimeAvgSubtr() - 1)
@@ -475,7 +475,7 @@ namespace DP3 {
       const char* str01[] = {"0:","1:"};
       const char* strri[] = {"Real:","Imag:"};
       Matrix<double> values(1, ntime);
-      uint seqnr = 0;
+      unsigned int seqnr = 0;
       for (size_t dr=0; dr<itsDemixInfo.ateamList().size()+1; ++dr) {
         for (size_t st=0; st<itsDemixInfo.nstation(); ++st) {
           string suffix(itsDemixInfo.antennaNames()[st]);

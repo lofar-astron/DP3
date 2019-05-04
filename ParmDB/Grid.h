@@ -99,8 +99,8 @@ namespace BBS {
     // Combine the given axes in the grids into one new axis.
     // This axis is regular if all axes are regular and consecutive with
     // equal widths.
-    Axis::ShPtr combineAxes (const std::vector<Grid>& grids, uint axis,
-                             uint n, uint step) const;
+    Axis::ShPtr combineAxes (const std::vector<Grid>& grids, unsigned int axis,
+                             unsigned int n, unsigned int step) const;
 
     // Set the id.
     void init();
@@ -185,11 +185,11 @@ namespace BBS {
       { return nx() * ny(); }
 
     // Get the cell id from an (x,y) location.
-    uint getCellId (const Location& location) const
+    unsigned int getCellId (const Location& location) const
       { return location.second * nx() + location.first; }
 
     // Get the (x,y) location from a cell id.
-    Location getCellLocation (uint id) const
+    Location getCellLocation (unsigned int id) const
       { return Location(id % nx(), id / nx()); }
 
     // Get the coordinates of the center of the given cell.
@@ -212,7 +212,7 @@ namespace BBS {
     }
 
     
-    Box getCell (uint id) const
+    Box getCell (unsigned int id) const
       { return getCell(getCellLocation(id)); }
     // </group>
 

@@ -180,9 +180,9 @@ namespace DP3 {
 
       // Get or set the row numbers used by the DPInput class.
       // It can be empty (e.g. when MSReader inserted a dummy time slot).
-      void setRowNrs (const casacore::Vector<uint>& rownrs)
+      void setRowNrs (const casacore::Vector<unsigned int>& rownrs)
         { itsRowNrs.reference (rownrs); }
-      const casacore::Vector<uint>& getRowNrs() const
+      const casacore::Vector<unsigned int>& getRowNrs() const
         { return itsRowNrs; }
 
       // Get or set the UVW coordinates per baseline.
@@ -201,7 +201,7 @@ namespace DP3 {
     private:
       double                    itsTime;
       double                    itsExposure;
-      casacore::Vector<uint>        itsRowNrs;
+      casacore::Vector<unsigned int>        itsRowNrs;
       casacore::Cube<casacore::Complex> itsData;        //# ncorr,nchan,nbasel
       casacore::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
       casacore::Matrix<double>      itsUVW;         //# 3,nbasel

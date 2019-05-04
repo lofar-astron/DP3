@@ -119,7 +119,7 @@ namespace DP3 {
         //Position             itsPhaseRef;
         BeamCorrectionMode   itsMode;
 
-        uint                 itsDebugLevel;
+        unsigned int                 itsDebugLevel;
 
         // The info needed to calculate the station beams.
         std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;

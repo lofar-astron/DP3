@@ -103,7 +103,7 @@ namespace DP3 {
       void initDataArrays();
 
       // Check the number of polarizations in the parmdb or h5parm
-      uint nPol(const std::string& parmName);
+      unsigned int nPol(const std::string& parmName);
 
       // Replace values by NaN on places where weight is zero
       static void applyFlags(std::vector<double>& values,
@@ -127,19 +127,19 @@ namespace DP3 {
       CorrectType      itsCorrectType;
       bool             itsInvert;
       InterpolationType itsInterpolationType;
-      uint             itsTimeSlotsPerParmUpdate;
+      unsigned int             itsTimeSlotsPerParmUpdate;
       double           itsSigmaMMSE;
       bool             itsUpdateWeights;
 
-      uint             itsCount; // number of steps
+      unsigned int             itsCount; // number of steps
 
       // Expressions to search for in itsParmDB
       std::vector<casacore::String>   itsParmExprs;
 
       // parameters, numparms, antennas, time x frequency
       casacore::Cube<casacore::DComplex> itsParms;
-      uint            itsTimeStep; // time step within current chunk
-      uint            itsNCorr;
+      unsigned int            itsTimeStep; // time step within current chunk
+      unsigned int            itsNCorr;
       double          itsTimeInterval;
       double          itsLastTime; // last time of current chunk
       FlagCounter     itsFlagCounter;

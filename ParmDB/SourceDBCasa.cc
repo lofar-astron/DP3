@@ -82,10 +82,10 @@ namespace BBS {
     TableDesc td("Local Sky Model Sources", TableDesc::Scratch);
     td.comment() = String("Table containing the sources in the Local Sky Model");
     td.addColumn (ScalarColumnDesc<String>("SOURCENAME"));
-    td.addColumn (ScalarColumnDesc<uint>  ("PATCHID"));
+    td.addColumn (ScalarColumnDesc<unsigned int>  ("PATCHID"));
     td.addColumn (ScalarColumnDesc<int>   ("SOURCETYPE"));
     td.addColumn (ScalarColumnDesc<String>("REFTYPE"));
-    td.addColumn (ScalarColumnDesc<uint>  ("SPINX_NTERMS"));
+    td.addColumn (ScalarColumnDesc<unsigned int>  ("SPINX_NTERMS"));
     td.addColumn (ScalarColumnDesc<bool>  ("LOG_SI"));
     td.addColumn (ScalarColumnDesc<double>("SPINX_REFFREQ"));
     td.addColumn (ScalarColumnDesc<bool>  ("USE_ROTMEAS"));
@@ -128,12 +128,12 @@ namespace BBS {
   {
     {
       TableLocker locker(itsSourceTable, FileLocker::Write);
-      Vector<uint> rows = itsSourceTable.rowNumbers();
+      Vector<unsigned int> rows = itsSourceTable.rowNumbers();
       itsSourceTable.removeRow(rows);
     }
     {
       TableLocker locker(itsPatchTable, FileLocker::Write);
-      Vector<uint> rows = itsPatchTable.rowNumbers();
+      Vector<unsigned int> rows = itsPatchTable.rowNumbers();
       itsPatchTable.removeRow(rows);
     }
   }
@@ -189,13 +189,13 @@ namespace BBS {
       TableLocker plocker(itsPatchTable, FileLocker::Read);
       ROScalarColumn<String> patchCol(itsPatchTable, "PATCHNAME");
       itsPatchSet.clear();
-      for (uint i=0; i<itsPatchTable.nrow(); ++i) {
+      for (unsigned int i=0; i<itsPatchTable.nrow(); ++i) {
         itsPatchSet.insert (patchCol(i));
       }
       TableLocker slocker(itsSourceTable, FileLocker::Read);
       ROScalarColumn<String> sourceCol(itsSourceTable, "SOURCENAME");
       itsSourceSet.clear();
-      for (uint i=0; i<itsSourceTable.nrow(); ++i) {
+      for (unsigned int i=0; i<itsSourceTable.nrow(); ++i) {
         itsSourceSet.insert (sourceCol(i));
       }
       itsSetsFilled = true;
@@ -218,7 +218,7 @@ namespace BBS {
     return itsSourceSet.find(sourceName) != itsSourceSet.end();
   }
 
-  uint SourceDBCasa::addPatch (const string& patchName, int catType,
+  unsigned int SourceDBCasa::addPatch (const string& patchName, int catType,
                                double apparentBrightness,
                                double ra, double dec,
                                bool check)
@@ -232,17 +232,17 @@ namespace BBS {
                  "Patch " + patchName + " already exists");
     }
     itsPatchSet.insert (patchName);
-    uint rownr = itsPatchTable.nrow();
+    unsigned int rownr = itsPatchTable.nrow();
     itsPatchTable.addRow();
     ScalarColumn<String> nameCol(itsPatchTable, "PATCHNAME");
-    ScalarColumn<uint>   catCol (itsPatchTable, "CATEGORY");
+    ScalarColumn<unsigned int>   catCol (itsPatchTable, "CATEGORY");
     nameCol.put (rownr, patchName);
     catCol.put  (rownr, catType);
     writePatch (apparentBrightness, ra, dec, rownr);
     return rownr;
   }
 
-  void SourceDBCasa::updatePatch (uint patchId,
+  void SourceDBCasa::updatePatch (unsigned int patchId,
                                   double apparentBrightness,
                                   double ra, double dec)
   {
@@ -251,7 +251,7 @@ namespace BBS {
   }
 
   void SourceDBCasa::writePatch (double apparentBrightness,
-                                 double ra, double dec, uint rownr)
+                                 double ra, double dec, unsigned int rownr)
   {
     ScalarColumn<double> brCol  (itsPatchTable, "APPARENT_BRIGHTNESS");
     ScalarColumn<double> raCol  (itsPatchTable, "RA");
@@ -267,7 +267,7 @@ namespace BBS {
                                 double ra, double dec,
                                 bool check)
   {
-    uint patchId;
+    unsigned int patchId;
     {
       // Find the patch.
       TableLocker locker(itsPatchTable, FileLocker::Read);
@@ -320,22 +320,22 @@ namespace BBS {
     }
     itsPatchSet.insert  (patchName);
     itsSourceSet.insert (sourceInfo.getName());
-    uint patchId = addPatch (patchName, catType,
+    unsigned int patchId = addPatch (patchName, catType,
                              apparentBrightness, ra, dec, false);
     addSrc (sourceInfo, patchId, defaultParameters, ra, dec);
   }
 
   void SourceDBCasa::addSrc (const SourceInfo& sourceInfo,
-                             uint patchId,
+                             unsigned int patchId,
                              const ParmMap& defaultParameters,
                              double ra, double dec)
   {
     // Okay, add it to the source table.
     ScalarColumn<String> nameCol (itsSourceTable, "SOURCENAME");
-    ScalarColumn<uint>   idCol   (itsSourceTable, "PATCHID");
+    ScalarColumn<unsigned int>   idCol   (itsSourceTable, "PATCHID");
     ScalarColumn<int>    typeCol (itsSourceTable, "SOURCETYPE");
     ScalarColumn<String> reftCol (itsSourceTable, "REFTYPE");
-    ScalarColumn<uint>   spinxCol(itsSourceTable, "SPINX_NTERMS");
+    ScalarColumn<unsigned int>   spinxCol(itsSourceTable, "SPINX_NTERMS");
     ScalarColumn<bool>   logSICol(itsSourceTable, "LOG_SI");
     ScalarColumn<double> sirefCol(itsSourceTable, "SPINX_REFFREQ");
     ScalarColumn<bool>   usermCol(itsSourceTable, "USE_ROTMEAS");
@@ -347,7 +347,7 @@ namespace BBS {
     ArrayColumn<double>  qcoefCol(itsSourceTable, "SHAPELET_QCOEFF");
     ArrayColumn<double>  ucoefCol(itsSourceTable, "SHAPELET_UCOEFF");
     ArrayColumn<double>  vcoefCol(itsSourceTable, "SHAPELET_VCOEFF");
-    uint rownr = itsSourceTable.nrow();
+    unsigned int rownr = itsSourceTable.nrow();
     itsSourceTable.addRow();
     nameCol.put  (rownr, sourceInfo.getName());
     idCol.put    (rownr, patchId);
@@ -486,7 +486,7 @@ namespace BBS {
     Vector<Double> ab(ROScalarColumn<double>(table, "APPARENT_BRIGHTNESS").getColumn());
     vector<PatchInfo> vec;
     vec.reserve (nm.size());
-    for (uint i=0; i<nm.size(); ++i) {
+    for (unsigned int i=0; i<nm.size(); ++i) {
       vec.push_back (PatchInfo(nm[i], ra[i], dc[i], ca[i], ab[i]));
     }
     return vec;
@@ -504,7 +504,7 @@ namespace BBS {
     if (table.nrow() != 1)
 			throw std::runtime_error( "Patch name " + patchName
                + " multiply defined in " + std::string(itsPatchTable.tableName()));
-    uint patchid = table.rowNumbers()[0];
+    unsigned int patchid = table.rowNumbers()[0];
     table = itsSourceTable(itsSourceTable.col("PATCHID") == patchid);
     return readSources(table);
   }
@@ -561,7 +561,7 @@ namespace BBS {
     vector<SourceInfo> res;
     res.reserve (nm.size());
     if (table.tableDesc().isColumn("SPINX_NTERMS")) {
-      Vector<uint>   sd(ROScalarColumn<uint>(table,"SPINX_NTERMS").getColumn());
+      Vector<unsigned int>   sd(ROScalarColumn<unsigned int>(table,"SPINX_NTERMS").getColumn());
       Vector<double> sr(ROScalarColumn<double>(table,"SPINX_REFFREQ").getColumn());
       Vector<bool>   rm(ROScalarColumn<bool>(table,"USE_ROTMEAS").getColumn());
       ROScalarColumn<double> iscalCol(table, "SHAPELET_ISCALE");
@@ -577,7 +577,7 @@ namespace BBS {
       if (hasLogSICol) {
         logSICol = ROScalarColumn<bool>(table, "LOG_SI");
       }
-      for (uint i=0; i<nm.size(); ++i) {
+      for (unsigned int i=0; i<nm.size(); ++i) {
         SourceInfo::Type type = SourceInfo::Type((tp[i]));
         bool useLogSI = true;
         if (hasLogSICol) {
@@ -598,7 +598,7 @@ namespace BBS {
       // Columns SPINX_NTERMS, SPINX_REFFREQ, and USE_ROTMEAS were added later,
       // so be backward compatible.
       // In this case get degree and reffreq from associated parmdb.
-      for (uint i=0; i<nm.size(); ++i) {
+      for (unsigned int i=0; i<nm.size(); ++i) {
         ParmMap parmd;
         int degree = -1;
         double refFreq = 0.;
@@ -637,7 +637,7 @@ namespace BBS {
     // Read the main info for the current row.
     src.setInfo (readSources(itsSourceTable(itsRowNr))[0]);
     ROScalarColumn<String> patchNameCol(itsPatchTable, "PATCHNAME");
-    ROScalarColumn<uint> patchIdCol(itsSourceTable, "PATCHID");
+    ROScalarColumn<unsigned int> patchIdCol(itsSourceTable, "PATCHID");
     src.setPatchName (patchNameCol(patchIdCol(itsRowNr[0])));
     // Read the other SourceData info from the default Parm values.
     const string& srcName = src.getInfo().getName();

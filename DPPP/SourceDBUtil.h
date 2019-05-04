@@ -45,7 +45,7 @@ namespace DPPP
 // @{
   std::vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
                                       const std::vector<std::string> &patchNames,
-                                      uint nModel);
+                                      unsigned int nModel);
 
   // Create a source list (with patch name) from a patchlist
   // Needed for efficient multithreading
@@ -61,7 +61,7 @@ namespace DPPP
 
   bool checkPolarized(BBS::SourceDB &sourceDB,
                       const std::vector<std::string> &patchNames,
-                      uint nModel);
+                      unsigned int nModel);
 
 // @}
 

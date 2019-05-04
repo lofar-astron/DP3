@@ -190,7 +190,7 @@ namespace DP3 {
       std::vector<MSReader*>     itsReaders;   //# same as itsSteps
       std::vector<DPStep::ShPtr> itsSteps;     //# used for automatic destruction
       std::vector<DPBuffer>      itsBuffers;
-      uint                  itsFillNChan; //# nr of chans for missing MSs
+      unsigned int                  itsFillNChan; //# nr of chans for missing MSs
       FlagCounter           itsFlagCounter;
       bool                  itsRegularChannels; // Are resulting channels regularly spaced
     };

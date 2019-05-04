@@ -3,3 +3,4 @@ DP3.kdev4
 build/
 cmakestrap.sh
 *~
+.vscode

@@ -127,7 +127,7 @@ namespace DP3 {
         PSet (DPInput*, const ParameterSet& parset, const string& prefix);
 
         // Set and return the flags.
-        casacore::Cube<bool>* process (const DPBuffer&, DPBuffer&, uint timeSlot,
+        casacore::Cube<bool>* process (const DPBuffer&, DPBuffer&, unsigned int timeSlot,
                                    const casacore::Block<bool>& matchBL,
                                    NSTimer& timer);
 
@@ -140,7 +140,7 @@ namespace DP3 {
 
       private:
         // Test if the time matches the time ranges.
-        bool matchTime (double time, uint timeSlot) const;
+        bool matchTime (double time, unsigned int timeSlot) const;
 
         // Test if the value matches one of the ranges in the vector.
         bool matchRange (double v, const std::vector<double>& ranges) const;
@@ -160,7 +160,7 @@ namespace DP3 {
         // Test if azimuth or elevation of given antenna mismatches.
         // If so, clear itsMatchBL for all baselines containing the antenna.
         void testAzEl (casacore::MDirection::Convert& converter,
-                       uint blnr, int ant,
+                       unsigned int blnr, int ant,
                        const int* ant1, const int* ant2);
 
         // Set the flags based on amplitude threshold per correlation.
@@ -243,7 +243,7 @@ namespace DP3 {
         std::vector<double>     itsLST;      //# sidereal time ranges to be flagged
         std::vector<double>     itsATimes;   //# absolute time ranges to be flagged
         std::vector<double>     itsRTimes;   //# relative time ranges to be flagged
-        std::vector<uint>       itsTimeSlot; //# time slots to be flagged
+        std::vector<unsigned int>       itsTimeSlot; //# time slots to be flagged
         std::vector<float>      itsAmplMin;  //# minimum amplitude for each corr
         std::vector<float>      itsAmplMax;  //# maximum amplitude for each corr
         std::vector<float>      itsPhaseMin; //# minimum phase for each corr
@@ -252,7 +252,7 @@ namespace DP3 {
         std::vector<float>      itsRealMax;  //# maximum real for each corr
         std::vector<float>      itsImagMin;  //# minimum imaginary for each corr
         std::vector<float>      itsImagMax;  //# maximum imaginary for each corr
-        std::vector<uint>       itsChannels; //# channels to be flagged.
+        std::vector<unsigned int>       itsChannels; //# channels to be flagged.
         std::vector<string>     itsStrChan;  //# channel ranges to be flagged.
         std::vector<string>     itsStrFreq;  //# frequency ranges to be flagged
         std::vector<string>     itsStrTime;  //# time ranges to be flagged
@@ -270,13 +270,13 @@ namespace DP3 {
 
       // Set the flags in outPtr where inPtr matches mode.
       void setFlags (const bool* inPtr, bool* outPtr,
-                     uint nrcorr, uint nrchan, uint nrbl, bool mode);
+                     unsigned int nrcorr, unsigned int nrchan, unsigned int nrbl, bool mode);
 
       // Clear the flags in outPtr where inPtr matches mode.
       // If the corresponding data point of a flag is invalid
       // (non-finite or zero), it is always flagged.
       void clearFlags (const bool* inPtr, bool* outPtr,
-                       uint nrcorr, uint nrchan, uint nrbl, bool mode,
+                       unsigned int nrcorr, unsigned int nrchan, unsigned int nrbl, bool mode,
                        const DPBuffer& buf);
 
       //# Data members of PreFlagger.
@@ -286,7 +286,7 @@ namespace DP3 {
       Mode        itsMode;
       NSTimer     itsTimer;
       PSet        itsPSet;
-      uint        itsCount;
+      unsigned int        itsCount;
       FlagCounter itsFlagCounter;
     };
       

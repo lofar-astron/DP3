@@ -36,9 +36,9 @@ using namespace casacore;
 namespace DP3 {
   namespace DPPP {
 
-    GainCalAlgorithm::GainCalAlgorithm(uint solInt, uint nChan, Mode mode,
-      bool scalar, double tolerance, uint maxAntennas,
-      bool detectStalling, uint debugLevel)
+    GainCalAlgorithm::GainCalAlgorithm(unsigned int solInt, unsigned int nChan, Mode mode,
+      bool scalar, double tolerance, unsigned int maxAntennas,
+      bool detectStalling, unsigned int debugLevel)
     : _nSt    (maxAntennas),
       _badIters (0),
       _veryBadIters (0),
@@ -118,8 +118,8 @@ namespace DP3 {
           DComplex* t_vis_p=_vis.data();
           DComplex* t_mvis_p=_mvis.data();
 
-          uint vissize=_vis.size();
-          for (uint i=0;i<vissize;++i) {
+          unsigned int vissize=_vis.size();
+          for (unsigned int i=0;i<vissize;++i) {
             fronormvis+=norm(t_vis_p[i]);
             fronormmod+=norm(t_mvis_p[i]);
           }
@@ -134,7 +134,7 @@ namespace DP3 {
         }
 
         if (_nCr==4) {
-          for (uint ant=0;ant<_nUn;++ant) {
+          for (unsigned int ant=0;ant<_nUn;++ant) {
               _g(ant,0)=ginit;
               _g(ant,1)=0.;
               _g(ant,2)=0.;
@@ -146,7 +146,7 @@ namespace DP3 {
       } else { // Take care of NaNs in solution
         double ginit=0.;
         bool ginitcomputed=false;
-        for (uint ant=0; ant<_nUn; ++ant) {
+        for (unsigned int ant=0; ant<_nUn; ++ant) {
           if (!isFinite(_g(ant,0).real()) ) {
             if (!ginitcomputed && !_stationFlagged[ant%_nSt]) {
               // Avoid calling getAverageUnflaggedSolution for stations that are always flagged
@@ -176,8 +176,8 @@ namespace DP3 {
       // look at NaNs, don't look at stationFlagged (that's for
       // the current timeslot).
       double total=0.;
-      uint unflaggedstations=0;
-      for (uint ant2=0; ant2<_nUn; ++ant2) {
+      unsigned int unflaggedstations=0;
+      for (unsigned int ant2=0; ant2<_nUn; ++ant2) {
         if (isFinite(_g(ant2,0).real())) {
           total += abs(_g(ant2,0));
           unflaggedstations++;
@@ -194,12 +194,12 @@ namespace DP3 {
       }
     }
 
-    GainCalAlgorithm::Status GainCalAlgorithm::doStep(uint iter) {
+    GainCalAlgorithm::Status GainCalAlgorithm::doStep(unsigned int iter) {
       _gxx = _gx;
       _gx = _g;
 
       bool allFlagged=true;
-      for (uint st1=0;st1<_nSt;++st1) {
+      for (unsigned int st1=0;st1<_nSt;++st1) {
         if (!_stationFlagged[st1]) {
           allFlagged=false;
           break;
@@ -223,14 +223,14 @@ namespace DP3 {
     void GainCalAlgorithm::doStep_polarized() {
       _gold = _g;
 
-      for (uint st=0;st<_nSt;++st) {
+      for (unsigned int st=0;st<_nSt;++st) {
         _h(st,0)=conj(_g(st,0));
         _h(st,1)=conj(_g(st,1));
         _h(st,2)=conj(_g(st,2));
         _h(st,3)=conj(_g(st,3));
       }
 
-      for (uint st1=0;st1<_nSt;++st1) {
+      for (unsigned int st1=0;st1<_nSt;++st1) {
         if (_stationFlagged[st1]) {
           continue;
         }
@@ -240,26 +240,26 @@ namespace DP3 {
         Vector<DComplex> w(_nCr);
         Vector<DComplex> t(_nCr);
 
-        for (uint time=0;time<_solInt;++time) {
-          for (uint ch=0;ch<_nChan;++ch) {
-            uint zoff=_nSt*ch+_nSt*_nChan*time;
-            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,0)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,0) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,1)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,1) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
-            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,2)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
-            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,2) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
-            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,3)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
-            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { _z(st2+zoff,3) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+        for (unsigned int time=0;time<_solInt;++time) {
+          for (unsigned int ch=0;ch<_nChan;++ch) {
+            unsigned int zoff=_nSt*ch+_nSt*_nChan*time;
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,0)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,0) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,1)  = _h(st2,0) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,1) += _h(st2,2) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,2)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,2) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,0,time,ch,1,st1))
+            mvis_p=&_mvis(IPosition(6,0,0,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,3)  = _h(st2,1) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,0,st1))
+            mvis_p=&_mvis(IPosition(6,0,1,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { _z(st2+zoff,3) += _h(st2,3) * mvis_p[st2]; } // itsMVis(IPosition(6,st2,1,time,ch,1,st1))
           }
         }
 
         w=0;
 
-        for (uint time=0;time<_solInt;++time) {
-          for (uint ch=0;ch<_nChan;++ch) {
-            for (uint st2=0;st2<_nSt;++st2) {
-              uint zoff=st2+_nSt*ch+_nSt*_nChan*time;
+        for (unsigned int time=0;time<_solInt;++time) {
+          for (unsigned int ch=0;ch<_nChan;++ch) {
+            for (unsigned int st2=0;st2<_nSt;++st2) {
+              unsigned int zoff=st2+_nSt*ch+_nSt*_nChan*time;
               w(0) += conj(_z(zoff,0))*_z(zoff,0) + conj(_z(zoff,2))*_z(zoff,2);
               w(1) += conj(_z(zoff,0))*_z(zoff,1) + conj(_z(zoff,2))*_z(zoff,3);
               w(3) += conj(_z(zoff,1))*_z(zoff,1) + conj(_z(zoff,3))*_z(zoff,3);
@@ -270,16 +270,16 @@ namespace DP3 {
 
         t=0;
 
-        for (uint time=0;time<_solInt;++time) {
-          for (uint ch=0;ch<_nChan;++ch) {
-            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
-            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
-            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (uint st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
-            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
-            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (uint st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+        for (unsigned int time=0;time<_solInt;++time) {
+          for (unsigned int ch=0;ch<_nChan;++ch) {
+            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(0) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,0)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(1) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,2)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,0,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(2) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,0,time,ch,1,st1))
+            vis_p=&_vis(IPosition(6,0,0,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,1)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,0,st1))
+            vis_p=&_vis(IPosition(6,0,1,time,ch,1,st1)); for (unsigned int st2=0;st2<_nSt;++st2) { t(3) += conj(_z(st2+_nSt*ch+_nSt*_nChan*time,3)) * vis_p[st2]; }// itsVis(IPosition(6,st2,1,time,ch,1,st1))
           }
         }
         DComplex invdet= w(0) * w (3) - w(1)*w(2);
@@ -299,11 +299,11 @@ namespace DP3 {
     void GainCalAlgorithm::doStep_unpolarized() {
       _gold=_g;
 
-      for (uint ant=0;ant<_nUn;++ant) {
+      for (unsigned int ant=0;ant<_nUn;++ant) {
         _h(ant,0)=conj(_g(ant,0));
       }
 
-      for (uint st1=0;st1<_nUn;++st1) {
+      for (unsigned int st1=0;st1<_nUn;++st1) {
         if (_stationFlagged[st1%_nSt]) {
           continue;
         }
@@ -314,12 +314,12 @@ namespace DP3 {
 
         mvis_p=&_mvis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
         vis_p = &_vis(IPosition(6,0,0,0,0,st1/_nSt,st1%_nSt));
-        for (uint st1pol=0;st1pol<_nSp;++st1pol) {
-          for (uint ch=0;ch<_nChan;++ch) {
-            for (uint time=0;time<_solInt;++time) {
-              for (uint st2pol=0;st2pol<_nSp;++st2pol) {
+        for (unsigned int st1pol=0;st1pol<_nSp;++st1pol) {
+          for (unsigned int ch=0;ch<_nChan;++ch) {
+            for (unsigned int time=0;time<_solInt;++time) {
+              for (unsigned int st2pol=0;st2pol<_nSp;++st2pol) {
                 DComplex* h_p=_h.data();
-                for (uint st2=0;st2<_nUn;++st2) {
+                for (unsigned int st2=0;st2<_nUn;++st2) {
                   DComplex z(h_p[st2] * *mvis_p); //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
                   assert(isFinite(z));
                   ww+=norm(z);
@@ -358,9 +358,9 @@ namespace DP3 {
 
     casacore::Matrix<casacore::DComplex> GainCalAlgorithm::getSolution(bool setNaNs) {
       if (setNaNs) {
-        for (uint ant=0; ant<_nUn; ++ant) {
+        for (unsigned int ant=0; ant<_nUn; ++ant) {
           if (_stationFlagged[ant%_nSt]) {
-            for (uint cr=0; cr<_nCr; ++cr) {
+            for (unsigned int cr=0; cr<_nCr; ++cr) {
               _g(ant,cr)=std::numeric_limits<double>::quiet_NaN();
             }
           }
@@ -370,7 +370,7 @@ namespace DP3 {
       return _g;
     }
 
-    GainCalAlgorithm::Status GainCalAlgorithm::relax(uint iter) {
+    GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
       if (_nSt==0) {
         return CONVERGED;
       }
@@ -381,12 +381,12 @@ namespace DP3 {
       double f2q = -0.5;
       double f1q = 1 - f2q;
       double omega = 0.5;
-      uint nomega = 24;
+      unsigned int nomega = 24;
       double c1 = 0.5;
       double c2 = 1.2;
       double dgxx;
       bool threestep = false;
-      uint maxBadIters=3;
+      unsigned int maxBadIters=3;
 
       int sstep=0;
 
@@ -425,8 +425,8 @@ namespace DP3 {
 
       double fronormdiff=0;
       double fronormg=0;
-      for (uint ant=0;ant<_nUn;++ant) {
-        for (uint cr=0;cr<_nCr;++cr) {
+      for (unsigned int ant=0;ant<_nUn;++ant) {
+        for (unsigned int cr=0;cr<_nCr;++cr) {
           DComplex diff=_g(ant,cr)-_gold(ant,cr);
           fronormdiff+=abs(diff*diff);
           fronormg+=abs(_g(ant,cr)*_g(ant,cr));
@@ -448,8 +448,8 @@ namespace DP3 {
         cout<<"Averaged"<<endl;
       }
 
-      for (uint ant=0;ant<_nUn;++ant) {
-        for (uint cr=0;cr<_nCr;++cr) {
+      for (unsigned int ant=0;ant<_nUn;++ant) {
+        for (unsigned int cr=0;cr<_nCr;++cr) {
           _g(ant,cr) = (1-omega) * _g(ant,cr) +
                       omega     * _gold(ant,cr);
         }
@@ -469,8 +469,8 @@ namespace DP3 {
             if (_debugLevel>7) {
               cout<<"dg<=c1*dgx"<<endl;
             }
-            for (uint ant=0;ant<_nUn;++ant) {
-              for (uint cr=0;cr<_nCr;++cr) {
+            for (unsigned int ant=0;ant<_nUn;++ant) {
+              for (unsigned int cr=0;cr<_nCr;++cr) {
                 _g(ant,cr) = f1q * _g(ant,cr) +
                             f2q * _gx(ant,cr);
               }
@@ -479,8 +479,8 @@ namespace DP3 {
             if (_debugLevel>7) {
               cout<<"dg<=dgx"<<endl;
             }
-            for (uint ant=0;ant<_nUn;++ant) {
-              for (uint cr=0;cr<_nCr;++cr) {
+            for (unsigned int ant=0;ant<_nUn;++ant) {
+              for (unsigned int cr=0;cr<_nCr;++cr) {
                 _g(ant,cr) = f1 * _g(ant,cr) +
                             f2 * _gx(ant,cr) +
                             f3 * _gxx(ant,cr);

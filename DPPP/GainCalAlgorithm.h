@@ -42,9 +42,9 @@ namespace DP3 {
       enum Mode {DEFAULT, PHASEONLY, AMPLITUDEONLY, FULLJONES};
 
       // mode can be "diagonal", "fulljones", "phaseonly", "scalarphase"
-      GainCalAlgorithm(uint solInt, uint nChan, Mode mode, bool scalar,
-        double tolerance, uint maxAntennas, bool detectStalling,
-        uint debugLevel);
+      GainCalAlgorithm(unsigned int solInt, unsigned int nChan, Mode mode, bool scalar,
+        double tolerance, unsigned int maxAntennas, bool detectStalling,
+        unsigned int debugLevel);
 
       // Sets visibility matrices to zero
       void resetVis();
@@ -57,7 +57,7 @@ namespace DP3 {
 
       // Perform an iteration of gaincal. Returns CONVERGED, NOTCONVERGED
       // or STALLED
-      Status doStep(uint iter);
+      Status doStep(unsigned int iter);
 
       // Returns the solution. The return matrix has a length of maxAntennas,
       // which is zero for antennas for which no solution was computed.
@@ -86,12 +86,12 @@ namespace DP3 {
       }
 
       // Number of correlations in the solution (1,2 or 4)
-      uint numCorrelations() {
+      unsigned int numCorrelations() {
         return _savedNCr;
       }
 
       // Number of correlations (1 or 4)
-      uint nCr() {
+      unsigned int nCr() {
         return _nCr;
       }
 
@@ -100,14 +100,14 @@ namespace DP3 {
 
     private:
       // Perform relaxation
-      Status relax(uint iter);
+      Status relax(unsigned int iter);
 
       void doStep_polarized();
       void doStep_unpolarized();
 
       double getAverageUnflaggedSolution();
 
-      uint _savedNCr;
+      unsigned int _savedNCr;
       casacore::Vector<bool> _stationFlagged ; // Contains true for totally flagged stations
       casacore::Array<casacore::DComplex> _vis; // Visibility matrix
       casacore::Array<casacore::DComplex> _mvis; // Model visibility matrix
@@ -118,20 +118,20 @@ namespace DP3 {
       casacore::Matrix<casacore::DComplex> _h; // Hermitian transpose of previous solution
       casacore::Matrix<casacore::DComplex> _z; // Internal algorithm vector
 
-      uint _nSt; // number of stations in the current solution
-      uint _nUn; // number of unknowns
-      uint _nCr; // number of correlations (1 or 4)
-      uint _nSp; // number that is two for scalarphase, one else
-      uint _badIters; // number of bad iterations, for stalling detection
-      uint _veryBadIters; // number of iterations where solution got worse
-      uint _solInt; // solution interval
-      uint _nChan;  // number of channels
+      unsigned int _nSt; // number of stations in the current solution
+      unsigned int _nUn; // number of unknowns
+      unsigned int _nCr; // number of correlations (1 or 4)
+      unsigned int _nSp; // number that is two for scalarphase, one else
+      unsigned int _badIters; // number of bad iterations, for stalling detection
+      unsigned int _veryBadIters; // number of iterations where solution got worse
+      unsigned int _solInt; // solution interval
+      unsigned int _nChan;  // number of channels
       Mode _mode; // diagonal, scalarphase, fulljones or phaseonly
       bool _scalar; // false if each polarization has a separate solution
       double _tolerance;
       double _totalWeight;
       bool _detectStalling;
-      uint _debugLevel;
+      unsigned int _debugLevel;
 
       double _dg, _dgx; // previous convergence
       std::vector<double> _dgs; // convergence history

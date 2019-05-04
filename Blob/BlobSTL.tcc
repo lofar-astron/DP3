@@ -82,7 +82,7 @@ namespace DP3
     bs.getStart (DP3::typeName((const typename Seq::value_type**)0));
     bool fortranOrder;
     uint16_t ndim;
-    uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+    unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
     assert(ndim == 1);
     uint64_t size;
     getBlobArrayShape (bs, &size, 1, false, nalign);
@@ -101,7 +101,7 @@ namespace DP3
     bs.getStart (DP3::typeName((const T**)0));
     bool fortranOrder;
     uint16_t ndim;
-    uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+    unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
     assert(ndim == 1);
     uint64_t size;
     getBlobArrayShape (bs, &size, 1, false, nalign);

@@ -220,7 +220,7 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setFlags (flags);
-    Vector<uint> rownrs(1,itsCount);
+    Vector<unsigned int> rownrs(1,itsCount);
     buf.setRowNrs (rownrs);
     getNextStep()->process (buf);
     ++itsCount;
@@ -293,7 +293,7 @@ private:
       }
     }
     ASSERT (allNE(weights, float(0.)));
-    for (uint i=0; i<result.size(); ++i) {
+    for (unsigned int i=0; i<result.size(); ++i) {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
@@ -405,7 +405,7 @@ private:
         }
       }
     }
-    for (uint i=0; i<result.size(); ++i) {
+    for (unsigned int i=0; i<result.size(); ++i) {
       if (!flags.data()[i]) {
         result.data()[i] /= weights.data()[i];
       }

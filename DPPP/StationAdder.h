@@ -100,7 +100,7 @@ namespace DP3 {
 
     private:
       // Update the beam info subtables.
-      void updateBeamInfo (const string& msName, uint origNant,
+      void updateBeamInfo (const string& msName, unsigned int origNant,
                            casacore::Table& antTab);
 
       //# Data members.
@@ -111,7 +111,7 @@ namespace DP3 {
       ParameterRecord itsStatRec;     // stations definitions
       std::vector<casacore::Vector<int> > itsParts;  // the stations in each superstation
       std::vector<std::vector<int> > itsBufRows; // old baseline rows in each new baseline
-      uint            itsMinNPoint  ;  // flag data if too few unflagged data
+      unsigned int            itsMinNPoint  ;  // flag data if too few unflagged data
       bool            itsMakeAutoCorr; // also form new auto-correlations?
       bool            itsSumAutoCorr;  // sum auto- or cross-correlations?
       bool            itsDoAverage;    // average or sum?

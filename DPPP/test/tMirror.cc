@@ -58,8 +58,8 @@ void doChan (int windowSize, int nchan, int chan)
 
 void testAdd()
 {
-  uint nrold = 5;
-  uint nrnew = 7;
+  unsigned int nrold = 5;
+  unsigned int nrnew = 7;
   vector<int> itsAnt1(15);
   vector<int> itsAnt2(15);
   int inx=0;
@@ -90,13 +90,13 @@ void testAdd()
       // to be added for the new baseline. If rownr<0, the conjugate has to be
       // added (1 is added to rownr, otherwise 0 is ambiguous).
       // Note that a rownr can be the rownr of a new baseline.
-      for (uint j=0; j<itsParts.size(); ++j) {
+      for (unsigned int j=0; j<itsParts.size(); ++j) {
         std::fill (newbl.begin(), newbl.end(), -1);
         vector<int> newAnt1;
         vector<int> newAnt2;
         // Loop through all baselines and find out if a baseline should
         // be used for a superstation.
-        for (uint i=0; i<itsAnt1.size(); ++i) {
+        for (unsigned int i=0; i<itsAnt1.size(); ++i) {
           bool havea1 = linearSearch1 (itsParts[j], itsAnt1[i]) >= 0;
           bool havea2 = linearSearch1 (itsParts[j], itsAnt2[i]) >= 0;
           int  ant    = nrold+j;
@@ -135,10 +135,10 @@ void testAdd()
           //          DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
           cout << "StationAdder: no baseline found for superstation" << endl;
         } else {
-          uint oldsz = itsAnt1.size();
+          unsigned int oldsz = itsAnt1.size();
           itsAnt1.resize (oldsz + newAnt1.size());
           itsAnt2.resize (oldsz + newAnt1.size());
-          for (uint i=0; i<newAnt1.size(); ++i) {
+          for (unsigned int i=0; i<newAnt1.size(); ++i) {
             itsAnt1[oldsz+i] = newAnt1[i];
             itsAnt2[oldsz+i] = newAnt2[i];
           }
@@ -151,8 +151,8 @@ void testAdd()
 
 int main (int argc, char* argv[])
 {
-  uint windowSize = 5;
-  uint nchan = 8;
+  unsigned int windowSize = 5;
+  unsigned int nchan = 8;
   if (argc > 1) {
     windowSize = atoi(argv[1]);
   }
@@ -163,7 +163,7 @@ int main (int argc, char* argv[])
   if (windowSize > nchan) windowSize = nchan;
   if (windowSize%2 == 0) windowSize--;
 
-  for (uint i=0; i<nchan; ++i) {
+  for (unsigned int i=0; i<nchan; ++i) {
     doChan (windowSize, nchan, i);
   }
 

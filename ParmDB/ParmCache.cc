@@ -68,7 +68,7 @@ namespace BBS {
   void ParmCache::flush()
   {
     ParmDBLocker (*itsParmSet, true);
-    for (uint i=0; i<itsValueSets.size(); ++i) {
+    for (unsigned int i=0; i<itsValueSets.size(); ++i) {
       ParmValueSet& pvset = itsValueSets[i];
       if (pvset.isDirty()) {
         itsParmSet->write (i, pvset);

@@ -94,7 +94,7 @@ namespace DP3 {
     {}
 
 
-    MultiResultStep::MultiResultStep (uint size)
+    MultiResultStep::MultiResultStep (unsigned int size)
       : itsSize (0)
     {
       setNextStep (DPStep::ShPtr (new NullStep()));

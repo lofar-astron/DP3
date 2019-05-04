@@ -58,7 +58,7 @@ namespace DPPP
   // are relative to it using the baseline UVWs.
   // Also note that nr of groups can be derived from the size of the returned
   // vector (because it contains no entry for the first antenna in a group).
-  std::vector<int> nsetupSplitUVW (uint nant, const casacore::Vector<int>& ant1,
+  std::vector<int> nsetupSplitUVW (unsigned int nant, const casacore::Vector<int>& ant1,
                               const casacore::Vector<int>& ant2);
 
   // Do the actual splitting of baseline UVWs into station UVWs using

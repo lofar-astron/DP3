@@ -64,7 +64,7 @@ namespace DP3 {
                      const std::vector<casacore::MPosition>& stationPositions);
 
       // get the UVW coordinates for the given baseline and time.
-      casacore::Vector<double> getUVW (uint ant1, uint ant2, double time);
+      casacore::Vector<double> getUVW (unsigned int ant1, unsigned int ant2, double time);
 
     private:
       casacore::MDirection              itsPhaseDir;

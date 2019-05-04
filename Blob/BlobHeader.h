@@ -91,7 +91,7 @@ namespace DP3 {
       
     public:
       // Construct for the given name and version.
-      BlobHeader (int version=0, uint level=0);
+      BlobHeader (int version=0, unsigned int level=0);
       
       // Get the data format.
       DP3::DataFormat getDataFormat() const
@@ -120,11 +120,11 @@ namespace DP3 {
 	{ return itsDataFormat != DP3::dataFormat(); }
       
       // Get the offset of the length.
-      uint lengthOffset() const
+      unsigned int lengthOffset() const
         { return 0; }
       
       // Get the name length.
-      uint getNameLength() const
+      unsigned int getNameLength() const
 	{ return itsNameLength; }
       
       // Get the begin-of-blob magic value.
@@ -139,7 +139,7 @@ namespace DP3 {
 	{ return itsMagicValue == bobMagicValue(); }
       
       // Get the length of the total header (thus including objecttype).
-      uint getHeaderLength() const
+      unsigned int getHeaderLength() const
 	{ return sizeof(BlobHeader) + itsNameLength; }
       
     private:

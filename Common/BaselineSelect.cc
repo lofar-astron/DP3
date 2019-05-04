@@ -60,7 +60,7 @@ namespace DP3 {
       Matrix<bool> bl(nant, nant, false);
       vector<uInt> rows;
       rows.reserve (nant*nant);
-      for (uint i=0; i<a1.size(); ++i) {
+      for (unsigned int i=0; i<a1.size(); ++i) {
         if (! bl(a1[i], a2[i])) {
           rows.push_back (i);
           bl(a1[i], a2[i]) = true;
@@ -133,7 +133,7 @@ namespace DP3 {
       Vector<Int> a2 = ROScalarColumn<Int>(seltab, "ANTENNA2").getColumn();
       int nant = anttab.nrow();
       Matrix<bool> bl(nant, nant, false);
-      for (uint i=0; i<a1.size(); ++i) {
+      for (unsigned int i=0; i<a1.size(); ++i) {
         bl(a1[i], a2[i]) = true;
         bl(a2[i], a1[i]) = true;
       }

@@ -194,8 +194,10 @@ set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
 set(DPPP_GLOBAL_SOVERSION 2)
 
 add_subdirectory(DPPP)
-add_subdirectory(TestDynDPPP)
-add_subdirectory(PythonDPPP)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  add_subdirectory(TestDynDPPP)
+  add_subdirectory(PythonDPPP)
+endif()
 # SPW Combine has dependencies to LOFAR
 #add_subdirectory(SPWCombine)
 

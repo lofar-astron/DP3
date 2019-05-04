@@ -74,7 +74,7 @@ namespace BBS {
     // Get the parameter values for the given parameters and domain.
     // It throws a "not implemented" exception.
     virtual void getValues (std::vector<ParmValueSet>& values,
-                            const std::vector<uint>& nameIds,
+                            const std::vector<unsigned int>& nameIds,
                             const std::vector<ParmId>& parmIds,
                             const Box& domain);
 

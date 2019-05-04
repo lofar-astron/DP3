@@ -163,7 +163,7 @@ namespace DP3 {
 
       CalType          itsMode;
 
-      uint             itsDebugLevel;
+      unsigned int             itsDebugLevel;
       bool             itsDetectStalling;
 
       bool             itsApplySolution;
@@ -197,22 +197,22 @@ namespace DP3 {
 
       std::map<std::string,int>  itsParmIdMap; //# -1 = new parm name
 
-      uint             itsMaxIter;
+      unsigned int             itsMaxIter;
       double           itsTolerance;
       bool             itsPropagateSolutions;
-      uint             itsSolInt;  // Time cell size
-      uint             itsNChan;   // Frequency cell size
-      uint             itsNFreqCells;
+      unsigned int             itsSolInt;  // Time cell size
+      unsigned int             itsNChan;   // Frequency cell size
+      unsigned int             itsNFreqCells;
 
-      uint             itsTimeSlotsPerParmUpdate;
-      uint             itsConverged;
-      uint             itsNonconverged;
-      uint             itsFailed;
-      uint             itsStalled;
-      std::vector<uint>     itsNIter; // Total iterations made (for converged, stalled, nonconverged, failed)
-      uint             itsStepInParmUpdate; // Timestep within parameter update
+      unsigned int             itsTimeSlotsPerParmUpdate;
+      unsigned int             itsConverged;
+      unsigned int             itsNonconverged;
+      unsigned int             itsFailed;
+      unsigned int             itsStalled;
+      std::vector<unsigned int>     itsNIter; // Total iterations made (for converged, stalled, nonconverged, failed)
+      unsigned int             itsStepInParmUpdate; // Timestep within parameter update
       double           itsChunkStartTime; // First time value of chunk to be stored
-      uint             itsStepInSolInt;  // Timestep within solint
+      unsigned int             itsStepInSolInt;  // Timestep within solint
 
       casacore::Array<casacore::DComplex>  itsAllSolutions; // Array that holds all solutions for all iterations
 

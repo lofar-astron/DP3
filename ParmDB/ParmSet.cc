@@ -44,7 +44,7 @@ namespace BBS {
     itsParms.push_back (ParmKey(&parmdb, name, nameId, parmId));
     itsNames.insert (make_pair(name, parmId));
     // If needed, add its ParmDB to the list of used ParmDBs.
-    uint i;
+    unsigned int i;
     for (i=0; i<itsDBs.size(); ++i) {
       if (&parmdb == itsDBs[i]) {
         break;
@@ -72,18 +72,18 @@ namespace BBS {
       return;      // nothing to do
     }
     assert (vsets.size() < itsParms.size());
-    uint todo = itsParms.size() - vsets.size();
-    uint start = vsets.size();
+    unsigned int todo = itsParms.size() - vsets.size();
+    unsigned int start = vsets.size();
     vsets.resize (itsParms.size());
-    std::vector<uint>   nameIds;
+    std::vector<unsigned int>   nameIds;
     std::vector<ParmId> parmIds;
     nameIds.reserve (todo);
     parmIds.reserve (todo);
     // Get values for all new parameters.
     // Do it in order of ParmDB to query as little as possible.
-    for (uint i=0; i<itsDBs.size(); ++i) {
+    for (unsigned int i=0; i<itsDBs.size(); ++i) {
       ParmDB* pdb = itsDBs[i];
-      for (uint j=start; j<itsParms.size(); ++j) {
+      for (unsigned int j=start; j<itsParms.size(); ++j) {
         if (itsParms[j].getParmDBPtr() == pdb) {
           int nameid = itsParms[j].getNameId();
           ParmId parmid = itsParms[j].getParmId();
@@ -112,7 +112,7 @@ namespace BBS {
     }
   }
 
-  void ParmSet::write (uint parmId, ParmValueSet& pvset)
+  void ParmSet::write (unsigned int parmId, ParmValueSet& pvset)
   {
     ParmDB* pdb = const_cast<ParmDB*>(itsParms[parmId].getParmDBPtr());
     pdb->putValues (itsParms[parmId].getName(),

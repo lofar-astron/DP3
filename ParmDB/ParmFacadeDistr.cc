@@ -258,10 +258,10 @@ namespace DP3 {
 
     void ParmFacadeDistr::checkNames (const vector<string>& firstNames,
                                       const vector<string>& names,
-                                      uint inx) const
+                                      unsigned int inx) const
     {
       bool same = (names.size() == firstNames.size());
-      uint i=0;
+      unsigned int i=0;
       while (same  &&  i<names.size()) {
         same = (names[i] == firstNames[i]);
         ++i;
@@ -512,7 +512,7 @@ namespace DP3 {
     {
       for (vector<Record>::const_iterator iter=recs.begin();
            iter!=recs.end(); ++iter) {
-        for (uint i=0; i<iter->nfields(); ++i) {
+        for (unsigned int i=0; i<iter->nfields(); ++i) {
           names.insert (iter->name(i));
         }
       }
@@ -534,7 +534,7 @@ namespace DP3 {
       errors.reserve (recs.size());
       fcenters.reserve (recs.size());
       fwidths.reserve (recs.size());
-      uint ntime=0;
+      unsigned int ntime=0;
       bool haveErrors = false;
       for (vector<Record>::const_iterator iter=recs.begin();
            iter!=recs.end(); ++iter) {
@@ -570,14 +570,14 @@ namespace DP3 {
       GenSortIndirect<double>::sort (indexf, &(freqs[0]), freqs.size());
       // Get the unique frequency domains.
       // This is needed because sometimes BBS solves (partially) globally.
-      vector<uint> index;
+      vector<unsigned int> index;
       index.reserve (indexf.size());
       // The first one always has to be used.
       index.push_back (indexf[0]);
       const Array<double>* lastUsed = &fcenters[indexf[0]];
-      uint nfreq = lastUsed->size();
-      for (uint i=1; i<indexf.size(); ++i) {
-        uint inx = indexf[i];
+      unsigned int nfreq = lastUsed->size();
+      for (unsigned int i=1; i<indexf.size(); ++i) {
+        unsigned int inx = indexf[i];
         const Array<double>& arr = fcenters[inx];
         if (arr.size() != lastUsed->size()  ||
             !allNear (arr, *lastUsed, 1e-10)) {
@@ -606,8 +606,8 @@ namespace DP3 {
       // it can be 4D. In that case the first 2 dims are the funklet shape.
       // Get shape from first array.
       IPosition shape = values[index[0]].shape();
-      uint ndim = shape.size();
-      uint nelem = (ndim <= 2  ?  1 : shape[0]*shape[1]);
+      unsigned int ndim = shape.size();
+      unsigned int nelem = (ndim <= 2  ?  1 : shape[0]*shape[1]);
       shape[ndim-2] = nfreq;
       shape[ndim-1] = ntime;
       Array<double> data(shape);
@@ -624,9 +624,9 @@ namespace DP3 {
       // We do the copying ourselves instead of using Array sectioning.
       // It is faster and about as easy to write as we know that all Arrays
       // are contiguous.
-      for (uint i=0; i<index.size(); ++i) {
-        uint inx = index[i];
-        uint nf = fcenters[inx].size();
+      for (unsigned int i=0; i<index.size(); ++i) {
+        unsigned int inx = index[i];
+        unsigned int nf = fcenters[inx].size();
         memcpy (fcp, fcenters[inx].data(), nf*sizeof(double));
         memcpy (fwp, fwidths[inx].data(),  nf*sizeof(double));
         fcp += nf;
@@ -634,7 +634,7 @@ namespace DP3 {
         // Copy values.
         double* to = dtp;
         const double* from = values[inx].data();
-        for (uint j=0; j<ntime; ++j) {
+        for (unsigned int j=0; j<ntime; ++j) {
           memcpy (to, from, nf*nelem*sizeof(double));
           to += nfreq*nelem;
           from += nf*nelem;
@@ -644,7 +644,7 @@ namespace DP3 {
           // Copy errors.
           double* to = etp;
           const double* from = errors[inx].data();
-          for (uint j=0; j<ntime; ++j) {
+          for (unsigned int j=0; j<ntime; ++j) {
             memcpy (to, from, nf*nelem*sizeof(double));
             to += nfreq*nelem;
             from += nf*nelem;

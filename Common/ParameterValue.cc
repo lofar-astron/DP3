@@ -35,8 +35,8 @@ namespace DP3 {
     : itsValue (value)
   {
     if (trim) {
-      uint st  = lskipws (0, itsValue.size());
-      uint end = rskipws (st, itsValue.size());
+      unsigned int st  = lskipws (0, itsValue.size());
+      unsigned int end = rskipws (st, itsValue.size());
       if (st > 0  ||  end < itsValue.size()) {
         itsValue = itsValue.substr(st, end-st);
       }
@@ -48,7 +48,7 @@ namespace DP3 {
     return ParameterValue (expandArrayString (itsValue));
   }
 
-  std::vector<ParameterValue> ParameterValue::splitValue (uint st, uint last) const
+  std::vector<ParameterValue> ParameterValue::splitValue (unsigned int st, unsigned int last) const
   {
     // Allocate result.
     // Empty result if only whitespace left.
@@ -62,7 +62,7 @@ namespace DP3 {
     int nrpar=0;
     int nrbracket=0;
     int nrbrace=0;
-    uint i = st;
+    unsigned int i = st;
     while (i < last) {
       if (itsValue[i] == '\''  ||  itsValue[i] == '"') {
         i = skipQuoted (itsValue, i);
@@ -103,8 +103,8 @@ namespace DP3 {
 
   std::vector<ParameterValue> ParameterValue::getVector() const
   {
-    uint st   = 1;
-    uint last = itsValue.size() - 1;
+    unsigned int st   = 1;
+    unsigned int last = itsValue.size() - 1;
     // An empty string is an empty vector.
     if (itsValue.empty()) {
       return std::vector<ParameterValue>();
@@ -122,8 +122,8 @@ namespace DP3 {
 
   ParameterRecord ParameterValue::getRecord() const
   {
-    uint st   = 1;
-    uint last = itsValue.size() - 1;
+    unsigned int st   = 1;
+    unsigned int last = itsValue.size() - 1;
     if (itsValue.size() < 2 || itsValue[0] != '{' ||
                itsValue[last] != '}')
       throw ParException("Invalid record specification in value '"
@@ -134,7 +134,7 @@ namespace DP3 {
     for (std::vector<ParameterValue>::const_iterator iter = values.begin();
          iter!=values.end(); ++iter) {
       const std::string& str = iter->get();
-      uint st = 0;
+      unsigned int st = 0;
       if (str[0] == '"'  ||  str[0] == '\'') {
         st = skipQuoted (str, 0);
       }
@@ -156,9 +156,9 @@ namespace DP3 {
   {
     // Remove possible quotes used to escape special chars in the value.
     std::string result;
-    uint end = itsValue.size();
-    uint pos = 0;
-    uint stv = 0;
+    unsigned int end = itsValue.size();
+    unsigned int pos = 0;
+    unsigned int stv = 0;
     while (pos < end) {
       if (itsValue[pos] == '"'  ||  itsValue[pos] == '\'') {
         if (stv < pos) {
@@ -205,10 +205,10 @@ namespace DP3 {
     return result;
   }
 
-  std::vector<uint> ParameterValue::getUintVector() const
+  std::vector<unsigned int> ParameterValue::getUintVector() const
   {
     std::vector<ParameterValue> vec (getVector());
-    std::vector<uint> result;
+    std::vector<unsigned int> result;
     result.reserve (vec.size());
     for (std::vector<ParameterValue>::const_iterator iter = vec.begin();
          iter != vec.end(); ++iter) {

@@ -94,7 +94,7 @@ private:
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
-  uint itsTimeStep, itsNBl, itsNChan, itsNCorr;
+  unsigned int itsTimeStep, itsNBl, itsNChan, itsNCorr;
   vector<double> itsTimes;
   vector<bool> itsFlags;
   double itsTimeInterval;
@@ -125,7 +125,7 @@ private:
 
   vector<double> itsTimes;
   vector<bool> itsFlags;
-  uint itsTimeStep;
+  unsigned int itsTimeStep;
   double itsTimeInterval;
 };
 
