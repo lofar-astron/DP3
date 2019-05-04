@@ -34,9 +34,9 @@ using namespace std;
 void testCasa (size_t sz, size_t n)
 {
   Timer timer;
-  for (uint i=0; i<n; ++i) {
+  for (unsigned int i=0; i<n; ++i) {
     vector<float> vec(sz);
-    uint j=0;
+    unsigned int j=0;
     for (vector<float>::iterator iter=vec.begin(); iter!=vec.end(); ++iter) {
       *iter = j++;
     }
@@ -48,9 +48,9 @@ void testCasa (size_t sz, size_t n)
 void testStl (size_t sz, size_t n)
 {
   Timer timer;
-  for (uint i=0; i<n; ++i) {
+  for (unsigned int i=0; i<n; ++i) {
     vector<float> vec(sz);
-    uint j=0;
+    unsigned int j=0;
     for (vector<float>::iterator iter=vec.begin(); iter!=vec.end(); ++iter) {
       *iter = j++;
     }

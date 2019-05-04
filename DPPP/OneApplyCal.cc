@@ -403,9 +403,9 @@ namespace DP3 {
       ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         for (size_t chan=0;chan<nchan;chan++) {
-          uint timeFreqOffset=(itsTimeStep*info().nchan())+chan;
-          uint antA = info().getAnt1()[bl];
-          uint antB = info().getAnt2()[bl];
+          unsigned int timeFreqOffset=(itsTimeStep*info().nchan())+chan;
+          unsigned int antA = info().getAnt1()[bl];
+          unsigned int antB = info().getAnt2()[bl];
           if (itsParms.shape()[0]>2) {
             ApplyCal::applyFull( &itsParms(0, antA, timeFreqOffset),
                        &itsParms(0, antB, timeFreqOffset),
@@ -454,7 +454,7 @@ namespace DP3 {
 
     void OneApplyCal::updateParms (const double bufStartTime, std::mutex* hdf5Mutex)
     {
-      uint numAnts = info().antennaNames().size();
+      unsigned int numAnts = info().antennaNames().size();
 
       // itsParms contains the parameters to a grid, first for all parameters
       // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq * time
@@ -465,7 +465,7 @@ namespace DP3 {
         parmvalues[i].resize(numAnts);
       }
 
-      uint numFreqs         (info().chanFreqs().size());
+      unsigned int numFreqs         (info().chanFreqs().size());
       double freqInterval  (info().chanWidths()[0]);
       if (numFreqs>1) { // Handle data with evenly spaced gaps between channels
         freqInterval = info().chanFreqs()[1]-info().chanFreqs()[0];
@@ -474,7 +474,7 @@ namespace DP3 {
       double maxFreq (info().chanFreqs()[numFreqs-1]+0.5*freqInterval);
       itsLastTime = bufStartTime - 0.5*itsTimeInterval + 
                     itsTimeSlotsPerParmUpdate * itsTimeInterval;
-      uint numTimes = itsTimeSlotsPerParmUpdate;
+      unsigned int numTimes = itsTimeSlotsPerParmUpdate;
 
       double lastMSTime = info().startTime() + info().ntime() * itsTimeInterval;
       if (itsLastTime > lastMSTime && !nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
@@ -485,7 +485,7 @@ namespace DP3 {
       std::map<std::string, std::vector<double> > parmMap;
       std::map<std::string, std::vector<double> >::iterator parmIt;
 
-      uint tfDomainSize=numTimes*numFreqs;
+      unsigned int tfDomainSize=numTimes*numFreqs;
 
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
@@ -505,20 +505,20 @@ namespace DP3 {
         assert(freqvariesfastest);
 
         vector<double> times(info().ntime());
-        for (uint t=0; t<times.size(); ++t) {
+        for (unsigned int t=0; t<times.size(); ++t) {
           // time centroids
           times[t] = info().startTime() + (t+0.5) * info().timeInterval();
         }
         vector<double> freqs(info().chanFreqs().size());
-        for (uint ch=0; ch<info().chanFreqs().size(); ++ch) {
+        for (unsigned int ch=0; ch<info().chanFreqs().size(); ++ch) {
           freqs[ch] = info().chanFreqs()[ch];
         }
 
         vector<double> weights;
-        for (uint ant = 0; ant < numAnts; ++ant) {
+        for (unsigned int ant = 0; ant < numAnts; ++ant) {
           if(itsCorrectType == FULLJONES)
           {
-            for (uint pol=0; pol<4; ++pol) {
+            for (unsigned int pol=0; pol<4; ++pol) {
               // Place amplitude in even and phase in odd elements
               parmvalues[pol*2][ant] = itsSolTab.getValuesOrWeights("val",
                 info().antennaNames()[ant],
@@ -539,7 +539,7 @@ namespace DP3 {
             }
           }
           else {
-            for (uint pol=0; pol<itsParmExprs.size(); ++pol) {
+            for (unsigned int pol=0; pol<itsParmExprs.size(); ++pol) {
               parmvalues[pol][ant] = itsSolTab.getValuesOrWeights("val",
                 info().antennaNames()[ant],
                 times, freqs,
@@ -552,7 +552,7 @@ namespace DP3 {
           }
         }
       } else { // Use ParmDB
-        for (uint parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
+        for (unsigned int parmExprNum = 0; parmExprNum<itsParmExprs.size();++parmExprNum) {
           // parmMap contains parameter values for all antennas
           parmMap = itsParmDB->getValuesMap( itsParmExprs[parmExprNum] + "{:phase_center,}*",
                                  minFreq, maxFreq, freqInterval,
@@ -565,7 +565,7 @@ namespace DP3 {
           if (!parmMap.empty() &&
               parmExpr.find("{Common,}") != string::npos) {
             // Take the name of the first parm, e.g. Bla:CS001, and remove the antenna name
-            uint colonPos = (parmMap.begin()->first).find(":");
+            unsigned int colonPos = (parmMap.begin()->first).find(":");
             parmExpr = (parmMap.begin()->first).substr(0, colonPos);
           }
           
@@ -579,7 +579,7 @@ namespace DP3 {
             }
           }
 
-          for (uint ant = 0; ant < numAnts; ++ant) {
+          for (unsigned int ant = 0; ant < numAnts; ++ant) {
             parmIt = parmMap.find(parmExpr + ":" + string(info().antennaNames()[ant])
                                    + name_postfix);
 
@@ -610,7 +610,7 @@ namespace DP3 {
               }
 
               parmvalues[parmExprNum][ant].resize(tfDomainSize);
-              for (uint tf=0; tf<tfDomainSize;++tf) {
+              for (unsigned int tf=0; tf<tfDomainSize;++tf) {
                 parmvalues[parmExprNum][ant][tf]=defValue;
               }
             }
@@ -623,8 +623,8 @@ namespace DP3 {
       double freq;
 
       // Make parameters complex
-      for (uint tf=0;tf<tfDomainSize;++tf) {
-        for (uint ant=0;ant<numAnts;++ant) {
+      for (unsigned int tf=0;tf<tfDomainSize;++tf) {
+        for (unsigned int ant=0;ant<numAnts;++ant) {
 
           freq=info().chanFreqs()[tf % numFreqs];
 
@@ -745,7 +745,7 @@ namespace DP3 {
       }
     }
 
-    uint OneApplyCal::nPol(const string& parmName) {
+    unsigned int OneApplyCal::nPol(const string& parmName) {
       if (itsUseH5Parm) {
         if (!itsSolTab.hasAxis("pol")) {
           return 1;
@@ -763,10 +763,10 @@ namespace DP3 {
     }
 
     void OneApplyCal::initDataArrays() {
-      uint numAnts=info().antennaNames().size();
-      uint tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
+      unsigned int numAnts=info().antennaNames().size();
+      unsigned int tfDomainSize=itsTimeSlotsPerParmUpdate*info().chanFreqs().size();
 
-      uint numParms;
+      unsigned int numParms;
       if (itsCorrectType==FULLJONES ||
           itsCorrectType==ROTATIONANGLE ||
           itsCorrectType==ROTATIONMEASURE) {

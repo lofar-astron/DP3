@@ -57,10 +57,10 @@ namespace DP3 {
     // Initialize the solution to the defaultGain for sources/stations not to solve.
     // Set to 0 and diagonal to defaultGaib for solvable ones if no propagation.
     void EstimateNew::initSolution (const vector<vector<int> >& unknownsIndex,
-                                    const vector<uint>& srcSet,
+                                    const vector<unsigned int>& srcSet,
                                     double defaultGain)
     {
-      uint dr=0;
+      unsigned int dr=0;
       double* solution = &(itsSolution[0]);
       for (size_t i=0; i<itsNrDir; ++i) {
         if (dr < srcSet.size()  &&  srcSet[dr] == i) {
@@ -92,9 +92,9 @@ namespace DP3 {
     // Clear the solution for unsolvable stations
     // (essentially changing defaultGain to 0).
     void EstimateNew::clearNonSolvable (const vector<vector<int> >& unknownsIndex,
-                                        const vector<uint>& srcSet)
+                                        const vector<unsigned int>& srcSet)
     {
-      uint dr=0;
+      unsigned int dr=0;
       double* solution = &(itsSolution[0]);
       for (size_t i=0; i<itsNrDir; ++i) {
         if (dr < srcSet.size()  &&  srcSet[dr] == i) {
@@ -115,7 +115,7 @@ namespace DP3 {
     }
 
     void EstimateNew::fillSolution (const vector<vector<int> >& unknownsIndex,
-                                    const vector<uint>& srcSet)
+                                    const vector<unsigned int>& srcSet)
     {
       // Copy the solution for the direction-stations to solve.
       // Note that the solution vector contains all possible sources/stations.
@@ -144,7 +144,7 @@ namespace DP3 {
     // x 2 (scalar) unknowns = (no. of directions) x 8. For each of these
     // unknowns the value of the partial derivative of the model with respect
     // to the unknown has to be computed.
-    uint EstimateNew::fillDerivIndex (size_t ndir,
+    unsigned int EstimateNew::fillDerivIndex (size_t ndir,
                                       const vector<vector<int> >& unknownsIndex,
                                       const Baseline& baseline)
     {
@@ -178,7 +178,7 @@ namespace DP3 {
     // Note that the cursors are passed by value, so a copy is made.
     // In this way no explicit reset of the cursor is needed on a next call.
     bool EstimateNew::estimate (const vector<vector<int> >& unknownsIndex,
-                                const vector<uint>& srcSet,
+                                const vector<unsigned int>& srcSet,
                                 const_cursor<Baseline> baselines,
                                 vector<const_cursor<fcomplex> > data,
                                 vector<const_cursor<dcomplex> > model,
@@ -187,7 +187,7 @@ namespace DP3 {
                                 const_cursor<dcomplex> mix,
                                 double defaultGain,
                                 bool solveBoth,
-                                uint verbose)
+                                unsigned int verbose)
     {
       initSolution (unknownsIndex, srcSet, defaultGain);
       // Determine if a station has to be solved for any source.
@@ -195,7 +195,7 @@ namespace DP3 {
       size_t nUnknowns = 0;
       const size_t nDirection = srcSet.size();
       for (size_t dr=0; dr<nDirection; ++dr) {
-        uint drOrig = srcSet[dr];
+        unsigned int drOrig = srcSet[dr];
         const double* solution = &(itsSolution[drOrig*itsNrStations*8]);
         for (size_t st=0; st<itsNrStations; ++st) {
           if (unknownsIndex[dr][st] >= 0) {
@@ -233,7 +233,7 @@ namespace DP3 {
             // Generate equations for each channel.
             for (size_t ch=0; ch<itsNrChannels; ++ch) {
               for (size_t dr=0; dr<nDirection; ++dr) {
-                uint drOrig = srcSet[dr];
+                unsigned int drOrig = srcSet[dr];
                 // Jones matrix for station P.
                 const double *Jp = &(itsSolution[(drOrig*itsNrStations + p)*8]);
                 const dcomplex Jp_00(Jp[0], Jp[1]);
@@ -389,7 +389,7 @@ namespace DP3 {
                     if (verbose > 14) {
                       cout<<"makeres "<<real(residual)<<' '<<weight[cr]
                           <<' '<<nPartial;
-                      for (uint i=0; i<nPartial; ++i) {
+                      for (unsigned int i=0; i<nPartial; ++i) {
                         cout << ' '<<itsDerivIndex[cr*nPartial+i]<<' '<<itsdR[i];
                       }
                       cout<<endl;

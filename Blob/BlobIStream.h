@@ -167,7 +167,7 @@ namespace DP3 {
       // In this way the next data are aligned.
       // It returns the number of filler bytes used.
       // It is only useful for seekable buffers.
-      uint align (uint n);
+      unsigned int align (unsigned int n);
       
       // Get the current stream position.
       // It returns -1 if the stream is not seekable.
@@ -195,7 +195,7 @@ namespace DP3 {
       bool   itsMustConvert;
       bool   itsHasCachedType;
       uint64_t itsCurLength;
-      uint   itsLevel;
+      unsigned int   itsLevel;
       int    itsVersion;
       // The endian type of the data in the blob.
       DP3::DataFormat  itsDataFormat;

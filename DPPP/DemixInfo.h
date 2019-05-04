@@ -61,25 +61,25 @@ namespace DP3 {
 
       // Get settings.
       //#    0=test 1=include 2=deproject 3=ignore
-      uint   targetHandling() const              {return itsTargetHandling;}
-      uint   verbose() const                     {return itsVerbose;}
-      uint   maxIter() const                     {return itsMaxIter;}
-      uint   minNBaseline() const                {return itsMinNBaseline;}
-      uint   minNStation() const                 {return itsMinNStation;}
-      uint   nstation() const                    {return itsNStation;}
-      uint   nbl() const                         {return itsNBl;}
-      uint   ncorr() const                       {return itsNCorr;}
-      uint   nchanIn() const                     {return itsNChanIn;}
-      uint   nchanAvg() const                    {return itsNChanAvg;}
-      uint   nchanAvgSubtr() const               {return itsNChanAvgSubtr;}
-      uint   nchanOut() const                    {return itsNChanOut;}
-      uint   nchanOutSubtr() const               {return itsNChanOutSubtr;}
-      uint   ntimeAvg() const                    {return itsNTimeAvg;}
-      uint   ntimeAvgSubtr() const               {return itsNTimeAvgSubtr;}
-      uint   ntimeOut() const                    {return itsNTimeOut;}
-      uint   ntimeOutSubtr() const               {return itsNTimeOutSubtr;}
-      uint   ntimeChunk() const                  {return itsNTimeChunk;}
-      uint   chunkSize() const                   {return itsChunkSize;}
+      unsigned int   targetHandling() const              {return itsTargetHandling;}
+      unsigned int   verbose() const                     {return itsVerbose;}
+      unsigned int   maxIter() const                     {return itsMaxIter;}
+      unsigned int   minNBaseline() const                {return itsMinNBaseline;}
+      unsigned int   minNStation() const                 {return itsMinNStation;}
+      unsigned int   nstation() const                    {return itsNStation;}
+      unsigned int   nbl() const                         {return itsNBl;}
+      unsigned int   ncorr() const                       {return itsNCorr;}
+      unsigned int   nchanIn() const                     {return itsNChanIn;}
+      unsigned int   nchanAvg() const                    {return itsNChanAvg;}
+      unsigned int   nchanAvgSubtr() const               {return itsNChanAvgSubtr;}
+      unsigned int   nchanOut() const                    {return itsNChanOut;}
+      unsigned int   nchanOutSubtr() const               {return itsNChanOutSubtr;}
+      unsigned int   ntimeAvg() const                    {return itsNTimeAvg;}
+      unsigned int   ntimeAvgSubtr() const               {return itsNTimeAvgSubtr;}
+      unsigned int   ntimeOut() const                    {return itsNTimeOut;}
+      unsigned int   ntimeOutSubtr() const               {return itsNTimeOutSubtr;}
+      unsigned int   ntimeChunk() const                  {return itsNTimeChunk;}
+      unsigned int   chunkSize() const                   {return itsChunkSize;}
       double timeIntervalAvg() const             {return itsTimeIntervalAvg;}
       double ratio1() const                      {return itsRatio1;}
       double ratio2() const                      {return itsRatio2;}
@@ -164,25 +164,25 @@ namespace DP3 {
       bool                    itsApplyBeam;
       bool                    itsSolveBoth;    //# solve if both stat solvable
       bool                    itsDoSubtract;
-      uint                    itsTargetHandling;
-      uint                    itsVerbose;           //# trace verbosity level
-      uint                    itsMaxIter;           //# max #iter in solve
-      uint                    itsMinNBaseline;      //# min #baselines for solve
-      uint                    itsMinNStation;       //# min #stations for solve
-      uint                    itsNStation;
-      uint                    itsNBl;
-      uint                    itsNCorr;
-      uint                    itsNChanIn;
-      uint                    itsNChanAvgSubtr;     //# subtract averaging
-      uint                    itsNChanAvg;          //# demix averaging
-      uint                    itsNChanOutSubtr;
-      uint                    itsNChanOut;
-      uint                    itsNTimeAvgSubtr;     //# subtract averaging
-      uint                    itsNTimeAvg;          //# demix averaging
-      uint                    itsNTimeOutSubtr;     //# #output times per chunk
-      uint                    itsNTimeOut;          //# #demix times per chunk
-      uint                    itsChunkSize;         //# predict time step
-      uint                    itsNTimeChunk;        //# nr chunks in parallel
+      unsigned int                    itsTargetHandling;
+      unsigned int                    itsVerbose;           //# trace verbosity level
+      unsigned int                    itsMaxIter;           //# max #iter in solve
+      unsigned int                    itsMinNBaseline;      //# min #baselines for solve
+      unsigned int                    itsMinNStation;       //# min #stations for solve
+      unsigned int                    itsNStation;
+      unsigned int                    itsNBl;
+      unsigned int                    itsNCorr;
+      unsigned int                    itsNChanIn;
+      unsigned int                    itsNChanAvgSubtr;     //# subtract averaging
+      unsigned int                    itsNChanAvg;          //# demix averaging
+      unsigned int                    itsNChanOutSubtr;
+      unsigned int                    itsNChanOut;
+      unsigned int                    itsNTimeAvgSubtr;     //# subtract averaging
+      unsigned int                    itsNTimeAvg;          //# demix averaging
+      unsigned int                    itsNTimeOutSubtr;     //# #output times per chunk
+      unsigned int                    itsNTimeOut;          //# #demix times per chunk
+      unsigned int                    itsChunkSize;         //# predict time step
+      unsigned int                    itsNTimeChunk;        //# nr chunks in parallel
       double                  itsTimeIntervalAvg;
       Position                itsPhaseRef;          //# original phaseref
       std::vector<Baseline>        itsBaselines;

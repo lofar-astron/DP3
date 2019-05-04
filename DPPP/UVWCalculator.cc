@@ -83,7 +83,7 @@ namespace DP3 {
       itsUvwFilled = false;
     }
 
-    Vector<double> UVWCalculator::getUVW (uint ant1, uint ant2, double time)
+    Vector<double> UVWCalculator::getUVW (unsigned int ant1, unsigned int ant2, double time)
     {
       // If a different time, we have to calculate the UVWs.
       if (time != itsLastTime) {

@@ -252,7 +252,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                                     imag(residual));
                                 if (sh) {
                                   cout<<"makeres "<<real(residual)<<' '<<weight[cr]<<' '<<nPartial;
-                                  for (uint i=0; i<nPartial; ++i) {
+                                  for (unsigned int i=0; i<nPartial; ++i) {
                                     cout << ' '<<dIndex[cr*nPartial+i]<<' '<<dR[i];
                                   }
                                   cout<<endl;
@@ -324,7 +324,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
         assert(status);
         if (sh) {
           cout<<"solution=[";
-          for (uint i=0; i<nUnknowns; ++i) {
+          for (unsigned int i=0; i<nUnknowns; ++i) {
             cout << unknowns[i]<<',';
           }
           cout<<endl;

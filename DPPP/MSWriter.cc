@@ -91,7 +91,7 @@ namespace DP3 {
     {
       NSTimer::StartStop sstime(itsTimer);
       // Form the vector of the output table containing new rows.
-      Vector<uint> rownrs(itsNrBl);
+      Vector<unsigned int> rownrs(itsNrBl);
       indgen (rownrs, itsMS.nrow());
       // Add the necessary rows to the table.
       itsMS.addRow (itsNrBl);
@@ -229,7 +229,7 @@ namespace DP3 {
     }
 
     void MSWriter::createMS (const string& outName, const DPInfo& info,
-                             uint tileSize, uint tileNChan)
+                             unsigned int tileSize, unsigned int tileNChan)
     {
       // Determine the data shape.
       IPosition dataShape(2, itsNrCorr, itsNrChan);
@@ -312,7 +312,7 @@ namespace DP3 {
                                   IPosition(2, 3, tsmnrow));
       // Test if SSMVar already exists.
       bool hasSSMVar = false;
-      for (uint i=0; i<dminfo.nfields(); ++i) {
+      for (unsigned int i=0; i<dminfo.nfields(); ++i) {
         if (dminfo.subRecord(i).asString("NAME") == "SSMVar") {
           hasSSMVar = true;
           break;
@@ -363,7 +363,7 @@ namespace DP3 {
         // Add LOFAR_FULL_RES_FLAG column using tsm.
         // The input can already be averaged and averaging can be done in
         // this run, so the full resolution is the combination of both.
-        uint orignchan = itsNrChan * itsNChanAvg;
+        unsigned int orignchan = itsNrChan * itsNChanAvg;
         IPosition dataShapeF(2, (orignchan+7)/8, itsNTimeAvg);
         IPosition tileShapeF(3, (orignchan+7)/8, 1024, tileShape[2]);
         TiledColumnStMan tsmf("TiledFullResFlag", tileShapeF);
@@ -443,10 +443,10 @@ namespace DP3 {
       Table outSPW = Table(outName + "/SPECTRAL_WINDOW", Table::Update);
       Table outDD  = Table(outName + "/DATA_DESCRIPTION", Table::Update);
       assert(outSPW.nrow() == outDD.nrow());
-      uint spw = itsReader->spectralWindow();
+      unsigned int spw = itsReader->spectralWindow();
       // Remove all rows before and after the selected band.
       // Do it from the end, otherwise row numbers change.
-      for (uint i=outSPW.nrow(); i>0;) {
+      for (unsigned int i=outSPW.nrow(); i>0;) {
         if (--i != spw) {
           outSPW.removeRow (i);
           outDD.removeRow (i);
@@ -489,7 +489,7 @@ namespace DP3 {
       times[0] = itsReader->firstTime() - 0.5 * itsReader->getInfo().timeInterval();
       times[1] = itsReader->lastTime()  + 0.5 * itsReader->getInfo().timeInterval();
       // There should be one row, but loop in case of.
-      for (uint i=0; i<outObs.nrow(); ++i) {
+      for (unsigned int i=0; i<outObs.nrow(); ++i) {
         timeRange.put (i, times);
       }
     }
@@ -567,7 +567,7 @@ namespace DP3 {
           *viter = iter->first + '=' + iter->second.get();
         }
       }
-      uint rownr = histtab.nrow();
+      unsigned int rownr = histtab.nrow();
       histtab.addRow();
       time.put        (rownr, Time().modifiedJulianDay()*24.*3600.);
       obsId.put       (rownr, 0);
@@ -641,9 +641,9 @@ namespace DP3 {
       const Cube<bool>& flags = itsReader->fetchFullResFlags (buf, itsBuffer,
                                                               itsTimer);
       const IPosition& ofShape = flags.shape();
-      if(uint(ofShape[0]) != itsNChanAvg * itsNrChan)
+      if((unsigned int)(ofShape[0]) != itsNChanAvg * itsNrChan)
         throw Exception(std::to_string(ofShape[0]) + std::to_string(itsNChanAvg) + '*' + std::to_string(itsNrChan));
-      if(uint(ofShape[1]) != itsNTimeAvg)
+      if((unsigned int)(ofShape[1]) != itsNTimeAvg)
         throw Exception(std::to_string(ofShape[1]) + std::to_string(itsNTimeAvg));
       // Convert the bools to uChar bits.
       IPosition chShape(ofShape);

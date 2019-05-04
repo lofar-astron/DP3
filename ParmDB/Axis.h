@@ -64,7 +64,7 @@ namespace BBS {
     // </group>
 
     // Get the unique axis id.
-    uint getId() const
+    unsigned int getId() const
       { return itsId; }
 
     // Get the center, etc. of the i-th cell.
@@ -184,14 +184,14 @@ namespace BBS {
 
 protected:
     // Set up the object for a regular axis.
-    void setup (double start, double width, uint count);
+    void setup (double start, double width, unsigned int count);
     // Set up the object for an irregular axis.
     void setup (const std::vector<double>& v1, const std::vector<double>& v2,
                 bool asStartEnd);
 
     //# Unique seqnr of an Axis object. Used in class AxisMapping.
-    static uint theirId;
-    uint        itsId;
+    static unsigned int theirId;
+    unsigned int        itsId;
     bool        itsIsRegular;
     std::vector<double> itsCenter;
     std::vector<double> itsWidth;
@@ -208,7 +208,7 @@ protected:
     RegularAxis();
 
     // Construct giving the beginning of the axis and the width of each cell.
-    RegularAxis(double begin, double cellWidth, uint count,
+    RegularAxis(double begin, double cellWidth, unsigned int count,
                 bool asStartEnd=false);
 
     virtual ~RegularAxis();

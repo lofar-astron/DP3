@@ -146,12 +146,12 @@ DDECal::DDECal (DPInput* input,
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
       vector<string> patchNames = makePatchList(sourceDB, vector<string>());
       itsDirections.reserve(patchNames.size());
-      for (uint i=0; i<patchNames.size(); ++i) {
+      for (unsigned int i=0; i<patchNames.size(); ++i) {
         itsDirections.emplace_back(1, patchNames[i]);
       }
     } else {
       itsDirections.reserve(strDirections.size());
-      for (uint i=0; i<strDirections.size(); ++i) {
+      for (unsigned int i=0; i<strDirections.size(); ++i) {
         ParameterValue dirStr(strDirections[i]);
         itsDirections.emplace_back(dirStr.getStringVector());
       }
@@ -323,7 +323,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
   itsDataPtrs.resize(itsSolInt);
   itsWeightPtrs.resize(itsSolInt);
   itsModelDataPtrs.resize(itsSolInt);
-  for (uint t=0; t<itsSolInt; ++t) {
+  for (unsigned int t=0; t<itsSolInt; ++t) {
     itsModelDataPtrs[t].resize(nDir);
   }
   for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
@@ -351,7 +351,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
   // Convert from casacore::Vector to std::vector
   vector<int> ant1(info().getAnt1().size());
   vector<int> ant2(info().getAnt2().size());
-  for (uint i=0; i<ant1.size(); ++i) {
+  for (unsigned int i=0; i<ant1.size(); ++i) {
     ant1[i]=info().getAnt1()[i];
     ant2[i]=info().getAnt2()[i];
   }
@@ -359,7 +359,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
   // Fill antenna info in H5Parm, need to convert from casa types to std types
   std::vector<std::string> antennaNames(info().antennaNames().size());
   std::vector<std::vector<double> > antennaPos(info().antennaPos().size());
-  for (uint i=0; i<info().antennaNames().size(); ++i) {
+  for (unsigned int i=0; i<info().antennaNames().size(); ++i) {
     antennaNames[i]=info().antennaNames()[i];
     casacore::Quantum<casacore::Vector<double> > pos = info().antennaPos()[i].get("m");
     antennaPos[i].resize(3);
@@ -384,7 +384,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
       sourcePositions[i] = itsFacetPredictor->Direction(i);
     }
   } else {
-    for (uint i=0; i<itsDirections.size(); ++i) {
+    for (unsigned int i=0; i<itsDirections.size(); ++i) {
       sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
     }
   }
@@ -416,7 +416,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
 
   itsWeightsPerAntenna.assign(itsChanBlockFreqs.size()*info().nantenna(), 0.0);
 
-  for (uint i=0; i<itsConstraints.size();++i) {
+  for (unsigned int i=0; i<itsConstraints.size();++i) {
     // Initialize the constraint with some common metadata
     itsConstraints[i]->InitializeDimensions(info().antennaNames().size(),
                                             itsDirections.size(),
@@ -491,11 +491,11 @@ void DDECal::updateInfo (const DPInfo& infoIn)
     }
   }
 
-  uint nSt = info().antennaNames().size();
+  unsigned int nSt = info().antennaNames().size();
   itsMultiDirSolver.init(nSt, nDir, info().nchan(), ant1, ant2);
   itsMultiDirSolver.set_channel_blocks(nChannelBlocks);
 
-  for (uint i=0; i<nSolTimes; ++i) {
+  for (unsigned int i=0; i<nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
   }
 }
@@ -529,7 +529,7 @@ void DDECal::show (std::ostream& os) const
     << "  approximate fitter:  " << itsApproximateTEC << '\n'
     << "  only predict:        " << itsOnlyPredict << '\n'
     << "  subtract model:      " << itsSubtract << '\n';
-  for (uint i=0; i<itsPredictSteps.size(); ++i) {
+  for (unsigned int i=0; i<itsPredictSteps.size(); ++i) {
     itsPredictSteps[i].show(os);
   }
   itsUVWFlagStep.show(os);
@@ -557,7 +557,7 @@ void DDECal::showTimings (std::ostream& os, double duration) const
   os << " of it spent in writing gain solutions to disk" << endl;
 
   os << "Iterations taken: [";
-  for (uint i=0; i<itsNIter.size()-1; ++i) {
+  for (unsigned int i=0; i<itsNIter.size()-1; ++i) {
     os<<itsNIter[i];
     if(itsNApproxIter[i]!=0)
       os << '|' << itsNApproxIter[i];
@@ -767,7 +767,7 @@ void DDECal::doSolve ()
 
   // Store constraint solutions if any constaint has a non-empty result
   bool someConstraintHasResult = false;
-  for (uint constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
+  for (unsigned int constraintnum=0; constraintnum<solveResult._results.size(); ++constraintnum) {
     if (!solveResult._results[constraintnum].empty()) {
       someConstraintHasResult = true;
       break;
@@ -946,19 +946,19 @@ void DDECal::writeSolutions()
   itsTimer.start();
   itsTimerWrite.start();
 
-  uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
-  uint nDir = itsDirections.size();
+  unsigned int nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
+  unsigned int nDir = itsDirections.size();
   assert(nSolTimes==itsSols.size());
   vector<double> solTimes(nSolTimes);
   double starttime=info().startTime();
-  for (uint t=0; t<nSolTimes; ++t) {
+  for (unsigned int t=0; t<nSolTimes; ++t) {
     solTimes[t] = starttime+(t+0.5)*info().timeInterval()*itsSolInt;
   }
 
   if (itsConstraintSols[0].empty()) {
     // Record the actual iterands of the solver, not constraint results
 
-    uint nPol;
+    unsigned int nPol;
 
     vector<string> polarizations;
     if(itsMode == GainCal::DIAGONAL ||
@@ -977,7 +977,7 @@ void DDECal::writeSolutions()
       nPol = 1;
     }
 
-    uint nSolChan = itsSols[0].size();
+    unsigned int nSolChan = itsSols[0].size();
     assert(nSolChan == itsChanBlockFreqs.size());
 
     vector<DComplex> sols(nSolChan*info().nantenna()*nSolTimes*nDir*nPol);
@@ -986,14 +986,14 @@ void DDECal::writeSolutions()
     // For nPol=1, loop over pol runs just once
     // For nPol=2, it runs over values 0 and 2 (picking diagonal elements from 4 pols)
     // For nPol=4, it runs over 0, 1, 2, 3
-    uint polIncr= (itsMode==GainCal::FULLJONES?1:3);
-    uint maxPol = (nPol>1?4:1);
+    unsigned int polIncr= (itsMode==GainCal::FULLJONES?1:3);
+    unsigned int maxPol = (nPol>1?4:1);
     // Put solutions in a contiguous piece of memory
-    for (uint time=0; time<nSolTimes; ++time) {
-      for (uint chan=0; chan<nSolChan; ++chan) {
-        for (uint ant=0; ant<info().nantenna(); ++ant) {
-          for (uint dir=0; dir<nDir; ++dir) {
-            for (uint pol=0; pol<maxPol; pol+=polIncr) {
+    for (unsigned int time=0; time<nSolTimes; ++time) {
+      for (unsigned int chan=0; chan<nSolChan; ++chan) {
+        for (unsigned int ant=0; ant<info().nantenna(); ++ant) {
+          for (unsigned int dir=0; dir<nDir; ++dir) {
+            for (unsigned int pol=0; pol<maxPol; pol+=polIncr) {
               assert(!itsSols[time].empty());
               assert(!itsSols[time][chan].empty());
               assert(time<itsSols.size());
@@ -1019,13 +1019,13 @@ void DDECal::writeSolutions()
     string historyString = "CREATE by DPPP\n" +
         DPPPVersion::AsString() + "\n" +
         "step " + itsName + " in parset: \n" + itsParsetString;
-    uint numsols = 1;
+    unsigned int numsols = 1;
     // For [scalar]complexgain, store two soltabs: phase and amplitude
     if (itsMode == GainCal::DIAGONAL ||
         itsMode == GainCal::SCALARCOMPLEXGAIN || itsMode == GainCal::FULLJONES) {
       numsols = 2;
     }
-    for (uint solnum=0; solnum<numsols; ++solnum) {
+    for (unsigned int solnum=0; solnum<numsols; ++solnum) {
       string solTabName;
       H5Parm::SolTab soltab;
       switch (itsMode) {
@@ -1066,7 +1066,7 @@ void DDECal::writeSolutions()
 
       // Tell H5Parm that all antennas and directions were used
       std::vector<std::string> antennaNames(info().antennaNames().size());
-      for (uint i=0; i<info().antennaNames().size(); ++i) {
+      for (unsigned int i=0; i<info().antennaNames().size(); ++i) {
         antennaNames[i]=info().antennaNames()[i];
       }
       soltab.setAntennas(antennaNames);
@@ -1082,19 +1082,19 @@ void DDECal::writeSolutions()
   } else {
     // Record the Constraint::Result in the H5Parm
 
-    uint nConstraints = itsConstraintSols[0].size();
+    unsigned int nConstraints = itsConstraintSols[0].size();
 
-    for (uint constraintNum=0; constraintNum<nConstraints; ++constraintNum) {
+    for (unsigned int constraintNum=0; constraintNum<nConstraints; ++constraintNum) {
       // Number of solution names, e.g. 2 for "TEC" and "ScalarPhase"
-      uint nSolNames = itsConstraintSols[0][constraintNum].size();
-      for (uint solNameNum=0; solNameNum<nSolNames; ++solNameNum) {
+      unsigned int nSolNames = itsConstraintSols[0][constraintNum].size();
+      for (unsigned int solNameNum=0; solNameNum<nSolNames; ++solNameNum) {
         // Get the result of the constraint solution at first time to get metadata
         Constraint::Result firstResult = itsConstraintSols[0][constraintNum][solNameNum];
 
         vector<hsize_t> dims(firstResult.dims.size()+1); // Add time dimension at beginning
         dims[0]=itsConstraintSols.size(); // Number of times
         size_t numSols=dims[0];
-        for (uint i=1; i<dims.size(); ++i) {
+        for (unsigned int i=1; i<dims.size(); ++i) {
           dims[i] = firstResult.dims[i-1];
           numSols *= dims[i];
         }
@@ -1110,7 +1110,7 @@ void DDECal::writeSolutions()
         // Put solutions in a contiguous piece of memory
         vector<double> sols(numSols);
         vector<double>::iterator nextpos = sols.begin();
-        for (uint time=0; time<itsSols.size(); ++time) {
+        for (unsigned int time=0; time<itsSols.size(); ++time) {
           if(itsConstraintSols[time].size()!=itsConstraintSols[0].size())
             throw std::runtime_error("Constraints did not produce enough output at time step " + std::to_string(time));
           nextpos = std::copy(
@@ -1124,7 +1124,7 @@ void DDECal::writeSolutions()
         if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
           weights.resize(numSols);
           vector<double>::iterator nextpos = weights.begin();
-          for (uint time=0; time<itsSols.size(); ++time) {
+          for (unsigned int time=0; time<itsSols.size(); ++time) {
             nextpos = std::copy(
               itsConstraintSols[time][constraintNum][solNameNum].weights.begin(),
               itsConstraintSols[time][constraintNum][solNameNum].weights.end(),
@@ -1142,7 +1142,7 @@ void DDECal::writeSolutions()
 
         // Tell H5Parm that all antennas and directions were used
         std::vector<std::string> antennaNames(info().antennaNames().size());
-        for (uint i=0; i<info().antennaNames().size(); ++i) {
+        for (unsigned int i=0; i<info().antennaNames().size(); ++i) {
           antennaNames[i]=info().antennaNames()[i];
         }
         soltab.setAntennas(antennaNames);
@@ -1169,7 +1169,7 @@ void DDECal::writeSolutions()
 
         // Set channel to frequencies
         // Do not use itsChanBlockFreqs, because constraint may have changed size
-        uint nChannelBlocks = 1;
+        unsigned int nChannelBlocks = 1;
         if (soltab.hasAxis("freq")) {
           nChannelBlocks = soltab.getAxis("freq").size;
         }

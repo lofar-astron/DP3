@@ -80,7 +80,7 @@ namespace DP3 {
       // <br>Note that the cursors are passed by value, so a copy is made.
       // In this way no reset of the cursor is needed.
       bool estimate (const std::vector<std::vector<int> >& unknownsIndex,
-                     const std::vector<uint>& srcSet,
+                     const std::vector<unsigned int>& srcSet,
                      const_cursor<Baseline> baselines,
                      std::vector<const_cursor<fcomplex> > data,
                      std::vector<const_cursor<dcomplex> > model,
@@ -89,7 +89,7 @@ namespace DP3 {
                      const_cursor<dcomplex> mix,
                      double defaultGain,
                      bool solveBoth,
-                     uint verbose);
+                     unsigned int verbose);
 
       // Get the last solution.
       // It contains zeroes for the direction-stations not solved for.
@@ -104,22 +104,22 @@ namespace DP3 {
       // Initialize the solution. Nr must be a multiple of 8.
       // The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
       void initSolution (const std::vector<std::vector<int> >& unknownsIndex,
-                         const std::vector<uint>& srcSet,
+                         const std::vector<unsigned int>& srcSet,
                          double defaultGain);
 
       // Clear the solution for unsolvable stations
       // (essentially changing 1e-8 to 0).
       void clearNonSolvable (const std::vector<std::vector<int> >& unknownsIndex,
-                             const std::vector<uint>& srcSet);
+                             const std::vector<unsigned int>& srcSet);
 
       // Update itsSolution from itsUnknowns for the unknowns to be used.
       void fillSolution (const std::vector<std::vector<int> >& unknownsIndex,
-                         const std::vector<uint>& srcSet);
+                         const std::vector<unsigned int>& srcSet);
 
       // Fill itsDerivIndex for the unknowns of the given baseline
       // to be able to pass the equations to LSQFit::makeNorm.
       // It returns the number of unknowns.
-      uint fillDerivIndex (size_t ndir,
+      unsigned int fillDerivIndex (size_t ndir,
                            const std::vector<std::vector<int> >& unknownsIndex,
                            const Baseline& baseline);
 

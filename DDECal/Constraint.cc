@@ -47,7 +47,7 @@ std::vector<Constraint::Result> CoreConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,
     std::ostream* statStream)
 {
-  for (uint ch=0; ch<solutions.size(); ++ch) {
+  for (unsigned int ch=0; ch<solutions.size(); ++ch) {
     std::vector<dcomplex> coreSolutions(_nDirections, 0.0);
     // Calculate the sum of solutions over the core stations
     for(size_t antennaIndex : _coreAntennas)

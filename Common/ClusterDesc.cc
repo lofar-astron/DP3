@@ -106,7 +106,7 @@ namespace DP3 { namespace CEP {
 				throw std::runtime_error(
                  "RemoteFileSys must be empty or have same length as RemoteDisks");
     }
-    for (uint i=0; i<names.size(); ++i) {
+    for (unsigned int i=0; i<names.size(); ++i) {
       vector<string> rdisks, rfilesys, lfilesys, ldisks;
       const vector<string>* ldiskp = &localDisks;
       const vector<string>* rdiskp = &remoteDisks;
@@ -137,11 +137,11 @@ namespace DP3 { namespace CEP {
       NodeDesc node;
       node.setName (names[i]);
       node.setType (type);
-      for (uint j=0; j<rdiskp->size(); ++j) {
+      for (unsigned int j=0; j<rdiskp->size(); ++j) {
         node.addFileSys ((*rfsysp)[j], (*rdiskp)[j]);
       }
       // Add node name to local filesys to make it unique.
-      for (uint j=0; j<ldiskp->size(); ++j) {
+      for (unsigned int j=0; j<ldiskp->size(); ++j) {
         node.addFileSys (names[i] + ':' + (*ldiskp)[j],
                          (*ldiskp)[j]);
       }
@@ -152,7 +152,7 @@ namespace DP3 { namespace CEP {
   void ClusterDesc::getSubClusters (const vector<string>& parsetNames,
                                     const string& defaultDir)
   {
-    for (uint i=0; i<parsetNames.size(); ++i) {
+    for (unsigned int i=0; i<parsetNames.size(); ++i) {
       // Expand possible ~ and $.
       string name = Path(parsetNames[i]).expandedName();
       // Add directory of parent parset if name is not absolute.
@@ -161,7 +161,7 @@ namespace DP3 { namespace CEP {
       }
       ClusterDesc cdesc(name);
       const vector<NodeDesc>& nodes =cdesc.getNodes();
-      for (uint j=0; j<nodes.size(); ++j) {
+      for (unsigned int j=0; j<nodes.size(); ++j) {
         // The same nodes can occur in multiple subclusters.
         addNode (nodes[j], true);
       }

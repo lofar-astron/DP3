@@ -63,7 +63,7 @@ namespace DP3 { namespace CEP {
     itsEndTimes   = parset.getDoubleVector ("EndTimesDiff",   vector<double>());
     assert (itsStartTimes.size() == itsEndTimes.size());
     double diff = itsStartTime;
-    for (uint i=0; i<itsStartTimes.size(); ++i) {
+    for (unsigned int i=0; i<itsStartTimes.size(); ++i) {
       itsStartTimes[i] += diff;
       diff += itsStepTime;
       itsEndTimes[i]   += diff;
@@ -91,7 +91,7 @@ namespace DP3 { namespace CEP {
       os << prefix << "StartTimesDiff=[";
       streamsize oldPrec = os.precision (5);
       double diff = itsStartTime;
-      for (uint i=0; i<itsStartTimes.size(); ++i) {
+      for (unsigned int i=0; i<itsStartTimes.size(); ++i) {
         if (i!=0) os << ',';
         os << itsStartTimes[i] - diff;
         diff += itsStepTime;
@@ -103,7 +103,7 @@ namespace DP3 { namespace CEP {
       os << prefix << "EndTimesDiff=[";
       streamsize oldPrec = os.precision (5);
       double diff = itsStartTime;
-      for (uint i=0; i<itsEndTimes.size(); ++i) {
+      for (unsigned int i=0; i<itsEndTimes.size(); ++i) {
         if (i!=0) os << ',';
         diff += itsStepTime;
         os << itsEndTimes[i] - diff;
@@ -170,7 +170,7 @@ namespace DP3 { namespace CEP {
     assert (startFreq.size() == endFreq.size());
     assert (int(startFreq.size())==nchan || startFreq.size() == 1);
     itsNChan.push_back (nchan);
-    for (uint i=0; i<startFreq.size(); ++i) {
+    for (unsigned int i=0; i<startFreq.size(); ++i) {
       itsStartFreqs.push_back (startFreq[i]);
       itsEndFreqs.push_back   (endFreq[i]);
     }

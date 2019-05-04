@@ -266,7 +266,7 @@ void BlobIStream::get (bool* values, uint64_t nrval)
 {
   unsigned char buf[256];
   while (nrval > 0) {
-    uint nr = std::min(nrval, uint64_t(8*256));
+    unsigned int nr = std::min(nrval, uint64_t(8*256));
     // Get and convert bits to bools.
     int nrb = (nr+7)/8;
     getBuf (buf, nrb);
@@ -370,10 +370,10 @@ void BlobIStream::getBoolVec (std::vector<bool>& values, uint64_t sz)
   bool buf[256];
   uint64_t inx=0;
   while (sz > 0) {
-    uint nr = std::min(sz, uint64_t(256));
+    unsigned int nr = std::min(sz, uint64_t(256));
     // Get and convert bools to vector.
     get (buf, nr);
-    for (uint i=0; i<nr; i++) {
+    for (unsigned int i=0; i<nr; i++) {
       values[inx++] = buf[i];
     }
     sz -= nr;
@@ -394,9 +394,9 @@ int64_t BlobIStream::getSpace (uint64_t nbytes)
   return pos;
 }
 
-uint BlobIStream::align (uint n)
+unsigned int BlobIStream::align (unsigned int n)
 {
-  uint nfill = 0;
+  unsigned int nfill = 0;
   if (n > 1) {
     int64_t pos = tellPos();
     if (pos > 0) {
@@ -406,8 +406,8 @@ uint BlobIStream::align (uint n)
   if (nfill > 0) {
     char fill;
     nfill = n-nfill;
-    for (uint i=0; i<nfill; i++) {
-      uint sz1 = itsStream->get (&fill, 1);
+    for (unsigned int i=0; i<nfill; i++) {
+      unsigned int sz1 = itsStream->get (&fill, 1);
       if (sz1 != 1) {
 	throw BlobException(
 	       "BlobIStream::align - could not read fill (pos="

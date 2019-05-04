@@ -77,13 +77,13 @@ namespace BBS {
     // Nomally ra and dec should be filled in, but for moving patches
     // (e.g. sun) this is not needed.
     // <br>Optionally it is checked if the patch already exists.
-    virtual uint addPatch (const string& patchName, int catType,
+    virtual unsigned int addPatch (const string& patchName, int catType,
                            double apparentBrightness,
                            double ra, double dec,
                            bool check);
 
     // Update the ra/dec and apparent brightness of a patch.
-    virtual void updatePatch (uint patchId, 
+    virtual void updatePatch (unsigned int patchId, 
                               double apparentBrightness,
                               double ra, double dec);
 

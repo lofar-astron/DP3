@@ -40,7 +40,7 @@ int main(int, char**) {
       vector<string> antNames;
       vector<double> oneAntPos(3);
       vector<vector<double> > antPositions;
-      for (uint i=0; i<5; ++i) {
+      for (unsigned int i=0; i<5; ++i) {
         stringstream antNameStr;
         antNameStr<<"Antenna"<<i;
         antNames.push_back(antNameStr.str());

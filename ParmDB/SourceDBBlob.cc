@@ -111,7 +111,7 @@ namespace BBS {
     return false;
   }
 
-  uint SourceDBBlob::addPatch (const string& patchName, int catType,
+  unsigned int SourceDBBlob::addPatch (const string& patchName, int catType,
                                double apparentBrightness,
                                double ra, double dec,
                                bool)
@@ -120,13 +120,13 @@ namespace BBS {
     if (!itsCanWrite)
 			throw std::runtime_error("SourceDBBlob: file is not writable");
     itsFile.seekp (0, ios::end);
-    uint filePos = itsFile.tellp();
+    unsigned int filePos = itsFile.tellp();
     *itsBlobOut << PatchInfo(patchName, ra, dec, catType, apparentBrightness);
     itsEndPos = itsFile.tellp();
     return filePos;
   }
 
-  void SourceDBBlob::updatePatch (uint filePos,
+  void SourceDBBlob::updatePatch (unsigned int filePos,
                                   double apparentBrightness,
                                   double ra, double dec)
   {
@@ -217,7 +217,7 @@ namespace BBS {
       Vector<uInt> index(names.size());
       sort.sort (index, names.size());
       nmout.reserve (names.size());
-      for (uint i=0; i<names.size(); ++i) {
+      for (unsigned int i=0; i<names.size(); ++i) {
         nmout.push_back (names[index[i]]);
       }
     }

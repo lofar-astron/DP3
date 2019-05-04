@@ -114,16 +114,16 @@ namespace DP3 {
       DPBuffer     itsBuffer;
       casacore::String itsDataColName;
       casacore::String itsWeightColName;
-      uint         itsNrTimesFlush; //# flush every N time slots (0=no flush)
+      unsigned int         itsNrTimesFlush; //# flush every N time slots (0=no flush)
       bool         itsWriteData;
       bool         itsWriteWeights;
       bool         itsWriteFlags;
-      uint         itsNrDone;       //# nr of time slots written
+      unsigned int         itsNrDone;       //# nr of time slots written
       bool         itsDataColAdded; //# has data column been added?
       bool         itsWeightColAdded; //# has weight column been added?
       bool         itsWriteHistory; //# Should history be written?
       NSTimer      itsTimer;
-      uint itsTileSize;
+      unsigned int itsTileSize;
       StManParsetKeys itsStManKeys;
     };
 

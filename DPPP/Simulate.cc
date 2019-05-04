@@ -35,7 +35,7 @@ namespace DP3
 namespace DPPP
 {
 
-vector<int> nsetupSplitUVW (uint nant, const Vector<int>& ant1,
+vector<int> nsetupSplitUVW (unsigned int nant, const Vector<int>& ant1,
                            const Vector<int>& ant2)
 {
   // Get the indices of the baselines needed to split the baseline UVWs into
@@ -50,14 +50,14 @@ vector<int> nsetupSplitUVW (uint nant, const Vector<int>& ant1,
   vector<int> uvwbl;
   uvwbl.reserve (nant);
   Block<bool> known(nant, false);
-  uint nset = 0;
+  unsigned int nset = 0;
   // Loop until all stations are set.
   while (nset < nant) {
     // Disjoint groups might exist, so keep a vector containing related antennae
     // which are members of the same group.
-    vector<uint> members(1);
+    vector<unsigned int> members(1);
     // Set first unset station as the reference station (which gets UVW=0).
-    for (uint i=0; i<nant; ++i) {
+    for (unsigned int i=0; i<nant; ++i) {
       if (!known[i]) {
         members[0] = i;
         known[i] = true;
@@ -67,10 +67,10 @@ vector<int> nsetupSplitUVW (uint nant, const Vector<int>& ant1,
     }
     // Loop through all members in the group.
     // Note that new members can be appended in this loop.
-    for (uint j=0; j<members.size(); ++j) {
+    for (unsigned int j=0; j<members.size(); ++j) {
       int refst = members[j];
       // Find all stations having a baseline with the reference station.
-      for (uint i=0; i<ant1.size(); ++i) {
+      for (unsigned int i=0; i<ant1.size(); ++i) {
         int a1 = ant1[i];
         int a2 = ant2[i];
         // Only take baselines into account for which one station is known,
@@ -104,13 +104,13 @@ void nsplitUVW (const vector<int>& blindex,
   double* uvwl;
   double* uvwr;
   const double* uvwb;
-  for (uint i=0; i<blindex.size(); ++i) {
+  for (unsigned int i=0; i<blindex.size(); ++i) {
     int inx = blindex[i];
     if (inx < 0) {
       // Ant2 is known.
       inx = -inx - 1;
-      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].first);
-      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].second);
+      //ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].first);
+      //ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].second);
       uvwl = uvwant.data() + 3 * baselines[inx].first;
       uvwr = uvwant.data() + 3 * baselines[inx].second;
       uvwb = uvwbl.data() + 3*inx;
@@ -118,8 +118,8 @@ void nsplitUVW (const vector<int>& blindex,
         uvwl[j] = uvwr[j] - uvwb[j];
       }
     } else {
-      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].first);
-      //ASSERT(uint(uvwant.shape()[1])>baselines[inx].second);
+      //ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].first);
+      //ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].second);
       // Ant1 is known.
       uvwl = uvwant.data() + 3 * baselines[inx].first;
       uvwr = uvwant.data() + 3 * baselines[inx].second;

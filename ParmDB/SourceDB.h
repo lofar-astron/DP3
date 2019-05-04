@@ -92,13 +92,13 @@ namespace BBS {
     // Nomally ra and dec should be filled in, but for moving patches
     // (e.g. sun) this is not needed.
     // <br>Optionally it is checked if the patch already exists.
-    virtual uint addPatch (const string& patchName, int catType,
+    virtual unsigned int addPatch (const string& patchName, int catType,
                            double apparentBrightness,
                            double ra, double dec,
                            bool check) = 0;
 
     // Update the ra/dec and apparent brightness of a patch.
-    virtual void updatePatch (uint patchId, 
+    virtual void updatePatch (unsigned int patchId, 
                               double apparentBrightness,
                               double ra, double dec) = 0;
 
@@ -236,7 +236,7 @@ namespace BBS {
     // Normally ra and dec should be filled in, but for moving patches
     // (e.g. sun) this is not needed.
     // <br>Optionally it is checked if the patch already exists.
-    uint addPatch (const string& patchName, int catType,
+    unsigned int addPatch (const string& patchName, int catType,
                    double apparentBrightness,
                    double ra=-1e9, double dec=-1e9,
                    bool check = true)
@@ -244,7 +244,7 @@ namespace BBS {
                                  ra, dec, check); }
 
     // Update the ra/dec and apparent brightness of a patch.
-    void updatePatch (uint patchId, 
+    void updatePatch (unsigned int patchId, 
                       double apparentBrightness,
                       double ra, double dec)
       { itsRep->updatePatch (patchId, apparentBrightness, ra, dec); }

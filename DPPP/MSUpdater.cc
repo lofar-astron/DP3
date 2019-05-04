@@ -313,9 +313,9 @@ namespace DP3 {
         ScalarColumn<bool> flagRowCol(itsMS, "FLAG_ROW");
         // Loop over all rows of this subset.
         // (it also avoids StandardStMan putCol with RefRows problem).
-        Vector<uint> rows = rowNrs.convert();
+        Vector<unsigned int> rows = rowNrs.convert();
         ReadOnlyArrayIterator<bool> flagIter (flags, 2);
-        for (uint i=0; i<rows.size(); ++i) {
+        for (unsigned int i=0; i<rows.size(); ++i) {
           flagCol.putSlice (rows[i], colSlicer, flagIter.array());
           // If a new flag in a row is clear, the ROW_FLAG should not be set.
           // If all new flags are set, we leave it because we might have a
@@ -338,9 +338,9 @@ namespace DP3 {
         ArrayColumn<float> weightCol(itsMS, itsWeightColName);
         // Loop over all rows of this subset.
         // (it also avoids StandardStMan putCol with RefRows problem).
-        Vector<uint> rows = rowNrs.convert();
+        Vector<unsigned int> rows = rowNrs.convert();
         ReadOnlyArrayIterator<float> weightIter (weights, 2);
-        for (uint i=0; i<rows.size(); ++i) {
+        for (unsigned int i=0; i<rows.size(); ++i) {
           weightCol.putSlice (rows[i], colSlicer, weightIter.array());
           weightIter.next();
         }
@@ -358,9 +358,9 @@ namespace DP3 {
         ArrayColumn<Complex> dataCol(itsMS, itsDataColName);
         // Loop over all rows of this subset.
         // (it also avoids StandardStMan putCol with RefRows problem).
-        Vector<uint> rows = rowNrs.convert();
+        Vector<unsigned int> rows = rowNrs.convert();
         ReadOnlyArrayIterator<Complex> dataIter (data, 2);
-        for (uint i=0; i<rows.size(); ++i) {
+        for (unsigned int i=0; i<rows.size(); ++i) {
           dataCol.putSlice (rows[i], colSlicer, dataIter.array());
           dataIter.next();
         }

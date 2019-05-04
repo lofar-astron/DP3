@@ -54,7 +54,7 @@ namespace DP3 { namespace CEP {
     itsMounts  = parset.getStringVector ("NodeMountPoints", true);
     itsFileSys = parset.getStringVector ("NodeFileSys", itsMounts, true);
     assert (itsFileSys.size() == itsMounts.size());
-    for (uint i=0; i<itsMounts.size(); ++i) {
+    for (unsigned int i=0; i<itsMounts.size(); ++i) {
       assert (itsFileSys[i].size() > 0);
       assert (itsMounts[i].size() > 0  &&  itsMounts[i][0] == '/');
     }
@@ -81,14 +81,14 @@ namespace DP3 { namespace CEP {
     // Remember the root filesys (a single /).
     int nrp = 0;
     int rootfs = -1;
-    for (uint i=0; i<itsMounts.size(); ++i) {
+    for (unsigned int i=0; i<itsMounts.size(); ++i) {
       int nr=0;
       const string& str = itsMounts[i];
       // A single / counts as no part.
       if (str.size() == 1) {
 	rootfs = i;
       } else {
-	for (uint j=0; j<str.size(); ++j) {
+	for (unsigned int j=0; j<str.size(); ++j) {
 	  if (str[j] == '/') {
 	    ++nr;
 	  }
@@ -101,7 +101,7 @@ namespace DP3 { namespace CEP {
     // Find the slashes in the file name for each part.
     vector<int> pos(nrp, -1);
     int nr = 0;
-    for (uint i=1; i<fileName.size() && nr<nrp; ++i) {
+    for (unsigned int i=1; i<fileName.size() && nr<nrp; ++i) {
       if (fileName[i] == '/') {
 	pos[nr++] = i;
       }
@@ -110,7 +110,7 @@ namespace DP3 { namespace CEP {
     // Start with the longest possible string.
     for (int p=nr-1; p>=0; --p) {
       string filePart = fileName.substr(0,pos[p]);
-      for (uint i=0; i<itsMounts.size(); ++i) {
+      for (unsigned int i=0; i<itsMounts.size(); ++i) {
 	if (filePart == itsMounts[i]) {
 	  return itsFileSys[i];
 	}

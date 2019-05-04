@@ -54,7 +54,7 @@ BlobOStream::~BlobOStream()
 // putStart starts writing an object.
 // It puts the object type and version and reserves space for the length.
 // It increases the level for each object to hold the length.
-uint BlobOStream::doPutStart (const char* type, uint nrc, int version)
+unsigned int BlobOStream::doPutStart (const char* type, unsigned int nrc, int version)
 {
   BlobHeader hdr(version, itsLevel);
   assert (nrc < 256);
@@ -198,9 +198,9 @@ void BlobOStream::put (const bool* values, uint64_t nrval)
 {
   unsigned char buf[256];
   while (nrval > 0) {
-    uint nr = std::min(nrval, uint64_t(8*256));
+    unsigned int nr = std::min(nrval, uint64_t(8*256));
     // Convert to bits and put.
-    uint nrb = DP3::boolToBit (buf, values, nr);
+    unsigned int nrb = DP3::boolToBit (buf, values, nr);
     putBuf (buf, nrb);
     nrval -= nr;
     values += nr;
@@ -272,8 +272,8 @@ void BlobOStream::putBoolVec (const std::vector<bool>& values)
   bool buf[256];
   uint64_t inx=0;
   while (sz > 0) {
-    uint nr = std::min(sz, uint64_t(256));
-    for (uint i=0; i<nr; i++) {
+    unsigned int nr = std::min(sz, uint64_t(256));
+    for (unsigned int i=0; i<nr; i++) {
       buf[i] = values[inx++];
     }
     put (buf, nr);
@@ -295,9 +295,9 @@ int64_t BlobOStream::setSpace (uint64_t nbytes)
   return pos;
 }
 
-uint BlobOStream::align (uint n)
+unsigned int BlobOStream::align (unsigned int n)
 {
-  uint nfill = 0;
+  unsigned int nfill = 0;
   if (n > 1) {
     int64_t pos = tellPos();
     if (pos > 0) {
@@ -307,8 +307,8 @@ uint BlobOStream::align (uint n)
   if (nfill > 0) {
     char fill=0;
     nfill = n-nfill;
-    for (uint i=0; i<nfill; i++) {
-      uint sz1 = itsStream->put (&fill, 1);
+    for (unsigned int i=0; i<nfill; i++) {
+      unsigned int sz1 = itsStream->put (&fill, 1);
       if (sz1 != 1) {
 	throw BlobException(
 	       "BlobOStream::align - could not write fill (pos="

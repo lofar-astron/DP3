@@ -132,13 +132,13 @@ const std::string timeString(time_t     aTime,
 // It returns the position of the first non-whitespace character.
 // It returns end if all whitespace.
 // It can be used in combination with rskipws.
-uint lskipws (const std::string& value, uint st, uint end);
+unsigned int lskipws (const std::string& value, unsigned int st, unsigned int end);
 
 // Skip trailing whitespace (blanks and horizontal tabs) starting at end.
 // It returns the position after the last non-whitespace character, thus
 // value.substr(st, end-st) extracts the significant value.
 // It returns st if all whitespace.
-uint rskipws (const std::string& value, uint st, uint end);
+unsigned int rskipws (const std::string& value, unsigned int st, unsigned int end);
 
 // Skip the leading and trailing whitespace and square brackets.
 std::string stripBrackets(const std::string& orgStr);
@@ -147,7 +147,7 @@ std::string stripBrackets(const std::string& orgStr);
 // The quote character is the first character (at position st).
 // Usually the quote character is ' or ", but it could be any other character.
 // An exception is thrown if no ending quote character is found.
-uint skipQuoted (const std::string& str, uint st);
+unsigned int skipQuoted (const std::string& str, unsigned int st);
 
 // Skip past the end of a balanced pair of delimiters where nested pairs
 // are also skipped. Delimiters in quoted parts are ignored.
@@ -157,7 +157,7 @@ uint skipQuoted (const std::string& str, uint st);
 // <br>An exception is thrown if the delimiters are not balanced, thus if no
 // end delimiter is found before position end.
 // <br>For example, it will skip something like '[[1,2,3],[4,5,6]]'.
-uint skipBalanced (const std::string& str, uint st, uint end, char endChar);
+unsigned int skipBalanced (const std::string& str, unsigned int st, unsigned int end, char endChar);
 
 //
 // rtrim(char* CString [,len])
@@ -338,7 +338,7 @@ int           strToInt    (const std::string& aString) ;
 int32_t         strToInt32  (const std::string& aString) ;
 int16_t         strToInt16  (const std::string& aString) ;
 unsigned long strToUlong  (const std::string& aString) ;
-uint          strToUint   (const std::string& aString) ;
+unsigned int          strToUint   (const std::string& aString) ;
 uint32_t        strToUint32 (const std::string& aString) ;
 uint16_t        strToUint16 (const std::string& aString) ;
 int64_t         strToInt64  (const std::string& aString) ;

@@ -72,14 +72,14 @@ namespace BBS {
   }
 
   Location GridMapping::findLocation (AxisMappingCache& cache,
-                                      uint cellId,
+                                      unsigned int cellId,
                                       const Grid& src,
                                       const Grid& dest)
   {
     return findLocation (cache, src.getCellLocation(cellId), src, dest);
   }
 
-  uint GridMapping::findCellId (AxisMappingCache& cache,
+  unsigned int GridMapping::findCellId (AxisMappingCache& cache,
                                 const Location& location,
                                 const Grid& src,
                                 const Grid& dest)
@@ -87,8 +87,8 @@ namespace BBS {
     return dest.getCellId (findLocation (cache, location, src, dest));
   }
 
-  uint GridMapping::findcellId (AxisMappingCache& cache,
-                                uint cellId,
+  unsigned int GridMapping::findcellId (AxisMappingCache& cache,
+                                unsigned int cellId,
                                 const Grid& src,
                                 const Grid& dest)
   {

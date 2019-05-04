@@ -160,7 +160,7 @@ namespace DP3 {
         { return itsDoSelect; }
 
       // Get the indices of the selected baselines.
-      const std::vector<uint>& getIndicesBL() const
+      const std::vector<unsigned int>& getIndicesBL() const
         { return itsSelBL; }
 
       // Get the buffer.
@@ -194,8 +194,8 @@ namespace DP3 {
       casacore::String      itsNrChanStr;     //# nchan expression
       bool              itsRemoveAnt;     //# Remove from ANTENNA table?
       BaselineSelection itsBaselines;
-      uint              itsStartChan;
-      std::vector<uint>      itsSelBL;         //# Index of baselines to select
+      unsigned int              itsStartChan;
+      std::vector<unsigned int>      itsSelBL;         //# Index of baselines to select
       bool              itsDoSelect;      //# Any selection?
       NSTimer           itsTimer;
     };

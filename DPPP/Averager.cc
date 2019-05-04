@@ -69,7 +69,7 @@ namespace DP3 {
     }
 
     Averager::Averager (DPInput* input, const string& stepName,
-                        uint nchanAvg, uint ntimeAvg)
+                        unsigned int nchanAvg, unsigned int ntimeAvg)
       : itsInput     (input),
         itsName      (stepName),
         itsFreqResolution (0),
@@ -272,18 +272,18 @@ namespace DP3 {
     void Averager::average()
     {
       IPosition shp = itsBuf.getData().shape();
-      uint nchanin = shp[1];
-      uint npin = shp[0] * nchanin;
+      unsigned int nchanin = shp[1];
+      unsigned int npin = shp[0] * nchanin;
       shp[1] = (shp[1] + itsNChanAvg - 1) / itsNChanAvg;
       itsBufOut.getData().resize (shp);
       itsBufOut.getWeights().resize (shp);
       itsBufOut.getFlags().resize (shp);
-      uint ncorr = shp[0];
-      uint nchan = shp[1];
-      uint  nbl   = shp[2];
-      uint npout = ncorr * nchan;
-      ParallelFor<uint> loop(getInfo().nThreads());
-      loop.Run(0, nbl, [&](uint k, size_t /*thread*/) {
+      unsigned int ncorr = shp[0];
+      unsigned int nchan = shp[1];
+      unsigned int  nbl   = shp[2];
+      unsigned int npout = ncorr * nchan;
+      ParallelFor<unsigned int> loop(getInfo().nThreads());
+      loop.Run(0, nbl, [&](unsigned int k, size_t /*thread*/) {
         const Complex* indata = itsBuf.getData().data() + k*npin;
         const Complex* inalld = itsAvgAll.data() + k*npin;
         const float* inwght = itsBuf.getWeights().data() + k*npin;
@@ -292,18 +292,18 @@ namespace DP3 {
         Complex* outdata = itsBufOut.getData().data() + k*npout;
         float* outwght = itsBufOut.getWeights().data() + k*npout;
         bool* outflags = itsBufOut.getFlags().data() + k*npout;
-        for (uint i=0; i<ncorr; ++i) {
-          uint inxi = i;
-          uint inxo = i;
-          for (uint ch=0; ch<nchan; ++ch) {
-            uint nch = std::min(itsNChanAvg, nchanin - ch*itsNChanAvg);
-            uint navgAll = nch * itsNTimes;
+        for (unsigned int i=0; i<ncorr; ++i) {
+          unsigned int inxi = i;
+          unsigned int inxo = i;
+          for (unsigned int ch=0; ch<nchan; ++ch) {
+            unsigned int nch = std::min(itsNChanAvg, nchanin - ch*itsNChanAvg);
+            unsigned int navgAll = nch * itsNTimes;
             Complex sumd;
             Complex sumad;
             float   sumw  = 0;
             float   sumaw = 0;
-            uint    np = 0;
-            for (uint j=0; j<nch; ++j) {
+            unsigned int    np = 0;
+            for (unsigned int j=0; j<nch; ++j) {
               sumd  += indata[inxi]; // Note: weight is accounted for in process
               sumad += inalld[inxi];
               sumw  += inwght[inxi];
@@ -347,15 +347,15 @@ namespace DP3 {
       IPosition shapeIn  = fullResFlags.shape();
       IPosition shapeOut = itsBuf.getFullResFlags().shape();
       IPosition shapeFlg = flags.shape();
-      uint nchan    = shapeIn[0];    // original nr of channels
-      uint ntimavg  = shapeIn[1];    // nr of averaged times in input data
-      uint nchanavg = nchan / shapeFlg[1]; // nr of avg chan in input data
-      uint ntimout  = shapeOut[1];   // nr of averaged times in output data
-      uint nbl      = shapeIn[2];    // nr of baselines
-      uint ncorr    = shapeFlg[0];   // nr of correlations (in FLAG)
+      unsigned int nchan    = shapeIn[0];    // original nr of channels
+      unsigned int ntimavg  = shapeIn[1];    // nr of averaged times in input data
+      unsigned int nchanavg = nchan / shapeFlg[1]; // nr of avg chan in input data
+      unsigned int ntimout  = shapeOut[1];   // nr of averaged times in output data
+      unsigned int nbl      = shapeIn[2];    // nr of baselines
+      unsigned int ncorr    = shapeFlg[0];   // nr of correlations (in FLAG)
       // in has to be copied to the correct time index in out.
       bool* outBase = itsBuf.getFullResFlags().data() + nchan*ntimavg*timeIndex;
-      for (uint k=0; k<nbl; ++k) {
+      for (unsigned int k=0; k<nbl; ++k) {
         const bool* inPtr   = fullResFlags.data() + k*nchan*ntimavg;
         const bool* flagPtr = flags.data() + k*ncorr*shapeFlg[1];
         bool* outPtr = outBase + k*nchan*ntimout;
@@ -369,7 +369,7 @@ namespace DP3 {
             // Only look at the flags of the first correlation.
             if (*flagPtr) {
               bool* avgPtr = outPtr + j*nchanavg;
-              for (uint i=0; i<ntimavg; ++i) {
+              for (unsigned int i=0; i<ntimavg; ++i) {
                 std::fill (avgPtr, avgPtr+nchanavg, true);
                 avgPtr += nchan;
               }

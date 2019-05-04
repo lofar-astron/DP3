@@ -205,8 +205,8 @@ public:
         bool	getBool  (const std::string& aKey, bool aValue) const;
 	int	getInt   (const std::string& aKey) const;
         int	getInt   (const std::string& aKey, int aValue) const;
-	uint	getUint  (const std::string& aKey) const;
-        uint	getUint  (const std::string& aKey, uint aValue) const;
+	unsigned int	getUint  (const std::string& aKey) const;
+        unsigned int	getUint  (const std::string& aKey, unsigned int aValue) const;
 	int16_t	getInt16 (const std::string& aKey) const;
         int16_t	getInt16 (const std::string& aKey, int16_t aValue) const;
 	uint16_t	getUint16(const std::string& aKey) const;
@@ -244,10 +244,10 @@ public:
         std::vector<int>	getIntVector   (const std::string& aKey,
                                         const std::vector<int>& aValue,
                                         bool expandable) const;
-        std::vector<uint>	getUintVector  (const std::string& aKey,
+        std::vector<unsigned int>	getUintVector  (const std::string& aKey,
                                         bool expandable) const;
-        std::vector<uint>	getUintVector  (const std::string& aKey,
-                                        const std::vector<uint>& aValue,
+        std::vector<unsigned int>	getUintVector  (const std::string& aKey,
+                                        const std::vector<unsigned int>& aValue,
                                         bool expandable) const;
 	std::vector<int16_t>	getInt16Vector (const std::string& aKey,
                                         bool expandable) const;
@@ -444,13 +444,13 @@ inline int ParameterSetImpl::getInt(const std::string& aKey, int aValue) const
 }
 
 //#	getUint(key)
-inline uint ParameterSetImpl::getUint(const std::string& aKey) const
+inline unsigned int ParameterSetImpl::getUint(const std::string& aKey) const
 {
         return findKV(aKey)->second.getUint();
 }
 
 //#	getUint(key, value)
-inline uint ParameterSetImpl::getUint(const std::string& aKey, uint aValue) const
+inline unsigned int ParameterSetImpl::getUint(const std::string& aKey, unsigned int aValue) const
 {
         const_iterator it = findKV(aKey,false);
 	if (it == end()) return aValue;

@@ -68,11 +68,11 @@ namespace DP3 {
       //# Data members.
       string                itsName;
       double                itsOldTimeInterval;
-      uint                  itsTimeStep;
+      unsigned int                  itsTimeStep;
 
       std::vector<DPBuffer> itsPrevBuffers;
       std::vector<DPBuffer> itsBuffers;
-      uint                  itsFirstToFlush;
+      unsigned int                  itsFirstToFlush;
 
       NSTimer               itsTimer;
     };

@@ -30,7 +30,7 @@ namespace BBS {
   ParmDBLocker::ParmDBLocker (const ParmSet& parmSet, bool lockForWrite)
     : itsDBs (parmSet.getDBs())
   {
-    for (uint i=0; i<itsDBs.size(); ++i) {
+    for (unsigned int i=0; i<itsDBs.size(); ++i) {
       itsDBs[i]->lock (lockForWrite);
     }
   }
@@ -43,7 +43,7 @@ namespace BBS {
 
   ParmDBLocker::~ParmDBLocker()
   {
-    for (uint i=0; i<itsDBs.size(); ++i) {
+    for (unsigned int i=0; i<itsDBs.size(); ++i) {
       itsDBs[i]->unlock();
     }
   }

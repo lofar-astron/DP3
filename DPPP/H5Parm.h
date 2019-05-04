@@ -30,11 +30,11 @@ namespace DP3 {
     public:
     // A name and the length of an exis, e.g. ('freq', 800) for 800 frequencies
     struct AxisInfo {
-      public: AxisInfo(const std::string& name, uint size) :
+      public: AxisInfo(const std::string& name, unsigned int size) :
         name(name), size(size) {};
 
         std::string name;
-        uint size;
+        unsigned int size;
       };
 
       // SolTab is a solution table as defined in the H5Parm standard. It
@@ -59,7 +59,7 @@ namespace DP3 {
 
           std::vector<AxisInfo>& getAxes() {return _axes;}
 
-          AxisInfo getAxis(uint i) const;
+          AxisInfo getAxis(unsigned int i) const;
 
           // Get an axis, throw an exception if it does not exist
           AxisInfo getAxis(const std::string& axisName) const;
@@ -139,9 +139,9 @@ namespace DP3 {
           // Get the values of this SolTab for a given antenna.
           std::vector<double> getValues(
                                         const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep,
-                                        uint startfreq, uint nfreq, uint freqstep,
-                                        uint pol, uint dir) {
+                                        unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
+                                        unsigned int startfreq, unsigned int nfreq, unsigned int freqstep,
+                                        unsigned int pol, unsigned int dir) {
             return getValuesOrWeights("val", antName,
                                       starttimeslot, ntime, timestep,
                                       startfreq, nfreq, freqstep,
@@ -151,9 +151,9 @@ namespace DP3 {
           // Get the weights of this SolTab for a given antenna.
           std::vector<double> getWeights(
                                         const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep,
-                                        uint startfreq, uint nfreq, uint freqstep,
-                                        uint pol, uint dir) {
+                                        unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
+                                        unsigned int startfreq, unsigned int nfreq, unsigned int freqstep,
+                                        unsigned int pol, unsigned int dir) {
             return getValuesOrWeights("weight", antName,
                                       starttimeslot, ntime, timestep,
                                       startfreq, nfreq, freqstep,
@@ -165,15 +165,15 @@ namespace DP3 {
                                         const std::string& antName,
                                         const std::vector<double>& times,
                                         const std::vector<double>& freqs,
-                                        uint pol, uint dir, bool nearest);
+                                        unsigned int pol, unsigned int dir, bool nearest);
         private:
           // Get the values or weights of this SolTab for a given antenna.
           std::vector<double> getValuesOrWeights(
                                         const std::string& valOrWeight,
                                         const std::string& antName,
-                                        uint starttimeslot, uint ntime, uint timestep,
-                                        uint startfreq, uint nfreq, uint freqstep,
-                                        uint pol, uint dir);
+                                        unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
+                                        unsigned int startfreq, unsigned int nfreq, unsigned int freqstep,
+                                        unsigned int pol, unsigned int dir);
 
           void readAxes();
 

@@ -152,7 +152,7 @@ namespace DP3 {
       // sources must be replaced with their demix model.
       // Also these sources must be removed from the A-team model.
       vector<Patch::ConstPtr> targetDemixList;
-      uint ncomponent = 0;
+      unsigned int ncomponent = 0;
       itsTargetDemixList.reserve (itsTargetList.size());
       for (size_t i=0; i<itsTargetList.size(); ++i) {
         itsTargetDemixList.push_back (itsTargetList[i]);
@@ -237,7 +237,7 @@ namespace DP3 {
       // Form the baselines.
       // the numbering due to unused stations.
       /// Why is that needed for predict/solve?
-      for (uint i=0; i<itsNBl; ++i) {
+      for (unsigned int i=0; i<itsNBl; ++i) {
         itsBaselines.push_back (Baseline(itsInfoSel.getAnt1()[i],
                                          itsInfoSel.getAnt2()[i]));
       }

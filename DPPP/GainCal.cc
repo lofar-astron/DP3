@@ -140,7 +140,7 @@ namespace DP3 {
 
       string modestr = parset.getString (prefix + "caltype");
       itsMode = stringToCalType(modestr);
-      uint defaultNChan = 0;
+      unsigned int defaultNChan = 0;
       if (itsMode == TECANDPHASE || itsMode == TEC) {
         defaultNChan = 1;
       }
@@ -191,10 +191,10 @@ namespace DP3 {
 
     void GainCal::setAntennaUsed() {
       Matrix<bool> selbl(itsBaselineSelection.apply (info()));
-      uint nBl=info().getAnt1().size();
+      unsigned int nBl=info().getAnt1().size();
       itsAntennaUsed.resize(info().antennaNames().size());
       itsAntennaUsed=false;
-      for (uint bl=0; bl<nBl; ++bl) {
+      for (unsigned int bl=0; bl<nBl; ++bl) {
         if (selbl(info().getAnt1()[bl], info().getAnt2()[bl])) {
           itsAntennaUsed[info().getAnt1()[bl]] = true;
           itsAntennaUsed[info().getAnt2()[bl]] = true;
@@ -253,10 +253,10 @@ namespace DP3 {
 
       // Compute average frequency for every freqcell
       itsFreqData.resize(itsNFreqCells);
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         double meanfreq=0;
-        uint chmin=itsNChan*freqCell;
-        uint chmax=min(info().nchan(), chmin+itsNChan);
+        unsigned int chmin=itsNChan*freqCell;
+        unsigned int chmax=min(info().nchan(), chmin+itsNChan);
 
         meanfreq = std::accumulate(info().chanFreqs().data()+chmin,
                                    info().chanFreqs().data()+chmax, 0.0);
@@ -270,19 +270,19 @@ namespace DP3 {
 
         itsPhaseFitters.reserve(itsNFreqCells); // TODO: could be numthreads instead
 
-        uint nSt=info().antennaUsed().size();
-        for (uint st=0; st<nSt; ++st) {
+        unsigned int nSt=info().antennaUsed().size();
+        for (unsigned int st=0; st<nSt; ++st) {
           itsPhaseFitters.push_back(std::unique_ptr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
           double* nu = itsPhaseFitters[st]->FrequencyData();
-          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             nu[freqCell] = itsFreqData[freqCell];
           }
         }
       }
 
       iS.reserve(itsNFreqCells);
-      uint chMax = itsNChan;
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      unsigned int chMax = itsNChan;
+      for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         if ((freqCell+1)*itsNChan>info().nchan()) { // Last cell can be smaller
           chMax-=((freqCell+1)*itsNChan)%info().nchan();
         }
@@ -404,7 +404,7 @@ namespace DP3 {
     {
       itsTimer.start();
 
-      uint bufIndex=0;
+      unsigned int bufIndex=0;
 
       if (itsApplySolution) {
         // Need to keep a copy of all solint buffers in this step
@@ -456,7 +456,7 @@ namespace DP3 {
       if (itsStepInSolInt==0) {
         // Start new solution interval
 
-        for (uint freqCell=0; freqCell<itsNFreqCells; freqCell++) {
+        for (unsigned int freqCell=0; freqCell<itsNFreqCells; freqCell++) {
           iS[freqCell].clearStationFlagged();
           iS[freqCell].resetVis();
         }
@@ -477,7 +477,7 @@ namespace DP3 {
 
         if (itsApplySolution) {
           Cube<DComplex> invsol = invertSol(itsSols.back());
-          for (uint stepInSolInt=0; stepInSolInt<itsSolInt; stepInSolInt++) {
+          for (unsigned int stepInSolInt=0; stepInSolInt<itsSolInt; stepInSolInt++) {
             applySolution(itsBuf[stepInSolInt], invsol);
             getNextStep()->process(itsBuf[stepInSolInt]);
           }
@@ -506,16 +506,16 @@ namespace DP3 {
 
     Cube<DComplex> GainCal::invertSol(const Cube<DComplex>& sol) {
       Cube<DComplex> invsol = sol.copy();
-      uint nCr = invsol.shape()[0];
+      unsigned int nCr = invsol.shape()[0];
 
       // Invert copy of solutions
-      uint nSt = invsol.shape()[1];
-      for (uint st=0; st<nSt; ++st) {
-        for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      unsigned int nSt = invsol.shape()[1];
+      for (unsigned int st=0; st<nSt; ++st) {
+        for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
           if (nCr==4) {
             ApplyCal::invert(&invsol(0,st,freqCell));
           } else {
-            for (uint cr=0; cr<nCr; ++cr) {
+            for (unsigned int cr=0; cr<nCr; ++cr) {
               invsol(cr, st, freqCell) = 1./invsol(cr, st, freqCell);
             }
           }
@@ -526,19 +526,19 @@ namespace DP3 {
     }
 
     void GainCal::applySolution(DPBuffer& buf, const Cube<DComplex>& invsol) {
-      uint nbl = buf.getData().shape()[2];
+      unsigned int nbl = buf.getData().shape()[2];
       Complex* data = buf.getData().data();
       float* weight = buf.getWeights().data(); // Not initialized yet
       bool* flag = buf.getFlags().data();
-      uint nchan = buf.getData().shape()[1];
+      unsigned int nchan = buf.getData().shape()[1];
 
-      uint nCr = invsol.shape()[0];
+      unsigned int nCr = invsol.shape()[0];
 
       for (size_t bl=0; bl<nbl; ++bl) {
         for (size_t chan=0;chan<nchan;chan++) {
-          uint antA = info().antennaMap()[info().getAnt1()[bl]];
-          uint antB = info().antennaMap()[info().getAnt2()[bl]];
-          uint freqCell = chan / itsNChan;
+          unsigned int antA = info().antennaMap()[info().getAnt1()[bl]];
+          unsigned int antB = info().antennaMap()[info().getAnt2()[bl]];
+          unsigned int freqCell = chan / itsNChan;
           if (nCr>2) {
             ApplyCal::applyFull( &invsol(0, antA, freqCell),
                        &invsol(0, antB, freqCell),
@@ -576,8 +576,8 @@ namespace DP3 {
       const size_t nCr = info().ncorr();
       assert(nCr==4 || nCr==2 || nCr==1);
 
-      for (uint ch=0;ch<nCh;++ch) {
-        for (uint bl=0;bl<nBl;++bl) {
+      for (unsigned int ch=0;ch<nCh;++ch) {
+        for (unsigned int bl=0;bl<nBl;++bl) {
           if (itsSelectedBL[bl]) {
             int ant1=info().antennaMap()[info().getAnt1()[bl]];
             int ant2=info().antennaMap()[info().getAnt2()[bl]];
@@ -593,9 +593,9 @@ namespace DP3 {
               iS[ch/itsNChan].incrementWeight(weight[bl*nCr*nCh+ch*nCr]);
             }
 
-            for (uint cr=0;cr<nCr;++cr) {
+            for (unsigned int cr=0;cr<nCr;++cr) {
               // The nCrDiv is there such that for nCr==2 the visibilities end up at (0,0) for cr==0, (1,1) for cr==1
-              uint nCrDiv = (nCr==4?2:1);
+              unsigned int nCrDiv = (nCr==4?2:1);
               iS[ch/itsNChan].getVis() (IPosition(6,ant1,cr/nCrDiv,itsStepInSolInt,ch%itsNChan,cr%2,ant2)) =
                   DComplex(data [bl*nCr*nCh+ch*nCr+cr]) *
                   DComplex(sqrt(weight[bl*nCr*nCh+ch*nCr+cr]));
@@ -629,7 +629,7 @@ namespace DP3 {
     void GainCal::calibrate () {
       itsTimerSolve.start();
 
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         if (itsPropagateSolutions) {
           iS[freqCell].init(false);
         } else {
@@ -637,7 +637,7 @@ namespace DP3 {
         }
       }
 
-      uint iter=0;
+      unsigned int iter=0;
 
       casacore::Matrix<double> tecsol(itsMode==TECANDPHASE?2:1,
                                   info().antennaUsed().size(), 0);
@@ -660,7 +660,7 @@ namespace DP3 {
         });
 
         if (itsDebugLevel>0) {
-          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
             std::copy(fullSolution.begin(),
                       fullSolution.end(),
@@ -679,18 +679,18 @@ namespace DP3 {
           itsTimerPhaseFit.start();
           casacore::Matrix<casacore::DComplex> sols_f(itsNFreqCells, info().antennaUsed().size());
 
-          uint nSt = info().antennaUsed().size();
+          unsigned int nSt = info().antennaUsed().size();
 
           // TODO: set phase reference to something smarter than station 0
-          for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+          for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
             casacore::Matrix<casacore::DComplex> sol = iS[freqCell].getSolution(false);
             if (iS[freqCell].getStationFlagged()[0]) {
               // If reference station flagged, flag whole channel
-              for (uint st=0; st<info().antennaUsed().size(); ++st) {
+              for (unsigned int st=0; st<info().antennaUsed().size(); ++st) {
                 iS[freqCell].getStationFlagged()[st] = true;
               }
             } else {
-              for (uint st=0; st<info().antennaUsed().size(); ++st) {
+              for (unsigned int st=0; st<info().antennaUsed().size(); ++st) {
                 sols_f(freqCell, st) = sol(st, 0)/sol(0, 0);
                 assert(isFinite(sols_f(freqCell, st)));
               }
@@ -699,10 +699,10 @@ namespace DP3 {
 
           // Fit the data for each station
           itsParallelFor.Run(0, nSt, [&](size_t st, size_t /*thread*/) {
-            uint numpoints=0;
+            unsigned int numpoints=0;
             double* phases = itsPhaseFitters[st]->PhaseData();
             double* weights = itsPhaseFitters[st]->WeightData();
-            for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
               if (iS[freqCell].getStationFlagged()[st%nSt] ||
                   converged[freqCell]==GainCalAlgorithm::FAILED) {
                 phases[freqCell] = 0;
@@ -719,7 +719,7 @@ namespace DP3 {
               }
             }
 
-            for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+            for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
               assert(isFinite(phases[freqCell]));
             }
 
@@ -731,7 +731,7 @@ namespace DP3 {
                 itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
               }
               // Update solution in GainCalAlgorithm object
-              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+              for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 assert(isFinite(phases[freqCell]));
                 iS[freqCell].getSolution(false)(st, 0) = polar(1., phases[freqCell]);
               }
@@ -743,7 +743,7 @@ namespace DP3 {
             }
 
             if (itsDebugLevel>0) {
-              for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+              for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
                 Matrix<DComplex> fullSolution = iS[freqCell].getSolution(false);
                 std::copy(fullSolution.begin(),
                           fullSolution.end(),
@@ -767,7 +767,7 @@ namespace DP3 {
 
       } // End niter
 
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         switch (converged[freqCell]) {
         case GainCalAlgorithm::CONVERGED: {itsConverged++; itsNIter[0]+=iter; break;}
         case GainCalAlgorithm::STALLED: {itsStalled++; itsNIter[1]+=iter; break;}
@@ -782,16 +782,16 @@ namespace DP3 {
 
       Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaUsed().size(), itsNFreqCells);
 
-      uint transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
+      unsigned int transpose[2][4] = { { 0, 1, 0, 0 }, { 0, 2, 1, 3 } };
 
-      uint nSt = info().antennaUsed().size();
+      unsigned int nSt = info().antennaUsed().size();
 
-      for (uint freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
+      for (unsigned int freqCell=0; freqCell<itsNFreqCells; ++freqCell) {
         casacore::Matrix<casacore::DComplex> tmpsol = iS[freqCell].getSolution(true);
 
-        for (uint st=0; st<nSt; st++) {
-          for (uint cr=0; cr<iS[0].nCr(); ++cr) {
-            uint crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
+        for (unsigned int st=0; st<nSt; st++) {
+          for (unsigned int cr=0; cr<iS[0].nCr(); ++cr) {
+            unsigned int crt=transpose[iS[0].numCorrelations()/4][cr];  // Conjugate transpose ! (only for numCorrelations = 4)
             sol(crt, st, freqCell) = conj(tmpsol(st, cr));        // Conjugate transpose
             if (itsMode==DIAGONAL || itsMode==PHASEONLY || itsMode==AMPLITUDEONLY) {
               sol(crt+1, st, freqCell) = conj(tmpsol(st+nSt,cr)); // Conjugate transpose
@@ -906,7 +906,7 @@ namespace DP3 {
       // Fill antenna info in H5Parm, need to convert from casa types to std types
       std::vector<std::string> allAntennaNames(info().antennaNames().size());
       std::vector<std::vector<double> > antennaPos(info().antennaPos().size());
-      for (uint i=0; i<info().antennaNames().size(); ++i) {
+      for (unsigned int i=0; i<info().antennaNames().size(); ++i) {
         allAntennaNames[i]=info().antennaNames()[i];
         casacore::Quantum<casacore::Vector<double> > pos = info().antennaPos()[i].get("m");
         antennaPos[i].resize(3);
@@ -925,7 +925,7 @@ namespace DP3 {
 
       h5parm.addSources(pointingName, pointingPosition);
 
-      uint nPol;
+      unsigned int nPol;
       vector<string> polarizations;
       if (scalarMode(itsMode)) {
         nPol = 1;
@@ -943,16 +943,16 @@ namespace DP3 {
       }
 
       // Construct time axis
-      uint nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
+      unsigned int nSolTimes = (info().ntime()+itsSolInt-1)/itsSolInt;
       vector<double> solTimes(nSolTimes);
       assert(nSolTimes==itsSols.size());
       double starttime=info().startTime();
-      for (uint t=0; t<nSolTimes; ++t) {
+      for (unsigned int t=0; t<nSolTimes; ++t) {
         solTimes[t] = starttime+(t+0.5)*info().timeInterval()*itsSolInt;
       }
 
       // Construct frequency axis
-      uint nSolFreqs;
+      unsigned int nSolFreqs;
       if (itsMode==TEC || itsMode==TECANDPHASE) {
         nSolFreqs = 1;
       } else {
@@ -970,7 +970,7 @@ namespace DP3 {
       vector<H5Parm::SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
 
       std::vector<std::string> antennaUsedNames;
-      for (uint st = 0; st<info().antennaUsed().size(); ++st) {
+      for (unsigned int st = 0; st<info().antennaUsed().size(); ++st) {
           antennaUsedNames.push_back(info().antennaNames()[info().antennaUsed()[st]]);
       }
 
@@ -1005,10 +1005,10 @@ namespace DP3 {
           phasesols.resize(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol);
         }
         size_t i=0;
-        for (uint time=0; time<nSolTimes; ++time) {
-          for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
-            for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
-              for (uint pol=0; pol<nPol; ++pol) {
+        for (unsigned int time=0; time<nSolTimes; ++time) {
+          for (unsigned int freqCell=0; freqCell<nSolFreqs; ++freqCell) {
+            for (unsigned int ant=0; ant<info().antennaUsed().size(); ++ant) {
+              for (unsigned int pol=0; pol<nPol; ++pol) {
                 assert(!itsTECSols[time].empty());
                 tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
                 if (!std::isfinite(tecsols[i])) {
@@ -1030,10 +1030,10 @@ namespace DP3 {
         vector<DComplex> sols(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol);
         vector<double> weights(nSolFreqs*antennaUsedNames.size()*nSolTimes*nPol, 1.);
         size_t i=0;
-        for (uint time=0; time<nSolTimes; ++time) {
-          for (uint freqCell=0; freqCell<nSolFreqs; ++freqCell) {
-            for (uint ant=0; ant<info().antennaUsed().size(); ++ant) {
-              for (uint pol=0; pol<nPol; ++pol) {
+        for (unsigned int time=0; time<nSolTimes; ++time) {
+          for (unsigned int freqCell=0; freqCell<nSolFreqs; ++freqCell) {
+            for (unsigned int ant=0; ant<info().antennaUsed().size(); ++ant) {
+              for (unsigned int pol=0; pol<nPol; ++pol) {
                 assert(!itsSols[time].empty());
                 sols[i] = itsSols[time](pol, ant, freqCell);
                 if (!std::isfinite(sols[i].real())) {
@@ -1062,7 +1062,7 @@ namespace DP3 {
 
     vector<H5Parm::SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
                                                vector<H5Parm::AxisInfo>& axes) {
-      uint numsols = 1;
+      unsigned int numsols = 1;
       // For [scalar]complexgain, store two soltabs: phase and amplitude
       if (caltype == GainCal::DIAGONAL ||
           caltype == GainCal::SCALARCOMPLEXGAIN ||
@@ -1071,7 +1071,7 @@ namespace DP3 {
         numsols = 2;
       }
       vector<H5Parm::SolTab> soltabs;
-      for (uint solnum=0; solnum<numsols; ++solnum) {
+      for (unsigned int solnum=0; solnum<numsols; ++solnum) {
         string solTabName;
         H5Parm::SolTab soltab;
         switch (caltype) {
@@ -1124,8 +1124,8 @@ namespace DP3 {
         initParmDB();
       } // End initialization of parmdb
 
-      uint ntime=itsSols.size();
-      uint nchan, nfreqs;
+      unsigned int ntime=itsSols.size();
+      unsigned int nchan, nfreqs;
       if (itsMode==TEC || itsMode==TECANDPHASE) {
         nfreqs = 1;
         nchan = info().nchan();
@@ -1147,7 +1147,7 @@ namespace DP3 {
 
       // Make time axis (can be non regular for last chunk if solint > 1)
       vector<double> lowtimes(ntime), hightimes(ntime);
-      for (uint t=0; t<ntime; ++t) {
+      for (unsigned int t=0; t<ntime; ++t) {
         lowtimes[t]  = startTime + info().timeInterval() * itsSolInt * t;
         hightimes[t] = min(startTime + info().timeInterval() * itsSolInt * (t+1),
                            endTime);
@@ -1180,7 +1180,7 @@ namespace DP3 {
 
       DComplex sol;
 
-      uint nSt=info().antennaUsed().size();
+      unsigned int nSt=info().antennaUsed().size();
 
       for (size_t st=0; st<nSt; ++st) {
         // Do not write NaN solutions for stations that were not used
@@ -1225,8 +1225,8 @@ namespace DP3 {
             name+=info().antennaNames()[info().antennaUsed()[st]];
 
             // Collect its solutions for all times and frequency cells in a single array.
-            for (uint ts=0; ts<ntime; ++ts) {
-              for (uint freqCell=0; freqCell<nfreqs; ++freqCell) {
+            for (unsigned int ts=0; ts<ntime; ++ts) {
+              for (unsigned int freqCell=0; freqCell<nfreqs; ++freqCell) {
                 if (itsMode==FULLJONES) {
                   if (realim==0) {
                     values(freqCell, ts) = real(itsSols[ts](pol,st,freqCell));
@@ -1291,7 +1291,7 @@ namespace DP3 {
 
         if (itsApplySolution) {
           Cube<DComplex> invsol = invertSol(itsSols.back());
-          for (uint stepInSolInt=0; stepInSolInt<itsStepInSolInt; stepInSolInt++) {
+          for (unsigned int stepInSolInt=0; stepInSolInt<itsStepInSolInt; stepInSolInt++) {
             applySolution(itsBuf[stepInSolInt], invsol);
             getNextStep()->process(itsBuf[stepInSolInt]);
           }
@@ -1309,7 +1309,7 @@ namespace DP3 {
         if (itsDebugLevel>0) {
           H5::H5File hdf5file = H5::H5File("debug.h5", H5F_ACC_TRUNC);
           vector<hsize_t> dims(6);
-          for (uint i=0; i<6; ++i) {
+          for (unsigned int i=0; i<6; ++i) {
             dims[i] = itsAllSolutions.shape()[5-i];
           }
           H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);

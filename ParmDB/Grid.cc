@@ -92,7 +92,7 @@ namespace BBS {
     double dy = ey-sy;
     // Determine nr of cells in X and test if the cells are regular or not.
     // They are regular if equal width and consecutive.
-    uint nx = 1;
+    unsigned int nx = 1;
     bool xregular = true;
     while (nx < domains.size()) {
       if (sy != domains[nx].lowerY()) {
@@ -107,19 +107,19 @@ namespace BBS {
     }
     // Assure there is an integer nr of y domains.
     assert (domains.size() % nx == 0);
-    uint ny = domains.size() / nx;
+    unsigned int ny = domains.size() / nx;
     // Check if the x axis is the same for all y-s.
     std::vector<double> xaxisStart;
     std::vector<double> xaxisEnd;
     xaxisStart.reserve (nx);
     xaxisEnd.reserve (nx);
-    for (uint i=0; i<nx; ++i) {
+    for (unsigned int i=0; i<nx; ++i) {
       xaxisStart.push_back (domains[i].lowerX());
       xaxisEnd.push_back   (domains[i].upperX());
     }
-    for (uint j=1; j<ny; ++j) {
-      for (uint i=0; i<nx; ++i) {
-        uint inx = j*nx + i;
+    for (unsigned int j=1; j<ny; ++j) {
+      for (unsigned int i=0; i<nx; ++i) {
+        unsigned int inx = j*nx + i;
         assert (casacore::near(xaxisStart[i], domains[inx].lowerX()));
         assert (casacore::near(xaxisEnd[i], domains[inx].upperX()));
       }
@@ -132,8 +132,8 @@ namespace BBS {
     yaxisEnd.reserve (ny);
     bool yregular = true;
     ey = sy;
-    for (uint i=0; i<ny; ++i) {
-      uint inx = i*nx;
+    for (unsigned int i=0; i<ny; ++i) {
+      unsigned int inx = i*nx;
       yaxisStart.push_back (domains[inx].lowerY());
       yaxisEnd.push_back (domains[inx].upperY());
       if (! (casacore::near(ey, domains[inx].lowerY())
@@ -142,9 +142,9 @@ namespace BBS {
       }
       ey = domains[inx].upperY();
     }
-    for (uint j=0; j<ny; ++j) {
-      for (uint i=1; i<nx; ++i) {
-        uint inx = j*nx + i;
+    for (unsigned int j=0; j<ny; ++j) {
+      for (unsigned int i=1; i<nx; ++i) {
+        unsigned int inx = j*nx + i;
         assert (casacore::near(yaxisStart[j], domains[inx].lowerY()));
         assert (casacore::near(yaxisEnd[j], domains[inx].upperY()));
       }
@@ -175,30 +175,30 @@ namespace BBS {
     }
     setup (domains);
     // Now combine the grid axes.
-    uint nx = itsAxes[0]->size();
-    uint ny = itsAxes[1]->size();
+    unsigned int nx = itsAxes[0]->size();
+    unsigned int ny = itsAxes[1]->size();
     itsAxes[0] = combineAxes (grids, 0, nx, 1);
     itsAxes[1] = combineAxes (grids, 1, ny, nx);
     // Check if the grids themselves are equal for all x and y.
     // Check if the x axis is the same for all y-s.
     Axis::ShPtr xaxis = grids[0].getAxis(0);
-    for (uint j=1; j<ny; ++j) {
-      for (uint i=0; i<nx; ++i) {
-        uint inx = j*nx + i;
+    for (unsigned int j=1; j<ny; ++j) {
+      for (unsigned int i=0; i<nx; ++i) {
+        unsigned int inx = j*nx + i;
         assert (*grids[i].getAxis(0) == *grids[inx].getAxis(0));
       }
     }
     // Check if the y axis is the same for all x-s.
-    for (uint j=0; j<ny; ++j) {
-      uint inx = j*nx;
-      for (uint i=1; i<nx; ++i) {
+    for (unsigned int j=0; j<ny; ++j) {
+      unsigned int inx = j*nx;
+      for (unsigned int i=1; i<nx; ++i) {
         assert (*grids[inx].getAxis(1) == *grids[inx+i].getAxis(1));
       }
     }
   }
 
-  Axis::ShPtr GridRep::combineAxes (const std::vector<Grid>& grids, uint axnr,
-                                    uint n, uint step) const
+  Axis::ShPtr GridRep::combineAxes (const std::vector<Grid>& grids, unsigned int axnr,
+                                    unsigned int n, unsigned int step) const
   {
     // Nothing to be done if only one cell.
     const Axis::ShPtr& faxis = grids[0].getAxis(axnr);
@@ -209,8 +209,8 @@ namespace BBS {
     bool isRegular = faxis->isRegular();
     double width   = faxis->width(0);
     double last    = faxis->upper(faxis->size() - 1);
-    uint ncells    = faxis->size();
-    for (uint i=1; i<n; ++i) {
+    unsigned int ncells    = faxis->size();
+    for (unsigned int i=1; i<n; ++i) {
       const Axis::ShPtr& axis = grids[i*step].getAxis(axnr);
       ncells += axis->size();
       if (isRegular) {
@@ -228,9 +228,9 @@ namespace BBS {
     std::vector<double> ends;
     starts.reserve (ncells);
     ends.reserve   (ncells);
-    for (uint i=0; i<n; ++i) {
+    for (unsigned int i=0; i<n; ++i) {
       const Axis::ShPtr& axis = grids[i*step].getAxis(axnr);
-      for (uint j=0; j<axis->size(); ++j) {
+      for (unsigned int j=0; j<axis->size(); ++j) {
         starts.push_back (axis->lower(j));
         ends.push_back   (axis->upper(j));
       }
@@ -246,10 +246,10 @@ namespace BBS {
     const Axis& y = *itsAxes[1];
     int64_t xval = 0;
     int64_t yval = 0;
-    for (uint i=0; i<x.size(); ++i) {
+    for (unsigned int i=0; i<x.size(); ++i) {
       xval += int64_t(x.lower(i)) + int64_t(x.upper(i));
     }
-    for (uint i=0; i<y.size(); ++i) {
+    for (unsigned int i=0; i<y.size(); ++i) {
       yval += int64_t(y.lower(i)) + int64_t(y.upper(i));
     }
     itsHash = x.size() * yval + y.size() * xval;
@@ -286,7 +286,7 @@ namespace BBS {
   int64_t Grid::hash (const std::vector<Grid>& grids)
   {
     double val = 0;
-    for (uint i=0; i<grids.size(); ++i) {
+    for (unsigned int i=0; i<grids.size(); ++i) {
       val += grids[i].hash();
     }
     return val;
@@ -295,7 +295,7 @@ namespace BBS {
   int64_t Grid::hash (const std::vector<Box>& domains)
   {
     double val = 0;
-    for (uint i=0; i<domains.size(); ++i) {
+    for (unsigned int i=0; i<domains.size(); ++i) {
       const Box& box = domains[i];
       val += int64_t(box.lowerX()) + int64_t(box.upperX()) +
              int64_t(box.lowerY()) + int64_t(box.upperY());
@@ -328,23 +328,23 @@ namespace BBS {
   {
     const Axis& xaxis = *(getAxis(0));
     const Axis& yaxis = *(getAxis(1));
-    uint nrx = nx();
-    uint nry = ny();
+    unsigned int nrx = nx();
+    unsigned int nry = ny();
     // Prefetch the lower and upper values for both axes.
     std::vector<double> sx(nrx), ex(nrx);
     std::vector<double> sy(nrx), ey(nrx);
-    for (uint i=0; i<nrx; ++i) {
+    for (unsigned int i=0; i<nrx; ++i) {
       sx[i] = xaxis.lower(i);
       ex[i] = xaxis.upper(i);
     }
-    for (uint i=0; i<nry; ++i) {
+    for (unsigned int i=0; i<nry; ++i) {
       sy[i] = yaxis.lower(i);
       ey[i] = yaxis.upper(i);
     }
     // Create the domains and append them to the vector.
     domains.reserve (domains.size() + size());
-    for (uint iy=0; iy<nry; ++iy) {
-      for (uint ix=0; ix<nrx; ++ix) {
+    for (unsigned int iy=0; iy<nry; ++iy) {
+      for (unsigned int ix=0; ix<nrx; ++ix) {
         domains.push_back (Box(Point(sx[ix], sy[iy]), Point(ex[ix], ey[iy])));
       }
     }

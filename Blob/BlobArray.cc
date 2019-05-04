@@ -32,7 +32,7 @@ namespace DP3
 uint64_t putBlobArrayHeader (BlobOStream& bs, bool useBlobHeader,
 			   const std::string& headerName,
 			   const uint64_t* shape, uint16_t ndim,
-			   bool fortranOrder, uint alignment)
+			   bool fortranOrder, unsigned int alignment)
 {
   if (useBlobHeader) {
     bs.putStart (headerName, 1);                // version 1
@@ -61,18 +61,18 @@ uint64_t putBlobArrayHeader (BlobOStream& bs, bool useBlobHeader,
 
 // Get the shape of an array from the blob.
 // This is a helper function for the functions reading an array.
-uint64_t getBlobArrayShape (BlobIStream& bs, uint64_t* shape, uint ndim,
-                          bool swapAxes, uint nalign)
+uint64_t getBlobArrayShape (BlobIStream& bs, uint64_t* shape, unsigned int ndim,
+                          bool swapAxes, unsigned int nalign)
 {
   bs.get (shape, ndim);
   if (swapAxes) {
     std::vector<uint64_t> shp(shape, shape+ndim);
-    for (uint i=0; i<ndim; i++) {
+    for (unsigned int i=0; i<ndim; i++) {
       shape[i] = shp[ndim-i-1];
     }
   }
-  uint n=1;
-  for (uint i=0; i<ndim; i++) {
+  unsigned int n=1;
+  for (unsigned int i=0; i<ndim; i++) {
     n *= shape[i];
   }
   char buf[32];
@@ -120,7 +120,7 @@ BlobIStream& operator>> (BlobIStream& bs, std::vector<bool>& vec)
   bs.getStart (DP3::typeName((const bool**)0));
   bool fortranOrder;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   assert(ndim == 1);
   uint64_t size;
   getBlobArrayShape (bs, &size, 1, false, nalign);
@@ -146,14 +146,14 @@ BlobIStream& operator>> (BlobIStream& bs, casacore::IPosition& ipos)
   bs.getStart (DP3::typeName((const int64_t**)0));
   bool fortranOrder;
   uint16_t ndim;
-  uint nalign = getBlobArrayStart (bs, fortranOrder, ndim);
+  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   ASSERT(ndim == 1);
   uint64_t size;
   getBlobArrayShape (bs, &size, 1, false, nalign);
   std::vector<int64_t> ivec(size);
   ipos.resize (size, false);
   bs.get (&(ivec[0]), size);
-  for (uint i=0; i<size; ++i) {
+  for (unsigned int i=0; i<size; ++i) {
     ipos[i] = ivec[i];
   }
   bs.getEnd();

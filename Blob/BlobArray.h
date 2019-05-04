@@ -86,41 +86,41 @@ namespace DP3
   // <group>
   template<typename T>
   uint64_t setSpaceBlobArray1 (BlobOStream& bs, bool useBlobHeader,
-                             uint64_t size0, uint alignment=0);
+                             uint64_t size0, unsigned int alignment=0);
   template<typename T>
   uint64_t setSpaceBlobArray2 (BlobOStream& bs, bool useBlobHeader,
                              uint64_t size0, uint64_t size1,
-                             bool fortranOrder, uint alignment=0);
+                             bool fortranOrder, unsigned int alignment=0);
   template<typename T>
   uint64_t setSpaceBlobArray3 (BlobOStream& bs, bool useBlobHeader,
                              uint64_t size0, uint64_t size1, uint64_t size2,
-                             bool fortranOrder, uint alignment=0);
+                             bool fortranOrder, unsigned int alignment=0);
   template<typename T>
   uint64_t setSpaceBlobArray4 (BlobOStream& bs, bool useBlobHeader,
                              uint64_t size0, uint64_t size1,
                              uint64_t size2, uint64_t size3,
-                             bool fortranOrder, uint alignment=0);
+                             bool fortranOrder, unsigned int alignment=0);
   template<typename T>
   uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
                             const std::vector<uint64_t>& shape,
-                            bool fortranOrder, uint alignment=0);
+                            bool fortranOrder, unsigned int alignment=0);
   template<typename T>
   uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
                             const uint64_t* shape, uint16_t ndim,
-                            bool fortranOrder, uint alignment=0);
+                            bool fortranOrder, unsigned int alignment=0);
   // </group>
 
 
 #if defined(HAVE_BLITZ) 
   // Write a blitz array (which can be non-contiguous).
-  template<typename T, uint N>
+  template<typename T, unsigned int N>
   BlobOStream& operator<< (BlobOStream&, const blitz::Array<T,N>&);
 
   // Read back a blitz array.
   // The dimensionality found in the stream has to match N.
   // If the shape mismatches, the array is resized.
   // If the shape matches, the array can be non-contiguous.
-  template<typename T, uint N>
+  template<typename T, unsigned int N>
   BlobIStream& operator>> (BlobIStream&, blitz::Array<T,N>&);
 #endif
 
@@ -193,7 +193,7 @@ namespace DP3
   //# Reserve space for a 1-dim array of the given size.
   template<typename T>
   inline uint64_t setSpaceBlobArray1 (BlobOStream& bs, bool useBlobHeader,
-                                    uint64_t size0, uint alignment)
+                                    uint64_t size0, unsigned int alignment)
   {
     return setSpaceBlobArray<T> (bs, useBlobHeader, &size0, 1, true,
 				 alignment);
@@ -220,12 +220,12 @@ namespace DP3
   uint64_t putBlobArrayHeader (BlobOStream& bs, bool useBlobHeader,
 			     const std::string& headerName,
 			     const uint64_t* shape, uint16_t ndim,
-			     bool fortranOrder, uint alignment);
+			     bool fortranOrder, unsigned int alignment);
 
   // Get the ordering and dimensionality.
   // This is a helper function for the functions reading an array.
   // It returns the number of alignment bytes used.
-  inline uint getBlobArrayStart (BlobIStream& bs, bool& fortranOrder,
+  inline unsigned int getBlobArrayStart (BlobIStream& bs, bool& fortranOrder,
 				 uint16_t& ndim)
   {
     unsigned char nalign;
@@ -241,8 +241,8 @@ namespace DP3
   // Get the shape of an array from the blob.
   // This is a helper function for the functions reading an array.
   // It returns the number of elements in the array.
-  uint64_t getBlobArrayShape (BlobIStream& bs, uint64_t* shape, uint ndim,
-                            bool swapAxes, uint nalign);
+  uint64_t getBlobArrayShape (BlobIStream& bs, uint64_t* shape, unsigned int ndim,
+                            bool swapAxes, unsigned int nalign);
 
   // Helper function to put an array of data.
   // It is specialized for the standard types (including complex and string).

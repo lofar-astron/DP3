@@ -95,7 +95,7 @@ namespace DP3 {
       itsFilter.setNextStep (nullStep);
       // The worker will process up to chunkSize input time slots.
       // Size buffers accordingly.
-      uint nsrc = itsMix->ateamList().size();
+      unsigned int nsrc = itsMix->ateamList().size();
       itsFactors.resize      (itsMix->ntimeOut());
       itsFactorsSubtr.resize (itsMix->ntimeOutSubtr());
       itsOrigPhaseShifts.reserve (nsrc);
@@ -126,7 +126,7 @@ namespace DP3 {
       // MultiResultStep is used to catch the results of all time chunks.
       const vector<Patch::ConstPtr>& patchList = itsMix->ateamDemixList();
       vector<string> sourceVec(2);
-      for (uint i=0; i<nsrc; ++i) {
+      for (unsigned int i=0; i<nsrc; ++i) {
         // First make the phaseshift and average steps for each demix source.
         // The resultstep gets the result.
         // The phasecenter can be given in a parameter. Its name is the default.
@@ -173,7 +173,7 @@ namespace DP3 {
 
       // Let the internal steps update their data.
       itsFilter.setInfo (info);
-      for (uint i=0; i<itsOrigFirstSteps.size(); ++i) {
+      for (unsigned int i=0; i<itsOrigFirstSteps.size(); ++i) {
         itsOrigFirstSteps[i]->setInfo (itsFilter.getInfo());
       }
       itsAvgStepSubtr->setInfo (info);
@@ -190,7 +190,7 @@ namespace DP3 {
       itsSrcSet.reserve (nsrc+1);
       itsStationsToUse.resize (nsrc);
       itsUnknownsIndex.resize (nsrc+1);
-      for (uint dr=0; dr<nsrc+1; ++dr) {
+      for (unsigned int dr=0; dr<nsrc+1; ++dr) {
         itsUnknownsIndex[dr].resize (itsMix->nstation());
       }
       itsSolveStation.resize (itsMix->nstation());
@@ -206,19 +206,19 @@ namespace DP3 {
       // Not doing this now, so that the elements can be a Cube and do not need
       // to be resized.
       itsModelVisDemix.resize (nsrc+1);
-      for (uint dr=0; dr<nsrc+1; ++dr) {
+      for (unsigned int dr=0; dr<nsrc+1; ++dr) {
         itsModelVisDemix[dr].resize(itsMix->ncorr(),
                                     itsMix->nchanOut(),
                                     itsMix->nbl());
       }
       itsModelVisSubtr.resize (nsrc+1);
-      for (uint dr=0; dr<nsrc+1; ++dr) {
+      for (unsigned int dr=0; dr<nsrc+1; ++dr) {
         itsModelVisSubtr[dr].resize(itsMix->ncorr(),
                                     itsMix->nchanOutSubtr(),
                                     itsMix->nbl());
       }
       itsAteamAmpl.resize (nsrc);
-      for (uint dr=0; dr<nsrc; ++dr) {
+      for (unsigned int dr=0; dr<nsrc; ++dr) {
         itsAteamAmpl[dr].resize (itsMix->nchanOut(), itsMix->nbl(),
                                 itsMix->ntimeOut());
       }
@@ -279,9 +279,9 @@ namespace DP3 {
       dir2Itrf(itsDelayCenter);
     }
 
-    void DemixWorker::process (const DPBuffer* bufin, uint nbufin,
+    void DemixWorker::process (const DPBuffer* bufin, unsigned int nbufin,
                                DPBuffer* bufout, vector<double>* solutions,
-                               uint chunkNr)
+                               unsigned int chunkNr)
     {
       itsTimer.start();
       itsTimerCoarse.start();
@@ -293,7 +293,7 @@ namespace DP3 {
       // Average and split the baseline UVW coordinates per station.
       // Do this at the demix time resolution.
       // The buffer has not been filtered yet, so the UVWs have to be filtered.
-      uint ntime = avgSplitUVW (bufin, nbufin, itsMix->ntimeAvg(),
+      unsigned int ntime = avgSplitUVW (bufin, nbufin, itsMix->ntimeAvg(),
                                 itsFilter.getIndicesBL());
       double timeStep = bufin[0].getExposure();
       double time = bufin[0].getTime() + (itsMix->ntimeAvg()-1) * 0.5*timeStep;
@@ -305,7 +305,7 @@ namespace DP3 {
       if (itsSrcSet.empty()) {
         itsNrNoDemix++;
         // Set all solutions to 0.
-        uint nout = (nbufin + itsMix->ntimeAvg() - 1) / itsMix->ntimeAvg();
+        unsigned int nout = (nbufin + itsMix->ntimeAvg() - 1) / itsMix->ntimeAvg();
         for (size_t i=0; i<nout; ++i) {
           solutions[i].resize ((itsMix->ateamList().size() + 1) *
                                itsMix->nstation() * 8);
@@ -331,13 +331,13 @@ namespace DP3 {
       // Loop over the buffers and process them.
       itsNTimeOut = 0;
       itsNTimeOutSubtr = 0;
-      for (uint i=0; i<nbufin; ++i) {
+      for (unsigned int i=0; i<nbufin; ++i) {
         // Do the filter step first.
         itsFilter.process (bufin[i]);
         const DPBuffer& selBuf = itsFilter.getBuffer();
         // Do the next steps (phaseshift and average) on the filter output.
         itsTimerPhaseShift.start();
-        for (uint j=0; j<itsFirstSteps.size(); ++j) {
+        for (unsigned int j=0; j<itsFirstSteps.size(); ++j) {
           itsFirstSteps[j]->process (selBuf);
         }
         // Do the average and filter step for the output for all data.
@@ -384,24 +384,24 @@ namespace DP3 {
       itsTimer.stop();
     }
 
-    uint DemixWorker::avgSplitUVW (const DPBuffer* bufin, uint nbufin,
-                                   uint ntimeAvg, const vector<uint>& selbl)
+    unsigned int DemixWorker::avgSplitUVW (const DPBuffer* bufin, unsigned int nbufin,
+                                   unsigned int ntimeAvg, const vector<unsigned int>& selbl)
     {
       assert (selbl.size() == size_t(itsAvgUVW.shape()[1]));
       // First average the UVWs to the predict time window.
-      uint ntime = (nbufin + ntimeAvg - 1) / ntimeAvg;
+      unsigned int ntime = (nbufin + ntimeAvg - 1) / ntimeAvg;
       const DPBuffer* buf = bufin;
-      uint nleft = nbufin;
+      unsigned int nleft = nbufin;
       // Loop over nr of output time slots.
       MatrixIterator<double> uvwIter(itsStationUVW);
-      for (uint i=0; i<ntime; ++i) {
+      for (unsigned int i=0; i<ntime; ++i) {
         // Sum the times for this output time slot.
         // Only take the selected baselines into account.
         itsAvgUVW = 0.;
-        uint ntodo = std::min(ntimeAvg, nleft);
-        for (uint j=0; j<ntodo; ++j) {
+        unsigned int ntodo = std::min(ntimeAvg, nleft);
+        for (unsigned int j=0; j<ntodo; ++j) {
           double* sumPtr = itsAvgUVW.data();
-          for (uint k=0; k<selbl.size(); ++k) {
+          for (unsigned int k=0; k<selbl.size(); ++k) {
             const double* uvwPtr = buf->getUVW().data() + 3*selbl[k];
             for (int k1=0; k1<3; ++k1) {
               *sumPtr++ += uvwPtr[k1];
@@ -427,7 +427,7 @@ namespace DP3 {
     }
 
     void DemixWorker::predictTarget (const vector<Patch::ConstPtr>& patchList,
-                                     uint ntime, double time, double timeStep)
+                                     unsigned int ntime, double time, double timeStep)
     {
       // This is only needed for the short baselines, but it takes hardly
       // any time to do it for all selected baselines.
@@ -436,8 +436,8 @@ namespace DP3 {
       MatrixIterator<float> miter(itsTargetAmpl);
       MatrixIterator<double> uvwiter(itsStationUVW);
       double t = time;
-      for (uint j=0; j<ntime; ++j) {
-        for (uint dr=0; dr<patchList.size(); ++dr) {
+      for (unsigned int j=0; j<ntime; ++j) {
+        for (unsigned int dr=0; dr<patchList.size(); ++dr) {
           itsPredictVis = dcomplex();
           Simulator simulator(itsMix->phaseRef(),
                               itsMix->nstation(),
@@ -477,16 +477,16 @@ namespace DP3 {
     }
 
     void DemixWorker::predictAteam (const vector<Patch::ConstPtr>& patchList,
-                                    uint ntime, double time, double timeStep)
+                                    unsigned int ntime, double time, double timeStep)
     {
       itsAteamAmplSel = false;
       itsSolveStation = false;
-      for (uint dr=0; dr<patchList.size(); ++dr) {
+      for (unsigned int dr=0; dr<patchList.size(); ++dr) {
         itsAteamAmpl[dr] = 0;
         MatrixIterator<float> miter(itsAteamAmpl[dr]);
         MatrixIterator<double> uvwiter(itsStationUVW);
         double t = time;
-        for (uint j=0; j<ntime; ++j) {
+        for (unsigned int j=0; j<ntime; ++j) {
           itsPredictVis = dcomplex();
           Simulator simulator(itsMix->phaseRef(),
                               itsMix->nstation(),
@@ -511,12 +511,12 @@ namespace DP3 {
       }
       // Determine per A-source which stations to use.
       itsSrcSet.resize (0);
-      vector<uint> antCount (itsMix->nstation());
-      for (uint i=0; i<patchList.size(); ++i) {
+      vector<unsigned int> antCount (itsMix->nstation());
+      for (unsigned int i=0; i<patchList.size(); ++i) {
         // Count the stations of baselines with sufficient amplitude.
         std::fill (antCount.begin(), antCount.end(), 0);
         MatrixIterator<float> miter(itsAteamAmpl[i], 0, 2);
-        for (uint j=0; j<itsMix->nbl(); ++j, miter.next()) {
+        for (unsigned int j=0; j<itsMix->nbl(); ++j, miter.next()) {
           if (itsMix->verbose() > 11) {
             cout<<"source "<<i<<", baseline "<<itsMix->getAnt1()[j]
                 <<' '<<itsMix->getAnt2()[j]
@@ -530,7 +530,7 @@ namespace DP3 {
         }
         // Determine which stations have sufficient occurrence.
         itsStationsToUse[i].resize (0);
-        for (uint j=0; j<antCount.size(); ++j) {
+        for (unsigned int j=0; j<antCount.size(); ++j) {
           if (antCount[j] >= itsMix->minNBaseline()) {
             itsStationsToUse[i].push_back (j);
           } else {
@@ -547,8 +547,8 @@ namespace DP3 {
         if (itsStationsToUse[i].size() >= itsMix->minNStation()) {
           itsSrcSet.push_back (i);
           itsNrSourcesDemixed[i]++;
-          for (uint j=0; j<itsStationsToUse[i].size(); ++j) {
-            uint st = itsStationsToUse[i][j];
+          for (unsigned int j=0; j<itsStationsToUse[i].size(); ++j) {
+            unsigned int st = itsStationsToUse[i][j];
             itsStatSourceDemixed(i,st)++;
             itsSolveStation[st] = true;
           }
@@ -569,15 +569,15 @@ namespace DP3 {
       }
     }
 
-    void DemixWorker::average (const DPBuffer* bufin, uint nbufin,
+    void DemixWorker::average (const DPBuffer* bufin, unsigned int nbufin,
                                DPBuffer* bufout)
     {
-      for (uint i=0; i<nbufin; ++i) {
+      for (unsigned int i=0; i<nbufin; ++i) {
         itsAvgStepSubtr->process (bufin[i]);
       }
       itsAvgStepSubtr->finish();
       assert (itsAvgResultFull->size() <= itsMix->ntimeOutSubtr());
-      for (uint i=0; i<itsAvgResultFull->size(); ++i) {
+      for (unsigned int i=0; i<itsAvgResultFull->size(); ++i) {
         bufout[i] = itsAvgResultFull->get()[i];
       }
       itsAvgResultFull->clear();
@@ -590,11 +590,11 @@ namespace DP3 {
       // Copy the amplitudes of those baselines to make them contiguous.
       const IPosition& shp = ampl.shape();
       float* tmp = &(itsTmpAmpl[0]);
-      uint nrtmp = 0;
-      for (uint bl=0; bl<shp[1]; ++bl) {
+      unsigned int nrtmp = 0;
+      for (unsigned int bl=0; bl<shp[1]; ++bl) {
         if (selbl[bl]) {
-          for (uint tm=0; tm<shp[2]; ++tm) {
-            for (uint ch=0; ch<shp[0]; ++ch) {
+          for (unsigned int tm=0; tm<shp[2]; ++tm) {
+            for (unsigned int ch=0; ch<shp[0]; ++ch) {
               tmp[nrtmp++] = ampl(ch,bl,tm);
             }
           }
@@ -607,12 +607,12 @@ namespace DP3 {
       return GenSort<float>::kthLargest (tmp, nrtmp, (nrtmp-1)/2);
     }
 
-    void DemixWorker::setupDemix (uint chunkNr)
+    void DemixWorker::setupDemix (unsigned int chunkNr)
     {
       // Decide if the target has to be included, ignored, or deprojected
       // which depends on the ratio target/Ateam of the total ampl.
       // Fill in the steps to be executed by removing the too weak A-sources.
-      uint nsrc = itsSrcSet.size();
+      unsigned int nsrc = itsSrcSet.size();
       itsPhaseShifts.resize (nsrc);
       itsFirstSteps.resize (nsrc+1);
       // Add target.
@@ -621,8 +621,8 @@ namespace DP3 {
       float maxMedAmpl = 0;
       // Add sources to be demixed.
       // Determine their minimum and maximum amplitude.
-      for (uint i=0; i<nsrc; ++i) {
-        uint srcOrig = itsSrcSet[i];
+      for (unsigned int i=0; i<nsrc; ++i) {
+        unsigned int srcOrig = itsSrcSet[i];
         itsPhaseShifts[i] = itsOrigPhaseShifts[srcOrig];
         itsFirstSteps[i]  = itsOrigFirstSteps[srcOrig];
         itsDemixList[i]   = itsMix->ateamDemixList()[srcOrig];
@@ -691,17 +691,17 @@ namespace DP3 {
       // Their names are DirectionalGain:i:j:Type::Station::Source
       // where i:j gives the Jones element and Type is Real or Imag.
       // Fill the map of source/station to unknown seqnr (4 pol, ampl/phase).
-      uint nUnknown = 0;
-      for (uint dr=0; dr<itsNModel; ++dr) {
-        uint drOrig = itsSrcSet[dr];
+      unsigned int nUnknown = 0;
+      for (unsigned int dr=0; dr<itsNModel; ++dr) {
+        unsigned int drOrig = itsSrcSet[dr];
         // Initialize first.
         std::fill (itsUnknownsIndex[dr].begin(), itsUnknownsIndex[dr].end(), -1);
         if (itsMix->verbose() > 11) {
           cout << "stationstouse "<<drOrig<<" = "<<itsStationsToUse[drOrig]
                << endl;
         }
-        for (uint j=0; j<itsStationsToUse[drOrig].size(); ++j) {
-          uint st = itsStationsToUse[drOrig][j];
+        for (unsigned int j=0; j<itsStationsToUse[drOrig].size(); ++j) {
+          unsigned int st = itsStationsToUse[drOrig][j];
           itsUnknownsIndex[dr][st] = nUnknown;
           nUnknown += 8;
         }
@@ -716,7 +716,7 @@ namespace DP3 {
                  itsUnknownsIndex[itsNModel].end(), -1);
       if (itsIncludeTarget) {
         itsSrcSet.push_back (itsMix->ateamList().size());
-        for (uint j=0; j<itsUnknownsIndex[itsNModel].size(); ++j) {
+        for (unsigned int j=0; j<itsUnknownsIndex[itsNModel].size(); ++j) {
           itsUnknownsIndex[itsNModel][j] = nUnknown;
           nUnknown += 8;
         }
@@ -769,7 +769,7 @@ namespace DP3 {
       MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
       LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir);
       // Get the beam values for each station.
-      uint nchan = chanFreqs.size();
+      unsigned int nchan = chanFreqs.size();
       for (size_t st=0; st<itsMix->nstation(); ++st) {
         itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
                                       srcdir, itsMix->getInfo().refFreq(),
@@ -832,8 +832,8 @@ namespace DP3 {
       // source direction. By combining them you get the shift from one
       // source direction to another.
       int dirnr = 0;
-      for (uint i1=0; i1<itsNDir-1; ++i1) {
-        for (uint i0=i1+1; i0<itsNDir; ++i0) {
+      for (unsigned int i1=0; i1<itsNDir-1; ++i1) {
+        for (unsigned int i0=i1+1; i0<itsNDir; ++i0) {
           if (i0 == itsNDir-1) {
             // The last direction is the target direction, so no need to
             // combine the factors. Take conj to get shift source to target.
@@ -890,8 +890,8 @@ namespace DP3 {
     void DemixWorker::makeFactors (const Array<DComplex>& bufIn,
                                    Array<DComplex>& bufOut,
                                    const Cube<float>& weightSums,
-                                   uint nChanOut,
-                                   uint nChanAvg)
+                                   unsigned int nChanOut,
+                                   unsigned int nChanAvg)
     {
       // Nothing to do if only target direction.
       if (itsNDir <= 1) return;
@@ -903,9 +903,9 @@ namespace DP3 {
       int nccdd = ncc*itsNDir*itsNDir;
       int nccin = itsMix->ncorr()*itsMix->nchanIn();
       // Fill the factors for each combination of different directions.
-      uint dirnr = 0;
-      for (uint d0=0; d0<itsNDir; ++d0) {
-        for (uint d1=d0+1; d1<itsNDir; ++d1) {
+      unsigned int dirnr = 0;
+      for (unsigned int d0=0; d0<itsNDir; ++d0) {
+        for (unsigned int d1=d0+1; d1<itsNDir; ++d1) {
           // Average factors by summing channels.
           // Note that summing in time is done in addFactors.
           // The sum per output channel is divided by the summed weight.
@@ -915,19 +915,19 @@ namespace DP3 {
             DComplex* ph1 = bufOut.data() + k*nccdd + (d0*itsNDir + d1);
             DComplex* ph2 = bufOut.data() + k*nccdd + (d1*itsNDir + d0);
             const float* weightPtr = weightSums.data() + k*ncc;
-            for (uint c0=0; c0<nChanOut; ++c0) {
+            for (unsigned int c0=0; c0<nChanOut; ++c0) {
               // Sum the factors for the input channels to average.
               DComplex sum[4];
               // In theory the last output channel could consist of fewer
               // input channels, so take care of that.
-              uint nch = std::min(nChanAvg, itsMix->nchanIn()-c0*nChanAvg);
-              for (uint c1=0; c1<nch; ++c1) {
-                for (uint j=0; j<itsMix->ncorr(); ++j) {
+              unsigned int nch = std::min(nChanAvg, itsMix->nchanIn()-c0*nChanAvg);
+              for (unsigned int c1=0; c1<nch; ++c1) {
+                for (unsigned int j=0; j<itsMix->ncorr(); ++j) {
                   assert (phin < bufIn.data()+bufIn.size());
                   sum[j] += *phin++;
                 }
               }
-              for (uint j=0; j<itsMix->ncorr(); ++j) {
+              for (unsigned int j=0; j<itsMix->ncorr(); ++j) {
                 assert (ph1 < bufOut.data()+bufOut.size());
                 assert (ph2 < bufOut.data()+bufOut.size());
                 assert (weightPtr < weightSums.data() + weightSums.size());
@@ -951,11 +951,11 @@ namespace DP3 {
 
     void DemixWorker::deproject (Array<DComplex>& factors,
                                  vector<MultiResultStep*> avgResults,
-                                 uint resultIndex)
+                                 unsigned int resultIndex)
     {
       // Sources without a model have to be deprojected.
       // Optionally no deprojection of target direction.
-      uint nrDeproject = itsNDir - itsNModel;
+      unsigned int nrDeproject = itsNDir - itsNModel;
       if (itsIgnoreTarget) {
         nrDeproject--;
       }
@@ -963,8 +963,8 @@ namespace DP3 {
       if (itsNDir <= 1  ||  nrDeproject == 0) return;
       // Get pointers to the data for the various directions.
       vector<Complex*> resultPtr(itsNDir);
-      for (uint dr=0; dr<itsNDir; ++dr) {
-        uint drOrig = avgResults.size() - 1;
+      for (unsigned int dr=0; dr<itsNDir; ++dr) {
+        unsigned int drOrig = avgResults.size() - 1;
         if (dr < itsSrcSet.size()) drOrig = itsSrcSet[dr];
         resultPtr[dr] = avgResults[drOrig]->get()[resultIndex].getData().data();
       }
@@ -1021,13 +1021,13 @@ namespace DP3 {
           out = product(p, ma);
           // Multiply the averaged data point with P.
           std::fill (vec.begin(), vec.end(), DComplex());
-          for (uint j=0; j<itsNDir; ++j) {
-            for (uint k=0; k<itsNDir; ++k) {
+          for (unsigned int j=0; j<itsNDir; ++j) {
+            for (unsigned int k=0; k<itsNDir; ++k) {
               vec[k] += DComplex(resultPtr[j][i]) * p(k,j);
             }
           }
           // Put result back in averaged data for those sources.
-          for (uint j=0; j<itsNDir; ++j) {
+          for (unsigned int j=0; j<itsNDir; ++j) {
             resultPtr[j][i] = vec[j];
           }
         }
@@ -1050,7 +1050,7 @@ namespace DP3 {
         itsAvgResults[i]->clear();
       }
       // Store the output buffers.
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+      for (unsigned int i=0; i<itsNTimeOutSubtr; ++i) {
         // DPBuffer copying uses reference semantics which is fine.
         // At the end the itsAvgResultxxx buffers get removed, thus the ones
         // in bufout cannot be overwritten.
@@ -1069,7 +1069,7 @@ namespace DP3 {
     {
       // Merge the selected baselines from the subtract buffer into the
       // full buffer. Do it for all timestamps.
-      for (uint i=0; i<itsNTimeOutSubtr; ++i) {
+      for (unsigned int i=0; i<itsNTimeOutSubtr; ++i) {
         const Array<Complex>& arr = itsAvgResultSubtr->get()[i].getData();
         size_t nr = arr.shape()[0] * arr.shape()[1];
         const Complex* in = arr.data();
@@ -1103,7 +1103,7 @@ namespace DP3 {
         // Compute the model visibilities for each A-team source.
         size_t stride_model[3] = {1, nCr, nCr*nCh};
         for (size_t dr=0; dr<itsNModel; ++dr) {
-          uint drOrig = itsSrcSet[dr];
+          unsigned int drOrig = itsSrcSet[dr];
           // Split the baseline UVW coordinates per station.
           nsplitUVW (itsMix->uvwSplitIndex(), itsMix->baselines(),
                      itsAvgResults[drOrig]->get()[ts].getUVW(), itsUVW);
@@ -1115,7 +1115,7 @@ namespace DP3 {
           if (dr == itsNSubtr) {
             // This is the target which consists of multiple components.
             // To each of them the beam must be applied.
-            for (uint i=0; i<itsMix->targetDemixList().size(); ++i) {
+            for (unsigned int i=0; i<itsMix->targetDemixList().size(); ++i) {
               itsPredictVis = dcomplex();
               Simulator simulator(itsMix->phaseRef(), nSt, nBl, nCh,
                                   itsMix->baselines(), itsMix->freqDemix(),
@@ -1165,7 +1165,7 @@ namespace DP3 {
         vector<const_cursor<fcomplex> > cr_data(itsNModel);
         vector<const_cursor<dcomplex> > cr_model(itsNModel);
         for (size_t dr=0; dr<itsNModel; ++dr) {
-          uint drOrig = itsSrcSet[dr];
+          unsigned int drOrig = itsSrcSet[dr];
           cr_data[dr] =
             casa_const_cursor(itsAvgResults[drOrig]->get()[ts].getData());
           cr_model[dr] =
@@ -1213,7 +1213,7 @@ namespace DP3 {
               data += 4*nChSubtr;
             }
             for (size_t dr=0; dr<itsNSubtr; ++dr) {
-              uint drOrig = itsSrcSet[dr];
+              unsigned int drOrig = itsSrcSet[dr];
               // Re-use simulation used for estimating Jones matrices if possible.
               cursor<dcomplex> cr_model_subtr(itsModelVisSubtr[dr].data(),
                                               3, stride_model);
@@ -1310,7 +1310,7 @@ namespace DP3 {
       }  // end nTime
     }
 
-    void DemixWorker::addMeanM2 (const vector<float>& sourceAmpl, uint dr)
+    void DemixWorker::addMeanM2 (const vector<float>& sourceAmpl, unsigned int dr)
     {
       for (size_t bl=0; bl<sourceAmpl.size(); ++bl) {
         if (itsObservedAmpl[bl] != 0  &&  sourceAmpl[bl] != 0) {

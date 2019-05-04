@@ -36,7 +36,7 @@ namespace BBS {
   using DP3::operator<<;
 
   // Initialize static.
-  uint Axis::theirId = 0;
+  unsigned int Axis::theirId = 0;
 
 
   // Register with the BlobStreamableFactory. Use an anonymous namespace. This
@@ -54,7 +54,7 @@ namespace BBS {
     itsId = theirId++;
   }
 
-  void Axis::setup (double start, double width, uint count)
+  void Axis::setup (double start, double width, unsigned int count)
   {
     itsIsRegular = true;
     assert(width > 0  &&  count > 0);
@@ -62,7 +62,7 @@ namespace BBS {
     itsWidth.resize  (count);
     itsUpper.resize  (count);
     itsLower.resize  (count);
-    for (uint i=0; i<count; ++i) {
+    for (unsigned int i=0; i<count; ++i) {
       itsWidth[i]  = width;
       itsCenter[i] = start + width*0.5;
       itsLower[i]  =  start;
@@ -74,8 +74,8 @@ namespace BBS {
     // An alternative would be to smear out the rest as shown below,
     // but that would mean the width of each cell can be slightly different.
 //     double end = count*width;
-//     uint   nr  = count;
-//     for (uint i=0; i<count; ++i) {
+//     unsigned int   nr  = count;
+//     for (unsigned int i=0; i<count; ++i) {
 //       itsLower[i]  = start;
 //       itsWidth[i]  = (end-start)/nr;
 //       start += itsWidth[i];
@@ -91,13 +91,13 @@ namespace BBS {
     itsIsRegular = false;
     assert(v1.size() == v2.size());
     assert(v1.size() > 0);
-    uint nr = v1.size();
+    unsigned int nr = v1.size();
     if (!asStartEnd) {
       itsCenter = v1;
       itsWidth  = v2;
       itsLower.resize (nr);
       itsUpper.resize (nr);
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         itsLower[i] = itsCenter[i] - itsWidth[i] * 0.5;
         itsUpper[i] = itsLower[i] + itsWidth[i];
       }
@@ -106,12 +106,12 @@ namespace BBS {
       itsUpper = v2;
       itsCenter.resize (nr);
       itsWidth.resize  (nr);
-      for (uint i=0; i<nr; ++i) {
+      for (unsigned int i=0; i<nr; ++i) {
         itsCenter[i] = (v1[i] + v2[i]) * 0.5;
         itsWidth[i]  = v2[i] - v1[i];
       }
     }
-    for (uint i=0; i<nr; ++i) {
+    for (unsigned int i=0; i<nr; ++i) {
       assert(itsWidth[i] > 0);
       if (i > 0) {
         assert(itsUpper[i-1] <= itsLower[i]  ||
@@ -133,11 +133,11 @@ namespace BBS {
     size_t index;
     Axis::ShPtr ax1 (subset(that.start(), that.end(), index));
     Axis::ShPtr ax2 (that.subset(start(), end(), index));
-    uint nr = ax1->size();
+    unsigned int nr = ax1->size();
     if (ax2->size() != nr) {
       return false;
     }
-    for (uint i=0; i<nr; ++i) {
+    for (unsigned int i=0; i<nr; ++i) {
       double low1 = ax1->lower(i);
       double low2 = ax2->lower(i);
       if (!casacore::near(low1, low2)) return false;
@@ -360,7 +360,7 @@ namespace BBS {
     assert(low.size() == upp.size()  &&  low.size() > 0);
     // Check if the width is constant, thus if the result is a regular axis.
     double width = upp[0] - low[0];
-    for (uint i=1; i<low.size(); ++i) {
+    for (unsigned int i=1; i<low.size(); ++i) {
       if (!casacore::near (width, upp[i]-low[i])) {
         return Axis::ShPtr (new OrderedAxis (low, upp, true));
       }
@@ -405,7 +405,7 @@ namespace BBS {
     setup (itsStart, itsWidth, itsCount);
   }     
     
-  RegularAxis::RegularAxis (double start, double width, uint count,
+  RegularAxis::RegularAxis (double start, double width, unsigned int count,
                             bool asStartEnd)
     : itsStart (start),
       itsWidth (width),

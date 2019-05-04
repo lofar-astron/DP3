@@ -184,7 +184,7 @@ namespace DP3 { namespace BBS {
 
     // Make a RegularAxis or OrderedAxis.
     Axis::ShPtr makeAxis (const casacore::Vector<double>& centers,
-                          const casacore::Vector<double>& widths, uint n) const;
+                          const casacore::Vector<double>& widths, unsigned int n) const;
 
     // Convert the string to a funklet type.
     int getType (const string& str) const;

@@ -229,7 +229,7 @@ namespace LOFAR { namespace BBS {
 
     // Check if the names of remote client inx are equal to the first one.
     void checkNames (const vector<string>& firstNames,
-                     const vector<string>& names, uint inx) const;
+                     const vector<string>& names, unsigned int inx) const;
 
     // Combine the result records from the remote sites.
     casacore::Record combineRemote (const vector<casacore::Record>& recs) const;

@@ -242,8 +242,8 @@ public:
   bool  getBool  (const std::string& aKey, bool aValue) const;
   int getInt   (const std::string& aKey) const;
   int getInt   (const std::string& aKey, int aValue) const;
-  uint  getUint  (const std::string& aKey) const;
-  uint  getUint  (const std::string& aKey, uint aValue) const;
+  unsigned int  getUint  (const std::string& aKey) const;
+  unsigned int  getUint  (const std::string& aKey, unsigned int aValue) const;
   int16_t getInt16 (const std::string& aKey) const;
   int16_t getInt16 (const std::string& aKey, int16_t aValue) const;
   uint16_t  getUint16(const std::string& aKey) const;
@@ -281,10 +281,10 @@ public:
   std::vector<int>  getIntVector   (const std::string& aKey,
                                   const std::vector<int>& aValue,
                                   bool expandable = false) const;
-  std::vector<uint> getUintVector  (const std::string& aKey,
+  std::vector<unsigned int> getUintVector  (const std::string& aKey,
                                   bool expandable = false) const;
-  std::vector<uint> getUintVector  (const std::string& aKey,
-                                  const std::vector<uint>& aValue,
+  std::vector<unsigned int> getUintVector  (const std::string& aKey,
+                                  const std::vector<unsigned int>& aValue,
                                   bool expandable = false) const;
   std::vector<int16_t>  getInt16Vector (const std::string& aKey,
                                   bool expandable = false) const;
@@ -535,13 +535,13 @@ inline int ParameterSet::getInt(const std::string& aKey, int aValue) const
 }
 
 //# getUint(key)
-inline uint ParameterSet::getUint(const std::string& aKey) const
+inline unsigned int ParameterSet::getUint(const std::string& aKey) const
 {
   return itsSet->getUint(aKey);
 }
 
 //# getUint(key, value)
-inline uint ParameterSet::getUint(const std::string& aKey, uint aValue) const
+inline unsigned int ParameterSet::getUint(const std::string& aKey, unsigned int aValue) const
 {
         return itsSet->getUint(aKey, aValue);
 }
@@ -697,15 +697,15 @@ inline std::vector<int> ParameterSet::getIntVector(const std::string& aKey,
 }
 
 //# getUintVector(key)
-inline std::vector<uint> ParameterSet::getUintVector(const std::string& aKey,
+inline std::vector<unsigned int> ParameterSet::getUintVector(const std::string& aKey,
                                                 bool expandable) const
 {
         return itsSet->getUintVector(aKey, expandable);
 }
 
 //# getUintVector(key, value)
-inline std::vector<uint> ParameterSet::getUintVector(const std::string& aKey,
-                                                const std::vector<uint>& aValue,
+inline std::vector<unsigned int> ParameterSet::getUintVector(const std::string& aKey,
+                                                const std::vector<unsigned int>& aValue,
                                                 bool expandable) const
 {
         return itsSet->getUintVector(aKey, aValue, expandable);

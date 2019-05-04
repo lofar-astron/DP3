@@ -61,7 +61,7 @@ namespace DP3 {
         itsMedianTime    (0)
     {
       itsFlagCorr = parset.getUintVector (prefix+"correlations",
-                                          vector<uint>());
+                                          vector<unsigned int>());
       itsApplyAutoCorr = parset.getBool  (prefix+"applyautocorr", false);
       itsMinBLength    = parset.getDouble(prefix+"blmin", -1);
       itsMaxBLength    = parset.getDouble(prefix+"blmax", 1e30);
@@ -121,7 +121,7 @@ namespace DP3 {
       // Get baseline indices of autocorrelations.
       itsAutoCorrIndex = info().getAutoCorrIndex();
       itsNrAutoCorr    = 0;
-      for (uint i=0; i<itsAutoCorrIndex.size(); ++i) {
+      for (unsigned int i=0; i<itsAutoCorrIndex.size(); ++i) {
         if (itsAutoCorrIndex[i] >= 0) {
           itsNrAutoCorr++;
         }
@@ -140,15 +140,15 @@ namespace DP3 {
                            infoIn.nbaselines());
       }
       // Set or check the correlations to flag on.
-      vector<uint> flagCorr;
-      uint ncorr = infoIn.ncorr();
+      vector<unsigned int> flagCorr;
+      unsigned int ncorr = infoIn.ncorr();
       if (itsFlagCorr.empty()) {
         // No correlations given means use them all.
-        for (uint i=0; i<ncorr; ++i) {
+        for (unsigned int i=0; i<ncorr; ++i) {
           flagCorr.push_back (i);
         }
       } else {
-        for (uint i=0; i<itsFlagCorr.size(); ++i) {
+        for (unsigned int i=0; i<itsFlagCorr.size(); ++i) {
           // Only take valid corrrelations.
           if (itsFlagCorr[i] < ncorr) {
             flagCorr.push_back (itsFlagCorr[i]);
@@ -171,7 +171,7 @@ namespace DP3 {
       itsTimer.start();
       // Accumulate in the time window.
       // The buffer is wrapped, thus oldest entries are overwritten.
-      uint index = itsNTimes % itsTimeWindow;
+      unsigned int index = itsNTimes % itsTimeWindow;
       itsBuf[index].copy (buf);
       DPBuffer& dbuf = itsBuf[index];
       // Calculate amplitudes if needed.
@@ -193,12 +193,12 @@ namespace DP3 {
         // Suppose timewindow=9 and we only have entries 0,1,2,3,4.
         // The entries are mirrored, thus we get 4,3,2,1,0,1,2,3,4
         // to obtain sufficient time entries.
-        vector<uint> timeEntries;
+        vector<unsigned int> timeEntries;
         timeEntries.reserve (itsTimeWindow);
-        ///uint rinx = itsNTimesDone % itsTimeWindow;
+        ///unsigned int rinx = itsNTimesDone % itsTimeWindow;
         ///timeEntries.push_back (rinx);   // center
-        ///uint linx = rinx;
-        ///for (uint i=1; i<=itsTimeWindow/2; ++i) {
+        ///unsigned int linx = rinx;
+        ///for (unsigned int i=1; i<=itsTimeWindow/2; ++i) {
         ///if (linx == 0) linx = itsTimeWindow;
         ///linx--;
         ///rinx++;
@@ -207,7 +207,7 @@ namespace DP3 {
         ///timeEntries.push_back (linx);
         ///timeEntries.push_back (rinx);
         timeEntries.push_back (itsNTimesDone % itsTimeWindow);   // center
-        for (uint i=1; i<=itsTimeWindow/2; ++i) {
+        for (unsigned int i=1; i<=itsTimeWindow/2; ++i) {
           timeEntries.push_back
             (std::abs(int(itsNTimesDone) - int(i)) % itsTimeWindow);
           timeEntries.push_back ((itsNTimesDone + i) % itsTimeWindow);
@@ -226,15 +226,15 @@ namespace DP3 {
       if (itsNTimes < itsTimeWindow) {
         itsTimeWindow = 1 + ((itsNTimes-1)/2)*2;   // make sure it is odd
       }
-      uint halfWindow = itsTimeWindow/2;
-      vector<uint> timeEntries(itsTimeWindow);
+      unsigned int halfWindow = itsTimeWindow/2;
+      vector<unsigned int> timeEntries(itsTimeWindow);
       // Process possible leading entries.
       // This can happen if the window was larger than number of times.
       while (itsNTimesDone < itsNTimes-halfWindow) {
         // Process in the same way as in process.
-        uint inx = 0;
+        unsigned int inx = 0;
         timeEntries[inx++] = itsNTimesDone % itsTimeWindow;   // center
-        for (uint i=1; i<=halfWindow; ++i) {
+        for (unsigned int i=1; i<=halfWindow; ++i) {
           timeEntries[inx++] =
             std::abs(int(itsNTimesDone) - int(i)) % itsTimeWindow;
           timeEntries[inx++] = (itsNTimesDone + i) % itsTimeWindow;
@@ -245,13 +245,13 @@ namespace DP3 {
       assert (itsNTimes - itsNTimesDone == halfWindow);
       // Process the remaining time entries.
       while (itsNTimesDone < itsNTimes) {
-        uint inx = 0;
+        unsigned int inx = 0;
         timeEntries[inx++] = itsNTimesDone % itsTimeWindow;   // center
-        for (uint i=1; i<=halfWindow; ++i) {
+        for (unsigned int i=1; i<=halfWindow; ++i) {
           timeEntries[inx++] =
             std::abs(int(itsNTimesDone) - int(i)) % itsTimeWindow;
           // Time entries might need to be mirrored at the end.
-          uint ri = itsNTimesDone + i;
+          unsigned int ri = itsNTimesDone + i;
           if (ri >= itsNTimes) {
             ri = 2*(itsNTimes-1) - ri;
           }
@@ -265,7 +265,7 @@ namespace DP3 {
       getNextStep()->finish();
     }
 
-    void MedFlagger::flag (uint index, const vector<uint>& timeEntries)
+    void MedFlagger::flag (unsigned int index, const vector<unsigned int>& timeEntries)
     {
       ///cout << "flag: " <<itsNTimes<<' '<<itsNTimesDone<<' ' <<index << timeEntries << endl;
       // Get antenna numbers in case applyautocorr is true.
@@ -274,11 +274,11 @@ namespace DP3 {
       // Result is 'copy' of the entry at the given time index.
       DPBuffer buf (itsBuf[index]);
       IPosition shp = buf.getData().shape();
-      uint ncorr = shp[0];
-      uint nchan = shp[1];
-      uint blsize = ncorr*nchan;
+      unsigned int ncorr = shp[0];
+      unsigned int nchan = shp[1];
+      unsigned int blsize = ncorr*nchan;
       int nrbl   = shp[2];    // OpenMP 2.5 needs signed iteration variables
-      uint ntime = timeEntries.size();
+      unsigned int ntime = timeEntries.size();
       // Get pointers to data and flags.
       const float* bufDataPtr = itsAmpl[index].data();
       bool* bufFlagPtr = buf.getFlags().data();
@@ -317,12 +317,12 @@ namespace DP3 {
         if ((!itsApplyAutoCorr  &&  itsBLength[ib] >= itsMinBLength  &&
             itsBLength[ib] <= itsMaxBLength)  ||
             (itsApplyAutoCorr  &&  ant1[ib] == ant2[ib])) {
-          for (uint ic=0; ic<nchan; ++ic) {
+          for (unsigned int ic=0; ic<nchan; ++ic) {
             bool corrIsFlagged = false;
             // Iterate over given correlations.
-            for (vector<uint>::const_iterator iter = itsFlagCorr.begin();
+            for (vector<unsigned int>::const_iterator iter = itsFlagCorr.begin();
                 iter != itsFlagCorr.end(); ++iter) {
-              uint ip = *iter;
+              unsigned int ip = *iter;
               // If one correlation is flagged, all of them will be flagged.
               // So no need to check others.
               if (flagPtr[ip]) {
@@ -342,7 +342,7 @@ namespace DP3 {
               }
             }
             if (corrIsFlagged) {
-              for (uint ip=0; ip<ncorr; ++ip) {
+              for (unsigned int ip=0; ip<ncorr; ++ip) {
                 flagPtr[ip] = true;
               }
             }
@@ -388,9 +388,9 @@ namespace DP3 {
               bool* flagAnt1 = buf.getFlags().data() + inx1*nchan*ncorr;
               bool* flagAnt2 = buf.getFlags().data() + inx2*nchan*ncorr;
               // Flag if not flagged yet and if one of autocorr is flagged.
-              for (uint ic=0; ic<nchan; ++ic) {
+              for (unsigned int ic=0; ic<nchan; ++ic) {
                 if (!*flagPtr  &&  (*flagAnt1 || *flagAnt2)) {
-                  for (uint ip=0; ip<ncorr; ++ip) {
+                  for (unsigned int ip=0; ip<ncorr; ++ip) {
                     flagPtr[ip] = true;
                   }
                   itsFlagCounter.incrBaseline(ib);
@@ -412,8 +412,8 @@ namespace DP3 {
       itsTimer.start();
     }
             
-    void MedFlagger::computeFactors (const vector<uint>& timeEntries,
-                                     uint bl, int chan, int corr,
+    void MedFlagger::computeFactors (const vector<unsigned int>& timeEntries,
+                                     unsigned int bl, int chan, int corr,
                                      int nchan, int ncorr,
                                      float& Z1, float& Z2,
                                      float* tempBuf,
@@ -422,7 +422,7 @@ namespace DP3 {
       moveTimer.start();
       // Collect all non-flagged data points for given baseline, channel,
       // and correlation in the window around the channel.
-      uint np = 0;
+      unsigned int np = 0;
       // At the beginning or end of the window the values are wrapped.
       // So we might need to move in two parts.
       // This little piece of code is tested in tMirror.cc.
@@ -440,13 +440,13 @@ namespace DP3 {
         e1 = nchan;
       }
       // Iterate over all time entries.
-      const uint* iter = &(timeEntries[0]);
-      const uint* endIter = iter + itsTimeWindowArr[bl];
+      const unsigned int* iter = &(timeEntries[0]);
+      const unsigned int* endIter = iter + itsTimeWindowArr[bl];
       for (; iter!=endIter; ++iter) {
         const DPBuffer& inbuf = itsBuf[*iter];
         const Cube<float>& ampl = itsAmpl[*iter];
         // Get pointers to given baseline and correlation.
-        uint offset = bl*nchan*ncorr + corr;
+        unsigned int offset = bl*nchan*ncorr + corr;
         const float* dataPtr = ampl.data() + offset;
         const bool*  flagPtr = inbuf.getFlags().data() + offset;
         // Now move data from the two channel parts.
@@ -472,7 +472,7 @@ namespace DP3 {
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
         ///Z1 = *(tempBuf+np/2);
         Z1 = GenSort<float>::kthLargest (tempBuf, np, np/2);
-        for (uint i=0; i<np; ++i) {
+        for (unsigned int i=0; i<np; ++i) {
           tempBuf[i] = std::abs(tempBuf[i] - Z1);
         }
         ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
@@ -502,7 +502,7 @@ namespace DP3 {
       // Evaluate the expression for each baseline.
       double result;
       RecordFieldPtr<double> blref(rec, "bl");
-      for (uint i=0; i<nrbl; ++i) {
+      for (unsigned int i=0; i<nrbl; ++i) {
         // Put the length of each baseline in the record used to evaluate.
         *blref = itsBLength[i];
         // Evaluate freqwindow size and make it odd if needed.
@@ -512,7 +512,7 @@ namespace DP3 {
           freqWindow--;
         }
         itsFreqWindowArr.push_back (freqWindow);
-        itsFreqWindow = std::max(itsFreqWindow, uint(freqWindow));
+        itsFreqWindow = std::max(itsFreqWindow, (unsigned int)(freqWindow));
         // Evaluate timewindow size and make it odd if needed.
         node2.get (rec, result);
         int timeWindow = std::max(1, int(result+0.5));
@@ -523,7 +523,7 @@ namespace DP3 {
           timeWindow--;
         }
         itsTimeWindowArr.push_back (timeWindow);
-        itsTimeWindow = std::max (itsTimeWindow, uint(timeWindow));
+        itsTimeWindow = std::max (itsTimeWindow, (unsigned int)(timeWindow));
         // Evaluate threshold.
         node3.get (rec, result);
         itsThresholdArr.push_back (result);

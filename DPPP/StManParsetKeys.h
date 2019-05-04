@@ -16,8 +16,8 @@ namespace DP3 {
     struct StManParsetKeys
     {
       casacore::String    stManName;
-      uint            dyscoDataBitRate;     //# Bits per data float, or 0 if data column is not compressed
-      uint            dyscoWeightBitRate;   //# Bits per weight float, or 0 if weight column is not compressed
+      unsigned int            dyscoDataBitRate;     //# Bits per data float, or 0 if data column is not compressed
+      unsigned int            dyscoWeightBitRate;   //# Bits per weight float, or 0 if weight column is not compressed
       std::string     dyscoDistribution;    //# Distribution assumed for compression; e.g. "Uniform" or "TruncatedGaussian"
       double          dyscoDistTruncation;  //# For truncated distributions, the truncation point (e.g. 3 for 3 sigma in TruncGaus).
       std::string     dyscoNormalization;   //# Kind of normalization; "AF", "RF" or "Row".     
@@ -51,11 +51,11 @@ namespace DP3 {
         // DPPP uses bitrate of 0 to disable compression of the data/weight column.
         // However, Dysco does not allow the data or weight bitrates to be set to 0,
         // so we set the values to something different. The values are not actually used.
-        uint dataBitRate = dyscoDataBitRate;
+        unsigned int dataBitRate = dyscoDataBitRate;
         if(dataBitRate == 0)
           dataBitRate = 16;
         dyscoSpec.define ("dataBitCount", dataBitRate);
-        uint weightBitRate = dyscoWeightBitRate;
+        unsigned int weightBitRate = dyscoWeightBitRate;
         if(weightBitRate == 0)
           weightBitRate = 16;
         dyscoSpec.define ("weightBitCount", weightBitRate);
