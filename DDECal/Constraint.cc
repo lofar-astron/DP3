@@ -47,10 +47,11 @@ std::vector<Constraint::Result> AntennaConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,
     std::ostream* statStream)
 {
+  std::vector<dcomplex> setSolutions(_nDirections);
   for (unsigned int ch=0; ch<solutions.size(); ++ch) {
     for(const std::set<size_t>& antennaSet : _antennaSets)
     {
-      std::vector<dcomplex> setSolutions(_nDirections, 0.0);
+      setSolutions.assign(_nDirections, 0.0);
       // Calculate the sum of solutions over the core stations
       for(size_t antennaIndex : antennaSet)
       {

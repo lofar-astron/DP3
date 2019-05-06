@@ -536,9 +536,14 @@ void DDECal::show (std::ostream& os) const
     << "       converged only: " << std::boolalpha << itsPropagateConvergedOnly << '\n'
     << "  detect stalling:     " << std::boolalpha << itsMultiDirSolver.get_detect_stalling() << '\n'
     << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
-    << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n'
-    << "  coreconstraint:      " << itsCoreConstraint << '\n'
-    << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n'
+    << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n';
+  if(!itsAntennaConstraint.empty())
+    os << "  antennaconstraint:   " << itsAntennaConstraint << '\n';
+  if(itsCoreConstraint != 0.0)
+    os << "  coreconstraint:      " << itsCoreConstraint << '\n';
+  if(itsSmoothnessConstraint != 0.0)
+    os << "  smoothnessconstraint:" << itsSmoothnessConstraint << '\n';
+  os
     << "  approximate fitter:  " << itsApproximateTEC << '\n'
     << "  subtract model:      " << itsSubtract << '\n';
   for (unsigned int i=0; i<itsPredictSteps.size(); ++i) {
