@@ -28,9 +28,10 @@
 
 #include <map>
 #include <ostream>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 
 namespace DP3
 {
@@ -90,7 +91,13 @@ namespace DP3
   // \note operator<<() must be defined for type \c T.
   template<typename T>
   std::ostream& operator<<(std::ostream& os, const std::vector<T>& v);
-	
+
+  // Print the contents of a set enclosed in square brackets, using a comma
+  // as separator.
+  // \note operator<<() must be defined for type \c T.
+  template<typename T>
+  std::ostream& operator<<(std::ostream& os, const std::set<T>& v);
+
   // Print the contents of a map enclosed in braces, using a comma
   // as separator.
   // \note operator<<() must be defined for type \c T.
@@ -140,6 +147,17 @@ namespace DP3
   inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
   {
     writeVector<T>(os, v, ",", "[", "]");
+    return os;
+  }
+
+
+  // Print the contents of a set enclosed in square brackets, using a comma
+  // as separator.
+  // \note operator<<() must be defined for type \c T.
+  template<typename T>
+  inline std::ostream& operator<<(std::ostream& os, const std::set<T>& s)
+  {
+    print (os, s.begin(), s.end(), ",", "[", "]");
     return os;
   }
 

@@ -143,23 +143,23 @@ private:
 };
 
 /**
- * This constraint averages the solutions of a given list of antennas,
- * so that they have equal solutions.
+ * This constraint averages the solutions of several groups of antennas,
+ * so that antennas wiuthin the same group have equal solutions.
  *
- * The DDE solver uses this constraint to average the solutions of the core
- * antennas. Core antennas are determined by a given maximum distance from
- * a reference antenna. The reference antenna is by default the first
+ * The DDE solver can use this constraint e.g. to average the solutions of
+ * the core antennas. Core antennas are determined by a given maximum distance
+ * from a reference antenna. The reference antenna is by default the first
  * antenna. This constraint is meant to force all core stations to
  * have the same solution, thereby decreasing the noise in their solutions.
  */
-class CoreConstraint : public Constraint
+class AntennaConstraint : public Constraint
 {
 public:
-  CoreConstraint() { }
+  AntennaConstraint() { }
 
-  void initialize(const std::set<size_t>& coreAntennas)
+  void initialize(std::vector<std::set<size_t>>&& antennaSets)
   {
-    _coreAntennas = coreAntennas;
+    _antennaSets = std::move(antennaSets);
   }
 
   virtual std::vector<Result> Apply(
@@ -168,7 +168,7 @@ public:
                     std::ostream* statStream) final override;
 
 private:
-  std::set<size_t> _coreAntennas;
+  std::vector<std::set<size_t>> _antennaSets;
 };
 
 #endif
