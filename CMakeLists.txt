@@ -22,7 +22,7 @@ find_package(Threads REQUIRED)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python signals system REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem python system REQUIRED)
 include_directories(${BOOST_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
