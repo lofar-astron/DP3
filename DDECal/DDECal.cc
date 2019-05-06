@@ -453,7 +453,7 @@ void DDECal::updateInfo (const DPInfo& infoIn)
             auto iter = std::find(antNamesStl.begin(), antNamesStl.end(), constraintName);
             if(iter == antNamesStl.end())
               throw std::runtime_error("Error in antenna constraint: antenna '" + constraintName + "' does not exist");
-            constraintList.back().insert(iter - antNamesStl.end());
+            constraintList.back().insert(iter - antNamesStl.begin());
           }
         }
         antConstraint->initialize(std::move(constraintList));
