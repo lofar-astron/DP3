@@ -188,6 +188,7 @@ namespace DP3 {
       NSTimer          itsTimerSolve;
       NSTimer          itsTimerWrite;
       double           itsCoreConstraint;
+      std::vector<std::set<std::string>> itsAntennaConstraint;
       double           itsSmoothnessConstraint;
       double           itsScreenCoreConstraint;
       MultiDirSolver   itsMultiDirSolver;

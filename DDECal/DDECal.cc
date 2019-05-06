@@ -104,6 +104,7 @@ DDECal::DDECal (DPInput* input,
     itsNChan         (parset.getInt (prefix + "nchan", 1)),
     itsUVWFlagStep   (input, parset, prefix),
     itsCoreConstraint(parset.getDouble (prefix + "coreconstraint", 0.0)),
+    itsAntennaConstraint(),
     itsSmoothnessConstraint(parset.getDouble (prefix + "smoothnessconstraint", 0.0)),
     itsScreenCoreConstraint(parset.getDouble (prefix + "tecscreen.coreconstraint", 0.0)),
     itsFullMatrixMinimalization(false),
@@ -125,6 +126,20 @@ DDECal::DDECal (DPInput* input,
   if(!itsStatFilename.empty())
     itsStatStream.reset(new std::ofstream(itsStatFilename));
 
+  // Read the antennaconstraint list
+  std::vector<std::string> antConstraintList =
+    parset.getStringVector(prefix + "antennaconstraint", std::vector<std::string>());
+  if(!antConstraintList.empty())
+  {
+    for(const std::string& antSetStr : antConstraintList)
+    {
+      ParameterValue antSetParam(antSetStr);
+      std::vector<std::string> list = antSetParam.getStringVector();
+      itsAntennaConstraint.emplace_back(list.begin(), list.end());
+    }
+  }
+  
+  // read the directions parameter setting
   vector<string> strDirections;
   if (itsUseModelColumn) {
     itsModelData.resize(itsSolInt);
@@ -171,8 +186,8 @@ DPStep::ShPtr DDECal::makeStep (DPInput* input,
 
 void DDECal::initializeConstraints(const ParameterSet& parset, const string& prefix)
 {
-  if(itsCoreConstraint != 0.0) {
-    itsConstraints.emplace_back(new CoreConstraint());
+  if(itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
+    itsConstraints.emplace_back(new AntennaConstraint());
   }
   if(itsSmoothnessConstraint != 0.0) {
     itsConstraints.emplace_back(new SmoothnessConstraint(itsSmoothnessConstraint));
@@ -397,27 +412,52 @@ void DDECal::updateInfo (const DPInfo& infoIn)
 
     // Different constraints need different information. Determine if the constraint is
     // of a type that needs more information, and if so initialize the constraint.
-    CoreConstraint* coreConstraint = dynamic_cast<CoreConstraint*>(itsConstraints[i].get());
-    if(coreConstraint != 0)
+    AntennaConstraint* antConstraint = dynamic_cast<AntennaConstraint*>(itsConstraints[i].get());
+    if(antConstraint != nullptr)
     {
-      // Take antenna with index 0 as reference station
-      double
-        refX = antennaPos[0][0],
-        refY = antennaPos[0][1],
-        refZ = antennaPos[0][2];
-      std::set<size_t> coreAntennaIndices;
-      const double coreDistSq = itsCoreConstraint*itsCoreConstraint;
-      for(size_t ant=0; ant!=antennaPos.size(); ++ant)
+      if(itsAntennaConstraint.empty())
       {
+        // Set the antenna constraint to all stations within certain distance
+        // specified by 'coreconstraint' parameter.
+        // Take antenna with index 0 as reference station
         double
-          dx = refX - antennaPos[ant][0],
-          dy = refY - antennaPos[ant][1],
-          dz = refZ - antennaPos[ant][2],
-          distSq = dx*dx + dy*dy + dz*dz;
-        if(distSq <= coreDistSq)
-          coreAntennaIndices.insert(ant);
+          refX = antennaPos[0][0],
+          refY = antennaPos[0][1],
+          refZ = antennaPos[0][2];
+        std::vector<std::set<size_t>> antConstraintList(1);
+        std::set<size_t>& coreAntennaIndices = antConstraintList.front();
+        const double coreDistSq = itsCoreConstraint*itsCoreConstraint;
+        for(size_t ant=0; ant!=antennaPos.size(); ++ant)
+        {
+          double
+            dx = refX - antennaPos[ant][0],
+            dy = refY - antennaPos[ant][1],
+            dz = refZ - antennaPos[ant][2],
+            distSq = dx*dx + dy*dy + dz*dz;
+          if(distSq <= coreDistSq)
+            coreAntennaIndices.insert(ant);
+        }
+        antConstraint->initialize(std::move(antConstraintList));
       }
-      coreConstraint->initialize(coreAntennaIndices);
+      else {
+        // Set the antenna constraint to a list of stations indices that
+        // are to be kept the same during the solve.
+        const casacore::Vector<casacore::String>& antNames = info().antennaNames();
+        std::vector<std::string> antNamesStl(antNames.begin(), antNames.end()); // casacore vector doesn't support find properly
+        std::vector<std::set<size_t>> constraintList;
+        for(const std::set<std::string>& constraintNameSet : itsAntennaConstraint)
+        {
+          constraintList.emplace_back();
+          for(const std::string& constraintName : constraintNameSet)
+          {
+            auto iter = std::find(antNamesStl.begin(), antNamesStl.end(), constraintName);
+            if(iter == antNamesStl.end())
+              throw std::runtime_error("Error in antenna constraint: antenna '" + constraintName + "' does not exist");
+            constraintList.back().insert(iter - antNamesStl.end());
+          }
+        }
+        antConstraint->initialize(std::move(constraintList));
+      }
     }
 
 #ifdef HAVE_ARMADILLO

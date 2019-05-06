@@ -43,30 +43,33 @@ std::vector<Constraint::Result> DiagonalConstraint::Apply(
   return std::vector<Constraint::Result>();
 }
 
-std::vector<Constraint::Result> CoreConstraint::Apply(
+std::vector<Constraint::Result> AntennaConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,
     std::ostream* statStream)
 {
   for (unsigned int ch=0; ch<solutions.size(); ++ch) {
-    std::vector<dcomplex> coreSolutions(_nDirections, 0.0);
-    // Calculate the sum of solutions over the core stations
-    for(size_t antennaIndex : _coreAntennas)
+    for(const std::set<size_t>& antennaSet : _antennaSets)
     {
-      size_t startIndex = antennaIndex * _nDirections;
-      for(size_t direction = 0; direction != _nDirections; ++direction)
-        coreSolutions[direction] += solutions[ch][startIndex + direction];
-    }
-    
-    // Divide by nr of core stations to get the mean solution
-    for(dcomplex& solution : coreSolutions)
-      solution /= _coreAntennas.size();
-    
-    // Assign all core stations to the mean solution
-    for(size_t antennaIndex : _coreAntennas)
-    {
-      size_t startIndex = antennaIndex * _nDirections;
-      for(size_t direction = 0; direction != _nDirections; ++direction)
-        solutions[ch][startIndex + direction] = coreSolutions[direction];
+      std::vector<dcomplex> setSolutions(_nDirections, 0.0);
+      // Calculate the sum of solutions over the core stations
+      for(size_t antennaIndex : antennaSet)
+      {
+        size_t startIndex = antennaIndex * _nDirections;
+        for(size_t direction = 0; direction != _nDirections; ++direction)
+          setSolutions[direction] += solutions[ch][startIndex + direction];
+      }
+      
+      // Divide by nr of core stations to get the mean solution
+      for(dcomplex& solution : setSolutions)
+        solution /= antennaSet.size();
+      
+      // Assign all core stations to the mean solution
+      for(size_t antennaIndex : antennaSet)
+      {
+        size_t startIndex = antennaIndex * _nDirections;
+        for(size_t direction = 0; direction != _nDirections; ++direction)
+          solutions[ch][startIndex + direction] = setSolutions[direction];
+      }
     }
   }
   return std::vector<Constraint::Result>();
