@@ -193,6 +193,8 @@ set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
 
 set(DPPP_GLOBAL_SOVERSION 2)
 
+enable_testing()
+
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_subdirectory(TestDynDPPP)

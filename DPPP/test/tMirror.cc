@@ -21,18 +21,14 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <Common/LofarTypes.h>
-#include <Common/LofarLogger.h>
-
+#include <assert.h>
 #include <casa/Arrays/Matrix.h>
+#include "../../Common/StreamUtil.h"
 #include <casa/Utilities/LinearSearch.h>
-#include <Common/StreamUtil.h>
-#include <Common/lofar_vector.h>
 
-using namespace casa;
+using namespace casacore;
+using namespace DP3;
 using namespace std;
-using namespace LOFAR;
 
 void doChan (int windowSize, int nchan, int chan)
 {
@@ -53,7 +49,7 @@ void doChan (int windowSize, int nchan, int chan)
   }
   std::cout <<"wdw,nch=" << windowSize << ',' << nchan << " chan=" << chan
             << ' ' << s1 << '-' << e1 << ' ' << s2 << '-' << e2 << std::endl;
-  ASSERT (e1-s1 + e2-s2 == windowSize);
+  assert (e1-s1 + e2-s2 == windowSize);
 }
 
 void testAdd()
