@@ -27,16 +27,16 @@
 #include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
 
-#include <casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/Quantum.h>
 #include <iostream>
 
 using namespace LOFAR;
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 
@@ -227,12 +227,12 @@ private:
     return true;
   }
 
-  virtual void getUVW (const casa::RefRows&, double, DPBuffer& buf)
+  virtual void getUVW (const casacore::RefRows&, double, DPBuffer& buf)
   {
     buf.getUVW().resize (3, itsNrBl);
     indgen (buf.getUVW());
   }
-  virtual bool getFullResFlags (const casa::RefRows&, DPBuffer& buf)
+  virtual bool getFullResFlags (const casacore::RefRows&, DPBuffer& buf)
   {
     buf.getFullResFlags().assign (itsFullResFlags);
     return true;

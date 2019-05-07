@@ -23,17 +23,17 @@
 
 #include <lofar_config.h>
 #include <DPPP/DPRun.h>
-#include <tables/Tables.h>
-#include <tables/Tables/TableIter.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayPartMath.h>
+#include <casacore/tables/Tables.h>
+#include <casacore/tables/Tables/TableIter.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayPartMath.h>
 #include <Common/LofarLogger.h>
 #include <iostream>
 #include <stdexcept>
 
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace casacore;
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
 // The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.

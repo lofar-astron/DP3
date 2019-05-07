@@ -22,9 +22,9 @@
 //# @author Ger van Diepen
 
 #include <assert.h>
-#include <casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Matrix.h>
 #include "../../Common/StreamUtil.h"
-#include <casa/Utilities/LinearSearch.h>
+#include <casacore/casa/Utilities/LinearSearch.h>
 
 using namespace casacore;
 using namespace DP3;
