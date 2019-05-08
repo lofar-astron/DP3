@@ -21,19 +21,19 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
+#include "../PhaseShift.h"
+#include "../DPBuffer.h"
+#include "../DPInfo.h"
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
+#include <assert.h>
 
-using namespace LOFAR;
 using namespace DP3::DPPP;
+using namespace DP3;
 using namespace casacore;
 using namespace std;
 
@@ -49,7 +49,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {
-    info().init (ncorr, nchan, ntime, 0., 10., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0., 10., string(), string());
     MDirection phaseCenter(Quantity(45,"deg"), Quantity(30,"deg"),
                            MDirection::J2000);
     info().set (MPosition(), phaseCenter, phaseCenter, phaseCenter);
@@ -182,12 +182,12 @@ private:
     Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-7));
+    assert (allNear(real(buf.getData()), real(result), 1e-7));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-7));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(), 2.+5*itsCount));
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-7));
+    assert (allNear(imag(buf.getData()), imag(result), 1e-7));
+    assert (allEQ(buf.getFlags(), itsFlag));
+    assert (near(buf.getTime(), 2.+5*itsCount));
+    assert (allNear(buf.getUVW(), uvw, 1e-7));
     ++itsCount;
     return true;
   }
@@ -198,8 +198,8 @@ private:
   {
     info() = infoIn;
     MVDirection dir = infoIn.phaseCenter().getValue();
-    ASSERT (near(dir.getLong("deg").getValue(), 45.));
-    ASSERT (near(dir.getLat("deg").getValue(), 30.));
+    assert (near(dir.getLong("deg").getValue(), 45.));
+    assert (near(dir.getLat("deg").getValue(), 30.));
   }
 
   TestInput* itsInput;
@@ -232,14 +232,14 @@ private:
     Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
-    ASSERT (! allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (! allEQ(real(buf.getData()), real(result)));
+    assert (! allNear(real(buf.getData()), real(result), 1e-5));
+    assert (! allEQ(real(buf.getData()), real(result)));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (! allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (! allEQ(imag(buf.getData()), imag(result)));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(), 2.+5*itsCount));
-    ASSERT (! allNear(buf.getUVW(), uvw, 1e-5));
+    assert (! allNear(imag(buf.getData()), imag(result), 1e-5));
+    assert (! allEQ(imag(buf.getData()), imag(result)));
+    assert (allEQ(buf.getFlags(), itsFlag));
+    assert (near(buf.getTime(), 2.+5*itsCount));
+    assert (! allNear(buf.getUVW(), uvw, 1e-5));
     ++itsCount;
     return true;
   }
@@ -250,8 +250,8 @@ private:
   {
     info() = infoIn;
     MVDirection dir = infoIn.phaseCenter().getValue();
-    ASSERT (near(dir.getLong("deg").getValue(), 50.));
-    ASSERT (near(dir.getLat("deg").getValue(), 35.));
+    assert (near(dir.getLong("deg").getValue(), 50.));
+    assert (near(dir.getLat("deg").getValue(), 35.));
   }
 
   TestInput* itsInput;
