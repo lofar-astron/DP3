@@ -29,14 +29,14 @@
 #include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/StringUtil.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
 using namespace LOFAR;
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 // Execute steps.

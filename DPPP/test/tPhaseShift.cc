@@ -21,22 +21,27 @@
 //#
 //# @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/PhaseShift.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
+#include "../PhaseShift.h"
+#include "../DPBuffer.h"
+#include "../DPInfo.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+
+#include <boost/test/unit_test.hpp>
+
 #include <iostream>
 
-using namespace LOFAR;
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace DP3;
+using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(phaseshift)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -49,7 +54,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {
-    info().init (ncorr, nchan, ntime, 0., 10., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0., 10., string(), string());
     MDirection phaseCenter(Quantity(45,"deg"), Quantity(30,"deg"),
                            MDirection::J2000);
     info().set (MPosition(), phaseCenter, phaseCenter, phaseCenter);
@@ -111,8 +116,8 @@ public:
                   (itsStatUVW(1,getInfo().getAnt1()[i]) + count*0.004));
       uvw(2,i) = (itsStatUVW(2,getInfo().getAnt2()[i]) + count*0.006 -
                   (itsStatUVW(2,getInfo().getAnt1()[i]) + count*0.006));
-      cout <<getInfo().getAnt1()[i]<<' '<<getInfo().getAnt2()[i]<<' '
-           <<uvw(0,i)<<' '<<uvw(1,i)<<' '<<uvw(2,i)<<endl;
+      //cout <<getInfo().getAnt1()[i]<<' '<<getInfo().getAnt2()[i]<<' '
+      //     <<uvw(0,i)<<' '<<uvw(1,i)<<' '<<uvw(2,i)<<endl;
     }
   }
 
@@ -182,12 +187,12 @@ private:
     Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-7));
+    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-7));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-7));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(), 2.+5*itsCount));
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-7));
+    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-7));
+    BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2.+5*itsCount, 1e-6);
+    BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-7));
     ++itsCount;
     return true;
   }
@@ -198,8 +203,8 @@ private:
   {
     info() = infoIn;
     MVDirection dir = infoIn.phaseCenter().getValue();
-    ASSERT (near(dir.getLong("deg").getValue(), 45.));
-    ASSERT (near(dir.getLat("deg").getValue(), 30.));
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45., 1e-6);
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 30., 1e-6);
   }
 
   TestInput* itsInput;
@@ -232,14 +237,14 @@ private:
     Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
-    ASSERT (! allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (! allEQ(real(buf.getData()), real(result)));
+    BOOST_CHECK (! allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (! allEQ(real(buf.getData()), real(result)));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (! allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (! allEQ(imag(buf.getData()), imag(result)));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(), 2.+5*itsCount));
-    ASSERT (! allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK (! allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (! allEQ(imag(buf.getData()), imag(result)));
+    BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2.+5*itsCount, 1e-5);
+    BOOST_CHECK (! allNear(buf.getUVW(), uvw, 1e-5));
     ++itsCount;
     return true;
   }
@@ -250,8 +255,8 @@ private:
   {
     info() = infoIn;
     MVDirection dir = infoIn.phaseCenter().getValue();
-    ASSERT (near(dir.getLong("deg").getValue(), 50.));
-    ASSERT (near(dir.getLat("deg").getValue(), 35.));
+    BOOST_CHECK_CLOSE_FRACTION (dir.getLong("deg").getValue(), 50., 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION (dir.getLat("deg").getValue(), 35., 1e-5);
   }
 
   TestInput* itsInput;
@@ -275,8 +280,8 @@ void execute (const DPStep::ShPtr& step1)
 // Test with a shift to the original center.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  //cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+  //     << " ncorr=" << ncorr << " flag=" << flag << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -293,8 +298,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
 // Test with a shift to another and then to the original phase center.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " flag=" << flag << endl;
+  //cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
+  //     << " ncorr=" << ncorr << " flag=" << flag << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -314,17 +319,24 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
-
-int main()
+BOOST_AUTO_TEST_CASE( test1a )
 {
-  try {
-    test1(10, 3, 32, 4, false);
-    test1(10, 10, 30, 1, true);
-    test2(10, 6, 32, 4, false);
-    test2(10, 6, 30, 1, true);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+  test1(10, 3, 32, 4, false);
 }
+
+BOOST_AUTO_TEST_CASE( test1b )
+{
+  test1(10, 10, 30, 1, true);
+}
+
+BOOST_AUTO_TEST_CASE( test2a )
+{
+  test2(10, 6, 32, 4, false);
+}
+
+BOOST_AUTO_TEST_CASE( test2b )
+{
+  test2(10, 6, 30, 1, true);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

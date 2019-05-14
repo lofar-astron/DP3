@@ -130,19 +130,19 @@ int main(int, char**) {
       hsize_t starttimeindex = soltab.getTimeIndex(starttime);
       cout<<"starttimeindex="<<starttimeindex<<endl;
       vector<double> val = soltab.getValues("Antenna2", starttimeindex, ntimes);
-      ASSERT(casa::near(val[0],10.));
-      ASSERT(casa::near(val[1],11.));
-      ASSERT(casa::near(val[2],12.));
-      ASSERT(casa::near(val[3],13.));
+      ASSERT(casacore::near(val[0],10.));
+      ASSERT(casacore::near(val[1],11.));
+      ASSERT(casacore::near(val[2],12.));
+      ASSERT(casacore::near(val[3],13.));
       cout<<"read some data with stride 2"<<endl;
       starttime = 57880.5;
       starttimeindex = soltab.getTimeIndex(starttime);
       ASSERT(starttimeindex==1);
       vector<double> val2 = soltab.getValues("Antenna3", starttimeindex, 2, 2);
-      ASSERT(casa::near(val2[0],21.));
-      ASSERT(casa::near(val2[1],23.));
+      ASSERT(casacore::near(val2[0],21.));
+      ASSERT(casacore::near(val2[1],23.));
       cout<<"testing stride"<<endl;
-      ASSERT(casa::near(soltab.getTimeInterval(),2.));
+      ASSERT(casacore::near(soltab.getTimeInterval(),2.));
       cout<<"reading the antennas into a vector"<<endl;
       vector<string> antennas = soltab.getStringAxis("ant");
       ASSERT(antennas.size()==3);
@@ -150,9 +150,9 @@ int main(int, char**) {
       ASSERT(antennas[1]=="Antenna2");
       ASSERT(antennas[2]=="Antenna3");
       cout<<"Check frequency widths"<<endl;
-      ASSERT(casa::near(soltab.getFreqInterval(0),1e6));
-      ASSERT(casa::near(soltab.getFreqInterval(1),4e6));
-      ASSERT(casa::near(soltab.getFreqInterval(2),2e6));
+      ASSERT(casacore::near(soltab.getFreqInterval(0),1e6));
+      ASSERT(casacore::near(soltab.getFreqInterval(1),4e6));
+      ASSERT(casacore::near(soltab.getFreqInterval(2),2e6));
 
       cout<<"Checking interpolation (on input time axis)"<<endl;
       vector<double> freqs;
@@ -170,7 +170,7 @@ int main(int, char**) {
       size_t idx=0;
       for (size_t time=0; time<times.size(); ++time) {
         for (size_t freq=0; freq<freqs.size(); ++freq) {
-          ASSERT(casa::near(newgridvals[idx++], double(time)));
+          ASSERT(casacore::near(newgridvals[idx++], double(time)));
         }
       }
 
@@ -185,7 +185,7 @@ int main(int, char**) {
       idx=0;
       for (int time=0; time<int(times.size()); ++time) {
         for (size_t freq=0; freq<freqs.size(); ++freq) {
-          ASSERT(casa::near(newgridvals[idx++], min(double((time+1)/3),double(ntimes-1))));
+          ASSERT(casacore::near(newgridvals[idx++], min(double((time+1)/3),double(ntimes-1))));
         }
       }
       

@@ -22,13 +22,13 @@
 //# @author Ger van Diepen
 
 #include <lofar_config.h>
-#include <casa/OS/Timer.h>
-#include <casa/Utilities/GenSort.h>
+#include <casacore/casa/OS/Timer.h>
+#include <casacore/casa/Utilities/GenSort.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
 
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 void testCasa (size_t sz, size_t n)

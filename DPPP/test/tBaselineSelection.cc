@@ -27,12 +27,12 @@
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
 #include <Common/StreamUtil.h>
-#include <casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
 #include <iostream>
 
 using namespace LOFAR;
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 

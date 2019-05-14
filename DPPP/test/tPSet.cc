@@ -26,13 +26,13 @@
 #include <DPPP/DPInfo.h>
 #include <Common/ParameterSet.h>
 #include <Common/LofarLogger.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <casa/Quanta/MVTime.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Quanta/MVTime.h>
 #include <iostream>
 
 using namespace DP3;
 using namespace DP3::DPPP;
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 // Simple class to generate input arrays.

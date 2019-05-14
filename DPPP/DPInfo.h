@@ -33,6 +33,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
 
+#include "../Common/ThreadPool.h"
+
 namespace DP3 {
   namespace DPPP {
 

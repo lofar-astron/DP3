@@ -55,7 +55,7 @@ namespace DP3 {
         itsTimeInterval (0),
         itsPhaseCenterIsOriginal (true),
         itsBeamCorrectionMode(NoBeamCorrection),
-        itsNThreads     (0)
+        itsNThreads     (ThreadPool::NCPUs())
     {}
 
     void DPInfo::init (unsigned int ncorr, unsigned int startChan, unsigned int nchan,
