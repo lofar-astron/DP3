@@ -22,13 +22,18 @@
 //# @author Ger van Diepen
 
 #include <assert.h>
+
 #include <casacore/casa/Arrays/Matrix.h>
-#include "../../Common/StreamUtil.h"
 #include <casacore/casa/Utilities/LinearSearch.h>
+
+#include "../../Common/StreamUtil.h"
+
+#include <boost/test/unit_test.hpp>
 
 using namespace casacore;
 using namespace DP3;
-using namespace std;
+
+BOOST_AUTO_TEST_SUITE(mirror)
 
 void doChan (int windowSize, int nchan, int chan)
 {
@@ -47,9 +52,9 @@ void doChan (int windowSize, int nchan, int chan)
     e2 = nchan-1;
     e1 = nchan;
   }
-  std::cout <<"wdw,nch=" << windowSize << ',' << nchan << " chan=" << chan
-            << ' ' << s1 << '-' << e1 << ' ' << s2 << '-' << e2 << std::endl;
-  assert (e1-s1 + e2-s2 == windowSize);
+  //std::cout <<"wdw,nch=" << windowSize << ',' << nchan << " chan=" << chan
+  //          << ' ' << s1 << '-' << e1 << ' ' << s2 << '-' << e2 << std::endl;
+  BOOST_CHECK_EQUAL(e1-s1 + e2-s2, windowSize);
 }
 
 void testAdd()
@@ -74,90 +79,80 @@ void testAdd()
   itsParts[1][0] = 3;
   itsParts[1][1] = 4;
   
-  
-      vector<int> newbl(nrnew);
-      vector<vector<int> > itsBufRows;
-      bool itsMakeAutoCorr = true;
-      // Loop over the superstations.
-      // Note that by making this the outer loop, the baselines between
-      // superstations are also formed.
-      // At the end the new baselines are added to itsAnt1 and itsAnt2.
-      // itsBufRows contains for each new baseline the rownrs in the DPBuffer
-      // to be added for the new baseline. If rownr<0, the conjugate has to be
-      // added (1 is added to rownr, otherwise 0 is ambiguous).
-      // Note that a rownr can be the rownr of a new baseline.
-      for (unsigned int j=0; j<itsParts.size(); ++j) {
-        std::fill (newbl.begin(), newbl.end(), -1);
-        vector<int> newAnt1;
-        vector<int> newAnt2;
-        // Loop through all baselines and find out if a baseline should
-        // be used for a superstation.
-        for (unsigned int i=0; i<itsAnt1.size(); ++i) {
-          bool havea1 = linearSearch1 (itsParts[j], itsAnt1[i]) >= 0;
-          bool havea2 = linearSearch1 (itsParts[j], itsAnt2[i]) >= 0;
-          int  ant    = nrold+j;
-          int  take   = 0;
-          if (havea1) {
-            // If both stations are in same superstation, only use them
-            // if it is an autocorrelation.
-            if (havea2) {
-              if (itsMakeAutoCorr  &&  itsAnt1[i] == itsAnt2[i]) {
-                take = 1;
-              }
-            } else {
-              ant  = itsAnt2[i];
-              take = -1;            // conjugate has to be added
-            }
-          } else if (havea2) {
-            ant  = itsAnt1[i];
+  vector<int> newbl(nrnew);
+  vector<vector<int> > itsBufRows;
+  bool itsMakeAutoCorr = true;
+  // Loop over the superstations.
+  // Note that by making this the outer loop, the baselines between
+  // superstations are also formed.
+  // At the end the new baselines are added to itsAnt1 and itsAnt2.
+  // itsBufRows contains for each new baseline the rownrs in the DPBuffer
+  // to be added for the new baseline. If rownr<0, the conjugate has to be
+  // added (1 is added to rownr, otherwise 0 is ambiguous).
+  // Note that a rownr can be the rownr of a new baseline.
+  for (unsigned int j=0; j<itsParts.size(); ++j) {
+    std::fill (newbl.begin(), newbl.end(), -1);
+    vector<int> newAnt1;
+    vector<int> newAnt2;
+    // Loop through all baselines and find out if a baseline should
+    // be used for a superstation.
+    for (unsigned int i=0; i<itsAnt1.size(); ++i) {
+      bool havea1 = linearSearch1 (itsParts[j], itsAnt1[i]) >= 0;
+      bool havea2 = linearSearch1 (itsParts[j], itsAnt2[i]) >= 0;
+      int  ant    = nrold+j;
+      int  take   = 0;
+      if (havea1) {
+        // If both stations are in same superstation, only use them
+        // if it is an autocorrelation.
+        if (havea2) {
+          if (itsMakeAutoCorr  &&  itsAnt1[i] == itsAnt2[i]) {
             take = 1;
           }
-          if (take != 0) {
-            // We have a baseline for the superstation.
-            // Get its index; create it if not used before.
-            int blinx = newbl[ant];
-            if (blinx < 0) {
-              blinx = newbl[ant] = itsBufRows.size();
-              itsBufRows.push_back (vector<int>());
-              newAnt1.push_back (ant);
-              newAnt2.push_back (nrold+j);
-            }
-            itsBufRows[blinx].push_back (take*(i+1));
-          }
-        }
-        // Copy the new baselines for this superstation to the baseline list.
-        // Give a warning if nothing found.
-        if (newAnt1.empty()) {
-          //          DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
-          cout << "StationAdder: no baseline found for superstation" << endl;
         } else {
-          unsigned int oldsz = itsAnt1.size();
-          itsAnt1.resize (oldsz + newAnt1.size());
-          itsAnt2.resize (oldsz + newAnt1.size());
-          for (unsigned int i=0; i<newAnt1.size(); ++i) {
-            itsAnt1[oldsz+i] = newAnt1[i];
-            itsAnt2[oldsz+i] = newAnt2[i];
-          }
+          ant  = itsAnt2[i];
+          take = -1;            // conjugate has to be added
         }
+      } else if (havea2) {
+        ant  = itsAnt1[i];
+        take = 1;
       }
-      cout << itsAnt1<<endl<<itsAnt2<<endl;
-      writeVector (cout, itsBufRows);
-      cout<<endl;
+      if (take != 0) {
+        // We have a baseline for the superstation.
+        // Get its index; create it if not used before.
+        int blinx = newbl[ant];
+        if (blinx < 0) {
+          blinx = newbl[ant] = itsBufRows.size();
+          itsBufRows.push_back (vector<int>());
+          newAnt1.push_back (ant);
+          newAnt2.push_back (nrold+j);
+        }
+        itsBufRows[blinx].push_back (take*(i+1));
+      }
+    }
+    // Copy the new baselines for this superstation to the baseline list.
+    // Give a warning if nothing found.
+    if (newAnt1.empty()) {
+      //          DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
+      throw std::runtime_error("StationAdder: no baseline found for superstation");
+    } else {
+      unsigned int oldsz = itsAnt1.size();
+      itsAnt1.resize (oldsz + newAnt1.size());
+      itsAnt2.resize (oldsz + newAnt1.size());
+      for (unsigned int i=0; i<newAnt1.size(); ++i) {
+        itsAnt1[oldsz+i] = newAnt1[i];
+        itsAnt2[oldsz+i] = newAnt2[i];
+      }
+    }
+  }
+  //cout << itsAnt1<<endl<<itsAnt2<<endl;
+  //writeVector (cout, itsBufRows);
+  //cout<<endl;
 }
 
-int main (int argc, char* argv[])
+BOOST_AUTO_TEST_CASE( add )
 {
   unsigned int windowSize = 5;
   unsigned int nchan = 8;
-  if (argc > 1) {
-    windowSize = atoi(argv[1]);
-  }
-  if (argc > 2) {
-    nchan = atoi(argv[2]);
-  }
-  if (windowSize == 0) windowSize = 1;
-  if (windowSize > nchan) windowSize = nchan;
-  if (windowSize%2 == 0) windowSize--;
 
   for (unsigned int i=0; i<nchan; ++i) {
     doChan (windowSize, nchan, i);
@@ -165,3 +160,6 @@ int main (int argc, char* argv[])
 
   testAdd();
 }
+
+
+BOOST_AUTO_TEST_SUITE_END()

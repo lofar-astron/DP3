@@ -38,7 +38,7 @@ find_package(CFITSIO REQUIRED)
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python program_options system REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem python program_options system unit_test_framework REQUIRED)
 include_directories(${BOOST_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
@@ -238,5 +238,32 @@ target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY}
 
 add_executable(showsourcedb ParmDB/showsourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
 target_link_libraries(showsourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+
+# I'm avoiding cmake's test commands, because they build executable tests by default
+# which makes the compilation process more expensive.
+add_executable(runtests EXCLUDE_FROM_ALL
+  DPPP/test/runtests.cc
+  DPPP/test/tMirror.cc
+  DPPP/test/tPhaseShift.cc
+  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
+target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+add_custom_target(check DEPENDS runtests COMMAND runtests)
+
+# I'll leave this here as an example how separate test executables could be added
+#add_executable(tMirror EXCLUDE_FROM_ALL
+#  DPPP/test/tMirror.cc
+#)
+#target_link_libraries(tMirror ${CASACORE_LIBRARIES})
+
+#add_executable(tPhaseShift EXCLUDE_FROM_ALL
+#  DPPP/test/tPhaseShift.cc
+#  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
+#target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+
+#add_custom_target(check DEPENDS tMirror tPhaseShift
+#  COMMAND tMirror
+#  COMMAND tPhaseShift
+#)
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin) 
