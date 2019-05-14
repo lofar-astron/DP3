@@ -12,7 +12,7 @@ find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
 
-find_package(Casacore COMPONENTS casa ms tables REQUIRED)
+find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
 # Add old casacore include directory because LOFAR beam library did
 # not use the casacore/ prefix in the includes until 3.2 (Sep '18)
@@ -20,9 +20,25 @@ include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 find_package(Threads REQUIRED)
 
+find_package(IDGAPI NO_MODULE QUIET)
+
+if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+#  set(IDG_FILES ....)
+  include_directories(${IDGAPI_INCLUDE_DIRS})
+  set(HAVE_IDG TRUE)
+  add_definitions(-DHAVE_IDG)
+  message(STATUS "Image domain gridder API libraries found.")
+else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+  set(IDGAPI_LIBRARIES)
+  set(IDG_FILES)
+  message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
+endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+
+find_package(CFITSIO REQUIRED)
+
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python system REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem python program_options system REQUIRED)
 include_directories(${BOOST_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
@@ -110,6 +126,13 @@ add_library(Blob OBJECT
 )
 set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
+add_library(IDGPredict OBJECT
+  IDGPredict/FitsIOChecker.cc
+  IDGPredict/FitsReader.cc
+  IDGPredict/FitsWriter.cc)
+  
+set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
+
 add_library(DPPP_OBJ OBJECT
   DPPP/DPRun.cc DPPP/DPStep.cc DPPP/DPInput.cc DPPP/DPBuffer.cc
   DPPP/DPInfo.cc DPPP/DPLogger.cc DPPP/ProgressMeter.cc DPPP/FlagCounter.cc
@@ -140,9 +163,12 @@ find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIR})
+
 find_library(AOFLAGGER_LIB aoflagger REQUIRED)
 find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
+
 find_package(PkgConfig)
 pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
 pkg_check_modules(SIGCXX sigc++-2.0)
@@ -162,6 +188,7 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
   ${EXTRA_LIBRARIES}
   ${PYTHON_LIBRARIES}
+  ${IDGAPI_LIBRARIES}
   Threads::Threads)
   
 #
