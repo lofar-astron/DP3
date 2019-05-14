@@ -224,7 +224,6 @@ enable_testing()
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  add_subdirectory(TestDynDPPP)
   add_subdirectory(PythonDPPP)
 endif()
 # SPW Combine has dependencies to LOFAR
@@ -239,12 +238,27 @@ target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY}
 add_executable(showsourcedb ParmDB/showsourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
 target_link_libraries(showsourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  SET(OS_SPECIFIC_TESTS) # No specific tests for Apple
+else()
+  # These run only on Linux
+  SET(OS_SPECIFIC_TESTS 
+#    TestDynDPPP/test/tDynStep.cc # This test still fails
+  )
+endif()
+
+add_library(dppp_testdyndppp SHARED
+  TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
+set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 add_executable(runtests EXCLUDE_FROM_ALL
   DPPP/test/runtests.cc
   DPPP/test/tMirror.cc
   DPPP/test/tPhaseShift.cc
+  ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})

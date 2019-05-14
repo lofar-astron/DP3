@@ -25,24 +25,25 @@
 // Only the way the average steps are created is different.
 // Average is used underneath TestDynStep.
 
-#include <lofar_config.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPRun.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/LofarLogger.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <iostream>
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/DPInfo.h"
+#include "../../DPPP/DPInput.h"
+#include "../../DPPP/DPRun.h"
+
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
+
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+
+#include <boost/test/unit_test.hpp>
 
 using namespace LOFAR;
 using namespace DP3::DPPP;
-using namespace casa;
-using namespace std;
+using namespace casacore;
 
+BOOST_AUTO_TEST_SUITE(dyn_step)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -93,7 +94,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string(), std::string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);
@@ -151,20 +152,20 @@ private:
       }
     }
     // Check the averaged result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(),
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK (near(buf.getTime(),
                  2+5*(itsCount*itsNAvgTime + (itsNAvgTime-1)/2.)));
-    ASSERT (allNear(buf.getWeights(), resultw, 1e-5));
+    BOOST_CHECK (allNear(buf.getWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
       Matrix<double> uvw(3,itsNBl);
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
-      ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+      BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    //cout <<buf.getFullResFlags()<< fullResFlags;
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }
@@ -173,12 +174,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==1+(itsNChan-1)/itsNAvgChan);
-    ASSERT (int(info.ntime())==1+(itsNTime-1)/itsNAvgTime);
-    ASSERT (info.timeInterval()==5*itsNAvgTime);
-    ASSERT (int(info.nchanAvg())==itsNAvgChan);
-    ASSERT (int(info.ntimeAvg())==itsNAvgTime);
+    BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(info.nchan()), 1+(itsNChan-1)/itsNAvgChan);
+    BOOST_CHECK_EQUAL(int(info.ntime()), 1+(itsNTime-1)/itsNAvgTime);
+    BOOST_CHECK_EQUAL(info.timeInterval(), 5*itsNAvgTime);
+    BOOST_CHECK_EQUAL(int(info.nchanAvg()), itsNAvgChan);
+    BOOST_CHECK_EQUAL(int(info.ntimeAvg()), itsNAvgTime);
   }
 
   int itsCount;
@@ -231,12 +232,12 @@ private:
     return true;
   }
 
-  virtual void getUVW (const casa::RefRows&, double, DPBuffer& buf)
+  virtual void getUVW (const casacore::RefRows&, double, DPBuffer& buf)
   {
     buf.getUVW().resize (3, itsNrBl);
     indgen (buf.getUVW());
   }
-  virtual bool getFullResFlags (const casa::RefRows&, DPBuffer& buf)
+  virtual bool getFullResFlags (const casacore::RefRows&, DPBuffer& buf)
   {
     buf.getFullResFlags().assign (itsFullResFlags);
     return true;
@@ -247,7 +248,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNrCorr, itsNrChan, itsNrTime, 100, 5, string(), string());
+    info().init (itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, std::string(), std::string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNrChan);
     Vector<double> chanWidth(itsNrChan, 100000.);
@@ -296,22 +297,22 @@ private:
         }
       }
     }
-    ASSERT (allNE(weights, float(0.)));
+    BOOST_CHECK (allNE(weights, float(0.)));
     for (unsigned int i=0; i<result.size(); ++i) {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
     ///cout << real(buf.getData()) << endl<<real(result);
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), flags));
-    ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
-    ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), flags));
+    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     ///cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -319,12 +320,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNrChan);
-    ASSERT (info.nchan()==1);
-    ASSERT (info.ntime()==1);
-    ASSERT (info.timeInterval()==5*itsNrTime);
-    ASSERT (int(info.nchanAvg())==itsNrChan);
-    ASSERT (int(info.ntimeAvg())==itsNrTime);
+    BOOST_CHECK_EQUAL (int(info.origNChan()), itsNrChan);
+    BOOST_CHECK_EQUAL (info.nchan(), 1);
+    BOOST_CHECK_EQUAL (info.ntime(), 1);
+    BOOST_CHECK_EQUAL (info.timeInterval(), 5*itsNrTime);
+    BOOST_CHECK_EQUAL (int(info.nchanAvg()), itsNrChan);
+    BOOST_CHECK_EQUAL (int(info.ntimeAvg()), itsNrTime);
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
@@ -416,16 +417,16 @@ private:
     }
     // Check the averaged result.
     ///cout << real(buf.getData()) << endl<<real(result);
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), flags));
-    ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
-    ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), flags));
+    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     ///cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -433,12 +434,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNrChan);
-    ASSERT (info.nchan()==1);
-    ASSERT (info.ntime()==1);
-    ASSERT (info.timeInterval()==5*itsNrTime);
-    ASSERT (int(info.nchanAvg())==itsNrChan);
-    ASSERT (int(info.ntimeAvg())==itsNrTime);
+    BOOST_CHECK_EQUAL (int(info.origNChan()), itsNrChan);
+    BOOST_CHECK_EQUAL (info.nchan(), 1);
+    BOOST_CHECK_EQUAL (info.ntime(), 1);
+    BOOST_CHECK_EQUAL (info.timeInterval(), 5*itsNrTime);
+    BOOST_CHECK_EQUAL (int(info.nchanAvg()), itsNrChan);
+    BOOST_CHECK_EQUAL (int(info.ntimeAvg()), itsNrTime);
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
@@ -466,9 +467,9 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
-  ParameterSet parset;
-  parset.add ("freqstep", toString(navgchan));
-  parset.add ("timestep", toString(navgtime));
+  DP3::ParameterSet parset;
+  parset.add ("freqstep", DP3::toString(navgchan));
+  parset.add ("timestep", DP3::toString(navgtime));
   DPStep::ShPtr step2 = DPRun::findStepCtor("TestDynDPPP")(in, parset, "");
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr,
                                      navgtime, navgchan, flag));
@@ -486,7 +487,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
-  ParameterSet parset1, parset2;
+  DP3::ParameterSet parset1, parset2;
   parset1.add ("freqstep", "4");
   parset2.add ("timestep", "2");
   DPStep::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
@@ -508,7 +509,7 @@ void test3(int nrbl, int nrcorr)
     // Create the steps.
     TestInput3* in = new TestInput3(2, nrbl, 2, nrcorr);
     DPStep::ShPtr step1(in);
-    ParameterSet parset1;
+    DP3::ParameterSet parset1;
     parset1.add ("freqstep", "2");
     parset1.add ("timestep", "2");
     DPStep::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
@@ -524,7 +525,7 @@ void test3(int nrbl, int nrcorr)
     // Create the steps.
     TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
     DPStep::ShPtr step1(in);
-    ParameterSet parset1, parset2;
+    DP3::ParameterSet parset1, parset2;
     parset1.add ("freqstep", "4");
     parset1.add ("timestep", "2");
     parset2.add ("freqstep", "2");
@@ -551,7 +552,7 @@ void test4(int nrbl, int nrcorr, int flagstep)
     // Create the steps.
     TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
     DPStep::ShPtr step1(in);
-    ParameterSet parset1, parset2;
+    DP3::ParameterSet parset1, parset2;
     parset1.add ("freqstep", "2");
     parset1.add ("timestep", "2");
     parset2.add ("freqstep", "4");
@@ -568,25 +569,64 @@ void test4(int nrbl, int nrcorr, int flagstep)
   }
 }
 
-
-int main()
+BOOST_AUTO_TEST_CASE( test1a )
 {
-  try {
-    test1(10, 3, 32, 4, 2, 4, false);
-    test1(10, 3, 30, 1, 3, 3, true);
-    test1(10, 3, 30, 1, 3, 3, false);
-    test1(11, 3, 30, 2, 3, 3, false);
-    test1(10, 3, 32, 4, 1, 32, false);
-    test1(10, 3, 32, 1, 1, 1, false);
-    test2(10, 3, 32, 2, true);
-    test2(10, 3, 32, 2, false);
-    test3(1, 1);
-    test3(10, 4);
-    test4(1, 4, 3);
-    test4(20, 4, 5);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+  test1(10, 3, 32, 4, 2, 4, false);
 }
+
+BOOST_AUTO_TEST_CASE( test1b )
+{
+  test1(10, 3, 30, 1, 3, 3, true);
+}
+
+BOOST_AUTO_TEST_CASE( test1c )
+{
+  test1(10, 3, 30, 1, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE( test1d )
+{
+  test1(11, 3, 30, 2, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE( test1e )
+{
+  test1(10, 3, 32, 4, 1, 32, false);
+}
+
+BOOST_AUTO_TEST_CASE( test1f )
+{
+  test1(10, 3, 32, 1, 1, 1, false);
+}
+
+BOOST_AUTO_TEST_CASE( test2a )
+{
+  test2(10, 3, 32, 2, true);
+}
+
+BOOST_AUTO_TEST_CASE( test2b )
+{
+  test2(10, 3, 32, 2, false);
+}
+
+BOOST_AUTO_TEST_CASE( test3a )
+{
+  test3(1, 1);
+}
+
+BOOST_AUTO_TEST_CASE( test3b )
+{
+  test3(10, 4);
+}
+
+BOOST_AUTO_TEST_CASE( test4a )
+{
+  test4(1, 4, 3);
+}
+
+BOOST_AUTO_TEST_CASE( test4b )
+{
+  test4(20, 4, 5);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
