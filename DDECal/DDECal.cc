@@ -142,6 +142,10 @@ DDECal::DDECal (DPInput* input,
       ParameterValue antSetParam(antSetStr);
       std::vector<std::string> list = antSetParam.getStringVector();
       itsAntennaConstraint.emplace_back(list.begin(), list.end());
+      // By doing this check after inserting in the set, duplicate antenna names
+      // will be removed.
+      if(itsAntennaConstraint.back().size() == 1)
+        throw std::runtime_error("Error: antennaconstraint given that should constrain a group of antennas with one antenna in it. This does not make sense (did you forget to use two square brackets? [[ ant1, ant2 ]] )");
     }
   }
   
