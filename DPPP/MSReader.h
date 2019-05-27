@@ -193,7 +193,8 @@ namespace DP3 {
                                  const casacore::Vector<casacore::String>& antNames);
 #endif
       
-      // Tell if the visibility data are to be read.
+      // Tell if the visibility data are to be read. If set to true once,
+      // this will stay true.
       virtual void setReadVisData (bool readVisData);
 
       // Get the main MS table.
