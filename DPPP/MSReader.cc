@@ -223,7 +223,7 @@ namespace DP3 {
 
     void MSReader::setReadVisData (bool readVisData)
     {
-      itsReadVisData = readVisData;
+      itsReadVisData = (itsReadVisData || readVisData);
     }
 
     bool MSReader::process (const DPBuffer&)
