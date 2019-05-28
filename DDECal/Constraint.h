@@ -97,6 +97,11 @@ public:
 
 protected:
   size_t _nAntennas, _nDirections, _nChannelBlocks, _nThreads;
+  
+  static bool isfinite(const dcomplex& value)
+  {
+    return std::isfinite(value.real()) && std::isfinite(value.imag());
+  }
 };
 
 /**

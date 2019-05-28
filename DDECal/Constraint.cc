@@ -50,21 +50,30 @@ std::vector<Constraint::Result> AntennaConstraint::Apply(
   // nSols is nPol x nDirections (i.e., nr of sols per antenna)
   size_t nSols = solutions.front().size() / _nAntennas;
   std::vector<dcomplex> setSolutions(nSols);
+  std::vector<size_t> setSolutionCounts(nSols);
   for (unsigned int ch=0; ch<solutions.size(); ++ch) {
     for(const std::set<size_t>& antennaSet : _antennaSets)
     {
       setSolutions.assign(nSols, 0.0);
+      setSolutionCounts.assign(nSols, 0);
       // Calculate the sum of solutions over the core stations
       for(size_t antennaIndex : antennaSet)
       {
         size_t startIndex = antennaIndex * nSols;
         for(size_t solIndex = 0; solIndex != nSols; ++solIndex)
-          setSolutions[solIndex] += solutions[ch][startIndex + solIndex];
+        {
+          dcomplex value = solutions[ch][startIndex + solIndex];
+          if(isfinite(value))
+          {
+            setSolutions[solIndex] += value;
+            ++setSolutionCounts[solIndex];
+          }
+        }
       }
       
       // Divide by nr of core stations to get the mean solution
-      for(dcomplex& solution : setSolutions)
-        solution /= antennaSet.size();
+      for(size_t solIndex = 0; solIndex != nSols; ++solIndex)
+        setSolutions[solIndex] /= setSolutionCounts[solIndex];
       
       // Assign all core stations to the mean solution
       for(size_t antennaIndex : antennaSet)

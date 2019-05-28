@@ -82,11 +82,13 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       a = data[0]*cos(angle) - data[1]*sin(angle);
       b = data[3]*cos(angle) + data[2]*sin(angle);
 
-      if (isfinite(abs(a))) {
-        amean += abs(a);
+      double absa = abs(a);
+      if (isfinite(absa)) {
+        amean += absa;
       }
-      if (isfinite(abs(b))) {
-        bmean += abs(b);
+      double absb = abs(b);
+      if (isfinite(absb)) {
+        bmean += absb;
       }
     }
     amean /= _nAntennas;

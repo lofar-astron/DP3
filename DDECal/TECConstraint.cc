@@ -114,8 +114,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     // Flag channels where calibration yielded inf or nan
     double weightSum = 0.0;
     for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
-      if(std::isfinite(solutions[ch][solutionIndex].real()) &&
-        std::isfinite(solutions[ch][solutionIndex].imag()))
+      if(isfinite(solutions[ch][solutionIndex]))
       {
         _phaseFitters[thread].PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
         _phaseFitters[thread].WeightData()[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
@@ -170,8 +169,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
       
       // Flag channels where calibration yielded inf or nan
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch) {
-        if(std::isfinite(solutions[ch][solutionIndex].real()) &&
-          std::isfinite(solutions[ch][solutionIndex].imag()))
+        if(isfinite(solutions[ch][solutionIndex]))
         {
           data[ch] = std::arg(solutions[ch][solutionIndex]);
           weights[ch] = _weights[antennaIndex*_nChannelBlocks + ch];
