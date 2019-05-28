@@ -37,8 +37,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
       for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
       {
         // Flag channels where calibration yielded inf or nan
-        if(std::isfinite(solutions[ch][solutionIndex].real()) &&
-          std::isfinite(solutions[ch][solutionIndex].imag()))
+        if(isfinite(solutions[ch][solutionIndex]))
         {
           _fitData[thread].data[ch] = solutions[ch][solutionIndex];
           _fitData[thread].weight[ch] = _weights[antIndex*_nChannelBlocks + ch];
