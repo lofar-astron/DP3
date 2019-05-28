@@ -317,6 +317,10 @@ namespace DP3 {
           defaulttype.resize(defaulttype.size()-1);
         }
 
+        // If no explicit output step is given as last step, one will be added
+        // with the msout. prefix
+        needsOutputStep = true;
+
         string type = parset.getString(prefix+"type", defaulttype);
         boost::algorithm::to_lower(type);
         // Define correct name for AOFlagger synonyms.
