@@ -306,6 +306,7 @@ namespace DP3 {
       std::vector<string> steps = parset.getStringVector (prefix + "steps");
       lastStep = firstStep;
       DPStep::ShPtr step;
+      bool needsOutputStep = true;
       for (std::vector<string>::const_iterator iter = steps.begin();
            iter != steps.end(); ++iter) {
         string prefix(*iter + '.');
@@ -315,6 +316,10 @@ namespace DP3 {
         while (defaulttype.size()>0 && std::isdigit(*defaulttype.rbegin())) {
           defaulttype.resize(defaulttype.size()-1);
         }
+
+        // If no explicit output step is given as last step, one will be added
+        // with the msout. prefix
+        needsOutputStep = true;
 
         string type = parset.getString(prefix+"type", defaulttype);
         boost::algorithm::to_lower(type);
@@ -359,12 +364,14 @@ namespace DP3 {
           step = DPStep::ShPtr(new Upsample (reader, parset, prefix));
         } else if (type == "split" || type == "explode") {
           step = DPStep::ShPtr(new Split (reader, parset, prefix));
+          needsOutputStep = false;
         } else if (type == "ddecal") {
           step = DPStep::ShPtr(new DDECal (reader, parset, prefix));
         } else if (type == "interpolate") {
           step = DPStep::ShPtr(new Interpolate (reader, parset, prefix));
         } else if (type == "out" || type=="output" || type=="msout") {
           step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix, currentMSName);
+          needsOutputStep = false;
         } else {
           // Maybe the step is defined in a dynamic library.
           step = findStepCtor(type) (reader, parset, prefix);
@@ -379,11 +386,7 @@ namespace DP3 {
         }
       }
       // Add an output step if not explicitly added in steps (unless last step is a 'split' step)
-      if (steps.size()==0 || (
-          steps[steps.size()-1] != "out" &&
-          steps[steps.size()-1] != "output" &&
-          steps[steps.size()-1] != "msout" &&
-          steps[steps.size()-1] != "split")) {
+      if (needsOutputStep) {
         step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.", currentMSName);
         lastStep->setNextStep (step);
         lastStep = step;
