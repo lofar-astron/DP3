@@ -56,7 +56,7 @@ std::vector<Constraint::Result> AntennaConstraint::Apply(
     {
       setSolutions.assign(nSols, 0.0);
       setSolutionCounts.assign(nSols, 0);
-      // Calculate the sum of solutions over the core stations
+      // Calculate the sum of solutions over the set of stations
       for(size_t antennaIndex : antennaSet)
       {
         size_t startIndex = antennaIndex * nSols;
