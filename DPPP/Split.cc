@@ -146,8 +146,8 @@ namespace DP3 {
         getPrevStep()->addToMS (msName);
       } else {
         itsAddedToMS = true;
-        DPStep::ShPtr step, lastStep;
         for (auto &subStep: itsSubsteps) {
+          DPStep::ShPtr step, lastStep;
           step = subStep;
           while (step) {
             lastStep = step;
