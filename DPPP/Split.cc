@@ -45,7 +45,8 @@ namespace DP3 {
 
     Split::Split (DPInput* input,
                   const ParameterSet& parset,
-                  const string& prefix)
+                  const string& prefix):
+      itsAddedToMS(false)
     {
       itsReplaceParms = parset.getStringVector(prefix + "replaceparms");
       vector<vector<string> > replaceParmValues; // For each of the parameters, the values for each substep
@@ -102,7 +103,7 @@ namespace DP3 {
       // Show the steps.
       for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         os << "Split substep "<<(i+1)<<" of "<<itsSubsteps.size()<<endl;
-        DPStep::ShPtr step = itsSubsteps[0];
+        DPStep::ShPtr step = itsSubsteps[i];
         DPStep::ShPtr lastStep;
         while (step) {
           step->show (os);
@@ -131,12 +132,29 @@ namespace DP3 {
       return false;
     }
 
-
     void Split::finish()
     {
       // Let the next steps finish.
       for (unsigned int i=0; i<itsSubsteps.size(); ++i) {
         itsSubsteps[i]->finish();
+      }
+    }
+
+    void Split::addToMS (const string& msName)
+    {
+      if (itsAddedToMS) {
+        getPrevStep()->addToMS (msName);
+      } else {
+        itsAddedToMS = true;
+        DPStep::ShPtr step, lastStep;
+        for (auto &subStep: itsSubsteps) {
+          step = subStep;
+          while (step) {
+            lastStep = step;
+            step = step->getNextStep();
+          }
+          lastStep->addToMS(msName);
+        }
       }
     }
   } //# end namespace

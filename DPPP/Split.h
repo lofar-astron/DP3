@@ -58,6 +58,8 @@ namespace DP3 {
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
+      virtual void addToMS (const string&);
+
       // Update the general info.
       virtual void updateInfo (const DPInfo&);
 
@@ -73,6 +75,7 @@ namespace DP3 {
 
       std::vector<std::string>   itsReplaceParms; // The names of the parameters that differ along the substeps
       std::vector<DPStep::ShPtr> itsSubsteps;
+      bool             itsAddedToMS; // Used in addToMS to prevent recursion
     };
 
   } //# end namespace
