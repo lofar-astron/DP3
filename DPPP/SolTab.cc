@@ -5,6 +5,7 @@
 #include "../Common/StringUtil.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>

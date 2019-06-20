@@ -85,7 +85,8 @@ namespace DP3 {
         itsUseAP       (false)
     {
 
-      assert (!itsParmDBName.empty());
+      if (itsParmDBName.empty())
+        throw std::runtime_error("A parmdb should be provided");
 
       if (substep) {
         itsInvert=false;
@@ -139,7 +140,8 @@ namespace DP3 {
         }
         itsDirection = 0;
         if (directionStr=="") {
-          assert(!itsSolTab.hasAxis("dir") || itsSolTab.getAxis("dir").size==1);
+          if(itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size!=1)
+            throw std::runtime_error("If the soltab contains a dir axis, it should be of size one");
           // If there is only one direction, silently assume it is the right one
         } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
           itsDirection = itsSolTab.getDirIndex(directionStr);
@@ -207,7 +209,8 @@ namespace DP3 {
       itsTimeInterval = infoIn.timeInterval();
       itsNCorr = infoIn.ncorr();
 
-      assert(itsNCorr==4);
+      if(itsNCorr!=4)
+        throw std::runtime_error("Applycal only works with 4 correlations");
 
       if (itsUseH5Parm) {
           itsTimeSlotsPerParmUpdate = info().ntime();
@@ -307,12 +310,14 @@ namespace DP3 {
       } else if (itsCorrectType == SCALARAMPLITUDE) {
         itsParmExprs.push_back("{Common,}ScalarAmplitude");
       } else if (itsCorrectType == PHASE) {
-        assert(itsUseH5Parm);
+        if(!itsUseH5Parm)
+          throw std::runtime_error("A H5Parm is required for phase correction");
         itsParmExprs.push_back("Phase:0");
         itsParmExprs.push_back("Phase:1");
       } else if (itsCorrectType == AMPLITUDE) {
-        assert(itsUseH5Parm);
-        itsParmExprs.push_back("Amplitude:0");
+         if(!itsUseH5Parm)
+          throw std::runtime_error("A H5Parm is required for amplitude correction");
+       itsParmExprs.push_back("Amplitude:0");
         itsParmExprs.push_back("Amplitude:1");
       } else {
         throw Exception("Correction type " +
@@ -502,7 +507,8 @@ namespace DP3 {
             itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
           freqvariesfastest = false;
         }
-        assert(freqvariesfastest);
+        if(!freqvariesfastest)
+          throw std::runtime_error("Fastest varying axis should be freq");
 
         vector<double> times(info().ntime());
         for (unsigned int t=0; t<times.size(); ++t) {
@@ -585,7 +591,8 @@ namespace DP3 {
 
             if (parmIt != parmMap.end()) {
               parmvalues[parmExprNum][ant].swap(parmIt->second);
-              assert(parmvalues[parmExprNum][ant].size()==tfDomainSize);
+              if(parmvalues[parmExprNum][ant].size()!=tfDomainSize)
+                throw std::runtime_error("Size of parmvalue != tfDomainSize");
             } else {// No value found, try default
               Array<double> defValues;
               double defValue;
@@ -594,12 +601,14 @@ namespace DP3 {
                   string(info().antennaNames()[ant]) + name_postfix).size()==1) { // Default for antenna
                 itsParmDB->getDefValues(string(itsParmExprs[parmExprNum]) + ":" +
                   string(info().antennaNames()[ant]) + name_postfix).get(0,defValues);
-                assert(defValues.size()==1);
+                if(defValues.size()!=1)
+                  throw std::runtime_error("Size of defValues != 1");
                 defValue=defValues.data()[0];
               }
               else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value
                 itsParmDB->getDefValues(parmExpr).get(0,defValues);
-                assert(defValues.size()==1);
+                if(defValues.size()!=1)
+                  throw std::runtime_error("Size of defValues != 1");
                 defValue=defValues.data()[0];
               } else if (parmExpr.substr(0,5)=="Gain:") {
                 defValue=0.;
@@ -618,7 +627,8 @@ namespace DP3 {
         }
       }
 
-      assert(parmvalues[0][0].size() <= tfDomainSize); // Catches multiple matches
+      if(parmvalues[0][0].size() > tfDomainSize) // Catches multiple matches
+        throw std::runtime_error("Multiple matches");
 
       double freq;
 
@@ -736,9 +746,10 @@ namespace DP3 {
             itsParms(1, ant, tf) = 1./itsParms(1, ant, tf);
             } else if (itsCorrectType==FULLJONES) {
               ApplyCal::invert(&itsParms(0, ant, tf),itsSigmaMMSE);
-            } else {
-              assert (itsCorrectType==ROTATIONMEASURE || itsCorrectType==ROTATIONANGLE);
+            } else if (itsCorrectType==ROTATIONMEASURE || itsCorrectType==ROTATIONANGLE) {
               // rotationmeasure and commonrotationangle are already inverted above
+            } else {
+              throw std::runtime_error("Invalid correction type");
             }
           }
         }
