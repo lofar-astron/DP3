@@ -138,7 +138,7 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
                                 componentsList[i].end()));
     std::vector<BBS::PatchInfo> patchInfo(sourceDB.getPatchInfo(-1, patchNames[i]));
     if (patchInfo.size() != 1)
-      throw std::runtime_error("patch should have size of one");
+      throw std::runtime_error("Patch \"" + patchNames[i] + "\" defined more than once in SourceDB");
     // Set the position and apparent flux of the patch.
     Position patchPosition;
     patchPosition[0] = patchInfo[0].getRa();

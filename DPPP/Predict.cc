@@ -167,7 +167,7 @@ namespace DP3 {
       itsApplyCalStep=ApplyCal(input, parset, prefix, true,
                                itsDirectionsStr);
       if(itsOperation!="replace" && parset.getBool(prefix + "applycal.updateweights", false))
-        throw std::runtime_error("Weights cannot be updated when operation is not replace");
+        throw std::invalid_argument("Weights cannot be updated when operation is not replace");
       itsResultStep=new ResultStep();
       itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
     }
@@ -268,7 +268,7 @@ namespace DP3 {
     void Predict::setOperation(const std::string& operation) {
       itsOperation=operation;
       if(itsOperation!="replace" && itsOperation!="add" && itsOperation!="subtract")
-        throw std::runtime_error("Operation must be 'replace', 'add' or 'subtract'.");
+        throw std::invalid_argument("Operation must be 'replace', 'add' or 'subtract'.");
     }
 
     void Predict::show (std::ostream& os) const

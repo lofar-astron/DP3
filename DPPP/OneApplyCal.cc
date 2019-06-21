@@ -86,7 +86,7 @@ namespace DP3 {
     {
 
       if (itsParmDBName.empty())
-        throw std::runtime_error("A parmdb should be provided");
+        throw std::runtime_error("A parmdb or h5parm should be provided");
 
       if (substep) {
         itsInvert=false;
@@ -141,7 +141,7 @@ namespace DP3 {
         itsDirection = 0;
         if (directionStr=="") {
           if(itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size!=1)
-            throw std::runtime_error("If the soltab contains a dir axis, it should be of size one");
+            throw std::runtime_error("If the soltab contains multiple directions, the direction to be applied in applycal should be specified");
           // If there is only one direction, silently assume it is the right one
         } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size>1) {
           itsDirection = itsSolTab.getDirIndex(directionStr);
@@ -315,9 +315,9 @@ namespace DP3 {
         itsParmExprs.push_back("Phase:0");
         itsParmExprs.push_back("Phase:1");
       } else if (itsCorrectType == AMPLITUDE) {
-         if(!itsUseH5Parm)
-          throw std::runtime_error("A H5Parm is required for amplitude correction");
-       itsParmExprs.push_back("Amplitude:0");
+          if(!itsUseH5Parm)
+            throw std::runtime_error("A H5Parm is required for amplitude correction");
+        itsParmExprs.push_back("Amplitude:0");
         itsParmExprs.push_back("Amplitude:1");
       } else {
         throw Exception("Correction type " +
@@ -597,12 +597,12 @@ namespace DP3 {
               Array<double> defValues;
               double defValue;
 
-              if (itsParmDB->getDefValues(parmExpr + ":" +
-                  string(info().antennaNames()[ant]) + name_postfix).size()==1) { // Default for antenna
-                itsParmDB->getDefValues(string(itsParmExprs[parmExprNum]) + ":" +
-                  string(info().antennaNames()[ant]) + name_postfix).get(0,defValues);
+              string defParmNameAntenna = parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix;
+              if (itsParmDB->getDefValues(defParmNameAntenna).size()==1) { // Default for antenna
+                itsParmDB->getDefValues(defParmNameAntenna).get(0,defValues);
                 if(defValues.size()!=1)
-                  throw std::runtime_error("Size of defValues != 1");
+                  throw std::runtime_error("Multiple default values found in parmdb for " + defParmNameAntenna + ". " +
+                      " Did you unintentially overwrite an existing parmdb?");
                 defValue=defValues.data()[0];
               }
               else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value
@@ -628,7 +628,7 @@ namespace DP3 {
       }
 
       if(parmvalues[0][0].size() > tfDomainSize) // Catches multiple matches
-        throw std::runtime_error("Multiple matches");
+        throw std::runtime_error("Parameter was found multiple times in ParmDB");
 
       double freq;
 

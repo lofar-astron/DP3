@@ -195,7 +195,7 @@ namespace DP3 {
     // Get number of dimensions and size of all dimensions
     H5::DataSpace ds = val.getSpace();
     if(ds.getSimpleExtentNdims() != int(ndims))
-      throw std::runtime_error("Something wrong with H5Parm: ds.getSimpleExtentNdims() != int(ndims)");
+      throw std::runtime_error("H5Parm is inconsistent: number of axis in data does not match number of axis in metadata");
     hsize_t dims_out[ndims];
     ds.getSimpleExtentDims(dims_out);
 
@@ -295,7 +295,7 @@ namespace DP3 {
         offset[i] = pol;
       } else {
         if(_axes[i].size != 1)
-          throw std::runtime_error("Could not find suitable axis in H5Parm");
+          throw std::runtime_error("Axis \"" + _axes[i].name + "\" in H5Parm is not understood");
         offset[i] = 0;
       }
     }
@@ -403,7 +403,7 @@ namespace DP3 {
       throw Exception("SolTab has no table " + tableName);
     }
     if(dataspace.getSimpleExtentNdims()!=1)
-      throw std::runtime_error("Something wrong with H5Parm: dataspace.getSimpleExtentNdims()!=1");
+      throw std::runtime_error("Invalid H5Parm: table \"" + tableName + "\" should be onedimensional");
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
 
@@ -548,7 +548,7 @@ namespace DP3 {
       throw Exception("SolTab " + getName() + " has no axis table for " + axisName);
     }
     if(dataspace.getSimpleExtentNdims()!=1)
-      throw std::runtime_error("Something wrong with H5Parm: dataspace.getSimpleExtentNdims()!=1");
+      throw std::runtime_error("Invalid H5Parm: table \"" + axisName + "\" should be onedimensional");
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
