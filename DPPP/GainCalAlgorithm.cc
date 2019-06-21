@@ -24,7 +24,6 @@
 #include "GainCalAlgorithm.h"
 #include "DPInput.h"
 
-#include <cassert>
 #include <vector>
 #include <algorithm>
 #include <limits>
@@ -55,7 +54,8 @@ namespace DP3 {
 
       _nSt = maxAntennas;
       if (_mode==FULLJONES) {
-        assert(!_scalar);
+        if(_scalar)
+          throw std::invalid_argument("FULLJONES mode can't be set together with scalar=true");
         _nCr=4;
         _nSp=1;
         _savedNCr=4;
@@ -321,7 +321,6 @@ namespace DP3 {
                 DComplex* h_p=_h.data();
                 for (unsigned int st2=0;st2<_nUn;++st2) {
                   DComplex z(h_p[st2] * *mvis_p); //itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-                  assert(isFinite(z));
                   ww+=norm(z);
                   tt+=conj(z) * *vis_p; //itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
                   mvis_p++;
@@ -343,9 +342,11 @@ namespace DP3 {
 
         // Constrain solutions
         if (_mode==PHASEONLY) {
-          assert(abs(_g(st1,0))!=0);
-          _g(st1,0)/=abs(_g(st1,0));
-          assert(isFinite(_g(st1,0)));
+          if(abs(_g(st1,0))==0.0)
+            throw std::runtime_error("One of the gains solved to zero in gaincal algorithm");
+          _g(st1,0) /= abs(_g(st1,0));
+          if(!isFinite(_g(st1,0)))
+            throw std::runtime_error("One of the gains was found to converge to a non-finite value in gaincal algorithm");
         } else if (_mode==AMPLITUDEONLY) {
           _g(st1,0) = abs(_g(st1,0));
         }

@@ -194,7 +194,8 @@ namespace DP3 {
 
     // Get number of dimensions and size of all dimensions
     H5::DataSpace ds = val.getSpace();
-    assert (ds.getSimpleExtentNdims() == int(ndims));
+    if(ds.getSimpleExtentNdims() != int(ndims))
+      throw std::runtime_error("Something wrong with H5Parm: ds.getSimpleExtentNdims() != int(ndims)");
     hsize_t dims_out[ndims];
     ds.getSimpleExtentDims(dims_out);
 
@@ -293,7 +294,8 @@ namespace DP3 {
       } else if (_axes[i].name=="pol") {
         offset[i] = pol;
       } else {
-        assert(_axes[i].size == 1);
+        if(_axes[i].size != 1)
+          throw std::runtime_error("Could not find suitable axis in H5Parm");
         offset[i] = 0;
       }
     }
@@ -314,7 +316,7 @@ namespace DP3 {
   }
 
   void H5Parm::SolTab::setAntennas(const vector<string>& solAntennas) {
-    // TODO: assert that antenna is present in antenna table in solset
+    // TODO: check that antenna is present in antenna table in solset
     hsize_t dims[1];
     dims[0]=solAntennas.size();
 
@@ -400,11 +402,12 @@ namespace DP3 {
     } catch (H5::GroupIException& e) {
       throw Exception("SolTab has no table " + tableName);
     }
-    assert(dataspace.getSimpleExtentNdims()==1);
+    if(dataspace.getSimpleExtentNdims()!=1)
+      throw std::runtime_error("Something wrong with H5Parm: dataspace.getSimpleExtentNdims()!=1");
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
 
-    // TODO: assert that DataType is String
+    // TODO: check that DataType is String
     hsize_t strLen = dataset.getDataType().getSize();
 
     char elNames[strLen*dims[0]];
@@ -476,7 +479,8 @@ namespace DP3 {
     } catch (H5::GroupIException& e) {
       throw Exception("SolTab " + getName() + " has no axis '" + axisname + "'");
     }
-    assert(dataspace.getSimpleExtentNdims()==1);
+    if(dataspace.getSimpleExtentNdims()!=1)
+      throw std::runtime_error("Something wrong with H5Parm: dataspace.getSimpleExtentNdims()!=1");
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);
@@ -543,7 +547,8 @@ namespace DP3 {
     } catch (H5::GroupIException& e) {
       throw Exception("SolTab " + getName() + " has no axis table for " + axisName);
     }
-    assert(dataspace.getSimpleExtentNdims()==1);
+    if(dataspace.getSimpleExtentNdims()!=1)
+      throw std::runtime_error("Something wrong with H5Parm: dataspace.getSimpleExtentNdims()!=1");
 
     hsize_t dims[1];
     dataspace.getSimpleExtentDims(dims);

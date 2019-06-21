@@ -52,7 +52,6 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include <cassert>
 #include <iostream>
 
 using namespace casacore;
@@ -148,19 +147,21 @@ namespace DP3 {
       itsFirstTime = startTime;
       if (!startTimeStr.empty()) {
         if (!MVTime::read (qtime, startTimeStr)) {
-          throw Exception(startTimeStr + " is an invalid date/time");
+          throw std::runtime_error(startTimeStr + " is an invalid date/time");
         }
         itsFirstTime = qtime.getValue("s");
-        assert (itsFirstTime <= endTime);
+        if (itsFirstTime > endTime)
+          throw std::runtime_error("starttime is past end of time axis");
       }
       itsLastTime = endTime;
       if (!endTimeStr.empty()) {
         if (!MVTime::read (qtime, endTimeStr)) {
-          throw Exception(endTimeStr + " is an invalid date/time");
+          throw std::runtime_error(endTimeStr + " is an invalid date/time");
         }
         itsLastTime = qtime.getValue("s");
       }
-      assert (itsLastTime >= itsFirstTime);
+      if (itsLastTime < itsFirstTime)
+        throw std::runtime_error("endtime is before start of time axis");
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
@@ -587,7 +588,8 @@ namespace DP3 {
       // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
       // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
       Table fldtab (itsMS.keywordSet().asTable ("FIELD"));
-      AlwaysAssert (fldtab.nrow() == 1, AipsError);
+      if (fldtab.nrow() != 1)
+        throw std::runtime_error("Multiple entries in FIELD table");
       MDirection phaseCenter, delayCenter, tileBeamDir;
       ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
       ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
@@ -842,14 +844,16 @@ namespace DP3 {
       // ntimeavg is the nr of times used when averaging.
       // Return it as Cube<bool>[norigchan,ntimeavg,nrbl].
       IPosition chShape = chars.shape();
-      assert (chShape[1] == itsFullResNTimeAvg  &&  chShape[2] == itsNrBl);
+      if (chShape[1] != itsFullResNTimeAvg  ||  chShape[2] != itsNrBl)
+        throw std::runtime_error("Incorrect shape of LOFAR_FULL_RES_FLAG column");
       // Now expand the bits to bools.
       // If all bits to convert are contiguous, do it all in one go.
       // Otherwise we have to iterate.
       if (norigchan == chShape[0]*8) {
         Conversion::bitToBool (flags.data(), chars.data(), flags.size());
       } else {
-        assert (norigchan < chShape[0]*8);
+        if (norigchan > chShape[0]*8)
+          throw std::runtime_error("Shape of LOFAR_FULL_RES_FLAG column is inconsistent");
         const uChar* charsPtr = chars.data();
         bool* flagsPtr = flags.data();
         for (int i=0; i<chShape[1]*chShape[2]; ++i) {

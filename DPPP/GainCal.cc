@@ -123,7 +123,6 @@ namespace DP3 {
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep=ApplyBeam(input, parset, prefix, true);
-          assert(!itsApplyBeamStep.invert());
           itsResultStep = ResultStep::ShPtr(new ResultStep());
           itsApplyBeamStep.setNextStep(itsResultStep);
         }
@@ -144,8 +143,9 @@ namespace DP3 {
       if (itsMode == TECANDPHASE || itsMode == TEC) {
         defaultNChan = 1;
       }
+      else if(itsMode==TECSCREEN)
+        throw std::runtime_error("Can't solve with mode TECSCREEN");
       itsNChan = parset.getInt(prefix + "nchan", defaultNChan);
-      assert(itsMode!=TECSCREEN);
     }
 
     GainCal::~GainCal()
@@ -311,7 +311,8 @@ namespace DP3 {
       itsChunkStartTime = info().startTime();
 
       if (itsDebugLevel>0) {
-        assert(getInfo().nThreads()==1);
+        if(getInfo().nThreads()!=1)
+          throw std::runtime_error(nthreads should be 1 in debug mode");
         assert(itsTimeSlotsPerParmUpdate >= info().ntime());
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),
