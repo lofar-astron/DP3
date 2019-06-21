@@ -101,7 +101,8 @@ namespace DP3 {
       itsDebugLevel = parset.getInt (prefix + "debuglevel", 0);
       itsPatchList = vector<Patch::ConstPtr> ();
 
-      assert(File(itsSourceDBName).exists());
+      if(!File(itsSourceDBName).exists())
+        throw std::runtime_error("Specified source DB name does not exist");
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", itsSourceDBName), false);
 
       // Save directions specifications to pass to applycal
@@ -118,7 +119,6 @@ namespace DP3 {
         itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", false);
 
         string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
-        assert (mode=="default" || mode=="array_factor" || mode=="element");
         if (mode=="default") {
           itsBeamMode=FullBeamCorrection;
         } else if (mode=="array_factor") {
@@ -166,8 +166,8 @@ namespace DP3 {
       itsDoApplyCal=true;
       itsApplyCalStep=ApplyCal(input, parset, prefix, true,
                                itsDirectionsStr);
-      assert(!(itsOperation!="replace" &&
-               parset.getBool(prefix + "applycal.updateweights", false)));
+      if(itsOperation!="replace" && parset.getBool(prefix + "applycal.updateweights", false))
+        throw std::invalid_argument("Weights cannot be updated when operation is not replace");
       itsResultStep=new ResultStep();
       itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
     }
@@ -267,8 +267,8 @@ namespace DP3 {
 
     void Predict::setOperation(const std::string& operation) {
       itsOperation=operation;
-      assert(itsOperation=="replace" || itsOperation=="add" ||
-             itsOperation=="subtract");
+      if(itsOperation!="replace" && itsOperation!="add" && itsOperation!="subtract")
+        throw std::invalid_argument("Operation must be 'replace', 'add' or 'subtract'.");
     }
 
     void Predict::show (std::ostream& os) const

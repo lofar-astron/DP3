@@ -75,7 +75,6 @@ namespace DP3 {
         itsInvert=parset.getBool(prefix + "invert", true);
       }
       string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
-      assert (mode=="default" || mode=="array_factor" || mode=="element");
       if (mode=="default") {
         itsMode=FullBeamCorrection;
       } else if (mode=="array_factor") {

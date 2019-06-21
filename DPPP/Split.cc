@@ -31,7 +31,6 @@
 
 #include <stddef.h>
 
-#include <cassert>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -53,15 +52,13 @@ namespace DP3 {
       replaceParmValues.resize(itsReplaceParms.size());
 
       vector<vector<string> >::iterator replaceParmValueIt = replaceParmValues.begin();
-      vector<string>::iterator replaceParmIt;
       unsigned int numSteps = 0;
-      for (replaceParmIt = itsReplaceParms.begin();
-           replaceParmIt != itsReplaceParms.end(); ++replaceParmIt) {
-        vector<string> parmValues = parset.getStringVector(*replaceParmIt);
+      for (const string& replaceParm : itsReplaceParms) {
+        vector<string> parmValues = parset.getStringVector(replaceParm);
         *(replaceParmValueIt++) = parmValues;
         if (numSteps > 0) {
           if(parmValues.size() != numSteps)
-            throw Exception("Each parameter in replaceparms should have the same number of items (expected " + std::to_string(numSteps) + ", got " + std::to_string(parmValues.size()) + " for step " + *replaceParmIt);
+            throw Exception("Each parameter in replaceparms should have the same number of items (expected " + std::to_string(numSteps) + ", got " + std::to_string(parmValues.size()) + " for step " + replaceParm);
         } else {
           numSteps = parmValues.size();
         }
@@ -80,7 +77,6 @@ namespace DP3 {
         firstStep->setPrevStep(this);
         itsSubsteps.push_back(firstStep);
       }
-      assert(itsSubsteps.size()>0);
     }
 
     Split::~Split()

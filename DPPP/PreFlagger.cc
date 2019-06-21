@@ -569,33 +569,34 @@ namespace DP3 {
       // and saves the creation of too many arrays.
       if (! itsPSets.empty()) {
         std::stack<Cube<bool>*> results;
-        for (vector<int>::const_iterator oper = itsRpn.begin();
-             oper != itsRpn.end(); ++oper) {
-          if (*oper >= 0) {
-            results.push (itsPSets[*oper]->process (in, out, timeSlot,
+        for (int oper : itsRpn) {
+          if (oper >= 0) {
+            results.push (itsPSets[oper]->process (in, out, timeSlot,
                                                     itsMatchBL, timer));
-          } else if (*oper == OpNot) {
+          } else if (oper == OpNot) {
             Cube<bool>* left = results.top();
             // No ||= operator exists, so use the transform function.
             transformInPlace (left->cbegin(), left->cend(),
                               std::logical_not<bool>());
-          } else {
-            assert (*oper==OpOr ||  *oper==OpAnd);
+          } else if(oper == OpOr || oper == OpAnd) {
             Cube<bool>* right = results.top();
             results.pop();
             Cube<bool>* left = results.top();
             // No ||= operator exists, so use the transform function.
-            if (*oper == OpOr) {
+            if (oper == OpOr) {
               transformInPlace (left->cbegin(), left->cend(),
                                 right->cbegin(), std::logical_or<bool>());
             } else {
               transformInPlace (left->cbegin(), left->cend(),
                                 right->cbegin(), std::logical_and<bool>());
             }
+          } else {
+            throw std::runtime_error("Expected operation NOT, OR or AND");
           }
         }
         // Finally AND the children's flags with the flags of this pset.
-        assert (results.size() == 1);
+        if (results.size() != 1)
+          throw std::runtime_error("Something went wrong while evaluating expression: results.size() != 1");
         Cube<bool>* mflags = results.top();
         transformInPlace (itsFlags.cbegin(), itsFlags.cend(),
                           mflags->cbegin(), std::logical_and<bool>());

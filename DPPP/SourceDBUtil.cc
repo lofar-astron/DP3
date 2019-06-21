@@ -58,7 +58,8 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
     for (unsigned int i=0; i<nModel; ++i) {
       if (src.getPatchName() == patchNames[i]) {
         // Fetch position.
-        assert (src.getInfo().getRefType() == "J2000");
+        if (src.getInfo().getRefType() != "J2000")
+          throw std::runtime_error("Reference type should be J2000");
         Position position;
         position[0] = src.getRa();
         position[1] = src.getDec();
@@ -136,7 +137,8 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
                                 componentsList[i].begin(),
                                 componentsList[i].end()));
     std::vector<BBS::PatchInfo> patchInfo(sourceDB.getPatchInfo(-1, patchNames[i]));
-    assert (patchInfo.size() == 1);
+    if (patchInfo.size() != 1)
+      throw std::runtime_error("Patch \"" + patchNames[i] + "\" defined more than once in SourceDB");
     // Set the position and apparent flux of the patch.
     Position patchPosition;
     patchPosition[0] = patchInfo[0].getRa();

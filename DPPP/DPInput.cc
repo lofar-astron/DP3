@@ -29,8 +29,6 @@
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
 
-#include <assert.h>
-
 using namespace casacore;
 
 namespace DP3 {
@@ -63,9 +61,10 @@ namespace DP3 {
         // Only use the XX flags; no averaging done, thus navgtime=1.
         // (If any averaging was done, the flags would be in the buffer).
         IPosition shp(bufin.getFlags().shape());
-        assert (fullResFlags.shape()[0] == shp[1]  &&
-                fullResFlags.shape()[1] == 1  &&
-                fullResFlags.shape()[2] == shp[2]);
+        if (fullResFlags.shape()[0] != shp[1]  ||
+            fullResFlags.shape()[1] != 1  ||
+            fullResFlags.shape()[2] != shp[2])
+          throw std::runtime_error("Invalid shape of full res flags");
         objcopy (fullResFlags.data(), bufin.getFlags().data(),
                  fullResFlags.size(), 1, shp[0]);    // only copy XX.
         return fullResFlags;

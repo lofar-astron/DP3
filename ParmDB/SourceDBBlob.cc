@@ -57,14 +57,15 @@ namespace BBS {
           itsFile.open (pdm.getTableName().c_str(), ios::in | ios::binary);
           itsCanWrite = false;
         }
-        assert (itsFile);
+        if (!itsFile)
+          throw std::runtime_error("Error opening file " + pdm.getTableName());
       }
     }
     if (forceNew) {
       itsFile.open (pdm.getTableName().c_str(),
                     ios::out | ios::in | ios::trunc | ios::binary);
       if (!itsFile)
-				throw std::runtime_error("SourceDB blob file " + pdm.getTableName() +
+        throw std::runtime_error("SourceDB blob file " + pdm.getTableName() +
                  " cannot be created");
     }
     itsBufIn   = std::shared_ptr<BlobIBufStream>(new BlobIBufStream(itsFile));
@@ -118,7 +119,7 @@ namespace BBS {
   {
     // Write at the end of the file.
     if (!itsCanWrite)
-			throw std::runtime_error("SourceDBBlob: file is not writable");
+      throw std::runtime_error("SourceDBBlob: file is not writable");
     itsFile.seekp (0, ios::end);
     unsigned int filePos = itsFile.tellp();
     *itsBlobOut << PatchInfo(patchName, ra, dec, catType, apparentBrightness);

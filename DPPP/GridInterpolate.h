@@ -28,7 +28,6 @@
 // @brief Interpolate data from regular 2d grid to another
 
 #include <vector>
-#include <cassert>
 #include <stdexcept>
 
 namespace DP3 {

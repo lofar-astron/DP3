@@ -32,8 +32,6 @@
 #include "../Common/ParameterValue.h"
 #include "../Common/StreamUtil.h"
 
-#include <cassert>
-
 using namespace casacore;
 using namespace std;
 
@@ -140,7 +138,8 @@ namespace DP3 {
       } else {
         // Specified in casacore's MSSelection format.
         string msName = info.msName();
-        assert (! msName.empty());
+        if (msName.empty())
+          throw std::runtime_error("Empty measurement set name");
         std::ostringstream os;
         Matrix<bool> sel(BaselineSelect::convert (msName, itsStrBL, os));
         // Show possible messages about unknown stations.

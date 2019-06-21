@@ -149,7 +149,6 @@ namespace DP3 {
           }
         }
       }
-      assert (itsStationFactors.size() == nant);
       // Now calculate the factors per baseline,freq,pol.
       unsigned int nb = infoIn.nbaselines();
       unsigned int nf = freqs.size();

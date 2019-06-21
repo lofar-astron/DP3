@@ -442,7 +442,8 @@ namespace DP3 {
       Table inSPW  = itsReader->table().keywordSet().asTable("SPECTRAL_WINDOW");
       Table outSPW = Table(outName + "/SPECTRAL_WINDOW", Table::Update);
       Table outDD  = Table(outName + "/DATA_DESCRIPTION", Table::Update);
-      assert(outSPW.nrow() == outDD.nrow());
+      if(outSPW.nrow() != outDD.nrow())
+        throw std::runtime_error("nrow in SPECTRAL_WINDOW table is not the same as nrow in DATA_DESCRIPTION table");
       unsigned int spw = itsReader->spectralWindow();
       // Remove all rows before and after the selected band.
       // Do it from the end, otherwise row numbers change.
@@ -452,7 +453,6 @@ namespace DP3 {
           outDD.removeRow (i);
         }
       }
-      assert (outSPW.nrow() == 1);
       // Set nr of channels.
       ScalarColumn<Int> channum(outSPW, "NUM_CHAN");
       channum.fillColumn (itsNrChan);
@@ -654,7 +654,8 @@ namespace DP3 {
       if (ofShape[0] == chShape[0]*8) {
         Conversion::boolToBit (chars.data(), flags.data(), flags.size());
       } else {
-        assert(ofShape[0] < chShape[0]*8);
+        if(ofShape[0] > chShape[0]*8)
+          throw std::runtime_error("Incorrect shape of full res flags");
         const bool* flagsPtr = flags.data();
         uChar* charsPtr = chars.data();
         for (int i=0; i<ofShape[1]*ofShape[2]; ++i) {

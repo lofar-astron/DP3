@@ -105,7 +105,8 @@ namespace DP3 {
             break;
           }
         }
-        assert(colinfo.nfields()>0);
+        if(colinfo.nfields()==0)
+          throw std::runtime_error("Could not obtain column info");
         // When the storage manager is compressed, do not implicitly (re)compress it. Use TiledStMan instead.
         std::string dmType = colinfo.asString("TYPE");
         TableDesc td;
@@ -213,7 +214,8 @@ namespace DP3 {
           itsWeightColName = origWeightColName;
         }
       }
-      assert(itsWeightColName != "WEIGHT");
+      if(itsWeightColName == "WEIGHT")
+        throw std::runtime_error("Can't use WEIGHT column as spectral weights column");
       if (itsWeightColName != origWeightColName) {
         info().setWriteWeights();
       }

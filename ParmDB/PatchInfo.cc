@@ -79,7 +79,8 @@ namespace BBS {
     string patchName;
     int16_t cType;
     double apparentBrightness, ra, dec;
-    assert (bis.getStart ("patch") == 1);   // version must be 1
+    if (bis.getStart ("patch") != 1)   // version must be 1
+      throw std::runtime_error("Version of patch must be 1");
     bis >> patchName >> cType >> apparentBrightness >> ra >> dec;
     bis.getEnd();
     info = PatchInfo (patchName, ra, dec, cType, apparentBrightness);

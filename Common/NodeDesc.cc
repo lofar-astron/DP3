@@ -53,10 +53,13 @@ namespace DP3 { namespace CEP {
     }
     itsMounts  = parset.getStringVector ("NodeMountPoints", true);
     itsFileSys = parset.getStringVector ("NodeFileSys", itsMounts, true);
-    assert (itsFileSys.size() == itsMounts.size());
+    if (itsFileSys.size() != itsMounts.size())
+      throw std::runtime_error("NodeMountPoints and NodeFileSys should have the same size");
     for (unsigned int i=0; i<itsMounts.size(); ++i) {
-      assert (itsFileSys[i].size() > 0);
-      assert (itsMounts[i].size() > 0  &&  itsMounts[i][0] == '/');
+      if (itsFileSys[i].size() == 0)
+        throw std::runtime_error("NodeFileSys elements can't be empty");
+      if (itsMounts[i].size() == 0  ||  itsMounts[i][0] != '/')
+        throw std::runtime_error("NodeMountPoints elements can't be empty and need to start with /");
     }
   }
 

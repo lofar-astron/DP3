@@ -31,8 +31,6 @@
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/BasicSL/STLIO.h>
 
-#include <cassert>
-
 using namespace casacore;
 using namespace std;
 
@@ -122,9 +120,11 @@ namespace DP3 {
                       const Vector<Int>& ant1,
                       const Vector<Int>& ant2)
     {
-      assert (antNames.size() == antDiam.size()  &&
-              antNames.size() == antPos.size());
-      assert (ant1.size() == ant2.size());
+      if (antNames.size() != antDiam.size()  ||
+          antNames.size() != antPos.size())
+        throw std::invalid_argument("The name, diameter and position arrays are not of the same size");
+      if (ant1.size() != ant2.size())
+        throw std::invalid_argument("The ant1 and ant2 arrays are not of the same size");
       itsAntNames.reference (antNames);
       itsAntDiam.reference (antDiam);
       itsAntPos = antPos;
@@ -140,8 +140,9 @@ namespace DP3 {
       itsAntMap.resize (itsAntNames.size());
       std::fill (itsAntMap.begin(), itsAntMap.end(), -1);
       for (unsigned int i=0; i<itsAnt1.size(); ++i) {
-        assert (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
-                itsAnt2[i] >= 0  &&  itsAnt2[i] < int(itsAntMap.size()));
+        if( ! (itsAnt1[i] >= 0  &&  itsAnt1[i] < int(itsAntMap.size())  &&
+               itsAnt2[i] >= 0  &&  itsAnt2[i] < int(itsAntMap.size())) )
+          throw std::runtime_error("Antenna map has an inconsistent size");
         itsAntMap[itsAnt1[i]] = 0;
         itsAntMap[itsAnt2[i]] = 0;
       }
@@ -158,9 +159,11 @@ namespace DP3 {
     {
       Record rec;
       String msg;
-      assert (fromMeas.toRecord (msg, rec));
+      if (!fromMeas.toRecord (msg, rec))
+        throw std::runtime_error("Could not copy MeasureHolder record to record");
       MeasureHolder mh2;
-      assert (mh2.fromRecord (msg, rec));
+      if (!mh2.fromRecord (msg, rec))
+        throw std::runtime_error("Could not copy record to MeasureHolder");
       return mh2;
     }
 
