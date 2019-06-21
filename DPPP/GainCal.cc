@@ -312,7 +312,7 @@ namespace DP3 {
 
       if (itsDebugLevel>0) {
         if(getInfo().nThreads()!=1)
-          throw std::runtime_error(nthreads should be 1 in debug mode");
+          throw std::runtime_error("nthreads should be 1 in debug mode");
         assert(itsTimeSlotsPerParmUpdate >= info().ntime());
         itsAllSolutions.resize(IPosition(6,
                                iS[0].numCorrelations(),
