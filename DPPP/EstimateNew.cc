@@ -454,7 +454,8 @@ namespace DP3 {
         // Perform LSQ iteration.
         casacore::uInt rank;
         bool status = solver.solveLoop(rank, &(itsUnknowns[0]), true);
-        assert(status);
+        if(!status)
+          throw std::runtime_error("Solve failed");
         // Copy the unknowns to the full solution.
         fillSolution (unknownsIndex, srcSet);
         if (verbose > 13) {

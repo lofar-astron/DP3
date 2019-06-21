@@ -123,7 +123,8 @@ namespace BBS {
   {
     int16_t version, type;
     bis >> version >> itsName >> type >> itsRefType;
-    assert (version == 1 || version == 2);
+    if (version != 1 && version != 2)
+      throw std::runtime_error("Version of sourcedb must be 1 or 2");
     if (version >= 2) {
      bis >> itsHasLogarithmicSI;
     } else {

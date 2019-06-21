@@ -54,14 +54,17 @@ namespace DP3 { namespace CEP {
     string timeStr;
     Quantity q;
     timeStr = parset.getString ("StartTime");
-    assert (MVTime::read (q, timeStr, true));
+    if (!MVTime::read (q, timeStr, true))
+      throw std::runtime_error("Could not parse StartTime");
     itsStartTime = q.getValue ("s");
     timeStr = parset.getString ("EndTime");
-    assert (MVTime::read (q, timeStr, true));
+    if (!MVTime::read (q, timeStr, true))
+      throw std::runtime_error("Could not parse EndTime");
     itsEndTime = q.getValue ("s");
     itsStartTimes = parset.getDoubleVector ("StartTimesDiff", vector<double>());
     itsEndTimes   = parset.getDoubleVector ("EndTimesDiff",   vector<double>());
-    assert (itsStartTimes.size() == itsEndTimes.size());
+    if (itsStartTimes.size() != itsEndTimes.size())
+      throw std::runtime_error("StartTimeDiff and EndTimeDiff arrays had different sizes");
     double diff = itsStartTime;
     for (unsigned int i=0; i<itsStartTimes.size(); ++i) {
       itsStartTimes[i] += diff;
@@ -145,7 +148,6 @@ namespace DP3 { namespace CEP {
                               const vector<double>& startTimes,
                               const vector<double>& endTimes)
   {
-    assert (itsStartTimes.size() == itsEndTimes.size());
     itsStartTime  = startTime;
     itsEndTime    = endTime;
     itsStepTime   = stepTime;
@@ -165,7 +167,7 @@ namespace DP3 { namespace CEP {
   }
 
   void VdsPartDesc::addBand (int nchan, const vector<double>& startFreq,
-			     const vector<double>& endFreq)
+    const vector<double>& endFreq)
   {
     assert (startFreq.size() == endFreq.size());
     assert (int(startFreq.size())==nchan || startFreq.size() == 1);

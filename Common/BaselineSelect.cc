@@ -38,8 +38,6 @@
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
 
-#include <cassert>
-
 using namespace casacore;
 
 namespace DP3 {
@@ -81,7 +79,8 @@ namespace DP3 {
                                               const string& baselineSelection,
                                               std::ostream& os)
   {
-    assert (names.size() == pos.size());
+    if (names.size() != pos.size())
+      throw std::invalid_argument("Name and position arrays are of different size");
     // Create a temporary MSAntenna table in memory for parsing purposes.
     SetupNewTable antNew(String(), MSAntenna::requiredTableDesc(),
                          Table::New);

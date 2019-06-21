@@ -20,7 +20,6 @@
 //#
 //# $Id: Timer.cc 31468 2015-04-13 23:26:52Z amesfoort $
 
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -42,8 +41,8 @@ double NSTimer::CPU_speed_in_MHz = NSTimer::get_CPU_speed_in_MHz();
 double NSTimer::get_CPU_speed_in_MHz()
 {
     // first a few sanity checks
-    assert(sizeof(int) == 4);
-    assert(sizeof(long long) == 8);
+    static_assert(sizeof(int) == 4, "sizeof(int) == 4 is required");
+    static_assert(sizeof(long long) == 8, "sizeof(long long) == 8 is required");
 
 #if (defined __linux__ || defined __blrts__) && \
     (defined __i386__ || defined __x86_64__ || defined __ia64__ || defined __PPC__) && \

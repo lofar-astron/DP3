@@ -12,7 +12,8 @@ namespace DP3 {
                                                 size_t nChannelBlocks) {
   Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-  assert(_nDirections == 1); // TODO directions!
+  if(_nDirections != 1) // TODO directions!
+    throw std::runtime_error("RotationConstraint can't handle multiple directions yet");
 
   _res.resize(1);
   _res[0].vals.resize(_nAntennas*_nChannelBlocks);

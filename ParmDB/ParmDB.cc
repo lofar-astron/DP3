@@ -201,7 +201,7 @@ namespace BBS {
       string tabName = itsRep->getParmDBMeta().getTableName();
       map<string,int>::iterator pos = theirDBNames.find (tabName);
       if (pos == theirDBNames.end())
-				throw std::runtime_error("~ParmDB " + tabName + " not found in map");
+        throw std::runtime_error("~ParmDB " + tabName + " not found in map");
       assert (theirParmDBs[pos->second] == itsRep);
       theirParmDBs[pos->second] = 0;
       theirDBNames.erase (pos);

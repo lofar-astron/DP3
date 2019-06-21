@@ -29,8 +29,6 @@
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
 
-#include <assert.h>
-
 using namespace casacore;
 
 namespace DP3 {

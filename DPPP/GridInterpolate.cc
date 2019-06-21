@@ -24,7 +24,6 @@
 
 #include <iostream>
 #include <vector>
-#include <cassert>
 #include <stdexcept>
 
 using namespace std;
@@ -38,7 +37,8 @@ namespace DP3 {
     if (ax_tgt.empty()) {
       return;
     }
-    assert(!ax_src.empty());
+    if(ax_src.empty())
+      throw std::invalid_argument("ax_src is empty");
 
     double lowmatch, highmatch;
 

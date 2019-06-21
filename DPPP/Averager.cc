@@ -31,7 +31,6 @@
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-#include <cassert>
 #include <iostream>
 #include <iomanip>
 
@@ -207,7 +206,8 @@ namespace DP3 {
         // Not the first time.
         // For now we assume that all timeslots have the same nr of baselines,
         // so check if the buffer sizes are the same.
-        assert (itsBuf.getData().shape() == buf.getData().shape());
+        if (itsBuf.getData().shape() != buf.getData().shape())
+          throw std::runtime_error("Inconsistent buffer sizes in Averager, possibly because of inconsistent nr of baselines in timeslots");
         itsBufTmp.referenceFilled (buf);
         itsBuf.getUVW() += itsInput->fetchUVW (buf, itsBufTmp, itsTimer);
         copyFullResFlags (itsInput->fetchFullResFlags (buf, itsBufTmp, itsTimer),

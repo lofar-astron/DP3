@@ -131,8 +131,6 @@ namespace DP3 {
       int ncorr  = itsBuf.getData().shape()[0];
       int nchan  = itsBuf.getData().shape()[1];
       int nbl    = itsBuf.getData().shape()[2];
-      assert (itsPhasors.nrow() == (unsigned int)(nchan)  &&
-                 itsPhasors.ncolumn() == (unsigned int)(nbl));
       const double* mat1 = itsMat1.data();
       //# If ever in the future a time dependent phase center is used,
       //# the machine must be reset for each new time, thus each new call
@@ -219,7 +217,6 @@ namespace DP3 {
     void PhaseShift::fillTransMatrix (Matrix<double>& mat,
                                       double ra, double dec)
     {
-      assert (mat.nrow()==3 && mat.ncolumn()==3);
       double sinra  = sin(ra);
       double cosra  = cos(ra);
       double sindec = sin(dec);

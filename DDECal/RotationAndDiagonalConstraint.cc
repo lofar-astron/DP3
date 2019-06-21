@@ -1,7 +1,6 @@
 #include "RotationAndDiagonalConstraint.h"
 #include "RotationConstraint.h"
 
-#include <cassert>
 #include <cmath>
 
 using namespace std;
@@ -13,8 +12,9 @@ void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nChannelBlocks) {
   Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
 
-  assert(_nDirections == 1); // TODO directions!
-
+  if(_nDirections != 1) // TODO directions!
+    throw std::runtime_error("RotationAndDiagonalConstraint can't handle multiple directions yet");
+  
   _res.resize(3);
   _res[0].vals.resize(_nAntennas*_nChannelBlocks);
   _res[0].weights.resize(_nAntennas*_nChannelBlocks);
