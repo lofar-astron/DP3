@@ -602,7 +602,7 @@ namespace DP3 {
                 itsParmDB->getDefValues(defParmNameAntenna).get(0,defValues);
                 if(defValues.size()!=1)
                   throw std::runtime_error("Multiple default values found in parmdb for " + defParmNameAntenna + ". " +
-                      " Did you unintentially overwrite an existing parmdb?");
+                      "Did you unintentially overwrite an existing parmdb?");
                 defValue=defValues.data()[0];
               }
               else if (itsParmDB->getDefValues(parmExpr).size() == 1) { //Default value

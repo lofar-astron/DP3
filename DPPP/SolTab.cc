@@ -195,7 +195,7 @@ namespace DP3 {
     // Get number of dimensions and size of all dimensions
     H5::DataSpace ds = val.getSpace();
     if(ds.getSimpleExtentNdims() != int(ndims))
-      throw std::runtime_error("H5Parm is inconsistent: number of axis in data does not match number of axis in metadata");
+      throw std::runtime_error("H5Parm is inconsistent: number of axes in data does not match number of axes in metadata");
     hsize_t dims_out[ndims];
     ds.getSimpleExtentDims(dims_out);
 
