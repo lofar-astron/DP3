@@ -483,10 +483,11 @@ void DDECal::updateInfo (const DPInfo& infoIn)
           for(const std::string& constraintName : constraintNameSet)
           {
             auto iter = std::find(antNamesStl.begin(), antNamesStl.end(), constraintName);
-            if(iter == antNamesStl.end())
-              throw std::runtime_error("Error in antenna constraint: antenna '" + constraintName + "' does not exist");
-            constraintList.back().insert(iter - antNamesStl.begin());
+            if(iter != antNamesStl.end())
+              constraintList.back().insert(iter - antNamesStl.begin());
           }
+          if (constraintList.back().size() <= 1)
+            throw std::runtime_error("Error in antenna constraint: at least two antennas expected");
         }
         antConstraint->initialize(std::move(constraintList));
       }
