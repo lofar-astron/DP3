@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <ctime>
@@ -141,12 +142,25 @@ namespace DP3 {
                                           dataspace);
 
     // If weights are empty, write ones everywhere
+    vector<double> fullweights;
     if (weights.empty()) {
-      vector<double> fullweights(vals.size(), 1);
-      weightset.write(&(fullweights[0]), H5::PredType::IEEE_F64LE);
+      fullweights.resize(vals.size(), 1.0);
     } else {
-      weightset.write(&(weights[0]), H5::PredType::IEEE_F64LE);
+      if (weights.size() != vals.size()) {
+        throw Exception("Values for H5Parm weights do not have the expected size: they have size " + std::to_string(weights.size()) + ", expected is " + std::to_string(vals.size()));
+      }
+      // Copy weights so that they can be changed (to add flags)
+      fullweights = weights;
     }
+
+    // Set weight of NaN values to 0.
+    for (size_t i=0; i<vals.size(); ++i) {
+      if (std::isnan(vals[i])) {
+        fullweights[i] = 0.;
+      }
+    }
+
+    weightset.write(&(fullweights[0]), H5::PredType::IEEE_F64LE);
 
     attr = weightset.createAttribute("AXES",
                              H5::StrType(H5::PredType::C_S1, axesstr.size()),
