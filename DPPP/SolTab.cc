@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <ctime>
@@ -96,11 +97,11 @@ namespace DP3 {
     if(expectedsize != vals.size())
       throw Exception("Values for H5Parm do not have the expected size: they have size " + std::to_string(vals.size()) + ", expected is " + std::to_string(expectedsize));
 
-    H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
+    H5::DataSpace dataspace(dims.size(), dims.data(), NULL);
     H5::DataSet dataset = createDataSet("val", H5::PredType::IEEE_F64LE,
                                         dataspace);
 
-    dataset.write(&(vals[0]), H5::PredType::IEEE_F64LE);
+    dataset.write(vals.data(), H5::PredType::IEEE_F64LE);
 
     H5::Attribute attr = dataset.createAttribute("AXES",
                              H5::StrType(H5::PredType::C_S1, axesstr.size()),
@@ -141,12 +142,25 @@ namespace DP3 {
                                           dataspace);
 
     // If weights are empty, write ones everywhere
+    vector<double> fullweights;
     if (weights.empty()) {
-      vector<double> fullweights(vals.size(), 1);
-      weightset.write(&(fullweights[0]), H5::PredType::IEEE_F64LE);
+      fullweights.resize(vals.size(), 1.0);
     } else {
-      weightset.write(&(weights[0]), H5::PredType::IEEE_F64LE);
+      if (weights.size() != vals.size()) {
+        throw Exception("Values for H5Parm weights do not have the expected size: they have size " + std::to_string(weights.size()) + ", expected is " + std::to_string(vals.size()));
+      }
+      // Copy weights so that they can be changed (to add flags)
+      fullweights = weights;
     }
+
+    // Set weight of NaN values to 0.
+    for (size_t i=0; i<vals.size(); ++i) {
+      if (std::isnan(vals[i])) {
+        fullweights[i] = 0.;
+      }
+    }
+
+    weightset.write(fullweights.data(), H5::PredType::IEEE_F64LE);
 
     attr = weightset.createAttribute("AXES",
                              H5::StrType(H5::PredType::C_S1, axesstr.size()),
@@ -251,8 +265,8 @@ namespace DP3 {
 
     gridNearestNeighbor(timeAxisH5, freqAxisH5,
                         times, freqs,
-                        &(h5values[0]),
-                        &(interpolated[0]),
+                        h5values.data(),
+                        interpolated.data(),
                         nearest);
 
     return interpolated;
@@ -307,7 +321,7 @@ namespace DP3 {
     // Setup memory dataspace
     H5::DataSpace memspace(_axes.size(), memdims);
     try {
-      val.read(&(res[0]), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
+      val.read(res.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
     } catch (H5::DataSetIException& e) {
       e.printErrorStack();
       throw Exception("Could not read data");
@@ -384,7 +398,7 @@ namespace DP3 {
                                         H5::PredType::IEEE_F64LE, dataspace);
 
     if (metaVals.size() > 0) {
-      dataset.write(&(metaVals[0]), H5::PredType::IEEE_F64LE);
+      dataset.write(metaVals.data(), H5::PredType::IEEE_F64LE);
     }
   }
 
@@ -486,7 +500,7 @@ namespace DP3 {
     dataspace.getSimpleExtentDims(dims);
 
     vector<double> data(dims[0]);
-    dataset.read(&(data[0]), H5::PredType::NATIVE_DOUBLE);
+    dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
 
     return data;
   }
@@ -564,7 +578,7 @@ namespace DP3 {
 
     // Get only two values
     vector<double> values(2);
-    dataset.read(&(values[0]), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
+    dataset.read(values.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
     return values[1]-values[0];
   }
 }
