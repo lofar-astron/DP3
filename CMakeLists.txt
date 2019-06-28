@@ -8,6 +8,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native")
 
+enable_testing()
+
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
@@ -220,7 +222,6 @@ set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
 
 set(DPPP_GLOBAL_SOVERSION 2)
 
-enable_testing()
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -258,6 +259,7 @@ add_executable(runtests EXCLUDE_FROM_ALL
   DPPP/test/runtests.cc
   DPPP/test/tMirror.cc
   DPPP/test/tPhaseShift.cc
+  DDECal/test/tRotationConstraint.cc
   ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
