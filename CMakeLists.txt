@@ -272,6 +272,7 @@ add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
+add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
 # Add each test as a cmake test (only for tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE)
 foreach(TEST_FILENAME ${TEST_FILENAMES})
   file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
@@ -285,6 +286,7 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
   foreach(FOUND_TEST ${FOUND_TESTS})
     string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
     add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests --run_test=${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
+    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
   endforeach()
 endforeach()
 
