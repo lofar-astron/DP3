@@ -8,6 +8,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native")
 
+enable_testing()
+
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
@@ -220,7 +222,6 @@ set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
 
 set(DPPP_GLOBAL_SOVERSION 2)
 
-enable_testing()
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -254,15 +255,40 @@ set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSIO
 
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
-add_executable(runtests EXCLUDE_FROM_ALL
-  DPPP/test/runtests.cc
+set(TEST_FILENAMES
   DPPP/test/tMirror.cc
   DPPP/test/tPhaseShift.cc
+  DDECal/test/tRotationConstraint.cc
+)
+
+set(RUNTEST_SOURCES
+  DPPP/test/runtests.cc
+  ${TEST_FILENAMES}
   ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
+
+add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
+
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
-add_custom_target(check DEPENDS runtests COMMAND runtests)
+
+add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
+# Add each test as a cmake test (only for tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE)
+foreach(TEST_FILENAME ${TEST_FILENAMES})
+  file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
+
+  # Extract test suite name
+  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\(*([A-Za-z_0-9]+)*\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+
+  # Extract test name
+  string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+  foreach(FOUND_TEST ${FOUND_TESTS})
+    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests --run_test=${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
+    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+  endforeach()
+endforeach()
 
 # I'll leave this here as an example how separate test executables could be added
 #add_executable(tMirror EXCLUDE_FROM_ALL
@@ -274,10 +300,5 @@ add_custom_target(check DEPENDS runtests COMMAND runtests)
 #  DPPP/test/tPhaseShift.cc
 #  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
 #target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
-
-#add_custom_target(check DEPENDS tMirror tPhaseShift
-#  COMMAND tMirror
-#  COMMAND tPhaseShift
-#)
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin) 

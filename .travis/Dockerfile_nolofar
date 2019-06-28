@@ -15,6 +15,6 @@ WORKDIR /src
 RUN mkdir /build && cd /build && cmake ../src
 RUN ln -s /usr/include/casacore/measures /usr/include && ln -s /usr/include/casacore/ms /usr/include
 RUN cd /build && make -j2
-RUN cd /build && make check -j2
 RUN cd /build && make install -j2
 RUN DPPP
+RUN cd /build && CTEST_OUTPUT_ON_FAILURE=1 make test -j2
