@@ -37,13 +37,14 @@ BOOST_AUTO_TEST_CASE( test_rotation )
     constraint_result = constraint.Apply(onesolution, 0., nullptr);
 
     BOOST_CHECK( constraint_result.size() == 1 );
-    BOOST_CHECK( constraint_result[0].axes == "ant,freq" );
+    BOOST_CHECK( constraint_result[0].axes == "ant,dir,freq" );
     //cout<<" got phi = "<<constraint_result[0].vals[0] <<endl;
     BOOST_CHECK( near(constraint_result[0].vals[0], phi) );
     BOOST_CHECK( constraint_result[0].name == "rotation" );
-    BOOST_CHECK( constraint_result[0].dims.size() == 2 );
+    BOOST_CHECK( constraint_result[0].dims.size() == 3 );
     BOOST_CHECK( constraint_result[0].dims[0] == 1 );
     BOOST_CHECK( constraint_result[0].dims[1] == 1 );
+    BOOST_CHECK( constraint_result[0].dims[2] == 1 );
   }
 }
 
@@ -71,29 +72,32 @@ BOOST_AUTO_TEST_CASE( test_rotation_and_diagonal )
   constraint_result = constraint.Apply(onesolution, 0., nullptr);
   BOOST_CHECK( constraint_result.size() == 3 );
   BOOST_CHECK( constraint_result[0].name == "rotation" );
-  BOOST_CHECK( constraint_result[0].axes == "ant,freq" );
+  BOOST_CHECK( constraint_result[0].axes == "ant,dir,freq" );
   BOOST_CHECK( near(constraint_result[0].vals[0], 0.) );
-  BOOST_CHECK( constraint_result[0].dims.size() == 2 );
+  BOOST_CHECK( constraint_result[0].dims.size() == 3 );
   BOOST_CHECK( constraint_result[0].dims[0] == 1 );
   BOOST_CHECK( constraint_result[0].dims[1] == 1 );
+  BOOST_CHECK( constraint_result[0].dims[2] == 1 );
 
   BOOST_CHECK( constraint_result[1].name == "amplitude" );
-  BOOST_CHECK( constraint_result[1].axes == "ant,freq,pol" );
+  BOOST_CHECK( constraint_result[1].axes == "ant,dir,freq,pol" );
   BOOST_CHECK( near(constraint_result[1].vals[0], abs(a)) );
   BOOST_CHECK( near(constraint_result[1].vals[1], abs(b)) );
-  BOOST_CHECK( constraint_result[1].dims.size() == 3 );
+  BOOST_CHECK( constraint_result[1].dims.size() == 4 );
   BOOST_CHECK( constraint_result[1].dims[0] == 1 );
   BOOST_CHECK( constraint_result[1].dims[1] == 1 );
-  BOOST_CHECK( constraint_result[1].dims[2] == 2 );
+  BOOST_CHECK( constraint_result[1].dims[2] == 1 );
+  BOOST_CHECK( constraint_result[1].dims[3] == 2 );
 
   BOOST_CHECK( constraint_result[2].name == "phase" );
-  BOOST_CHECK( constraint_result[2].axes == "ant,freq,pol" );
+  BOOST_CHECK( constraint_result[2].axes == "ant,dir,freq,pol" );
   BOOST_CHECK( near(constraint_result[2].vals[0], arg(a)) );
   BOOST_CHECK( near(constraint_result[2].vals[1], arg(b)) );
-  BOOST_CHECK( constraint_result[2].dims.size() == 3 );
+  BOOST_CHECK( constraint_result[2].dims.size() == 4 );
   BOOST_CHECK( constraint_result[2].dims[0] == 1 );
   BOOST_CHECK( constraint_result[2].dims[1] == 1 );
-  BOOST_CHECK( constraint_result[2].dims[2] == 2 );
+  BOOST_CHECK( constraint_result[2].dims[2] == 1 );
+  BOOST_CHECK( constraint_result[2].dims[3] == 2 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
