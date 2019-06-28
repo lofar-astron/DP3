@@ -255,15 +255,39 @@ set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSIO
 
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
-add_executable(runtests EXCLUDE_FROM_ALL
-  DPPP/test/runtests.cc
+set(TEST_FILENAMES
   DPPP/test/tMirror.cc
   DPPP/test/tPhaseShift.cc
   DDECal/test/tRotationConstraint.cc
+)
+
+set(RUNTEST_SOURCES
+  DPPP/test/runtests.cc
+  ${TEST_FILENAMES}
   ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
+
+add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
+
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+
+# Add each test as a cmake test (only for tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE)
+foreach(TEST_FILENAME ${TEST_FILENAMES})
+  file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
+
+  # Extract test suite name
+  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\(*([A-Za-z_0-9]+)*\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+
+  # Extract test name
+  string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+  foreach(FOUND_TEST ${FOUND_TESTS})
+    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests --run_test=${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
+  endforeach()
+endforeach()
+
 add_custom_target(check DEPENDS runtests COMMAND runtests)
 
 # I'll leave this here as an example how separate test executables could be added
