@@ -6,7 +6,13 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+
+if(PORTABLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native") 
+endif(PORTABLE)
 
 enable_testing()
 
