@@ -119,10 +119,19 @@ namespace DP3 {
         itsDirection = MDirection(q0, q1, type);
       }
       
-      if(info().beamCorrectionMode() != NoBeamCorrection)
-        throw std::runtime_error("In applying the beam: the metadata of this observation indicate that the beam has already been applied");
-      info().setBeamCorrectionMode(itsMode);
-      info().setBeamCorrectionDir(itsDirection);
+      if(itsInvert)
+      {
+        if(info().beamCorrectionMode() != NoBeamCorrection)
+          throw std::runtime_error("In applying the beam (with invert=true): the metadata of this observation indicate that the beam has already been applied");
+        info().setBeamCorrectionMode(itsMode);
+        info().setBeamCorrectionDir(itsDirection);
+      }
+      else {
+        if(info().beamCorrectionMode() == NoBeamCorrection)
+          throw std::runtime_error("In applying the beam (with invert=false): the metadata of this observation indicate that the beam has not yet been applied");
+        info().setBeamCorrectionMode(NoBeamCorrection);
+        // TODO itsDirection should always be equal to info().beamCorrectionDir() here?
+      }
 
       const size_t nSt = info().nantenna();
       const size_t nCh = info().nchan();
