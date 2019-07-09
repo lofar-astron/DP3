@@ -6,7 +6,13 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+
+if(PORTABLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native") 
+endif(PORTABLE)
 
 enable_testing()
 
@@ -290,8 +296,6 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
   endforeach()
 endforeach()
 
-add_custom_target(check DEPENDS runtests COMMAND runtests)
-
 # I'll leave this here as an example how separate test executables could be added
 #add_executable(tMirror EXCLUDE_FROM_ALL
 #  DPPP/test/tMirror.cc
@@ -302,10 +306,5 @@ add_custom_target(check DEPENDS runtests COMMAND runtests)
 #  DPPP/test/tPhaseShift.cc
 #  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
 #target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
-
-#add_custom_target(check DEPENDS tMirror tPhaseShift
-#  COMMAND tMirror
-#  COMMAND tPhaseShift
-#)
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin) 
