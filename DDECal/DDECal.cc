@@ -830,7 +830,7 @@ void DDECal::doSolve ()
 
   itsTimer.stop();
 
-  for(size_t time=0; time<=itsStepInSolInt; ++time)
+  for(size_t time=0; time!=itsStepInSolInt; ++time)
   {
     // Restore the weights and flags
     itsBufs[time].getFlags().assign( itsOriginalFlags[time] );
@@ -957,7 +957,9 @@ bool DDECal::process (const DPBuffer& bufin)
 
   itsAvgTime += itsAvgTime + bufin.getTime();
 
-  if (itsStepInSolInt==itsSolInt-1)
+  ++itsStepInSolInt;
+  
+  if (itsStepInSolInt==itsSolInt)
   {
     doSolve();
 
@@ -969,10 +971,8 @@ bool DDECal::process (const DPBuffer& bufin)
     for (size_t dir=0; dir<itsResultSteps.size(); ++dir) {
       itsResultSteps[dir]->clear();
     }
-  } else {
-    itsStepInSolInt++;
   }
-
+  
   itsTimeStep++;
   itsTimer.stop();
 
@@ -1280,7 +1280,7 @@ void DDECal::subtractCorrectedModel(bool fullJones)
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
-  for(size_t time=0; time<=itsStepInSolInt; ++time)
+  for(size_t time = 0; time != itsStepInSolInt; ++time)
   {
     std::complex<float>* data = itsDataPtrs[time];
     std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
