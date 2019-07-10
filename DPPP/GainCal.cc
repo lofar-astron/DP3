@@ -471,7 +471,8 @@ namespace DP3 {
       }
       itsTimerFill.stop();
 
-      if (itsStepInSolInt==itsSolInt-1) {
+      ++itsStepInSolInt;
+      if (itsStepInSolInt==itsSolInt) {
         // Solve past solution interval
         calibrate();
         itsStepInParmUpdate++;
@@ -485,8 +486,6 @@ namespace DP3 {
         }
 
         itsStepInSolInt=0;
-      } else {
-        itsStepInSolInt++;
       }
 
       itsTimer.stop();
