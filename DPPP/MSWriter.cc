@@ -43,6 +43,7 @@
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/OS/Path.h>
+#include <casacore/casa/version.h>
 
 #include <iostream>
 #include <limits>
@@ -283,7 +284,13 @@ namespace DP3 {
         }
       }
       // Remove possible hypercolumn definitions.
+// Test for casacore version 3.1.1 or smaller
+#pragma message "BOOST_VERSION=" BOOST_PP_STRINGIZE(CASACORE_VERSION_NUM)
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && (CASACORE_MINOR_VERSION==0 || (CASACORE_MINOR_VERSION==1 && CASACORE_PATCH_VERSION < 2)))
       newdesc.adjustHypercolumns (SimpleOrderedMap<String,String>(String()));
+#else
+      newdesc.adjustHypercolumns (std::map<String,String>());
+#endif
       // Set data manager info.
       Record dminfo = temptable.dataManagerInfo();
       // Determine the DATA tile shape. Use all corrs and the given #channels.

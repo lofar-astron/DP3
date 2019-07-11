@@ -118,7 +118,7 @@ namespace DP3 {
     Vector<Int> selectedAnts1;
     Vector<Int> selectedAnts2;
     Matrix<Int> selectedBaselines;
-    MSSelectionErrorHandler* curHandler = MSAntennaParse::thisMSAErrorHandler;
+    CountedPtr<MSSelectionErrorHandler> curHandler = MSAntennaParse::thisMSAErrorHandler;
     BaselineSelectErrorHandler errorHandler (os);
     MSAntennaParse::thisMSAErrorHandler = &errorHandler;
     try {
