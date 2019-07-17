@@ -70,12 +70,7 @@ namespace DP3 {
       // Process the data.
       // It keeps the data.
       // When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer& buffer)
-      {
-        return process(buffer, nullptr);
-      }
-
-      bool process (const DPBuffer&, std::mutex* hdf5Mutex);
+      virtual bool process (const DPBuffer& buffer);
       
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
@@ -95,7 +90,7 @@ namespace DP3 {
 
     private:
       // Read parameters from the associated parmdb and store them in itsParms
-      void updateParms (const double bufStartTime, std::mutex* hdf5Mutex);
+      void updateParms (const double bufStartTime);
 
       // If needed, show the flag counts.
       virtual void showCounts (std::ostream&) const;
@@ -146,6 +141,8 @@ namespace DP3 {
       bool            itsUseAP;      //# use ampl/phase or real/imag
       hsize_t         itsDirection;
       NSTimer         itsTimer;
+
+      static std::mutex theirHDF5Mutex; // Prevent parallel access to HDF5
     };
 
   } //# end namespace

@@ -46,10 +46,10 @@
 using namespace casacore;
 using namespace DP3::BBS;
 
-/// Look at BBSKernel MeasurementExprLOFARUtil.cc and Apply.cc
-
 namespace DP3 {
   namespace DPPP {
+    // Initialize private static
+    std::mutex OneApplyCal::theirHDF5Mutex;
 
     OneApplyCal::OneApplyCal (DPInput* input,
                         const ParameterSet& parset,
@@ -380,13 +380,13 @@ namespace DP3 {
       os << " OneApplyCal " << itsName << '\n';
     }
 
-    bool OneApplyCal::process (const DPBuffer& bufin, std::mutex* hdf5Mutex)
+    bool OneApplyCal::process (const DPBuffer& bufin)
     {
       itsTimer.start();
       itsBuffer.copy (bufin);
 
       if (bufin.getTime() > itsLastTime) {
-        updateParms(bufin.getTime(), hdf5Mutex);
+        updateParms(bufin.getTime());
         itsTimeStep=0;
       }
       else {
@@ -457,7 +457,7 @@ namespace DP3 {
       } 
     }
 
-    void OneApplyCal::updateParms (const double bufStartTime, std::mutex* hdf5Mutex)
+    void OneApplyCal::updateParms (const double bufStartTime)
     {
       unsigned int numAnts = info().antennaNames().size();
 
@@ -494,9 +494,7 @@ namespace DP3 {
 
       // Fill parmvalues here, get raw data from H5Parm or ParmDB
       if (itsUseH5Parm) {
-        std::unique_lock<std::mutex> lock;
-        if(hdf5Mutex != nullptr)
-          lock = std::unique_lock<std::mutex>(*hdf5Mutex);
+        std::lock_guard<std::mutex> lock(theirHDF5Mutex);
         
         // TODO: understand polarization etc.
         //  assert(itsParmExprs.size()==1 || itsParmExprs.size()==2);

@@ -33,7 +33,6 @@
 #include "OneApplyCal.h"
 
 #include <utility>
-#include <mutex>
 
 namespace DP3 {
 
@@ -60,16 +59,8 @@ namespace DP3 {
       // Process the data.
       // It keeps the data.
       // When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer& buffer)
-      {
-        return process(buffer, nullptr);
-      }
+      virtual bool process (const DPBuffer& buffer);
 
-      // When multi-threading, this method must be used over
-      // process(), to make sure that calls to hdf5 are
-      // synchronized
-      bool process (const DPBuffer&, std::mutex* hdf5Mutex);
-      
       // Finish the processing of this step and subsequent steps.
       virtual void finish();
 
