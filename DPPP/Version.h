@@ -8,7 +8,7 @@ class DPPPVersion
 public:
 	static std::string AsString()
 	{
-		return "DPPP 4.0";
+		return "DPPP 4.1";
 	}
 };
 
