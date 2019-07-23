@@ -13,11 +13,10 @@ ADD . /src
 WORKDIR /src
 
 # Build latest IDG master from source
-RUN mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git src
-RUN mkdir /idg/build && cd /idg/build && cmake -DCMAKE_INSTALL_PREFIX=/usr/local ../src && make install -j2
+RUN mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git  src
+RUN mkdir /idg/build && cd /idg/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
 
-RUN mkdir /build && cd /build && cmake -DCMAKE_PREFIX_PATH=/usr/local ../src
-RUN ln -s /usr/include/casacore/measures /usr/include && ln -s /usr/include/casacore/ms /usr/include
+RUN mkdir /build && cd /build && cmake ../src
 RUN cd /build && make -j2
 RUN cd /build && make install -j2
 RUN DPPP
