@@ -47,6 +47,7 @@
 #include <casacore/ms/MSSel/MSSelection.h>
 #include <casacore/ms/MSSel/MSAntennaParse.h>
 #include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
+#include <casacore/casa/version.h>
 
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -129,9 +130,16 @@ namespace DP3 {
         // Borrowed from BaselineSelect.cc
         std::ostringstream os;
         auto curHandler = MSAntennaParse::thisMSAErrorHandler;
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && (CASACORE_MINOR_VERSION==0 || (CASACORE_MINOR_VERSION==1 && CASACORE_PATCH_VERSION < 2)))
+        // In casacore < 3.1.2 thisMSAErrorHandler is a raw pointer,
+        // From casacore 3.1.2. it's a CountedPtr
+        BaselineSelectErrorHandler errorHandler(os);
+        MSAntennaParse::thisMSAErrorHandler = &errorHandler;
+#else
         CountedPtr<MSSelectionErrorHandler> errorHandler(
             new BaselineSelectErrorHandler (os));
         MSAntennaParse::thisMSAErrorHandler = errorHandler;
+#endif
 
         // Set given selection strings.
         try {
