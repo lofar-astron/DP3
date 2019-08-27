@@ -27,6 +27,7 @@
 #include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
 #include <casacore/ms/MSSel/MSSelection.h>
 #include <casacore/ms/MSSel/MSAntennaParse.h>
+#include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
 #include <casacore/ms/MSSel/MSAntennaGram.h>
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
@@ -37,6 +38,7 @@
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/version.h>
 
 using namespace casacore;
 
@@ -119,8 +121,16 @@ namespace DP3 {
     Vector<Int> selectedAnts2;
     Matrix<Int> selectedBaselines;
     auto curHandler = MSAntennaParse::thisMSAErrorHandler;
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && (CASACORE_MINOR_VERSION==0 || (CASACORE_MINOR_VERSION==1 && CASACORE_PATCH_VERSION < 2)))
+    // In casacore < 3.1.2 thisMSAErrorHandler is a raw pointer,
+    // From casacore 3.1.2. it's a CountedPtr
     BaselineSelectErrorHandler errorHandler (os);
     MSAntennaParse::thisMSAErrorHandler = &errorHandler;
+#else
+    CountedPtr<MSSelectionErrorHandler> errorHandler(
+        new BaselineSelectErrorHandler (os));
+    MSAntennaParse::thisMSAErrorHandler = errorHandler;
+#endif
     try {
       // Create a table expression representing the selection.
       TableExprNode node = msAntennaGramParseCommand
