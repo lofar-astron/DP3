@@ -32,6 +32,7 @@
 #endif
 
 #include "../Common/ParameterSet.h"
+#include "../Common/BaselineSelect.h"
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -42,11 +43,11 @@
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
-#if defined(casacore)
+
 #include <casacore/ms/MSSel/MSSelection.h>
-#else
-#include <casacore/ms/MSSel/MSSelection.h>
-#endif
+#include <casacore/ms/MSSel/MSAntennaParse.h>
+#include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
+
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Quanta/MVTime.h>
@@ -123,18 +124,33 @@ namespace DP3 {
       if (! itsSelBL.empty()) {
         DPLOG_INFO_STR (" MSReader selecting baselines ...");
         MSSelection select;
+
+        // Overwrite the error handler to ignore errors for unknown antennas.
+        // Borrowed from BaselineSelect.cc
+        std::ostringstream os;
+        auto curHandler = MSAntennaParse::thisMSAErrorHandler;
+        CountedPtr<MSSelectionErrorHandler> errorHandler(
+            new BaselineSelectErrorHandler (os));
+        MSAntennaParse::thisMSAErrorHandler = errorHandler;
+
         // Set given selection strings.
-        select.setAntennaExpr (itsSelBL);
-        // Create a table expression for an MS representing the selection.
-        MeasurementSet ms(itsSelMS);
-        TableExprNode node = select.toTableExprNode (&ms);
-        Table subset = itsSelMS(node);
-        // If not all is selected, use the selection.
-        if (subset.nrow() < itsSelMS.nrow()) {
-          if(subset.nrow() <= 0)
-            throw Exception("Baselines " + itsSelBL
-                     + "not found in " + itsMSName);
-          itsSelMS = subset;
+        try {
+          select.setAntennaExpr (itsSelBL);
+          // Create a table expression for an MS representing the selection.
+          MeasurementSet ms(itsSelMS);
+          TableExprNode node = select.toTableExprNode (&ms);
+          Table subset = itsSelMS(node);
+          // If not all is selected, use the selection.
+          if (subset.nrow() < itsSelMS.nrow()) {
+            if(subset.nrow() <= 0)
+              throw Exception("Baselines " + itsSelBL
+                       + "not found in " + itsMSName);
+            itsSelMS = subset;
+          }
+          MSAntennaParse::thisMSAErrorHandler = curHandler;
+        } catch (const std::exception&) {
+            MSAntennaParse::thisMSAErrorHandler = curHandler;
+            throw;
         }
       }
       // Prepare the MS access and get time info.
