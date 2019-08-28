@@ -434,31 +434,33 @@ namespace DP3 {
 
     void MSReader::show (std::ostream& os) const
     {
-      os << "MSReader" << std::endl;
-      os << "  input MS:       " << itsMSName << std::endl;
+      os << "MSReader\n";
+      os << "  input MS:       " << itsMSName << '\n';
       if (itsMS.isNull()) {
-        os << "    *** MS does not exist ***" << std::endl;
+        os << "    *** MS does not exist ***\n";
       } else {
         if (! itsSelBL.empty()) {
-          os << "  baseline:       " << itsSelBL << std::endl;
+          os << "  baseline:       " << itsSelBL << '\n';
         }
-        os << "  band            " << itsSpw << std::endl;
+        os << "  band            " << itsSpw << '\n';
         os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
-           << ')' << std::endl;
+           << ")\n";
         os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
-           << ')' << std::endl;
-        os << "  ncorrelations:  " << getInfo().ncorr() << std::endl;
+           << ")\n";
+        os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
         unsigned int nrbl = getInfo().nbaselines();
-        os << "  nbaselines:     " << nrbl << std::endl;
-        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << std::endl;
-        os << "  time interval:  " << getInfo().timeInterval() << std::endl;
+        os << "  nbaselines:     " << nrbl << '\n';
+        os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(itsFirstTime/(24*3600.)) << '\n';
+        os << "  last time:      " << MVTime::Format(MVTime::YMD) << MVTime(itsLastTime/(24*3600.)) << '\n';
+        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << '\n';
+        os << "  time interval:  " << getInfo().timeInterval() << '\n';
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
           os << "  (not present)";
         }
-        os << std::endl;
-        os << "  WEIGHT column:  " << itsWeightColName << std::endl;
-        os << "  autoweight:     " << boolalpha << itsAutoWeight << std::endl;
+        os << '\n';
+        os << "  WEIGHT column:  " << itsWeightColName << '\n';
+        os << "  autoweight:     " << boolalpha << itsAutoWeight << '\n';
       }
     }
 
