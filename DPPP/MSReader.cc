@@ -162,30 +162,49 @@ namespace DP3 {
         }
       }
       // Prepare the MS access and get time info.
-      double startTime=0., endTime=0.;
-      prepare (startTime, endTime, itsTimeInterval);
+      double startTimeMS=0., endTimeMS=0.;
+      prepare (startTimeMS, endTimeMS, itsTimeInterval);
+      
       // Start and end time can be given in the parset in case leading
       // or trailing time slots are missing.
       // They can also be used to select part of the MS.
-      Quantity qtime;
-      itsFirstTime = startTime;
+
       if (!startTimeStr.empty()) {
+        Quantity qtime;
         if (!MVTime::read (qtime, startTimeStr)) {
           throw std::runtime_error(startTimeStr + " is an invalid date/time");
         }
-        itsFirstTime = qtime.getValue("s");
-        if (itsFirstTime > endTime)
-          throw std::runtime_error("starttime is past end of time axis");
-      }
-      itsLastTime = endTime;
+        double startTimeParset = qtime.getValue("s");
+        // the parset specified start time is allowed to be before the msstarttime. In that
+        // case, flagged samples are injected.
+        if (startTimeParset > endTimeMS)
+          throw std::runtime_error("Specified starttime is past end of time axis");
+        
+        // Round specified first time to a multiple of itsTimeInterval
+        itsFirstTime = startTimeMS + std::ceil((startTimeParset - startTimeMS) / itsTimeInterval) * itsTimeInterval;
+      } else {
+        itsFirstTime = startTimeMS;
+      }     
+      
       if (!endTimeStr.empty()) {
+        Quantity qtime;
         if (!MVTime::read (qtime, endTimeStr)) {
           throw std::runtime_error(endTimeStr + " is an invalid date/time");
         }
-        itsLastTime = qtime.getValue("s");
+        double endTimeParset = qtime.getValue("s");
+        // Some overlap between the measurement set timerange and the parset range
+        // is required :
+        if (endTimeParset < startTimeMS + 0.5 * itsTimeInterval) {
+          throw std::runtime_error("Specified end time " + endTimeStr + " is before the first timestep in the measurement set");
+        }
+        // Round specified first time to a multiple of itsTimeInterval
+        itsLastTime = startTimeMS + std::floor((endTimeParset - startTimeMS) / itsTimeInterval) * itsTimeInterval;
+      } else {
+        itsLastTime = endTimeMS;
       }
+
       if (itsLastTime < itsFirstTime)
-        throw std::runtime_error("endtime is before start of time axis");
+        throw std::runtime_error("Specified endtime is before specified starttime");
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
@@ -269,7 +288,7 @@ namespace DP3 {
         bool useIter = false;
         while (!itsIter.pastEnd()) {
           // Take time from row 0 in subset.
-          double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+          double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
             DPLOG_WARN_STR ("Time at rownr "
@@ -325,14 +344,14 @@ namespace DP3 {
             }
           } else {
             // Set exposure.
-            itsBuffer.setExposure (ROScalarColumn<double>
+            itsBuffer.setExposure (ScalarColumn<double>
                                    (itsIter.table(), "EXPOSURE")(0));
             // Get data and flags from the MS.
             ///            if (itsNrRead%50 < 4) {
             ///              cout<<(void*)(itsBuffer.getData().data())<<" rd1"<<endl;
             ///}
             if (itsReadVisData) {
-              ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
+              ArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
               if (itsUseAllChan) {
                 dataCol.getColumn (itsBuffer.getData());
               } else {
@@ -343,14 +362,14 @@ namespace DP3 {
             ///cout<<(void*)(itsBuffer.getData().data())<<" rd2"<<endl;
             ///}
             if (itsUseFlags) {
-              ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
+              ArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
               if (itsUseAllChan) {
                 flagCol.getColumn (itsBuffer.getFlags());
               } else {
                 flagCol.getColumn(itsColSlicer, itsBuffer.getFlags());
               }
               // Set flags if FLAG_ROW is set.
-              ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
+              ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
               for (unsigned int i=0; i<itsIter.table().nrow(); ++i) {
                 if (flagrowCol(i)) {
                   itsBuffer.getFlags()
@@ -415,31 +434,33 @@ namespace DP3 {
 
     void MSReader::show (std::ostream& os) const
     {
-      os << "MSReader" << std::endl;
-      os << "  input MS:       " << itsMSName << std::endl;
+      os << "MSReader\n";
+      os << "  input MS:       " << itsMSName << '\n';
       if (itsMS.isNull()) {
-        os << "    *** MS does not exist ***" << std::endl;
+        os << "    *** MS does not exist ***\n";
       } else {
         if (! itsSelBL.empty()) {
-          os << "  baseline:       " << itsSelBL << std::endl;
+          os << "  baseline:       " << itsSelBL << '\n';
         }
-        os << "  band            " << itsSpw << std::endl;
+        os << "  band            " << itsSpw << '\n';
         os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
-           << ')' << std::endl;
+           << ")\n";
         os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
-           << ')' << std::endl;
-        os << "  ncorrelations:  " << getInfo().ncorr() << std::endl;
+           << ")\n";
+        os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
         unsigned int nrbl = getInfo().nbaselines();
-        os << "  nbaselines:     " << nrbl << std::endl;
-        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << std::endl;
-        os << "  time interval:  " << getInfo().timeInterval() << std::endl;
+        os << "  nbaselines:     " << nrbl << '\n';
+        os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(itsFirstTime/(24*3600.)) << '\n';
+        os << "  last time:      " << MVTime::Format(MVTime::YMD) << MVTime(itsLastTime/(24*3600.)) << '\n';
+        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << '\n';
+        os << "  time interval:  " << getInfo().timeInterval() << '\n';
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
           os << "  (not present)";
         }
-        os << std::endl;
-        os << "  WEIGHT column:  " << itsWeightColName << std::endl;
-        os << "  autoweight:     " << boolalpha << itsAutoWeight << std::endl;
+        os << '\n';
+        os << "  WEIGHT column:  " << itsWeightColName << '\n';
+        os << "  autoweight:     " << boolalpha << itsAutoWeight << '\n';
       }
     }
 
@@ -475,7 +496,7 @@ namespace DP3 {
         if (tdesc.isColumn(itsWeightColName)) {
           // The column is there, but it might not contain values. Test row 0.
           itsHasWeightSpectrum =
-            ROArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
+            ArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
           if (!itsHasWeightSpectrum && itsWeightColName!="WEIGHT_SPECTRUM") {
             DPLOG_WARN_STR ("Specified weight column " + itsWeightColName +
                 "is not a valid column, using WEIGHT instead");
@@ -562,16 +583,16 @@ namespace DP3 {
       }
       // Get first and last time and interval from MS.
       if (itsSelMS.nrow() > 0) {
-        firstTime = ROScalarColumn<double>(sortms, "TIME")(0);
-        lastTime  = ROScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
-        interval  = ROScalarColumn<double>(sortms, "INTERVAL")(0);
+        firstTime = ScalarColumn<double>(sortms, "TIME")(0);
+        lastTime  = ScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
+        interval  = ScalarColumn<double>(sortms, "INTERVAL")(0);
       }
       // Create iterator over time. Do not sort again.
       itsIter = TableIterator (sortms, Block<String>(1, "TIME"),
                                TableIterator::Ascending,
                                TableIterator::NoSort);
       // Find the nr of corr, chan, and baseline.
-      IPosition shp (ROArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
+      IPosition shp (ArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
       itsNrCorr = shp[0];
       itsNrChan = shp[1];
       itsNrBl   = itsIter.table().nrow();
@@ -582,15 +603,15 @@ namespace DP3 {
         throw Exception(
                  "The MS appears to have multiple subbands");
       // Get the baseline columns.
-      ROScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
-      ROScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
+      ScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
+      ScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS, True);
       // Get the antenna names and positions.
       Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
-      ROScalarColumn<String> nameCol (anttab, "NAME");
-      ROScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
+      ScalarColumn<String> nameCol (anttab, "NAME");
+      ScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
       unsigned int nant = anttab.nrow();
       ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
       vector<MPosition> antPos;
@@ -627,7 +648,7 @@ namespace DP3 {
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
       Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
-      ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
+      ScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
       MPosition arrayPos;
       if (obstab.nrow() == 0  ||
           ! MeasTable::Observatory(arrayPos, telCol(0))) {
@@ -642,13 +663,14 @@ namespace DP3 {
     void MSReader::prepare2()
     {
       // Set the info.
+      // The 1.5 comes from a) rounding (0.5) + b) the paaltjesprobleem.
       unsigned int ntime = (unsigned int)((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5);
       // Read the antenna set.
       Table obstab(itsMS.keywordSet().asTable("OBSERVATION"));
       string antennaSet;
       if (obstab.nrow() > 0  &&
           obstab.tableDesc().isColumn ("LOFAR_ANTENNA_SET")) {
-        antennaSet = ROScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+        antennaSet = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
       }
       info().init (itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
                    itsTimeInterval, itsMSName, antennaSet);
@@ -656,11 +678,11 @@ namespace DP3 {
       info().setWeightColName(itsWeightColName);
       // Read the center frequencies of all channels.
       Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
-      ROArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
-      ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
-      ROArrayColumn<double> resolCol (spwtab, "RESOLUTION");
-      ROArrayColumn<double> effBWCol (spwtab, "EFFECTIVE_BW");
-      ROScalarColumn<Double> refCol  (spwtab, "REF_FREQUENCY");
+      ArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
+      ArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
+      ArrayColumn<double> resolCol (spwtab, "RESOLUTION");
+      ArrayColumn<double> effBWCol (spwtab, "EFFECTIVE_BW");
+      ScalarColumn<Double> refCol  (spwtab, "REF_FREQUENCY");
       Vector<double> chanFreqs   = freqCol(itsSpw);
       Vector<double> chanWidths  = widthCol(itsSpw);
       Vector<double> resolutions = resolCol(itsSpw);
@@ -683,7 +705,7 @@ namespace DP3 {
     {
       while (!itsIter.pastEnd()) {
         // Take time from row 0 in subset.
-        double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+        double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
         // Skip time slot and give warning if MS data is not in time order.
         if (mstime < itsLastMSTime) {
           DPLOG_WARN_STR ("Time at rownr "
@@ -736,7 +758,7 @@ namespace DP3 {
       if (rowNrs.rowVector().empty()) {
         calcUVW (time, buf);
       } else {
-        ROArrayColumn<double> dataCol(itsMS, "UVW");
+        ArrayColumn<double> dataCol(itsMS, "UVW");
         dataCol.getColumnCells (rowNrs, buf.getUVW());
       }
     }
@@ -755,7 +777,7 @@ namespace DP3 {
       } else {
         // Get weights for entire spectrum if present.
         if (itsHasWeightSpectrum) {
-          ROArrayColumn<float> wsCol(itsMS, itsWeightColName);
+          ArrayColumn<float> wsCol(itsMS, itsWeightColName);
           // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
           // Hence work around it.
           if (itsUseAllChan) {
@@ -766,7 +788,7 @@ namespace DP3 {
           }
         } else {
           // No spectrum present; get global weights and assign to each channel.
-          ROArrayColumn<float> wCol(itsMS, "WEIGHT");
+          ArrayColumn<float> wCol(itsMS, "WEIGHT");
           Matrix<float> inArr = wCol.getColumnCells (rowNrs);
           float* inPtr  = inArr.data();
           float* outPtr = weights.data();
@@ -859,7 +881,7 @@ namespace DP3 {
         flags = true;
         return true;
       }
-      ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+      ArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
       int origstart = itsStartChan * itsFullResNChanAvg;
       Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
@@ -897,7 +919,7 @@ namespace DP3 {
         arr.resize (itsNrCorr, itsNrChan, itsNrBl);
         arr = Complex();
       } else {
-        ROArrayColumn<Complex> modelCol(itsMS, itsModelColName);
+        ArrayColumn<Complex> modelCol(itsMS, itsModelColName);
         if (itsUseAllChan) {
           modelCol.getColumnCells (rowNrs, arr);
         } else {
