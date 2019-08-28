@@ -332,7 +332,7 @@ namespace DP3 {
             ///              cout<<(void*)(itsBuffer.getData().data())<<" rd1"<<endl;
             ///}
             if (itsReadVisData) {
-              ScalarColumn<Complex> dataCol(itsIter.table(), itsDataColName);
+              ArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
               if (itsUseAllChan) {
                 dataCol.getColumn (itsBuffer.getData());
               } else {
@@ -343,7 +343,7 @@ namespace DP3 {
             ///cout<<(void*)(itsBuffer.getData().data())<<" rd2"<<endl;
             ///}
             if (itsUseFlags) {
-              ScalarColumn<bool> flagCol(itsIter.table(), "FLAG");
+              ArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
               if (itsUseAllChan) {
                 flagCol.getColumn (itsBuffer.getFlags());
               } else {
@@ -475,7 +475,7 @@ namespace DP3 {
         if (tdesc.isColumn(itsWeightColName)) {
           // The column is there, but it might not contain values. Test row 0.
           itsHasWeightSpectrum =
-            ScalarColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
+            ArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
           if (!itsHasWeightSpectrum && itsWeightColName!="WEIGHT_SPECTRUM") {
             DPLOG_WARN_STR ("Specified weight column " + itsWeightColName +
                 "is not a valid column, using WEIGHT instead");
@@ -571,7 +571,7 @@ namespace DP3 {
                                TableIterator::Ascending,
                                TableIterator::NoSort);
       // Find the nr of corr, chan, and baseline.
-      IPosition shp (ScalarColumn<Complex>(itsSelMS, "DATA").shape(0));
+      IPosition shp (ArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
       itsNrCorr = shp[0];
       itsNrChan = shp[1];
       itsNrBl   = itsIter.table().nrow();
@@ -592,7 +592,7 @@ namespace DP3 {
       ScalarColumn<String> nameCol (anttab, "NAME");
       ScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
       unsigned int nant = anttab.nrow();
-      ScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
+      ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
       vector<MPosition> antPos;
       antPos.reserve (nant);
       for (unsigned int i=0; i<nant; ++i) {
@@ -615,8 +615,8 @@ namespace DP3 {
       if (fldtab.nrow() != 1)
         throw std::runtime_error("Multiple entries in FIELD table");
       MDirection phaseCenter, delayCenter, tileBeamDir;
-      ScalarMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
-      ScalarMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
+      ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
+      ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
       
@@ -756,7 +756,7 @@ namespace DP3 {
       } else {
         // Get weights for entire spectrum if present.
         if (itsHasWeightSpectrum) {
-          ScalarColumn<float> wsCol(itsMS, itsWeightColName);
+          ArrayColumn<float> wsCol(itsMS, itsWeightColName);
           // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
           // Hence work around it.
           if (itsUseAllChan) {
@@ -767,7 +767,7 @@ namespace DP3 {
           }
         } else {
           // No spectrum present; get global weights and assign to each channel.
-          ScalarColumn<float> wCol(itsMS, "WEIGHT");
+          ArrayColumn<float> wCol(itsMS, "WEIGHT");
           Matrix<float> inArr = wCol.getColumnCells (rowNrs);
           float* inPtr  = inArr.data();
           float* outPtr = weights.data();
@@ -860,7 +860,7 @@ namespace DP3 {
         flags = true;
         return true;
       }
-      ScalarColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+      ArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
       int origstart = itsStartChan * itsFullResNChanAvg;
       Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
@@ -898,7 +898,7 @@ namespace DP3 {
         arr.resize (itsNrCorr, itsNrChan, itsNrBl);
         arr = Complex();
       } else {
-        ScalarColumn<Complex> modelCol(itsMS, itsModelColName);
+        ArrayColumn<Complex> modelCol(itsMS, itsModelColName);
         if (itsUseAllChan) {
           modelCol.getColumnCells (rowNrs, arr);
         } else {
