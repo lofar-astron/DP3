@@ -287,12 +287,12 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(
       
     makeStep(solutions, nextSolutions);
     
-    constraintsSatisfied = true;
-
     if(statStream)
     {
       (*statStream) << iteration << '\t';
     }
+
+    constraintsSatisfied = true;
 
     for(size_t i=0; i!=_constraints.size(); ++i)
     {
