@@ -162,8 +162,8 @@ namespace DP3 {
         }
       }
       // Prepare the MS access and get time info.
-      double startTimeMS=0., endTime=0.;
-      prepare (startTimeMS, endTime, itsTimeInterval);
+      double startTimeMS=0., endTimeMS=0.;
+      prepare (startTimeMS, endTimeMS, itsTimeInterval);
       
       // Start and end time can be given in the parset in case leading
       // or trailing time slots are missing.
@@ -174,11 +174,14 @@ namespace DP3 {
         if (!MVTime::read (qtime, startTimeStr)) {
           throw std::runtime_error(startTimeStr + " is an invalid date/time");
         }
-        itsFirstTime = qtime.getValue("s");
+        double startTimeParset = qtime.getValue("s");
         // the parset specified start time is allowed to be before the msstarttime. In that
         // case, flagged samples are injected.
-        if (itsFirstTime > endTime)
+        if (startTimeParset > endTimeMS)
           throw std::runtime_error("Specified starttime is past end of time axis");
+        
+        // Round specified first time to a multiple of itsTimeInterval
+        itsFirstTime = startTimeMS + std::ceil((startTimeParset - startTimeMS) / itsTimeInterval) * itsTimeInterval;
       } else {
         itsFirstTime = startTimeMS;
       }     
@@ -192,15 +195,16 @@ namespace DP3 {
         // Some overlap between the measurement set timerange and the parset range
         // is required :
         if (endTimeParset < startTimeMS + 0.5 * itsTimeInterval) {
-          throw std::runtime_error("end time " + endTimeStr + " is before the start");
+          throw std::runtime_error("Specified end time " + endTimeStr + " is before the first timestep in the measurement set");
         }
-        itsLastTime = endTimeParset;
+        // Round specified first time to a multiple of itsTimeInterval
+        itsLastTime = startTimeMS + std::floor((endTimeParset - startTimeMS) / itsTimeInterval) * itsTimeInterval;
       } else {
-        itsLastTime = endTime;
+        itsLastTime = endTimeMS;
       }
 
       if (itsLastTime < itsFirstTime)
-        throw std::runtime_error("endtime is before start of time axis");
+        throw std::runtime_error("Specified endtime is before specified starttime");
       // If needed, skip the first times in the MS.
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
