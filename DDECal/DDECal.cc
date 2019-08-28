@@ -1163,7 +1163,7 @@ void DDECal::writeSolutions()
         vector<double>::iterator nextpos = sols.begin();
         for (unsigned int time=0; time<itsSols.size(); ++time) {
           if(itsConstraintSols[time].size()!=itsConstraintSols[0].size())
-            throw std::runtime_error("Constraint " + std::to_string(constraintNum) + " did not produce a correct output at time step " + std::to_string(time) + ": got " + std::to_string(itsConstraintSols[time].size()) + " results, expecting " + itsConstraintSols[0].size());
+            throw std::runtime_error("Constraint " + std::to_string(constraintNum) + " did not produce a correct output at time step " + std::to_string(time) + ": got " + std::to_string(itsConstraintSols[time].size()) + " results, expecting " + std::to_string(itsConstraintSols[0].size()));
           nextpos = std::copy(
             itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
             itsConstraintSols[time][constraintNum][solNameNum].vals.end(),
