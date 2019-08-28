@@ -162,28 +162,43 @@ namespace DP3 {
         }
       }
       // Prepare the MS access and get time info.
-      double startTime=0., endTime=0.;
-      prepare (startTime, endTime, itsTimeInterval);
+      double startTimeMS=0., endTime=0.;
+      prepare (startTimeMS, endTime, itsTimeInterval);
+      
       // Start and end time can be given in the parset in case leading
       // or trailing time slots are missing.
       // They can also be used to select part of the MS.
-      Quantity qtime;
-      itsFirstTime = startTime;
+
       if (!startTimeStr.empty()) {
+        Quantity qtime;
         if (!MVTime::read (qtime, startTimeStr)) {
           throw std::runtime_error(startTimeStr + " is an invalid date/time");
         }
         itsFirstTime = qtime.getValue("s");
+        // the parset specified start time is allowed to be before the msstarttime. In that
+        // case, flagged samples are injected.
         if (itsFirstTime > endTime)
-          throw std::runtime_error("starttime is past end of time axis");
-      }
-      itsLastTime = endTime;
+          throw std::runtime_error("Specified starttime is past end of time axis");
+      } else {
+        itsFirstTime = startTimeMS;
+      }     
+      
       if (!endTimeStr.empty()) {
+        Quantity qtime;
         if (!MVTime::read (qtime, endTimeStr)) {
           throw std::runtime_error(endTimeStr + " is an invalid date/time");
         }
-        itsLastTime = qtime.getValue("s");
+        double endTimeParset = qtime.getValue("s");
+        // Some overlap between the measurement set timerange and the parset range
+        // is required :
+        if (endTimeParset < startTimeMS + 0.5 * itsTimeInterval) {
+          throw std::runtime_error("end time " + endTimeStr + " is before the start");
+        }
+        itsLastTime = endTimeParset;
+      } else {
+        itsLastTime = endTime;
       }
+
       if (itsLastTime < itsFirstTime)
         throw std::runtime_error("endtime is before start of time axis");
       // If needed, skip the first times in the MS.
