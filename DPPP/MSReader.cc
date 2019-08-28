@@ -269,7 +269,7 @@ namespace DP3 {
         bool useIter = false;
         while (!itsIter.pastEnd()) {
           // Take time from row 0 in subset.
-          double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+          double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
           // Skip time slot and give warning if MS data is not in time order.
           if (mstime < itsLastMSTime) {
             DPLOG_WARN_STR ("Time at rownr "
@@ -325,14 +325,14 @@ namespace DP3 {
             }
           } else {
             // Set exposure.
-            itsBuffer.setExposure (ROScalarColumn<double>
+            itsBuffer.setExposure (ScalarColumn<double>
                                    (itsIter.table(), "EXPOSURE")(0));
             // Get data and flags from the MS.
             ///            if (itsNrRead%50 < 4) {
             ///              cout<<(void*)(itsBuffer.getData().data())<<" rd1"<<endl;
             ///}
             if (itsReadVisData) {
-              ROArrayColumn<Complex> dataCol(itsIter.table(), itsDataColName);
+              ScalarColumn<Complex> dataCol(itsIter.table(), itsDataColName);
               if (itsUseAllChan) {
                 dataCol.getColumn (itsBuffer.getData());
               } else {
@@ -343,14 +343,14 @@ namespace DP3 {
             ///cout<<(void*)(itsBuffer.getData().data())<<" rd2"<<endl;
             ///}
             if (itsUseFlags) {
-              ROArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
+              ScalarColumn<bool> flagCol(itsIter.table(), "FLAG");
               if (itsUseAllChan) {
                 flagCol.getColumn (itsBuffer.getFlags());
               } else {
                 flagCol.getColumn(itsColSlicer, itsBuffer.getFlags());
               }
               // Set flags if FLAG_ROW is set.
-              ROScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
+              ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
               for (unsigned int i=0; i<itsIter.table().nrow(); ++i) {
                 if (flagrowCol(i)) {
                   itsBuffer.getFlags()
@@ -475,7 +475,7 @@ namespace DP3 {
         if (tdesc.isColumn(itsWeightColName)) {
           // The column is there, but it might not contain values. Test row 0.
           itsHasWeightSpectrum =
-            ROArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
+            ScalarColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
           if (!itsHasWeightSpectrum && itsWeightColName!="WEIGHT_SPECTRUM") {
             DPLOG_WARN_STR ("Specified weight column " + itsWeightColName +
                 "is not a valid column, using WEIGHT instead");
@@ -562,16 +562,16 @@ namespace DP3 {
       }
       // Get first and last time and interval from MS.
       if (itsSelMS.nrow() > 0) {
-        firstTime = ROScalarColumn<double>(sortms, "TIME")(0);
-        lastTime  = ROScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
-        interval  = ROScalarColumn<double>(sortms, "INTERVAL")(0);
+        firstTime = ScalarColumn<double>(sortms, "TIME")(0);
+        lastTime  = ScalarColumn<double>(sortms, "TIME")(sortms.nrow()-1);
+        interval  = ScalarColumn<double>(sortms, "INTERVAL")(0);
       }
       // Create iterator over time. Do not sort again.
       itsIter = TableIterator (sortms, Block<String>(1, "TIME"),
                                TableIterator::Ascending,
                                TableIterator::NoSort);
       // Find the nr of corr, chan, and baseline.
-      IPosition shp (ROArrayColumn<Complex>(itsSelMS, "DATA").shape(0));
+      IPosition shp (ScalarColumn<Complex>(itsSelMS, "DATA").shape(0));
       itsNrCorr = shp[0];
       itsNrChan = shp[1];
       itsNrBl   = itsIter.table().nrow();
@@ -582,17 +582,17 @@ namespace DP3 {
         throw Exception(
                  "The MS appears to have multiple subbands");
       // Get the baseline columns.
-      ROScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
-      ROScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
+      ScalarColumn<Int> ant1col(itsIter.table(), "ANTENNA1");
+      ScalarColumn<Int> ant2col(itsIter.table(), "ANTENNA2");
       // Keep the row numbers of the first part to be used for the meta info
       // of possibly missing time slots.
       itsBaseRowNrs = itsIter.table().rowNumbers(itsMS, True);
       // Get the antenna names and positions.
       Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
-      ROScalarColumn<String> nameCol (anttab, "NAME");
-      ROScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
+      ScalarColumn<String> nameCol (anttab, "NAME");
+      ScalarColumn<Double> diamCol (anttab, "DISH_DIAMETER");
       unsigned int nant = anttab.nrow();
-      ROScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
+      ScalarMeasColumn<MPosition> antcol (anttab, "POSITION");
       vector<MPosition> antPos;
       antPos.reserve (nant);
       for (unsigned int i=0; i<nant; ++i) {
@@ -615,8 +615,8 @@ namespace DP3 {
       if (fldtab.nrow() != 1)
         throw std::runtime_error("Multiple entries in FIELD table");
       MDirection phaseCenter, delayCenter, tileBeamDir;
-      ROArrayMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
-      ROArrayMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
+      ScalarMeasColumn<MDirection> fldcol1 (fldtab, "PHASE_DIR");
+      ScalarMeasColumn<MDirection> fldcol2 (fldtab, "DELAY_DIR");
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
       
@@ -627,7 +627,7 @@ namespace DP3 {
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
       Table obstab (itsMS.keywordSet().asTable ("OBSERVATION"));
-      ROScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
+      ScalarColumn<String> telCol(obstab, "TELESCOPE_NAME");
       MPosition arrayPos;
       if (obstab.nrow() == 0  ||
           ! MeasTable::Observatory(arrayPos, telCol(0))) {
@@ -642,13 +642,14 @@ namespace DP3 {
     void MSReader::prepare2()
     {
       // Set the info.
+      // The 1.5 comes from a) rounding (0.5) + b) the paaltjesprobleem.
       unsigned int ntime = (unsigned int)((itsLastTime - itsFirstTime)/itsTimeInterval + 1.5);
       // Read the antenna set.
       Table obstab(itsMS.keywordSet().asTable("OBSERVATION"));
       string antennaSet;
       if (obstab.nrow() > 0  &&
           obstab.tableDesc().isColumn ("LOFAR_ANTENNA_SET")) {
-        antennaSet = ROScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+        antennaSet = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
       }
       info().init (itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
                    itsTimeInterval, itsMSName, antennaSet);
@@ -656,11 +657,11 @@ namespace DP3 {
       info().setWeightColName(itsWeightColName);
       // Read the center frequencies of all channels.
       Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
-      ROArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
-      ROArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
-      ROArrayColumn<double> resolCol (spwtab, "RESOLUTION");
-      ROArrayColumn<double> effBWCol (spwtab, "EFFECTIVE_BW");
-      ROScalarColumn<Double> refCol  (spwtab, "REF_FREQUENCY");
+      ArrayColumn<double> freqCol  (spwtab, "CHAN_FREQ");
+      ArrayColumn<double> widthCol (spwtab, "CHAN_WIDTH");
+      ArrayColumn<double> resolCol (spwtab, "RESOLUTION");
+      ArrayColumn<double> effBWCol (spwtab, "EFFECTIVE_BW");
+      ScalarColumn<Double> refCol  (spwtab, "REF_FREQUENCY");
       Vector<double> chanFreqs   = freqCol(itsSpw);
       Vector<double> chanWidths  = widthCol(itsSpw);
       Vector<double> resolutions = resolCol(itsSpw);
@@ -683,7 +684,7 @@ namespace DP3 {
     {
       while (!itsIter.pastEnd()) {
         // Take time from row 0 in subset.
-        double mstime = ROScalarColumn<double>(itsIter.table(), "TIME")(0);
+        double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
         // Skip time slot and give warning if MS data is not in time order.
         if (mstime < itsLastMSTime) {
           DPLOG_WARN_STR ("Time at rownr "
@@ -736,7 +737,7 @@ namespace DP3 {
       if (rowNrs.rowVector().empty()) {
         calcUVW (time, buf);
       } else {
-        ROArrayColumn<double> dataCol(itsMS, "UVW");
+        ArrayColumn<double> dataCol(itsMS, "UVW");
         dataCol.getColumnCells (rowNrs, buf.getUVW());
       }
     }
@@ -755,7 +756,7 @@ namespace DP3 {
       } else {
         // Get weights for entire spectrum if present.
         if (itsHasWeightSpectrum) {
-          ROArrayColumn<float> wsCol(itsMS, itsWeightColName);
+          ScalarColumn<float> wsCol(itsMS, itsWeightColName);
           // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
           // Hence work around it.
           if (itsUseAllChan) {
@@ -766,7 +767,7 @@ namespace DP3 {
           }
         } else {
           // No spectrum present; get global weights and assign to each channel.
-          ROArrayColumn<float> wCol(itsMS, "WEIGHT");
+          ScalarColumn<float> wCol(itsMS, "WEIGHT");
           Matrix<float> inArr = wCol.getColumnCells (rowNrs);
           float* inPtr  = inArr.data();
           float* outPtr = weights.data();
@@ -859,7 +860,7 @@ namespace DP3 {
         flags = true;
         return true;
       }
-      ROArrayColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
+      ScalarColumn<uChar> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
       int origstart = itsStartChan * itsFullResNChanAvg;
       Array<uChar> chars = fullResFlagCol.getColumnCells (rowNrs);
       // The original flags are kept per channel, not per corr.
@@ -897,7 +898,7 @@ namespace DP3 {
         arr.resize (itsNrCorr, itsNrChan, itsNrBl);
         arr = Complex();
       } else {
-        ROArrayColumn<Complex> modelCol(itsMS, itsModelColName);
+        ScalarColumn<Complex> modelCol(itsMS, itsModelColName);
         if (itsUseAllChan) {
           modelCol.getColumnCells (rowNrs, arr);
         } else {
