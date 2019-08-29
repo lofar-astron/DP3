@@ -86,6 +86,8 @@ namespace DP3 {
       string startTimeStr = parset.getString (prefix+"starttime", "");
       string endTimeStr   = parset.getString (prefix+"endtime", "");
       unsigned int nTimes = parset.getInt    (prefix+"ntimes", 0);
+      int startTimeSlot   = parset.getInt (prefix+"starttimeslot", 0);
+      // Can be negative to insert flagged time slots before start
       itsTimeTolerance    = parset.getDouble (prefix+"timetolerance", 1e-2);
       itsUseFlags         = parset.getBool   (prefix+"useflag", true);
       itsDataColName      = parset.getString (prefix+"datacolumn", "DATA");
@@ -183,7 +185,7 @@ namespace DP3 {
         // Round specified first time to a multiple of itsTimeInterval
         itsFirstTime = startTimeMS + std::ceil((startTimeParset - startTimeMS) / itsTimeInterval) * itsTimeInterval;
       } else {
-        itsFirstTime = startTimeMS;
+        itsFirstTime = startTimeMS + startTimeSlot * itsTimeInterval;
       }     
       
       if (!endTimeStr.empty()) {
@@ -452,7 +454,7 @@ namespace DP3 {
         os << "  nbaselines:     " << nrbl << '\n';
         os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(itsFirstTime/(24*3600.)) << '\n';
         os << "  last time:      " << MVTime::Format(MVTime::YMD) << MVTime(itsLastTime/(24*3600.)) << '\n';
-        os << "  ntimes:         " << (nrbl==0 ? 0 : itsSelMS.nrow() / nrbl) << '\n';
+        os << "  ntimes:         " << getInfo().ntime()<<'\n'; // itsSelMS can contain timeslots that are ignored in process
         os << "  time interval:  " << getInfo().timeInterval() << '\n';
         os << "  DATA column:    " << itsDataColName;
         if (itsMissingData) {
