@@ -52,8 +52,9 @@ class Simulator: public ModelComponentVisitor
 public:
     Simulator(const Position &reference, size_t nStation, size_t nBaseline,
         size_t nChannel, const casacore::Vector<Baseline>& baselines,
-        const casacore::Vector<double>& freq, const casacore::Matrix<double>& uvw,
-        casacore::Cube<dcomplex>& buffer, bool stokesIOnly=false);
+        const casacore::Vector<double>& freq, const casacore::Vector<double>& chanWidths,
+        const casacore::Matrix<double>& uvw,
+        casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing, bool stokesIOnly);
 
     template <typename T>
     class Matrix {
@@ -94,12 +95,15 @@ private:
 private:
     Position                     itsReference;
     size_t                       itsNStation, itsNBaseline, itsNChannel;
+    bool                         itsCorrectFreqSmearing;
     bool                         itsStokesIOnly;
     const casacore::Vector<Baseline> itsBaselines;
     const casacore::Vector<double>   itsFreq;
+    const casacore::Vector<double>   itsChanWidths;
     const casacore::Matrix<double>   itsUVW;
     casacore::Cube<dcomplex>     itsBuffer;
     Matrix<dcomplex>           itsShiftBuffer;
+    std::vector<double>        itsStationUVWvec;
     Matrix<dcomplex>           itsSpectrumBuffer;
 };
 

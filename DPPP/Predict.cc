@@ -94,6 +94,7 @@ namespace DP3 {
       itsInput = input;
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
+      itsCorrectFreqSmearing = parset.getBool(prefix + "correctfreqsmearing");
       setOperation(parset.getString (prefix + "operation", "replace"));
 #ifdef HAVE_LOFAR_BEAM
       itsApplyBeam = parset.getBool (prefix + "usebeammodel", false);
@@ -278,6 +279,7 @@ namespace DP3 {
       os << "   number of patches: " << itsPatchList.size() << '\n';
       os << "   number of sources: " << itsSourceList.size() << '\n';
       os << "   all unpolarized:   " << boolalpha << itsStokesIOnly << '\n';
+      os << "   correct freq smearing: " << boolalpha << itsCorrectFreqSmearing << '\n';
 #ifdef HAVE_LOFAR_BEAM
       os << "  apply beam:         " << boolalpha << itsApplyBeam << '\n';
       if (itsApplyBeam) {
@@ -390,11 +392,11 @@ namespace DP3 {
         Cube<dcomplex>& simulatedest=itsModelVis[thread];
 #endif
         simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-          info().chanFreqs(), itsUVW, simulatedest,
-          itsStokesIOnly);
+          info().chanFreqs(), info().chanWidths(), itsUVW, simulatedest,
+          itsCorrectFreqSmearing, itsStokesIOnly);
       }
       std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
-      
+
       pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
         // Keep on predicting, only apply beam when an entire patch is done
         Patch::ConstPtr& curPatch = curPatches[thread];

@@ -130,6 +130,7 @@ namespace DP3 {
       string           itsName;
       DPBuffer         itsBuffer;
       string           itsSourceDBName;
+      bool             itsCorrectFreqSmearing;
       string           itsOperation;
 #ifdef HAVE_LOFAR_BEAM
       bool             itsApplyBeam;

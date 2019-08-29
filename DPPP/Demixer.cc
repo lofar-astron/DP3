@@ -912,8 +912,8 @@ namespace DP3 {
           ///cout<<"uvw"<<dr<<'='<<storage.uvw<<endl;
 
           Simulator simulator(itsPatchList[dr]->position(), nSt, nBl, nCh,
-                              itsBaselines, itsFreqDemix, storage.uvw,
-                              storage.model[dr]);
+                              itsBaselines, itsFreqDemix, Vector<double>(), storage.uvw,
+                              storage.model[dr], false, true);
           for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
           {
             simulator.simulate(itsPatchList[dr]->component(i));
@@ -998,7 +998,8 @@ namespace DP3 {
 
               Simulator simulator(itsPatchList[dr]->position(), nSt, nBl,
                                   nChSubtr, itsBaselines, itsFreqSubtr,
-                                  storage.uvw, storage.model_subtr);
+                                  Vector<Double>(), storage.uvw,
+                                  storage.model_subtr, false, false);
               for(size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i)
               {
                 simulator.simulate(itsPatchList[dr]->component(i));
