@@ -136,6 +136,11 @@ void Simulator::visit(const PointSource &component) {
           // Compute freq smearing
           if (itsCorrectFreqSmearing) {
             smearTerm = (itsStationUVWvec[q] - itsStationUVWvec[p]) * itsChanWidths[ch]/2;
+            if (smearTerm == 0.) {
+              smearTerm = 1;
+            } else {
+              smearTerm = fabs(sin(smearTerm) / smearTerm);
+            }
           } else {
             smearTerm = 1.;
           }
@@ -151,6 +156,11 @@ void Simulator::visit(const PointSource &component) {
           // Compute freq smearing
           if (itsCorrectFreqSmearing) {
             smearTerm = (itsStationUVWvec[q] - itsStationUVWvec[p]) * itsChanWidths[ch]/2;
+            if (smearTerm == 0.) {
+              smearTerm = 1;
+            } else {
+              smearTerm = fabs(sin(smearTerm) / smearTerm);
+            }
           } else {
             smearTerm = 1.;
           }
