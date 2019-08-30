@@ -94,7 +94,7 @@ namespace DP3 {
       itsInput = input;
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
-      itsCorrectFreqSmearing = parset.getBool(prefix + "correctfreqsmearing");
+      itsCorrectFreqSmearing = parset.getBool(prefix + "correctfreqsmearing", false);
       setOperation(parset.getString (prefix + "operation", "replace"));
 #ifdef HAVE_LOFAR_BEAM
       itsApplyBeam = parset.getBool (prefix + "usebeammodel", false);
