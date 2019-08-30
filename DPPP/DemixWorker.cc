@@ -445,8 +445,11 @@ namespace DP3 {
                               itsMix->freqDemix().size(),
                               itsMix->baselines(),
                               itsMix->freqDemix(),
+                              Vector<Double>(),
                               uvwiter.matrix(),
-                              itsPredictVis);
+                              itsPredictVis,
+                              false,
+                              false);
           for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
           {
             simulator.simulate(patchList[dr]->component(i));
@@ -494,8 +497,11 @@ namespace DP3 {
                               itsMix->freqDemix().size(),
                               itsMix->baselines(),
                               itsMix->freqDemix(),
+                              Vector<Double>(),
                               uvwiter.matrix(),
-                              itsPredictVis);
+                              itsPredictVis,
+                              false,
+                              false);
           for(size_t i = 0; i < patchList[dr]->nComponents(); ++i)
           {
             simulator.simulate(patchList[dr]->component(i));
@@ -1119,7 +1125,7 @@ namespace DP3 {
               itsPredictVis = dcomplex();
               Simulator simulator(itsMix->phaseRef(), nSt, nBl, nCh,
                                   itsMix->baselines(), itsMix->freqDemix(),
-                                  itsUVW, itsPredictVis);
+                                  Vector<Double>(), itsUVW, itsPredictVis, false, false);
               for(size_t j = 0; j < itsMix->targetDemixList()[i]->nComponents(); ++j)
               {
                 simulator.simulate(itsMix->targetDemixList()[i]->component(j));
@@ -1132,7 +1138,7 @@ namespace DP3 {
             itsModelVisDemix[dr]=dcomplex();
             Simulator simulator(itsDemixList[dr]->position(), nSt, nBl, nCh,
                                 itsMix->baselines(), itsMix->freqDemix(),
-                                itsUVW, itsModelVisDemix[dr]);
+                                Vector<Double>(), itsUVW, itsModelVisDemix[dr], false, false);
             for(size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i)
             {
               simulator.simulate(itsDemixList[dr]->component(i));
@@ -1240,7 +1246,7 @@ namespace DP3 {
                 Simulator simulator(itsMix->ateamList()[drOrig]->position(),
                                     nSt, nBl, nChSubtr, itsMix->baselines(),
                                     itsMix->freqSubtr(), itsUVW,
-                                    itsModelVisSubtr[0]);
+                                    Vector<Double>(), itsModelVisSubtr[0], false, false);
                 for(size_t i = 0; i < itsMix->ateamList()[drOrig]->nComponents(); ++i)
                 {
                   simulator.simulate(itsMix->ateamList()[drOrig]->component(i));
