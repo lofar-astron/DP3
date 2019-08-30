@@ -172,6 +172,10 @@ namespace DP3 {
       // They can also be used to select part of the MS.
 
       if (!startTimeStr.empty()) {
+        if (startTimeSlot > 0) {
+          throw std::runtime_error("Only one of " + prefix + "starttimeslot and " + 
+                                   prefix + "starttime can be specified");
+        }
         Quantity qtime;
         if (!MVTime::read (qtime, startTimeStr)) {
           throw std::runtime_error(startTimeStr + " is an invalid date/time");
@@ -211,6 +215,10 @@ namespace DP3 {
       // It also sets itsFirstTime properly (round to time/interval in MS).
       skipFirstTimes();
       if (nTimes > 0) {
+        if (!endTimeStr.empty()) {
+          throw std::runtime_error("Only one of " + prefix + "ntimes and " + 
+                                   prefix + "endtime can be specified");
+        }
         itsLastTime = itsFirstTime + (nTimes-1) * itsTimeInterval;
       }
       itsNextTime  = itsFirstTime;
