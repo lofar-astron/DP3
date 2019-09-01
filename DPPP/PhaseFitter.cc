@@ -24,6 +24,7 @@
 #include "PhaseFitter.h"
 
 #include <limits>
+#include <iostream>
 
 double PhaseFitter::TEC2ModelCost(double alpha, double beta) const
 {
@@ -48,7 +49,7 @@ double PhaseFitter::fitTEC2ModelBeta(double alpha, double betaEstimate) const {
   for(size_t iter=0; iter!=3; ++iter) {
     double sum = 0.0;
     for(size_t i=0; i!=Size(); ++i) {
-      double p = _phases[i], e = TEC2ModelFunc(_frequencies[i], alpha, betaEstimate);
+       double p = _phases[i], e = TEC2ModelFunc(_frequencies[i], alpha, betaEstimate);
       double dist = fmod(p - e, 2.0*M_PI);
       if(dist < -M_PI)
         dist += 2.0*M_PI;

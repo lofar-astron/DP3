@@ -59,6 +59,7 @@ void KLFitter::calculateCorrMatrix(const std::vector<PiercePoint*> pp){
 
 
 void KLFitter::doFit(){
+
   Mat<double> A=itsU.t()*(_weights*_phases);
   itsPar=itsinvU* A; 
   itsTECFitWhite=(itsinvC*(itsU*itsPar));
