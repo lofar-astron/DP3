@@ -320,6 +320,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
             *stationUVWvec = chPhase;
             *shiftdata = dcomplex(cos(chPhase), sin(chPhase));
             ++shiftdata;
+            ++stationUVWvec;
         } // Channels.
     } // Stations.
 }
