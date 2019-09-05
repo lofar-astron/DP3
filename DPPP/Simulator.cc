@@ -139,7 +139,9 @@ void Simulator::visit(const PointSource &component) {
             if (smearTerm == 0.) {
               smearTerm = 1;
             } else {
+              std::cout<<"Smearterm before sin: "<<smearTerm<<std::endl;
               smearTerm = fabs(sin(smearTerm) / smearTerm);
+              std::cout<<"Smearterm after  sin: "<<smearTerm<<std::endl;
             }
           } else {
             smearTerm = 1.;
@@ -313,12 +315,14 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
     {
         const double phase = casacore::C::_2pi * (uvw(0,st) * lmn[0]
             + uvw(1,st) * lmn[1] + uvw(2,st) * (lmn[2] - 1.0));
+        //std::cout<<"l,m,n="<<lmn[0]<<","<<lmn[1]<<", "<<lmn[2]<<"\n";
 
         for(size_t ch = 0; ch < nChannel; ++ch)
         {
             const double chPhase = phase * freq[ch] / casacore::C::c;
             *stationUVWvec = chPhase;
             *shiftdata = dcomplex(cos(chPhase), sin(chPhase));
+            //std::cout<<"shiftdata: "<<*shiftdata<<"\n";
             ++shiftdata;
             ++stationUVWvec;
         } // Channels.
