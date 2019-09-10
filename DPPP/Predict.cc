@@ -150,7 +150,7 @@ namespace DP3 {
       // Determine whether any sources are polarized. If not, enable Stokes-I-
       // only mode (note that this mode cannot be used with itsApplyBeam)
 #ifdef HAVE_LOFAR_BEAM
-      if (itsApplyBeam) {
+      if (itsApplyBeam && itsBeamMode!=ArrayFactorBeamCorrection) {
         itsStokesIOnly = false;
       } else {
         itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
@@ -174,7 +174,7 @@ namespace DP3 {
 
     Predict::~Predict()
     {}
-    
+
     void Predict::initializeThreadData()
     {
       const size_t nBl=info().nbaselines();
@@ -182,15 +182,16 @@ namespace DP3 {
       const size_t nCh = info().nchan();
       const size_t nCr = info().ncorr();
       const size_t nThreads = getInfo().nThreads();
-      
+
       itsUVW.resize(3, nSt);
       itsUVWSplitIndex = nsetupSplitUVW (info().nantenna(), info().getAnt1(),
                                          info().getAnt2());
-      
+
       itsModelVis.resize(nThreads);
       itsModelVisPatch.resize(nThreads);
 #ifdef HAVE_LOFAR_BEAM
       itsBeamValues.resize(nThreads);
+      itsBeamValuesSingle.resize(nThreads);
       itsAntBeamInfo.resize(nThreads);
       // Create the Measure ITRF conversion info given the array position.
       // The time and direction are filled in later.
@@ -218,8 +219,13 @@ namespace DP3 {
         }
 #ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeam) {
-          itsModelVisPatch[thread].resize(nCr,nCh,nBl);
+          if (itsStokesIOnly) {
+            itsModelVisPatch[thread].resize(1,nCh,nBl);
+          } else {
+            itsModelVisPatch[thread].resize(nCr,nCh,nBl);
+          }
           itsBeamValues[thread].resize(nSt*nCh);
+          itsBeamValuesSingle[thread].resize(nSt*nCh);
           itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
         }
 #endif
@@ -232,7 +238,7 @@ namespace DP3 {
       info().setNeedVisData();
       info().setWriteData();
       info().setBeamCorrectionMode(NoBeamCorrection);
-      
+
       const size_t nBl=info().nbaselines();
       for (size_t i=0; i!=nBl; ++i) {
         itsBaselines.push_back (Baseline(info().getAnt1()[i],
@@ -394,14 +400,19 @@ namespace DP3 {
           itsStokesIOnly);
       }
       std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
-      
+
       pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
         // Keep on predicting, only apply beam when an entire patch is done
         Patch::ConstPtr& curPatch = curPatches[thread];
 #ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeam && curPatch!=itsSourceList[iter].second && curPatch!=nullptr) {
-          addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
-            itsModelVisPatch[thread].data());
+          if (itsStokesIOnly) {
+            addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples/nCr,
+              itsModelVisPatch[thread].data(), itsStokesIOnly);
+          } else {
+            addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples,
+              itsModelVisPatch[thread].data(), itsStokesIOnly);
+          }
         }
 #endif
         simulators[thread].simulate(itsSourceList[iter].first);
@@ -411,8 +422,13 @@ namespace DP3 {
       // Apply beam to the last patch
       pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
         if (itsApplyBeam && curPatches[thread]!=nullptr) {
-          addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
-            itsModelVisPatch[thread].data());
+          if (itsStokesIOnly) {
+            addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples/nCr,
+              itsModelVisPatch[thread].data(), itsStokesIOnly);
+          } else {
+            addBeamToData (curPatches[thread], time, refdir, tiledir, thread, nSamples,
+              itsModelVisPatch[thread].data(), itsStokesIOnly);
+          }
         }
       });
 #endif
@@ -476,7 +492,8 @@ namespace DP3 {
     void Predict::addBeamToData (Patch::ConstPtr patch, double time,
                                  const LOFAR::StationResponse::vector3r_t& refdir,
                                  const LOFAR::StationResponse::vector3r_t& tiledir,
-                                 unsigned int thread, unsigned int nSamples, dcomplex* data0) {
+                                 unsigned int thread, unsigned int nSamples, dcomplex* data0,
+                                 bool stokesIOnly) {
       //Apply beam for a patch, add result to itsModelVis
       MDirection dir (MVDirection(patch->position()[0],
                                   patch->position()[1]),
@@ -485,10 +502,17 @@ namespace DP3 {
 
       float* dummyweight = 0;
 
-      ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
-                           tiledir, itsAntBeamInfo[thread],
-                           itsBeamValues[thread], itsUseChannelFreq, false,
-                           itsBeamMode, false);
+      if (stokesIOnly) {
+        ApplyBeam::applyBeamStokesIArrayFactor(info(), time, data0, dummyweight, srcdir, refdir,
+                             tiledir, itsAntBeamInfo[thread],
+                             itsBeamValuesSingle[thread], itsUseChannelFreq, false,
+                             itsBeamMode, false);
+      } else {
+        ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
+                             tiledir, itsAntBeamInfo[thread],
+                             itsBeamValues[thread], itsUseChannelFreq, false,
+                             itsBeamMode, false);
+      }
 
       //Add temporary buffer to itsModelVis
       std::transform(itsModelVis[thread].data(),
