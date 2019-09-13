@@ -74,7 +74,7 @@ namespace DP3 {
         // If apply beam is called from multiple threads, it needs the thread index
         // to determine what scratch space to use etc.
         bool processMultithreaded(const DPBuffer&, size_t thread);
-        
+
         // Finish the processing of this step and subsequent steps.
         virtual void finish();
 
@@ -99,6 +99,17 @@ namespace DP3 {
             const LOFAR::StationResponse::vector3r_t& tiledir,
             const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
             std::vector<LOFAR::StationResponse::matrix22c_t>& beamValues,
+            bool useChannelFreq, bool invert, int mode,
+            bool doUpdateWeights=false);
+
+        template<typename T>
+        static void applyBeamStokesIArrayFactor(
+            const DPInfo& info, double time, T* data0, float* weight0,
+            const LOFAR::StationResponse::vector3r_t& srcdir,
+            const LOFAR::StationResponse::vector3r_t& refdir,
+            const LOFAR::StationResponse::vector3r_t& tiledir,
+            const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+            std::vector<LOFAR::StationResponse::complex_t>& beamValues,
             bool useChannelFreq, bool invert, int mode,
             bool doUpdateWeights=false);
 

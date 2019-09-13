@@ -102,7 +102,7 @@ namespace DP3 {
       if (itsUpdateWeights) {
         info().setWriteWeights();
       }
-      
+
       // Parse direction parset value
       if (itsDirectionStr.empty())
         itsDirection = info().phaseCenter();
@@ -118,7 +118,7 @@ namespace DP3 {
         MDirection::Types type = MDirection::J2000;
         itsDirection = MDirection(q0, q1, type);
       }
-      
+
       if(itsInvert)
       {
         if(info().beamCorrectionMode() != NoBeamCorrection)
@@ -242,7 +242,7 @@ namespace DP3 {
       // Let the next steps finish.
       getNextStep()->finish();
     }
-    
+
 // applyBeam is templated on the type of the data, could be complex<double> or complex<float>
 template<typename T>
 void ApplyBeam::applyBeam(
@@ -359,6 +359,68 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, std::complex<double>*
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
   bool invert, int mode, bool doUpdateWeights);
-    
-}} //# end namespaces
 
+template<typename T>
+void ApplyBeam::applyBeamStokesIArrayFactor(
+  const DPInfo& info, double time, T* data0, float* weight0,
+  const LOFAR::StationResponse::vector3r_t& srcdir,
+  const LOFAR::StationResponse::vector3r_t& refdir,
+  const LOFAR::StationResponse::vector3r_t& tiledir,
+  const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+  vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
+  bool invert, int mode, bool doUpdateWeights)
+{
+  using dcomplex = std::complex<double>;
+  // Get the beam values for each station.
+  unsigned int nCh = info.chanFreqs().size();
+  unsigned int nSt = beamValues.size() / nCh;
+  unsigned int nBl = info.nbaselines();
+
+  // Store array factor in diagonal matrix (in other modes this variable
+  // is not used).
+  LOFAR::StationResponse::diag22c_t af_tmp;
+
+  double reffreq=info.refFreq();
+
+  // Apply the beam values of both stations to the ApplyBeamed data.
+  for (size_t ch = 0; ch < nCh; ++ch) {
+    if (useChannelFreq) {
+      reffreq=info.chanFreqs()[ch];
+    }
+
+    // Fill beamValues for channel ch
+    for (size_t st = 0; st < nSt; ++st) {
+      af_tmp = antBeamInfo[st]->arrayFactor(time,
+                                    info.chanFreqs()[ch], srcdir,
+                                    reffreq, refdir, tiledir);
+      if (invert) {
+        beamValues[nCh * st + ch]=1./af_tmp[0];
+      } else {
+        beamValues[nCh * st + ch]=af_tmp[0];
+      }
+    }
+
+    // Apply beam for channel ch on all baselines
+    for (size_t bl = 0; bl < nBl; ++bl) {
+      T* data = data0 + bl * nCh + ch;
+      LOFAR::StationResponse::complex_t *left = &(beamValues[nCh
+          * info.getAnt1()[bl]]);
+      LOFAR::StationResponse::complex_t *right = &(beamValues[nCh
+          * info.getAnt2()[bl]]);
+      data[0] = left[ch] * dcomplex(data[0]) * conj(right[ch]);
+
+    // TODO: update weights?
+    }
+  }
+}
+
+template
+void ApplyBeam::applyBeamStokesIArrayFactor(const DPInfo& info, double time, std::complex<double>* data0, float* weight0,
+  const LOFAR::StationResponse::vector3r_t& srcdir,
+  const LOFAR::StationResponse::vector3r_t& refdir,
+  const LOFAR::StationResponse::vector3r_t& tiledir,
+  const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
+  vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
+  bool invert, int mode, bool doUpdateWeights);
+
+}} //# end namespaces

@@ -123,7 +123,8 @@ namespace DP3 {
       void addBeamToData (Patch::ConstPtr patch, double time,
                                    const LOFAR::StationResponse::vector3r_t& refdir,
                                    const LOFAR::StationResponse::vector3r_t& tiledir,
-                                   unsigned int thread, unsigned int nSamples, dcomplex* data0);
+                                   unsigned int thread, unsigned int nSamples,
+                                   dcomplex* data0, bool stokesIOnly);
 #endif
       //# Data members.
       DPInput*         itsInput;
@@ -159,6 +160,7 @@ namespace DP3 {
       // The info needed to calculate the station beams.
       std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
       std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
+      std::vector<std::vector<LOFAR::StationResponse::complex_t> >  itsBeamValuesSingle;
       BeamCorrectionMode itsBeamMode;
 #endif
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
