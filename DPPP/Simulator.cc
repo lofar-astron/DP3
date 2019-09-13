@@ -89,7 +89,7 @@ void Simulator::simulate(const ModelComponent::ConstPtr &component)
 
 void Simulator::visit(const PointSource &component) {
   // Compute LMN coordinates.
-  double lmn[3];
+  double lmn[4];
   radec2lmn(itsReference, component.position(), lmn);
 
   // Compute station phase shifts.
@@ -155,7 +155,7 @@ void Simulator::visit(const PointSource &component) {
 void Simulator::visit(const GaussianSource &component)
 {
     // Compute LMN coordinates.
-    double lmn[3];
+    double lmn[4];
     radec2lmn(itsReference, component.position(), lmn);
 
     // Compute station phase shifts.
@@ -262,14 +262,24 @@ inline void radec2lmn(const Position &reference, const Position &position,
   const double dRA = position[0] - reference[0];
   const double pDEC = position[1];
   const double rDEC = reference[1];
-  const double cDEC = cos(pDEC);
+  const double sdRA = sin(dRA);
+  const double cdRA = cos(dRA);
+  const double spDEC = sin(pDEC);
+  const double cpDEC = cos(pDEC);
+  const double srDEC = sin(rDEC);
+  const double crDEC = cos(rDEC);
 
-  const double l = cDEC * sin(dRA);
-  const double m = sin(pDEC) * cos(rDEC) - cDEC * sin(rDEC) * cos(dRA);
+  const double l = cDEC * sdRA;
+  const double m = spDEC * crDEC - cpDEC * srDEC * cdRA;
+  // Derivative of l, m w.r.t. declination, needed for position angle
+  const double lprime = -sdRA * spDEC;
+  const double mprime = cDEC * crDEC + cdRA * spDEC * srDEC;
+  const double correction = atan2(lprime, mprime);
 
   lmn[0] = l;
   lmn[1] = m;
   lmn[2] = sqrt(1.0 - l * l - m * m);
+  lmn[3] = correction;
 }
 
 // Compute station phase shifts.
