@@ -254,10 +254,12 @@ else()
   )
 endif()
 
-add_library(dppp_testdyndppp SHARED
-  TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
-)
-set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  add_library(dppp_testdyndppp SHARED
+    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+  )
+  set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+endif()
 
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
