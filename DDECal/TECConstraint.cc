@@ -53,8 +53,21 @@ void ApproximateTECConstraint::initializeChild()
 
 void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const
 {
-  // TODO chose this more cleverly?
+  // Choose reference antenna that has at least 20% channels unflagged
   size_t refAntenna = 0;
+  for(; refAntenna!=_nAntennas; ++refAntenna)
+  {
+    size_t nUnFlaggedChannels=0;
+    // Only check flagged state for first direction
+    for (size_t ch=0; ch!=_nChannelBlocks; ++ch)
+    {
+      if(isfinite(solutions[0][refAntenna*_nDirections]))
+        nUnFlaggedChannels++;
+    }
+    if (nUnFlaggedChannels*1.0/_nChannelBlocks > 0.2)
+      // Choose this refAntenna;
+      break;
+  }
 
   for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
   {
