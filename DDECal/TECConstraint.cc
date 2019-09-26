@@ -62,7 +62,7 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
     // Only check flagged state for first direction
     for (size_t ch=0; ch!=_nChannelBlocks; ++ch)
     {
-      if(isfinite(solutions[0][refAntenna*_nDirections]))
+      if(isfinite(solutions[ch][refAntenna*_nDirections]))
         nUnFlaggedChannels++;
     }
     if (nUnFlaggedChannels*1.0/_nChannelBlocks > 0.2)
