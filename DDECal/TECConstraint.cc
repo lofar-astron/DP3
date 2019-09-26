@@ -4,6 +4,7 @@
 
 TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
+  _doPhaseReference(true),
   _phaseFitters()
 {
 }
@@ -117,7 +118,8 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res.back().name="error";
 
   // Divide out the reference antenna
-  applyReferenceAntenna(solutions);
+  if (_doPhaseReference)
+    applyReferenceAntenna(solutions);
   
   DP3::ParallelFor<size_t> loop(_nThreads);
   loop.Run(0, _nAntennas*_nDirections, [&](size_t solutionIndex, size_t thread)
@@ -170,7 +172,8 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   if(_finishedApproximateStage)
     return TECConstraint::Apply(solutions, time, statStream);
   else {
-    applyReferenceAntenna(solutions);
+    if (_doPhaseReference)
+      applyReferenceAntenna(solutions);
     
     DP3::ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nAntennas*_nDirections, [&](size_t solutionIndex, size_t thread)

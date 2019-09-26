@@ -261,13 +261,24 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
             new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
         ptr->SetMaxApproximatingIterations(iters);
         ptr->SetFittingChunkSize(chunksize);
+        ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
         itsConstraints.emplace_back(std::move(ptr));
       }
       else {
         if(itsMode == GainCal::TEC)
-          itsConstraints.emplace_back(new TECConstraint(TECConstraint::TECOnlyMode));
-          else
-          itsConstraints.emplace_back(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
+        {
+          std::unique_ptr<TECConstraintBase> ptr;
+          ptr = std::unique_ptr<TECConstraintBase>(new TECConstraint(TECConstraint::TECOnlyMode));
+          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
+          itsConstraints.emplace_back(std::move(ptr));
+        }
+        else
+        {
+          std::unique_ptr<TECConstraintBase> ptr;
+          ptr = std::unique_ptr<TECConstraintBase>(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
+          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
+          itsConstraints.emplace_back(std::move(ptr));
+        }
       }
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = false;
