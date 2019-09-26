@@ -267,15 +267,13 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
       else {
         if(itsMode == GainCal::TEC)
         {
-          std::unique_ptr<TECConstraintBase> ptr;
-          ptr = std::unique_ptr<TECConstraintBase>(new TECConstraint(TECConstraint::TECOnlyMode));
+          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECOnlyMode));
           ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
           itsConstraints.emplace_back(std::move(ptr));
         }
         else
         {
-          std::unique_ptr<TECConstraintBase> ptr;
-          ptr = std::unique_ptr<TECConstraintBase>(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
+          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
           ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
           itsConstraints.emplace_back(std::move(ptr));
         }
