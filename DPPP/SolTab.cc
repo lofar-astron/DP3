@@ -323,7 +323,11 @@ namespace DP3 {
     try {
       val.read(res.data(), H5::PredType::NATIVE_DOUBLE, memspace, dataspace);
     } catch (H5::DataSetIException& e) {
+#ifdef HAVE_HDF5_1_10_1
       e.printErrorStack();
+#else
+      e.printError();
+#endif
       throw Exception("Could not read data");
     }
     return res;
