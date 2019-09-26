@@ -69,6 +69,9 @@ void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> 
       // Choose this refAntenna;
       break;
   }
+  // All antennas are flagged, use first one (will lead to NaNs for this solint)
+  if (refAntenna == _nChannelBlocks)
+    refAntenna = 0;
 
   for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
   {
