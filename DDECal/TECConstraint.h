@@ -34,6 +34,12 @@ public:
   
   /** Propagate weights to the phase fitters */
   virtual void SetWeights(const std::vector<double>& weights) final override;
+
+  /** Setter for doPhaseReference */
+  void setDoPhaseReference(bool doPhaseReference)
+  {
+    _doPhaseReference = doPhaseReference;
+  }
   
 protected:
   virtual void initializeChild() { }
@@ -41,6 +47,7 @@ protected:
   void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
   
   Mode _mode;
+  bool _doPhaseReference;
   std::vector<PhaseFitter> _phaseFitters;
   std::vector<double> _weights;
 };

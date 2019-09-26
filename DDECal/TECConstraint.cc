@@ -4,6 +4,7 @@
 
 TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
+  _doPhaseReference(true),
   _phaseFitters()
 {
 }
@@ -53,8 +54,24 @@ void ApproximateTECConstraint::initializeChild()
 
 void TECConstraintBase::applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const
 {
-  // TODO chose this more cleverly?
+  // Choose reference antenna that has at least 20% channels unflagged
   size_t refAntenna = 0;
+  for(; refAntenna!=_nAntennas; ++refAntenna)
+  {
+    size_t nUnFlaggedChannels=0;
+    // Only check flagged state for first direction
+    for (size_t ch=0; ch!=_nChannelBlocks; ++ch)
+    {
+      if(isfinite(solutions[ch][refAntenna*_nDirections]))
+        nUnFlaggedChannels++;
+    }
+    if (nUnFlaggedChannels*1.0/_nChannelBlocks > 0.2)
+      // Choose this refAntenna;
+      break;
+  }
+  // All antennas are flagged, use first one (will lead to NaNs for this solint)
+  if (refAntenna == _nChannelBlocks)
+    refAntenna = 0;
 
   for(size_t ch=0; ch!=_nChannelBlocks; ++ch)
   {
@@ -104,7 +121,8 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res.back().name="error";
 
   // Divide out the reference antenna
-  applyReferenceAntenna(solutions);
+  if (_doPhaseReference)
+    applyReferenceAntenna(solutions);
   
   DP3::ParallelFor<size_t> loop(_nThreads);
   loop.Run(0, _nAntennas*_nDirections, [&](size_t solutionIndex, size_t thread)
@@ -157,7 +175,8 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   if(_finishedApproximateStage)
     return TECConstraint::Apply(solutions, time, statStream);
   else {
-    applyReferenceAntenna(solutions);
+    if (_doPhaseReference)
+      applyReferenceAntenna(solutions);
     
     DP3::ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nAntennas*_nDirections, [&](size_t solutionIndex, size_t thread)
