@@ -22,7 +22,7 @@
 //# @author André Offringa
 
 /**
- * @file phasefitter.h Implements TEC model phase filter @ref PhaseFitter.
+ * @file PhaseFitter.h Implements TEC model phase filter @ref PhaseFitter.
  * @author André Offringa
  * @date 2016-04-06
  */
@@ -193,7 +193,8 @@ class PhaseFitter
 	 *
 	 * @returns Array of @ref Size() doubles with the weights.
    */
-  double* WeightData() {
+  double* WeightData()
+  {
     return _weights.data();
   }
   
