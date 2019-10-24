@@ -169,7 +169,7 @@ void PhaseFitter::bruteForceSearchTEC1Model(double& lowerAlpha, double& upperAlp
     double r = double(i)/alphaOversampling;
     double alpha = lowerAlpha + r*dAlpha;
     // We have to have some freedom in the fit to make sure
-    // we do rule out an area with an unwripping that is correct
+    // we do rule out an area with an unwrapping that is correct
     // Hence we use the two-parameter model and allow beta to be fitted.
     // The ternary search will fix alpha to accomodate a zero beta.
     double curBeta = fitTEC2ModelBeta(alpha, 0.0);
