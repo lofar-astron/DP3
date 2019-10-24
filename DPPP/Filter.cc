@@ -195,7 +195,7 @@ namespace DP3 {
         itsBuf.setUVW (buf.getUVW());
         itsBuf.setRowNrs (buf.getRowNrs());
       } else {
-        Vector<unsigned int> rowNrs;
+        Vector<rownr_t> rowNrs;
         if (! buf.getRowNrs().empty()) {
           rowNrs.resize(getInfo().nbaselines());
         }
@@ -205,7 +205,7 @@ namespace DP3 {
         Float*   toWeight = itsBuf.getWeights().data();
         Double*  toUVW    = itsBuf.getUVW().data();
         Bool*    toFrf    = itsBuf.getFullResFlags().data();
-        unsigned int off = data.shape()[0] * first[1];    // offset of first channel
+        size_t off = data.shape()[0] * first[1];    // offset of first channel
         const Complex* frData   = data.data()    + off;
         const Bool*    frFlag   = flags.data()   + off;
         const Float*   frWeight = weights.data() + off;
@@ -214,7 +214,7 @@ namespace DP3 {
         int ndto = itsBuf.getData().shape()[0] * itsBuf.getData().shape()[1];
         int nffr = frFlags.shape()[0];
         int nfto = itsBuf.getFullResFlags().shape()[0];
-        for (unsigned int i=0; i<itsSelBL.size(); ++i) {
+        for (size_t i=0; i<itsSelBL.size(); ++i) {
           if (!buf.getRowNrs().empty()) {
             rowNrs[i] = buf.getRowNrs()[itsSelBL[i]];
           }
@@ -229,7 +229,7 @@ namespace DP3 {
           // Copy FullResFlags for all times.
           const Bool* frFrf = (frFlags.data() + frfFirst[0] +
                                itsSelBL[i]*nffr * frFlags.shape()[1]);
-          for (int j=0; j<=frfLast[1]; ++j) {
+          for (size_t j=0; j<=size_t(frfLast[1]); ++j) {
             objcopy (toFrf, frFrf, nfto);
             toFrf += nfto;
             frFrf += nffr;
@@ -265,12 +265,12 @@ namespace DP3 {
       // Remove these rows from the ANTENNA table.
       // Note that stations of baselines that have been filtered out before,
       // will also be removed.
-      Vector<uInt> removedAnt = selTab.rowNumbers();
-      Vector<Int> antMap = createIdMap (antTab.nrow(), removedAnt);
+      Vector<rownr_t> removedAnt = selTab.rowNumbers();
+      Vector<rownr_t> antMap = createIdMap (antTab.nrow(), removedAnt);
       antTab.removeRow (removedAnt);
       // Remove and renumber the stations in other subtables.
       Table ms(msName);
-      uInt nr;
+      rownr_t nr;
       renumberSubTable (ms, "FEED", "ANTENNA_ID", removedAnt, antMap, nr);
       renumberSubTable (ms, "POINTING", "ANTENNA_ID", removedAnt, antMap, nr);
       renumberSubTable (ms, "SYSCAL", "ANTENNA_ID", removedAnt, antMap, nr);
@@ -279,55 +279,57 @@ namespace DP3 {
       renumberSubTable (ms, "QUALITY_BASELINE_STATISTIC", "ANTENNA2",
                         removedAnt, antMap, nr);
       // Finally remove and renumber in the beam tables.
-      uInt nrAntFldId;
-      Vector<uInt> remAntFldId = renumberSubTable (ms, "LOFAR_ANTENNA_FIELD",
+      rownr_t nrAntFldId;
+      Vector<rownr_t> remAntFldId = renumberSubTable (ms, "LOFAR_ANTENNA_FIELD",
                                                    "ANTENNA_ID",
                                                    removedAnt, antMap,
                                                    nrAntFldId);
       if (! remAntFldId.empty()) {
-        Vector<Int> antFldIdMap = createIdMap (nrAntFldId, remAntFldId);
+        Vector<rownr_t> antFldIdMap = createIdMap (nrAntFldId, remAntFldId);
         renumberSubTable (ms, "LOFAR_ELEMENT_FAILURE", "ANTENNA_FIELD_ID",
                           remAntFldId, antFldIdMap, nr);
       }
     }
 
-    Vector<Int> Filter::createIdMap (uInt nrId,
-                                     const Vector<uInt>& removedIds) const
+    Vector<rownr_t> Filter::createIdMap (rownr_t nrId,
+                                     const Vector<rownr_t>& removedIds) const
     {
       // Create the mapping from old to new id.
-      Vector<Int> idMap (nrId);
+      Vector<rownr_t> idMap (nrId);
       indgen (idMap);   // fill with 0,1,2,...
       int nrrem = 0;
-      for (uInt i=0; i<removedIds.size(); ++i) {
+      for (rownr_t i=0; i<removedIds.size(); ++i) {
         idMap[removedIds[i]] = -1;
         nrrem++;
         if (i < removedIds.size() - 1) {
-          for (uInt j=removedIds[i]+1; j<removedIds[i+1]; ++j) {
+          for (rownr_t j=removedIds[i]+1; j<removedIds[i+1]; ++j) {
             idMap[j] -= nrrem;
           }
         }
       }
-      for (uInt j=removedIds[removedIds.size()-1]+1; j<idMap.size(); ++j) {
+      for (rownr_t j=removedIds[removedIds.size()-1]+1; j<idMap.size(); ++j) {
         idMap[j] -= nrrem;
       }
       return idMap;
     }
 
-    Vector<uInt> Filter::renumberSubTable (const Table& ms,
+    Vector<rownr_t> Filter::renumberSubTable (const Table& ms,
                                            const String& name,
                                            const String& colName,
-                                           const Vector<uInt>& removedAnt,
-                                           const Vector<Int>& antMap,
-                                           uInt& nrId) const
+                                           const Vector<rownr_t>& removedAnt,
+                                           const Vector<rownr_t>& antMap,
+                                           rownr_t& nrId) const
     {
       // Exit if no such subtable.
       if (! ms.keywordSet().isDefined(name)) {
-        return Vector<uInt>();
+        return Vector<rownr_t>();
       }
       // Remove the rows of the removed stations.
       Table subTab (ms.tableName() + '/' + name, Table::Update);
       nrId = subTab.nrow();
-      Table selTab = subTab(subTab.col(colName).in (removedAnt));
+      // TODO fix when casacore int64tab gets fixed
+      Vector<uInt> vec32(removedAnt.begin(), removedAnt.shape()[0], 0);
+      Table selTab = subTab(subTab.col(colName).in (vec32));
       subTab.removeRow (selTab.rowNumbers());
       // Renumber the rest.
       ScalarColumn<Int> antCol(subTab, colName);

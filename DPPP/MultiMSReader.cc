@@ -151,12 +151,12 @@ namespace DP3 {
       for (int i=0; i<nband; ++i) {
         freqs[i] = itsReaders[i]->getInfo().chanFreqs().data()[0];
       }
-      Vector<uInt> index;
-      GenSortIndirect<double>::sort (index, freqs);
+      Vector<casacore::rownr_t> index;
+      GenSortIndirect<double, casacore::rownr_t>::sort (index, freqs);
       vector<MSReader*> oldReaders (itsReaders);
       for (int i=0; i<nband; ++i) {
         itsReaders[i] = oldReaders[index[i]];
-      }      
+      }
     }
 
     void MultiMSReader::fillBands()

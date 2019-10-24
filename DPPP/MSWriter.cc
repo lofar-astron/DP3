@@ -92,7 +92,7 @@ namespace DP3 {
     {
       NSTimer::StartStop sstime(itsTimer);
       // Form the vector of the output table containing new rows.
-      Vector<unsigned int> rownrs(itsNrBl);
+      Vector<rownr_t> rownrs(itsNrBl);
       indgen (rownrs, itsMS.nrow());
       // Add the necessary rows to the table.
       itsMS.addRow (itsNrBl);

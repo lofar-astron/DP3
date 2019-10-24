@@ -128,12 +128,12 @@ namespace BBS {
   {
     {
       TableLocker locker(itsSourceTable, FileLocker::Write);
-      Vector<unsigned int> rows = itsSourceTable.rowNumbers();
+      Vector<rownr_t> rows = itsSourceTable.rowNumbers();
       itsSourceTable.removeRow(rows);
     }
     {
       TableLocker locker(itsPatchTable, FileLocker::Write);
-      Vector<unsigned int> rows = itsPatchTable.rowNumbers();
+      Vector<rownr_t> rows = itsPatchTable.rowNumbers();
       itsPatchTable.removeRow(rows);
     }
   }
