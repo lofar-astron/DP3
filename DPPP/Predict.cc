@@ -110,9 +110,16 @@ namespace DP3 {
       ss << sourcePatterns;
       itsDirectionsStr = ss.str();
 
-      vector<string> patchNames=makePatchList(sourceDB, sourcePatterns);
-      itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
-
+      vector<string> patchNames;
+      try {
+        patchNames = makePatchList(sourceDB, sourcePatterns);
+        itsPatchList = makePatches (sourceDB, patchNames, patchNames.size());
+      }
+      catch(std::exception& exception)
+      {
+        throw std::runtime_error(std::string("Something went wrong while reading the source model. The error was: ") + exception.what());
+      }
+      
 #ifdef HAVE_LOFAR_BEAM
       if (itsApplyBeam) {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
