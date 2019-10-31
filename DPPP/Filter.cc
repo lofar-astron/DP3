@@ -327,9 +327,7 @@ namespace DP3 {
       // Remove the rows of the removed stations.
       Table subTab (ms.tableName() + '/' + name, Table::Update);
       nrId = subTab.nrow();
-      // TODO fix when casacore int64tab gets fixed
-      Vector<uInt> vec32(removedAnt.begin(), removedAnt.shape()[0], 0);
-      Table selTab = subTab(subTab.col(colName).in (vec32));
+      Table selTab = subTab(subTab.col(colName).in (TableExprNode(removedAnt)));
       subTab.removeRow (selTab.rowNumbers());
       // Renumber the rest.
       ScalarColumn<Int> antCol(subTab, colName);

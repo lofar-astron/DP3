@@ -231,10 +231,7 @@ namespace BBS {
     Table table = itsTables[0];
     TableLocker locker(table, FileLocker::Read);
     if (!parmNamePattern.empty()  &&  parmNamePattern != "*") {
-      // TODO fix this when casacore tab64bit is fixed
-      Vector<rownr_t> nameIds = getNameIds(parmNamePattern);
-      Vector<uInt> vec32(nameIds.begin(), nameIds.shape()[0], 0);
-      table = table(table.col("NAMEID").in (vec32));
+      table = table(table.col("NAMEID").in (TableExprNode(getNameIds(parmNamePattern))));
     }
     return findRange (table);
   }
@@ -244,9 +241,7 @@ namespace BBS {
     Table table = itsTables[0];
     TableLocker locker(table, FileLocker::Read);
     if (!parmNames.empty()) {
-      Vector<rownr_t> nameIds = getNameIds(parmNames);
-      Vector<uInt> vec32(nameIds.begin(), nameIds.shape()[0], 0);
-      table = table(table.col("NAMEID").in (vec32));
+      table = table(table.col("NAMEID").in (TableExprNode(getNameIds(parmNames))));
     }
     return findRange (table);
   }
@@ -682,11 +677,7 @@ namespace BBS {
     Table nameSel = getNameSel (parmNamePattern);
     // Find all rows. Test if a domain selection was given.
     TableExprNode expr = makeExpr (table, domain);
-    
-    // TODO fix this when casacore tab64bit is fixed
-    Vector<rownr_t> rownrs = nameSel.rowNumbers();
-    Vector<uInt> vec32(rownrs.begin(), rownrs.shape()[0], 0);
-    andExpr (expr, table.col("NAMEID").in (vec32));
+    andExpr (expr, table.col("NAMEID").in (TableExprNode(nameSel.rowNumbers())));
     Table sel = table(expr);
     // Delete all rows found.
     table.removeRow (sel.rowNumbers (table));
@@ -714,10 +705,8 @@ namespace BBS {
     TableLocker locker(table, FileLocker::Read);
     // Find all rows overlapping the requested domain.
     TableExprNode expr = makeExpr (table, domain);
-    // TODO fix this when casacore tab64bit is fixed
-    Vector<rownr_t> nameIds = getNameIds(vector<string>(1, parmName));
-    Vector<uInt> vec32(nameIds.begin(), nameIds.shape()[0], 0);
-    andExpr (expr, table.col("NAMEID").in(vec32));
+    andExpr (expr, table.col("NAMEID").in(TableExprNode
+             (getNameIds(vector<string>(1, parmName)))));
     return table(expr);
   }
 
