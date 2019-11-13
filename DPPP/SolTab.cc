@@ -256,6 +256,13 @@ namespace DP3 {
       nfreqH5 = getFreqIndex(freqs[freqs.size()-1])-startFreq+1;
       freqAxisH5 = vector<double>(fullFreqAxisH5.begin()+startFreq, fullFreqAxisH5.begin()+startFreq+nfreqH5);
     }
+    if (hasAxis("pol")) {
+      unsigned int npolH5 = getAxis("pol").size;
+      if (pol>npolH5-1) {
+        throw Exception("Polarization " + std::to_string(pol) + " requested from H5Parm, but only " +
+                        std::to_string(npolH5) + " polarizations are in there.");
+      }
+    }
 
     vector<double> h5values = getValuesOrWeights(valOrWeight,
                         antName,
