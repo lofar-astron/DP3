@@ -839,8 +839,7 @@ namespace DP3 {
       float* weight = weights.data();
       for (unsigned int i=0; i<nbl; ++i) {
         // Can only be done if both autocorrelations are present.
-        if (ant1[i] != ant2[i]  &&
-            autoInx[ant1[i]] >= 0  &&  autoInx[ant2[i]] >= 0) {
+        if (autoInx[ant1[i]] >= 0  &&  autoInx[ant2[i]] >= 0) {
           // Get offset of both autocorrelations in data array.
           const Complex* auto1 = data + autoInx[ant1[i]]*nchan*npol;
           const Complex* auto2 = data + autoInx[ant2[i]]*nchan*npol;
