@@ -269,11 +269,11 @@ inline void radec2lmn(const Position &reference, const Position &position,
   const double srDEC = sin(rDEC);
   const double crDEC = cos(rDEC);
 
-  const double l = cDEC * sdRA;
+  const double l = cpDEC * sdRA;
   const double m = spDEC * crDEC - cpDEC * srDEC * cdRA;
   // Derivative of l, m w.r.t. declination, needed for position angle
   const double lprime = -sdRA * spDEC;
-  const double mprime = cDEC * crDEC + cdRA * spDEC * srDEC;
+  const double mprime = cpDEC * crDEC + cdRA * spDEC * srDEC;
   const double correction = atan2(lprime, mprime);
 
   lmn[0] = l;
