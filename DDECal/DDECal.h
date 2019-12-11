@@ -114,7 +114,6 @@ namespace DP3 {
       // Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-
     private:
       void initializeConstraints(const ParameterSet& parset, const string& prefix);
       void initializeIDG(const ParameterSet& parset, const string& prefix);
