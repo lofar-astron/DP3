@@ -22,14 +22,15 @@ public:
 	
 	int OffsetY() const { return _offsetY; }
 	
-	void Set(size_t width, size_t height, double value)
+	void Set(size_t width, size_t height, size_t spectralTerms, double value)
 	{
 		_width = width;
 		_height = height;
-		_data.assign(width * height, value);
+    for(size_t i=0; i!=spectralTerms; ++i)
+      _data[i].assign(width * height, value);
 	}
 	
-	void CopyFacetPart(const Facet& facet, const double* input, size_t inputWidth, size_t inputHeight, double padding, bool makeSquare)
+	void CopyFacetPart(const Facet& facet, const std::vector<ao::uvector<double>>& inputs, size_t inputWidth, size_t inputHeight, double padding, bool makeSquare)
 	{
 		Facet cFacet = clippedFacet(facet, inputWidth, inputHeight);
 		int x1, x2, y1, y2;
@@ -47,23 +48,26 @@ public:
 		paddedHeight += (4-(paddedHeight%4))%4;
 		int padX = (paddedWidth-width)/2;
 		int padY = (paddedHeight-height)/2;
-    Set(paddedWidth, paddedHeight, 0.0);
+    Set(paddedWidth, paddedHeight, inputs.size(), 0.0);
 		_offsetX = x1-padX;
 		_offsetY = y1-padY;
-		for(int y=y1; y!=y2; ++y)
-		{
-			int xi1, xi2;
-			if(cFacet.HorizontalIntersections(y, xi1, xi2))
-			{
-				if(xi1<0) xi1=0;
-				if(xi2<0) xi2=0;
-				if(xi2-xi1>int(width)) xi2=xi1+width;
-				for(int x=xi1; x!=xi2; ++x)
-				{
-					_data[(y-y1+padY)*paddedWidth + x-x1+padX] = input[y*inputWidth + x];
-				}
-			}
-		}
+    for(size_t term=0; term!=inputs.size(); ++term)
+    {
+      for(int y=y1; y!=y2; ++y)
+      {
+        int xi1, xi2;
+        if(cFacet.HorizontalIntersections(y, xi1, xi2))
+        {
+          if(xi1<0) xi1=0;
+          if(xi2<0) xi2=0;
+          if(xi2-xi1>int(width)) xi2=xi1+width;
+          for(int x=xi1; x!=xi2; ++x)
+          {
+            _data[term][(y-y1+padY)*paddedWidth + x-x1+padX] = inputs[term][y*inputWidth + x];
+          }
+        }
+      }
+    }
 	}
 	
 	void FillFacet(const Facet& facet, int colour)
@@ -72,25 +76,29 @@ public:
 		int x1, x2, y1, y2;
 		cFacet.BoundingBox(x1, x2, y1, y2);
 		size_t width = x2-x1;
-		for(int y=y1; y!=y2; ++y)
-		{
-			int xi1, xi2;
-			if(cFacet.HorizontalIntersections(y, xi1, xi2))
-			{
-				if(xi1<0) xi1=0;
-				if(xi2<0) xi2=0;
-				if(xi2-xi1>int(width)) xi2=xi1+width;
-				for(int x=xi1; x!=xi2; ++x)
-				{
-					_data[y*_width + x] = colour;
-				}
-			}
+    for(size_t term=0; term!=_data.size(); ++term)
+    {
+      for(int y=y1; y!=y2; ++y)
+      {
+        int xi1, xi2;
+        if(cFacet.HorizontalIntersections(y, xi1, xi2))
+        {
+          if(xi1<0) xi1=0;
+          if(xi2<0) xi2=0;
+          if(xi2-xi1>int(width)) xi2=xi1+width;
+          for(int x=xi1; x!=xi2; ++x)
+          {
+            _data[term][y*_width + x] = colour;
+          }
+        }
+      }
 		}
 	}
 	
-	double* Data() { return _data.data(); }
+	double* Data(size_t spectralTerm) { return _data[spectralTerm].data(); }
 	
-	ao::uvector<double> AcquireData() { return std::move(_data); }
+	ao::uvector<double> AcquireData(size_t spectralTerm)
+  { return std::move(_data[spectralTerm]); }
 	
 private:
 	Facet clippedFacet(const Facet& input, int width, int height)
@@ -107,7 +115,7 @@ private:
 		return clippedFacet;
 	}
 	
-	ao::uvector<double> _data;
+	std::vector<ao::uvector<double>> _data;
 	size_t _width, _height;
 	int _offsetX, _offsetY;
 };
