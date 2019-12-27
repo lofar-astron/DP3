@@ -33,6 +33,7 @@ public:
     DS9FacetFile f(ds9RegionsFile);
     _fullWidth = _readers.front().ImageWidth();
     _fullHeight = _readers.front().ImageHeight();
+    _refFrequency = _readers.front().Frequency();
     std::vector<ao::uvector<double>> models(_readers.size());
     for(size_t img=0; img!=_readers.size(); ++img)
     {
@@ -63,7 +64,7 @@ public:
   
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
   {
-        _maxBaseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
+    _maxBaseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline << " wavelengths.\n";
     _bands = std::move(bands);
@@ -75,7 +76,7 @@ public:
     _maxW = maxW;
     _bands = std::move(bands);
     _nr_stations = nr_stations;
-          _maxBaseline = max_baseline;
+    _maxBaseline = max_baseline;
   }
   
   bool IsStarted() const { return !_buffersets.empty(); }
@@ -183,21 +184,29 @@ private:
   void computePredictionBuffer(size_t dataDescId, size_t direction)
   {
     size_t nTerms = _readers.size();
+    typedef std::vector<std::pair<size_t, std::complex< float >*>> rowidlist_t;
+    std::vector<rowidlist_t> available_row_ids(nTerms);
     for(size_t term=0; term!=nTerms; ++term)
     {
       idg::api::BufferSet& bs = *_buffersets[direction*nTerms + term];
-      auto available_row_ids = bs.get_degridder(dataDescId)->compute();
-      for(auto i : available_row_ids)
+      available_row_ids[term] = bs.get_degridder(dataDescId)->compute();
+    }
+    
+    size_t nChan = _bands[dataDescId].size();
+    double
+      dlFact = 2.0 * M_PI * _metaData[direction].dl,
+      dmFact = 2.0 * M_PI * _metaData[direction].dm,
+      dpFact = 2.0 * M_PI * _metaData[direction].dp;
+    for(size_t i=0; i!=available_row_ids[0].size(); ++i)
+    {
+      size_t row = available_row_ids[0][i].first;
+      size_t localRow = row - _metaData[direction].rowIdOffset;
+      const double* uvw = &_metaData[direction].uvws[localRow*3];
+      
+      // Correct the phase shift of the values for this facet
+      for(size_t term=0; term!=nTerms; ++term)
       {
-        size_t row = i.first;
-        std::complex<float>* values = i.second;
-        size_t nChan = _bands[dataDescId].size();
-        size_t localRow = row - _metaData[direction].rowIdOffset;
-        double* uvw = &_metaData[direction].uvws[localRow*3];
-        double
-          dlFact = 2.0 * M_PI * _metaData[direction].dl,
-          dmFact = 2.0 * M_PI * _metaData[direction].dm,
-          dpFact = 2.0 * M_PI * _metaData[direction].dp;
+        std::complex<float>* values = available_row_ids[term][i].second;
         for(size_t ch=0; ch!=nChan; ++ch)
         {
           double
@@ -216,8 +225,28 @@ private:
               s.real() * rotSin  +  s.imag() * rotCos);
           }
         }
-        PredictCallback(row, direction, dataDescId, values);
       }
+      
+      // Apply polynomial-term corrections and add all to values of 'term 0'
+      std::complex<float>* values0 = available_row_ids[0][i].second;
+      for(size_t ch=0; ch!=nChan; ++ch)
+      {
+        double frequency = _bands[dataDescId][ch];
+        double freqFactor = frequency / _refFrequency - 1.0;
+        double polynomialFactor = 1.0;
+        for(size_t term=1; term!=nTerms; ++term)
+        {
+          polynomialFactor *= freqFactor;
+          const std::complex<float>* values = available_row_ids[term][i].second;
+          for(size_t p=0; p!=4; ++p)
+            values0[ch*4 + p] += values[ch*4 + p] * float(polynomialFactor);
+        }
+      }
+      PredictCallback(row, direction, dataDescId, values0);
+    }
+    for(size_t term=0; term!=nTerms; ++term)
+    {
+      idg::api::BufferSet& bs = *_buffersets[direction*nTerms + term];
       bs.get_degridder(dataDescId)->finished_reading();
     }
     _metaData[direction].isInitialized = false;
@@ -241,6 +270,7 @@ private:
   std::vector<FacetMetaData> _metaData;
   
   size_t _fullWidth, _fullHeight;
+  double _refFrequency;
   double _pixelSizeX, _pixelSizeY;
   std::vector<FitsReader> _readers;
   double _padding;
@@ -263,7 +293,7 @@ private:
 class FacetPredict
 {
 public:
-	FacetPredict(const std::string&, const std::string&)
+	FacetPredict(const std::vector<std::string>&, const std::string&)
 	{ notCompiled(); }
 	
 	void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
