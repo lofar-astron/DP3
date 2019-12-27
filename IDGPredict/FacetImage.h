@@ -26,6 +26,7 @@ public:
 	{
 		_width = width;
 		_height = height;
+    _data.resize(spectralTerms);
     for(size_t i=0; i!=spectralTerms; ++i)
       _data[i].assign(width * height, value);
 	}

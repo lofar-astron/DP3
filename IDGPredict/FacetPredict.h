@@ -175,7 +175,7 @@ public:
   {
     for(size_t b=0; b!=_bands.size(); ++b)
     {
-      for(size_t direction = 0; direction != _buffersets.size(); ++direction)
+      for(size_t direction = 0; direction != _directions.size(); ++direction)
         computePredictionBuffer(b, direction);
     }
   }
