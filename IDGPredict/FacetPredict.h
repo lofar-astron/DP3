@@ -23,22 +23,34 @@
 class FacetPredict
 {
 public:
-  FacetPredict(const std::string& fitsModelFile, const std::string& ds9RegionsFile) :
-    _reader(fitsModelFile),
+  FacetPredict(const std::vector<std::string> fitsModelFiles, const std::string& ds9RegionsFile) :
     _padding(1.0)
   {
-    DS9FacetFile f(ds9RegionsFile);
-    const size_t width = _reader.ImageWidth(), height = _reader.ImageHeight();
-    ao::uvector<double> model(width * height);
-    _reader.Read(model.data());
-    _fullWidth = width;
-    _fullHeight = height;
-    _pixelSizeX = _reader.PixelSizeX();
-    _pixelSizeY = _reader.PixelSizeY();
+    if(fitsModelFiles.empty())
+      throw std::runtime_error("No fits files specified for IDG predict");
+    _readers.reserve(fitsModelFiles.size());
+    for(const std::string& file : fitsModelFiles)
+      _readers.emplace_back(file);
     
+    DS9FacetFile f(ds9RegionsFile);
+    _fullWidth = _readers.front().ImageWidth();
+    _fullHeight = _readers.front().ImageHeight();
+    _refFrequency = _readers.front().Frequency();
+    _pixelSizeX = _readers.front().PixelSizeX();
+    _pixelSizeY = _readers.front().PixelSizeY();
+    std::vector<ao::uvector<double>> models(_readers.size());
+    for(size_t img=0; img!=_readers.size(); ++img)
+    {
+      if(_readers[img].ImageWidth() != _fullWidth || _readers[img].ImageHeight() != _fullHeight)
+        throw std::runtime_error("Image for spectral term " + std::to_string(img) + " has inconsistent dimensions");
+      if(_readers[img].PixelSizeX() != _pixelSizeX || _readers[img].PixelSizeY() != _pixelSizeY)
+        throw std::runtime_error("Pixel size of spectral term " + std::to_string(img) + " is inconsistent with first spectral term");
+      models[img].resize(_fullWidth * _fullHeight);
+      _readers[img].Read(models[img].data());
+    }
 
     FacetMap map;
-    f.Read(map, _reader.PhaseCentreRA(), _reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY, _fullWidth, _fullHeight);
+    f.Read(map, _readers.front().PhaseCentreRA(), _readers.front().PhaseCentreDec(), _pixelSizeX, _pixelSizeY, _fullWidth, _fullHeight);
     std::cout << "Read " << map.NFacets() << " facet definitions.\n";
     
     bool makeSquare = true; // only necessary for IDG though
@@ -49,7 +61,7 @@ public:
       _directions.emplace_back(facet.RA(), facet.Dec());
       _images.emplace_back();
       FacetImage& image = _images.back();
-      image.CopyFacetPart(facet, model.data(), _fullWidth, _fullHeight, _padding, makeSquare);
+      image.CopyFacetPart(facet, models, _fullWidth, _fullHeight, _padding, makeSquare);
       area += image.Width() * image.Height();
     }
     std::cout << "Area covered: " << area/1024 << " Kpixels^2\n";
@@ -57,7 +69,7 @@ public:
   
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
   {
-        _maxBaseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
+    _maxBaseline = 1.0/std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline << " wavelengths.\n";
     _bands = std::move(bands);
@@ -69,7 +81,7 @@ public:
     _maxW = maxW;
     _bands = std::move(bands);
     _nr_stations = nr_stations;
-          _maxBaseline = max_baseline;
+    _maxBaseline = max_baseline;
   }
   
   bool IsStarted() const { return !_buffersets.empty(); }
@@ -81,34 +93,38 @@ public:
     int buffersize = 256;
     idg::api::options_type options;
     IdgConfiguration::Read(proxyType, buffersize, options);
-    ao::uvector<double> data;
+    std::vector<ao::uvector<double>> data(_readers.size());
     _metaData.clear();
+    FitsReader& reader = _readers.front();
     for(FacetImage& img : _images)
     {
       double
-        dl = ( int(_reader.ImageWidth()/2) - (img.OffsetX()+int(img.Width()/2)) ) * _pixelSizeX,
-        dm = (img.OffsetY()+int(img.Height()/2) - int(_reader.ImageHeight()/2)) * _pixelSizeY,
+        dl = ( int(reader.ImageWidth()/2) - (img.OffsetX()+int(img.Width()/2)) ) * _pixelSizeX,
+        dm = (img.OffsetY()+int(img.Height()/2) - int(reader.ImageHeight()/2)) * _pixelSizeY,
         dp = sqrt(1.0 - dl*dl - dm*dm) - 1.0;
       std::cout << "Initializing gridder " << _buffersets.size() << " (" << img.Width() << " x " << img.Height() << ", +" << img.OffsetX() << "," << img.OffsetY() << ", dl=" << dl*180.0/M_PI << " deg, dm=" << dm*180.0/M_PI << " deg)\n";
       
-      data.assign(img.Width() * img.Height() * 4, 0.0);
       // TODO make full polarization
-      std::copy(img.Data(), img.Data()+img.Width()*img.Height(), data.data());
-      
-      _buffersets.emplace_back(idg::api::BufferSet::create(proxyType));
-      idg::api::BufferSet& bs = *_buffersets.back();
-      options["padded_size"] = size_t(1.2*img.Width());
-      //options["max_threads"] = int(1);
-      bs.init(img.Width(), _pixelSizeX, _maxW+1.0, dl, dm, dp, options);
-      bs.set_image(data.data());
-      bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options, idg::api::BufferSetType::degridding);
+      for(size_t term=0; term!=data.size(); ++term)
+      {
+        data[term].assign(img.Width() * img.Height() * 4, 0.0);
+        std::copy(img.Data(term), img.Data(term)+img.Width()*img.Height(), data[term].data());
+        
+        _buffersets.emplace_back(idg::api::BufferSet::create(proxyType));
+        idg::api::BufferSet& bs = *_buffersets.back();
+        options["padded_size"] = size_t(1.2*img.Width());
+        //options["max_threads"] = int(1);
+        bs.init(img.Width(), _pixelSizeX, _maxW+1.0, dl, dm, dp, options);
+        bs.set_image(data[term].data());
+        bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options, idg::api::BufferSetType::degridding);
+      }
       
       if(saveFacets)
       {
         FitsWriter writer;
-        writer.SetImageDimensions(img.Width(), img.Height(), _reader.PhaseCentreRA(), _reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY);
+        writer.SetImageDimensions(img.Width(), img.Height(), reader.PhaseCentreRA(), reader.PhaseCentreDec(), _pixelSizeX, _pixelSizeY);
         writer.SetPhaseCentreShift(dl, dm);
-        writer.Write("facet" + std::to_string(_metaData.size()) + ".fits", img.Data());
+        writer.Write("facet" + std::to_string(_metaData.size()) + ".fits", img.Data(0));
       }
       
       _metaData.emplace_back();
@@ -123,6 +139,7 @@ public:
   
   void RequestPredict(size_t direction, size_t dataDescId, size_t rowId, size_t timeIndex, size_t antenna1, size_t antenna2, const double* uvw)
   {
+    size_t nTerms = _readers.size();
     double uvwr2 = uvw[0]*uvw[0] + uvw[1]*uvw[1] + uvw[2]*uvw[2];
     if(uvw[2] > _maxW && uvwr2 <= _maxBaseline*_maxBaseline)
     {
@@ -131,22 +148,25 @@ public:
       std::cout << "Increasing maximum w to " << _maxW << '\n';
       StartIDG(false);
     }
-    idg::api::BufferSet& bs = *_buffersets[direction];
-    FacetMetaData& meta = _metaData[direction];
-    if(!meta.isInitialized)
+    for(size_t termIndex=0; termIndex!=nTerms; ++termIndex)
     {
-      meta.rowIdOffset = rowId;
-      meta.isInitialized = true;
-    }
-    size_t localRowId = rowId - meta.rowIdOffset;
-    if(meta.uvws.size() <= localRowId*3)
-      meta.uvws.resize((localRowId+1)*3);
-    for(size_t i=0; i!=3; ++i)
-      meta.uvws[localRowId*3 + i] = uvw[i];
-    double uvwFlipped[3] = { uvw[0], -uvw[1], -uvw[2] }; // IDG uses a flipped coordinate system
-    while (bs.get_degridder(dataDescId)->request_visibilities(rowId, timeIndex, antenna1, antenna2, uvwFlipped))
-    {
-      computePredictionBuffer(dataDescId, direction);
+      idg::api::BufferSet& bs = *_buffersets[direction*nTerms + termIndex];
+      FacetMetaData& meta = _metaData[direction];
+      if(!meta.isInitialized)
+      {
+        meta.rowIdOffset = rowId;
+        meta.isInitialized = true;
+      }
+      size_t localRowId = rowId - meta.rowIdOffset;
+      if(meta.uvws.size() <= localRowId*3)
+        meta.uvws.resize((localRowId+1)*3);
+      for(size_t i=0; i!=3; ++i)
+        meta.uvws[localRowId*3 + i] = uvw[i];
+      double uvwFlipped[3] = { uvw[0], -uvw[1], -uvw[2] }; // IDG uses a flipped coordinate system
+      while (bs.get_degridder(dataDescId)->request_visibilities(rowId, timeIndex, antenna1, antenna2, uvwFlipped))
+      {
+        computePredictionBuffer(dataDescId, direction);
+      }
     }
   }
   
@@ -157,51 +177,87 @@ public:
   std::pair<double, double> Direction(size_t facet) const { return _directions[facet]; }
   
   void Flush()
-    {
+  {
     for(size_t b=0; b!=_bands.size(); ++b)
     {
-      for(size_t direction = 0; direction != _buffersets.size(); ++direction)
+      for(size_t direction = 0; direction != _directions.size(); ++direction)
         computePredictionBuffer(b, direction);
     }
   }
-	
+  
 private:
   void computePredictionBuffer(size_t dataDescId, size_t direction)
   {
-    idg::api::BufferSet& bs = *_buffersets[direction];
-    auto available_row_ids = bs.get_degridder(dataDescId)->compute();
-    for(auto i : available_row_ids)
+    size_t nTerms = _readers.size();
+    typedef std::vector<std::pair<size_t, std::complex< float >*>> rowidlist_t;
+    std::vector<rowidlist_t> available_row_ids(nTerms);
+    for(size_t term=0; term!=nTerms; ++term)
     {
-      size_t row = i.first;
-      std::complex<float>* values = i.second;
-      size_t nChan = _bands[dataDescId].size();
+      idg::api::BufferSet& bs = *_buffersets[direction*nTerms + term];
+      available_row_ids[term] = bs.get_degridder(dataDescId)->compute();
+    }
+    
+    size_t nChan = _bands[dataDescId].size();
+    double
+      dlFact = 2.0 * M_PI * _metaData[direction].dl,
+      dmFact = 2.0 * M_PI * _metaData[direction].dm,
+      dpFact = 2.0 * M_PI * _metaData[direction].dp;
+    for(size_t i=0; i!=available_row_ids[0].size(); ++i)
+    {
+      size_t row = available_row_ids[0][i].first;
       size_t localRow = row - _metaData[direction].rowIdOffset;
-      double* uvw = &_metaData[direction].uvws[localRow*3];
-      double
-        dlFact = 2.0 * M_PI * _metaData[direction].dl,
-        dmFact = 2.0 * M_PI * _metaData[direction].dm,
-        dpFact = 2.0 * M_PI * _metaData[direction].dp;
-      for(size_t ch=0; ch!=nChan; ++ch)
+      const double* uvw = &_metaData[direction].uvws[localRow*3];
+      
+      // Correct the phase shift of the values for this facet
+      for(size_t term=0; term!=nTerms; ++term)
       {
-        double
-          lambda = wavelength(dataDescId, ch),
-          u = uvw[0] / lambda,
-          v = uvw[1] / lambda,
-          w = uvw[2] / lambda;
-        double angle = u * dlFact + v * dmFact + w * dpFact;
-        float
-          rotSin = sin(angle),
-          rotCos = cos(angle);
-        for(size_t p=0; p!=4; ++p) {
-          std::complex<float> s = values[ch*4 + p];
-          values[ch*4 + p] = std::complex<float>(
-            s.real() * rotCos  -  s.imag() * rotSin,
-            s.real() * rotSin  +  s.imag() * rotCos);
+        std::complex<float>* values = available_row_ids[term][i].second;
+        for(size_t ch=0; ch!=nChan; ++ch)
+        {
+          double
+            lambda = wavelength(dataDescId, ch),
+            u = uvw[0] / lambda,
+            v = uvw[1] / lambda,
+            w = uvw[2] / lambda;
+          double angle = u * dlFact + v * dmFact + w * dpFact;
+          float
+            rotSin = sin(angle),
+            rotCos = cos(angle);
+          for(size_t p=0; p!=4; ++p) {
+            std::complex<float> s = values[ch*4 + p];
+            values[ch*4 + p] = std::complex<float>(
+              s.real() * rotCos  -  s.imag() * rotSin,
+              s.real() * rotSin  +  s.imag() * rotCos);
+          }
         }
       }
-      PredictCallback(row, direction, dataDescId, values);
+      
+      // Apply polynomial-term corrections and add all to values of 'term 0'
+      // The "polynomial spectrum" definition is used, equal to the one e.g. used by WSClean in component outputs
+      // (see https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text files when 'logarithmic SI' is false. 
+      // The definition is:
+      //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
+      std::complex<float>* values0 = available_row_ids[0][i].second;
+      for(size_t ch=0; ch!=nChan; ++ch)
+      {
+        double frequency = _bands[dataDescId][ch];
+        double freqFactor = frequency / _refFrequency - 1.0;
+        double polynomialFactor = 1.0;
+        for(size_t term=1; term!=nTerms; ++term)
+        {
+          polynomialFactor *= freqFactor;
+          const std::complex<float>* values = available_row_ids[term][i].second;
+          for(size_t p=0; p!=4; ++p)
+            values0[ch*4 + p] += values[ch*4 + p] * float(polynomialFactor);
+        }
+      }
+      PredictCallback(row, direction, dataDescId, values0);
     }
-    bs.get_degridder(dataDescId)->finished_reading();
+    for(size_t term=0; term!=nTerms; ++term)
+    {
+      idg::api::BufferSet& bs = *_buffersets[direction*nTerms + term];
+      bs.get_degridder(dataDescId)->finished_reading();
+    }
     _metaData[direction].isInitialized = false;
   }
   
@@ -223,8 +279,9 @@ private:
   std::vector<FacetMetaData> _metaData;
   
   size_t _fullWidth, _fullHeight;
+  double _refFrequency;
   double _pixelSizeX, _pixelSizeY;
-  FitsReader _reader;
+  std::vector<FitsReader> _readers;
   double _padding;
   
   // MS info
@@ -245,35 +302,35 @@ private:
 class FacetPredict
 {
 public:
-	FacetPredict(const std::string&, const std::string&)
-	{ notCompiled(); }
-	
-	void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
-	{ notCompiled(); }
-	
-	void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
-	{ notCompiled(); }
-	
-	bool IsStarted() const
-	{ notCompiled(); return false; }
-	
-	void StartIDG(bool)
-	{ notCompiled(); }
-	
-	void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
-	{ notCompiled(); }
-	
-	std::function<void(size_t, size_t, size_t, const std::complex<float>*)> PredictCallback;
-	
-	size_t NDirections() const
-	{ notCompiled(); return 0; }
-	
-	std::pair<double, double> Direction(size_t) const
-	{ notCompiled(); return std::pair<double,double>(); }
-	
-	void Flush()
-	{ notCompiled(); }
-	
+  FacetPredict(const std::vector<std::string>&, const std::string&)
+  { notCompiled(); }
+  
+  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
+  { notCompiled(); }
+  
+  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
+  { notCompiled(); }
+  
+  bool IsStarted() const
+  { notCompiled(); return false; }
+  
+  void StartIDG(bool)
+  { notCompiled(); }
+  
+  void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
+  { notCompiled(); }
+  
+  std::function<void(size_t, size_t, size_t, const std::complex<float>*)> PredictCallback;
+  
+  size_t NDirections() const
+  { notCompiled(); return 0; }
+  
+  std::pair<double, double> Direction(size_t) const
+  { notCompiled(); return std::pair<double,double>(); }
+  
+  void Flush()
+  { notCompiled(); }
+  
 private:
   void notCompiled() const {
     throw std::runtime_error("Facet prediction is not available, because DP3 was not compiled with IDG support");

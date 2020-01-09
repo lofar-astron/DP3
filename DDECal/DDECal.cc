@@ -306,10 +306,11 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
 
 void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix)
 {
-  std::string
-    imageFilename = parset.getString(prefix + "idg.image"),
-    regionFilename = parset.getString(prefix + "idg.regions");
-  itsFacetPredictor.reset(new FacetPredict(imageFilename, regionFilename));
+  std::string regionFilename =
+    parset.getString(prefix + "idg.regions");
+  std::vector<std::string> imageFilenames =
+    parset.getStringVector(prefix + "idg.images");
+  itsFacetPredictor.reset(new FacetPredict(imageFilenames, regionFilename));
   itsFacetPredictor->PredictCallback = std::bind(&DDECal::idgCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
   itsDirections.resize(itsFacetPredictor->NDirections());
   for(size_t i=0; i!=itsDirections.size(); ++i)
