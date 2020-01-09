@@ -26,6 +26,8 @@ public:
   FacetPredict(const std::vector<std::string> fitsModelFiles, const std::string& ds9RegionsFile) :
     _padding(1.0)
   {
+    if(fitsModelFiles.empty())
+      throw std::runtime_error("No fits files specified for IDG predict");
     _readers.reserve(fitsModelFiles.size());
     for(const std::string& file : fitsModelFiles)
       _readers.emplace_back(file);
@@ -34,15 +36,18 @@ public:
     _fullWidth = _readers.front().ImageWidth();
     _fullHeight = _readers.front().ImageHeight();
     _refFrequency = _readers.front().Frequency();
+    _pixelSizeX = _readers.front().PixelSizeX();
+    _pixelSizeY = _readers.front().PixelSizeY();
     std::vector<ao::uvector<double>> models(_readers.size());
     for(size_t img=0; img!=_readers.size(); ++img)
     {
+      if(_readers[img].ImageWidth() != _fullWidth || _readers[img].ImageHeight() != _fullHeight)
+        throw std::runtime_error("Image for spectral term " + std::to_string(img) + " has inconsistent dimensions");
+      if(_readers[img].PixelSizeX() != _pixelSizeX || _readers[img].PixelSizeY() != _pixelSizeY)
+        throw std::runtime_error("Pixel size of spectral term " + std::to_string(img) + " is inconsistent with first spectral term");
       models[img].resize(_fullWidth * _fullHeight);
       _readers[img].Read(models[img].data());
     }
-    _pixelSizeX = _readers.front().PixelSizeX();
-    _pixelSizeY = _readers.front().PixelSizeY();
-    
 
     FacetMap map;
     f.Read(map, _readers.front().PhaseCentreRA(), _readers.front().PhaseCentreDec(), _pixelSizeX, _pixelSizeY, _fullWidth, _fullHeight);
@@ -179,7 +184,7 @@ public:
         computePredictionBuffer(b, direction);
     }
   }
-	
+  
 private:
   void computePredictionBuffer(size_t dataDescId, size_t direction)
   {
@@ -228,6 +233,10 @@ private:
       }
       
       // Apply polynomial-term corrections and add all to values of 'term 0'
+      // The "polynomial spectrum" definition is used, equal to the one e.g. used by WSClean in component outputs
+      // (see https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text files when 'logarithmic SI' is false. 
+      // The definition is:
+      //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
       std::complex<float>* values0 = available_row_ids[0][i].second;
       for(size_t ch=0; ch!=nChan; ++ch)
       {
@@ -293,35 +302,35 @@ private:
 class FacetPredict
 {
 public:
-	FacetPredict(const std::vector<std::string>&, const std::string&)
-	{ notCompiled(); }
-	
-	void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
-	{ notCompiled(); }
-	
-	void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
-	{ notCompiled(); }
-	
-	bool IsStarted() const
-	{ notCompiled(); return false; }
-	
-	void StartIDG(bool)
-	{ notCompiled(); }
-	
-	void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
-	{ notCompiled(); }
-	
-	std::function<void(size_t, size_t, size_t, const std::complex<float>*)> PredictCallback;
-	
-	size_t NDirections() const
-	{ notCompiled(); return 0; }
-	
-	std::pair<double, double> Direction(size_t) const
-	{ notCompiled(); return std::pair<double,double>(); }
-	
-	void Flush()
-	{ notCompiled(); }
-	
+  FacetPredict(const std::vector<std::string>&, const std::string&)
+  { notCompiled(); }
+  
+  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
+  { notCompiled(); }
+  
+  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
+  { notCompiled(); }
+  
+  bool IsStarted() const
+  { notCompiled(); return false; }
+  
+  void StartIDG(bool)
+  { notCompiled(); }
+  
+  void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t, const double*)
+  { notCompiled(); }
+  
+  std::function<void(size_t, size_t, size_t, const std::complex<float>*)> PredictCallback;
+  
+  size_t NDirections() const
+  { notCompiled(); return 0; }
+  
+  std::pair<double, double> Direction(size_t) const
+  { notCompiled(); return std::pair<double,double>(); }
+  
+  void Flush()
+  { notCompiled(); }
+  
 private:
   void notCompiled() const {
     throw std::runtime_error("Facet prediction is not available, because DP3 was not compiled with IDG support");
