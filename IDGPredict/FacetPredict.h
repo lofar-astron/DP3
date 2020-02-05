@@ -97,7 +97,8 @@ public:
     long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
     int64_t memory = (int64_t) pageCount * (int64_t) pageSize;
     // Allow the directions together to use 1/4th of the available memory for the vis buffers.
-    size_t allocatableTimesteps = idg::api::BufferSet::get_allocatable_ntimesteps(memory/4/_images.size(), _nr_stations, maxChannels);
+    uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(_nr_stations, maxChannels);
+    size_t allocatableTimesteps = memory/4/_images.size() / memPerTimestep;
     // TODO once a-terms are supported, this should include the size required for the a-terms.
     std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps << '\n';
     
