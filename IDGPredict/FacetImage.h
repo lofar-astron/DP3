@@ -102,6 +102,7 @@ public:
   { return std::move(_data[spectralTerm]); }
   
 private:
+  
   Facet clippedFacet(const Facet& input, int width, int height)
   {
     Facet clippedFacet(input);
