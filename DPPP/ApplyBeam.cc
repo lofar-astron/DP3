@@ -84,6 +84,17 @@ namespace DP3 {
       } else {
         throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
+
+      string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
+      if (element_model=="hamaker") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::Hamaker;
+      } else if (element_model=="lobes") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::LOBES;
+      } else if (element_model=="oskar") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKAR;
+      } else {
+          throw Exception("Elementmodel should be HAMAKER, LOBES or OSKAR");
+      }
     }
 
     ApplyBeam::ApplyBeam()
@@ -218,7 +229,7 @@ namespace DP3 {
 
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                 itsAntBeamInfo[thread], itsBeamValues[thread],
-                itsUseChannelFreq, itsInvert, itsMode, itsUpdateWeights);
+                itsUseChannelFreq, itsInvert, itsMode, itsElementResponseModel, itsUpdateWeights);
 
       itsTimer.stop();
       getNextStep()->process(itsBuffer);
@@ -252,13 +263,19 @@ void ApplyBeam::applyBeam(
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights)
+  bool invert, int mode,
+  LOFAR::StationResponse::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
+
+  for (auto &station : antBeamInfo) {
+    station->setModel(element_reponse_model);
+  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -306,10 +323,7 @@ void ApplyBeam::applyBeam(
     case ElementBeamCorrection:
       // Fill beamValues for channel ch
       for (size_t st = 0; st < nSt; ++st) {
-        LOFAR::StationResponse::AntennaField::ConstPtr field =
-            *(antBeamInfo[st]->beginFields());
-
-        beamValues[nCh * st + ch] = field->elementResponse(time,
+        beamValues[nCh * st + ch] = antBeamInfo[st]->elementResponse(time,
                                               info.chanFreqs()[ch],
                                               srcdir);
         if (invert) {
@@ -358,7 +372,9 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, std::complex<double>*
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights);
+  bool invert, int mode,
+  LOFAR::StationResponse::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights);
 
 template<typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -368,13 +384,19 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights)
+  bool invert, int mode,
+  LOFAR::StationResponse::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
+
+  for (size_t st = 0; st < nSt; ++st) {
+    antBeamInfo[st]->setModel(element_reponse_model);
+  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -421,6 +443,8 @@ void ApplyBeam::applyBeamStokesIArrayFactor(const DPInfo& info, double time, std
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights);
+  bool invert, int mode,
+  LOFAR::StationResponse::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights);
 
 }} //# end namespaces

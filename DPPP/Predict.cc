@@ -136,6 +136,17 @@ namespace DP3 {
           throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
         }
 
+        string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
+        if (element_model=="hamaker") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::Hamaker;
+        } else if (element_model=="lobes") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::LOBES;
+        } else if (element_model=="oskar") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKAR;
+        } else {
+          throw Exception("Elementmodel should be HAMAKER, LOBES or OSKAR");
+        }
+
         // Rework patch list to contain a patch for every source
         if (!itsOneBeamPerPatch) {
           itsPatchList = makeOnePatchPerComponent(itsPatchList);
@@ -513,12 +524,12 @@ namespace DP3 {
         ApplyBeam::applyBeamStokesIArrayFactor(info(), time, data0, dummyweight, srcdir, refdir,
                              tiledir, itsAntBeamInfo[thread],
                              itsBeamValuesSingle[thread], itsUseChannelFreq, false,
-                             itsBeamMode, false);
+                             itsBeamMode, itsElementResponseModel, false);
       } else {
         ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
                              tiledir, itsAntBeamInfo[thread],
                              itsBeamValues[thread], itsUseChannelFreq, false,
-                             itsBeamMode, false);
+                             itsBeamMode, itsElementResponseModel, false);
       }
 
       //Add temporary buffer to itsModelVis

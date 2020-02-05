@@ -100,6 +100,7 @@ namespace DP3 {
             const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
             std::vector<LOFAR::StationResponse::matrix22c_t>& beamValues,
             bool useChannelFreq, bool invert, int mode,
+            LOFAR::StationResponse::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
         template<typename T>
@@ -111,6 +112,7 @@ namespace DP3 {
             const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
             std::vector<LOFAR::StationResponse::complex_t>& beamValues,
             bool useChannelFreq, bool invert, int mode,
+            LOFAR::StationResponse::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
       private:
@@ -129,6 +131,7 @@ namespace DP3 {
         bool                 itsUseChannelFreq;
         //Position             itsPhaseRef;
         BeamCorrectionMode   itsMode;
+        LOFAR::StationResponse::ElementResponseModel itsElementResponseModel;
 
         unsigned int                 itsDebugLevel;
 

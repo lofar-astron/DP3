@@ -162,6 +162,7 @@ namespace DP3 {
       std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
       std::vector<std::vector<LOFAR::StationResponse::complex_t> >  itsBeamValuesSingle;
       BeamCorrectionMode itsBeamMode;
+      LOFAR::StationResponse::ElementResponseModel itsElementResponseModel;
 #endif
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
       std::vector<casacore::MDirection::Convert>          itsMeasConverters;
