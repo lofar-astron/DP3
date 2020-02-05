@@ -90,7 +90,20 @@ public:
   {
     _buffersets.clear();
     idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
-    int buffersize = 256;
+    
+    size_t maxChannels = 0;
+    for(std::vector<double>& band : _bands)
+      maxChannels = std::max(maxChannels, band.size());
+    long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
+    int64_t memory = (int64_t) pageCount * (int64_t) pageSize;
+    uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(_nr_stations, maxChannels);
+    memPerTimestep *= 2; // IDG uses two internal buffer
+    // Allow the directions together to use 1/4th of the available memory for the vis buffers.
+    size_t allocatableTimesteps = memory/4/_images.size() / memPerTimestep;
+    // TODO once a-terms are supported, this should include the size required for the a-terms.
+    std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps << '\n';
+    
+    int buffersize = std::max(allocatableTimesteps, size_t(1));
     idg::api::options_type options;
     IdgConfiguration::Read(proxyType, buffersize, options);
     std::vector<ao::uvector<double>> data(_readers.size());
