@@ -91,9 +91,11 @@ namespace DP3 {
       } else if (element_model=="lobes") {
           itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::LOBES;
       } else if (element_model=="oskar") {
-          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKAR;
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKARSphericalWave;
+      } else if (element_model=="oskardipole") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKARDipole;
       } else {
-          throw Exception("Elementmodel should be HAMAKER, LOBES or OSKAR");
+          throw Exception("Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
       }
     }
 

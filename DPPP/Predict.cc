@@ -136,16 +136,18 @@ namespace DP3 {
           throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
         }
 
-        string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
-        if (element_model=="hamaker") {
+      string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
+      if (element_model=="hamaker") {
           itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::Hamaker;
-        } else if (element_model=="lobes") {
+      } else if (element_model=="lobes") {
           itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::LOBES;
-        } else if (element_model=="oskar") {
-          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKAR;
-        } else {
-          throw Exception("Elementmodel should be HAMAKER, LOBES or OSKAR");
-        }
+      } else if (element_model=="oskar") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKARSphericalWave;
+      } else if (element_model=="oskardipole") {
+          itsElementResponseModel = LOFAR::StationResponse::ElementResponseModel::OSKARDipole;
+      } else {
+          throw Exception("Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
+      }
 
         // Rework patch list to contain a patch for every source
         if (!itsOneBeamPerPatch) {
