@@ -90,6 +90,7 @@ public:
   {
     _buffersets.clear();
     idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
+    size_t nTerms = _readers.size();
     
     size_t maxChannels = 0;
     for(std::vector<double>& band : _bands)
@@ -99,14 +100,14 @@ public:
     uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(_nr_stations, maxChannels);
     memPerTimestep *= 2; // IDG uses two internal buffer
     // Allow the directions together to use 1/4th of the available memory for the vis buffers.
-    size_t allocatableTimesteps = memory/4/_images.size() / memPerTimestep;
+    size_t allocatableTimesteps = memory/4/_images.size()/nTerms / memPerTimestep;
     // TODO once a-terms are supported, this should include the size required for the a-terms.
     std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps << '\n';
     
     int buffersize = std::max(allocatableTimesteps, size_t(1));
     idg::api::options_type options;
     IdgConfiguration::Read(proxyType, buffersize, options);
-    std::vector<ao::uvector<double>> data(_readers.size());
+    std::vector<ao::uvector<double>> data(nTerms);
     _metaData.clear();
     FitsReader& reader = _readers.front();
     for(FacetImage& img : _images)
@@ -118,7 +119,7 @@ public:
       std::cout << "Initializing gridder " << _buffersets.size() << " (" << img.Width() << " x " << img.Height() << ", +" << img.OffsetX() << "," << img.OffsetY() << ", dl=" << dl*180.0/M_PI << " deg, dm=" << dm*180.0/M_PI << " deg)\n";
       
       // TODO make full polarization
-      for(size_t term=0; term!=data.size(); ++term)
+      for(size_t term=0; term!=nTerms; ++term)
       {
         data[term].assign(img.Width() * img.Height() * 4, 0.0);
         std::copy(img.Data(term), img.Data(term)+img.Width()*img.Height(), data[term].data());
