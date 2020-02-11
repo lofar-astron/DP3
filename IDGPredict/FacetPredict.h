@@ -24,7 +24,8 @@ class FacetPredict
 {
 public:
   FacetPredict(const std::vector<std::string> fitsModelFiles, const std::string& ds9RegionsFile) :
-    _padding(1.0)
+    _padding(1.0),
+    _bufferSize(0)
   {
     if(fitsModelFiles.empty())
       throw std::runtime_error("No fits files specified for IDG predict");
@@ -105,6 +106,11 @@ public:
     std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps << '\n';
     
     int buffersize = std::max(allocatableTimesteps, size_t(1));
+    if(_bufferSize != 0)
+    {
+      buffersize = _bufferSize;
+      std::cout << "Buffer size manually set to " << buffersize << " timesteps\n";
+    }
     idg::api::options_type options;
     IdgConfiguration::Read(proxyType, buffersize, options);
     std::vector<ao::uvector<double>> data(nTerms);
@@ -198,6 +204,8 @@ public:
         computePredictionBuffer(b, direction);
     }
   }
+  
+  void SetBufferSize(size_t nTimesteps) { _bufferSize = nTimesteps; }
   
 private:
   void computePredictionBuffer(size_t dataDescId, size_t direction)
@@ -297,6 +305,7 @@ private:
   double _pixelSizeX, _pixelSizeY;
   std::vector<FitsReader> _readers;
   double _padding;
+  size_t _bufferSize;
   
   // MS info
   double _maxW;
@@ -343,6 +352,9 @@ public:
   { notCompiled(); return std::pair<double,double>(); }
   
   void Flush()
+  { notCompiled(); }
+  
+  void SetBufferSize(size_t)
   { notCompiled(); }
   
 private:

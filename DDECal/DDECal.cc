@@ -315,6 +315,8 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix)
   itsDirections.resize(itsFacetPredictor->NDirections());
   for(size_t i=0; i!=itsDirections.size(); ++i)
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
+  if(parset.isDefined(prefix + "idg.buffersize"))
+    itsFacetPredictor->SetBufferSize(parset.getInt(prefix + "idg.buffersize"));
 }
 
 void DDECal::initializePredictSteps(const ParameterSet& parset, const string& prefix)
