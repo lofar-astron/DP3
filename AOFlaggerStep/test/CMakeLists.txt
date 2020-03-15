@@ -1,5 +1,3 @@
-# $Id: CMakeLists.txt 26355 2013-09-04 11:51:07Z dijkema $
-
 # Do not use lofar_add_test, because libaoflaggerstep should not be linked in.
 add_executable(tAOFlaggerStep tAOFlaggerStep.cc)
 

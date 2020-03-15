@@ -1,5 +1,5 @@
-# If Boost-Python found, build this package. Otherwise give a warning.
-if(${Boost_PYTHON_FOUND})
+# If Boost-Python3 found, build this package. Otherwise give a warning.
+if(${Boost_PYTHON3_FOUND})
 
   include(PythonInstall)
 
@@ -26,12 +26,12 @@ if(${Boost_PYTHON_FOUND})
   python_install(__init__.py DESTINATION lofar/pythondppp)
 
 	find_package(PythonInterp REQUIRED)
-  find_package(PythonLibs 2.6 REQUIRED)
+  find_package(PythonLibs 3 REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
 
   find_package(Casacore COMPONENTS python)
   
-  find_package(Boost REQUIRED COMPONENTS python)
+  find_package(Boost REQUIRED COMPONENTS python3)
   include_directories(${Boost_INCLUDE_DIR})
 
 #  add_subdirectory(test)
