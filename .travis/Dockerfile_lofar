@@ -1,20 +1,34 @@
-FROM kernsuite/base:4
+FROM ubuntu
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
-    apt-get install -y casacore-data casacore-dev \
+    apt-get install -y \
     libboost-python-dev libcfitsio-dev python3-dev python3-numpy cmake \
-    build-essential libhdf5-serial-dev libarmadillo-dev lofar-dev \
+    build-essential libhdf5-serial-dev libarmadillo-dev \
     libboost-filesystem-dev libboost-system-dev libboost-date-time-dev \
     libboost-signals-dev libboost-program-options-dev libboost-test-dev \
-    libxml2-dev libpng-dev pkg-config aoflagger-dev \
-    libgtkmm-3.0-dev git wget libfftw3-dev
+    libxml2-dev libpng-dev pkg-config \
+    libgtkmm-3.0-dev git libfftw3-dev \
+    gfortran flex bison wcslib-dev \
+    libboost-numpy-dev liblua5.3-dev
+
+# Build casacore from source
+RUN mkdir /casacore && cd /casacore && git clone -b v3.2.0 https://github.com/casacore/casacore.git src
+RUN mkdir /casacore/build && cd /casacore/build && cmake -DBUILD_PYTHON3="ON" -DBUILD_PYTHON="OFF" -DUSE_HDF5="ON" -DCXX11="ON" -DBUILD_TESTING="OFF" -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
+
+# Get aoflagger
+RUN mkdir /aoflagger && cd /aoflagger && git clone git://git.code.sf.net/p/aoflagger/code src
+RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
+
+# Build latest IDG master from source
+RUN mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git src
+RUN mkdir /idg/build && cd /idg/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
+
+# Build LOFARBeam
+RUN mkdir /lofarbeam && cd /lofarbeam && git clone https://github.com/lofar-astron/LOFARBeam.git src
+RUN mkdir /lofarbeam/build && cd /lofarbeam/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 && make install -j2
 
 ADD . /src
 WORKDIR /src
-
-# Build latest IDG master from source
-RUN mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git  src
-RUN mkdir /idg/build && cd /idg/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
 
 RUN mkdir /build && cd /build && cmake ../src
 RUN cd /build && make -j2
