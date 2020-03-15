@@ -15,9 +15,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 RUN mkdir /casacore && cd /casacore && git clone -b v3.2.0 https://github.com/casacore/casacore.git src
 RUN mkdir /casacore/build && cd /casacore/build && cmake -DBUILD_PYTHON3="ON" -DBUILD_PYTHON="OFF" -DUSE_HDF5="ON" -DCXX11="ON" -DBUILD_TESTING="OFF" -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
 
-# Get aoflagger
+# Get aoflagger (don't use -j2 -- travis can't handle it)
 RUN mkdir /aoflagger && cd /aoflagger && git clone git://git.code.sf.net/p/aoflagger/code src
-RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
+RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install
 
 ADD . /src
 WORKDIR /src
