@@ -11,19 +11,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     gfortran flex bison wcslib-dev \
     libboost-numpy-dev liblua5.3-dev
 
-# Build casacore from source
+# Get casacore
 RUN mkdir /casacore && cd /casacore && git clone -b v3.2.0 https://github.com/casacore/casacore.git src
-RUN mkdir /casacore/build && cd /casacore/build && cmake -DBUILD_PYTHON3="ON" -DBUILD_PYTHON="OFF" -DUSE_HDF5="ON" -DCXX11="ON" -DBUILD_TESTING="OFF" -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
+RUN mkdir /casacore/build && cd /casacore/build && cmake -DBUILD_PYTHON3="ON" -DBUILD_PYTHON="OFF" -DUSE_HDF5="ON" -DCXX11="ON" -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j24
 
-# Get aoflagger (don't use -j2 -- travis can't handle it)
+# Get aoflagger
 RUN mkdir /aoflagger && cd /aoflagger && git clone git://git.code.sf.net/p/aoflagger/code src
-RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install
+RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j24
 
 ADD . /src
 WORKDIR /src
-
-RUN mkdir /build && cd /build && cmake ../src
-RUN cd /build && make -j2
-RUN cd /build && make install -j2
-RUN DPPP
-RUN cd /build && CTEST_OUTPUT_ON_FAILURE=1 make test -j2
