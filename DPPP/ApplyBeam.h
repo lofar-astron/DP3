@@ -99,7 +99,7 @@ namespace DP3 {
             const LOFAR::StationResponse::vector3r_t& tiledir,
             const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
             std::vector<LOFAR::StationResponse::matrix22c_t>& beamValues,
-            bool useChannelFreq, bool invert, int mode,
+            bool useChannelFreq, bool invert, BeamCorrectionMode mode,
             bool doUpdateWeights=false);
 
         template<typename T>
@@ -110,7 +110,7 @@ namespace DP3 {
             const LOFAR::StationResponse::vector3r_t& tiledir,
             const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
             std::vector<LOFAR::StationResponse::complex_t>& beamValues,
-            bool useChannelFreq, bool invert, int mode,
+            bool useChannelFreq, bool invert, BeamCorrectionMode mode,
             bool doUpdateWeights=false);
 
       private:
@@ -127,8 +127,12 @@ namespace DP3 {
         std::vector<string>       itsDirectionStr;
         casacore::MDirection itsDirection;
         bool                 itsUseChannelFreq;
-        //Position             itsPhaseRef;
         BeamCorrectionMode   itsMode;
+        
+        // If a beam had already been applied before running this step, that beam
+        // needs to undone; hence we register that beam info here:
+        casacore::MDirection itsDirectionAtStart;
+        BeamCorrectionMode itsModeAtStart;
 
         unsigned int                 itsDebugLevel;
 

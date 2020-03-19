@@ -65,6 +65,7 @@ namespace DP3 {
           itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
           itsDirectionStr(parset.getStringVector(prefix+"direction", std::vector<std::string>())),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
+          itsModeAtStart(NoBeamCorrection),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
       // only read 'invert' parset key if it is a separate step
@@ -108,7 +109,7 @@ namespace DP3 {
         itsDirection = info().phaseCenter();
       else {
         if (itsDirectionStr.size() != 2)
-          throw std::runtime_error("2 values must be given in ApplyBeam");
+          throw std::runtime_error("2 values must be given in direction option of ApplyBeam");
         casacore::MDirection phaseCenter;
         Quantity q0, q1;
         if (!MVAngle::read (q0, itsDirectionStr[0]))
@@ -121,16 +122,25 @@ namespace DP3 {
 
       if(itsInvert)
       {
-        if(info().beamCorrectionMode() != NoBeamCorrection)
-          throw std::runtime_error("In applying the beam (with invert=true): the metadata of this observation indicate that the beam has already been applied");
+        itsModeAtStart = info().beamCorrectionMode();
+        itsDirectionAtStart = info().beamCorrectionDir();
         info().setBeamCorrectionMode(itsMode);
         info().setBeamCorrectionDir(itsDirection);
       }
       else {
         if(info().beamCorrectionMode() == NoBeamCorrection)
           throw std::runtime_error("In applying the beam (with invert=false): the metadata of this observation indicate that the beam has not yet been applied");
+        if(info().beamCorrectionMode() != itsMode)
+          throw std::runtime_error(std::string("applybeam step with invert=false has incorrect mode: input has ") +
+          BeamCorrectionModeToString(info().beamCorrectionMode()) + ", requested to correct for " + BeamCorrectionModeToString(itsMode));
+        if(info().beamCorrectionDir().getValue() != itsDirection.getValue())
+        {
+          std::ostringstream str;
+          str << "applybeam step with invert=false has incorrect direction: input is for " << 
+            info().beamCorrectionDir() << ", output is for " << itsDirection;
+          throw std::runtime_error(str.str());
+        }
         info().setBeamCorrectionMode(NoBeamCorrection);
-        // TODO itsDirection should always be equal to info().beamCorrectionDir() here?
       }
 
       const size_t nSt = info().nantenna();
@@ -159,18 +169,20 @@ namespace DP3 {
 
     void ApplyBeam::show(std::ostream& os) const
     {
-      os << "ApplyBeam " << itsName << '\n';
-      os << "  mode:              ";
-      if (itsMode==FullBeamCorrection)
-        os<<"default";
-      else if (itsMode==ArrayFactorBeamCorrection)
-        os<<"array_factor";
-      else os<<"element";
-      os << '\n';
-      os << "  use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n';
-      os << "  direction:         " << itsDirectionStr << '\n';
-      os << "  invert:            " << boolalpha << itsInvert << '\n';
-      os << "  update weights:    " << boolalpha << itsUpdateWeights << '\n';
+      os
+        << "ApplyBeam " << itsName << '\n'
+        << "  mode:              " << BeamCorrectionModeToString(itsMode) << '\n'
+        << "  use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n'
+        << "  direction:         " << itsDirectionStr << '\n'
+        << "  invert:            " << boolalpha << itsInvert << '\n'
+        << "  update weights:    " << boolalpha << itsUpdateWeights << '\n';
+      if(itsInvert)
+      {
+        if(itsModeAtStart != NoBeamCorrection)
+          os << "  input data has already a beam correction applied: will be undone.\n";
+        else
+          os << "  input data has no beam correction applied.\n";
+      }
     }
 
     void ApplyBeam::showTimings(std::ostream& os, double duration) const
@@ -203,9 +215,9 @@ namespace DP3 {
        * threads, it would imply process() is called multiple times,
        * and hence this initialization is already subject to a race
        * condition... ???
-       * itsMeasFrames seems not to be actually used.
        * André, 2018-10-07
        */
+      bool undoInputBeam = itsInvert && itsModeAtStart != NoBeamCorrection;
       for (size_t threadIter = 0; threadIter < getInfo().nThreads(); ++threadIter) {
         itsMeasFrames[threadIter].resetEpoch(
             MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
@@ -213,7 +225,20 @@ namespace DP3 {
         //thread safe and apparently need to be used at least once
         refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[threadIter]);
         tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[threadIter]);
-        srcdir = dir2Itrf(itsDirection, itsMeasConverters[threadIter]);
+        if(undoInputBeam)
+          srcdir = dir2Itrf(itsDirectionAtStart, itsMeasConverters[threadIter]);
+        else
+          srcdir = dir2Itrf(itsDirection, itsMeasConverters[threadIter]);
+      }
+      
+      if(undoInputBeam)
+      {
+        // A beam was previously applied to this MS, and a different direction
+        // was asked this time. 'Undo' applying the input beam.
+        applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
+                  itsAntBeamInfo[thread], itsBeamValues[thread],
+                  itsUseChannelFreq, false, itsModeAtStart, itsUpdateWeights);
+        srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
       }
 
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
@@ -252,7 +277,7 @@ void ApplyBeam::applyBeam(
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights)
+  bool invert, BeamCorrectionMode mode, bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
@@ -317,6 +342,12 @@ void ApplyBeam::applyBeam(
         }
       }
       break;
+    case NoBeamCorrection: // this should not happen
+      for (size_t st = 0; st < nSt; ++st) {
+        beamValues[nCh * st + ch][0] = std::array<std::complex<double>, 2>({1.0, 0.0});
+        beamValues[nCh * st + ch][1] = std::array<std::complex<double>, 2>({0.0, 1.0});
+      }
+      break;
     }
 
     // Apply beam for channel ch on all baselines
@@ -358,7 +389,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, std::complex<double>*
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights);
+  bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
 
 template<typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -368,7 +399,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights)
+  bool invert, BeamCorrectionMode mode, bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
@@ -421,6 +452,6 @@ void ApplyBeam::applyBeamStokesIArrayFactor(const DPInfo& info, double time, std
   const LOFAR::StationResponse::vector3r_t& tiledir,
   const vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
   vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, int mode, bool doUpdateWeights);
+  bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
 
 }} //# end namespaces
