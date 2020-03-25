@@ -60,6 +60,8 @@
 
 #include "../DDECal/DDECal.h"
 
+#include "../PythonDPPP/PyDPStep.h"
+
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
 #include <casacore/casa/OS/Timer.h>
@@ -378,6 +380,8 @@ namespace DP3 {
           needsOutputStep = false;
         } else if (type == "ddecal") {
           step = DPStep::ShPtr(new DDECal (reader, parset, prefix));
+        } else if (type == "idgcal") {
+          step = PyDPStep::create_instance(reader, parset, prefix);
         } else if (type == "interpolate") {
           step = DPStep::ShPtr(new Interpolate (reader, parset, prefix));
         } else if (type == "out" || type=="output" || type=="msout") {
