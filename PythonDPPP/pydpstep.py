@@ -3,9 +3,13 @@ import numpy as np
 
 class MyDPStep(pydppp.DPStep):
 
-    def __init__(self):
+    def __init__(self,parset, prefix):
         super().__init__()
+        self.parset = parset
         self.dpbuffers = []
+        print(dir(parset))
+        print("prefix = ", prefix)
+        print(parset.getString(prefix + "type"))
 
     def show(self) :
         print("MyDPStep.show")

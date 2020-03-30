@@ -43,6 +43,15 @@ bool PyDPStepImpl::process (const DPBuffer& bufin)
     );
 }
 
+void PyDPStepImpl::finish ()
+{
+    PYBIND11_OVERLOAD_PURE(
+        void,           /* Return type */
+        DPStepWrapper,  /* Parent class */
+        finish          /* Name of function in C++ (must match Python name) */
+    );
+}
+
 void PyDPStepImpl::updateInfo (const DPInfo& dpinfo)
 {
     PYBIND11_OVERLOAD_NAME(
@@ -67,9 +76,9 @@ DPStep::ShPtr PyDPStep::create_instance(
     const string& name)
 {
     static py::scoped_interpreter guard{}; // start the interpreter and keep it alive
-    static py::module mydpstep_module = py::module::import("pydpstep");
+    static py::module mydpstep_module = py::module::import("dppp.idgcalstep");
 
-    auto pydpstep_instance = mydpstep_module.attr("MyDPStep")();
+    auto pydpstep_instance = mydpstep_module.attr("IDGCalStep")(parset, name);
     auto pydpstep_instance_ptr = pydpstep_instance.cast<std::shared_ptr<PyDPStepImpl>>();
     pydpstep_instance_ptr->hold();
     pydpstep_instance_ptr->set_input(input);

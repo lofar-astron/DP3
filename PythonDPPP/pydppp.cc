@@ -42,14 +42,33 @@ template <typename T> void register_matrix(py::module &m, const char *name)
         });
 }
 
+template <typename T> void register_vector(py::module &m, const char *name)
+{
+    py::class_<casacore::Vector<T>>(m, name, py::buffer_protocol())
+    .def_buffer([](casacore::Vector<T> &vector) -> py::buffer_info {
+            return py::buffer_info(
+                vector.data(),                               /* Pointer to buffer */
+                sizeof(T),                          /* Size of one scalar */
+                py::format_descriptor<T>::format(), /* Python struct-style format descriptor */
+                1,                                      /* Number of dimensions */
+                { vector.shape()[0] },                 /* Buffer dimensions */
+                { sizeof(T) }              /* Strides (in bytes) for each index */
+            );
+        });
+}
+
 
 PYBIND11_MODULE(pydppp, m) {
     m.doc() = "pybind11 example plugin"; // optional module docstring
+
+    py::module::import("parameterset");
 
     register_cube<float>(m, "Cube_float");
     register_cube<bool>(m, "Cube_bool");
     register_cube<casacore::Complex>(m, "Cube_complex_float");
     register_matrix<double>(m, "Matrix_double");
+    register_vector<double>(m, "Vector_double");
+    register_vector<int>(m, "Vector_int");
 
     py::class_<DPStepWrapper,
         std::shared_ptr<DPStepWrapper>, // holder type
@@ -74,7 +93,14 @@ PYBIND11_MODULE(pydppp, m) {
         .def("get_uvw", (casacore::Matrix<double>& (DPBuffer::*)()) (&DPBuffer::getUVW));
 
     py::class_<DPInfo> (m, "DPInfo")
-        .def("set_need_vis_data", &DPInfo::setNeedVisData);
+        .def("set_need_vis_data", &DPInfo::setNeedVisData)
+        .def("get_channel_frequencies", &DPInfo::chanFreqs)
+        .def("get_antenna1", &DPInfo::getAnt1)
+        .def("get_antenna2", &DPInfo::getAnt2)
+        .def("nantenna", &DPInfo::nantenna)
+        .def("startTime", &DPInfo::startTime)
+        .def("timeInterval", &DPInfo::timeInterval);
+
 }
 
 void test() {}

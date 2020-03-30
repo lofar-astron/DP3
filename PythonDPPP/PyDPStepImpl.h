@@ -75,7 +75,7 @@ public:
     virtual bool process (const DPBuffer&) override;
 
     // Finish the processing of this step and subsequent steps.
-    virtual void finish() override {}
+    virtual void finish() override;
 
     void hold();
 
