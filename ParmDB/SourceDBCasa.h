@@ -32,6 +32,7 @@
 #include "PatchInfo.h"
 
 #include <casacore/tables/Tables/Table.h>
+#include <casacore/casa/version.h>
 
 #include <set>
 
@@ -41,7 +42,11 @@ namespace BBS {
   // @ingroup ParmDB
   // @{
 
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+  typedef unsigned int rownr_t;
+#else
   typedef casacore::rownr_t rownr_t;
+#endif
 
   // @brief Class for a Casa table holding source parameters.
   class SourceDBCasa : public SourceDBRep

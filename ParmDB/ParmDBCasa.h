@@ -33,15 +33,20 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/casa/version.h>
 
 
 namespace DP3 {
 namespace BBS {
 
-    typedef casacore::rownr_t rownr_t;
-
   // @ingroup ParmDB
   // @{
+
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+  typedef unsigned int rownr_t;
+#else
+  typedef casacore::rownr_t rownr_t;
+#endif
 
   // @brief Class to hold parameters in a Casa table
   class ParmDBCasa : public ParmDBRep
