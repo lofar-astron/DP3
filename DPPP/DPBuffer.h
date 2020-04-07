@@ -116,6 +116,8 @@ namespace DP3 {
     //    the data immediately (e.g. Averager).
     // The DPInput::fetch functions come in those 2 flavours.
 
+    typedef casacore::rownr_t rownr_t;
+
     class DPBuffer
     {
     public:
@@ -180,9 +182,9 @@ namespace DP3 {
 
       // Get or set the row numbers used by the DPInput class.
       // It can be empty (e.g. when MSReader inserted a dummy time slot).
-      void setRowNrs (const casacore::Vector<casacore::rownr_t>& rownrs)
+      void setRowNrs (const casacore::Vector<rownr_t>& rownrs)
         { itsRowNrs.reference (rownrs); }
-      const casacore::Vector<casacore::rownr_t>& getRowNrs() const
+      const casacore::Vector<rownr_t>& getRowNrs() const
         { return itsRowNrs; }
 
       // Get or set the UVW coordinates per baseline.
@@ -201,7 +203,7 @@ namespace DP3 {
     private:
       double                    itsTime;
       double                    itsExposure;
-      casacore::Vector<casacore::rownr_t> itsRowNrs;
+      casacore::Vector<rownr_t> itsRowNrs;
       casacore::Cube<casacore::Complex> itsData;        //# ncorr,nchan,nbasel
       casacore::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
       casacore::Matrix<double>      itsUVW;         //# 3,nbasel

@@ -151,8 +151,12 @@ namespace DP3 {
       for (int i=0; i<nband; ++i) {
         freqs[i] = itsReaders[i]->getInfo().chanFreqs().data()[0];
       }
-      Vector<casacore::rownr_t> index;
-      GenSortIndirect<double, casacore::rownr_t>::sort (index, freqs);
+      Vector<rownr_t> index;
+//#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+//      GenSortIndirect<double>::sort (index, freqs);
+//#else
+      GenSortIndirect<double, rownr_t>::sort (index, freqs);
+//#endif
       vector<MSReader*> oldReaders (itsReaders);
       for (int i=0; i<nband; ++i) {
         itsReaders[i] = oldReaders[index[i]];

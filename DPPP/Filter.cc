@@ -266,7 +266,7 @@ namespace DP3 {
       // Note that stations of baselines that have been filtered out before,
       // will also be removed.
       Vector<rownr_t> removedAnt = selTab.rowNumbers();
-      Vector<rownr_t> antMap = createIdMap (antTab.nrow(), removedAnt);
+      Vector<int> antMap = createIdMap (antTab.nrow(), removedAnt);
       antTab.removeRow (removedAnt);
       // Remove and renumber the stations in other subtables.
       Table ms(msName);
@@ -281,21 +281,21 @@ namespace DP3 {
       // Finally remove and renumber in the beam tables.
       rownr_t nrAntFldId;
       Vector<rownr_t> remAntFldId = renumberSubTable (ms, "LOFAR_ANTENNA_FIELD",
-                                                   "ANTENNA_ID",
-                                                   removedAnt, antMap,
-                                                   nrAntFldId);
+                                                      "ANTENNA_ID",
+                                                      removedAnt, antMap,
+                                                      nrAntFldId);
       if (! remAntFldId.empty()) {
-        Vector<rownr_t> antFldIdMap = createIdMap (nrAntFldId, remAntFldId);
+        Vector<int> antFldIdMap = createIdMap (nrAntFldId, remAntFldId);
         renumberSubTable (ms, "LOFAR_ELEMENT_FAILURE", "ANTENNA_FIELD_ID",
                           remAntFldId, antFldIdMap, nr);
       }
     }
 
-    Vector<rownr_t> Filter::createIdMap (rownr_t nrId,
+    Vector<int> Filter::createIdMap (rownr_t nrId,
                                      const Vector<rownr_t>& removedIds) const
     {
       // Create the mapping from old to new id.
-      Vector<rownr_t> idMap (nrId);
+      Vector<int> idMap (nrId);
       indgen (idMap);   // fill with 0,1,2,...
       int nrrem = 0;
       for (rownr_t i=0; i<removedIds.size(); ++i) {
@@ -314,11 +314,11 @@ namespace DP3 {
     }
 
     Vector<rownr_t> Filter::renumberSubTable (const Table& ms,
-                                           const String& name,
-                                           const String& colName,
-                                           const Vector<rownr_t>& removedAnt,
-                                           const Vector<rownr_t>& antMap,
-                                           rownr_t& nrId) const
+                                              const String& name,
+                                              const String& colName,
+                                              const Vector<rownr_t>& removedAnt,
+                                              const Vector<int>& antMap,
+                                              rownr_t& nrId) const
     {
       // Exit if no such subtable.
       if (! ms.keywordSet().isDefined(name)) {
@@ -333,7 +333,7 @@ namespace DP3 {
       ScalarColumn<Int> antCol(subTab, colName);
       Vector<Int> antIds = antCol.getColumn();
       for (unsigned int i=0; i<antIds.size(); ++i) {
-        Int newId = antMap[antIds[i]];
+        int newId = antMap[antIds[i]];
         assert (newId >= 0);
         antIds[i] = newId;
       }

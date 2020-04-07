@@ -189,13 +189,13 @@ namespace BBS {
       TableLocker plocker(itsPatchTable, FileLocker::Read);
       ROScalarColumn<String> patchCol(itsPatchTable, "PATCHNAME");
       itsPatchSet.clear();
-      for (unsigned int i=0; i<itsPatchTable.nrow(); ++i) {
+      for (rownr_t i=0; i<itsPatchTable.nrow(); ++i) {
         itsPatchSet.insert (patchCol(i));
       }
       TableLocker slocker(itsSourceTable, FileLocker::Read);
       ROScalarColumn<String> sourceCol(itsSourceTable, "SOURCENAME");
       itsSourceSet.clear();
-      for (unsigned int i=0; i<itsSourceTable.nrow(); ++i) {
+      for (rownr_t i=0; i<itsSourceTable.nrow(); ++i) {
         itsSourceSet.insert (sourceCol(i));
       }
       itsSetsFilled = true;
@@ -219,9 +219,9 @@ namespace BBS {
   }
 
   unsigned int SourceDBCasa::addPatch (const string& patchName, int catType,
-                               double apparentBrightness,
-                               double ra, double dec,
-                               bool check)
+                                  double apparentBrightness,
+                                  double ra, double dec,
+                                  bool check)
   {
     itsPatchTable.reopenRW();
     TableLocker locker(itsPatchTable, FileLocker::Write);
@@ -232,7 +232,7 @@ namespace BBS {
                  "Patch " + patchName + " already exists");
     }
     itsPatchSet.insert (patchName);
-    unsigned int rownr = itsPatchTable.nrow();
+    rownr_t rownr = itsPatchTable.nrow();
     itsPatchTable.addRow();
     ScalarColumn<String> nameCol(itsPatchTable, "PATCHNAME");
     ScalarColumn<unsigned int>   catCol (itsPatchTable, "CATEGORY");
@@ -267,7 +267,7 @@ namespace BBS {
                                 double ra, double dec,
                                 bool check)
   {
-    unsigned int patchId;
+    rownr_t patchId;
     {
       // Find the patch.
       TableLocker locker(itsPatchTable, FileLocker::Read);
@@ -320,8 +320,8 @@ namespace BBS {
     }
     itsPatchSet.insert  (patchName);
     itsSourceSet.insert (sourceInfo.getName());
-    unsigned int patchId = addPatch (patchName, catType,
-                             apparentBrightness, ra, dec, false);
+    rownr_t patchId = addPatch (patchName, catType,
+                                apparentBrightness, ra, dec, false);
     addSrc (sourceInfo, patchId, defaultParameters, ra, dec);
   }
 
@@ -347,7 +347,7 @@ namespace BBS {
     ArrayColumn<double>  qcoefCol(itsSourceTable, "SHAPELET_QCOEFF");
     ArrayColumn<double>  ucoefCol(itsSourceTable, "SHAPELET_UCOEFF");
     ArrayColumn<double>  vcoefCol(itsSourceTable, "SHAPELET_VCOEFF");
-    unsigned int rownr = itsSourceTable.nrow();
+    rownr_t rownr = itsSourceTable.nrow();
     itsSourceTable.addRow();
     nameCol.put  (rownr, sourceInfo.getName());
     idCol.put    (rownr, patchId);
@@ -486,7 +486,7 @@ namespace BBS {
     Vector<Double> ab(ROScalarColumn<double>(table, "APPARENT_BRIGHTNESS").getColumn());
     vector<PatchInfo> vec;
     vec.reserve (nm.size());
-    for (unsigned int i=0; i<nm.size(); ++i) {
+    for (size_t i=0; i<nm.size(); ++i) {
       vec.push_back (PatchInfo(nm[i], ra[i], dc[i], ca[i], ab[i]));
     }
     return vec;
@@ -504,7 +504,7 @@ namespace BBS {
     if (table.nrow() != 1)
 			throw std::runtime_error( "Patch name " + patchName
                + " multiply defined in " + std::string(itsPatchTable.tableName()));
-    unsigned int patchid = table.rowNumbers()[0];
+    rownr_t patchid = table.rowNumbers()[0];
     table = itsSourceTable(itsSourceTable.col("PATCHID") == patchid);
     return readSources(table);
   }
@@ -577,7 +577,7 @@ namespace BBS {
       if (hasLogSICol) {
         logSICol = ROScalarColumn<bool>(table, "LOG_SI");
       }
-      for (unsigned int i=0; i<nm.size(); ++i) {
+      for (rownr_t i=0; i<nm.size(); ++i) {
         SourceInfo::Type type = SourceInfo::Type((tp[i]));
         bool useLogSI = true;
         if (hasLogSICol) {
@@ -598,7 +598,7 @@ namespace BBS {
       // Columns SPINX_NTERMS, SPINX_REFFREQ, and USE_ROTMEAS were added later,
       // so be backward compatible.
       // In this case get degree and reffreq from associated parmdb.
-      for (unsigned int i=0; i<nm.size(); ++i) {
+      for (rownr_t i=0; i<nm.size(); ++i) {
         ParmMap parmd;
         int degree = -1;
         double refFreq = 0.;

@@ -217,7 +217,7 @@ namespace DP3 {
 
       // Get the rownrs for meta info of missing time slots.
       // It uses the rows of the first time slot.
-      const casacore::Vector<casacore::rownr_t>& getBaseRowNrs() const
+      const casacore::Vector<rownr_t>& getBaseRowNrs() const
         { return itsBaseRowNrs; }
 
       // Get the name of the MS.
@@ -324,7 +324,7 @@ namespace DP3 {
       unsigned int                itsFullResNTimeAvg;
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
-      casacore::Vector<casacore::rownr_t> itsBaseRowNrs;    //# rownrs for meta of missing times
+      casacore::Vector<rownr_t> itsBaseRowNrs;    //# rownrs for meta of missing times
       FlagCounter         itsFlagCounter;
       NSTimer             itsTimer;
     };

@@ -170,20 +170,20 @@ namespace DP3 {
     private:
       // Create the mapping from old to new id (e.g. ANTENNA_ID).
       // The removed ids get a mapping -1.
-      casacore::Vector<casacore::rownr_t>
-      createIdMap (casacore::rownr_t nrId,
-                   const casacore::Vector<casacore::rownr_t>& removedIds) const;
+      casacore::Vector<int>
+      createIdMap (rownr_t nrId,
+                   const casacore::Vector<rownr_t>& removedIds) const;
 
       // Remove rows with deleted stations from a subtable.
       // Renumber the ANTENNA_ID of the remaining rows.
       // It fills nrId with the original number of rows in the subtable
       // and returns the vector of removed row numbers.
-      casacore::Vector<casacore::rownr_t>
+      casacore::Vector<rownr_t>
       renumberSubTable (const casacore::Table& ms, const casacore::String& name,
                         const casacore::String& colName,
-                        const casacore::Vector<casacore::rownr_t>& removedAnt,
-                        const casacore::Vector<casacore::rownr_t>& antMap,
-                        casacore::rownr_t& nrId) const;
+                        const casacore::Vector<rownr_t>& removedAnt,
+                        const casacore::Vector<int>& antMap,
+                        rownr_t& nrId) const;
 
       //# Data members.
       DPInput*          itsInput;

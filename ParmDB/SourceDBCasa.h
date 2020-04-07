@@ -41,6 +41,8 @@ namespace BBS {
   // @ingroup ParmDB
   // @{
 
+  typedef casacore::rownr_t rownr_t;
+
   // @brief Class for a Casa table holding source parameters.
   class SourceDBCasa : public SourceDBRep
   {

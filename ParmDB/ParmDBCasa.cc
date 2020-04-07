@@ -158,7 +158,7 @@ namespace BBS {
   {
     for (int i=0; i<3; ++i) {
       TableLocker locker(itsTables[i], FileLocker::Write);
-      Vector<casacore::rownr_t> rows = itsTables[i].rowNumbers();
+      Vector<rownr_t> rows = itsTables[i].rowNumbers();
       itsTables[i].removeRow(rows);
     }
   }
@@ -311,7 +311,7 @@ namespace BBS {
     if (! expr.isNull()) {
       table = table(expr);
     }
-    Vector<casacore::rownr_t> origRownrs = table.rowNumbers();
+    Vector<rownr_t> origRownrs = table.rowNumbers();
     // Create the table accessor objects.
     ROScalarColumn<String> nameCol(nmtab, "NAME");
     ROScalarColumn<int>    typeCol(nmtab, "FUNKLETTYPE");

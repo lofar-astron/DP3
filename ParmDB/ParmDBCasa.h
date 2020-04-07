@@ -38,6 +38,7 @@
 namespace DP3 {
 namespace BBS {
 
+    typedef casacore::rownr_t rownr_t;
 
   // @ingroup ParmDB
   // @{
@@ -128,8 +129,8 @@ namespace BBS {
     // Get a selection from the NAME table.
     // <group>
     casacore::Table getNameSel (const std::string& parmNamePattern) const;
-    casacore::Vector<casacore::rownr_t> getNameIds (const std::string& parmNamePattern) const;
-    casacore::Vector<casacore::rownr_t> getNameIds (const std::vector<std::string>& parmNames) const;
+    casacore::Vector<rownr_t> getNameIds (const std::string& parmNamePattern) const;
+    casacore::Vector<rownr_t> getNameIds (const std::vector<std::string>& parmNames) const;
     // </group>
 
     // Find the minmax range in the table.
