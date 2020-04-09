@@ -158,7 +158,7 @@ namespace BBS {
   {
     for (int i=0; i<3; ++i) {
       TableLocker locker(itsTables[i], FileLocker::Write);
-      Vector<unsigned int> rows = itsTables[i].rowNumbers();
+      Vector<rownr_t> rows = itsTables[i].rowNumbers();
       itsTables[i].removeRow(rows);
     }
   }
@@ -201,7 +201,7 @@ namespace BBS {
     return table.rowNumbers()[0];
   }
 
-  Vector<unsigned int> ParmDBCasa::getNameIds (const string& parmNamePattern) const
+  Vector<rownr_t> ParmDBCasa::getNameIds (const string& parmNamePattern) const
   {
     Table table = itsTables[1];
     TableLocker locker(table, FileLocker::Read);
@@ -212,7 +212,7 @@ namespace BBS {
     return table.rowNumbers();
   }
 
-  Vector<unsigned int> ParmDBCasa::getNameIds (const vector<string>& parmNames) const
+  Vector<rownr_t> ParmDBCasa::getNameIds (const vector<string>& parmNames) const
   {
     Table table = itsTables[1];
     TableLocker locker(table, FileLocker::Read);
@@ -231,7 +231,7 @@ namespace BBS {
     Table table = itsTables[0];
     TableLocker locker(table, FileLocker::Read);
     if (!parmNamePattern.empty()  &&  parmNamePattern != "*") {
-      table = table(table.col("NAMEID").in (getNameIds(parmNamePattern)));
+      table = table(table.col("NAMEID").in (TableExprNode(getNameIds(parmNamePattern))));
     }
     return findRange (table);
   }
@@ -241,7 +241,7 @@ namespace BBS {
     Table table = itsTables[0];
     TableLocker locker(table, FileLocker::Read);
     if (!parmNames.empty()) {
-      table = table(table.col("NAMEID").in (getNameIds(parmNames)));
+      table = table(table.col("NAMEID").in (TableExprNode(getNameIds(parmNames))));
     }
     return findRange (table);
   }
@@ -311,7 +311,7 @@ namespace BBS {
     if (! expr.isNull()) {
       table = table(expr);
     }
-    Vector<uInt> origRownrs = table.rowNumbers();
+    Vector<rownr_t> origRownrs = table.rowNumbers();
     // Create the table accessor objects.
     ROScalarColumn<String> nameCol(nmtab, "NAME");
     ROScalarColumn<int>    typeCol(nmtab, "FUNKLETTYPE");
@@ -331,22 +331,22 @@ namespace BBS {
     // Create an accessor for the key in the index,
     RecordFieldPtr<unsigned int> idFld(colInx.accessKey(), "NAMEID");
     // Loop through the required nameids and retrieve their info.
-    for (unsigned int inx=0; inx<nameIds.size(); ++inx) {
+    for (rownr_t inx=0; inx<nameIds.size(); ++inx) {
       ParmValueSet& pvset = psets[parmIds[inx]];
-      unsigned int id = nameIds[inx];
+      rownr_t id = nameIds[inx];
       ParmValue::FunkletType type = ParmValue::FunkletType(typeCol(id));
       // Select the rows for the nameId.
       *idFld = id;
-      Vector<unsigned int> rownrs = colInx.getRowNumbers();
-      unsigned int nrow = rownrs.nelements();
+      Vector<rownr_t> rownrs = colInx.getRowNumbers();
+      rownr_t nrow = rownrs.nelements();
       if (nrow > 0) {
         // Retrieve the rows.
         vector<ParmValue::ShPtr> values;
         vector<Box> domains;
         values.reserve (nrow);
         domains.reserve (nrow);
-        for (unsigned int i=0; i<nrow; ++i) {
-          int row = rownrs[i];
+        for (rownr_t i=0; i<nrow; ++i) {
+          rownr_t row = rownrs[i];
           double sx = sxCol(row);
           double sy = syCol(row);
           double ex = exCol(row);
@@ -677,7 +677,7 @@ namespace BBS {
     Table nameSel = getNameSel (parmNamePattern);
     // Find all rows. Test if a domain selection was given.
     TableExprNode expr = makeExpr (table, domain);
-    andExpr (expr, table.col("NAMEID").in (nameSel.rowNumbers()));
+    andExpr (expr, table.col("NAMEID").in (TableExprNode(nameSel.rowNumbers())));
     Table sel = table(expr);
     // Delete all rows found.
     table.removeRow (sel.rowNumbers (table));
@@ -705,8 +705,8 @@ namespace BBS {
     TableLocker locker(table, FileLocker::Read);
     // Find all rows overlapping the requested domain.
     TableExprNode expr = makeExpr (table, domain);
-    andExpr (expr, table.col("NAMEID").in
-             (getNameIds(vector<string>(1, parmName))));
+    andExpr (expr, table.col("NAMEID").in(TableExprNode
+             (getNameIds(vector<string>(1, parmName)))));
     return table(expr);
   }
 

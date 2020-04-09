@@ -40,6 +40,7 @@
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Quanta/MVTime.h>
+#include <casacore/casa/version.h>
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
@@ -151,12 +152,17 @@ namespace DP3 {
       for (int i=0; i<nband; ++i) {
         freqs[i] = itsReaders[i]->getInfo().chanFreqs().data()[0];
       }
-      Vector<uInt> index;
+      Vector<rownr_t> index;
+
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
       GenSortIndirect<double>::sort (index, freqs);
+#else
+      GenSortIndirect<double, rownr_t>::sort (index, freqs);
+#endif
       vector<MSReader*> oldReaders (itsReaders);
       for (int i=0; i<nband; ++i) {
         itsReaders[i] = oldReaders[index[i]];
-      }      
+      }
     }
 
     void MultiMSReader::fillBands()

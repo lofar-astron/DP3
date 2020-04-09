@@ -33,14 +33,20 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/casa/version.h>
 
 
 namespace DP3 {
 namespace BBS {
 
-
   // @ingroup ParmDB
   // @{
+
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+  typedef unsigned int rownr_t;
+#else
+  typedef casacore::rownr_t rownr_t;
+#endif
 
   // @brief Class to hold parameters in a Casa table
   class ParmDBCasa : public ParmDBRep
@@ -128,8 +134,8 @@ namespace BBS {
     // Get a selection from the NAME table.
     // <group>
     casacore::Table getNameSel (const std::string& parmNamePattern) const;
-    casacore::Vector<unsigned int> getNameIds (const std::string& parmNamePattern) const;
-    casacore::Vector<unsigned int> getNameIds (const std::vector<std::string>& parmNames) const;
+    casacore::Vector<rownr_t> getNameIds (const std::string& parmNamePattern) const;
+    casacore::Vector<rownr_t> getNameIds (const std::vector<std::string>& parmNames) const;
     // </group>
 
     // Find the minmax range in the table.

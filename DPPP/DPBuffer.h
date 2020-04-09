@@ -30,6 +30,7 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/BasicSL/Complex.h>
+#include <casacore/casa/version.h>
 
 namespace DP3 {
   namespace DPPP {
@@ -116,6 +117,12 @@ namespace DP3 {
     //    the data immediately (e.g. Averager).
     // The DPInput::fetch functions come in those 2 flavours.
 
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+    typedef unsigned int rownr_t;
+#else
+    typedef casacore::rownr_t rownr_t;
+#endif
+
     class DPBuffer
     {
     public:
@@ -180,9 +187,9 @@ namespace DP3 {
 
       // Get or set the row numbers used by the DPInput class.
       // It can be empty (e.g. when MSReader inserted a dummy time slot).
-      void setRowNrs (const casacore::Vector<unsigned int>& rownrs)
+      void setRowNrs (const casacore::Vector<rownr_t>& rownrs)
         { itsRowNrs.reference (rownrs); }
-      const casacore::Vector<unsigned int>& getRowNrs() const
+      const casacore::Vector<rownr_t>& getRowNrs() const
         { return itsRowNrs; }
 
       // Get or set the UVW coordinates per baseline.
@@ -201,7 +208,7 @@ namespace DP3 {
     private:
       double                    itsTime;
       double                    itsExposure;
-      casacore::Vector<unsigned int>        itsRowNrs;
+      casacore::Vector<rownr_t> itsRowNrs;
       casacore::Cube<casacore::Complex> itsData;        //# ncorr,nchan,nbasel
       casacore::Cube<bool>          itsFlags;       //# ncorr,nchan,nbasel
       casacore::Matrix<double>      itsUVW;         //# 3,nbasel

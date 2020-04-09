@@ -336,7 +336,7 @@ namespace DP3 {
         ///cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<endl;
         if (!useIter) {
           // Need to insert a fully flagged time slot.
-          itsBuffer.setRowNrs (Vector<unsigned int>());
+          itsBuffer.setRowNrs (Vector<rownr_t>());
           itsBuffer.setExposure (itsTimeInterval);
           itsBuffer.getFlags() = true;
           if (itsReadVisData){
