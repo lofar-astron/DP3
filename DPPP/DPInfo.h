@@ -47,6 +47,17 @@ namespace DP3 {
       ArrayFactorBeamCorrection = 2,
       ElementBeamCorrection = 3
     };
+    
+    inline const char* BeamCorrectionModeToString(BeamCorrectionMode mode)
+    {
+      switch(mode) {
+        default:
+        case NoBeamCorrection: return "none";
+        case FullBeamCorrection: return "full";
+        case ArrayFactorBeamCorrection: return "array_factor";
+        case ElementBeamCorrection: return "element";
+      }
+    }
 
     // @ingroup NDPPP
 
