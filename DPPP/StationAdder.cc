@@ -38,6 +38,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/TableRow.h>
+#include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/casa/Utilities/Regex.h>
 #include <iostream>
@@ -164,7 +165,7 @@ namespace DP3 {
           MVPosition mvdiff = newPosition - 
             MPosition::Convert (antennaPos[inx], MPosition::ITRF)().getValue();
           const Vector<Double>& diff = mvdiff.getValue();
-          double dist = sqrt(std::accumulate(diff.cbegin(), diff.cend(), 0.,
+          double dist = std::sqrt(std::accumulate(diff.cbegin(), diff.cend(), 0.,
                                              casacore::SumSqr<Double>()));
           // Add the radius of the station used.
           maxdist = max (maxdist, dist + 0.5*antennaDiam[inx]);

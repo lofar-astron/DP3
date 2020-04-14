@@ -29,14 +29,13 @@
 
 //# Includes
 #include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
+#include <casacore/casa/Arrays/Array.h>
 
 #include <ostream>
 
 //# Forward Declarations
 namespace casacore
 {
-  template<class T> class Matrix;
-  template<class T> class Vector;
   class Table;
   class TableExprNode;
   class MPosition;

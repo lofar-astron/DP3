@@ -68,7 +68,7 @@ namespace BBS {
 
     // Construct the object for the given parm name.
     // It must have been added to the ParmSet used by the ParmCache.
-    Parm (ParmCache&, const string& name);
+    Parm (ParmCache&, const std::string& name);
 
     // Set the solve domains for the parm.
     // For an existing parm it must match the parm domains.

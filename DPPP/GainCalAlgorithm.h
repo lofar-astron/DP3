@@ -62,7 +62,7 @@ namespace DP3 {
       // Returns the solution. The return matrix has a length of maxAntennas,
       // which is zero for antennas for which no solution was computed.
       // The mapping is stored in the antenna map
-      casacore::Matrix<casacore::DComplex> getSolution(bool setNaNs);
+      casacore::Matrix<std::complex<double>> getSolution(bool setNaNs);
 
       double getWeight() {
         return _totalWeight;
@@ -72,12 +72,12 @@ namespace DP3 {
       void incrementWeight(float weight);
 
       // Returns a reference to the visibility matrix
-      casacore::Array<casacore::DComplex>& getVis() {
+      casacore::Array<std::complex<double>>& getVis() {
         return _vis;
       }
 
       // Returns a reference to the model visibility matrix
-      casacore::Array<casacore::DComplex>& getMVis() {
+      casacore::Array<std::complex<double>>& getMVis() {
         return _mvis;
       }
 
@@ -109,14 +109,14 @@ namespace DP3 {
 
       unsigned int _savedNCr;
       casacore::Vector<bool> _stationFlagged ; // Contains true for totally flagged stations
-      casacore::Array<casacore::DComplex> _vis; // Visibility matrix
-      casacore::Array<casacore::DComplex> _mvis; // Model visibility matrix
-      casacore::Matrix<casacore::DComplex> _g; // Solution, indexed by station, correlation
-      casacore::Matrix<casacore::DComplex> _gx; // Previous solution
-      casacore::Matrix<casacore::DComplex> _gxx; // Solution before previous solution
-      casacore::Matrix<casacore::DComplex> _gold; // Previous solution
-      casacore::Matrix<casacore::DComplex> _h; // Hermitian transpose of previous solution
-      casacore::Matrix<casacore::DComplex> _z; // Internal algorithm vector
+      casacore::Array<std::complex<double>> _vis; // Visibility matrix
+      casacore::Array<std::complex<double>> _mvis; // Model visibility matrix
+      casacore::Matrix<std::complex<double>> _g; // Solution, indexed by station, correlation
+      casacore::Matrix<std::complex<double>> _gx; // Previous solution
+      casacore::Matrix<std::complex<double>> _gxx; // Solution before previous solution
+      casacore::Matrix<std::complex<double>> _gold; // Previous solution
+      casacore::Matrix<std::complex<double>> _h; // Hermitian transpose of previous solution
+      casacore::Matrix<std::complex<double>> _z; // Internal algorithm vector
 
       unsigned int _nSt; // number of stations in the current solution
       unsigned int _nUn; // number of unknowns

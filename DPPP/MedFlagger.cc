@@ -469,15 +469,15 @@ namespace DP3 {
       } else {
         medianTimer.start();
         // Get median of data and get median of absolute difference.
-        ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
-        ///Z1 = *(tempBuf+np/2);
-        Z1 = GenSort<float>::kthLargest (tempBuf, np, np/2);
+        std::nth_element(tempBuf, tempBuf+np/2, tempBuf+np);
+        Z1 = tempBuf[np/2];
+        //Z1 = GenSort<float>::kthLargest (tempBuf, np, np/2);
         for (unsigned int i=0; i<np; ++i) {
           tempBuf[i] = std::abs(tempBuf[i] - Z1);
         }
-        ///std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
-        ///Z2 = *(tempBuf+np/2);
-        Z2 = GenSort<float>::kthLargest (tempBuf, np, np/2);
+        std::nth_element (tempBuf, tempBuf+np/2, tempBuf+np);
+        Z2 = tempBuf[np/2];
+        // Z2 = GenSort<float>::kthLargest (tempBuf, np, np/2);
         medianTimer.stop();
       }
     }

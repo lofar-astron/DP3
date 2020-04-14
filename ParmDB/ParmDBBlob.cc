@@ -74,34 +74,34 @@ namespace BBS {
   }
 
   void ParmDBBlob::getDefValues (ParmMap&,
-                                 const string&)
+                                 const std::string&)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }
 
-  void ParmDBBlob::putValues (const string&, int&, ParmValueSet&)
+  void ParmDBBlob::putValues (const std::string&, int&, ParmValueSet&)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }
 
-  void ParmDBBlob::putDefValue (const string&, const ParmValueSet&,
+  void ParmDBBlob::putDefValue (const std::string&, const ParmValueSet&,
                                 bool)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }
 
-  void ParmDBBlob::deleteValues (const string&,
+  void ParmDBBlob::deleteValues (const std::string&,
                                  const Box&)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }
 
-  void ParmDBBlob::deleteDefValues (const string&)
+  void ParmDBBlob::deleteDefValues (const std::string&)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }
 
-  vector<string> ParmDBBlob::getNames (const string&)
+  vector<string> ParmDBBlob::getNames (const std::string&)
   {
     throw std::runtime_error("ParmDBBlob not implemented");
   }

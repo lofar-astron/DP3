@@ -80,7 +80,7 @@ namespace BBS {
 
     // Put the values for the given parameter name and id.
     // It throws a "not implemented" exception.
-    virtual void putValues (const string& parmName, int& nameId,
+    virtual void putValues (const std::string& parmName, int& nameId,
                             ParmValueSet& values);
 
     // Delete the value records for the given parameters and domain.
@@ -95,7 +95,7 @@ namespace BBS {
 
     // Put the default value.
     // It throws a "not implemented" exception.
-    virtual void putDefValue (const string& name, const ParmValueSet& value,
+    virtual void putDefValue (const std::string& name, const ParmValueSet& value,
                               bool check=true);
 
     // Delete the default value records for the given parameters.

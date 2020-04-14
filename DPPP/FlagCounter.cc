@@ -30,8 +30,8 @@
 #include <casacore/tables/Tables/ScaColDesc.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"

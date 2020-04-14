@@ -28,6 +28,7 @@
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
 using namespace casacore;
+using namespace std;
 
 namespace DP3 {
 namespace BBS {
@@ -89,7 +90,6 @@ namespace BBS {
 
   vector<double> Parm::getErrors (const Location& where, bool useMask)
   {
-    assert (! itsSolveGrid.isDefault());
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     // Find the location in the ParmValueSet grid given the location in
     // the solve grid.
@@ -156,10 +156,10 @@ namespace BBS {
       if (!useMask  ||  mask.size() == 0) {
         // Coefficients without a mask; copy all.
         assert (nvalues == values.size());
-        std::copy (newValues, newValues+nvalues, values.cbegin());
+        copy (newValues, newValues+nvalues, values.cbegin());
         if (newErrors) {
           assert (nvalues == errors.size());
-          std::copy (newErrors, newErrors+nvalues, errors.cbegin());
+          copy (newErrors, newErrors+nvalues, errors.cbegin());
         }
       } else {
         // Only copy values where mask is true.
@@ -206,7 +206,7 @@ namespace BBS {
   {
     assert (! itsSolveGrid.isDefault());
     // Moet ik nog over nadenken.
-    throw std::runtime_error("revertCoeff is not implemented yet");
+    throw runtime_error("revertCoeff is not implemented yet");
     // Coefficients have changed, so recalculate the perturbations.
     calcPerturbations();
   }
@@ -225,7 +225,7 @@ namespace BBS {
     double perturbation = pvset.getPerturbation();
     for (vector<double>::iterator iter=itsPerturbations.begin();
          iter!=itsPerturbations.end(); ++iter) {
-      if (pvset.getPertRel()  &&  std::abs(*iter) > 1e-10) {
+      if (pvset.getPertRel()  && std::abs(*iter) > 1e-10) {
         *iter *= perturbation;
       } else {
         *iter = perturbation;

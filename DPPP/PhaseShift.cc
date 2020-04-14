@@ -30,9 +30,9 @@
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
+#include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/BasicSL/Constants.h>

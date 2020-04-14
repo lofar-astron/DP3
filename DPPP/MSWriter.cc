@@ -628,7 +628,7 @@ namespace DP3 {
       
       flagCol.putColumn (buf.getFlags());
       // A row is flagged if no flags in the row are False.
-      Vector<Bool> rowFlags (partialNFalse(buf.getFlags(), IPosition(2,0,1)) == 0u);
+      Vector<Bool> rowFlags (partialNFalse(buf.getFlags(), IPosition(2,0,1)) == uInt(0));
       flagRowCol.putColumn (rowFlags);
       if (itsWriteFullResFlags) {
         writeFullResFlags (out, buf);

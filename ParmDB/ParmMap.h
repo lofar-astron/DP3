@@ -52,7 +52,7 @@ namespace BBS {
     {}
 
     // Add or replace a ParmValueSet.
-    void define (const string& name, const ParmValueSet& pset)
+    void define (const std::string& name, const ParmValueSet& pset)
       { itsValueSets[name] = pset; }
 
     // Is the map empty?
@@ -65,13 +65,13 @@ namespace BBS {
 
     // Get the value belonging to the name.
     // An exception is thrown if the value does not exist.
-    const ParmValueSet& operator[] (const string& name) const;
+    const ParmValueSet& operator[] (const std::string& name) const;
 
     // Iterator functionality.
     // <group>
-    typedef std::map<string, ParmValueSet>::iterator       iterator;
-    typedef std::map<string, ParmValueSet>::const_iterator const_iterator;
-    typedef std::map<string, ParmValueSet>::value_type     valueType;
+    typedef std::map<std::string, ParmValueSet>::iterator       iterator;
+    typedef std::map<std::string, ParmValueSet>::const_iterator const_iterator;
+    typedef std::map<std::string, ParmValueSet>::value_type     valueType;
     iterator begin()
       { return itsValueSets.begin(); }
     const_iterator begin() const
@@ -80,9 +80,9 @@ namespace BBS {
       { return itsValueSets.end(); }
     const_iterator end() const
       { return itsValueSets.end(); }
-    iterator find (const string& name)
+    iterator find (const std::string& name)
       { return itsValueSets.find(name); }
-    const_iterator find (const string& name) const
+    const_iterator find (const std::string& name) const
       { return itsValueSets.find(name); }
     // </group>
 

@@ -147,7 +147,7 @@ namespace DP3 {
         double ginit=0.;
         bool ginitcomputed=false;
         for (unsigned int ant=0; ant<_nUn; ++ant) {
-          if (!isFinite(_g(ant,0).real()) ) {
+          if (!std::isfinite(_g(ant,0).real()) ) {
             if (!ginitcomputed && !_stationFlagged[ant%_nSt]) {
               // Avoid calling getAverageUnflaggedSolution for stations that are always flagged
               ginit = getAverageUnflaggedSolution();
@@ -178,7 +178,7 @@ namespace DP3 {
       double total=0.;
       unsigned int unflaggedstations=0;
       for (unsigned int ant2=0; ant2<_nUn; ++ant2) {
-        if (isFinite(_g(ant2,0).real())) {
+        if (std::isfinite(_g(ant2,0).real())) {
           total += abs(_g(ant2,0));
           unflaggedstations++;
           if (_nCr==4) {
@@ -458,7 +458,7 @@ namespace DP3 {
 
       if (!threestep) {
         threestep = (iter+1 >= nomega) ||
-            ( max(_dg,max(_dgx,dgxx)) <= 1.0e-3 && _dg<_dgx && _dgx<dgxx);
+            ( std::max(_dg, std::max(_dgx,dgxx)) <= 1.0e-3 && _dg<_dgx && _dgx<dgxx);
         if (_debugLevel>7) {
           cout<<"Threestep="<<boolalpha<<threestep<<endl;
         }

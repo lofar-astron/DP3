@@ -162,7 +162,7 @@ void Interpolate::interpolateTimestep(size_t index)
 		nBl = shp[2];
 
 	std::vector<std::thread> threads;
-	size_t nthreads = std::min<size_t>(sysconf(_SC_NPROCESSORS_ONLN), 8);
+	size_t nthreads = std::min<size_t>(getInfo().nThreads(), 8);
 	_lane.resize(nthreads*BUFFER_SIZE);
 	lane_write_buffer<Sample> buflane(&_lane, BUFFER_SIZE);
 	threads.reserve(nthreads);

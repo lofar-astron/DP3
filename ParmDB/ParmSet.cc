@@ -29,7 +29,7 @@ namespace BBS {
   ParmSet::ParmSet()
   {}
 
-  ParmId ParmSet::addParm (ParmDB& parmdb, const string& name)
+  ParmId ParmSet::addParm (ParmDB& parmdb, const std::string& name)
   {
     // See if the parm has already been added.
     std::map<std::string,int>::const_iterator pos = itsNames.find(name);
@@ -58,7 +58,7 @@ namespace BBS {
 
   ParmId ParmSet::find (const std::string& name) const
   {
-    std::map<string,int>::const_iterator pos = itsNames.find(name);
+    std::map<std::string,int>::const_iterator pos = itsNames.find(name);
     if (pos == itsNames.end())
 			throw std::runtime_error("Parm " + name
                + " not found in ParmSet");

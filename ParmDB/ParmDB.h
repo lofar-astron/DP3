@@ -105,7 +105,7 @@ namespace BBS {
     // Put the values for the given parameter name and id.
     // If it is a new value, the new rowid will be stored in the ParmValueSet.
     // If it is a new name, the nameId will be filled in.
-    virtual void putValues (const string& parmName, int& nameId,
+    virtual void putValues (const std::string& parmName, int& nameId,
                             ParmValueSet& values) = 0;
 
     // Put the value for the given parameters and domain.
@@ -130,7 +130,7 @@ namespace BBS {
                                const std::string& parmNamePattern) = 0;
 
     // Put the default value.
-    virtual void putDefValue (const string& parmName,
+    virtual void putDefValue (const std::string& parmName,
                               const ParmValueSet& value,
                               bool check=true) = 0;
 
@@ -255,7 +255,7 @@ namespace BBS {
     // Put the values of a parameter.
     // If it is a new value, the new rowid will be stored in the ParmValueSet.
     // If it is a new name, the nameId will be filled in.
-    void putValues (const string& name, int& nameId,
+    void putValues (const std::string& name, int& nameId,
                     ParmValueSet& values)
       { itsRep->putValues (name, nameId, values); }
 
@@ -276,7 +276,7 @@ namespace BBS {
       { itsRep->getDefValues (result, parmNamePattern); }
 
     // Put the default value for the given parameter.
-    void putDefValue (const string& parmName, const ParmValueSet& value,
+    void putDefValue (const std::string& parmName, const ParmValueSet& value,
                       bool check=true)
       { itsRep->putDefValue (parmName, value, check); }
 

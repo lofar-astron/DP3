@@ -60,7 +60,7 @@ namespace BBS {
     // <br>It returns a unique parmId.
     // <br>If the parm has been added before to the ParmSet, it returns
     // the already known parmid.
-    ParmId addParm (ParmDB&, const string& name);
+    ParmId addParm (ParmDB&, const std::string& name);
 
     // Does the parm already exist in the ParmDB?
     bool isInParmDB (ParmId parmid) const
@@ -79,7 +79,7 @@ namespace BBS {
 
     // Find the parmid of a previously added parm.
     // An exception is thrown if not existing in the ParmSet.
-    ParmId find (const string& name) const;
+    ParmId find (const std::string& name) const;
 
     // Get the ParmDBs used in the ParmSet.
     const std::vector<ParmDB*> getDBs() const
@@ -108,7 +108,7 @@ namespace BBS {
     {
     public:
       // Create a parameter key.
-      ParmKey (ParmDB* parmdb, const string& name, int nameId, ParmId parmId)
+      ParmKey (ParmDB* parmdb, const std::string& name, int nameId, ParmId parmId)
         : itsParmDB (parmdb),
           itsName   (name),
           itsNameId (nameId),
@@ -116,7 +116,7 @@ namespace BBS {
       {}
 
       // Get the name.
-      const string& getName() const
+      const std::string& getName() const
         { return itsName; }
 
       // Get the ParmDB used for the parameter.
@@ -143,7 +143,7 @@ namespace BBS {
 
     private:
       ParmDB* itsParmDB;
-      string  itsName;
+      std::string  itsName;
       int     itsNameId;
       ParmId  itsParmId;
     };
