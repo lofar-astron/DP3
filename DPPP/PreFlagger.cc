@@ -34,6 +34,7 @@
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/Quanta/MVAngle.h>

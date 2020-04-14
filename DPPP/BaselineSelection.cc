@@ -27,6 +27,8 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <casacore/casa/Utilities/Regex.h>
+
 #include "../Common/BaselineSelect.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/ParameterValue.h"

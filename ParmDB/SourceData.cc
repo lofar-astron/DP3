@@ -26,7 +26,7 @@
 #include "../Blob/BlobIStream.h"
 #include "../Blob/BlobOStream.h"
 
-#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Quanta/MVAngle.h>
 
 #include <iostream>

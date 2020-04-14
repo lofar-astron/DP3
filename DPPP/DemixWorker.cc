@@ -47,8 +47,8 @@
 #include <casacore/casa/Quanta/MVEpoch.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Arrays/MatrixIter.h>
 #include <casacore/casa/Containers/Record.h>
@@ -604,7 +604,8 @@ namespace DP3 {
       if (nrtmp == 0) {
         return 0;
       }
-      return GenSort<float>::kthLargest (tmp, nrtmp, (nrtmp-1)/2);
+      std::nth_element(tmp, tmp+(nrtmp-1)/2, tmp+nrtmp);
+      return tmp[(nrtmp-1)/2];
     }
 
     void DemixWorker::setupDemix (unsigned int chunkNr)

@@ -57,8 +57,8 @@ namespace DP3 {
 
       // This constructor creates an empty object.
       // It reads info from the parset to see if percentages have to be saved.
-      FlagCounter (const string& msName, const ParameterSet&,
-                   const string& prefix);
+      FlagCounter (const std::string& msName, const ParameterSet&,
+                   const std::string& prefix);
 
       // Size all counters and initialize them to zero using the sizes
       // from the DPInfo object.
@@ -109,7 +109,7 @@ namespace DP3 {
 
       //# Data members.
       const DPInfo* itsInfo;
-      string        itsSaveName;
+      std::string itsSaveName;
       double        itsWarnPerc;
       bool          itsShowFF;
       std::vector<int64_t> itsBLCounts;

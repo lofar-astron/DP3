@@ -36,6 +36,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/Regex.h>
 
 #include <cassert>

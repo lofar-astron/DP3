@@ -136,6 +136,7 @@
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Inputs/Input.h>
 #include <casacore/casa/BasicSL/Constants.h>
+#include <casacore/casa/Utilities/Regex.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
 

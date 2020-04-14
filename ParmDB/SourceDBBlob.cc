@@ -24,6 +24,7 @@
 #include "ParmMap.h"
 
 #include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/Regex.h>
 #include <casacore/casa/Utilities/Sort.h>
 
 #include <iostream>
@@ -191,13 +192,13 @@ namespace BBS {
       regex = Regex::fromPattern(pattern);
     }
     // Fill the patch names selecting only the required ones.
-    vector<String> names;
-    vector<Int> categories;
-    vector<double> brightness;
+    std::vector<std::string> names;
+    std::vector<Int> categories;
+    std::vector<double> brightness;
     names.reserve (itsPatches.size());
     categories.reserve (itsPatches.size());
     brightness.reserve (itsPatches.size());
-    for (map<string,PatchInfo>::const_iterator iter=itsPatches.begin();
+    for (map<std::string,PatchInfo>::const_iterator iter=itsPatches.begin();
          iter!=itsPatches.end(); ++iter) {
       if ((category < 0       ||  iter->second.getCategory() == category)  &&
           (minBrightness < 0  ||  iter->second.apparentBrightness() >= minBrightness)  &&

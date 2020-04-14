@@ -37,7 +37,7 @@ namespace BBS {
       itsParmId  (parmid)
   {}
 
-  Parm::Parm (ParmCache& cache, const string& name)
+  Parm::Parm (ParmCache& cache, const std::string& name)
     : itsCache   (&cache),
       itsParmId  (cache.getParmSet().find(name))
   {}
@@ -67,7 +67,7 @@ namespace BBS {
     return ntrue(mask);
   }
 
-  vector<double> Parm::getCoeff (const Location& where, bool useMask)
+  std::vector<double> Parm::getCoeff (const Location& where, bool useMask)
   {
     assert (! itsSolveGrid.isDefault());
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
@@ -84,12 +84,11 @@ namespace BBS {
     cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
                                       where, itsSolveGrid,
                                       pv.getGrid());
-    return vector<double> (1, pv.getValues().data()[cellId]);
+    return std::vector<double> (1, pv.getValues().data()[cellId]);
   }
 
-  vector<double> Parm::getErrors (const Location& where, bool useMask)
+  std::vector<double> Parm::getErrors (const Location& where, bool useMask)
   {
-    assert (! itsSolveGrid.isDefault());
     const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
     // Find the location in the ParmValueSet grid given the location in
     // the solve grid.
@@ -98,7 +97,7 @@ namespace BBS {
                                            pvset.getGrid());
     const ParmValue& pv = pvset.getParmValue(cellId);
     if (!pv.hasErrors()) {
-      return vector<double>();
+      return std::vector<double>();
     }
     if (pvset.getType() != ParmValue::Scalar) {
         return copyValues (pv.getErrors(), pvset.getSolvableMask(), useMask);
@@ -107,19 +106,19 @@ namespace BBS {
     cellId = GridMapping::findCellId (itsCache->getAxisMappingCache(),
                                       where, itsSolveGrid,
                                       pv.getGrid());
-    return vector<double> (1, pv.getErrors().data()[cellId]);
+    return std::vector<double> (1, pv.getErrors().data()[cellId]);
   }
 
-  vector<double> Parm::copyValues (const Array<double>& values,
+  std::vector<double> Parm::copyValues (const Array<double>& values,
                                    const Array<Bool>& mask,
                                    bool useMask)
   {
     assert (values.contiguousStorage());
     if (!useMask  ||  mask.size() == 0) {
-      return vector<double> (values.cbegin(), values.cend());
+      return std::vector<double> (values.cbegin(), values.cend());
     }
     assert (values.shape().isEqual(mask.shape()) && mask.contiguousStorage());
-    vector<double> solvCoeff;
+    std::vector<double> solvCoeff;
     solvCoeff.reserve (values.size());
     const double* valp = values.data();
     const bool* maskp  = mask.data();
@@ -223,7 +222,7 @@ namespace BBS {
       itsPerturbations[0] = pv.getValues().data()[0];
     }
     double perturbation = pvset.getPerturbation();
-    for (vector<double>::iterator iter=itsPerturbations.begin();
+    for (std::vector<double>::iterator iter=itsPerturbations.begin();
          iter!=itsPerturbations.end(); ++iter) {
       if (pvset.getPertRel()  &&  std::abs(*iter) > 1e-10) {
         *iter *= perturbation;
@@ -233,7 +232,7 @@ namespace BBS {
     }
   }
 
-  void Parm::getResult (vector<Array<double> >& result,
+  void Parm::getResult (std::vector<Array<double> >& result,
                         const Grid& predictGrid, bool perturb)
   {
     if (!perturb  ||  itsPerturbations.empty()) {
@@ -275,7 +274,7 @@ namespace BBS {
     }
     if (pvset.getType() != ParmValue::Scalar) {
       // It is a funklet, so evaluate it.
-      getResultCoeff (&result, predictGrid, pvset, vector<double>(),
+      getResultCoeff (&result, predictGrid, pvset, std::vector<double>(),
                       itsCache->getAxisMappingCache());
     } else if (pvset.getGrid().size() == 1) {
       // Optimize for the often occurring case of a single ParmValue object.
@@ -298,7 +297,7 @@ namespace BBS {
 
   void Parm::getResultCoeff (Array<double>* resultVec, const Grid& predictGrid,
                              const ParmValueSet& pvset,
-                             const vector<double>& perturbations,
+                             const std::vector<double>& perturbations,
                              AxisMappingCache& axisMappingCache)
   {
     Array<double>& result = *resultVec;
@@ -356,7 +355,7 @@ namespace BBS {
     }
     // Now calculate all perturbed values if needed.
     if (! perturbations.empty()) {
-      vector<double> pertCoeff(perturbations.size(), 0.);
+      std::vector<double> pertCoeff(perturbations.size(), 0.);
       for (unsigned int ip=0; ip<perturbations.size(); ++ip) {
         pertCoeff[ip] = perturbations[ip];
         Array<double>& result = resultVec[ip+1];
@@ -466,8 +465,8 @@ namespace BBS {
     // Loop through the cells of pvset's grid.
     // Each cell is a ParmValue with its own grid.
     // Fill a part of the result from the ParmValue.
-    const vector<int>& bordersx = mapx.getBorders();
-    const vector<int>& bordersy = mapy.getBorders();
+    const std::vector<int>& bordersx = mapx.getBorders();
+    const std::vector<int>& bordersy = mapy.getBorders();
     int sty = 0;
     for (unsigned int iy=0; iy<bordersy.size(); ++iy) {
       int inxy = nrsx * mapy[sty];

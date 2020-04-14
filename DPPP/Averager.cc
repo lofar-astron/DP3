@@ -30,6 +30,7 @@
 #include "../Common/StringUtil.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Utilities/Regex.h>
 
 #include <iostream>
 #include <iomanip>

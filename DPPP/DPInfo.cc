@@ -27,8 +27,8 @@
 
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/BasicSL/STLIO.h>
 
 using namespace casacore;
