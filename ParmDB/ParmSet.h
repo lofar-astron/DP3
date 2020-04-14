@@ -56,7 +56,7 @@ namespace BBS {
     ParmSet();
 
     // Add a parm for the given ParmDB. If not existing in the parmDB,
-    // it will be added to the ParmDB when its values are writtn.
+    // it will be added to the ParmDB when its values are written.
     // <br>It returns a unique parmId.
     // <br>If the parm has been added before to the ParmSet, it returns
     // the already known parmid.
