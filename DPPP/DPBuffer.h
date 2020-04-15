@@ -117,7 +117,7 @@ namespace DP3 {
     //    the data immediately (e.g. Averager).
     // The DPInput::fetch functions come in those 2 flavours.
 
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
     typedef unsigned int rownr_t;
 #else
     typedef casacore::rownr_t rownr_t;
