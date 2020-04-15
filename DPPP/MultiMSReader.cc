@@ -154,7 +154,7 @@ namespace DP3 {
       }
       Vector<rownr_t> index;
 
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<3)
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
       GenSortIndirect<double>::sort (index, freqs);
 #else
       GenSortIndirect<double, rownr_t>::sort (index, freqs);
