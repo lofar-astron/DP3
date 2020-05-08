@@ -1,3 +1,5 @@
+add_subdirectory(test EXCLUDE_FROM_ALL)
+
 include(PythonInstall)
 
 add_executable(DPPP DPPP.cc

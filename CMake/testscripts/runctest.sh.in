@@ -1,0 +1,48 @@
+#!/bin/sh -l
+
+# runctest.sh: CTest wrapper script for runtest.sh
+#
+#  Copyright (C) 2009
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, softwaresupport@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id: runctest.sh 13275 2009-05-15 15:42:36Z loose $
+
+# runtest.sh uses this variable to find test input files and the like.
+srcdir="@srcdir@"; export srcdir
+
+# Add the sbin and bin directories in the build tree to PATH
+PATH="@CMAKE_BINARY_DIR@/sbin:@CMAKE_BINARY_DIR@/bin:${PATH}"; export PATH
+
+# Add the lib or lib64 directory in the build tree to LD_LIBRARY_PATH
+LD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/@LOFAR_LIBDIR@:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH
+
+# Add the Python build directory to PYTHONPATH.
+PYTHONPATH="@srcdir@:@PYTHON_BUILD_DIR@:${PYTHONPATH}"; export PYTHONPATH
+
+# Start CMake/testscripts/runtest.sh
+"@CMAKE_SOURCE_DIR@/CMake/testscripts/runtest.sh" "$@"
+
+# The Autotools use the magic return value 77 for skipped tests. CMake can
+# only handle zero and non-zero return values. To avoid that CMake will flag a
+# skipped test as failed, we will silently change the return value 77 to 0.
+STATUS=$?
+if [ $STATUS -eq 77 ]; then
+  STATUS=0
+fi
+exit $STATUS
