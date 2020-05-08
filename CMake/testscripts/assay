@@ -1,0 +1,289 @@
+#!/bin/sh
+#
+# assay: Invoke a test program and verify its output
+#
+#  Copyright (C) 2001
+#  ASTRON (Netherlands Foundation for Research in Astronomy)
+#  P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, softwaresupport@astron.nl
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#  $Id: assay 14252 2009-10-13 12:14:53Z loose $
+
+
+#-----------------------------------------------------------------------------
+# Usage: assay <testexe> <max run-time(sec)> <precision> <needoutfil> [<arguments>]
+#-----------------------------------------------------------------------------
+# This script is an adapted version of the AIPS++ assay script.
+#
+# assay invokes a test program. If the test program has an associated
+# .run file then it simply invokes it. Otherwise assay invokes the test
+# executable directly.
+#
+# assay redirects the output of program or .run file to a temporary file
+# and compare it with a corresponding .stdout file (if present) using diff.
+# (Note: assay will flag the absence of a .stdout file as an error, when 
+# your program or .run file returns with an exit status 2.)
+# Parts of the output can be skipped using special markers (>>> and <<<).
+# If the out files are different, it tries to find out if they match
+# by comparing numbers with the given precision (e.g. 1e-5) using:
+#    abs(a1-a2) <= precision * max(abs(a1),abs(a2))
+#
+# example:
+#
+# >>>
+# This total line will be skipped
+# <<<
+#
+# Only >>>this<<< will be skipped 
+#
+#
+#
+# A .run file is necessary in the following cases:
+# 1. There are other input files. In that case the .run file should
+#    copy those files to the working directory. If needed, it should
+#    guard against the case where the working directory is already the
+#    directory containing the input files.
+# 2. There are multiple output files that should be compared.
+# 3. The test program has to be run multiple times with various arguments.
+# Note that the .run file can be executed from the source directory
+# or from the machine/test directory.
+#
+# An example t_fft.run file could look like:
+#
+#  #!/bin/sh
+#
+#  # Get working directory.
+#  wdir=`pwd`
+#  # Get source directory (by removing trailing part like /dop08/test).
+#  sdir=`pwd | sed 's#/[^/]*/test$##'`
+#  echo $wdir
+#  echo $sdir
+#  # Copy input files (actually, guard is not needed in this case).
+#  if [ "$wdir" != "$sdir/BASELINE" ]
+#  then
+#    cp $sdir/BASELINE/*.coef .
+#  fi
+#  # Execute the program.
+#  t_fft
+#  STATUS=$?
+#  if [ $STATUS ]
+#  then
+#    # Do a difference of all output files.
+#    mdiff *.stdout $sdir/BASELINE
+#    STATUS=$?
+#  fi
+#  # Remove the files created.
+#  if [ "$wdir" != "$sdir/BASELINE" ]
+#  then
+#    \rm -f  *.coef
+#  fi
+#  # Remove .stdout files only if succesfully ended.
+#  if [ $STATUS ]
+#  then
+#    \rm -f *.stdout*
+#  fi
+#  exit $STATUS
+##########################################################
+#
+# Options:
+#   none
+#
+# Status returns:
+#    0:  success
+#    1:  test execution failed
+#    2:  test output disagreement
+#   77:  untested (conforming make check) (3 is returned from a .run)
+#  130:  interrupt
+#
+# Notes:
+#    1) It is assumed that the test executable exists in the working directory.
+#
+# Original: 1995/11/01 by Mark Calabretta, ATNF
+#
+#=============================================================================
+
+# CHECKTOOL is a Make option that contains the checktoolcommand. To be able to 
+# insert the program name into the options (for logfile naming for example)
+# a [PROGNAME] can be inserted into the call, this will be substituted by the
+# program name.
+#
+# For example:
+#  make check CHECKTOOL='valgrind --tool=memcheck \
+#                                 --num-callers=50 \
+#                                 --workaround-gcc296-bugs=yes \
+#                                 --leak-check=yes \
+#                                 --track-fds=yes \
+#                                 --logfile=[PROGNAME]_valgrind'
+
+  if test $# -lt 3; then
+    echo "usage: assay <testexe> <max run-time(sec)> <precision> [<arguments>]"
+    exit 1
+  fi
+
+  PROG=$1
+  shift
+  MAXTIME=$1
+  shift
+  PREC=$1
+  shift
+  NEEDOUTFIL=$1
+  shift
+
+# Get absolute directory of this script.
+  lfr_script_dir=$(cd "$(dirname "$0")" && pwd)
+
+# Use LimitExec if possible and available.
+  LOFAR_LIMITEXEC=
+  if [ -x "$LOFARROOT/bin/LimitExec" ]
+  then
+    LOFAR_LIMITEXEC="$LOFARROOT/bin/LimitExec"
+  elif [ -x "$lfr_script_dir/limitexec.sh" ]
+  then
+    LOFAR_LIMITEXEC="$lfr_script_dir/limitexec.sh"
+  fi
+  export LOFAR_LIMITEXEC
+  if [ "$LOFAR_LIMITEXEC" != "" ]
+  then
+    CMDPREFIX="\"$LOFAR_LIMITEXEC\" $MAXTIME"
+  fi
+
+# Initialize the command to be executed.
+  COMMAND="$CMDPREFIX ./$PROG"
+  
+# Determine if the program needs to be run with a checktool like valgrind.
+  if [ "$LOFAR_CHECKTOOL" != "" ]
+  then
+    COMMAND="$CMDPREFIX $LOFAR_CHECKTOOL ./$PROG"
+  fi
+
+#  if [ "$CHECKTOOL" != ""  -a  "$CHECKTOOLPROGS" != "" ]
+#  then
+#    match=0
+#    for prg in $CHECKTOOLPROGS
+#    do
+#      if [ "$PROG" = "$prg" ]
+#      then
+#        match=1
+#        break
+#      fi
+#    done
+#    if [ $match = 1 ]
+#    then
+#      # Use a checktool; replace [PROGNAME] by actual program name.
+#      CHKTOOL=`echo "$CHECKTOOL" | sed -e 's/\[PROGNAME\]/'$PROG'/g'`
+#      COMMAND="$CMDPREFIX $CHKTOOL ./$PROG"
+#    fi
+#  fi
+
+
+# Define exit and interrupt handler.
+  trap 'rm -rf core ${PROG}_tmp*; \
+        trap - 0 ; \
+        exit $STATUS' 0 1 2 3 15
+
+# If there is a .py file then use it.
+  if [ -f "$PROG.py" ]; then
+    COMMAND="python $PROG.py"
+    LOFAR_CHECKTOOL=
+  fi
+
+# If there is a .run file then use it.
+# Note: this must be tested after the test on .py file, otherwise it gets
+# overwritten if there is a .py file.
+  if [ -f "$PROG.run" ]
+  then
+    COMMAND="./$PROG.run"
+    export LOFAR_CHECKTOOL
+  fi
+
+# Execute the command, and duplicate stdout to file. The challenge here is to
+# fetch the exit status of $COMMAND, not that of tee. There is an arcane POSIX
+# way of doing this (ref: http://stackoverflow.com/questions/2413166/
+# bash-redirect-and-append-stdout-and-stderr-to-file-and-terminal).
+  echo "Executing command: $COMMAND"
+  exec 4>&1
+  STATUS=$({ { eval "$COMMAND"; echo $? >&3; } | \
+             { tee ${PROG}_tmp.out >&4; } } 3>&1)
+  exec 4>&-
+
+  # Check the status.
+  case $STATUS in 
+  0) 
+    if [ -f $PROG.stdout ]
+    then
+      CAT=cat
+    else
+      if [ "$NEEDOUTFIL" = 1 ]; then
+        echo "FAIL (reference output file missing): $PROG"
+        STATUS=2
+      else
+        echo "PASS (execution succeeded): $PROG"
+      fi
+      exit
+    fi
+    ;;
+  3) 
+    echo "UNTESTED: $PROG"
+    STATUS=77
+    exit
+    ;;
+  *) 
+    echo "FAIL (execution failure): $PROG"
+    exit
+     ;;
+  esac
+
+  echo "Comparing output with $PROG.stdout ..."
+# Strip out demarked text.
+# inline parts enclosed by >>> && <<<
+  sed -e 's/>>>.*<<<//' ${PROG}_tmp.out > ${PROG}_tmp.out2
+# lines enclosed by >>> && <<<
+  sed -e '/^>>>/,/^<<</d' ${PROG}_tmp.out2 > ${PROG}_tmp.out
+
+# Compare with the expected output.
+  $CAT $PROG.stdout | sed -e 's/>>>.*<<<//' | sed -e '/^>>>/,/^<<</d' > ${PROG}_tmp_orig.out
+  if diff ${PROG}_tmp.out ${PROG}_tmp_orig.out
+  then
+     echo "PASS (output verified): $PROG"
+     STATUS=0
+     exit
+  fi
+
+# Not fully equal, check if equal except for numbers.
+# Replace for this purpose all numbers by x.
+  sed -e 's/[-+]\?[0-9]*\.\?[0-9][0-9]*\([eE][-+]\?[0-9][0-9]*\)\?/x/g' ${PROG}_tmp.out > ${PROG}_tmp.out2
+  sed -e 's/[-+]\?[0-9]*\.\?[0-9][0-9]*\([eE][-+]\?[0-9][0-9]*\)\?/x/g' ${PROG}_tmp_orig.out > ${PROG}_tmp_orig.out2
+# Ignore changes in white space.
+  diff -b ${PROG}_tmp.out2 ${PROG}_tmp_orig.out2 > /dev/null 2>&1
+  if [ $? != 0 ]
+  then
+     echo "FAIL (output not verified): $PROG"
+     STATUS=2
+     exit
+  fi
+
+# Okay, the non-numbers are equal.
+# Now check if all numbers are approximately equal.
+  "$lfr_script_dir/checkfloat" ${PROG}_tmp.out ${PROG}_tmp_orig.out $PREC
+  if [ $? != 0 ]
+  then
+     echo "FAIL (floating point discrepancies > $PREC): $PROG"
+     STATUS=2
+     exit
+  fi
+  echo "PASS (floating point discrepancies <= $PREC): $PROG"
+  STATUS=0
+  exit
