@@ -3,6 +3,9 @@
 # Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
 source findenv.run_script
 echo "srcdirx=$rt_srcdir"
+pwd=`pwd`
+dpppexe=`readlink -f $pwd/../DPPP`
+echo dpppexe is $dpppexe
 
 # Set srcdir if not defined (in case run by hand).
 if test "$srcdir" = ""; then
@@ -24,7 +27,7 @@ tar zxf ${srcdir}/tPredict.tab.tgz
 echo "    select result of 0 rows" > taql.ref
 
 echo; echo "Test with beam, subtract"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true predict.operation=subtract'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true predict.operation=subtract"
 echo $cmd
 $cmd
 # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
@@ -34,7 +37,7 @@ $taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam, add"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false predict.operation=add'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=false predict.operation=add"
 echo $cmd
 $cmd
 # Compare the MODEL_DATA column of the output MS with the original data plus the BBS reference output.
@@ -49,7 +52,7 @@ open table="tPredict.parmdb"
 adddef Gain:0:0:Real values=3.
 adddef Gain:1:1:Real values=3.
 EOL
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.applycal.parmdb=tPredict.parmdb predict.operation=subtract'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.applycal.parmdb=tPredict.parmdb predict.operation=subtract"
 echo $cmd
 $cmd
 # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
@@ -59,7 +62,7 @@ $taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
@@ -69,7 +72,7 @@ $taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beam"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true'
+cmd='$dpppexe msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.usebeammodel=true'
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
