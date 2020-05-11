@@ -30,6 +30,8 @@
 #include "../Common/Singleton.h"
 #include "../Common/ObjectFactory.h"
 
+#include <string>
+
 namespace DP3
 {
   //# Forward Declarations.
