@@ -44,9 +44,14 @@ endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
 find_package(CFITSIO REQUIRED)
 
+find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp REQUIRED)
+message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
+
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python3 program_options system unit_test_framework REQUIRED)
+set(BOOSTPY ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
@@ -165,8 +170,6 @@ set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 #
 # Dependencies of AOFlagger
 #
-find_package(PythonLibs 3 REQUIRED)
-find_package(PythonInterp REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_package(PNG REQUIRED)
 find_library(FFTW3_LIB fftw3 REQUIRED)
@@ -193,7 +196,7 @@ set(AOFLAGGERSTEP_OBJECT $<TARGET_OBJECTS:AOFlaggerStep_OBJ>)
 set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
-  ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY}  ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_PYTHON3_LIBRARY}
+  ${Boost_LIBRARIES}
   ${EXTRA_LIBRARIES}
   ${PYTHON_LIBRARIES}
   ${IDGAPI_LIBRARIES}
