@@ -275,7 +275,7 @@ namespace DP3 {
             casacore::Directory dir(dirName);
             // Use the basename as the file name pattern.
             casacore::DirectoryIterator dirIter (dir,
-                                             casacore::Regex::fromPattern(path.baseName()));
+              casacore::Regex(casacore::Regex::fromPattern(path.baseName())));
             while (!dirIter.pastEnd()) {
               names.push_back (dirName + '/' + dirIter.name());
               dirIter++;
