@@ -203,7 +203,7 @@ namespace BBS {
     std::set<std::string> itsPatchSet;
     std::set<std::string> itsSourceSet;
     bool             itsSetsFilled;
-    casacore::Vector<casacore::uInt> itsRowNr;
+    casacore::Vector<rownr_t> itsRowNr;
   };
 
   // @}
