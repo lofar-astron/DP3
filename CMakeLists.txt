@@ -147,22 +147,60 @@ add_library(IDGPredict OBJECT
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
-  DPPP/DPRun.cc DPPP/DPStep.cc DPPP/DPInput.cc DPPP/DPBuffer.cc
-  DPPP/DPInfo.cc DPPP/DPLogger.cc DPPP/ProgressMeter.cc DPPP/FlagCounter.cc
-  DPPP/UVWCalculator.cc  DPPP/BaselineSelection.cc DPPP/ApplyCal.cc
-  DPPP/MSReader.cc DPPP/MultiMSReader.cc DPPP/MSWriter.cc DPPP/MSUpdater.cc
-  DPPP/Counter.cc DPPP/Averager.cc DPPP/MedFlagger.cc DPPP/PreFlagger.cc
-  DPPP/UVWFlagger.cc DPPP/StationAdder.cc DPPP/ScaleData.cc DPPP/Filter.cc 
-  DPPP/PhaseShift.cc DPPP/Demixer.cc DPPP/Position.cc DPPP/Stokes.cc 
-  DPPP/SourceDBUtil.cc DPPP/Apply.cc DPPP/EstimateMixed.cc DPPP/EstimateNew.cc 
-  DPPP/Simulate.cc DPPP/Simulator.cc DPPP/SubtractMixed.cc DPPP/SubtractNew.cc
-  DPPP/ModelComponent.cc DPPP/PointSource.cc DPPP/GaussianSource.cc DPPP/Patch.cc
-  DPPP/ModelComponentVisitor.cc DPPP/GainCal.cc DPPP/GainCalAlgorithm.cc
-  DPPP/Predict.cc DPPP/OneApplyCal.cc
-  DPPP/PhaseFitter.cc DPPP/H5Parm.cc DPPP/SolTab.cc 
-  DPPP/DummyStep.cc DPPP/H5ParmPredict.cc DPPP/GridInterpolate.cc DPPP/Upsample.cc
-  DPPP/Split.cc
+  DPPP/Apply.cc
+  DPPP/ApplyCal.cc
+  DPPP/Averager.cc
+  DPPP/BaselineSelection.cc
+  DPPP/Counter.cc
+  DPPP/Demixer.cc
+  DPPP/DPBuffer.cc
+  DPPP/DPInfo.cc
+  DPPP/DPInput.cc
+  DPPP/DPLogger.cc
+  DPPP/DPRun.cc
+  DPPP/DPStep.cc
+  DPPP/DummyStep.cc
+  DPPP/EstimateMixed.cc
+  DPPP/EstimateNew.cc
+  DPPP/Filter.cc
+  DPPP/FlagCounter.cc
+  DPPP/GainCal.cc
+  DPPP/GainCalAlgorithm.cc
+  DPPP/GaussianSource.cc
+  DPPP/GridInterpolate.cc
+  DPPP/H5Parm.cc
+  DPPP/H5ParmPredict.cc
   DPPP/Interpolate.cc
+  DPPP/MedFlagger.cc
+  DPPP/ModelComponent.cc
+  DPPP/ModelComponentVisitor.cc
+  DPPP/MSReader.cc
+  DPPP/MSUpdater.cc
+  DPPP/MSWriter.cc
+  DPPP/MultiMSReader.cc
+  DPPP/OneApplyCal.cc
+  DPPP/Patch.cc
+  DPPP/PhaseFitter.cc
+  DPPP/PhaseShift.cc
+  DPPP/PointSource.cc
+  DPPP/Position.cc
+  DPPP/Predict.cc
+  DPPP/PreFlagger.cc
+  DPPP/ProgressMeter.cc
+  DPPP/ScaleData.cc
+  DPPP/SetBeam.cc
+  DPPP/Simulate.cc
+  DPPP/Simulator.cc
+  DPPP/SolTab.cc
+  DPPP/SourceDBUtil.cc
+  DPPP/Split.cc
+  DPPP/StationAdder.cc
+  DPPP/Stokes.cc
+  DPPP/SubtractMixed.cc
+  DPPP/SubtractNew.cc
+  DPPP/Upsample.cc
+  DPPP/UVWCalculator.cc
+  DPPP/UVWFlagger.cc
   ${LOFAR_DEPENDENT_FILES}
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
