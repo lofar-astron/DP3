@@ -48,8 +48,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/algorithm/string/case_conv.hpp>
-
 #include <casa/Quanta/MVAngle.h>
 
 using namespace casacore;
@@ -65,6 +63,7 @@ namespace DP3 {
           itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
           itsDirectionStr(parset.getStringVector(prefix+"direction", std::vector<std::string>())),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
+          itsMode(StringToBeamCorrectionMode(parset.getString(prefix + "beammode", "default"))),
           itsModeAtStart(NoBeamCorrection),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
@@ -74,16 +73,6 @@ namespace DP3 {
         itsInvert=false;
       } else {
         itsInvert=parset.getBool(prefix + "invert", true);
-      }
-      string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
-      if (mode=="default") {
-        itsMode=FullBeamCorrection;
-      } else if (mode=="array_factor") {
-        itsMode=ArrayFactorBeamCorrection;
-      } else if (mode=="element") {
-        itsMode=ElementBeamCorrection;
-      } else {
-        throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
     }
 

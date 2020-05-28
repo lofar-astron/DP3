@@ -15,7 +15,7 @@ SetBeam::SetBeam(DPInput* input, const ParameterSet& parset, const string& prefi
   _input(input),
   _name(prefix),
   _directionStr(parset.getStringVector(prefix+"direction", std::vector<std::string>())),
-  _mode(ElementBeamCorrection)
+  _mode(StringToBeamCorrectionMode(parset.getString(prefix + "beammode", "default")))
 {
 }
 
