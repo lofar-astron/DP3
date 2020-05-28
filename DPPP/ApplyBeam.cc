@@ -137,9 +137,9 @@ namespace DP3 {
           ra1 = info().beamCorrectionDir().getValue().getValue()[0],
           dec1 = info().beamCorrectionDir().getValue().getValue()[1],
           ra2 = itsDirection.getValue().getValue()[0],
-          dec2 = itsDirection.getValue().getValue()[0];
+          dec2 = itsDirection.getValue().getValue()[1];
         double raDist = std::fabs(ra1 - ra2), decDist = std::fabs(dec1 - dec2);
-        if(raDist > 1e-9 && decDist > 1e-9)
+        if(raDist > 1e-9 || decDist > 1e-9)
         {
           std::ostringstream str;
           str << "applybeam step with invert=false has incorrect direction: input is for " << 
