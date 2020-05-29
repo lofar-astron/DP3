@@ -35,6 +35,8 @@
 
 #include "../Common/ThreadPool.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
+
 namespace DP3 {
   namespace DPPP {
 
@@ -56,6 +58,20 @@ namespace DP3 {
         case FullBeamCorrection: return "full";
         case ArrayFactorBeamCorrection: return "array_factor";
         case ElementBeamCorrection: return "element";
+      }
+    }
+
+    inline BeamCorrectionMode StringToBeamCorrectionMode(const std::string& str)
+    {
+      string mode=boost::to_lower_copy(str);
+      if (mode=="default" || mode=="full") {
+        return FullBeamCorrection;
+      } else if (mode=="array_factor") {
+        return ArrayFactorBeamCorrection;
+      } else if (mode=="element") {
+        return ElementBeamCorrection;
+      } else {
+        throw std::runtime_error("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
     }
 

@@ -48,6 +48,7 @@
 #include "PreFlagger.h"
 #include "ProgressMeter.h"
 #include "ScaleData.h"
+#include "SetBeam.h"
 #include "Split.h"
 #include "StationAdder.h"
 #include "UVWFlagger.h"
@@ -361,6 +362,8 @@ namespace DP3 {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "scaledata") {
           step = DPStep::ShPtr(new ScaleData (reader, parset, prefix));
+        } else if (type == "setbeam") {
+          step = DPStep::ShPtr(new SetBeam (reader, parset, prefix));
         } else if (type == "filter") {
           step = DPStep::ShPtr(new Filter (reader, parset, prefix));
         } else if (type == "applycal"  ||  type == "correct") {

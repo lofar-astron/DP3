@@ -48,8 +48,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/algorithm/string/case_conv.hpp>
-
 #include <casa/Quanta/MVAngle.h>
 
 using namespace casacore;
@@ -65,6 +63,7 @@ namespace DP3 {
           itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
           itsDirectionStr(parset.getStringVector(prefix+"direction", std::vector<std::string>())),
           itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
+          itsMode(StringToBeamCorrectionMode(parset.getString(prefix + "beammode", "default"))),
           itsModeAtStart(NoBeamCorrection),
           itsDebugLevel(parset.getInt(prefix + "debuglevel", 0))
     {
@@ -74,16 +73,6 @@ namespace DP3 {
         itsInvert=false;
       } else {
         itsInvert=parset.getBool(prefix + "invert", true);
-      }
-      string mode=boost::to_lower_copy(parset.getString(prefix + "beammode","default"));
-      if (mode=="default") {
-        itsMode=FullBeamCorrection;
-      } else if (mode=="array_factor") {
-        itsMode=ArrayFactorBeamCorrection;
-      } else if (mode=="element") {
-        itsMode=ElementBeamCorrection;
-      } else {
-        throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
       }
     }
 
@@ -133,7 +122,13 @@ namespace DP3 {
         if(info().beamCorrectionMode() != itsMode)
           throw std::runtime_error(std::string("applybeam step with invert=false has incorrect mode: input has ") +
           BeamCorrectionModeToString(info().beamCorrectionMode()) + ", requested to correct for " + BeamCorrectionModeToString(itsMode));
-        if(info().beamCorrectionDir().getValue() != itsDirection.getValue())
+        double
+          ra1 = info().beamCorrectionDir().getValue().getValue()[0],
+          dec1 = info().beamCorrectionDir().getValue().getValue()[1],
+          ra2 = itsDirection.getValue().getValue()[0],
+          dec2 = itsDirection.getValue().getValue()[1];
+        double raDist = std::fabs(ra1 - ra2), decDist = std::fabs(dec1 - dec2);
+        if(raDist > 1e-9 || decDist > 1e-9)
         {
           std::ostringstream str;
           str << "applybeam step with invert=false has incorrect direction: input is for " << 
