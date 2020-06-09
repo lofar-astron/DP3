@@ -44,13 +44,14 @@ endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
 find_package(CFITSIO REQUIRED)
 
-find_package(PythonLibs 3 REQUIRED)
-find_package(PythonInterp REQUIRED)
-message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
+find_package(Python3 COMPONENTS Interpreter Development)
+message(STATUS "Using python version ${Python3_VERSION}")
+
+include_directories(${Python3_INCLUDE_DIRS})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-set(BOOSTPY ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
@@ -236,7 +237,7 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${CASACORE_LIBRARIES}
   ${Boost_LIBRARIES}
   ${EXTRA_LIBRARIES}
-  ${PYTHON_LIBRARIES}
+  ${Python3_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
   

@@ -24,10 +24,11 @@
 # $Id: PythonInstall.cmake 32905 2015-11-17 15:31:54Z schaap $
 
 # Search for the Python interpreter.
-find_package(PythonInterp)
+# No. We expect the toplevel CMakeLists.txt to have found python already!
+#find_package(PythonInterp)
 
 # Derive the Python site-packages installation directory and build directory.
-if(PYTHON_EXECUTABLE)
+if(Python3_EXECUTABLE)
   set(_cmd
     "from distutils.sysconfig import get_python_lib"
     "from os.path import join"
@@ -36,7 +37,7 @@ if(PYTHON_EXECUTABLE)
        'site-packages'))"
   )
   execute_process(
-    COMMAND "${PYTHON_EXECUTABLE}" "-c" "${_cmd}"
+    COMMAND "${Python3_EXECUTABLE}" "-c" "${_cmd}"
     OUTPUT_VARIABLE _pydir
     ERROR_VARIABLE _pyerr
     OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -57,7 +58,7 @@ if(PYTHON_EXECUTABLE)
     message(STATUS "Build directory for Python extensions:        ${PYTHON_BUILD_DIR}")
     message(STATUS "Installation directory for Python extensions: ${PYTHON_INSTALL_DIR}")
   endif()
-endif(PYTHON_EXECUTABLE)
+endif(Python3_EXECUTABLE)
 
 
 #
@@ -66,9 +67,9 @@ endif(PYTHON_EXECUTABLE)
 macro(python_install)
 
   # Precondition check.
-  if(NOT PYTHON_EXECUTABLE)
+  if(NOT Python3_EXECUTABLE)
     message(FATAL_ERROR "python_install: Python interpreter not available")
-  endif(NOT PYTHON_EXECUTABLE)
+  endif(NOT Python3_EXECUTABLE)
 
   # Parse arguments.
   # apart from the python files list, there are two additional arguments
