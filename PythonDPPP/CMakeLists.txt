@@ -1,5 +1,5 @@
 # If Boost-Python3 found, build this package. Otherwise give a warning.
-if(${Boost_PYTHON3_FOUND})
+if(${Boost_PYTHON${BOOSTPY}_FOUND})
 
   include(PythonInstall)
 
@@ -29,9 +29,13 @@ if(${Boost_PYTHON3_FOUND})
   find_package(PythonLibs 3 REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
 
-  find_package(Casacore COMPONENTS python)
+  if(${PYTHON_VERSION_MAJOR} EQUAL 2)
+    find_package(Casacore COMPONENTS python)
+  else()
+    find_package(Casacore COMPONENTS python3)
+  endif()
   
-  find_package(Boost REQUIRED COMPONENTS python3)
+  find_package(Boost REQUIRED COMPONENTS python${BOOSTPY})
   include_directories(${Boost_INCLUDE_DIR})
 
 #  add_subdirectory(test)
