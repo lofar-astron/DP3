@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
 if(PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native") 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif(PORTABLE)
 
 enable_testing()
@@ -60,14 +60,14 @@ if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
   include_directories(${LOFAR_STATION_RESPONSE_DIR})
   add_definitions(-DHAVE_LOFAR_BEAM)
   message(STATUS "LOFAR beam library found.")
-  
+
   set(LOFAR_DEPENDENT_FILES
     DPPP/ApplyBeam.cc
-    DPPP/DemixerNew.cc 
+    DPPP/DemixerNew.cc
     DPPP/DemixInfo.cc
-    DPPP/DemixWorker.cc 
+    DPPP/DemixWorker.cc
   )
-  
+
 else()
   if(WITH_LOFAR_BEAM)
     message(FATAL_ERROR "LOFAR beam library not found")
@@ -82,7 +82,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Object libraries (which are just file groups, not actual libraries) are made in order
 # to avoid compiling everything multiple times for multiple executables.
-add_library(Common OBJECT 
+add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
   Common/DataConvert.cc
@@ -143,7 +143,7 @@ add_library(IDGPredict OBJECT
   IDGPredict/FitsIOChecker.cc
   IDGPredict/FitsReader.cc
   IDGPredict/FitsWriter.cc)
-  
+
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
@@ -239,7 +239,7 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${PYTHON_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
-  
+
 #
 # DDECal dependencies
 #
@@ -247,8 +247,8 @@ find_package(Armadillo)
 if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   set(DDE_ARMADILLO_FILES
-    DDECal/KLFitter.cc 
-    DDECal/PiercePoint.cc 
+    DDECal/KLFitter.cc
+    DDECal/PiercePoint.cc
     DDECal/ScreenConstraint.cc)
 else()
   message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
@@ -290,7 +290,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   SET(OS_SPECIFIC_TESTS) # No specific tests for Apple
 else()
   # These run only on Linux
-  SET(OS_SPECIFIC_TESTS 
+  SET(OS_SPECIFIC_TESTS
 #    TestDynDPPP/test/tDynStep.cc # This test still fails
   )
 endif()
@@ -350,4 +350,14 @@ endforeach()
 #  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
 #target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
-install (TARGETS makesourcedb showsourcedb DESTINATION bin) 
+install (TARGETS makesourcedb showsourcedb DESTINATION bin)
+
+find_package(Doxygen)
+
+if(DOXYGEN_FOUND)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  add_custom_target(doc
+          ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+          COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif(DOXYGEN_FOUND)
