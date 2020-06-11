@@ -9,7 +9,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libxml2-dev libpng-dev pkg-config \
     libgtkmm-3.0-dev git libfftw3-dev \
     gfortran flex bison wcslib-dev \
-    libboost-numpy-dev liblua5.3-dev
+    libboost-numpy-dev liblua5.3-dev doxygen
 
 # Build casacore from source
 RUN mkdir /casacore && cd /casacore && git clone -b v3.2.0 https://github.com/casacore/casacore.git src
@@ -35,3 +35,5 @@ RUN cd /build && make -j2
 RUN cd /build && make install -j2
 RUN DPPP
 RUN cd /build && CTEST_OUTPUT_ON_FAILURE=1 make test -j2
+
+RUN cd /build && make doc
