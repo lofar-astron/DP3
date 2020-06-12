@@ -35,7 +35,6 @@
 namespace DP3 {
 namespace BBS {
 
-  //# Forward declarations
   class ParmCache;
   class ParmValue;
   class ParmValueSet;

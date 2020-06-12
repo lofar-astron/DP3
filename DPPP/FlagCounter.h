@@ -36,7 +36,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    //# Forward Declarations.
     class DPInfo;
 
     /// @ingroup NDPPP

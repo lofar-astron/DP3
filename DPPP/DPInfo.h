@@ -40,7 +40,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    //# Forward declarations.
     class DPInput;
     
     enum BeamCorrectionMode {

@@ -34,7 +34,6 @@
 namespace DP3 {
 namespace BBS {
 
-  //# Forward Declarations.
   class ParmDB;
   class ParmValueSet;
   class Box;

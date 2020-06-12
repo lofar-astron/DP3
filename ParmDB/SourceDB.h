@@ -36,7 +36,6 @@
 namespace DP3 {
 namespace BBS {
 
-  //# Forward Declarations
   class ParmMap;
 
   // @ingroup ParmDB

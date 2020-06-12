@@ -33,7 +33,6 @@
 
 namespace DP3 {
 
-  //# Forward Declaration.
   class BlobIStream;
   class BlobOStream;
 

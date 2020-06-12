@@ -33,7 +33,6 @@
 namespace DP3 {
 namespace BBS {
 
-  //# Forward Declarations
   class ParmSet;
   class ParmDB;
 
