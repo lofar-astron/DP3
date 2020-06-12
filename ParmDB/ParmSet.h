@@ -156,7 +156,7 @@ namespace BBS {
 
   // @}
 
-} //# end namespace BBS
-} //# end namspace LOFAR
+} // end namespace BBS
+} // end namespace LOFAR
 
 #endif

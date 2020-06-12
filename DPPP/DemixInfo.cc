@@ -461,5 +461,5 @@ namespace DP3 {
     }
 
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace

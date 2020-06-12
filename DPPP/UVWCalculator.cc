@@ -116,5 +116,5 @@ namespace DP3 {
       return itsAntUvw[ant2] - itsAntUvw[ant1];
     }
 
-  } //# end namespace
+  } // end namespace
 }

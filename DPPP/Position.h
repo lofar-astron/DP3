@@ -65,7 +65,7 @@ inline double &Position::operator[](size_t i)
     return itsPosition[i];
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

@@ -290,7 +290,7 @@ namespace DP3 {
       FlagCounter itsFlagCounter;
     };
       
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

@@ -123,7 +123,7 @@ namespace DP3 {
       std::vector<OneApplyCal::ShPtr> itsApplyCals;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

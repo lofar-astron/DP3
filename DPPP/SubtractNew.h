@@ -62,7 +62,7 @@ void subtract(size_t nBaseline, size_t nChannel,
               std::vector<float>& sumAmpl);
 /// @}
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

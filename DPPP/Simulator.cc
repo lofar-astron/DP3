@@ -315,5 +315,5 @@ inline void spectrum(const PointSource &component, size_t nChannel,
 }
 } // Unnamed namespace.
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

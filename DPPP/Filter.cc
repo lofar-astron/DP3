@@ -341,5 +341,5 @@ namespace DP3 {
       return selTab.rowNumbers();
     }
 
-  } //# end namespace
+  } // end namespace
 }

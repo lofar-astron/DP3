@@ -108,6 +108,6 @@ namespace DP3 { namespace CEP {
     std::vector<std::string> itsMounts;   //# and their mount points
   };
     
-}} //# end namespaces
+}} // end namespaces
 
 #endif

@@ -962,5 +962,5 @@ namespace DP3 {
     }
 #endif
 
-  } //# end namespace
+  } // end namespace
 }

@@ -358,7 +358,7 @@ namespace DP3 {
       return res;
     }
 
-  } //# end namespace
+  } // end namespace
 }
 
 // Define the function to make the PythonStep 'constructor' known.

@@ -195,7 +195,7 @@ namespace DP3 {
       bool                  itsRegularChannels; /// Are resulting channels regularly spaced
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

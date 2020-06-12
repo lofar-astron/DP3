@@ -297,5 +297,5 @@ namespace DP3 {
       weight[3]=1./weight[3];
     }
 
-  } //# end namespace
+  } // end namespace
 }

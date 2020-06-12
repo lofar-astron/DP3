@@ -158,5 +158,5 @@ void rotateUVW(const Position &from, const Position &to, size_t nUVW,
     } // Stations.
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

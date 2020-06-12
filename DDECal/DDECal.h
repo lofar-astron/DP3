@@ -210,7 +210,7 @@ namespace DP3 {
       std::unique_ptr<std::ofstream> itsStatStream;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

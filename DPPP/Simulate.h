@@ -129,7 +129,7 @@ void simulate(const Position &reference, const Patch::ConstPtr &patch,
     const_cursor<double> uvw, cursor<dcomplex> buffer);
 /// @}
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

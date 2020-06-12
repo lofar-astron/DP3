@@ -155,7 +155,7 @@ namespace DP3 {
       std::unique_ptr<aoflagger::QualityStatistics> itsRfiStats;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 

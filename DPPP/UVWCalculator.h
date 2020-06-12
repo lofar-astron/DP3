@@ -78,7 +78,7 @@ namespace DP3 {
       double                        itsLastTime;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

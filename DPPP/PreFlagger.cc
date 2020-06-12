@@ -1214,5 +1214,5 @@ namespace DP3 {
       return q.getValue ("Hz");
     }
 
-  } //# end namespace
+  } // end namespace
 }

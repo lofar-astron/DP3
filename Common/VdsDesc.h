@@ -92,6 +92,6 @@ namespace DP3 { namespace CEP {
     std::vector<VdsPartDesc> itsParts;
   };
 
-}} //# end namespaces
+}} // end namespaces
 
 #endif

@@ -152,7 +152,7 @@ namespace DP3 {
       boost::python::object itsPyObject;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 // Define the function (without name mangling) to register the 'constructor'.

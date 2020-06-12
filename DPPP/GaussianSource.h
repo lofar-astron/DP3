@@ -87,7 +87,7 @@ inline double GaussianSource::minorAxis() const
     return itsMinorAxis;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

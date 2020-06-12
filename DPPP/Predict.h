@@ -180,7 +180,7 @@ namespace DP3 {
       std::mutex* itsMeasuresMutex;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

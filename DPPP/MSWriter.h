@@ -196,7 +196,7 @@ namespace DP3 {
       StManParsetKeys itsStManKeys;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

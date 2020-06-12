@@ -137,7 +137,7 @@ inline Patch::const_iterator Patch::end() const
 }
 
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

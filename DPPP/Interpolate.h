@@ -71,6 +71,6 @@ namespace DP3 { namespace DPPP {
 		std::vector<float> _kernelLookup;
 	};
 
-} } //# end namespace
+} } // end namespace
 
 #endif

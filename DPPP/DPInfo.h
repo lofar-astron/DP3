@@ -356,7 +356,7 @@ namespace DP3 {
       unsigned int itsNThreads;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

@@ -64,5 +64,5 @@ void GaussianSource::accept(ModelComponentVisitor &visitor) const
     visitor.visit(*this);
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

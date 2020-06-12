@@ -86,7 +86,7 @@ namespace DP3 {
       static std::map<std::string, StepCtor*> theirStepMap;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

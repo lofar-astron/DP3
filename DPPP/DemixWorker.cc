@@ -71,7 +71,7 @@ namespace DP3 {
     namespace
     {
       string toString (double value);
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
     DemixWorker::DemixWorker (DPInput* input,
                               const string& prefix,
@@ -1336,7 +1336,7 @@ namespace DP3 {
         os << std::setprecision(16) << value;
         return os.str();
       }
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
-  } //# end namespace DPPP
-} //# end namespace LOFAR
+  } // end namespace DPPP
+} // end namespace LOFAR

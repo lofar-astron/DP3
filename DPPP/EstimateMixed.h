@@ -99,7 +99,7 @@ bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
                  std::vector<double>& dR, std::vector<double>& dI);
 
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

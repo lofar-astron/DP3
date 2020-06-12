@@ -343,8 +343,8 @@ namespace DP3 {
       NSTimer                               itsTimerSubtract;
     };
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace
 
 #endif /// HAVE_LOFAR_BEAM
 

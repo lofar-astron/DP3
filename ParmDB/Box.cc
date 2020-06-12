@@ -98,5 +98,5 @@ namespace BBS {
          << itsEnd.first << "\t" << itsEnd.second << '\n';
   }
 
-} //# namespace BBS
-} //# namespace LOFAR
+} // namespace BBS
+} // namespace LOFAR

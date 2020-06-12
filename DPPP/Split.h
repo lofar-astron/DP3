@@ -78,7 +78,7 @@ namespace DP3 {
       bool             itsAddedToMS; /// Used in addToMS to prevent recursion
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

@@ -471,5 +471,5 @@ namespace DP3 {
       return converged;
     }
 
-  } //# namespace DPPP
-} //# namespace LOFAR
+  } // namespace DPPP
+} // namespace LOFAR

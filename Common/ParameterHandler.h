@@ -117,6 +117,6 @@ namespace DP3 { namespace CEP {
   (const std::string& parm) const
     { return itsParms.getStringVector (parm); }
 
-}} //# end namespaces
+}} // end namespaces
 
 #endif

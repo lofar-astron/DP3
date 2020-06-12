@@ -507,5 +507,5 @@ namespace DP3 {
       }
       return NOTCONVERGED;
     }
-  } //# end namespace
+  } // end namespace
 }

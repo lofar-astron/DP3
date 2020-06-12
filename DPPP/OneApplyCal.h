@@ -145,7 +145,7 @@ namespace DP3 {
       static std::mutex theirHDF5Mutex; /// Prevent parallel access to HDF5
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

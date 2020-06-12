@@ -32,5 +32,5 @@ ModelComponentVisitor::~ModelComponentVisitor()
 {
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

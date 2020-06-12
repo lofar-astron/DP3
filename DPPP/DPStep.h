@@ -258,7 +258,7 @@ namespace DP3 {
       size_t           itsSize;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

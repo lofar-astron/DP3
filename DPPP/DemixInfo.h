@@ -197,7 +197,7 @@ namespace DP3 {
       std::vector<string>          itsTargetReplaced;
     };
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace
 
 #endif

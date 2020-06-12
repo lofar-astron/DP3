@@ -81,5 +81,5 @@ void subtract(size_t nBaseline, size_t nChannel,
     } // Baselines.
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

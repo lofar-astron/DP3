@@ -796,5 +796,5 @@ namespace DP3 {
       itsFlagCounter.showChannel  (os, itsCount);
     }
 
-  } //# end namespace
+  } // end namespace
 }

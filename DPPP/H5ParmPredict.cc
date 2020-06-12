@@ -155,5 +155,5 @@ namespace DP3 {
       itsPredictSteps[0]->finish();
       getNextStep()->finish();
     }
-  } //# end namespace
+  } // end namespace
 }

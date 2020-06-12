@@ -137,7 +137,7 @@ namespace DP3 {
       std::vector<double> _dgs; /// convergence history
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

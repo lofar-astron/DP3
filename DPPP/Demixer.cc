@@ -66,7 +66,7 @@ namespace DP3 {
     namespace
     {
       string toString (double value);
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
     Demixer::Demixer (DPInput* input,
                       const ParameterSet& parset,
@@ -853,7 +853,7 @@ namespace DP3 {
         storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
         storage.count_converged = 0;
       }
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
     void Demixer::demix()
     {
@@ -1156,7 +1156,7 @@ namespace DP3 {
         os << std::setprecision(16) << value;
         return os.str();
       }
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
-  } //# end namespace DPPP
-} //# end namespace LOFAR
+  } // end namespace DPPP
+} // end namespace LOFAR

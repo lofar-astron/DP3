@@ -148,7 +148,7 @@ namespace DP3 {
       double           itsMedianTime///< median timer (sum of all threads)
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

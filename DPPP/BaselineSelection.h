@@ -97,7 +97,7 @@ namespace DP3 {
       std::vector<double> itsRangeBL;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

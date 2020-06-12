@@ -516,5 +516,5 @@ namespace DP3 {
       }
     }
 
-} //# end namespace DPPP
-} //# end namespace LOFAR
+} // end namespace DPPP
+} // end namespace LOFAR

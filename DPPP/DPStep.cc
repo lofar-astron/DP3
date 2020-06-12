@@ -121,5 +121,5 @@ namespace DP3 {
     void MultiResultStep::show (std::ostream&) const
     {}
 
-  } //# end namespace
+  } // end namespace
 }

@@ -232,5 +232,5 @@ namespace DP3 {
       mat(2,2) = sindec;
     }
 
-  } //# end namespace
+  } // end namespace
 }

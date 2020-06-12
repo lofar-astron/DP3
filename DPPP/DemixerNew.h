@@ -139,8 +139,8 @@ namespace DP3 {
       NSTimer itsTimerNext///< next step (parallel to writeSolutions)
     };
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace
 
 #endif /// HAVE_LOFAR_BEAM
 

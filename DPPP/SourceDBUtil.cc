@@ -270,5 +270,5 @@ bool checkPolarized(SourceDB &sourceDB,
   return polarized;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

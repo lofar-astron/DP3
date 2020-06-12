@@ -1328,5 +1328,5 @@ namespace DP3 {
       getNextStep()->finish();
     }
 
-  } //# end namespace
+  } // end namespace
 }

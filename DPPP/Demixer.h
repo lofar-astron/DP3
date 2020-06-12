@@ -210,7 +210,7 @@ namespace DP3 {
       NSTimer                               itsTimerDump;
     };
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace
 
 #endif

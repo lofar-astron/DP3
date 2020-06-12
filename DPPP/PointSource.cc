@@ -144,5 +144,5 @@ bool PointSource::hasRotationMeasure() const
     return itsHasRotationMeasure;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

@@ -37,6 +37,6 @@ namespace DP3 { namespace CEP {
   // fine-grained exceptions might be derived from it.
   typedef std::runtime_error MWError;
 
-}} //# end namespaces
+}} // end namespaces
 
 #endif

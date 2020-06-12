@@ -38,7 +38,7 @@ private:
   BeamCorrectionMode _mode;
 };
 
-} } //# end namespaces
+} } // end namespaces
 
 #endif
 

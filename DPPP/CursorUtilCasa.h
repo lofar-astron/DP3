@@ -66,7 +66,7 @@ const_cursor<T> casa_const_cursor(const casacore::Array<T> &array,
 
 /// @}
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

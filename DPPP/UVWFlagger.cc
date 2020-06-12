@@ -358,5 +358,5 @@ namespace DP3 {
                                   getInfo().antennaPos());
     }
 
-  } //# end namespace
+  } // end namespace
 }

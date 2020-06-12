@@ -140,7 +140,7 @@ namespace DP3 {
                                             NSTimer& timer);
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

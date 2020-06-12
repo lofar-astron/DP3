@@ -294,7 +294,7 @@ private:
 
 /// @}
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

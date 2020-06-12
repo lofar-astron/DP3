@@ -57,7 +57,7 @@ void apply(size_t nBaseline, size_t nChannel, const_cursor<Baseline> baselines,
     const_cursor<double> coeff, cursor<std::complex<double>> data);
 /// @}
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

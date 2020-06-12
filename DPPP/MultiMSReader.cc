@@ -483,5 +483,5 @@ namespace DP3 {
       return true;
     }
 
-  } //# end namespace
+  } // end namespace
 }

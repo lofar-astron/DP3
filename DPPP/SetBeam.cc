@@ -58,4 +58,4 @@ bool SetBeam::process(const DPBuffer& buffer)
   return false;
 }
 
-}} //# end namespaces
+}} // end namespaces

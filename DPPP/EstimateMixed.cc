@@ -339,5 +339,5 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     return converged;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

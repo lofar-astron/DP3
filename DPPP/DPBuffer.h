@@ -216,7 +216,7 @@ namespace DP3 {
       casacore::Cube<bool>          itsFullResFlags///< fullres_nchan,ntimeavg,nbl
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

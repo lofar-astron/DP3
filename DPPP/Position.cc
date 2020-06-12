@@ -39,5 +39,5 @@ Position::Position(double alpha, double delta)
     itsPosition[1] = delta;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR

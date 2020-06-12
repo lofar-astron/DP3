@@ -102,7 +102,7 @@ inline const Position &PointSource::position() const
     return itsPosition;
 }
 
-} //# namespace DPPP
-} //# namespace LOFAR
+} // namespace DPPP
+} // namespace LOFAR
 
 #endif

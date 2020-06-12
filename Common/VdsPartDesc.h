@@ -167,6 +167,6 @@ namespace DP3 { namespace CEP {
     { return vpd.fromBlob (bs); }
   // </group>
 
-}} //# end namespaces
+}} // end namespaces
 
 #endif

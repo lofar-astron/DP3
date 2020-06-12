@@ -1347,4 +1347,4 @@ void DDECal::subtractCorrectedModel(bool fullJones)
   } //time loop
 }
 
-} } //# end namespace
+} } // end namespace

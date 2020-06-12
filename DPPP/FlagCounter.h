@@ -116,7 +116,7 @@ namespace DP3 {
       std::vector<int64_t> itsCorrCounts;
     };
 
-  } //# end namespace
+  } // end namespace
 }
 
 #endif

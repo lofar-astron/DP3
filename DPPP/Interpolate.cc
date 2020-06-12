@@ -242,4 +242,4 @@ void Interpolate::interpolateSample(size_t timestep, size_t baseline, size_t cha
 		value = Complex(std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN());
 }
 
-} } //# end namespace
+} } // end namespace

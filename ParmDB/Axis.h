@@ -272,7 +272,7 @@ protected:
 
   // @}
 
-} //# namespace BBS
-} //# namespace LOFAR
+} // namespace BBS
+} // namespace LOFAR
 
 #endif

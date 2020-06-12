@@ -126,5 +126,5 @@ namespace DP3 {
       { throw Exception ("DPInput::fillBeamInfo not implemented"); }
 #endif
 
-  } //# end namespace
+  } // end namespace
 }

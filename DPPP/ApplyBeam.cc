@@ -449,4 +449,4 @@ void ApplyBeam::applyBeamStokesIArrayFactor(const DPInfo& info, double time, std
   vector<LOFAR::StationResponse::complex_t>& beamValues, bool useChannelFreq,
   bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
 
-}} //# end namespaces
+}} // end namespaces
