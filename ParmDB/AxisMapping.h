@@ -75,9 +75,9 @@ namespace BBS {
       { return itsBorders; }
 
   private:
-    std::vector<int>    itsMapping;   //# cellnr in to for from-cell i
-    std::vector<double> itsCenters;   //# center of from-cell i scaled to to-cell
-    std::vector<int>    itsBorders;   //# last from-cell mapped to same to-cell i
+    std::vector<int>    itsMapping;   ///< cellnr in to for from-cell i
+    std::vector<double> itsCenters;   ///< center of from-cell i scaled to to-cell
+    std::vector<int>    itsBorders;   ///< last from-cell mapped to same to-cell i
   };
 
 

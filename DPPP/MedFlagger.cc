@@ -282,7 +282,7 @@ namespace DP3 {
       // Get pointers to data and flags.
       const float* bufDataPtr = itsAmpl[index].data();
       bool* bufFlagPtr = buf.getFlags().data();
-      float MAD = 1.4826;   //# constant determined by Pandey
+      float MAD = 1.4826;   ///< constant determined by Pandey
       itsComputeTimer.start();
       // Now flag each baseline, channel and correlation for this time window.
       // This can be done in parallel.

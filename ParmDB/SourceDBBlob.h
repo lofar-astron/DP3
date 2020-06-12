@@ -169,7 +169,7 @@ namespace BBS {
     bool  itsCanWrite;
     int64_t itsEndPos;
     std::map<std::string, PatchInfo>            itsPatches;
-    std::map<std::string, std::vector<SourceData> >  itsSources;   //# sources per patch
+    std::map<std::string, std::vector<SourceData> >  itsSources;   ///< sources per patch
   };
 
   // @}

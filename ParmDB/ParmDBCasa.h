@@ -188,7 +188,7 @@ namespace BBS {
                   const casacore::TableExprNode& right) const;
 
     //# Data members
-    casacore::Table itsTables[3];    //# normal,names,default
+    casacore::Table itsTables[3];    ///< normal,names,default
   };
 
   // @}

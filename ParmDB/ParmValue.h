@@ -157,10 +157,10 @@ namespace BBS {
     static void fillPascal (casacore::Matrix<double>& pascal, int order);
 
     /// Data members.
-    Grid                 itsGrid;          //# grid of the values
-    casacore::Array<double>  itsValues;        //# scalar values or funklet coeff
+    Grid                 itsGrid;          ///< grid of the values
+    casacore::Array<double>  itsValues;        ///< scalar values or funklet coeff
     casacore::Array<double>* itsErrors;
-    int                  itsRowId;         //# rowid in ParmDB
+    int                  itsRowId;         ///< rowid in ParmDB
   };
 
 

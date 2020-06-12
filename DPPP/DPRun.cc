@@ -120,7 +120,7 @@ namespace DP3 {
         parset.adoptFile (parsetName);
       }
       // Adopt possible parameters given at the command line.
-      parset.adoptArgv (argc, argv); //# works fine if argc==0 and argv==0
+      parset.adoptArgv (argc, argv); ///< works fine if argc==0 and argv==0
       DPLogger::useLogger = parset.getBool ("uselogger", false);
       bool showProgress   = parset.getBool ("showprogress", true);
       bool showTimings    = parset.getBool ("showtimings", true);

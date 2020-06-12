@@ -102,10 +102,10 @@ namespace DP3 { namespace CEP {
     std::string findFileSys (const std::string& fileName) const;
 
   private:
-    std::string itsName;                  //# full name of the node
+    std::string itsName;                  ///< full name of the node
     NodeType    itsType;
-    std::vector<std::string> itsFileSys;  //# names of file systems
-    std::vector<std::string> itsMounts;   //# and their mount points
+    std::vector<std::string> itsFileSys;  ///< names of file systems
+    std::vector<std::string> itsMounts;   ///< and their mount points
   };
     
 }} // end namespaces

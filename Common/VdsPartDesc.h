@@ -144,19 +144,19 @@ namespace DP3 { namespace CEP {
   // </group>
 
   private:
-    std::string itsName;       //# full name of the VDS desc
-    std::string itsFileName;   //# full name of the VDS (data set name)
-    std::string itsFileSys;    //# name of file system the VDS resides on
-    std::string itsCDescName;  //# name of ClusterDesc file used
+    std::string itsName;       ///< full name of the VDS desc
+    std::string itsFileName;   ///< full name of the VDS (data set name)
+    std::string itsFileSys;    ///< name of file system the VDS resides on
+    std::string itsCDescName;  ///< name of ClusterDesc file used
     double      itsStartTime;
     double      itsEndTime;
     double      itsStepTime;
     std::vector<double> itsStartTimes;
     std::vector<double> itsEndTimes;
-    std::vector<int32_t>  itsNChan;        //# nr of channels per band
-    std::vector<double> itsStartFreqs;   //# start freq of each channel
-    std::vector<double> itsEndFreqs;     //# end freq of each channel
-    ParameterSet itsParms;     //# extra parameters
+    std::vector<int32_t>  itsNChan;        ///< nr of channels per band
+    std::vector<double> itsStartFreqs;   ///< start freq of each channel
+    std::vector<double> itsEndFreqs;     ///< end freq of each channel
+    ParameterSet itsParms;     ///< extra parameters
   };
     
   // Put/get the object to/from a blob.

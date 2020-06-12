@@ -153,15 +153,15 @@ namespace BBS {
     //# Data members
     SourceInfo     itsInfo;
     string         itsPatchName;
-    double         itsRa;            //# radians
-    double         itsDec;           //# radians
+    double         itsRa;            ///< radians
+    double         itsDec;           ///< radians
     double         itsI;
     double         itsQ;
     double         itsU;
     double         itsV;
-    double         itsMajorAxis;     //# arcsec
-    double         itsMinorAxis;     //# arcsec
-    double         itsOrientation;   //# degrees
+    double         itsMajorAxis;     ///< arcsec
+    double         itsMinorAxis;     ///< arcsec
+    double         itsOrientation;   ///< degrees
     double         itsPolAngle;
     double         itsPolFrac;
     double         itsRM;
