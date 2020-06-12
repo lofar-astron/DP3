@@ -23,11 +23,10 @@
 #ifndef LOFAR_COMMON_PARAMETERSETIMPL_H
 #define LOFAR_COMMON_PARAMETERSETIMPL_H
 
-// \file
-// Implements a map of Key-Value pairs.
+/// \file
+/// Implements a map of Key-Value pairs.
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
-// Includes
 #include "ParameterValue.h"
 #include "StringUtil.h"
 
@@ -38,8 +37,8 @@
 
 namespace DP3 {
 
-// \addtogroup Common
-// @{
+/// \addtogroup Common
+/// @{
 
 const char PC_QUAL_STABLE[]   = { "stable"        };
 const char PC_QUAL_TEST[]     = { "test"          };
@@ -91,8 +90,8 @@ public:
 				  KeyCompare::Mode	mode);
 	// @}
 
-        // Get the ParameterValue.
-        // @{ 
+        /// Get the ParameterValue.
+        /// @{ 
         const ParameterValue& get (const std::string& aKey) const;
 
 	// Return the key comparison mode.
@@ -121,8 +120,8 @@ public:
 	void	adoptCollection(const ParameterSetImpl&     theCollection,
 				const std::string&               thePrefix = "");
 
-        // Adds the Key-Values pairs in the argument list.
-        // It ignores arguments not having the Key=Value syntax.
+        /// Adds the Key-Values pairs in the argument list.
+        /// It ignores arguments not having the Key=Value syntax.
         void    adoptArgv      (int nr, char const * const argv[]);
 	// @}
 
@@ -311,7 +310,7 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const ParameterSetImpl &thePS);
 	// @}
 
-        // Get all unused parameter names.
+        /// Get all unused parameter names.
         std::vector<std::string> unusedKeys() const;
 
 private:
@@ -335,21 +334,21 @@ private:
 	// is thrown when \a aKey is not found. Otherwise, end() is returned.
 	const_iterator	findKV(const std::string& aKey, bool doThrow = true) const;
 
-        // Merge in a key/value. A warning is logged if already existing
-        // and merge=false.
+        /// Merge in a key/value. A warning is logged if already existing
+        /// and merge=false.
         void addMerge (const std::string& key, const std::string& value, bool merge);
 
-        // For internal use, add a key without locking.
+        /// For internal use, add a key without locking.
         void addUnlocked(const std::string& aKey, const ParameterValue& aValue);
 
-        // For internal use, replace a key without locking.
+        /// For internal use, replace a key without locking.
         void replaceUnlocked(const std::string& aKey, const ParameterValue& aValue);
 
 	// Key comparison mode.
 	const KeyCompare::Mode itsMode;
-        // The set of keys that have been asked.
+        /// The set of keys that have been asked.
         mutable std::set<std::string> itsAskedParms;
-        // Mutex to make access to parset thread-safe.
+        /// Mutex to make access to parset thread-safe.
         mutable std::mutex itsMutex;
 };
 
@@ -367,22 +366,22 @@ bool	isValidVersionNrRef(const std::string& versionNr);
 
 // When a hierarchical keyname is passed to \c fullKeyName the methods returns
 // the last part of the keyname. For example:
-// \code
+/// \code
 // moduleName("base.sub.leaf")
-// \endcode
+/// \endcode
 // returns \c "leaf". When a keyname without dots is passed the whole key
 // is returned.<br>
-// \c keyName is a kind of \c dirname function for keys.
+/// \c keyName is a kind of \c dirname function for keys.
 std::string	keyName	   (const std::string& fullKeyName);
 
 // When a hierarchical keyname is passed to \c moduleName the methods returns
 // all but the last part of the keyname. For example:
-// \code
+/// \code
 // moduleName("base.sub.leaf")
-// \endcode
+/// \endcode
 // returns \c "base.sub". When a keyname without dots is passed and empty string
 // is returned.<br>
-// \c moduleName is a kind of \c basename function for keys.
+/// \c moduleName is a kind of \c basename function for keys.
 std::string	moduleName (const std::string& fullKeyName);
 
 // Returns the raw keypart of a parameterline that contains a key-value pair.
@@ -399,14 +398,14 @@ std::string	valuePart  (const std::string& parameterLine);
 // 0 is returned. The \c indexMarker argument must be used to pass the two chars
 // that are used to delimeter the index. The index must be a literal value
 // not an expression. For example:
-// \code
+/// \code
 //  indexValue("label{25}andmore", "{}");
-// \endcode
+/// \endcode
 // returns the value 25. When more indexdelimiters are found in the string the
 // last pair is used.
 int32_t 	indexValue (const std::string&	label, const char	indexMarker[2]);
 
-// @} addgroup
+/// @} addgroup
 
 
 inline const ParameterValue& ParameterSetImpl::get(const std::string& aKey) const

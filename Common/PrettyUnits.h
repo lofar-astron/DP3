@@ -54,7 +54,7 @@ namespace DP3 {
       }
   };
 
-}  // end namespace LOFAR
+}  /// end namespace LOFAR
 
 
 #endif

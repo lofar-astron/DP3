@@ -20,14 +20,13 @@
 //
 // $Id: ParmMap.h 14038 2009-09-17 13:59:12Z diepen $
 
-// @file
-// @brief A map of parameter name to value set.
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief A map of parameter name to value set.
+/// @author Ger van Diepen (diepen AT astron nl)
 
 #ifndef LOFAR_PARMDB_PARMMAP_H
 #define LOFAR_PARMDB_PARMMAP_H
 
-// Includes
 #include "ParmValue.h"
 
 namespace DP3 {
@@ -36,38 +35,38 @@ namespace BBS {
   class ParmDB;
 
 
-  // @ingroup ParmDB
-  // @{
+  /// @ingroup ParmDB
+  /// @{
 
-  // @brief A map of parameter name to value set.
-  // ParmMap holds a map of name to ParmValueSet.
-  // It is meant to hold the default values, but could be used for
-  // other purposes as well.
+  /// @brief A map of parameter name to value set.
+  /// ParmMap holds a map of name to ParmValueSet.
+  /// It is meant to hold the default values, but could be used for
+  /// other purposes as well.
   class ParmMap
   {
   public:
-    // Set up a map for the given domain in the ParmDB.
+    /// Set up a map for the given domain in the ParmDB.
     ParmMap()
     {}
 
-    // Add or replace a ParmValueSet.
+    /// Add or replace a ParmValueSet.
     void define (const std::string& name, const ParmValueSet& pset)
       { itsValueSets[name] = pset; }
 
-    // Is the map empty?
+    /// Is the map empty?
     bool empty() const 
       { return itsValueSets.empty(); }
 
-    // Return the size of the map.
+    /// Return the size of the map.
     unsigned int size() const 
       { return itsValueSets.size(); }
 
-    // Get the value belonging to the name.
-    // An exception is thrown if the value does not exist.
+    /// Get the value belonging to the name.
+    /// An exception is thrown if the value does not exist.
     const ParmValueSet& operator[] (const std::string& name) const;
 
-    // Iterator functionality.
-    // <group>
+    /// Iterator functionality.
+    /// <group>
     typedef std::map<std::string, ParmValueSet>::iterator       iterator;
     typedef std::map<std::string, ParmValueSet>::const_iterator const_iterator;
     typedef std::map<std::string, ParmValueSet>::value_type     valueType;
@@ -83,23 +82,23 @@ namespace BBS {
       { return itsValueSets.find(name); }
     const_iterator find (const std::string& name) const
       { return itsValueSets.find(name); }
-    // </group>
+    /// </group>
 
-    // Clear the map.
+    /// Clear the map.
     void clear()
       { itsValueSets.clear(); }
 
   private:
-    // Cannot copy.
-    // <group>
+    /// Cannot copy.
+    /// <group>
     ParmMap (const ParmMap&);
     ParmMap& operator= (const ParmMap&);
-    // </group>
+    /// </group>
 
     std::map<std::string, ParmValueSet> itsValueSets;
   };
 
-  // @}
+  /// @}
 
 } // end namespace BBS
 } // end namespace LOFAR

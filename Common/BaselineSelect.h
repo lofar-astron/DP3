@@ -23,11 +23,10 @@
 #ifndef MS_BASELINESELECT_H
 #define MS_BASELINESELECT_H
 
-// @file
-// Convert MSSelection baseline string to a Matrix
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// Convert MSSelection baseline string to a Matrix
+/// @author Ger van Diepen (diepen AT astron nl)
 
-// Includes
 #include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
 #include <casacore/casa/Arrays/Array.h>
 
@@ -44,9 +43,9 @@ namespace casacore
 namespace DP3
 {
 
-// @ingroup MS
-// @brief Convert MSSelection baseline string to a Matrix
-// @{
+/// @ingroup MS
+/// @brief Convert MSSelection baseline string to a Matrix
+/// @{
 
 // Class with a static function to convert a casacore MSSelection baseline
 // string to a Matrix<Bool> telling which baselines are selected.
@@ -54,17 +53,17 @@ namespace DP3
 class BaselineSelect
 {
 public:
-  // Parse the MSSelection baseline string and create a Matrix telling
-  // which baselines are selected.
-  // Possible messages from the parser are written to the ostream.
+  /// Parse the MSSelection baseline string and create a Matrix telling
+  /// which baselines are selected.
+  /// Possible messages from the parser are written to the ostream.
   static casacore::Matrix<bool> convert (const string& msName,
                                      const string& baselineSelection,
                                      std::ostream&);
 
-  // Parse the MSSelection baseline string and create a Matrix telling
-  // which baselines are selected.
-  // The input is a vector of station names and positions.
-  // Possible messages from the parser are written to the ostream.
+  /// Parse the MSSelection baseline string and create a Matrix telling
+  /// which baselines are selected.
+  /// The input is a vector of station names and positions.
+  /// Possible messages from the parser are written to the ostream.
   static casacore::Matrix<bool> convert (const casacore::Vector<casacore::String>& names,
                                      const std::vector<casacore::MPosition>& pos,
                                      const casacore::Vector<casacore::Int>& ant1,
@@ -98,7 +97,7 @@ private:
 };
 
 
-// @}
+/// @}
 
 } // end namespace
 

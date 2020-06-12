@@ -19,7 +19,7 @@
 //
 // $Id: OneApplyCal.h 21598 2012-07-16 08:07:34Z diepen $
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifndef DPPP_ONEAPPLYCAL_H
 #define DPPP_ONEAPPLYCAL_H

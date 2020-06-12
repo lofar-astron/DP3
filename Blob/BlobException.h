@@ -25,8 +25,8 @@
 
 
 #include <stdexcept>
-// \file
-// Blob Exception class. 
+/// \file
+/// Blob Exception class. 
 
 // Includes
 

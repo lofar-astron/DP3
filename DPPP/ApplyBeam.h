@@ -19,7 +19,7 @@
 //
 // $Id:
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifdef HAVE_LOFAR_BEAM
 

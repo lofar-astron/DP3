@@ -19,7 +19,7 @@
 //
 // $Id$
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 /// Note: this code is used by LOFAR and APERTIF software.
 

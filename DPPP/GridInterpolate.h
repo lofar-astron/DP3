@@ -19,7 +19,7 @@
 //
 // $Id: GridInterpolate.h 37169 2017-04-19 12:41:21Z dijkema $
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifndef DPPP_GRIDINTERPOLATE_H
 #define DPPP_GRIDINTERPOLATE_H

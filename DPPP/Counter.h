@@ -19,7 +19,7 @@
 //
 // $Id$
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_COUNTER_H
 #define DPPP_COUNTER_H

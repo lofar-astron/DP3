@@ -19,7 +19,7 @@
 //
 // $Id$
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_DPINFO_H
 #define DPPP_DPINFO_H

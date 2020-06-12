@@ -19,7 +19,7 @@
 //
 // $Id:
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifndef DPPP_PREDICT_H
 #define DPPP_PREDICT_H

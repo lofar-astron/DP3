@@ -36,7 +36,7 @@ public:
   
   static size_t CalculateChunkSize(double startFrequencyHz, double endFrequencyHz, size_t channelCount)
   {
-    // it seems that 10 chunks per octave seems reasonable
+    /// it seems that 10 chunks per octave seems reasonable
     double nOctaves = (log(endFrequencyHz) - log(startFrequencyHz)) / M_LN2;
     if(nOctaves > 0.0)
       return std::min<size_t>(channelCount, ceil(channelCount / (10.0 * nOctaves)));
@@ -196,13 +196,13 @@ public:
     if(values.empty())
       return 0.0;
     std::sort(values.begin(), values.end());
-    // calculate total weight
+    /// calculate total weight
     double sum = 0.0;
     for(std::pair<double,double>& v : values)
       sum += v.second;
 
     int index = 0;
-    // prefixSum is the weight sum of everything after `index`
+    /// prefixSum is the weight sum of everything after `index`
     double prefixSum = sum - values[0].second;
     while(prefixSum > sum/2)
     {

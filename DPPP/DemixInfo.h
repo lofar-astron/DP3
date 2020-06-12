@@ -19,7 +19,7 @@
 //
 // $Id: Demixer.h 23223 2012-12-07 14:09:42Z schoenmakers $
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXINFO_H
 #define DPPP_DEMIXINFO_H

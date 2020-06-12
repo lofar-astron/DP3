@@ -25,7 +25,6 @@
 // @author Ger van Diepen (diepen AT astron nl)
 
 
-// Includes
 #include "PatchInfo.h"
 
 #include "../Blob/BlobIStream.h"

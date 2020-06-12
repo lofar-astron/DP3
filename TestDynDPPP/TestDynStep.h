@@ -19,13 +19,13 @@
 //
 // $Id: Averager.h 30711 2015-01-15 14:36:28Z diepen $
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef TESTDYNDPPP_TESTDYNSTEP_H
 #define TESTDYNDPPP_TESTDYNSTEP_H
 
-// @file
-// @brief Test of a dynamically loaded DPPP step
+/// @file
+/// @brief Test of a dynamically loaded DPPP step
 
 #include "../DPPP/DPStep.h"
 #include "../DPPP/Averager.h"
@@ -34,11 +34,11 @@
 
 namespace DP3 {
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a test (and an example) of a DPStep loaded
-    // dynamically from a shared library.
-    // To make test life easy it uses the Averager class underneath.
+    /// This class is a test (and an example) of a DPStep loaded
+    /// dynamically from a shared library.
+    /// To make test life easy it uses the Averager class underneath.
 
     class TestDynStep: public Averager
     {

@@ -20,9 +20,9 @@
 //
 //  $Id: ParmDBMeta.h 21605 2012-07-16 14:40:36Z diepen $
 
-// @file
-// @brief Meta information for the name and type of a ParmDB
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Meta information for the name and type of a ParmDB
+/// @author Ger van Diepen (diepen AT astron nl)
 
 #ifndef LOFAR_PARMDB_PARMDBMETA_H
 #define LOFAR_PARMDB_PARMDBMETA_H
@@ -36,19 +36,19 @@ class BlobIStream;
 
 namespace BBS {
 
-  // @ingroup ParmDB
-  // @{
+  /// @ingroup ParmDB
+  /// @{
 
-  // @brief Meta information for the name and type of a ParmDB
+  /// @brief Meta information for the name and type of a ParmDB
   class ParmDBMeta
   {
   public:
     ParmDBMeta();
 
-    // Construct from a given type and file/table name.
-    // The type can be empty, casa or blob.
-    // If empty, the code doing the open will detect the exact type. At the
-    // moment that can only be used for SourceDB.
+    /// Construct from a given type and file/table name.
+    /// The type can be empty, casa or blob.
+    /// If empty, the code doing the open will detect the exact type. At the
+    /// moment that can only be used for SourceDB.
     ParmDBMeta (const std::string& type, const std::string& tableName);
 
     void setSQLMeta (const std::string& dbName, const std::string& userName,
@@ -72,23 +72,23 @@ namespace BBS {
     const std::string& getHostName() const
       { return itsHostName; }
     
-    // Write the object into a blob.
+    /// Write the object into a blob.
     friend BlobOStream& operator<< (BlobOStream&, const ParmDBMeta&);
 
-    // Read the object from a blob.
+    /// Read the object from a blob.
     friend BlobIStream& operator>> (BlobIStream&, ParmDBMeta&);
 
   private:
     std::string itsType;
     std::string itsTableName;
-    // these options are used for sql databases
+    /// these options are used for sql databases
     std::string itsDBName;
     std::string itsUserName;
     std::string itsDBPwd;
     std::string itsHostName;
   };
 
-  // @}
+  /// @}
 
 } // namespace BBS
 } // namespace LOFAR

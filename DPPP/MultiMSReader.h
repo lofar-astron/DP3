@@ -19,7 +19,7 @@
 //
 // $Id: MultiMSReader.h 17800 2011-04-19 12:37:59Z diepen $
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_MULTIMSREADER_H
 #define DPPP_MULTIMSREADER_H

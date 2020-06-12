@@ -19,7 +19,7 @@
 //
 // $Id: phasefitter.cc 21598 2012-07-16 08:07:34Z offringa $
 //
-// @author André Offringa
+/// @author André Offringa
 
 /**
  * @file PhaseFitter.h Implements TEC model phase filter @ref PhaseFitter.

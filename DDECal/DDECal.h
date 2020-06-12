@@ -19,13 +19,13 @@
 //
 // $Id: DDECal.h 21598 2012-07-16 08:07:34Z diepen $
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifndef DPPP_DDECAL_H
 #define DPPP_DDECAL_H
 
-// @file
-// @brief DPPP step class to apply a calibration correction to the data
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data
 
 #include "../DPPP/DPInput.h"
 #include "../DPPP/GainCal.h"
@@ -64,9 +64,9 @@ namespace DP3 {
 	class ThreadPool;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a DPStep class to calibrate (direction independent) gains.
+    /// This class is a DPStep class to calibrate (direction independent) gains.
 
     typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t> Baseline;
@@ -74,44 +74,44 @@ namespace DP3 {
     class DDECal: public DPStep
     {
     public:
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       DDECal (DPInput*, const ParameterSet&, const std::string& prefix);
 
       virtual ~DDECal();
 
-      // Create an DDECal object using the given parset.
+      /// Create an DDECal object using the given parset.
       static DPStep::ShPtr makeStep (DPInput*, const ParameterSet&,
                                      const std::string&);
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
       void checkMinimumVisibilities();
 
       void flagChannelBlock(size_t cbIndex);
 
-      // Call the actual solver (called once per solution interval)
+      /// Call the actual solver (called once per solution interval)
       void doSolve();
 
-      // Initialize H5parm-file
+      /// Initialize H5parm-file
       void initH5parm();
 
-      // Write out the solutions
+      /// Write out the solutions
       void writeSolutions();
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
@@ -119,13 +119,13 @@ namespace DP3 {
       void initializeIDG(const ParameterSet& parset, const string& prefix);
       void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
-      // Initialize solutions
+      /// Initialize solutions
       void initializeScalarSolutions();
 
       void initializeFullMatrixSolutions();
 
-      // Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
-      // Used for setting source names.
+      /// Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
+      /// Used for setting source names.
       std::vector<std::string> getDirectionNames();
 
       void subtractCorrectedModel(bool fullJones);
@@ -141,23 +141,23 @@ namespace DP3 {
       bool itsUseModelColumn;
       std::vector<casacore::Cube<casacore::Complex>> itsModelData;
 
-      // The time of the current buffer (in case of solint, average time)
+      /// The time of the current buffer (in case of solint, average time)
       double           itsAvgTime;
       std::vector<casacore::Complex*> itsDataPtrs;
       std::vector<float*> itsWeightPtrs;
 
-      // For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
+      /// For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
       std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
       
       std::vector<std::vector<std::vector<casacore::Complex>>> itsIDGBuffers;
 
-      // For each time, for each channel block, a vector of size nAntennas * nDirections
+      /// For each time, for each channel block, a vector of size nAntennas * nDirections
       std::vector<std::vector<std::vector<casacore::DComplex> > > itsSols;
       std::vector<size_t>
         itsNIter, // Number of iterations taken
         itsNApproxIter;
 
-      // For each time, for each constraint, a vector of results (e.g. tec and phase)
+      /// For each time, for each constraint, a vector of results (e.g. tec and phase)
       std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
 
       std::string      itsH5ParmName;
@@ -176,9 +176,9 @@ namespace DP3 {
       double itsMinVisRatio;
       size_t itsStepInSolInt;
       size_t itsNChan;
-      // For each channel block, the nr of unflagged vis and the total nr of vis.
+      /// For each channel block, the nr of unflagged vis and the total nr of vis.
       std::vector<std::pair<size_t, size_t>> itsVisInInterval;
-      std::vector<size_t> itsChanBlockStart;    // For each channel block, the index in the channels at which this channel block starts
+      std::vector<size_t> itsChanBlockStart;    /// For each channel block, the index in the channels at which this channel block starts
       std::vector<double> itsChanBlockFreqs;
       std::vector<std::vector<string> > itsDirections; // For each direction, a vector of patches
       std::vector<std::unique_ptr<Constraint> > itsConstraints;

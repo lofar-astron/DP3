@@ -23,19 +23,18 @@
 #ifndef LOFAR_COMMON_KVPAIR_H
 #define LOFAR_COMMON_KVPAIR_H
 
-// \file
-// Implements a KV pair as a pair<string, string>.
+/// \file
+/// Implements a KV pair as a pair<string, string>.
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
-// Includes
 #include <ctime>
 #include <utility>
 #include <iosfwd>
 #include <string>
 
 namespace DP3 {
-// \addtogroup Common
-// @{
+/// \addtogroup Common
+/// @{
 
 // Implements a KV pair as a pair<string, string>.
 class KVpair : public std::pair<std::string, std::string>
@@ -73,7 +72,7 @@ public:
 	};
 };
 
-// @} addgroup
+/// @} addgroup
 
 std::ostream& operator<< (std::ostream& os, const DP3::KVpair& kv);
 

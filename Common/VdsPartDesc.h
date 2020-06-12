@@ -23,11 +23,10 @@
 #ifndef LOFAR_LMWCOMMON_VDSPARTDESC_H
 #define LOFAR_LMWCOMMON_VDSPARTDESC_H
 
-// @file
-// @brief Description of a visibility data set or part thereof.
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Description of a visibility data set or part thereof.
+/// @author Ger van Diepen (diepen AT astron nl)
 
-// Includes
 #include "ParameterSet.h"
 
 #include "../Blob/BlobOStream.h"
@@ -39,76 +38,76 @@
 
 namespace DP3 { namespace CEP {
 
-  // @ingroup LMWCommon
-  // @brief Description of a visibility data set or part thereof.
+  /// @ingroup LMWCommon
+  /// @brief Description of a visibility data set or part thereof.
 
-  // This class holds the description of a visibility data set (VDS) part.
-  // It defines the name of the part and on which file system it is located.
-  // Using the ClusterDesc object it can be derived on which node this
-  // VDS part can be processed best. This is done by the WorkersDesc
-  // class.
+  /// This class holds the description of a visibility data set (VDS) part.
+  /// It defines the name of the part and on which file system it is located.
+  /// Using the ClusterDesc object it can be derived on which node this
+  /// VDS part can be processed best. This is done by the WorkersDesc
+  /// class.
   //
-  // The description of the VDS also contains info about the time,
-  // frequency, and baseline domain of the visibility data.
+  /// The description of the VDS also contains info about the time,
+  /// frequency, and baseline domain of the visibility data.
   //
-  // The information is made persistent in a LOFAR .parset file.
+  /// The information is made persistent in a LOFAR .parset file.
 
   class VdsPartDesc
   {
   public:
-    // Construct an empty object.
+    /// Construct an empty object.
     VdsPartDesc()
       : itsStartTime(0), itsEndTime(1), itsStepTime(1)
       {}
 
-    // Construct from the given parameterset.
+    /// Construct from the given parameterset.
     explicit VdsPartDesc (const ParameterSet&);
 
-    // Set VDS name and file system.
+    /// Set VDS name and file system.
     void setName (const std::string& name, const std::string& fileSys);
 
-    // Set the original file name.
+    /// Set the original file name.
     void setFileName (const std::string& name)
       { itsFileName = name; }
 
-    // Set the name of the ClusterDesc file used.
+    /// Set the name of the ClusterDesc file used.
     void setClusterDescName (const std::string& cdName)
       { itsCDescName = cdName; }
 
-    // Change the base part of the name.
+    /// Change the base part of the name.
     void changeBaseName (const std::string& newBaseName);
 
-    // Set the observation start and end time.
-    // Optionally the start and end per time interval can be set.
+    /// Set the observation start and end time.
+    /// Optionally the start and end per time interval can be set.
     void setTimes (double startTime, double endTime, double stepTime,
                    const std::vector<double>& starts = std::vector<double>(),
                    const std::vector<double>& ends   = std::vector<double>());
 
-    // Add a band.
-    // <group>
+    /// Add a band.
+    /// <group>
     void addBand (int nchan, double startFreq, double endFreq);
     void addBand (int nchan, const std::vector<double>& startFreq,
 		  const std::vector<double>& endFreq);
-    // </group>
+    /// </group>
 
-    // Add an extra parameter. It is added to the subset 'Extra.'.
-    // If the parameter already exists, it is replaced.
+    /// Add an extra parameter. It is added to the subset 'Extra.'.
+    /// If the parameter already exists, it is replaced.
     void addParm (const std::string& key, const std::string& value)
       { return itsParms.add (key, value); }
 
-    // Get access to the extra parameters.
+    /// Get access to the extra parameters.
     const ParameterSet& getParms() const
       { return itsParms; }
 
-    // Clear the extra parameters.
+    /// Clear the extra parameters.
     void clearParms()
       { itsParms.clear(); }
 
-    // Write the VdsPartDesc object in parset format.
+    /// Write the VdsPartDesc object in parset format.
     void write (std::ostream& os, const std::string& prefix) const;
 
-    // Get the values.
-    // @{
+    /// Get the values.
+    /// @{
     const std::string& getName() const
       { return itsName; }
     const std::string& getFileName() const
@@ -135,13 +134,13 @@ namespace DP3 { namespace CEP {
       { return itsStartFreqs; }
     const std::vector<double>& getEndFreqs() const
       { return itsEndFreqs; }
-    // @}
+    /// @}
 
-  // Put/get the object to/from a blob.
-  // <group>
+  /// Put/get the object to/from a blob.
+  /// <group>
   BlobOStream& toBlob (BlobOStream&) const;
   BlobIStream& fromBlob (BlobIStream&);
-  // </group>
+  /// </group>
 
   private:
     std::string itsName;       ///< full name of the VDS desc
@@ -159,13 +158,13 @@ namespace DP3 { namespace CEP {
     ParameterSet itsParms;     ///< extra parameters
   };
     
-  // Put/get the object to/from a blob.
-  // <group>
+  /// Put/get the object to/from a blob.
+  /// <group>
     inline BlobOStream& operator<< (BlobOStream& bs, const VdsPartDesc& vpd)
     { return vpd.toBlob (bs); }
     inline BlobIStream& operator>> (BlobIStream& bs, VdsPartDesc& vpd)
     { return vpd.fromBlob (bs); }
-  // </group>
+  /// </group>
 
 }} // end namespaces
 

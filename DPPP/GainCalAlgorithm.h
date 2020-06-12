@@ -19,7 +19,7 @@
 //
 // $Id: GainCalAlgorithm.h 21598 2012-07-16 08:07:34Z diepen $
 //
-// @author Tammo Jan Dijkema
+/// @author Tammo Jan Dijkema
 
 #ifndef DPPP_GAINCALALGORITHM_H
 #define DPPP_GAINCALALGORITHM_H

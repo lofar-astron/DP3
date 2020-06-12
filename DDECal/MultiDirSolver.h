@@ -50,11 +50,11 @@ public:
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
   
-  // data[i] is a pointer to the data for timestep i. Those data are then ordered 
-  // as they are in the MS (bl, chan, pol).
-  // mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
-  // Each of these pointers is in the same order as the data.
-  // solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
+  /// data[i] is a pointer to the data for timestep i. Those data are then ordered 
+  /// as they are in the MS (bl, chan, pol).
+  /// mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
+  /// Each of these pointers is in the same order as the data.
+  /// solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
   SolveResult processScalar(const std::vector<Complex*>& data,
     const std::vector<float*>& weights,
     const std::vector<std::vector<Complex* > >& modelData,
@@ -146,7 +146,7 @@ private:
   std::vector<int> _ant1, _ant2;
   MultiDirBuffer _buffer;
   
-  // Calibration setup
+  /// Calibration setup
   size_t _maxIterations, _nThreads;
   double _accuracy, _constraintAccuracy;
   double _stepSize;

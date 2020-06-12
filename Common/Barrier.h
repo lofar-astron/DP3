@@ -27,8 +27,8 @@ namespace DP3 {
     
     Barrier& operator=(Barrier&& rhs)
     {
-      // count could be checked for != _n to assert no threads
-      // are waiting, but I leave this the responsibility of the caller.
+      /// count could be checked for != _n to assert no threads
+      /// are waiting, but I leave this the responsibility of the caller.
       _n = rhs._n;
       _count = _n;
       _cycle = 0;

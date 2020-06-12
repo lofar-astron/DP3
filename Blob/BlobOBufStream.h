@@ -23,8 +23,8 @@
 #ifndef LOFAR_BLOB_BLOBOBUFSTREAM_H
 #define LOFAR_BLOB_BLOBOBUFSTREAM_H
 
-// \file
-// Output buffer for a blob using an ostream
+/// \file
+/// Output buffer for a blob using an ostream
 
 #include "BlobOBuffer.h"
 
@@ -32,37 +32,37 @@
 
 namespace DP3 {
 
-// \ingroup %pkgname%
-  // @{
+/// \ingroup %pkgname%
+  /// @{
 
-  // This class is the BlobOBuffer that makes use of an ostream object.
-  // The ostream can be any type (ofstream, ostringstream, ...)
+  /// This class is the BlobOBuffer that makes use of an ostream object.
+  /// The ostream can be any type (ofstream, ostringstream, ...)
   
   class BlobOBufStream : public BlobOBuffer
     {
     public:
-      // Construct it with the underlying ostream object.
+      /// Construct it with the underlying ostream object.
       explicit BlobOBufStream (std::ostream&);
       
-      // Destructor.
+      /// Destructor.
       virtual ~BlobOBufStream();
       
-      // Put the requested nr of bytes.
+      /// Put the requested nr of bytes.
       virtual uint64_t put (const void* buffer, uint64_t nbytes);
       
-      // Get the position in the stream.
-      // -1 is returned if the stream is not seekable.
+      /// Get the position in the stream.
+      /// -1 is returned if the stream is not seekable.
       virtual int64_t tellPos() const;
       
-      // Set the position in the stream.
-      // It returns the new position which is -1 if the stream is not seekable.
+      /// Set the position in the stream.
+      /// It returns the new position which is -1 if the stream is not seekable.
       virtual int64_t setPos (int64_t pos);
       
     private:
       std::streambuf* itsStream;
     };
 
-  // @}
+  /// @}
 
 } // end namespace
 

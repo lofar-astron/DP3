@@ -39,9 +39,9 @@ private:
   casacore::MPosition     itsPosition;
   //source position
   casacore::MDirection     itsDirection;
-  // Ionospheric layer height.
+  /// Ionospheric layer height.
   double              itsIonoHeight;
-  //  square of length antenna vector (int ITRF) minus square of vector to piercepoint. This is constant for a assumed spherical Earth
+  ///  square of length antenna vector (int ITRF) minus square of vector to piercepoint. This is constant for a assumed spherical Earth
   double              itsC;
   arma::Col<double>         itsValue; //PiercePoint in ITRF coordinates
 };

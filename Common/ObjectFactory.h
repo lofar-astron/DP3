@@ -20,11 +20,11 @@
 //
 // $Id: ObjectFactory.h 32489 2015-09-26 18:38:13Z dijkema $
 
-// \file
-// Generic object factory.
+/// \file
+/// Generic object factory.
 //
 // The implementation of this object factory was inspired by the article
-// <em>Creating a Generic Object Factory</em>, written by Robert Geiman on
+/// <em>Creating a Generic Object Factory</em>, written by Robert Geiman on
 // GameDev.net
 // (http://www.gamedev.net/reference/articles/article2097.asp). His
 // implementation was taken as a starting point and adapted to work with the
@@ -35,9 +35,9 @@
 // performs almost magic. Keep in mind, though, that all \c BOOST_PP macros
 // are simply used to generate repetitive code. In this case template
 // specializations of the primary template
-// \code 
+/// \code 
 // template <typename Signature, typename TypeId> class ObjectFactory;
-// \endcode
+/// \endcode
 // where \c Signature is the signature of the class' constructor, and \c
 // TypeId is the type of its unique id. These template specializations define
 // object factories for classes with up to \c OBJECT_FACTORY_MAX_CTOR_ARG
@@ -65,12 +65,12 @@
 
 namespace DP3
 {
-  // \addtogroup Common
-  // @{
-  // Primary template. \c Signature is the signature of the class'
-  // constructor; \c TypeId is the type of its unique id.
+  /// \addtogroup Common
+  /// @{
+  /// Primary template. \c Signature is the signature of the class'
+  /// constructor; \c TypeId is the type of its unique id.
   template <typename Signature, typename TypeId> class ObjectFactory;
-  // @}
+  /// @}
 }
 
 #    define BOOST_PP_ITERATION_LIMITS (0, OBJECT_FACTORY_MAX_CTOR_ARG)
@@ -80,76 +80,76 @@ namespace DP3
 
 #else
 
-// \cond
+/// \cond
 #  define n BOOST_PP_ITERATION()
-// \endcond
+/// \endcond
 
 namespace DP3
 {
-  // \addtogroup Common
-  // @{
+  /// \addtogroup Common
+  /// @{
 
-  // Template specialization.
-  // Expansion of the \c BOOST_PP_ENUM macros leads to the generation of the
-  // following template specializations:
-  // \code
-  // template<typename Base, typename TypeId>
-  // class ObjectFactory<Base (), TypeId>
-  // \endcode
-  // \code
-  // template<typename Base, typename A0, typename TypeId>
-  // class ObjectFactory<Base (A0), TypeId>
-  // \endcode
-  // \code
-  // template<typename Base, typename A0, typename A1, typename TypeId>
-  // class ObjectFactory<Base (A0, A1), TypeId>
-  // \endcode
-  // etc.
+  /// Template specialization.
+  /// Expansion of the \c BOOST_PP_ENUM macros leads to the generation of the
+  /// following template specializations:
+  /// \code
+  /// template<typename Base, typename TypeId>
+  /// class ObjectFactory<Base (), TypeId>
+  /// \endcode
+  /// \code
+  /// template<typename Base, typename A0, typename TypeId>
+  /// class ObjectFactory<Base (A0), TypeId>
+  /// \endcode
+  /// \code
+  /// template<typename Base, typename A0, typename A1, typename TypeId>
+  /// class ObjectFactory<Base (A0, A1), TypeId>
+  /// \endcode
+  /// etc.
   //
-  // The number of specializations generated depends on the value of the
-  // preprocessor macro \c OBJECT_FACTORY_MAX_CTOR_ARG, which defines the
-  // maximum number of constructor arguments for the class \c Base. It
-  // defaults to 8.
+  /// The number of specializations generated depends on the value of the
+  /// preprocessor macro \c OBJECT_FACTORY_MAX_CTOR_ARG, which defines the
+  /// maximum number of constructor arguments for the class \c Base. It
+  /// defaults to 8.
   //
   template<typename Base BOOST_PP_ENUM_TRAILING_PARAMS(n, typename A), typename TypeId>
   class ObjectFactory<Base* (BOOST_PP_ENUM_PARAMS(n, A)), TypeId>
   {
   private:
-    // Typedef for the function that creates an instance of a class that
-    // inherits from \c Base.
+    /// Typedef for the function that creates an instance of a class that
+    /// inherits from \c Base.
     typedef Base* (*CreatorFunc)(BOOST_PP_ENUM_PARAMS(n, A));
 
-    // Map associating \c TypeId, used to uniquely identify a class, and \c
-    // CreatorFunc, a pointer to a function that creates an instance of this
-    // class.
+    /// Map associating \c TypeId, used to uniquely identify a class, and \c
+    /// CreatorFunc, a pointer to a function that creates an instance of this
+    /// class.
     typedef /*typename*/ std::map<TypeId, CreatorFunc> CreatorMap;
 
   public:
     typedef typename CreatorMap::const_iterator const_iterator;
     typedef typename CreatorMap::value_type value_type;
 
-    // Register the class \c Derived using \a id as its unique identifier. The
-    // static method doCreate<Derived>() will be registered as the method for
-    // creating objects of type \c Derived. Registration will fail when \c
-    // itsCreatorMap already contains a key with value \a id.
-    // \return \c true is registration was successful; otherwise \c false.
-    // \note \c Derived must inherit from the class \c Base. 
+    /// Register the class \c Derived using \a id as its unique identifier. The
+    /// static method doCreate<Derived>() will be registered as the method for
+    /// creating objects of type \c Derived. Registration will fail when \c
+    /// itsCreatorMap already contains a key with value \a id.
+    /// \return \c true is registration was successful; otherwise \c false.
+    /// \note \c Derived must inherit from the class \c Base. 
     template<typename Derived>
       bool registerClass(TypeId id)
     {
       return itsCreatorMap.insert(value_type(id, static_cast<CreatorFunc>(&doCreate<Derived>))).second;
     }
   
-    // Unregister the class identified by \a id. The class identified by \a id
-    // will be removed from \c itsCreatorMap.
-    // \return \c true if deregistration was successful; otherwise \c false.
+    /// Unregister the class identified by \a id. The class identified by \a id
+    /// will be removed from \c itsCreatorMap.
+    /// \return \c true if deregistration was successful; otherwise \c false.
     bool unregisterClass(TypeId id)
     {
       return (itsCreatorMap.erase(id));
     }
 
-    // Return a vector of TypeId containing the ID's of all registered
-    // classes.
+    /// Return a vector of TypeId containing the ID's of all registered
+    /// classes.
     std::vector<TypeId> registeredClassIds()
     {
       std::vector<TypeId> ids;
@@ -160,8 +160,8 @@ namespace DP3
       return ids;
     }
 
-    // Create a new class instance of the class identified by \a id. 
-    // If \a id is not found in \c itsCreatorMap a null pointer is returned.
+    /// Create a new class instance of the class identified by \a id. 
+    /// If \a id is not found in \c itsCreatorMap a null pointer is returned.
     Base* create(TypeId id BOOST_PP_ENUM_TRAILING_BINARY_PARAMS(n, A, a))
     {
       const_iterator iter = itsCreatorMap.find(id);
@@ -169,14 +169,14 @@ namespace DP3
       else return iter->second(BOOST_PP_ENUM_PARAMS(n, a));
     }
 
-    // Return a \c const iterator for the first element in \c itsCreatorMap.
+    /// Return a \c const iterator for the first element in \c itsCreatorMap.
     const_iterator begin() const
     {
       return itsCreatorMap.begin();
     }
   
-    // Return a \c const iterator for the position after the last element in
-    // \c itsCreatorMap.
+    /// Return a \c const iterator for the position after the last element in
+    /// \c itsCreatorMap.
     const_iterator end() const
     {
       return itsCreatorMap.end();
@@ -184,13 +184,13 @@ namespace DP3
 
   private:
 
-    // Map binding the unique class id and its creator function.
+    /// Map binding the unique class id and its creator function.
     CreatorMap itsCreatorMap;
 
-    // Return a pointer to a new instance of class \c Derived. This is the
-    // method that's being registered as the creator function when a class of
-    // type \c Derived registers itself with the object factory.
-    // \note \c Derived must inherit from \c Base.
+    /// Return a pointer to a new instance of class \c Derived. This is the
+    /// method that's being registered as the creator function when a class of
+    /// type \c Derived registers itself with the object factory.
+    /// \note \c Derived must inherit from \c Base.
     template<typename Derived>
       static Base* doCreate(BOOST_PP_ENUM_BINARY_PARAMS(n, A, a))
     {
@@ -199,7 +199,7 @@ namespace DP3
 
   };
 
-  // @}
+  /// @}
 
 } // namespace LOFAR
 

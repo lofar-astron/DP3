@@ -23,18 +23,18 @@
 #ifndef LOFAR_LMWCOMMON_MWERROR_H
 #define LOFAR_LMWCOMMON_MWERROR_H
 
-// @file
-// @brief Basic exception for master/worker related errors.
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Basic exception for master/worker related errors.
+/// @author Ger van Diepen (diepen AT astron nl)
 
 namespace DP3 { namespace CEP {
 
-  // @ingroup LMWCommon
-  // @brief Basic exception for master/worker related errors.
+  /// @ingroup LMWCommon
+  /// @brief Basic exception for master/worker related errors.
 
-  // This class defines the basic MW exception.
-  // Only this basic exception is defined so far. In the future, some more 
-  // fine-grained exceptions might be derived from it.
+  /// This class defines the basic MW exception.
+  /// Only this basic exception is defined so far. In the future, some more 
+  /// fine-grained exceptions might be derived from it.
   typedef std::runtime_error MWError;
 
 }} // end namespaces

@@ -19,7 +19,7 @@
 //
 // $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_AOFLAG_REGISTER_H
 #define DPPP_AOFLAG_REGISTER_H

@@ -19,13 +19,13 @@
 //
 // $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
 //
-// @author Ger van Diepen
+/// @author Ger van Diepen
 
 #ifndef DPPP_DDECAL_REGISTER_H
 #define DPPP_DDECAL_REGISTER_H
 
-// @file
-// @brief Register AOFlag steps in DPPP
+/// @file
+/// @brief Register AOFlag steps in DPPP
 
 
 // Define the function (without name mangling) to register the 'constructor'.

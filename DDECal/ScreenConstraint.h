@@ -55,9 +55,9 @@ private:
   std::vector<double>               itsFrequencies;
   std::vector<double>               itsprevsol;
   std::vector<double>               _iterphases;
-  // antenna positions
-  // source positions
-  // measures instance ofzo               
+  /// antenna positions
+  /// source positions
+  /// measures instance ofzo               
   std::vector<std::vector<PiercePoint> > itsPiercePoints;  //temporary hold calculated piercepoints per antenna
   std::vector<KLFitter> _screenFitters;
   std::vector<size_t> _coreAntennas;

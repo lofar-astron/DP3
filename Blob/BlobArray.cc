@@ -20,7 +20,6 @@
 //
 // $Id: BlobArray.cc 25266 2013-06-11 08:09:03Z diepen $
 
-// Includes
 #include "BlobArray.h"
 #include "BlobHeader.h"
 

@@ -18,7 +18,7 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //
 //
-// @author Maaijke Mevius
+/// @author Maaijke Mevius
 
 /**
  * @file screenfitter.h Implements TEC model screen filter @ref ScreenFitter.

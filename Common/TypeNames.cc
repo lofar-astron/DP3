@@ -22,7 +22,6 @@
 
 // Always #include <lofar_config.h> first!
 
-// Includes
 #include "TypeNames.h"
 
 namespace DP3

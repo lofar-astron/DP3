@@ -23,8 +23,8 @@
 #ifndef LOFAR_COMMON_PARAMETERRECORD_H
 #define LOFAR_COMMON_PARAMETERRECORD_H
 
-// \file
-// A record of parameter values
+/// \file
+/// A record of parameter values
 
 #include "ParameterSet.h"
 
@@ -33,18 +33,18 @@ namespace DP3 {
   class ParameterRecord: public ParameterSet
   {
   public:
-    // Define the iterators for this class.
+    /// Define the iterators for this class.
     typedef ParameterSet::iterator       iterator;
     typedef ParameterSet::const_iterator const_iterator;
 
-    // Default constructor creates empty record.
+    /// Default constructor creates empty record.
     ParameterRecord()
     {}
 
-    // Try to get a value from the record or from a nested record.
+    /// Try to get a value from the record or from a nested record.
     bool getRecursive (const std::string& key, ParameterValue& value) const;
 
-    // Put to ostream.
+    /// Put to ostream.
     friend std::ostream& operator<< (std::ostream& os, const ParameterRecord&);
   };
 

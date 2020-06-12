@@ -44,7 +44,7 @@ public:
       paddedWidth = std::max(paddedWidth, paddedHeight);
       paddedHeight = paddedWidth;
     }
-    // Make the width and height divisable by four.
+    /// Make the width and height divisable by four.
     paddedWidth += (4-(paddedWidth%4))%4;
     paddedHeight += (4-(paddedHeight%4))%4;
     int padX = (paddedWidth-width)/2;
@@ -117,8 +117,8 @@ private:
     return clippedFacet;
   }
   
-  // A vector with Nterms elements, each holding the image data.
-  // Each uvector holds the data for one spectral frequency term.
+  /// A vector with Nterms elements, each holding the image data.
+  /// Each uvector holds the data for one spectral frequency term.
   std::vector<ao::uvector<double>> _data;
   size_t _width, _height;
   int _offsetX, _offsetY;

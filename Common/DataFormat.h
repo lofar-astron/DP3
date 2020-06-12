@@ -23,15 +23,15 @@
 #ifndef LOFAR_COMMON_DATAFORMAT_H
 #define LOFAR_COMMON_DATAFORMAT_H
 
-// \file
-// Get the data format (endian type).
-  // This file defines an enum for the possible machine data formats.
-  // Currently only little and big endian is possible with floating point
-  // numbers as IEEE and characters in the ASCII representation.
-  // It is used in the Blob classes and the DataConvert functions.
+/// \file
+/// Get the data format (endian type).
+  /// This file defines an enum for the possible machine data formats.
+  /// Currently only little and big endian is possible with floating point
+  /// numbers as IEEE and characters in the ASCII representation.
+  /// It is used in the Blob classes and the DataConvert functions.
   //
-  // Furthermore it contains a function giving the data format in use on
-  // the machine in use.
+  /// Furthermore it contains a function giving the data format in use on
+  /// the machine in use.
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 
@@ -40,7 +40,7 @@ namespace DP3
   
   enum DataFormat {LittleEndian=0, BigEndian=1};
   
-  // Get the endian type on this machine.
+  /// Get the endian type on this machine.
   inline DataFormat dataFormat()
 #if defined(WORDS_BIGENDIAN)
     {return BigEndian; }

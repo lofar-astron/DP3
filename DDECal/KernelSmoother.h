@@ -67,10 +67,10 @@ public:
       case TriangularKernel:
         return x >= NumType(0.0) ? (NumType(1.0) - x) : (NumType(1.0) + x);
       case GaussianKernel:
-        // e^(-x^2 / sigma^2), sigma = bandwidth / 3.
+        /// e^(-x^2 / sigma^2), sigma = bandwidth / 3.
         return std::exp(-x*x*NumType(9.0));
       case EpanechnikovKernel:
-        // 3/4 * (1-x)^2;
+        /// 3/4 * (1-x)^2;
         x = NumType(1.0) - x;
         return (NumType(3.0) / NumType(4.0)) * x * x;
       }
@@ -88,19 +88,19 @@ public:
      
     size_t
       bandLeft = 0,
-      // find right kernel value for first element
+      /// find right kernel value for first element
       bandRight = std::lower_bound(_frequencies.begin(), _frequencies.end(), _frequencies[0] + _bandwidth * 0.5) - _frequencies.begin() + 1;
     
     for(size_t i=0; i!=n; ++i)
     {
-      // If a boundary is further than half the bandwidth away, move boundary
+      /// If a boundary is further than half the bandwidth away, move boundary
       while(_frequencies[bandLeft] < _frequencies[i] - _bandwidth * 0.5)
         ++bandLeft;
       while(bandRight!=n && _frequencies[bandRight] < _frequencies[i] + _bandwidth * 0.5)
         ++bandRight;
       
-      // A value of 1 is added to make sure we are not skipping a value because of rounding errors
-      // (kernel will be zero past boundaries, so including an unnecessary value has no effect)
+      /// A value of 1 is added to make sure we are not skipping a value because of rounding errors
+      /// (kernel will be zero past boundaries, so including an unnecessary value has no effect)
       size_t start = bandLeft > 0 ? bandLeft-1 : 0;
       size_t end = bandRight < n ? bandRight+1 : n;
       

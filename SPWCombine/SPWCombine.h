@@ -18,7 +18,7 @@
 //
 // $Id$
 //
-// @author Adriaan Renting
+/// @author Adriaan Renting
 
 #ifndef LOFARSPWCOMBINE_H
 #define LOFARSPWCOMBINE_H

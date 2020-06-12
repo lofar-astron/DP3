@@ -23,56 +23,55 @@
 #ifndef LOFAR_COMMON_PARAMETERVALUE_H
 #define LOFAR_COMMON_PARAMETERVALUE_H
 
-// \file
-// The value of a parameter
+/// \file
+/// The value of a parameter
 
-// Includes
 #include "StringUtil.h"
 
 namespace DP3 { 
 
-  // Forward declaration.
+  /// Forward declaration.
   class ParameterRecord;
 
-  // ParameterValue represent a value of a parameter.
-  // It can contain a single value, but also a vector of ParameterValues or
-  // a ParameterRecord.
+  /// ParameterValue represent a value of a parameter.
+  /// It can contain a single value, but also a vector of ParameterValues or
+  /// a ParameterRecord.
   //
-  // It contains various functions to obtain the value in the format desired.
+  /// It contains various functions to obtain the value in the format desired.
   class ParameterValue
   {
   public:
-    // Default constructor uses empty string.
+    /// Default constructor uses empty string.
     ParameterValue()
     {}
 
-    // Create from the given string.
-    // Optionally left and right whitespace will be removed.
+    /// Create from the given string.
+    /// Optionally left and right whitespace will be removed.
     explicit ParameterValue (const std::string& value, bool trim=true);
 
-    // Expand the string using StringUtil::expandedArrayString.
+    /// Expand the string using StringUtil::expandedArrayString.
     ParameterValue expand() const;
 
-    // Is the value a vector?
+    /// Is the value a vector?
     bool isVector() const
       { return itsValue[0] == '['; }
 
-    // Is the value a record?
+    /// Is the value a record?
     bool isRecord() const
       { return itsValue[0] == '{'; }
 
-    // Get the value string.
+    /// Get the value string.
     const std::string& get() const
       { return itsValue; }
 
-    // Get the parameter value as a vector of ParameterValues.
+    /// Get the parameter value as a vector of ParameterValues.
     std::vector<ParameterValue> getVector() const;
 
-    // Get the parameter value as a ParameterRecord.
+    /// Get the parameter value as a ParameterRecord.
     ParameterRecord getRecord() const;
 
-    // Get the parameter value in the given type.
-    // <group>
+    /// Get the parameter value in the given type.
+    /// <group>
     bool   getBool() const
       { return strToBool(itsValue); }
     int    getInt() const
@@ -111,10 +110,10 @@ namespace DP3 {
     std::vector<double> getDoubleVector() const;
     std::vector<std::string> getStringVector() const;
     std::vector<time_t> getTimeVector() const;
-    // </group>
+    /// </group>
 
-    // Convert the parameter value to the given type using conversion operators.
-    // <group>
+    /// Convert the parameter value to the given type using conversion operators.
+    /// <group>
     operator bool() const
       { return getBool(); }
     operator int() const
@@ -143,36 +142,36 @@ namespace DP3 {
       { return getStringVector(); }
     operator std::vector<time_t>() const
       { return getTimeVector(); }
-    // <group>
+    /// <group>
 
-    // Convert a string to a time.
+    /// Convert a string to a time.
     static time_t StringToTime_t (const std::string& aString) ;
 
-    // Put or get to/from ostream.
-    // <group>
+    /// Put or get to/from ostream.
+    /// <group>
     friend std::ostream& operator<< (std::ostream& os, const ParameterValue& pval)
       { os << pval.itsValue; return os; }
     friend std::istream& operator>> (std::istream& os, ParameterValue& pval)
       { os >> pval.itsValue; return os; }
-    // </group>
+    /// </group>
 
   private:
-    // Split itsValue into individual values using the comma as separator.
-    // It takes the commas in quoted strings or in compound values into
-    // account.
+    /// Split itsValue into individual values using the comma as separator.
+    /// It takes the commas in quoted strings or in compound values into
+    /// account.
     std::vector<ParameterValue> splitValue (unsigned int st, unsigned int last) const;
 
-    // Return the position of the first non-whitespace character in itsValue
-    // starting at st.
+    /// Return the position of the first non-whitespace character in itsValue
+    /// starting at st.
     unsigned int lskipws (unsigned int st, unsigned int end) const
       { return DP3::lskipws (itsValue, st, end); }
   
-    // Return the position after the last non-whitespace character in itsValue
-    // back from end.
+    /// Return the position after the last non-whitespace character in itsValue
+    /// back from end.
     unsigned int rskipws (unsigned int st, unsigned int end) const
       { return DP3::rskipws (itsValue, st, end); }
 
-    // Return the substring with left and right whitespace removed.
+    /// Return the substring with left and right whitespace removed.
     ParameterValue substr (int st, int end) const
       { return ParameterValue (itsValue.substr (st, end-st)); }
 

@@ -20,9 +20,9 @@
 //
 // $Id: Grid.h 16977 2010-12-20 08:40:36Z diepen $
 
-// @file
-// @brief Class representing a regular or irregular 2-D grid.
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Class representing a regular or irregular 2-D grid.
+/// @author Ger van Diepen (diepen AT astron nl)
 
 #ifndef LOFAR_PARMDB_GRID_H
 #define LOFAR_PARMDB_GRID_H
@@ -35,74 +35,74 @@
 namespace DP3 {
 namespace BBS {
 
-  // Forward declaration.
+  /// Forward declaration.
   class Grid;
 
-  // Define Location: A location on a 2-D grid.
+  /// Define Location: A location on a 2-D grid.
   typedef pair<size_t, size_t> Location;
 
 
-  // @ingroup ParmDB
-  // @{
+  /// @ingroup ParmDB
+  /// @{
 
-  // @brief The letter class for a 2-D grid with regular or irregular axes.
+  /// @brief The letter class for a 2-D grid with regular or irregular axes.
   class GridRep
   {
   public:
     typedef std::shared_ptr<GridRep> ShPtr;
 
-    // Default constructor uses two default RegularAxis objects.
+    /// Default constructor uses two default RegularAxis objects.
     GridRep();
 
-    // Create from given axes.
+    /// Create from given axes.
     GridRep(Axis::ShPtr first, Axis::ShPtr second);
 
-    // Create a grid from a series of grids.
-    // They have to be in order of startY,startX. They are sorted if needed.
-    // The grids in the vector must span a rectangular grid, otherwise an
-    // exception is thrown.
-    // Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
-    // The vector can be empty. In that case a default Grid is created.
+    /// Create a grid from a series of grids.
+    /// They have to be in order of startY,startX. They are sorted if needed.
+    /// The grids in the vector must span a rectangular grid, otherwise an
+    /// exception is thrown.
+    /// Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
+    /// The vector can be empty. In that case a default Grid is created.
     GridRep(const std::vector<Grid>& domains, bool sort);
 
-    // Create a grid from a series of domains.
-    // They have to be in order of startY,startX. They are sorted if needed.
-    // The domains in the vector must span a rectangular grid, otherwise an
-    // exception is thrown.
-    // Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
-    // The vector can be empty. In that case a default Grid is created.
+    /// Create a grid from a series of domains.
+    /// They have to be in order of startY,startX. They are sorted if needed.
+    /// The domains in the vector must span a rectangular grid, otherwise an
+    /// exception is thrown.
+    /// Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
+    /// The vector can be empty. In that case a default Grid is created.
     GridRep(const std::vector<Box>& domains, bool sort);
 
-    // Is it the default grid?
+    /// Is it the default grid?
     bool isDefault() const
       { return itsIsDefault; }
 
-    // Get the hash value of the grid.
+    /// Get the hash value of the grid.
     int64_t hash() const
       { return itsHash; }
 
-    // Get the given axis.
-    // <group>
+    /// Get the given axis.
+    /// <group>
     Axis::ShPtr& getAxis (size_t n)
       { return itsAxes[n]; }
     const Axis::ShPtr& getAxis (size_t n) const
       { return itsAxes[n]; }
-    // </group>
+    /// </group>
 
   private:
-    // Initialize from an ordered vector of domains.
+    /// Initialize from an ordered vector of domains.
     void setup (const std::vector<Box>& domains);
 
-    // Initialize from an ordered vector of grids.
+    /// Initialize from an ordered vector of grids.
     void setup (const std::vector<Grid>& domains);
 
-    // Combine the given axes in the grids into one new axis.
-    // This axis is regular if all axes are regular and consecutive with
-    // equal widths.
+    /// Combine the given axes in the grids into one new axis.
+    /// This axis is regular if all axes are regular and consecutive with
+    /// equal widths.
     Axis::ShPtr combineAxes (const std::vector<Grid>& grids, unsigned int axis,
                              unsigned int n, unsigned int step) const;
 
-    // Set the id.
+    /// Set the id.
     void init();
 
     Axis::ShPtr itsAxes[2];
@@ -127,71 +127,71 @@ namespace BBS {
       : itsRep (new GridRep(first, second))
     {}
 
-    // Create a grid from a series of grids.
-    // They have to be in order of startY,startX. They are sorted if needed.
-    // The grids in the vector must span a rectangular grid, otherwise an
-    // exception is thrown.
-    // Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
-    // The vector can be empty. In that case a default Grid is created.
+    /// Create a grid from a series of grids.
+    /// They have to be in order of startY,startX. They are sorted if needed.
+    /// The grids in the vector must span a rectangular grid, otherwise an
+    /// exception is thrown.
+    /// Its axes can be regular (RegularAxis) or irregular (OrderedAxis).
+    /// The vector can be empty. In that case a default Grid is created.
     Grid(const std::vector<Grid>& grids, bool sort=false);
 
-    // Create a grid from a series of domains.
-    // They have to be in order of startY,startX. They are sorted if needed.
-    // The domains in the vector must span a rectangular grid, otherwise an
-    // exception is thrown.
-    // The vector can be empty. In that case a default Grid is created.
+    /// Create a grid from a series of domains.
+    /// They have to be in order of startY,startX. They are sorted if needed.
+    /// The domains in the vector must span a rectangular grid, otherwise an
+    /// exception is thrown.
+    /// The vector can be empty. In that case a default Grid is created.
     Grid(const std::vector<Box>& domains, bool sort=false)
       : itsRep (new GridRep(domains, sort))
     {}
 
-    // Check if two grids are equal. They are if their axes have the same
-    // type and values.
-    // <group>
+    /// Check if two grids are equal. They are if their axes have the same
+    /// type and values.
+    /// <group>
     bool operator== (const Grid& that) const;
     bool operator!= (const Grid& that) const
       { return ! operator== (that); }
-    // </group>
+    /// </group>
 
-    // Check if the corresponding intervals in this and that grid are the same.
+    /// Check if the corresponding intervals in this and that grid are the same.
     bool checkIntervals (const Grid& that) const;
 
-    // Is it the default grid?
+    /// Is it the default grid?
     bool isDefault() const
     { return itsRep->isDefault(); }
 
-    // Get the given axis.
-    // <group>
+    /// Get the given axis.
+    /// <group>
     const Axis::ShPtr& getAxis (size_t n) const
       { return itsRep->getAxis (n); }
     const Axis::ShPtr& operator[] (size_t n) const
       { return itsRep->getAxis (n); }
-    // </group>
+    /// </group>
 
-    // Get the sizes of the axes.
-    // <group>
+    /// Get the sizes of the axes.
+    /// <group>
     size_t nx() const
       { return getAxis(0)->size(); }
     size_t ny() const
       { return getAxis(1)->size(); }
-    // </group>
+    /// </group>
 
-    // Get the grid shape (nx,ny).
+    /// Get the grid shape (nx,ny).
     std::pair<size_t, size_t> shape() const
       { return make_pair(nx(), ny()); }
 
-    // Get the total number of cells.
+    /// Get the total number of cells.
     size_t size() const
       { return nx() * ny(); }
 
-    // Get the cell id from an (x,y) location.
+    /// Get the cell id from an (x,y) location.
     unsigned int getCellId (const Location& location) const
       { return location.second * nx() + location.first; }
 
-    // Get the (x,y) location from a cell id.
+    /// Get the (x,y) location from a cell id.
     Location getCellLocation (unsigned int id) const
       { return Location(id % nx(), id / nx()); }
 
-    // Get the coordinates of the center of the given cell.
+    /// Get the coordinates of the center of the given cell.
     Point getCellCenter (const Location& location) const
     {
       assert(location.first < nx()  &&  location.second < ny());
@@ -199,8 +199,8 @@ namespace BBS {
                     getAxis(1)->center(location.second));
     }
 
-    // Get the blc and trc coordinates of the given cell.
-    // <group>
+    /// Get the blc and trc coordinates of the given cell.
+    /// <group>
     Box getCell (const Location& location) const
     {
       assert(location.first < nx()  &&  location.second < ny());
@@ -213,57 +213,57 @@ namespace BBS {
     
     Box getCell (unsigned int id) const
       { return getCell(getCellLocation(id)); }
-    // </group>
+    /// </group>
 
-    // Get the bounding box of the grid.
+    /// Get the bounding box of the grid.
     Box getBoundingBox() const
     {
       return Box(Point(getAxis(0)->start(), getAxis(1)->start()),
                  Point(getAxis(0)->end(),   getAxis(1)->end()));
     }
 
-    // Get the bounding box of part of the grid.
+    /// Get the bounding box of part of the grid.
     Box getBoundingBox (const Location& start, const Location& end) const
     {
       assert(start.first <= end.first && start.second <= end.second);
       return unite(getCell(start), getCell(end));
     }
 
-    // Give the (x,y) location of the cell containing the given point.
-    // If the point is on the edge, the left or right cell is chosen
-    // depending on the value of <src>biasRight</src>.
+    /// Give the (x,y) location of the cell containing the given point.
+    /// If the point is on the edge, the left or right cell is chosen
+    /// depending on the value of <src>biasRight</src>.
     Location locate (const Point& point, bool biasRight = true) const
     {
       return make_pair(getAxis(0)->locate(point.first, biasRight),
                        getAxis(1)->locate(point.second, biasRight));
     }
 
-    // Apply the given domain to this grid.
-    // It means that the subset of this grid is returned which is covered
-    // by that domain.
-    // Optionally the location of the start point in this grid is filled.
-    // <group>
+    /// Apply the given domain to this grid.
+    /// It means that the subset of this grid is returned which is covered
+    /// by that domain.
+    /// Optionally the location of the start point in this grid is filled.
+    /// <group>
     Grid subset (const Box&) const;
     Grid subset (const Box&, Location& index) const;
     Grid subset (const Location &start, const Location &end) const;
-    // </group>
+    /// </group>
 
-    // Convert the grid to domain boxes and append them to the vector.
+    /// Convert the grid to domain boxes and append them to the vector.
     void toDomains (std::vector<Box>& domains) const;
 
-    // Get the hash value of the grid.
+    /// Get the hash value of the grid.
     int64_t hash() const
       { return itsRep->hash(); }
 
-    // Calculate the hash value of a set of grids.
+    /// Calculate the hash value of a set of grids.
     static int64_t hash(const std::vector<Grid>&);
 
-    // Calculate the hash value of a set of domains.
+    /// Calculate the hash value of a set of domains.
     static int64_t hash(const std::vector<Box>&);
 
-    // Define an ordering functions to be able to sort grids.
-    // The ordering is on startY,startX.
-    // <group>
+    /// Define an ordering functions to be able to sort grids.
+    /// The ordering is on startY,startX.
+    /// <group>
     bool operator< (const Grid& that) const
       { return getBoundingBox().lowerY() < that.getBoundingBox().lowerY()
           || (getBoundingBox().lowerY() == that.getBoundingBox().lowerY()  &&
@@ -272,7 +272,7 @@ namespace BBS {
       { return getBoundingBox().lowerY() > that.getBoundingBox().lowerY()
           || (getBoundingBox().lowerY() == that.getBoundingBox().lowerY()  &&
               getBoundingBox().lowerX() > that.getBoundingBox().lowerX()); }
-    // </group>
+    /// </group>
 
   private:
     GridRep::ShPtr itsRep;
@@ -280,7 +280,7 @@ namespace BBS {
 
 
 
-  // @brief Utility class that simplifies iterating over a 2-D range of cells.
+  /// @brief Utility class that simplifies iterating over a 2-D range of cells.
   class CellIterator
   {
   public:
@@ -290,12 +290,12 @@ namespace BBS {
         itsLocation (start)
     {}
 
-    // Test if the iterator is at the end.
+    /// Test if the iterator is at the end.
     bool atEnd() const
       { return itsLocation.second > itsEnd.second; }
 
-    // Increment the iterator.
-    // <group>
+    /// Increment the iterator.
+    /// <group>
     void operator++()
     {
       if (++itsLocation.first > itsEnd.first) {
@@ -305,13 +305,13 @@ namespace BBS {
     }
     void operator++ (int)
       { operator++(); }
-    // </group>
+    /// </group>
 
-    // STL-like iterator dereference.
+    /// STL-like iterator dereference.
     const Location& operator*() const
       { return itsLocation; }
 
-    // STL-like iterator pointer.
+    /// STL-like iterator pointer.
     const Location *operator->() const
       { return &itsLocation; }
 
@@ -322,7 +322,7 @@ namespace BBS {
   };
 
 
-  // @}
+  /// @}
 
 } // namespace BBS
 } // namespace LOFAR

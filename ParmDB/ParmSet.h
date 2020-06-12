@@ -20,9 +20,9 @@
 //
 // $Id: ParmSet.h 16977 2010-12-20 08:40:36Z diepen $
 
-// @file
-// @brief Set of parameters to be used
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Set of parameters to be used
+/// @author Ger van Diepen (diepen AT astron nl)
 
 #ifndef LOFAR_PARMDB_PARMSET_H
 #define LOFAR_PARMDB_PARMSET_H
@@ -39,74 +39,74 @@ namespace BBS {
   class Box;
 
 
-  // Define the type of a parmId.
+  /// Define the type of a parmId.
   typedef unsigned int ParmId;
 
 
-  // @ingroup ParmDB
-  // @{
+  /// @ingroup ParmDB
+  /// @{
 
-  // @brief Set of parameters to be used
+  /// @brief Set of parameters to be used
   class ParmSet
   {
   public:
-    // Create an empty ParmSet.
-    // It can be filled using function addParm.
+    /// Create an empty ParmSet.
+    /// It can be filled using function addParm.
     ParmSet();
 
-    // Add a parm for the given ParmDB. If not existing in the parmDB,
-    // it will be added to the ParmDB when its values are written.
-    // <br>It returns a unique parmId.
-    // <br>If the parm has been added before to the ParmSet, it returns
-    // the already known parmid.
+    /// Add a parm for the given ParmDB. If not existing in the parmDB,
+    /// it will be added to the ParmDB when its values are written.
+    /// <br>It returns a unique parmId.
+    /// <br>If the parm has been added before to the ParmSet, it returns
+    /// the already known parmid.
     ParmId addParm (ParmDB&, const std::string& name);
 
-    // Does the parm already exist in the ParmDB?
+    /// Does the parm already exist in the ParmDB?
     bool isInParmDB (ParmId parmid) const
       { return itsParms[parmid].getNameId() >= 0; }
 
-    // Add zero or more existing parms.
-    // A vector of unique parmIds is returned.
-    // <group>
-    //    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
-    //    vector<ParmId> addParms (ParmDB&, const string& namePattern);
-    // </group>
+    /// Add zero or more existing parms.
+    /// A vector of unique parmIds is returned.
+    /// <group>
+    ///    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
+    ///    vector<ParmId> addParms (ParmDB&, const string& namePattern);
+    /// </group>
 
-    // Get the nr of parameters.
+    /// Get the nr of parameters.
     size_t size() const
       { return itsParms.size(); }
 
-    // Find the parmid of a previously added parm.
-    // An exception is thrown if not existing in the ParmSet.
+    /// Find the parmid of a previously added parm.
+    /// An exception is thrown if not existing in the ParmSet.
     ParmId find (const std::string& name) const;
 
-    // Get the ParmDBs used in the ParmSet.
+    /// Get the ParmDBs used in the ParmSet.
     const std::vector<ParmDB*> getDBs() const
       { return itsDBs; }
 
-    // Get the values for the given work domain for all parameters that are
-    // not part of the given vector.
-    // It means that the vector gets extended for all parameters at the end
-    // of itsParms.
+    /// Get the values for the given work domain for all parameters that are
+    /// not part of the given vector.
+    /// It means that the vector gets extended for all parameters at the end
+    /// of itsParms.
     void getValues (std::vector<ParmValueSet>&, const Box& workDomain) const;
 
-    // Write the parm values for the given parmid.
-    // For parms with a new name, ParmKey::itsNameId will get filled in.
-    // For new values, the rowId in the ParmValueSet will be filled in.
+    /// Write the parm values for the given parmid.
+    /// For parms with a new name, ParmKey::itsNameId will get filled in.
+    /// For new values, the rowId in the ParmValueSet will be filled in.
     void write (unsigned int parmId, ParmValueSet&);
 
-    // Clear the ParmSet.
+    /// Clear the ParmSet.
     void clear();
 
   private:
-    // Rescale a polynomial if needed.
+    /// Rescale a polynomial if needed.
     void rescale (ParmValueSet& pset, const Box& newDomain) const;
 
-    // The nested class ParmKey holds the basic info for a parameter.
+    /// The nested class ParmKey holds the basic info for a parameter.
     class ParmKey
     {
     public:
-      // Create a parameter key.
+      /// Create a parameter key.
       ParmKey (ParmDB* parmdb, const std::string& name, int nameId, ParmId parmId)
         : itsParmDB (parmdb),
           itsName   (name),
@@ -114,29 +114,29 @@ namespace BBS {
           itsParmId (parmId)
       {}
 
-      // Get the name.
+      /// Get the name.
       const std::string& getName() const
         { return itsName; }
 
-      // Get the ParmDB used for the parameter.
-      // <group>
+      /// Get the ParmDB used for the parameter.
+      /// <group>
       ParmDB* getParmDBPtr()
         { return itsParmDB; }
       const ParmDB* getParmDBPtr() const
         { return itsParmDB; }
-      // </group>
+      /// </group>
 
-      // Get the name id.
-      // >= 0 means name is stored in name table;
-      // <0   means not stored.
-      // <group>
+      /// Get the name id.
+      /// >= 0 means name is stored in name table;
+      /// <0   means not stored.
+      /// <group>
       int& getNameId()
         { return itsNameId; }
       int getNameId() const
         { return itsNameId; }
-      // </group>
+      /// </group>
 
-      // Get he unique parm id.
+      /// Get he unique parm id.
       ParmId getParmId() const
         { return itsParmId; }
 
@@ -152,7 +152,7 @@ namespace BBS {
     std::map<std::string,int> itsNames;
   };
 
-  // @}
+  /// @}
 
 } // end namespace BBS
 } // end namespace LOFAR

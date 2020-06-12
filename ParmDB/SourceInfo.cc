@@ -24,7 +24,6 @@
 // @brief Info about a source
 // @author Ger van Diepen (diepen AT astron nl)
 
-// Includes
 #include "SourceInfo.h"
 
 #include "../Blob/BlobIStream.h"

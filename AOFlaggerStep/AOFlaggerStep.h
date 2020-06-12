@@ -19,7 +19,7 @@
 //
 // $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
 //
-// @author Andre Offringa, Ger van Diepen
+/// @author Andre Offringa, Ger van Diepen
 
 #ifndef DPPP_AOFLAGGERSTEP_H
 #define DPPP_AOFLAGGERSTEP_H

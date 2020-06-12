@@ -39,7 +39,7 @@ public:
     }
     int lwork = _work.size();
     zgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, _work.data(), &lwork, &info);
-    // Check for full rank
+    /// Check for full rank
     return info == 0;
   }
 private:

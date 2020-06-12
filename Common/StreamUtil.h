@@ -23,8 +23,8 @@
 #ifndef LOFAR_COMMON_STREAMUTILX_H
 #define LOFAR_COMMON_STREAMUTILX_H
 
-// \file
-// Useful stream manipulation methods.
+/// \file
+/// Useful stream manipulation methods.
 
 #include <map>
 #include <ostream>
@@ -35,31 +35,31 @@
 
 namespace DP3
 {
-  // Handles indentation of text lines. Every time an Indent object is
-  // constructed, the static member \c level is incremented by one, and every
-  // time an Indent object is destructed \c level is decremented by one. To
-  // increment the amount of indentation you simply create an Indent
-  // object. When this object goes out of scope, the amount of indentation is
-  // automagically decremented.
+  /// Handles indentation of text lines. Every time an Indent object is
+  /// constructed, the static member \c level is incremented by one, and every
+  /// time an Indent object is destructed \c level is decremented by one. To
+  /// increment the amount of indentation you simply create an Indent
+  /// object. When this object goes out of scope, the amount of indentation is
+  /// automagically decremented.
   class Indent {
   public:
-    // Constructor. Increments indentation level.
+    /// Constructor. Increments indentation level.
     Indent() { lvl++; }
-    // Destructor. Decrements indentation level.
+    /// Destructor. Decrements indentation level.
     ~Indent() { lvl--; }
-    // Return the amount of indentation.
+    /// Return the amount of indentation.
     static unsigned int level() { return lvl; }
-    // Return the token to be printed per indentation level
+    /// Return the token to be printed per indentation level
     static const std::string& token() { return tok; }
   private:
-    // Indentation level.
+    /// Indentation level.
     static unsigned int lvl;
-    // Token to be printed per indentation level.
+    /// Token to be printed per indentation level.
     static const std::string tok;
   };
 
-  // Print an indentation that depends on the number of Indent objects
-  // currently in existence.
+  /// Print an indentation that depends on the number of Indent objects
+  /// currently in existence.
   inline std::ostream& indent(std::ostream& os) 
   {
     for (unsigned int i = 0; i < Indent::level(); ++i) {
@@ -69,42 +69,42 @@ namespace DP3
   }
 
 
-  // Declare the functions.
-  // Write a std::pair.
+  /// Declare the functions.
+  /// Write a std::pair.
   template <typename T, typename U>
   std::ostream& operator<< (std::ostream& os, const std::pair<T,U>& p);
 	
-  // Write any container to the given std::ostream.
+  /// Write any container to the given std::ostream.
   template<typename ITER>
   void print (std::ostream& os, ITER begin, ITER end, 
               const char* separator=",",
               const char* prefix="[", const char* postfix="]");
 	
-  // Write a vector to an ostream with a given separator, prefix and postfix.
+  /// Write a vector to an ostream with a given separator, prefix and postfix.
   template<class T>
   void writeVector (std::ostream& os, const std::vector<T>& vec,
 		    const char* separator=",",
 		    const char* prefix="[", const char* postfix="]");
 	
-  // Print the contents of a vector enclosed in square brackets, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a vector enclosed in square brackets, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T>
   std::ostream& operator<<(std::ostream& os, const std::vector<T>& v);
 
-  // Print the contents of a set enclosed in square brackets, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a set enclosed in square brackets, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T>
   std::ostream& operator<<(std::ostream& os, const std::set<T>& v);
 
-  // Print the contents of a map enclosed in braces, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a map enclosed in braces, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T, typename U>
   std::ostream& operator<<(std::ostream& os, const std::map<T,U>& m);
 
-  // Write a std::pair.
+  /// Write a std::pair.
   template <typename T, typename U>
   inline std::ostream& operator<< (std::ostream& os, const std::pair<T,U>& p)
   {
@@ -112,7 +112,7 @@ namespace DP3
     return os;
   }
 
-  // Write any container to the given ostream.
+  /// Write any container to the given ostream.
   template<typename ITER>
   inline void print (std::ostream& os, ITER begin, ITER end, 
                      const char* separator,
@@ -130,7 +130,7 @@ namespace DP3
   }
 
 
-  // Write a vector to an ostream with a given separator, prefix and postfix.
+  /// Write a vector to an ostream with a given separator, prefix and postfix.
   template<class T>
   inline void writeVector (std::ostream& os, const std::vector<T>& vec,
                            const char* separator,
@@ -140,9 +140,9 @@ namespace DP3
   }
 
 
-  // Print the contents of a vector enclosed in square brackets, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a vector enclosed in square brackets, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T>
   inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
   {
@@ -151,9 +151,9 @@ namespace DP3
   }
 
 
-  // Print the contents of a set enclosed in square brackets, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a set enclosed in square brackets, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T>
   inline std::ostream& operator<<(std::ostream& os, const std::set<T>& s)
   {
@@ -162,9 +162,9 @@ namespace DP3
   }
 
 
-  // Print the contents of a map enclosed in braces, using a comma
-  // as separator.
-  // \note operator<<() must be defined for type \c T.
+  /// Print the contents of a map enclosed in braces, using a comma
+  /// as separator.
+  /// \note operator<<() must be defined for type \c T.
   template<typename T, typename U>
   inline std::ostream& operator<<(std::ostream& os, const std::map<T,U>& m)
   {
