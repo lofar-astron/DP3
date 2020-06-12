@@ -142,7 +142,6 @@ namespace DP3 {
       /// possible Ateam sources in it.
       void makeTargetDemixList();
 
-      //# Data members.
       DPInfo                  itsInfoSel;
       BaselineSelection       itsSelBL;
       BaselineSelection       itsSelBLTarget;

@@ -125,7 +125,6 @@ namespace DP3 {
       /// Fill the rfi strategy.
       void fillStrategy();
 
-      //# Data members.
       string           itsName;
       unsigned int             itsBufIndex;
       unsigned int             itsNTimes;

@@ -182,7 +182,6 @@ namespace DP3 {
       /// Fill the band info where some MSs are missing.
       void fillBands();
 
-      //# Data members.
       bool                  itsOrderMS///< sort multi MS in order of freq?
       int                   itsFirst///< first valid MSReader (<0 = none)
       int                   itsNMissing///< nr of missing MSs

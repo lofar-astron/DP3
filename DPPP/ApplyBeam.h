@@ -118,7 +118,6 @@ namespace DP3 {
             const casacore::MDirection& dir,
             casacore::MDirection::Convert& measConverter);
 
-        //# Data members.
         DPInput*             itsInput;
         string               itsName;
         DPBuffer             itsBuffer;

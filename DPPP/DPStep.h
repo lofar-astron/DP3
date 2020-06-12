@@ -136,7 +136,6 @@ namespace DP3 {
       virtual void updateInfo (const DPInfo&);
 
     private:
-      //# Data members.
       DPStep::ShPtr itsNextStep;
       DPStep* itsPrevStep; /// Normal pointer for back links, prevent
                            /// two shared pointers to same object

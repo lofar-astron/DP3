@@ -61,7 +61,6 @@ namespace DP3 { namespace DPPP {
 			size_t pol;
 		};
 		
-		//# Data members.
 		std::string _name;
 		size_t _interpolatedPos;
 		std::deque<DPBuffer> _buffers;

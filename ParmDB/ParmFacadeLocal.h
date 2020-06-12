@@ -190,7 +190,6 @@ namespace DP3 { namespace BBS {
     int getType (const string& str) const;
 
 
-    //# Data members
     ParmDB itsPDB;
   };
 

@@ -107,7 +107,6 @@ namespace DP3 {
       static std::string correctTypeToString(CorrectType);
       static CorrectType stringToCorrectType(const string&);
 
-      //# Data members.
       DPInput*         itsInput;
       DPBuffer         itsBuffer;
       string           itsName;

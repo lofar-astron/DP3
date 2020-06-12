@@ -104,7 +104,6 @@ namespace DP3 {
       /// It setups the UVWCalculator.
       void handleCenter();
 
-      //# Data members.
       DPInput*             itsInput;
       string               itsName;
       DPBuffer             itsBuffer;

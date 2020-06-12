@@ -110,7 +110,6 @@ namespace BBS {
       { itsGridCache.clear(); itsAxisCache.clear(); }
 
   private:
-    //# Data members
     std::map<int64_t,std::vector<std::pair<int,int> > > itsGridCache;
     std::map<int, Axis::ShPtr>              itsAxisCache;
   };
@@ -161,7 +160,6 @@ namespace BBS {
     // Create a mapping of axis from to axis to and add it to the cache.
     const AxisMapping& makeMapping (const Axis& from, const Axis& to);
 
-    //# Data members
     std::map<AxisKey,AxisMapping> itsCache;
   };
 

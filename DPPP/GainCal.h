@@ -150,7 +150,6 @@ namespace DP3 {
       /// Variant for writing H5Parm
       void writeSolutionsH5Parm(double startTime);
 
-      //# Data members.
       DPInput*         itsInput;
       std::string      itsName;
       std::vector<DPBuffer> itsBuf;

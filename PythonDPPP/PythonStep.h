@@ -137,7 +137,6 @@ namespace DP3 {
       // </group>
 
     private:
-      //# Data members.
       DPInput*     itsInput;
       std::string  itsName;
       ParameterSet itsParset;

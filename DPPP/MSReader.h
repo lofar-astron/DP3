@@ -284,7 +284,6 @@ namespace DP3 {
       void autoWeight (casacore::Cube<float>& weights, const DPBuffer& buf);
 
     protected:
-      //# Data members.
       std::string        itsMSName;
       casacore::Table         itsMS;
       casacore::Table         itsSelMS///< possible selection of spw, baseline

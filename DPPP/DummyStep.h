@@ -68,7 +68,6 @@ namespace DP3 {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      //# Data members.
       DPInput*         itsInput;
       string           itsName;
       DPBuffer         itsBuffer;

@@ -121,7 +121,6 @@ namespace DP3 {
       /// into the full buffer.
       void mergeSubtractResult();
 
-      //# Data members.
       DPInput*                              itsInput;
       string                                itsName;
       DPBuffer                              itsBufTmp;

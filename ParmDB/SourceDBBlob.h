@@ -160,7 +160,6 @@ namespace BBS {
     // Read all patches and sources filling the maps.
     void readAll();
 
-    //# Data members
     std::fstream                      itsFile;
     std::shared_ptr<BlobIBufStream> itsBufIn;
     std::shared_ptr<BlobOBufStream> itsBufOut;

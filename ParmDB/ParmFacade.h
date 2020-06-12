@@ -236,7 +236,6 @@ namespace DP3 { namespace BBS {
     std::map<std::string,std::vector<double> > record2Map (const casacore::Record& rec) const;
 
 
-    //# Data members
     ParmFacadeRep::ShPtr itsRep;
   };
 

@@ -118,7 +118,6 @@ namespace DP3 {
       void getExprValues (int maxNChan, int maxNTime);
 
     protected:
-      //# Data members.
       DPInput*         itsInput;
       string           itsName;
       string           itsThresholdStr;

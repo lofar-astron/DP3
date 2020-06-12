@@ -123,7 +123,6 @@ namespace DP3 {
                            const std::vector<std::vector<int> >& unknownsIndex,
                            const Baseline& baseline);
 
-      //# Data members
       size_t itsNrBaselines;
       size_t itsNrStations;
       size_t itsNrChannels;

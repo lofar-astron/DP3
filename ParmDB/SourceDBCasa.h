@@ -197,7 +197,6 @@ namespace BBS {
     // Read a default parameter.
     double getDefaultParmValue(const string& name);
 
-    //# Data members
     casacore::Table      itsPatchTable;
     casacore::Table      itsSourceTable;
     std::set<std::string> itsPatchSet;

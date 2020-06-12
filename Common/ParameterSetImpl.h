@@ -345,7 +345,6 @@ private:
         // For internal use, replace a key without locking.
         void replaceUnlocked(const std::string& aKey, const ParameterValue& aValue);
 
-        //# Data members.
 	// Key comparison mode.
 	const KeyCompare::Mode itsMode;
         // The set of keys that have been asked.

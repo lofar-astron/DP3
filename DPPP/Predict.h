@@ -126,7 +126,6 @@ namespace DP3 {
                                    unsigned int thread, unsigned int nSamples,
                                    dcomplex* data0, bool stokesIOnly);
 #endif
-      //# Data members.
       DPInput*         itsInput;
       string           itsName;
       DPBuffer         itsBuffer;

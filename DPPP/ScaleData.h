@@ -84,7 +84,6 @@ namespace DP3 {
       /// Fill the scale factors for stations having different nr of tiles.
       void fillSizeScaleFactors (unsigned int nNominal, std::vector<double>& fact);
 
-      //# Data members.
       string             itsName;
       bool               itsScaleSizeGiven;
       bool               itsScaleSize;

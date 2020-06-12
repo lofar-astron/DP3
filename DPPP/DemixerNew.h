@@ -117,7 +117,6 @@ namespace DP3 {
       /// Show a percentage with 1 decimal.
       void showPerc1 (std::ostream& os, float perc) const;
 
-      //# Data members.
       DPInput*                itsInput;
       string                  itsName;
       DemixInfo               itsDemixInfo;

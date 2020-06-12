@@ -169,7 +169,6 @@ namespace BBS {
     void calcPerturbations();
 
   private:
-    //# Data members
     ParmCache*     itsCache;
     ParmId         itsParmId;
     Grid           itsSolveGrid;

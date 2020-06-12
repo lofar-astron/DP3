@@ -149,7 +149,6 @@ namespace BBS {
     void makeParm (ParmMap& parms, const string& name,
                    double value, bool pertRel=true) const;
 
-    //# Data members
     SourceInfo     itsInfo;
     string         itsPatchName;
     double         itsRa;            ///< radians

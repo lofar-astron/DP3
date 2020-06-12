@@ -65,7 +65,6 @@ namespace DP3 {
       virtual void show (std::ostream&) const;
 
     private:
-      //# Data members.
       string                itsName;
       double                itsOldTimeInterval;
       unsigned int                  itsTimeStep;

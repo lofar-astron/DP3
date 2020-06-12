@@ -132,7 +132,6 @@ namespace DP3 {
       
       void idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values);
 
-      //# Data members.
       DPInput*         itsInput;
       std::string      itsName;
       std::vector<DPBuffer> itsBufs;

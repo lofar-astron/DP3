@@ -91,7 +91,6 @@ namespace DP3 {
       void handleLength (casacore::Matrix<bool>& selectBL,
                          const DPInfo& info) const;
 
-      //# Data members
       string itsStrBL;
       string itsCorrType;
       std::vector<double> itsRangeBL;

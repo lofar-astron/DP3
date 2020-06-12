@@ -96,7 +96,6 @@ namespace DP3 {
       /// omitted it defaults to Hertz
       double getFreqHz(const string& freqstr);
 
-      //# Data members.
       DPInput*        itsInput;
       string          itsName;
       DPBuffer        itsBuf;

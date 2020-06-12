@@ -185,7 +185,6 @@ namespace DP3 {
                         const casacore::Vector<int>& antMap,
                         rownr_t& nrId) const;
 
-      //# Data members.
       DPInput*          itsInput;
       string            itsName;
       DPBuffer          itsBuf;

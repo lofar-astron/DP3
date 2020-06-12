@@ -311,7 +311,6 @@ namespace DP3 {
       /// Creates a real copy of a casacore::Measure by exporting to a Record
       static casacore::MeasureHolder copyMeasure(const casacore::MeasureHolder fromMeas);
 
-      //# Data members.
       bool   itsNeedVisData///< Are the visibility data needed?
       bool   itsWriteData///< Must the data be written?
       bool   itsWriteFlags///< Must the flags be written?

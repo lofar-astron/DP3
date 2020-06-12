@@ -218,7 +218,6 @@ namespace DP3 {
       /// into the full buffer.
       void mergeSubtractResult();
 
-      //# Data members.
       int                                   itsWorkerNr;
       const DemixInfo*                      itsMix;
       std::vector<PhaseShift*>                   itsOrigPhaseShifts;

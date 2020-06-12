@@ -79,7 +79,6 @@ namespace BBS {
     friend BlobIStream& operator>> (BlobIStream&, ParmDBMeta&);
 
   private:
-    //# Datamembers
     std::string itsType;
     std::string itsTableName;
     // these options are used for sql databases

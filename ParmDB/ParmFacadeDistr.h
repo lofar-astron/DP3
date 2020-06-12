@@ -245,7 +245,6 @@ namespace LOFAR { namespace BBS {
                       const vector<casacore::Record>& recs,
                       casacore::Record& result) const;
 
-    //# Data members
     string                itsPort;      ///< declare this before itsConn!!
     mutable DP3CEP::SocketConnectionSet itsConn;
     vector<string>        itsPartNames;

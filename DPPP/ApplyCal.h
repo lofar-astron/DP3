@@ -116,7 +116,6 @@ namespace DP3 {
                                 float* weight);
 
     private:
-      //# Data members.
       bool             itsIsSubstep;
       string           itsName;
 

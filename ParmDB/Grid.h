@@ -105,7 +105,6 @@ namespace BBS {
     // Set the id.
     void init();
 
-    //# Data members.
     Axis::ShPtr itsAxes[2];
     //# The hash value of the grid (for faster comparison).
     int64_t       itsHash;

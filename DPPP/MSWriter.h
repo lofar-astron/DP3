@@ -166,7 +166,6 @@ namespace DP3 {
         outCol.putColumn (inCol.getColumn());
       }
 
-      //# Data items.
       MSReader*       itsReader;
       string          itsName;
       string          itsOutName;

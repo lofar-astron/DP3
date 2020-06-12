@@ -219,7 +219,6 @@ namespace DP3 {
         /// It returns the names of all PSets.
         std::vector<string> exprToRpn (const string& expr);
 
-        //# Data members of PreFlagger::PSet.
         DPInput*           itsInput;
         const DPInfo*      itsInfo;
         string             itsName;
@@ -279,7 +278,6 @@ namespace DP3 {
                        unsigned int nrcorr, unsigned int nrchan, unsigned int nrbl, bool mode,
                        const DPBuffer& buf);
 
-      //# Data members of PreFlagger.
       string      itsName;
       DPInput*    itsInput;
       DPBuffer    itsBuffer;

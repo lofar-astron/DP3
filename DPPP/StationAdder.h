@@ -103,7 +103,6 @@ namespace DP3 {
       void updateBeamInfo (const string& msName, unsigned int origNant,
                            casacore::Table& antTab);
 
-      //# Data members.
       DPInput*        itsInput;
       string          itsName;
       DPBuffer        itsBuf;

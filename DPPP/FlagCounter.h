@@ -105,7 +105,6 @@ namespace DP3 {
       void saveChannel (int64_t npoints,
                         const casacore::Vector<int64_t>& count) const;
 
-      //# Data members.
       const DPInfo* itsInfo;
       std::string itsSaveName;
       double        itsWarnPerc;

@@ -104,7 +104,6 @@ namespace DP3 {
       bool addColumn(const string& colname, const casacore::DataType dataType,
           const casacore::ColumnDesc& cd);
 
-      //# Data members
       MSReader*    itsReader;
       string       itsName;
       casacore::String itsMSName;

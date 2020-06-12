@@ -97,7 +97,6 @@ namespace DP3 {
       /// Currently only J2000 RA and DEC can be given.
       casacore::MDirection handleCenter();
       
-      //# Data members.
       DPInput*             itsInput;
       string               itsName;
       DPBuffer             itsBuf;

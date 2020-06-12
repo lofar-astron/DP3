@@ -147,7 +147,6 @@ namespace BBS {
       ParmId  itsParmId;
     };
 
-    //# Data members of ParmSet.
     std::vector<ParmDB*> itsDBs;
     std::vector<ParmKey> itsParms;
     std::map<std::string,int> itsNames;

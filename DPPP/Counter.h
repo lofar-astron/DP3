@@ -69,7 +69,6 @@ namespace DP3 {
       virtual void showCounts (std::ostream&) const;
 
     private:
-      //# Data members.
       string      itsName;
       bool        itsFlagData;
       unsigned int        itsCount;

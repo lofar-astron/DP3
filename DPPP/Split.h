@@ -70,7 +70,6 @@ namespace DP3 {
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      //# Data members.
       string           itsName;
 
       std::vector<std::string>   itsReplaceParms; /// The names of the parameters that differ along the substeps

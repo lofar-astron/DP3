@@ -176,7 +176,6 @@ namespace DP3 {
     ParameterValue substr (int st, int end) const
       { return ParameterValue (itsValue.substr (st, end-st)); }
 
-    //# Data Members.
     std::string itsValue;
   };
 
