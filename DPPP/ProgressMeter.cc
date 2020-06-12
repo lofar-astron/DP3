@@ -142,4 +142,4 @@ void ProgressMeter::update(double value, bool force)
     }
 }
 
-} //# NAMESPACE LOFAR - END
+} // NAMESPACE LOFAR - END

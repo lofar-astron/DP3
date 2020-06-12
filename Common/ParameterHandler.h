@@ -34,7 +34,7 @@
 
 namespace DP3 { namespace CEP {
 
-  //# Put ParameterSet into DP3CEP namespace for ease of use.
+  // Put ParameterSet into DP3CEP namespace for ease of use.
 
   // @ingroup LMWCommon
   // @brief Handle a LOFAR .parset file

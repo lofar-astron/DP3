@@ -60,7 +60,7 @@ namespace DP3 {
         { return itsInfoSel; }
 
       /// Get settings.
-      //#    0=test 1=include 2=deproject 3=ignore
+      /// 0=test 1=include 2=deproject 3=ignore
       unsigned int   targetHandling() const              {return itsTargetHandling;}
       unsigned int   verbose() const                     {return itsVerbose;}
       unsigned int   maxIter() const                     {return itsMaxIter;}

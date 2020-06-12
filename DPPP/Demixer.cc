@@ -623,9 +623,9 @@ namespace DP3 {
       int nchan  = newBuf.getData().shape()[1];
       int nbl    = newBuf.getData().shape()[2];
       int ncc    = ncorr*nchan;
-      //# If ever in the future a time dependent phase center is used,
-      //# the machine must be reset for each new time, thus each new call
-      //# to process.
+      // If ever in the future a time dependent phase center is used,
+      // the machine must be reset for each new time, thus each new call
+      // to process.
       // Add the weighted factors for each pair of directions.
       // The input factor is the phaseshift from target direction to
       // source direction. By combining them you get the shift from one

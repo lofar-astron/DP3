@@ -189,8 +189,9 @@ protected:
     void setup (const std::vector<double>& v1, const std::vector<double>& v2,
                 bool asStartEnd);
 
-    //# Unique seqnr of an Axis object. Used in class AxisMapping.
+    /// Unique seqnr of an Axis object. Used in class AxisMapping.
     static unsigned int theirId;
+
     unsigned int        itsId;
     bool        itsIsRegular;
     std::vector<double> itsCenter;

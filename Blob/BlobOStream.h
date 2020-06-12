@@ -101,12 +101,12 @@ namespace DP3 {
       
       // Put a single value.
       // A string will be stored as a length followed by the characters.
-      //# Note that a function is defined for the standard complex class
-      //# and for the types fcomplex, dcomplex, i16complex and u16complex.
-      //# This should be fine for the case where fcomplex is the builtin
-      //# complex type and the case where it is the standard class.
-      //# In the first case the fcomplex function is a separate function,
-      //# in the second case a specialisation of the templated function.
+      // Note that a function is defined for the standard complex class
+      // and for the types fcomplex, dcomplex, i16complex and u16complex.
+      // This should be fine for the case where fcomplex is the builtin
+      // complex type and the case where it is the standard class.
+      // In the first case the fcomplex function is a separate function,
+      // in the second case a specialisation of the templated function.
       // <group>
       BlobOStream& operator<< (const bool& value);
       BlobOStream& operator<< (const char& value);

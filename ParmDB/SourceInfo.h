@@ -45,8 +45,8 @@ namespace BBS {
   class SourceInfo
   {
   public:
-    // Define the source types.
-    //# The values should never be changed.
+    /// Define the source types.
+    /// The values should never be changed.
     enum Type {POINT = 0,
                GAUSSIAN = 1,
                DISK = 2,

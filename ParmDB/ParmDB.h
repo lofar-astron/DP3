@@ -318,7 +318,7 @@ namespace BBS {
 
     ParmDBRep* itsRep;
 
-    //# Keep a list of all open ParmDBs.
+    /// Keep a list of all open ParmDBs.
     static std::map<std::string,int> theirDBNames;
     static std::vector<ParmDBRep*>   theirParmDBs;
   };

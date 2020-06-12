@@ -131,7 +131,7 @@ namespace DP3 {
       unsigned int                    itsNTime;
       unsigned int                    itsNTimeOut;
       unsigned int                    itsNChunk;
-      //# Timers.
+
       NSTimer itsTimer;
       NSTimer itsTimerDemix;
       NSTimer itsTimerDump///< writeSolutions

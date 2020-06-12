@@ -106,23 +106,23 @@ namespace BBS {
     void init();
 
     Axis::ShPtr itsAxes[2];
-    //# The hash value of the grid (for faster comparison).
+    /// The hash value of the grid (for faster comparison).
     int64_t       itsHash;
-    // Is it the default grid?
+    /// Is it the default grid?
     bool        itsIsDefault;
   };
 
 
-  // @brief The envelope class for a 2-D grid with regular or irregular axes.                          -
+  /// @brief The envelope class for a 2-D grid with regular or irregular axes.                          -
   class Grid
   {
   public:
-    // Default constructor creates empty axes.
+    /// Default constructor creates empty axes.
     Grid()
       : itsRep (new GridRep())
     {}
 
-    // Create a grid using the given axes.
+    /// Create a grid using the given axes.
     Grid(Axis::ShPtr first, Axis::ShPtr second)
       : itsRep (new GridRep(first, second))
     {}

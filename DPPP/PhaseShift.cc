@@ -132,9 +132,9 @@ namespace DP3 {
       int nchan  = itsBuf.getData().shape()[1];
       int nbl    = itsBuf.getData().shape()[2];
       const double* mat1 = itsMat1.data();
-      //# If ever in the future a time dependent phase center is used,
-      //# the machine must be reset for each new time, thus each new call
-      //# to process.
+      // If ever in the future a time dependent phase center is used,
+      // the machine must be reset for each new time, thus each new call
+      // to process.
       ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         Complex*  __restrict__ data    = itsBuf.getData().data() + bl*nchan*ncorr;

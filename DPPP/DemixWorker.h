@@ -311,7 +311,7 @@ namespace DP3 {
       std::vector<float>                         itsObservedAmpl;
       std::vector<float>                         itsSourceAmpl;
       std::vector<float>                         itsSumSourceAmpl;
-      //# Statistics
+      /// Statistics
       unsigned int                                  itsNrSolves;
       unsigned int                                  itsNrConverged;
       unsigned int                                  itsNrIter;
@@ -332,7 +332,7 @@ namespace DP3 {
       casacore::Matrix<double>                  itsAmplSubtrM2;
       /// N for mean/stddev amplitude calculations.
       casacore::Matrix<size_t>                  itsAmplSubtrNr;
-      //# Timers.
+
       NSTimer                               itsTimer;
       NSTimer                               itsTimerCoarse;
       NSTimer                               itsTimerPhaseShift;

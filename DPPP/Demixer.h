@@ -201,7 +201,6 @@ namespace DP3 {
       unsigned int                                  itsNConverged;
       FlagCounter                           itsFlagCounter;
 
-      //# Timers.
       NSTimer                               itsTimer;
       NSTimer                               itsTimerPhaseShift;
       NSTimer                               itsTimerDemix;

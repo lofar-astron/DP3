@@ -91,7 +91,7 @@ unsigned int DP3::boolToBit (void* to, const void* from, unsigned int nvalues, u
   const bool* data = (const bool*)from;
   unsigned char* bits = (unsigned char*)to + startbit/8;
   startbit %= 8;
-  //# Fill as many bytes as needed.
+  // Fill as many bytes as needed.
   unsigned int nbytes = (nvalues + startbit + 7) / 8;
   unsigned int i,j;
   unsigned int index = 0;
@@ -99,7 +99,7 @@ unsigned int DP3::boolToBit (void* to, const void* from, unsigned int nvalues, u
     unsigned char mask = 1;
     mask <<= startbit;
     unsigned char& ch = bits[0];
-    //# Take care of correct number of bits in first byte.
+    // Take care of correct number of bits in first byte.
     unsigned int nbits = (nvalues-index < 8-startbit  ?  nvalues-index : 8-startbit);
     for (j=0; j<nbits; j++) {
       if (data[index++]) {
@@ -114,7 +114,7 @@ unsigned int DP3::boolToBit (void* to, const void* from, unsigned int nvalues, u
     unsigned char mask = 1;
     unsigned char& ch = bits[i];
     ch = 0;
-    //# Take care of correct number of bits in last byte.
+    // Take care of correct number of bits in last byte.
     unsigned int nbits = (nvalues-index < 8  ?  nvalues-index : 8);
     for (j=0; j<nbits; j++) {
       if (data[index++]) {
@@ -131,7 +131,7 @@ unsigned int DP3::bitToBool (void* to, const void* from, unsigned int nvalues, u
   bool* data = (bool*)to;
   const unsigned char* bits = (const unsigned char*)from + startbit/8;
   startbit %= 8;
-  //# Fill as many bytes as needed.
+  // Fill as many bytes as needed.
   unsigned int nbytes = (nvalues + startbit + 7) / 8;
   unsigned int i,j;
   unsigned int index = 0;
@@ -139,7 +139,7 @@ unsigned int DP3::bitToBool (void* to, const void* from, unsigned int nvalues, u
     unsigned char mask = 1;
     mask <<= startbit;
     const unsigned char ch = bits[0];
-    //# Take care of correct number of bits in first byte.
+    // Take care of correct number of bits in first byte.
     unsigned int nbits = (nvalues-index < 8-startbit  ?  nvalues-index : 8-startbit);
     for (j=0; j<nbits; j++) {
       data[index++] = ((ch & mask) != 0);
@@ -149,7 +149,7 @@ unsigned int DP3::bitToBool (void* to, const void* from, unsigned int nvalues, u
   for (i=1; i<nbytes; ++i) {
     unsigned char mask = 1;
     const unsigned char ch = bits[i];
-    //# Take care of correct number of bits in last byte.
+    // Take care of correct number of bits in last byte.
     unsigned int nbits = (nvalues-index < 8  ?  nvalues-index : 8);
     for (j=0; j<nbits; j++) {
       data[index++] = ((ch & mask) != 0);

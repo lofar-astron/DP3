@@ -122,6 +122,6 @@ private:
 };
 
 
-} //# NAMESPACE LOFAR END
+} // NAMESPACE LOFAR END
 
 #endif

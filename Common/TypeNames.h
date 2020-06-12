@@ -26,9 +26,6 @@
 // \file
 // Return a string giving the type name to be stored in blobs
 
-// Includes
-//#include "LofarTypes.h"
-
 #include <complex>
 #include <string>
 

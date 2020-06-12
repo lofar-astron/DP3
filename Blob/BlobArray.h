@@ -190,7 +190,7 @@ namespace DP3
 
 
 
-  //# Reserve space for a 1-dim array of the given size.
+  /// Reserve space for a 1-dim array of the given size.
   template<typename T>
   inline uint64_t setSpaceBlobArray1 (BlobOStream& bs, bool useBlobHeader,
                                     uint64_t size0, unsigned int alignment)
@@ -199,14 +199,14 @@ namespace DP3
 				 alignment);
   }
 
-  //# Put a vector object as an array.
+  /// Put a vector object as an array.
   template<typename T>
   inline BlobOStream& operator<< (BlobOStream& bs, const std::vector<T>& vec)
   {
     return putBlobVector (bs, vec.empty() ? 0 : &(vec[0]), vec.size());
   }
 
-  //# Put a C-style vector of values as an array.
+  /// Put a C-style vector of values as an array.
   template<typename T>
   inline BlobOStream& putBlobVector (BlobOStream& bs, const T* vec,
 				     uint64_t size)

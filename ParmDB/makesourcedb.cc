@@ -127,7 +127,7 @@
 #include "../Common/StringUtil.h"
 #include "../Common/StreamUtil.h"
 
-#include <string>                //# for getline
+#include <string>                // for getline
 #include <iostream>
 #include <fstream>
 #include <sstream>

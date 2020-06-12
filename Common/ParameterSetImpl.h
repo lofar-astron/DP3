@@ -409,18 +409,16 @@ int32_t 	indexValue (const std::string&	label, const char	indexMarker[2]);
 // @} addgroup
 
 
-//#	get(key)
 inline const ParameterValue& ParameterSetImpl::get(const std::string& aKey) const
 {
         return findKV(aKey)->second;
 }
-//#	getBool(key)
+
 inline bool ParameterSetImpl::getBool(const std::string& aKey) const
 {
         return findKV(aKey)->second.getBool();
 }
 
-//#	getBool(key, value)
 inline bool ParameterSetImpl::getBool(const std::string& aKey, bool aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -428,13 +426,11 @@ inline bool ParameterSetImpl::getBool(const std::string& aKey, bool aValue) cons
         return it->second.getBool();
 }
 
-//#	getInt(key)
 inline int ParameterSetImpl::getInt(const std::string& aKey) const
 {
         return findKV(aKey)->second.getInt();
 }
 
-//#	getInt(key, value)
 inline int ParameterSetImpl::getInt(const std::string& aKey, int aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -442,13 +438,11 @@ inline int ParameterSetImpl::getInt(const std::string& aKey, int aValue) const
         return it->second.getInt();
 }
 
-//#	getUint(key)
 inline unsigned int ParameterSetImpl::getUint(const std::string& aKey) const
 {
         return findKV(aKey)->second.getUint();
 }
 
-//#	getUint(key, value)
 inline unsigned int ParameterSetImpl::getUint(const std::string& aKey, unsigned int aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -456,13 +450,11 @@ inline unsigned int ParameterSetImpl::getUint(const std::string& aKey, unsigned 
         return it->second.getUint();
 }
 
-//#	getInt16(key)
 inline int16_t ParameterSetImpl::getInt16(const std::string& aKey) const
 {
         return findKV(aKey)->second.getInt16();
 }
 
-//#	getInt16(key, value)
 inline int16_t ParameterSetImpl::getInt16(const std::string& aKey, int16_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -470,13 +462,11 @@ inline int16_t ParameterSetImpl::getInt16(const std::string& aKey, int16_t aValu
         return it->second.getInt16();
 }
 
-//#	getUint16(key)
 inline uint16_t ParameterSetImpl::getUint16(const std::string& aKey) const
 {
         return findKV(aKey)->second.getUint16();
 }
 
-//#	getUint16(key, value)
 inline uint16_t ParameterSetImpl::getUint16(const std::string& aKey, uint16_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -484,13 +474,11 @@ inline uint16_t ParameterSetImpl::getUint16(const std::string& aKey, uint16_t aV
         return it->second.getUint16();
 }
 
-//#	getInt32(key)
 inline int32_t ParameterSetImpl::getInt32(const std::string& aKey) const
 {
         return findKV(aKey)->second.getInt32();
 }
 
-//#	getInt32(key, value)
 inline int32_t ParameterSetImpl::getInt32(const std::string& aKey, int32_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -498,13 +486,11 @@ inline int32_t ParameterSetImpl::getInt32(const std::string& aKey, int32_t aValu
         return it->second.getInt32();
 }
 
-//#	getUint32(key)
 inline uint32_t ParameterSetImpl::getUint32(const std::string& aKey) const
 {
         return findKV(aKey)->second.getUint32();
 }
 
-//#	getUint32(key, value)
 inline uint32_t ParameterSetImpl::getUint32(const std::string& aKey, uint32_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -512,13 +498,11 @@ inline uint32_t ParameterSetImpl::getUint32(const std::string& aKey, uint32_t aV
         return it->second.getUint32();
 }
 
-//#	getInt64(key)
 inline int64_t ParameterSetImpl::getInt64(const std::string& aKey) const
 {
         return findKV(aKey)->second.getInt64();
 }
 
-//#	getInt64(key, value)
 inline int64_t ParameterSetImpl::getInt64(const std::string& aKey, int64_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -526,13 +510,11 @@ inline int64_t ParameterSetImpl::getInt64(const std::string& aKey, int64_t aValu
         return it->second.getInt64();
 }
 
-//#	getUint64(key)
 inline uint64_t ParameterSetImpl::getUint64(const std::string& aKey) const
 {
         return findKV(aKey)->second.getUint64();
 }
 
-//#	getUint64(key, value)
 inline uint64_t ParameterSetImpl::getUint64(const std::string& aKey, uint64_t aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -540,13 +522,11 @@ inline uint64_t ParameterSetImpl::getUint64(const std::string& aKey, uint64_t aV
         return it->second.getUint64();
 }
 
-//#	getFloat(key)
 inline float ParameterSetImpl::getFloat (const std::string& aKey) const
 {
         return findKV(aKey)->second.getFloat();
 }
 
-//#	getFloat(key, value)
 inline float ParameterSetImpl::getFloat (const std::string& aKey, float aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -554,13 +534,11 @@ inline float ParameterSetImpl::getFloat (const std::string& aKey, float aValue) 
         return it->second.getFloat();
 }
 
-//#	getDouble(key)
 inline double ParameterSetImpl::getDouble(const std::string& aKey) const
 {
         return findKV(aKey)->second.getDouble();
 }
 
-//#	getDouble(key, value)
 inline double ParameterSetImpl::getDouble(const std::string& aKey, double aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -568,13 +546,11 @@ inline double ParameterSetImpl::getDouble(const std::string& aKey, double aValue
         return it->second.getDouble();
 }
 
-//#	getString(key)
 inline std::string ParameterSetImpl::getString(const std::string& aKey) const
 {
         return findKV(aKey)->second.getString();
 }
 
-//#	getString(key, value)
 inline std::string ParameterSetImpl::getString(const std::string& aKey, const std::string& aValue) const
 {
         const_iterator it = findKV(aKey,false);
@@ -582,13 +558,11 @@ inline std::string ParameterSetImpl::getString(const std::string& aKey, const st
         return it->second.getString();
 }
 
-//#	getTime(key)
 inline time_t ParameterSetImpl::getTime(const std::string& aKey) const
 {
         return findKV(aKey)->second.getTime();
 }
 
-//#	getTime(key, value)
 inline time_t ParameterSetImpl::getTime(const std::string& aKey, const time_t& aValue) const
 {
         const_iterator it = findKV(aKey,false);

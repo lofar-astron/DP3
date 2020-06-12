@@ -66,7 +66,7 @@ namespace BBS {
     ParmDBLocker& operator= (const ParmDBLocker&);
     // </group>
 
-    //# The locked DBs.
+    /// The locked DBs.
     std::vector<ParmDB*> itsDBs;
   };
 
