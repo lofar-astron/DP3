@@ -24,8 +24,8 @@
 #ifndef DPPP_DummyStep_H
 #define DPPP_DummyStep_H
 
-// @file
-// @brief DPPP step class to Upsample visibilities
+/// @file
+/// @brief DPPP step class to Upsample visibilities
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -37,31 +37,31 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is an empty DPStep subclass to use as implementation template
+    /// This class is an empty DPStep subclass to use as implementation template
 
     class Upsample: public DPStep
     {
     public:
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       Upsample (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~Upsample();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
     private:

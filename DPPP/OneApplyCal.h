@@ -24,8 +24,8 @@
 #ifndef DPPP_ONEAPPLYCAL_H
 #define DPPP_ONEAPPLYCAL_H
 
-// @file
-// @brief DPPP step class to apply a calibration correction to the data
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -43,15 +43,15 @@
 
 namespace DP3 {
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a DPStep class applying calibration parameters to the data.
-    // It only applies one correction.
+    /// This class is a DPStep class applying calibration parameters to the data.
+    /// It only applies one correction.
 
     class OneApplyCal: public DPStep
     {
     public:
-      // Define the shared pointer for this type.
+      /// Define the shared pointer for this type.
       typedef std::shared_ptr<OneApplyCal> ShPtr;
 
       enum class InterpolationType {NEAREST, LINEAR};
@@ -59,29 +59,29 @@ namespace DP3 {
       enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE, PHASE,
                         ROTATIONMEASURE, SCALARAMPLITUDE, AMPLITUDE};
 
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       OneApplyCal (DPInput*, const ParameterSet&, const std::string& prefix,
                 const std::string& defaultPrefix,
                 bool substep=false, std::string predictDirection="");
 
       virtual ~OneApplyCal();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer& buffer);
       
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
       bool invert() {
@@ -89,18 +89,18 @@ namespace DP3 {
       }
 
     private:
-      // Read parameters from the associated parmdb and store them in itsParms
+      /// Read parameters from the associated parmdb and store them in itsParms
       void updateParms (const double bufStartTime);
 
-      // If needed, show the flag counts.
+      /// If needed, show the flag counts.
       virtual void showCounts (std::ostream&) const;
 
       void initDataArrays();
 
-      // Check the number of polarizations in the parmdb or h5parm
+      /// Check the number of polarizations in the parmdb or h5parm
       unsigned int nPol(const std::string& parmName);
 
-      // Replace values by NaN on places where weight is zero
+      /// Replace values by NaN on places where weight is zero
       static void applyFlags(std::vector<double>& values,
                              const std::vector<double>& weights);
 
@@ -118,7 +118,7 @@ namespace DP3 {
       H5Parm           itsH5Parm;
       string           itsSolTabName;
       H5Parm::SolTab   itsSolTab;
-      H5Parm::SolTab   itsSolTab2; // in the case of full Jones, amp and phase table need to be open
+      H5Parm::SolTab   itsSolTab2; /// in the case of full Jones, amp and phase table need to be open
       CorrectType      itsCorrectType;
       bool             itsInvert;
       InterpolationType itsInterpolationType;
@@ -126,23 +126,23 @@ namespace DP3 {
       double           itsSigmaMMSE;
       bool             itsUpdateWeights;
 
-      unsigned int             itsCount; // number of steps
+      unsigned int             itsCount; /// number of steps
 
-      // Expressions to search for in itsParmDB
+      /// Expressions to search for in itsParmDB
       std::vector<casacore::String>   itsParmExprs;
 
-      // parameters, numparms, antennas, time x frequency
+      /// parameters, numparms, antennas, time x frequency
       casacore::Cube<casacore::DComplex> itsParms;
-      unsigned int            itsTimeStep; // time step within current chunk
+      unsigned int            itsTimeStep; /// time step within current chunk
       unsigned int            itsNCorr;
       double          itsTimeInterval;
-      double          itsLastTime; // last time of current chunk
+      double          itsLastTime; /// last time of current chunk
       FlagCounter     itsFlagCounter;
-      bool            itsUseAP;      //# use ampl/phase or real/imag
+      bool            itsUseAP///< use ampl/phase or real/imag
       hsize_t         itsDirection;
       NSTimer         itsTimer;
 
-      static std::mutex theirHDF5Mutex; // Prevent parallel access to HDF5
+      static std::mutex theirHDF5Mutex; /// Prevent parallel access to HDF5
     };
 
   } //# end namespace

@@ -37,24 +37,26 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
-    
+
     /// This class is a DPStep class flagging data points based on data
     /// selections given in the parset file.
     /// The following selections can be given:
-    ///   - minimum and/or maximum UV distance
-    ///   - minimum or maximum value for U, V, and/or W
-    ///   - both can be used with a different phase center which can be 
-    ///     be given as a position or as a moving source like SUN or JUPITER.
+    /// <ul>
+    ///  <li> minimum and/or maximum UV distance
+    ///  <li> minimum or maximum value for U, V, and/or W
+    ///  <li> both can be used with a different phase center which can be
+    ///       be given as a position or as a moving source like SUN or JUPITER.
+    /// </ul>
     /// The UVW values can be given in meters or in wavelengths.
 
     class UVWFlagger: public DPStep
     {
     public:
       /// Construct the object.
-      ///  Parameters are obtained from the parset using the given prefix.
-      ///  The antenna names are used to find antenna numbers.
-      ///  The channel frequencies as they are in the input step must be given
-      ///  starting at the start-channel.
+      /// Parameters are obtained from the parset using the given prefix.
+      /// The antenna names are used to find antenna numbers.
+      /// The channel frequencies as they are in the input step must be given
+      /// starting at the start-channel.
       UVWFlagger (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~UVWFlagger();
@@ -111,15 +113,15 @@ namespace DP3 {
       /// If nothing is filled in, this step just passes through data
       bool                 itsIsDegenerate;
 
-      casacore::Vector<double> itsRecWavel; //!< reciprokes of wavelengths
-      std::vector<double>       itsRangeUVm; //!< UV ranges (in m) to be flagged
-      std::vector<double>       itsRangeUm;  //!< U  ranges (in m) to be flagged
-      std::vector<double>       itsRangeVm;  //!< V  ranges (in m) to be flagged
-      std::vector<double>       itsRangeWm;  //!< W  ranges (in m) to be flagged
-      std::vector<double>       itsRangeUVl; //!< UV ranges (in wavel) to be flagged
-      std::vector<double>       itsRangeUl;  //!< U  ranges (in wavel) to be flagged
-      std::vector<double>       itsRangeVl;  //!< V  ranges (in wavel) to be flagged
-      std::vector<double>       itsRangeWl;  //!< W  ranges (in wavel) to be flagged
+      casacore::Vector<double> itsRecWavel///< reciprokes of wavelengths
+      std::vector<double>       itsRangeUVm///< UV ranges (in m) to be flagged
+      std::vector<double>       itsRangeUm///< U  ranges (in m) to be flagged
+      std::vector<double>       itsRangeVm///< V  ranges (in m) to be flagged
+      std::vector<double>       itsRangeWm///< W  ranges (in m) to be flagged
+      std::vector<double>       itsRangeUVl///< UV ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeUl///< U  ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeVl///< V  ranges (in wavel) to be flagged
+      std::vector<double>       itsRangeWl///< W  ranges (in wavel) to be flagged
       UVWCalculator        itsUVWCalc;
       std::vector<string>       itsCenter;
       NSTimer              itsTimer;

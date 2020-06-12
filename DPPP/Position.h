@@ -23,8 +23,8 @@
 #ifndef DPPP_POSITION_H
 #define DPPP_POSITION_H
 
-// \file
-// A position on the celestial sphere.
+/// \file
+/// A position on the celestial sphere.
 
 #include <cstring>
 
@@ -33,8 +33,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class Position
 {
@@ -49,11 +49,11 @@ private:
     double  itsPosition[2];
 };
 
-// @}
+/// @}
 
-// -------------------------------------------------------------------------- //
-// - Implementation: Position                                               - //
-// -------------------------------------------------------------------------- //
+/// -------------------------------------------------------------------------- //
+/// - Implementation: Position                                               - //
+/// -------------------------------------------------------------------------- //
 
 inline const double &Position::operator[](size_t i) const
 {

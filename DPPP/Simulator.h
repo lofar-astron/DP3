@@ -24,9 +24,9 @@
 #ifndef DPPP_SIMULATOR_H
 #define DPPP_SIMULATOR_H
 
-// \file
-// Compute visibilities for different model components types (implementation of
-// ModelComponentVisitor).
+/// \file
+/// Compute visibilities for different model components types (implementation of
+/// ModelComponentVisitor).
 
 #include "Baseline.h"
 #include "ModelComponent.h"
@@ -42,8 +42,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 typedef std::complex<double> dcomplex;
 
@@ -103,7 +103,7 @@ private:
     Matrix<dcomplex>           itsSpectrumBuffer;
 };
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

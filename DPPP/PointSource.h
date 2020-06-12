@@ -26,9 +26,9 @@
 
 #include <vector>
 
-// \file
-// Point source model component with optional spectral index and rotation
-// measure.
+/// \file
+/// Point source model component with optional spectral index and rotation
+/// measure.
 
 #include "ModelComponent.h"
 #include "Position.h"
@@ -41,8 +41,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class PointSource: public ModelComponent
 {
@@ -82,11 +82,11 @@ private:
     bool            itsHasLogarithmicSI;
 };
 
-// @}
+/// @}
 
-// -------------------------------------------------------------------------- //
-// - Implementation: PointSource                                            - //
-// -------------------------------------------------------------------------- //
+/// -------------------------------------------------------------------------- //
+/// - Implementation: PointSource                                            - //
+/// -------------------------------------------------------------------------- //
 
 template <typename T>
 void PointSource::setSpectralTerms(double refFreq, bool isLogarithmic, T first, T last)

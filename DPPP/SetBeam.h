@@ -1,8 +1,8 @@
 #ifndef DPPP_SETBEAM_H
 #define DPPP_SETBEAM_H
 
-// @file
-// @brief DPPP step class to set the beam keywords in a ms
+/// @file
+/// @brief DPPP step class to set the beam keywords in a ms
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -19,7 +19,7 @@ namespace DPPP {
 class SetBeam final : public DPStep
 {
 public:
-  // Parameters are obtained from the parset using the given prefix.
+  /// Parameters are obtained from the parset using the given prefix.
   SetBeam (DPInput* input, const ParameterSet& parameters, const string& prefix);
 
   bool process(const DPBuffer& buffer) override;

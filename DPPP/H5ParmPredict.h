@@ -24,8 +24,8 @@
 #ifndef DPPP_H5ParmPredict_H
 #define DPPP_H5ParmPredict_H
 
-// @file
-// @brief DPPP step class to H5ParmPredict visibilities from a source model
+/// @file
+/// @brief DPPP step class to H5ParmPredict visibilities from a source model
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -41,9 +41,9 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a DPStep class to H5ParmPredict visibilities with optionally beam
+    /// This class is a DPStep class to H5ParmPredict visibilities with optionally beam
 
     typedef std::pair<size_t, size_t> Baseline;
     typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
@@ -51,27 +51,27 @@ namespace DP3 {
     class H5ParmPredict: public DPStep
     {
     public:
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       H5ParmPredict (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~H5ParmPredict();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:

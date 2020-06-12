@@ -23,16 +23,16 @@
 #ifndef DPPP_STOKES_H
 #define DPPP_STOKES_H
 
-// \file
-// Complex Stokes vector.
+/// \file
+/// Complex Stokes vector.
 
 namespace DP3
 {
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class Stokes
 {
@@ -42,7 +42,7 @@ public:
     double  I, Q, U, V;
 };
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

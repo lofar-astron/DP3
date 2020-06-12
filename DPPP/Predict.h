@@ -24,8 +24,8 @@
 #ifndef DPPP_PREDICT_H
 #define DPPP_PREDICT_H
 
-// @file
-// @brief DPPP step class to predict visibilities from a source model
+/// @file
+/// @brief DPPP step class to predict visibilities from a source model
 
 #include "ApplyCal.h"
 #include "DPInput.h"
@@ -54,9 +54,9 @@ namespace DP3 {
   class ThreadPool;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a DPStep class to predict visibilities with optionally beam
+    /// This class is a DPStep class to predict visibilities with optionally beam
 
     typedef std::pair<size_t, size_t> Baseline;
     typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
@@ -67,22 +67,22 @@ namespace DP3 {
     public:
       typedef std::shared_ptr<Predict> ShPtr;
 
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       Predict (DPInput*, const ParameterSet&, const string& prefix);
 
-      // Constructor with explicit sourcelist
+      /// Constructor with explicit sourcelist
       Predict (DPInput*, const ParameterSet&, const string& prefix,
                const std::vector<string>& sourcePatterns);
 
-      // The actual constructor
+      /// The actual constructor
       void init (DPInput*, const ParameterSet&, const string& prefix,
                  const std::vector<string>& sourcePatterns);
 
-      // Set the applycal substep
+      /// Set the applycal substep
       void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
 
-      // Set the operation type
+      /// Set the operation type
       void setOperation(const std::string& type);
 
       void setThreadData(ThreadPool& pool, std::mutex& measuresMutex) {
@@ -92,27 +92,27 @@ namespace DP3 {
 
       virtual ~Predict();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
-      // Prepare the sources
+      /// Prepare the sources
       void setSources(const std::vector<string>& sourcePatterns);
 
-      // Return the direction of the first patch
+      /// Return the direction of the first patch
       std::pair<double, double> getFirstDirection() const;
 
     private:
@@ -144,20 +144,20 @@ namespace DP3 {
       bool             itsDoApplyCal;
       ApplyCal         itsApplyCalStep;
       DPBuffer         itsTempBuffer;
-      ResultStep*      itsResultStep; // For catching results from ApplyCal
+      ResultStep*      itsResultStep; /// For catching results from ApplyCal
 
       unsigned int             itsDebugLevel;
 
       std::vector<Baseline> itsBaselines;
 
-      // Vector containing info on converting baseline uvw to station uvw
+      /// Vector containing info on converting baseline uvw to station uvw
       std::vector<int>      itsUVWSplitIndex;
 
-      // UVW coordinates per station (3 coordinates per station)
+      /// UVW coordinates per station (3 coordinates per station)
       casacore::Matrix<double>   itsUVW;
 
 #ifdef HAVE_LOFAR_BEAM
-      // The info needed to calculate the station beams.
+      /// The info needed to calculate the station beams.
       std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
       std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
       std::vector<std::vector<LOFAR::StationResponse::complex_t> >  itsBeamValuesSingle;
@@ -166,11 +166,11 @@ namespace DP3 {
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
       std::vector<casacore::MDirection::Convert>          itsMeasConverters;
 
-      std::string itsDirectionsStr; // Definition of patches, to pass to applycal
+      std::string itsDirectionsStr; /// Definition of patches, to pass to applycal
       std::vector<Patch::ConstPtr> itsPatchList;
       std::vector<Source> itsSourceList;
 
-      std::vector<casacore::Cube<dcomplex> > itsModelVis; // one for every thread
+      std::vector<casacore::Cube<dcomplex> > itsModelVis; /// one for every thread
       std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
 
       NSTimer          itsTimer;

@@ -23,8 +23,8 @@
 #ifndef DPPP_GAUSSIANSOURCE_H
 #define DPPP_GAUSSIANSOURCE_H
 
-// \file
-// Gaussian source model component.
+/// \file
+/// Gaussian source model component.
 
 #include "PointSource.h"
 
@@ -33,8 +33,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class GaussianSource: public PointSource
 {
@@ -45,16 +45,16 @@ public:
     GaussianSource(const Position &position);
     GaussianSource(const Position &position, const Stokes &stokes);
 
-    // Set position angle in radians. The position angle is the smallest angle
-    // between the major axis and North, measured positively North over East.
+    /// Set position angle in radians. The position angle is the smallest angle
+    /// between the major axis and North, measured positively North over East.
     void setPositionAngle(double angle);
     double positionAngle() const;
 
-    // Set the major axis length (FWHM in radians).
+    /// Set the major axis length (FWHM in radians).
     void setMajorAxis(double fwhm);
     double majorAxis() const;
 
-    // Set the minor axis length (FWHM in radians).
+    /// Set the minor axis length (FWHM in radians).
     void setMinorAxis(double fwhm);
     double minorAxis() const;
 
@@ -66,11 +66,11 @@ private:
     double      itsMinorAxis;
 };
 
-// @}
+/// @}
 
-// -------------------------------------------------------------------------- //
-// - Implementation: GaussianSource                                         - //
-// -------------------------------------------------------------------------- //
+/// -------------------------------------------------------------------------- //
+/// - Implementation: GaussianSource                                         - //
+/// -------------------------------------------------------------------------- //
 
 inline double GaussianSource::positionAngle() const
 {

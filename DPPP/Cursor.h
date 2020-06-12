@@ -29,16 +29,16 @@
 typedef std::complex<double> dcomplex;
 typedef std::complex<float> fcomplex;
 
-// \file
-// Multi-dimensional iterators.
+/// \file
+/// Multi-dimensional iterators.
 
 namespace DP3
 {
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 template <typename T>
 class cursor
@@ -292,7 +292,7 @@ private:
     size_t      itsStrides[MAX_RANK];
 };
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

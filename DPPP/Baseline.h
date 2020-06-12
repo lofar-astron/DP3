@@ -23,8 +23,8 @@
 #ifndef DPPP_BASELINE_H
 #define DPPP_BASELINE_H
 
-// \file
-// Pair of stations that together form a baseline (interferometer).
+/// \file
+/// Pair of stations that together form a baseline (interferometer).
 
 #include <cstddef>
 #include <utility>
@@ -34,12 +34,12 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 typedef std::pair<size_t, size_t>   Baseline;
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

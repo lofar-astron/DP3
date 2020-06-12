@@ -23,11 +23,11 @@
 #ifndef DPPP_ESTIMATENEW_H
 #define DPPP_ESTIMATENEW_H
 
-// \file
-// Estimate Jones matrices for several directions simultaneously. A separate
-// data stream is used for each direction. The mixing coefficients quantify the
-// influence of each direction on each of the other directions (including time
-// and frequency smearing).
+/// \file
+/// Estimate Jones matrices for several directions simultaneously. A separate
+/// data stream is used for each direction. The mixing coefficients quantify the
+/// influence of each direction on each of the other directions (including time
+/// and frequency smearing).
 
 #include "Baseline.h"
 #include "Cursor.h"
@@ -40,45 +40,45 @@
 namespace DP3 {
   namespace DPPP {
 
-    // \addtogroup NDPPP
-    // @{
+    /// \addtogroup NDPPP
+    /// @{
 
-    // Estimate Jones matrices for several directions simultaneously. A separate
-    // data stream is used for each direction. The mixing coefficients quantify the
-    // influence of each direction on each of the other directions (including time
-    // and frequency smearing).
+    /// Estimate Jones matrices for several directions simultaneously. A separate
+    /// data stream is used for each direction. The mixing coefficients quantify the
+    /// influence of each direction on each of the other directions (including time
+    /// and frequency smearing).
     class EstimateNew
     {
     public:
 
       EstimateNew();
 
-      // Update the object and size its internal buffers.
+      /// Update the object and size its internal buffers.
       void update (size_t maxndir, size_t nBaseline, size_t nStation,
                    size_t nChannel, size_t maxIter, bool propagateSolution);
 
-      // \param[in]   data
-      // Vector of length \p nDirection of cursors for 3-D buffers of observed
-      // visiblity data of shape (\p nBaseline, \p nChannel, 4).
-      // \param[in]   model
-      // Vector of length \p nDirection of cursors for 3-D buffers of simulated
-      // visiblity data of shape (\p nBaseline, \p nChannel, 4).
-      // \param[in]   baselines
-      // A cursor for a 1-D buffer of baselines of shape (\p nBaseline).
-      // \param[in]   flag
-      // A cursor for a 3-D buffer of observed visibility flags of shape
-      // (\p nBaseline, \p nChannel, 4).
-      // \param[in]   weight
-      // A cursor for a 3-D buffer of observed visibility weights of shape
-      // (\p nBaseline, \p nChannel, 4).
-      // \param[in]   mix
-      // A cursor for a 5-D buffer of mixing weights of shape
-      // (\p nBaseline, \p nChannel, 4, \p nDirection, \p nDirection).
-      // \param[in]   solveBoth
-      // True = only use baseline if both stations are solvable
+      /// \param[in]   data
+      /// Vector of length \p nDirection of cursors for 3-D buffers of observed
+      /// visiblity data of shape (\p nBaseline, \p nChannel, 4).
+      /// \param[in]   model
+      /// Vector of length \p nDirection of cursors for 3-D buffers of simulated
+      /// visiblity data of shape (\p nBaseline, \p nChannel, 4).
+      /// \param[in]   baselines
+      /// A cursor for a 1-D buffer of baselines of shape (\p nBaseline).
+      /// \param[in]   flag
+      /// A cursor for a 3-D buffer of observed visibility flags of shape
+      /// (\p nBaseline, \p nChannel, 4).
+      /// \param[in]   weight
+      /// A cursor for a 3-D buffer of observed visibility weights of shape
+      /// (\p nBaseline, \p nChannel, 4).
+      /// \param[in]   mix
+      /// A cursor for a 5-D buffer of mixing weights of shape
+      /// (\p nBaseline, \p nChannel, 4, \p nDirection, \p nDirection).
+      /// \param[in]   solveBoth
+      /// True = only use baseline if both stations are solvable
       //
-      // <br>Note that the cursors are passed by value, so a copy is made.
-      // In this way no reset of the cursor is needed.
+      /// <br>Note that the cursors are passed by value, so a copy is made.
+      /// In this way no reset of the cursor is needed.
       bool estimate (const std::vector<std::vector<int> >& unknownsIndex,
                      const std::vector<unsigned int>& srcSet,
                      const_cursor<Baseline> baselines,
@@ -91,34 +91,34 @@ namespace DP3 {
                      bool solveBoth,
                      unsigned int verbose);
 
-      // Get the last solution.
-      // It contains zeroes for the direction-stations not solved for.
+      /// Get the last solution.
+      /// It contains zeroes for the direction-stations not solved for.
       const std::vector<double>& getSolution() const
         { return itsSolution; }
 
-      // Get the nr of iterations used.
+      /// Get the nr of iterations used.
       size_t nIterations() const
         { return itsNrIter; }
 
     private:
-      // Initialize the solution. Nr must be a multiple of 8.
-      // The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
+      /// Initialize the solution. Nr must be a multiple of 8.
+      /// The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
       void initSolution (const std::vector<std::vector<int> >& unknownsIndex,
                          const std::vector<unsigned int>& srcSet,
                          double defaultGain);
 
-      // Clear the solution for unsolvable stations
-      // (essentially changing 1e-8 to 0).
+      /// Clear the solution for unsolvable stations
+      /// (essentially changing 1e-8 to 0).
       void clearNonSolvable (const std::vector<std::vector<int> >& unknownsIndex,
                              const std::vector<unsigned int>& srcSet);
 
-      // Update itsSolution from itsUnknowns for the unknowns to be used.
+      /// Update itsSolution from itsUnknowns for the unknowns to be used.
       void fillSolution (const std::vector<std::vector<int> >& unknownsIndex,
                          const std::vector<unsigned int>& srcSet);
 
-      // Fill itsDerivIndex for the unknowns of the given baseline
-      // to be able to pass the equations to LSQFit::makeNorm.
-      // It returns the number of unknowns.
+      /// Fill itsDerivIndex for the unknowns of the given baseline
+      /// to be able to pass the equations to LSQFit::makeNorm.
+      /// It returns the number of unknowns.
       unsigned int fillDerivIndex (size_t ndir,
                            const std::vector<std::vector<int> >& unknownsIndex,
                            const Baseline& baseline);
@@ -131,8 +131,8 @@ namespace DP3 {
       size_t itsNrIter;
       size_t itsNrDir;
       bool   itsPropagateSolution;
-      casacore::Block<bool>  itsSolveStation;  //# solve station i?
-      std::vector<casacore::uInt> itsDerivIndex;    //# index for LSQFit::makeIndex
+      casacore::Block<bool>  itsSolveStation///< solve station i?
+      std::vector<casacore::uInt> itsDerivIndex///< index for LSQFit::makeIndex
       std::vector<double>     itsUnknowns;
       std::vector<double>     itsSolution;
       std::vector<dcomplex>   itsM;
@@ -141,7 +141,7 @@ namespace DP3 {
       std::vector<double>     itsdI;
     };
 
-    // @}
+    /// @}
 
   } //# namespace DPPP
 } //# namespace LOFAR

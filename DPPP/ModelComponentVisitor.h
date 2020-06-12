@@ -24,8 +24,8 @@
 #ifndef DPPP_MODELCOMPONENTVISITOR_H
 #define DPPP_MODELCOMPONENTVISITOR_H
 
-// \file
-// Base class for visitors that visit model component hierarchies.
+/// \file
+/// Base class for visitors that visit model component hierarchies.
 
 namespace DP3
 {
@@ -35,8 +35,8 @@ namespace DPPP
 class PointSource;
 class GaussianSource;
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class ModelComponentVisitor
 {
@@ -47,7 +47,7 @@ public:
     virtual void visit(const GaussianSource&) = 0;
 };
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

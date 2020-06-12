@@ -24,23 +24,23 @@
 #ifndef DPPP_GRIDINTERPOLATE_H
 #define DPPP_GRIDINTERPOLATE_H
 
-// @file
-// @brief Interpolate data from regular 2d grid to another
+/// @file
+/// @brief Interpolate data from regular 2d grid to another
 
 #include <vector>
 #include <stdexcept>
 
 namespace DP3 {
   //! Get the nearest-neighbor indices
-  ///*! \param ax_src[in]    Vector with points where the data is defined.
-  //                         Should be increasing.
-  // *  \param ax_tgt[in]    Vector with the points at which the values are
-  //                         needed.  Should be increasing.
-  //  *  \param[out] indices Vector (same length as ax_tgt) with for each number
-  //                         in ax_src, the index of the nearest point in ax_src.
-  //   *  \param[in] nearest Get the nearest point. If false, gets the largest
-  //                         point that is smaller.
-  //    */
+  /// *! \param ax_src[in]    Vector with points where the data is defined.
+  ///                         Should be increasing.
+  /// *  \param ax_tgt[in]    Vector with the points at which the values are
+  ///                         needed.  Should be increasing.
+  ///  *  \param[out] indices Vector (same length as ax_tgt) with for each number
+  ///                         in ax_src, the index of the nearest point in ax_src.
+  ///   *  \param[in] nearest Get the nearest point. If false, gets the largest
+  ///                         point that is smaller.
+  ///    */
   void getAxisIndices(const std::vector<double>& ax_src,
                       const std::vector<double>& ax_tgt,
                       std::vector<size_t>& indices,

@@ -24,8 +24,8 @@
 #ifndef DPPP_Split_H
 #define DPPP_Split_H
 
-// @file
-// @brief DPPP step class to Split visibilities from a source model
+/// @file
+/// @brief DPPP step class to Split visibilities from a source model
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -37,45 +37,45 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is an empty DPStep subclass to use as implementation template
+    /// This class is an empty DPStep subclass to use as implementation template
 
     class Split: public DPStep
     {
     public:
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       Split (DPInput*, const ParameterSet&, const string& prefix);
 
       virtual ~Split();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
       virtual void addToMS (const string&);
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
       //# Data members.
       string           itsName;
 
-      std::vector<std::string>   itsReplaceParms; // The names of the parameters that differ along the substeps
+      std::vector<std::string>   itsReplaceParms; /// The names of the parameters that differ along the substeps
       std::vector<DPStep::ShPtr> itsSubsteps;
-      bool             itsAddedToMS; // Used in addToMS to prevent recursion
+      bool             itsAddedToMS; /// Used in addToMS to prevent recursion
     };
 
   } //# end namespace

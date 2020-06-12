@@ -21,13 +21,13 @@
 //#
 //# @author Ger van Diepen
 
-// Note: this code is used by LOFAR and APERTIF software.
+/// Note: this code is used by LOFAR and APERTIF software.
 
 #ifndef DPPP_UVWCALCULATOR_H
 #define DPPP_UVWCALCULATOR_H
 
-// @file
-// @brief Class to calculate UVW coordinates
+/// @file
+/// @brief Class to calculate UVW coordinates
 
 #include <casacore/measures/Measures/MeasFrame.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -42,35 +42,35 @@
 namespace DP3 {
   namespace DPPP {
 
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class calculates the UVW coordinates for a given baseline and
-    // time stamp in the same way as done in LofarStMan.
+    /// This class calculates the UVW coordinates for a given baseline and
+    /// time stamp in the same way as done in LofarStMan.
     //
-    // It calculates and caches the UVW coordinates per antenna and combines
-    // them to get the baseline UVW coordinates. This is much faster than
-    // calculating baseline UVW coordinates directly.
+    /// It calculates and caches the UVW coordinates per antenna and combines
+    /// them to get the baseline UVW coordinates. This is much faster than
+    /// calculating baseline UVW coordinates directly.
 
     class UVWCalculator
     {
     public:
-      // The default constructor creates an empty object.
+      /// The default constructor creates an empty object.
       UVWCalculator();
 
-      // Construct the object for the given phase direction, array position,
-      // and station positions.
+      /// Construct the object for the given phase direction, array position,
+      /// and station positions.
       UVWCalculator (const casacore::MDirection& phaseDir,
                      const casacore::MPosition& arrayPosition,
                      const std::vector<casacore::MPosition>& stationPositions);
 
-      // get the UVW coordinates for the given baseline and time.
+      /// get the UVW coordinates for the given baseline and time.
       casacore::Vector<double> getUVW (unsigned int ant1, unsigned int ant2, double time);
 
     private:
       casacore::MDirection              itsPhaseDir;
       bool                          itsMovingPhaseDir;  
-      casacore::MDirection::Convert     itsDirToJ2000;   //# direction to J2000
-      casacore::MBaseline::Convert      itsBLToJ2000;    //# convert ITRF to J2000
+      casacore::MDirection::Convert     itsDirToJ2000///< direction to J2000
+      casacore::MBaseline::Convert      itsBLToJ2000///< convert ITRF to J2000
       casacore::MeasFrame               itsFrame;
       std::vector<casacore::MBaseline>       itsAntMB;
       std::vector<casacore::Vector<double> > itsAntUvw;

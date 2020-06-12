@@ -24,9 +24,9 @@
 #ifndef DPPP_PATCH_H
 #define DPPP_PATCH_H
 
-// \file
-// A set of sources for which direction dependent effects are assumed to be
-// equal.
+/// \file
+/// A set of sources for which direction dependent effects are assumed to be
+/// equal.
 
 #include "ModelComponent.h"
 #include "Position.h"
@@ -40,8 +40,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class Patch
 {
@@ -65,7 +65,7 @@ public:
     const_iterator begin() const;
     const_iterator end() const;
 
-    // Compute the position as the average of the positions of the components.
+    /// Compute the position as the average of the positions of the components.
     void computePosition();
 
 private:
@@ -77,11 +77,11 @@ private:
 };
 
 
-// @}
+/// @}
 
-// -------------------------------------------------------------------------- //
-// - Implementation: Patch                                                  - //
-// -------------------------------------------------------------------------- //
+/// -------------------------------------------------------------------------- //
+/// - Implementation: Patch                                                  - //
+/// -------------------------------------------------------------------------- //
 
 template <typename T>
 Patch::Patch(const std::string &name, T first, T last)

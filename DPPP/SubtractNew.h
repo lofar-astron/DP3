@@ -24,8 +24,8 @@
 #ifndef DPPP_SUBTRACTNEW_H
 #define DPPP_SUBTRACTNEW_H
 
-// \file
-// Subtract visibilities from a buffer after weighting by mixing coefficients.
+/// \file
+/// Subtract visibilities from a buffer after weighting by mixing coefficients.
 
 #include "Baseline.h"
 #include "Cursor.h"
@@ -37,30 +37,30 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
-// Subtract visibilities from a buffer after weighting by mixing coefficients.
+/// \addtogroup NDPPP
+/// @{
+/// Subtract visibilities from a buffer after weighting by mixing coefficients.
 //
-// \param[in]   nBaseline
-// Number of baselines.
-// \param[in]   nChannel
-// Number of frequency channels.
-// \param[in]   baselines
-// A cursor for a 1-D buffer of baselines of shape (\p nBaseline).
-// \param[in]   data
-// A cursor for a 3-D buffer of observed visibilities of shape
-// (\p nBaseline, \p nChannel, 4).
-// \param[in]   model
-// A cursor for a 3-D buffer of simulated visibilities of shape
-// (\p nBaseline, \p nChannel, 4).
-// \param[in]   weight
-// A cursor for a 3-D buffer of mixing weight of shape
-// (\p nBaseline, \p nChannel, 4).
+/// \param[in]   nBaseline
+/// Number of baselines.
+/// \param[in]   nChannel
+/// Number of frequency channels.
+/// \param[in]   baselines
+/// A cursor for a 1-D buffer of baselines of shape (\p nBaseline).
+/// \param[in]   data
+/// A cursor for a 3-D buffer of observed visibilities of shape
+/// (\p nBaseline, \p nChannel, 4).
+/// \param[in]   model
+/// A cursor for a 3-D buffer of simulated visibilities of shape
+/// (\p nBaseline, \p nChannel, 4).
+/// \param[in]   weight
+/// A cursor for a 3-D buffer of mixing weight of shape
+/// (\p nBaseline, \p nChannel, 4).
 void subtract(size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, cursor<fcomplex> data,
               const_cursor<dcomplex> model, const_cursor<dcomplex> weight,
               std::vector<float>& sumAmpl);
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

@@ -23,8 +23,8 @@
 #ifndef DPPP_CURSORUTILCASA_H
 #define DPPP_CURSORUTILCASA_H
 
-// \file
-// Helper functions for creating cursors for CASA arrays.
+/// \file
+/// Helper functions for creating cursors for CASA arrays.
 
 #include "Cursor.h"
 
@@ -35,8 +35,8 @@ namespace DP3
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 template <typename T>
 cursor<T> casa_cursor(casacore::Array<T> &array)
@@ -64,7 +64,7 @@ const_cursor<T> casa_const_cursor(const casacore::Array<T> &array,
         array.steps().storage());
 }
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

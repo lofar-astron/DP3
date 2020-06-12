@@ -24,8 +24,8 @@
 #ifndef DPPP_SOURCEDBUTIL_H
 #define DPPP_SOURCEDBUTIL_H
 
-// \file
-// Helper functions to extract patch and source information from a SourceDB.
+/// \file
+/// Helper functions to extract patch and source information from a SourceDB.
 
 #include "Patch.h"
 
@@ -41,18 +41,18 @@ class SourceDB;
 namespace DPPP
 {
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
   std::vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
                                       const std::vector<std::string> &patchNames,
                                       unsigned int nModel);
 
-  // Create a source list (with patch name) from a patchlist
-  // Needed for efficient multithreading
+  /// Create a source list (with patch name) from a patchlist
+  /// Needed for efficient multithreading
   std::vector<std::pair<ModelComponent::ConstPtr,Patch::ConstPtr> >
   makeSourceList (const std::vector<Patch::ConstPtr>& patchList);
 
-  // From a given PatchList, create a new one with one patch per component
+  /// From a given PatchList, create a new one with one patch per component
   std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
       const std::vector<Patch::ConstPtr>&);
 
@@ -63,7 +63,7 @@ namespace DPPP
                       const std::vector<std::string> &patchNames,
                       unsigned int nModel);
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

@@ -24,11 +24,11 @@
 #ifndef DPPP_AOFLAG_REGISTER_H
 #define DPPP_AOFLAG_REGISTER_H
 
-// @file
-// @brief Register AOFlag steps in DPPP
+/// @file
+/// @brief Register AOFlag steps in DPPP
 
 
-// Define the function (without name mangling) to register the 'constructor'.
+/// Define the function (without name mangling) to register the 'constructor'.
 extern "C"
 {
   void register_aoflag();

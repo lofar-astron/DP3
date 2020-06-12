@@ -25,8 +25,8 @@
 
 #include <memory>
 
-// \file
-// Base class for model components.
+/// \file
+/// Base class for model components.
 
 namespace DP3
 {
@@ -36,8 +36,8 @@ namespace DPPP
 class ModelComponentVisitor;
 class Position;
 
-// \addtogroup NDPPP
-// @{
+/// \addtogroup NDPPP
+/// @{
 
 class ModelComponent
 {
@@ -50,7 +50,7 @@ public:
     virtual void accept(ModelComponentVisitor&) const = 0;
 };
 
-// @}
+/// @}
 
 } //# namespace DPPP
 } //# namespace LOFAR

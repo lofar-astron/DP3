@@ -24,8 +24,8 @@
 #ifndef DPPP_AVERAGER_H
 #define DPPP_AVERAGER_H
 
-// @file
-// @brief DPPP step class to average in time and/or freq
+/// @file
+/// @brief DPPP step class to average in time and/or freq
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -37,63 +37,63 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @ingroup NDPPP
 
-    // This class is a DPStep class calculating the weighted average of
-    // data in time and/or frequency.
-    // <br>
-    // Only unflagged data points are used. The average is calculated as
-    // <tt>sum(data*weight) / sum(weight)</tt> and the sum of the weights
-    // is the weight of the new data point. If all data point to use are
-    // flagged, the resulting data point and weight are set to zero and flagged.
+    /// This class is a DPStep class calculating the weighted average of
+    /// data in time and/or frequency.
+    /// <br>
+    /// Only unflagged data points are used. The average is calculated as
+    /// <tt>sum(data*weight) / sum(weight)</tt> and the sum of the weights
+    /// is the weight of the new data point. If all data point to use are
+    /// flagged, the resulting data point and weight are set to zero and flagged.
     //
-    // It keeps track of the FullResFlags. It sets them if the corresponding
-    // data point is flagged. Note that multiple FullResFlags elements map to
-    // a single data point if some averaging was done before.
+    /// It keeps track of the FullResFlags. It sets them if the corresponding
+    /// data point is flagged. Note that multiple FullResFlags elements map to
+    /// a single data point if some averaging was done before.
 
     class Averager: public DPStep
     {
     public:
-      // Construct the object.
-      // Parameters are obtained from the parset using the given prefix.
+      /// Construct the object.
+      /// Parameters are obtained from the parset using the given prefix.
       Averager (DPInput*, const ParameterSet&, const string& prefix);
 
-      // Construct the object using the given parameters.
+      /// Construct the object using the given parameters.
       Averager (DPInput*, const string& stepname,
                 unsigned int nchanAvg, unsigned int ntimeAvg);
 
       virtual ~Averager();
 
-      // Process the data.
-      // It keeps the data.
-      // When processed, it invokes the process function of the next step.
+      /// Process the data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
 
-      // Finish the processing of this step and subsequent steps.
+      /// Finish the processing of this step and subsequent steps.
       virtual void finish();
 
-      // Update the general info.
+      /// Update the general info.
       virtual void updateInfo (const DPInfo&);
 
-      // Show the step parameters.
+      /// Show the step parameters.
       virtual void show (std::ostream&) const;
 
-      // Show the timings.
+      /// Show the timings.
       virtual void showTimings (std::ostream&, double duration) const;
 
     private:
-      // Average into itsBufOut.
+      /// Average into itsBufOut.
       void average();
 
-      // Copy the fullRes flags in the input buffer to the correct
-      // time index in the output buffer.
-      // If a flag is set, set all flags in corresponding FullRes window.
+      /// Copy the fullRes flags in the input buffer to the correct
+      /// time index in the output buffer.
+      /// If a flag is set, set all flags in corresponding FullRes window.
       void copyFullResFlags (const casacore::Cube<bool>& fullResFlags,
                              const casacore::Cube<bool>& flags,
                              int timeIndex);
 
-      // Get the value in Hertz of a string like "1000 MHz". If unit is
-      // omitted it defaults to Hertz
+      /// Get the value in Hertz of a string like "1000 MHz". If unit is
+      /// omitted it defaults to Hertz
       double getFreqHz(const string& freqstr);
 
       //# Data members.
@@ -114,7 +114,7 @@ namespace DP3 {
       float           itsMinPerc;
       unsigned int            itsNTimes;
       double          itsTimeInterval;
-      bool            itsNoAvg;           //# No averaging (i.e. both 1)?
+      bool            itsNoAvg///< No averaging (i.e. both 1)?
       NSTimer         itsTimer;
     };
 
