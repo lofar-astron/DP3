@@ -1,24 +1,24 @@
-//# ParameterSet.h: Implements a map of Key-Value pairs.
-//#
-//# Copyright (C) 2002-2003
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: ParameterSet.h 23459 2013-01-08 08:49:52Z diepen $
+// ParameterSet.h: Implements a map of Key-Value pairs.
+//
+// Copyright (C) 2002-2003
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: ParameterSet.h 23459 2013-01-08 08:49:52Z diepen $
 
 #ifndef LOFAR_COMMON_PARAMETERSET_H
 #define LOFAR_COMMON_PARAMETERSET_H
@@ -26,8 +26,8 @@
 // \file
 // Implements a map of Key-Value pairs.
 
-//# Never #include <config.h> or #include <lofar_config.h> in a header file!
-//# Includes
+// Never #include <config.h> or #include <lofar_config.h> in a header file!
+// Includes
 #include "ParameterSetImpl.h"
 #include "KVpair.h"
 
@@ -36,7 +36,7 @@ namespace DP3 {
 // \addtogroup Common
 // @{
 
-//# Description of class.
+// Description of class.
 // The ParameterSet class is a key-value implementation of the type
 // map<string, string>. 
 // This means that values are stored as a string which allows easy merging and
@@ -364,9 +364,9 @@ private:
 // Make one instance of the parameterSet globally accessable.
 ParameterSet*   globalParameterSet();
 
-//#
-//# ---------- inline functions ----------
-//#
+//
+// ---------- inline functions ----------
+//
 inline bool ParameterSet::empty() const
 {
   return itsSet->empty();
@@ -510,170 +510,170 @@ inline std::vector<ParameterValue> ParameterSet::getVector (const std::string& a
         return get(aKey).getVector();
 }
 
-//# getBool(key)
+// getBool(key)
 inline bool ParameterSet::getBool(const std::string& aKey) const
 {
   return itsSet->getBool(aKey);
 }
 
-//# getBool(key, value)
+// getBool(key, value)
 inline bool ParameterSet::getBool(const std::string& aKey, bool aValue) const
 {
         return itsSet->getBool(aKey, aValue);
 }
 
-//# getInt(key)
+// getInt(key)
 inline int ParameterSet::getInt(const std::string& aKey) const
 {
   return itsSet->getInt(aKey);
 }
 
-//# getInt(key, value)
+// getInt(key, value)
 inline int ParameterSet::getInt(const std::string& aKey, int aValue) const
 {
         return itsSet->getInt(aKey, aValue);
 }
 
-//# getUint(key)
+// getUint(key)
 inline unsigned int ParameterSet::getUint(const std::string& aKey) const
 {
   return itsSet->getUint(aKey);
 }
 
-//# getUint(key, value)
+// getUint(key, value)
 inline unsigned int ParameterSet::getUint(const std::string& aKey, unsigned int aValue) const
 {
         return itsSet->getUint(aKey, aValue);
 }
 
-//# getInt16(key)
+// getInt16(key)
 inline int16_t ParameterSet::getInt16(const std::string& aKey) const
 {
   return itsSet->getInt16(aKey);
 }
 
-//# getInt16(key, value)
+// getInt16(key, value)
 inline int16_t ParameterSet::getInt16(const std::string& aKey, int16_t aValue) const
 {
         return itsSet->getInt16(aKey, aValue);
 }
 
-//# getUint16(key)
+// getUint16(key)
 inline uint16_t ParameterSet::getUint16(const std::string& aKey) const
 {
   return itsSet->getUint16(aKey);
 }
 
-//# getUint16(key, value)
+// getUint16(key, value)
 inline uint16_t ParameterSet::getUint16(const std::string& aKey, uint16_t aValue) const
 {
         return itsSet->getUint16(aKey, aValue);
 }
 
-//# getInt32(key)
+// getInt32(key)
 inline int32_t ParameterSet::getInt32(const std::string& aKey) const
 {
   return itsSet->getInt32(aKey);
 }
 
-//# getInt32(key, value)
+// getInt32(key, value)
 inline int32_t ParameterSet::getInt32(const std::string& aKey, int32_t aValue) const
 {
         return itsSet->getInt32(aKey, aValue);
 }
 
-//# getUint32(key)
+// getUint32(key)
 inline uint32_t ParameterSet::getUint32(const std::string& aKey) const
 {
   return itsSet->getUint32(aKey);
 }
 
-//# getUint32(key, value)
+// getUint32(key, value)
 inline uint32_t ParameterSet::getUint32(const std::string& aKey, uint32_t aValue) const
 {
         return itsSet->getUint32(aKey, aValue);
 }
 
-//# getInt64(key)
+// getInt64(key)
 inline int64_t ParameterSet::getInt64(const std::string& aKey) const
 {
   return itsSet->getInt64(aKey);
 }
 
-//# getInt64(key, value)
+// getInt64(key, value)
 inline int64_t ParameterSet::getInt64(const std::string& aKey, int64_t aValue) const
 {
         return itsSet->getInt64(aKey, aValue);
 }
 
-//# getUint64(key)
+// getUint64(key)
 inline uint64_t ParameterSet::getUint64(const std::string& aKey) const
 {
   return itsSet->getUint64(aKey);
 }
 
-//# getUint64(key, value)
+// getUint64(key, value)
 inline uint64_t ParameterSet::getUint64(const std::string& aKey, uint64_t aValue) const
 {
         return itsSet->getUint64(aKey, aValue);
 }
 
-//# getFloat(key)
+// getFloat(key)
 inline float ParameterSet::getFloat (const std::string& aKey) const
 {
   return itsSet->getFloat(aKey);
 }
 
-//# getFloat(key, value)
+// getFloat(key, value)
 inline float ParameterSet::getFloat (const std::string& aKey, float aValue) const
 {
         return itsSet->getFloat(aKey, aValue);
 }
 
-//# getDouble(key)
+// getDouble(key)
 inline double ParameterSet::getDouble(const std::string& aKey) const
 {
   return itsSet->getDouble(aKey);
 }
 
-//# getDouble(key, value)
+// getDouble(key, value)
 inline double ParameterSet::getDouble(const std::string& aKey, double aValue) const
 {
         return itsSet->getDouble(aKey, aValue);
 }
 
-//# getString(key)
+// getString(key)
 inline std::string ParameterSet::getString(const std::string& aKey) const
 {
   return itsSet->getString(aKey);
 }
 
-//# getString(key, value)
+// getString(key, value)
 inline std::string ParameterSet::getString(const std::string& aKey, const std::string& aValue) const
 {
         return itsSet->getString(aKey, aValue);
 }
 
-//# getTime(key)
+// getTime(key)
 inline time_t ParameterSet::getTime(const std::string& aKey) const
 {
   return itsSet->getTime(aKey);
 }
 
-//# getTime(key, value)
+// getTime(key, value)
 inline time_t ParameterSet::getTime(const std::string& aKey, const time_t& aValue) const
 {
         return itsSet->getTime(aKey, aValue);
 }
 
-//# getBoolVector(key)
+// getBoolVector(key)
 inline std::vector<bool> ParameterSet::getBoolVector(const std::string& aKey,
                                                 bool expandable) const
 {
         return itsSet->getBoolVector(aKey, expandable);
 }
 
-//# getBoolVector(key, value)
+// getBoolVector(key, value)
 inline std::vector<bool> ParameterSet::getBoolVector(const std::string& aKey,
                                                 const std::vector<bool>& aValue,
                                                 bool expandable) const
@@ -681,14 +681,14 @@ inline std::vector<bool> ParameterSet::getBoolVector(const std::string& aKey,
         return itsSet->getBoolVector(aKey, aValue, expandable);
 }
 
-//# getIntVector(key)
+// getIntVector(key)
 inline std::vector<int> ParameterSet::getIntVector(const std::string& aKey,
                                               bool expandable) const
 {
         return itsSet->getIntVector(aKey, expandable);
 }
 
-//# getIntVector(key, value)
+// getIntVector(key, value)
 inline std::vector<int> ParameterSet::getIntVector(const std::string& aKey,
                                               const std::vector<int>& aValue,
                                               bool expandable) const
@@ -696,14 +696,14 @@ inline std::vector<int> ParameterSet::getIntVector(const std::string& aKey,
         return itsSet->getIntVector(aKey, aValue, expandable);
 }
 
-//# getUintVector(key)
+// getUintVector(key)
 inline std::vector<unsigned int> ParameterSet::getUintVector(const std::string& aKey,
                                                 bool expandable) const
 {
         return itsSet->getUintVector(aKey, expandable);
 }
 
-//# getUintVector(key, value)
+// getUintVector(key, value)
 inline std::vector<unsigned int> ParameterSet::getUintVector(const std::string& aKey,
                                                 const std::vector<unsigned int>& aValue,
                                                 bool expandable) const
@@ -711,14 +711,14 @@ inline std::vector<unsigned int> ParameterSet::getUintVector(const std::string& 
         return itsSet->getUintVector(aKey, aValue, expandable);
 }
 
-//# getInt16Vector(key)
+// getInt16Vector(key)
 inline std::vector<int16_t> ParameterSet::getInt16Vector(const std::string& aKey,
                                                   bool expandable) const
 {
   return itsSet->getInt16Vector(aKey, expandable);
 }
 
-//# getInt16Vector(key, value)
+// getInt16Vector(key, value)
 inline std::vector<int16_t> ParameterSet::getInt16Vector(const std::string& aKey,
                                                   const std::vector<int16_t>& aValue,
                                                   bool expandable) const
@@ -726,14 +726,14 @@ inline std::vector<int16_t> ParameterSet::getInt16Vector(const std::string& aKey
   return itsSet->getInt16Vector(aKey, aValue, expandable);
 }
 
-//# getUint16Vector(key)
+// getUint16Vector(key)
 inline std::vector<uint16_t> ParameterSet::getUint16Vector(const std::string& aKey,
                                                     bool expandable) const
 {
   return itsSet->getUint16Vector(aKey, expandable);
 }
 
-//# getUint16Vector(key, value)
+// getUint16Vector(key, value)
 inline std::vector<uint16_t> ParameterSet::getUint16Vector(const std::string& aKey,
                                                     const std::vector<uint16_t>& aValue,
                                                     bool expandable) const
@@ -741,14 +741,14 @@ inline std::vector<uint16_t> ParameterSet::getUint16Vector(const std::string& aK
         return itsSet->getUint16Vector(aKey, aValue, expandable);
 }
 
-//# getInt32Vector(key)
+// getInt32Vector(key)
 inline std::vector<int32_t> ParameterSet::getInt32Vector(const std::string& aKey,
                                                   bool expandable) const
 {
   return itsSet->getInt32Vector(aKey, expandable);
 }
 
-//# getInt32Vector(key, value)
+// getInt32Vector(key, value)
 inline std::vector<int32_t> ParameterSet::getInt32Vector(const std::string& aKey,
                                                   const std::vector<int32_t>& aValue,
                                                   bool expandable) const
@@ -756,14 +756,14 @@ inline std::vector<int32_t> ParameterSet::getInt32Vector(const std::string& aKey
   return itsSet->getInt32Vector(aKey, aValue, expandable);
 }
 
-//# getUint32Vector(key)
+// getUint32Vector(key)
 inline std::vector<uint32_t> ParameterSet::getUint32Vector(const std::string& aKey,
                                                     bool expandable) const
 {
   return itsSet->getUint32Vector(aKey, expandable);
 }
 
-//# getUint32Vector(key, value)
+// getUint32Vector(key, value)
 inline std::vector<uint32_t> ParameterSet::getUint32Vector(const std::string& aKey,
                                                     const std::vector<uint32_t>& aValue,
                                                     bool expandable) const
@@ -771,14 +771,14 @@ inline std::vector<uint32_t> ParameterSet::getUint32Vector(const std::string& aK
         return itsSet->getUint32Vector(aKey, aValue, expandable);
 }
 
-//# getInt64Vector(key)
+// getInt64Vector(key)
 inline std::vector<int64_t> ParameterSet::getInt64Vector(const std::string& aKey,
                                                   bool expandable) const
 {
   return itsSet->getInt64Vector(aKey, expandable);
 }
 
-//# getInt64Vector(key, value)
+// getInt64Vector(key, value)
 inline std::vector<int64_t> ParameterSet::getInt64Vector(const std::string& aKey,
                                                   const std::vector<int64_t>& aValue,
                                                   bool expandable) const
@@ -786,14 +786,14 @@ inline std::vector<int64_t> ParameterSet::getInt64Vector(const std::string& aKey
   return itsSet->getInt64Vector(aKey, aValue, expandable);
 }
 
-//# getUint64Vector(key)
+// getUint64Vector(key)
 inline std::vector<uint64_t> ParameterSet::getUint64Vector(const std::string& aKey,
                                                     bool expandable) const
 {
   return itsSet->getUint64Vector(aKey, expandable);
 }
 
-//# getUint64Vector(key, value)
+// getUint64Vector(key, value)
 inline std::vector<uint64_t> ParameterSet::getUint64Vector(const std::string& aKey,
                                                     const std::vector<uint64_t>& aValue,
                                                     bool expandable) const
@@ -801,14 +801,14 @@ inline std::vector<uint64_t> ParameterSet::getUint64Vector(const std::string& aK
         return itsSet->getUint64Vector(aKey, aValue, expandable);
 }
 
-//# getFloatVector(key)
+// getFloatVector(key)
 inline std::vector<float> ParameterSet::getFloatVector(const std::string& aKey,
                                                   bool expandable) const
 {
   return itsSet->getFloatVector(aKey, expandable);
 }
 
-//# getFloatVector(key, value)
+// getFloatVector(key, value)
 inline std::vector<float> ParameterSet::getFloatVector(const std::string& aKey,
                                                   const std::vector<float>& aValue,
                                                   bool expandable) const
@@ -816,13 +816,13 @@ inline std::vector<float> ParameterSet::getFloatVector(const std::string& aKey,
         return itsSet->getFloatVector(aKey, aValue, expandable);
 }
 
-//# getDoubleVector(key)
+// getDoubleVector(key)
 inline std::vector<double> ParameterSet::getDoubleVector(const std::string& aKey,
                                                     bool expandable) const
 {
   return itsSet->getDoubleVector(aKey, expandable);
 }
-//# getDoubleVector(key, value)
+// getDoubleVector(key, value)
 inline std::vector<double> ParameterSet::getDoubleVector(const std::string& aKey,
                                                     const std::vector<double>& aValue,
                                                     bool expandable) const
@@ -830,14 +830,14 @@ inline std::vector<double> ParameterSet::getDoubleVector(const std::string& aKey
         return itsSet->getDoubleVector(aKey, aValue, expandable);
 }
 
-//# getStringVector(key)
+// getStringVector(key)
 inline std::vector<std::string> ParameterSet::getStringVector(const std::string& aKey,
                                                     bool expandable) const
 {
   return itsSet->getStringVector(aKey, expandable);
 }
 
-//# getStringVector(key, value)
+// getStringVector(key, value)
 inline std::vector<std::string> ParameterSet::getStringVector(const std::string& aKey,
                                                     const std::vector<std::string>& aValue,
                                                     bool expandable) const
@@ -845,14 +845,14 @@ inline std::vector<std::string> ParameterSet::getStringVector(const std::string&
         return itsSet->getStringVector(aKey, aValue, expandable);
 }
 
-//# getTimeVector(key)
+// getTimeVector(key)
 inline std::vector<time_t> ParameterSet::getTimeVector(const std::string& aKey,
                                                   bool expandable) const
 {
   return itsSet->getTimeVector(aKey, expandable);
 }
 
-//# getTimeVector(key, value)
+// getTimeVector(key, value)
 inline std::vector<time_t> ParameterSet::getTimeVector(const std::string& aKey,
                                                   const std::vector<time_t>& aValue,
                                                   bool expandable) const

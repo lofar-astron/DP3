@@ -1,24 +1,24 @@
-//# ParameterSetImpl.h: Implements a map of Key-Value pairs.
-//#
-//# Copyright (C) 2002-2003
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: ParameterSetImpl.h 23459 2013-01-08 08:49:52Z diepen $
+// ParameterSetImpl.h: Implements a map of Key-Value pairs.
+//
+// Copyright (C) 2002-2003
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: ParameterSetImpl.h 23459 2013-01-08 08:49:52Z diepen $
 
 #ifndef LOFAR_COMMON_PARAMETERSETIMPL_H
 #define LOFAR_COMMON_PARAMETERSETIMPL_H
@@ -26,8 +26,8 @@
 // \file
 // Implements a map of Key-Value pairs.
 
-//# Never #include <config.h> or #include <lofar_config.h> in a header file!
-//# Includes
+// Never #include <config.h> or #include <lofar_config.h> in a header file!
+// Includes
 #include "ParameterValue.h"
 #include "StringUtil.h"
 
@@ -55,7 +55,7 @@ typedef StringUtil::Compare			KeyCompare;
 // used to compare keys.
 typedef std::map <std::string, ParameterValue, KeyCompare>	KVMap;
 
-//# Description of class.
+// Description of class.
 // The ParameterSetImpl class is a key-value implementation of the type
 // map<string, string, KeyCompare>. 
 // This means that values are stored as a string which allows easy merging and
@@ -354,7 +354,7 @@ private:
         mutable std::mutex itsMutex;
 };
 
-//# -------------------- Global functions --------------------
+// -------------------- Global functions --------------------
 // Checks if the given string is a valid versionnumber (x.y.z)
 bool	isValidVersionNr   (const std::string& versionNr);
 

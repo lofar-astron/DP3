@@ -1,24 +1,24 @@
-//# VdsPartDesc.h: Description of a visibility data set or part thereof
-//#
-//# Copyright (C) 2005
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: VdsPartDesc.h 16886 2010-12-08 10:43:17Z diepen $
+// VdsPartDesc.h: Description of a visibility data set or part thereof
+//
+// Copyright (C) 2005
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: VdsPartDesc.h 16886 2010-12-08 10:43:17Z diepen $
 
 #ifndef LOFAR_LMWCOMMON_VDSPARTDESC_H
 #define LOFAR_LMWCOMMON_VDSPARTDESC_H
@@ -27,7 +27,7 @@
 // @brief Description of a visibility data set or part thereof.
 // @author Ger van Diepen (diepen AT astron nl)
 
-//# Includes
+// Includes
 #include "ParameterSet.h"
 
 #include "../Blob/BlobOStream.h"

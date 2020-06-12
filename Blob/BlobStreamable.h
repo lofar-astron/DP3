@@ -1,24 +1,24 @@
-//# BlobStreamable.h: Interface for classes that can be streamed using blobs.
-//#
-//# Copyright (C) 2006
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: BlobStreamable.h 26359 2013-09-04 13:58:06Z loose $
+// BlobStreamable.h: Interface for classes that can be streamed using blobs.
+//
+// Copyright (C) 2006
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: BlobStreamable.h 26359 2013-09-04 13:58:06Z loose $
 
 #ifndef LOFAR_BLOB_BLOBSTREAMABLE_H
 #define LOFAR_BLOB_BLOBSTREAMABLE_H
@@ -26,7 +26,7 @@
 // \file
 // Interface for classes that can be streamed using blobs.
 
-//# Includes
+// Includes
 #include "../Common/Singleton.h"
 #include "../Common/ObjectFactory.h"
 
