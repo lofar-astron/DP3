@@ -122,20 +122,20 @@ namespace DP3 {
       DemixInfo               itsDemixInfo;
       string                  itsInstrumentName;
       std::shared_ptr<BBS::ParmDB> itsParmDB;
-      Filter                  itsFilter///< only used for getInfo()
+      Filter                  itsFilter; ///< only used for getInfo()
       std::vector<DemixWorker>     itsWorkers;
       std::vector<DPBuffer>        itsBufIn;
       std::vector<DPBuffer>        itsBufOut;
-      std::vector<std::vector<double> > itsSolutions///< all solutions in a time window
-      std::map<std::string,int>         itsParmIdMap///< -1 = new parm name
+      std::vector<std::vector<double> > itsSolutions; ///< all solutions in a time window
+      std::map<std::string,int>         itsParmIdMap; ///< -1 = new parm name
       unsigned int                    itsNTime;
       unsigned int                    itsNTimeOut;
       unsigned int                    itsNChunk;
 
       NSTimer itsTimer;
       NSTimer itsTimerDemix;
-      NSTimer itsTimerDump///< writeSolutions
-      NSTimer itsTimerNext///< next step (parallel to writeSolutions)
+      NSTimer itsTimerDump; ///< writeSolutions
+      NSTimer itsTimerNext; ///< next step (parallel to writeSolutions)
     };
 
   } // end namespace

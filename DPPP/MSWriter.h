@@ -171,11 +171,11 @@ namespace DP3 {
       string          itsOutName;
       DPBuffer        itsBuffer;
       casacore::Table     itsMS;
-      ParameterSet    itsParset///< parset for writing history
+      ParameterSet    itsParset; ///< parset for writing history
       casacore::String    itsDataColName;
       casacore::String    itsWeightColName;
       double          itsInterval;
-      bool            itsOverwrite///< Overwrite an existing output MS?
+      bool            itsOverwrite; ///< Overwrite an existing output MS?
       bool            itsCopyCorrData;
       bool            itsCopyModelData;
       bool            itsWriteFullResFlags;
@@ -185,12 +185,12 @@ namespace DP3 {
       unsigned int            itsNrChan;
       unsigned int            itsNrBl;
       unsigned int            itsNrTimes;
-      unsigned int            itsNChanAvg///< nr of channels in input averaged to 1
-      unsigned int            itsNTimeAvg///< nr of times in input averaged to 1
-      unsigned int            itsNrTimesFlush///< flush every N time slots (0=no flush)
-      unsigned int            itsNrDone///< nr of time slots written
-      std::string     itsVdsDir///< directory where to put VDS file
-      std::string     itsClusterDesc///< name of clusterdesc file
+      unsigned int            itsNChanAvg; ///< nr of channels in input averaged to 1
+      unsigned int            itsNTimeAvg; ///< nr of times in input averaged to 1
+      unsigned int            itsNrTimesFlush; ///< flush every N time slots (0=no flush)
+      unsigned int            itsNrDone; ///< nr of time slots written
+      std::string     itsVdsDir; ///< directory where to put VDS file
+      std::string     itsClusterDesc; ///< name of clusterdesc file
       NSTimer         itsTimer;
       StManParsetKeys itsStManKeys;
     };

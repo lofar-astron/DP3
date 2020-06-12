@@ -137,7 +137,7 @@ namespace DP3 {
       double          itsTimeInterval;
       double          itsLastTime; /// last time of current chunk
       FlagCounter     itsFlagCounter;
-      bool            itsUseAP///< use ampl/phase or real/imag
+      bool            itsUseAP; ///< use ampl/phase or real/imag
       hsize_t         itsDirection;
       NSTimer         itsTimer;
 

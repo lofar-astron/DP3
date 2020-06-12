@@ -286,44 +286,44 @@ namespace DP3 {
     protected:
       std::string        itsMSName;
       casacore::Table         itsMS;
-      casacore::Table         itsSelMS///< possible selection of spw, baseline
+      casacore::Table         itsSelMS; ///< possible selection of spw, baseline
       casacore::TableIterator itsIter;
       std::string        itsDataColName;
       std::string        itsWeightColName;
       std::string        itsModelColName;
-      std::string        itsStartChanStr///< startchan expression
-      std::string        itsNrChanStr///< nchan expression
-      std::string              itsSelBL///< Baseline selection string
-      bool                itsReadVisData///< read visibility data?
-      bool                itsNeedSort///< sort needed on time,baseline?
-      bool                itsAutoWeight///< calculate weights from autocorr?
-      bool                itsAutoWeightForce///< always calculate weights?
+      std::string        itsStartChanStr; ///< startchan expression
+      std::string        itsNrChanStr; ///< nchan expression
+      std::string              itsSelBL; ///< Baseline selection string
+      bool                itsReadVisData; ///< read visibility data?
+      bool                itsNeedSort; ///< sort needed on time,baseline?
+      bool                itsAutoWeight; ///< calculate weights from autocorr?
+      bool                itsAutoWeightForce; ///< always calculate weights?
       bool                itsHasWeightSpectrum;
       bool                itsUseFlags;
-      bool                itsUseAllChan///< all channels (i.e. no slicer)?
-      bool                itsMissingData///< allow missing data column?
-      int                 itsSpw///< spw (band) to use (<0 no select)
+      bool                itsUseAllChan; ///< all channels (i.e. no slicer)?
+      bool                itsMissingData; ///< allow missing data column?
+      int                 itsSpw; ///< spw (band) to use (<0 no select)
       unsigned int                itsNrBl;
       unsigned int                itsNrCorr;
       unsigned int                itsNrChan;
       unsigned int                itsStartChan;
-      double              itsTimeTolerance///< tolerance for time comparison
+      double              itsTimeTolerance; ///< tolerance for time comparison
       double              itsTimeInterval;
       double              itsStartTime;
       double              itsFirstTime;
       double              itsLastTime;
       double              itsNextTime;
       double              itsLastMSTime;
-      unsigned int                itsNrRead///< nr of time slots read from MS
-      unsigned int                itsNrInserted///< nr of inserted time slots
-      casacore::Slicer        itsColSlicer///< slice in corr,chan column
-      casacore::Slicer        itsArrSlicer///< slice in corr,chan,bl array
+      unsigned int                itsNrRead; ///< nr of time slots read from MS
+      unsigned int                itsNrInserted; ///< nr of inserted time slots
+      casacore::Slicer        itsColSlicer; ///< slice in corr,chan column
+      casacore::Slicer        itsArrSlicer; ///< slice in corr,chan,bl array
       bool                itsHasFullResFlags;
       unsigned int                itsFullResNChanAvg;
       unsigned int                itsFullResNTimeAvg;
       DPBuffer            itsBuffer;
       UVWCalculator       itsUVWCalc;
-      casacore::Vector<rownr_t> itsBaseRowNrs///< rownrs for meta of missing times
+      casacore::Vector<rownr_t> itsBaseRowNrs; ///< rownrs for meta of missing times
       FlagCounter         itsFlagCounter;
       NSTimer             itsTimer;
     };

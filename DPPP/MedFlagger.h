@@ -123,9 +123,9 @@ namespace DP3 {
       string           itsThresholdStr;
       string           itsFreqWindowStr;
       string           itsTimeWindowStr;
-      std::vector<float>    itsThresholdArr///< threshold per baseline
-      std::vector<unsigned int>     itsFreqWindowArr///< freq window size per baseline
-      std::vector<unsigned int>     itsTimeWindowArr///< time window size per baseline
+      std::vector<float>    itsThresholdArr; ///< threshold per baseline
+      std::vector<unsigned int>     itsFreqWindowArr; ///< freq window size per baseline
+      std::vector<unsigned int>     itsTimeWindowArr; ///< time window size per baseline
       float            itsThreshold;
       unsigned int             itsFreqWindow;
       unsigned int             itsTimeWindow;
@@ -133,18 +133,18 @@ namespace DP3 {
       unsigned int             itsNTimesDone;
       std::vector<unsigned int>     itsFlagCorr;
       bool             itsApplyAutoCorr;
-      std::vector<int>      itsAutoCorrIndex///< baseline index of autocorrelations
+      std::vector<int>      itsAutoCorrIndex; ///< baseline index of autocorrelations
       unsigned int             itsNrAutoCorr;
-      double           itsMinBLength///< minimum baseline length
-      double           itsMaxBLength///< maximum baseline length
-      std::vector<double>   itsBLength///< length of each baseline
+      double           itsMinBLength; ///< minimum baseline length
+      double           itsMaxBLength; ///< maximum baseline length
+      std::vector<double>   itsBLength; ///< length of each baseline
       std::vector<DPBuffer> itsBuf;
-      std::vector<casacore::Cube<float> > itsAmpl///< amplitudes of the data
+      std::vector<casacore::Cube<float> > itsAmpl; ///< amplitudes of the data
       FlagCounter      itsFlagCounter;
       NSTimer          itsTimer;
-      NSTimer          itsComputeTimer///< move/median timer
-      double           itsMoveTime///< data move timer (sum all threads)
-      double           itsMedianTime///< median timer (sum of all threads)
+      NSTimer          itsComputeTimer; ///< move/median timer
+      double           itsMoveTime; ///< data move timer (sum all threads)
+      double           itsMedianTime; ///< median timer (sum of all threads)
     };
 
   } // end namespace

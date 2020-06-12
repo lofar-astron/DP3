@@ -209,11 +209,11 @@ namespace DP3 {
       double                    itsTime;
       double                    itsExposure;
       casacore::Vector<rownr_t> itsRowNrs;
-      casacore::Cube<casacore::Complex> itsData///< ncorr,nchan,nbasel
-      casacore::Cube<bool>          itsFlags///< ncorr,nchan,nbasel
-      casacore::Matrix<double>      itsUVW///< 3,nbasel
-      casacore::Cube<float>         itsWeights///< ncorr,nchan,nbasel
-      casacore::Cube<bool>          itsFullResFlags///< fullres_nchan,ntimeavg,nbl
+      casacore::Cube<casacore::Complex> itsData; ///< ncorr,nchan,nbasel
+      casacore::Cube<bool>          itsFlags; ///< ncorr,nchan,nbasel
+      casacore::Matrix<double>      itsUVW; ///< 3,nbasel
+      casacore::Cube<float>         itsWeights; ///< ncorr,nchan,nbasel
+      casacore::Cube<bool>          itsFullResFlags; ///< fullres_nchan,ntimeavg,nbl
     };
 
   } // end namespace

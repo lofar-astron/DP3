@@ -69,8 +69,8 @@ namespace DP3 {
     private:
       casacore::MDirection              itsPhaseDir;
       bool                          itsMovingPhaseDir;  
-      casacore::MDirection::Convert     itsDirToJ2000///< direction to J2000
-      casacore::MBaseline::Convert      itsBLToJ2000///< convert ITRF to J2000
+      casacore::MDirection::Convert     itsDirToJ2000; ///< direction to J2000
+      casacore::MBaseline::Convert      itsBLToJ2000; ///< convert ITRF to J2000
       casacore::MeasFrame               itsFrame;
       std::vector<casacore::MBaseline>       itsAntMB;
       std::vector<casacore::Vector<double> > itsAntUvw;

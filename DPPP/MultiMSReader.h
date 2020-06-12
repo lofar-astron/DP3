@@ -182,14 +182,14 @@ namespace DP3 {
       /// Fill the band info where some MSs are missing.
       void fillBands();
 
-      bool                  itsOrderMS///< sort multi MS in order of freq?
-      int                   itsFirst///< first valid MSReader (<0 = none)
-      int                   itsNMissing///< nr of missing MSs
+      bool                  itsOrderMS; ///< sort multi MS in order of freq?
+      int                   itsFirst; ///< first valid MSReader (<0 = none)
+      int                   itsNMissing; ///< nr of missing MSs
       std::vector<string>        itsMSNames;
-      std::vector<MSReader*>     itsReaders///< same as itsSteps
-      std::vector<DPStep::ShPtr> itsSteps///< used for automatic destruction
+      std::vector<MSReader*>     itsReaders; ///< same as itsSteps
+      std::vector<DPStep::ShPtr> itsSteps; ///< used for automatic destruction
       std::vector<DPBuffer>      itsBuffers;
-      unsigned int                  itsFillNChan///< nr of chans for missing MSs
+      unsigned int                  itsFillNChan; ///< nr of chans for missing MSs
       FlagCounter           itsFlagCounter;
       bool                  itsRegularChannels; /// Are resulting channels regularly spaced
     };

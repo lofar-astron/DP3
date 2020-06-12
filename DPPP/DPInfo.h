@@ -311,11 +311,11 @@ namespace DP3 {
       /// Creates a real copy of a casacore::Measure by exporting to a Record
       static casacore::MeasureHolder copyMeasure(const casacore::MeasureHolder fromMeas);
 
-      bool   itsNeedVisData///< Are the visibility data needed?
-      bool   itsWriteData///< Must the data be written?
-      bool   itsWriteFlags///< Must the flags be written?
-      bool   itsWriteWeights///< Must the weights be written?
-      bool   itsMetaChanged///< Are meta data changed? (e.g., by averaging)
+      bool   itsNeedVisData; ///< Are the visibility data needed?
+      bool   itsWriteData; ///< Must the data be written?
+      bool   itsWriteFlags; ///< Must the flags be written?
+      bool   itsWriteWeights; ///< Must the weights be written?
+      bool   itsMetaChanged; ///< Are meta data changed? (e.g., by averaging)
       string itsMSName;
       std::string itsDataColName;
       std::string itsWeightColName;
@@ -347,10 +347,10 @@ namespace DP3 {
       std::vector<casacore::MPosition>    itsAntPos;
       std::vector<int>                itsAntUsed;
       std::vector<int>                itsAntMap;
-      casacore::Vector<casacore::Int>    itsAnt1///< ant1 of all baselines
-      casacore::Vector<casacore::Int>    itsAnt2///< ant2 of all baselines
-      mutable std::vector<double>     itsBLength///< baseline lengths
-      mutable std::vector<int>        itsAutoCorrIndex///< autocorr index per ant
+      casacore::Vector<casacore::Int>    itsAnt1; ///< ant1 of all baselines
+      casacore::Vector<casacore::Int>    itsAnt2; ///< ant2 of all baselines
+      mutable std::vector<double>     itsBLength; ///< baseline lengths
+      mutable std::vector<int>        itsAutoCorrIndex; ///< autocorr index per ant
       unsigned int itsNThreads;
     };
 

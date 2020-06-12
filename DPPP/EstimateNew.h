@@ -130,8 +130,8 @@ namespace DP3 {
       size_t itsNrIter;
       size_t itsNrDir;
       bool   itsPropagateSolution;
-      casacore::Block<bool>  itsSolveStation///< solve station i?
-      std::vector<casacore::uInt> itsDerivIndex///< index for LSQFit::makeIndex
+      casacore::Block<bool>  itsSolveStation; ///< solve station i?
+      std::vector<casacore::uInt> itsDerivIndex; ///< index for LSQFit::makeIndex
       std::vector<double>     itsUnknowns;
       std::vector<double>     itsSolution;
       std::vector<dcomplex>   itsM;

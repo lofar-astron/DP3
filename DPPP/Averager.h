@@ -113,7 +113,7 @@ namespace DP3 {
       float           itsMinPerc;
       unsigned int            itsNTimes;
       double          itsTimeInterval;
-      bool            itsNoAvg///< No averaging (i.e. both 1)?
+      bool            itsNoAvg; ///< No averaging (i.e. both 1)?
       NSTimer         itsTimer;
     };
 

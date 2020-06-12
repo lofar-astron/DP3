@@ -16,11 +16,11 @@ namespace DP3 {
     struct StManParsetKeys
     {
       casacore::String    stManName;
-      unsigned int            dyscoDataBitRate///< Bits per data float, or 0 if data column is not compressed
-      unsigned int            dyscoWeightBitRate///< Bits per weight float, or 0 if weight column is not compressed
-      std::string     dyscoDistribution///< Distribution assumed for compression; e.g. "Uniform" or "TruncatedGaussian"
-      double          dyscoDistTruncation///< For truncated distributions, the truncation point (e.g. 3 for 3 sigma in TruncGaus).
-      std::string     dyscoNormalization///< Kind of normalization; "AF", "RF" or "Row".     
+      unsigned int            dyscoDataBitRate; ///< Bits per data float, or 0 if data column is not compressed
+      unsigned int            dyscoWeightBitRate; ///< Bits per weight float, or 0 if weight column is not compressed
+      std::string     dyscoDistribution; ///< Distribution assumed for compression; e.g. "Uniform" or "TruncatedGaussian"
+      double          dyscoDistTruncation; ///< For truncated distributions, the truncation point (e.g. 3 for 3 sigma in TruncGaus).
+      std::string     dyscoNormalization; ///< Kind of normalization; "AF", "RF" or "Row".     
       
       void Set(const ParameterSet& parset, const std::string& prefix)
       {

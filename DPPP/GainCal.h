@@ -194,7 +194,7 @@ namespace DP3 {
       casacore::Vector<bool> itsAntennaUsed; /// Vector (length nSt) telling
                                          /// which stations are solved for
 
-      std::map<std::string,int>  itsParmIdMap///< -1 = new parm name
+      std::map<std::string,int>  itsParmIdMap; ///< -1 = new parm name
 
       unsigned int             itsMaxIter;
       double           itsTolerance;

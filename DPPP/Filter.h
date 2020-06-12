@@ -189,13 +189,13 @@ namespace DP3 {
       string            itsName;
       DPBuffer          itsBuf;
       DPBuffer          itsBufTmp;
-      casacore::String      itsStartChanStr///< startchan expression
-      casacore::String      itsNrChanStr///< nchan expression
-      bool              itsRemoveAnt///< Remove from ANTENNA table?
+      casacore::String      itsStartChanStr; ///< startchan expression
+      casacore::String      itsNrChanStr; ///< nchan expression
+      bool              itsRemoveAnt; ///< Remove from ANTENNA table?
       BaselineSelection itsBaselines;
       unsigned int              itsStartChan;
-      std::vector<unsigned int>      itsSelBL///< Index of baselines to select
-      bool              itsDoSelect///< Any selection?
+      std::vector<unsigned int>      itsSelBL; ///< Index of baselines to select
+      bool              itsDoSelect; ///< Any selection?
       NSTimer           itsTimer;
     };
 

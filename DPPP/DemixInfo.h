@@ -161,31 +161,31 @@ namespace DP3 {
       bool                    itsIsAteamNearby;
       bool                    itsPropagateSolution;
       bool                    itsApplyBeam;
-      bool                    itsSolveBoth///< solve if both stat solvable
+      bool                    itsSolveBoth; ///< solve if both stat solvable
       bool                    itsDoSubtract;
       unsigned int                    itsTargetHandling;
-      unsigned int                    itsVerbose///< trace verbosity level
-      unsigned int                    itsMaxIter///< max #iter in solve
-      unsigned int                    itsMinNBaseline///< min #baselines for solve
-      unsigned int                    itsMinNStation///< min #stations for solve
+      unsigned int                    itsVerbose; ///< trace verbosity level
+      unsigned int                    itsMaxIter; ///< max #iter in solve
+      unsigned int                    itsMinNBaseline; ///< min #baselines for solve
+      unsigned int                    itsMinNStation; ///< min #stations for solve
       unsigned int                    itsNStation;
       unsigned int                    itsNBl;
       unsigned int                    itsNCorr;
       unsigned int                    itsNChanIn;
-      unsigned int                    itsNChanAvgSubtr///< subtract averaging
-      unsigned int                    itsNChanAvg///< demix averaging
+      unsigned int                    itsNChanAvgSubtr; ///< subtract averaging
+      unsigned int                    itsNChanAvg; ///< demix averaging
       unsigned int                    itsNChanOutSubtr;
       unsigned int                    itsNChanOut;
-      unsigned int                    itsNTimeAvgSubtr///< subtract averaging
-      unsigned int                    itsNTimeAvg///< demix averaging
-      unsigned int                    itsNTimeOutSubtr///< #output times per chunk
-      unsigned int                    itsNTimeOut///< #demix times per chunk
-      unsigned int                    itsChunkSize///< predict time step
-      unsigned int                    itsNTimeChunk///< nr chunks in parallel
+      unsigned int                    itsNTimeAvgSubtr; ///< subtract averaging
+      unsigned int                    itsNTimeAvg; ///< demix averaging
+      unsigned int                    itsNTimeOutSubtr; ///< #output times per chunk
+      unsigned int                    itsNTimeOut; ///< #demix times per chunk
+      unsigned int                    itsChunkSize; ///< predict time step
+      unsigned int                    itsNTimeChunk; ///< nr chunks in parallel
       double                  itsTimeIntervalAvg;
-      Position                itsPhaseRef///< original phaseref
+      Position                itsPhaseRef; ///< original phaseref
       std::vector<Baseline>        itsBaselines;
-      casacore::Vector<bool>      itsSelTarget///< baselines in target estimate
+      casacore::Vector<bool>      itsSelTarget; ///< baselines in target estimate
       casacore::Vector<double>    itsFreqDemix;
       casacore::Vector<double>    itsFreqSubtr;
       std::vector<Patch::ConstPtr> itsAteamList;

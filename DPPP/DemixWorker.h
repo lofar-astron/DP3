@@ -272,14 +272,14 @@ namespace DP3 {
       /// Variables for conversion of directions to ITRF.
       casacore::MeasFrame                       itsMeasFrame;
       casacore::MDirection::Convert             itsMeasConverter;
-      std::vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues///< [nst,nch]
+      std::vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues; ///< [nst,nch]
 
       /// Indices telling which Ateam sources to use.
       std::vector<unsigned int>                          itsSrcSet;
       /// UVW per station per demix time slot
-      casacore::Cube<double>                    itsStationUVW///< UVW per station
-      casacore::Matrix<double>                  itsAvgUVW///< temp buffer
-      casacore::Cube<dcomplex>                  itsPredictVis///< temp buffer
+      casacore::Cube<double>                    itsStationUVW; ///< UVW per station
+      casacore::Matrix<double>                  itsAvgUVW; ///< temp buffer
+      casacore::Cube<dcomplex>                  itsPredictVis; ///< temp buffer
       /// #nfreq x #bl x #time StokesI amplitude per A-source.
       std::vector<casacore::Cube<float> >            itsAteamAmpl;
       /// #bl x #src telling if baseline has sufficient Ateam flux.
@@ -295,7 +295,7 @@ namespace DP3 {
       double                                itsTargetMaxAmpl;
       /// Per A-source the stations to use (matching the minimum amplitude).
       std::vector<std::vector<unsigned int> >                 itsStationsToUse;
-      casacore::Block<bool>                     itsSolveStation///< solve station i?
+      casacore::Block<bool>                     itsSolveStation; ///< solve station i?
       /// Per station and source the index in the unknowns vector.
       /// Note there are 8 unknowns (4 pol, ampl/phase) per source/station.
       std::vector<std::vector<int> >                  itsUnknownsIndex;

@@ -100,11 +100,11 @@ namespace DP3 {
       DPInput*             itsInput;
       string               itsName;
       DPBuffer             itsBuf;
-      std::vector<string>       itsCenter;
-      std::vector<double>       itsFreqC///< freq/C
-      casacore::Matrix<double> itsMat1///< TT in phasehift.py
-      double               itsXYZ[3]///< numpy.dot((w-w1).T, T)
-      casacore::Matrix<casacore::DComplex> itsPhasors///< phase factor per chan,bl
+      std::vector<string> itsCenter;
+      std::vector<double> itsFreqC; ///< freq/C
+      casacore::Matrix<double> itsMat1; ///< TT in phasehift.py
+      double itsXYZ[3]; ///< numpy.dot((w-w1).T, T)
+      casacore::Matrix<casacore::DComplex> itsPhasors; ///< phase factor per chan,bl
       NSTimer              itsTimer;
     };
 
