@@ -73,7 +73,6 @@ if(AOFLAGGER_LIB AND AOFLAGGER_INCLUDE_DIR AND AOFLAGGER_VERSION)
 
   find_package(PkgConfig)
   pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
-  pkg_check_modules(SIGCXX sigc++-2.0)
   if(GTKMM_FOUND)
     list(APPEND AOFLAGGER_LIB ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
   endif(GTKMM_FOUND)
