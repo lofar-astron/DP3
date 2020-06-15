@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: SourceDBBlob.h 27639 2013-12-04 08:02:12Z diepen $
 
 /// @file
 /// @brief Base class for a table holding sources and their parameters

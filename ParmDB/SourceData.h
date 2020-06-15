@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: SourceData.h 37340 2017-05-11 12:39:06Z dijkema $
 
 /// @file
 /// @brief Base class for a table holding sources and their parameters
@@ -91,6 +89,7 @@ namespace BBS {
       { return itsSpTerms; }
 
     /// Set the various source parameters.
+    /// <group>
     void setInfo (const SourceInfo& info)
       { itsInfo = info; }
     void setPatchName (const string& patchName)
@@ -121,6 +120,7 @@ namespace BBS {
       { itsRM = potationMeasure; }
     void setSpectralTerms (const std::vector<double>& spectralTerms)
       { itsSpTerms = spectralTerms; }
+    /// </group>
 
     /// Set the parameters from a ParmMap object.
     void setParms (const ParmMap& defaultParameters);

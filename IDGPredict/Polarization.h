@@ -355,7 +355,7 @@ public:
   template<typename NumType>
   static void LinearToStokes(const std::complex<NumType> *linear, NumType* stokes)
   {
-    /// Note comments about X and Y at the top of this file!
+    // Note comments about X and Y at the top of this file!
     stokes[0] = 0.5 * (linear[0].real() + linear[3].real());
     stokes[1] = 0.5 * (linear[0].real() - linear[3].real());
     stokes[2] = 0.5 * (linear[1].real() + linear[2].real());

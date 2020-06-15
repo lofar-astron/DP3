@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: AxisMapping.h 14038 2009-09-17 13:59:12Z diepen $
 
 /// @file
 /// @brief Map the cells of one axis to another

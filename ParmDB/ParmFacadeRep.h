@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmFacadeRep.h 27639 2013-12-04 08:02:12Z diepen $
-
-#ifndef LOFAR_PARMDB_PARMFACADEREP_H
-#define LOFAR_PARMDB_PARMFACADEREP_H
 
 /// \file
 /// Data access the parameter database.
+
+#ifndef LOFAR_PARMDB_PARMFACADEREP_H
+#define LOFAR_PARMDB_PARMFACADEREP_H
 
 #include "ParmDB.h"
 
@@ -53,7 +51,6 @@ namespace DP3 { namespace BBS {
   /// The parameter names can be given as a pattern. This is the same as a
   /// file name pattern that can be given in the UNIX shells (e.g. RA:*).
   /// Thus it is not a full regular expression.
-
   class ParmFacadeRep
   {
   public:

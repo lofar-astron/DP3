@@ -23,7 +23,7 @@ public:
     std::ifstream ifs("idg.conf");
     if (ifs.fail())
     {
-      /// Logger::Debug << "could not open config file\n";
+      // Logger::Debug << "could not open config file\n";
     }
     else
     {

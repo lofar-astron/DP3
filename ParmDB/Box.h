@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Box.h 16977 2010-12-20 08:40:36Z diepen $
 
 /// @file
 /// @brief Class representing a 2-dim box

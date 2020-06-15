@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Axis.h 20771 2012-04-19 12:04:48Z diepen $
 
 /// @file
 /// @brief Classes representing a regular or irregular axis.

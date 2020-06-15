@@ -16,8 +16,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: pyparameterset.cc 23074 2012-12-03 07:51:29Z diepen $
 
 #ifndef DPPP_DPSTEPBASE_H
 #define DPPP_DPSTEPBASE_H
@@ -36,7 +34,6 @@ namespace DP3 {
     /// Boost::Python functionality.
     /// DPStepBase is bound to the Python interface by PythonDPPP.cc.
     /// See class PythonStep and __init.py__ for more information.
-
     class DPStepBase
     {
     public:

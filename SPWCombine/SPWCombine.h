@@ -15,17 +15,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
 /// @author Adriaan Renting
 
 #ifndef LOFARSPWCOMBINE_H
 #define LOFARSPWCOMBINE_H
 
-/**
-@author Adriaan Renting
-*/
 #include <iostream>
 #include <cstdlib>
 #include <string>

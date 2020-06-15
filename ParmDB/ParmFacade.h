@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmFacade.h 27639 2013-12-04 08:02:12Z diepen $
-
-#ifndef LOFAR_PARMDB_PARMFACADE_H
-#define LOFAR_PARMDB_PARMFACADE_H
 
 /// \file
 /// Data access the parameter database.
+
+#ifndef LOFAR_PARMDB_PARMFACADE_H
+#define LOFAR_PARMDB_PARMFACADE_H
 
 #include "ParmFacadeRep.h"
 
@@ -51,7 +49,6 @@ namespace DP3 { namespace BBS {
   /// The parameter names can be given as a pattern. This is the same as a
   /// file name pattern that can be given in the UNIX shells (e.g. RA:*).
   /// Thus it is not a full regular expression.
-
   class ParmFacade
   {
   public:
@@ -196,7 +193,7 @@ namespace DP3 { namespace BBS {
 
     /// The following functions are only implemented for a local ParmDB.
     /// The ParmFacadeDistr functions throw an exception.
-
+    
     /// Writelock and unlock the database tables.
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.

@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmFacadeLocal.h 27639 2013-12-04 08:02:12Z diepen $
-
-#ifndef LOFAR_PARMDB_PARMFACADELOCAL_H
-#define LOFAR_PARMDB_PARMFACADELOCAL_H
 
 /// \file
 /// Data access the a local parameter database.
+
+#ifndef LOFAR_PARMDB_PARMFACADELOCAL_H
+#define LOFAR_PARMDB_PARMFACADELOCAL_H
 
 #include "ParmFacadeRep.h"
 #include "ParmDB.h"
@@ -43,7 +41,7 @@ namespace DP3 { namespace BBS {
   /// The current version assumes it is an AIPS++ table; with a few extra
   /// constructor arguments it can easily be changed to other types of
   /// databases.
-  //
+  /// 
   /// The class provides a few functions:
   /// <ul>
   /// <li> getNames returns a vector of the parameter names in the table
@@ -52,7 +50,7 @@ namespace DP3 { namespace BBS {
   /// <li> getValues returns the values of the parameters a calculated on
   ///      a grid given by the caller.
   /// </ul>
-  //
+  /// 
   /// The parameter names can be given as a pattern. This is the same as a
   /// file name pattern that can be given in the UNIX shells (e.g. RA:*).
   /// Thus it is not a full regular expression.

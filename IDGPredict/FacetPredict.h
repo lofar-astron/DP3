@@ -100,9 +100,9 @@ public:
     int64_t memory = (int64_t) pageCount * (int64_t) pageSize;
     uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(_nr_stations, maxChannels);
     memPerTimestep *= 2; // IDG uses two internal buffer
-    /// Allow the directions together to use 1/4th of the available memory for the vis buffers.
+    // Allow the directions together to use 1/4th of the available memory for the vis buffers.
     size_t allocatableTimesteps = memory/4/_images.size()/nTerms / memPerTimestep;
-    /// TODO once a-terms are supported, this should include the size required for the a-terms.
+    // TODO once a-terms are supported, this should include the size required for the a-terms.
     std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps << '\n';
     
     int buffersize = std::max(allocatableTimesteps, size_t(1));
@@ -124,7 +124,7 @@ public:
         dp = sqrt(1.0 - dl*dl - dm*dm) - 1.0;
       std::cout << "Initializing gridder " << _buffersets.size() << " (" << img.Width() << " x " << img.Height() << ", +" << img.OffsetX() << "," << img.OffsetY() << ", dl=" << dl*180.0/M_PI << " deg, dm=" << dm*180.0/M_PI << " deg)\n";
       
-      /// TODO make full polarization
+      // TODO make full polarization
       for(size_t term=0; term!=nTerms; ++term)
       {
         data[term].assign(img.Width() * img.Height() * 4, 0.0);
@@ -230,7 +230,7 @@ private:
       size_t localRow = row - _metaData[direction].rowIdOffset;
       const double* uvw = &_metaData[direction].uvws[localRow*3];
       
-      /// Correct the phase shift of the values for this facet
+      // Correct the phase shift of the values for this facet
       for(size_t term=0; term!=nTerms; ++term)
       {
         std::complex<float>* values = available_row_ids[term][i].second;
@@ -254,11 +254,11 @@ private:
         }
       }
       
-      /// Apply polynomial-term corrections and add all to values of 'term 0'
-      /// The "polynomial spectrum" definition is used, equal to the one e.g. used by WSClean in component outputs
-      /// (see https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text files when 'logarithmic SI' is false. 
-      /// The definition is:
-      ///   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
+      // Apply polynomial-term corrections and add all to values of 'term 0'
+      // The "polynomial spectrum" definition is used, equal to the one e.g. used by WSClean in component outputs
+      // (see https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text files when 'logarithmic SI' is false. 
+      // The definition is:
+      //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
       std::complex<float>* values0 = available_row_ids[0][i].second;
       for(size_t ch=0; ch!=nChan; ++ch)
       {

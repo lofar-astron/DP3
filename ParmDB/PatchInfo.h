@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: PatchInfo.h 27648 2013-12-04 09:01:16Z diepen $
 
 /// @file
 /// @brief Info about a patch

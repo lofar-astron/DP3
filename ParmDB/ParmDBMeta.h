@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-//  $Id: ParmDBMeta.h 21605 2012-07-16 14:40:36Z diepen $
 
 /// @file
 /// @brief Meta information for the name and type of a ParmDB
@@ -82,10 +80,12 @@ namespace BBS {
     std::string itsType;
     std::string itsTableName;
     /// these options are used for sql databases
+    /// <group>
     std::string itsDBName;
     std::string itsUserName;
     std::string itsDBPwd;
     std::string itsHostName;
+    /// </group>
   };
 
   /// @}

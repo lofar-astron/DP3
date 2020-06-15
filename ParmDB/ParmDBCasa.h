@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmDBCasa.h 29469 2014-06-10 09:37:25Z diepen $
 
 /// @file
 /// @brief Class to hold parameters in a Casa table

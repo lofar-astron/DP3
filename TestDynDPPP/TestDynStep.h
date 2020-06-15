@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Averager.h 30711 2015-01-15 14:36:28Z diepen $
-//
+
+/// @file
+/// @brief Test of a dynamically loaded DPPP step
 /// @author Ger van Diepen
 
 #ifndef TESTDYNDPPP_TESTDYNSTEP_H
 #define TESTDYNDPPP_TESTDYNSTEP_H
-
-/// @file
-/// @brief Test of a dynamically loaded DPPP step
 
 #include "../DPPP/DPStep.h"
 #include "../DPPP/Averager.h"

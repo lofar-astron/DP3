@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmDBBlob.h 21598 2012-07-16 08:07:34Z diepen $
 
 /// @file
 /// @brief Dummy class to hold parameters in a Blob

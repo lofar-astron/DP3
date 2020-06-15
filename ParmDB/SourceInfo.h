@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: SourceInfo.h 37340 2017-05-11 12:39:06Z dijkema $
 
 /// @file
 /// @brief Info about a source
@@ -138,19 +136,18 @@ namespace BBS {
     void read (BlobIStream&);
 
   private:
-    string itsName;           /// source name
-    Type   itsType;           /// source type
-    string itsRefType;        /// reference type
-    uint32_t itsNSpTerms;    /// nr of terms in the spectral index function
-    double itsSpTermsRefFreq;   /// reference frequency (Hz) for spectral index
-    bool itsHasLogarithmicSI; // Spectral indices are logarithmic terms
-                              /// (false means as polynomials)
-    bool   itsUseRotMeas;     /// true=use RM,PolFrac,PolAngle; false=use Q,U
-    double itsShapeletScaleI; // shapelet scale for I-flux
+    string itsName;           ///< source name
+    Type   itsType;           ///< source type
+    string itsRefType;        ///< reference type
+    uint32_t itsNSpTerms;    ///< nr of terms in the spectral index function
+    double itsSpTermsRefFreq;   ///< reference frequency (Hz) for spectral index
+    bool itsHasLogarithmicSI; ///< Spectral indices are logarithmic terms (false means as polynomials)
+    bool   itsUseRotMeas;     ///< true=use RM,PolFrac,PolAngle; false=use Q,U
+    double itsShapeletScaleI; ///< shapelet scale for I-flux
     double itsShapeletScaleQ;
     double itsShapeletScaleU;
     double itsShapeletScaleV;
-    casacore::Array<double> itsShapeletCoeffI;  /// shapelet coefficients I-flux
+    casacore::Array<double> itsShapeletCoeffI;  ///< shapelet coefficients I-flux
     casacore::Array<double> itsShapeletCoeffQ;
     casacore::Array<double> itsShapeletCoeffU;
     casacore::Array<double> itsShapeletCoeffV;

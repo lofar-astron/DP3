@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmFacadeDistr.h 27747 2013-12-12 11:09:58Z diepen $
-
-#ifndef LOFAR_PARMDB_PARMFACADEDISTR_H
-#define LOFAR_PARMDB_PARMFACADEDISTR_H
 
 /// \file
 /// Data access the a distributed parameter database.
+
+#ifndef LOFAR_PARMDB_PARMFACADEDISTR_H
+#define LOFAR_PARMDB_PARMFACADEDISTR_H
 /*
 #include "ParmFacadeRep.h"
 

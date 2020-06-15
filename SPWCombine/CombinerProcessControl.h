@@ -15,9 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
 /// @author Adriaan Renting
 
 #ifndef LOFARCOMBINERPROCESSCONTROL_H
@@ -27,9 +25,6 @@
 #include <Common/ParameterSet.h>
 #include <vector>
 
-/**
-@author Adriaan Renting
-*/
 namespace casa
 {
   class MeasurementSet; //foreward declaration

@@ -44,7 +44,7 @@ public:
       paddedWidth = std::max(paddedWidth, paddedHeight);
       paddedHeight = paddedWidth;
     }
-    /// Make the width and height divisable by four.
+    // Make the width and height divisable by four.
     paddedWidth += (4-(paddedWidth%4))%4;
     paddedHeight += (4-(paddedHeight%4))%4;
     int padX = (paddedWidth-width)/2;

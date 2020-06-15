@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: DPStep.h 30718 2015-01-19 15:31:51Z diepen $
-//
+
 /// @author Ger van Diepen
+/// @file
+/// @brief Class to execute a DPStep in some Python module
 
 #ifndef DPPP_PYTHONSTEP_H
 #define DPPP_PYTHONSTEP_H
-
-/// @file
-/// @brief Class to execute a DPStep in some Python module
 
 #include "../DPPP/DPInput.h"
 #include "../DPPP/DPBuffer.h"
@@ -78,7 +75,6 @@ namespace DP3 {
     /// </ol>
     /// The class also contains several functions that are basically the
     /// callback function for Python.
-
     class PythonStep: public DPStep
     {
     public:

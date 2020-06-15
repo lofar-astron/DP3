@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmDBLocker.h 14038 2009-09-17 13:59:12Z diepen $
 
 /// @file
 /// @brief Class to hold a read or write lock on ParmDBs

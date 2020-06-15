@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: SourceDB.h 27639 2013-12-04 08:02:12Z diepen $
 
 /// @file
 /// @brief Base class for a table holding sources and their parameters
@@ -157,8 +155,8 @@ namespace BBS {
 
     /// Clear database or table
     virtual void clearTables() = 0;
-    /// Get the name and type of the SourceDB.
 
+    /// Get the name and type of the SourceDB.
     const ParmDBMeta& getParmDBMeta() const
       { return itsParmDB.getParmDBMeta(); }
 
@@ -204,6 +202,7 @@ namespace BBS {
       { itsRep->lock (lockForWrite); }
     void unlock()
       { itsRep->unlock(); }
+    /// </group>
 
     /// Get the associated ParmDB.
     ParmDB& getParmDB()

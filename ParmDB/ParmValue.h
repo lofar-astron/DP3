@@ -17,8 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParmValue.h 16977 2010-12-20 08:40:36Z diepen $
 
 /// @file
 /// @brief A class containing the values of a parameter
@@ -156,7 +154,7 @@ namespace BBS {
     /// The matrix will be resized as needed.
     static void fillPascal (casacore::Matrix<double>& pascal, int order);
 
-    /// Data members.
+    // Data members.
     Grid                 itsGrid;          ///< grid of the values
     casacore::Array<double>  itsValues;        ///< scalar values or funklet coeff
     casacore::Array<double>* itsErrors;
