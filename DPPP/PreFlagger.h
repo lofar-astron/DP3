@@ -167,10 +167,10 @@ namespace DP3 {
         void flagPhase (const casacore::Cube<casacore::Complex>& data);
 
         /// Set the flags based on real/imaginary threshold per correlation.
-        /// <group>
+        ///@{
         void flagReal (const casacore::Cube<casacore::Complex>& data);
         void flagImag (const casacore::Cube<casacore::Complex>& data);
-        /// </group>
+        ///@}
 
         /// Flag the channels given in itsChannels.
         void flagChannels();

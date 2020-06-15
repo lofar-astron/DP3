@@ -116,7 +116,7 @@ namespace DP3 {
         { return itsAmplSubtrNr; }
 
       /// Get the timings of the various processing steps.
-      /// <group>
+      ///@{
       double getTotalTime() const
         { return itsTimer.getElapsed(); }
       double getCoarseTime() const
@@ -131,7 +131,7 @@ namespace DP3 {
         { return itsTimerSolve.getElapsed(); }
       double getSubtractTime() const
         { return itsTimerSubtract.getElapsed(); }
-      /// </group>
+      ///@}
 
     private:
       /// Setup the demix processing steps for this piece of data.
@@ -285,10 +285,10 @@ namespace DP3 {
       /// Temporary buffer to determine medians.
       std::vector<float>                         itsTmpAmpl;
       /// Per A-source and for target the min and max amplitude.
-      /// <group>
+      ///@{
       std::vector<double>                        itsAteamMinAmpl;
       std::vector<double>                        itsAteamMaxAmpl;
-      /// </group>
+      ///@}
       double                                itsTargetMinAmpl;
       double                                itsTargetMaxAmpl;
       /// Per A-source the stations to use (matching the minimum amplitude).
@@ -300,7 +300,7 @@ namespace DP3 {
       /// The estimater (solver).
       EstimateNew                           itsEstimate;
       /// Variables for the predict.
-      /// <group>
+      ///@{
       casacore::Matrix<double>                  itsUVW;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
@@ -310,9 +310,9 @@ namespace DP3 {
       std::vector<float>                         itsObservedAmpl;
       std::vector<float>                         itsSourceAmpl;
       std::vector<float>                         itsSumSourceAmpl;
-      /// </group>
+      ///@}
       /// Statistics
-      /// <group>
+      ///@{
       unsigned int                                  itsNrSolves;
       unsigned int                                  itsNrConverged;
       unsigned int                                  itsNrIter;
@@ -321,7 +321,7 @@ namespace DP3 {
       unsigned int                                  itsNrIncludeCloseTarget;
       unsigned int                                  itsNrIgnoreTarget;
       unsigned int                                  itsNrDeprojectTarget;
-      /// </group>
+      ///@}
       /// Nr of times a source is demixed.
       casacore::Vector<unsigned int>                    itsNrSourcesDemixed;
       /// Nr of times a station is demixed.

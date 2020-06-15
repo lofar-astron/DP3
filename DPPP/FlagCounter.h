@@ -75,14 +75,14 @@ namespace DP3 {
       void add (const FlagCounter& that);
 
       /// Get the counts.
-      /// <group>
+      ///@{
       const std::vector<int64_t>& baselineCounts() const
         { return itsBLCounts; }
       const std::vector<int64_t>& channelCounts() const
         { return itsChanCounts; }
       const std::vector<int64_t>& correlationCounts() const
         { return itsCorrCounts; }
-      /// </group>
+      ///@}
 
       /// Print the counts and optionally save percentages in a table.
       void showBaseline    (std::ostream& os, int64_t ntimes) const;

@@ -93,12 +93,12 @@ public:
     void update(double value, bool force=false);
 
     /// Get the min and max values of the progress meter.
-    /// <group>
+    ///@{
     double min() const
       { return min_p; }
     double max() const
       { return max_p; }
-    /// </group>
+    ///@}
 
     friend class ObjectController;
 private:

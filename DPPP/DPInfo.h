@@ -153,7 +153,7 @@ namespace DP3 {
 
 
       /// Get the info.
-      /// <group>
+      ///@{
       const string& msName() const
         { return itsMSName; }
       const string& antennaSet() const
@@ -224,7 +224,7 @@ namespace DP3 {
         { return itsTotalBW; }
       double refFreq() const
         { return itsRefFreq; }
-      /// </group>
+      ///@}
 
       /// Get the antenna numbers actually used in the (selected) baselines.
       /// E.g. [0,2,5,6]
