@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobHeader.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBHEADER_H
-#define LOFAR_BLOB_BLOBHEADER_H
 
 /// \file
 /// Standard header for a blob
+
+#ifndef LOFAR_BLOB_BLOBHEADER_H
+#define LOFAR_BLOB_BLOBHEADER_H
 
 #include "../Common/DataConvert.h"
 
@@ -32,11 +30,11 @@
 
 namespace DP3 {
 
-/// \ingroup %pkgname%
+  /// \ingroup Blob
   /// @{
   
   /// Blob stands for binary large object.
-// The %LOFAR Common software provides classes to serialize one or more
+  /// The %LOFAR Common software provides classes to serialize one or more
   /// objects into a blob and to de-serialize the blob to objects.
   /// To be sure that a blob is interpreted in the correct way, each object
   /// in it will be preceeded by a header. The header contains the
@@ -69,11 +67,11 @@ namespace DP3 {
   ///   BlobHeader<9> itsHeader;
   ///   dcomplex      itsData[10][20];
   /// };
-  //
+  ///
   /// SomeClass::SomeClass() : itsHeader("SomeClass", 1)
   ///    { itsHeader.setLength (sizeof(SomeClass)); }
   /// </srcblock>
-  //
+  ///
   /// Because blobs can be created on one machine and retrieved on another,
   /// care has to be taken that data type sizes and alignment are the same
   /// everywhere. For this reason standard data types are defined in

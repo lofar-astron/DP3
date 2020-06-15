@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobSTL.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBSTL_H
-#define LOFAR_BLOB_BLOBSTL_H
 
 /// \file
 /// Blob handling for STL sequences
+
+#ifndef LOFAR_BLOB_BLOBSTL_H
+#define LOFAR_BLOB_BLOBSTL_H
 
 #include "BlobOStream.h"
 #include "BlobIStream.h"
@@ -38,14 +36,15 @@
 namespace DP3
 {
 
-/// \ingroup %pkgname%
+  /// \ingroup Blob
+  /// @{
 
   /// Define functions to write a map into a blob and to read it back.
   /// The map is preceeded by the header 'map<T,U>', where T and U are
   /// the type names as defined in TypeNames.h.
   /// Type names are only defined for the basic types. Other types
   /// are set to 'unknown'.
-  ///   <group>
+  ///   @{
   /// \name Write a map.
   template<typename T, typename U>
   BlobOStream& operator<< (BlobOStream&, const std::map<T,U>&);
@@ -53,7 +52,7 @@ namespace DP3
   /// \name Read back a map.
   template<typename T, typename U>
   BlobIStream& operator>> (BlobIStream&, std::map<T,U>&);
-  ///   </group>
+  ///   @}
 
 
   /// Define helper functions to write any STL sequence into a blob and to
@@ -64,7 +63,7 @@ namespace DP3
   /// are set to 'unknown'.
   /// All sequences are written in the same way (as 1-dim arrays). It means
   /// that they can be read back using any other sequence type.
-  ///   <group>
+  ///   @{
   /// \name Write a sequence.
   template<typename Seq>
   void sequenceToBlob (BlobOStream&, const Seq&);
@@ -75,7 +74,7 @@ namespace DP3
   /// Specialize for a set.
   template<typename T>
   void sequenceFromBlob (BlobOStream&, std::set<T>&);
-  ///   </group>
+  ///   @}
 
 
   /// Define helper functions to write an STL sequence into a blob and to
@@ -88,7 +87,7 @@ namespace DP3
   /// that they can be read back in any other sequence type (including
   /// AIPS++ and Blitz arrays).
   /// <note> STL vectors are handled by BlobArray.h. </note>
-  ///   <group>
+  ///   @{
   /// \name Write a list.
   template<typename T>
   BlobOStream& operator<< (BlobOStream& bs, const std::list<T>& seq)
@@ -128,7 +127,9 @@ namespace DP3
   template<typename T>
   BlobIStream& operator>> (BlobIStream& bs, std::deque<T>& seq)
     { sequenceFromBlob (bs, seq);  return bs; }
-  ///   </group>
+  ///   @}
+
+  /// @}
 
 } // end namespace LOFAR
 

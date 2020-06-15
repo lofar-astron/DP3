@@ -17,15 +17,12 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //
-// $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
-//
+/// @file
+/// @brief DPPP step class to flag using aoflagger's functionality
 /// @author Andre Offringa, Ger van Diepen
 
 #ifndef DPPP_AOFLAGGERSTEP_H
 #define DPPP_AOFLAGGERSTEP_H
-
-/// @file
-/// @brief DPPP step class to flag using aoflagger's functionality
 
 #include "../DPPP/DPInput.h"
 #include "../DPPP/DPBuffer.h"

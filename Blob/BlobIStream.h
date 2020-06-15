@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobIStream.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBISTREAM_H
-#define LOFAR_BLOB_BLOBISTREAM_H
 
 /// \file
 /// Input stream for a blob
+
+#ifndef LOFAR_BLOB_BLOBISTREAM_H
+#define LOFAR_BLOB_BLOBISTREAM_H
 
 #include "../Common/DataFormat.h"
 #include "../Common/DataConvert.h"
@@ -38,8 +36,8 @@
 
 namespace DP3 {
 
-/// \ingroup %pkgname%
-/// <group>
+  /// \ingroup Blob
+  /// @{
   
   /// This class makes it possible to interpret a blob and create the objects
   /// stored in it.
@@ -47,12 +45,12 @@ namespace DP3 {
   /// BlobHeader definition, so a static blob can also be read back.
   /// The user can define overloaded operator>> functions to be able
   /// to read objects of a given class from the blob stream.
-  //
+  ///
   /// The blob is read from a BlobIBuffer object that can be a memory
   /// buffer or an istream object. The BlobOStream class can be used to
   /// store objects into a blob.
-  //
-// See %LOFAR document
+  ///
+  /// See %LOFAR document
   /// <a href="http://www.lofar.org/forum/document.php?action=match&docname=LOFAR-ASTRON-MAN-006">
   /// LOFAR-ASTRON-MAN-006</a> for more information.
   
@@ -76,12 +74,12 @@ namespace DP3 {
       /// <br>
       /// After all values (inclusing nested objects) of the object have
       /// been obtained (using operator>>), a call to getEnd has to be done.
-      //
+      ///
       /// The getStart function returns the blob version.
-      /// <group>
+      /// @{
       int getStart (const std::string& objectType);
       int getStart (const char* objectType = "");
-      /// </group>
+      /// @}
       
       /// End getting an object. It returns the object length (including
       /// possible nested objects).
@@ -94,14 +92,14 @@ namespace DP3 {
       /// It checks if it finds the correct magic value preceeding
       /// the object type.
       /// The second version also returns the size of this next blob.
-      /// <group>
+      /// @{
       const std::string& getNextType();
       const std::string& getNextType(uint64_t& size);
-      /// </group>
+      /// @}
       
       /// Get a single value.
       /// A string is stored as a length followed by the characters.
-      /// <group>
+      /// @{
       BlobIStream& operator>> (bool& value);
       BlobIStream& operator>> (char& value);
       BlobIStream& operator>> (int8_t& value);
@@ -121,11 +119,11 @@ namespace DP3 {
       BlobIStream& operator>> (std::complex<float>& value);
       BlobIStream& operator>> (std::complex<double>& value);
       BlobIStream& operator>> (std::string& value);
-      /// </group>
+      /// @}
       
       /// Get an array of values with the given number of values.
       /// Bools are retrieved as bits.
-      /// <group>
+      /// @{
       void get (bool* values, uint64_t nrval);
       void get (char* values, uint64_t nrval);
       void get (int8_t* values, uint64_t nrval);
@@ -142,14 +140,14 @@ namespace DP3 {
       void get (std::complex<float>* values, uint64_t nrval);
       void get (std::complex<double>* values, uint64_t nrval);
       void get (std::string* values, uint64_t nrval);
-      /// </group>
+      /// @}
       
       /// Get a vector of values. First it gets the size of the vector.
       /// Specialise for bool because a vector of bools uses bits.
-      /// <group>
+      /// @{
       void get (std::vector<bool>& values);
       template<typename T> void get (std::vector<T>& values);
-      /// </group>
+      /// @}
       
       /// Get a vector of bools of 'size' elements.
       /// The vector is resized to the given size.
@@ -175,20 +173,20 @@ namespace DP3 {
       
       /// Tell if conversion is needed and return the format of the data.
       /// This can be done after a getStart.
-      /// <group>
+      /// @{
       bool mustConvert() const;
       DP3::DataFormat dataFormat() const;
-      /// </group>
+      /// @}
       
     private:
       /// Read the buffer, increment itsCurLength, and check if everything read.
       void getBuf (void* buf, uint64_t sz);
       
       /// Throw an exception if a get cannot be done.
-      /// <group>
+      /// @{
       void checkGet() const;
       void throwGet() const;
-      /// </group>
+      /// @}
       
       
       bool   itsSeekable;
@@ -209,7 +207,7 @@ namespace DP3 {
       BlobIBuffer*       itsStream;
     };
   
-/// </group>
+  /// @}
 
   
   inline void BlobIStream::clear()

@@ -17,8 +17,9 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobAipsIO.h 31210 2015-03-17 08:51:26Z diepen $
+
+/// \file
+/// A Blob buffer for Aips++ ByteIO
 
 #ifndef LOFAR_BLOB_BLOBAIPSIO_H
 #define LOFAR_BLOB_BLOBAIPSIO_H
@@ -28,14 +29,10 @@
 #include "BlobOStream.h"
 #include "BlobIStream.h"
 
-/// \file
-/// A Blob buffer for Aips++ ByteIO
-
 namespace DP3 {
 
-  /// \ingroup %pkgname%
+  /// \ingroup Blob
   /// @{
-
 
   /**
    * This class makes it possible to use the AIPS++ AipsIO class on top of
@@ -49,10 +46,10 @@ namespace DP3 {
   {
   public:
     /// Construct from a Blob buffer.
-    /// <group>
+    /// @{
     explicit BlobAipsIO (BlobOStream&);
     explicit BlobAipsIO (BlobIStream&);
-    /// </group>
+    /// @}
 
     virtual ~BlobAipsIO();
 
@@ -89,10 +86,10 @@ namespace DP3 {
 private:
     /// Make copy constructor and assignment private, so a user cannot
     /// use them.
-    /// <group>
+    /// @{
     BlobAipsIO (const BlobAipsIO&);
     BlobAipsIO& operator= (const BlobAipsIO&);
-    /// </group>
+    /// @}
 
     /// Reset the position pointer to the given value. It returns the
     /// new position.

@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobOStream.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBOSTREAM_H
-#define LOFAR_BLOB_BLOBOSTREAM_H
 
 /// \file
 /// Output stream for a blob
+
+#ifndef LOFAR_BLOB_BLOBOSTREAM_H
+#define LOFAR_BLOB_BLOBOSTREAM_H
 
 #include "BlobOBuffer.h"
 
@@ -39,20 +37,20 @@ typedef std::complex<float> fcomplex;
 
 namespace DP3 {
 
-/// \ingroup %pkgname%
-/// <group>
-  
+  /// \ingroup Blob
+  /// @{
+
   /// This class makes it possible to create a blob.
   /// It creates a header (in the putStart function) using the
   /// BlobHeader definition.
   /// The user can define overloaded operator<< functions to be able
   /// to put objects of a given class into the blob stream.
-  //
+  ///
   /// The blob is written into a BlobOBuffer object that can be a memory
   /// buffer or an ostream object. The BlobIStream class can be used to
   /// retrieve objects from a blob.
-  //
-// See %LOFAR document
+  ///
+  /// See LOFAR document
   /// <a href="http://www.lofar.org/forum/document.php?action=match&docname=LOFAR-ASTRON-MAN-006">
   /// LOFAR-ASTRON-MAN-006</a> for more information.
   
@@ -71,8 +69,7 @@ namespace DP3 {
       void clear();
       
       /// Get the total size.
-      uint64_t size() const
-	{ return itsCurLength; }
+      uint64_t size() const { return itsCurLength; }
       
       /// Start putting a blob. It writes the header containing data that are
       /// checked when reading the blob back in BlobIStream::getStart.
@@ -89,11 +86,11 @@ namespace DP3 {
       /// called that way.
       //
       /// The function returns the nesting level.
-      /// <group>
+      /// @{
       unsigned int putStart (int objectVersion);
       unsigned int putStart (const std::string& objectType, int objectVersion);
       unsigned int putStart (const char* objectType, int objectVersion);
-      /// </group>
+      /// @}
       
       /// End putting an object. It returns the object length (including
       /// possible nested objects).
@@ -107,7 +104,7 @@ namespace DP3 {
       /// complex type and the case where it is the standard class.
       /// In the first case the fcomplex function is a separate function,
       /// in the second case a specialisation of the templated function.
-      /// <group>
+      /// @{
       BlobOStream& operator<< (const bool& value);
       BlobOStream& operator<< (const char& value);
       BlobOStream& operator<< (const int8_t& value);
@@ -128,11 +125,11 @@ namespace DP3 {
       BlobOStream& operator<< (const dcomplex& value);
       BlobOStream& operator<< (const std::string& value);
       BlobOStream& operator<< (const char* value);
-      /// </group>
+      /// @}
       
       /// Put an array of values with the given number of values.
       /// Bool values are stored as bits.
-      /// <group>
+      /// @{
       void put (const bool* values, uint64_t nrval);
       void put (const char* values, uint64_t nrval);
       void put (const int8_t* values, uint64_t nrval);
@@ -152,14 +149,14 @@ namespace DP3 {
       void put (const fcomplex* values, uint64_t nrval);
       void put (const dcomplex* values, uint64_t nrval);
       void put (const std::string* values, uint64_t nrval);
-      /// </group>
+      /// @}
       
       /// Put a vector of values. First it puts the size of the vector.
       /// Specialise for bool because a vector of bools uses bits.
-      /// <group>
+      /// @{
       void put (const std::vector<bool>& values);
       template<class T> void put (const std::vector<T>& values);
-      /// </group>
+      /// @}
       
       /// Put a vector of bools (without putting the size).
       void putBoolVec (const std::vector<bool>& values);
@@ -192,10 +189,10 @@ namespace DP3 {
       void putBuf (const void* buf, uint64_t sz);
       
       /// Throw an exception if a put cannot be done.
-      /// <group>
+      /// @{
       void checkPut() const;
       void throwPut() const;
-      /// </group>
+      /// @}
       
       
       bool   itsSeekable;
@@ -209,8 +206,8 @@ namespace DP3 {
       BlobOBuffer*       itsStream;
     };
   
-/// </group>
-  
+  /// @}
+
   inline void BlobOStream::clear()
     {
       itsCurLength = 0;
