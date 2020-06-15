@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step to filter out baselines and channels
 /// @author Ger van Diepen
 
 #ifndef DPPP_FILTER_H
 #define DPPP_FILTER_H
-
-/// @file
-/// @brief DPPP step to filter out baselines and channels
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -42,7 +39,7 @@ namespace DP3 {
     /// At the beginning it finds out the shape of the data; i.e., the
     /// number of correlations, channels, baselines, and time slots.
     /// It requires the data to be regularly shaped.
-    //
+    /// 
     /// The object is constructed from the 'msin' keywords in the parset file.
     /// Currently the following can be given:
     /// <ul>
@@ -55,17 +52,17 @@ namespace DP3 {
     ///  <li> msin.starttime: first time to use [first time in MS]
     ///  <li> msin.endtime: last time to use [last time in MS]
     /// </ul>
-    //
+    /// 
     /// If a time slot is missing, it is inserted with flagged data set to zero.
     /// Missing time slots can also be detected at the beginning or end of the
     /// MS by giving the correct starttime and endtime.
     /// The correct UVW coordinates are calculated for inserted time slots.
-    //
+    /// 
     /// The process function only reads the data and flags to avoid that
     /// too much data is kept in memory.
     /// Other columns (like WEIGHT, UVW) can be read when needed by using the
     /// appropriate DPInput::fetch function.
-    //
+    /// 
     /// The data columns are handled in the following way:
     /// <table>
     ///  <tr>

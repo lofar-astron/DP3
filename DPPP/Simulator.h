@@ -18,15 +18,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_SIMULATOR_H
-#define DPPP_SIMULATOR_H
 
 /// \file
 /// Compute visibilities for different model components types (implementation of
 /// ModelComponentVisitor).
+
+#ifndef DPPP_SIMULATOR_H
+#define DPPP_SIMULATOR_H
 
 #include "Baseline.h"
 #include "ModelComponent.h"

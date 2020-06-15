@@ -16,16 +16,14 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: GainCalAlgorithm.h 21598 2012-07-16 08:07:34Z diepen $
-//
+
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_GAINCALALGORITHM_H
 #define DPPP_GAINCALALGORITHM_H
 
-/// @file
-/// @brief DPPP step class to apply a calibration correction to the data
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
@@ -108,33 +106,33 @@ namespace DP3 {
       double getAverageUnflaggedSolution();
 
       unsigned int _savedNCr;
-      casacore::Vector<bool> _stationFlagged ; /// Contains true for totally flagged stations
-      casacore::Array<std::complex<double>> _vis; /// Visibility matrix
-      casacore::Array<std::complex<double>> _mvis; /// Model visibility matrix
-      casacore::Matrix<std::complex<double>> _g; /// Solution, indexed by station, correlation
-      casacore::Matrix<std::complex<double>> _gx; /// Previous solution
-      casacore::Matrix<std::complex<double>> _gxx; /// Solution before previous solution
-      casacore::Matrix<std::complex<double>> _gold; /// Previous solution
-      casacore::Matrix<std::complex<double>> _h; /// Hermitian transpose of previous solution
-      casacore::Matrix<std::complex<double>> _z; /// Internal algorithm vector
+      casacore::Vector<bool> _stationFlagged ; ///< Contains true for totally flagged stations
+      casacore::Array<std::complex<double>> _vis; ///< Visibility matrix
+      casacore::Array<std::complex<double>> _mvis; ///< Model visibility matrix
+      casacore::Matrix<std::complex<double>> _g; ///< Solution, indexed by station, correlation
+      casacore::Matrix<std::complex<double>> _gx; ///< Previous solution
+      casacore::Matrix<std::complex<double>> _gxx; ///< Solution before previous solution
+      casacore::Matrix<std::complex<double>> _gold; ///< Previous solution
+      casacore::Matrix<std::complex<double>> _h; ///< Hermitian transpose of previous solution
+      casacore::Matrix<std::complex<double>> _z; ///< Internal algorithm vector
 
-      unsigned int _nSt; /// number of stations in the current solution
-      unsigned int _nUn; /// number of unknowns
-      unsigned int _nCr; /// number of correlations (1 or 4)
-      unsigned int _nSp; /// number that is two for scalarphase, one else
-      unsigned int _badIters; /// number of bad iterations, for stalling detection
-      unsigned int _veryBadIters; /// number of iterations where solution got worse
-      unsigned int _solInt; /// solution interval
-      unsigned int _nChan;  /// number of channels
-      Mode _mode; /// diagonal, scalarphase, fulljones or phaseonly
-      bool _scalar; /// false if each polarization has a separate solution
+      unsigned int _nSt; ///< number of stations in the current solution
+      unsigned int _nUn; ///< number of unknowns
+      unsigned int _nCr; ///< number of correlations (1 or 4)
+      unsigned int _nSp; ///< number that is two for scalarphase, one else
+      unsigned int _badIters; ///< number of bad iterations, for stalling detection
+      unsigned int _veryBadIters; ///< number of iterations where solution got worse
+      unsigned int _solInt; ///< solution interval
+      unsigned int _nChan;  ///< number of channels
+      Mode _mode; ///< diagonal, scalarphase, fulljones or phaseonly
+      bool _scalar; ///< false if each polarization has a separate solution
       double _tolerance;
       double _totalWeight;
       bool _detectStalling;
       unsigned int _debugLevel;
 
-      double _dg, _dgx; /// previous convergence
-      std::vector<double> _dgs; /// convergence history
+      double _dg, _dgx; ///< previous convergence
+      std::vector<double> _dgs; ///< convergence history
     };
 
   } // end namespace

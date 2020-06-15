@@ -16,18 +16,15 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id:
-//
+
+/// @file
+/// @brief DPPP step class to apply the beam model (optionally inverted)
 /// @author Tammo Jan Dijkema
 
 #ifdef HAVE_LOFAR_BEAM
 
 #ifndef DPPP_APPLYBEAM_H
 #define DPPP_APPLYBEAM_H
-
-/// @file
-/// @brief DPPP step class to apply the beam model (optionally inverted)
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -130,16 +127,20 @@ namespace DP3 {
         
         /// If a beam had already been applied before running this step, that beam
         /// needs to undone; hence we register that beam info here:
+        /// <group>
         casacore::MDirection itsDirectionAtStart;
         BeamCorrectionMode itsModeAtStart;
+        /// </group>
 
         unsigned int                 itsDebugLevel;
 
         /// The info needed to calculate the station beams.
+        /// <group>
         std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
         std::vector<casacore::MeasFrame> itsMeasFrames;
         std::vector<casacore::MDirection::Convert> itsMeasConverters;
         std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> > itsBeamValues;
+        /// </group>
 
         NSTimer itsTimer;
     };
@@ -148,4 +149,4 @@ namespace DP3 {
 }
 #endif
 
-#endif /// HAVE_LOFAR_BEAM
+#endif // HAVE_LOFAR_BEAM

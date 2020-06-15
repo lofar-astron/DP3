@@ -18,14 +18,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_SOURCEDBUTIL_H
-#define DPPP_SOURCEDBUTIL_H
 
 /// \file
 /// Helper functions to extract patch and source information from a SourceDB.
+
+#ifndef DPPP_SOURCEDBUTIL_H
+#define DPPP_SOURCEDBUTIL_H
 
 #include "Patch.h"
 

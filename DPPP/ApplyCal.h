@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id:
-//
+
+/// @file
+/// @brief DPPP step class to apply multiple calibration solutions
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_ApplyCal_H
 #define DPPP_ApplyCal_H
-
-/// @file
-/// @brief DPPP step class to apply multiple calibration solutions
 
 #include "DPInput.h"
 #include "DPBuffer.h"

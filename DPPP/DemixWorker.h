@@ -16,18 +16,15 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Demixer.h 23223 2012-12-07 14:09:42Z schoenmakers $
-//
+
+/// @file
+/// @brief DPPP step class to average in time and/or freq
 /// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXWORKER_H
 #define DPPP_DEMIXWORKER_H
 
 #ifdef HAVE_LOFAR_BEAM
-
-/// @file
-/// @brief DPPP step class to average in time and/or freq
 
 #include "DemixInfo.h"
 #include "DPInput.h"
@@ -276,7 +273,6 @@ namespace DP3 {
 
       /// Indices telling which Ateam sources to use.
       std::vector<unsigned int>                          itsSrcSet;
-      /// UVW per station per demix time slot
       casacore::Cube<double>                    itsStationUVW; ///< UVW per station
       casacore::Matrix<double>                  itsAvgUVW; ///< temp buffer
       casacore::Cube<dcomplex>                  itsPredictVis; ///< temp buffer
@@ -289,8 +285,10 @@ namespace DP3 {
       /// Temporary buffer to determine medians.
       std::vector<float>                         itsTmpAmpl;
       /// Per A-source and for target the min and max amplitude.
+      /// <group>
       std::vector<double>                        itsAteamMinAmpl;
       std::vector<double>                        itsAteamMaxAmpl;
+      /// </group>
       double                                itsTargetMinAmpl;
       double                                itsTargetMaxAmpl;
       /// Per A-source the stations to use (matching the minimum amplitude).
@@ -302,6 +300,7 @@ namespace DP3 {
       /// The estimater (solver).
       EstimateNew                           itsEstimate;
       /// Variables for the predict.
+      /// <group>
       casacore::Matrix<double>                  itsUVW;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisDemix;
       std::vector<casacore::Cube<dcomplex> >         itsModelVisSubtr;
@@ -311,7 +310,9 @@ namespace DP3 {
       std::vector<float>                         itsObservedAmpl;
       std::vector<float>                         itsSourceAmpl;
       std::vector<float>                         itsSumSourceAmpl;
+      /// </group>
       /// Statistics
+      /// <group>
       unsigned int                                  itsNrSolves;
       unsigned int                                  itsNrConverged;
       unsigned int                                  itsNrIter;
@@ -320,6 +321,7 @@ namespace DP3 {
       unsigned int                                  itsNrIncludeCloseTarget;
       unsigned int                                  itsNrIgnoreTarget;
       unsigned int                                  itsNrDeprojectTarget;
+      /// </group>
       /// Nr of times a source is demixed.
       casacore::Vector<unsigned int>                    itsNrSourcesDemixed;
       /// Nr of times a station is demixed.
@@ -345,6 +347,6 @@ namespace DP3 {
   } // end namespace
 } // end namespace
 
-#endif /// HAVE_LOFAR_BEAM
+#endif // HAVE_LOFAR_BEAM
 
 #endif

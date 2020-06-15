@@ -18,14 +18,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_SUBTRACTNEW_H
-#define DPPP_SUBTRACTNEW_H
 
 /// \file
 /// Subtract visibilities from a buffer after weighting by mixing coefficients.
+
+#ifndef DPPP_SUBTRACTNEW_H
+#define DPPP_SUBTRACTNEW_H
 
 #include "Baseline.h"
 #include "Cursor.h"
@@ -40,7 +38,7 @@ namespace DPPP
 /// \addtogroup NDPPP
 /// @{
 /// Subtract visibilities from a buffer after weighting by mixing coefficients.
-//
+/// 
 /// \param[in]   nBaseline
 /// Number of baselines.
 /// \param[in]   nChannel

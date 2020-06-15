@@ -17,17 +17,15 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_ESTIMATENEW_H
-#define DPPP_ESTIMATENEW_H
 
 /// \file
 /// Estimate Jones matrices for several directions simultaneously. A separate
 /// data stream is used for each direction. The mixing coefficients quantify the
 /// influence of each direction on each of the other directions (including time
 /// and frequency smearing).
+
+#ifndef DPPP_ESTIMATENEW_H
+#define DPPP_ESTIMATENEW_H
 
 #include "Baseline.h"
 #include "Cursor.h"

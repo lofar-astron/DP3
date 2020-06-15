@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step writing to an MS
 /// @author Ger van Diepen
 
 #ifndef DPPP_MSUPDATER_H
 #define DPPP_MSUPDATER_H
-
-/// @file
-/// @brief DPPP step writing to an MS
 
 #include "DPStep.h"
 #include "StManParsetKeys.h"

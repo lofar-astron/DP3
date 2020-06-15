@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id:
-//
+
+/// @file
+/// @brief DPPP step class to predict visibilities from a source model
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_PREDICT_H
 #define DPPP_PREDICT_H
-
-/// @file
-/// @brief DPPP step class to predict visibilities from a source model
 
 #include "ApplyCal.h"
 #include "DPInput.h"
@@ -143,7 +140,7 @@ namespace DP3 {
       bool             itsDoApplyCal;
       ApplyCal         itsApplyCalStep;
       DPBuffer         itsTempBuffer;
-      ResultStep*      itsResultStep; /// For catching results from ApplyCal
+      ResultStep*      itsResultStep; ///< For catching results from ApplyCal
 
       unsigned int             itsDebugLevel;
 
@@ -165,11 +162,11 @@ namespace DP3 {
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
       std::vector<casacore::MDirection::Convert>          itsMeasConverters;
 
-      std::string itsDirectionsStr; /// Definition of patches, to pass to applycal
+      std::string itsDirectionsStr; ///< Definition of patches, to pass to applycal
       std::vector<Patch::ConstPtr> itsPatchList;
       std::vector<Source> itsSourceList;
 
-      std::vector<casacore::Cube<dcomplex> > itsModelVis; /// one for every thread
+      std::vector<casacore::Cube<dcomplex> > itsModelVis; ///< one for every thread
       std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
 
       NSTimer          itsTimer;

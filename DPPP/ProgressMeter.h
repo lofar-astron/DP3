@@ -16,8 +16,6 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
 
 #ifndef LOFAR_COMMON_PROGRESSMETER_H
 #define LOFAR_COMMON_PROGRESSMETER_H
@@ -30,20 +28,20 @@ namespace DP3 {
 
 /// This class shows the progress of a task.
 /// It is copied from casacore.
-//
+/// 
 /// It shows the progress on stdout using a line with dots and percentages.
-//
+/// 
 /// It is possible to attach the progressmeter to function in, say, a GUI
 /// that can show the progress in a more visual way.
-//
+/// 
 /// The progress meter will usually be removed from the screen once the maximum
 /// value is set, so you should not reuse the ProgressMeter after that has
 /// happened. It is harmless, but it will not result in any visual feedback for
 /// the user.
-//
+/// 
 /// While the "min" is usually less than "max", if in fact it is greater than
 /// "max" the progress meter will count down correctly.
-//
+/// 
 /// For example:
 /// <srcblock>
 /// void calculate(unsigned int n) {
@@ -69,11 +67,11 @@ public:
     /// the remaining portion will compute at the same rate as the portion
     /// completed so far, so the time should not be estimated for processes
     /// which are non-linear.
-    //
+    /// 
     /// Any labels which are set to the empty string will have sensible defaults
     /// supplied. In particular, <tt>minlabel</tt> and <tt>maxlabel</tt>
     /// will be set to the display the minimum and maximum values.
-    //
+    /// 
     /// Normally the progress bar will be updated with every call to
     /// <tt>update()</tt>. If however you will be sending many events
     /// then you might want to update the GUI every <tt>updateEvery</tt>'th

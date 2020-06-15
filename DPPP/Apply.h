@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_APPLY_H
-#define DPPP_APPLY_H
 
 /// \file
 /// Apply station Jones matrices to a set of visibilities.
+
+#ifndef DPPP_APPLY_H
+#define DPPP_APPLY_H
 
 #include "Baseline.h"
 #include "Cursor.h"
@@ -39,7 +37,7 @@ namespace DPPP
 /// \addtogroup NDPPP
 /// @{
 /// Apply station Jones matrices to a set of visibilities.
-//
+///
 /// \param[in]   nBaseline
 /// Number of baselines.
 /// \param[in]   nChannel

@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: OneApplyCal.h 21598 2012-07-16 08:07:34Z diepen $
-//
+
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_ONEAPPLYCAL_H
 #define DPPP_ONEAPPLYCAL_H
-
-/// @file
-/// @brief DPPP step class to apply a calibration correction to the data
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -117,7 +114,7 @@ namespace DP3 {
       H5Parm           itsH5Parm;
       string           itsSolTabName;
       H5Parm::SolTab   itsSolTab;
-      H5Parm::SolTab   itsSolTab2; /// in the case of full Jones, amp and phase table need to be open
+      H5Parm::SolTab   itsSolTab2; ///< in the case of full Jones, amp and phase table need to be open
       CorrectType      itsCorrectType;
       bool             itsInvert;
       InterpolationType itsInterpolationType;
@@ -125,23 +122,23 @@ namespace DP3 {
       double           itsSigmaMMSE;
       bool             itsUpdateWeights;
 
-      unsigned int             itsCount; /// number of steps
+      unsigned int             itsCount; ///< number of steps
 
       /// Expressions to search for in itsParmDB
       std::vector<casacore::String>   itsParmExprs;
 
       /// parameters, numparms, antennas, time x frequency
       casacore::Cube<casacore::DComplex> itsParms;
-      unsigned int            itsTimeStep; /// time step within current chunk
+      unsigned int            itsTimeStep; ///< time step within current chunk
       unsigned int            itsNCorr;
       double          itsTimeInterval;
-      double          itsLastTime; /// last time of current chunk
+      double          itsLastTime; ///< last time of current chunk
       FlagCounter     itsFlagCounter;
       bool            itsUseAP; ///< use ampl/phase or real/imag
       hsize_t         itsDirection;
       NSTimer         itsTimer;
 
-      static std::mutex theirHDF5Mutex; /// Prevent parallel access to HDF5
+      static std::mutex theirHDF5Mutex; ///< Prevent parallel access to HDF5
     };
 
   } // end namespace

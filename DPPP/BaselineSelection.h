@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Class to handle the baseline selection
 /// @author Ger van Diepen
 
 #ifndef DPPP_BASELINESELECTION_H
 #define DPPP_BASELINESELECTION_H
-
-/// @file
-/// @brief Class to handle the baseline selection
 
 #include "DPInfo.h"
 

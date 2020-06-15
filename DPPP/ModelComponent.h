@@ -17,16 +17,14 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
+
+/// \file
+/// Base class for model components.
 
 #ifndef DPPP_MODELCOMPONENT_H
 #define DPPP_MODELCOMPONENT_H
 
 #include <memory>
-
-/// \file
-/// Base class for model components.
 
 namespace DP3
 {

@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_SIMULATE_H
-#define DPPP_SIMULATE_H
 
 /// \file
 /// Simulate visibilities for a patch of sources.
+
+#ifndef DPPP_SIMULATE_H
+#define DPPP_SIMULATE_H
 
 #include <casacore/casa/Arrays/Vector.h>
 
@@ -70,7 +68,7 @@ namespace DPPP
 
 /// Split baseline UVW coordinates into station UVW coordinates (by assuming the
 /// station with index 0 has UVW coordinates of (0, 0, 0)).
-//
+/// 
 /// \param[in]   nStation
 /// The number of stations.
 /// \param[in]   nBaseline
@@ -88,7 +86,7 @@ void splitUVW(size_t nStation, size_t nBaseline,
 
 /// Transform UVW coordinates from phase reference position \p from to phase
 /// reference position \p to. The transformation is performed in place.
-//
+/// 
 /// \param[in]   from
 /// Current phase reference position for the UVW coordinates.
 /// \param[in]   to
@@ -102,7 +100,7 @@ void rotateUVW(const Position &from, const Position &to, size_t nUVW,
 
 /// Simulate visibilities for a patch of sources. The computed visibilities are
 /// added to \p vis.
-//
+/// 
 /// \param[in]   reference
 /// Phase reference position.
 /// \param[in]   patch

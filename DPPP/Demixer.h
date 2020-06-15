@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to average in time and/or freq
 /// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXER_H
 #define DPPP_DEMIXER_H
-
-/// @file
-/// @brief DPPP step class to average in time and/or freq
 
 #include "Baseline.h"
 #include "DPInput.h"

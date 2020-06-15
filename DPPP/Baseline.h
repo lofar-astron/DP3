@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_BASELINE_H
-#define DPPP_BASELINE_H
 
 /// \file
 /// Pair of stations that together form a baseline (interferometer).
+
+#ifndef DPPP_BASELINE_H
+#define DPPP_BASELINE_H
 
 #include <cstddef>
 #include <utility>

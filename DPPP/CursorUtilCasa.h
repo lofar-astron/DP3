@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_CURSORUTILCASA_H
-#define DPPP_CURSORUTILCASA_H
 
 /// \file
 /// Helper functions for creating cursors for CASA arrays.
+
+#ifndef DPPP_CURSORUTILCASA_H
+#define DPPP_CURSORUTILCASA_H
 
 #include "Cursor.h"
 

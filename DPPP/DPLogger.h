@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Log on cout/cerr or through the logging system
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPLOGGER_H
 #define DPPP_DPLOGGER_H
-
-/// @file
-/// @brief Log on cout/cerr or through the logging system
 
 #include <iostream>
 

@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Class to run steps like averaging and flagging on an MS
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPRUN_H
 #define DPPP_DPRUN_H
-
-/// @file
-/// @brief Class to run steps like averaging and flagging on an MS
 
 #include "DPStep.h"
 #include "MSReader.h"

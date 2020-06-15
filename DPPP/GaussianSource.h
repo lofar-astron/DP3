@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_GAUSSIANSOURCE_H
-#define DPPP_GAUSSIANSOURCE_H
 
 /// \file
 /// Gaussian source model component.
+
+#ifndef DPPP_GAUSSIANSOURCE_H
+#define DPPP_GAUSSIANSOURCE_H
 
 #include "PointSource.h"
 
@@ -68,9 +66,9 @@ private:
 
 /// @}
 
-/// -------------------------------------------------------------------------- //
-/// - Implementation: GaussianSource                                         - //
-/// -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
+// - Implementation: GaussianSource                                         - //
+// -------------------------------------------------------------------------- //
 
 inline double GaussianSource::positionAngle() const
 {

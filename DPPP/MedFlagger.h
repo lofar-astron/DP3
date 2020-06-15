@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to flag data based on median filtering
 /// @author Ger van Diepen
 
 #ifndef DPPP_MEDFLAGGER_H
 #define DPPP_MEDFLAGGER_H
-
-/// @file
-/// @brief DPPP step class to flag data based on median filtering
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -49,7 +46,7 @@ namespace DP3 {
     /// For channel 1 the channels 2,1,0,1,2,3,4 will be used.
     /// The test program tMirror.cc can be used to check the correctness of
     /// the alogorithm to determine the channels to use.
-    //
+    /// 
     /// Taking the median is an O(N) operation, thus doing it for all data
     /// points is an O(N^2) operation. The test program tMedian.cc can be
     /// used to test the performance of the algorithms to determine the median.
@@ -57,14 +54,14 @@ namespace DP3 {
     /// <br>
     /// Shuffling the data around to be able to determine the medians is also
     /// an expensive operation, but takes less time than the medians themselves.
-    //
+    /// 
     /// When a correlation is flagged, all correlations for that data point
     /// are flagged. It is possible to specify which correlations have to be
     /// taken into account when flagging. Using, say, only XX may boost
     /// performance with a factor 4, but miss points to be flagged.
     /// It is also possible to specify the order in which the correlations
     /// have to be tested.
-    //
+    /// 
     /// It is possible to flag specific baselines only using a selection on
     /// baseline length.
     /// <br>Furthermore it is possible to only flag the autocorrelations and

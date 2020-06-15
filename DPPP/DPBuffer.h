@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// /@file
+/// /@brief Buffer holding the data of a timeslot/band
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPBUFFER_H
 #define DPPP_DPBUFFER_H
-
-/// /@file
-/// /@brief Buffer holding the data of a timeslot/band
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
@@ -44,7 +41,7 @@ namespace DP3 {
     /// So if a DPStep object changes data in a buffer, it has to be sure
     /// it can do it. If needed, Array::unique should be called to ensure
     /// the array is not shared.
-    //
+    /// 
     /// The following data can be kept in a DPBuffer object.
     /// <table>
     ///  <tr>
@@ -97,7 +94,7 @@ namespace DP3 {
     /// available, otherwise they get it from the DPInput object.
     /// In that way as little memory as needed is used. Note that e.g. the
     /// AOFlagger can use a lot of memory if a large time window is used.
-    //
+    /// 
     /// Until early 2015 NDPPP used the strategy of shallow data copies.
     /// I.e., a step increased the data reference counter and did not make
     /// an actual copy. Only when data were changed, a new data array was made.
@@ -108,7 +105,7 @@ namespace DP3 {
     /// its buffers and making deep copies when moving data from one step to
     /// the next one. It appeared that it not only improved memory usage,
     /// but also improved performance, possible due to far less mallocs.
-    //
+    /// 
     /// The buffer/step guidelines are as follows:
     /// 1. If a step keeps a buffer for later processing (e.g. AORFlagger),
     ///    it must make a copy of the buffer because the input data arrays

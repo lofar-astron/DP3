@@ -1,8 +1,8 @@
-#ifndef DPPP_SETBEAM_H
-#define DPPP_SETBEAM_H
-
 /// @file
 /// @brief DPPP step class to set the beam keywords in a ms
+
+#ifndef DPPP_SETBEAM_H
+#define DPPP_SETBEAM_H
 
 #include "DPInput.h"
 #include "DPBuffer.h"

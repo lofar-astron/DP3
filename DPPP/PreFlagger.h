@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to flag data on channel, baseline, or time
 /// @author Ger van Diepen
 
 #ifndef DPPP_PREFLAGGER_H
 #define DPPP_PREFLAGGER_H
-
-/// @file
-/// @brief DPPP step class to flag data on channel, baseline, or time
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -57,7 +54,7 @@ namespace DP3 {
     ///  <li> azimuth/elevation
     /// </ul>
     /// The antenna names can contain shell-style wildcards (* ? [] {}).
-    //
+    /// 
     /// All selections are ANDed, thus only the data points matching all
     /// selections are flagged. It is however, possible to specify a logical
     /// expression of selections by means of the internal PSet class.
@@ -170,8 +167,10 @@ namespace DP3 {
         void flagPhase (const casacore::Cube<casacore::Complex>& data);
 
         /// Set the flags based on real/imaginary threshold per correlation.
+        /// <group>
         void flagReal (const casacore::Cube<casacore::Complex>& data);
         void flagImag (const casacore::Cube<casacore::Complex>& data);
+        /// </group>
 
         /// Flag the channels given in itsChannels.
         void flagChannels();

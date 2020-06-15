@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Demixer.h 23223 2012-12-07 14:09:42Z schoenmakers $
-//
+
+/// @file
+/// @brief DPPP struct to hold the common demix variables
 /// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXINFO_H
 #define DPPP_DEMIXINFO_H
-
-/// @file
-/// @brief DPPP struct to hold the common demix variables
 
 #include "DPInfo.h"
 #include "BaselineSelection.h"

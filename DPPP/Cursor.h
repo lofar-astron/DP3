@@ -17,8 +17,9 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
+
+/// \file
+/// Multi-dimensional iterators.
 
 #ifndef DPPP_CURSOR_H
 #define DPPP_CURSOR_H
@@ -28,9 +29,6 @@
 
 typedef std::complex<double> dcomplex;
 typedef std::complex<float> fcomplex;
-
-/// \file
-/// Multi-dimensional iterators.
 
 namespace DP3
 {

@@ -16,18 +16,15 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: DemixerNew.h 23223 2012-12-07 14:09:42Z schoenmakers $
-//
+
+/// @file
+/// @brief DPPP step class to subtract A-team sources in adaptive way
 /// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXERNEW_H
 #define DPPP_DEMIXERNEW_H
 
 #ifdef HAVE_LOFAR_BEAM
-
-/// @file
-/// @brief DPPP step class to subtract A-team sources in adaptive way
 
 #include "DemixInfo.h"
 #include "DemixWorker.h"
@@ -141,6 +138,6 @@ namespace DP3 {
   } // end namespace
 } // end namespace
 
-#endif /// HAVE_LOFAR_BEAM
+#endif // HAVE_LOFAR_BEAM
 
 #endif

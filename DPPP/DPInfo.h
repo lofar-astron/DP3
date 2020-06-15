@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief General info about DPPP data processing attributes like averaging
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPINFO_H
 #define DPPP_DPINFO_H
-
-/// @file
-/// @brief General info about DPPP data processing attributes like averaging
 
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MPosition.h>
@@ -156,6 +153,7 @@ namespace DP3 {
 
 
       /// Get the info.
+      /// <group>
       const string& msName() const
         { return itsMSName; }
       const string& antennaSet() const
@@ -226,6 +224,7 @@ namespace DP3 {
         { return itsTotalBW; }
       double refFreq() const
         { return itsRefFreq; }
+      /// </group>
 
       /// Get the antenna numbers actually used in the (selected) baselines.
       /// E.g. [0,2,5,6]

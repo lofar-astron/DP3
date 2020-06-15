@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: GainCal.h 21598 2012-07-16 08:07:34Z diepen $
-//
+
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_GAINCAL_H
 #define DPPP_GAINCAL_H
-
-/// @file
-/// @brief DPPP step class to apply a calibration correction to the data
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -158,7 +155,7 @@ namespace DP3 {
       std::string      itsParmDBName;
       bool             itsUseH5Parm;
       std::shared_ptr<BBS::ParmDB> itsParmDB;
-      std::string      itsParsetString; /// Parset, for logging in H5Parm
+      std::string      itsParsetString; ///< Parset, for logging in H5Parm
 
       CalType          itsMode;
 
@@ -167,40 +164,38 @@ namespace DP3 {
 
       bool             itsApplySolution;
 
-      std::vector<casacore::Cube<casacore::DComplex> > itsSols; /// for every timeslot, nCr x nSt x nFreqCells
-      std::vector<casacore::Matrix<double> > itsTECSols; /// for every timeslot, 2 x nSt (alpha and beta)
-      std::vector<double> itsFreqData; /// Mean frequency for every freqcell
+      std::vector<casacore::Cube<casacore::DComplex> > itsSols; ///< for every timeslot, nCr x nSt x nFreqCells
+      std::vector<casacore::Matrix<double> > itsTECSols; ///< for every timeslot, 2 x nSt (alpha and beta)
+      std::vector<double> itsFreqData; ///< Mean frequency for every freqcell
 
-      std::vector<std::unique_ptr<PhaseFitter> > itsPhaseFitters; /// Length nSt
+      std::vector<std::unique_ptr<PhaseFitter> > itsPhaseFitters; ///< Length nSt
 
       std::vector<GainCalAlgorithm>  iS;
 
       UVWFlagger        itsUVWFlagStep;
-      ResultStep::ShPtr itsDataResultStep; /// Result step for data after UV-flagging
+      ResultStep::ShPtr itsDataResultStep; ///< Result step for data after UV-flagging
 
       std::unique_ptr<Predict> itsPredictStep;
       ParallelFor<size_t> itsParallelFor;
       std::unique_ptr<class ThreadPool> itsThreadPool;
       std::mutex itsMeasuresMutex;
 #ifdef HAVE_LOFAR_BEAM
-      ApplyBeam         itsApplyBeamStep; /// Beam step for applying beam to modelcol
+      ApplyBeam         itsApplyBeamStep; ///< Beam step for applying beam to modelcol
 #endif
-      ResultStep::ShPtr itsResultStep; /// For catching results from Predict or Beam
+      ResultStep::ShPtr itsResultStep; ///< For catching results from Predict or Beam
       bool              itsApplyBeamToModelColumn;
 
-      BaselineSelection itsBaselineSelection; /// Filter
-      casacore::Vector<bool> itsSelectedBL; /// Vector (length nBl) telling
-                                        /// which baselines are selected
-      casacore::Vector<bool> itsAntennaUsed; /// Vector (length nSt) telling
-                                         /// which stations are solved for
+      BaselineSelection itsBaselineSelection; ///< Filter
+      casacore::Vector<bool> itsSelectedBL; ///< Vector (length nBl) telling which baselines are selected
+      casacore::Vector<bool> itsAntennaUsed; ///< Vector (length nSt) telling which stations are solved for
 
       std::map<std::string,int>  itsParmIdMap; ///< -1 = new parm name
 
       unsigned int             itsMaxIter;
       double           itsTolerance;
       bool             itsPropagateSolutions;
-      unsigned int             itsSolInt;  /// Time cell size
-      unsigned int             itsNChan;   /// Frequency cell size
+      unsigned int             itsSolInt;  ///< Time cell size
+      unsigned int             itsNChan;   ///< Frequency cell size
       unsigned int             itsNFreqCells;
 
       unsigned int             itsTimeSlotsPerParmUpdate;
@@ -208,12 +203,12 @@ namespace DP3 {
       unsigned int             itsNonconverged;
       unsigned int             itsFailed;
       unsigned int             itsStalled;
-      std::vector<unsigned int>     itsNIter; /// Total iterations made (for converged, stalled, nonconverged, failed)
-      unsigned int             itsStepInParmUpdate; /// Timestep within parameter update
-      double           itsChunkStartTime; /// First time value of chunk to be stored
-      unsigned int             itsStepInSolInt;  /// Timestep within solint
+      std::vector<unsigned int>     itsNIter; ///< Total iterations made (for converged, stalled, nonconverged, failed)
+      unsigned int             itsStepInParmUpdate; ///< Timestep within parameter update
+      double           itsChunkStartTime; ///< First time value of chunk to be stored
+      unsigned int             itsStepInSolInt;  ///< Timestep within solint
 
-      casacore::Array<casacore::DComplex>  itsAllSolutions; /// Array that holds all solutions for all iterations
+      casacore::Array<casacore::DComplex>  itsAllSolutions; ///< Array that holds all solutions for all iterations
 
       FlagCounter      itsFlagCounter;
 

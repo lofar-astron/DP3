@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to count flags
 /// @author Ger van Diepen
 
 #ifndef DPPP_COUNTER_H
 #define DPPP_COUNTER_H
-
-/// @file
-/// @brief DPPP step class to count flags
 
 #include "DPInput.h"
 #include "DPBuffer.h"

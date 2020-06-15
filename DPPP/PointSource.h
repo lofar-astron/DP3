@@ -18,17 +18,15 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
+
+/// \file
+/// Point source model component with optional spectral index and rotation
+/// measure.
 
 #ifndef DPPP_POINTSOURCE_H
 #define DPPP_POINTSOURCE_H
 
 #include <vector>
-
-/// \file
-/// Point source model component with optional spectral index and rotation
-/// measure.
 
 #include "ModelComponent.h"
 #include "Position.h"
@@ -84,9 +82,9 @@ private:
 
 /// @}
 
-/// -------------------------------------------------------------------------- //
-/// - Implementation: PointSource                                            - //
-/// -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
+// - Implementation: PointSource                                            - //
+// -------------------------------------------------------------------------- //
 
 template <typename T>
 void PointSource::setSpectralTerms(double refFreq, bool isLogarithmic, T first, T last)

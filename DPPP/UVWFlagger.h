@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to flag data on UVW coordinates
 /// @author Ger van Diepen
 
 #ifndef DPPP_UVWFLAGGER_H
 #define DPPP_UVWFLAGGER_H
-
-/// @file
-/// @brief DPPP step class to flag data on UVW coordinates
 
 #include "DPInput.h"
 #include "DPBuffer.h"

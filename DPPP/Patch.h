@@ -18,15 +18,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_PATCH_H
-#define DPPP_PATCH_H
 
 /// \file
 /// A set of sources for which direction dependent effects are assumed to be
 /// equal.
+
+#ifndef DPPP_PATCH_H
+#define DPPP_PATCH_H
 
 #include "ModelComponent.h"
 #include "Position.h"
@@ -79,9 +77,9 @@ private:
 
 /// @}
 
-/// -------------------------------------------------------------------------- //
-/// - Implementation: Patch                                                  - //
-/// -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
+// - Implementation: Patch                                                  - //
+// -------------------------------------------------------------------------- //
 
 template <typename T>
 Patch::Patch(const std::string &name, T first, T last)

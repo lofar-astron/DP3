@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Class to hold code for virtual base class for Flaggers in DPPP
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPSTEP_H
 #define DPPP_DPSTEP_H
-
-/// @file
-/// @brief Class to hold code for virtual base class for Flaggers in DPPP
 
 #include "DPBuffer.h"
 #include "DPInfo.h"

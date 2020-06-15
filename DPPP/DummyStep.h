@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id:
-//
+
+/// @file
+/// @brief DPPP step class to DummyStep visibilities from a source model
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_DummyStep_H
 #define DPPP_DummyStep_H
-
-/// @file
-/// @brief DPPP step class to DummyStep visibilities from a source model
 
 #include "DPInput.h"
 #include "DPBuffer.h"

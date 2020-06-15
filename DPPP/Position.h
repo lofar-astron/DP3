@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-
-#ifndef DPPP_POSITION_H
-#define DPPP_POSITION_H
 
 /// \file
 /// A position on the celestial sphere.
+
+#ifndef DPPP_POSITION_H
+#define DPPP_POSITION_H
 
 #include <cstring>
 
@@ -51,9 +49,9 @@ private:
 
 /// @}
 
-/// -------------------------------------------------------------------------- //
-/// - Implementation: Position                                               - //
-/// -------------------------------------------------------------------------- //
+// -------------------------------------------------------------------------- //
+// - Implementation: Position                                               - //
+// -------------------------------------------------------------------------- //
 
 inline const double &Position::operator[](size_t i) const
 {

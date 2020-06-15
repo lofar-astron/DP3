@@ -16,16 +16,14 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Abstract base class for a DPStep generating input
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPINPUT_H
 #define DPPP_DPINPUT_H
 
-/// @file
-/// @brief Abstract base class for a DPStep generating input
 
 #include "DPStep.h"
 #include "DPBuffer.h"
@@ -55,7 +53,7 @@ namespace DP3 {
     /// data from a MeasurementSet. However, it is also possible to have
     /// input steps generating data on the fly as done in test programs
     /// like tAverager.cc.
-    //
+    /// 
     /// A particular task of the class is to fetch the input for various
     /// data items like weight, uvw, etc.. This is done by testing if the
     /// item's data array is in the DPBuffer. If so, it will be returned.

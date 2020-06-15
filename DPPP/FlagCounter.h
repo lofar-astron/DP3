@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief Class to keep counts of nr of flagged points
 /// @author Ger van Diepen
 
 #ifndef DPPP_FLAGCOUNTER_H
 #define DPPP_FLAGCOUNTER_H
-
-/// @file
-/// @brief Class to keep counts of nr of flagged points
 
 #include <casacore/casa/Arrays/Vector.h>
 
@@ -78,12 +75,14 @@ namespace DP3 {
       void add (const FlagCounter& that);
 
       /// Get the counts.
+      /// <group>
       const std::vector<int64_t>& baselineCounts() const
         { return itsBLCounts; }
       const std::vector<int64_t>& channelCounts() const
         { return itsChanCounts; }
       const std::vector<int64_t>& correlationCounts() const
         { return itsCorrCounts; }
+      /// </group>
 
       /// Print the counts and optionally save percentages in a table.
       void showBaseline    (std::ostream& os, int64_t ntimes) const;

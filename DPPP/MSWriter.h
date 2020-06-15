@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step writing to an MS
 /// @author Ger van Diepen
 
 #ifndef DPPP_MSWRITER_H
 #define DPPP_MSWRITER_H
-
-/// @file
-/// @brief DPPP step writing to an MS
 
 #include "DPStep.h"
 #include "MSReader.h"
@@ -52,7 +49,7 @@ namespace DP3 {
     /// input MS, but in case of an MS stored with LofarStMan it will use the
     /// optimal storage managers (ISM for slowly varying meta data, TSM for
     /// bulk data, SSM for others).
-    //
+    /// 
     /// The SPECTRAL_WINDOW table will be changed to reflect the channels
     /// being used or averaged.
     /// The OBSERVATION table will be updated for the correct start and end time.

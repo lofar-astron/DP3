@@ -16,18 +16,14 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
-/// @author Ger van Diepen
-
-/// Note: this code is used by LOFAR and APERTIF software.
-
-#ifndef DPPP_UVWCALCULATOR_H
-#define DPPP_UVWCALCULATOR_H
 
 /// @file
 /// @brief Class to calculate UVW coordinates
+/// Note: this code is used by LOFAR and APERTIF software.
+/// @author Ger van Diepen
+
+#ifndef DPPP_UVWCALCULATOR_H
+#define DPPP_UVWCALCULATOR_H
 
 #include <casacore/measures/Measures/MeasFrame.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -46,7 +42,7 @@ namespace DP3 {
 
     /// This class calculates the UVW coordinates for a given baseline and
     /// time stamp in the same way as done in LofarStMan.
-    //
+    /// 
     /// It calculates and caches the UVW coordinates per antenna and combines
     /// them to get the baseline UVW coordinates. This is much faster than
     /// calculating baseline UVW coordinates directly.

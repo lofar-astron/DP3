@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id$
-//
+
+/// @file
+/// @brief DPPP step class to shift the data to another phase center
 /// @author Ger van Diepen
 
 #ifndef DPPP_PHASESHIFT_H
 #define DPPP_PHASESHIFT_H
-
-/// @file
-/// @brief DPPP step class to shift the data to another phase center
 
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -42,7 +39,6 @@ namespace DP3 {
     /// This class is a DPStep class to shift the data and UVW coordinates
     /// to another phase center. If no phase center is given, a shift is
     /// done back to the original phase center.
-    //
     /// The code is based on the script phaseshift.py by Bas vd Tol.
 
     class PhaseShift: public DPStep
