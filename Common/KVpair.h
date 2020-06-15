@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: KVpair.h 31468 2015-04-13 23:26:52Z amesfoort $
-
-#ifndef LOFAR_COMMON_KVPAIR_H
-#define LOFAR_COMMON_KVPAIR_H
 
 /// \file
 /// Implements a KV pair as a pair<string, string>.
+
+#ifndef LOFAR_COMMON_KVPAIR_H
+#define LOFAR_COMMON_KVPAIR_H
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include <ctime>
@@ -36,7 +34,7 @@ namespace DP3 {
 /// \addtogroup Common
 /// @{
 
-// Implements a KV pair as a pair<string, string>.
+/// Implements a KV pair as a pair<string, string>.
 class KVpair : public std::pair<std::string, std::string>
 {
 public:

@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: TypeNames.h 14057 2009-09-18 12:26:29Z diepen $
+
+/// \file
+/// Return a string giving the type name to be stored in blobs.
 
 #ifndef LOFAR_COMMON_TYPENAMES_H
 #define LOFAR_COMMON_TYPENAMES_H
-
-/// \file
-/// Return a string giving the type name to be stored in blobs
 
 #include <complex>
 #include <string>
@@ -32,13 +30,13 @@
 namespace DP3
 {
   /// \addtogroup TypeNames
-  //
+  ///
   /// These global functions return the name of the basic types.
   /// They are meant to get the full id of a templated class when such an
   /// object is stored in a blob.
   /// As much as possible std::complex and builtin complex types get the same
   /// name, so they can be read back from a blob in both ways.
-  /// <group>
+  /// @{
 
   const std::string& typeName (const void*);
   const std::string& typeName (const bool*);
@@ -61,7 +59,7 @@ namespace DP3
 #endif
   template<typename T> const std::string& typeName (T const* const*);
 
-/// </group>
+/// @}
 
 }
 

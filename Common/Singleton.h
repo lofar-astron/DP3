@@ -17,16 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Singleton.h 14057 2009-09-18 12:26:29Z diepen $
+
+/// \file
+/// \brief Implementation of a Meyers singleton class.
 
 #ifndef LOFAR_COMMON_SINGLETON_H
 #define LOFAR_COMMON_SINGLETON_H
-
-/// \file
-/// Implementation of a Meyers singleton class.
-
-// Includes
 
 namespace DP3
 {
@@ -35,13 +31,13 @@ namespace DP3
 
   /// Singleton implements the so-called Meyers singleton (see Item 26 in
   /// <em>More Effective C++</em>, by Scott Meyers).
-  //
+  ///
   /// \attention The Meyers singleton is \e not thread-safe. So, you can only
   /// safely use this Singleton class <em>as long as</em> there is only one
   /// thread running. Note that, in general, the static initialization and
   /// destruction phases (i.e. before main() has started and after main() has
   /// finished), are single threaded.
-  //
+  ///
   /// \attention The order of destruction of static objects is
   /// undetermined. This Singleton class therefore suffers from the so-called
   /// "Dead Reference Problem"

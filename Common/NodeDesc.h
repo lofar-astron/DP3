@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: NodeDesc.h 16886 2010-12-08 10:43:17Z diepen $
-
-#ifndef LOFAR_LMWCOMMON_NODEDESC_H
-#define LOFAR_LMWCOMMON_NODEDESC_H
 
 /// @file
 /// @brief Description of a node in a cluster.
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_LMWCOMMON_NODEDESC_H
+#define LOFAR_LMWCOMMON_NODEDESC_H
 
 #include "ParameterHandler.h"
 
@@ -40,7 +38,7 @@ namespace DP3 { namespace CEP {
 
   /// This class holds the basic description of a node.
   /// It tells the name of the node and which file systems it has access to.
-  //
+  ///
   /// Currently the information is made persistent in a LOFAR .parset file.
   /// In the future it needs to use the Central Processor Resource Manager.
 
@@ -71,7 +69,7 @@ namespace DP3 { namespace CEP {
     void setType (NodeType type)
       { itsType = type; }
 
-   /// Add a file system the node has access to.
+    /// Add a file system the node has access to.
     /// A possible leading /auto is removed from the mountPoint.
     void addFileSys (const std::string& fsName, const std::string& mountPoint);
 

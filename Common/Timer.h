@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: Timer.h 31468 2015-04-13 23:26:52Z amesfoort $
+
+/// \file
+/// \brief Very accurate timer for elapsed times.
 
 #ifndef LOFAR_COMMON_TIMER_H
 #define LOFAR_COMMON_TIMER_H
-
-/// \file
-/// Very accurate timer for elapsed times.
 
 #include <cstdlib>
 #include <cstring>
@@ -46,7 +44,7 @@ namespace DP3 {
   /// total time, as well as the number of iterations are printed.
   /// The measured time is real time (as opposed to user or system time).
   /// The timer can be used to measure from 10 nanosecond to a century interval.
-  //
+  ///
   /// The internal class NSTimer::StartStop can be used to do the start/stop.
   /// The constructor starts the timer, while the destructor stops it. It has
   /// the advantage that no explicit stop has to be given.
@@ -73,10 +71,10 @@ namespace DP3 {
     void reset();
 
     /// Print the timer.
-    /// <group>
+    /// @{
     std::ostream& print (std::ostream &) const;
     friend std::ostream& operator<< (std::ostream&, const NSTimer&);
-    /// </group>
+    /// @}
 
     /// Get the elapsed time (in seconds).
     double getElapsed() const;

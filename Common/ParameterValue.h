@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParameterValue.h 20264 2012-02-28 07:22:45Z diepen $
-
-#ifndef LOFAR_COMMON_PARAMETERVALUE_H
-#define LOFAR_COMMON_PARAMETERVALUE_H
 
 /// \file
 /// The value of a parameter
+
+#ifndef LOFAR_COMMON_PARAMETERVALUE_H
+#define LOFAR_COMMON_PARAMETERVALUE_H
 
 #include "StringUtil.h"
 
@@ -36,7 +34,7 @@ namespace DP3 {
   /// ParameterValue represent a value of a parameter.
   /// It can contain a single value, but also a vector of ParameterValues or
   /// a ParameterRecord.
-  //
+  ///
   /// It contains various functions to obtain the value in the format desired.
   class ParameterValue
   {
@@ -71,7 +69,7 @@ namespace DP3 {
     ParameterRecord getRecord() const;
 
     /// Get the parameter value in the given type.
-    /// <group>
+    /// @{
     bool   getBool() const
       { return strToBool(itsValue); }
     int    getInt() const
@@ -110,10 +108,10 @@ namespace DP3 {
     std::vector<double> getDoubleVector() const;
     std::vector<std::string> getStringVector() const;
     std::vector<time_t> getTimeVector() const;
-    /// </group>
+    /// @}
 
     /// Convert the parameter value to the given type using conversion operators.
-    /// <group>
+    /// @{
     operator bool() const
       { return getBool(); }
     operator int() const
@@ -142,18 +140,18 @@ namespace DP3 {
       { return getStringVector(); }
     operator std::vector<time_t>() const
       { return getTimeVector(); }
-    /// <group>
+    /// @{
 
     /// Convert a string to a time.
     static time_t StringToTime_t (const std::string& aString) ;
 
     /// Put or get to/from ostream.
-    /// <group>
+    /// @{
     friend std::ostream& operator<< (std::ostream& os, const ParameterValue& pval)
       { os << pval.itsValue; return os; }
     friend std::istream& operator>> (std::istream& os, ParameterValue& pval)
       { os >> pval.itsValue; return os; }
-    /// </group>
+    /// @}
 
   private:
     /// Split itsValue into individual values using the comma as separator.

@@ -22,31 +22,31 @@
 
 /// \file
 /// Generic object factory.
-//
-// The implementation of this object factory was inspired by the article
+///
+/// The implementation of this object factory was inspired by the article
 /// <em>Creating a Generic Object Factory</em>, written by Robert Geiman on
-// GameDev.net
-// (http://www.gamedev.net/reference/articles/article2097.asp). His
-// implementation was taken as a starting point and adapted to work with the
-// Boost.Preprocessor library. Some code refactoring was performed, and the
-// code was made compliant with the %LOFAR coding standards.
-//
-// The structure of this header file may look intimidating at first; it
-// performs almost magic. Keep in mind, though, that all \c BOOST_PP macros
-// are simply used to generate repetitive code. In this case template
-// specializations of the primary template
+/// GameDev.net
+/// (http://www.gamedev.net/reference/articles/article2097.asp). His
+/// implementation was taken as a starting point and adapted to work with the
+/// Boost.Preprocessor library. Some code refactoring was performed, and the
+/// code was made compliant with the %LOFAR coding standards.
+///
+/// The structure of this header file may look intimidating at first; it
+/// performs almost magic. Keep in mind, though, that all \c BOOST_PP macros
+/// are simply used to generate repetitive code. In this case template
+/// specializations of the primary template
 /// \code 
-// template <typename Signature, typename TypeId> class ObjectFactory;
+/// template <typename Signature, typename TypeId> class ObjectFactory;
 /// \endcode
-// where \c Signature is the signature of the class' constructor, and \c
-// TypeId is the type of its unique id. These template specializations define
-// object factories for classes with up to \c OBJECT_FACTORY_MAX_CTOR_ARG
-// constructor arguments.
-//
-// The preprocessor constructs below were taken from "Appendix A: An
-// Introduction to Preprocessor Metaprogramming" in the book <em>C++ Template
-// Metaprogramming</em>, by David Abrahams and Aleksey Gurtovoy -- available
-// online at http://boost-consulting.com/tmpbook/preprocessor.html
+/// where \c Signature is the signature of the class' constructor, and \c
+/// TypeId is the type of its unique id. These template specializations define
+/// object factories for classes with up to \c OBJECT_FACTORY_MAX_CTOR_ARG
+/// constructor arguments.
+///
+/// The preprocessor constructs below were taken from "Appendix A: An
+/// Introduction to Preprocessor Metaprogramming" in the book <em>C++ Template
+/// Metaprogramming</em>, by David Abrahams and Aleksey Gurtovoy -- available
+/// online at http://boost-consulting.com/tmpbook/preprocessor.html
 
 #ifndef BOOST_PP_IS_ITERATING
 

@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: VdsMaker.h 19275 2011-11-16 08:03:59Z diepen $
-
-#ifndef LOFAR_MS_VDSMAKER_H
-#define LOFAR_MS_VDSMAKER_H
 
 /// @file
 /// Class to create the description of an MS
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_MS_VDSMAKER_H
+#define LOFAR_MS_VDSMAKER_H
 
 #include "ClusterDesc.h"
 
