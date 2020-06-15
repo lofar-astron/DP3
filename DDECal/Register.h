@@ -16,17 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: AORFlagger.h 26900 2013-10-08 20:12:58Z loose $
-//
+
+/// @file
+/// @brief Register AOFlag steps in DPPP
 /// @author Ger van Diepen
 
 #ifndef DPPP_DDECAL_REGISTER_H
 #define DPPP_DDECAL_REGISTER_H
-
-/// @file
-/// @brief Register AOFlag steps in DPPP
-
 
 // Define the function (without name mangling) to register the 'constructor'.
 extern "C"

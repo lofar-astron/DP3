@@ -16,16 +16,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: DDECal.h 21598 2012-07-16 08:07:34Z diepen $
-//
+
+/// @file
+/// @brief DPPP step class to apply a calibration correction to the data.
 /// @author Tammo Jan Dijkema
 
 #ifndef DPPP_DDECAL_H
 #define DPPP_DDECAL_H
-
-/// @file
-/// @brief DPPP step class to apply a calibration correction to the data
 
 #include "../DPPP/DPInput.h"
 #include "../DPPP/GainCal.h"
@@ -66,10 +63,10 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
-    /// This class is a DPStep class to calibrate (direction independent) gains.
-
     typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t> Baseline;
+
+    /// This class is a DPStep class to calibrate (direction independent) gains.
 
     class DDECal: public DPStep
     {
@@ -162,7 +159,7 @@ namespace DP3 {
 
       std::string      itsH5ParmName;
       H5Parm           itsH5Parm;
-      std::string      itsParsetString; // Parset, for logging in H5Parm
+      std::string      itsParsetString; ///< Parset, for logging in H5Parm
 
       GainCal::CalType itsMode;
       bool itsPropagateSolutions;
@@ -178,17 +175,21 @@ namespace DP3 {
       size_t itsNChan;
       /// For each channel block, the nr of unflagged vis and the total nr of vis.
       std::vector<std::pair<size_t, size_t>> itsVisInInterval;
-      std::vector<size_t> itsChanBlockStart;    /// For each channel block, the index in the channels at which this channel block starts
+      /// For each channel block, the index in the channels at which this channel block starts.
+      std::vector<size_t> itsChanBlockStart;
       std::vector<double> itsChanBlockFreqs;
-      std::vector<std::vector<string> > itsDirections; // For each direction, a vector of patches
+      /// For each direction, a vector of patches.
+      std::vector<std::vector<string> > itsDirections;
       std::vector<std::unique_ptr<Constraint> > itsConstraints;
 
       std::vector<double>   itsWeightsPerAntenna;
 
       UVWFlagger       itsUVWFlagStep;
-      ResultStep::ShPtr itsDataResultStep; // Result step for data after UV-flagging
+      /// Result step for data after UV-flagging
+      ResultStep::ShPtr itsDataResultStep;
       std::vector<Predict>     itsPredictSteps;
-      std::vector<MultiResultStep::ShPtr> itsResultSteps; // For each directions, a multiresultstep with all times
+      /// For each directions, a multiresultstep with all times.
+      std::vector<MultiResultStep::ShPtr> itsResultSteps;
 
       NSTimer          itsTimer;
       NSTimer          itsTimerPredict;
