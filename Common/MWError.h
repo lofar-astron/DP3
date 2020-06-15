@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: MWError.h 16886 2010-12-08 10:43:17Z diepen $
-
-#ifndef LOFAR_LMWCOMMON_MWERROR_H
-#define LOFAR_LMWCOMMON_MWERROR_H
 
 /// @file
 /// @brief Basic exception for master/worker related errors.
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_LMWCOMMON_MWERROR_H
+#define LOFAR_LMWCOMMON_MWERROR_H
 
 namespace DP3 { namespace CEP {
 

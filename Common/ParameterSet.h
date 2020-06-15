@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParameterSet.h 23459 2013-01-08 08:49:52Z diepen $
-
-#ifndef LOFAR_COMMON_PARAMETERSET_H
-#define LOFAR_COMMON_PARAMETERSET_H
 
 /// \file
 /// Implements a map of Key-Value pairs.
+
+#ifndef LOFAR_COMMON_PARAMETERSET_H
+#define LOFAR_COMMON_PARAMETERSET_H
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include "ParameterSetImpl.h"
@@ -35,14 +33,13 @@ namespace DP3 {
 /// \addtogroup Common
 /// @{
 
-// Description of class.
-// The ParameterSet class is a key-value implementation of the type
-// map<string, string>. 
-// This means that values are stored as a string which allows easy merging and
-// splitting of ParameterSets because no conversions have to be done.
-// A couple of getXxx routines are provided to convert the strings to the 
-// desired type.
-//
+/// The ParameterSet class is a key-value implementation of the type
+/// map<string, string>. 
+/// This means that values are stored as a string which allows easy merging and
+/// splitting of ParameterSets because no conversions have to be done.
+/// A couple of getXxx routines are provided to convert the strings to the 
+/// desired type.
+///
 class ParameterSet
 {
 public:
@@ -171,16 +168,16 @@ public:
   /// parameters that start with the given baseKey. The baseKey is cut off 
   /// from the Keynames in the created subset, the optional prefix is put
   /// before all keys in the subset.
-        /// <br>It is important to note that no dot is added to the prefix, so
-        /// it has to be given explicitly. So when giving a prefix like "pre",
-        /// a key "pre.key" gets ".key" and "prefix.key" get "fix.key".
+  /// <br>It is important to note that no dot is added to the prefix, so
+  /// it has to be given explicitly. So when giving a prefix like "pre",
+  /// a key "pre.key" gets ".key" and "prefix.key" get "fix.key".
   ParameterSet  makeSubset(const std::string& baseKey,
                   const std::string& prefix = "") const;
 
   /// Subtract a subset from the current ParameterSet. Every parameter
   /// whose key starts with the given name will be removed from the
   /// ParameterSet.
-        /// <br> Similarly to makeSubset, no dot is added to the prefix.
+  /// <br> Similarly to makeSubset, no dot is added to the prefix.
   void  subtractSubset(const std::string& fullPrefix);
   /// @}
 
@@ -228,12 +225,12 @@ public:
   std::string fullModuleName(const std::string& shortName) const;
 
   /// Return the value of the key as a vector of values.
-        /// This can only be done if the value is enclosed in square brackets.
-        std::vector<ParameterValue> getVector (const std::string& aKey) const;
+  /// This can only be done if the value is enclosed in square brackets.
+  std::vector<ParameterValue> getVector (const std::string& aKey) const;
 
   /// Return the value of the key as a parameter record.
-        /// This can only be done if the value is enclosed in curly braces.
-        ParameterRecord getRecord (const std::string& aKey) const;
+  /// This can only be done if the value is enclosed in curly braces.
+  ParameterRecord getRecord (const std::string& aKey) const;
 
   /// Return scalar value.
   /// @{
@@ -339,9 +336,9 @@ public:
 
   /// @}
 
-        /// Get all unused parameter names, thus the names of parameters
-        /// that have not been asked for.
-        std::vector<std::string> unusedKeys() const;
+  /// Get all unused parameter names, thus the names of parameters
+  /// that have not been asked for.
+  std::vector<std::string> unusedKeys() const;
 
   /// \name Printing
   /// Mostly for debug purposes the collection can be printed.
@@ -360,7 +357,7 @@ private:
 };
 
 
-// Make one instance of the parameterSet globally accessable.
+/// Make one instance of the parameterSet globally accessable.
 ParameterSet*   globalParameterSet();
 
 //

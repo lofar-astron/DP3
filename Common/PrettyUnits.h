@@ -17,8 +17,9 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: PrettyUnits.h 14057 2009-09-18 12:26:29Z diepen $
+
+/// \file
+/// \brief Print units in a human-readable way
 
 #ifndef LOFAR_COMMON_PRETTY_UNITS_H
 #define LOFAR_COMMON_PRETTY_UNITS_H
@@ -54,7 +55,7 @@ namespace DP3 {
       }
   };
 
-}  /// end namespace LOFAR
+}  // end namespace LOFAR
 
 
 #endif

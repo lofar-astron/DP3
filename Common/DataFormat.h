@@ -17,21 +17,19 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: DataFormat.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_COMMON_DATAFORMAT_H
-#define LOFAR_COMMON_DATAFORMAT_H
 
 /// \file
 /// Get the data format (endian type).
-  /// This file defines an enum for the possible machine data formats.
-  /// Currently only little and big endian is possible with floating point
-  /// numbers as IEEE and characters in the ASCII representation.
-  /// It is used in the Blob classes and the DataConvert functions.
-  //
-  /// Furthermore it contains a function giving the data format in use on
-  /// the machine in use.
+/// This file defines an enum for the possible machine data formats.
+/// Currently only little and big endian is possible with floating point
+/// numbers as IEEE and characters in the ASCII representation.
+/// It is used in the Blob classes and the DataConvert functions.
+///
+/// Furthermore it contains a function giving the data format in use on
+/// the machine in use.
+
+#ifndef LOFAR_COMMON_DATAFORMAT_H
+#define LOFAR_COMMON_DATAFORMAT_H
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 

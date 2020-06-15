@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: VdsDesc.h 16886 2010-12-08 10:43:17Z diepen $
-
-#ifndef LOFAR_LMWCOMMON_VDSDESC_H
-#define LOFAR_LMWCOMMON_VDSDESC_H
 
 /// @file
 /// @brief Describe an entire visibility data set
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_LMWCOMMON_VDSDESC_H
+#define LOFAR_LMWCOMMON_VDSDESC_H
 
 #include "VdsPartDesc.h"
 #include "ParameterHandler.h"
@@ -44,7 +42,7 @@ namespace DP3 { namespace CEP {
   /// Furthermore it contains the names of all antennae, which can be used
   /// to map the antenna name to the antenna number when a selection on
   /// antenna names is done.
-  //
+  ///
   /// Currently the information is made persistent in a LOFAR .parset file.
   /// In the future it needs to use the Centrol Processor Resource Manager.
 

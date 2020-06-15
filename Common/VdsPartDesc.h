@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: VdsPartDesc.h 16886 2010-12-08 10:43:17Z diepen $
-
-#ifndef LOFAR_LMWCOMMON_VDSPARTDESC_H
-#define LOFAR_LMWCOMMON_VDSPARTDESC_H
 
 /// @file
 /// @brief Description of a visibility data set or part thereof.
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_LMWCOMMON_VDSPARTDESC_H
+#define LOFAR_LMWCOMMON_VDSPARTDESC_H
 
 #include "ParameterSet.h"
 
@@ -84,11 +82,11 @@ namespace DP3 { namespace CEP {
                    const std::vector<double>& ends   = std::vector<double>());
 
     /// Add a band.
-    /// <group>
+    /// @{
     void addBand (int nchan, double startFreq, double endFreq);
     void addBand (int nchan, const std::vector<double>& startFreq,
 		  const std::vector<double>& endFreq);
-    /// </group>
+    /// @}
 
     /// Add an extra parameter. It is added to the subset 'Extra.'.
     /// If the parameter already exists, it is replaced.
@@ -137,10 +135,10 @@ namespace DP3 { namespace CEP {
     /// @}
 
   /// Put/get the object to/from a blob.
-  /// <group>
+  /// @{
   BlobOStream& toBlob (BlobOStream&) const;
   BlobIStream& fromBlob (BlobIStream&);
-  /// </group>
+  /// @}
 
   private:
     std::string itsName;       ///< full name of the VDS desc
@@ -159,12 +157,12 @@ namespace DP3 { namespace CEP {
   };
     
   /// Put/get the object to/from a blob.
-  /// <group>
+  /// @{
     inline BlobOStream& operator<< (BlobOStream& bs, const VdsPartDesc& vpd)
     { return vpd.toBlob (bs); }
     inline BlobIStream& operator>> (BlobIStream& bs, VdsPartDesc& vpd)
     { return vpd.fromBlob (bs); }
-  /// </group>
+  /// @}
 
 }} // end namespaces
 

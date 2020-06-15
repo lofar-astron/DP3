@@ -17,15 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ParameterHandler.h 16886 2010-12-08 10:43:17Z diepen $
-
-#ifndef LOFAR_LMWCOMMON_PARAMETERHANDLER_H
-#define LOFAR_LMWCOMMON_PARAMETERHANDLER_H
 
 /// @file
 /// @brief Handle a LOFAR .parset file
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef LOFAR_LMWCOMMON_PARAMETERHANDLER_H
+#define LOFAR_LMWCOMMON_PARAMETERHANDLER_H
 
 #include "ParameterSet.h"
 

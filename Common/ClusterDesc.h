@@ -17,16 +17,13 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: ClusterDesc.h 16886 2010-12-08 10:43:17Z diepen $
-//
-
-#ifndef LOFAR_LMWCOMMON_CLUSTERDESC_H
-#define LOFAR_LMWCOMMON_CLUSTERDESC_H
 
 /// @file
 /// @brief Description of a cluster and the nodes in it.
 /// @author Ger van Diepen <diepen AT astron nl>
+
+#ifndef LOFAR_LMWCOMMON_CLUSTERDESC_H
+#define LOFAR_LMWCOMMON_CLUSTERDESC_H
 
 #include "NodeDesc.h"
 
@@ -34,7 +31,6 @@
 #include <vector>
 #include <iosfwd>
 
-// Forard Declarations;
 namespace DP3 {
   class ParameterSet;
 }
@@ -50,7 +46,7 @@ namespace DP3 { namespace CEP {
   /// If a data set is distributed over many file systems, the cluster
   /// description tells which node can handle a data set part on a particular
   /// file system.
-  //
+  ///
   /// Currently the information is made persistent in a LOFAR .parset file.
   /// In the future it needs to use the Centrol Processor Resource Manager.
 

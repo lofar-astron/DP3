@@ -17,22 +17,19 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-//  $Id: BaselineSelect.h 34753 2016-06-20 10:43:42Z schaap $
-
-#ifndef MS_BASELINESELECT_H
-#define MS_BASELINESELECT_H
 
 /// @file
 /// Convert MSSelection baseline string to a Matrix
 /// @author Ger van Diepen (diepen AT astron nl)
+
+#ifndef MS_BASELINESELECT_H
+#define MS_BASELINESELECT_H
 
 #include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
 #include <casacore/casa/Arrays/Array.h>
 
 #include <ostream>
 
-// Forward Declarations
 namespace casacore
 {
   class Table;
@@ -47,8 +44,8 @@ namespace DP3
 /// @brief Convert MSSelection baseline string to a Matrix
 /// @{
 
-// Class with a static function to convert a casacore MSSelection baseline
-// string to a Matrix<Bool> telling which baselines are selected.
+/// Class with a static function to convert a casacore MSSelection baseline
+/// string to a Matrix<Bool> telling which baselines are selected.
 
 class BaselineSelect
 {
@@ -82,8 +79,8 @@ private:
 
 
 
-// This class handles an error from the Casacore's MSAntennaParse.
-// It adds the message to the message list of the parent BaselineSelect.
+/// This class handles an error from the Casacore's MSAntennaParse.
+/// It adds the message to the message list of the parent BaselineSelect.
 class BaselineSelectErrorHandler : public casacore::MSSelectionErrorHandler
 {
 public:

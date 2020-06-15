@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: StreamUtil.h 31468 2015-04-13 23:26:52Z amesfoort $
+
+/// \file
+/// \brief Useful stream manipulation methods.
 
 #ifndef LOFAR_COMMON_STREAMUTILX_H
 #define LOFAR_COMMON_STREAMUTILX_H
-
-/// \file
-/// Useful stream manipulation methods.
 
 #include <map>
 #include <ostream>
