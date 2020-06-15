@@ -17,20 +17,18 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobIBuffer.h 14057 2009-09-18 12:26:29Z diepen $
+
+/// \file
+/// Abstract base class for input buffer for a blob
 
 #include <cstdint>
 
 #ifndef LOFAR_BLOB_BLOBIBUFFER_H
 #define LOFAR_BLOB_BLOBIBUFFER_H
 
-/// \file
-/// Abstract base class for input buffer for a blob
-
 namespace DP3 {
 
-/// \ingroup %pkgname%
+  /// \ingroup Blob
   /// @{
   
   /// BlobIBuffer is the abstract base class for the source of a
@@ -54,12 +52,10 @@ namespace DP3 {
     {
     public:
       /// Constructor.
-      BlobIBuffer()
-	{};
+      BlobIBuffer()	{}
       
       /// Destructor.
-      virtual ~BlobIBuffer()
-	{};
+      virtual ~BlobIBuffer() {}
       
       /// Get the requested nr of bytes.
       virtual uint64_t get (void* buffer, uint64_t nbytes) = 0;

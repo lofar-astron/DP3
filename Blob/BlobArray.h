@@ -40,9 +40,9 @@
 namespace DP3
 {
 
-/// \ingroup %pkgname%
+/// \ingroup Blob
 
-/// \addtogroup BlobArray Global BlobArray functions
+  /// \addtogroup BlobArray Global BlobArray functions
   /// Define functions to write N-dimensional arrays into a blob and to
   /// read them back from a blob.
   /// The arrays can be:
@@ -55,24 +55,24 @@ namespace DP3
   /// Because all array types are written in a standard way, it is possible
   /// to write, for example, a blitz array and read it back as an AIPS++ array.
   /// If the axes ordering is different, the axes are reversed.
-  //
+  ///
   /// The write functions follow the same standard as the static array header
   /// defined in BlobArrayHeader.h, so it is possible to read a static array
   /// back in a dynamic way.
-/// <group>
+  /// @{
   
   /// \name General function to write a data array
   /// Usually it is used by the other functions, but it can be used on
   /// its own to write, say, a C-style array.
   /// A 1-dim C-style array can be written with putBlobVector.
-  /// <group>
+  /// @{
   template<typename T>
   BlobOStream& putBlobArray (BlobOStream& bs, const T* data,
 			     const uint64_t* shape, uint16_t ndim,
 			     bool fortranOrder);
   template<typename T>
   BlobOStream& putBlobVector (BlobOStream& bs, const T* data, uint64_t size);
-  /// </group>
+  /// @}
 
   /// \name Reserve space for an array with the given shape
   /// The axes ordering (Fortran or C-style) has to be given.
@@ -83,7 +83,7 @@ namespace DP3
   /// getPointer in that class can be used to turn the position into a pointer.
   /// The data will be aligned on the given alignment which defaults to
   /// sizeof(T) bytes with a maximum of 8.
-  /// <group>
+  /// @{
   template<typename T>
   uint64_t setSpaceBlobArray1 (BlobOStream& bs, bool useBlobHeader,
                              uint64_t size0, unsigned int alignment=0);
@@ -108,7 +108,7 @@ namespace DP3
   uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
                             const uint64_t* shape, uint16_t ndim,
                             bool fortranOrder, unsigned int alignment=0);
-  /// </group>
+  /// @}
 
 
 #if defined(HAVE_BLITZ) 
@@ -136,27 +136,27 @@ namespace DP3
   BlobIStream& operator>> (BlobIStream&, casacore::Array<T>&);
 
   /// Write/read the shape of an AIPS++ array.
-  /// <group>
+  /// @{
   BlobOStream& operator<< (BlobOStream&, const casacore::IPosition&);
   BlobIStream& operator>> (BlobIStream&, casacore::IPosition&);
-  /// </group>
+  /// @}
 #endif
 
   /// \name Write a vector of objects
-  /// <group>
+  /// @{
   BlobOStream& operator<< (BlobOStream&, const std::vector<bool>&);
   template<typename T>
   BlobOStream& operator<< (BlobOStream&, const std::vector<T>&);
-  /// </group>
+  /// @}
 
   /// \name Read back a vector of objects
   /// The dimensionality found in the stream has to be 1.
   /// The vector is resized as needed.
-  /// <group>
+  /// @{
   BlobIStream& operator>> (BlobIStream&, std::vector<bool>&);
   template<typename T>
   BlobIStream& operator>> (BlobIStream&, std::vector<T>&);
-  /// </group>
+  /// @}
 
   /// Read back as a C-style vector.
   /// It allocates the required storage and puts the pointer to it in arr.
@@ -276,7 +276,7 @@ BLOBARRAY_PUTGET_SPEC(std::complex<float>)
 BLOBARRAY_PUTGET_SPEC(std::complex<double>)
 BLOBARRAY_PUTGET_SPEC(std::string)
 
-/// </group>
+/// @}
 
 } // end namespace LOFAR
 

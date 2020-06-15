@@ -17,14 +17,12 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobIBufStream.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBIBUFSTREAM_H
-#define LOFAR_BLOB_BLOBIBUFSTREAM_H
 
 /// \file
 /// Input buffer for a blob using an istream
+
+#ifndef LOFAR_BLOB_BLOBIBUFSTREAM_H
+#define LOFAR_BLOB_BLOBIBUFSTREAM_H
 
 #include "BlobIBuffer.h"
 
@@ -32,7 +30,7 @@
 
 namespace DP3 {
 
-/// \ingroup %pkgname%
+  /// \ingroup Blob
   /// @{
   
   /// This class is the BlobIBuffer that makes use of an istream object.

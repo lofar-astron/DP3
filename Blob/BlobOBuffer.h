@@ -17,20 +17,18 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
-// $Id: BlobOBuffer.h 14057 2009-09-18 12:26:29Z diepen $
-
-#ifndef LOFAR_BLOB_BLOBOBUFFER_H
-#define LOFAR_BLOB_BLOBOBUFFER_H
 
 /// \file
 /// Abstract base class for output buffer for a blob
+
+#ifndef LOFAR_BLOB_BLOBOBUFFER_H
+#define LOFAR_BLOB_BLOBOBUFFER_H
 
 #include <cinttypes>
 
 namespace DP3 {
 
-/// \ingroup %pkgname%
+  /// \ingroup Blob
   /// @{
   
   /// BlobOBuffer is the abstract base class for the sink of a
@@ -49,11 +47,9 @@ namespace DP3 {
   class BlobOBuffer
     {
     public:
-      BlobOBuffer()
-	{};
+      BlobOBuffer()	{}
       
-      virtual ~BlobOBuffer()
-	{};
+      virtual ~BlobOBuffer() {}
       
       /// Put the requested nr of bytes.
       virtual uint64_t put (const void* buffer, uint64_t nbytes) = 0;

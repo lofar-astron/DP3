@@ -18,17 +18,14 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //
-// $Id: BlobException.h 14057 2009-09-18 12:26:29Z diepen $
+
+/// \file
+/// Blob Exception class. 
 
 #ifndef LOFAR_BLOB_BLOBEXCEPTION_H
 #define LOFAR_BLOB_BLOBEXCEPTION_H
 
-
 #include <stdexcept>
-/// \file
-/// Blob Exception class. 
-
-// Includes
 
 namespace DP3 {
 
