@@ -68,7 +68,7 @@ namespace DP3
   /// \addtogroup Common
   /// @{
   /// Primary template. \c Signature is the signature of the class'
-  /// constructor; \c TypeId is the type of its unique id.
+  /// constructor; \p TypeId is the type of its unique id.
   template <typename Signature, typename TypeId> class ObjectFactory;
   /// @}
 }

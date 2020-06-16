@@ -65,10 +65,10 @@ namespace BBS {
 
     /// Add zero or more existing parms.
     /// A vector of unique parmIds is returned.
-    /// <group>
+    ///@{
     ///    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
     ///    vector<ParmId> addParms (ParmDB&, const string& namePattern);
-    /// </group>
+    ///@}
 
     /// Get the nr of parameters.
     size_t size() const
@@ -117,22 +117,22 @@ namespace BBS {
         { return itsName; }
 
       /// Get the ParmDB used for the parameter.
-      /// <group>
+      ///@{
       ParmDB* getParmDBPtr()
         { return itsParmDB; }
       const ParmDB* getParmDBPtr() const
         { return itsParmDB; }
-      /// </group>
+      ///@}
 
       /// Get the name id.
       /// >= 0 means name is stored in name table;
       /// <0   means not stored.
-      /// <group>
+      ///@{
       int& getNameId()
         { return itsNameId; }
       int getNameId() const
         { return itsNameId; }
-      /// </group>
+      ///@}
 
       /// Get he unique parm id.
       ParmId getParmId() const

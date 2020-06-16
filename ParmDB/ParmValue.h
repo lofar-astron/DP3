@@ -93,20 +93,20 @@ namespace BBS {
     void setErrors (const casacore::Array<double>&);
 
     /// Get the value shape.
-    /// <group>
+    ///@{
     unsigned int nx() const
       { return static_cast<unsigned int>(itsValues.shape()[0]); }
     unsigned int ny() const
       { return static_cast<unsigned int>(itsValues.shape()[1]); }
-    /// </group>
+    ///@}
 
     /// Get the values.
-    /// <group>
+    ///@{
     const casacore::Array<double>& getValues() const
       { return itsValues; }
     casacore::Array<double>& getValues()
       { return itsValues; }
-    /// </group>
+    ///@}
 
     /// Get the grid.
     const Grid& getGrid() const
@@ -116,23 +116,23 @@ namespace BBS {
     bool hasErrors() const
       { return itsErrors != 0; }
 
-    /// Get the arrays with errors. Undefined if <src>getErrors()==false</src>.
-    /// <group>
+    /// Get the arrays with errors. Undefined if \c getErrors()==false.
+    ///@{
     const casacore::Array<double>& getErrors() const
       { return *itsErrors; }
     casacore::Array<double>& getErrors()
       { return *itsErrors; }
-    /// </group>
+    ///@}
 
     /// Get/set the rowid to remember where the value is stored in the ParmDB.
-    /// <group>
+    ///@{
     int getRowId() const
       { return itsRowId; }
     void setRowId (int rowId)
       { itsRowId = rowId; }
     void clearRowId()
       { itsRowId = -1; }
-    /// </group>
+    ///@}
     
     /// Return the scaled coefficients of a 2D polynomial using the
     /// given offset and scale factor.
@@ -209,12 +209,12 @@ namespace BBS {
 
     /// Get/set the mask telling which coefficients are solvable.
     /// The array can be empty meaning that all coefficients are solvable.
-    /// <group>
+    ///@{
     const casacore::Array<bool>& getSolvableMask() const
       { return itsSolvableMask; }
     void setSolvableMask (const casacore::Array<bool>& mask)
       { itsSolvableMask.assign (mask); }
-    /// <group>
+    ///@{
 
     /// Get the perturbation value.
     double getPerturbation() const
@@ -241,45 +241,45 @@ namespace BBS {
       { return itsDefaultValue; }
 
     /// Get access to the scale domain.
-    /// <group>
+    ///@{
     const Box& getScaleDomain() const
       { return itsScaleDomain; }
     void setScaleDomain (const Box& domain)
       { itsScaleDomain = domain; }
-    /// </group>
+    ///@}
 
     /// Get the first ParmValue. If there are no ParmValues, the default
     /// ParmValue is returned.
     const ParmValue& getFirstParmValue() const;
 
     /// Get the i-th ParmValue.
-    /// <group>
+    ///@{
     const ParmValue& getParmValue (int i) const
       { return *(itsValues[i]); }
     ParmValue& getParmValue (int i)
       { return *(itsValues[i]); }
-    /// </group>
+    ///@}
 
     /// Get/set the dirty flag.
     /// The dirty flag has to be set when a new value is given to a ParmValue. 
     /// It indicates that the value has to be written later on.
     /// When written, the flag will be cleared.
-    /// <group>
+    ///@{
     bool isDirty() const
       { return itsDirty; }
     void setDirty (bool dirty=true)
       { itsDirty = dirty; }
-    /// </group>
+    ///@}
 
   private:
     /// Helper functions for setSolveGrid.
-    /// <group>
+    ///@{
     void createValues (const Grid& solveGrid);
     void checkGrid (const Grid& solveGrid);
     void addValues (const Grid& solveGrid);
     void addCoeffValues (const Grid& solveGrid);
     ParmValue::ShPtr copyParmCoeff (const ParmValue::ShPtr& pval);
-    /// </group>
+    ///@}
 
     /// Data members.
     ParmValue::FunkletType itsType;

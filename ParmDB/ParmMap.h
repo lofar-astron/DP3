@@ -64,7 +64,7 @@ namespace BBS {
     const ParmValueSet& operator[] (const std::string& name) const;
 
     /// Iterator functionality.
-    /// <group>
+    ///@{
     typedef std::map<std::string, ParmValueSet>::iterator       iterator;
     typedef std::map<std::string, ParmValueSet>::const_iterator const_iterator;
     typedef std::map<std::string, ParmValueSet>::value_type     valueType;
@@ -80,7 +80,7 @@ namespace BBS {
       { return itsValueSets.find(name); }
     const_iterator find (const std::string& name) const
       { return itsValueSets.find(name); }
-    /// </group>
+    ///@}
 
     /// Clear the map.
     void clear()
@@ -88,10 +88,10 @@ namespace BBS {
 
   private:
     /// Cannot copy.
-    /// <group>
+    ///@{
     ParmMap (const ParmMap&);
     ParmMap& operator= (const ParmMap&);
-    /// </group>
+    ///@}
 
     std::map<std::string, ParmValueSet> itsValueSets;
   };

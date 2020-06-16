@@ -59,10 +59,10 @@ namespace BBS {
 
   private:
     /// Cannot copy.
-    /// <group>
+    ///@{
     ParmDBLocker (const ParmDBLocker&);
     ParmDBLocker& operator= (const ParmDBLocker&);
-    /// </group>
+    ///@}
 
     /// The locked DBs.
     std::vector<ParmDB*> itsDBs;

@@ -86,7 +86,7 @@ namespace DP3
   /// All sequences are written in the same way (as 1-dim arrays). It means
   /// that they can be read back in any other sequence type (including
   /// AIPS++ and Blitz arrays).
-  /// <note> STL vectors are handled by BlobArray.h. </note>
+  /// \note STL vectors are handled by BlobArray.h.
   ///   @{
   /// \name Write a list.
   template<typename T>

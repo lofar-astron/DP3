@@ -56,7 +56,7 @@ namespace BBS {
       { return --itsCount; }
 
     /// Flush possible changes to disk.
-    /// <br>If <src>fsync=True</src> the file contents are fsync-ed to disk,
+    /// <br>If \c fsync=True the file contents are fsync-ed to disk,
     /// to ensure that the system buffers are actually written to disk.
     /// The default implementation does nothing.
     virtual void flush (bool fsync);
@@ -65,18 +65,18 @@ namespace BBS {
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
     /// The default implementation does nothing.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Get the domain range (freq,time) of the given parameters in the table.
     /// This is the minimum and maximum value of these axes for all parameters.
     /// An empty name pattern is the same as * (all parms).
-    /// <group>
+    ///@{
     virtual Box getRange (const std::string& parmNamePattern) const = 0;
     virtual Box getRange (const std::vector<std::string>& parmNames) const = 0;
-    /// </group>
+    ///@}
 
     /// Get the default step values for the axes.
     const std::vector<double>& getDefaultSteps() const
@@ -145,20 +145,20 @@ namespace BBS {
     virtual void clearTables() = 0;
 
     /// Set or get the name and type.
-    /// <group>
+    ///@{
     void setParmDBMeta (const ParmDBMeta& ptm)
       { itsPTM = ptm; }
     const ParmDBMeta& getParmDBMeta() const
       { return itsPTM; }
-    /// </group>
+    ///@}
 
     /// Set or get ParmDB sequence nr.
-    /// <group>
+    ///@{
     void setParmDBSeqNr (int seqnr)
       { itsSeqNr = seqnr; }
     int getParmDBSeqNr() const
       { return itsSeqNr; }
-    /// </group>
+    ///@}
 
     /// Set the default value map to being not filled.
     /// This is needed after a delete, etc.
@@ -202,7 +202,7 @@ namespace BBS {
     ParmDB& operator= (const ParmDB&);
 
     /// Flush possible changes to disk.
-    /// <br>If <src>fsync=True</src> the file contents are fsync-ed to disk,
+    /// <br>If \c fsync=True the file contents are fsync-ed to disk,
     /// to ensure that the system buffers are actually written to disk.
     void flush (bool fsync=false)
       { itsRep->flush(fsync); }
@@ -210,7 +210,7 @@ namespace BBS {
     /// Lock and unlock the database tables.
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
-    /// <group>
+    ///@{
     void lock (bool lockForWrite = true)
       { itsRep->lock (lockForWrite); }
     void unlock()
@@ -219,12 +219,12 @@ namespace BBS {
     /// Get the domain range (freq,time) of the given parameters in the table.
     /// This is the minimum and maximum value of these axes for all parameters.
     /// An empty name pattern is the same as * (all parms).
-    /// <group>
+    ///@{
     Box getRange (const std::string& parmNamePattern = "") const
       { return itsRep->getRange (parmNamePattern); }
     Box getRange (const std::vector<std::string>& parmNames) const
       { return itsRep->getRange (parmNames); }
-    /// </group>
+    ///@}
 
     /// Get the default step values for the axes.
     const std::vector<double>& getDefaultSteps() const

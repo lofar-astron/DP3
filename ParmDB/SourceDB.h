@@ -59,10 +59,10 @@ namespace BBS {
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
     /// The default implementation does nothing.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Get the associated ParmDB.
     ParmDB& getParmDB()
@@ -105,7 +105,7 @@ namespace BBS {
     /// The map should contain the parameters belonging to the source type.
     /// Missing parameters will default to 0.
     /// <br>Optionally it is checked if the source already exists.
-    /// <group>
+    ///@{
     virtual void addSource (const SourceInfo& sourceInfo,
                             const string& patchName,
                             const ParmMap& defaultParameters,
@@ -113,7 +113,7 @@ namespace BBS {
                             bool check) = 0;
     virtual void addSource (const SourceData& source,
                             bool check) = 0;
-    /// </group>
+    ///@}
 
     /// Add a source which forms a patch in itself (with the same name).
     /// <br>Optionally it is checked if the patch or source already exists.
@@ -197,12 +197,12 @@ namespace BBS {
     /// Lock and unlock the database tables.
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
-    /// <group>
+    ///@{
     void lock (bool lockForWrite = true)
       { itsRep->lock (lockForWrite); }
     void unlock()
       { itsRep->unlock(); }
-    /// </group>
+    ///@}
 
     /// Get the associated ParmDB.
     ParmDB& getParmDB()
@@ -254,7 +254,7 @@ namespace BBS {
     /// The map should contain the parameters belonging to the source type.
     /// Not all parameters need to be present. The ParmDB classes will
     /// use a default of 0 for missing ones.
-    /// <group>
+    ///@{
     void addSource (const SourceInfo& sourceInfo,
                     const string& patchName,
                     const ParmMap& defaultParameters,
@@ -264,7 +264,7 @@ namespace BBS {
                            defaultParameters, ra, dec, check); }
     void addSource (const SourceData& source, bool check = true)
       { itsRep->addSource (source, check); }
-    /// </group>
+    ///@}
 
     /// Add a source which forms a patch in itself (with the same name).
     void addSource (const SourceInfo& sourceInfo,

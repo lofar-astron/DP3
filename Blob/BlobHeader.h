@@ -62,7 +62,7 @@ namespace DP3 {
   /// For this mode the class is templated with the length of the name as the
   /// template parameter.
   /// For example:
-  /// <srcblock>
+  /// \code
   /// class SomeClass {
   ///   BlobHeader<9> itsHeader;
   ///   dcomplex      itsData[10][20];
@@ -70,7 +70,7 @@ namespace DP3 {
   ///
   /// SomeClass::SomeClass() : itsHeader("SomeClass", 1)
   ///    { itsHeader.setLength (sizeof(SomeClass)); }
-  /// </srcblock>
+  /// \endcode
   ///
   /// Because blobs can be created on one machine and retrieved on another,
   /// care has to be taken that data type sizes and alignment are the same

@@ -20,7 +20,7 @@
 
 /// @file
 /// @brief Description of a cluster and the nodes in it.
-/// @author Ger van Diepen <diepen AT astron nl>
+/// @author Ger van Diepen diepen AT astron nl
 
 #ifndef LOFAR_LMWCOMMON_CLUSTERDESC_H
 #define LOFAR_LMWCOMMON_CLUSTERDESC_H
@@ -66,7 +66,7 @@ namespace DP3 { namespace CEP {
 
     /// Add a node description.
     /// A node with an already existing name is not added.
-    /// If <src>canExist=false</src>, an exception is thrown if existing.
+    /// If \p canExist=false, an exception is thrown if existing.
     void addNode (const NodeDesc& node, bool canExist=false);
 
     /// Write it in parset format.

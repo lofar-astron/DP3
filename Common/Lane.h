@@ -258,7 +258,7 @@ class lane
 		 * in place, but rather constructs the value and then move assigns it.
 		 * This is because the value that it is moved into has already been
 		 * constructed (in the current implementation).
-		 * @param element Object to be moved into the cyclic buffer.
+		 * @param args Object to be moved into the cyclic buffer.
 		 */
 		template<typename... Args>
 		void emplace(Args&&... args)

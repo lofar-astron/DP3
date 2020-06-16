@@ -57,10 +57,10 @@ namespace BBS {
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
     /// The default implementation does nothing.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Check for duplicate patches or sources.
     /// An exception is thrown if that is the case.
@@ -99,7 +99,7 @@ namespace BBS {
     /// The map should contain the parameters belonging to the source type.
     /// Missing parameters will default to 0.
     /// <br>Optionally it is checked if the patch already exists.
-    /// <group>
+    ///@{
     virtual void addSource (const SourceInfo& sourceInfo,
                             const string& patchName,
                             const ParmMap& defaultParameters,
@@ -107,7 +107,7 @@ namespace BBS {
                             bool check);
     virtual void addSource (const SourceData& source,
                             bool check);
-    /// </group>
+    ///@}
 
     /// Add a source which forms a patch in itself (with the same name).
     /// <br>Optionally it is checked if the patch or source already exists.

@@ -287,7 +287,6 @@ class PhaseFitter
 	 * Like @ref TEC1ModelFunc(), but 2-pi wrapped.
 	 * @param nu Frequency in Hz
 	 * @param alpha TEC parameter (in undefined units)
-	 * @param beta Phase offset parameter (in radians)
 	 * @returns | alpha / nu_i + beta | % 2pi
 	 */
   static double TEC1ModelFuncWrapped(double nu, double alpha)

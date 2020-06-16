@@ -93,7 +93,7 @@ namespace DP3 { namespace BBS {
     /// The vector values in the map are in fact 2-dim arrays with axes freq
     /// and time. If freqStep and timeStep are not given (or given as <=0), the
     /// default freq and time step from the ParmDB will be used.
-    /// <group>
+    ///@{
     std::map<std::string, std::vector<double> > getValuesMap (const std::string& parmNamePattern,
                                                double freqv1, double freqv2,
                                                double freqStep,
@@ -108,14 +108,14 @@ namespace DP3 { namespace BBS {
                                                bool includeDefaults=false)
       { return getValuesMap (parmNamePattern, freqv1, freqv2, 0,
                              timev1, timev2, asStartEnd, includeDefaults); }
-    /// </group>
+    ///@}
 
     /// Get the values of the given parameters on the given regular grid
     /// where v1/v2 represents center/width or start/end.
     /// The Record contains a map of parameter name to Array<double>.
     /// If freqStep and timeStep are not given (or given as <=0), the
     /// default freq and time step from the ParmDB will be used.
-    /// <group>
+    ///@{
     casacore::Record getValues (const string& parmNamePattern,
                             double freqv1, double freqv2, double freqStep,
                             double timev1, double timev2, double timeStep,
@@ -129,7 +129,7 @@ namespace DP3 { namespace BBS {
                             double timev1=-1e30, double timev2=1e30,
                             bool asStartEnd=true,
                             bool includeDefaults=false);
-    /// </group>
+    ///@}
 
     /// Get the values of the given parameters on the given grid where v1/v2
     /// represents center/width or start/end.
@@ -197,12 +197,12 @@ namespace DP3 { namespace BBS {
     /// Writelock and unlock the database tables.
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
-    /// <group>
+    ///@{
     void lock (bool lockForWrite)
       { itsRep->lock (lockForWrite); }
     void unlock()
       { itsRep->unlock(); }
-    /// </group>
+    ///@}
 
     /// Get the default step values for the frequency and time axis.
     std::vector<double> getDefaultSteps() const

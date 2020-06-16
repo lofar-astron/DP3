@@ -52,17 +52,17 @@ namespace BBS {
 
     /// Writelock and unlock the table.
     /// They do not do anything.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Get the domain range (time,freq) of the given parameters in the table.
     /// They throw a "not implemented" exception.
-    /// <group>
+    ///@{
     virtual Box getRange (const std::string& parmNamePattern) const;
     virtual Box getRange (const std::vector<std::string>& parmNames) const;
-    /// </group>
+    ///@}
 
     /// Set the default step values.
     /// It throws a "not implemented" exception.

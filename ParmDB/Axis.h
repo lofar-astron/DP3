@@ -55,18 +55,18 @@ namespace BBS {
     virtual Axis* clone() const = 0;
 
     /// Check if two axes are equal. They are if they the same type and values.
-    /// <group>
+    ///@{
     bool operator== (const Axis& that) const;
     bool operator!= (const Axis& that) const
       { return ! operator== (that); }
-    /// </group>
+    ///@}
 
     /// Get the unique axis id.
     unsigned int getId() const
       { return itsId; }
 
     /// Get the center, etc. of the i-th cell.
-    /// <group>
+    ///@{
     double center(size_t n) const
       { return itsCenter[n]; }
     double width(size_t n) const
@@ -75,10 +75,10 @@ namespace BBS {
       { return itsUpper[n]; }
     double lower(size_t n) const
       { return itsLower[n]; }
-    /// </group>
+    ///@}
 
     /// Get all centers, etc.
-    /// <group>
+    ///@{
     const std::vector<double>& centers() const
       { return itsCenter; }
     const std::vector<double>& widths() const
@@ -87,7 +87,7 @@ namespace BBS {
       { return itsUpper; }
     const std::vector<double>& lowers() const
       { return itsLower; }
-    /// </group>
+    ///@}
 
     /// Is the axis regular?
     bool isRegular() const
@@ -98,12 +98,12 @@ namespace BBS {
       { return itsCenter.size(); }
 
     /// Get the start and end value.
-    /// <group>
+    ///@{
     double start() const
       { return itsLower[0]; }
     double end() const
       { return itsUpper[itsUpper.size()-1]; }
-    /// </group>
+    ///@}
 
     /// Get the total range of the axis.
     pair<double,double> range() const
@@ -131,10 +131,10 @@ namespace BBS {
 
     /// Make a subset of the axis for the given start/end value.
     /// It fills the index of the starting point of the subset on the axis.
-    /// <group>
+    ///@{
     Axis::ShPtr subset (double start, double end, size_t& index) const;
     Axis::ShPtr subset (double start, double end) const;
-    /// </group>
+    ///@}
 
     /// Make a subset of the axis for the given start/end index.
     Axis::ShPtr subset (size_t start, size_t end) const

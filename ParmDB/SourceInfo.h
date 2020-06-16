@@ -104,7 +104,7 @@ namespace BBS {
       { return itsUseRotMeas; }
 
     /// Set or get the shapelet info.
-    /// <group>
+    ///@{
     const casacore::Array<double>& getShapeletCoeffI() const
       { return itsShapeletCoeffI; }
     const casacore::Array<double>& getShapeletCoeffQ() const
@@ -127,7 +127,7 @@ namespace BBS {
                            const casacore::Array<double>& V);
     void setShapeletScale (double scaleI, double scaleQ,
                            double scaleU, double scaleV);
-    /// </group>
+    ///@}
 
     /// Write into a blob.
     void write (BlobOStream&) const;

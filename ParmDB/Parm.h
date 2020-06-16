@@ -116,7 +116,7 @@ namespace BBS {
     /// and create the Array from its raw storage. In that way the Array
     /// data does not need to be copied to the MeqMatrix.
     /// <br>
-    /// The argument <src>emptyResult</src> tells if an empty result can be
+    /// The argument\p emptyResult tells if an empty result can be
     /// returned. Normally this is not the case (otherwise a default would
     /// not be picked up), but in case of ParmFacade it is used.
     void getResult (casacore::Array<double>& result, const Grid& predictGrid,
@@ -125,7 +125,7 @@ namespace BBS {
     /// Get the values for the given predict grid.
     /// The parm value is taken that contains the middle of a
     /// predict interval.
-    /// If <src>perturb=true</src>, all perturbed values are calculated as well.
+    /// If \c perturb=true, all perturbed values are calculated as well.
     /// Otherwise only the first array in the vector is filled in.
     /// As above, the shape of the array is normally [nx,ny],
     /// but can be [1,1] if constant.
@@ -151,7 +151,7 @@ namespace BBS {
                                  AxisMappingCache& axisMappingCache);
 
     /// Get the result for multiple ParmValues containing scalars.
-    /// If the <src>errors</src> argument is non-zero, the errors are filled too.
+    /// If the \c errors argument is non-zero, the errors are filled too.
     static void getResultScalar (casacore::Array<double>& result,
                                  casacore::Array<double>* errors,
                                  const Grid& predictGrid,

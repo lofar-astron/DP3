@@ -80,12 +80,12 @@ namespace BBS {
     std::string itsType;
     std::string itsTableName;
     /// these options are used for sql databases
-    /// <group>
+    ///@{
     std::string itsDBName;
     std::string itsUserName;
     std::string itsDBPwd;
     std::string itsHostName;
-    /// </group>
+    ///@}
   };
 
   /// @}

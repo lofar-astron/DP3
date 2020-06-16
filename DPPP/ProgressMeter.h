@@ -43,7 +43,7 @@ namespace DP3 {
 /// "max" the progress meter will count down correctly.
 /// 
 /// For example:
-/// <srcblock>
+/// \code
 /// void calculate(unsigned int n) {
 ///   int skip = n / 200;
 ///   ProgressMeter meter(0, n, "Title", "Subtitle", "", "", true, skip);
@@ -52,7 +52,7 @@ namespace DP3 {
 ///       meter.update(i);
 ///   }
 /// }
-/// </srcblock>
+/// \endcode
 
 class ProgressMeter
 {

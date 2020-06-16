@@ -75,9 +75,6 @@ namespace DPPP
 /// (\p nBaseline, \p nChannel, 4, \p nDirection, \p nDirection).
 /// \param[in]   unknowns
 /// A pointer to a buffer of unknowns of size nDirection * nStation * 8.
-/// \param[in]   errors
-/// A pointer to a buffer of errors of size nDirection * nStation * 8. If this
-/// pointer is null (0), errors will not be estimated.
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     size_t nChannel, const_cursor<Baseline> baselines,
     std::vector<const_cursor<fcomplex> > data, std::vector<const_cursor<dcomplex> > model,

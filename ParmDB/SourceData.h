@@ -89,7 +89,7 @@ namespace BBS {
       { return itsSpTerms; }
 
     /// Set the various source parameters.
-    /// <group>
+    ///@{
     void setInfo (const SourceInfo& info)
       { itsInfo = info; }
     void setPatchName (const string& patchName)
@@ -120,7 +120,7 @@ namespace BBS {
       { itsRM = potationMeasure; }
     void setSpectralTerms (const std::vector<double>& spectralTerms)
       { itsSpTerms = spectralTerms; }
-    /// </group>
+    ///@}
 
     /// Set the parameters from a ParmMap object.
     void setParms (const ParmMap& defaultParameters);

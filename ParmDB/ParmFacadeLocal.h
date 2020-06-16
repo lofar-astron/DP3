@@ -113,7 +113,7 @@ namespace DP3 { namespace BBS {
     /// Get the values of the given parameters for the given domain.
     /// The Record contains a map of parameter name to Array<value>.
     /// Furthermore it contains a subrecord "_grid" containing the grid axes
-    /// used for each parameters. Their names have the form <parmname>/xx
+    /// used for each parameters. Their names have the form parmname/xx
     /// where xx is freqs, freqwidths, times, and timewidths. Their values
     /// are the center and width of each cell.
     virtual casacore::Record getValuesGrid (const string& parmNamePattern,
@@ -136,10 +136,10 @@ namespace DP3 { namespace BBS {
     /// Writelock and unlock the database tables.
     /// The user does not need to lock/unlock, but it can increase performance
     /// if many small accesses have to be done.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Get the default step values for the axes.
     virtual std::vector<double> getDefaultSteps() const;

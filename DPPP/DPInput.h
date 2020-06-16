@@ -110,10 +110,10 @@ namespace DP3 {
       /// Otherwise there are read from the input.
       /// If not defined in the input, they are filled using the flags in the
       /// buffer assuming that no averaging has been done so far.
-      /// <src>If desired, they can be merged with the buffer's FLAG which means
+      /// If desired, they can be merged with the buffer's FLAG which means
       /// that if an averaged channel is flagged, the corresponding FullRes
       /// flags are set.
-      /// <br>It does a stop/start of the timer when actually reading the data.
+      /// It does a stop/start of the timer when actually reading the data.
       const casacore::Cube<bool>& fetchFullResFlags (const DPBuffer& bufin,
                                                  DPBuffer& bufout,
                                                  NSTimer& timer,

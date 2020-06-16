@@ -80,12 +80,12 @@ namespace BBS {
       { return itsHash; }
 
     /// Get the given axis.
-    /// <group>
+    ///@{
     Axis::ShPtr& getAxis (size_t n)
       { return itsAxes[n]; }
     const Axis::ShPtr& getAxis (size_t n) const
       { return itsAxes[n]; }
-    /// </group>
+    ///@}
 
   private:
     /// Initialize from an ordered vector of domains.
@@ -144,11 +144,11 @@ namespace BBS {
 
     /// Check if two grids are equal. They are if their axes have the same
     /// type and values.
-    /// <group>
+    ///@{
     bool operator== (const Grid& that) const;
     bool operator!= (const Grid& that) const
       { return ! operator== (that); }
-    /// </group>
+    ///@}
 
     /// Check if the corresponding intervals in this and that grid are the same.
     bool checkIntervals (const Grid& that) const;
@@ -158,20 +158,20 @@ namespace BBS {
     { return itsRep->isDefault(); }
 
     /// Get the given axis.
-    /// <group>
+    ///@{
     const Axis::ShPtr& getAxis (size_t n) const
       { return itsRep->getAxis (n); }
     const Axis::ShPtr& operator[] (size_t n) const
       { return itsRep->getAxis (n); }
-    /// </group>
+    ///@}
 
     /// Get the sizes of the axes.
-    /// <group>
+    ///@{
     size_t nx() const
       { return getAxis(0)->size(); }
     size_t ny() const
       { return getAxis(1)->size(); }
-    /// </group>
+    ///@}
 
     /// Get the grid shape (nx,ny).
     std::pair<size_t, size_t> shape() const
@@ -198,7 +198,7 @@ namespace BBS {
     }
 
     /// Get the blc and trc coordinates of the given cell.
-    /// <group>
+    ///@{
     Box getCell (const Location& location) const
     {
       assert(location.first < nx()  &&  location.second < ny());
@@ -211,7 +211,7 @@ namespace BBS {
     
     Box getCell (unsigned int id) const
       { return getCell(getCellLocation(id)); }
-    /// </group>
+    ///@}
 
     /// Get the bounding box of the grid.
     Box getBoundingBox() const
@@ -229,7 +229,7 @@ namespace BBS {
 
     /// Give the (x,y) location of the cell containing the given point.
     /// If the point is on the edge, the left or right cell is chosen
-    /// depending on the value of <src>biasRight</src>.
+    /// depending on the value of \c biasRight.
     Location locate (const Point& point, bool biasRight = true) const
     {
       return make_pair(getAxis(0)->locate(point.first, biasRight),
@@ -240,11 +240,11 @@ namespace BBS {
     /// It means that the subset of this grid is returned which is covered
     /// by that domain.
     /// Optionally the location of the start point in this grid is filled.
-    /// <group>
+    ///@{
     Grid subset (const Box&) const;
     Grid subset (const Box&, Location& index) const;
     Grid subset (const Location &start, const Location &end) const;
-    /// </group>
+    ///@}
 
     /// Convert the grid to domain boxes and append them to the vector.
     void toDomains (std::vector<Box>& domains) const;
@@ -261,7 +261,7 @@ namespace BBS {
 
     /// Define an ordering functions to be able to sort grids.
     /// The ordering is on startY,startX.
-    /// <group>
+    ///@{
     bool operator< (const Grid& that) const
       { return getBoundingBox().lowerY() < that.getBoundingBox().lowerY()
           || (getBoundingBox().lowerY() == that.getBoundingBox().lowerY()  &&
@@ -270,7 +270,7 @@ namespace BBS {
       { return getBoundingBox().lowerY() > that.getBoundingBox().lowerY()
           || (getBoundingBox().lowerY() == that.getBoundingBox().lowerY()  &&
               getBoundingBox().lowerX() > that.getBoundingBox().lowerX()); }
-    /// </group>
+    ///@}
 
   private:
     GridRep::ShPtr itsRep;
@@ -293,7 +293,7 @@ namespace BBS {
       { return itsLocation.second > itsEnd.second; }
 
     /// Increment the iterator.
-    /// <group>
+    ///@{
     void operator++()
     {
       if (++itsLocation.first > itsEnd.first) {
@@ -303,7 +303,7 @@ namespace BBS {
     }
     void operator++ (int)
       { operator++(); }
-    /// </group>
+    ///@}
 
     /// STL-like iterator dereference.
     const Location& operator*() const

@@ -54,12 +54,12 @@ namespace BBS {
     ParmCache (ParmSet&, const Box& workDomain);
 
     /// Get access to the underlying ParmSet.
-    /// <group>
+    ///@{
     ParmSet& getParmSet()
       { return *itsParmSet; }
     const ParmSet& getParmSet()const
       { return *itsParmSet; }
-    /// </group>
+    ///@}
 
     /// Clear the cache.
     void clear();
@@ -76,12 +76,12 @@ namespace BBS {
     void cacheValues();
 
     /// Get the value set for the given parm.
-    /// <group>
+    ///@{
     ParmValueSet& getValueSet (ParmId parmid)
       { return itsValueSets[parmid]; }
     const ParmValueSet& getValueSet (ParmId parmid) const
       { return itsValueSets[parmid]; }
-    /// </group>
+    ///@}
 
     /// Get the AxisMappingCache object.
     AxisMappingCache& getAxisMappingCache()
@@ -100,10 +100,10 @@ namespace BBS {
 
   private:
     /// Cannot copy.
-    /// <group>
+    ///@{
     ParmCache (const ParmCache&);
     ParmCache& operator= (const ParmCache&);
-    /// </group>
+    ///@}
 
     ParmSet*             itsParmSet;
     Box                  itsWorkDomain;

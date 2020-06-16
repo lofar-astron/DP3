@@ -76,15 +76,15 @@ namespace BBS {
     Box (double x1, double x2, double y1, double y2, bool asStartEnd=false);
 
     /// Test if boxes are exactly the same.
-    /// <group>
+    ///@{
     bool operator== (const Box& that) const
       { return itsStart==that.itsStart  &&  itsEnd==that.itsEnd; }
     bool operator!= (const Box& that) const
       { return ! operator== (that); }
-    /// </group>
+    ///@}
 
     /// Get start and end values.
-    /// <group>
+    ///@{
     const Point& lower() const
       { return itsStart; }
     const Point& upper() const
@@ -97,15 +97,15 @@ namespace BBS {
       { return itsEnd.first; }
     double upperY() const
       { return itsEnd.second; }
-    /// </group>
+    ///@}
 
     /// Get widths.
-    /// <group>
+    ///@{
     double widthX() const
       { return itsEnd.first - itsStart.first; }
     double widthY() const
       { return itsEnd.second - itsStart.second; }
-    /// </group>
+    ///@}
 
     /// Box A only intersects box B if there is at least one point within or
     /// on the border of A that falls within B (excluding its border).
@@ -158,7 +158,7 @@ namespace BBS {
 
     /// Define an ordering functions to be able to sort boxes.
     /// The ordering is on startY,startX.
-    /// <group>
+    ///@{
     bool operator< (const Box& that) const
       { return itsStart.second < that.itsStart.second
           ||  (itsStart.second == that.itsStart.second  &&
@@ -167,7 +167,7 @@ namespace BBS {
       { return itsStart.second > that.itsStart.second
           ||  (itsStart.second == that.itsStart.second  &&
                itsStart.first > that.itsStart.first); }
-    /// </group>
+    ///@}
 
     /// Output the start and end point coordinates of the Box
     void print() const;

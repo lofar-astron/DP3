@@ -59,18 +59,18 @@ namespace BBS {
     /// Writelock and unlock the table.
     /// It is not necessary to do this, but it can be useful if many
     /// small accesses have to be done.
-    /// <group>
+    ///@{
     virtual void lock (bool lockForWrite);
     virtual void unlock();
-    /// </group>
+    ///@}
 
     /// Get the domain range (time,freq) of the given parameters in the table.
     /// This is the minimum and maximum value of these axes for all parameters.
     /// An empty name pattern is the same as * (all parms).
-    /// <group>
+    ///@{
     virtual Box getRange (const std::string& parmNamePattern) const;
     virtual Box getRange (const std::vector<std::string>& parmNames) const;
-    /// </group>
+    ///@}
 
     /// Set the default step values.
     virtual void setDefaultSteps (const std::vector<double>&);
@@ -129,20 +129,20 @@ namespace BBS {
     Box getDefDomain (const casacore::Table& tab, unsigned int row);
 
     /// Get a selection from the NAME table.
-    /// <group>
+    ///@{
     casacore::Table getNameSel (const std::string& parmNamePattern) const;
     casacore::Vector<rownr_t> getNameIds (const std::string& parmNamePattern) const;
     casacore::Vector<rownr_t> getNameIds (const std::vector<std::string>& parmNames) const;
-    /// </group>
+    ///@}
 
     /// Find the minmax range in the table.
     Box findRange (const casacore::Table& table) const;
 
     /// Extract the parm values from a table selection with a single parm name.
-    /// <group>
+    ///@{
     //void extractValues (ParmMap& result, const casacore::Table& table);
     pair<string,ParmValueSet> extractDefValue (const casacore::Table& sel, int row);
-    /// </group>
+    ///@}
 
     /// Do the actual put of a value.
     void doPutValue (const string& parmName, int& nameId,

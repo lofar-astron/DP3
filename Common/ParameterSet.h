@@ -187,12 +187,12 @@ public:
   /// a collection.
   /// @{
 
-  /// Add the given pair to the collection. When the \c aKey already exist 
+  /// Add the given pair to the collection. When the \p aKey already exist 
   /// in the collection an exception is thrown.
   void  add    (const std::string& aKey, const std::string& aValue);
   void  add    (const KVpair& aPair);
 
-  /// Replaces the given pair in the collection. If \c aKey does not exist in
+  /// Replaces the given pair in the collection. If \p aKey does not exist in
   /// the collection the pair is just added to the collection.
   void  replace(const std::string& aKey, const std::string& aValue);
   void  replace(const KVpair& aPair);

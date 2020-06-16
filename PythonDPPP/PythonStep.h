@@ -112,7 +112,7 @@ namespace DP3 {
       virtual void showTimings (std::ostream&, double duration) const;
 
       /// Callback functions for Python.
-      /// <group>
+      ///@{
       /// Tell that the Python step needs the visibility data.
       void setNeedVisData();
       /// Tell that the Python step needs data to be written.
@@ -130,7 +130,7 @@ namespace DP3 {
       /// Execute the process function of the next step.
       /// The record should contain the changed buffer fields.
       bool processNext (const casacore::Record&);
-      /// </group>
+      ///@}
 
     private:
       DPInput*     itsInput;

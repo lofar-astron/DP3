@@ -44,13 +44,13 @@ namespace BBS {
     AxisMapping (const Axis& from, const Axis& to);
 
     /// Iterator to get the next interval.
-    /// <group>
+    ///@{
     typedef std::vector<int>::const_iterator const_iterator;
     const_iterator begin() const
       { return itsMapping.begin(); }
     const_iterator end() const
       { return itsMapping.end(); }
-    /// </group>
+    ///@}
 
     /// Get the number of elements.
     size_t size() const
