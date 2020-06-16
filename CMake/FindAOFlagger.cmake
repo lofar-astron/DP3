@@ -16,74 +16,83 @@ cmake_minimum_required(VERSION 3.0)
 
 set(AOFLAGGER_FOUND FALSE)
 
-find_library(AOFLAGGER_LIB aoflagger
-  HINTS ${AOFLAGGER_ROOT_DIR} PATH_SUFFIXES lib)
-find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h
-  HINTS ${AOFLAGGER_ROOT_DIR} PATH_SUFFIXES include)
-execute_process(COMMAND ${AOFLAGGER_INCLUDE_DIR}/../bin/aoflagger --version OUTPUT_VARIABLE _aoflagger_result)
-if(_aoflagger_result)
-  get_filename_component(AOFLAGGER_ROOT_DIR ${AOFLAGGER_INCLUDE_DIR} DIRECTORY)
-  # AOFlagger --version returns something like
-  # "AOFlagger 3.0-alpha", hence split space and dash:
-  string(REPLACE "-" " " _aoflagger_result ${_aoflagger_result})
-  string(REPLACE " " ";" _aoflagger_reslist ${_aoflagger_result})
-  list(GET _aoflagger_reslist 1 AOFLAGGER_VERSION)
-  string(REPLACE "." ";" _aoflagger_version_list ${AOFLAGGER_VERSION})
-  list(GET _aoflagger_version_list 0 AOFLAGGER_VERSION_MAJOR)
-  list(GET _aoflagger_version_list 1 AOFLAGGER_VERSION_MINOR)
-  message(STATUS "Found AOFlagger version ${AOFLAGGER_VERSION_MAJOR}.${AOFLAGGER_VERSION_MINOR}: ${AOFLAGGER_LIB}")
-else()
-  message(STATUS "  Executing process aoflagger failed -- AOFlagger set to NOT FOUND.")
+# Try to find AOFlagger config file (aoflagger-config.cmake) which knows everything
+# about the aoflagger installation
+if(NOT AOFLAGGER_NO_AOFLAGGER_CMAKE)
+  find_package(AOFLAGGER NO_MODULE QUIET)
 endif()
 
-if(AOFLAGGER_LIB AND AOFLAGGER_INCLUDE_DIR AND AOFLAGGER_VERSION)
-  set(_dependencies_met TRUE)
-  #
-  # Dependencies of AOFlagger
-  #
-  find_package(LibXml2)
-  list(APPEND AOFLAGGER_LIB ${LibXml2_LIB})
-  if(NOT LibXml2_FOUND)
-    message(STATUS "AOFlagger dependency LibXml2 not found.")
-    set(_dependencies_met FALSE)
+# If no config file found, try to guess the configuration from files found
+if(NOT AOFLAGGER_FOUND)
+  find_library(AOFLAGGER_LIB aoflagger
+    HINTS ${AOFLAGGER_ROOT_DIR} PATH_SUFFIXES lib)
+  find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h
+    HINTS ${AOFLAGGER_ROOT_DIR} PATH_SUFFIXES include)
+  execute_process(COMMAND ${AOFLAGGER_INCLUDE_DIR}/../bin/aoflagger --version OUTPUT_VARIABLE _aoflagger_result)
+  if(_aoflagger_result)
+    get_filename_component(AOFLAGGER_ROOT_DIR ${AOFLAGGER_INCLUDE_DIR} DIRECTORY)
+    # AOFlagger --version returns something like
+    # "AOFlagger 3.0-alpha", hence split space and dash:
+    string(REPLACE "-" " " _aoflagger_result ${_aoflagger_result})
+    string(REPLACE " " ";" _aoflagger_reslist ${_aoflagger_result})
+    list(GET _aoflagger_reslist 1 AOFLAGGER_VERSION)
+    string(REPLACE "." ";" _aoflagger_version_list ${AOFLAGGER_VERSION})
+    list(GET _aoflagger_version_list 0 AOFLAGGER_VERSION_MAJOR)
+    list(GET _aoflagger_version_list 1 AOFLAGGER_VERSION_MINOR)
+    message(STATUS "Found AOFlagger version ${AOFLAGGER_VERSION_MAJOR}.${AOFLAGGER_VERSION_MINOR}: ${AOFLAGGER_LIB}")
+  else()
+    message(STATUS "  Executing process aoflagger failed -- AOFlagger set to NOT FOUND.")
   endif()
-  
-  find_package(PNG)
-  list(APPEND AOFLAGGER_LIB ${PNG_LIBRARIES})
-  if(NOT PNG_FOUND)
-    message(STATUS "AOFlagger dependency PNG not found.")
-    set(_dependencies_met FALSE)
-  endif()
-  
-  find_library(FFTW3_LIB fftw3 REQUIRED)
-  list(APPEND AOFLAGGER_LIB ${FFTW3_LIB})
-  if(NOT FFTW3_LIB)
-    message(STATUS "AOFlagger dependency FFTW3 not found.")
-    set(_dependencies_met FALSE)
-  endif()
-  
-  find_package(CFITSIO)
-  if(CFITSIO_FOUND)
-    list(APPEND AOFLAGGER_LIB ${CFITSIO_LIBRARY})
-    list(APPEND AOFLAGGER_INCLUDE_DIR ${CFITSIO_INCLUDE_DIR})
+
+  if(AOFLAGGER_LIB AND AOFLAGGER_INCLUDE_DIR AND AOFLAGGER_VERSION)
+    set(_dependencies_met TRUE)
+    #
+    # Dependencies of AOFlagger
+    #
+    find_package(LibXml2)
+    list(APPEND AOFLAGGER_LIB ${LibXml2_LIB})
+    if(NOT LibXml2_FOUND)
+      message(STATUS "AOFlagger dependency LibXml2 not found.")
+      set(_dependencies_met FALSE)
+    endif()
+    
+    find_package(PNG)
+    list(APPEND AOFLAGGER_LIB ${PNG_LIBRARIES})
+    if(NOT PNG_FOUND)
+      message(STATUS "AOFlagger dependency PNG not found.")
+      set(_dependencies_met FALSE)
+    endif()
+    
+    find_library(FFTW3_LIB fftw3 REQUIRED)
+    list(APPEND AOFLAGGER_LIB ${FFTW3_LIB})
+    if(NOT FFTW3_LIB)
+      message(STATUS "AOFlagger dependency FFTW3 not found.")
+      set(_dependencies_met FALSE)
+    endif()
+    
+    find_package(CFITSIO)
+    if(CFITSIO_FOUND)
+      list(APPEND AOFLAGGER_LIB ${CFITSIO_LIBRARY})
+      list(APPEND AOFLAGGER_INCLUDE_DIR ${CFITSIO_INCLUDE_DIR})
+    elseif()
+      message(STATUS "AOFlagger dependency CFITSIO not found.")
+      set(_dependencies_met FALSE)
+    endif()
+
+    find_package(PkgConfig)
+    pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
+    if(GTKMM_FOUND)
+      list(APPEND AOFLAGGER_LIB ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
+    endif(GTKMM_FOUND)
+
+    if(_dependencies_met)
+      message(STATUS "Found all of AOFlagger's dependencies AOFlagger.")
+      SET(AOFLAGGER_FOUND TRUE)
+    endif()
   elseif()
-    message(STATUS "AOFlagger dependency CFITSIO not found.")
-    set(_dependencies_met FALSE)
+    message(STATUS "Could not find AOFlagger library/header.")
   endif()
-
-  find_package(PkgConfig)
-  pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
-  if(GTKMM_FOUND)
-    list(APPEND AOFLAGGER_LIB ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
-  endif(GTKMM_FOUND)
-
-  if(_dependencies_met)
-    message(STATUS "Found all of AOFlagger's dependencies AOFlagger.")
-    SET(AOFLAGGER_FOUND TRUE)
-  endif()
-elseif()
-  message(STATUS "Could not find AOFlagger library/header.")
-endif()
+endif() # End manual dependency checking (this should all be set in the AOFlagger config)
 
 if(AOFLAGGER_VERSION VERSION_LESS AOFlagger_FIND_VERSION OR
     NOT AOFLAGGER_VERSION_MAJOR VERSION_EQUAL AOFlagger_FIND_VERSION)
