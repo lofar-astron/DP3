@@ -205,25 +205,8 @@ add_library(DPPP_OBJ OBJECT
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-#
-# Dependencies of AOFlagger
-#
-find_package(LibXml2 REQUIRED)
-find_package(PNG REQUIRED)
-find_library(FFTW3_LIB fftw3 REQUIRED)
-find_package(CFITSIO REQUIRED)
-include_directories(${CFITSIO_INCLUDE_DIR})
-
-find_library(AOFLAGGER_LIB aoflagger REQUIRED)
-find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
+find_package(AOFlagger 2 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
-
-find_package(PkgConfig)
-pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
-pkg_check_modules(SIGCXX sigc++-2.0)
-if(GTKMM_FOUND)
-  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
-endif(GTKMM_FOUND)
 
 add_library(AOFlaggerStep_OBJ OBJECT
   AOFlaggerStep/AOFlaggerStep.cc
@@ -231,11 +214,10 @@ add_library(AOFlaggerStep_OBJ OBJECT
 )
 set(AOFLAGGERSTEP_OBJECT $<TARGET_OBJECTS:AOFlaggerStep_OBJ>)
 
-set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
+set(EXTRA_LIBRARIES
   ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${EXTRA_LIBRARIES}
   ${PYTHON_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
