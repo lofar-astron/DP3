@@ -23,9 +23,6 @@
 #ifndef LOFAR_BLOB_BLOBARRAY_H
 #define LOFAR_BLOB_BLOBARRAY_H
 
-/// \file
-/// Blob handling for arrays
-
 #include "BlobOStream.h"
 #include "BlobIStream.h"
 #include <vector>
@@ -41,6 +38,7 @@ namespace DP3
 {
 
 /// \ingroup Blob
+/// \brief Blob handling for arrays
 
   /// \addtogroup BlobArray Global BlobArray functions
   /// Define functions to write N-dimensional arrays into a blob and to

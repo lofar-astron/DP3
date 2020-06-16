@@ -36,6 +36,7 @@ namespace DP3 {
     class DPInfo;
 
     /// @ingroup NDPPP
+    /// @brief Class to keep counts of nr of flagged points
 
     /// This class contains counts the number of flags.
     /// The flags can be counted per baseline, channel, and correlation.

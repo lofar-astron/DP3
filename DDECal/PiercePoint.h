@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef PIERCEPOINT_H
 #define PIERCEPOINT_H
 
@@ -36,10 +34,10 @@ namespace DP3 {
  
 class PiercePoint 
 {
-  //default height in meter (300000)
+  /// default height in meter (300000)
   static const double IONOheight;
   
-  //default Earth radius in meter (6371000)
+  /// default Earth radius in meter (6371000)
   static const double EarthRadius;
   
 public:
@@ -64,7 +62,7 @@ private:
   /// Square of length antenna vector (int ITRF) minus square of vector to piercepoint.
   /// This is constant for an assumed spherical Earth.
   double              itsC;
-  arma::Col<double>         itsValue; //PiercePoint in ITRF coordinates
+  arma::Col<double>         itsValue; ///< PiercePoint in ITRF coordinates
 };
 
 }

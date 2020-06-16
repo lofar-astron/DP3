@@ -17,10 +17,7 @@
 //
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//
 
-/// \file
-/// Blob Exception class. 
 
 #ifndef LOFAR_BLOB_BLOBEXCEPTION_H
 #define LOFAR_BLOB_BLOBEXCEPTION_H
@@ -29,6 +26,7 @@
 
 namespace DP3 {
 
+  /// \brief Blob Exception class. 
   typedef std::runtime_error BlobException;
 
 }

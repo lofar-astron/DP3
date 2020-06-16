@@ -19,9 +19,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Base class for visitors that visit model component hierarchies.
-
 #ifndef DPPP_MODELCOMPONENTVISITOR_H
 #define DPPP_MODELCOMPONENTVISITOR_H
 
@@ -33,7 +30,9 @@ namespace DPPP
 class PointSource;
 class GaussianSource;
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief Base class for visitors that visit model component hierarchies.
+
 /// @{
 
 class ModelComponentVisitor

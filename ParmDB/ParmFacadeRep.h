@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Data access the parameter database.
-
 #ifndef LOFAR_PARMDB_PARMFACADEREP_H
 #define LOFAR_PARMDB_PARMFACADEREP_H
 
@@ -32,6 +29,8 @@ namespace DP3 { namespace BBS {
 
 
   /// \ingroup ParmDB
+  /// \brief Data access the parameter database.
+
   /// @{
 
   /// ParmFacadeRep is the high level interface to the Parameter Data Base.

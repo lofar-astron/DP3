@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// A position on the celestial sphere.
-
 #ifndef DPPP_POSITION_H
 #define DPPP_POSITION_H
 
@@ -31,7 +28,8 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief A position on the celestial sphere.
 /// @{
 
 class Position

@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// A Blob buffer for Aips++ ByteIO
-
 #ifndef LOFAR_BLOB_BLOBAIPSIO_H
 #define LOFAR_BLOB_BLOBAIPSIO_H
 
@@ -32,6 +29,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief A Blob buffer for Aips++ ByteIO
+  
   /// @{
 
   /**

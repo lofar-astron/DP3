@@ -35,7 +35,7 @@ namespace DP3 {
 
   namespace DPPP {
 
-    /// Class containing a few static functions to parse a baseline selection
+    /// \brief Class containing a few static functions to parse a baseline selection
     /// string.
     class BaselineSelection
     {

@@ -55,7 +55,7 @@ namespace DP3 {
         unsigned int size;
       };
 
-      /// SolTab is a solution table as defined in the H5Parm standard. It
+      /// @brief SolTab is a solution table as defined in the H5Parm standard. It
       /// contains one solution, e.g. all TEC values, with different axes
       /// for that solution (e.g. time, freq, pol).
       class SolTab : private H5::Group {

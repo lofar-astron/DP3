@@ -35,6 +35,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// @brief DPPP step class to count flags
+
     /// This class is a DPStep class counting the number of flags per
     /// baseline and channel.
     /// It can be used for test purposes to know how many flags have been

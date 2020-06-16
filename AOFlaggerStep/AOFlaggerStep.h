@@ -18,7 +18,6 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //
 /// @file
-/// @brief DPPP step class to flag using aoflagger's functionality
 /// @author Andre Offringa, Ger van Diepen
 
 #ifndef DPPP_AOFLAGGERSTEP_H
@@ -39,6 +38,8 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+
+    /// @brief DPPP step class to flag using aoflagger's functionality
 
     /// This class is a DPStep class flagging data points based on the
     /// aoflagger library written by Andre Offringa.

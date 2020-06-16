@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Global functions to convert data values
-
 #ifndef LOFAR_COMMON_DATACONVERT_H
 #define LOFAR_COMMON_DATACONVERT_H
 
@@ -44,6 +41,8 @@
 namespace DP3
 {
   /// \ingroup Common
+  /// \brief Global functions to convert data values
+
   /// \addtogroup DataConvert Data conversion functions
   ///
   /// This file declares functions to convert data from one representation to

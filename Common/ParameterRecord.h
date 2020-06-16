@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// A record of parameter values
-
 #ifndef LOFAR_COMMON_PARAMETERRECORD_H
 #define LOFAR_COMMON_PARAMETERRECORD_H
 
@@ -28,6 +25,7 @@
 
 namespace DP3 { 
 
+  /// \brief A record of parameter values
   class ParameterRecord: public ParameterSet
   {
   public:

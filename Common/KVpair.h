@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Implements a KV pair as a pair<string, string>.
-
 #ifndef LOFAR_COMMON_KVPAIR_H
 #define LOFAR_COMMON_KVPAIR_H
 
@@ -31,7 +28,9 @@
 #include <string>
 
 namespace DP3 {
-/// \addtogroup Common
+/// \ingroup Common
+/// \brief Implements a KV pair as a pair<string, string>.
+
 /// @{
 
 /// Implements a KV pair as a pair<string, string>.

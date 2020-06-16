@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Base class for model components.
-
 #ifndef DPPP_MODELCOMPONENT_H
 #define DPPP_MODELCOMPONENT_H
 
@@ -34,7 +31,9 @@ namespace DPPP
 class ModelComponentVisitor;
 class Position;
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief Base class for model components.
+
 /// @{
 
 class ModelComponent

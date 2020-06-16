@@ -79,7 +79,7 @@ private:
 
 
 
-/// This class handles an error from the Casacore's MSAntennaParse.
+/// @brief This class handles an error from the Casacore's MSAntennaParse.
 /// It adds the message to the message list of the parent BaselineSelect.
 class BaselineSelectErrorHandler : public casacore::MSSelectionErrorHandler
 {

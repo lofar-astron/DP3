@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Blob handling for STL sequences
-
 #ifndef LOFAR_BLOB_BLOBSTL_H
 #define LOFAR_BLOB_BLOBSTL_H
 
@@ -37,6 +34,8 @@ namespace DP3
 {
 
   /// \ingroup Blob
+  /// \brief Blob handling for STL sequences
+
   /// @{
 
   /// Define functions to write a map into a blob and to read it back.

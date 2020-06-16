@@ -59,6 +59,7 @@ namespace DP3 {
     typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
     typedef std::complex<double> dcomplex;
 
+    /// @brief DPPP step class to predict visibilities from a source model
     class Predict: public DPStep
     {
     public:

@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef IMAGE_COORDINATES_H
 #define IMAGE_COORDINATES_H
 
@@ -26,7 +24,7 @@
 #include <vector>
 
 /**
- * This class collects all the LM coordinate transform as defined in
+ * \brief This class collects all the LM coordinate transform as defined in
  * Perley (1999)'s "imaging with non-coplaner arrays".
  */
 class ImageCoordinates

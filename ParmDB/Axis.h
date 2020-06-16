@@ -36,6 +36,8 @@ namespace BBS {
   using std::make_pair;
 
   /// @ingroup ParmDB
+  /// @brief Classes representing a regular or irregular axis.
+  
   /// @{
 
   /// @brief Abstract base class for a cell centered axis.

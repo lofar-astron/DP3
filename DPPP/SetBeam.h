@@ -33,7 +33,8 @@ namespace DP3 {
 class ParameterSet;
 
 namespace DPPP {
-  
+
+/// @brief DPPP step class to set the beam keywords in a ms
 class SetBeam final : public DPStep
 {
 public:

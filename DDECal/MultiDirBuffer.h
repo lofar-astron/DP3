@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef MULTI_DIR_BUFFER_H
 #define MULTI_DIR_BUFFER_H
 

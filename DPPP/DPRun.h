@@ -34,6 +34,8 @@ namespace DP3 {
 
     /// @ingroup NDPPP
 
+    /// @brief Class to run steps like averaging and flagging on an MS
+
     /// This class contains a single static function that creates and executes
     /// the steps defined in the parset file.
     /// The parset file is documented on the LOFAR wiki.

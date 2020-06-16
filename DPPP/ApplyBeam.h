@@ -45,6 +45,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// \brief DPPP step class to ApplyBeam visibilities from a source model
+
     /// This class is a DPStep class to apply the beam model, optionally inverted.
     /// The input MeasurementSet it operates on, must have the LOFAR subtables
     /// defining the station layout and tiles/dipoles used.

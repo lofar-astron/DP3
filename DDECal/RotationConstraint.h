@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef ROTATION_CONSTRAINT_H
 #define ROTATION_CONSTRAINT_H
 

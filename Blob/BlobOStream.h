@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Output stream for a blob
-
 #ifndef LOFAR_BLOB_BLOBOSTREAM_H
 #define LOFAR_BLOB_BLOBOSTREAM_H
 
@@ -38,6 +35,8 @@ typedef std::complex<float> fcomplex;
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief Output stream for a blob
+
   /// @{
 
   /// This class makes it possible to create a blob.

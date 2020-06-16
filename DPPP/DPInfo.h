@@ -73,6 +73,8 @@ namespace DP3 {
 
     /// @ingroup NDPPP
 
+    /// @brief General info about DPPP data processing attributes like averaging
+
     /// This class contains the information about the number of correlations,
     /// channels, baselines, and times.
     /// It is initialized by the first step and updated by steps like

@@ -34,7 +34,8 @@
 #include <cstring>
 
 /**
- * Phase fitter that can force phase solutions over frequency onto a TEC model.
+ * @brief Phase fitter that can force phase solutions over frequency onto a TEC model.
+ * 
  * To use:
  * - Construct and set the frequencies (with @ref FrequencyData() ) and if already possible
  *   the weights (@ref WeightData()).

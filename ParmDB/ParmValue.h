@@ -40,7 +40,8 @@ namespace BBS {
   /// @ingroup ParmDB
   /// @{
 
-  /// @brief A class containing the values of a parameter,
+  /// @brief A class containing the values of a parameter.
+
   /// ParmValue holds the values of a given parameter and domain.
   /// The object does not hold the name and domain info itself. Instead its
   /// parent object ParmValueSet holds this information.

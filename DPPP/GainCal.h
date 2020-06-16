@@ -65,11 +65,10 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
-    /// This class is a DPStep class to calibrate (direction independent) gains.
-
     typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t >Baseline;
 
+    /// @brief This class is a DPStep class to calibrate (direction independent) gains.
     class GainCal: public DPStep
     {
     public:

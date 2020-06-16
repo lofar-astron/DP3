@@ -66,8 +66,7 @@ namespace DP3 {
     typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t> Baseline;
 
-    /// This class is a DPStep class to calibrate (direction independent) gains.
-
+    /// @brief This class is a DPStep class to calibrate (direction independent) gains.
     class DDECal: public DPStep
     {
     public:

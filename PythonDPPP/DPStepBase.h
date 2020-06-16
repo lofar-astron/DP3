@@ -27,7 +27,8 @@
 
 namespace DP3 {
   namespace DPPP {
-
+    /// @brief Python base class for a DPStep in python
+    
     /// DPStepBase is the interface for callbacks from the DPPP PythonStep
     /// class (and its derivations) to C++. Note it is not used for calls
     /// from C++ to Python, which are done in PythonStep.cc using the

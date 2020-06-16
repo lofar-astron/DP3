@@ -52,6 +52,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// @brief Demixer helper class processing a time chunk
+
     /// DemixWorker::process processes a single time window (say, 2 minutes).
     /// It predicts the A-team and target sources to determine which sources
     /// have to be taken into account and which antennae have to be solved for.

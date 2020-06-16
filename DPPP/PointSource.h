@@ -19,10 +19,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Point source model component with optional spectral index and rotation
-/// measure.
-
 #ifndef DPPP_POINTSOURCE_H
 #define DPPP_POINTSOURCE_H
 
@@ -39,7 +35,9 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief Point source model component with optional spectral index and rotation measure.
+
 /// @{
 
 class PointSource: public ModelComponent

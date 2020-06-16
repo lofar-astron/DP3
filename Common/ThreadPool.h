@@ -16,9 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Defines a class for managing threads.
-
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
@@ -34,6 +31,7 @@
 namespace DP3
 {
 
+/// \brief Defines a class for managing threads.
 class ThreadPool
 {
 public:

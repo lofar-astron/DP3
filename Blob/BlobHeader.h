@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Standard header for a blob
-
 #ifndef LOFAR_BLOB_BLOBHEADER_H
 #define LOFAR_BLOB_BLOBHEADER_H
 
@@ -31,6 +28,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief  Standard header for a blob.
+  
   /// @{
   
   /// Blob stands for binary large object.

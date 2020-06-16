@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Interface for classes that can be streamed using blobs.
-
 #ifndef LOFAR_BLOB_BLOBSTREAMABLE_H
 #define LOFAR_BLOB_BLOBSTREAMABLE_H
 
@@ -35,8 +32,11 @@ namespace DP3
   class BlobOStream;
 
   /// \addtogroup Blob
+
   /// @{
 
+  /// \brief Interface for classes that can be streamed using blobs.
+  
   /// Classes that want to be blob-streamable must implement the methods
   /// declared in this interface.
   class BlobStreamable

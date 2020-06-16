@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Input buffer for a blob using an istream
-
 #ifndef LOFAR_BLOB_BLOBIBUFSTREAM_H
 #define LOFAR_BLOB_BLOBIBUFSTREAM_H
 
@@ -31,6 +28,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief Input buffer for a blob using an istream
+
   /// @{
   
   /// This class is the BlobIBuffer that makes use of an istream object.

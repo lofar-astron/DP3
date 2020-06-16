@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-/// @brief Generic 2x2 matrix implementation.
 
 #ifndef MATRIX_2X2_H
 #define MATRIX_2X2_H
@@ -26,6 +24,7 @@
 #include <limits>
 #include <sstream>
 
+/// @brief Generic 2x2 matrix implementation.
 class Matrix2x2
 {
 public:

@@ -39,6 +39,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step writing to an MS
 
     /// This class is a DPStep creating a new MeasurementSet and writing
     /// all data in it.

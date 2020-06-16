@@ -48,6 +48,8 @@ namespace DP3 {
 
     /// @ingroup NDPPP
 
+    /// @brief Abstract base class for a DPStep generating input
+
     /// This class is the abstract base class for a DPStep object that
     /// handles the input. A concrete example is MSReader that reads the
     /// data from a MeasurementSet. However, it is also possible to have

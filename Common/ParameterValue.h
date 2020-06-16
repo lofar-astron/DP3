@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// The value of a parameter
-
 #ifndef LOFAR_COMMON_PARAMETERVALUE_H
 #define LOFAR_COMMON_PARAMETERVALUE_H
 
@@ -28,8 +25,10 @@
 
 namespace DP3 { 
 
-  /// Forward declaration.
+  // Forward declaration.
   class ParameterRecord;
+
+  /// \brief The value of a parameter
 
   /// ParameterValue represent a value of a parameter.
   /// It can contain a single value, but also a vector of ParameterValues or

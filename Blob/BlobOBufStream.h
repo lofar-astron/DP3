@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Output buffer for a blob using an ostream
-
 #ifndef LOFAR_BLOB_BLOBOBUFSTREAM_H
 #define LOFAR_BLOB_BLOBOBUFSTREAM_H
 
@@ -31,6 +28,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief Output buffer for a blob using an ostream
+
   /// @{
 
   /// This class is the BlobOBuffer that makes use of an ostream object.

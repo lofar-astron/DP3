@@ -38,6 +38,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// \brief DPPP step class to ApplyCal visibilities from a source model
+
     /// This class is a DPStep class to apply multiple ParmDB or H5Parm
     /// solutions to data.
 

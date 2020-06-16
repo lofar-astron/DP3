@@ -34,6 +34,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step class to flag data on UVW coordinates
 
     /// This class is a DPStep class flagging data points based on data
     /// selections given in the parset file.

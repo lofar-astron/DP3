@@ -42,6 +42,7 @@ namespace BBS {
   /// @{
 
   /// @brief Class giving access to a parameter
+  
   /// Parm makes it possible to get the parameter values for a given predict
   /// domain. It uses a ParmCache to cache parameters for a work domain.
   /// If a parameter is solvable, the solve grid must have been set before

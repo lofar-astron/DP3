@@ -38,6 +38,7 @@ namespace BBS {
   /// @{
 
   /// @brief Class to hold a read or write lock on ParmDBs
+  
   /// This class locks a single ParmDB or all ParmDBs used by a ParmSet.
   /// Because the destructor does the unlocking, this class is very well
   /// suited for automatically managing the locks. Even in case of an

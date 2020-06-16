@@ -19,10 +19,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// A set of sources for which direction dependent effects are assumed to be
-/// equal.
-
 #ifndef DPPP_PATCH_H
 #define DPPP_PATCH_H
 
@@ -38,7 +34,9 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief A set of sources for which direction dependent effects are assumed to be equal.
+
 /// @{
 
 class Patch

@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Implements a map of Key-Value pairs.
-
 #ifndef LOFAR_COMMON_PARAMETERSET_H
 #define LOFAR_COMMON_PARAMETERSET_H
 
@@ -30,7 +27,9 @@
 
 namespace DP3 {
 
-/// \addtogroup Common
+/// \ingroup Common
+/// \brief Implements a map of Key-Value pairs.
+
 /// @{
 
 /// The ParameterSet class is a key-value implementation of the type

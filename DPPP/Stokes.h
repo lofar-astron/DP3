@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Complex Stokes vector.
-
 #ifndef DPPP_STOKES_H
 #define DPPP_STOKES_H
 
@@ -29,7 +26,9 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief Complex Stokes vector.
+
 /// @{
 
 class Stokes

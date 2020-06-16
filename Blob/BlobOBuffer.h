@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Abstract base class for output buffer for a blob
-
 #ifndef LOFAR_BLOB_BLOBOBUFFER_H
 #define LOFAR_BLOB_BLOBOBUFFER_H
 
@@ -29,6 +26,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief Abstract base class for output buffer for a blob
+
   /// @{
   
   /// BlobOBuffer is the abstract base class for the sink of a

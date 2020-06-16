@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Input stream for a blob
-
 #ifndef LOFAR_BLOB_BLOBISTREAM_H
 #define LOFAR_BLOB_BLOBISTREAM_H
 
@@ -37,6 +34,8 @@
 namespace DP3 {
 
   /// \ingroup Blob
+  /// \brief Input stream for a blob
+
   /// @{
   
   /// This class makes it possible to interpret a blob and create the objects

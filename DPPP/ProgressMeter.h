@@ -25,6 +25,7 @@
 namespace DP3 {
 
 /// @ingroup NDPPP
+/// @brief Visual indication of a tasks progress.
 
 /// This class shows the progress of a task.
 /// It is copied from casacore.

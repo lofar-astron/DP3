@@ -23,9 +23,6 @@
 #ifndef LOFAR_COMMON_PARAMETERSETIMPL_H
 #define LOFAR_COMMON_PARAMETERSETIMPL_H
 
-/// \file
-/// Implements a map of Key-Value pairs.
-
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include "ParameterValue.h"
 #include "StringUtil.h"
@@ -37,7 +34,9 @@
 
 namespace DP3 {
 
-/// \addtogroup Common
+/// \ingroup Common
+/// \brief Implements a map of Key-Value pairs.
+
 /// @{
 
 const char PC_QUAL_STABLE[]   = { "stable"        };
@@ -54,6 +53,7 @@ typedef StringUtil::Compare			KeyCompare;
 /// used to compare keys.
 typedef std::map <std::string, ParameterValue, KeyCompare>	KVMap;
 
+/// @brief Implements a map of Key-Value pairs.
 /// Description of class.
 /// The ParameterSetImpl class is a key-value implementation of the type
 /// map<string, string, KeyCompare>. 

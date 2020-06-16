@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// /@file
-/// /@brief Buffer holding the data of a timeslot/band
+/// @file
+/// @brief Buffer holding the data of a timeslot/band
 /// @author Ger van Diepen
 
 #ifndef DPPP_DPBUFFER_H
@@ -33,6 +33,14 @@ namespace DP3 {
   namespace DPPP {
 
     /// @ingroup NDPPP
+
+#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
+    typedef unsigned int rownr_t;
+#else
+    typedef casacore::rownr_t rownr_t;
+#endif
+
+    /// @brief Buffer holding the data of a timeslot/band
 
     /// This class holds the data for one time slot in Array variables.
     /// It makes heavy use of reference semantics to avoid data copying
@@ -113,13 +121,6 @@ namespace DP3 {
     /// 2. A shallow copy of a data member can be used if a step processes
     ///    the data immediately (e.g. Averager).
     /// The DPInput::fetch functions come in those 2 flavours.
-
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
-    typedef unsigned int rownr_t;
-#else
-    typedef casacore::rownr_t rownr_t;
-#endif
-
     class DPBuffer
     {
     public:

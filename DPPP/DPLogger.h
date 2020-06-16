@@ -29,7 +29,7 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// This class contains the flag to choose between cout/cerr and logging
+    /// @brief This class contains the flag to choose between cout/cerr and logging
     /// system.
     class DPLogger
     {

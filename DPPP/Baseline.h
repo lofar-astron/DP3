@@ -19,7 +19,7 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 /// \file
-/// Pair of stations that together form a baseline (interferometer).
+/// \brief Pair of stations that together form a baseline (interferometer).
 
 #ifndef DPPP_BASELINE_H
 #define DPPP_BASELINE_H

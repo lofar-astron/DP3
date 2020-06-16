@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Return a string giving the type name to be stored in blobs.
-
 #ifndef LOFAR_COMMON_TYPENAMES_H
 #define LOFAR_COMMON_TYPENAMES_H
 
@@ -29,7 +26,9 @@
 
 namespace DP3
 {
-  /// \addtogroup TypeNames
+  /// \ingroup TypeNames
+  /// \brief Return a string giving the type name to be stored in blobs.
+
   ///
   /// These global functions return the name of the basic types.
   /// They are meant to get the full id of a templated class when such an

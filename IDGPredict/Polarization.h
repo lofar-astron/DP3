@@ -25,7 +25,7 @@
 #include <vector>
 
 /**
- * Class for various simple polarization related values.
+ * @brief Class for various simple polarization related values.
  * 
  * The visibility relations for converting polarizations are:
  * 

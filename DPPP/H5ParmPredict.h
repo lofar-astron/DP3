@@ -45,6 +45,7 @@ namespace DP3 {
     typedef std::pair<size_t, size_t> Baseline;
     typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
 
+    /// @brief DPPP step class to H5ParmPredict visibilities from a source model
     class H5ParmPredict: public DPStep
     {
     public:

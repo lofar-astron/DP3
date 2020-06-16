@@ -31,9 +31,9 @@ namespace DP3 {
 namespace BBS {
 
   /// @ingroup ParmDB
-  /// @{
-
   /// @brief Map the cells of one axis to another
+  
+  /// @{
   /// This class defines the mapping of one axis to another.
   /// It is meant for mapping the grid axes of a predict to the axes
   /// of the domain grid, so it has to be calculated only once per predict.
@@ -79,7 +79,9 @@ namespace BBS {
   };
 
 
-  /// This class caches Grid objects. It is used to achieve that parameters
+  /// @brief This class caches Grid objects. 
+  ///
+  /// It is used to achieve that parameters
   /// with equal domains share the same Axis objects. In this way
   /// the AxisMapping objects can also be shared which can improve the
   /// performance.
@@ -113,7 +115,7 @@ namespace BBS {
   };
 
 
-  /// This class caches axis mappings. It uses the unique id of the from-axis
+  /// @brief This class caches axis mappings. It uses the unique id of the from-axis
   /// and to-axis as the key in the cache.
   /// <br>It is meant to avoid creating many identical mappings, because the
   /// same axes are used for many parameters.

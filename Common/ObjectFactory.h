@@ -21,8 +21,6 @@
 // $Id: ObjectFactory.h 32489 2015-09-26 18:38:13Z dijkema $
 
 /// \file
-/// Generic object factory.
-///
 /// The implementation of this object factory was inspired by the article
 /// <em>Creating a Generic Object Factory</em>, written by Robert Geiman on
 /// GameDev.net
@@ -65,7 +63,9 @@
 
 namespace DP3
 {
-  /// \addtogroup Common
+  /// \ingroup Common
+  /// \brief Generic object factory.
+  
   /// @{
   /// Primary template. \c Signature is the signature of the class'
   /// constructor; \p TypeId is the type of its unique id.

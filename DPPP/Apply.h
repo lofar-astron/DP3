@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Apply station Jones matrices to a set of visibilities.
-
 #ifndef DPPP_APPLY_H
 #define DPPP_APPLY_H
 
@@ -34,7 +31,9 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+/// \brief Apply station Jones matrices to a set of visibilities.
+
 /// @{
 /// Apply station Jones matrices to a set of visibilities.
 ///

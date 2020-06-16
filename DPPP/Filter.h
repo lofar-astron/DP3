@@ -34,6 +34,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step to filter out baselines and channels
 
     /// This class is a DPInput step reading the data from a MeasurementSet.
     /// At the beginning it finds out the shape of the data; i.e., the

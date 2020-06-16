@@ -19,10 +19,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Compute visibilities for different model components types (implementation of
-/// ModelComponentVisitor).
-
 #ifndef DPPP_SIMULATOR_H
 #define DPPP_SIMULATOR_H
 
@@ -40,11 +36,13 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
+/// \ingroup NDPPP
+
 /// @{
 
 typedef std::complex<double> dcomplex;
 
+/// @brief Compute visibilities for different model components types (implementation of ModelComponentVisitor).
 class Simulator: public ModelComponentVisitor
 {
 public:

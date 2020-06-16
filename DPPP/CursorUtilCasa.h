@@ -19,7 +19,7 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 /// \file
-/// Helper functions for creating cursors for CASA arrays.
+/// \brief Helper functions for creating cursors for CASA arrays.
 
 #ifndef DPPP_CURSORUTILCASA_H
 #define DPPP_CURSORUTILCASA_H

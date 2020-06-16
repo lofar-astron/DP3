@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef KERNEL_SMOOTHER_H
 #define KERNEL_SMOOTHER_H
 
@@ -28,7 +26,7 @@
 #include <limits>
 
 /**
- * Smooths a series of possibly irregularly gridded values by a
+ * \brief Smooths a series of possibly irregularly gridded values by a
  * given kernel.
  * 
  * The class is optimized to smooth many series which are all placed on the same grid.

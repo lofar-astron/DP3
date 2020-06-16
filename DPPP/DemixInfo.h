@@ -36,6 +36,7 @@
 namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP struct to hold the common demix variables
 
     /// This struct holds the common demix variables.
     /// It can be shared between the parallel DemixWorker objects.

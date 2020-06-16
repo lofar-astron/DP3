@@ -37,6 +37,7 @@ namespace BBS {
   /// @{
 
   /// @brief A map of parameter name to value set.
+  
   /// ParmMap holds a map of name to ParmValueSet.
   /// It is meant to hold the default values, but could be used for
   /// other purposes as well.

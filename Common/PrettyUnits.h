@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Print units in a human-readable way
-
 #ifndef LOFAR_COMMON_PRETTY_UNITS_H
 #define LOFAR_COMMON_PRETTY_UNITS_H
 
@@ -29,12 +26,14 @@
 
 namespace DP3 {
 
+  /// \brief Print units in a human-readable way
   class PrettyUnits : public std::string
   {
     protected:
       PrettyUnits(double value, const char *unit, unsigned precision);
   };
 
+  /// \brief Print time in a human-readable way
   class PrettyTime : public PrettyUnits
   {
     public:
@@ -45,6 +44,7 @@ namespace DP3 {
       }
   };
 
+  /// \brief Print frequency in a human-readable way
   class PrettyFrequency : public PrettyUnits
   {
     public:

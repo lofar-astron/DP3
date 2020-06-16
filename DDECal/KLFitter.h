@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef KLFITTER_H
 #define KLFITTER_H
 
@@ -29,7 +27,7 @@
 
 namespace DP3{
 
-/// Creates KH base and fits screens from collection of PiercePoints.
+/// \brief Creates KH base and fits screens from collection of PiercePoints.
 class KLFitter
 {
 public:

@@ -32,6 +32,7 @@
 namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief Test of a dynamically loaded DPPP step
 
     /// This class is a test (and an example) of a DPStep loaded
     /// dynamically from a shared library.

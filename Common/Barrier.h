@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Barrier operation for synchronizing threads.
-
 #ifndef BARRIER_H
 #define BARRIER_H
 
@@ -29,6 +26,8 @@
 #include <mutex>
 
 namespace DP3 {
+
+  /// \brief Barrier operation for synchronizing threads.
   
   /**
   * This class is unfortunately necessary because boost::barrier had a 

@@ -35,6 +35,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step class for freq-dependent scaling of the data
 
     /// This class is a DPStep class scaling the data using a polynomial
     /// in frequency (in MHz) for LBA and HBA. The coefficients can be given

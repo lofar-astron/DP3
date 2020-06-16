@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Useful string manipulation methods
-
 #ifndef LOFAR_COMMON_STRINGUTIL_H
 #define LOFAR_COMMON_STRINGUTIL_H
 
@@ -69,7 +66,8 @@ namespace DP3
     std::vector<std::string> tokenize(const std::string& str, const std::string& delims);
 
 
-    /// Functor to compare two strings. Strings can be compared case sensitive
+    /// \brief Functor to compare two strings.
+    /// Strings can be compared case sensitive
     /// (\c NORMAL) and case insensitive (\c NOCASE).
     /// \attention This class does not handle locales properly. It does string
     /// comparison the way \c strcmp and \c strcasecmp (or \c stricmp for that

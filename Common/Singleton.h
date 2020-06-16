@@ -18,15 +18,14 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Implementation of a Meyers singleton class.
-
 #ifndef LOFAR_COMMON_SINGLETON_H
 #define LOFAR_COMMON_SINGLETON_H
 
 namespace DP3
 {
-  /// \addtogroup Common
+  /// \ingroup Common
+  /// \brief Implementation of a Meyers singleton class.
+  
   /// @{
 
   /// Singleton implements the so-called Meyers singleton (see Item 26 in

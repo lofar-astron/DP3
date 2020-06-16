@@ -36,6 +36,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// \brief DPPP step class to average in time and/or freq
+
     /// This class is a DPStep class calculating the weighted average of
     /// data in time and/or frequency.
     /// <br>

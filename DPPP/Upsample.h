@@ -35,6 +35,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step class to Upsample visibilities
 
     /// This class is an empty DPStep subclass to use as implementation template
 

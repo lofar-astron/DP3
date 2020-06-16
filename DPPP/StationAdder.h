@@ -37,6 +37,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step class to add stations as a superstation
 
     /// This class is a DPStep class summing stations to a superstation.
     /// 

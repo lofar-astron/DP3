@@ -29,6 +29,7 @@
 #include <vector>
 using namespace arma;
 
+/// \brief Class to perform screen fitting 
 class ScreenFitter{
  public:
   ScreenFitter();
@@ -36,7 +37,7 @@ class ScreenFitter{
 
  private:
   std::vector<double> _phases,_frequencies, _weights;
-  mat _corrmatrix;  //correlation matrix
+  mat _corrmatrix;  ///< correlation matrix
    
 };
 #endif

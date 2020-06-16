@@ -18,7 +18,6 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 /// @file
-/// @brief DPPP step class to shift the data to another phase center
 /// @author Ger van Diepen
 
 #ifndef DPPP_PHASESHIFT_H
@@ -35,6 +34,8 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+
+    /// @brief DPPP step class to shift the data to another phase center
 
     /// This class is a DPStep class to shift the data and UVW coordinates
     /// to another phase center. If no phase center is given, a shift is

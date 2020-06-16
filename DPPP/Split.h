@@ -35,6 +35,7 @@ namespace DP3 {
 
   namespace DPPP {
     /// @ingroup NDPPP
+    /// @brief DPPP step class to Split visibilities from a source model
 
     /// This class is an empty DPStep subclass to use as implementation template
 

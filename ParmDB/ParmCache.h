@@ -38,6 +38,7 @@ namespace BBS {
   /// @{
 
   /// @brief A class dealing with caching and handling ParmDB entries
+  
   /// ParmCache caches the parm records for a given work domain.
   class ParmCache
   {

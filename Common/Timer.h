@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Very accurate timer for elapsed times.
-
 #ifndef LOFAR_COMMON_TIMER_H
 #define LOFAR_COMMON_TIMER_H
 
@@ -34,6 +31,8 @@
 #endif
 
 namespace DP3 {
+
+  /// \brief Very accurate timer for elapsed times.
 
   /// Low-overhead and high-resolution interval timer for use on i386, x86_64,
   /// ia64, and powerpc platforms, using the processor's timestamp counter that
@@ -49,7 +48,6 @@ namespace DP3 {
   /// The constructor starts the timer, while the destructor stops it. It has
   /// the advantage that no explicit stop has to be given.
   /// Moreover, it makes the start/stop exception-safe.
-
   class NSTimer {
   public:
     /// Construct.

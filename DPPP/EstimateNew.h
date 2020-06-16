@@ -18,12 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// Estimate Jones matrices for several directions simultaneously. A separate
-/// data stream is used for each direction. The mixing coefficients quantify the
-/// influence of each direction on each of the other directions (including time
-/// and frequency smearing).
-
 #ifndef DPPP_ESTIMATENEW_H
 #define DPPP_ESTIMATENEW_H
 
@@ -38,11 +32,11 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// \addtogroup NDPPP
-    /// @{
+    /// \ingroup NDPPP
+    /// \brief Estimate Jones matrices for several directions simultaneously. 
 
-    /// Estimate Jones matrices for several directions simultaneously. A separate
-    /// data stream is used for each direction. The mixing coefficients quantify the
+    /// @{    
+    /// A separate data stream is used for each direction. The mixing coefficients quantify the
     /// influence of each direction on each of the other directions (including time
     /// and frequency smearing).
     class EstimateNew

@@ -18,9 +18,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// \file
-/// \brief Useful stream manipulation methods.
-
 #ifndef LOFAR_COMMON_STREAMUTILX_H
 #define LOFAR_COMMON_STREAMUTILX_H
 
@@ -33,6 +30,8 @@
 
 namespace DP3
 {
+  /// \brief Useful stream manipulation methods.
+  
   /// Handles indentation of text lines. Every time an Indent object is
   /// constructed, the static member \c level is incremented by one, and every
   /// time an Indent object is destructed \c level is decremented by one. To

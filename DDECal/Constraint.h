@@ -16,8 +16,6 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-/// @file
-
 #ifndef CONSTRAINT_H
 #define CONSTRAINT_H
 
@@ -28,7 +26,7 @@
 #include <ostream>
 
 /**
- * This class is the base class for classes that implement a constraint on
+ * \brief This class is the base class for classes that implement a constraint on
  * calibration solutions. Constraints are used to increase
  * the converge of calibration by applying these inside the solving step.
  *
@@ -43,7 +41,7 @@ public:
   public:
     std::vector<double> vals;
     std::vector<double> weights;
-    std::string axes; // Comma-separated string with axis names, fastest varying last
+    std::string axes; ///< Comma-separated string with axis names, fastest varying last
     std::vector<size_t> dims;
     std::string name;
   };
@@ -125,7 +123,7 @@ protected:
 };
 
 /**
- * This class constraints the amplitudes of the solution to be unity, but
+ * @brief This class constraints the amplitudes of the solution to be unity, but
  * keeps the phase.
  */
 class PhaseOnlyConstraint : public Constraint
@@ -140,7 +138,7 @@ public:
 };
 
 /**
- * This class constraints the phases of the solution to be zero, but
+ * @brief This class constraints the phases of the solution to be zero, but
  * keeps the amplitude information.
  */
 class AmplitudeOnlyConstraint : public Constraint
@@ -168,7 +166,7 @@ private:
 };
 
 /**
- * This constraint averages the solutions of several groups of antennas,
+ * @brief This constraint averages the solutions of several groups of antennas,
  * so that antennas wiuthin the same group have equal solutions.
  *
  * The DDE solver can use this constraint e.g. to average the solutions of

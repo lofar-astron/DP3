@@ -42,6 +42,8 @@ namespace DP3 {
   namespace DPPP {
     /// @ingroup NDPPP
 
+    /// @brief DPPP step class to subtract A-team sources in adaptive way
+
     /// This class is a DPStep class to subtract the strong A-team sources
     /// in a smart way (algorithm developed by Reinout van Weeren).
     /// It operates as follows:

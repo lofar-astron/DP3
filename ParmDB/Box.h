@@ -40,13 +40,12 @@ namespace BBS {
 
   /// @ingroup ParmDB
   /// @{
-
-  /// @brief Class representing a 2-dim box
   class Box;
   Box unite(const Box& lhs, const Box& rhs);
   Box intersect(const Box& lhs, const Box& rhs);
 
-
+  /// @brief Class representing a 2-dim box
+  
   /// A Box is a rectangular region defined by two Point objects defining
   /// the bottom-left and top-rigth corner of the box.
   /// The bounding box of a Grid is a Box object.

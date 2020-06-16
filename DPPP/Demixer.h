@@ -50,6 +50,7 @@ namespace DP3 {
 
     typedef std::vector<Patch::ConstPtr> PatchList;
 
+    /// @brief DPPP step class to subtract A-team sources
     /// This class is a DPStep class to subtract the strong A-team sources.
     /// It is based on the demixing.py script made by Bas vd Tol and operates
     /// per time chunk as follows:
