@@ -94,6 +94,7 @@ namespace BBS {
   /// that form a Grid with a given hash value. Note that different Grids
   /// might map to the same hash value, although in practice that will
   /// hardly ever occur.
+  /// </ol>
   class AxisCache
   {
   public:

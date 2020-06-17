@@ -1,5 +1,5 @@
 /**
- * @file uvector.h
+ * @file
  * Header file for uvector and its relational and swap functions.
  * @author André Offringa
  * @copyright André Offringa, 2013, distributed under the GPL license version 3.

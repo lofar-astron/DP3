@@ -245,10 +245,13 @@ class PhaseFitter
 		return alpha / nu + beta;
 	}
   
+	/**
+	 * Dummy comment for making the reference near @ref FitDataToTEC1Model() work.
+	 */
 	double FitDataToTEC1Model(double& alpha);
 
 	/**
-	 * Like @ref FitDataToTEC1Model(double&,double&), but without returning the parameters.
+	 * Like @ref FitDataToTEC1Model(double&), but without returning the parameters.
 	 */
   void FitDataToTEC1Model()
 	{
@@ -285,7 +288,6 @@ class PhaseFitter
 	double TEC1ModelCost(double alpha) const;
 	
 	/**
-	 * Like @ref TEC1ModelFunc(), but 2-pi wrapped.
 	 * @param nu Frequency in Hz
 	 * @param alpha TEC parameter (in undefined units)
 	 * @returns | alpha / nu_i + beta | % 2pi

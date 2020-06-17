@@ -19,7 +19,6 @@
 /**
  * @file
  * Internal header file for the lane.
- * @headername{lane.h}
  */
 
 #ifndef AO_LANE_11_H
