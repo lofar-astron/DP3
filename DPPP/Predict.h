@@ -51,7 +51,6 @@ namespace DP3 {
   class ThreadPool;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// This class is a DPStep class to predict visibilities with optionally beam
 

@@ -38,7 +38,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
     /// @brief Class to calculate UVW coordinates
 
     /// This class calculates the UVW coordinates for a given baseline and

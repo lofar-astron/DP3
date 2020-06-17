@@ -32,7 +32,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief Multi-dimensional iterators.
 
 /// @{

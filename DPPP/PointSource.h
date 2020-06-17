@@ -35,7 +35,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief Point source model component with optional spectral index and rotation measure.
 
 /// @{

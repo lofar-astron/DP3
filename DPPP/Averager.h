@@ -34,7 +34,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// \brief DPPP step class to average in time and/or freq
 

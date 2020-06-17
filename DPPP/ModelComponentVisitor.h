@@ -30,7 +30,6 @@ namespace DPPP
 class PointSource;
 class GaussianSource;
 
-/// \ingroup NDPPP
 /// \brief Base class for visitors that visit model component hierarchies.
 
 /// @{

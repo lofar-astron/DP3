@@ -35,7 +35,6 @@ namespace DP3 {
   namespace DPPP {
     class DPInfo;
 
-    /// @ingroup NDPPP
     /// @brief Class to keep counts of nr of flagged points
 
     /// This class contains counts the number of flags.

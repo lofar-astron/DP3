@@ -39,7 +39,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
     /// @brief Class to execute a DPStep in some Python module
 
     /// This class defines a step in the DPPP pipeline to be executed in

@@ -28,7 +28,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief A position on the celestial sphere.
 /// @{
 

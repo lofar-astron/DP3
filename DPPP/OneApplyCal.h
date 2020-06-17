@@ -40,7 +40,6 @@
 
 namespace DP3 {
   namespace DPPP {
-    /// @ingroup NDPPP
     /// @brief DPPP step class to apply a calibration correction to the data
 
     /// This class is a DPStep class applying calibration parameters to the data.

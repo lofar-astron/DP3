@@ -37,7 +37,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// @brief DPPP step class to flag using aoflagger's functionality
 

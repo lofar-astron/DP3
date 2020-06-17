@@ -43,9 +43,6 @@ namespace DP3
 namespace DPPP
 {
 
-  /// \addtogroup NDPPP
-  /// @{
-
   /// Setup the splitting of the baseline UVWs into station UVWs. It returns
   /// the indices of the baselines needed to split the baseline UVWs into
   /// station UVWs. They are in such an order that the UVW of a station is known
@@ -125,7 +122,6 @@ void simulate(const Position &reference, const Patch::ConstPtr &patch,
     size_t nStation, size_t nBaseline, size_t nChannel,
     const_cursor<Baseline> baselines, const_cursor<double> freq,
     const_cursor<double> uvw, cursor<dcomplex> buffer);
-/// @}
 
 } // namespace DPPP
 } // namespace LOFAR

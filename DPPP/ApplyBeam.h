@@ -43,7 +43,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// \brief DPPP step class to ApplyBeam visibilities from a source model
 

@@ -61,7 +61,6 @@ namespace DP3 {
 	class ThreadPool;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     typedef std::vector<Patch::ConstPtr> PatchList;
     typedef std::pair<size_t, size_t> Baseline;

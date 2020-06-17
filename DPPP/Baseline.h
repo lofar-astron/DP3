@@ -32,12 +32,7 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
-/// @{
-
 typedef std::pair<size_t, size_t>   Baseline;
-
-/// @}
 
 } // namespace DPPP
 } // namespace LOFAR

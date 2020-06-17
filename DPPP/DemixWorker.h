@@ -50,7 +50,6 @@
 namespace DP3 {
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// @brief Demixer helper class processing a time chunk
 

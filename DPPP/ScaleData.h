@@ -34,7 +34,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
     /// @brief DPPP step class for freq-dependent scaling of the data
 
     /// This class is a DPStep class scaling the data using a polynomial

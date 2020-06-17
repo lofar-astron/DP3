@@ -34,7 +34,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief A set of sources for which direction dependent effects are assumed to be equal.
 
 /// @{

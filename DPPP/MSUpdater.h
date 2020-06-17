@@ -38,7 +38,6 @@ namespace DP3 {
   namespace DPPP {
     class MSReader;
 
-    /// @ingroup NDPPP
     /// @brief DPPP step writing to an MS
 
     /// This class updates the flags in an existing MeasurementSet.

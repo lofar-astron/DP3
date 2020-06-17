@@ -31,7 +31,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief Apply station Jones matrices to a set of visibilities.
 
 /// @{

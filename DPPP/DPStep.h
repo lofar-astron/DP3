@@ -35,7 +35,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
 
     /// @brief Abstract base class for a DPPP step
 
@@ -143,7 +142,6 @@ namespace DP3 {
 
 
 
-    /// @ingroup NDPPP
 
     /// @brief This class defines a null step in the DPPP pipeline.
     /// It can be used as the last step in the pipeline, so other steps
@@ -168,7 +166,6 @@ namespace DP3 {
 
 
 
-    /// @ingroup NDPPP
 
     /// @brief This class defines step in the DPPP pipeline that keeps the result
     /// to make it possible to get the result of another step.
@@ -209,7 +206,6 @@ namespace DP3 {
 
 
 
-    /// @ingroup NDPPP
 
     /// @brief This class defines step in the DPPP pipeline that keeps the result
     /// to make it possible to get the result of another step.

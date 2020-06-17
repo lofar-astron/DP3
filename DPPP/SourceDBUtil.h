@@ -39,8 +39,6 @@ class SourceDB;
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
-/// @{
   std::vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
                                       const std::vector<std::string> &patchNames,
                                       unsigned int nModel);
@@ -60,8 +58,6 @@ namespace DPPP
   bool checkPolarized(BBS::SourceDB &sourceDB,
                       const std::vector<std::string> &patchNames,
                       unsigned int nModel);
-
-/// @}
 
 } // namespace DPPP
 } // namespace LOFAR

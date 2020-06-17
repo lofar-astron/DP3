@@ -32,7 +32,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
 
 #if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
     typedef unsigned int rownr_t;

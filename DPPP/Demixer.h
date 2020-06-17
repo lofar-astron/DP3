@@ -46,7 +46,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     typedef std::vector<Patch::ConstPtr> PatchList;
 

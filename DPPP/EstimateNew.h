@@ -32,7 +32,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// \ingroup NDPPP
     /// \brief Estimate Jones matrices for several directions simultaneously. 
 
     /// @{    

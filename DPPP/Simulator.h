@@ -36,7 +36,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 
 /// @{
 

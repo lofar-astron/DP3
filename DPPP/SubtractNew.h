@@ -35,8 +35,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
-/// @{
 /// Subtract visibilities from a buffer after weighting by mixing coefficients.
 /// 
 /// \param[in]   nBaseline
@@ -58,7 +56,6 @@ void subtract(size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, cursor<fcomplex> data,
               const_cursor<dcomplex> model, const_cursor<dcomplex> weight,
               std::vector<float>& sumAmpl);
-/// @}
 
 } // namespace DPPP
 } // namespace LOFAR

@@ -46,7 +46,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
 
     /// @brief Abstract base class for a DPStep generating input
 

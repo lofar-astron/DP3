@@ -40,7 +40,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// @brief DPPP step class to subtract A-team sources in adaptive way
 

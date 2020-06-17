@@ -26,7 +26,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief Complex Stokes vector.
 
 /// @{

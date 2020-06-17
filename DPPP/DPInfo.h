@@ -71,7 +71,6 @@ namespace DP3 {
       }
     }
 
-    /// @ingroup NDPPP
 
     /// @brief General info about DPPP data processing attributes like averaging
 

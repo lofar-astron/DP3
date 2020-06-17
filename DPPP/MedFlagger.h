@@ -32,7 +32,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
     /// @brief DPPP step class to flag data based on median filtering
 
     /// This class is a DPStep class flagging data points based on the median

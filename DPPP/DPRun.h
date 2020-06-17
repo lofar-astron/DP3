@@ -32,7 +32,6 @@
 namespace DP3 {
   namespace DPPP {
 
-    /// @ingroup NDPPP
 
     /// @brief Class to run steps like averaging and flagging on an MS
 

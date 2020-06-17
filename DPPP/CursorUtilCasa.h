@@ -33,9 +33,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \addtogroup NDPPP
-/// @{
-
 template <typename T>
 cursor<T> casa_cursor(casacore::Array<T> &array)
 {
@@ -61,8 +58,6 @@ const_cursor<T> casa_const_cursor(const casacore::Array<T> &array,
     return const_cursor<T>(&(array(offset)), array.ndim(),
         array.steps().storage());
 }
-
-/// @}
 
 } // namespace DPPP
 } // namespace LOFAR

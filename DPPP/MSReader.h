@@ -38,7 +38,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
     /// @brief DPPP step reading from an MS
 
     /// This class is a DPInput step reading the data from a MeasurementSet.

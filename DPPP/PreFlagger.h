@@ -35,7 +35,6 @@ namespace DP3 {
   class ParameterValue;
 
   namespace DPPP {
-    /// @ingroup NDPPP
     /// @brief DPPP step class to flag data on channel, baseline, or time
 
     /// This class is a DPStep class flagging data points based on data

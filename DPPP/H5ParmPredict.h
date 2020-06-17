@@ -38,7 +38,6 @@ namespace DP3 {
   class ParameterSet;
 
   namespace DPPP {
-    /// @ingroup NDPPP
 
     /// This class is a DPStep class to H5ParmPredict visibilities with optionally beam
 

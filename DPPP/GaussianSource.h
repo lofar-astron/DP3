@@ -28,7 +28,6 @@ namespace DP3
 namespace DPPP
 {
 
-/// \ingroup NDPPP
 /// \brief Gaussian source model component.
 
 /// @{

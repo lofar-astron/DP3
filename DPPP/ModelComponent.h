@@ -31,7 +31,6 @@ namespace DPPP
 class ModelComponentVisitor;
 class Position;
 
-/// \ingroup NDPPP
 /// \brief Base class for model components.
 
 /// @{
