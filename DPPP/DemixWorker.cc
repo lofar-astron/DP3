@@ -1,25 +1,25 @@
-//# DemixerWorker.cc: Demixing helper class to demix a time chunk
-//# Copyright (C) 2013
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: Demixer.cc 24221 2013-03-12 12:24:48Z diepen $
-//#
-//# @author Ger van Diepen
+// DemixerWorker.cc: Demixing helper class to demix a time chunk
+// Copyright (C) 2013
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: Demixer.cc 24221 2013-03-12 12:24:48Z diepen $
+//
+// @author Ger van Diepen
 
 #include "DemixWorker.h"
 #include "Apply.h"
@@ -71,7 +71,7 @@ namespace DP3 {
     namespace
     {
       string toString (double value);
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
     DemixWorker::DemixWorker (DPInput* input,
                               const string& prefix,
@@ -825,9 +825,9 @@ namespace DP3 {
       int nchan  = newBuf.getData().shape()[1];
       int nbl    = newBuf.getData().shape()[2];
       int ncc    = ncorr*nchan;
-      //# If ever in the future a time dependent phase center is used,
-      //# the machine must be reset for each new time, thus each new call
-      //# to process.
+      // If ever in the future a time dependent phase center is used,
+      // the machine must be reset for each new time, thus each new call
+      // to process.
       // Add the weighted factors for each pair of directions.
       // The input factor is the phaseshift from target direction to
       // source direction. By combining them you get the shift from one
@@ -1336,7 +1336,7 @@ namespace DP3 {
         os << std::setprecision(16) << value;
         return os.str();
       }
-    } //# end unnamed namespace
+    } // end unnamed namespace
 
-  } //# end namespace DPPP
-} //# end namespace LOFAR
+  } // end namespace DPPP
+} // end namespace LOFAR

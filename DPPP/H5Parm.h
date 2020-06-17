@@ -1,3 +1,21 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
 #ifndef DPPP_H5PARM_H
 #define DPPP_H5PARM_H
 
@@ -28,7 +46,7 @@ namespace DP3 {
     } polarization_t;
 
     public:
-    // A name and the length of an exis, e.g. ('freq', 800) for 800 frequencies
+    /// A name and the length of an exis, e.g. ('freq', 800) for 800 frequencies
     struct AxisInfo {
       public: AxisInfo(const std::string& name, unsigned int size) :
         name(name), size(size) {};
@@ -37,38 +55,38 @@ namespace DP3 {
         unsigned int size;
       };
 
-      // SolTab is a solution table as defined in the H5Parm standard. It
-      // contains one solution, e.g. all TEC values, with different axes
-      // for that solution (e.g. time, freq, pol).
+      /// @brief SolTab is a solution table as defined in the H5Parm standard. It
+      /// contains one solution, e.g. all TEC values, with different axes
+      /// for that solution (e.g. time, freq, pol).
       class SolTab : private H5::Group {
         public:
-          // Default constructor
+          /// Default constructor
           SolTab() {};
 
-          // Create a new soltab, add it to its parent
+          /// Create a new soltab, add it to its parent
           SolTab(H5::Group group,
                  const std::string& type,
-                 const std::vector<AxisInfo> axes // Axes, fastest varying last
+                 const std::vector<AxisInfo> axes /// Axes, fastest varying last
                  );
 
-          // Create a soltab from a H5::Group (for reading existing files)
+          /// Create a soltab from a H5::Group (for reading existing files)
           SolTab(H5::Group& group);
 
-          // The destructor could check for valid subtables
+          /// The destructor could check for valid subtables
           virtual ~SolTab();
 
           std::vector<AxisInfo>& getAxes() {return _axes;}
 
           AxisInfo getAxis(unsigned int i) const;
 
-          // Get an axis, throw an exception if it does not exist
+          /// Get an axis, throw an exception if it does not exist
           AxisInfo getAxis(const std::string& axisName) const;
 
           size_t nAxes() { return _axes.size(); }
 
           bool hasAxis(const std::string& axisName);
 
-          // Get the index of an axis
+          /// Get the index of an axis
           size_t getAxisIndex(const std::string& axisname);
 
           void setAntennas(const std::vector<std::string>& solAntennas);
@@ -79,64 +97,64 @@ namespace DP3 {
 
           void setFreqs(const std::vector<double>& freqs);
 
-          // Get the values of a real-valued axis (e.g. "time" or "freq")
+          /// Get the values of a real-valued axis (e.g. "time" or "freq")
           std::vector<double> getRealAxis(const std::string& axisname) const;
 
-          // Get the values of a string-valued axis (e.g. "dir" or "pol")
+          /// Get the values of a string-valued axis (e.g. "dir" or "pol")
           std::vector<std::string> getStringAxis(const std::string& axisname);
 
-          // Get the index of freq, using nearest neighbor
-          // This assumes that the frequencies are in increasing order.
+          /// Get the index of freq, using nearest neighbor
+          /// This assumes that the frequencies are in increasing order.
           hsize_t getFreqIndex(double freq) const;
 
-          // Get the index of a time. Matches with 0.5*timeInterval
-          // This assumes that all times are regularly spaced
+          /// Get the index of a time. Matches with 0.5*timeInterval
+          /// This assumes that all times are regularly spaced
           hsize_t getTimeIndex(double time) const;
 
           hsize_t getDirIndex(const std::string& dirName);
 
-          // Gets the interval (in s.) between a time slot (default first) and
-          // the next. Throws error if there is only one time slot.
+          /// Gets the interval (in s.) between a time slot (default first) and
+          /// the next. Throws error if there is only one time slot.
           double getTimeInterval(size_t start=0) const {
             return getInterval("time", start);
           }
 
-          // Gets the interval (in s.) between a channel (default first) and
-          // the next. Throws error if there is only one frequency.
+          /// Gets the interval (in s.) between a channel (default first) and
+          /// the next. Throws error if there is only one frequency.
           double getFreqInterval(size_t start=0) const {
             return getInterval("freq", start);
           }
 
           void setTimes(const std::vector<double>& times);
 
-          // Set metadata about an axis (like freq or time))
+          /// Set metadata about an axis (like freq or time))
           void setAxisMeta(const std::string& metaName,
                            const std::vector<double>& metaVals);
 
-          // Set metadata about an axis (like polarization, direction)
+          /// Set metadata about an axis (like polarization, direction)
           void setAxisMeta(const std::string& metaName,
                            size_t strLen,
                            const std::vector<std::string>& metaVals);
 
-          // Adds a real solution.
-          // If weights are emtpy, write ones everywhere
+          /// Adds a real solution.
+          /// If weights are emtpy, write ones everywhere
           void setValues(const std::vector<double>& vals,
                          const std::vector<double>& weights,
                          const std::string& history="");
 
-          // Add a complex solution, taking either amplitude or phase
+          /// Add a complex solution, taking either amplitude or phase
           void setComplexValues(const std::vector<std::complex<double> >& vals,
                                 const std::vector<double>& weights,
                                 bool toAmplitudes, const std::string& history="");
 
 
 
-          // Get the name of this SolTab
+          /// Get the name of this SolTab
           std::string getName() const;
 
           std::string getType() const {return _type;}
 
-          // Get the values of this SolTab for a given antenna.
+          /// Get the values of this SolTab for a given antenna.
           std::vector<double> getValues(
                                         const std::string& antName,
                                         unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
@@ -148,7 +166,7 @@ namespace DP3 {
                                       pol, dir);
           }
 
-          // Get the weights of this SolTab for a given antenna.
+          /// Get the weights of this SolTab for a given antenna.
           std::vector<double> getWeights(
                                         const std::string& antName,
                                         unsigned int starttimeslot, unsigned int ntime, unsigned int timestep,
@@ -167,7 +185,7 @@ namespace DP3 {
                                         const std::vector<double>& freqs,
                                         unsigned int pol, unsigned int dir, bool nearest);
         private:
-          // Get the values or weights of this SolTab for a given antenna.
+          /// Get the values or weights of this SolTab for a given antenna.
           std::vector<double> getValuesOrWeights(
                                         const std::string& valOrWeight,
                                         const std::string& antName,
@@ -180,7 +198,7 @@ namespace DP3 {
           void fillCache(std::map<std::string, hsize_t>& cache,
                          const std::string& tableName);
 
-          // Get the interval of the axis axisName
+          /// Get the interval of the axis axisName
           double getInterval(const std::string& axisName, size_t start=0) const;
           hsize_t getAntIndex(const std::string& antName);
           hsize_t getNamedIndex(std::map<std::string, hsize_t>& cache,
@@ -193,11 +211,11 @@ namespace DP3 {
           std::map<std::string, hsize_t> _dirMap;
       };
 
-      // Open existing H5Parm or create a new one
-      // Default name is given by solSetName, if that does not exist continue
-      // searching for sol000, sol001, etc.
-      // Only one solset of an H5Parm can be opened at once; this object only
-      // provides info about one SolSet (even though the file can contain more).
+      /// Open existing H5Parm or create a new one
+      /// Default name is given by solSetName, if that does not exist continue
+      /// searching for sol000, sol001, etc.
+      /// Only one solset of an H5Parm can be opened at once; this object only
+      /// provides info about one SolSet (even though the file can contain more).
       H5Parm(const std::string& filename, bool forceNew=false, 
              bool forceNewSolSet=false, const std::string& solSetName="");
 
@@ -206,34 +224,34 @@ namespace DP3 {
 
       virtual ~H5Parm();
 
-      // Add metadata (directions on the sky in J2000) about named sources
+      /// Add metadata (directions on the sky in J2000) about named sources
       void addSources (const std::vector<std::string>& names,
                        const std::vector<std::pair<double, double> >& dirs);
 
-      // Add metadata (positions on earth in ITRF) about antennas
+      /// Add metadata (positions on earth in ITRF) about antennas
       void addAntennas(const std::vector<std::string>& names,
                        const std::vector<std::vector<double> >& positions);
       
-      // Add metadata about polarizations
+      /// Add metadata about polarizations
       void addPolarizations(const std::vector<std::string>& polarizations);
 
-      // Add a version stamp in the attributes of the group
+      /// Add a version stamp in the attributes of the group
       static void addVersionStamp(H5::Group &node);
 
-      // Create and return a new soltab. Type is the type as used in BBS
+      /// Create and return a new soltab. Type is the type as used in BBS
       SolTab& createSolTab(const std::string& name,
                            const std::string& type,
                            const std::vector<AxisInfo> axes);
 
       SolTab& getSolTab(const std::string& name);
 
-      // Get the name of the one SolSet used in this H5Parm
+      /// Get the name of the one SolSet used in this H5Parm
       std::string getSolSetName() const ;
 
-      // Get the number of SolTabs in the active solset of this h5parm
+      /// Get the number of SolTabs in the active solset of this h5parm
       size_t nSolTabs() { return _solTabs.size(); }
 
-      // Is the given soltab resent in the active solset of this h5parm
+      /// Is the given soltab resent in the active solset of this h5parm
       bool hasSolTab(const std::string& solTabName) const;
     private:
 

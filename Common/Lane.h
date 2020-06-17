@@ -1,3 +1,26 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * @file
+ * Internal header file for the lane.
+ */
+
 #ifndef AO_LANE_11_H
 #define AO_LANE_11_H
 
@@ -5,12 +28,6 @@
 #include <deque>
 #include <mutex>
 #include <condition_variable>
-
-/**
- * @file
- * Internal header file for the lane.
- * @headername{lane.h}
- */
 
 //#define LANE_DEBUG_MODE
 
@@ -240,7 +257,7 @@ class lane
 		 * in place, but rather constructs the value and then move assigns it.
 		 * This is because the value that it is moved into has already been
 		 * constructed (in the current implementation).
-		 * @param element Object to be moved into the cyclic buffer.
+		 * @param args Object to be moved into the cyclic buffer.
 		 */
 		template<typename... Args>
 		void emplace(Args&&... args)

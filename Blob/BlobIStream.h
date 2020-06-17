@@ -1,30 +1,25 @@
-//# BlobIStream.h: Input stream for a blob
-//#
-//# Copyright (C) 2003
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: BlobIStream.h 14057 2009-09-18 12:26:29Z diepen $
+// BlobIStream.h: Input stream for a blob
+//
+// Copyright (C) 2003
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef LOFAR_BLOB_BLOBISTREAM_H
 #define LOFAR_BLOB_BLOBISTREAM_H
-
-// \file
-// Input stream for a blob
 
 #include "../Common/DataFormat.h"
 #include "../Common/DataConvert.h"
@@ -38,70 +33,72 @@
 
 namespace DP3 {
 
-// \ingroup %pkgname%
-// <group>
+  /// \ingroup Blob
+  /// \brief Input stream for a blob
+
+  /// @{
   
-  // This class makes it possible to interpret a blob and create the objects
-  // stored in it.
-  // It reads a header (in the getStart function) using the
-  // BlobHeader definition, so a static blob can also be read back.
-  // The user can define overloaded operator>> functions to be able
-  // to read objects of a given class from the blob stream.
-  //
-  // The blob is read from a BlobIBuffer object that can be a memory
-  // buffer or an istream object. The BlobOStream class can be used to
-  // store objects into a blob.
-  //
-// See %LOFAR document
-  // <a href="http://www.lofar.org/forum/document.php?action=match&docname=LOFAR-ASTRON-MAN-006">
-  // LOFAR-ASTRON-MAN-006</a> for more information.
+  /// This class makes it possible to interpret a blob and create the objects
+  /// stored in it.
+  /// It reads a header (in the getStart function) using the
+  /// BlobHeader definition, so a static blob can also be read back.
+  /// The user can define overloaded operator>> functions to be able
+  /// to read objects of a given class from the blob stream.
+  ///
+  /// The blob is read from a BlobIBuffer object that can be a memory
+  /// buffer or an istream object. The BlobOStream class can be used to
+  /// store objects into a blob.
+  ///
+  /// See %LOFAR document
+  /// <a href="http://www.lofar.org/forum/document.php?action=match&docname=LOFAR-ASTRON-MAN-006">
+  /// LOFAR-ASTRON-MAN-006</a> for more information.
   
   class BlobIStream
     {
     public:
-      // Construct it with the underlying buffer object.
-      // It keeps the pointer to the buffer, so be sure that the BlobIBuffer
-      // is not deleted before this object.
+      /// Construct it with the underlying buffer object.
+      /// It keeps the pointer to the buffer, so be sure that the BlobIBuffer
+      /// is not deleted before this object.
       explicit BlobIStream (BlobIBuffer&);
       
-      // Destructor.
+      /// Destructor.
       ~BlobIStream();
       
-      // Clear the object. I.e., reset the current level and position.
+      /// Clear the object. I.e., reset the current level and position.
       void clear();
       
-      // Start getting a blob which reads the header abd checks if its type
-      // matches the given object type.
-      // It is the counterpart of BlobOStream::putStart.
-      // <br>
-      // After all values (inclusing nested objects) of the object have
-      // been obtained (using operator>>), a call to getEnd has to be done.
-      //
-      // The getStart function returns the blob version.
-      // <group>
+      /// Start getting a blob which reads the header abd checks if its type
+      /// matches the given object type.
+      /// It is the counterpart of BlobOStream::putStart.
+      /// <br>
+      /// After all values (inclusing nested objects) of the object have
+      /// been obtained (using operator>>), a call to getEnd has to be done.
+      ///
+      /// The getStart function returns the blob version.
+      /// @{
       int getStart (const std::string& objectType);
       int getStart (const char* objectType = "");
-      // </group>
+      /// @}
       
-      // End getting an object. It returns the object length (including
-      // possible nested objects).
-      // It checks if the entire object has been read (to keep the data
-      // stream in sync). If not, an exception is thrown.
+      /// End getting an object. It returns the object length (including
+      /// possible nested objects).
+      /// It checks if the entire object has been read (to keep the data
+      /// stream in sync). If not, an exception is thrown.
       uint64_t getEnd();
       
-      // getNextType gets the object type of the next piece of
-      // information to read.
-      // It checks if it finds the correct magic value preceeding
-      // the object type.
-      // The second version also returns the size of this next blob.
-      // <group>
+      /// getNextType gets the object type of the next piece of
+      /// information to read.
+      /// It checks if it finds the correct magic value preceeding
+      /// the object type.
+      /// The second version also returns the size of this next blob.
+      /// @{
       const std::string& getNextType();
       const std::string& getNextType(uint64_t& size);
-      // </group>
+      /// @}
       
-      // Get a single value.
-      // A string is stored as a length followed by the characters.
-      // <group>
+      /// Get a single value.
+      /// A string is stored as a length followed by the characters.
+      /// @{
       BlobIStream& operator>> (bool& value);
       BlobIStream& operator>> (char& value);
       BlobIStream& operator>> (int8_t& value);
@@ -121,11 +118,11 @@ namespace DP3 {
       BlobIStream& operator>> (std::complex<float>& value);
       BlobIStream& operator>> (std::complex<double>& value);
       BlobIStream& operator>> (std::string& value);
-      // </group>
+      /// @}
       
-      // Get an array of values with the given number of values.
-      // Bools are retrieved as bits.
-      // <group>
+      /// Get an array of values with the given number of values.
+      /// Bools are retrieved as bits.
+      /// @{
       void get (bool* values, uint64_t nrval);
       void get (char* values, uint64_t nrval);
       void get (int8_t* values, uint64_t nrval);
@@ -142,53 +139,53 @@ namespace DP3 {
       void get (std::complex<float>* values, uint64_t nrval);
       void get (std::complex<double>* values, uint64_t nrval);
       void get (std::string* values, uint64_t nrval);
-      // </group>
+      /// @}
       
-      // Get a vector of values. First it gets the size of the vector.
-      // Specialise for bool because a vector of bools uses bits.
-      // <group>
+      /// Get a vector of values. First it gets the size of the vector.
+      /// Specialise for bool because a vector of bools uses bits.
+      /// @{
       void get (std::vector<bool>& values);
       template<typename T> void get (std::vector<T>& values);
-      // </group>
+      /// @}
       
-      // Get a vector of bools of 'size' elements.
-      // The vector is resized to the given size.
+      /// Get a vector of bools of 'size' elements.
+      /// The vector is resized to the given size.
       void getBoolVec (std::vector<bool>& values, uint64_t size);
       
-      // Skip the given amount of space (the opposite of BlobOStream::setSpace).
-      // This is useful when reading a static blob in a dynamic way.
-      // It returns the position of the skipped space in the stream.
-      // It is meant for use with the BlobIBufString buffer. The function
-      // getPointer in that class (in fact in its base class BlobIBufChar)
-      // can be used to turn the position into a pointer.
+      /// Skip the given amount of space (the opposite of BlobOStream::setSpace).
+      /// This is useful when reading a static blob in a dynamic way.
+      /// It returns the position of the skipped space in the stream.
+      /// It is meant for use with the BlobIBufString buffer. The function
+      /// getPointer in that class (in fact in its base class BlobIBufChar)
+      /// can be used to turn the position into a pointer.
       int64_t getSpace (uint64_t nbytes);
       
-      // Skip as many filler bytes as needed to make total length a multiple of n.
-      // In this way the next data are aligned.
-      // It returns the number of filler bytes used.
-      // It is only useful for seekable buffers.
+      /// Skip as many filler bytes as needed to make total length a multiple of n.
+      /// In this way the next data are aligned.
+      /// It returns the number of filler bytes used.
+      /// It is only useful for seekable buffers.
       unsigned int align (unsigned int n);
       
-      // Get the current stream position.
-      // It returns -1 if the stream is not seekable.
+      /// Get the current stream position.
+      /// It returns -1 if the stream is not seekable.
       int64_t tellPos() const;
       
-      // Tell if conversion is needed and return the format of the data.
-      // This can be done after a getStart.
-      // <group>
+      /// Tell if conversion is needed and return the format of the data.
+      /// This can be done after a getStart.
+      /// @{
       bool mustConvert() const;
       DP3::DataFormat dataFormat() const;
-      // </group>
+      /// @}
       
     private:
-      // Read the buffer, increment itsCurLength, and check if everything read.
+      /// Read the buffer, increment itsCurLength, and check if everything read.
       void getBuf (void* buf, uint64_t sz);
       
-      // Throw an exception if a get cannot be done.
-      // <group>
+      /// Throw an exception if a get cannot be done.
+      /// @{
       void checkGet() const;
       void throwGet() const;
-      // </group>
+      /// @}
       
       
       bool   itsSeekable;
@@ -197,19 +194,19 @@ namespace DP3 {
       uint64_t itsCurLength;
       unsigned int   itsLevel;
       int    itsVersion;
-      // The endian type of the data in the blob.
+      /// The endian type of the data in the blob.
       DP3::DataFormat  itsDataFormat;
-      // The cached object type.
+      /// The cached object type.
       std::string        itsObjectType;
-      // Object length to read at each level
+      /// Object length to read at each level
       std::stack<uint64_t> itsObjTLN;
-      // Object length at each level
+      /// Object length at each level
       std::stack<uint64_t> itsObjLen;
-      // The underlying stream object.
+      /// The underlying stream object.
       BlobIBuffer*       itsStream;
     };
   
-// </group>
+  /// @}
 
   
   inline void BlobIStream::clear()

@@ -1,25 +1,25 @@
-//# PhaseShift.cc: DPPP step class to shift the data to another phase center
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id$
-//#
-//# @author Ger van Diepen
+// PhaseShift.cc: DPPP step class to shift the data to another phase center
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id$
+//
+// @author Ger van Diepen
 
 #include "PhaseShift.h"
 #include "DPBuffer.h"
@@ -132,9 +132,9 @@ namespace DP3 {
       int nchan  = itsBuf.getData().shape()[1];
       int nbl    = itsBuf.getData().shape()[2];
       const double* mat1 = itsMat1.data();
-      //# If ever in the future a time dependent phase center is used,
-      //# the machine must be reset for each new time, thus each new call
-      //# to process.
+      // If ever in the future a time dependent phase center is used,
+      // the machine must be reset for each new time, thus each new call
+      // to process.
       ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
         Complex*  __restrict__ data    = itsBuf.getData().data() + bl*nchan*ncorr;
@@ -232,5 +232,5 @@ namespace DP3 {
       mat(2,2) = sindec;
     }
 
-  } //# end namespace
+  } // end namespace
 }

@@ -1,25 +1,25 @@
-//# MedFlagger.cc: DPPP step class to flag data based on median filtering
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id$
-//#
-//# @author Ger van Diepen
+// MedFlagger.cc: DPPP step class to flag data based on median filtering
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id$
+//
+// @author Ger van Diepen
 
 #include "MedFlagger.h"
 #include "DPBuffer.h"
@@ -282,7 +282,7 @@ namespace DP3 {
       // Get pointers to data and flags.
       const float* bufDataPtr = itsAmpl[index].data();
       bool* bufFlagPtr = buf.getFlags().data();
-      float MAD = 1.4826;   //# constant determined by Pandey
+      float MAD = 1.4826;   ///< constant determined by Pandey
       itsComputeTimer.start();
       // Now flag each baseline, channel and correlation for this time window.
       // This can be done in parallel.
@@ -533,5 +533,5 @@ namespace DP3 {
       }
     }
 
-  } //# end namespace
+  } // end namespace
 }

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Header file for uvector and its relational and swap functions.
+ * @author André Offringa
+ * @copyright André Offringa, 2013, distributed under the GPL license version 3.
+ */
+
 #ifndef AO_UVECTOR_H
 #define AO_UVECTOR_H
 
@@ -7,13 +14,6 @@
 #include <memory>
 #include <utility>
 #include <stdexcept>
-
-/**
- * @file uvector.h
- * Header file for uvector and its relational and swap functions.
- * @author André Offringa
- * @copyright André Offringa, 2013, distributed under the GPL license version 3.
- */
 
 namespace ao {
 

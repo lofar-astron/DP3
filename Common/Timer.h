@@ -1,30 +1,25 @@
-//# Timer.h: Accurate timer
-//#
-//# Copyright (C) 2004
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: Timer.h 31468 2015-04-13 23:26:52Z amesfoort $
+// Timer.h: Accurate timer
+//
+// Copyright (C) 2004
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef LOFAR_COMMON_TIMER_H
 #define LOFAR_COMMON_TIMER_H
-
-// \file
-// Very accurate timer for elapsed times.
 
 #include <cstdlib>
 #include <cstring>
@@ -37,66 +32,67 @@
 
 namespace DP3 {
 
-  // Low-overhead and high-resolution interval timer for use on i386, x86_64,
-  // ia64, and powerpc platforms, using the processor's timestamp counter that
-  // is incremented each cycle.
-  // Put timer.start() and timer.stop() calls around the piece of
-  // code to be timed; make sure that start() and stop() calls alternate.
-  // A timer can be started and stopped multiple times; both the average and
-  // total time, as well as the number of iterations are printed.
-  // The measured time is real time (as opposed to user or system time).
-  // The timer can be used to measure from 10 nanosecond to a century interval.
-  //
-  // The internal class NSTimer::StartStop can be used to do the start/stop.
-  // The constructor starts the timer, while the destructor stops it. It has
-  // the advantage that no explicit stop has to be given.
-  // Moreover, it makes the start/stop exception-safe.
+  /// \brief Very accurate timer for elapsed times.
 
+  /// Low-overhead and high-resolution interval timer for use on i386, x86_64,
+  /// ia64, and powerpc platforms, using the processor's timestamp counter that
+  /// is incremented each cycle.
+  /// Put timer.start() and timer.stop() calls around the piece of
+  /// code to be timed; make sure that start() and stop() calls alternate.
+  /// A timer can be started and stopped multiple times; both the average and
+  /// total time, as well as the number of iterations are printed.
+  /// The measured time is real time (as opposed to user or system time).
+  /// The timer can be used to measure from 10 nanosecond to a century interval.
+  ///
+  /// The internal class NSTimer::StartStop can be used to do the start/stop.
+  /// The constructor starts the timer, while the destructor stops it. It has
+  /// the advantage that no explicit stop has to be given.
+  /// Moreover, it makes the start/stop exception-safe.
   class NSTimer {
   public:
-    // Construct.
-    // The given name will be used when the timer is printed.
+    /// Construct.
+    /// The given name will be used when the timer is printed.
     NSTimer (const std::string& name = std::string(),
 	     bool print_on_destruction = false,
 	     bool log_on_destruction = false);
 
-    // Destruct.
-    // The time is printed on stderr if print_on_destruction is true.
+    /// Destruct.
+    /// The time is printed on stderr if print_on_destruction is true.
     ~NSTimer();
 
-    // Start the timer.
+    /// Start the timer.
     void start();
-    // Stop the timer
+    /// Stop the timer
     void stop();
 
-    // Reset the timer to zero.
+    /// Reset the timer to zero.
     void reset();
 
-    // Print the timer.
-    // <group>
+    /// Print the timer.
+    /// @{
     std::ostream& print (std::ostream &) const;
     friend std::ostream& operator<< (std::ostream&, const NSTimer&);
-    // </group>
+    /// @}
 
-    // Get the elapsed time (in seconds).
+    /// Get the elapsed time (in seconds).
     double getElapsed() const;
 
-    // Get the average time (in seconds) between start/stop.
+    /// Get the average time (in seconds) between start/stop.
     double getAverage() const;
 
-    // Get the total number of times start/stop is done.
+    /// Get the total number of times start/stop is done.
     unsigned long long getCount() const;
 
-    // Accumulate timer statistics.
+    /// Accumulate timer statistics.
     NSTimer &operator+=(const NSTimer &other);
 
-    // Internal class to do an automatic start/stop.
+    /// Internal class to do an automatic start/stop.
     class StartStop {
     public:
       StartStop(NSTimer& timer) : itsTimer(timer) { itsTimer.start(); }
       ~StartStop() { itsTimer.stop(); }
       private:
-        // Forbid copy.
+        /// Forbid copy.
         StartStop (const StartStop&);
         StartStop& operator= (StartStop&);
         NSTimer& itsTimer;
@@ -353,7 +349,7 @@ namespace DP3 {
 #endif
   }
 
-}  // end namespace LOFAR
+}  /// end namespace LOFAR
 
 
 #endif

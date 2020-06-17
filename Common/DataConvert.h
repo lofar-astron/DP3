@@ -1,39 +1,32 @@
-//# DataConvert.h: Global functions to convert data values
-//#
-//# Copyright (C) 2003
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: DataConvert.h 14057 2009-09-18 12:26:29Z diepen $
+// DataConvert.h: Global functions to convert data values
+//
+// Copyright (C) 2003
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef LOFAR_COMMON_DATACONVERT_H
 #define LOFAR_COMMON_DATACONVERT_H
-
-// \file
-// Global functions to convert data values
-
-// Global functions to convert data values
 
 #include "DataFormat.h"
 
 #include <complex>
 
-//# If std::complex is used for the complex types, their functions are
-//# template specialisations, so they need template<>.
+// If std::complex is used for the complex types, their functions are
+// template specialisations, so they need template<>.
 #ifndef LOFAR_BUILTIN_COMPLEXINT
 # define LFDC_TMPL_INT template<>
 # else
@@ -47,24 +40,26 @@
 
 namespace DP3
 {
-// \ingroup Common
-// \addtogroup DataConvert Data conversion functions
-//
-  // This file declares functions to convert data from one representation to
-  // another, in particular from little endian to big endian (or vice-versa).
-  //
-  // The functions are defined in a general way for each standard data type,
-  // so in principle every conceivable conversion could be done (for example,
-  // from the old VAX format to IEEE format). However, currently byte swap
-  // is the only conversion needed, so only that one is implemented.
-  //
-  // Furthermore it contains a function to convert bool values to bits
-  // and vice-versa.
-  // <group>
+  /// \ingroup Common
+  /// \brief Global functions to convert data values
+
+  /// \addtogroup DataConvert Data conversion functions
+  ///
+  /// This file declares functions to convert data from one representation to
+  /// another, in particular from little endian to big endian (or vice-versa).
+  ///
+  /// The functions are defined in a general way for each standard data type,
+  /// so in principle every conceivable conversion could be done (for example,
+  /// from the old VAX format to IEEE format). However, currently byte swap
+  /// is the only conversion needed, so only that one is implemented.
+  ///
+  /// Furthermore it contains a function to convert bool values to bits
+  /// and vice-versa.
+  /// @{
   
-  // \name Convert the possible native types.
-  // These functions can be used in templates.
-  // <group>
+  /// \name Convert the possible native types.
+  /// These functions can be used in templates.
+  /// @{
   void dataConvert (DataFormat, char* inout, unsigned int nrval);
   void dataConvert (DataFormat, int8_t* inout, unsigned int nrval);
   void dataConvert (DataFormat, uint8_t* inout, unsigned int nrval);
@@ -80,103 +75,103 @@ namespace DP3
 				      unsigned int nrval);
   LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<float>* inout, unsigned int nrval);
   LFDC_TMPL_FP  void dataConvert (DataFormat, std::complex<double>* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Convert char, int8, or uint8.
-  // Currently it simply returns the input.
-  // <group>
+  /// \name Convert char, int8, or uint8.
+  /// Currently it simply returns the input.
+  /// @{
   char dataConvert (DataFormat, char in);
   int8_t dataConvert (DataFormat, int8_t in);
   uint8_t dataConvert (DataFormat, uint8_t in);
-  // </group>
+  /// @}
 
-  // \name Convert 16 bit integers.
-  // <group>
+  /// \name Convert 16 bit integers.
+  /// @{
   int16_t dataConvert (DataFormat, int16_t in);
   uint16_t dataConvert (DataFormat, uint16_t in);
   void dataConvert16 (DataFormat, void* out, const void* in);
   void dataConvert16 (DataFormat, void* inout);
   void dataConvert16 (DataFormat, void* out, const void* in, unsigned int nrval);
   void dataConvert16 (DataFormat, void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Convert 32 bit integers.
-  // <group>
+  /// \name Convert 32 bit integers.
+  /// @{
   int32_t dataConvert (DataFormat, int32_t in);
   uint32_t dataConvert (DataFormat, uint32_t in);
   void dataConvert32 (DataFormat, void* out, const void* in);
   void dataConvert32 (DataFormat, void* inout);
   void dataConvert32 (DataFormat, void* out, const void* in, unsigned int nrval);
   void dataConvert32 (DataFormat, void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Convert 64 bit integers.
-  // <group>
+  /// \name Convert 64 bit integers.
+  /// @{
   int64_t dataConvert (DataFormat, int64_t in);
   uint64_t dataConvert (DataFormat, uint64_t in);
   void dataConvert64 (DataFormat, void* out, const void* in);
   void dataConvert64 (DataFormat, void* inout);
   void dataConvert64 (DataFormat, void* out, const void* in, unsigned int nrval);
   void dataConvert64 (DataFormat, void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Convert 32 bit floats.
-  // <group>
+  /// \name Convert 32 bit floats.
+  /// @{
   void dataConvertFloat (DataFormat, void* out, const void* in);
   void dataConvertFloat (DataFormat, void* inout);
   void dataConvertFloat (DataFormat, void* out, const void* in, unsigned int nrval);
   void dataConvertFloat (DataFormat, void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Convert 64 bit floats.
-  // <group>
+  /// \name Convert 64 bit floats.
+  /// @{
   void dataConvertDouble (DataFormat, void* out, const void* in);
   void dataConvertDouble (DataFormat, void* inout);
   void dataConvertDouble (DataFormat, void* out, const void* in, unsigned int nrval);
   void dataConvertDouble (DataFormat, void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Swap bytes in 16 bit values.
-  // <group>
+  /// \name Swap bytes in 16 bit values.
+  /// @{
   int16_t byteSwap (int16_t in);
   uint16_t byteSwap (uint16_t in);
   void byteSwap16 (void* out, const void* in);
   void byteSwap16 (void* inout);
   void byteSwap16 (void* out, const void* in, unsigned int nrval);
   void byteSwap16 (void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Swap bytes in 32 bit values.
-  // <group>
+  /// \name Swap bytes in 32 bit values.
+  /// @{
   int32_t byteSwap (int32_t in);
   uint32_t byteSwap (uint32_t in);
   void byteSwap32 (void* out, const void* in);
   void byteSwap32 (void* inout);
   void byteSwap32 (void* out, const void* in, unsigned int nrval);
   void byteSwap32 (void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // \name Swap bytes in 64 bit values.
-  // <group>
+  /// \name Swap bytes in 64 bit values.
+  /// @{
   int64_t byteSwap (int64_t in);
   uint64_t byteSwap (uint64_t in);
   void byteSwap64 (void* out, const void* in);
   void byteSwap64 (void* inout);
   void byteSwap64 (void* out, const void* in, unsigned int nrval);
   void byteSwap64 (void* inout, unsigned int nrval);
-  // </group>
+  /// @}
 
-  // Convert bools to bits.
-  // startbit gives to first bit to use in the to buffer.
-  // It returns the number of bytes used.
+  /// Convert bools to bits.
+  /// startbit gives to first bit to use in the to buffer.
+  /// It returns the number of bytes used.
   unsigned int boolToBit (void* to, const void* from, unsigned int nvalues, unsigned int startbit=0);
 
-  // Convert bits to bools.
-  // startbit gives to first bit to use in the from buffer.
-  // It returns the number of bytes used.
+  /// Convert bits to bools.
+  /// startbit gives to first bit to use in the from buffer.
+  /// It returns the number of bytes used.
   unsigned int bitToBool (void* to, const void* from, unsigned int nvalues, unsigned int startbit=0);
 
-  // </group>
+  /// @}
 
 } // end namespace LOFAR
 

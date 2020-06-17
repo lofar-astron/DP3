@@ -1,31 +1,28 @@
-//# DemixInfo.h: DPPP struct to hold the common demix variables
-//# Copyright (C) 2013
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: Demixer.h 23223 2012-12-07 14:09:42Z schoenmakers $
-//#
-//# @author Ger van Diepen
+// DemixInfo.h: DPPP struct to hold the common demix variables
+// Copyright (C) 2013
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
+/// @file
+/// @brief DPPP struct to hold the common demix variables
+/// @author Ger van Diepen
 
 #ifndef DPPP_DEMIXINFO_H
 #define DPPP_DEMIXINFO_H
-
-// @file
-// @brief DPPP struct to hold the common demix variables
 
 #include "DPInfo.h"
 #include "BaselineSelection.h"
@@ -38,29 +35,29 @@
 
 namespace DP3 {
   namespace DPPP {
-    // @ingroup NDPPP
+    /// @brief DPPP struct to hold the common demix variables
 
-    // This struct holds the common demix variables.
-    // It can be shared between the parallel DemixWorker objects.
+    /// This struct holds the common demix variables.
+    /// It can be shared between the parallel DemixWorker objects.
 
     class DemixInfo
     {
     public:
-      // Constructor to read and initialize the values.
+      /// Constructor to read and initialize the values.
       DemixInfo (const ParameterSet&, const string& prefix);
 
-      // Update the info.
+      /// Update the info.
       void update (const DPInfo& infoSel, DPInfo& info, size_t nThreads);
 
-      // Show parameters.
+      /// Show parameters.
       void show (std::ostream&) const;
 
-      // Get the DPInfo object.
+      /// Get the DPInfo object.
       const DPInfo& getInfo() const
         { return itsInfoSel; }
 
-      // Get settings.
-      //#    0=test 1=include 2=deproject 3=ignore
+      /// Get settings.
+      /// 0=test 1=include 2=deproject 3=ignore
       unsigned int   targetHandling() const              {return itsTargetHandling;}
       unsigned int   verbose() const                     {return itsVerbose;}
       unsigned int   maxIter() const                     {return itsMaxIter;}
@@ -109,24 +106,24 @@ namespace DP3 {
       const std::vector<Patch::ConstPtr>& targetDemixList() const
         {return itsTargetDemixList;}
 
-      // Get the baselines.
+      /// Get the baselines.
       const casacore::Vector<casacore::Int>& getAnt1() const
         { return itsInfoSel.getAnt1(); }
       const casacore::Vector<casacore::Int>& getAnt2() const
         { return itsInfoSel.getAnt2(); }
 
-      // Get the antenna names and used antennas.
+      /// Get the antenna names and used antennas.
       const casacore::Vector<casacore::String>& antennaNames() const
         { return itsInfoSel.antennaNames(); }
 
-      // Get cosine of the angular distance between two sky positions.
+      /// Get cosine of the angular distance between two sky positions.
       static double getCosAngDist (double ra1, double dec1,
                                    double ra2, double dec2)
       {
         return sin(dec1)*sin(dec2) + cos(dec1)*cos(dec2)*cos(ra1-ra2);
       }
 
-      // Test if two positions in the sky are within delta radians.
+      /// Test if two positions in the sky are within delta radians.
       static bool testAngDist (double ra1, double dec1,
                                double ra2, double dec2, double cosDelta)
       {
@@ -134,15 +131,14 @@ namespace DP3 {
       }
 
     private:
-      // Create a list of patches (and components).
+      /// Create a list of patches (and components).
       std::vector<Patch::ConstPtr> makePatchList (const string& sdbName,
                                              const std::vector<string>& patchNames);
 
-      // Make the target list for demixing with a detailed model for the
-      // possible Ateam sources in it.
+      /// Make the target list for demixing with a detailed model for the
+      /// possible Ateam sources in it.
       void makeTargetDemixList();
 
-      //# Data members.
       DPInfo                  itsInfoSel;
       BaselineSelection       itsSelBL;
       BaselineSelection       itsSelBLTarget;
@@ -162,31 +158,31 @@ namespace DP3 {
       bool                    itsIsAteamNearby;
       bool                    itsPropagateSolution;
       bool                    itsApplyBeam;
-      bool                    itsSolveBoth;    //# solve if both stat solvable
+      bool                    itsSolveBoth; ///< solve if both stat solvable
       bool                    itsDoSubtract;
       unsigned int                    itsTargetHandling;
-      unsigned int                    itsVerbose;           //# trace verbosity level
-      unsigned int                    itsMaxIter;           //# max #iter in solve
-      unsigned int                    itsMinNBaseline;      //# min #baselines for solve
-      unsigned int                    itsMinNStation;       //# min #stations for solve
+      unsigned int                    itsVerbose; ///< trace verbosity level
+      unsigned int                    itsMaxIter; ///< max #iter in solve
+      unsigned int                    itsMinNBaseline; ///< min #baselines for solve
+      unsigned int                    itsMinNStation; ///< min #stations for solve
       unsigned int                    itsNStation;
       unsigned int                    itsNBl;
       unsigned int                    itsNCorr;
       unsigned int                    itsNChanIn;
-      unsigned int                    itsNChanAvgSubtr;     //# subtract averaging
-      unsigned int                    itsNChanAvg;          //# demix averaging
+      unsigned int                    itsNChanAvgSubtr; ///< subtract averaging
+      unsigned int                    itsNChanAvg; ///< demix averaging
       unsigned int                    itsNChanOutSubtr;
       unsigned int                    itsNChanOut;
-      unsigned int                    itsNTimeAvgSubtr;     //# subtract averaging
-      unsigned int                    itsNTimeAvg;          //# demix averaging
-      unsigned int                    itsNTimeOutSubtr;     //# #output times per chunk
-      unsigned int                    itsNTimeOut;          //# #demix times per chunk
-      unsigned int                    itsChunkSize;         //# predict time step
-      unsigned int                    itsNTimeChunk;        //# nr chunks in parallel
+      unsigned int                    itsNTimeAvgSubtr; ///< subtract averaging
+      unsigned int                    itsNTimeAvg; ///< demix averaging
+      unsigned int                    itsNTimeOutSubtr; ///< #output times per chunk
+      unsigned int                    itsNTimeOut; ///< #demix times per chunk
+      unsigned int                    itsChunkSize; ///< predict time step
+      unsigned int                    itsNTimeChunk; ///< nr chunks in parallel
       double                  itsTimeIntervalAvg;
-      Position                itsPhaseRef;          //# original phaseref
+      Position                itsPhaseRef; ///< original phaseref
       std::vector<Baseline>        itsBaselines;
-      casacore::Vector<bool>      itsSelTarget;     //# baselines in target estimate
+      casacore::Vector<bool>      itsSelTarget; ///< baselines in target estimate
       casacore::Vector<double>    itsFreqDemix;
       casacore::Vector<double>    itsFreqSubtr;
       std::vector<Patch::ConstPtr> itsAteamList;
@@ -197,7 +193,7 @@ namespace DP3 {
       std::vector<string>          itsTargetReplaced;
     };
 
-  } //# end namespace
-} //# end namespace
+  } // end namespace
+} // end namespace
 
 #endif
