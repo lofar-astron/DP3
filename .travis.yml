@@ -4,8 +4,8 @@ sudo: required
 
 env:
   matrix:
-    - DOCKERFILE=.travis/Dockerfile_lofar
-    - DOCKERFILE=.travis/Dockerfile_nolofar
+    - DOCKERFILE=docker/ubuntu_20_04_lofar
+    - DOCKERFILE=docker/ubuntu_20_04_nolofar
 
 services:
   - docker
