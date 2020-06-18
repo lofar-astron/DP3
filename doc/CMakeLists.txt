@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(DP3_DOC)
+project(DP3_DOC NONE)
 
 find_package(Doxygen)
 
