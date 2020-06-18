@@ -32,6 +32,6 @@ deploy-doc:
     - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
   script:
     - scp -r build/doc/html/* citt@dop288:DP3/
-#  only:
-#    refs:
-#      - master
+  only:
+    refs:
+      - master
