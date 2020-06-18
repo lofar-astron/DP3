@@ -7,7 +7,7 @@ stages:
 build:
   stage: build
   script:
-  - export DOCKER_IMAGE=${CI_PROJECT_NAME,,}:$CI_COMMIT_SHORT_SHA
+  - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
   - docker build --tag $DOCKER_IMAGE -f ./docker/ubuntu_20_04_lofar .
 
 build-doc:
