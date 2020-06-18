@@ -1,5 +1,3 @@
-image: alpine
-
 stages:
   - build
   - deploy-doc
@@ -19,7 +17,7 @@ build-doc:
   - mkdir build && cd build
   - cmake -G Ninja ../doc
   - ninja doc
-  artifacts:
+  artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/doc/html
 
@@ -33,7 +31,7 @@ deploy-doc:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
   script:
-    - scp -r htmldoc/* citt@dop288:DP3
+    - scp -r build/doc/html/* citt@dop288:DP3
   only:
     refs:
       - master
