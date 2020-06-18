@@ -2,11 +2,17 @@ stages:
   - build
   - deploy-doc
 
-build:
+build_lofar:
   stage: build
   script:
   - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
   - docker build --tag $DOCKER_IMAGE -f ./docker/ubuntu_20_04_lofar .
+
+build_nolofar:
+  stage: build
+  script:
+  - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
+  - docker build --tag ${DOCKER_IMAGE}_nolofar -f ./docker/ubuntu_20_04_nolofar .
 
 build-doc:
   stage: build
