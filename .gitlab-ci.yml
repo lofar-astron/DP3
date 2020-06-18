@@ -14,11 +14,11 @@ build-doc:
   stage: build
   before_script:
   - apk update
-  - apk add doxygen cmake
+  - apk add doxygen cmake ninja
   script:
   - mkdir build && cd build
-  - cmake ../doc
-  - make doc
+  - cmake -G Ninja ../doc
+  - ninja doc
   artifacts:
     paths:
     - build/doc/html
