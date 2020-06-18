@@ -1,6 +1,7 @@
+image: alpine
+
 stages:
   - build
-  - build-doc
   - deploy-doc
 
 build:
@@ -10,16 +11,17 @@ build:
   - docker build --tag $DOCKER_IMAGE -f ./docker/ubuntu_20_04_lofar .
 
 build-doc:
-  stage: build-doc
+  stage: build
+  before-script:
+  - apk update
+  - apk add doxygen cmake
   script:
-  - export DOCKER_IMAGE=${CI_PROJECT_NAME,,}/doc:$CI_COMMIT_SHORT_SHA
-  - docker build --tag $DOCKER_IMAGE -f ./docker/ubuntu_20_04_doc .
-  - docker run --name $CI_COMMIT_SHORT_SHA $DOCKER_IMAGE
-  - docker cp $CI_COMMIT_SHORT_SHA:/build/doc/html htmldoc
-  - docker rm $CI_COMMIT_SHORT_SHA
+  - mkdir build && cd build
+  - cmake ../doc
+  - make doc
   artifacts:
     paths:
-    - htmldoc
+    - build/doc/html
 
 deploy-doc:
   stage: deploy-doc
