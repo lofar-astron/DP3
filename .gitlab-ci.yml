@@ -12,7 +12,7 @@ build:
 
 build-doc:
   stage: build
-  before-script:
+  before_script:
   - apk update
   - apk add doxygen cmake
   script:
