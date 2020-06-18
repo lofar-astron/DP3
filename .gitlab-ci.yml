@@ -1,0 +1,42 @@
+stages:
+  - build
+  - build-doc
+  - deploy-doc
+
+build:
+  stage: build
+  script:
+    - >
+      docker build
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+      -f ./docker/ubuntu_20_04_lofar
+
+build-doc:
+  stage: build-doc
+  script:
+  - >
+    docker run
+    --name $CI_COMMIT_SHORT_SHA
+    --workdir /build
+    $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    sh -c 'make doc'
+  - docker cp $CI_COMMIT_SHORT_SHA:/opt/lofarbeam/build/doc/html htmldoc
+  - docker rm $CI_COMMIT_SHORT_SHA
+  artifacts:
+    paths:
+    - htmldoc
+
+deploy-doc:
+  stage: deploy-doc
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
+  script:
+    - scp -r htmldoc/* citt@dop288:DP3
+  only:
+    refs:
+      - master
