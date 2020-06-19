@@ -16,6 +16,3 @@ cmake ..
 make -j4
 make install
 ```
-
-[![Build Status](https://travis-ci.org/lofar-astron/DP3.svg?branch=master)](https://travis-ci.org/lofar-astron/DP3)
-[![ASCL](https://img.shields.io/badge/ascl-1804.003-blue.svg?colorB=262255)](http://ascl.net/1804.003)
