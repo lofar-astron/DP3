@@ -1,0 +1,47 @@
+stages:
+  - build
+  - deploy-doc
+
+.env:
+  before_script:
+  - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
+
+build_lofar:
+  stage: build
+  extends: .env
+  script:
+  - docker build --tag ${DOCKER_IMAGE}_lofar -f ./docker/ubuntu_20_04_lofar .
+
+build_nolofar:
+  stage: build
+  extends: .env
+  script:
+  - docker build --tag ${DOCKER_IMAGE}_nolofar -f ./docker/ubuntu_20_04_nolofar .
+
+build-doc:
+  stage: build
+  before_script:
+  - apk update
+  - apk add doxygen cmake ninja
+  script:
+  - mkdir build && cd build
+  - cmake -G Ninja ../doc
+  - ninja doc
+  artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
+    paths:
+    - build/doc/html
+
+deploy-doc:
+  stage: deploy-doc
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
+  script:
+    - scp -r build/doc/html/* citt@dop288:DP3/
+  only:
+    refs:
+      - master
