@@ -5,16 +5,20 @@ DPPP (DP3, short for Default PreProcessing Pipeline) is a framework
 for efficiently processing time-ordered visibilities,
 e.g. freshly correlated data. It was developed for the LOFAR
 telescope, and is used for preprocessing its imaging pipelines.
-DPPP documentation is found at the [LOFAR Wiki](https://goo.gl/2uAaN9).
+DPPP user documentation is found at the [LOFAR Wiki](https://goo.gl/2uAaN9).
 
-## Optimised for IO-heavy tasks
 When DPPP reads a chunk of data, it calls all the steps to do
 all processing possible on this data. The last step will then
 write out the processed data. In this way, the data is read
-and written only once, and memory consumption is minimal.
+and written only once.
 
-This is specially useful for IO-limited operations, where lots of
-data is involved and not too much computations are done.
+![High level overview of DPPP](doc/images/diagram.png)
+
+DPPP runs a pipeline in clearly defined stages, to make spotting
+errors as easy as possible.
+* **Initialise** This connects all the processing steps together. This step is data independent.
+* **Tune At** this stage only metadata, such as the number of channels, is read, and steps are adjusted to this.
+* **Process** Data is piped through the steps in buffers of time. The buffer size is defined by the steps.
 
 ## Measurement Set standard
 DPPP adheres to the Measurement Set (MS) standard, so it
@@ -27,45 +31,34 @@ DPPP supports only regularly shaped MSs, meaning that every
 time slot must have the same number of baselines and antennas.
 Only one spectral window can be used.
 
-## Fail early
-DPPP runs a pipeline in clearly defined stages, to make spotting
-errors as easy as possible.
-* **Initialise** This connects all the processing steps together. This step is data independent.
-* **Tune At** this stage only metadata, such as the number of channels, is read, and steps are adjusted to this.
-* **Process** Data is piped through the steps in buffers of time. The buffer size is defined by the steps.
+## Built-in steps
+DPPP contains built-in steps that are linked together and process one time slot at a time and is therefore suitable for large measurement sets.
+All the built-in steps derive from the [DPStep](@ref DP3::DPPP::DPStep) class.
 
-## Calibration
+[DPRun](@ref DP3::DPPP::DPRun) initialises and orchestrates the configured steps.
+It begins with setting the required info for all the first step and its next step(s).
+Next, each buffer (containing a single time slot) is processed by the first step.
+When processed, it invokes the process function of the next step.
+Once all buffers are processed it finishes the processing of the first step and subsequent steps.
+It wraps it with adding some data to the MeasurementSet written/updated which is started at the last step.
+The figure below gives a graphical overview of the [DPStep](@ref DP3::DPPP::DPStep) flow.
+
+![Process flow of DPPP](doc/images/flow.png)
+
+### Calibration
 The DPPP step [GainCal](@ref DP3::DPPP::GainCal) implements many variants of direction
 independent calibration. It uses StefCal, with many
 extra features, such as fitting a function over frequency.
 Also full-Jones calibration is supported. Results are written
 to ParmDB; H5Parm support is in development.
 
-## AOFlagger
+### AOFlagger
 A shallow wrapper exists that calls AOFlagger from DPPP.
 This makes it possible to flag with AOFlagger and immediately
 afterwards average the data, without writing the
 data to disk in between.
 
-
-## Built-in steps
-All the built-in steps derive from the [DPStep](@ref DP3::DPPP::DPStep) class. Alternatively, an overview can be found at the [LOFAR Wiki](https://goo.gl/2uAaN9). Some of the core built-in steps are given in the table below.
-|              |                                                |
-|--------------|------------------------------------------------|
-| [aoflag](@ref DP3::DPPP::AOFlaggerStep)       | Automatic flagging in time/freq windows        |
-| [applybeam](@ref DP3::DPPP::DemixInfo)    | Apply the LOFAR beam model                     |
-| [applycal](@ref DP3::DPPP::ApplyCal)     | Apply instrument corrections                   |
-| [average](@ref DP3::DPPP::Averager)      | Average data in time and/or frequency          |
-| [demix](@ref DP3::DPPP::Demixer)        | Calibrate and subtract strong sources          |
-| [filter](@ref DP3::DPPP::Filter)       | Leave out specified data in further processing |
-| [gaincal](@ref DP3::DPPP::GainCal)      | Calibrate against a given skymodel             |
-| [phaseshift](@ref DP3::DPPP::PhaseShift)   | Shift data to a different phase center         |
-| [scaledata](@ref DP3::DPPP::ScaleData)    | Scale data with a polynomial in frequency      |
-| [stationadder](@ref DP3::DPPP::StationAdder) | Add signals from stations (e.g. superterp)     |
-| [predict](@ref DP3::DPPP::Predict)      | Predict visibilities of a given skymodel       |
-| [preflag](@ref DP3::DPPP::PreFlagger)      | Flag given baselines, antennas, channels, etc. |
-
-## User-defined steps
+### User-defined steps
 Apart from the built-in steps, also custom steps can
 be defined, following the existing interface description.
 Recompiling DPPP is not necessary: steps are found as shared
@@ -78,8 +71,9 @@ example Python step is bundled with the LOFAR software.
 
 ## Example reduction
 Arguments are given to DPPP as a 'parameter set', a simple
-key-value format. Optionally, some parameters can be overridden
-on the command line.
+key-value format. Optionally, parameters can be overridden
+on the command line. The example also shows that you can 
+use the out step to store intermediate results.
 
     msin = [bla.MS, bla2.MS]
     steps = [aoflag, avg1, out1, cal, out2, avg2 ]
