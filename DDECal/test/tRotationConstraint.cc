@@ -52,6 +52,7 @@ BOOST_AUTO_TEST_CASE( test_rotation_and_diagonal )
 {
   RotationAndDiagonalConstraint constraint;
   constraint.InitializeDimensions(1, 1, 1);
+  constraint.SetDoPhaseReference(true);
 
   vector<vector<complex<double> > > onesolution(1);
   onesolution[0].resize(4);

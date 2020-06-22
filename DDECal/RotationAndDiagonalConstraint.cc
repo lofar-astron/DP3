@@ -37,6 +37,10 @@ namespace
 
 namespace DP3 {
 
+RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
+: _res()
+, _doPhaseReference(false) {}
+
 void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nDirections,
                                                          size_t nChannelBlocks) {
@@ -81,6 +85,10 @@ void RotationAndDiagonalConstraint::SetWeights(const vector<double>& weights) {
   }
 
   _res[2].weights = _res[1].weights; // TODO directions!
+}
+
+void RotationAndDiagonalConstraint::SetDoPhaseReference(const bool doPhaseReferencing) {
+  _doPhaseReference = doPhaseReferencing;
 }
 
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
@@ -178,14 +186,17 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         } while (abs(b)/bmean > maxratio);
       }
 
-      // Use the first station with a non-NaN angle as reference station
-      // (for every chanblock), to work around unitary ambiguity
-      if ( isnan(angle0) ) {
-        angle0 = angle;
-        angle = 0.;
-      } else {
-        angle -= angle0;
-        angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+      if (_doPhaseReference)
+      {
+        // Use the first station with a non-NaN angle as reference station
+        // (for every chanblock), to work around unitary ambiguity
+        if ( isnan(angle0) ) {
+          angle0 = angle;
+          angle = 0.;
+        } else {
+          angle -= angle0;
+          angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+        }
       }
 
       _res[0].vals[ant*_nChannelBlocks + ch] = angle;  // TODO directions!
