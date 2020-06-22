@@ -5,55 +5,57 @@ DPPP (DP3, short for Default PreProcessing Pipeline) is a framework
 for efficiently processing time-ordered visibilities,
 e.g. freshly correlated data. It was developed for the LOFAR
 telescope, and is used for preprocessing its imaging pipelines.
-DPPP user documentation is found at the [LOFAR Wiki](https://goo.gl/2uAaN9).
+DPPP user documentation is found at the [LOFAR Wiki](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:ndppp).
 
-When DPPP reads a chunk of data, it calls all the steps to do
-all processing possible on this data. The last step will then
-write out the processed data. In this way, the data is read
-and written only once.
+For avoiding high memory usage, DPPP reads the input data in chunks instead of reading all input data at once. 
+For each chunk, it calls all the steps to do the processing on this data. The last step will then
+write out the processed data.
 
 ![High level overview of DPPP](doc/images/diagram.png)
 
 DPPP runs a pipeline in clearly defined stages, to make spotting
 errors as easy as possible.
 * **Initialise** This connects all the processing steps together. This step is data independent.
-* **Tune At** this stage only metadata, such as the number of channels, is read, and steps are adjusted to this.
-* **Process** Data is piped through the steps in buffers of time. The buffer size is defined by the steps.
+* **Tune At** This stage reads metadata, such as the number of channels, and adjusts the steps accordingly.
+* **Process** This stage pipes the data through the steps, one buffer at a time. The steps define the buffer size.
 
 ## Measurement Set standard
-DPPP adheres to the Measurement Set (MS) standard, so it
-can be used with data from all radio telescopes. DPPP can
+DPPP adheres to the Measurement Set (MS) standard, which is the common format for radio telescope data. DPPP can
 also create a new MS. When an appropriate input step is in
 place (e.g. a streaming connection to a correlator), MSs can
 be written from scratch.
 
-DPPP supports only regularly shaped MSs, meaning that every
-time slot must have the same number of baselines and antennas.
-Only one spectral window can be used.
+DPPP supports only regularly shaped MSs with the following restrictions:
+- Every time slot has the same number of antennas.
+- Time slots have the same duration and are equally spaced (missing time slots are allowed).
+- Every integration has the same number of correlations and channels.
+- Only one spectral window can be handled.
 
 ## Built-in steps
-DPPP contains built-in steps that are linked together and process one time slot at a time and is therefore suitable for large measurement sets.
-All the built-in steps derive from the [DPStep](@ref DP3::DPPP::DPStep) class.
+DPPP contains built-in steps that are linked together and process one time slot at a time. This way, DPPP is therefore suitable for large measurement sets.
+All the built-in steps derive from the [DPStep](@ref DP3::DPPP::DPStep) class. 
+Its inheritance diagram shows all step types, including the built-in steps.
 
 [DPRun](@ref DP3::DPPP::DPRun) initialises and orchestrates the configured steps.
-It begins with setting the required info for all the first step and its next step(s).
+It begins with setting the required info for the first step and its next step(s).
 Next, each buffer (containing a single time slot) is processed by the first step.
 When processed, it invokes the process function of the next step.
-Once all buffers are processed it finishes the processing of the first step and subsequent steps.
-It wraps it with adding some data to the MeasurementSet written/updated which is started at the last step.
+DPPP calls the `finish` function of the first step and subsequent steps. 
+This function flushes all remaining data from the steps to their output channel(s).
+Finally, DPPP calls the `addToMS` function on each step for updating the metadata of the MS.
 The figure below gives a graphical overview of the [DPStep](@ref DP3::DPPP::DPStep) flow.
 
 ![Process flow of DPPP](doc/images/flow.png)
 
 ### Calibration
 The DPPP step [GainCal](@ref DP3::DPPP::GainCal) implements many variants of direction
-independent calibration. It uses StefCal, with many
+independent calibration. It uses StefCal ([read more](https://ieeexplore.ieee.org/abstract/document/6930038)), with many
 extra features, such as fitting a function over frequency.
 Also full-Jones calibration is supported. Results are written
-to ParmDB; H5Parm support is in development.
+to ParmDB ([read more](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb)); H5Parm ([read more](https://github.com/revoltek/losoto/wiki/H5parm-specifications)) support is in development.
 
 ### AOFlagger
-A shallow wrapper exists that calls AOFlagger from DPPP.
+DPPP contains a DPStep class which a shallow wrapper that calls AOFlagger.
 This makes it possible to flag with AOFlagger and immediately
 afterwards average the data, without writing the
 data to disk in between.
@@ -64,9 +66,8 @@ be defined, following the existing interface description.
 Recompiling DPPP is not necessary: steps are found as shared
 libraries.
 
-A special custom step is the [Python step](@ref DP3::DPPP::PythonStep), which finds a
-python module and applies that. This makes it very easy to
-implement custom steps even for non C++-wizards. An
+A special custom step is the [Python step](@ref DP3::DPPP::PythonStep), which uses a step defined in a Python module. 
+This makes it very easy to implement custom steps even for non C++-wizards. An
 example Python step is bundled with the LOFAR software.
 
 ## Example reduction
