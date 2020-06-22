@@ -40,7 +40,7 @@ Its inheritance diagram shows all step types, including the built-in steps.
 It begins with setting the required info for the first step and its next step(s).
 Next, each buffer (containing a single time slot) is processed by the first step.
 When processed, it invokes the process function of the next step.
-DPPP calls the `finish` function of the first step and subsequent steps. 
+Once all buffers are processed, DPPP calls the `finish` function of the first step and subsequent steps. 
 This function flushes all remaining data from the steps to their output channel(s).
 Finally, DPPP calls the `addToMS` function on each step for updating the metadata of the MS.
 The figure below gives a graphical overview of the [DPStep](@ref DP3::DPPP::DPStep) flow.
@@ -49,13 +49,13 @@ The figure below gives a graphical overview of the [DPStep](@ref DP3::DPPP::DPSt
 
 ### Calibration
 The DPPP step [GainCal](@ref DP3::DPPP::GainCal) implements many variants of direction
-independent calibration. It uses StefCal ([read more](https://ieeexplore.ieee.org/abstract/document/6930038)), with many
+independent calibration. It uses [StefCal](https://ieeexplore.ieee.org/abstract/document/6930038), with many
 extra features, such as fitting a function over frequency.
 Also full-Jones calibration is supported. Results are written
-to ParmDB ([read more](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb)); H5Parm ([read more](https://github.com/revoltek/losoto/wiki/H5parm-specifications)) support is in development.
+to [ParmDB](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb); [H5Parm](https://github.com/revoltek/losoto/wiki/H5parm-specifications) support is in development.
 
 ### AOFlagger
-DPPP contains a DPStep class which a shallow wrapper that calls AOFlagger.
+DPPP contains a DPStep class which is a shallow wrapper that calls AOFlagger.
 This makes it possible to flag with AOFlagger and immediately
 afterwards average the data, without writing the
 data to disk in between.
