@@ -305,19 +305,33 @@ add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
 add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
-# Add each test as a cmake test (only for tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE)
+# Add each test as a cmake test. Works only for:
+# - Tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE
+# - Tests added with BOOST_DATA_TEST_CASE
 foreach(TEST_FILENAME ${TEST_FILENAMES})
   file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
 
-  # Extract test suite name
-  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\(*([A-Za-z_0-9]+)*\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+  # Extract test suite names
+  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *[A-Za-z_0-9]+ *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
+  string(REGEX MATCHALL "BOOST_DATA_TEST_CASE\\( *[A-Za-z_0-9]+," FOUND_DATA_TESTS ${TEST_FILE_CONTENTS})
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
 
-  # Extract test name
+  # Extract testsuite name, since REGEX MATCHALL always stores the entire match.
   string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+
   foreach(FOUND_TEST ${FOUND_TESTS})
+    # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests --run_test=${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
+
+    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
+    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+  endforeach()
+  
+  foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
+    # Extract test name, since REGEX MATCHALL always stores the entire match.
+    string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
+
+    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
     set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
   endforeach()
 endforeach()
