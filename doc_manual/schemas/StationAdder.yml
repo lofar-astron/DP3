@@ -1,0 +1,53 @@
+description: >-
+  Flag based on UVW coordinates, possibly in the direction of another source.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: applybeam
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'applybeam' `.`
+    default: applybeam
+  stations:
+    type: record
+    doc: >-
+      One or more names of new stations each followed by the list of 
+      stations it consists of. A station name in the list can be a 
+      glob-like pattern. Optionally such a pattern can be negated by a 
+      ! or ^ meaning that names matching that pattern are excluded from 
+      the selection so far. For example:
+      ``stations={ST6:'CS00[2-7]*'}`` can be used to form the superstation from 
+      all superterp stations. ``{ST6:['CS00[2-7]*','!CS005*']}`` is similar, 
+      but excludes CS005. ``{ST001:[CS001,CS002,CS003], ST002:[CS004,CS005,CS006]}`` 
+      defines 2 new stations ST001 and ST002 
+      consisting of the stations in the lists following their names. 
+  minpoints:
+    default: 1
+    type: integer
+    doc: >-
+      Flag a new data point if number of unflagged data points 
+      added is less than `minpoints`` `.`
+  useweights:
+    default: true
+    type: boolean
+    doc: >-
+      Use the input data weights? False means all input visibilities 
+      have weight 1 `.`
+  average:
+    default: true
+    type: boolean
+    doc: >-
+      Is a visibility of a new station the weighted average of its input 
+      visibilities and its UVW the weighted average of the input UVWs `?`
+  autocorr:
+    default: false
+    type: boolean
+    doc: >-
+      Form new auto-correlations `?`
+  sumauto :
+    default: true
+    type: boolean
+    doc: >-
+      Sum auto- or cross-correlations to form new auto-correlations `?`
+

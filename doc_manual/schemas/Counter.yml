@@ -1,0 +1,34 @@
+description: >-
+  count the number of flags per baseline, frequency, and correlation. 
+  A flagging step also counts how many visibilities it flagged. 
+  Counts can be saved to a table to be plotted later using function ``plotflags`` in python module ``lofar.dppp``.
+inputs:
+  type:
+    type: string
+    doc: >-
+      Case-insensitive step type; must be 'counter' (or 'count'). Note that the type defaults to the step name, so if step name ``count`` is used, nothing more needs to be specified `.`
+  showfullyflagged:
+    default: false
+    type: bool
+    doc: >-
+      If true, all fully flagged baselines are shown in the baseline selection format using their antenna indices (not names). For example: 0&1; 3&7 `.`
+  save:
+    default: false
+    type: bool
+    doc: >-
+      If true, the flag percentages per frequency are saved to a table with extension ``.flagfreq`` and percentages per station to a table with extension ``.flagstat``. The basename of the table is the MS name (without extension) followed by the stepname and extension `.`
+  path:
+    default: "\"\""
+    type: string
+    doc: >-
+      The directory where to create the flag percentages table. If empty, the path of the input MS is used `.`
+  warnperc:
+    default: 0
+    type: double
+    doc: >-
+      If > 0, print an extra message for each baseline or channel with a percentage flagged higher than this value. Such a message line can be easily grep-ed `.`
+  flagdata:
+    default: false
+    type: bool
+    doc: >-
+      If COUNT is the only step in an DPPP run, the data won't be read, so unflagged invalid data (NaN. infinite) won't be noticed and counted as flagged. Setting this flag forces DPPP to read and check the data `.`
