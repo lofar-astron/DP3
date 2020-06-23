@@ -31,7 +31,7 @@ build-doc:
   - pip3 install jsonschema2rst sphinx sphinx-rtd-theme
   - jsonschema2rst ../doc_manual/schemas/ ../doc_manual/inc/
   - rm ../doc_manual/inc/index.rst
-  - sphinx-build -b html ../doc_manual doc/html
+  - sphinx-build -b html ../doc_manual doc/
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/doc
