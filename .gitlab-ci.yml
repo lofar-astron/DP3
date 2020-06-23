@@ -27,7 +27,7 @@ build-doc:
   - mkdir build && cd build
   #- cmake -G Ninja ../doc
   #- ninja doc
-  - python -m pip install --upgrade pip
+  - python3 -m pip install --upgrade pip
   - pip3 install jsonschema2rst sphinx sphinx-rtd-theme
   - jsonschema2rst ../doc_manual/schemas/ ../doc_manual/schemasinc/
   - rm ../doc_manual/inc/index.rst
