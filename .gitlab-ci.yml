@@ -25,7 +25,7 @@ build-doc:
   - apk add doxygen cmake ninja python3 py3-pip
   script:
   - mkdir build && cd build
-  - cmake -G Ninja ../doc/doxygen
+  - cmake -G Ninja ../doc
   - ninja doc
   - python3 -m pip install --user --upgrade pip
   - pip3 install jsonschema2rst sphinx sphinx-rtd-theme
