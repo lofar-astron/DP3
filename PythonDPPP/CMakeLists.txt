@@ -37,6 +37,9 @@ if(${Boost_PYTHON${BOOSTPY}_FOUND})
   
   find_package(Boost REQUIRED COMPONENTS python${BOOSTPY})
   include_directories(${Boost_INCLUDE_DIR})
+  # By default, Boost-Python has auto_ptr support, which triggers a compiler
+  # warning, since auto_ptr is deprecated -> Disable auto_ptr support.
+  add_definitions(-DBOOST_NO_AUTO_PTR)
 
 #  add_subdirectory(test)
 else()

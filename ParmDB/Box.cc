@@ -76,10 +76,13 @@ namespace BBS {
     switch (sz) {
     case 4:
       eny = values[3];
+      // fall through
     case 3:
       enx = values[2];
+      // fall through
     case 2:
       sty = values[1];
+      // fall through
     case 1:
       stx = values[0];
       break;

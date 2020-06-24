@@ -40,8 +40,8 @@ namespace DP3 {
   namespace DPPP {
 
     DummyStep::DummyStep (DPInput* input,
-                      const ParameterSet& parset,
-                      const string& prefix)
+                          const ParameterSet&,
+                          const string&)
     : itsInput(input)
     {
 
