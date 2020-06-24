@@ -25,13 +25,13 @@ build-doc:
   - apk add doxygen cmake ninja python3 py-pip
   script:
   - mkdir build && cd build
-  - cmake -G Ninja ../doc
+  - cmake -G Ninja ../doc/doxygen
   - ninja doc
   - python3 -m pip install --user --upgrade pip
   - pip3 install jsonschema2rst sphinx sphinx-rtd-theme
-  - jsonschema2rst ../doc_manual/schemas/ ../doc_manual/inc/
-  - rm ../doc_manual/inc/index.rst
-  - sphinx-build -b html ../doc_manual doc/
+  - jsonschema2rst ../doc/schemas/ ../doc/inc/
+  - rm ../doc/inc/index.rst
+  - sphinx-build -b html ../doc doc/
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/doc

@@ -1,5 +1,8 @@
 DPPP 
 ================
+
+`Go to source documentation <doxygen/index.html>`_.
+
 DPPP (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing Pipeline) is the LOFAR data pipelined processing program. It can be used to do all kind of operations on the data in a pipelined way, so the data are read and written only once.
 
 DPPP started as a new and faster version of IDPPP.
