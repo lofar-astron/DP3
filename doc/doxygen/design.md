@@ -5,13 +5,13 @@ DPPP (DP3, short for Default PreProcessing Pipeline) is a framework
 for efficiently processing time-ordered visibilities,
 e.g. freshly correlated data. It was developed for the LOFAR
 telescope, and is used for preprocessing its imaging pipelines.
-DPPP user documentation is found at the [LOFAR Wiki](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:ndppp).
+DPPP user documentation is found at the [Read The Docs page](../index.html).
 
 For avoiding high memory usage, DPPP reads the input data in chunks instead of reading all input data at once. 
 For each chunk, it calls all the steps to do the processing on this data. The last step will then
 write out the processed data.
 
-![High level overview of DPPP](doc/images/diagram.png)
+![High level overview of DPPP](doxygen/images/diagram.png)
 
 DPPP runs a pipeline in clearly defined stages, to make spotting
 errors as easy as possible.
@@ -45,7 +45,7 @@ This function flushes all remaining data from the steps to their output channel(
 Finally, DPPP calls the `addToMS` function on each step for updating the metadata of the MS.
 The figure below gives a graphical overview of the [DPStep](@ref DP3::DPPP::DPStep) flow.
 
-![Process flow of DPPP](doc/images/flow.png)
+![Process flow of DPPP](doxygen/images/flow.png)
 
 ### Calibration
 The DPPP step [GainCal](@ref DP3::DPPP::GainCal) implements many variants of direction
