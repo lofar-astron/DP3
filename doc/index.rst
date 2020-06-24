@@ -17,6 +17,7 @@ DPPP comes with quite some predefined steps, but it is possible to plugin arbitr
   :glob:
 
   self
+  inc/Description of all parameters
   inc/*
 
 The following steps are possible:
