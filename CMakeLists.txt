@@ -334,4 +334,4 @@ endforeach()
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin)
 
-include(doc/doxygen/CMakeLists.txt)
+include(doc/CMakeLists.txt)
