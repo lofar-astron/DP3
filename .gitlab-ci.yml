@@ -43,7 +43,7 @@ deploy-doc:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
   script:
-    - scp -r build/doc/* citt@dop288:DP3/
+    - scp -r build/docs/* citt@dop288:DP3/
   only:
     refs:
       - master
