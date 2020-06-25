@@ -23,7 +23,8 @@ RUN mkdir /lofarbeam/build && cd /lofarbeam/build && cmake -DCMAKE_INSTALL_PREFI
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake -DCMAKE_CXX_FLAGS_CUSTOM=-Werror ../src
-RUN cd /build && make -j2 && make install -j2
+RUN mkdir /build && cd /build && cmake ../src
+RUN cd /build && make -j2
+RUN cd /build && make install -j2
 RUN DPPP
 RUN cd /build && CTEST_OUTPUT_ON_FAILURE=1 make test -j2
