@@ -41,11 +41,11 @@ public:
 
   virtual void SetWeights(const std::vector<double>& weights);
 
-  void SetDoPhaseReference(bool doPhaseReference);
+  void SetDoRotationReference(bool doRotationReference);
 
 private:
   std::vector<Constraint::Result> _res;
-  bool _doPhaseReference;
+  bool _doRotationReference;
 };
 
 } // namespace LOFAR

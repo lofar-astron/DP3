@@ -283,7 +283,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
     case GainCal::ROTATIONANDDIAGONAL:
     {
       auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
-      constraintPtr->SetDoPhaseReference(parset.getBool(prefix + "phasereference", true));
+      constraintPtr->SetDoRotationReference(parset.getBool(prefix + "phasereference", true));
       itsConstraints.push_back(std::move(constraintPtr));
       itsFullMatrixMinimalization = true;
       break;

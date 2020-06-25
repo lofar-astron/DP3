@@ -39,7 +39,7 @@ namespace DP3 {
 
 RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
 : _res()
-, _doPhaseReference(false) {}
+, _doRotationReference(false) {}
 
 void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nDirections,
@@ -87,8 +87,8 @@ void RotationAndDiagonalConstraint::SetWeights(const vector<double>& weights) {
   _res[2].weights = _res[1].weights; // TODO directions!
 }
 
-void RotationAndDiagonalConstraint::SetDoPhaseReference(const bool doPhaseReferencing) {
-  _doPhaseReference = doPhaseReferencing;
+void RotationAndDiagonalConstraint::SetDoRotationReference(const bool doRotationReference) {
+  _doRotationReference = doRotationReference;
 }
 
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
@@ -186,7 +186,7 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         } while (abs(b)/bmean > maxratio);
       }
 
-      if (_doPhaseReference)
+      if (_doRotationReference)
       {
         // Use the first station with a non-NaN angle as reference station
         // (for every chanblock), to work around unitary ambiguity

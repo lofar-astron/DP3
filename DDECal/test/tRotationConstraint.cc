@@ -51,11 +51,11 @@ BOOST_AUTO_TEST_CASE( test_rotation )
 
 BOOST_DATA_TEST_CASE( test_rotation_and_diagonal,
                       boost::unit_test::data::make({ true, false }),
-                      doPhaseReference )
+                      doRotationReference )
 {
   RotationAndDiagonalConstraint constraint;
   constraint.InitializeDimensions(1, 1, 1);
-  constraint.SetDoPhaseReference(doPhaseReference);
+  constraint.SetDoRotationReference(doRotationReference);
 
   vector<vector<complex<double> > > onesolution(1);
   onesolution[0].resize(4);
@@ -83,7 +83,7 @@ BOOST_DATA_TEST_CASE( test_rotation_and_diagonal,
   BOOST_CHECK_EQUAL( constraint_result[0].dims[2], 1u );
   BOOST_CHECK_EQUAL( constraint_result[0].vals.size(), 1u ); 
   BOOST_CHECK( near(constraint_result[0].vals[0],
-               doPhaseReference ? 0. : phi) );
+               doRotationReference ? 0. : phi) );
 
   BOOST_CHECK_EQUAL( constraint_result[1].name, "amplitude" );
   BOOST_CHECK_EQUAL( constraint_result[1].axes, "ant,dir,freq,pol" );
