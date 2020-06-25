@@ -24,8 +24,8 @@ if(SPHINX_FOUND AND JSONSCHEMA2RST_EXECUTABLE)
   configure_file(${CMAKE_CURRENT_LIST_DIR}/index.rst ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
   configure_file(${CMAKE_CURRENT_LIST_DIR}/conf.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
   add_custom_command(OUTPUT inc
-                     COMMAND ${JSONSCHEMA2RST_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/schemas ${CMAKE_CURRENT_BINARY_DIR}/docs/inc
-                     COMMAND rm ${CMAKE_CURRENT_BINARY_DIR}/docs/inc/index.rst
+                     COMMAND ${JSONSCHEMA2RST_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/schemas ${CMAKE_CURRENT_BINARY_DIR}/inc
+                     COMMAND rm ${CMAKE_CURRENT_BINARY_DIR}/inc/index.rst
                      COMMENT "Generating rst documents from yml descriptions"
                     )
   add_custom_target(userdoc
