@@ -1,0 +1,91 @@
+description: >-
+  ""
+inputs:
+  msin/msin&#46;name:
+    type: string
+    doc: >-
+      Name of the input MeasurementSets. If a single name is given, it can be a glob-pattern (like L23456_SAP000_SB\*) meaning that all MSs matching the pattern will be used. A glob-pattern can contain \*, ?, [], and {} pattern characters (as used in bash). If multiple MSs are to be used, their data are concatenated in frequency, thus multiple subbands are combined to a single band. In principle all MSs should exist, but if 'missingdata=true' and 'orderms=false' flagged zero data will be inserted for missing MS(s) and their frequency info will be deduced from the other MSs `.`
+  msin&#46;sort:
+    default: false
+    type: bool
+    doc: >-
+      Does the MS need to be sorted in TIME order `?`
+  msin&#46;orderms:
+    default: true
+    type: bool
+    doc: >-
+      Do the MSs need to be ordered on frequency? If true, all MSs must exist, otherwise they cannot be ordered. If false, the MSs must be given in order of frequency `.`
+  msin&#46;missingdata:
+    default: false
+    type: bool
+    doc: >-
+      true = it is allowed that a data column in an MS does not exist. In that case its data will be 0 and flagged. It can be useful if the CORRECTED_DATA of subbands are combined, but a BBS run for one of them failed. If 'orderms=false', it also makes it possible that a MS is specified but does not exist. In such a case flagged data will be used instead. The missing frequency info will be deduced from the other MSs where all MSs have to have the same number of channels and must be defined in order of frequency `.`
+  msin&#46;baseline:
+    type: string
+    doc: >-
+      Baselines to be selected (default is all baselines). See :ref:`Description of baseline selection parameters`. Only the CASA baseline selection syntax as described in `this note <https://www.astron.nl/lofarwiki/lib/exe/fetch.php?media=public:user_software:documentation:msselection.pdf>`__ can be used `.`
+  msin&#46;band:
+    default: -1
+    type: integer
+    doc: >-
+      Band (spectral window) to select (<0 is no selection). This is mainly useful for WSRT data `.`
+  msin&#46;startchan:
+    default: 0
+    type: integer
+    doc: >-
+      First channel to use from the input MS (channel numbers start counting at 0). Note that skipped channels will not be written into the output MS. It can be an expression with ``nchan`` (nr of input channels) as parameter. E.g.  ``nchan/32`` will be fine for LOFAR observations with 64 and 256 channels `.`
+  msin&#46;nchan:
+    default: 0
+    type: integer
+    doc: >-
+      Number of channels to use from the input MS (0 means till the end). It can be an expression with ``nchan`` (nr of input channels) as parameter. E.g.  ``15*nchan/16`` `.`
+  msin&#46;starttime:
+    default: first time in MS
+    type: string
+    doc: >-
+      Center of first time slot to use; if < first time in MS, dummy time slots are inserted. A date/time must be specified in the casacore MVTime format, e.g. 19Feb2010/14:01:23.817 `.`
+  msin&#46;starttimeslot:
+    default: 0
+    type: int
+    doc: >-
+      Starting time slot. This can be negative to insert flagged time slots before the beginning of the MS `.`
+  msin&#46;endtime:
+    default: last time in MS
+    type: string
+    doc: >-
+      Center of last time slot to use; if > last time in MS, dummy time slots are inserted `.`
+  msin&#46;ntimes:
+    default: 0
+    type: integer
+    doc: >-
+      Number of time slots to use (0 means till the end) `.`
+  msin&#46;useflag:
+    default: true
+    type: bool
+    doc: >-
+      Use the current flags in the MS? If false, all flags in the MS are ignore and the data (except NaN and infinite values) are assumed to be good and will be used in later steps `.`
+  msin&#46;datacolumn:
+    default: DATA
+    type: string
+    doc: >-
+      Data column to use, i.e. the name of the column in which the visibilities are written `.`
+  msin&#46;weightcolumn:
+    default: WEIGHT_SPECTRUM or WEIGHT
+    type: string
+    doc: >-
+      Weight column to use. Defaults to WEIGHT_SPECTRUM if this exists, otherwise the WEIGHT column is used `.`
+  msin&#46;modelcolumn:
+    default: MODEL_DATA
+    type: string
+    doc: >-
+      Model data column. Currently only used in gaincal and ddecal `.`
+  msin&#46;autoweight:
+    default: false
+    type: bool
+    doc: >-
+      Calculate weights using the auto-correlation data? It is meant for setting the proper weights for a raw LOFAR MeasurementSet `.`
+  msin&#46;forceautoweight:
+    default: false
+    type: bool
+    doc: >-
+      In principle the calculation of the weights should only be done for the raw LOFAR data. It appeared that sometimes the ``autoweight`` switch was accidently set in a DPPP run on already dppp-ed data. To make it harder to make such mistakes, the ``forceautoweight`` flag has to be set as well for MSs containing dppp-ed data `.`

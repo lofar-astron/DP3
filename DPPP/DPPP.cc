@@ -43,7 +43,7 @@ void showUsage() {
     "or \"DPPP.parset\" as a default.\n"
     "-v will show version info and exit.\n"
     "Documentation is at:\n"
-    "http://www.lofar.org/wiki/doku.php?id=public:user_software:documentation:ndppp\n";
+    "https://www.astron.nl/citt/DP3\n";
 }
 
 int main(int argc, char *argv[])

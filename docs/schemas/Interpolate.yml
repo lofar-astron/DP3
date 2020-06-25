@@ -1,0 +1,16 @@
+description: >-
+  The interpolate step replaces flagged values by interpolating them using “neighbouring” 
+  samples (samples close in time and frequency). It calculates the Gaussian weighted sum over 
+  non-flagged samples, with a sigma parameter of one timestep/one channel. The flags are removed after interpolation. 
+  This is in particular useful in combination with averaging; by replacing flagged values before averaging, the output 
+  visibilities will more accurately represent the true sky. This step was aimed to solve frequency structure from 
+  flagging/averaging for the EoR experiment, but might be useful in other cases as a more accurate averaging step. 
+  Details are published in `Offringa, Mertens and Koopmans (2018) <https://arxiv.org/abs/1901.04752>`__. 
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'interpolate' `.`
+  windowsize:
+    default: 15
+    type: int
+    doc: Size of the window over which a value is interpolated. Should be odd `.`

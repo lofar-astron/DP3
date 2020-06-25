@@ -1,0 +1,77 @@
+description: >-
+  Add intermediate output steps
+inputs:
+  msout/msout&#46;name:
+    type: string
+    doc: >-
+      Name of new output MeasurementSet; if empty, the input MS is updated. The other msout parameters are not applicable (apart from ``countflag``). Normally an update is only done if a step is given that can change the data (e.g. PreFlagger). However, a name '.' or a name equal to the name of the input MS means that the input MS will always be updated, even if no step is given. This is useful if only flagging of NaN-s in the MS needs to be done. Note that when doing averaging, the input MS cannot be updated `.`
+  msout&#46;overwrite:
+    default: false
+    type: bool
+    doc: >-
+      When creating a new MS, overwrite if already existing `?`
+  msout&#46;datacolumn:
+    default: DATA
+    type: string
+    doc: >-
+      The column in which to write the data. When creating a new MeasurementSet, only column DATA can be used. When updating the input MeasurementSet, any column can be used. If not existing, it will be created first `.`
+  msout&#46;weightcolumn:
+    default: WEIGHT_SPECTRUM
+    type: string
+    doc: >-
+      The column in which to write the weights. When creating a new MeasurementSet, only WEIGHT_SPECTRUM can be used. When updating the input Measurementset, any column can be used. If not existing, it will be created first `.`
+  msout&#46;writefullresflag:
+    default: true
+    type: bool
+    doc: >-
+      Write the full resolution flags `?`
+  msout&#46;tilesize:
+    default: 1024
+    type: integer
+    doc: >-
+      For expert user: tile size (in Kbytes) for the data columns in the output MS `.`
+  msout&#46;tilenchan:
+    default: 8
+    type: integer
+    doc: >-
+      For expert user: maximum number of channels per tile in output MS `.`
+  msout&#46;clusterdesc:
+    default: "\"\""
+    type: string
+    doc: >-
+      If not empty, create the VDS file using this ClusterDesc file `.`
+  msout&#46;vdsdir:
+    default: "\"\""
+    type: string
+    doc: >-
+      Directory where to put the VDS file; if empty, the MS directory is used `.`
+  msout&#46;storagemanager/msout&#46;storagemanager&#46;name:
+    default: "\"\""
+    type: string
+    doc: >-
+      What storage manager to use. When empty (default), the data will be stored uncompressed. When set to "dysco", the data will be compressed. Settings below will set the compression settings; see `the Dysco wiki <https://github.com/aroffringa/dysco/wiki>`__ and `the paper <https://arxiv.org/abs/1609.02019>`__ for more info. The default settings are reasonably conservative and safe `.`
+  msout&#46;storagemanager&#46;databitrate:
+    default: 10
+    type: integer
+    doc: >-
+      Number of bits per float used for columns containing visibilities. Can be set to zero to compress weights only `.`
+  msout&#46;storagemanager&#46;weightbitrate:
+    default: 12
+    type: integer
+    doc: >-
+      Number of bits per float used for WEIGHT_SPECTRUM column. Can be set to zero to compress data only. Note that compressing weights will set all polarizations to the same weight (determined by the minimum weight over the polarizations) `.`
+  msout&#46;storagemanager&#46;distribution:
+    default: "TruncatedGaussian"
+    type: string
+    doc: >-
+      Assumed distribution for compression; "Uniform", "TruncatedGaussian", "Gaussian" or "StudentsT" `.`
+  msout&#46;storagemanager&#46;disttruncation:
+    default: 2.5
+    type: double
+    doc: >-
+      Truncation level for compression with the Truncated Gaussian distribution `.`
+  msout&#46;storagemanager&#46;normalization:
+    default: "AF"
+    type: string
+    doc: >-
+      Compression normalization method: AF, RF or Row `.`

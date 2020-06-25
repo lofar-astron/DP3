@@ -1,0 +1,37 @@
+description:
+  Parameters to select on baseline can be used in the steps preflagger and filter. 
+  The step msin only supports .baseline. The parameters are described in the table below. 
+inputs:
+  corrtype:
+    default: "\"\""
+    type: string
+    doc: Correlation type to match? Must be auto, cross, or an empty string (= all) `.`
+  blrange:
+    default: "[]"
+    type: double?
+    doc: Zero or more ranges of physical baseline lengths (in m). A baseline matches if its length is within one of the ranges. E.g., ``blrange=[0,10000, 100000, 1e30]`` `.`
+  baseline:
+    default: "\"\""
+    type: baseline?
+    doc: >-
+      Names of baselines to be matched. It can be given as either a vector of vectors or as a casacore MSSelection string. 
+      These two methods are mutually exclusive. When in doubt, use the second syntax.1. If given as a vector, a vector 
+      element can be a vector of two names giving the stations forming a baseline. For example: ``baseline=[ [CS001,RS003], [CS002,RS005] ]`` 
+      selects baselines CS001-RS003 and CS002-RS005. Each name can be a shell-type pattern (with wildcards * ? [] or {}). Thus ``baseline=[ [CS*,RS*] ]`` 
+      selects all baselines between core and remote stations. Note that the wildcard characters {} mean OR. They can be used to pair groups of 
+      stations (quotes are needed). For example: ``baseline=[ ["{CS001,CS002}","{RS003,RS005}"] ]`` selects baselines CS001-RS003, CS001-RS005, CS002-RS003, 
+      and CS002-RS005. Besides giving a baseline, it is also possible to give a single station name (possibly wildcarded) meaning that all baselines 
+      containing that station will be selected. For example: ``baseline=[RS*,CS*]`` selects all baselines containing remote or core stations. 
+      Please note that an extra bracket pair is needed to specify baselines between RS and CS like in ``baseline=[ [RS*,CS*] ]`` 
+      It is a bit hard to select international stations using this syntax. 2. The casacore MSSelection baseline syntax is described in 
+      `this note <https://www.astron.nl/lofarwiki/lib/exe/fetch.php?media=public:user_software:documentation:msselection.pdf>`__ 
+      and `Casacore note 263 <http://casacore.github.io/casacore-notes/263.html>`__. 
+      The advantage of this syntax is that it is more concise and that besides a station name pattern, it is possible to give a station number. 
+      The examples above can be expressed as: ``baseline=CS001&RS003;CS002&RS005`` for baseline CS001-RS003 and CS002-RS005 ``baseline=CS001,CS002&RS003,RS005`` 
+      for CS001-RS003, CS001-RS005, CS002-RS003, and CS002-RS005 ``baseline=RS*&&CS*`` for baselines (also auto-corr) between RS and CS stations.``baseline=8&12`` 
+      baseline between station number 8 and 12.Note that & means cross-correlations, && means cross and auto, &&& means auto only. 
+      International stations can be selected most easily using negation. E.g.use ``baseline=^[CR]S*&&*``  to select all baselines containing an international 
+      station. use ``baseline=^[CR]S*&&``  to select baselines containing ONLY international stations. Sometimes the baselines between the HBA ears of the same 
+      station should be deselected, which can be done using the following string ``^/(.*)HBA0&\1HBA1/`` Without the up-arrow it will select such baselines. 
+      Note: in the ``msin`` step only the second way is possible. Also note that, currently, only the first way works properly when selecting baselines after a 
+      station has been added. The reason is that the second way looks in the original ANTENNA table to find matching station names, thus will not find the new station `.`

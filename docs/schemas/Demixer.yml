@@ -1,0 +1,122 @@
+description: >-
+  Demix in the old way.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: demix
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'demixer' (or 'demix') `.`
+    default: demixer
+  baseline:
+    default: "\"\""
+    type: string
+    doc: Baselines to demix. See Description of baseline selection parameters `.`
+  blrange:
+    default: []
+    type: double[]
+    doc: Baselines to demix. See Description of baseline selection parameters `.`
+  corrtype:
+    default: cross
+    type: string
+    doc: >-
+      Baselines to demix. Correlation type to match? Must be auto, cross, or an
+      empty string `.`
+  timestep:
+    default: 1
+    type: int
+    doc: >-
+      Number of time slots to average when subtracting. It is truncated if
+      exceeding the actual number of times. Note that the data itself will also
+      be averaged by this amount `.`
+  freqstep:
+    default: 1
+    type: int
+    doc: >-
+      Number of channels to average when subtracting. It is truncated if
+      exceeding the actual number of channels. Note that the data itself will
+      also be averaged by this amount `.`
+  demixtimestep:
+    default: 0
+    type: int
+    doc: >-
+      Number of time slots to average when demixing. It is truncated if
+      exceeding the actual number of times. It defaults to the averaging used
+      for the subtract `.`
+  demixfreqstep:
+    default: 0
+    type: int
+    doc: >-
+      Number of channels to average when demixing. It is truncated if exceeding
+      the actual number of channels. It defaults to the averaging used for the
+      subtract `.`
+  ntimechunk:
+    default: null
+    type: int
+    doc: >-
+      Number of demix time slots (after averaging) that are processed jointly in
+      as much a parallel way as possible. If subtract uses different time
+      averaging, it has to fit integrally `.`
+  skymodel:
+    default: sky
+    type: File, Directory, string
+    doc: The name of the SourceDB to use (i.e., the output of `makesourcedb`).
+  instrumentmodel:
+    default: instrument
+    type: string
+    doc: >-
+      The name of the ParmDB to use. The ParmDB does not need to exist. If it
+      does not exist it will be created `.`
+  subtractsources:
+    default: null
+    type: string[]?
+    doc: >-
+      Names of the sources to subtract. If none are given, demixing comes down
+      to averaging. The sources must exist as patches in the SourceDB `.`
+  modelsources:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Names of sources with models to take into account when solving. the
+      sources must exist as patches in the SourceDB. Note that the target should
+      NOT be part of this parameter. If a model of the target has to be used, it
+      has to be given in parameter ``targetsource``.
+  targetsource:
+    default: "\"\""
+    type: string
+    doc: >-
+      It can be used to specify the name of the source model of the target. If
+      given, the target source model (its patch in the SourceDB) is taken into
+      account when solving; in this case parameter ``othersources`` cannot be given.
+      It cannot be given if ``ignoretarget=true``. If not given, the target is
+      projected away or ignored (depending on parameter ``ignoretarget``).
+  ignoretarget:
+    default: false
+    type: boolean
+    doc: false = project the target source away; true = ignore the target `.`
+  othersources:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Names of sources of which the direction is taken into account when
+      demixing by projecting the directions away. The direction needs to be
+      specified if the source is unknown (which is usually the case). It can be
+      done using parameters ``<step>.<sourcename>.phasecenter``.
+  propagatesolutions:
+    default: true
+    type: boolean
+    doc: >-
+      If set to true, solutions of a time slot are used as initial values for
+      the next time slot. If set to false, the diagonal elements of the Jones
+      matrix are initialized to one and the off-diagonal elements to zero `.`
+  defaultgain:
+    default: 1
+    type: double
+    doc: >-
+      The default and initial gain for the directional gains that are computed
+      internally `.`
+  maxiter:
+    default: 50
+    type: int
+    doc: Maximum number of iterations used in the LM solve `.`
