@@ -991,7 +991,7 @@ bool DDECal::process (const DPBuffer& bufin)
   return false;
 }
 
-void DDECal::idgCallback(size_t row, size_t direction, size_t /*dataDescId*/, const std::complex<float>* values)
+void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values)
 {
   //std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
   size_t nBl = info().nbaselines();
