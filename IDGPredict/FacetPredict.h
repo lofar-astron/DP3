@@ -346,10 +346,10 @@ public:
   FacetPredict(const std::vector<std::string>&, const std::string&)
   { notCompiled(); }
   
-  void SetMSInfo(std::vector<std::vector<double>>&&, size_t)
+  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations)
   { notCompiled(); }
   
-  void SetMSInfo(double, std::vector<std::vector<double>>&&, size_t, double)
+  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands, size_t nr_stations, double max_baseline)
   { notCompiled(); }
   
   bool IsStarted() const
