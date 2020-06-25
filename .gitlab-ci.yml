@@ -23,15 +23,12 @@ build-doc:
   before_script:
   - apk update
   - apk add doxygen cmake ninja python3 py3-pip
+  - python3 -m pip install --user --upgrade pip
+  - python3 -m pip install jsonschema2rst sphinx sphinx-rtd-theme
   script:
   - mkdir build && cd build
   - cmake -G Ninja ../docs
-  - ninja doc
-  - python3 -m pip install --user --upgrade pip
-  - pip3 install jsonschema2rst sphinx sphinx-rtd-theme
-  - jsonschema2rst ../docs/schemas/ ../docs/inc/
-  - rm ../docs/inc/index.rst
-  - sphinx-build -b html ../docs docs/
+  - ninja doc userdoc
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
