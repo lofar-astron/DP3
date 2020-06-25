@@ -1,5 +1,5 @@
 # Minimal makefile for Sphinx documentation
-#
+# Only meant for readthedocs since it does not support CMake
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
@@ -14,7 +14,11 @@ help:
 
 .PHONY: help Makefile
 
+inc/Input.rst: Makefile
+	jsonschema2rst schemas inc
+	rm inc/index.rst
+
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
+%: inc/Input.rst Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

@@ -19,13 +19,15 @@ find_program(JSONSCHEMA2RST_EXECUTABLE
              DOC "Path to jsonschema2rst executable")
 
 if(SPHINX_FOUND AND JSONSCHEMA2RST_EXECUTABLE)
-  set(SPHINX_SOURCE ${CMAKE_CURRENT_LIST_DIR})
+  set(SPHINX_SOURCE ${CMAKE_CURRENT_BINARY_DIR})
   set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/docs/)
-  add_custom_command(OUTPUT inc_with_index COMMAND
-                     ${JSONSCHEMA2RST_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/schemas ${CMAKE_CURRENT_SOURCE_DIR}/inc)
-  add_custom_command(OUTPUT inc COMMAND
-                     rm ${CMAKE_CURRENT_SOURCE_DIR}/inc/index.rst
-                     DEPENDS inc_with_index)
+  configure_file(${CMAKE_CURRENT_LIST_DIR}/index.rst ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+  configure_file(${CMAKE_CURRENT_LIST_DIR}/conf.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+  add_custom_command(OUTPUT inc
+                     COMMAND ${JSONSCHEMA2RST_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/schemas ${CMAKE_CURRENT_BINARY_DIR}/docs/inc
+                     COMMAND rm ${CMAKE_CURRENT_BINARY_DIR}/docs/inc/index.rst
+                     COMMENT "Generating rst documents from yml descriptions"
+                    )
   add_custom_target(userdoc
                     COMMAND
                     ${SPHINX_EXECUTABLE} -b html
