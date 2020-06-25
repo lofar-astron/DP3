@@ -13,10 +13,18 @@ DPPP preprocesses the data of a LOFAR observation by executing steps like flaggi
 DPPP comes with quite some predefined steps, but it is possible to plugin arbitrary steps, either implemented in C++ or Python.
 
 .. toctree::
+  :maxdepth: 2
+  :caption: Home
+  :hidden:
+
+  self
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Steps
   :hidden:
   :glob:
 
-  self
   inc/Description of all parameters
   inc/*
 
