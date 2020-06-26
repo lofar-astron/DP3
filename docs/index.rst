@@ -25,8 +25,8 @@ DPPP comes with quite some predefined steps, but it is possible to plugin arbitr
   :hidden:
   :glob:
 
-  inc/Description of all parameters
-  inc/*
+  steps/Description of all parameters
+  steps/*
 
 The following steps are possible:
   * :ref:`Flagging` and :ref:`Filtering`:
