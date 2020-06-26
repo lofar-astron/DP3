@@ -31,6 +31,8 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/casa/version.h>
 
+#include "../Common/Types.h"
+
 #include <set>
 
 namespace DP3 {
@@ -38,12 +40,6 @@ namespace BBS {
 
   /// @ingroup ParmDB
   /// @{
-
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
-  typedef unsigned int rownr_t;
-#else
-  typedef casacore::rownr_t rownr_t;
-#endif
 
   /// @brief Class for a Casa table holding source parameters.
   class SourceDBCasa : public SourceDBRep

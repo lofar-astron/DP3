@@ -1,5 +1,5 @@
 // BDABuffer.h: Buffer holding BDA data
-// Copyright (C) 2010
+// Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -24,6 +24,8 @@
 #ifndef DPPP_BDABUFFER_H
 #define DPPP_BDABUFFER_H
 
+#include "../Common/Types.h"
+
 #include <complex>
 #include <vector>
 
@@ -33,15 +35,27 @@ namespace DP3 {
   class BDABuffer
   {
   public:
-    using Line = struct {
-      double itsTime; ///< Start time for the measurements
-      double itsExposure; ///< Exposure duration for the measurements
-      std::complex<double>* itsMeasurements;
-      bool* itsFlags;
-      float* itsWeights;
-      bool* itsFullResFlags;
+    struct Row {
+      Row(double time,
+          double exposure,
+          rownr_t rowNr,
+          std::size_t nChannels,
+          std::size_t nCorrelations,
+          std::complex<float>* data,
+          std::vector<bool>::iterator flags,
+          float* weights,
+          std::vector<bool>::iterator fullResFlags);
+
+      double itsTime; ///< Start time for the measurements in MJD seconds.
+      double itsExposure; ///< Exposure duration for the measurements in seconds.
+      rownr_t itsRowNr;
       std::size_t itsNChannels;
       std::size_t itsNCorrelations;
+      std::complex<float>* itsData; ///< Visibility measurements.
+      std::vector<bool>::iterator itsFlags;
+      float* itsWeights;
+      std::vector<bool>::iterator itsFullResFlags;
+      double itsUVW[3];
     };
     
   public:
@@ -56,30 +70,43 @@ namespace DP3 {
      * @return True if the line is added.
      *         False if the buffer is full.
      */
-    bool addLine(double time,
-                 double exposure,
-                 std::size_t nChannels,
-                 std::size_t nCorrelations,
-                 const std::complex<double>* measurements);
+    bool addRow(double time,
+                double exposure,
+                rownr_t rowNr,
+                std::size_t nChannels,
+                std::size_t nCorrelations,
+                const std::complex<double> *const data = nullptr,
+                const bool *const flags = nullptr,
+                const float *const weights = nullptr,
+                const bool *const fullResFlags = nullptr,
+                const double *const UVW = nullptr);
 
-    const std::vector<std::complex<double>>& getMeasurements() const {
-      return itsMeasurements;
+    const std::vector<std::complex<float>>& getData() const {
+      return itsData;
     }
-    std::vector<std::complex<double>>& getMeasurements() {
-      return itsMeasurements;
-    }
-
-    const Line& getLine(std::size_t line) const {
-      return itsLines[line];
+    std::vector<std::complex<float>>& getData() {
+      return itsData;
     }
 
-    std::complex<double>* getMeasurements( std::size_t line ) {
-      return itsLines[line].itsMeasurements;
+    const std::vector<Row>& getRows() const {
+      return itsRows;
+    }
+
+    std::complex<float>* getData(std::size_t row) {
+      return itsRows[row].itsData;
     }
 
   private:
-    std::vector<std::complex<double>> itsMeasurements;
-    std::vector<Line> itsLines;
+    /// Memory pools for the data in the rows.
+    /// @{
+    std::vector<std::complex<float>> itsData;
+    std::vector<bool> itsFlags;
+    std::vector<float> itsWeights;
+    std::vector<bool> itsFullResFlags;
+    /// @}
+
+    /// The rows, which contain pointers to the memory pools above.
+    std::vector<Row> itsRows;
   };
 
   }
