@@ -66,9 +66,6 @@ namespace DP3 {
     class DPInput: public DPStep
     {
     public:
-      /// Define the shared pointer for this type.
-      typedef std::shared_ptr<DPInput> ShPtr;
-
       virtual ~DPInput();
 
       /// Read the UVW at the given row numbers into the buffer.

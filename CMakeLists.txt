@@ -14,6 +14,8 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif(PORTABLE)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_CUSTOM}")
+
 enable_testing()
 
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
