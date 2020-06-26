@@ -349,4 +349,4 @@ endforeach()
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin)
 
-include(doc/CMakeLists.txt)
+include(docs/CMakeLists.txt)

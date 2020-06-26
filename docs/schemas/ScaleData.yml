@@ -1,0 +1,21 @@
+description: >-
+  Scale the data with a polynomial in frequency (based on SEFD of LOFAR stations).
+inputs:
+  type:
+    type: string
+    doc: >-
+      Case-insensitive step type; must be 'scaledata' `.`
+  stations:
+    default: "[]"
+    type: string?
+    doc: >-
+      Zero or more glob-like patterns defining the stations for which the corresponding coefficient vector has to be used. The coefficients of the first matching pattern are used. Default coefficients (determined by Adam Deller for LBA and HBA) are used for stations not given. For example: ``stations=[CS*, RS*, *]`` `.`
+  coeffs:
+    default: "[]"
+    type: double?
+    doc: >-
+      Zero or more vectors of coefficients defining a polynomial in frequency (MHz). For example: ``coeffs=[ [1.5, 0.7, 0.04], [1.7, 0.65], [1.2, 0.8] ]``. The first vector results in a scale factor of ``1.5 + 0.7*f + 0.04*f*f`` where f is the channel frequency in MHz. Note that an extra scaling can be applied taking into account the number of used dipoles/tiles of a station (see next parameter) `.`
+  scalesize:
+    type: bool
+    doc: >-
+      This parameter determines if an extra scaling has to be applied to correct for the number of tiles/dipoles actually used in a station. By default this will be done for the stations using the default coefficients, because those coefficients have been determined for an LBA station with 48 dipoles and HBA station with 24 tiles. By default it will not be done for explicitly given coefficients, because it is supposed they are determined specifically for that station. Note that giving ``stations=* coeffs=1 scalesize=true`` will correct for station size only `.`

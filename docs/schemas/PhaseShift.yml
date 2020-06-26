@@ -1,0 +1,16 @@
+description: >-
+  Shift data to another phase center.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: phaseshift
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'phaseshifter' (or 'phaseshift') `.`
+    default: phaseshift
+  phasecenter:
+    type: string?
+    doc: >-
+      The RA and DEC (in J2000) of the new phase center. If an empty vector (i.e. []) is given, the original phase center is used. The RA and DEC can be given in sexagesimal format or as a value followed by a unit (default rad). For example, ``[12h31m34.5, 52d14m07.34]`` or ``[187.5deg, 52.45deg]``. 
+

@@ -1,0 +1,3 @@
+.rst-content code, .rst-content tt, code {
+  word-break: break-all;
+}

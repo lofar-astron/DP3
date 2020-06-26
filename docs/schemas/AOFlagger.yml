@@ -1,0 +1,82 @@
+description: >-
+  Automatic flagging in time/freq windows using Andre Offringa's advanced aoflagger.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: aoflag
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'aoflagger' (or 'aoflag') `.`
+    default: aoflag
+  count&#46;save:
+    type: boolean
+    default: false
+    doc: >-
+      If true, the flag percentages per frequency are saved to a table with
+      extension ``.flagfreq`` and percentages per station to a table with extension
+      ``.flagstat``. The basename of the table is the MS name (without extension)
+      followed by the stepname and extension.
+  count&#46;path:
+    type: string
+    default: "\"\""
+    doc: >-
+      The directory where to create the flag percentages table. If empty, the
+      path of the input MS is used `.`
+  strategy:
+    type: File?
+    doc:  >-
+      The name of the strategy file to use. If no name is given, 
+      the default strategy is used which is fine for HBA. 
+      For LBA data the strategy `LBAdefault` should be used.
+  memoryperc:
+    type: int
+    default: 0
+    doc: >-
+      If >0, percentage of the machines memory to use. If `memorymax` nor
+      `memoryperc` is given, all memory will be used (minus 2 GB (at most 50%) for
+      other purposes). Accepts only integer values (LOFAR v2.16). Limiting the
+      available memory too much affects flagging accuracy; in general try to use
+      at least 10 GB of memory.
+  memorymax:
+    type: float
+    default: 0
+    doc: >-
+      Maximum amount of memory (in GB) to use. ⇐0 means no maximum. As stated
+      above, this affects flagging accuracy `.`
+  timewindow:
+    type: int
+    default: 0
+    doc: >-
+      Number of time slots to be flagged jointly. The larger the time window,
+      the better the flagging performs. 0 means that it will be deduced from the
+      memory to use. Note that the time window can be extended with an overlap
+      on the left and right side to minimize possible boundary effects `.`
+  overlapperc:
+    type: float
+    default: 0
+    doc: >-
+      If >0, percentage of time window to be added to the left and right side
+      for overlap purposes (to minimize boundary effects). If `overlapmax` is not
+      given, it defaults to 1%.
+  overlapmax:
+    type: int
+    default: 0
+    doc: Maximum overlap value (0 is no maximum) `.`
+  autocorr:
+    type: boolean
+    default: true
+    doc: Flag autocorrelations `?`
+  pulsar:
+    type: boolean
+    default: false
+    doc: Use flagging strategy optimized for pulsar observations `?`
+  pedantic:
+    type: boolean
+    default: false
+    doc: Be more pedantic when flagging `?`
+  keepstatistics:
+    type: boolean
+    default: true
+    doc: Write the quality statistics `?`
+

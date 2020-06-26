@@ -1,0 +1,72 @@
+description: >-
+  Apply an existing calibration to a MeasurementSet.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: applycal
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'applycal' (or 'correct') `.`
+    default: applycal
+  parmdb:
+    type: string
+    doc: Path of parmdb in which the parameters are stored. This can also be an H5Parm file, in that case the filename has to end in '.h5' `.`
+  solset:
+    type: string?
+    doc: >-
+      In case of applying an H5Parm file: the name of the solset to be used.
+      If empty, defaults to the name of one solset present in the H5Parm
+      (if more solsets are present in an H5Parm and solset is left empty,
+       an error will be thrown) `.`
+  correction:
+    type: enum
+    symbols: gain, tec, clock, rotationangle, rotation, scalarphase, scalaramplitude, rotationmeasure, fulljones
+    doc: >-
+      Type of correction to perform, can be one of 'gain', 'tec', 'clock',
+      '(common)rotationangle' / 'rotation', '(common)scalarphase',
+      '(common)scalaramplitude' or 'rotationmeasure'
+      (create multiple ApplyCal steps for multiple corrections).
+      When using H5Parm,
+      this is for now the name of the soltab;
+      the type will be deduced from the metadata in that soltab,
+      except for full Jones, in which case correction should be 'fulljones' `.`
+  soltab:
+    type: string[]?
+    doc: >-
+     The name or names of the H5 soltab.
+     Currently only used when ``correction=fulljones``,
+     in which case soltab should list two names (amplitude and phase soltab).
+  direction:
+    type: string?
+    doc: If using H5Parm, the direction of the solution to use `.`
+  updateweights:
+    type: boolean?
+    doc: >-
+      Update the weights column, in a way consistent with
+      the weights being inverse proportional to the autocorrelations
+      (e.g. if 'autoweights' was used before) `.`
+  interpolation:
+    default: nearest
+    type: enum
+    symbols: nearest, linear
+    doc: If using H5Parm, the type of interpolation (in time and frequency) to use, can be one of 'nearest' or 'linear' `.`
+  invert:
+    default: true
+    type: boolean?
+    doc: >-
+     Invert the corrections, to correct the data. Default is true.
+     If you want to corrupt the data, set it to ``false``
+  timeslotsperparmupdate:
+    type: int?
+    doc: >-
+      Number of time slots to handle after one read of the parameter file.
+      Optimization to prevent spurious reading from the parmdb `.`
+  interpolation:
+    default: "[]"
+    type: list
+    doc: >-
+      (new in version 3.1) ApplyCal substeps, e.g. [myApplyCal1, myApplyCal2]. 
+      Their parameters can be specified through e.g. 
+      ``<step>.myApplyCal1.correction=tec``. If a parameter is not given for 
+      the substep, it takes the value from ``<step>``.

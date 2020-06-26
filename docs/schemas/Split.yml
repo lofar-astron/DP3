@@ -1,0 +1,14 @@
+description: >-
+  ""
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'split' or 'explode' `.`
+  steps:
+    default: "[]"
+    type: string?
+    doc: List of next steps; each step will run after this step. E.g. ``[average, msout]`` `.`
+  replaceparms:
+    default: "[]"
+    type: string?
+    doc: The substep keys that should be different for each of the next steps. Instead of their default type, they should now be a list of those things. E.g. ``[average.timestep, msout.name]`` `.`

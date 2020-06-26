@@ -1,0 +1,19 @@
+description: >-
+  SetBeam is an expert option and should only be used in rare cases. It allows direct manipulation of the beam-keywords for a 
+  column in a measurement set. Normally, DP3 registers whether the visibilities in a column are corrected for a beam or not, and if so, 
+  in what direction the beam was corrected for. This avoids incorrect corrections / scaling by the beam. However, certain actions 
+  can change the scaling of the visibilities without that the beam keywords are changed, in particular when predicting (either with DP3 or with another tool). 
+  When predicting a single source and not applying the beam, the visibilities are 'corrected' for the beam in the direction of the source. 
+  Under those circumstances, SetBeam can be used to modify the beam keywords. In that case, set ''direction'' to the source direction and ``beammode`` to default.
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'setbeam' `.`
+  direction:
+    default: "[]"
+    type: string?
+    doc: A RA/Dec value specifying in what direction the beam is corrected `.`
+  beammode:
+    default: "default"
+    type: string
+    doc: Beam mode to apply, can be "array_factor", "element" or "default". Default means that sources in the given direction have corrected (intrinsic) flux values, i.e. they are corrected for the full beam `.`
