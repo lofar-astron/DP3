@@ -139,5 +139,4 @@ inputs:
     type: bool
     doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases `.`
   applycal&#46;*:
-    type: 
     doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly `.`
