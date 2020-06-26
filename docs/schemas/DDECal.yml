@@ -141,3 +141,17 @@ inputs:
   applycal&#46;*:
     type: 
     doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly `.`
+  phasereference:
+    default: true
+    type: bool
+    doc: Use phase referencing. This setting is only effective when mode=tec or mode=tecandphase `.`
+  rotationreference:
+    default: true
+    type: bool
+    doc: >-
+      Use rotation referencing with the first antenna as the reference antenna.
+      When enabled, the first antenna gets a rotation angle of 0.
+      The rotation angle of the other antennas will be relative to the first antenna.
+      If the first antenna has no valid data, the second antenna will be the
+      reference antenna, and so on.
+      This setting is only effective when mode=rotation+diagonal `.`
