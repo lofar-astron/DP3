@@ -34,7 +34,7 @@ inputs:
     default: "\"\""
     type: double?
     doc: >-
-      Baselines to keep. See :ref:`Description of baseline selection parameters`. 
+      ???
   corrtype:
     default: '""'
     type: string
