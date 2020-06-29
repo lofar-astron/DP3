@@ -41,19 +41,20 @@ namespace DP3 {
           rownr_t rowNr,
           std::size_t nChannels,
           std::size_t nCorrelations,
-          std::complex<float>* data,
+          std::vector<std::complex<float>>::iterator data,
           std::vector<bool>::iterator flags,
-          float* weights,
-          std::vector<bool>::iterator fullResFlags);
+          std::vector<float>::iterator weights,
+          std::vector<bool>::iterator fullResFlags,
+          const double *const UVW);
 
       double itsTime; ///< Start time for the measurements in MJD seconds.
       double itsExposure; ///< Exposure duration for the measurements in seconds.
       rownr_t itsRowNr;
       std::size_t itsNChannels;
       std::size_t itsNCorrelations;
-      std::complex<float>* itsData; ///< Visibility measurements.
+      std::vector<std::complex<float>>::iterator itsData;
       std::vector<bool>::iterator itsFlags;
-      float* itsWeights;
+      std::vector<float>::iterator itsWeights;
       std::vector<bool>::iterator itsFullResFlags;
       double itsUVW[3];
     };
@@ -75,11 +76,11 @@ namespace DP3 {
                 rownr_t rowNr,
                 std::size_t nChannels,
                 std::size_t nCorrelations,
-                const std::complex<double> *const data = nullptr,
-                const bool *const flags = nullptr,
-                const float *const weights = nullptr,
-                const bool *const fullResFlags = nullptr,
-                const double *const UVW = nullptr);
+                const std::complex<float>* data = nullptr,
+                const bool* flags = nullptr,
+                const float* weights = nullptr,
+                const bool* fullResFlags = nullptr,
+                const double* UVW = nullptr);
 
     const std::vector<std::complex<float>>& getData() const {
       return itsData;
@@ -88,12 +89,57 @@ namespace DP3 {
       return itsData;
     }
 
-    const std::vector<Row>& getRows() const {
-      return itsRows;
+    const std::vector<bool>& getFlags() const {
+      return itsFlags;
+    }
+    std::vector<bool>& getFlags() {
+      return itsFlags;
     }
 
-    std::complex<float>* getData(std::size_t row) {
+    const std::vector<float>& getWeights() const {
+      return itsWeights;
+    }
+    std::vector<float>& getWeights() {
+      return itsWeights;
+    }
+
+    const std::vector<bool>& getFullResFlags() const {
+      return itsFlags;
+    }
+    std::vector<bool>& getFullResFlags() {
+      return itsFlags;
+    }
+
+    std::vector<std::complex<float>>::const_iterator getData(const std::size_t row)  const {
       return itsRows[row].itsData;
+    }
+    std::vector<std::complex<float>>::iterator getData(const std::size_t row) {
+      return itsRows[row].itsData;
+    }
+
+    std::vector<bool>::const_iterator getFlags(const std::size_t row) const {
+      return itsRows[row].itsFlags;
+    }
+    std::vector<bool>::iterator getFlags(const std::size_t row) {
+      return itsRows[row].itsFlags;
+    }
+
+    std::vector<float>::const_iterator getWeights(const std::size_t row) const {
+      return itsRows[row].itsWeights;
+    }
+    std::vector<float>::iterator getWeights(const std::size_t row) {
+      return itsRows[row].itsWeights;
+    }
+
+    std::vector<bool>::const_iterator getFullResFlags(const std::size_t row) const {
+      return itsRows[row].itsFullResFlags;
+    }
+    std::vector<bool>::iterator getFullResFlags(const std::size_t row) {
+      return itsRows[row].itsFullResFlags;
+    }
+
+    const std::vector<Row>& getRows() const {
+      return itsRows;
     }
 
   private:
@@ -105,7 +151,7 @@ namespace DP3 {
     std::vector<bool> itsFullResFlags;
     /// @}
 
-    /// The rows, which contain pointers to the memory pools above.
+    /// The rows, which contain iterators to the memory pools above.
     std::vector<Row> itsRows;
   };
 

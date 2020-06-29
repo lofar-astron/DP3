@@ -8,10 +8,11 @@ namespace DP3 {
                         const rownr_t rowNr,
                         const std::size_t nChannels,
                         const std::size_t nCorrelations,
-                        std::complex<float>* const data,
+                        const std::vector<std::complex<float>>::iterator data,
                         const std::vector<bool>::iterator flags,
-                        float* const weights,
-                        const std::vector<bool>::iterator fullResFlags)
+                        const std::vector<float>::iterator weights,
+                        const std::vector<bool>::iterator fullResFlags,
+                        const double *const UVW)
     : itsTime(time)
     , itsExposure(exposure)
     , itsRowNr(rowNr)
@@ -21,7 +22,9 @@ namespace DP3 {
     , itsFlags(flags)
     , itsWeights(weights)
     , itsFullResFlags(fullResFlags)
-    , itsUVW{ 0.0, 0.0, 0.0 }
+    , itsUVW{ UVW ? UVW[0] : std::nan(""),
+              UVW ? UVW[1] : std::nan(""),
+              UVW ? UVW[2] : std::nan("") }
     {}
 
     BDABuffer::BDABuffer(const std::size_t poolSize)
@@ -38,11 +41,11 @@ namespace DP3 {
                            const rownr_t rowNr,
                            const std::size_t nChannels,
                            const std::size_t nCorrelations,
-                           const std::complex<double> *const data,
-                           const bool *const flags,
-                           const float *const weights,
-                           const bool *const fullResFlags,
-                           const double *const UVW)
+                           const std::complex<float>* const data,
+                           const bool* const flags,
+                           const float* const weights,
+                           const bool* const fullResFlags,
+                           const double* const UVW)
     {
       const std::size_t dataSize = nChannels * nCorrelations;
 
@@ -56,16 +59,37 @@ namespace DP3 {
                            rowNr,
                            nChannels,
                            nCorrelations,
-                           itsData.data() + itsData.size(),
-                           itsFlags.begin() + itsFlags.size(),
-                           itsWeights.data() + itsWeights.size(),
-                           itsFullResFlags.begin() + itsFullResFlags.size());
+                           itsData.end(),
+                           itsFlags.end(),
+                           itsWeights.end(),
+                           itsFullResFlags.end(),
+                           UVW);
       if (data) {
-        itsData.insert(itsData.end(),
-                       data,
-                       data + dataSize);
+        itsData.insert(itsData.end(), data, data + dataSize);
       } else {
-        itsData.insert(itsData.end(), dataSize, 0.0);
+        const std::complex<float> nan(std::nanf(""), std::nanf(""));
+        itsData.insert(itsData.end(), dataSize, nan);
+      }
+
+      if (flags) {
+        itsFlags.insert(itsFlags.end(), flags, flags + dataSize);
+      } else {
+        itsFlags.insert(itsFlags.end(), dataSize, false);
+      }
+
+      if (weights) {
+        itsWeights.insert(itsWeights.end(), weights, weights + dataSize);
+      } else {
+        const float nan = std::nanf("");
+        itsWeights.insert(itsWeights.end(), dataSize, nan);
+      }
+
+      if (fullResFlags) {
+        itsFullResFlags.insert(itsFullResFlags.end(),
+                               fullResFlags,
+                               fullResFlags + dataSize);
+      } else {
+        itsFullResFlags.insert(itsFullResFlags.end(), dataSize, false);
       }
 
       return true;
