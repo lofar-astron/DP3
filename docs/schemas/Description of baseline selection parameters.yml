@@ -17,8 +17,9 @@ inputs:
       Names of baselines to be matched. It can be given as either a vector of vectors or as a casacore MSSelection string. 
       These two methods are mutually exclusive. When in doubt, use the second syntax.1. If given as a vector, a vector 
       element can be a vector of two names giving the stations forming a baseline. For example: ``baseline=[ [CS001,RS003], [CS002,RS005] ]`` 
-      selects baselines CS001-RS003 and CS002-RS005, and ``baseline=[CS401HBA0, CS401HBA1, RS205HBA]`` selects baselines that are formed
-      from any of those antennas. The latter is a typical selection string to remove a few stations with the :doc:`Filter` step.
+      selects baselines CS001-RS003 and CS002-RS005. A common syntax for the :doc:`Filter` is ``baseline=!CS401HBA0,CS401HBA1,RS205HBA``,
+      which filters baselines that are formed
+      from any of those antennas.
       Each name can be a shell-type pattern (with wildcards * ? [] or {}). Thus ``baseline=[ [CS*,RS*] ]`` 
       selects all baselines between core and remote stations. Note that the wildcard characters {} mean OR. They can be used to pair groups of 
       stations (quotes are needed). For example: ``baseline=[ ["{CS001,CS002}","{RS003,RS005}"] ]`` selects baselines CS001-RS003, CS001-RS005, CS002-RS003, 
