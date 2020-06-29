@@ -266,7 +266,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
         constraintPtr = boost::make_unique<TECConstraint>(tecMode);
       }
       constraintPtr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-      itsConstraints.emplace_back(std::move(constraintPtr));
+      itsConstraints.push_back(std::move(constraintPtr));
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = false;
       break;
@@ -283,7 +283,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
     case GainCal::ROTATIONANDDIAGONAL:
     {
       auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
-      constraintPtr->SetDoRotationReference(parset.getBool(prefix + "rotationreference", true));
+      constraintPtr->SetDoRotationReference(parset.getBool(prefix + "rotationreference", false));
       itsConstraints.push_back(std::move(constraintPtr));
       itsFullMatrixMinimalization = true;
       break;

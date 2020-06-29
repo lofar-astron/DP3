@@ -146,7 +146,7 @@ inputs:
     type: bool
     doc: Use phase referencing. This setting is only effective when mode=tec or mode=tecandphase `.`
   rotationreference:
-    default: true
+    default: false
     type: bool
     doc: >-
       Use rotation referencing with the first antenna as the reference antenna.
