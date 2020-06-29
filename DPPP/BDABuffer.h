@@ -47,24 +47,34 @@ namespace DP3 {
           std::vector<bool>::iterator fullResFlags,
           const double *const UVW);
 
-      double itsTime; ///< Start time for the measurements in MJD seconds.
-      double itsExposure; ///< Exposure duration for the measurements in seconds.
-      rownr_t itsRowNr;
-      std::size_t itsNChannels;
-      std::size_t itsNCorrelations;
-      std::vector<std::complex<float>>::iterator itsData;
-      std::vector<bool>::iterator itsFlags;
-      std::vector<float>::iterator itsWeights;
-      std::vector<bool>::iterator itsFullResFlags;
+      const double itsTime; ///< Start time for the measurements in MJD seconds.
+      const double itsExposure; ///< Exposure duration for the measurements in seconds.
+      const rownr_t itsRowNr;
+      const std::size_t itsNChannels;
+      const std::size_t itsNCorrelations;
+      const std::vector<std::complex<float>>::iterator itsData;
+      const std::vector<bool>::iterator itsFlags;
+      const std::vector<float>::iterator itsWeights;
+      const std::vector<bool>::iterator itsFullResFlags;
       double itsUVW[3];
     };
     
   public:
     /**
+     * Create a new BDABuffer.
      * @param poolSize Size of the memory pool for this buffer
      *                 (number of complex values)
      */
     explicit BDABuffer(std::size_t poolSize);
+
+    /**
+     * Copy constructor.
+     * This constructor sets the memory pool size to the
+     * actual memory usage of the other buffer.
+     * Adding new rows to the new buffer is not possible.
+     * @param other An existing BDABuffer.
+     */
+    explicit BDABuffer(const BDABuffer& other);
 
     /**
      * Add a measurement line to the buffer.

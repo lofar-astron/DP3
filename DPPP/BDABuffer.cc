@@ -1,3 +1,21 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
 #include "BDABuffer.h"
 
 namespace DP3 {
@@ -28,12 +46,46 @@ namespace DP3 {
     {}
 
     BDABuffer::BDABuffer(const std::size_t poolSize)
-        : itsData(), itsFlags(), itsWeights(), itsFullResFlags(), itsRows()
+    : itsData(), itsFlags(), itsWeights(), itsFullResFlags(), itsRows()
     {
       itsData.reserve(poolSize);
       itsFlags.reserve(poolSize);
       itsWeights.reserve(poolSize);
       itsFullResFlags.reserve(poolSize);
+    }
+
+    BDABuffer::BDABuffer(const BDABuffer& other)
+    : itsData(other.itsData)
+    , itsFlags(other.itsFlags)
+    , itsWeights(other.itsWeights)
+    , itsFullResFlags(other.itsFullResFlags)
+    , itsRows()
+    {
+      // Copy rows but set their iterators to the new memory pools.
+      auto dataIt = itsData.begin();
+      auto flagsIt = itsFlags.begin();
+      auto weightsIt = itsWeights.begin();
+      auto fullResFlagsIt = itsFullResFlags.begin();
+
+      itsRows.reserve(other.itsRows.size());
+      for (const auto& row : other.itsRows) {
+        itsRows.emplace_back(row.itsTime,
+                             row.itsExposure,
+                             row.itsRowNr,
+                             row.itsNChannels,
+                             row.itsNCorrelations,
+                             dataIt,
+                             flagsIt,
+                             weightsIt,
+                             fullResFlagsIt,
+                             row.itsUVW);
+
+        const std::size_t dataSize = row.itsNChannels * row.itsNCorrelations;
+        dataIt += dataSize;
+        flagsIt += dataSize;
+        weightsIt += dataSize;
+        fullResFlagsIt += dataSize;
+      }
     }
 
     bool BDABuffer::addRow(const double time,
