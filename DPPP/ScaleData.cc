@@ -217,31 +217,17 @@ namespace DP3 {
       return true;
     }
 
-    bool ScaleData::process (std::shared_ptr<BDABuffer>& bdaBuf)
+    bool ScaleData::process (std::unique_ptr<BDABuffer> bdaBuf)
     {
       itsTimer.start();
       // Apply the scale factors.
       const IPosition shp = itsFactors.shape();
-      std::vector<std::complex<float>>& bdaData = bdaBuf->getData();
-      for(auto const& address: bdaData) {
-
-        // Get the casacube of the address the bdaData floats are pointing to
-        casacore::Cube<casacore::Complex>* visiblities = std::addressof(address);
-        assert (visiblities->shape() == shp);
-
-        // Multiply the data and factors giving a new data array.
-        Array<Complex> data(shp);
-        arrayContTransform (static_cast<const Array<Complex>&>(*visiblities),
-                            static_cast<const Array<double>&>(itsFactors),
-                            data,
-                            casacore::Multiplies<Complex,double,Complex>());
-
-        // Let the address point to the scaled data
-        auto newData = static_cast<casacore::Cube<casacore::Complex>&>(data);
-        visiblities = &data;
+      // TODO: check if IPosition matches the shape of bdaBuf
+      for( const auto& value: bdaBuf->getData() ) {
+        // TODO: Multiply 'value' by the corresponding value from itsFactors
       }
       itsTimer.stop();
-      getNextStep()->process (bdaBuf);
+      getNextStep()->process(std::move(bdaBuf));
       return true;
     }
 

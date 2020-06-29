@@ -84,7 +84,7 @@ namespace DP3 {
       /// Process the BDA data.
       /// When processed, it invokes the process function of the next step.
       /// It should return False at the end.
-      virtual bool process (std::shared_ptr<BDABuffer>&) {
+      virtual bool process (std::unique_ptr<BDABuffer>) {
         throw std::runtime_error("Step does not support BDA data processing.");
       };
 

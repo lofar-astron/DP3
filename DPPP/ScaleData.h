@@ -69,7 +69,7 @@ namespace DP3 {
       /// Process the DBA data.
       /// It keeps the data.
       /// When processed, it invokes the process function of the next step.
-      virtual bool process (std::shared_ptr<BDABuffer>&) override;
+      bool process (std::unique_ptr<BDABuffer>) override;
 
       /// Finish the processing of this step and subsequent steps.
       virtual void finish();
