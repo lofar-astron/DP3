@@ -220,12 +220,18 @@ namespace DP3 {
     bool ScaleData::process (std::unique_ptr<BDABuffer> bdaBuf)
     {
       itsTimer.start();
+
+      const std::vector<double>& factors = static_cast<const Array<double>&>(itsFactors).tovector();
+      std::vector<std::complex<float>>& data = bdaBuf->getData();
+
+      // Verify vectors are the same size
+      assert (bdaBuf->getData().size() == factors.size());
+
       // Apply the scale factors.
-      const IPosition shp = itsFactors.shape();
-      // TODO: check if IPosition matches the shape of bdaBuf
-      for( const auto& value: bdaBuf->getData() ) {
-        // TODO: Multiply 'value' by the corresponding value from itsFactors
+      for (size_t i = 0; i < data.size(); ++i) {
+        data[i] = data[i] * factors[i];
       }
+      
       itsTimer.stop();
       getNextStep()->process(std::move(bdaBuf));
       return true;
