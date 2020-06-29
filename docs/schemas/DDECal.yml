@@ -67,11 +67,11 @@ inputs:
   flagdivergedonly:
     default: false
     type: bool
-    doc: Flag only the unconverged solutions for which divergence was detected. At the moment, this option is effective only for rotation+diagonal solves, where divergence is detected when the amplitudes of any station are found to be more than a factor of 5 from the mean amplitude over all stations. If divergence for any one station is detected, all stations are flagged for that solution interval. Only effective when flagunconverged=true and mode=rotation+diagonal `.`
+    doc: Flag only the unconverged solutions for which divergence was detected. At the moment, this option is effective only for rotation+diagonal solves, where divergence is detected when the amplitudes of any station are found to be more than a factor of 5 from the mean amplitude over all stations. If divergence for any one station is detected, all stations are flagged for that solution interval. Only effective when ``flagunconverged=true`` and ``mode=rotation+diagonal`` `.`
   approximatetec:
     default: false
     type: bool
-    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when mode=tec or mode=tecandphase `.`
+    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
   maxapproxiter:
     default: maxiter/2
     type: int
@@ -144,7 +144,7 @@ inputs:
   phasereference:
     default: true
     type: bool
-    doc: Use phase referencing. This setting is only effective when mode=tec or mode=tecandphase `.`
+    doc: Use phase referencing. This setting is only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
   rotationreference:
     default: false
     type: bool
@@ -154,4 +154,4 @@ inputs:
       The rotation angle of the other antennas will be relative to the first antenna.
       If the first antenna has no valid data, the second antenna will be the
       reference antenna, and so on.
-      This setting is only effective when mode=rotation+diagonal `.`
+      This setting is only effective when ``mode=rotation+diagonal`` `.`
