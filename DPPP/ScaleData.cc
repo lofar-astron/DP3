@@ -221,17 +221,15 @@ namespace DP3 {
     {
       itsTimer.start();
 
-      const auto& factors = static_cast<const Array<double>&>(itsFactors);
       std::vector<std::complex<float>>& data = bdaBuf->getData();
 
       // Verify vectors are the same size
-      assert (data.size() == factors.shape().size());
+      assert (data.size() == itsFactors.shape().size());
 
       // Apply the scale factors.
       size_t i = 0;
-      Array<double>::const_iterator iterend(factors.end());
-      for (Array<double>::const_iterator iter=factors.begin(); iter!=iterend; ++iter) {
-        data[i] *= *iter;
+      for (const double& factor : itsFactors) {
+        data[i] *= factor;
         ++i;
       }
 
