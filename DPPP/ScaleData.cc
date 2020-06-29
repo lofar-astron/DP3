@@ -23,6 +23,7 @@
 
 #include "ScaleData.h"
 #include "DPBuffer.h"
+#include "BDABuffer.h"
 #include "DPInfo.h"
 #include "Exceptions.h"
 
@@ -213,6 +214,34 @@ namespace DP3 {
       bufNew.setData (data);
       itsTimer.stop();
       getNextStep()->process (bufNew);
+      return true;
+    }
+
+    bool ScaleData::process (std::shared_ptr<BDABuffer>& bdaBuf)
+    {
+      itsTimer.start();
+      // Apply the scale factors.
+      const IPosition shp = itsFactors.shape();
+      std::vector<std::complex<float>>& bdaData = bdaBuf->getData();
+      for(auto const& address: bdaData) {
+
+        // Get the casacube of the address the bdaData floats are pointing to
+        casacore::Cube<casacore::Complex>* visiblities = std::addressof(address);
+        assert (visiblities->shape() == shp);
+
+        // Multiply the data and factors giving a new data array.
+        Array<Complex> data(shp);
+        arrayContTransform (static_cast<const Array<Complex>&>(*visiblities),
+                            static_cast<const Array<double>&>(itsFactors),
+                            data,
+                            casacore::Multiplies<Complex,double,Complex>());
+
+        // Let the address point to the scaled data
+        auto newData = static_cast<casacore::Cube<casacore::Complex>&>(data);
+        visiblities = &data;
+      }
+      itsTimer.stop();
+      getNextStep()->process (bdaBuf);
       return true;
     }
 
