@@ -23,7 +23,23 @@
 
 using namespace std;
 
+namespace
+{
+  bool dataIsValid( const std::complex<double>* const data, const std::size_t size ) {
+    for ( std::size_t i = 0; i < size; ++i ) {
+      if ( std::isnan(data[i].real()) || std::isnan(data[i].imag()) ) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
 namespace DP3 {
+
+RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
+: _res()
+, _doRotationReference(false) {}
 
 void RotationAndDiagonalConstraint::InitializeDimensions(size_t nAntennas,
                                                          size_t nDirections,
@@ -71,12 +87,16 @@ void RotationAndDiagonalConstraint::SetWeights(const vector<double>& weights) {
   _res[2].weights = _res[1].weights; // TODO directions!
 }
 
+void RotationAndDiagonalConstraint::SetDoRotationReference(const bool doRotationReference) {
+  _doRotationReference = doRotationReference;
+}
+
 vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     vector<vector<dcomplex> >& solutions, double,
     std::ostream* statStream)
 {
   if (statStream) *statStream<<"["; // begin channel
-  double angle0;
+  double angle0 = std::nan("");
   for (unsigned int ch=0; ch<_nChannelBlocks; ++ch) {
     if (statStream) *statStream<<"["; // begin antenna
 
@@ -85,9 +105,14 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     double amean = 0.0;
     double bmean = 0.0;
     for (unsigned int ant=0; ant<_nAntennas; ++ant) {
-      // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
 
+      // Skip this antenna if has no valid data.
+      if ( !dataIsValid(data, 4) ) {  
+        continue;
+      }
+
+      // Compute rotation
       double angle = RotationConstraint::get_rotation(data);
       // Restrict angle between -pi/2 and pi/2
       // Add 2pi to make sure that fmod doesn't see negative numbers
@@ -115,10 +140,16 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     // Now iterate again to do the actual constraining
     bool diverged = false;
     for (unsigned int ant=0; ant<_nAntennas; ++ant) {
-      // Compute rotation
       complex<double> *data = &(solutions[ch][4*ant]);
 
+      // Skip this antenna if has no valid data.
+      if ( !dataIsValid(data, 4) ) {  
+        continue;
+      }
+
+      // Compute rotation
       double angle = RotationConstraint::get_rotation(data);
+
       // Restrict angle between -pi/2 and pi/2
       // Add 2pi to make sure that fmod doesn't see negative numbers
       angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
@@ -155,15 +186,19 @@ vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         } while (abs(b)/bmean > maxratio);
       }
 
-      // Use station 0 as reference station (for every chanblock), to work
-      // around unitary ambiguity
-      if (ant==0) {
-        angle0 = angle;
-        angle = 0.;
-      } else {
-        angle -= angle0;
-        angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+      if (_doRotationReference)
+      {
+        // Use the first station with a non-NaN angle as reference station
+        // (for every chanblock), to work around unitary ambiguity
+        if ( isnan(angle0) ) {
+          angle0 = angle;
+          angle = 0.;
+        } else {
+          angle -= angle0;
+          angle = fmod(angle + 3.5*M_PI, M_PI) - 0.5*M_PI;
+        }
       }
+
       _res[0].vals[ant*_nChannelBlocks + ch] = angle;  // TODO directions!
       _res[1].vals[ant*_nChannelBlocks*2 + 2*ch    ] = abs(a);
       _res[1].vals[ant*_nChannelBlocks*2 + 2*ch + 1] = abs(b);

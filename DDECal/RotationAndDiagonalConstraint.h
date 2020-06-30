@@ -29,7 +29,7 @@ namespace DP3 {
 class RotationAndDiagonalConstraint : public Constraint
 {
 public:
-  RotationAndDiagonalConstraint() {};
+  RotationAndDiagonalConstraint();
   
   virtual std::vector<Result> Apply(
                     std::vector<std::vector<dcomplex> >& solutions,
@@ -41,8 +41,11 @@ public:
 
   virtual void SetWeights(const std::vector<double>& weights);
 
+  void SetDoRotationReference(bool doRotationReference);
+
 private:
   std::vector<Constraint::Result> _res;
+  bool _doRotationReference;
 };
 
 } // namespace LOFAR

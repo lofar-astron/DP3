@@ -57,6 +57,7 @@
 #include <utility>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/make_unique.hpp>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
@@ -247,40 +248,29 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
       break;
     case GainCal::TEC:
     case GainCal::TECANDPHASE:
+    {
+      const auto tecMode = (itsMode == GainCal::TEC) ?
+        TECConstraint::TECOnlyMode :
+        TECConstraint::TECAndCommonScalarMode;
+      std::unique_ptr<TECConstraint> constraintPtr;
+
       itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
-      if(itsApproximateTEC)
-      {
-        int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
-        int chunksize = parset.getInt(prefix + "approxchunksize", 0);
-        std::unique_ptr<ApproximateTECConstraint> ptr;
-        if(itsMode == GainCal::TEC)
-          ptr = std::unique_ptr<ApproximateTECConstraint>(
-            new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
-        else
-          ptr = std::unique_ptr<ApproximateTECConstraint>(
-            new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
-        ptr->SetMaxApproximatingIterations(iters);
-        ptr->SetFittingChunkSize(chunksize);
-        ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-        itsConstraints.emplace_back(std::move(ptr));
+      if(itsApproximateTEC) {
+        const int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
+        const int chunksize = parset.getInt(prefix + "approxchunksize", 0);
+        auto approxConstraint = boost::make_unique<ApproximateTECConstraint>(tecMode);
+        approxConstraint->SetMaxApproximatingIterations(iters);
+        approxConstraint->SetFittingChunkSize(chunksize);
+        constraintPtr = std::move(approxConstraint);
+      } else {
+        constraintPtr = boost::make_unique<TECConstraint>(tecMode);
       }
-      else {
-        if(itsMode == GainCal::TEC)
-        {
-          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECOnlyMode));
-          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-          itsConstraints.emplace_back(std::move(ptr));
-        }
-        else
-        {
-          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
-          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-          itsConstraints.emplace_back(std::move(ptr));
-        }
-      }
+      constraintPtr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
+      itsConstraints.push_back(std::move(constraintPtr));
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = false;
       break;
+    }
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
       itsConstraints.emplace_back(new ScreenConstraint(parset, prefix+"tecscreen."));
@@ -291,9 +281,13 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
 #endif
       break;
     case GainCal::ROTATIONANDDIAGONAL:
-      itsConstraints.emplace_back(new RotationAndDiagonalConstraint());
+    {
+      auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
+      constraintPtr->SetDoRotationReference(parset.getBool(prefix + "rotationreference", false));
+      itsConstraints.push_back(std::move(constraintPtr));
       itsFullMatrixMinimalization = true;
       break;
+    }
     case GainCal::ROTATION:
       itsConstraints.emplace_back(new RotationConstraint());
       itsFullMatrixMinimalization = true;
