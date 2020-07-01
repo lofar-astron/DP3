@@ -133,15 +133,12 @@ For BDA data, the exposure duration of a time step is different for each Row.
 For gathering BDA data for a time interval, an additional BDAIntervalBuffer
 class will be necessary. It should provide the following functionality
 to a step:
-- Store BDABuffers
-- Detect if all relevant data for a time interval is present.
-- Provide the data for a time interval. The result should take
+- Set an initial time interval as the current time interval.
+- Store data from BDABuffers.
+- Detect if all relevant data for the current time interval is present.
+- Provide the data for the current time interval. The result should take
   the BDABuffer start
   time and exposure duration into account, since they may not match the start
   time and duration of the requested time interval.
-- Update the data in stored BDABuffers. The BDAIntervalBuffer should *not*
-  use the updated data when providing data for a time interval: It should
-  always use the original buffer data for that operation.
-- Detect when BDABuffers are no longer needed, and return these buffers
-  to the step. The returned BDABuffers should include all updates, as
-  described above.
+- Advance the current time interval. The BDAIntervalBuffer should then
+  discard stored data that is no longer necessary.
