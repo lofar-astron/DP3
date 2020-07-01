@@ -224,7 +224,7 @@ namespace DP3 {
       std::vector<std::complex<float>>& data = bdaBuf->getData();
 
       // Verify vectors are the same size
-      assert (data.size() == itsFactors.shape().size());
+      assert (data.size() == itsFactors.nelements());
 
       // Apply the scale factors.
       size_t i = 0;
