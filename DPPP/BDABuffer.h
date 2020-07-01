@@ -95,6 +95,14 @@ namespace DP3 {
                 const bool* fullResFlags = nullptr,
                 const double* UVW = nullptr);
 
+    /**
+     * Clears all data in the buffer.
+     *
+     * The memory pool capacity of the buffer remains unchanged, which allows
+     * reusing the buffer.
+     */
+    void clear();
+
     const std::vector<std::complex<float>>& getData() const {
       return itsData;
     }

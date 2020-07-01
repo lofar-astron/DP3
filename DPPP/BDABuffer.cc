@@ -151,5 +151,14 @@ namespace DP3 {
 
       return true;
     }
+
+    void BDABuffer::clear()
+    {
+      itsData.clear();
+      itsFlags.clear();
+      itsWeights.clear();
+      itsFullResFlags.clear();
+      itsRows.clear();
+    }
   }
 }
