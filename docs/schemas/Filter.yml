@@ -29,12 +29,12 @@ inputs:
     default: "\"\""
     type: string
     doc: >-
-      Baselines to keep. See :ref:`Description of baseline selection parameters`. 
+      Baseline to keep using a selection string. See :ref:`Description of baseline selection parameters`. 
   blrange:
     default: "\"\""
-    type: double?
+    type: array
     doc: >-
-      Baselines to keep. See :ref:`Description of baseline selection parameters`. 
+      Baseline to keep using a range. See :ref:`Description of baseline selection parameters`. 
   corrtype:
     default: '""'
     type: string
