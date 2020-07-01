@@ -70,19 +70,19 @@ private:
 BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
 {
   int ntime {10};
-  int nbl {4};
-  int nchan {4};
-  int ncorr {4};
+  int nbl {2};
+  int nchan {1};
+  int ncorr {2};
 
   // Preparation
   ParameterSet parset;
   parset.add ("stations", "[rs01.s01, *]");
-  parset.add ("coeffs", "[[2,0.5],[3,2,1]]");
+  parset.add ("coeffs", "[[2,1],[3,2,1]]");
   parset.add ("scalesize", "false");
   
   DPInfo info = DPInfo();
   info.init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
-  // Fill the baseline stations; use 4 stations.
+  // Fill the baseline stations; use 2 stations.
   // So they are called 00 01 02 03 10 11 12 13 20, etc.
   Vector<Int> ant1(nbl);
   Vector<Int> ant2(nbl);
@@ -91,35 +91,29 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   for (int i=0; i<nbl; ++i) {
     ant1[i] = st1;
     ant2[i] = st2;
-    if (++st2 == 4) {
+    if (++st2 == 2) {
       st2 = 0;
-      if (++st1 == 4) {
+      if (++st1 == 2) {
         st1 = 0;
       }
     }
   }
-  Vector<String> antNames(4);
+  Vector<String> antNames(2);
   antNames[0] = "rs01.s01";
   antNames[1] = "rs02.s01";
-  antNames[2] = "cs01.s01";
-  antNames[3] = "cs01.s02";
   // Define their positions (more or less WSRT RT0-3).
-  vector<MPosition> antPos(4);
+  vector<MPosition> antPos(2);
   Vector<double> vals(3);
   vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
   antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
   vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
   antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
-  vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-  antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
-  vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-  antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
-  Vector<double> antDiam(4, 70.);
+  Vector<double> antDiam(2, 70.);
   info.set(antNames, antDiam, antPos, ant1, ant2);
   // Define the frequencies.
-  Vector<double> chanWidth(nchan, 1000000.);
+  Vector<double> chanWidth(nchan, 3.);
   Vector<double> chanFreqs(nchan);
-  indgen (chanFreqs, 10500000., 1000000.);
+  indgen (chanFreqs, 1., 3.);
   info.set (chanFreqs, chanWidth);
 
   std::shared_ptr<ScaleData> stepScaleData(new ScaleData(nullptr, parset, ""));
@@ -138,14 +132,13 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
 
   // // Execution
   stepScaleData->process(std::move(bdaBuffer));
-
   // Assertion
   const auto results = stepTestOutput->itsResults->getData();
-  for (int ind = 0; ind < datasize; ++ind)
-  {
-    const std::complex<float> data = ind + 2;
-    BOOST_CHECK_EQUAL(data * 2, results[ind]);
-  }
+  // size shoule be equal to datasize
+  BOOST_CHECK_EQUAL(size_t {4}, results.size());
+  BOOST_CHECK(near(4., results[0].real()));
+  BOOST_CHECK(near(7.3485, results[2].real()));
+  // Results 1 and 3 are close to zero
 }
 
 BOOST_AUTO_TEST_SUITE_END()
