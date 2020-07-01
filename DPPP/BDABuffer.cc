@@ -24,6 +24,7 @@ namespace DP3 {
     BDABuffer::Row::Row(const double time,
                         const double exposure,
                         const rownr_t rowNr,
+                        const std::size_t baselineNr,
                         const std::size_t nChannels,
                         const std::size_t nCorrelations,
                         const std::vector<std::complex<float>>::iterator data,
@@ -34,6 +35,7 @@ namespace DP3 {
     : itsTime(time)
     , itsExposure(exposure)
     , itsRowNr(rowNr)
+    , itsBaselineNr(baselineNr)
     , itsNChannels(nChannels)
     , itsNCorrelations(nCorrelations)
     , itsData(data)
@@ -72,6 +74,7 @@ namespace DP3 {
         itsRows.emplace_back(row.itsTime,
                              row.itsExposure,
                              row.itsRowNr,
+                             row.itsBaselineNr,
                              row.itsNChannels,
                              row.itsNCorrelations,
                              dataIt,
@@ -91,6 +94,7 @@ namespace DP3 {
     bool BDABuffer::addRow(const double time,
                            const double exposure,
                            const rownr_t rowNr,
+                           const std::size_t baselineNr,
                            const std::size_t nChannels,
                            const std::size_t nCorrelations,
                            const std::complex<float>* const data,
@@ -109,6 +113,7 @@ namespace DP3 {
       itsRows.emplace_back(time,
                            exposure,
                            rowNr,
+                           baselineNr,
                            nChannels,
                            nCorrelations,
                            itsData.end(),

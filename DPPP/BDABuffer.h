@@ -39,6 +39,7 @@ namespace DP3 {
       Row(double time,
           double exposure,
           rownr_t rowNr,
+          std::size_t baselineNr,
           std::size_t nChannels,
           std::size_t nCorrelations,
           std::vector<std::complex<float>>::iterator data,
@@ -50,6 +51,7 @@ namespace DP3 {
       const double itsTime; ///< Start time for the measurements in MJD seconds.
       const double itsExposure; ///< Exposure duration for the measurements in seconds.
       const rownr_t itsRowNr;
+      const std::size_t itsBaselineNr;
       const std::size_t itsNChannels;
       const std::size_t itsNCorrelations;
       const std::vector<std::complex<float>>::iterator itsData;
@@ -84,6 +86,7 @@ namespace DP3 {
     bool addRow(double time,
                 double exposure,
                 rownr_t rowNr,
+                std::size_t baselineNr,
                 std::size_t nChannels,
                 std::size_t nCorrelations,
                 const std::complex<float>* data = nullptr,
