@@ -28,8 +28,12 @@ inputs:
   applycal&#46;*:
     doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb `.`
   onebeamperpatch:
+    type: string?
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   usechannelfreq:
+    type: boolean?
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   beammode:
+    type: enum
+    symbols: array_factor, element, default
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`

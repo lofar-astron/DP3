@@ -87,23 +87,32 @@ inputs:
     doc: >-
       Debugging. If debuglevel==1, then a file debug.h5 is created containing all iterands. This file will be very large; you can use it to check the convergence speed etc `.`
   sourcedb:
+    type: string
     doc: >-
       Same as in :ref:`Predict` step `.`
   sources:
+    default: "[]"
+    type: string?
     doc: >-
       Same as in :ref:`Predict` step `.`
   usebeammodel:
+    default: false
+    type: bool
     doc: >-
       Same as in :ref:`Predict` step `.`
   applycal&#46;*:
     doc: >-
       ApplyCal sub-step, same as in :ref:`Predict` step `.`
   onebeamperpatch:
+    type: string?
     doc: >-
       Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   usechannelfreq:
+    type: boolean?
     doc: >-
       Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   beammode:
+    type: enum
+    symbols: array_factor, element, default
     doc: >-
       Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
