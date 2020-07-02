@@ -3,24 +3,19 @@
 ## Introduction
 Baseline Dependent Averaging(BDA) aims at reducing the amount of data in a
 Measurement Set(MS) by averaging measurements that provide similar information.
-The following criteria determine the similarity of a measurement:
-- The length of the baseline. Measurements with short baselines are more
-  similar than measurements with long baselines.
-- The frequency. Measurements for low frequencies are less similar than 
-  for high
-  frequencies. (Is this statement correct???)
+Shorter baselines can be averaged more in both the time and frequency direction.
 
 ## Current situation
 
-- A [DPBuffer](@ref DP3::DPPP::DPBuffer) has a regular multidimensional
+- A [RegularBuffer](@ref DP3::DPPP::DPBuffer) has a regular multidimensional
   cube structure:
   - Main layout: 
   - The length of a time step is equal for all baselines.
-  - A DPBuffer contains the measurements for a single time step.
+  - A RegularBuffer contains the measurements for a single time step.
   - The amount of frequency channels is equal for all baselines.
     All channels have the same size.
-- The [DPStep::process()](@ref DP3::DPPP::DPStep::process) function has a
-  single [DPBuffer](@ref DP3::DPPP::DPBuffer) argument. It processes
+- The [process()](@ref DP3::DPPP::DPStep::process) function of a step has a
+  single RegularBuffer argument. It processes
   the measurements for a single time step.
 
 ## Requirements
@@ -51,7 +46,7 @@ DP3 should support the following:
 ### Non-requirements
 
 The following processing steps explicitly do have to support BDA data,
-since it is impossible:
+since it is not necessary:
 - Average
 - AOFlagger
 - Interpolate
@@ -70,21 +65,23 @@ will receive and send data in the requested format.
 
 ### DPStep structure
 
-DPSteps can support BDA data using a new process() function for BDA data.
+The DPStep interface can support BDA data using a new virtual process()
+function for BDA data.
 The default implementatation for this function will throw an exception.
-The existing process() function for regular data, which is now abstract,
+The existing virtual abstract process() function for regular data,
 should also get a default implementation that throws an exception. In code:
 
     class DPStep {
     public:
-      virtual bool process(DPBuffer) { throw exception; } // Process regular data.
+      virtual bool process(RegularBuffer) { throw exception; } // Process regular data.
       virtual bool process(BDABuffer) { throw exception; } // Process BDA data.
     };
 
-With these two process functions, a DPStep can support
-regular and/or BDA data: Existing DPSteps, which only support regular
+With these two process functions, a step class, which implements the
+DPStep interface, can support regular and/or BDA data:
+Existing step classes, which only support regular
 data will remain working. Adding support for BDA data can be done
-incrementally, one DPStep at a time.
+incrementally, one step class at a time.
 
 A disadvantage of this approach is that DPSteps will become larger and
 more complex: They may get two modes of operation, which
@@ -103,6 +100,7 @@ different rows may have different amounts of channels. In code:
     struct Row {
       double time;
       double exposure;
+      std::size_t baselineNr;
       Matrix<complex> data(nChannels, nPolarisations);
       Matrix<bool> flags(nChannels, nPolarisations);
       Matrix<float> weights(nChannels, nPolarisations);
@@ -142,3 +140,11 @@ to a step:
   time and duration of the requested time interval.
 - Advance the current time interval. The BDAIntervalBuffer should then
   discard stored data that is no longer necessary.
+
+With this functionality, updating the original data in BDABuffers
+inside the BDAIntervalBuffer, and retreiving the updated BDABuffers, is
+impossible. Therefore, we can't immediately implement e.g. DDECal's subtract
+task for BDA data and apply solutions directly ("applysolutions=true")
+inside the calibrate task. During a later restructuring of DP3 we
+will make streams more generic and implement BDABuffer updates
+in separate subtract and apply tasks that have that functionality."
