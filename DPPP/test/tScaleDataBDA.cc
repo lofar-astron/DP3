@@ -47,26 +47,26 @@ class TestOutput: public DPStep
 {
 public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
-    : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
-      itsNCorr(ncorr) {}
+    : count_(0), ntime_(ntime), nbl_(nbl), nchan_(nchan),
+      ncorr_(ncorr) {}
 public:
-  std::unique_ptr<BDABuffer> itsResults;
+  std::unique_ptr<BDABuffer> results_;
 private:
   virtual bool process (const DPBuffer&) { return true; }
   virtual bool process (std::unique_ptr<BDABuffer> results) { 
-    itsResults = std::move(results);
+    results_ = std::move(results);
     return true; 
   }
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& infoIn) {}
 private:
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  int count_;
+  int ntime_, nbl_, nchan_, ncorr_;
 };
 
 // Generate DP Info for 2 antennas
-DPInfo generateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
+DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   DPInfo info = DPInfo();
   info.init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
   // Fill the baseline stations; use 2 stations.
@@ -85,23 +85,23 @@ DPInfo generateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
       }
     }
   }
-  Vector<String> antNames(2);
-  antNames[0] = "rs01.s01";
-  antNames[1] = "rs02.s01";
+  Vector<String> ant_names(2);
+  ant_names[0] = "rs01.s01";
+  ant_names[1] = "rs02.s01";
   // Define their positions (more or less WSRT RT0-3).
-  vector<MPosition> antPos(2);
+  vector<MPosition> ant_pos(2);
   Vector<double> vals(3);
   vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-  antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
+  ant_pos[0] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
   vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-  antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
+  ant_pos[1] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
   Vector<double> antDiam(2, 70.);
-  info.set(antNames, antDiam, antPos, ant1, ant2);
+  info.set(ant_names, antDiam, ant_pos, ant1, ant2);
   // Define the frequencies.
-  Vector<double> chanWidth(nchan, 3.);
-  Vector<double> chanFreqs(nchan);
-  indgen (chanFreqs, 1., 3.);
-  info.set (chanFreqs, chanWidth);
+  Vector<double> chan_width(nchan, 3.);
+  Vector<double> chan_freqs(nchan);
+  indgen (chan_freqs, 1., 3.);
+  info.set (chan_freqs, chan_width);
 
   return info;
 }
@@ -120,27 +120,27 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   parset.add ("coeffs", "[[2,1],[3,2,1]]");
   parset.add ("scalesize", "false");
 
-  DPInfo info = generateDPInfo(ntime, nbl, nchan, ncorr);
+  DPInfo info = GenerateDPInfo(ntime, nbl, nchan, ncorr);
 
-  std::shared_ptr<ScaleData> stepScaleData(new ScaleData(nullptr, parset, ""));
-  std::shared_ptr<TestOutput> stepTestOutput(new TestOutput(ntime, nbl, nchan, ncorr));
-  stepScaleData->setNextStep (stepTestOutput);
-  stepScaleData->setInfo(info);
+  std::shared_ptr<ScaleData> step_scale_data(new ScaleData(nullptr, parset, ""));
+  std::shared_ptr<TestOutput> step_test_output(new TestOutput(ntime, nbl, nchan, ncorr));
+  step_scale_data->setNextStep (step_test_output);
+  step_scale_data->setInfo(info);
 
   // Initialize buffer
   const int datasize {nbl * nchan * ncorr};
-  std::unique_ptr<BDABuffer> bdaBuffer { new BDABuffer(datasize) };
+  std::unique_ptr<BDABuffer> bda_buffer { new BDABuffer(datasize) };
   for (int ind = 0; ind < nbl * nantennas; ++ind)
   {
     const std::complex<float> data = ind + 1;
-    bdaBuffer->AddRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data, nullptr, nullptr, nullptr, nullptr);
+    bda_buffer->AddRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data, nullptr, nullptr, nullptr, nullptr);
   }
 
   // // Execution
-  stepScaleData->process(std::move(bdaBuffer));
+  step_scale_data->process(std::move(bda_buffer));
 
   // Assertion
-  const auto results = stepTestOutput->itsResults->GetData();
+  const auto results = step_test_output->results_->GetData();
   // size shoule be equal to datasize
   BOOST_CHECK_EQUAL(size_t {4}, results.size());
   BOOST_CHECK(near(4., results[0].real()));

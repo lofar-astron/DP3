@@ -217,11 +217,11 @@ namespace DP3 {
       return true;
     }
 
-    bool ScaleData::process (std::unique_ptr<BDABuffer> bdaBuf)
+    bool ScaleData::process (std::unique_ptr<BDABuffer> bda_buffer)
     {
       itsTimer.start();
 
-      std::vector<std::complex<float>>& data = bdaBuf->GetData();
+      std::vector<std::complex<float>>& data = bda_buffer->GetData();
 
       // Verify vectors are the same size
       assert (data.size() == itsFactors.nelements());
@@ -234,7 +234,7 @@ namespace DP3 {
       }
 
       itsTimer.stop();
-      getNextStep()->process(std::move(bdaBuf));
+      getNextStep()->process(std::move(bda_buffer));
       return true;
     }
 
