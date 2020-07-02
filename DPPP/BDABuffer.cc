@@ -85,11 +85,11 @@ namespace DP3 {
                            full_res_flags_it,
                            row.uvw_);
 
-        const std::size_t data_size = row.n_channels_ * row.n_correlations_;
-        data_it += data_size;
-        flags_it += data_size;
-        weights_it += data_size;
-        full_res_flags_it += data_size;
+        const std::size_t kDataSize = row.n_channels_ * row.n_correlations_;
+        data_it += kDataSize;
+        flags_it += kDataSize;
+        weights_it += kDataSize;
+        full_res_flags_it += kDataSize;
       }
     }
 
@@ -105,10 +105,10 @@ namespace DP3 {
                            const bool* const full_res_flags,
                            const double* const uvw)
     {
-      const std::size_t data_size = n_channels * n_correlations;
+      const std::size_t kDataSize = n_channels * n_correlations;
 
       // Check if there is enough capacity left.
-      if ((data_.capacity() - data_.size()) < data_size) {
+      if ((data_.capacity() - data_.size()) < kDataSize) {
         return false;
       }
 
@@ -124,31 +124,31 @@ namespace DP3 {
                          full_res_flags_.end(),
                          uvw);
       if (data) {
-        data_.insert(data_.end(), data, data + data_size);
+        data_.insert(data_.end(), data, data + kDataSize);
       } else {
         const std::complex<float> nan(std::nanf(""), std::nanf(""));
-        data_.insert(data_.end(), data_size, nan);
+        data_.insert(data_.end(), kDataSize, nan);
       }
 
       if (flags) {
-        flags_.insert(flags_.end(), flags, flags + data_size);
+        flags_.insert(flags_.end(), flags, flags + kDataSize);
       } else {
-        flags_.insert(flags_.end(), data_size, false);
+        flags_.insert(flags_.end(), kDataSize, false);
       }
 
       if (weights) {
-        weights_.insert(weights_.end(), weights, weights + data_size);
+        weights_.insert(weights_.end(), weights, weights + kDataSize);
       } else {
         const float nan = std::nanf("");
-        weights_.insert(weights_.end(), data_size, nan);
+        weights_.insert(weights_.end(), kDataSize, nan);
       }
 
       if (full_res_flags) {
         full_res_flags_.insert(full_res_flags_.end(),
                                full_res_flags,
-                               full_res_flags + data_size);
+                               full_res_flags + kDataSize);
       } else {
-        full_res_flags_.insert(full_res_flags_.end(), data_size, false);
+        full_res_flags_.insert(full_res_flags_.end(), kDataSize, false);
       }
 
       return true;
