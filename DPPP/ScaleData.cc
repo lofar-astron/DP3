@@ -221,16 +221,15 @@ namespace DP3 {
     {
       itsTimer.start();
 
-      std::vector<std::complex<float>>& data = bda_buffer->GetData();
+      std::complex<float>* data = bda_buffer->GetData();
 
       // Verify vectors are the same size
-      assert (data.size() == itsFactors.nelements());
+      assert (bda_buffer->GetNumberOfElements() == itsFactors.nelements());
 
       // Apply the scale factors.
-      size_t i = 0;
       for (const double& factor : itsFactors) {
-        data[i] *= factor;
-        ++i;
+        *data *= factor;
+        ++data;
       }
 
       itsTimer.stop();

@@ -25,6 +25,7 @@
 #define DPPP_BDABUFFER_H
 
 #include "../Common/Types.h"
+#include "../Common/UVector.h"
 
 #include <complex>
 #include <vector>
@@ -42,10 +43,10 @@ namespace DP3 {
             std::size_t baseline_nr,
             std::size_t n_channels,
             std::size_t n_correlations,
-            std::vector<std::complex<float>>::iterator data,
-            std::vector<bool>::iterator flags,
-            std::vector<float>::iterator weights,
-            std::vector<bool>::iterator fullResFlags,
+            std::complex<float>* data,
+            bool* flags,
+            float* weights,
+            bool* fullResFlags,
             const double* uvw);
 
         const double time_; ///< Start time for the measurements in MJD seconds.
@@ -54,20 +55,28 @@ namespace DP3 {
         const std::size_t baseline_nr_;
         const std::size_t n_channels_;
         const std::size_t n_correlations_;
-        const std::vector<std::complex<float>>::iterator data_;
-        const std::vector<bool>::iterator flags_;
-        const std::vector<float>::iterator weights_;
-        const std::vector<bool>::iterator full_res_flags_;
+        std::complex<float>* const data_;
+        bool* const flags_;
+        float* const weights_;
+        bool* const full_res_flags_;
         double uvw_[3];
       };
       
     public:
       /**
        * Create a new BDABuffer.
-       * @param poolSize Size of the memory pool for this buffer
+       * @param pool_size Size of the memory pool for this buffer
        *                 (number of complex values)
+       * @param enable_data Enable the data buffer.
+       * @param enable_flags Enable the flags buffer.
+       * @param enable_weights Enable the weights buffer.
+       * @param enable_full_res_flags Enable the full res flags buffer.
        */
-      explicit BDABuffer(std::size_t pool_size);
+      explicit BDABuffer(std::size_t pool_size,
+                         bool enable_data = true,
+                         bool enable_flags = true,
+                         bool enable_weights = true,
+                         bool enable_full_res_flags = true);
 
       /**
        * Copy constructor.
@@ -102,60 +111,66 @@ namespace DP3 {
        * reusing the buffer.
        */
       void Clear();
-
-      const std::vector<std::complex<float>>& GetData() const {
-        return data_;
+      
+      /**
+       * Determine the number of stored elements in all rows.
+       * @return The total number of elements in this buffer.
+       */
+      std::size_t GetNumberOfElements() const;
+      
+      const std::complex<float>* GetData() const {
+        return data_.empty() ? nullptr : data_.data();
       }
-      std::vector<std::complex<float>>& GetData() {
-        return data_;
-      }
-
-      const std::vector<bool>& GetFlags() const {
-        return flags_;
-      }
-      std::vector<bool>& GetFlags() {
-        return flags_;
-      }
-
-      const std::vector<float>& GetWeights() const {
-        return weights_;
-      }
-      std::vector<float>& GetWeights() {
-        return weights_;
+      std::complex<float>* GetData() {
+        return data_.empty() ? nullptr : data_.data();
       }
 
-      const std::vector<bool>& GetFullResFlags() const {
-        return flags_;
+      const bool* GetFlags() const {
+        return flags_.empty() ? nullptr : flags_.data();
       }
-      std::vector<bool>& GetFullResFlags() {
-        return flags_;
+      bool* GetFlags() {
+        return flags_.empty() ? nullptr : flags_.data();
       }
 
-      std::vector<std::complex<float>>::const_iterator GetData(std::size_t row)  const {
+      const float* GetWeights() const {
+        return weights_.empty() ? nullptr : weights_.data();
+      }
+      float* GetWeights() {
+        return weights_.empty() ? nullptr : weights_.data();
+      }
+
+      const bool* GetFullResFlags() const {
+        return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
+      }
+      bool* GetFullResFlags() {
+        return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
+      }
+
+      const std::complex<float>* GetData(std::size_t row)  const {
         return rows_[row].data_;
-      }const
-      std::vector<std::complex<float>>::iterator GetData(std::size_t row) {
+      }
+      std::complex<float>* GetData(std::size_t row) {
         return rows_[row].data_;
       }
 
-      std::vector<bool>::const_iterator GetFlags(std::size_t row) const {
+      const bool* GetFlags(std::size_t row) const {
         return rows_[row].flags_;
       }
-      std::vector<bool>::iterator GetFlags(std::size_t row) {
+      bool* GetFlags(std::size_t row) {
         return rows_[row].flags_;
       }
 
-      std::vector<float>::const_iterator GetWeights(std::size_t row) const {
+      const float* GetWeights(std::size_t row) const {
         return rows_[row].weights_;
       }
-      std::vector<float>::iterator GetWeights(std::size_t row) {
+      float* GetWeights(std::size_t row) {
         return rows_[row].weights_;
       }
 
-      std::vector<bool>::const_iterator GetFullResFlags(std::size_t row) const {
+      const bool* GetFullResFlags(std::size_t row) const {
         return rows_[row].full_res_flags_;
       }
-      std::vector<bool>::iterator GetFullResFlags(std::size_t row) {
+      bool* GetFullResFlags(std::size_t row) {
         return rows_[row].full_res_flags_;
       }
 
@@ -180,16 +195,19 @@ namespace DP3 {
       }
 
     private:
-      /// Memory pools for the data in the rows.
+      /// Memory pools for the data in the rows. Since std::vector<bool>
+      /// does not support pointers to its elements, use ao::uvector instead.
       /// @{
-      std::vector<std::complex<float>> data_;
-      std::vector<bool> flags_;
-      std::vector<float> weights_;
-      std::vector<bool> full_res_flags_;
+      ao::uvector<std::complex<float>> data_;
+      ao::uvector<bool> flags_;
+      ao::uvector<float> weights_;
+      ao::uvector<bool> full_res_flags_;
       /// @}
 
       /// The rows, which contain iterators to the memory pools above.
       std::vector<Row> rows_;
+      
+      std::size_t remaining_capacity_; ///< Remaining capacity (number of items)
     };
 
   }

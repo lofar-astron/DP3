@@ -18,6 +18,7 @@
 
 #include "BDABuffer.h"
 
+#include <algorithm>
 #include <limits>
   
 namespace DP3 {
@@ -29,10 +30,10 @@ namespace DP3 {
                         std::size_t baseline_nr,
                         std::size_t n_channels,
                         std::size_t n_correlations,
-                        const std::vector<std::complex<float>>::iterator data,
-                        const std::vector<bool>::iterator flags,
-                        const std::vector<float>::iterator weights,
-                        const std::vector<bool>::iterator full_res_flags,
+                        std::complex<float>* data,
+                        bool* flags,
+                        float* weights,
+                        bool* full_res_flags,
                         const double *const uvw)
     : time_(time)
     , interval_(interval)
@@ -49,13 +50,37 @@ namespace DP3 {
             uvw ? uvw[2] : std::numeric_limits<double>::quiet_NaN() }
     {}
 
-    BDABuffer::BDABuffer(const std::size_t pool_size)
-    : data_(), flags_(), weights_(), full_res_flags_(), rows_()
+    BDABuffer::BDABuffer(const std::size_t pool_size,
+                         const bool enable_data,
+                         const bool enable_flags,
+                         const bool enable_weights,
+                         const bool enable_full_res_flags)
+    : data_()
+    , flags_()
+    , weights_()
+    , full_res_flags_()
+    , rows_()
+    , remaining_capacity_(0)
     {
-      data_.reserve(pool_size);
-      flags_.reserve(pool_size);
-      weights_.reserve(pool_size);
-      full_res_flags_.reserve(pool_size);
+      const std::size_t kElementSize =
+        (enable_data ? sizeof(data_[0]) : 0) +
+        (enable_flags ? sizeof(flags_[0]) : 0) +
+        (enable_weights ? sizeof(weights_[0]) : 0) +
+        (enable_full_res_flags ? sizeof(full_res_flags_[0]) : 0);
+      remaining_capacity_ = std::min(pool_size / kElementSize, std::size_t{1});
+      
+      if (enable_data) {
+        data_.reserve(remaining_capacity_);
+      }
+      if (enable_flags) {
+        flags_.reserve(remaining_capacity_);
+      }
+      if (enable_weights) {
+        weights_.reserve(remaining_capacity_);
+      }
+      if (enable_full_res_flags) {
+        full_res_flags_.reserve(remaining_capacity_);
+      }
     }
 
     BDABuffer::BDABuffer(const BDABuffer& other)
@@ -64,6 +89,7 @@ namespace DP3 {
     , weights_(other.weights_)
     , full_res_flags_(other.full_res_flags_)
     , rows_()
+    , remaining_capacity_(0)
     {
       // Copy rows but set their iterators to the new memory pools.
       auto data_it = data_.begin();
@@ -93,6 +119,21 @@ namespace DP3 {
       }
     }
 
+    void BDABuffer::Clear()
+    {
+      data_.clear();
+      flags_.clear();
+      weights_.clear();
+      full_res_flags_.clear();
+      rows_.clear();
+    }
+    
+    std::size_t BDABuffer::GetNumberOfElements() const
+    {
+      return std::max({data_.size(), flags_.size(),
+                       weights_.size(), full_res_flags_.size()});
+    }
+
     bool BDABuffer::AddRow(double time,
                            double interval,
                            rownr_t row_nr,
@@ -110,10 +151,55 @@ namespace DP3 {
       }
       
       const std::size_t kDataSize = n_channels * n_correlations;
-
-      // Check if there is enough capacity left.
-      if ((data_.capacity() - data_.size()) < kDataSize) {
+      
+      if (remaining_capacity_ < kDataSize) {
         return false;
+      }
+      remaining_capacity_ -= kDataSize;
+
+      std::complex<float>* row_data = nullptr;
+      bool* row_flags = nullptr;
+      float* row_weights = nullptr;
+      bool* row_full_res_flags = nullptr;
+
+      if (data_.capacity() > 0) {
+        row_data = data_.end();
+        if (data) {
+          data_.insert(data_.end(), data, data + kDataSize);
+        } else {
+          const float kNaN = std::numeric_limits<float>::quiet_NaN();
+          data_.insert(data_.end(), kDataSize, { kNaN, kNaN });
+        }
+      }
+      
+      if (flags_.capacity() > 0) {
+        row_flags = flags_.end();
+        if (flags) {
+          flags_.insert(flags_.end(), flags, flags + kDataSize);
+        } else {
+          flags_.insert(flags_.end(), kDataSize, false);
+        }
+      }
+
+      if (weights_.capacity() > 0) {
+        row_weights = weights_.end();
+        if (weights) {
+          weights_.insert(weights_.end(), weights, weights + kDataSize);
+        } else {
+          const float kNaN = std::numeric_limits<float>::quiet_NaN();
+          weights_.insert(weights_.end(), kDataSize, kNaN);
+        }
+      }
+      
+      if (full_res_flags_.capacity() > 0) {
+        row_full_res_flags = full_res_flags_.end();
+        if (full_res_flags) {
+          full_res_flags_.insert(full_res_flags_.end(),
+                                 full_res_flags,
+                                 full_res_flags + kDataSize);
+        } else {
+          full_res_flags_.insert(full_res_flags_.end(), kDataSize, false);
+        }
       }
 
       rows_.emplace_back(time,
@@ -122,49 +208,13 @@ namespace DP3 {
                          baseline_nr,
                          n_channels,
                          n_correlations,
-                         data_.end(),
-                         flags_.end(),
-                         weights_.end(),
-                         full_res_flags_.end(),
+                         row_data,
+                         row_flags,
+                         row_weights,
+                         row_full_res_flags,
                          uvw);
-      if (data) {
-        data_.insert(data_.end(), data, data + kDataSize);
-      } else {
-        const std::complex<float> nan(std::nanf(""), std::nanf(""));
-        data_.insert(data_.end(), kDataSize, nan);
-      }
-
-      if (flags) {
-        flags_.insert(flags_.end(), flags, flags + kDataSize);
-      } else {
-        flags_.insert(flags_.end(), kDataSize, false);
-      }
-
-      if (weights) {
-        weights_.insert(weights_.end(), weights, weights + kDataSize);
-      } else {
-        const float nan = std::nanf("");
-        weights_.insert(weights_.end(), kDataSize, nan);
-      }
-
-      if (full_res_flags) {
-        full_res_flags_.insert(full_res_flags_.end(),
-                               full_res_flags,
-                               full_res_flags + kDataSize);
-      } else {
-        full_res_flags_.insert(full_res_flags_.end(), kDataSize, false);
-      }
 
       return true;
-    }
-
-    void BDABuffer::Clear()
-    {
-      data_.clear();
-      flags_.clear();
-      weights_.clear();
-      full_res_flags_.clear();
-      rows_.clear();
     }
   }
 }
