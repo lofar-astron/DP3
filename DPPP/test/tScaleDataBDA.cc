@@ -65,21 +65,8 @@ private:
   int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
-// TODO test with an output step that does not support BDA buffer
-
-BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
-{
-  int ntime {10};
-  int nbl {2};
-  int nchan {1};
-  int ncorr {2};
-
-  // Preparation
-  ParameterSet parset;
-  parset.add ("stations", "[rs01.s01, *]");
-  parset.add ("coeffs", "[[2,1],[3,2,1]]");
-  parset.add ("scalesize", "false");
-  
+// Generate DP Info for 2 antennas
+DPInfo generateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   DPInfo info = DPInfo();
   info.init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
   // Fill the baseline stations; use 2 stations.
@@ -116,6 +103,25 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   indgen (chanFreqs, 1., 3.);
   info.set (chanFreqs, chanWidth);
 
+  return info;
+}
+
+BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
+{
+  int ntime {10};
+  int nbl {2};
+  int nchan {1};
+  int ncorr {2};
+  int nantennas {2};
+
+  // Preparation
+  ParameterSet parset;
+  parset.add ("stations", "[rs01.s01, *]");
+  parset.add ("coeffs", "[[2,1],[3,2,1]]");
+  parset.add ("scalesize", "false");
+
+  DPInfo info = generateDPInfo(ntime, nbl, nchan, ncorr);
+
   std::shared_ptr<ScaleData> stepScaleData(new ScaleData(nullptr, parset, ""));
   std::shared_ptr<TestOutput> stepTestOutput(new TestOutput(ntime, nbl, nchan, ncorr));
   stepScaleData->setNextStep (stepTestOutput);
@@ -124,21 +130,22 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   // Initialize buffer
   const int datasize {nbl * nchan * ncorr};
   std::unique_ptr<BDABuffer> bdaBuffer { new BDABuffer(datasize) };
-  for (int ind = 0; ind < nbl; ++ind)
+  for (int ind = 0; ind < nbl * nantennas; ++ind)
   {
-    const std::complex<float> data = ind + 2;
-    bdaBuffer->addRow(ntime, 5., ind, nchan, ncorr, &data, nullptr, nullptr, nullptr, nullptr);
+    const std::complex<float> data = ind + 1;
+    bdaBuffer->addRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data, nullptr, nullptr, nullptr, nullptr);
   }
 
   // // Execution
   stepScaleData->process(std::move(bdaBuffer));
+
   // Assertion
   const auto results = stepTestOutput->itsResults->getData();
   // size shoule be equal to datasize
   BOOST_CHECK_EQUAL(size_t {4}, results.size());
   BOOST_CHECK(near(4., results[0].real()));
-  BOOST_CHECK(near(7.3485, results[2].real()));
-  // Results 1 and 3 are close to zero
+  BOOST_CHECK(near(9.798, results[2].real()));
+  // Results 1 and 3 are close to zero, but slightly different every test.
 }
 
 BOOST_AUTO_TEST_SUITE_END()
