@@ -221,7 +221,7 @@ namespace DP3 {
     {
       itsTimer.start();
 
-      std::vector<std::complex<float>>& data = bdaBuf->getData();
+      std::vector<std::complex<float>>& data = bdaBuf->GetData();
 
       // Verify vectors are the same size
       assert (data.size() == itsFactors.nelements());

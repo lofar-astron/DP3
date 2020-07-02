@@ -49,10 +49,10 @@ namespace DP3 {
 
       /**
        * Add new data to the interval.
-       * @param buffer A BDA buffer.
+       * @param buffer A BDA buffer. The interval buffer copies all necessary content.
        * @throw std::invalid_argument If the buffer is invalid.
        */
-      void addBuffer(std::unique_ptr<BDABuffer> buffer);
+      void AddBuffer(const BDABuffer& buffer);
 
       /**
        * Advance the time interval.
@@ -65,7 +65,7 @@ namespace DP3 {
        * 
        * @param exposure Duration for the new interval, in seconds.
        */
-      void advance(double exposure);
+      void Advance(double exposure);
 
       /**
        * Check if all data is present for the current time interval.
@@ -73,14 +73,14 @@ namespace DP3 {
        * @return True if all baselines have data that cover the current
        *         time interval, false otherwise.
        */
-      bool isComplete() { return itsIncomplete.empty(); }
+      bool IsComplete() { return incomplete_.empty(); }
 
       /**
        * Get the BDA rows that match the current time interval for one baseline.
        * @param baseline The index of the requested baseline.
        * @throw std::invalid_argument If baseline is invalid.
        */
-      std::list<BDARowIterator> getBaseline(std::size_t baseline);
+      std::list<BDARowIterator> GetBaseline(std::size_t baseline);
 
     private:
       bool baselineIsComplete(std::size_t baselineNr) const;
@@ -89,16 +89,16 @@ namespace DP3 {
       void removeOldBuffers();
 
     private:
-      double itsTime; ///< Start time of current interval.
-      double itsExposure; ///< Exposure time / duration of current interval.
+      double time_; ///< Start time of current interval.
+      double interval_; ///< Duration of current interval.
 
-      std::list<std::unique_ptr<BDABuffer>> itsBuffers;
+      std::list<std::unique_ptr<BDABuffer>> buffers_;
 
       /// Contains an ordered collection of all rows for each baseline.
-      std::vector<std::list<BDARowIterator>> itsBaselines;
+      std::vector<std::list<BDARowIterator>> baselines_;
 
       /// Contains the numbers of the baselines that are not complete.
-      std::set<std::size_t> itsIncomplete;
+      std::set<std::size_t> incomplete_;
     };
 
   }

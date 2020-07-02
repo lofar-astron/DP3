@@ -18,147 +18,149 @@
 
 #include "BDABuffer.h"
 
+#include <limits>
+
 namespace DP3 {
   namespace DPPP {
 
-    BDABuffer::Row::Row(const double time,
-                        const double exposure,
-                        const rownr_t rowNr,
-                        const std::size_t baselineNr,
-                        const std::size_t nChannels,
-                        const std::size_t nCorrelations,
+    BDABuffer::Row::Row(double time,
+                        double interval,
+                        rownr_t row_nr,
+                        std::size_t baseline_nr,
+                        std::size_t n_channels,
+                        std::size_t n_correlations,
                         const std::vector<std::complex<float>>::iterator data,
                         const std::vector<bool>::iterator flags,
                         const std::vector<float>::iterator weights,
-                        const std::vector<bool>::iterator fullResFlags,
-                        const double *const UVW)
-    : itsTime(time)
-    , itsExposure(exposure)
-    , itsRowNr(rowNr)
-    , itsBaselineNr(baselineNr)
-    , itsNChannels(nChannels)
-    , itsNCorrelations(nCorrelations)
-    , itsData(data)
-    , itsFlags(flags)
-    , itsWeights(weights)
-    , itsFullResFlags(fullResFlags)
-    , itsUVW{ UVW ? UVW[0] : std::nan(""),
-              UVW ? UVW[1] : std::nan(""),
-              UVW ? UVW[2] : std::nan("") }
+                        const std::vector<bool>::iterator full_res_flags,
+                        const double *const uvw)
+    : time_(time)
+    , interval_(interval)
+    , row_nr_(row_nr)
+    , baseline_nr_(baseline_nr)
+    , n_channels_(n_channels)
+    , n_correlations_(n_correlations)
+    , data_(data)
+    , flags_(flags)
+    , weights_(weights)
+    , full_res_flags_(full_res_flags)
+    , uvw_{ uvw ? uvw[0] : std::numeric_limits<double>::quiet_NaN(),
+            uvw ? uvw[1] : std::numeric_limits<double>::quiet_NaN(),
+            uvw ? uvw[2] : std::numeric_limits<double>::quiet_NaN() }
     {}
 
-    BDABuffer::BDABuffer(const std::size_t poolSize)
-    : itsData(), itsFlags(), itsWeights(), itsFullResFlags(), itsRows()
+    BDABuffer::BDABuffer(const std::size_t pool_size)
+    : data_(), flags_(), weights_(), full_res_flags_(), rows_()
     {
-      itsData.reserve(poolSize);
-      itsFlags.reserve(poolSize);
-      itsWeights.reserve(poolSize);
-      itsFullResFlags.reserve(poolSize);
+      data_.reserve(pool_size);
+      flags_.reserve(pool_size);
+      weights_.reserve(pool_size);
+      full_res_flags_.reserve(pool_size);
     }
 
     BDABuffer::BDABuffer(const BDABuffer& other)
-    : itsData(other.itsData)
-    , itsFlags(other.itsFlags)
-    , itsWeights(other.itsWeights)
-    , itsFullResFlags(other.itsFullResFlags)
-    , itsRows()
+    : data_(other.data_)
+    , flags_(other.flags_)
+    , weights_(other.weights_)
+    , full_res_flags_(other.full_res_flags_)
+    , rows_()
     {
       // Copy rows but set their iterators to the new memory pools.
-      auto dataIt = itsData.begin();
-      auto flagsIt = itsFlags.begin();
-      auto weightsIt = itsWeights.begin();
-      auto fullResFlagsIt = itsFullResFlags.begin();
+      auto data_it = data_.begin();
+      auto flags_it = flags_.begin();
+      auto weights_it = weights_.begin();
+      auto full_res_flags_it = full_res_flags_.begin();
 
-      itsRows.reserve(other.itsRows.size());
-      for (const auto& row : other.itsRows) {
-        itsRows.emplace_back(row.itsTime,
-                             row.itsExposure,
-                             row.itsRowNr,
-                             row.itsBaselineNr,
-                             row.itsNChannels,
-                             row.itsNCorrelations,
-                             dataIt,
-                             flagsIt,
-                             weightsIt,
-                             fullResFlagsIt,
-                             row.itsUVW);
+      rows_.reserve(other.rows_.size());
+      for (const auto& row : other.rows_) {
+        rows_.emplace_back(row.time_,
+                           row.interval_,
+                           row.row_nr_,
+                           row.baseline_nr_,
+                           row.n_channels_,
+                           row.n_correlations_,
+                           data_it,
+                           flags_it,
+                           weights_it,
+                           full_res_flags_it,
+                           row.uvw_);
 
-        const std::size_t dataSize = row.itsNChannels * row.itsNCorrelations;
-        dataIt += dataSize;
-        flagsIt += dataSize;
-        weightsIt += dataSize;
-        fullResFlagsIt += dataSize;
+        const std::size_t data_size = row.n_channels_ * row.n_correlations_;
+        data_it += data_size;
+        flags_it += data_size;
+        weights_it += data_size;
+        full_res_flags_it += data_size;
       }
     }
 
-    bool BDABuffer::addRow(const double time,
-                           const double exposure,
-                           const rownr_t rowNr,
-                           const std::size_t baselineNr,
-                           const std::size_t nChannels,
-                           const std::size_t nCorrelations,
+    bool BDABuffer::AddRow(double time,
+                           double interval,
+                           rownr_t row_nr,
+                           std::size_t baseline_nr,
+                           std::size_t n_channels,
+                           std::size_t n_correlations,
                            const std::complex<float>* const data,
                            const bool* const flags,
                            const float* const weights,
-                           const bool* const fullResFlags,
-                           const double* const UVW)
+                           const bool* const full_res_flags,
+                           const double* const uvw)
     {
-      const std::size_t dataSize = nChannels * nCorrelations;
+      const std::size_t data_size = n_channels * n_correlations;
 
       // Check if there is enough capacity left.
-      if ((itsData.capacity() - itsData.size()) < dataSize) {
+      if ((data_.capacity() - data_.size()) < data_size) {
         return false;
       }
 
-      itsRows.emplace_back(time,
-                           exposure,
-                           rowNr,
-                           baselineNr,
-                           nChannels,
-                           nCorrelations,
-                           itsData.end(),
-                           itsFlags.end(),
-                           itsWeights.end(),
-                           itsFullResFlags.end(),
-                           UVW);
+      rows_.emplace_back(time,
+                         interval,
+                         row_nr,
+                         baseline_nr,
+                         n_channels,
+                         n_correlations,
+                         data_.end(),
+                         flags_.end(),
+                         weights_.end(),
+                         full_res_flags_.end(),
+                         uvw);
       if (data) {
-        itsData.insert(itsData.end(), data, data + dataSize);
+        data_.insert(data_.end(), data, data + data_size);
       } else {
         const std::complex<float> nan(std::nanf(""), std::nanf(""));
-        itsData.insert(itsData.end(), dataSize, nan);
+        data_.insert(data_.end(), data_size, nan);
       }
 
       if (flags) {
-        itsFlags.insert(itsFlags.end(), flags, flags + dataSize);
+        flags_.insert(flags_.end(), flags, flags + data_size);
       } else {
-        itsFlags.insert(itsFlags.end(), dataSize, false);
+        flags_.insert(flags_.end(), data_size, false);
       }
 
       if (weights) {
-        itsWeights.insert(itsWeights.end(), weights, weights + dataSize);
+        weights_.insert(weights_.end(), weights, weights + data_size);
       } else {
         const float nan = std::nanf("");
-        itsWeights.insert(itsWeights.end(), dataSize, nan);
+        weights_.insert(weights_.end(), data_size, nan);
       }
 
-      if (fullResFlags) {
-        itsFullResFlags.insert(itsFullResFlags.end(),
-                               fullResFlags,
-                               fullResFlags + dataSize);
+      if (full_res_flags) {
+        full_res_flags_.insert(full_res_flags_.end(),
+                               full_res_flags,
+                               full_res_flags + data_size);
       } else {
-        itsFullResFlags.insert(itsFullResFlags.end(), dataSize, false);
+        full_res_flags_.insert(full_res_flags_.end(), data_size, false);
       }
 
       return true;
     }
 
-    void BDABuffer::clear()
+    void BDABuffer::Clear()
     {
-      itsData.clear();
-      itsFlags.clear();
-      itsWeights.clear();
-      itsFullResFlags.clear();
-      itsRows.clear();
+      data_.clear();
+      flags_.clear();
+      weights_.clear();
+      full_res_flags_.clear();
+      rows_.clear();
     }
   }
 }

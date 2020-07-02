@@ -32,149 +32,149 @@
 namespace DP3 {
   namespace DPPP {
 
-  class BDABuffer
-  {
-  public:
-    struct Row {
-      Row(double time,
-          double exposure,
-          rownr_t rowNr,
-          std::size_t baselineNr,
-          std::size_t nChannels,
-          std::size_t nCorrelations,
-          std::vector<std::complex<float>>::iterator data,
-          std::vector<bool>::iterator flags,
-          std::vector<float>::iterator weights,
-          std::vector<bool>::iterator fullResFlags,
-          const double *const UVW);
+    class BDABuffer
+    {
+    public:
+      struct Row {
+        Row(double time,
+            double interval,
+            rownr_t row_nr,
+            std::size_t baseline_nr,
+            std::size_t n_channels,
+            std::size_t n_correlations,
+            std::vector<std::complex<float>>::iterator data,
+            std::vector<bool>::iterator flags,
+            std::vector<float>::iterator weights,
+            std::vector<bool>::iterator fullResFlags,
+            const double* uvw);
 
-      const double itsTime; ///< Start time for the measurements in MJD seconds.
-      const double itsExposure; ///< Exposure duration for the measurements in seconds.
-      const rownr_t itsRowNr;
-      const std::size_t itsBaselineNr;
-      const std::size_t itsNChannels;
-      const std::size_t itsNCorrelations;
-      const std::vector<std::complex<float>>::iterator itsData;
-      const std::vector<bool>::iterator itsFlags;
-      const std::vector<float>::iterator itsWeights;
-      const std::vector<bool>::iterator itsFullResFlags;
-      double itsUVW[3];
+        const double time_; ///< Start time for the measurements in MJD seconds.
+        const double interval_; ///< Duration time for the measurements in seconds.
+        const rownr_t row_nr_;
+        const std::size_t baseline_nr_;
+        const std::size_t n_channels_;
+        const std::size_t n_correlations_;
+        const std::vector<std::complex<float>>::iterator data_;
+        const std::vector<bool>::iterator flags_;
+        const std::vector<float>::iterator weights_;
+        const std::vector<bool>::iterator full_res_flags_;
+        double uvw_[3];
+      };
+      
+    public:
+      /**
+       * Create a new BDABuffer.
+       * @param poolSize Size of the memory pool for this buffer
+       *                 (number of complex values)
+       */
+      explicit BDABuffer(std::size_t pool_size);
+
+      /**
+       * Copy constructor.
+       * This constructor sets the memory pool size to the
+       * actual memory usage of the other buffer.
+       * Adding new rows to the new buffer is not possible.
+       * @param other An existing BDABuffer.
+       */
+      explicit BDABuffer(const BDABuffer& other);
+
+      /**
+       * Add a measurement line to the buffer.
+       * @return True if the line is added.
+       *         False if the buffer is full.
+       */
+      bool AddRow(double time,
+                  double interval,
+                  rownr_t row_nr,
+                  std::size_t baseline_nr,
+                  std::size_t n_channels,
+                  std::size_t n_correlations,
+                  const std::complex<float>* data = nullptr,
+                  const bool* flags = nullptr,
+                  const float* weights = nullptr,
+                  const bool* full_res_flags = nullptr,
+                  const double* uvw = nullptr);
+
+      /**
+       * Clears all data in the buffer.
+       *
+       * The memory pool capacity of the buffer remains unchanged, which allows
+       * reusing the buffer.
+       */
+      void Clear();
+
+      const std::vector<std::complex<float>>& GetData() const {
+        return data_;
+      }
+      std::vector<std::complex<float>>& GetData() {
+        return data_;
+      }
+
+      const std::vector<bool>& GetFlags() const {
+        return flags_;
+      }
+      std::vector<bool>& GetFlags() {
+        return flags_;
+      }
+
+      const std::vector<float>& GetWeights() const {
+        return weights_;
+      }
+      std::vector<float>& GetWeights() {
+        return weights_;
+      }
+
+      const std::vector<bool>& GetFullResFlags() const {
+        return flags_;
+      }
+      std::vector<bool>& GetFullResFlags() {
+        return flags_;
+      }
+
+      std::vector<std::complex<float>>::const_iterator GetData(std::size_t row)  const {
+        return rows_[row].data_;
+      }const
+      std::vector<std::complex<float>>::iterator GetData(std::size_t row) {
+        return rows_[row].data_;
+      }
+
+      std::vector<bool>::const_iterator GetFlags(std::size_t row) const {
+        return rows_[row].flags_;
+      }
+      std::vector<bool>::iterator GetFlags(std::size_t row) {
+        return rows_[row].flags_;
+      }
+
+      std::vector<float>::const_iterator GetWeights(std::size_t row) const {
+        return rows_[row].weights_;
+      }
+      std::vector<float>::iterator GetWeights(std::size_t row) {
+        return rows_[row].weights_;
+      }
+
+      std::vector<bool>::const_iterator GetFullResFlags(std::size_t row) const {
+        return rows_[row].full_res_flags_;
+      }
+      std::vector<bool>::iterator GetFullResFlags(std::size_t row) {
+        return rows_[row].full_res_flags_;
+      }
+
+      const std::vector<Row>& GetRows() const {
+        return rows_;
+      }
+
+    private:
+      /// Memory pools for the data in the rows.
+      /// @{
+      std::vector<std::complex<float>> data_;
+      std::vector<bool> flags_;
+      std::vector<float> weights_;
+      std::vector<bool> full_res_flags_;
+      /// @}
+
+      /// The rows, which contain iterators to the memory pools above.
+      std::vector<Row> rows_;
     };
-    
-  public:
-    /**
-     * Create a new BDABuffer.
-     * @param poolSize Size of the memory pool for this buffer
-     *                 (number of complex values)
-     */
-    explicit BDABuffer(std::size_t poolSize);
-
-    /**
-     * Copy constructor.
-     * This constructor sets the memory pool size to the
-     * actual memory usage of the other buffer.
-     * Adding new rows to the new buffer is not possible.
-     * @param other An existing BDABuffer.
-     */
-    explicit BDABuffer(const BDABuffer& other);
-
-    /**
-     * Add a measurement line to the buffer.
-     * @return True if the line is added.
-     *         False if the buffer is full.
-     */
-    bool addRow(double time,
-                double exposure,
-                rownr_t rowNr,
-                std::size_t baselineNr,
-                std::size_t nChannels,
-                std::size_t nCorrelations,
-                const std::complex<float>* data = nullptr,
-                const bool* flags = nullptr,
-                const float* weights = nullptr,
-                const bool* fullResFlags = nullptr,
-                const double* UVW = nullptr);
-
-    /**
-     * Clears all data in the buffer.
-     *
-     * The memory pool capacity of the buffer remains unchanged, which allows
-     * reusing the buffer.
-     */
-    void clear();
-
-    const std::vector<std::complex<float>>& getData() const {
-      return itsData;
-    }
-    std::vector<std::complex<float>>& getData() {
-      return itsData;
-    }
-
-    const std::vector<bool>& getFlags() const {
-      return itsFlags;
-    }
-    std::vector<bool>& getFlags() {
-      return itsFlags;
-    }
-
-    const std::vector<float>& getWeights() const {
-      return itsWeights;
-    }
-    std::vector<float>& getWeights() {
-      return itsWeights;
-    }
-
-    const std::vector<bool>& getFullResFlags() const {
-      return itsFlags;
-    }
-    std::vector<bool>& getFullResFlags() {
-      return itsFlags;
-    }
-
-    std::vector<std::complex<float>>::const_iterator getData(const std::size_t row)  const {
-      return itsRows[row].itsData;
-    }
-    std::vector<std::complex<float>>::iterator getData(const std::size_t row) {
-      return itsRows[row].itsData;
-    }
-
-    std::vector<bool>::const_iterator getFlags(const std::size_t row) const {
-      return itsRows[row].itsFlags;
-    }
-    std::vector<bool>::iterator getFlags(const std::size_t row) {
-      return itsRows[row].itsFlags;
-    }
-
-    std::vector<float>::const_iterator getWeights(const std::size_t row) const {
-      return itsRows[row].itsWeights;
-    }
-    std::vector<float>::iterator getWeights(const std::size_t row) {
-      return itsRows[row].itsWeights;
-    }
-
-    std::vector<bool>::const_iterator getFullResFlags(const std::size_t row) const {
-      return itsRows[row].itsFullResFlags;
-    }
-    std::vector<bool>::iterator getFullResFlags(const std::size_t row) {
-      return itsRows[row].itsFullResFlags;
-    }
-
-    const std::vector<Row>& getRows() const {
-      return itsRows;
-    }
-
-  private:
-    /// Memory pools for the data in the rows.
-    /// @{
-    std::vector<std::complex<float>> itsData;
-    std::vector<bool> itsFlags;
-    std::vector<float> itsWeights;
-    std::vector<bool> itsFullResFlags;
-    /// @}
-
-    /// The rows, which contain iterators to the memory pools above.
-    std::vector<Row> itsRows;
-  };
 
   }
 }
