@@ -41,11 +41,11 @@ namespace DP3 {
     
       /**
        * Constructor.
-       * @param nBaselines Number of baselines.
+       * @param n_baselines Number of baselines.
        * @param time Start time for the first interval, in seconds.
-       * @param exposure Duration for the first interval, in seconds.
+       * @param interval Duration for the first interval, in seconds.
        */
-      BDAIntervalBuffer(std::size_t nBaselines, double time, double exposure);
+      BDAIntervalBuffer(std::size_t n_baselines, double time, double interval);
 
       /**
        * Add new data to the interval.
@@ -63,9 +63,9 @@ namespace DP3 {
        * This function deletes data that is no longer needed for the new interval
        * and future time intervals.
        * 
-       * @param exposure Duration for the new interval, in seconds.
+       * @param interval Duration for the new interval, in seconds.
        */
-      void Advance(double exposure);
+      void Advance(double interval);
 
       /**
        * Check if all data is present for the current time interval.

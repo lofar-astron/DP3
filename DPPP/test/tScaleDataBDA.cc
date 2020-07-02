@@ -133,14 +133,14 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   for (int ind = 0; ind < nbl * nantennas; ++ind)
   {
     const std::complex<float> data = ind + 1;
-    bdaBuffer->addRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data, nullptr, nullptr, nullptr, nullptr);
+    bdaBuffer->AddRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data, nullptr, nullptr, nullptr, nullptr);
   }
 
   // // Execution
   stepScaleData->process(std::move(bdaBuffer));
 
   // Assertion
-  const auto results = stepTestOutput->itsResults->getData();
+  const auto results = stepTestOutput->itsResults->GetData();
   // size shoule be equal to datasize
   BOOST_CHECK_EQUAL(size_t {4}, results.size());
   BOOST_CHECK(near(4., results[0].real()));
