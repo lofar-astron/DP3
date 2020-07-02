@@ -19,7 +19,7 @@
 #include "BDABuffer.h"
 
 #include <limits>
-
+  
 namespace DP3 {
   namespace DPPP {
 
@@ -105,6 +105,10 @@ namespace DP3 {
                            const bool* const full_res_flags,
                            const double* const uvw)
     {
+      if (!rows_.empty() && TimeIsLess(time, rows_.back().time_)) {
+        throw std::invalid_argument("Rows are not ordered by start time");
+      }
+      
       const std::size_t kDataSize = n_channels * n_correlations;
 
       // Check if there is enough capacity left.

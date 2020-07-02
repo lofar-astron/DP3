@@ -23,22 +23,6 @@
 #include <algorithm>
 #include <cassert>
 
-namespace{
-  constexpr double epsilon = 1.0e-8; // For comparing measurement timestamps.
-  
-  constexpr bool IsLessThan(const double x, const double y) {
-    return x < (y - epsilon);
-  }
-  
-  constexpr bool IsGreaterEqual(const double x, const double y) {
-    return x > (y - epsilon);
-  }
-  
-  constexpr bool IsEqual(const double x, const double y) {
-    return abs(x - y) < epsilon;
-  }
-}
-
 namespace DP3 {
   namespace DPPP {
 
@@ -49,25 +33,25 @@ namespace DP3 {
     , interval_(interval)
     , buffers_()
     , baselines_(nBaselines)
-    , incomplete_()
-    {
-      initializeIncomplete();
-    }
+    {}
     
     void BDAIntervalBuffer::AddBuffer(const BDABuffer& buffer)
     {
       // Check if 'buffer' is valid.
+      if (buffer.GetRows().empty()) {
+        return;
+      }
+      
       for(const auto& row : buffer.GetRows()) {
         if (row.baseline_nr_ >= baselines_.size()) {
           throw std::invalid_argument("Invalid baseline");
         }
-
-        const auto& baseline = baselines_[row.baseline_nr_];
-        if (!baseline.empty() &&
-            !IsEqual(baseline.back()->time_ + baseline.back()->interval_,
-                     row.time_)) {
-          throw std::invalid_argument("Start time does not match end time of previous row.");
-        }
+      }
+      
+      if (!buffers_.empty() &&
+          BDABuffer::TimeIsLess(buffer.GetRows().front().time_,
+                                buffers_.back()->GetRows().back().time_)) {
+        throw std::invalid_argument("New row does not follow existing row.");
       }
               
       buffers_.push_back(boost::make_unique<BDABuffer>(buffer));
@@ -78,16 +62,6 @@ namespace DP3 {
           ++rowIt) {
         baselines_[rowIt->baseline_nr_].push_back(rowIt);
       }
-      
-      // Update incomplete_
-      auto incompleteIterator = incomplete_.begin();
-      while(incompleteIterator != incomplete_.end()) { 
-        if (baselineIsComplete(*incompleteIterator)) {
-          incompleteIterator = incomplete_.erase(incompleteIterator);
-        } else {
-          ++incompleteIterator;
-        }
-      }
     }
     
     void BDAIntervalBuffer::Advance(const double interval)
@@ -97,12 +71,23 @@ namespace DP3 {
       
       removeOldBaselineRows();
       removeOldBuffers();
-
-      initializeIncomplete();
+    }
+    
+    bool BDAIntervalBuffer::IsComplete() const
+    {
+      if (buffers_.empty()) {
+        return false;
+      } else {
+        // If the start time of the last input row is later than the end time of
+        // the interval, the interval is complete.
+        const double kEnd = time_ + interval_;
+        const double kLastRowStart = buffers_.back()->GetRows().back().time_;
+        return BDABuffer::TimeIsLess(kEnd, kLastRowStart);
+      }
     }
     
     std::list<BDAIntervalBuffer::BDARowIterator>
-    BDAIntervalBuffer::GetBaseline(const std::size_t baseline)
+    BDAIntervalBuffer::GetBaseline(const std::size_t baseline) const
     {
       if (baseline >= baselines_.size()) {
         throw std::invalid_argument("Invalid baseline");
@@ -112,7 +97,7 @@ namespace DP3 {
       // the end of the current interval.
       const auto compare = []( const BDARowIterator& it, const double time)
       {
-        return IsLessThan(it->time_, time);
+        return BDABuffer::TimeIsLess(it->time_, time);
       };
 
       const auto it = std::lower_bound(baselines_[baseline].begin(),
@@ -123,36 +108,18 @@ namespace DP3 {
       return std::list<BDARowIterator>(baselines_[baseline].begin(), it);
     }
     
-    bool BDAIntervalBuffer::baselineIsComplete(const std::size_t baselineNr) const
-    {
-      // AddBuffer() already checks that all rows for a baseline are
-      // contiguous: Here, we only have to check the last row.
-      assert(baselineNr < baselines_.size());
-      const auto& rows = baselines_[baselineNr];
-      return !rows.empty() &&
-             IsGreaterEqual(rows.back()->time_ + rows.back()->interval_,
-                            time_ + interval_);
-    }
-    
-    void BDAIntervalBuffer::initializeIncomplete()
-    {
-      for (std::size_t i = 0; i < baselines_.size(); ++i) {
-        if (baselineIsComplete(i)) {
-          incomplete_.erase(i);
-        } else {
-          incomplete_.insert(i);
-        }
-      }
-    }
-    
     void BDAIntervalBuffer::removeOldBaselineRows()
     {
       for (auto& baseline: baselines_) {
         for (auto rowIterator = baseline.begin();
-             rowIterator != baseline.end() &&
-             IsLessThan((*rowIterator)->time_ + (*rowIterator)->interval_,
-                        time_);
-             rowIterator = baseline.erase(rowIterator));
+             rowIterator != baseline.end();
+             rowIterator = baseline.erase(rowIterator)) {
+          const double kRowEnd = (*rowIterator)->time_ +
+                                 (*rowIterator)->interval_;
+          if (!BDABuffer::TimeIsLess(kRowEnd, time_)) {
+            break;
+          }
+        }
       }
     }
     
@@ -165,7 +132,8 @@ namespace DP3 {
       while(buffer_iterator != buffers_.end()) {
         bool buffer_is_old = true;
         for (const auto& row : (*buffer_iterator)->GetRows()) {
-          if (IsLessThan(time_, row.time_ + row.interval_)) {
+          const double kRowEnd = row.time_ + row.interval_;
+          if (BDABuffer::TimeIsLess(time_, kRowEnd)) {
             buffer_is_old = false;
             break;
           }

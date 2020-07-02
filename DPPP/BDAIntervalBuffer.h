@@ -73,18 +73,16 @@ namespace DP3 {
        * @return True if all baselines have data that cover the current
        *         time interval, false otherwise.
        */
-      bool IsComplete() { return incomplete_.empty(); }
+      bool IsComplete() const;
 
       /**
        * Get the BDA rows that match the current time interval for one baseline.
        * @param baseline The index of the requested baseline.
        * @throw std::invalid_argument If baseline is invalid.
        */
-      std::list<BDARowIterator> GetBaseline(std::size_t baseline);
+      std::list<BDARowIterator> GetBaseline(std::size_t baseline) const;
 
     private:
-      bool baselineIsComplete(std::size_t baselineNr) const;
-      void initializeIncomplete();
       void removeOldBaselineRows();
       void removeOldBuffers();
 
@@ -96,9 +94,6 @@ namespace DP3 {
 
       /// Contains an ordered collection of all rows for each baseline.
       std::vector<std::list<BDARowIterator>> baselines_;
-
-      /// Contains the numbers of the baselines that are not complete.
-      std::set<std::size_t> incomplete_;
     };
 
   }

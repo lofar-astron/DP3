@@ -162,6 +162,22 @@ namespace DP3 {
       const std::vector<Row>& GetRows() const {
         return rows_;
       }
+      
+    private:
+      static constexpr double kTimeEpsilon = 1.0e-8; // For comparing measurement timestamps.
+      
+    public:
+      static constexpr bool TimeIsLess(double x, double y) {
+        return x < (y - kTimeEpsilon);
+      }
+        
+      static constexpr bool TimeIsGreaterEqual(double x, double y) {
+        return x > (y - kTimeEpsilon);
+      }
+        
+      static constexpr bool TimeIsEqual(double x, double y) {
+        return abs(x - y) < kTimeEpsilon;
+      }
 
     private:
       /// Memory pools for the data in the rows.
