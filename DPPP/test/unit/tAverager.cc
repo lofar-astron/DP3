@@ -41,7 +41,7 @@ using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(taverager)
+BOOST_AUTO_TEST_SUITE(averager)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.

@@ -21,26 +21,30 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/BaselineSelection.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
-#include <Common/StreamUtil.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../BaselineSelection.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StreamUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(baselineselection)
 
 // Define the info object containing the antenna/baseline info.
 DPInfo makeInfo (int nbl)
 {
   DPInfo info;
-  info.init (4, 16, 1, 0.5, 5., string(), string());
+  info.init (4, 0, 16, 1, 0.5, 5., string(), string());
   // Fill the baseline stations; use 4 stations.
   // So they are called 00 01 02 03 10 11 12 13 20, etc.
   Vector<Int> ant1(nbl);
@@ -91,45 +95,41 @@ DPInfo makeInfo (int nbl)
 
 void test1 (const DPInfo& info)
 {
-  cout << "test empty" << endl;
   ParameterSet ps;
   ps.add ("baseline", "[]");
   BaselineSelection selBL (ps, "");
-  selBL.show (cout);
+  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
-  ASSERT (allEQ(res, true));
+  BOOST_CHECK (allEQ(res, true));
 }
 
 void test2 (const DPInfo& info)
 {
-  cout << "test auto" << endl;
   ParameterSet ps;
   ps.add ("baseline", "[]");
   ps.add ("corrtype", "AUTO");
   BaselineSelection selBL (ps, "");
-  selBL.show (cout);
+  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
-  ASSERT (allEQ(res.diagonal(), true));
+  BOOST_CHECK (allEQ(res.diagonal(), true));
   res.diagonal() = false;
-  ASSERT (allEQ(res, false));
+  BOOST_CHECK (allEQ(res, false));
 }
 
 void test3 (const DPInfo& info)
 {
-  cout << "test cross" << endl;
   ParameterSet ps;
   ps.add ("corrtype", "CROSS");
   BaselineSelection selBL (ps, "");
-  selBL.show (cout);
+  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
-  ASSERT (allEQ(res.diagonal(), false));
+  BOOST_CHECK (allEQ(res.diagonal(), false));
   res.diagonal() = true;
-  ASSERT (allEQ(res, true));
+  BOOST_CHECK (allEQ(res, true));
 }
 
 void test4 (const DPInfo& info)
 {
-  cout << "test length" << endl;
   Matrix<double> blength(4,4, 0.);
   blength(0,1) = blength(1,0) = 144.01;
   blength(0,2) = blength(2,0) = 288.021;
@@ -140,36 +140,35 @@ void test4 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("blmin", "145");
   BaselineSelection selBL (ps, "", true);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), blength<=145.));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), blength<=145.));
   ps.add ("blmax", "288");
   selBL = BaselineSelection(ps, "", true);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), blength<=145. || blength>=288.));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), blength<=145. || blength>=288.));
   ps.add ("corrtype", "cross");
   selBL = BaselineSelection(ps, "", true);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), (blength > 0.  &&
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), (blength > 0.  &&
                                     (blength<=145. || blength>=288.))));
   ps.add ("blrange", "[0,144,288,430]");
   selBL = BaselineSelection(ps, "", true);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), (blength > 0.  &&
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), (blength > 0.  &&
                                     (blength<=145. || blength>=288.))));
   selBL = BaselineSelection(ps, "", false);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), ((blength > 0.  &&  blength<=144.)  ||
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), ((blength > 0.  &&  blength<=144.)  ||
                                     (blength>=288. &&  blength<=430.))));
   ps.replace ("corrtype", "");
   selBL = BaselineSelection(ps, "", false);
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), ((blength >=0.  &&  blength<=144.)  ||
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), ((blength >=0.  &&  blength<=144.)  ||
                                     (blength>=288. &&  blength<=430.))));
 }
 
 void test5 (const DPInfo& info)
 {
-  cout << "test baseline" << endl;
   //antNames[0] = "rs01.s01";
   //antNames[1] = "rs02.s01";
   //antNames[2] = "cs01.s01";
@@ -188,41 +187,52 @@ void test5 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("baseline", "[[rs01.s01]]");
   BaselineSelection selBL (ps, "");
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), bl==00 || bl==01 || bl==02 || bl==03));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), bl==00 || bl==01 || bl==02 || bl==03));
   ps.replace ("baseline", "[[rs01.s01,rs*]]");
   selBL = BaselineSelection(ps, "");
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), bl==00 || bl==01));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), bl==00 || bl==01));
   ps.replace ("baseline", "[[rs01.s01],[rs02*]]");
   selBL = BaselineSelection(ps, "");
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
   ps.replace ("baseline", "[rs01.s01,'rs02*']");
   selBL = BaselineSelection(ps, "");
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
   ps.replace ("corrtype", "cross");
   selBL = BaselineSelection(ps, "");
-  selBL.show (cout);
-  ASSERT (allEQ(selBL.apply(info), !(bl==00 || bl==11 || bl==22 ||
+  // selBL.show (cout);
+  BOOST_CHECK (allEQ(selBL.apply(info), !(bl==00 || bl==11 || bl==22 ||
                                      bl==23 || bl==33)));
   // Note that the MSSelection syntax is not tested, because it requires
   // a MeasurementSet.
 }
 
-int main()
-{
-  try {
-    DPInfo info(makeInfo(16));
-    test1(info);
-    test2(info);
-    test3(info);
-    test4(info);
-    test5(info);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_1 ) {
+  DPInfo info(makeInfo(16));
+  test1(info);
 }
+
+BOOST_AUTO_TEST_CASE( test_2 ) {
+  DPInfo info(makeInfo(16));
+  test2(info);
+}
+
+BOOST_AUTO_TEST_CASE( test_3 ) {
+  DPInfo info(makeInfo(16));
+  test3(info);
+}
+
+BOOST_AUTO_TEST_CASE( test_4 ) {
+  DPInfo info(makeInfo(16));
+  test4(info);
+}
+
+BOOST_AUTO_TEST_CASE( test_5 ) {
+  DPInfo info(makeInfo(16));
+  test5(info);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

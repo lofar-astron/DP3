@@ -293,6 +293,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
+  DPPP/test/unit/tBaselineSelection.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tPhaseShift.cc
   DDECal/test/unit/tRotationConstraint.cc
