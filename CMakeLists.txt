@@ -304,6 +304,8 @@ set(TEST_FILENAMES
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   # DPPP/test/unit/tPSet.cc # Friend class is not working
+  DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
 

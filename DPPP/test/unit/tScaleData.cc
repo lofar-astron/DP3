@@ -21,23 +21,27 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/ScaleData.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../ScaleData.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+#include "../../../Common/StreamUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(scaledata)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -49,7 +53,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr)
   {
-    info().init (ncorr, nchan, ntime, 0., 5., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -186,13 +190,13 @@ private:
       uvw(1,i) = 2 + itsCount + i;
       uvw(2,i) = 3 + itsCount + i;
     }
-    ASSERT (allEQ (buf.getData(), data));
-    ASSERT (buf.getFlags().shape() == IPosition(3,itsNCorr,itsNChan,itsNBl));
-    ASSERT (allEQ (buf.getFlags(), false));
-    ASSERT (allEQ (buf.getWeights(), weights));
-    ASSERT (allEQ (buf.getUVW(), uvw));
-    ASSERT (buf.getFullResFlags().shape() == IPosition(3,itsNChan,1,itsNBl));
-    ASSERT (allEQ (buf.getFullResFlags(), false));
+    BOOST_CHECK (allEQ (buf.getData(), data));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl));
+    BOOST_CHECK (allEQ (buf.getFlags(), false));
+    BOOST_CHECK (allEQ (buf.getWeights(), weights));
+    BOOST_CHECK (allEQ (buf.getUVW(), uvw));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl));
+    BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     itsCount++;
     return true;
   }
@@ -202,13 +206,13 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
-    ASSERT (int(infoIn.nbaselines())==itsNBl);
+    BOOST_CHECK_EQUAL (int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL (infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.nbaselines()), itsNBl);
   }
 
   int itsCount;
@@ -221,7 +225,7 @@ void execute (const DPStep::ShPtr& step1)
 {
   // Set DPInfo.
   step1->setInfo (DPInfo());
-  step1->getNextStep()->show (cout);
+  // step1->getNextStep()->show (cout);
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -231,8 +235,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test scaling.
 void test1(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -247,17 +249,16 @@ void test1(int ntime, int nbl, int nchan, int ncorr)
   execute (step1);
 }
 
-
-int main()
-{
-  INIT_LOGGER ("tScaleData");
-  try {
-    test1 ( 2,  4, 4, 1);
-    test1 (10,  16, 32, 4);
-    test1 (10,  12, 16, 2);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_scale_data1 ) {
+  test1 ( 2,  4, 4, 1);
 }
+
+BOOST_AUTO_TEST_CASE( test_scale_data2 ) {
+  test1 (10,  16, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( test_scale_data3 ) {
+  test1 (10,  12, 16, 2);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

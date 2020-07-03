@@ -21,23 +21,27 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/StationAdder.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../StationAdder.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+#include "../../../Common/StreamUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(stationadder)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -49,7 +53,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr)
   {
-    info().init (ncorr, nchan, ntime, 0., 5., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -196,21 +200,21 @@ private:
       uvw(2,i) = 3 + itsCount + i;
     }
     IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
-    ASSERT (allEQ (buf.getData()(IPosition(3,0), end), data));
-    ASSERT (buf.getFlags().shape() == IPosition(3,itsNCorr,itsNChan,itsNBl+2));
-    ASSERT (allEQ (buf.getFlags(), false));
-    ASSERT (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
-    ASSERT (allEQ (buf.getUVW()(IPosition(2,0),
+    BOOST_CHECK (allEQ (buf.getData()(IPosition(3,0), end), data));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl+2));
+    BOOST_CHECK (allEQ (buf.getFlags(), false));
+    BOOST_CHECK (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
+    BOOST_CHECK (allEQ (buf.getUVW()(IPosition(2,0),
                                 IPosition(2,2,itsNBl-1)), uvw));
-    ASSERT (buf.getFullResFlags().shape() == IPosition(3,itsNChan,1,itsNBl+2));
-    ASSERT (allEQ (buf.getFullResFlags(), false));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl+2));
+    BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0/weight, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weight, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0/weight, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weight, 1e-5));
     end[2] = itsNBl+1;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1/6.f, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), 6.f, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1/6.f, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), 6.f, 1e-5));
     itsCount++;
     return true;
   }
@@ -220,21 +224,21 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
-    ASSERT (int(infoIn.nbaselines())==itsNBl+2);
-    ASSERT (int(infoIn.antennaNames().size())==5);
-    ASSERT (int(infoIn.antennaDiam().size())==5);
-    ASSERT (int(infoIn.antennaPos().size())==5);
-    ASSERT (infoIn.antennaNames()[4]=="ns");
+    BOOST_CHECK_EQUAL (int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL (infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.nbaselines()), itsNBl+2);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaNames().size()), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaDiam().size()), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaPos().size()), 5);
+    BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns");
     Vector<Double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
-    ASSERT (near(pos1[0], (3828763.+3828746.+3828713.)/3));
-    ASSERT (near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
-    ASSERT (near(pos1[2], (5064923.+5064924.+5064926.)/3));
+    BOOST_CHECK (near(pos1[0], (3828763.+3828746.+3828713.)/3));
+    BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
+    BOOST_CHECK (near(pos1[2], (5064923.+5064924.+5064926.)/3));
     // Check diam.
     double d1 = sqrt ((pos1[0]-3828763) * (pos1[0]-3828763) +
                       (pos1[1]- 442449) * (pos1[1]- 442449) +
@@ -245,7 +249,7 @@ private:
     double d3 = sqrt ((pos1[0]-3828713) * (pos1[0]-3828713) +
                       (pos1[1]- 442878) * (pos1[1]- 442878) +
                       (pos1[2]-5064926) * (pos1[2]-5064926));
-    ASSERT (near(infoIn.antennaDiam()[4], 70+2*max(d1,max(d2,d3))));
+    BOOST_CHECK (near(infoIn.antennaDiam()[4], 70+2*max(d1,max(d2,d3))));
   }
 
   int itsCount;
@@ -259,7 +263,7 @@ class ThrowStep: public DPStep
     virtual void finish() {}
     virtual void show (std::ostream&) const {}
     virtual bool process (const DPBuffer&) {
-      cout<<"Previous step should have thrown an error!"<<endl;
+      // cout<<"Previous step should have thrown an error!"<<endl;
       return true;
     }
 };
@@ -341,35 +345,35 @@ private:
       uvw(2,i) = 3 + itsCount + i;
     }
     IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
-    ASSERT (allEQ (buf.getData()(IPosition(3,0), end), data));
-    ASSERT (buf.getFlags().shape() == IPosition(3,itsNCorr,itsNChan,itsNBl+5));
-    ASSERT (allEQ (buf.getFlags(), false));
-    ASSERT (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
-    ASSERT (allEQ (buf.getUVW()(IPosition(2,0),
+    BOOST_CHECK (allEQ (buf.getData()(IPosition(3,0), end), data));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl+5));
+    BOOST_CHECK (allEQ (buf.getFlags(), false));
+    BOOST_CHECK (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
+    BOOST_CHECK (allEQ (buf.getUVW()(IPosition(2,0),
                                 IPosition(2,2,itsNBl-1)), uvw));
-    ASSERT (buf.getFullResFlags().shape() == IPosition(3,itsNChan,1,itsNBl+5));
-    ASSERT (allEQ (buf.getFullResFlags(), false));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl+5));
+    BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    cout<< buf.getUVW()(IPosition(2,0,itsNBl-1), IPosition(2,2,itsNBl+4));
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weightbl0, 1e-5));
+    // cout<< buf.getUVW()(IPosition(2,0,itsNBl-1), IPosition(2,2,itsNBl+4));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weightbl0, 1e-5));
     end[2] = itsNBl+1;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), weightbl1, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), weightbl1, 1e-5));
     end[2] = itsNBl+2;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+2), end), databl2, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+2), end), weightbl2, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+2), end), databl2, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+2), end), weightbl2, 1e-5));
     end[2] = itsNBl+3;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+3), end), databl3, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+3), end), weightbl3, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+3), end), databl3, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+3), end), weightbl3, 1e-5));
     end[2] = itsNBl+4;
-    ASSERT (allNear (buf.getData()(IPosition(3,0,0,itsNBl+4), end), databl4, 1e-5));
-    ASSERT (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+4), end), weightbl4, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+4), end), databl4, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+4), end), weightbl4, 1e-5));
     itsCount++;
     return true;
     ///cout << buf.getFlags() << endl << result << endl;
-    ASSERT (allEQ(buf.getFlags(), false));
+    BOOST_CHECK (allEQ(buf.getFlags(), false));
     itsCount++;
     return true;
   }
@@ -379,24 +383,24 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
-    ASSERT (int(infoIn.nbaselines())==itsNBl+5);
-    ASSERT (int(infoIn.antennaNames().size())==6);
-    ASSERT (infoIn.antennaNames()[4]=="ns1");
-    ASSERT (infoIn.antennaNames()[5]=="ns2");
+    BOOST_CHECK_EQUAL (int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL (infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.nbaselines()), itsNBl+5);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaNames().size()), 6);
+    BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns1");
+    BOOST_CHECK_EQUAL (infoIn.antennaNames()[5], "ns2");
     Vector<Double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
-    ASSERT (near(pos1[0], (3828763.+3828746.)/2));
-    ASSERT (near(pos1[1], ( 442449.+ 442592.)/2));
-    ASSERT (near(pos1[2], (5064923.+5064924.)/2));
+    BOOST_CHECK (near(pos1[0], (3828763.+3828746.)/2));
+    BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.)/2));
+    BOOST_CHECK (near(pos1[2], (5064923.+5064924.)/2));
     Vector<Double> pos2 (infoIn.antennaPos()[5].getValue().getValue());
-    ASSERT (near(pos2[0], (3828729.+3828713.)/2));
-    ASSERT (near(pos2[1], ( 442735.+ 442878.)/2));
-    ASSERT (near(pos2[2], (5064925.+5064926.)/2));
+    BOOST_CHECK (near(pos2[0], (3828729.+3828713.)/2));
+    BOOST_CHECK (near(pos2[1], ( 442735.+ 442878.)/2));
+    BOOST_CHECK (near(pos2[2], (5064925.+5064926.)/2));
   }
 
   int itsCount;
@@ -421,16 +425,16 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
-    ASSERT (int(infoIn.nbaselines())==itsNBl);
-    ASSERT (int(infoIn.antennaNames().size())==4);
-    ASSERT (int(infoIn.antennaDiam().size())==4);
-    ASSERT (int(infoIn.antennaPos().size())==4);
+    BOOST_CHECK_EQUAL (int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL (infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL (int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL (int(infoIn.nbaselines()), itsNBl);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaNames().size()), 4);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaDiam().size()), 4);
+    BOOST_CHECK_EQUAL (int(infoIn.antennaPos().size()), 4);
   }
 
   int itsNTime, itsNBl, itsNChan;
@@ -441,7 +445,7 @@ void execute (const DPStep::ShPtr& step1)
 {
   // Set DPInfo.
   step1->setInfo (DPInfo());
-  step1->getNextStep()->show (cout);
+  // step1->getNextStep()->show (cout);
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -451,8 +455,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test adding 3 stations.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " sumauto=" << sumauto << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -475,8 +477,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
 // Test adding two groups of 2 stations.
 void test2(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -490,7 +490,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
-  step2->showCounts (cout);
+  // step2->showCounts (cout);
 }
 
 void test3 (const string& stations)
@@ -510,17 +510,15 @@ void test3 (const string& stations)
   try {
     execute (step1);
   } catch (std::exception& x) {
-    cout << "Expected exception: " << x.what() << endl;
+    // cout << "Expected exception: " << x.what() << endl;
     ok = false;
   }
-  ASSERT (!ok);
+  BOOST_CHECK (!ok);
 }
 
 // Test making a superstation out of nonexisting stations (should do nothing)
 void test4(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test4: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -544,36 +542,47 @@ void testPatterns()
   antNames[8] = "CS005HBA0";   antNames[9] = "CS005HBA1";
   vector<string> patterns;
   patterns.push_back ("CS00[0-9]*");
-  cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
+  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns[0] = "CS00[0-9]*";
-  cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
+  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns.push_back ("!CS00[45]*");
-  cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
+  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns.push_back ("CS00[124]HBA0");
-  cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
+  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
 }
 
-
-int main()
-{
-  INIT_LOGGER ("tStationAdder");
-  try {
-    // Test the station selection patterns.
-    testPatterns();
-    // Test must be done with with 16 baselines.
-    test1( 10,  16, 32, 4, true);
-    test1( 10,  16, 32, 4, false);
-    test2( 10,  16, 32, 4);
-    // Unknown station.
-    //test3("{ns1:unknown, ns2:[cs01.s02, cs01.s01]}");
-    // New station already used.
-    test3("{ns1:[rs01.s01, rs02.s01], cs01.s02:[cs01.s02, cs01.s01]}");
-    // Old station doubly used.
-    test3("{ns1:[rs01.s01, rs02.s01], ns2:[rs01.s01, cs01.s01]}");
-    test4( 10, 16, 32, 4);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_patterns ) {
+  // Test the station selection patterns.
+  testPatterns();
 }
+
+BOOST_AUTO_TEST_CASE( test_add1 ) {
+  // Test must be done with with 16 baselines.
+  test1( 10,  16, 32, 4, true);
+}
+
+BOOST_AUTO_TEST_CASE( test_add2 ) {
+  test1( 10,  16, 32, 4, false);
+}
+
+BOOST_AUTO_TEST_CASE( test_add3 ) {
+  test2( 10,  16, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( test_add4 ) {
+  // Unknown station.
+  //test3("{ns1:unknown, ns2:[cs01.s02, cs01.s01]}");
+  // New station already used.
+  test3("{ns1:[rs01.s01, rs02.s01], cs01.s02:[cs01.s02, cs01.s01]}");
+}
+
+BOOST_AUTO_TEST_CASE( test_add5 ) {
+  // Old station doubly used.
+  test3("{ns1:[rs01.s01, rs02.s01], ns2:[rs01.s01, cs01.s01]}");
+}
+
+BOOST_AUTO_TEST_CASE( test_add6 ) {
+  test4( 10, 16, 32, 4);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
