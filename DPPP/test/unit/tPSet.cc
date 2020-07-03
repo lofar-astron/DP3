@@ -21,28 +21,24 @@
 //
 // @author Ger van Diepen
 
-#include <casacore/casa/Arrays/ArrayIO.h>
-#include <casacore/casa/Quanta/MVTime.h>
-#include <iostream>
-
-#include <boost/test/unit_test.hpp>
-
 #include "../../PreFlagger.h"
 #include "../../DPInfo.h"
 #include "../../../Common/ParameterSet.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/Quanta/MVTime.h>
 
-BOOST_AUTO_TEST_SUITE(pset)
+#include <boost/test/unit_test.hpp>
+
+#include <iostream>
+
+namespace {
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput: public DPInput
+class TestInput: public DP3::DPPP::DPInput
 {
 public:
   TestInput(int nbl, int nchan, int ncorr)
@@ -51,8 +47,8 @@ public:
     info().init (itsNCorr, 0, itsNChan, 0, 0, 50, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(nbl);
-    Vector<Int> ant2(nbl);
+    casacore::Vector<casacore::Int> ant1(nbl);
+    casacore::Vector<casacore::Int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<nbl; ++i) {
@@ -65,27 +61,28 @@ public:
         }
       }
     }
-    Vector<String> antNames(4);
+    casacore::Vector<casacore::String> antNames(4);
     antNames[0] = "rs01.s01";
     antNames[1] = "rs02.s01";
     antNames[2] = "cs01.s01";
     antNames[3] = "cs01.s02";
-    vector<MPosition> antPos(4);
-    Vector<double> antDiam(4, 70.);
+    std::vector<casacore::MPosition> antPos(4);
+    casacore::Vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
-    Vector<double> chanWidth(nchan, 100000);
-    Vector<double> chanFreqs(nchan);
+    casacore::Vector<double> chanWidth(nchan, 100000);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
 private:
-  virtual bool process (const DPBuffer&) { return false; }
+  virtual bool process (const DP3::DPPP::DPBuffer&) { return false; }
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
 
   int itsNChan, itsNCorr;
 };
 
+} // end anonymous namespace
 
 namespace DP3 {
   namespace DPPP {
@@ -93,331 +90,339 @@ namespace DP3 {
     class TestPSet
     {
     public:
-      void testNone()
-      {
-        TestInput* in = new TestInput(16, 8, 4);
-        DPStep::ShPtr step1(in);
-        cout << "testNone" << endl;
-        ParameterSet parset;
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-        BOOST_CHECK (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
-                  pset.itsFlagOnReal || pset.itsFlagOnImag ||
-                  pset.itsFlagOnAzEl || pset.itsFlagOnUV));
-      }
+      static void testNone();
       static void testBL();
       static void testChan();
       static void testTime();
       static void testMinMax();
     };
-  }
-}
 
-void TestPSet::testBL()
-{
-  TestInput* in = new TestInput(16, 8, 4);
-  DPStep::ShPtr step1(in);
-  {
-    cout << "testBL 1" << endl;
-    ParameterSet parset;
-    parset.add ("baseline", "[rs01.*, rs02.s01]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
-              pset.itsFlagOnImag || pset.itsFlagOnAzEl  || pset.itsFlagOnUV) &&
-            pset.itsFlagOnBL);
-    // Make sure the matrix is correct.
-    const Matrix<bool>& mat = pset.itsFlagBL;
-    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
-    BOOST_CHECK ( mat(0,0) &&  mat(0,1) &&  mat(0,2) &&  mat(0,3));
-    BOOST_CHECK ( mat(1,0) &&  mat(1,1) &&  mat(1,2) &&  mat(1,3));
-    BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) && !mat(2,3));
-    BOOST_CHECK ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
-  }
-  {
-    cout << "testBL 2" << endl;
-    ParameterSet parset;
-    parset.add ("corrtype", "auto");
-    parset.add ("baseline", "[rs01.*, [*s*.*2], rs02.s01]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    // Make sure the matrix is correct.
-    const Matrix<bool>& mat = pset.itsFlagBL;
-    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
-    BOOST_CHECK ( mat(0,0) && !mat(0,1) && !mat(0,2) && !mat(0,3));
-    BOOST_CHECK (!mat(1,0) &&  mat(1,1) && !mat(1,2) && !mat(1,3));
-    BOOST_CHECK (!mat(2,0) && !mat(2,1) && !mat(2,2) && !mat(2,3));
-    BOOST_CHECK (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
-  }
-  {
-    cout << "testBL 3" << endl;
-    ParameterSet parset;
-    parset.add ("corrtype", "CROSS");
-    parset.add ("baseline", "[[rs*, *s*.*1], [cs01.s01,cs01.s02]]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    // Make sure the matrix is correct.
-    const Matrix<bool>& mat = pset.itsFlagBL;
-    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
-    BOOST_CHECK (!mat(0,0) &&  mat(0,1) &&  mat(0,2) && !mat(0,3));
-    BOOST_CHECK ( mat(1,0) && !mat(1,1) &&  mat(1,2) && !mat(1,3));
-    BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) &&  mat(2,3));
-    BOOST_CHECK (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
-  }
-  // Some erronous ones.
-  cout << "testBL expected error 1" << endl;
-  bool err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("corrtype", "crossx");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-  cout << "testBL expected error 2" << endl;
-  err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("baseline", "[[a,b,c]]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-  cout << "testBL expected error 3" << endl;
-  err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("baseline", "[[a,b], [ ] ]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-}
+    void TestPSet::testNone()
+     {
+       TestInput* in = new TestInput(16, 8, 4);
+       DPStep::ShPtr step1(in);
+       std::cout << "testNone" << std::endl;
+       ParameterSet parset;
+       PreFlagger::PSet pset (in, parset, "");
+       pset.updateInfo (in->getInfo());
+       BOOST_CHECK (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
+                 pset.itsFlagOnReal || pset.itsFlagOnImag ||
+                 pset.itsFlagOnAzEl || pset.itsFlagOnUV));
+     }
 
-void TestPSet::testChan()
-{
-  TestInput* in = new TestInput(16, 32, 4);
-  DPStep::ShPtr step1(in);
-  {
-    cout << "testChan 1" << endl;
-    ParameterSet parset;
-    parset.add ("chan", "[11..13, 4]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t {11});
-    BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t {12});
-    BOOST_CHECK_EQUAL (pset.itsChannels[3], size_t {13});
-    BOOST_CHECK_EQUAL (pset.itsChanFlags.shape(), IPosition(2,4,32));
-    for (unsigned int i=0; i<32; ++i) {
-      if (i==4 || i==11 || i==12 || i==13) {
-        BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), true));
-      } else {
-        BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), false));
+    void TestPSet::testBL()
+    {
+      TestInput* in = new TestInput(16, 8, 4);
+      DPStep::ShPtr step1(in);
+      {
+        std::cout << "testBL 1" << std::endl;
+        ParameterSet parset;
+        parset.add ("baseline", "[rs01.*, rs02.s01]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
+                  pset.itsFlagOnImag || pset.itsFlagOnAzEl  || pset.itsFlagOnUV) &&
+                pset.itsFlagOnBL);
+        // Make sure the matrix is correct.
+        const casacore::Matrix<bool>& mat = pset.itsFlagBL;
+        BOOST_CHECK_EQUAL (mat.shape(), casacore::IPosition(2,4,4));
+        BOOST_CHECK ( mat(0,0) &&  mat(0,1) &&  mat(0,2) &&  mat(0,3));
+        BOOST_CHECK ( mat(1,0) &&  mat(1,1) &&  mat(1,2) &&  mat(1,3));
+        BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) && !mat(2,3));
+        BOOST_CHECK ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
+      }
+      {
+        std::cout << "testBL 2" << std::endl;
+        ParameterSet parset;
+        parset.add ("corrtype", "auto");
+        parset.add ("baseline", "[rs01.*, [*s*.*2], rs02.s01]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        // Make sure the matrix is correct.
+        const casacore::Matrix<bool>& mat = pset.itsFlagBL;
+        BOOST_CHECK_EQUAL (mat.shape(), casacore::IPosition(2,4,4));
+        BOOST_CHECK ( mat(0,0) && !mat(0,1) && !mat(0,2) && !mat(0,3));
+        BOOST_CHECK (!mat(1,0) &&  mat(1,1) && !mat(1,2) && !mat(1,3));
+        BOOST_CHECK (!mat(2,0) && !mat(2,1) && !mat(2,2) && !mat(2,3));
+        BOOST_CHECK (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
+      }
+      {
+        std::cout << "testBL 3" << std::endl;
+        ParameterSet parset;
+        parset.add ("corrtype", "CROSS");
+        parset.add ("baseline", "[[rs*, *s*.*1], [cs01.s01,cs01.s02]]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        // Make sure the matrix is correct.
+        const casacore::Matrix<bool>& mat = pset.itsFlagBL;
+        BOOST_CHECK_EQUAL (mat.shape(), casacore::IPosition(2,4,4));
+        BOOST_CHECK (!mat(0,0) &&  mat(0,1) &&  mat(0,2) && !mat(0,3));
+        BOOST_CHECK ( mat(1,0) && !mat(1,1) &&  mat(1,2) && !mat(1,3));
+        BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) &&  mat(2,3));
+        BOOST_CHECK (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
+      }
+      // Some erronous ones.
+      std::cout << "testBL expected error 1" << std::endl;
+      bool err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("corrtype", "crossx");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+      std::cout << "testBL expected error 2" << std::endl;
+      err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("baseline", "[[a,b,c]]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+      std::cout << "testBL expected error 3" << std::endl;
+      err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("baseline", "[[a,b], [ ] ]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+    }
+
+    void TestPSet::testChan()
+    {
+      TestInput* in = new TestInput(16, 32, 4);
+      DPStep::ShPtr step1(in);
+      {
+        std::cout << "testChan 1" << std::endl;
+        ParameterSet parset;
+        parset.add ("chan", "[11..13, 4]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t{11});
+        BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t{12});
+        BOOST_CHECK_EQUAL (pset.itsChannels[3], size_t{13});
+        BOOST_CHECK_EQUAL (pset.itsChanFlags.shape(), casacore::IPosition(2,4,32));
+        for (unsigned int i=0; i<32; ++i) {
+          if (i==4 || i==11 || i==12 || i==13) {
+            BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), true));
+          } else {
+            BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), false));
+          }
+        }
+      }
+      {
+        std::cout << "testChan 2" << std::endl;
+        ParameterSet parset;
+        parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{3});
+        BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{1});
+        BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t{5});
+      }
+      {
+        std::cout << "testChan 3" << std::endl;
+        ParameterSet parset;
+        parset.add ("chan", "[11..13, 4]");
+        parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{1});
+        BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{4});
       }
     }
-  }
-  {
-    cout << "testChan 2" << endl;
-    ParameterSet parset;
-    parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {3});
-    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {1});
-    BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t {5});
-  }
-  {
-    cout << "testChan 3" << endl;
-    ParameterSet parset;
-    parset.add ("chan", "[11..13, 4]");
-    parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {1});
-    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {4});
-  }
-}
 
-void TestPSet::testTime()
-{
-  TestInput* in = new TestInput(16, 8, 4);
-  DPStep::ShPtr step1(in);
-  {
-    cout << "testTime 1" << endl;
-    ParameterSet parset;
-    parset.add ("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsATimes.size(), size_t {2});
-    Quantity q;
-    MVTime::read (q, "1mar2009/12:00:00");
-    BOOST_CHECK_EQUAL (q.getValue("s"), pset.itsATimes[0]);
-    BOOST_CHECK_EQUAL (pset.itsATimes[1] - pset.itsATimes[0], 86400+3600);
-  }
-  {
-    cout << "testTime 2" << endl;
-    ParameterSet parset;
-    parset.add ("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsRTimes.size(), size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsRTimes[0], 12*3600);
-    BOOST_CHECK_EQUAL (pset.itsRTimes[1], 13*3600);
-    BOOST_CHECK_EQUAL (pset.itsRTimes[2], 16*3600-120);
-    BOOST_CHECK_EQUAL (pset.itsRTimes[3], 16*3600+120);
-  }
-  {
-    cout << "testTime 3" << endl;
-    ParameterSet parset;
-    parset.add ("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsTimes.size(), size_t {8});
-    BOOST_CHECK_EQUAL (pset.itsTimes[0], -1);
-    BOOST_CHECK_EQUAL (pset.itsTimes[1], 2*3600);
-    BOOST_CHECK_EQUAL (pset.itsTimes[2], 22*3600);
-    BOOST_CHECK_EQUAL (pset.itsTimes[3], 24*3600+1);
-    BOOST_CHECK_EQUAL (pset.itsTimes[4], -1);
-    BOOST_CHECK_EQUAL (pset.itsTimes[5], 1800);
-    BOOST_CHECK_EQUAL (pset.itsTimes[6], 22*3600+1800);
-    BOOST_CHECK_EQUAL (pset.itsTimes[7], 24*3600+1);
-  }
-  {
-    cout << "testTime 4" << endl;
-    ParameterSet parset;
-    parset.add ("timeslot", "[2..4, 10]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK_EQUAL (pset.itsTimeSlot.size(), size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsTimeSlot[0], 2);
-    BOOST_CHECK_EQUAL (pset.itsTimeSlot[1], 3);
-    BOOST_CHECK_EQUAL (pset.itsTimeSlot[2], 4);
-    BOOST_CHECK_EQUAL (pset.itsTimeSlot[3], 10);
-  }
-  // Some erronous ones.
-  cout << "testTime expected error 1" << endl;
-  bool err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("reltime", "[12:00:00]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-  cout << "testTime expected error 2" << endl;
-  err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("reltime", "[12:00:00..11:00:00]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-  cout << "testTime expected error 3" << endl;
-  err = false;
-  try {
-    ParameterSet parset;
-    parset.add ("abstime", "[12:00:00..13:00:00]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-  } catch (std::exception& x) {
-    err = true;
-    cout << "  " << x.what() << endl; 
-  }
-  BOOST_CHECK (err);
-}
+    void TestPSet::testTime()
+    {
+      TestInput* in = new TestInput(16, 8, 4);
+      DPStep::ShPtr step1(in);
+      {
+        std::cout << "testTime 1" << std::endl;
+        ParameterSet parset;
+        parset.add ("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsATimes.size(), size_t{2});
+        casacore::Quantity q;
+        casacore::MVTime::read (q, "1mar2009/12:00:00");
+        BOOST_CHECK_EQUAL (q.getValue("s"), pset.itsATimes[0]);
+        BOOST_CHECK_EQUAL (pset.itsATimes[1] - pset.itsATimes[0], 86400+3600);
+      }
+      {
+        std::cout << "testTime 2" << std::endl;
+        ParameterSet parset;
+        parset.add ("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsRTimes.size(), size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsRTimes[0], 12*3600);
+        BOOST_CHECK_EQUAL (pset.itsRTimes[1], 13*3600);
+        BOOST_CHECK_EQUAL (pset.itsRTimes[2], 16*3600-120);
+        BOOST_CHECK_EQUAL (pset.itsRTimes[3], 16*3600+120);
+      }
+      {
+        std::cout << "testTime 3" << std::endl;
+        ParameterSet parset;
+        parset.add ("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsTimes.size(), size_t{8});
+        BOOST_CHECK_EQUAL (pset.itsTimes[0], -1);
+        BOOST_CHECK_EQUAL (pset.itsTimes[1], 2*3600);
+        BOOST_CHECK_EQUAL (pset.itsTimes[2], 22*3600);
+        BOOST_CHECK_EQUAL (pset.itsTimes[3], 24*3600+1);
+        BOOST_CHECK_EQUAL (pset.itsTimes[4], -1);
+        BOOST_CHECK_EQUAL (pset.itsTimes[5], 1800);
+        BOOST_CHECK_EQUAL (pset.itsTimes[6], 22*3600+1800);
+        BOOST_CHECK_EQUAL (pset.itsTimes[7], 24*3600+1);
+      }
+      {
+        std::cout << "testTime 4" << std::endl;
+        ParameterSet parset;
+        parset.add ("timeslot", "[2..4, 10]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK_EQUAL (pset.itsTimeSlot.size(), size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsTimeSlot[0], 2u);
+        BOOST_CHECK_EQUAL (pset.itsTimeSlot[1], 3u);
+        BOOST_CHECK_EQUAL (pset.itsTimeSlot[2], 4u);
+        BOOST_CHECK_EQUAL (pset.itsTimeSlot[3], 10u);
+      }
+      // Some erronous ones.
+      std::cout << "testTime expected error 1" << std::endl;
+      bool err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("reltime", "[12:00:00]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+      std::cout << "testTime expected error 2" << std::endl;
+      err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("reltime", "[12:00:00..11:00:00]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+      std::cout << "testTime expected error 3" << std::endl;
+      err = false;
+      try {
+        ParameterSet parset;
+        parset.add ("abstime", "[12:00:00..13:00:00]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+      } catch (std::exception& x) {
+        err = true;
+        std::cout << "  " << x.what() << std::endl;
+      }
+      BOOST_CHECK (err);
+    }
 
-void TestPSet::testMinMax()
-{
-  TestInput* in = new TestInput(16, 8, 4);
-  DPStep::ShPtr step1(in);
-  {
-    cout << "testMinMax 1" << endl;
-    ParameterSet parset;
-    parset.add ("amplmin", "[23,,,45]");
-    parset.add ("amplmax", "112.5");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (pset.itsFlagOnAmpl);
-    BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t {4});
-    BOOST_CHECK (near(pset.itsAmplMin[0], 23.));
-    BOOST_CHECK (near(pset.itsAmplMin[1], -1e30));
-    BOOST_CHECK (near(pset.itsAmplMin[2], -1e30));
-    BOOST_CHECK (near(pset.itsAmplMin[3], 45.));
-    BOOST_CHECK (near(pset.itsAmplMax[0], 112.5));
-    BOOST_CHECK (near(pset.itsAmplMax[1], 112.5));
-    BOOST_CHECK (near(pset.itsAmplMax[2], 112.5));
-    BOOST_CHECK (near(pset.itsAmplMax[3], 112.5));
-  }
-  {
-    cout << "testMinMax 2" << endl;
-    ParameterSet parset;
-    parset.add ("phasemin", "[23]");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (pset.itsFlagOnPhase);
-    BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t {4});
-    BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t {4});
-    BOOST_CHECK (near(pset.itsPhaseMin[0], 23.));
-    BOOST_CHECK (near(pset.itsPhaseMin[1], -1e30));
-    BOOST_CHECK (near(pset.itsPhaseMin[2], -1e30));
-    BOOST_CHECK (near(pset.itsPhaseMin[3], -1e30));
-    BOOST_CHECK (near(pset.itsPhaseMax[0], 1e30));
-    BOOST_CHECK (near(pset.itsPhaseMax[1], 1e30));
-    BOOST_CHECK (near(pset.itsPhaseMax[2], 1e30));
-    BOOST_CHECK (near(pset.itsPhaseMax[3], 1e30));
-  }
-  {
-    cout << "testMinMax 3" << endl;
-    ParameterSet parset;
-    parset.add ("uvmmin", "23");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (pset.itsFlagOnUV);
-    BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
-    BOOST_CHECK (near(pset.itsMaxUV, 1e30));
-  }
-  {
-    cout << "testMinMax 4" << endl;
-    ParameterSet parset;
-    parset.add ("uvmmax", "23");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (pset.itsFlagOnUV);
-    BOOST_CHECK (pset.itsMinUV < 0.);
-    BOOST_CHECK (near(pset.itsMaxUV, 23.*23.));
-  }
-  {
-    cout << "testMinMax 5" << endl;
-    ParameterSet parset;
-    parset.add ("uvmmin", "23");
-    parset.add ("uvmmax", "123");
-    PreFlagger::PSet pset (in, parset, "");
-    pset.updateInfo (in->getInfo());
-    BOOST_CHECK (pset.itsFlagOnUV);
-    BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
-    BOOST_CHECK (near(pset.itsMaxUV, 123.*123.));
-  }
-}
+    void TestPSet::testMinMax()
+    {
+      using casacore::near;
+
+      TestInput* in = new TestInput(16, 8, 4);
+      DPStep::ShPtr step1(in);
+      {
+        std::cout << "testMinMax 1" << std::endl;
+        ParameterSet parset;
+        parset.add ("amplmin", "[23,,,45]");
+        parset.add ("amplmax", "112.5");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (pset.itsFlagOnAmpl);
+        BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t{4});
+        BOOST_CHECK (near(pset.itsAmplMin[0], 23.));
+        BOOST_CHECK (near(pset.itsAmplMin[1], -1e30));
+        BOOST_CHECK (near(pset.itsAmplMin[2], -1e30));
+        BOOST_CHECK (near(pset.itsAmplMin[3], 45.));
+        BOOST_CHECK (near(pset.itsAmplMax[0], 112.5));
+        BOOST_CHECK (near(pset.itsAmplMax[1], 112.5));
+        BOOST_CHECK (near(pset.itsAmplMax[2], 112.5));
+        BOOST_CHECK (near(pset.itsAmplMax[3], 112.5));
+      }
+      {
+        std::cout << "testMinMax 2" << std::endl;
+        ParameterSet parset;
+        parset.add ("phasemin", "[23]");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (pset.itsFlagOnPhase);
+        BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
+        BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t{4});
+        BOOST_CHECK (near(pset.itsPhaseMin[0], 23.));
+        BOOST_CHECK (near(pset.itsPhaseMin[1], -1e30));
+        BOOST_CHECK (near(pset.itsPhaseMin[2], -1e30));
+        BOOST_CHECK (near(pset.itsPhaseMin[3], -1e30));
+        BOOST_CHECK (near(pset.itsPhaseMax[0], 1e30));
+        BOOST_CHECK (near(pset.itsPhaseMax[1], 1e30));
+        BOOST_CHECK (near(pset.itsPhaseMax[2], 1e30));
+        BOOST_CHECK (near(pset.itsPhaseMax[3], 1e30));
+      }
+      {
+        std::cout << "testMinMax 3" << std::endl;
+        ParameterSet parset;
+        parset.add ("uvmmin", "23");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (pset.itsFlagOnUV);
+        BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
+        BOOST_CHECK (near(pset.itsMaxUV, 1e30));
+      }
+      {
+        std::cout << "testMinMax 4" << std::endl;
+        ParameterSet parset;
+        parset.add ("uvmmax", "23");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (pset.itsFlagOnUV);
+        BOOST_CHECK (pset.itsMinUV < 0.);
+        BOOST_CHECK (near(pset.itsMaxUV, 23.*23.));
+      }
+      {
+        std::cout << "testMinMax 5" << std::endl;
+        ParameterSet parset;
+        parset.add ("uvmmin", "23");
+        parset.add ("uvmmax", "123");
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (pset.itsFlagOnUV);
+        BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
+        BOOST_CHECK (near(pset.itsMaxUV, 123.*123.));
+      }
+    }
+  } // end namespace DPPP
+} // end namespace DP3
+
+BOOST_AUTO_TEST_SUITE(pset)
+
+using DP3::DPPP::TestPSet;
 
 BOOST_AUTO_TEST_CASE( test_none ) {
   TestPSet::testNone();
