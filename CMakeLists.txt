@@ -290,9 +290,26 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
-  DPPP/test/tMirror.cc
-  DPPP/test/tPhaseShift.cc
-  DDECal/test/tRotationConstraint.cc
+  DPPP/test/unit/tApplyCal.cc
+  DPPP/test/unit/tApplyCalH5.cc
+  DPPP/test/unit/tAverager.cc
+  DPPP/test/unit/tBaselineSelection.cc
+  # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
+  DPPP/test/unit/tFilter.cc
+  DPPP/test/unit/tGridInterpolate.cc
+  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tInterpolate.cc
+  DPPP/test/unit/tMedFlagger.cc
+  DPPP/test/unit/tMirror.cc
+  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
+  DPPP/test/unit/tPreFlagger.cc
+  DPPP/test/unit/tPhaseShift.cc
+  DPPP/test/unit/tUpsample.cc
+  DPPP/test/unit/tUVWFlagger.cc
+  DPPP/test/unit/tPSet.cc
+  DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tStationAdder.cc
+  DDECal/test/unit/tRotationConstraint.cc
 )
 
 set(RUNTEST_SOURCES
@@ -300,6 +317,17 @@ set(RUNTEST_SOURCES
   ${TEST_FILENAMES}
   ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
+
+# Untar files needed for some tests. It may be prettier to do this at build time instead of CMake time.
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP-generic.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
@@ -328,7 +356,7 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
     add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
     set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
   endforeach()
-  
+
   foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
@@ -343,11 +371,6 @@ endforeach()
 #  DPPP/test/tMirror.cc
 #)
 #target_link_libraries(tMirror ${CASACORE_LIBRARIES})
-
-#add_executable(tPhaseShift EXCLUDE_FROM_ALL
-#  DPPP/test/tPhaseShift.cc
-#  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
-#target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin)
 

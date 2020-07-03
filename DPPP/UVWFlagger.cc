@@ -163,12 +163,13 @@ namespace DP3 {
       bool* flagPtr = flags.data();
       const bool* origPtr = buf.getFlags().data();
       for (unsigned int i=0; i<nrbl; ++i) {
+        Vector<double> uvw;
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
           NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-          Vector<double> uvw = itsUVWCalc.getUVW (getInfo().getAnt1()[i],
-                                                  getInfo().getAnt2()[i],
-                                                  buf.getTime());
+          uvw = itsUVWCalc.getUVW (getInfo().getAnt1()[i],
+                                   getInfo().getAnt2()[i],
+                                   buf.getTime());
           uvwPtr = uvw.data();
           ///cout << "uvw = " << uvw << endl;
         }
