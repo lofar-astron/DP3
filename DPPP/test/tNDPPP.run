@@ -1,8 +1,0 @@
-#!/bin/sh
-
-if test ! -f tNDPPP.in_MS.tgz; then
-  return 3   # untested
-fi
-
-tar zxf tNDPPP.in_MS.tgz
-./tNDPPP
