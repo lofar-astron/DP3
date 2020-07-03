@@ -293,10 +293,21 @@ set(TEST_FILENAMES
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
+  DPPP/test/unit/tBaselineSelection.cc
+  # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
+  DPPP/test/unit/tFilter.cc
+  DPPP/test/unit/tGridInterpolate.cc
+  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tMirror.cc
+  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
+  DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
   DPPP/test/unit/tUVWFlagger.cc
+  # DPPP/test/unit/tPSet.cc # Friend class is not working
+  DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
 
@@ -308,6 +319,8 @@ set(RUNTEST_SOURCES
 )
 
 file(COPY DPPP/test/resources/tApplyCal_tmp.parmdb DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY DPPP/test/resources/tNDPPP_tmp.MS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY DPPP/test/resources/tNDPPP-generic.MS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
