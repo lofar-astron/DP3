@@ -300,6 +300,8 @@ set(TEST_FILENAMES
   # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tMirror.cc
+  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
+  DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
@@ -312,6 +314,8 @@ set(RUNTEST_SOURCES
 )
 
 file(COPY DPPP/test/resources/tApplyCal_tmp.parmdb DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY DPPP/test/resources/tNDPPP_tmp.MS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY DPPP/test/resources/tNDPPP-generic.MS DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
