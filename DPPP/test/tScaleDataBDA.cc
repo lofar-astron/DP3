@@ -53,9 +53,9 @@ public:
   std::unique_ptr<BDABuffer> results_;
 private:
   virtual bool process (const DPBuffer&) { return true; }
-  virtual bool process (std::unique_ptr<BDABuffer> results) { 
+  virtual bool process (std::unique_ptr<BDABuffer> results) {
     results_ = std::move(results);
-    return true; 
+    return true;
   }
   virtual void finish() {}
   virtual void show (std::ostream&) const {}
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   // Assertion
   const auto results = step_test_output->results_->GetData();
   // size shoule be equal to datasize
-  BOOST_CHECK_EQUAL(size_t {4}, results.size());
+  BOOST_CHECK_EQUAL(size_t{4}, step_test_output->results_->GetNumberOfElements());
   BOOST_CHECK(near(4., results[0].real()));
   BOOST_CHECK(near(9.798, results[2].real()));
   // Results 1 and 3 are close to zero, but slightly different every test.
