@@ -291,6 +291,7 @@ endif()
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
   DPPP/test/unit/tApplyCal.cc
+  DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tPhaseShift.cc
   DDECal/test/unit/tRotationConstraint.cc

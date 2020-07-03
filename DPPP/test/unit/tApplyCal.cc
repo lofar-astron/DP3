@@ -280,7 +280,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test clock + tec, and test two ApplyCals in sequence
 void testclocktec(int ntime, int nchan)
 {
-  cout << "testclocktec: ntime=" << ntime << " nchan=" << nchan << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
@@ -314,13 +313,11 @@ void testclocktec(int ntime, int nchan)
   step3->setNextStep (step4);
   step4->setNextStep (step5);
   execute (step1);
-  cout<<"finished testclocktec"<<endl;
 }
 
 // Test gain
 void testgain(int ntime, int nchan)
 {
-  cout << "testgain: ntime=" << ntime << " nchan=" << nchan << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);

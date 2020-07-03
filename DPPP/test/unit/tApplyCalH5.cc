@@ -21,24 +21,28 @@
 //
 // @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/ApplyCal.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/H5Parm.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../ApplyCal.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../H5Parm.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+#include "../../../Common/StreamUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(applycalh5)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
@@ -49,7 +53,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNChan(nchan), itsNBl(9), itsNCorr(4),
       itsTimeInterval(5.), itsFirstTime(4472025740.0)
   {
-    info().init (itsNCorr, nchan, ntime, itsFirstTime, itsTimeInterval,
+    info().init (itsNCorr, 0, nchan, ntime, itsFirstTime, itsTimeInterval,
         string(), string());
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
@@ -212,27 +216,27 @@ private:
 
             bool flag = buf.getFlags().data()[bl*itsNCorr*itsNChan + chan*itsNCorr];
             if ((ant1==1 || ant2==1) && rightTimes[itsTimeStep]==2 && rightFreqs[chan]==2) {
-              ASSERT(flag);
+              BOOST_CHECK(flag);
             } else {
-              ASSERT(!flag);
-              ASSERT(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
+              BOOST_CHECK(!flag);
+              BOOST_CHECK(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
             }
         }
       }
     }
 
     if (itsDoTest & DataEquals) {
-      ASSERT (allNear (buf.getData(), data, 1.e-7));
+      BOOST_CHECK (allNear (buf.getData(), data, 1.e-7));
     }
 
     if (itsDoTest & DataNotChanged) {
-      ASSERT (allNear (buf.getData(), data, 1.e-7));
+      BOOST_CHECK (allNear (buf.getData(), data, 1.e-7));
     }
     if (itsDoTest & DataChanged) {
-      ASSERT (!(allNear (buf.getData(), data, 1.e-7)));
+      BOOST_CHECK (!(allNear (buf.getData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      ASSERT (allNear (buf.getWeights(), weights, 1.e-7));
+      BOOST_CHECK (allNear (buf.getWeights(), weights, 1.e-7));
     }
     itsCount++;
     itsTimeStep++;
@@ -244,11 +248,11 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==itsTimeInterval);
-    ASSERT (int(infoIn.nbaselines())==itsNBl);
+    BOOST_CHECK_EQUAL (itsNChan, int(infoIn.origNChan()));
+    BOOST_CHECK_EQUAL (itsNChan, int(infoIn.nchan()));
+    BOOST_CHECK_EQUAL (itsNTime, int(infoIn.ntime()));
+    BOOST_CHECK_EQUAL (itsTimeInterval, infoIn.timeInterval());
+    BOOST_CHECK_EQUAL (itsNBl, int(infoIn.nbaselines()));
   }
 
   int itsCount;
@@ -278,7 +282,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test amplitude correction
 void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis)
 {
-  cout << "testampl: ntime=" << ntime << " nchan=" << nchan << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
@@ -294,7 +297,6 @@ void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis)
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
-  cout<<endl;
 }
 
 
@@ -324,8 +326,8 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   }
 
   H5Parm::SolTab soltab = h5parm.createSolTab("myampl","amplitude",axes);
-  ASSERT(h5parm.nSolTabs() == 1);
-  ASSERT(h5parm.hasSolTab("myampl"));
+  BOOST_CHECK_EQUAL(size_t {1}, h5parm.nSolTabs());
+  BOOST_CHECK(h5parm.hasSolTab("myampl"));
   soltab.setTimes(times);
   soltab.setFreqs(freqs);
   soltab.setAntennas(antNames);
@@ -348,10 +350,8 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   soltab.setValues(values, weights, "CREATE with DPPP tApplyCalH5");
 }
 
-int main()
-{
-  INIT_LOGGER ("tApplyCalH5");
 
+BOOST_AUTO_TEST_CASE( testampl1 ) {
   vector<double> times;
   times.push_back(4472025742.0);
   times.push_back(4472025745.0);
@@ -362,21 +362,48 @@ int main()
   freqs.push_back(90.e6);
   freqs.push_back(139.e6);
   freqs.push_back(170.e6);
-
-  try {
-    createH5Parm(times, freqs);
-    testampl(5, 7, true, true);
-    createH5Parm(times, freqs);
-    testampl(5, 2, true, true);
-    createH5Parm(times, vector<double>());
-    testampl(8, 9, false, true);
-    createH5Parm(vector<double>(), freqs);
-    testampl(13, 3, true, false);
-    createH5Parm(vector<double>(), vector<double>());
-    testampl(9, 2, false, false);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-   return 1;
-  }
-  return 0;
+  createH5Parm(times, freqs);
+  testampl(5, 7, true, true);
 }
+
+BOOST_AUTO_TEST_CASE( testampl2 ) {
+  vector<double> times;
+  times.push_back(4472025742.0);
+  times.push_back(4472025745.0);
+  times.push_back(4472025747.5);
+  times.push_back(4472025748.0);
+  times.push_back(4472025762.0);
+  vector<double> freqs;
+  freqs.push_back(90.e6);
+  freqs.push_back(139.e6);
+  freqs.push_back(170.e6);
+  createH5Parm(times, freqs);
+  testampl(5, 2, true, true);
+}
+
+BOOST_AUTO_TEST_CASE( testampl3 ) {
+  vector<double> times;
+  times.push_back(4472025742.0);
+  times.push_back(4472025745.0);
+  times.push_back(4472025747.5);
+  times.push_back(4472025748.0);
+  times.push_back(4472025762.0);
+  createH5Parm(times, vector<double>());
+  testampl(8, 9, false, true);
+}
+
+BOOST_AUTO_TEST_CASE( testampl4 ) {
+  vector<double> freqs;
+  freqs.push_back(90.e6);
+  freqs.push_back(139.e6);
+  freqs.push_back(170.e6);
+  createH5Parm(vector<double>(), freqs);
+  testampl(13, 3, true, false);
+}
+
+BOOST_AUTO_TEST_CASE( testampl5 ) {
+  createH5Parm(vector<double>(), vector<double>());
+  testampl(9, 2, false, false);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
