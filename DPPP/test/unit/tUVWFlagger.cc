@@ -345,8 +345,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test flagging a few baselines on UV in m.
 void test1(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -366,8 +364,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr)
 // Test flagging a few baselines on UV in wavelengths.
 void test2(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -382,14 +378,12 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
-  step2->showCounts (cout);
+  // step2->showCounts (cout);
 }
 
 // Test flagging a few baselines on UV in m with a different phase center.
 void test3(int ntime, int nbl, int nchan, int ncorr)
 {
-  cout << "test3: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
@@ -410,7 +404,6 @@ void test3(int ntime, int nbl, int nchan, int ncorr)
 // Test constructing with the Sun as phase center.
 void test4()
 {
-  cout << "test4" << endl;
   // Create the steps.
   TestInput* in = new TestInput(1,1,1,1);
   DPStep::ShPtr step1(in);
@@ -418,7 +411,7 @@ void test4()
   parset.add ("uvmrange", "[5.5..8.5]");
   parset.add ("phasecenter", "Sun");
   DPStep::ShPtr step2(new UVWFlagger(in, parset, ""));
-  step2->show (cout);
+  // step2->show (cout);
 }
 
 BOOST_AUTO_TEST_CASE( testuvwflagger1 ) {
