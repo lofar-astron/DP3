@@ -29,10 +29,7 @@
 // Define the function to make the AOFlaggerStep 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).
 // Also make the SlidingFlagger known.
-void register_aoflag()
-{
-  DP3::DPPP::DPRun::registerStepCtor ("aoflag",
-                                        DP3::DPPP::AOFlaggerStep::makeStep);
-  //  DP3::DPPP::DPRun::registerStepCtor ("aoflag.sliding",
-  //                                        DP3::DPPP::SlidingFlagger::makeStep);
+void register_aoflagger() {
+  DP3::DPPP::DPRun::registerStepCtor("aoflagger",
+                                     DP3::DPPP::AOFlaggerStep::makeStep);
 }
