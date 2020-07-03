@@ -21,22 +21,26 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/UVWFlagger.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
+#include "../../UVWFlagger.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(uvwflagger)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -49,7 +53,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr)
   {
-    info().init (ncorr, nchan, ntime, 0., 5., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -159,7 +163,7 @@ private:
       }
     }
     ///cout << buf.getFlags() << endl << result << endl;
-    ASSERT (allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
   }
@@ -169,12 +173,12 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
+    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
   }
 
   int itsCount;
@@ -211,7 +215,7 @@ private:
       }
     }
     ///cout << buf.getFlags() << endl << result << endl;
-    ASSERT (allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
   }
@@ -221,12 +225,12 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
+    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
   }
 
   int itsCount;
@@ -242,7 +246,8 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nbl), itsNChan(nchan),
       itsNCorr(ncorr)
   {
-    ASSERT (ntime==2 && nbl==16);
+    BOOST_CHECK_EQUAL(ntime, 2);
+    BOOST_CHECK_EQUAL(nbl, 16);
   }
 private:
   virtual bool process (const DPBuffer& buf)
@@ -303,7 +308,7 @@ private:
       }
     }
     ///cout << buf.getFlags() << endl << result << endl;
-    ASSERT (allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
   }
@@ -313,12 +318,12 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==5);
-    ASSERT (int(infoIn.nchanAvg())==1);
-    ASSERT (int(infoIn.ntimeAvg())==1);
+    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
   }
 
   int itsCount;
@@ -416,23 +421,36 @@ void test4()
   step2->show (cout);
 }
 
-
-int main()
-{
-  INIT_LOGGER ("tUVWFlagger");
-  try {
-
-    test1( 10,  16, 32, 4);
-    test1(100, 105, 32, 4);
-    test2(  2,  16, 32, 4);
-    test2(  2,  36, 16, 2);
-    test2( 10,  16, 32, 4);
-    test2(100, 105, 32, 4);
-    test3(  2,  16, 32, 4);
-    test4();
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( testuvwflagger1 ) {
+  test1( 10,  16, 32, 4);
 }
+
+BOOST_AUTO_TEST_CASE( testuvwflagger2 ) {
+  test1(100, 105, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger3 ) {
+  test2(  2,  16, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger4 ) {
+  test2(  2,  36, 16, 2);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger5 ) {
+  test2( 10,  16, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger6 ) {
+  test2(100, 105, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger7 ) {
+  test3(  2,  16, 32, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testuvwflagger8 ) {
+  test4();
+}
+
+BOOST_AUTO_TEST_SUITE_END()

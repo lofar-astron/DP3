@@ -295,6 +295,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tAverager.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tPhaseShift.cc
+  DPPP/test/unit/tUVWFlagger.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
 
