@@ -294,6 +294,8 @@ set(TEST_FILENAMES
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
   DPPP/test/unit/tBaselineSelection.cc
+  # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
+  DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tPhaseShift.cc
   DDECal/test/unit/tRotationConstraint.cc

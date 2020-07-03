@@ -21,22 +21,25 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Filter.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../Filter.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(filter)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -50,7 +53,7 @@ public:
       itsNCorr(ncorr), itsFlag(flag)
   {
     // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init (ncorr, nchan, ntime, 0.5, 5., string(), string());
+    info().init (ncorr, 0, nchan, ntime, 0.5, 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -141,7 +144,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);
@@ -191,22 +194,22 @@ private:
     Slicer slicer(IPosition(3,0,itsStChan,0),
                   IPosition(3,itsNCorr,itsNChanOut,itsNBlOut));
     // Check the expected result.
-    ASSERT (allEQ(buf.getData(), data(slicer)));
-    ASSERT (allEQ(buf.getFlags(), flags(slicer)));
-    ASSERT (allEQ(buf.getWeights(), weights(slicer)));
-    ASSERT (allEQ(buf.getUVW(), uvw(IPosition(2,0,0),
+    BOOST_CHECK (allEQ(buf.getData(), data(slicer)));
+    BOOST_CHECK (allEQ(buf.getFlags(), flags(slicer)));
+    BOOST_CHECK (allEQ(buf.getWeights(), weights(slicer)));
+    BOOST_CHECK (allEQ(buf.getUVW(), uvw(IPosition(2,0,0),
                                     IPosition(2,2,itsNBlOut-1))));
     if (itsNCorr == 4) {
-      ASSERT (allEQ(buf.getFullResFlags(),
+      BOOST_CHECK (allEQ(buf.getFullResFlags(),
                     fullResFlags(Slicer(IPosition(3,itsStChan*2,0,0),
                                         IPosition(3,2*itsNChanOut,2,itsNBlOut)))));
     } else {
-      ASSERT (allEQ(buf.getFullResFlags(),
+      BOOST_CHECK (allEQ(buf.getFullResFlags(),
                     fullResFlags(Slicer(IPosition(3,itsStChan,0,0),
                                         IPosition(3,itsNChanOut,1,itsNBlOut)))));
     }
-    ASSERT (near(buf.getTime(), itsCount*5.+2));
-    ASSERT (near(buf.getExposure(), 0.1*(itsCount+1)));
+    BOOST_CHECK (near(buf.getTime(), itsCount*5.+2));
+    BOOST_CHECK (near(buf.getExposure(), 0.1*(itsCount+1)));
     ++itsCount;
     return true;
   }
@@ -215,13 +218,13 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==itsNChanOut);
-    ASSERT (int(info.nbaselines())==itsNBlOut);
-    ASSERT (int(info.ntime())==itsNTime);
-    ASSERT (info.timeInterval()==5.);
-    ASSERT (int(info.nchanAvg())==1);
-    ASSERT (int(info.ntimeAvg())==1);
+    BOOST_CHECK_EQUAL (itsNChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL (itsNChanOut, int(info.nchan()));
+    BOOST_CHECK_EQUAL (itsNBlOut, int(info.nbaselines()));
+    BOOST_CHECK_EQUAL (itsNTime, int(info.ntime()));
+    BOOST_CHECK_EQUAL (5., info.timeInterval());
+    BOOST_CHECK_EQUAL (1, int(info.nchanAvg()));
+    BOOST_CHECK_EQUAL (1, int(info.ntimeAvg()));
   }
 
   int itsCount;
@@ -245,9 +248,6 @@ void execute (const DPStep::ShPtr& step1)
 void test1(int ntime, int nbl, int nchan, int ncorr,
            int startchan, int nchanout, bool flag)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " startchan=" << startchan
-       << " nchanout=" << nchanout << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -266,10 +266,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
 void test2(int ntime, int nbl, int nchan, int ncorr,
            int startchan, int nchanout, bool flag)
 {
-  ASSERT (nbl<=4); // otherwise baseline selection removes more than the first
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " startchan=" << startchan
-       << " nchanout=" << nchanout << endl;
+  BOOST_CHECK (nbl<=4); // otherwise baseline selection removes more than the first
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -287,16 +284,20 @@ void test2(int ntime, int nbl, int nchan, int ncorr,
 }
 
 
-int main()
-{
-  try {
-    test1(10,  3, 32, 4, 2, 24, false);
-    test1(10, 10, 30, 1, 3,  3, true);
-    test1(10, 10,  1, 4, 0,  1, true);
-    test2(10,  4, 32, 4, 2, 24, false);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_filter1 )  {
+  test1(10,  3, 32, 4, 2, 24, false);
 }
+
+BOOST_AUTO_TEST_CASE( test_filter2 )  {
+  test1(10, 10, 30, 1, 3,  3, true);
+}
+
+BOOST_AUTO_TEST_CASE( test_filter3 )  {
+  test1(10, 10,  1, 4, 0,  1, true);
+}
+
+BOOST_AUTO_TEST_CASE( test_filter4 )  {
+  test2(10,  4, 32, 4, 2, 24, false);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

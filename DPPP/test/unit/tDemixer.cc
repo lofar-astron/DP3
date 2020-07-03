@@ -21,22 +21,25 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Demixer.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../Demixer.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(demixer)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -86,7 +89,7 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (DPInfo& info)
     // Use startchan=8 and timeInterval=5
-    { info.init (itsNCorr, 8, itsNChan, itsNBl, itsNTime, 5); }
+    { info.init (itsNCorr, 8, itsNChan, 0, itsNTime, 5, string(), string()); }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -141,20 +144,20 @@ private:
       }
     }
     // Check the averaged result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(),
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK (near(buf.getTime(),
                  2+5*(itsCount*itsNAvgTime + (itsNAvgTime-1)/2.)));
-    ASSERT (allNear(buf.getWeights(), resultw, 1e-5));
+    BOOST_CHECK (allNear(buf.getWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
       Matrix<double> uvw(3,itsNBl);
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
-      ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+      BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
     ///cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }
@@ -163,13 +166,13 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (DPInfo& info)
   {
-    ASSERT (info.startChan()==8);
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==1+(itsNChan-1)/itsNAvgChan);
-    ASSERT (int(info.ntime())==1+(itsNTime-1)/itsNAvgTime);
-    ASSERT (info.timeInterval()==5*itsNAvgTime);
-    ASSERT (int(info.nchanAvg())==itsNAvgChan);
-    ASSERT (int(info.ntimeAvg())==itsNAvgTime);
+    BOOST_CHECK_EQUAL (size_t {8}, info.startchan());
+    BOOST_CHECK_EQUAL (itsNChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL (1+(itsNChan-1)/itsNAvgChan, int(info.nchan()));
+    BOOST_CHECK_EQUAL (1+(itsNTime-1)/itsNAvgTime, int(info.ntime()));
+    BOOST_CHECK_EQUAL (5*itsNAvgTime, info.timeInterval());
+    BOOST_CHECK_EQUAL (itsNAvgChan, int(info.nchanAvg()));
+    BOOST_CHECK_EQUAL (itsNAvgTime, int(info.ntimeAvg()));
   }
 
   int itsCount;
@@ -185,7 +188,7 @@ void execute (const DPStep::ShPtr& step1)
   DPInfo info;
   DPStep::ShPtr step = step1;
   while (step) {
-    step->updateInfo (info);
+    step->setInfo (info);
     step = step->getNextStep();
   }
   // Execute the steps.
@@ -198,9 +201,6 @@ void execute (const DPStep::ShPtr& step1)
 void test1(int ntime, int nbl, int nchan, int ncorr,
            int navgtime, int navgchan, bool flag)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " navgtime=" << navgtime
-       << " navgchan=" << navgchan << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -216,18 +216,24 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
   execute (step1);
 }
 
-
-int main()
-{
-  try {
-    test1(10, 3, 32, 4, 2, 4, false);
-    test1(10, 3, 30, 1, 3, 3, true);
-    test1(10, 3, 30, 1, 3, 3, false);
-    test1(11, 3, 30, 2, 3, 3, false);
-    test1(10, 3, 32, 4, 1, 32, false);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_demixer1 ) {
+  test1(10, 3, 32, 4, 2, 4, false);
 }
+
+BOOST_AUTO_TEST_CASE( test_demixer2 ) {
+  test1(10, 3, 30, 1, 3, 3, true);
+}
+
+BOOST_AUTO_TEST_CASE( test_demixer3 ) {
+  test1(10, 3, 30, 1, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE( test_demixer4 ) {
+  test1(11, 3, 30, 2, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE( test_demixer5 ) {
+  test1(10, 3, 32, 4, 1, 32, false);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
