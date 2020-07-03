@@ -303,6 +303,8 @@ set(TEST_FILENAMES
   # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
+  DPPP/test/unit/tUpsample.cc
+  DPPP/test/unit/tUVWFlagger.cc
   # DPPP/test/unit/tPSet.cc # Friend class is not working
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tStationAdder.cc
