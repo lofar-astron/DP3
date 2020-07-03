@@ -37,15 +37,12 @@ namespace DP3 {
     class BDAIntervalBuffer
     {
     public:
-      using BDARowIterator = std::vector<BDABuffer::Row>::const_iterator;
-    
       /**
        * Constructor.
-       * @param n_baselines Number of baselines.
        * @param time Start time for the first interval, in seconds.
        * @param interval Duration for the first interval, in seconds.
        */
-      BDAIntervalBuffer(std::size_t n_baselines, double time, double interval);
+      BDAIntervalBuffer(double time, double interval);
 
       /**
        * Add new data to the interval.
@@ -56,44 +53,50 @@ namespace DP3 {
 
       /**
        * Advance the time interval.
-       * 
+       *
        * The start time of the new interval becomes the end time of the old
        * interval.
-       * 
+       *
        * This function deletes data that is no longer needed for the new interval
        * and future time intervals.
-       * 
+       *
        * @param interval Duration for the new interval, in seconds.
        */
       void Advance(double interval);
 
       /**
        * Check if all data is present for the current time interval.
-       * 
+       *
        * @return True if all baselines have data that cover the current
        *         time interval, false otherwise.
        */
       bool IsComplete() const;
 
       /**
-       * Get the BDA rows that match the current time interval for one baseline.
-       * @param baseline The index of the requested baseline.
-       * @throw std::invalid_argument If baseline is invalid.
+       * Get a buffer containing the weighted data for the current interval.
+       * @param enable_data Add visibilities to the output buffer.
+       * @param enable_flags Add flags to the output buffer.
+       * @param enable_weights Add weights to the output buffer.
+       * @param enable_full_res_flags Add full res flags to the output buffer.
+       * @return A BDABuffer with the requested data.
+       * @todo Use a bitset from BDABuffer for the enable* flags.
        */
-      std::list<BDARowIterator> GetBaseline(std::size_t baseline) const;
+      std::unique_ptr<BDABuffer> GetBuffer(bool enable_data = true,
+                                           bool enable_flags = true,
+                                           bool enable_weights = true,
+                                           bool enable_full_res_flags = true) const;
 
     private:
-      void removeOldBaselineRows();
-      void removeOldBuffers();
+      void removeOld();
 
     private:
       double time_; ///< Start time of current interval.
       double interval_; ///< Duration of current interval.
 
-      std::list<std::unique_ptr<BDABuffer>> buffers_;
+      std::list<std::unique_ptr<const BDABuffer>> buffers_;
 
-      /// Contains an ordered collection of all rows for each baseline.
-      std::vector<std::list<BDARowIterator>> baselines_;
+      /// Contains an ordered collection of all valid rows in buffers_.
+      std::list<const BDABuffer::Row*> rows_;
     };
 
   }

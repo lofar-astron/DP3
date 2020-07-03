@@ -49,6 +49,10 @@ namespace DP3 {
             bool* fullResFlags,
             const double* uvw);
 
+        std::size_t GetDataSize() const {
+          return n_channels_ * n_correlations_;
+        }
+
         const double time_; ///< Start time for the measurements in MJD seconds.
         const double interval_; ///< Duration time for the measurements in seconds.
         const rownr_t row_nr_;
@@ -61,7 +65,7 @@ namespace DP3 {
         bool* const full_res_flags_;
         double uvw_[3];
       };
-      
+
     public:
       /**
        * Create a new BDABuffer.
@@ -71,6 +75,7 @@ namespace DP3 {
        * @param enable_flags Enable the flags buffer.
        * @param enable_weights Enable the weights buffer.
        * @param enable_full_res_flags Enable the full res flags buffer.
+       * @todo Use a bitset for the enable* flags.
        */
       explicit BDABuffer(std::size_t pool_size,
                          bool enable_data = true,
@@ -111,13 +116,13 @@ namespace DP3 {
        * reusing the buffer.
        */
       void Clear();
-      
+
       /**
        * Determine the number of stored elements in all rows.
        * @return The total number of elements in this buffer.
        */
       std::size_t GetNumberOfElements() const;
-      
+
       const std::complex<float>* GetData() const {
         return data_.empty() ? nullptr : data_.data();
       }
@@ -177,19 +182,19 @@ namespace DP3 {
       const std::vector<Row>& GetRows() const {
         return rows_;
       }
-      
+
     private:
       static constexpr double kTimeEpsilon = 1.0e-8; // For comparing measurement timestamps.
-      
+
     public:
       static constexpr bool TimeIsLess(double x, double y) {
         return x < (y - kTimeEpsilon);
       }
-        
+
       static constexpr bool TimeIsGreaterEqual(double x, double y) {
         return x > (y - kTimeEpsilon);
       }
-        
+
       static constexpr bool TimeIsEqual(double x, double y) {
         return abs(x - y) < kTimeEpsilon;
       }
@@ -206,7 +211,7 @@ namespace DP3 {
 
       /// The rows, which contain iterators to the memory pools above.
       std::vector<Row> rows_;
-      
+
       std::size_t remaining_capacity_; ///< Remaining capacity (number of items)
     };
 

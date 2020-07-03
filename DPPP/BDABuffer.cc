@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <limits>
-  
+
 namespace DP3 {
   namespace DPPP {
 
@@ -60,15 +60,8 @@ namespace DP3 {
     , weights_()
     , full_res_flags_()
     , rows_()
-    , remaining_capacity_(0)
+    , remaining_capacity_(pool_size)
     {
-      const std::size_t kElementSize =
-        (enable_data ? sizeof(data_[0]) : 0) +
-        (enable_flags ? sizeof(flags_[0]) : 0) +
-        (enable_weights ? sizeof(weights_[0]) : 0) +
-        (enable_full_res_flags ? sizeof(full_res_flags_[0]) : 0);
-      remaining_capacity_ = std::min(pool_size / kElementSize, std::size_t{1});
-      
       if (enable_data) {
         data_.reserve(remaining_capacity_);
       }
@@ -127,7 +120,7 @@ namespace DP3 {
       full_res_flags_.clear();
       rows_.clear();
     }
-    
+
     std::size_t BDABuffer::GetNumberOfElements() const
     {
       return std::max({data_.size(), flags_.size(),
@@ -149,9 +142,9 @@ namespace DP3 {
       if (!rows_.empty() && TimeIsLess(time, rows_.back().time_)) {
         throw std::invalid_argument("Rows are not ordered by start time");
       }
-      
+
       const std::size_t kDataSize = n_channels * n_correlations;
-      
+
       if (remaining_capacity_ < kDataSize) {
         return false;
       }
@@ -171,7 +164,7 @@ namespace DP3 {
           data_.insert(data_.end(), kDataSize, { kNaN, kNaN });
         }
       }
-      
+
       if (flags_.capacity() > 0) {
         row_flags = flags_.end();
         if (flags) {
@@ -190,7 +183,7 @@ namespace DP3 {
           weights_.insert(weights_.end(), kDataSize, kNaN);
         }
       }
-      
+
       if (full_res_flags_.capacity() > 0) {
         row_full_res_flags = full_res_flags_.end();
         if (full_res_flags) {
