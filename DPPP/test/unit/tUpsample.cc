@@ -21,24 +21,26 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Upsample.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
+#include "../../Upsample.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 
+#include <boost/test/unit_test.hpp>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <iostream>
 
-using namespace LOFAR;
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(upsample)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -87,7 +89,7 @@ private:
 
   virtual void updateInfo (const DPInfo&)
   {
-    info().init (itsNCorr, itsNChan, itsTimes.size(), itsTimes[0], itsTimeInterval, string(), string());
+    info().init (itsNCorr, 0, itsNChan, itsTimes.size(), itsTimes[0], itsTimeInterval, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);
@@ -110,8 +112,8 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    ASSERT(nearAbs(buf.getTime(), itsTimes[itsTimeStep], itsTimeInterval*0.01));
-    ASSERT(allTrue(buf.getFlags()) == itsFlags[itsTimeStep]);
+    BOOST_CHECK(nearAbs(buf.getTime(), itsTimes[itsTimeStep], itsTimeInterval*0.01));
+    BOOST_CHECK(allTrue(buf.getFlags()) == itsFlags[itsTimeStep]);
     ++itsTimeStep;
     return true;
   }
@@ -120,7 +122,7 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT(near(info.timeInterval(), itsTimeInterval));
+    BOOST_CHECK(near(info.timeInterval(), itsTimeInterval));
   }
 
   vector<double> itsTimes;
@@ -168,14 +170,8 @@ void test()
   }
 }
 
-
-int main()
-{
-  try {
-    test();
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test1 ) {
+  test();
 }
+
+BOOST_AUTO_TEST_SUITE_END()
