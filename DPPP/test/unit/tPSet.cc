@@ -21,19 +21,22 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/PreFlagger.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/LofarLogger.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Quanta/MVTime.h>
 #include <iostream>
+
+#include <boost/test/unit_test.hpp>
+
+#include "../../PreFlagger.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
 
 using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(pset)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -45,7 +48,7 @@ public:
   TestInput(int nbl, int nchan, int ncorr)
     : itsNChan(nchan), itsNCorr(ncorr)
   {
-    info().init (itsNCorr, itsNChan, 0, 0, 50, string(), string());
+    info().init (itsNCorr, 0, itsNChan, 0, 0, 50, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(nbl);
@@ -90,26 +93,24 @@ namespace DP3 {
     class TestPSet
     {
     public:
-      static void testNone();
+      void testNone()
+      {
+        TestInput* in = new TestInput(16, 8, 4);
+        DPStep::ShPtr step1(in);
+        cout << "testNone" << endl;
+        ParameterSet parset;
+        PreFlagger::PSet pset (in, parset, "");
+        pset.updateInfo (in->getInfo());
+        BOOST_CHECK (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
+                  pset.itsFlagOnReal || pset.itsFlagOnImag ||
+                  pset.itsFlagOnAzEl || pset.itsFlagOnUV));
+      }
       static void testBL();
       static void testChan();
       static void testTime();
       static void testMinMax();
     };
   }
-}
-
-void TestPSet::testNone()
-{
-  TestInput* in = new TestInput(16, 8, 4);
-  DPStep::ShPtr step1(in);
-  cout << "testNone" << endl;
-  ParameterSet parset;
-  PreFlagger::PSet pset (in, parset, "");
-  pset.updateInfo (in->getInfo());
-  ASSERT (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
-            pset.itsFlagOnReal || pset.itsFlagOnImag ||
-            pset.itsFlagOnAzEl || pset.itsFlagOnUV));
 }
 
 void TestPSet::testBL()
@@ -122,16 +123,16 @@ void TestPSet::testBL()
     parset.add ("baseline", "[rs01.*, rs02.s01]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
+    BOOST_CHECK (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
               pset.itsFlagOnImag || pset.itsFlagOnAzEl  || pset.itsFlagOnUV) &&
             pset.itsFlagOnBL);
     // Make sure the matrix is correct.
     const Matrix<bool>& mat = pset.itsFlagBL;
-    ASSERT (mat.shape() == IPosition(2,4,4));
-    ASSERT ( mat(0,0) &&  mat(0,1) &&  mat(0,2) &&  mat(0,3));
-    ASSERT ( mat(1,0) &&  mat(1,1) &&  mat(1,2) &&  mat(1,3));
-    ASSERT ( mat(2,0) &&  mat(2,1) && !mat(2,2) && !mat(2,3));
-    ASSERT ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
+    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
+    BOOST_CHECK ( mat(0,0) &&  mat(0,1) &&  mat(0,2) &&  mat(0,3));
+    BOOST_CHECK ( mat(1,0) &&  mat(1,1) &&  mat(1,2) &&  mat(1,3));
+    BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) && !mat(2,3));
+    BOOST_CHECK ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
   }
   {
     cout << "testBL 2" << endl;
@@ -142,11 +143,11 @@ void TestPSet::testBL()
     pset.updateInfo (in->getInfo());
     // Make sure the matrix is correct.
     const Matrix<bool>& mat = pset.itsFlagBL;
-    ASSERT (mat.shape() == IPosition(2,4,4));
-    ASSERT ( mat(0,0) && !mat(0,1) && !mat(0,2) && !mat(0,3));
-    ASSERT (!mat(1,0) &&  mat(1,1) && !mat(1,2) && !mat(1,3));
-    ASSERT (!mat(2,0) && !mat(2,1) && !mat(2,2) && !mat(2,3));
-    ASSERT (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
+    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
+    BOOST_CHECK ( mat(0,0) && !mat(0,1) && !mat(0,2) && !mat(0,3));
+    BOOST_CHECK (!mat(1,0) &&  mat(1,1) && !mat(1,2) && !mat(1,3));
+    BOOST_CHECK (!mat(2,0) && !mat(2,1) && !mat(2,2) && !mat(2,3));
+    BOOST_CHECK (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
   }
   {
     cout << "testBL 3" << endl;
@@ -157,11 +158,11 @@ void TestPSet::testBL()
     pset.updateInfo (in->getInfo());
     // Make sure the matrix is correct.
     const Matrix<bool>& mat = pset.itsFlagBL;
-    ASSERT (mat.shape() == IPosition(2,4,4));
-    ASSERT (!mat(0,0) &&  mat(0,1) &&  mat(0,2) && !mat(0,3));
-    ASSERT ( mat(1,0) && !mat(1,1) &&  mat(1,2) && !mat(1,3));
-    ASSERT ( mat(2,0) &&  mat(2,1) && !mat(2,2) &&  mat(2,3));
-    ASSERT (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
+    BOOST_CHECK_EQUAL (mat.shape(), IPosition(2,4,4));
+    BOOST_CHECK (!mat(0,0) &&  mat(0,1) &&  mat(0,2) && !mat(0,3));
+    BOOST_CHECK ( mat(1,0) && !mat(1,1) &&  mat(1,2) && !mat(1,3));
+    BOOST_CHECK ( mat(2,0) &&  mat(2,1) && !mat(2,2) &&  mat(2,3));
+    BOOST_CHECK (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
   }
   // Some erronous ones.
   cout << "testBL expected error 1" << endl;
@@ -175,7 +176,7 @@ void TestPSet::testBL()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
   cout << "testBL expected error 2" << endl;
   err = false;
   try {
@@ -187,7 +188,7 @@ void TestPSet::testBL()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
   cout << "testBL expected error 3" << endl;
   err = false;
   try {
@@ -199,7 +200,7 @@ void TestPSet::testBL()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
 }
 
 void TestPSet::testChan()
@@ -212,17 +213,17 @@ void TestPSet::testChan()
     parset.add ("chan", "[11..13, 4]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsChannels.size() == 4);
-    ASSERT (pset.itsChannels[0] == 4);
-    ASSERT (pset.itsChannels[1] == 11);
-    ASSERT (pset.itsChannels[2] == 12);
-    ASSERT (pset.itsChannels[3] == 13);
-    ASSERT (pset.itsChanFlags.shape() == IPosition(2,4,32));
+    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t {11});
+    BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t {12});
+    BOOST_CHECK_EQUAL (pset.itsChannels[3], size_t {13});
+    BOOST_CHECK_EQUAL (pset.itsChanFlags.shape(), IPosition(2,4,32));
     for (unsigned int i=0; i<32; ++i) {
       if (i==4 || i==11 || i==12 || i==13) {
-        ASSERT (allEQ(pset.itsChanFlags.column(i), true));
+        BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), true));
       } else {
-        ASSERT (allEQ(pset.itsChanFlags.column(i), false));
+        BOOST_CHECK (allEQ(pset.itsChanFlags.column(i), false));
       }
     }
   }
@@ -232,10 +233,10 @@ void TestPSet::testChan()
     parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsChannels.size() == 3);
-    ASSERT (pset.itsChannels[0] == 1);
-    ASSERT (pset.itsChannels[1] == 4);
-    ASSERT (pset.itsChannels[2] == 5);
+    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {3});
+    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {1});
+    BOOST_CHECK_EQUAL (pset.itsChannels[1], size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t {5});
   }
   {
     cout << "testChan 3" << endl;
@@ -244,8 +245,8 @@ void TestPSet::testChan()
     parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsChannels.size() == 1);
-    ASSERT (pset.itsChannels[0] == 4);
+    BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t {1});
+    BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t {4});
   }
 }
 
@@ -259,11 +260,11 @@ void TestPSet::testTime()
     parset.add ("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsATimes.size() == 2);
+    BOOST_CHECK_EQUAL (pset.itsATimes.size(), size_t {2});
     Quantity q;
     MVTime::read (q, "1mar2009/12:00:00");
-    ASSERT (q.getValue("s") == pset.itsATimes[0]);
-    ASSERT (pset.itsATimes[1] - pset.itsATimes[0] == 86400+3600);
+    BOOST_CHECK_EQUAL (q.getValue("s"), pset.itsATimes[0]);
+    BOOST_CHECK_EQUAL (pset.itsATimes[1] - pset.itsATimes[0], 86400+3600);
   }
   {
     cout << "testTime 2" << endl;
@@ -271,11 +272,11 @@ void TestPSet::testTime()
     parset.add ("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsRTimes.size() == 4);
-    ASSERT (pset.itsRTimes[0] == 12*3600);
-    ASSERT (pset.itsRTimes[1] == 13*3600);
-    ASSERT (pset.itsRTimes[2] == 16*3600-120);
-    ASSERT (pset.itsRTimes[3] == 16*3600+120);
+    BOOST_CHECK_EQUAL (pset.itsRTimes.size(), size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsRTimes[0], 12*3600);
+    BOOST_CHECK_EQUAL (pset.itsRTimes[1], 13*3600);
+    BOOST_CHECK_EQUAL (pset.itsRTimes[2], 16*3600-120);
+    BOOST_CHECK_EQUAL (pset.itsRTimes[3], 16*3600+120);
   }
   {
     cout << "testTime 3" << endl;
@@ -283,15 +284,15 @@ void TestPSet::testTime()
     parset.add ("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsTimes.size() == 8);
-    ASSERT (pset.itsTimes[0] == -1);
-    ASSERT (pset.itsTimes[1] == 2*3600);
-    ASSERT (pset.itsTimes[2] == 22*3600);
-    ASSERT (pset.itsTimes[3] == 24*3600+1);
-    ASSERT (pset.itsTimes[4] == -1);
-    ASSERT (pset.itsTimes[5] == 1800);
-    ASSERT (pset.itsTimes[6] == 22*3600+1800);
-    ASSERT (pset.itsTimes[7] == 24*3600+1);
+    BOOST_CHECK_EQUAL (pset.itsTimes.size(), size_t {8});
+    BOOST_CHECK_EQUAL (pset.itsTimes[0], -1);
+    BOOST_CHECK_EQUAL (pset.itsTimes[1], 2*3600);
+    BOOST_CHECK_EQUAL (pset.itsTimes[2], 22*3600);
+    BOOST_CHECK_EQUAL (pset.itsTimes[3], 24*3600+1);
+    BOOST_CHECK_EQUAL (pset.itsTimes[4], -1);
+    BOOST_CHECK_EQUAL (pset.itsTimes[5], 1800);
+    BOOST_CHECK_EQUAL (pset.itsTimes[6], 22*3600+1800);
+    BOOST_CHECK_EQUAL (pset.itsTimes[7], 24*3600+1);
   }
   {
     cout << "testTime 4" << endl;
@@ -299,11 +300,11 @@ void TestPSet::testTime()
     parset.add ("timeslot", "[2..4, 10]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsTimeSlot.size() == 4);
-    ASSERT (pset.itsTimeSlot[0] == 2);
-    ASSERT (pset.itsTimeSlot[1] == 3);
-    ASSERT (pset.itsTimeSlot[2] == 4);
-    ASSERT (pset.itsTimeSlot[3] == 10);
+    BOOST_CHECK_EQUAL (pset.itsTimeSlot.size(), size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsTimeSlot[0], 2);
+    BOOST_CHECK_EQUAL (pset.itsTimeSlot[1], 3);
+    BOOST_CHECK_EQUAL (pset.itsTimeSlot[2], 4);
+    BOOST_CHECK_EQUAL (pset.itsTimeSlot[3], 10);
   }
   // Some erronous ones.
   cout << "testTime expected error 1" << endl;
@@ -317,7 +318,7 @@ void TestPSet::testTime()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
   cout << "testTime expected error 2" << endl;
   err = false;
   try {
@@ -329,7 +330,7 @@ void TestPSet::testTime()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
   cout << "testTime expected error 3" << endl;
   err = false;
   try {
@@ -341,7 +342,7 @@ void TestPSet::testTime()
     err = true;
     cout << "  " << x.what() << endl; 
   }
-  ASSERT (err);
+  BOOST_CHECK (err);
 }
 
 void TestPSet::testMinMax()
@@ -355,17 +356,17 @@ void TestPSet::testMinMax()
     parset.add ("amplmax", "112.5");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsFlagOnAmpl);
-    ASSERT (pset.itsAmplMin.size() == 4);
-    ASSERT (pset.itsAmplMax.size() == 4);
-    ASSERT (near(pset.itsAmplMin[0], 23.));
-    ASSERT (near(pset.itsAmplMin[1], -1e30));
-    ASSERT (near(pset.itsAmplMin[2], -1e30));
-    ASSERT (near(pset.itsAmplMin[3], 45.));
-    ASSERT (near(pset.itsAmplMax[0], 112.5));
-    ASSERT (near(pset.itsAmplMax[1], 112.5));
-    ASSERT (near(pset.itsAmplMax[2], 112.5));
-    ASSERT (near(pset.itsAmplMax[3], 112.5));
+    BOOST_CHECK (pset.itsFlagOnAmpl);
+    BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t {4});
+    BOOST_CHECK (near(pset.itsAmplMin[0], 23.));
+    BOOST_CHECK (near(pset.itsAmplMin[1], -1e30));
+    BOOST_CHECK (near(pset.itsAmplMin[2], -1e30));
+    BOOST_CHECK (near(pset.itsAmplMin[3], 45.));
+    BOOST_CHECK (near(pset.itsAmplMax[0], 112.5));
+    BOOST_CHECK (near(pset.itsAmplMax[1], 112.5));
+    BOOST_CHECK (near(pset.itsAmplMax[2], 112.5));
+    BOOST_CHECK (near(pset.itsAmplMax[3], 112.5));
   }
   {
     cout << "testMinMax 2" << endl;
@@ -373,17 +374,17 @@ void TestPSet::testMinMax()
     parset.add ("phasemin", "[23]");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsFlagOnPhase);
-    ASSERT (pset.itsAmplMin.size() == 4);
-    ASSERT (pset.itsAmplMax.size() == 4);
-    ASSERT (near(pset.itsPhaseMin[0], 23.));
-    ASSERT (near(pset.itsPhaseMin[1], -1e30));
-    ASSERT (near(pset.itsPhaseMin[2], -1e30));
-    ASSERT (near(pset.itsPhaseMin[3], -1e30));
-    ASSERT (near(pset.itsPhaseMax[0], 1e30));
-    ASSERT (near(pset.itsPhaseMax[1], 1e30));
-    ASSERT (near(pset.itsPhaseMax[2], 1e30));
-    ASSERT (near(pset.itsPhaseMax[3], 1e30));
+    BOOST_CHECK (pset.itsFlagOnPhase);
+    BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t {4});
+    BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t {4});
+    BOOST_CHECK (near(pset.itsPhaseMin[0], 23.));
+    BOOST_CHECK (near(pset.itsPhaseMin[1], -1e30));
+    BOOST_CHECK (near(pset.itsPhaseMin[2], -1e30));
+    BOOST_CHECK (near(pset.itsPhaseMin[3], -1e30));
+    BOOST_CHECK (near(pset.itsPhaseMax[0], 1e30));
+    BOOST_CHECK (near(pset.itsPhaseMax[1], 1e30));
+    BOOST_CHECK (near(pset.itsPhaseMax[2], 1e30));
+    BOOST_CHECK (near(pset.itsPhaseMax[3], 1e30));
   }
   {
     cout << "testMinMax 3" << endl;
@@ -391,9 +392,9 @@ void TestPSet::testMinMax()
     parset.add ("uvmmin", "23");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsFlagOnUV);
-    ASSERT (near(pset.itsMinUV, 23.*23.));
-    ASSERT (near(pset.itsMaxUV, 1e30));
+    BOOST_CHECK (pset.itsFlagOnUV);
+    BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
+    BOOST_CHECK (near(pset.itsMaxUV, 1e30));
   }
   {
     cout << "testMinMax 4" << endl;
@@ -401,9 +402,9 @@ void TestPSet::testMinMax()
     parset.add ("uvmmax", "23");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsFlagOnUV);
-    ASSERT (pset.itsMinUV < 0.);
-    ASSERT (near(pset.itsMaxUV, 23.*23.));
+    BOOST_CHECK (pset.itsFlagOnUV);
+    BOOST_CHECK (pset.itsMinUV < 0.);
+    BOOST_CHECK (near(pset.itsMaxUV, 23.*23.));
   }
   {
     cout << "testMinMax 5" << endl;
@@ -412,24 +413,30 @@ void TestPSet::testMinMax()
     parset.add ("uvmmax", "123");
     PreFlagger::PSet pset (in, parset, "");
     pset.updateInfo (in->getInfo());
-    ASSERT (pset.itsFlagOnUV);
-    ASSERT (near(pset.itsMinUV, 23.*23.));
-    ASSERT (near(pset.itsMaxUV, 123.*123.));
+    BOOST_CHECK (pset.itsFlagOnUV);
+    BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
+    BOOST_CHECK (near(pset.itsMaxUV, 123.*123.));
   }
 }
 
-int main()
-{
-  INIT_LOGGER ("tPSet");
-  try {
-    TestPSet::testNone();
-    TestPSet::testBL();
-    TestPSet::testChan();
-    TestPSet::testTime();
-    TestPSet::testMinMax();
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_none ) {
+  TestPSet::testNone();
 }
+
+BOOST_AUTO_TEST_CASE( test_bl ) {
+  TestPSet::testBL();
+}
+
+BOOST_AUTO_TEST_CASE( test_chan ) {
+  TestPSet::testChan();
+}
+
+BOOST_AUTO_TEST_CASE( test_time ) {
+  TestPSet::testTime();
+}
+
+BOOST_AUTO_TEST_CASE( test_min_max ) {
+  TestPSet::testMinMax();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
