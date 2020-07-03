@@ -21,21 +21,26 @@
 //
 // @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/GridInterpolate.h>
-#include <cassert>
+#include <boost/test/unit_test.hpp>
 
-using namespace LOFAR;
+#include "../../GridInterpolate.h"
+
+using namespace DP3;
 using namespace std;
 
-int main() {
+BOOST_AUTO_TEST_SUITE(gridinterpolate)
+
+BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
   vector<double> ax_src = {1,3};
   vector<double> ax_tgt = {0.5, 1.5, 2.5, 3.5};  
 
   vector<size_t> indices;
   getAxisIndices(ax_src, ax_tgt, indices);
-  assert(indices.size()==ax_tgt.size());
-  assert(indices[0]==0 && indices[1]==0 && indices[2]==1 && indices[3]==1);
+  BOOST_CHECK_EQUAL(indices.size(), ax_tgt.size());
+  BOOST_CHECK_EQUAL(indices[0], size_t {0});
+  BOOST_CHECK_EQUAL(indices[1], size_t {0});
+  BOOST_CHECK_EQUAL(indices[2], size_t {1});
+  BOOST_CHECK_EQUAL(indices[3], size_t {1});
 
   vector<double> x_src = {2,4,8,10};
   vector<double> y_src = {3,6,12};
@@ -48,17 +53,22 @@ int main() {
   }
 
   getAxisIndices(x_src, x_tgt, indices);
-  assert(indices.size() == x_tgt.size());
-  assert(indices[0]==0 && indices[1]==1 && indices[2]==3 && indices[3]==3);
+  BOOST_CHECK_EQUAL(indices.size(), x_tgt.size());
+  BOOST_CHECK_EQUAL(indices[0], size_t {0});
+  BOOST_CHECK_EQUAL(indices[1], size_t {1});
+  BOOST_CHECK_EQUAL(indices[2], size_t {3});
+  BOOST_CHECK_EQUAL(indices[3], size_t {3});
 
   gridNearestNeighbor(x_src, y_src, x_tgt, y_tgt, vals_src.data(), vals_tgt.data());
 
-  assert(vals_tgt[0] == vals_src[0]);
-  assert(vals_tgt[1] == vals_src[2]);
-  assert(vals_tgt[2] == vals_src[3]);
-  assert(vals_tgt[3] == vals_src[5]);
-  assert(vals_tgt[4] == vals_src[9]);
-  assert(vals_tgt[5] == vals_src[11]);
-  assert(vals_tgt[6] == vals_src[9]);
-  assert(vals_tgt[7] == vals_src[11]);
+  BOOST_CHECK_EQUAL(vals_tgt[0], vals_src[0]);
+  BOOST_CHECK_EQUAL(vals_tgt[1], vals_src[2]);
+  BOOST_CHECK_EQUAL(vals_tgt[2], vals_src[3]);
+  BOOST_CHECK_EQUAL(vals_tgt[3], vals_src[5]);
+  BOOST_CHECK_EQUAL(vals_tgt[4], vals_src[9]);
+  BOOST_CHECK_EQUAL(vals_tgt[5],vals_src[11]);
+  BOOST_CHECK_EQUAL(vals_tgt[6], vals_src[9]);
+  BOOST_CHECK_EQUAL(vals_tgt[7], vals_src[11]);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

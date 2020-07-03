@@ -296,6 +296,9 @@ set(TEST_FILENAMES
   DPPP/test/unit/tBaselineSelection.cc
   # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
   DPPP/test/unit/tFilter.cc
+  DPPP/test/unit/tGridInterpolate.cc
+  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tPhaseShift.cc
   DDECal/test/unit/tRotationConstraint.cc

@@ -21,22 +21,26 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/MedFlagger.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../MedFlagger.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(medflagger)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -86,7 +90,7 @@ private:
   {
     info() = infoIn;
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     Vector<Int> ant1(itsNBl);
@@ -157,8 +161,8 @@ private:
       result.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
     }
     // Check the result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-10));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-10));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-10));
     // Check the flags.
     // If autocorrs are used, only the last channel is flagged, but the first
     // channel also for the first time stamp. Thus is only true for a limited
@@ -177,8 +181,8 @@ private:
         }
       }
     }
-    ASSERT (allEQ(buf.getFlags(), expFlag));
-    ASSERT (near(buf.getTime(), 2+5.*itsCount));
+    BOOST_CHECK (allEQ(buf.getFlags(), expFlag));
+    BOOST_CHECK (near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
   }
@@ -187,12 +191,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==itsNChan);
-    ASSERT (int(info.ntime())==itsNTime);
-    ASSERT (info.timeInterval()==5);
-    ASSERT (int(info.nchanAvg())==1);
-    ASSERT (int(info.ntimeAvg())==1);
+    BOOST_CHECK_EQUAL (int(info.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(info.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL (int(info.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL (info.timeInterval(), 5);
+    BOOST_CHECK_EQUAL (int(info.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL (int(info.ntimeAvg()), 1);
   }
 
   int itsCount;
@@ -212,7 +216,7 @@ void execute (const DPStep::ShPtr& step1)
   step1->finish();
   DPStep::ShPtr step = step1;
   while (step) {
-    step->showCounts (cout);
+    // step->showCounts (cout);
     step = step->getNextStep();
   }
 }
@@ -221,9 +225,6 @@ void execute (const DPStep::ShPtr& step1)
 void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
            bool shortbl)
 {
-  cout << "test1: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold
-       << " shortbl=" << shortbl << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -240,7 +241,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
                                      shortbl));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
-  step2->show (cout);
+  // step2->show (cout);
   execute (step1);
 }
 
@@ -248,9 +249,6 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
 void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
            bool shortbl)
 {
-  cout << "test2: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold
-       << " shortbl=" << shortbl << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -270,22 +268,34 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   execute (step1);
 }
 
-
-int main()
-{
-  INIT_LOGGER ("tMedFlagger");
-  try {
-
-    for (unsigned int i=0; i<2; ++i) {
-      test1(10, 2, 32, 4, false, 1, i>0);
-      test1(10, 5, 32, 4, true, 1, i>0);
-      test2( 4, 2,  8, 4, false, 100, i>0);
-      test2(10, 5, 32, 4, true, 1, i>0);
-      test2( 4, 2,  8, 4, false, 100, i>0);
-    }
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
+BOOST_AUTO_TEST_CASE( test_medflagger_1 ) {
+  for (unsigned int i=0; i<2; ++i) {
+    test1(10, 2, 32, 4, false, 1, i>0);
   }
-  return 0;
 }
+
+BOOST_AUTO_TEST_CASE( test_medflagger_2 ) {
+  for (unsigned int i=0; i<2; ++i) {
+    test1(10, 5, 32, 4, true, 1, i>0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( test_medflagger_3 ) {
+  for (unsigned int i=0; i<2; ++i) {
+    test2( 4, 2,  8, 4, false, 100, i>0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( test_medflagger_4 ) {
+  for (unsigned int i=0; i<2; ++i) {
+    test2(10, 5, 32, 4, true, 1, i>0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( test_medflagger_5 ) {
+  for (unsigned int i=0; i<2; ++i) {
+    test2( 4, 2,  8, 4, false, 100, i>0);
+  }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
