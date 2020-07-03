@@ -21,12 +21,6 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP/Averager.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
@@ -34,11 +28,20 @@
 #include <casacore/casa/Quanta/Quantum.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+#include "../../Averager.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
 
+BOOST_AUTO_TEST_SUITE(taverager)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -89,7 +92,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
     Vector<double> chanWidth(itsNChan, 100000.);
@@ -147,20 +150,20 @@ private:
       }
     }
     // Check the averaged result.
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     ///cout << imag(buf.getData()) << endl<<imag(result);
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), itsFlag));
-    ASSERT (near(buf.getTime(),
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK (near(buf.getTime(),
                  2+5*(itsCount*itsNAvgTime + (itsNAvgTime-1)/2.)));
-    ASSERT (allNear(buf.getWeights(), resultw, 1e-5));
+    BOOST_CHECK (allNear(buf.getWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
       Matrix<double> uvw(3,itsNBl);
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
-      ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+      BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    // cout <<buf.getFullResFlags()<< fullResFlags;
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }
@@ -169,12 +172,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==1+(itsNChan-1)/itsNAvgChan);
-    ASSERT (int(info.ntime())==1+(itsNTime-1)/itsNAvgTime);
-    ASSERT (info.timeInterval()==5*itsNAvgTime);
-    ASSERT (int(info.nchanAvg())==itsNAvgChan);
-    ASSERT (int(info.ntimeAvg())==itsNAvgTime);
+    BOOST_CHECK_EQUAL (itsNChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL (1+(itsNChan-1)/itsNAvgChan, int(info.nchan()));
+    BOOST_CHECK_EQUAL (1+(itsNTime-1)/itsNAvgTime, int(info.ntime()));
+    BOOST_CHECK_EQUAL (5*itsNAvgTime, info.timeInterval());
+    BOOST_CHECK_EQUAL (itsNAvgChan, int(info.nchanAvg()));
+    BOOST_CHECK_EQUAL (itsNAvgTime, int(info.ntimeAvg()));
   }
 
   int itsCount;
@@ -243,7 +246,7 @@ private:
   virtual void updateInfo (const DPInfo&)
   {
     // Use timeInterval=5
-    info().init (itsNrCorr, itsNrChan, itsNrTime, 100, 5, string(), string());
+    info().init (itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNrChan);
     Vector<double> chanWidth(itsNrChan, 100000.);
@@ -292,22 +295,22 @@ private:
         }
       }
     }
-    ASSERT (allNE(weights, float(0.)));
+    BOOST_CHECK (allNE(weights, float(0.)));
     for (unsigned int i=0; i<result.size(); ++i) {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
     ///cout << real(buf.getData()) << endl<<real(result);
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), flags));
-    ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
-    ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), flags));
+    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     ///cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -315,12 +318,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNrChan);
-    ASSERT (info.nchan()==1);
-    ASSERT (info.ntime()==1);
-    ASSERT (info.timeInterval()==5*itsNrTime);
-    ASSERT (int(info.nchanAvg())==itsNrChan);
-    ASSERT (int(info.ntimeAvg())==itsNrTime);
+    BOOST_CHECK_EQUAL (itsNrChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL (size_t {1}, info.nchan());
+    BOOST_CHECK_EQUAL (size_t {1}, info.ntime());
+    BOOST_CHECK_EQUAL (5*itsNrTime, info.timeInterval());
+    BOOST_CHECK_EQUAL (itsNrChan, int(info.nchanAvg()));
+    BOOST_CHECK_EQUAL (itsNrTime, int(info.ntimeAvg()));
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
@@ -412,16 +415,16 @@ private:
     }
     // Check the averaged result.
     ///cout << real(buf.getData()) << endl<<real(result);
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-5));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-5));
-    ASSERT (allEQ(buf.getFlags(), flags));
-    ASSERT (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
-    ASSERT (allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK (allEQ(buf.getFlags(), flags));
+    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
-    ASSERT (allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     ///cout <<buf.getFullResFlags()<< fullResFlags;
-    ASSERT (allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -429,12 +432,12 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNrChan);
-    ASSERT (info.nchan()==1);
-    ASSERT (info.ntime()==1);
-    ASSERT (info.timeInterval()==5*itsNrTime);
-    ASSERT (int(info.nchanAvg())==itsNrChan);
-    ASSERT (int(info.ntimeAvg())==itsNrTime);
+    BOOST_CHECK_EQUAL (itsNrChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL (size_t {1}, info.nchan());
+    BOOST_CHECK_EQUAL (size_t {1}, info.ntime());
+    BOOST_CHECK_EQUAL (5*itsNrTime, info.timeInterval());
+    BOOST_CHECK_EQUAL (itsNrChan, int(info.nchanAvg()));
+    BOOST_CHECK_EQUAL (itsNrTime, int(info.ntimeAvg()));
   }
 
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
@@ -456,9 +459,6 @@ void execute (const DPStep::ShPtr& step1)
 void test1(int ntime, int nbl, int nchan, int ncorr,
            int navgtime, int navgchan, bool flag)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " navgtime=" << navgtime
-       << " navgchan=" << navgchan << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -478,10 +478,6 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
                      double timeresolution, double freqresolution,
                      string frequnit, bool flag)
 {
-  cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " timeresolution=" << timeresolution
-       << " freqresolution=" << freqresolution << endl;
-  // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
@@ -507,9 +503,6 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
 // Like test1, but the averaging is done in two steps.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
-  cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-       << " ncorr=" << ncorr << " navgtime=2"
-       << " navgchan=4" << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -529,9 +522,6 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 void test3(int nrbl, int nrcorr)
 {
   {
-    cout << "test3: ntime=2 nrbl=" << nrbl << " nchan=2 ncorr=" << nrcorr
-         << endl;
-    cout << "  navgtime=2 navgchan=2" << endl;
     // Create the steps.
     TestInput3* in = new TestInput3(2, nrbl, 2, nrcorr);
     DPStep::ShPtr step1(in);
@@ -545,9 +535,6 @@ void test3(int nrbl, int nrcorr)
     execute (step1);
   }
   {
-    cout << "test3: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
-         << endl;
-    cout << "  [navgtime=2 navgchan=4], [navgtime=2 navgchan=2]" << endl;
     // Create the steps.
     TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
     DPStep::ShPtr step1(in);
@@ -571,10 +558,6 @@ void test3(int nrbl, int nrcorr)
 void test4(int nrbl, int nrcorr, int flagstep)
 {
   {
-    cout << "test4: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
-         << endl;
-    cout << "  [navgtime=2 navgchan=2], [flagstep=" << flagstep
-         << "] [navgtime=2 navgchan=4]" << endl;
     // Create the steps.
     TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
     DPStep::ShPtr step1(in);
@@ -595,29 +578,63 @@ void test4(int nrbl, int nrcorr, int flagstep)
   }
 }
 
-
-int main()
-{
-  try {
-    test1(10, 3, 32, 4, 2, 4, false);
-    test1(10, 3, 30, 1, 3, 3, true);
-    test1(10, 3, 30, 1, 3, 3, false);
-    test1(11, 3, 30, 2, 3, 3, false);
-    test1(10, 3, 32, 4, 1, 32, false);
-    test1(10, 3, 32, 1, 1, 1, false);
-
-    test1resolution(10, 3, 32, 4, 10., 100000, "Hz", false);
-    test1resolution(11, 3, 32, 4, 1., 800, "kHz", false);
-    test1resolution(11, 3, 32, 4, 15., 0.4, "MHz", false);
-    test2(10, 3, 32, 2, true);
-    test2(10, 3, 32, 2, false);
-    test3(1, 1);
-    test3(10, 4);
-    test4(1, 4, 3);
-    test4(20, 4, 5);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( testaverager1 ) {
+  test1(10, 3, 32, 4, 2, 4, false);
 }
+
+BOOST_AUTO_TEST_CASE( testaverager2 ) {
+  test1(10, 3, 30, 1, 3, 3, true);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager3 ) {
+  test1(10, 3, 30, 1, 3, 3, false);
+}
+BOOST_AUTO_TEST_CASE( testaverager4 ) {
+  test1(11, 3, 30, 2, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager5 ) {
+  test1(10, 3, 32, 4, 1, 32, false);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager6 ) {
+  test1(10, 3, 32, 1, 1, 1, false);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager7 ) {
+  test2(10, 3, 32, 2, true);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager8 ) {
+  test2(10, 3, 32, 2, false);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager9 ) {
+  test3(1, 1);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager10 ) {
+  test3(10, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager11 ) {
+  test4(1, 4, 3);
+}
+
+BOOST_AUTO_TEST_CASE( testaverager12 ) {
+  test4(20, 4, 5);
+}
+
+BOOST_AUTO_TEST_CASE( testresolution1 ) {
+  test1resolution(10, 3, 32, 4, 10., 100000, "Hz", false);
+}
+
+BOOST_AUTO_TEST_CASE( testresolution2 ) {
+  test1resolution(11, 3, 32, 4, 1., 800, "kHz", false);
+}
+
+BOOST_AUTO_TEST_CASE( testresolution3 ) {
+  test1resolution(11, 3, 32, 4, 15., 0.4, "MHz", false);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
