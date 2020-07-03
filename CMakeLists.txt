@@ -290,9 +290,10 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
-  DPPP/test/tMirror.cc
-  DPPP/test/tPhaseShift.cc
-  DDECal/test/tRotationConstraint.cc
+  DPPP/test/unit/tApplyCal.cc
+  DPPP/test/unit/tMirror.cc
+  DPPP/test/unit/tPhaseShift.cc
+  DDECal/test/unit/tRotationConstraint.cc
 )
 
 set(RUNTEST_SOURCES
@@ -302,6 +303,7 @@ set(RUNTEST_SOURCES
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
 
+file(COPY DPPP/test/resources/tApplyCal_tmp.parmdb DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
@@ -343,11 +345,6 @@ endforeach()
 #  DPPP/test/tMirror.cc
 #)
 #target_link_libraries(tMirror ${CASACORE_LIBRARIES})
-
-#add_executable(tPhaseShift EXCLUDE_FROM_ALL
-#  DPPP/test/tPhaseShift.cc
-#  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
-#target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
 install (TARGETS makesourcedb showsourcedb DESTINATION bin)
 

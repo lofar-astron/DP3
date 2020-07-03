@@ -21,12 +21,12 @@
 //
 // @author Ger van Diepen
 
-#include "../PhaseShift.h"
-#include "../DPBuffer.h"
-#include "../DPInfo.h"
+#include "../../PhaseShift.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
 
-#include "../../Common/ParameterSet.h"
-#include "../../Common/StringUtil.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>

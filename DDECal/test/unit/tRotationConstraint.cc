@@ -4,8 +4,8 @@
 #include <iostream>
 #include <complex>
 
-#include "../RotationConstraint.h"
-#include "../RotationAndDiagonalConstraint.h"
+#include "../../RotationConstraint.h"
+#include "../../RotationAndDiagonalConstraint.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

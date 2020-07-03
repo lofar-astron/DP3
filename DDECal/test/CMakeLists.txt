@@ -5,4 +5,3 @@ configure_file(findenv.run_tmpl findenv.run_script)
 include(LofarCTest)
 
 lofar_add_test(tDDECal)
-lofar_add_test(tRotationConstraint tRotationConstraint.cc)

@@ -21,23 +21,28 @@
 //
 // @author Tammo Jan Dijkema
 
-#include <lofar_config.h>
-#include <DPPP/ApplyCal.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <Common/StreamUtil.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <iostream>
 
-using namespace LOFAR;
+#include <boost/test/unit_test.hpp>
+
+
+#include "../../ApplyCal.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+#include "../../../Common/StreamUtil.h"
+
+using namespace DP3;
 using namespace DP3::DPPP;
 using namespace casacore;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(applycal)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
@@ -48,7 +53,7 @@ public:
     : itsCount(0), itsNTime(ntime), itsNChan(nchan), itsNBl(9), itsNCorr(4),
       itsTimeInterval(5.)
   {
-    info().init (itsNCorr, nchan, ntime, 4472025740.0, itsTimeInterval,
+    info().init (itsNCorr, 0, nchan, ntime, 4472025740.0, itsTimeInterval,
         string(), string());
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
@@ -212,25 +217,25 @@ private:
     }
 
     if (itsDoTest & WeightEquals) {
-      ASSERT ( near(buf.getWeights()(0,0,1),4.));
-      ASSERT ( near(buf.getWeights()(1,0,1),9.));
-      ASSERT ( near(buf.getWeights()(2,0,1),4.));
-      ASSERT ( near(buf.getWeights()(3,0,1),9.));
-      ASSERT ( near(buf.getWeights()(0,31,5),0.8));
+      BOOST_CHECK ( near(buf.getWeights()(0,0,1),4.));
+      BOOST_CHECK ( near(buf.getWeights()(1,0,1),9.));
+      BOOST_CHECK ( near(buf.getWeights()(2,0,1),4.));
+      BOOST_CHECK ( near(buf.getWeights()(3,0,1),9.));
+      BOOST_CHECK ( near(buf.getWeights()(0,31,5),0.8));
     }
 
     if (itsDoTest & DataEquals) {
-      ASSERT (allNear (buf.getData(), data, 1.e-7));
+      BOOST_CHECK (allNear (buf.getData(), data, 1.e-7));
     }
 
     if (itsDoTest & DataNotChanged) {
-      ASSERT (allNear (buf.getData(), data, 1.e-7));
+      BOOST_CHECK (allNear (buf.getData(), data, 1.e-7));
     }
     if (itsDoTest & DataChanged) {
-      ASSERT (!(allNear (buf.getData(), data, 1.e-7)));
+      BOOST_CHECK (!(allNear (buf.getData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      ASSERT (allNear (buf.getWeights(), weights, 1.e-7));
+      BOOST_CHECK (allNear (buf.getWeights(), weights, 1.e-7));
     }
     itsCount++;
     itsTimeStep++;
@@ -242,11 +247,11 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    ASSERT (int(infoIn.origNChan())==itsNChan);
-    ASSERT (int(infoIn.nchan())==itsNChan);
-    ASSERT (int(infoIn.ntime())==itsNTime);
-    ASSERT (infoIn.timeInterval()==itsTimeInterval);
-    ASSERT (int(infoIn.nbaselines())==itsNBl);
+    BOOST_CHECK_EQUAL (itsNChan, int(infoIn.origNChan()));
+    BOOST_CHECK_EQUAL (itsNChan, int(infoIn.nchan()));
+    BOOST_CHECK_EQUAL (itsNTime, int(infoIn.ntime()));
+    BOOST_CHECK_EQUAL (itsTimeInterval, infoIn.timeInterval());
+    BOOST_CHECK_EQUAL (itsNBl, int(infoIn.nbaselines()));
   }
 
   int itsCount;
@@ -335,16 +340,12 @@ void testgain(int ntime, int nchan)
   execute (step1);
 }
 
-
-int main()
-{
-  INIT_LOGGER ("tApplyCal");
-  try {
-    testclocktec (10,  32);
-    testgain (10, 32);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-   return 1;
-  }
-  return 0;
+BOOST_AUTO_TEST_CASE( test_clock_and_tec ) {
+  testclocktec (10,  32);
 }
+
+BOOST_AUTO_TEST_CASE( test_gain ) {
+  testgain (10, 32);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
