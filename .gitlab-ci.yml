@@ -1,6 +1,5 @@
 stages:
   - build
-  # - coverage
   - deploy-doc
 
 .env:
@@ -16,8 +15,7 @@ build_lofar:
   - >
     docker run
     ${DOCKER_IMAGE}_lofar
-    sh -c 'apt-get -y install python3-pip && pip3 install gcovr && cd /build && ctest -T test && ls ../src && gcovr -r . -f '.*/src/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*''
-  # - sh -c 'apt-get -y install python3-pip && pip3 install gcovr && cd /build && ctest -T test && ls ../src && gcovr -v -r . -e '.*/CompilerIdCXX/.*' -e '.*/test/.*''  
+    sh -c 'apt-get -y install python3-pip && pip3 install gcovr && cd /build && gcovr -r . -f '.*/src/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*''
   
 build_nolofar:
   stage: build
@@ -39,17 +37,6 @@ build-doc:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
-
-# coverage:
-#   stage: coverage
-#   image: ubuntu:20.04
-#   before_script:
-#     - 
-#     - apt-get -y install python3-pip
-#     - pip3 install gcovr
-#   script:
-#     - cd /build
-#     - gcovr -r .. -e '.*/CompilerIdCXX/.*' -e '.*/test/.*'
 
 deploy-doc:
   stage: deploy-doc
