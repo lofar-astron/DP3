@@ -54,7 +54,7 @@ AOFlaggerStep::AOFlaggerStep(DPInput* input, const ParameterSet& parset,
       qstats_() {
   strategy_name_ = parset.getString(prefix + "strategy", string());
   if (strategy_name_.empty())
-    strategy_name_ = aoflagger_.FindStrategy(aoflagger::LOFAR_TELESCOPE);
+    strategy_name_ = aoflagger_.FindStrategyFile(aoflagger::TelescopeId::LOFAR_TELESCOPE);
 
   window_size_ = parset.getUint(prefix + "timewindow", 0);
   memory_ = parset.getUint(prefix + "memorymax", 0);
@@ -295,7 +295,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     threadData[t].qstats = aoflagger_.MakeQualityStatistics(
         threadData[t].scan_times.data(), threadData[t].scan_times.size(),
         frequencies_.data(), frequencies_.size(), 4, false);
-    threadData[t].strategy = aoflagger_.LoadStrategy(strategy_name_);
+    threadData[t].strategy = aoflagger_.LoadStrategyFile(strategy_name_);
   }
 
   ParallelFor<int> loop(getInfo().nThreads());
