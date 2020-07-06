@@ -74,7 +74,7 @@ void testAdd()
   itsParts[1].resize (2);
   itsParts[1][0] = 3;
   itsParts[1][1] = 4;
-  
+
   vector<int> newbl(nrnew);
   vector<vector<int> > itsBufRows;
   bool itsMakeAutoCorr = true;
@@ -141,19 +141,19 @@ void testAdd()
   }
 }
 
+constexpr unsigned int kNChannels = 8;
 
-BOOST_DATA_TEST_CASE( test_chan, 
-                      boost::unit_test::data::xrange(8), 
+BOOST_DATA_TEST_CASE( test_chan,
+                      boost::unit_test::data::xrange(kNChannels),
                       chan )
 {
-  unsigned int windowSize = 5;
-  unsigned int nchan = 8;
-  doChan (windowSize, nchan, chan);
+  const unsigned int kWindowSize = 5;
+  doChan(kWindowSize, kNChannels, chan);
 }
 
 BOOST_AUTO_TEST_CASE( add )
 {
-  testAdd();
+  BOOST_CHECK_NO_THROW(testAdd());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
