@@ -527,26 +527,6 @@ void test4(int ntime, int nbl, int nchan, int ncorr)
   execute (step1);
 }
 
-void testPatterns()
-{
-  Vector<String> antNames(10);
-  antNames[0] = "CS001HBA0";   antNames[1] = "CS001HBA1";
-  antNames[2] = "CS002HBA0";   antNames[3] = "CS002HBA1";
-  antNames[4] = "CS003HBA0";   antNames[5] = "CS003HBA1";
-  antNames[6] = "CS004HBA0";   antNames[7] = "CS004HBA1";
-  antNames[8] = "CS005HBA0";   antNames[9] = "CS005HBA1";
-  vector<string> patterns;
-  patterns.push_back ("CS00[0-9]*");
-  patterns[0] = "CS00[0-9]*";
-  patterns.push_back ("!CS00[45]*");
-  patterns.push_back ("CS00[124]HBA0");
-}
-
-BOOST_AUTO_TEST_CASE( test_patterns ) {
-  // Test the station selection patterns.
-  testPatterns();
-}
-
 BOOST_AUTO_TEST_CASE( test_add1 ) {
   // Test must be done with with 16 baselines.
   test1( 10,  16, 32, 4, true);

@@ -265,8 +265,6 @@ void execute (const DPStep::ShPtr& step1)
   // Set DPInfo.
   step1->setInfo (DPInfo());
 
-  const DPStep::ShPtr& step=step1->getNextStep();
-
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));

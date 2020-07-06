@@ -407,6 +407,7 @@ namespace {
     parset.add ("uvmrange", "[5.5..8.5]");
     parset.add ("phasecenter", "Sun");
     DPStep::ShPtr step2(new DP3::DPPP::UVWFlagger(in, parset, ""));
+    BOOST_CHECK(true);
   }
 
 } // end namespace anonymous
