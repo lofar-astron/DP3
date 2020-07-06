@@ -47,8 +47,8 @@ public:
     info().init (itsNCorr, 0, itsNChan, 0, 0, 50, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    casacore::Vector<casacore::Int> ant1(nbl);
-    casacore::Vector<casacore::Int> ant2(nbl);
+    std::vector<int> ant1(nbl);
+    std::vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<nbl; ++i) {
@@ -61,15 +61,11 @@ public:
         }
       }
     }
-    casacore::Vector<casacore::String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    std::vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     std::vector<casacore::MPosition> antPos(4);
-    casacore::Vector<double> antDiam(4, 70.);
+    std::vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
-    casacore::Vector<double> chanWidth(nchan, 100000);
+    std::vector<double> chanWidth(nchan, 100000);
     casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);

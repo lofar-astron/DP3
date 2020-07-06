@@ -95,7 +95,7 @@ private:
     info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000.);
+    vector<double> chanWidth(itsNChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -221,7 +221,7 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setFlags (flags);
-    Vector<rownr_t> rownrs(1,itsCount);
+    vector<rownr_t> rownrs(1,itsCount);
     buf.setRowNrs (rownrs);
     getNextStep()->process (buf);
     ++itsCount;
@@ -247,7 +247,7 @@ private:
     info().init (itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNrChan);
-    Vector<double> chanWidth(itsNrChan, 100000.);
+    vector<double> chanWidth(itsNrChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }

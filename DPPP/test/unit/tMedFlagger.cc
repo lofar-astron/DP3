@@ -93,8 +93,8 @@ private:
     info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    vector<int> ant1(itsNBl);
+    vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -107,14 +107,10 @@ private:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    vector<String> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
     vector<MPosition> antPos(4);
-    Vector<double> vals(3);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
     antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
@@ -127,11 +123,11 @@ private:
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
     antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000);
+    vector<double> chanWidth(itsNChan, 100000);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }

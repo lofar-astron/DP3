@@ -59,7 +59,7 @@ public:
                            MDirection::J2000);
     info().set (MPosition(), phaseCenter, phaseCenter, phaseCenter);
     // Define the frequencies.
-    Vector<double> chanWidth (nchan, 100000.);
+    vector<double> chanWidth (nchan, 100000.);
     Vector<double> chanFreqs (nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
@@ -77,8 +77,8 @@ public:
       grpszant = nant;
       grpszbl  = nbl;
     }
-    Vector<Int> ant1(nbl);
-    Vector<Int> ant2(nbl);
+    vector<Int> ant1(nbl);
+    vector<Int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     int lastant = grpszant;
@@ -95,9 +95,9 @@ public:
         }
       }
     }
-    Vector<String> antNames(nant);
+    vector<string> antNames(nant);
     vector<MPosition> antPos(nant);
-    Vector<double> antDiam(nant, 70.);
+    vector<double> antDiam(nant, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     itsStatUVW.resize (3, nant);
     for (int i=0; i<nant; ++i) {

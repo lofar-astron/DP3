@@ -92,7 +92,7 @@ private:
     info().init (itsNCorr, 0, itsNChan, itsTimes.size(), itsTimes[0], itsTimeInterval, string(), string());
     // Define the frequencies.
     Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000.);
+    vector<double> chanWidth(itsNChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }

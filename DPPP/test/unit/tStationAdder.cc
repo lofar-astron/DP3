@@ -56,8 +56,8 @@ public:
     info().init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(nbl);
-    Vector<Int> ant2(nbl);
+    vector<int> ant1(nbl);
+    vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<nbl; ++i) {
@@ -70,14 +70,10 @@ public:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
     vector<MPosition> antPos(4);
-    Vector<double> vals(3);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
     antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
@@ -90,10 +86,10 @@ public:
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
     antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 1000000.);
+    vector<double> chanWidth(nchan, 1000000.);
     Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 10500000., 1000000.);
     info().set (chanFreqs, chanWidth);
@@ -235,7 +231,7 @@ private:
     BOOST_CHECK_EQUAL (int(infoIn.antennaDiam().size()), 5);
     BOOST_CHECK_EQUAL (int(infoIn.antennaPos().size()), 5);
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns");
-    Vector<Double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
+    Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
     BOOST_CHECK (near(pos1[0], (3828763.+3828746.+3828713.)/3));
     BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
     BOOST_CHECK (near(pos1[2], (5064923.+5064924.+5064926.)/3));
@@ -391,11 +387,11 @@ private:
     BOOST_CHECK_EQUAL (int(infoIn.antennaNames().size()), 6);
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns1");
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[5], "ns2");
-    Vector<Double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
+    Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
     BOOST_CHECK (near(pos1[0], (3828763.+3828746.)/2));
     BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.)/2));
     BOOST_CHECK (near(pos1[2], (5064923.+5064924.)/2));
-    Vector<Double> pos2 (infoIn.antennaPos()[5].getValue().getValue());
+    Vector<double> pos2 (infoIn.antennaPos()[5].getValue().getValue());
     BOOST_CHECK (near(pos2[0], (3828729.+3828713.)/2));
     BOOST_CHECK (near(pos2[1], ( 442735.+ 442878.)/2));
     BOOST_CHECK (near(pos2[2], (5064925.+5064926.)/2));

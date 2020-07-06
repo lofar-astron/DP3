@@ -94,11 +94,7 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       soltab.setTimes(times);
 
       // Add metadata for freqs;
-      vector<double> freqs;
-      freqs.push_back(130e6);
-      freqs.push_back(131e6);
-      freqs.push_back(135e6);
-      freqs.push_back(137e6);
+      vector<double> freqs {130e6, 131e6, 135e6, 137e6};
       soltab.setFreqs(freqs);
     }
 
@@ -148,9 +144,7 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       BOOST_CHECK(casacore::near(soltab.getFreqInterval(1),4e6));
       BOOST_CHECK(casacore::near(soltab.getFreqInterval(2),2e6));
 
-      vector<double> freqs;
-      freqs.push_back(130e6);
-      freqs.push_back(131e6);
+      vector<double> freqs {130e6, 131e6};
 
       vector<double> times;
       for (size_t time=0; time<ntimes; ++time) {

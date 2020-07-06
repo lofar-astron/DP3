@@ -58,8 +58,8 @@ public:
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    vector<int> ant1(itsNBl);
+    vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -72,13 +72,10 @@ public:
         }
       }
     }
-    Vector<String> antNames(3);
-    antNames[0] = "ant1";
-    antNames[1] = "ant2";
-    antNames[2] = "ant3";
+    vector<string> antNames {"ant1", "ant2", "ant3"};
     // Define their positions (more or less WSRT RT0-3).
     vector<MPosition> antPos(3);
-    Vector<double> vals(3);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
     antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
@@ -88,11 +85,11 @@ public:
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
     antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
                           MPosition::ITRF);
-    Vector<double> antDiam(3, 70.);
+    vector<double> antDiam(3, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 100.e6);
-    Vector<double> chanFreqs(nchan);
+    vector<double> chanWidth(nchan, 100.e6);
+    vector<double> chanFreqs(nchan);
     for (unsigned int ch=0; ch<nchan; ++ch) {
       double freq = 100.e6 + ch*10.e6;
       if (ch>2) {
@@ -346,51 +343,30 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
 
 
 BOOST_AUTO_TEST_CASE( testampl1 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 7, true, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl2 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 2, true, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl3 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
   createH5Parm(times, vector<double>());
   testampl(8, 9, false, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl4 ) {
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(vector<double>(), freqs);
   testampl(13, 3, true, false);
 }
