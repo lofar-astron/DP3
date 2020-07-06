@@ -27,6 +27,7 @@
 #include "../../../Common/StreamUtil.h"
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 using std::vector;
 
@@ -140,17 +141,19 @@ void testAdd()
   }
 }
 
-BOOST_AUTO_TEST_CASE( add )
+
+BOOST_DATA_TEST_CASE( test_chan, 
+                      boost::unit_test::data::xrange(8), 
+                      chan )
 {
   unsigned int windowSize = 5;
   unsigned int nchan = 8;
-
-  for (unsigned int i=0; i<nchan; ++i) {
-    doChan (windowSize, nchan, i);
-  }
-
-  testAdd();
+  doChan (windowSize, nchan, chan);
 }
 
+BOOST_AUTO_TEST_CASE( add )
+{
+  testAdd();
+}
 
 BOOST_AUTO_TEST_SUITE_END()

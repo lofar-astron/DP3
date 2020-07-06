@@ -26,6 +26,7 @@
 #include <casacore/casa/Arrays/ArrayIO.h>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include "../../MedFlagger.h"
 #include "../../DPInput.h"
@@ -264,34 +265,39 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   execute (step1);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_1 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test1(10, 2, 32, 4, false, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_1, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(10, 2, 32, 4, false, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_2 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test1(10, 5, 32, 4, true, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_2, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_3 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2( 4, 2,  8, 4, false, 100, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_3, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(4, 2,  8, 4, false, 100, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_4 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2(10, 5, 32, 4, true, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_4, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test2(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_5 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2( 4, 2,  8, 4, false, 100, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_5, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test2( 4, 2,  8, 4, false, 100, shortbl);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
