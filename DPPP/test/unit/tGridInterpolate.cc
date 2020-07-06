@@ -25,8 +25,7 @@
 
 #include "../../GridInterpolate.h"
 
-using namespace DP3;
-using namespace std;
+using std::vector;
 
 BOOST_AUTO_TEST_SUITE(gridinterpolate)
 
@@ -35,7 +34,7 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
   vector<double> ax_tgt = {0.5, 1.5, 2.5, 3.5};  
 
   vector<size_t> indices;
-  getAxisIndices(ax_src, ax_tgt, indices);
+  DP3::getAxisIndices(ax_src, ax_tgt, indices);
   BOOST_CHECK_EQUAL(indices.size(), ax_tgt.size());
   BOOST_CHECK_EQUAL(indices[0], size_t {0});
   BOOST_CHECK_EQUAL(indices[1], size_t {0});
@@ -52,14 +51,14 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
     vals_src[i] = i;
   }
 
-  getAxisIndices(x_src, x_tgt, indices);
+  DP3::getAxisIndices(x_src, x_tgt, indices);
   BOOST_CHECK_EQUAL(indices.size(), x_tgt.size());
   BOOST_CHECK_EQUAL(indices[0], size_t {0});
   BOOST_CHECK_EQUAL(indices[1], size_t {1});
   BOOST_CHECK_EQUAL(indices[2], size_t {3});
   BOOST_CHECK_EQUAL(indices[3], size_t {3});
 
-  gridNearestNeighbor(x_src, y_src, x_tgt, y_tgt, vals_src.data(), vals_tgt.data());
+  DP3::gridNearestNeighbor(x_src, y_src, x_tgt, y_tgt, vals_src.data(), vals_tgt.data());
 
   BOOST_CHECK_EQUAL(vals_tgt[0], vals_src[0]);
   BOOST_CHECK_EQUAL(vals_tgt[1], vals_src[2]);

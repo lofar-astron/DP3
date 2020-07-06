@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -33,10 +32,10 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::BaselineSelection;
+using DP3::DPPP::DPInfo;
 
 BOOST_AUTO_TEST_SUITE(baselineselection)
 
@@ -70,20 +69,20 @@ DPInfo makeInfo (int nbl)
   //  1-2  144.01
   //  1-3  287.904
   //  2-3  143.896
-  vector<MPosition> antPos(4);
+  vector<casacore::MPosition> antPos(4);
   vector<double> vals(3);
   vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-  antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                        MPosition::ITRF);
+  antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                        casacore::MPosition::ITRF);
   vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-  antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                        MPosition::ITRF);
+  antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                        casacore::MPosition::ITRF);
   vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-  antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                        MPosition::ITRF);
+  antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                        casacore::MPosition::ITRF);
   vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-  antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                        MPosition::ITRF);
+  antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                        casacore::MPosition::ITRF);
   vector<double> antDiam(4, 70.);
   info.set (antNames, antDiam, antPos, ant1, ant2);
   return info;
@@ -94,7 +93,7 @@ void test1 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("baseline", "[]");
   BaselineSelection selBL (ps, "");
-  Matrix<bool> res = selBL.apply (info);
+  casacore::Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res, true));
 }
 
@@ -104,7 +103,7 @@ void test2 (const DPInfo& info)
   ps.add ("baseline", "[]");
   ps.add ("corrtype", "AUTO");
   BaselineSelection selBL (ps, "");
-  Matrix<bool> res = selBL.apply (info);
+  casacore::Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res.diagonal(), true));
   res.diagonal() = false;
   BOOST_CHECK (allEQ(res, false));
@@ -115,7 +114,7 @@ void test3 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("corrtype", "CROSS");
   BaselineSelection selBL (ps, "");
-  Matrix<bool> res = selBL.apply (info);
+  casacore::Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res.diagonal(), false));
   res.diagonal() = true;
   BOOST_CHECK (allEQ(res, true));
@@ -123,7 +122,7 @@ void test3 (const DPInfo& info)
 
 void test4 (const DPInfo& info)
 {
-  Matrix<double> blength(4,4, 0.);
+  casacore::Matrix<double> blength(4,4, 0.);
   blength(0,1) = blength(1,0) = 144.01;
   blength(0,2) = blength(2,0) = 288.021;
   blength(0,3) = blength(3,0) = 431.914;
@@ -156,7 +155,7 @@ void test4 (const DPInfo& info)
 
 void test5 (const DPInfo& info)
 {
-  Matrix<int> bl(4,4);
+  casacore::Matrix<int> bl(4,4);
   bl(0,0) = 00;
   bl(1,1) = 11;
   bl(2,2) = 22;

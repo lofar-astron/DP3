@@ -33,12 +33,14 @@
 
 #include <boost/test/unit_test.hpp>
 #include <casacore/casa/Quanta/Quantum.h>
-#include <iostream>
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::Upsample;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(upsample)
 
@@ -60,22 +62,22 @@ private:
     if (itsTimeStep == itsTimes.size()) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsTimeStep*10,i-1000+itsTimeStep*6);
+      data.data()[i] = casacore::Complex(i+itsTimeStep*10,i-1000+itsTimeStep*6);
     }
     DPBuffer buf;
     buf.setTime (itsTimes[itsTimeStep]);
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlags[itsTimeStep];
     buf.setFlags (flags);
     buf.setExposure(itsTimeInterval);
 
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     indgen (uvw, double(itsTimeStep*100));
     buf.setUVW (uvw);
     getNextStep()->process (buf);
@@ -91,7 +93,7 @@ private:
   {
     info().init (itsNCorr, 0, itsNChan, itsTimes.size(), itsTimes[0], itsTimeInterval, string(), string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNChan);
+    casacore::Vector<double> chanFreqs(itsNChan);
     vector<double> chanWidth(itsNChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
@@ -112,7 +114,7 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    BOOST_CHECK(nearAbs(buf.getTime(), itsTimes[itsTimeStep], itsTimeInterval*0.01));
+    BOOST_CHECK(casacore::nearAbs(buf.getTime(), itsTimes[itsTimeStep], itsTimeInterval*0.01));
     BOOST_CHECK(allTrue(buf.getFlags()) == itsFlags[itsTimeStep]);
     ++itsTimeStep;
     return true;
@@ -122,7 +124,7 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    BOOST_CHECK(near(info.timeInterval(), itsTimeInterval));
+    BOOST_CHECK(casacore::near(info.timeInterval(), itsTimeInterval));
   }
 
   vector<double> itsTimes;

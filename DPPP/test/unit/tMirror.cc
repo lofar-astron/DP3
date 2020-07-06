@@ -21,8 +21,6 @@
 //
 // @author Ger van Diepen
 
-#include <assert.h>
-
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 
@@ -30,8 +28,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-using namespace casacore;
-using namespace DP3;
+using std::vector;
 
 BOOST_AUTO_TEST_SUITE(mirror)
 
@@ -69,7 +66,7 @@ void testAdd()
       ++inx;
     }
   }
-  vector<Vector<int> > itsParts(2);
+  vector<casacore::Vector<int> > itsParts(2);
   itsParts[0].resize (2);
   itsParts[0][0] = 0;
   itsParts[0][1] = 1;

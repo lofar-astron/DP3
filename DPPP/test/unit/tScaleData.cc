@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -36,10 +35,14 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
 using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::ScaleData;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(scaledata)
 
@@ -72,25 +75,25 @@ public:
     }
     vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
+    vector<casacore::MPosition> antPos(4);
     vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     vector<double> chanWidth(nchan, 1000000.);
-    Vector<double> chanFreqs(nchan);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 10500000., 1000000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -101,13 +104,13 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 0.5f, 0.01f);
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -118,10 +121,10 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setUVW  (uvw);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags (flags);
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = false;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -145,19 +148,19 @@ public:
       itsNCorr(ncorr)
   {}
 private:
-  void addData (Cube<Complex>& to, const Cube<Complex>& from, int bl)
+  void addData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from, int bl)
   {
-    to += from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    to += from(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
-  void addConjData (Cube<Complex>& to, const Cube<Complex>& from, int bl)
+  void addConjData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from, int bl)
   {
-    to += conj(from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
+    to += conj(from(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
   }
   virtual bool process (const DPBuffer& buf)
   {
     // Fill data and scale as needed.
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
-    Complex* dataPtr = data.data();
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Complex* dataPtr = data.data();
     int cnt=0;
     for (int i=0; i<itsNBl; ++i) {
       double freq = 10.5;
@@ -173,25 +176,25 @@ private:
         double scale = sqrt(sc1*sc2);
         freq += 1;
         for (int k=0; k<itsNCorr; ++k) {
-          *dataPtr++ = Complex(cnt+itsCount*10,cnt-10+itsCount*6) * scale;
+          *dataPtr++ = casacore::Complex(cnt+itsCount*10,cnt-10+itsCount*6) * scale;
           cnt++;
         }
       }
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 0.5f, 0.01f);
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
       uvw(2,i) = 3 + itsCount + i;
     }
     BOOST_CHECK (allEQ (buf.getData(), data));
-    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), casacore::IPosition(3,itsNCorr,itsNChan,itsNBl));
     BOOST_CHECK (allEQ (buf.getFlags(), false));
     BOOST_CHECK (allEQ (buf.getWeights(), weights));
     BOOST_CHECK (allEQ (buf.getUVW(), uvw));
-    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), casacore::IPosition(3,itsNChan,1,itsNBl));
     BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     itsCount++;
     return true;

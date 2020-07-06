@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sstream>
 #include <stdio.h>
 #include <vector>
@@ -8,8 +7,12 @@
 
 #include "../../H5Parm.h"
 
-using namespace std;
-using namespace DP3;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::H5Parm;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
 
 BOOST_AUTO_TEST_SUITE(h5parm)
 
@@ -44,7 +47,7 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       vector<double> oneAntPos(3);
       vector<vector<double> > antPositions;
       for (unsigned int i=0; i<5; ++i) {
-        stringstream antNameStr;
+        std::stringstream antNameStr;
         antNameStr<<"Antenna"<<i;
         antNames.push_back(antNameStr.str());
         antPositions.push_back(oneAntPos);

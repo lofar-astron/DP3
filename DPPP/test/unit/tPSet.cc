@@ -30,7 +30,12 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <iostream>
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::PreFlagger;
+using DP3::DPPP::DPStep;
 
 namespace {
 
@@ -317,8 +322,6 @@ namespace DP3 {
 
     void TestPSet::testMinMax()
     {
-      using casacore::near;
-
       TestInput* in = new TestInput(16, 8, 4);
       DPStep::ShPtr step1(in);
       {
@@ -330,14 +333,14 @@ namespace DP3 {
         BOOST_CHECK (pset.itsFlagOnAmpl);
         BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
         BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t{4});
-        BOOST_CHECK (near(pset.itsAmplMin[0], 23.));
-        BOOST_CHECK (near(pset.itsAmplMin[1], -1e30));
-        BOOST_CHECK (near(pset.itsAmplMin[2], -1e30));
-        BOOST_CHECK (near(pset.itsAmplMin[3], 45.));
-        BOOST_CHECK (near(pset.itsAmplMax[0], 112.5));
-        BOOST_CHECK (near(pset.itsAmplMax[1], 112.5));
-        BOOST_CHECK (near(pset.itsAmplMax[2], 112.5));
-        BOOST_CHECK (near(pset.itsAmplMax[3], 112.5));
+        BOOST_CHECK (casacore::near(pset.itsAmplMin[0], 23.));
+        BOOST_CHECK (casacore::near(pset.itsAmplMin[1], -1e30));
+        BOOST_CHECK (casacore::near(pset.itsAmplMin[2], -1e30));
+        BOOST_CHECK (casacore::near(pset.itsAmplMin[3], 45.));
+        BOOST_CHECK (casacore::near(pset.itsAmplMax[0], 112.5));
+        BOOST_CHECK (casacore::near(pset.itsAmplMax[1], 112.5));
+        BOOST_CHECK (casacore::near(pset.itsAmplMax[2], 112.5));
+        BOOST_CHECK (casacore::near(pset.itsAmplMax[3], 112.5));
       }
       {
         ParameterSet parset;
@@ -347,14 +350,14 @@ namespace DP3 {
         BOOST_CHECK (pset.itsFlagOnPhase);
         BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
         BOOST_CHECK_EQUAL (pset.itsAmplMax.size(), size_t{4});
-        BOOST_CHECK (near(pset.itsPhaseMin[0], 23.));
-        BOOST_CHECK (near(pset.itsPhaseMin[1], -1e30));
-        BOOST_CHECK (near(pset.itsPhaseMin[2], -1e30));
-        BOOST_CHECK (near(pset.itsPhaseMin[3], -1e30));
-        BOOST_CHECK (near(pset.itsPhaseMax[0], 1e30));
-        BOOST_CHECK (near(pset.itsPhaseMax[1], 1e30));
-        BOOST_CHECK (near(pset.itsPhaseMax[2], 1e30));
-        BOOST_CHECK (near(pset.itsPhaseMax[3], 1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMin[0], 23.));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMin[1], -1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMin[2], -1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMin[3], -1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMax[0], 1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMax[1], 1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMax[2], 1e30));
+        BOOST_CHECK (casacore::near(pset.itsPhaseMax[3], 1e30));
       }
       {
         ParameterSet parset;
@@ -362,8 +365,8 @@ namespace DP3 {
         PreFlagger::PSet pset (in, parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
-        BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
-        BOOST_CHECK (near(pset.itsMaxUV, 1e30));
+        BOOST_CHECK (casacore::near(pset.itsMinUV, 23.*23.));
+        BOOST_CHECK (casacore::near(pset.itsMaxUV, 1e30));
       }
       {
         ParameterSet parset;
@@ -372,7 +375,7 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
         BOOST_CHECK (pset.itsMinUV < 0.);
-        BOOST_CHECK (near(pset.itsMaxUV, 23.*23.));
+        BOOST_CHECK (casacore::near(pset.itsMaxUV, 23.*23.));
       }
       {
         ParameterSet parset;
@@ -381,8 +384,8 @@ namespace DP3 {
         PreFlagger::PSet pset (in, parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
-        BOOST_CHECK (near(pset.itsMinUV, 23.*23.));
-        BOOST_CHECK (near(pset.itsMaxUV, 123.*123.));
+        BOOST_CHECK (casacore::near(pset.itsMinUV, 23.*23.));
+        BOOST_CHECK (casacore::near(pset.itsMaxUV, 123.*123.));
       }
     }
   } // end namespace DPPP

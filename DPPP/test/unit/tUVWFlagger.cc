@@ -31,12 +31,12 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInfo;
 using DP3::DPPP::DPStep;
@@ -73,25 +73,25 @@ namespace {
       }
       vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
       // Define their positions (more or less WSRT RT0-3).
-      vector<MPosition> antPos(4);
+      vector<casacore::MPosition> antPos(4);
       vector<double> vals(3);
       vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-      antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                            MPosition::ITRF);
+      antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                            casacore::MPosition::ITRF);
       vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-      antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                            MPosition::ITRF);
+      antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                            casacore::MPosition::ITRF);
       vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-      antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                            MPosition::ITRF);
+      antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                            casacore::MPosition::ITRF);
       vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-      antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                            MPosition::ITRF);
+      antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                            casacore::MPosition::ITRF);
       vector<double> antDiam(4, 70.);
       info().set (antNames, antDiam, antPos, ant1, ant2);
       // Define the frequencies.
       vector<double> chanWidth(nchan, 1000000.);
-      Vector<double> chanFreqs(nchan);
+      casacore::Vector<double> chanFreqs(nchan);
       indgen (chanFreqs, 10500000., 1000000.);
       info().set (chanFreqs, chanWidth);
     }
@@ -102,11 +102,11 @@ namespace {
       if (itsCount == itsNTime) {
         return false;
       }
-      Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+      casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
       for (int i=0; i<int(data.size()); ++i) {
-        data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+        data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
       }
-      Matrix<double> uvw(3, itsNBl);
+      casacore::Matrix<double> uvw(3, itsNBl);
       for (int i=0; i<itsNBl; ++i) {
         uvw(0,i) = 1 + itsCount + i;
         uvw(1,i) = 2 + itsCount + i;
@@ -116,7 +116,7 @@ namespace {
       buf.setTime (itsCount*30 + 4472025740.0);
       buf.setData (data);
       buf.setUVW  (uvw);
-      Cube<bool> flags(data.shape());
+      casacore::Cube<bool> flags(data.shape());
       flags = false;
       buf.setFlags (flags);
       getNextStep()->process (buf);
@@ -143,7 +143,7 @@ namespace {
     virtual bool process (const DPBuffer& buf)
     {
       // Flag where u,v,w matches intervals given in test1.
-      Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+      casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
       result = false;
       for (int i=0; i<itsNBl; ++i) {
         double u = 1+i+itsCount;
@@ -193,7 +193,7 @@ namespace {
     virtual bool process (const DPBuffer& buf)
     {
       // Flag where u,v,w matches intervals given in test1.
-      Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+      casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
       result = false;
       for (int i=0; i<itsNBl; ++i) {
         for (int j=0; j<itsNChan; ++j) {
@@ -283,9 +283,9 @@ namespace {
         0.254812, 127.271, -67.1421,
         0, 0, 0
       };
-      Cube<double> uvws(IPosition(3,3,16,2), uvwvals, SHARE);
+      casacore::Cube<double> uvws(casacore::IPosition(3,3,16,2), uvwvals, casacore::SHARE);
       // Flag where u,v,w matches intervals given in test3.
-      Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+      casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
       result = false;
       for (int i=0; i<itsNBl; ++i) {
         double u = uvws(0,i,itsCount);

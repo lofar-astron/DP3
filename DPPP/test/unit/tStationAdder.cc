@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -36,10 +35,13 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::StationAdder;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(stationadder)
 
@@ -72,25 +74,25 @@ public:
     }
     vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
+    vector<casacore::MPosition> antPos(4);
     vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     vector<double> chanWidth(nchan, 1000000.);
-    Vector<double> chanFreqs(nchan);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 10500000., 1000000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -101,13 +103,13 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 0.5f, 0.01f);
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -118,10 +120,10 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setUVW  (uvw);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags (flags);
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = false;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -145,24 +147,24 @@ public:
       itsNCorr(ncorr), itsSumAuto(sumauto)
   {}
 private:
-  void addData (Cube<Complex>& to, const Cube<Complex>& from, int bl)
+  void addData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from, int bl)
   {
-    to += from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    to += from(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
-  void addConjData (Cube<Complex>& to, const Cube<Complex>& from, int bl)
+  void addConjData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from, int bl)
   {
-    to += conj(from(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
+    to += conj(from(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
   }
   virtual bool process (const DPBuffer& buf)
   {
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 0.5f, 0.01f);
-    Cube<Complex> databl0 (itsNCorr, itsNChan, 1);
-    Cube<Complex> databl1 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl0 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl1 (itsNCorr, itsNChan, 1);
     // "{ns:[rs01.s01, rs02.s01, cs01.s02]}" was given resulting in 2 new
     // baselines (ns-ns and cs01.s01-ns). 
     // Thus adding the baselines below.
@@ -189,28 +191,28 @@ private:
     addConjData (databl1, data, 2);
     addConjData (databl1, data, 6);
     addConjData (databl1, data, 14);
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
       uvw(2,i) = 3 + itsCount + i;
     }
-    IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
-    BOOST_CHECK (allEQ (buf.getData()(IPosition(3,0), end), data));
-    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl+2));
+    casacore::IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
+    BOOST_CHECK (allEQ (buf.getData()(casacore::IPosition(3,0), end), data));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), casacore::IPosition(3,itsNCorr,itsNChan,itsNBl+2));
     BOOST_CHECK (allEQ (buf.getFlags(), false));
-    BOOST_CHECK (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
-    BOOST_CHECK (allEQ (buf.getUVW()(IPosition(2,0),
-                                IPosition(2,2,itsNBl-1)), uvw));
-    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl+2));
+    BOOST_CHECK (allEQ (buf.getWeights()(casacore::IPosition(3,0), end), weights));
+    BOOST_CHECK (allEQ (buf.getUVW()(casacore::IPosition(2,0),
+                                casacore::IPosition(2,2,itsNBl-1)), uvw));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), casacore::IPosition(3,itsNChan,1,itsNBl+2));
     BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0/weight, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weight, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl), end), databl0/weight, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl), end), weight, 1e-5));
     end[2] = itsNBl+1;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1/6.f, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), 6.f, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl+1), end), databl1/6.f, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl+1), end), 6.f, 1e-5));
     itsCount++;
     return true;
   }
@@ -231,10 +233,10 @@ private:
     BOOST_CHECK_EQUAL (int(infoIn.antennaDiam().size()), 5);
     BOOST_CHECK_EQUAL (int(infoIn.antennaPos().size()), 5);
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns");
-    Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
-    BOOST_CHECK (near(pos1[0], (3828763.+3828746.+3828713.)/3));
-    BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
-    BOOST_CHECK (near(pos1[2], (5064923.+5064924.+5064926.)/3));
+    casacore::Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
+    BOOST_CHECK (casacore::near(pos1[0], (3828763.+3828746.+3828713.)/3));
+    BOOST_CHECK (casacore::near(pos1[1], ( 442449.+ 442592.+ 442878.)/3));
+    BOOST_CHECK (casacore::near(pos1[2], (5064923.+5064924.+5064926.)/3));
     // Check diam.
     double d1 = sqrt ((pos1[0]-3828763) * (pos1[0]-3828763) +
                       (pos1[1]- 442449) * (pos1[1]- 442449) +
@@ -245,7 +247,7 @@ private:
     double d3 = sqrt ((pos1[0]-3828713) * (pos1[0]-3828713) +
                       (pos1[1]- 442878) * (pos1[1]- 442878) +
                       (pos1[2]-5064926) * (pos1[2]-5064926));
-    BOOST_CHECK (near(infoIn.antennaDiam()[4], 70+2*max(d1,max(d2,d3))));
+    BOOST_CHECK (casacore::near(infoIn.antennaDiam()[4], 70+2*std::max(d1,std::max(d2,d3))));
   }
 
   int itsCount;
@@ -273,48 +275,48 @@ public:
       itsNCorr(ncorr)
   {}
 private:
-  void addData (Cube<Complex>& to, const Cube<Complex>& from,
-                Cube<Float>& tow, const Cube<Float>& weights, int bl)
+  void addData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from,
+                casacore::Cube<float>& tow, const casacore::Cube<float>& weights, int bl)
   {
-    Cube<Complex> tmp=from.copy();
-    Cube<Complex>::iterator tmpit=tmp.begin();
-    Cube<Float>::const_iterator weightit=weights.begin();
+    casacore::Cube<casacore::Complex> tmp=from.copy();
+    casacore::Cube<casacore::Complex>::iterator tmpit=tmp.begin();
+    casacore::Cube<float>::const_iterator weightit=weights.begin();
     for (; tmpit!=tmp.end() && weightit!=weights.end(); tmpit++, weightit++) {
       *tmpit *= *weightit;
     }
-    to += tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
-    tow += weights(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    to += tmp(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    tow += weights(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
-  void addConjData (Cube<Complex>& to, const Cube<Complex>& from,
-                    Cube<Float>& tow, const Cube<Float>& weights, int bl)
+  void addConjData (casacore::Cube<casacore::Complex>& to, const casacore::Cube<casacore::Complex>& from,
+                    casacore::Cube<float>& tow, const casacore::Cube<float>& weights, int bl)
   {
-    Cube<Complex> tmp=from.copy();
-    Cube<Complex>::iterator tmpit=tmp.begin();
-    Cube<Float>::const_iterator weightit=weights.begin();
+    casacore::Cube<casacore::Complex> tmp=from.copy();
+    casacore::Cube<casacore::Complex>::iterator tmpit=tmp.begin();
+    casacore::Cube<float>::const_iterator weightit=weights.begin();
     for (; tmpit!=tmp.end() && weightit!=weights.end(); tmpit++, weightit++) {
       *tmpit *= *weightit;
     }
-    to += conj(tmp(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
-    tow += weights(IPosition(3,0,0,bl), IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
+    to += conj(tmp(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl)));
+    tow += weights(casacore::IPosition(3,0,0,bl), casacore::IPosition(3,to.nrow()-1,to.ncolumn()-1,bl));
   }
   virtual bool process (const DPBuffer& buf)
   {
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 0.5f, 0.01f);
-    Cube<Complex> databl0 (itsNCorr, itsNChan, 1);
-    Cube<Complex> databl1 (itsNCorr, itsNChan, 1);
-    Cube<Complex> databl2 (itsNCorr, itsNChan, 1);
-    Cube<Complex> databl3 (itsNCorr, itsNChan, 1);
-    Cube<Complex> databl4 (itsNCorr, itsNChan, 1);
-    Cube<Float> weightbl0 (itsNCorr, itsNChan, 1, 0.);
-    Cube<Float> weightbl1 (itsNCorr, itsNChan, 1, 0.);
-    Cube<Float> weightbl2 (itsNCorr, itsNChan, 1, 0.);
-    Cube<Float> weightbl3 (itsNCorr, itsNChan, 1, 0.);
-    Cube<Float> weightbl4 (itsNCorr, itsNChan, 1, 0.);
+    casacore::Cube<casacore::Complex> databl0 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl1 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl2 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl3 (itsNCorr, itsNChan, 1);
+    casacore::Cube<casacore::Complex> databl4 (itsNCorr, itsNChan, 1);
+    casacore::Cube<float> weightbl0 (itsNCorr, itsNChan, 1, 0.);
+    casacore::Cube<float> weightbl1 (itsNCorr, itsNChan, 1, 0.);
+    casacore::Cube<float> weightbl2 (itsNCorr, itsNChan, 1, 0.);
+    casacore::Cube<float> weightbl3 (itsNCorr, itsNChan, 1, 0.);
+    casacore::Cube<float> weightbl4 (itsNCorr, itsNChan, 1, 0.);
     // "{ns1:[rs01.s01, rs02.s01], ns2:[cs01.s02, cs01.s01]}" was given.
     addData (databl0, data, weightbl0, weights, 8);
     addData (databl0, data, weightbl0, weights, 9);
@@ -334,37 +336,37 @@ private:
     addConjData (databl3, data, weightbl3, weights, 13);
     addConjData (databl4, databl0, weightbl4, weightbl0, 0);
     addConjData (databl4, databl1, weightbl4, weightbl1, 0);
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
       uvw(2,i) = 3 + itsCount + i;
     }
-    IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
-    BOOST_CHECK (allEQ (buf.getData()(IPosition(3,0), end), data));
-    BOOST_CHECK_EQUAL (buf.getFlags().shape(), IPosition(3,itsNCorr,itsNChan,itsNBl+5));
+    casacore::IPosition end(3,itsNCorr-1,itsNChan-1,itsNBl-1);
+    BOOST_CHECK (allEQ (buf.getData()(casacore::IPosition(3,0), end), data));
+    BOOST_CHECK_EQUAL (buf.getFlags().shape(), casacore::IPosition(3,itsNCorr,itsNChan,itsNBl+5));
     BOOST_CHECK (allEQ (buf.getFlags(), false));
-    BOOST_CHECK (allEQ (buf.getWeights()(IPosition(3,0), end), weights));
-    BOOST_CHECK (allEQ (buf.getUVW()(IPosition(2,0),
-                                IPosition(2,2,itsNBl-1)), uvw));
-    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), IPosition(3,itsNChan,1,itsNBl+5));
+    BOOST_CHECK (allEQ (buf.getWeights()(casacore::IPosition(3,0), end), weights));
+    BOOST_CHECK (allEQ (buf.getUVW()(casacore::IPosition(2,0),
+                                casacore::IPosition(2,2,itsNBl-1)), uvw));
+    BOOST_CHECK_EQUAL (buf.getFullResFlags().shape(), casacore::IPosition(3,itsNChan,1,itsNBl+5));
     BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weightbl0, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl), end), weightbl0, 1e-5));
     end[2] = itsNBl+1;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+1), end), databl1, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+1), end), weightbl1, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl+1), end), databl1, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl+1), end), weightbl1, 1e-5));
     end[2] = itsNBl+2;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+2), end), databl2, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+2), end), weightbl2, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl+2), end), databl2, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl+2), end), weightbl2, 1e-5));
     end[2] = itsNBl+3;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+3), end), databl3, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+3), end), weightbl3, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl+3), end), databl3, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl+3), end), weightbl3, 1e-5));
     end[2] = itsNBl+4;
-    BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl+4), end), databl4, 1e-5));
-    BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+4), end), weightbl4, 1e-5));
+    BOOST_CHECK (allNear (buf.getData()(casacore::IPosition(3,0,0,itsNBl+4), end), databl4, 1e-5));
+    BOOST_CHECK (allNear (buf.getWeights()(casacore::IPosition(3,0,0,itsNBl+4), end), weightbl4, 1e-5));
     itsCount++;
     return true;
     BOOST_CHECK (allEQ(buf.getFlags(), false));
@@ -387,14 +389,14 @@ private:
     BOOST_CHECK_EQUAL (int(infoIn.antennaNames().size()), 6);
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[4], "ns1");
     BOOST_CHECK_EQUAL (infoIn.antennaNames()[5], "ns2");
-    Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
-    BOOST_CHECK (near(pos1[0], (3828763.+3828746.)/2));
-    BOOST_CHECK (near(pos1[1], ( 442449.+ 442592.)/2));
-    BOOST_CHECK (near(pos1[2], (5064923.+5064924.)/2));
-    Vector<double> pos2 (infoIn.antennaPos()[5].getValue().getValue());
-    BOOST_CHECK (near(pos2[0], (3828729.+3828713.)/2));
-    BOOST_CHECK (near(pos2[1], ( 442735.+ 442878.)/2));
-    BOOST_CHECK (near(pos2[2], (5064925.+5064926.)/2));
+    casacore::Vector<double> pos1 (infoIn.antennaPos()[4].getValue().getValue());
+    BOOST_CHECK (casacore::near(pos1[0], (3828763.+3828746.)/2));
+    BOOST_CHECK (casacore::near(pos1[1], ( 442449.+ 442592.)/2));
+    BOOST_CHECK (casacore::near(pos1[2], (5064923.+5064924.)/2));
+    casacore::Vector<double> pos2 (infoIn.antennaPos()[5].getValue().getValue());
+    BOOST_CHECK (casacore::near(pos2[0], (3828729.+3828713.)/2));
+    BOOST_CHECK (casacore::near(pos2[1], ( 442735.+ 442878.)/2));
+    BOOST_CHECK (casacore::near(pos2[2], (5064925.+5064926.)/2));
   }
 
   int itsCount;

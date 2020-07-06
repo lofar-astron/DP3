@@ -1,7 +1,6 @@
 #include <casacore/casa/BasicMath/Math.h> // near
 
 #include <vector>
-#include <iostream>
 #include <complex>
 
 #include "../../RotationConstraint.h"
@@ -10,9 +9,11 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-using namespace std;
-using namespace DP3;
-using namespace casacore;
+using std::complex;
+using std::vector;
+using casacore::near;
+using DP3::RotationConstraint;
+using DP3::RotationAndDiagonalConstraint;
 
 BOOST_AUTO_TEST_SUITE(rotationconstraint)
 

@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -34,10 +33,13 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StringUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::Filter;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(filter)
 
@@ -72,25 +74,25 @@ public:
     }
     vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
+    vector<casacore::MPosition> antPos(4);
     vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     vector<double> chanWidth(nchan, 100000.);
-    Vector<double> chanFreqs(nchan);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -104,30 +106,30 @@ private:
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);
     buf.setExposure (0.1*(itsCount+1));
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     buf.setWeights (weights);
     indgen (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     // Set part of the flags to another value.
-    flags(IPosition(3,0), flags.shape()-1, IPosition(3,1,3,4)) = !itsFlag;
+    flags(casacore::IPosition(3,0), flags.shape()-1, casacore::IPosition(3,1,3,4)) = !itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // Assume they are averaged for 2 chan, 2 time.
-    Cube<bool> fullResFlags;
+    casacore::Cube<bool> fullResFlags;
     if (itsNCorr == 4) {
-      fullResFlags = flags.copy().reform(IPosition(3,2*itsNChan,2,itsNBl));
+      fullResFlags = flags.copy().reform(casacore::IPosition(3,2*itsNChan,2,itsNBl));
     } else {
-      fullResFlags.resize (IPosition(3, itsNChan, 1, itsNBl));
+      fullResFlags.resize (casacore::IPosition(3, itsNChan, 1, itsNBl));
       fullResFlags = true;
     }
     buf.setFullResFlags (fullResFlags);
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     indgen (uvw, double(itsCount*100));
     buf.setUVW (uvw);
     getNextStep()->process (buf);
@@ -142,7 +144,7 @@ private:
     // Use timeInterval=5
     info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNChan);
+    casacore::Vector<double> chanFreqs(itsNChan);
     vector<double> chanWidth(itsNChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
@@ -166,46 +168,46 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     // Fill expected result in similar way as TestInput.
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     indgen (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     // Set part of the flags to another value.
-    flags(IPosition(3,0), flags.shape()-1, IPosition(3,1,3,4)) = !itsFlag;
+    flags(casacore::IPosition(3,0), flags.shape()-1, casacore::IPosition(3,1,3,4)) = !itsFlag;
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // Assume they are averaged for 2 chan, 2 time.
-    Cube<bool> fullResFlags;
+    casacore::Cube<bool> fullResFlags;
     if (itsNCorr == 4) {
-      fullResFlags = flags.copy().reform(IPosition(3,2*itsNChan,2,itsNBl));
+      fullResFlags = flags.copy().reform(casacore::IPosition(3,2*itsNChan,2,itsNBl));
     } else {
-      fullResFlags.resize (IPosition(3, itsNChan, 1, itsNBl));
+      fullResFlags.resize (casacore::IPosition(3, itsNChan, 1, itsNBl));
       fullResFlags = true;
     }
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     indgen (uvw, double(itsCount*100));
-    Slicer slicer(IPosition(3,0,itsStChan,0),
-                  IPosition(3,itsNCorr,itsNChanOut,itsNBlOut));
+    casacore::Slicer slicer(casacore::IPosition(3,0,itsStChan,0),
+                  casacore::IPosition(3,itsNCorr,itsNChanOut,itsNBlOut));
     // Check the expected result.
     BOOST_CHECK (allEQ(buf.getData(), data(slicer)));
     BOOST_CHECK (allEQ(buf.getFlags(), flags(slicer)));
     BOOST_CHECK (allEQ(buf.getWeights(), weights(slicer)));
-    BOOST_CHECK (allEQ(buf.getUVW(), uvw(IPosition(2,0,0),
-                                    IPosition(2,2,itsNBlOut-1))));
+    BOOST_CHECK (allEQ(buf.getUVW(), uvw(casacore::IPosition(2,0,0),
+                                    casacore::IPosition(2,2,itsNBlOut-1))));
     if (itsNCorr == 4) {
       BOOST_CHECK (allEQ(buf.getFullResFlags(),
-                    fullResFlags(Slicer(IPosition(3,itsStChan*2,0,0),
-                                        IPosition(3,2*itsNChanOut,2,itsNBlOut)))));
+                    fullResFlags(casacore::Slicer(casacore::IPosition(3,itsStChan*2,0,0),
+                                        casacore::IPosition(3,2*itsNChanOut,2,itsNBlOut)))));
     } else {
       BOOST_CHECK (allEQ(buf.getFullResFlags(),
-                    fullResFlags(Slicer(IPosition(3,itsStChan,0,0),
-                                        IPosition(3,itsNChanOut,1,itsNBlOut)))));
+                    fullResFlags(casacore::Slicer(casacore::IPosition(3,itsStChan,0,0),
+                                        casacore::IPosition(3,itsNChanOut,1,itsNBlOut)))));
     }
-    BOOST_CHECK (near(buf.getTime(), itsCount*5.+2));
-    BOOST_CHECK (near(buf.getExposure(), 0.1*(itsCount+1)));
+    BOOST_CHECK (casacore::near(buf.getTime(), itsCount*5.+2));
+    BOOST_CHECK (casacore::near(buf.getExposure(), 0.1*(itsCount+1)));
     ++itsCount;
     return true;
   }
@@ -248,8 +250,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("startchan", toString(startchan));
-  parset.add ("nchan", toString(nchanout)+"+nchan-nchan");
+  parset.add ("startchan", DP3::toString(startchan));
+  parset.add ("nchan", DP3::toString(nchanout)+"+nchan-nchan");
   DPStep::ShPtr step2(new Filter(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr,
                                      nbl, startchan, nchanout, flag));
@@ -267,8 +269,8 @@ void test2(int ntime, int nbl, int nchan, int ncorr,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("startchan", toString(startchan)+"+nchan-nchan");
-  parset.add ("nchan", toString(nchanout));
+  parset.add ("startchan", DP3::toString(startchan)+"+nchan-nchan");
+  parset.add ("nchan", DP3::toString(nchanout));
   // This removes the first baseline.
   parset.add ("baseline", "[[rs01.s01,rs*]]");
   DPStep::ShPtr step2(new Filter(in, parset, ""));
