@@ -28,14 +28,10 @@
 #include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Quanta/MVTime.h>
 
+#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
-using std::vector;
-using DP3::ParameterSet;
-using DP3::DPPP::DPInput;
-using DP3::DPPP::DPInfo;
 using DP3::DPPP::PreFlagger;
-using DP3::DPPP::DPStep;
 
 namespace {
 
@@ -100,10 +96,9 @@ namespace DP3 {
 
     void TestPSet::testNone()
      {
-       TestInput* in = new TestInput(16, 8, 4);
-       DPStep::ShPtr step1(in);
-       ParameterSet parset;
-       PreFlagger::PSet pset (in, parset, "");
+       auto in = boost::make_unique<TestInput>(16, 8, 4);
+       DP3::ParameterSet parset;
+       PreFlagger::PSet pset (in.get(), parset, "");
        pset.updateInfo (in->getInfo());
        BOOST_CHECK (!(pset.itsFlagOnBL   || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
                  pset.itsFlagOnReal || pset.itsFlagOnImag ||
@@ -112,12 +107,11 @@ namespace DP3 {
 
     void TestPSet::testBL()
     {
-      TestInput* in = new TestInput(16, 8, 4);
-      DPStep::ShPtr step1(in);
+      auto in = boost::make_unique<TestInput>(16, 8, 4);
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("baseline", "[rs01.*, rs02.s01]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase || pset.itsFlagOnReal ||
                   pset.itsFlagOnImag || pset.itsFlagOnAzEl  || pset.itsFlagOnUV) &&
@@ -131,10 +125,10 @@ namespace DP3 {
         BOOST_CHECK ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("corrtype", "auto");
         parset.add ("baseline", "[rs01.*, [*s*.*2], rs02.s01]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         // Make sure the matrix is correct.
         const casacore::Matrix<bool>& mat = pset.itsFlagBL;
@@ -145,10 +139,10 @@ namespace DP3 {
         BOOST_CHECK (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("corrtype", "CROSS");
         parset.add ("baseline", "[[rs*, *s*.*1], [cs01.s01,cs01.s02]]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         // Make sure the matrix is correct.
         const casacore::Matrix<bool>& mat = pset.itsFlagBL;
@@ -159,46 +153,33 @@ namespace DP3 {
         BOOST_CHECK (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
       }
       // Some erronous ones.
-      bool err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("corrtype", "crossx");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo(in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
-      err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("baseline", "[[a,b,c]]");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo (in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
-      err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("baseline", "[[a,b], [ ] ]");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo (in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
     }
 
     void TestPSet::testChan()
     {
-      TestInput* in = new TestInput(16, 32, 4);
-      DPStep::ShPtr step1(in);
+      auto in = boost::make_unique<TestInput>(16, 32, 4);
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("chan", "[11..13, 4]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{4});
         BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{4});
@@ -215,9 +196,9 @@ namespace DP3 {
         }
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{3});
         BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{1});
@@ -225,10 +206,10 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t{5});
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("chan", "[11..13, 4]");
         parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsChannels.size(), size_t{1});
         BOOST_CHECK_EQUAL (pset.itsChannels[0], size_t{4});
@@ -237,12 +218,11 @@ namespace DP3 {
 
     void TestPSet::testTime()
     {
-      TestInput* in = new TestInput(16, 8, 4);
-      DPStep::ShPtr step1(in);
+      auto in = boost::make_unique<TestInput>(16, 8, 4);
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsATimes.size(), size_t{2});
         casacore::Quantity q;
@@ -251,9 +231,9 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsATimes[1] - pset.itsATimes[0], 86400+3600);
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsRTimes.size(), size_t{4});
         BOOST_CHECK_EQUAL (pset.itsRTimes[0], 12*3600);
@@ -262,9 +242,9 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsRTimes[3], 16*3600+120);
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsTimes.size(), size_t{8});
         BOOST_CHECK_EQUAL (pset.itsTimes[0], -1);
@@ -277,9 +257,9 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsTimes[7], 24*3600+1);
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("timeslot", "[2..4, 10]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK_EQUAL (pset.itsTimeSlot.size(), size_t{4});
         BOOST_CHECK_EQUAL (pset.itsTimeSlot[0], 2u);
@@ -287,48 +267,34 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsTimeSlot[2], 4u);
         BOOST_CHECK_EQUAL (pset.itsTimeSlot[3], 10u);
       }
-      // Some erronous ones.
-      bool err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("reltime", "[12:00:00]");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo (in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
-      err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("reltime", "[12:00:00..11:00:00]");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo (in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
-      err = false;
-      try {
-        ParameterSet parset;
+      {
+        DP3::ParameterSet parset;
         parset.add ("abstime", "[12:00:00..13:00:00]");
-        PreFlagger::PSet pset (in, parset, "");
-        pset.updateInfo (in->getInfo());
-      } catch (std::exception& x) {
-        err = true;
+        PreFlagger::PSet pset (in.get(), parset, "");
+        BOOST_CHECK_THROW(pset.updateInfo (in->getInfo()), std::exception);
       }
-      BOOST_CHECK (err);
     }
 
     void TestPSet::testMinMax()
     {
-      TestInput* in = new TestInput(16, 8, 4);
-      DPStep::ShPtr step1(in);
+      auto in = boost::make_unique<TestInput>(16, 8, 4);
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("amplmin", "[23,,,45]");
         parset.add ("amplmax", "112.5");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnAmpl);
         BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
@@ -343,9 +309,9 @@ namespace DP3 {
         BOOST_CHECK (casacore::near(pset.itsAmplMax[3], 112.5));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("phasemin", "[23]");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnPhase);
         BOOST_CHECK_EQUAL (pset.itsAmplMin.size(), size_t{4});
@@ -360,28 +326,28 @@ namespace DP3 {
         BOOST_CHECK (casacore::near(pset.itsPhaseMax[3], 1e30));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("uvmmin", "23");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
         BOOST_CHECK (casacore::near(pset.itsMinUV, 23.*23.));
         BOOST_CHECK (casacore::near(pset.itsMaxUV, 1e30));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("uvmmax", "23");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
         BOOST_CHECK (pset.itsMinUV < 0.);
         BOOST_CHECK (casacore::near(pset.itsMaxUV, 23.*23.));
       }
       {
-        ParameterSet parset;
+        DP3::ParameterSet parset;
         parset.add ("uvmmin", "23");
         parset.add ("uvmmax", "123");
-        PreFlagger::PSet pset (in, parset, "");
+        PreFlagger::PSet pset (in.get(), parset, "");
         pset.updateInfo (in->getInfo());
         BOOST_CHECK (pset.itsFlagOnUV);
         BOOST_CHECK (casacore::near(pset.itsMinUV, 23.*23.));
