@@ -309,6 +309,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
+  DPPP_Interpolate/test/tInterpolateStep.cc
 )
 
 set(RUNTEST_SOURCES

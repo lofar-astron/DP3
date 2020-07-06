@@ -1,5 +1,5 @@
 // tInterpolateStep.cc: Test program for class InterpolateStep
-// Copyright (C) 2010
+// Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -21,29 +21,32 @@
 //
 // @author Ger van Diepen
 
-#include <lofar_config.h>
-#include <DPPP_Interpolate/Interpolate.h>
-#include <DPPP/DPRun.h>
-#include <DPPP/DPInput.h>
-#include <DPPP/DPBuffer.h>
-#include <DPPP/DPInfo.h>
-#include <Common/ParameterSet.h>
-#include <Common/StringUtil.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayIO.h>
-#include <iostream>
+#include "../../DPPP/Interpolate.h"
+#include "../../DPPP/DPRun.h"
+#include "../../DPPP/DPInput.h"
+#include "../../DPPP/DPBuffer.h"
+#include "../../DPPP/DPInfo.h"
+#include "../../Common/ParameterSet.h"
+#include "../../Common/StringUtil.h"
 
-using namespace LOFAR;
-using namespace DP3::DPPP;
-using namespace casa;
-using namespace std;
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayIO.h>
+
+#include <boost/test/unit_test.hpp>
+
+using namespace casacore;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::DPStep;
+
+BOOST_AUTO_TEST_SUITE(interpolate)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput: public DPInput
+class TestInput: public DP3::DPPP::DPInput
 {
 public:
   TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
@@ -130,9 +133,10 @@ private:
 
   virtual void finish() {getNextStep()->finish();}
   virtual void show (std::ostream&) const {}
-  virtual void updateInfo (const DPInfo&)
+  virtual void updateInfo (const DPInfo&) {
     // Use startchan=0 and timeInterval=5
-    { info().init (itsNCorr, itsNChan, itsNTime, 100, 5, string(), string()); }
+    info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
+  }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -160,9 +164,9 @@ private:
     }
     // Check the result.
     ///cout << buf.getData()<< result;
-    ASSERT (allNear(real(buf.getData()), real(result), 1e-10));
-    ASSERT (allNear(imag(buf.getData()), imag(result), 1e-10));
-    ASSERT (near(buf.getTime(), 2+5.*itsCount));
+    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-10));
+    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-10));
+    BOOST_CHECK (near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
   }
@@ -171,16 +175,16 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    ASSERT (int(info.origNChan())==itsNChan);
-    ASSERT (int(info.nchan())==itsNChan);
-    ASSERT (int(info.ntime())==itsNTime);
-    ASSERT (info.startTime()==100);
-    ASSERT (info.timeInterval()==5);
-    ASSERT (int(info.nchanAvg())==1);
-    ASSERT (int(info.ntimeAvg())==1);
-    ASSERT (int(info.chanFreqs().size()) == itsNChan);
-    ASSERT (int(info.chanWidths().size()) == itsNChan);
-    ASSERT (info.msName().empty());
+    BOOST_CHECK (int(info.origNChan())==itsNChan);
+    BOOST_CHECK (int(info.nchan())==itsNChan);
+    BOOST_CHECK (int(info.ntime())==itsNTime);
+    BOOST_CHECK (info.startTime()==100);
+    BOOST_CHECK (info.timeInterval()==5);
+    BOOST_CHECK (int(info.nchanAvg())==1);
+    BOOST_CHECK (int(info.ntimeAvg())==1);
+    BOOST_CHECK (int(info.chanFreqs().size()) == itsNChan);
+    BOOST_CHECK (int(info.chanWidths().size()) == itsNChan);
+    BOOST_CHECK (info.msName().empty());
   }
 
   int itsCount;
@@ -197,37 +201,23 @@ void execute (const DPStep::ShPtr& step1)
   DPBuffer buf;
   while (step1->process(buf));
   step1->finish();
-  DPStep::ShPtr step = step1;
-  while (step) {
-    step->showCounts (cout);
-    step = step->getNextStep();
-  }
 }
 
-void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold)
-{
-  cout << "test1: ntime=" << ntime << " nrant=" << nant << " nchan=" << nchan
-       << " ncorr=" << ncorr << " threshold=" << threshold << endl;
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
+BOOST_AUTO_TEST_CASE(test1) {
+  const int kNTime = 10;
+  const int kNAnt = 2;
+  const int kNChan = 32;
+  const int kNCorr = 4;
+  const bool kFlag = false;
+
+  auto step1 = std::make_shared<TestInput>(kNTime, kNAnt, kNChan, kNCorr, kFlag);
+  DP3::ParameterSet parset;
   parset.add ("windowsize", "9");
-  DPStep::ShPtr step2 = DPRun::findStepCtor("interpolate")(in, parset, "");
-  DPStep::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
+  auto step2 = std::make_shared<DP3::DPPP::Interpolate>(step1.get(), parset, "");
+  auto step3 = std::make_shared<TestOutput>(kNTime, kNAnt, kNChan, kNCorr);
   step1->setNextStep (step2);
   step2->setNextStep (step3);
-  step2->show (cout);
   execute (step1);
 }
 
-int main()
-{
-  try {
-    test1(10, 2, 32, 4, false, 1);
-  } catch (std::exception& x) {
-    cout << "Unexpected exception: " << x.what() << endl;
-    return 1;
-  }
-  return 0;
-}
+BOOST_AUTO_TEST_SUITE_END()
