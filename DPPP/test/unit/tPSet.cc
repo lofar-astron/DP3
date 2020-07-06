@@ -83,7 +83,7 @@ private:
   int itsNChan, itsNCorr;
 };
 
-} // end namespace anonymous
+} // namespace
 
 namespace DP3 {
   namespace DPPP {

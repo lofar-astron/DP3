@@ -402,11 +402,10 @@ namespace {
     DP3::ParameterSet parset;
     parset.add ("uvmrange", "[5.5..8.5]");
     parset.add ("phasecenter", "Sun");
-    DPStep::ShPtr step2(new DP3::DPPP::UVWFlagger(in, parset, ""));
-    BOOST_CHECK(true);
+    BOOST_CHECK_NO_THROW(std::make_shared<DP3::DPPP::UVWFlagger>(in, parset, ""));
   }
 
-} // end namespace anonymous
+} // namespace
 
 BOOST_AUTO_TEST_SUITE(uvwflagger)
 
