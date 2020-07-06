@@ -32,7 +32,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-using namespace casacore;
+#include <string>
+#include <vector>
+
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInfo;
 using DP3::DPPP::DPStep;
@@ -50,10 +52,13 @@ public:
     : itsCount(0), itsNTime(ntime), itsNBl(nant*(nant+1)/2), itsNChan(nchan),
       itsNCorr(ncorr), itsFlag(flag)
   {
+    using casacore::MPosition;
+    using casacore::Quantum;
+
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    std::vector<int> ant1(itsNBl);
+    std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -66,32 +71,29 @@ public:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    std::vector<std::string> antNames{
+      "rs01.s01",
+      "rs02.s01",
+      "cs01.s01",
+      "cs01.s02"
+    };
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos (4);
-    Vector<double> vals(3);
-    vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                             MPosition::ITRF);
-    vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                             MPosition::ITRF);
-    vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                             MPosition::ITRF);
-    vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                             MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    const std::vector<double> vals0{ 3828763, 442449, 5064923 };
+    const std::vector<double> vals1{ 3828746, 442592, 5064924 };
+    const std::vector<double> vals2{ 3828729, 442735, 5064925 };
+    const std::vector<double> vals3{ 3828713, 442878, 5064926 };
+    const std::vector<MPosition> antPos{
+      MPosition(Quantum<casacore::Vector<double>>(vals0,"m"), MPosition::ITRF),
+      MPosition(Quantum<casacore::Vector<double>>(vals1,"m"), MPosition::ITRF),
+      MPosition(Quantum<casacore::Vector<double>>(vals2,"m"), MPosition::ITRF),
+      MPosition(Quantum<casacore::Vector<double>>(vals3,"m"), MPosition::ITRF)
+    };
+    const std::vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanFreqs(nchan);
-    Vector<double> chanWidth(nchan, 100000.);
-    indgen (chanFreqs, 1050000., 100000.);
+    casacore::Vector<double> chanFreqs(nchan);
+    std::vector<double> chanWidth(nchan, 100000.);
+    casacore::indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
 private:
@@ -101,26 +103,25 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    cout << "Input step " << itsCount << ' '<< itsCount*5+2<<endl;
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<std::complex<float>> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(1.6, 0.9);
+      data.data()[i] = std::complex<float>(1.6, 0.9);
     }
     if (itsCount == 5) {
-      data += Complex(10.,10.);
+      data += std::complex<float>(10.,10.);
     }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -150,20 +151,17 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    cout << "Output step " << itsCount << ' '<<itsCount*5+2<<endl;
     // Fill expected result in similar way as TestInput.
-    Cube<Complex> result(itsNCorr,itsNChan,itsNBl);
-    for (int i=0; i<int(result.size()); ++i) {
-      result.data()[i] = Complex(1.6, 0.9);
+    casacore::Cube<casacore::Complex> result(itsNCorr,itsNChan,itsNBl);
+    for (std::size_t i=0; i < result.size(); ++i) {
+      result.data()[i] = casacore::Complex(1.6, 0.9);
     }
     if (itsCount == 5) {
-      result += Complex(10.,10.);
+      result += casacore::Complex(10.,10.);
     }
     // Check the result.
-    ///cout << buf.getData()<< result;
-    BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-10));
-    BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-10));
-    BOOST_CHECK (near(buf.getTime(), 2+5.*itsCount));
+    BOOST_CHECK(casacore::allNear(buf.getData(), result, 1e-10));
+    BOOST_CHECK(casacore::near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
   }
@@ -172,16 +170,16 @@ private:
   virtual void show (std::ostream&) const {}
   virtual void updateInfo (const DPInfo& info)
   {
-    BOOST_CHECK (int(info.origNChan())==itsNChan);
-    BOOST_CHECK (int(info.nchan())==itsNChan);
-    BOOST_CHECK (int(info.ntime())==itsNTime);
-    BOOST_CHECK (info.startTime()==100);
-    BOOST_CHECK (info.timeInterval()==5);
-    BOOST_CHECK (int(info.nchanAvg())==1);
-    BOOST_CHECK (int(info.ntimeAvg())==1);
-    BOOST_CHECK (int(info.chanFreqs().size()) == itsNChan);
-    BOOST_CHECK (int(info.chanWidths().size()) == itsNChan);
-    BOOST_CHECK (info.msName().empty());
+    BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL(int(info.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(info.startTime(), 100);
+    BOOST_CHECK_EQUAL(info.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(int(info.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL(int(info.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL(int(info.chanFreqs().size()), itsNChan);
+    BOOST_CHECK_EQUAL(int(info.chanWidths().size()), itsNChan);
+    BOOST_CHECK(info.msName().empty());
   }
 
   int itsCount;
