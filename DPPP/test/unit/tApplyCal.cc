@@ -35,20 +35,17 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace casacore;
 using std::vector;
-using DP3::ParameterSet;
-using DP3::DPPP::DPInput;
+using DP3::DPPP::ApplyCal;
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInfo;
-using DP3::DPPP::ApplyCal;
 using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(applycal)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
-class TestInput: public DPInput
+class TestInput: public DP3::DPPP::DPInput
 {
 public:
   TestInput(int ntime, int nchan)
@@ -201,13 +198,13 @@ private:
           }
           if (info().getAnt2()[bl]==2 && (itsTimeStep/(itsNTime/2))==0
               && (chan/(itsNChan/2))==1) {
-            data(0,chan,bl)-=0.5*data(1,chan,bl);
-            data(2,chan,bl)-=0.5*data(3,chan,bl);
+            data(0,chan,bl)-=0.5f*data(1,chan,bl);
+            data(2,chan,bl)-=0.5f*data(3,chan,bl);
           }
           if (info().getAnt1()[bl]==2 && (itsTimeStep/(itsNTime/2))==0
               && (chan/(itsNChan/2))==1) {
-            data(0,chan,bl)-=0.5*data(2,chan,bl);
-            data(1,chan,bl)-=0.5*data(3,chan,bl);
+            data(0,chan,bl)-=0.5f*data(2,chan,bl);
+            data(1,chan,bl)-=0.5f*data(3,chan,bl);
           }
         }
       }
@@ -277,21 +274,21 @@ void testclocktec(int ntime, int nchan)
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
 
-  ParameterSet parset1;
+  DP3::ParameterSet parset1;
   parset1.add ("correction", "tec");
   parset1.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add ("timeslotsperparmupdate", "5");
   parset1.add ("updateweights", "true");
   DPStep::ShPtr step2(new ApplyCal(in, parset1, ""));
 
-  ParameterSet parset2;
+  DP3::ParameterSet parset2;
   parset2.add ("correction", "clock");
   parset2.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset2.add ("timeslotsperparmupdate", "5");
   parset2.add ("updateweights", "true");
   DPStep::ShPtr step3(new ApplyCal(in, parset2, ""));
 
-  ParameterSet parset3;
+  DP3::ParameterSet parset3;
   parset3.add ("correction", "commonscalarphase");
   parset3.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset3.add ("timeslotsperparmupdate", "1");
@@ -315,7 +312,7 @@ void testgain(int ntime, int nchan)
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
 
-  ParameterSet parset1;
+  DP3::ParameterSet parset1;
   parset1.add ("correction", "gain");
   parset1.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add ("timeslotsperparmupdate", "5");
