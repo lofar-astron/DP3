@@ -37,7 +37,7 @@ build-coverage:
   stage: build
   before_script:
     - apk update
-    - apk add cmake python3 py3-pip
+    - apk add cmake python3 py3-pip libxml2-dev libxslt-dev
     - python3 -m pip install --user --upgrade pip
     - pip3 install gcovr
   script:
