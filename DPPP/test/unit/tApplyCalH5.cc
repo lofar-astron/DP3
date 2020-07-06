@@ -206,7 +206,6 @@ private:
     }
 
     if (itsDoTest) {
-      //cout<<endl;
       for (unsigned int bl=0; bl<info().nbaselines(); ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
             unsigned int ant1 = info().getAnt1()[bl];
@@ -269,9 +268,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->setInfo (DPInfo());
 
   const DPStep::ShPtr& step=step1->getNextStep();
-
-  // TODO: do line below for any step that is an ApplyCal
-  step->show (cout);
 
   // Execute the steps.
   DPBuffer buf;

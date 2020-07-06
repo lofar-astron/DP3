@@ -52,8 +52,6 @@ void doChan (int windowSize, int nchan, int chan)
     e2 = nchan-1;
     e1 = nchan;
   }
-  //std::cout <<"wdw,nch=" << windowSize << ',' << nchan << " chan=" << chan
-  //          << ' ' << s1 << '-' << e1 << ' ' << s2 << '-' << e2 << std::endl;
   BOOST_CHECK_EQUAL(e1-s1 + e2-s2, windowSize);
 }
 
@@ -132,7 +130,6 @@ void testAdd()
     // Copy the new baselines for this superstation to the baseline list.
     // Give a warning if nothing found.
     if (newAnt1.empty()) {
-      //          DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
       throw std::runtime_error("StationAdder: no baseline found for superstation");
     } else {
       unsigned int oldsz = itsAnt1.size();
@@ -144,9 +141,6 @@ void testAdd()
       }
     }
   }
-  //cout << itsAnt1<<endl<<itsAnt2<<endl;
-  //writeVector (cout, itsBufRows);
-  //cout<<endl;
 }
 
 BOOST_AUTO_TEST_CASE( add )

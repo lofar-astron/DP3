@@ -98,7 +98,6 @@ void test1 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("baseline", "[]");
   BaselineSelection selBL (ps, "");
-  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res, true));
 }
@@ -109,7 +108,6 @@ void test2 (const DPInfo& info)
   ps.add ("baseline", "[]");
   ps.add ("corrtype", "AUTO");
   BaselineSelection selBL (ps, "");
-  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res.diagonal(), true));
   res.diagonal() = false;
@@ -121,7 +119,6 @@ void test3 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("corrtype", "CROSS");
   BaselineSelection selBL (ps, "");
-  // selBL.show (cout);
   Matrix<bool> res = selBL.apply (info);
   BOOST_CHECK (allEQ(res.diagonal(), false));
   res.diagonal() = true;
@@ -140,39 +137,29 @@ void test4 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("blmin", "145");
   BaselineSelection selBL (ps, "", true);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), blength<=145.));
   ps.add ("blmax", "288");
   selBL = BaselineSelection(ps, "", true);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), blength<=145. || blength>=288.));
   ps.add ("corrtype", "cross");
   selBL = BaselineSelection(ps, "", true);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), (blength > 0.  &&
                                     (blength<=145. || blength>=288.))));
   ps.add ("blrange", "[0,144,288,430]");
   selBL = BaselineSelection(ps, "", true);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), (blength > 0.  &&
                                     (blength<=145. || blength>=288.))));
   selBL = BaselineSelection(ps, "", false);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), ((blength > 0.  &&  blength<=144.)  ||
                                     (blength>=288. &&  blength<=430.))));
   ps.replace ("corrtype", "");
   selBL = BaselineSelection(ps, "", false);
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), ((blength >=0.  &&  blength<=144.)  ||
                                     (blength>=288. &&  blength<=430.))));
 }
 
 void test5 (const DPInfo& info)
 {
-  //antNames[0] = "rs01.s01";
-  //antNames[1] = "rs02.s01";
-  //antNames[2] = "cs01.s01";
-  //antNames[3] = "cs01.s02";
   Matrix<int> bl(4,4);
   bl(0,0) = 00;
   bl(1,1) = 11;
@@ -187,23 +174,18 @@ void test5 (const DPInfo& info)
   ParameterSet ps;
   ps.add ("baseline", "[[rs01.s01]]");
   BaselineSelection selBL (ps, "");
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), bl==00 || bl==01 || bl==02 || bl==03));
   ps.replace ("baseline", "[[rs01.s01,rs*]]");
   selBL = BaselineSelection(ps, "");
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), bl==00 || bl==01));
   ps.replace ("baseline", "[[rs01.s01],[rs02*]]");
   selBL = BaselineSelection(ps, "");
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
   ps.replace ("baseline", "[rs01.s01,'rs02*']");
   selBL = BaselineSelection(ps, "");
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), !(bl==22 || bl==23 || bl==33)));
   ps.replace ("corrtype", "cross");
   selBL = BaselineSelection(ps, "");
-  // selBL.show (cout);
   BOOST_CHECK (allEQ(selBL.apply(info), !(bl==00 || bl==11 || bl==22 ||
                                      bl==23 || bl==33)));
   // Note that the MSSelection syntax is not tested, because it requires

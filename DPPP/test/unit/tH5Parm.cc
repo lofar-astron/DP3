@@ -31,7 +31,6 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
     size_t ntimes=7;
     {
       // Create a new H5Parm
-      // cout<<"Create tH5Parm_tmp.h5"<<endl;
       H5Parm h5parm("tH5Parm_tmp.h5", true);
 
       // Check that something is created
@@ -57,7 +56,6 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       axes.push_back(H5Parm::AxisInfo("time",ntimes));
       axes.push_back(H5Parm::AxisInfo("bla",1));
 
-      // cout<<"Create new SolTab"<<endl;
       H5Parm::SolTab a = h5parm.createSolTab("mysol","mytype",axes);
 
       // Check that the soltab exists
@@ -106,19 +104,16 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
 
     // TODO tests start failing from here
     {
-      // cout<<"opening tH5Parm_tmp.h5 again, force a new soltab"<<endl;
       H5Parm h5parm("tH5Parm_tmp.h5", false, true);
       BOOST_CHECK_EQUAL(h5parm.getSolSetName(), "sol001");
     }
 
     {
-      // cout<<"opening tH5Parm_tmp.h5 again, force a new solset with name"<<endl;
       H5Parm h5parm("tH5Parm_tmp.h5", false, true, "harry");
       BOOST_CHECK_EQUAL(h5parm.getSolSetName(), "harry");
     }
 
     {
-      // cout<<"opening tH5Parm_tmp.h5 again, read existing soltab"<<endl;
       H5Parm h5parm("tH5Parm_tmp.h5", false, false, "sol000");
       BOOST_CHECK_EQUAL(h5parm.getSolSetName(), "sol000");
       BOOST_CHECK_EQUAL(h5parm.nSolTabs(), size_t {1});
@@ -130,36 +125,29 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       BOOST_CHECK_EQUAL(soltab.getType(), "mytype");
       checkAxes(soltab, ntimes);
 
-      // cout<<"read some data"<<endl;
       double starttime = 57878.49999;
       hsize_t starttimeindex = soltab.getTimeIndex(starttime);
-      // cout<<"starttimeindex="<<starttimeindex<<endl;
       vector<double> val = soltab.getValues("Antenna2", starttimeindex, ntimes, 2, 0, 4, 0, 4, 0);
       BOOST_CHECK(casacore::near(val[0],10.));
       BOOST_CHECK(casacore::near(val[1],11.));
       BOOST_CHECK(casacore::near(val[2],12.));
       BOOST_CHECK(casacore::near(val[3],13.));
-      // cout<<"read some data with stride 2"<<endl;
       starttime = 57880.5;
       starttimeindex = soltab.getTimeIndex(starttime);
       BOOST_CHECK_EQUAL(starttimeindex, hsize_t {1});
       vector<double> val2 = soltab.getValues("Antenna3", starttimeindex, 2, 2, 0, 4, 0, 4, 0);
       BOOST_CHECK(casacore::near(val2[0],21.));
       BOOST_CHECK(casacore::near(val2[1],23.));
-      // cout<<"testing stride"<<endl;
       BOOST_CHECK(casacore::near(soltab.getTimeInterval(),2.));
-      // cout<<"reading the antennas into a vector"<<endl;
       vector<string> antennas = soltab.getStringAxis("ant");
       BOOST_CHECK_EQUAL(antennas.size(), size_t {3});
       BOOST_CHECK_EQUAL(antennas[0], "Antenna1");
       BOOST_CHECK_EQUAL(antennas[1], "Antenna2");
       BOOST_CHECK_EQUAL(antennas[2], "Antenna3");
-      // cout<<"Check frequency widths"<<endl;
       BOOST_CHECK(casacore::near(soltab.getFreqInterval(0),1e6));
       BOOST_CHECK(casacore::near(soltab.getFreqInterval(1),4e6));
       BOOST_CHECK(casacore::near(soltab.getFreqInterval(2),2e6));
 
-      // cout<<"Checking interpolation (on input time axis)"<<endl;
       vector<double> freqs;
       freqs.push_back(130e6);
       freqs.push_back(131e6);
@@ -179,7 +167,6 @@ BOOST_AUTO_TEST_CASE( test_gridinterpolate ) {
       }
 
       times.clear();
-      // cout<<"Checking interpolation, upsampled 3 times, add 2 time slots at end"<<endl;
       for (size_t time=0; time<3*ntimes+2; ++time) {
         times.push_back(57878.5+2.0*time/3.);
       }

@@ -151,7 +151,6 @@ private:
     }
     // Check the averaged result.
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
-    ///cout << imag(buf.getData()) << endl<<imag(result);
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
     BOOST_CHECK (near(buf.getTime(),
@@ -162,7 +161,6 @@ private:
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
       BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    // cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
@@ -286,7 +284,6 @@ private:
               float weight = (1 + (it+ib+ic)%5) / 5.;
               result(ip,0,ib) += weight * Complex(i+it*10,i-1000+it*6);
               weights(ip,0,ib) += weight;
-              ///  cout << result(ip,0,ib)  << weight << endl;
               flags(ip,0,ib) = false;
               fullResFlags(ic,it,ib) = false;
             }
@@ -300,7 +297,6 @@ private:
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
-    ///cout << real(buf.getData()) << endl<<real(result);
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), flags));
@@ -309,7 +305,6 @@ private:
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
@@ -345,7 +340,6 @@ private:
     bool* flagPtr = buf2.getFlags().data();
     for (int i=0; i<np; ++i) {
       if ((i+itsCount)%itsStep == 0) {
-        ///cout << "flagged " <<itsCount <<' '<<  i << endl;
         for (int j=0; j<ncorr; ++j) {
           flagPtr[i*ncorr + j] = true;
         }
@@ -390,7 +384,6 @@ private:
           // TestFlagger flags every step-th point of 2x2 averaged data.
           int tf = it/2;    // same as itsCount in testFlagger
           if (((ib*itsNrChan + ic)/2 + tf) % itsStep == 0) {
-            ///cout << "out4 flagged "<< tf<<' '<< i/itsNrCorr<<' ' <<ib<<' '<<ic/2 << endl;
             i += itsNrCorr;
           } else {
             for (int ip=0; ip<itsNrCorr; ++ip) {
@@ -398,7 +391,6 @@ private:
                 float weight = (1 + (it+ib+ic)%5) / 5.;
                 result(ip,0,ib) += weight * Complex(i+it*10,i-1000+it*6);
                 weights(ip,0,ib) += weight;
-                ///  cout << result(ip,0,ib)  << weight << endl;
                 flags(ip,0,ib) = false;
                 fullResFlags(ic,it,ib) = false;
               }
@@ -414,7 +406,6 @@ private:
       }
     }
     // Check the averaged result.
-    ///cout << real(buf.getData()) << endl<<real(result);
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), flags));
@@ -423,7 +414,6 @@ private:
     Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }

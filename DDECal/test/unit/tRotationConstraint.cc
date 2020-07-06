@@ -25,8 +25,6 @@ BOOST_AUTO_TEST_CASE( test_rotation )
   onesolution[0].resize(4);
   double pi = 3.1415;
   for (double phi=-pi; phi<pi; phi+=pi/6) {
-    //cout<<"test phi = "<<phi<<endl;
-
     /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
     */
@@ -39,7 +37,6 @@ BOOST_AUTO_TEST_CASE( test_rotation )
 
     BOOST_CHECK( constraint_result.size() == 1 );
     BOOST_CHECK( constraint_result[0].axes == "ant,dir,freq" );
-    //cout<<" got phi = "<<constraint_result[0].vals[0] <<endl;
     BOOST_CHECK( near(constraint_result[0].vals[0], phi) );
     BOOST_CHECK( constraint_result[0].name == "rotation" );
     BOOST_CHECK( constraint_result[0].dims.size() == 3 );

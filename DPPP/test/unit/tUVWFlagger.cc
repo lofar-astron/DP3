@@ -163,7 +163,6 @@ namespace {
           }
         }
       }
-      ///cout << buf.getFlags() << endl << result << endl;
       BOOST_CHECK(allEQ(buf.getFlags(), result));
       itsCount++;
       return true;
@@ -215,7 +214,6 @@ namespace {
           }
         }
       }
-      ///cout << buf.getFlags() << endl << result << endl;
       BOOST_CHECK(allEQ(buf.getFlags(), result));
       itsCount++;
       return true;
@@ -307,7 +305,6 @@ namespace {
           }
         }
       }
-      ///cout << buf.getFlags() << endl << result << endl;
       BOOST_CHECK(allEQ(buf.getFlags(), result));
       itsCount++;
       return true;
@@ -378,7 +375,6 @@ namespace {
     step1->setNextStep (step2);
     step2->setNextStep (step3);
     execute (step1);
-    // step2->showCounts (cout);
   }
 
   // Test flagging a few baselines on UV in m with a different phase center.
@@ -411,10 +407,9 @@ namespace {
     parset.add ("uvmrange", "[5.5..8.5]");
     parset.add ("phasecenter", "Sun");
     DPStep::ShPtr step2(new DP3::DPPP::UVWFlagger(in, parset, ""));
-    // step2->show (cout);
   }
 
-} // end anonymous namespace
+} // end namespace anonymous
 
 BOOST_AUTO_TEST_SUITE(uvwflagger)
 

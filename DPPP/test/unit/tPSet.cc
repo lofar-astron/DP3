@@ -82,7 +82,7 @@ private:
   int itsNChan, itsNCorr;
 };
 
-} // end anonymous namespace
+} // end namespace anonymous
 
 namespace DP3 {
   namespace DPPP {
@@ -101,7 +101,6 @@ namespace DP3 {
      {
        TestInput* in = new TestInput(16, 8, 4);
        DPStep::ShPtr step1(in);
-       std::cout << "testNone" << std::endl;
        ParameterSet parset;
        PreFlagger::PSet pset (in, parset, "");
        pset.updateInfo (in->getInfo());
@@ -115,7 +114,6 @@ namespace DP3 {
       TestInput* in = new TestInput(16, 8, 4);
       DPStep::ShPtr step1(in);
       {
-        std::cout << "testBL 1" << std::endl;
         ParameterSet parset;
         parset.add ("baseline", "[rs01.*, rs02.s01]");
         PreFlagger::PSet pset (in, parset, "");
@@ -132,7 +130,6 @@ namespace DP3 {
         BOOST_CHECK ( mat(3,0) &&  mat(3,1) && !mat(3,2) && !mat(3,3));
       }
       {
-        std::cout << "testBL 2" << std::endl;
         ParameterSet parset;
         parset.add ("corrtype", "auto");
         parset.add ("baseline", "[rs01.*, [*s*.*2], rs02.s01]");
@@ -147,7 +144,6 @@ namespace DP3 {
         BOOST_CHECK (!mat(3,0) && !mat(3,1) && !mat(3,2) &&  mat(3,3));
       }
       {
-        std::cout << "testBL 3" << std::endl;
         ParameterSet parset;
         parset.add ("corrtype", "CROSS");
         parset.add ("baseline", "[[rs*, *s*.*1], [cs01.s01,cs01.s02]]");
@@ -162,7 +158,6 @@ namespace DP3 {
         BOOST_CHECK (!mat(3,0) && !mat(3,1) &&  mat(3,2) && !mat(3,3));
       }
       // Some erronous ones.
-      std::cout << "testBL expected error 1" << std::endl;
       bool err = false;
       try {
         ParameterSet parset;
@@ -171,10 +166,8 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
-      std::cout << "testBL expected error 2" << std::endl;
       err = false;
       try {
         ParameterSet parset;
@@ -183,10 +176,8 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
-      std::cout << "testBL expected error 3" << std::endl;
       err = false;
       try {
         ParameterSet parset;
@@ -195,7 +186,6 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
     }
@@ -205,7 +195,6 @@ namespace DP3 {
       TestInput* in = new TestInput(16, 32, 4);
       DPStep::ShPtr step1(in);
       {
-        std::cout << "testChan 1" << std::endl;
         ParameterSet parset;
         parset.add ("chan", "[11..13, 4]");
         PreFlagger::PSet pset (in, parset, "");
@@ -225,7 +214,6 @@ namespace DP3 {
         }
       }
       {
-        std::cout << "testChan 2" << std::endl;
         ParameterSet parset;
         parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
         PreFlagger::PSet pset (in, parset, "");
@@ -236,7 +224,6 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsChannels[2], size_t{5});
       }
       {
-        std::cout << "testChan 3" << std::endl;
         ParameterSet parset;
         parset.add ("chan", "[11..13, 4]");
         parset.add ("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
@@ -252,7 +239,6 @@ namespace DP3 {
       TestInput* in = new TestInput(16, 8, 4);
       DPStep::ShPtr step1(in);
       {
-        std::cout << "testTime 1" << std::endl;
         ParameterSet parset;
         parset.add ("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
         PreFlagger::PSet pset (in, parset, "");
@@ -264,7 +250,6 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsATimes[1] - pset.itsATimes[0], 86400+3600);
       }
       {
-        std::cout << "testTime 2" << std::endl;
         ParameterSet parset;
         parset.add ("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
         PreFlagger::PSet pset (in, parset, "");
@@ -276,7 +261,6 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsRTimes[3], 16*3600+120);
       }
       {
-        std::cout << "testTime 3" << std::endl;
         ParameterSet parset;
         parset.add ("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
         PreFlagger::PSet pset (in, parset, "");
@@ -292,7 +276,6 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsTimes[7], 24*3600+1);
       }
       {
-        std::cout << "testTime 4" << std::endl;
         ParameterSet parset;
         parset.add ("timeslot", "[2..4, 10]");
         PreFlagger::PSet pset (in, parset, "");
@@ -304,7 +287,6 @@ namespace DP3 {
         BOOST_CHECK_EQUAL (pset.itsTimeSlot[3], 10u);
       }
       // Some erronous ones.
-      std::cout << "testTime expected error 1" << std::endl;
       bool err = false;
       try {
         ParameterSet parset;
@@ -313,10 +295,8 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
-      std::cout << "testTime expected error 2" << std::endl;
       err = false;
       try {
         ParameterSet parset;
@@ -325,10 +305,8 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
-      std::cout << "testTime expected error 3" << std::endl;
       err = false;
       try {
         ParameterSet parset;
@@ -337,7 +315,6 @@ namespace DP3 {
         pset.updateInfo (in->getInfo());
       } catch (std::exception& x) {
         err = true;
-        std::cout << "  " << x.what() << std::endl;
       }
       BOOST_CHECK (err);
     }
@@ -349,7 +326,6 @@ namespace DP3 {
       TestInput* in = new TestInput(16, 8, 4);
       DPStep::ShPtr step1(in);
       {
-        std::cout << "testMinMax 1" << std::endl;
         ParameterSet parset;
         parset.add ("amplmin", "[23,,,45]");
         parset.add ("amplmax", "112.5");
@@ -368,7 +344,6 @@ namespace DP3 {
         BOOST_CHECK (near(pset.itsAmplMax[3], 112.5));
       }
       {
-        std::cout << "testMinMax 2" << std::endl;
         ParameterSet parset;
         parset.add ("phasemin", "[23]");
         PreFlagger::PSet pset (in, parset, "");
@@ -386,7 +361,6 @@ namespace DP3 {
         BOOST_CHECK (near(pset.itsPhaseMax[3], 1e30));
       }
       {
-        std::cout << "testMinMax 3" << std::endl;
         ParameterSet parset;
         parset.add ("uvmmin", "23");
         PreFlagger::PSet pset (in, parset, "");
@@ -396,7 +370,6 @@ namespace DP3 {
         BOOST_CHECK (near(pset.itsMaxUV, 1e30));
       }
       {
-        std::cout << "testMinMax 4" << std::endl;
         ParameterSet parset;
         parset.add ("uvmmax", "23");
         PreFlagger::PSet pset (in, parset, "");
@@ -406,7 +379,6 @@ namespace DP3 {
         BOOST_CHECK (near(pset.itsMaxUV, 23.*23.));
       }
       {
-        std::cout << "testMinMax 5" << std::endl;
         ParameterSet parset;
         parset.add ("uvmmin", "23");
         parset.add ("uvmmax", "123");

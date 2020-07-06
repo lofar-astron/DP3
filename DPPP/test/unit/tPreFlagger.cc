@@ -50,7 +50,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->setInfo (DPInfo());
   DPStep::ShPtr step = step1;
   while (step) {
-    // step->show (cout);
     step = step->getNextStep();
   }
   // Execute the steps.
@@ -209,7 +208,6 @@ private:
         }
       }
     }
-    ///    cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -259,8 +257,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag,
   step2->setNextStep (step3);
   step3->setNextStep (step4);
   execute (step1);
-  // step2->showCounts (cout);
-  // step3->showCounts (cout);
 }
 
 
@@ -290,7 +286,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -378,7 +373,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -452,7 +446,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;

@@ -145,7 +145,6 @@ private:
     }
     // Check the averaged result.
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
-    ///cout << imag(buf.getData()) << endl<<imag(result);
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
     BOOST_CHECK (near(buf.getTime(),
@@ -156,7 +155,6 @@ private:
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
       BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;

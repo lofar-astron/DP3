@@ -216,7 +216,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->finish();
   DPStep::ShPtr step = step1;
   while (step) {
-    // step->showCounts (cout);
     step = step->getNextStep();
   }
 }
@@ -241,7 +240,6 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
                                      shortbl));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
-  // step2->show (cout);
   execute (step1);
 }
 

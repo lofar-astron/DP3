@@ -191,7 +191,6 @@ private:
     gains[2](1,0,2)=.5;
 
     if (itsDoTest & DataEquals) {
-      //cout<<"weights="<<buf.getWeights()<<endl;
       for (int bl=0; bl<itsNBl; ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
           for (int corr=0; corr<itsNCorr; ++corr) {
@@ -267,9 +266,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->setInfo (DPInfo());
 
   const DPStep::ShPtr& step=step1->getNextStep();
-
-  // TODO: do line below for any step that is an ApplyCal
-  step->show (cout);
 
   // Execute the steps.
   DPBuffer buf;

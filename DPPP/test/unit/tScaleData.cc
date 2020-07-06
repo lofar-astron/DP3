@@ -225,7 +225,6 @@ void execute (const DPStep::ShPtr& step1)
 {
   // Set DPInfo.
   step1->setInfo (DPInfo());
-  // step1->getNextStep()->show (cout);
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));

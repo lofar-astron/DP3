@@ -263,7 +263,7 @@ class ThrowStep: public DPStep
     virtual void finish() {}
     virtual void show (std::ostream&) const {}
     virtual bool process (const DPBuffer&) {
-      // cout<<"Previous step should have thrown an error!"<<endl;
+      BOOST_FAIL("Previous step should have thrown an error!");
       return true;
     }
 };
@@ -355,7 +355,6 @@ private:
     BOOST_CHECK (allEQ (buf.getFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    // cout<< buf.getUVW()(IPosition(2,0,itsNBl-1), IPosition(2,2,itsNBl+4));
     BOOST_CHECK (allNear (buf.getData()(IPosition(3,0,0,itsNBl), end), databl0, 1e-5));
     BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl), end), weightbl0, 1e-5));
     end[2] = itsNBl+1;
@@ -372,7 +371,6 @@ private:
     BOOST_CHECK (allNear (buf.getWeights()(IPosition(3,0,0,itsNBl+4), end), weightbl4, 1e-5));
     itsCount++;
     return true;
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), false));
     itsCount++;
     return true;
@@ -445,7 +443,6 @@ void execute (const DPStep::ShPtr& step1)
 {
   // Set DPInfo.
   step1->setInfo (DPInfo());
-  // step1->getNextStep()->show (cout);
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -490,7 +487,6 @@ void test2(int ntime, int nbl, int nchan, int ncorr)
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
-  // step2->showCounts (cout);
 }
 
 void test3 (const string& stations)
@@ -510,7 +506,6 @@ void test3 (const string& stations)
   try {
     execute (step1);
   } catch (std::exception& x) {
-    // cout << "Expected exception: " << x.what() << endl;
     ok = false;
   }
   BOOST_CHECK (!ok);
@@ -542,13 +537,9 @@ void testPatterns()
   antNames[8] = "CS005HBA0";   antNames[9] = "CS005HBA1";
   vector<string> patterns;
   patterns.push_back ("CS00[0-9]*");
-  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns[0] = "CS00[0-9]*";
-  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns.push_back ("!CS00[45]*");
-  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
   patterns.push_back ("CS00[124]HBA0");
-  // cout << StationAdder::getMatchingStations (antNames, patterns) << endl;
 }
 
 BOOST_AUTO_TEST_CASE( test_patterns ) {
