@@ -25,6 +25,7 @@
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
 
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "../../StationAdder.h"
@@ -36,7 +37,6 @@
 #include "../../../Common/StreamUtil.h"
 
 using std::vector;
-using DP3::ParameterSet;
 using DP3::DPPP::DPInput;
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInfo;
@@ -93,7 +93,7 @@ public:
     // Define the frequencies.
     vector<double> chanWidth(nchan, 1000000.);
     casacore::Vector<double> chanFreqs(nchan);
-    indgen (chanFreqs, 10500000., 1000000.);
+    casacore::indgen (chanFreqs, 10500000., 1000000.);
     info().set (chanFreqs, chanWidth);
   }
 private:
@@ -166,7 +166,7 @@ private:
     casacore::Cube<casacore::Complex> databl0 (itsNCorr, itsNChan, 1);
     casacore::Cube<casacore::Complex> databl1 (itsNCorr, itsNChan, 1);
     // "{ns:[rs01.s01, rs02.s01, cs01.s02]}" was given resulting in 2 new
-    // baselines (ns-ns and cs01.s01-ns). 
+    // baselines (ns-ns and cs01.s01-ns).
     // Thus adding the baselines below.
     float weight=0;
     if (itsSumAuto) {
@@ -447,13 +447,17 @@ void execute (const DPStep::ShPtr& step1)
   step1->finish();
 }
 
-// Test adding 3 stations.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
-{
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
+BOOST_DATA_TEST_CASE( test_add_three_stations,
+                      boost::unit_test::data::make({ true, false }),
+                      sumauto ) {
+  // Test must be done with with 16 baselines.
+  const int kNTime = 10;
+  const int kNBl = 16;
+  const int kNChan = 32;
+  const int kNCorr = 4;
+
+  auto step1 = std::make_shared<TestInput>(kNTime, kNBl, kNChan, kNCorr);
+  DP3::ParameterSet parset;
   parset.add ("stations",
               "{ns:[rs01.s01, rs02.s01, cs01.s02]}");
   parset.add ("autocorr", "true");
@@ -462,96 +466,75 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
   }
   parset.add ("average", "true");
   parset.add ("useweights", "false");
-  DPStep::ShPtr step2(new StationAdder(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, sumauto));
+  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step3 = std::make_shared<TestOutput>(kNTime, kNBl, kNChan, kNCorr, sumauto);
   step1->setNextStep (step2);
   step2->setNextStep (step3);
+
   execute (step1);
 }
 
-// Test adding two groups of 2 stations.
-void test2(int ntime, int nbl, int nchan, int ncorr)
-{
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
+BOOST_AUTO_TEST_CASE( test_add_two_groups_of_two_stations ) {
+  const int kNTime = 10;
+  const int kNBl = 16;
+  const int kNChan = 32;
+  const int kNCorr = 4;
+
+  auto step1 = std::make_shared<TestInput>(kNTime, kNBl, kNChan, kNCorr);
+  DP3::ParameterSet parset;
   parset.add ("stations",
               "{ns1:[rs01.s01, rs02.s01], ns2:[cs01.s02, cs01.s01]}");
   parset.add ("autocorr", "false");
   parset.add ("average", "false");
-  DPStep::ShPtr step2(new StationAdder(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
+  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step3 = std::make_shared<TestOutput2>(kNTime, kNBl, kNChan, kNCorr);
   step1->setNextStep (step2);
   step2->setNextStep (step3);
+
   execute (step1);
 }
 
-void test3 (const string& stations)
-{
-  // Do some erronous attempts.
-  TestInput* in = new TestInput(2, 8, 4, 4);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
+BOOST_DATA_TEST_CASE( test_invalid_station,
+                      boost::unit_test::data::make({
+                        // Unknown station.
+                        // Enabling this test crashes the test framework...
+                        // "{ns1:unknown, ns2:[cs01.s02, cs01.s01]}",
+
+                        // New station already used.
+                        "{ns1:[rs01.s01, rs02.s01], cs01.s02:[cs01.s02, cs01.s01]}",
+
+                        // Old station doubly used.
+                        "{ns1:[rs01.s01, rs02.s01], ns2:[rs01.s01, cs01.s01]}"
+                      }),
+                      stations ) {
+  auto step1 = std::make_shared<TestInput>(2, 8, 4, 4);
+  DP3::ParameterSet parset;
   parset.add ("stations", stations);
   parset.add ("autocorr", "true");
   parset.add ("average", "false");
-  DPStep::ShPtr step2(new StationAdder(in, parset, ""));
-  DPStep::ShPtr step3(new ThrowStep());
+  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step3 = std::make_shared<ThrowStep>();
   step1->setNextStep (step2);
   step2->setNextStep (step3);
-  bool ok = true;
-  try {
-    execute (step1);
-  } catch (std::exception& x) {
-    ok = false;
-  }
-  BOOST_CHECK (!ok);
+  BOOST_CHECK_THROW(execute(step1), std::exception);
 }
 
-// Test making a superstation out of nonexisting stations (should do nothing)
-void test4(int ntime, int nbl, int nchan, int ncorr)
-{
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
-  DPStep::ShPtr step1(in);
-  ParameterSet parset;
+// Test making a superstation out of nonexisting stations (should do nothing).
+BOOST_AUTO_TEST_CASE( test_superstation_of_nonexisting_stations ) {
+  const int kNTime = 10;
+  const int kNBl = 16;
+  const int kNChan = 32;
+  const int kNCorr = 4;
+
+  auto step1 = std::make_shared<TestInput>(kNTime, kNBl, kNChan, kNCorr);
+  DP3::ParameterSet parset;
   parset.add ("stations",
               "{ns1:nonexistingstationpattern}");
-  DPStep::ShPtr step2(new StationAdder(in, parset, ""));
-  DPStep::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr));
+  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step3 = std::make_shared<TestOutput4>(kNTime, kNBl, kNChan, kNCorr);
   step1->setNextStep (step2);
   step2->setNextStep (step3);
   execute (step1);
-}
-
-BOOST_AUTO_TEST_CASE( test_add1 ) {
-  // Test must be done with with 16 baselines.
-  test1( 10,  16, 32, 4, true);
-}
-
-BOOST_AUTO_TEST_CASE( test_add2 ) {
-  test1( 10,  16, 32, 4, false);
-}
-
-BOOST_AUTO_TEST_CASE( test_add3 ) {
-  test2( 10,  16, 32, 4);
-}
-
-BOOST_AUTO_TEST_CASE( test_add4 ) {
-  // Unknown station.
-  //test3("{ns1:unknown, ns2:[cs01.s02, cs01.s01]}");
-  // New station already used.
-  test3("{ns1:[rs01.s01, rs02.s01], cs01.s02:[cs01.s02, cs01.s01]}");
-}
-
-BOOST_AUTO_TEST_CASE( test_add5 ) {
-  // Old station doubly used.
-  test3("{ns1:[rs01.s01, rs02.s01], ns2:[rs01.s01, cs01.s01]}");
-}
-
-BOOST_AUTO_TEST_CASE( test_add6 ) {
-  test4( 10, 16, 32, 4);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
