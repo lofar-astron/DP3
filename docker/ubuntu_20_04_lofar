@@ -23,7 +23,6 @@ RUN mkdir /lofarbeam/build && cd /lofarbeam/build && cmake -DCMAKE_INSTALL_PREFI
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../src
 RUN cd /build && make -j2
 RUN cd /build && make install -j2
 RUN DPPP
