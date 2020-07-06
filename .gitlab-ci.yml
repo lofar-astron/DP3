@@ -11,7 +11,7 @@ build_lofar:
   extends: .env
   script:
   - docker build --tag ${DOCKER_IMAGE}_lofar -f ./docker/ubuntu_20_04_lofar .
-  
+
 build_nolofar:
   stage: build
   extends: .env
@@ -36,7 +36,9 @@ build-doc:
 build-coverage:
   stage: build
   before_script:
-    - sh -c 'apt-get -y install python3-pip && 
+    - apk update
+    - apk add cmake python3 py3-pip
+    - python3 -m pip install --user --upgrade pip
     - pip3 install gcovr
   script:
     - mkdir build && cd build
