@@ -1,4 +1,4 @@
-// tInterpolateStep.cc: Test program for class InterpolateStep
+// tInterpolate.cc: Test program for class Interpolate
 // Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -17,17 +17,14 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 //
-// $Id: tInterpolateStep.cc 24221 2013-03-12 12:24:48Z diepen $
-//
 // @author Ger van Diepen
 
-#include "../../DPPP/Interpolate.h"
-#include "../../DPPP/DPRun.h"
-#include "../../DPPP/DPInput.h"
-#include "../../DPPP/DPBuffer.h"
-#include "../../DPPP/DPInfo.h"
-#include "../../Common/ParameterSet.h"
-#include "../../Common/StringUtil.h"
+#include "../../Interpolate.h"
+
+#include "../../DPInput.h"
+#include "../../DPRun.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>

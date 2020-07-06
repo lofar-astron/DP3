@@ -298,6 +298,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tGridInterpolate.cc
   # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tMirror.cc
   # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
@@ -309,7 +310,6 @@ set(TEST_FILENAMES
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
-  DPPP_Interpolate/test/tInterpolateStep.cc
 )
 
 set(RUNTEST_SOURCES
