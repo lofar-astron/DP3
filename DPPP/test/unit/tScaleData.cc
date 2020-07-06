@@ -35,7 +35,7 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace casacore;
+using casacore::Complex;
 using std::vector;
 using DP3::ParameterSet;
 using DP3::DPPP::DPInput;
@@ -176,7 +176,7 @@ private:
         double scale = sqrt(sc1*sc2);
         freq += 1;
         for (int k=0; k<itsNCorr; ++k) {
-          *dataPtr++ = casacore::Complex(cnt+itsCount*10,cnt-10+itsCount*6) * scale;
+          *dataPtr++ = casacore::Complex(cnt+itsCount*10,cnt-10+itsCount*6) * float(scale);
           cnt++;
         }
       }
