@@ -1,5 +1,5 @@
-// tNDPPP.cc: test program for NDPPP
-// Copyright (C) 2010
+// tDPPP.cc: test program for DPPP
+// Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
