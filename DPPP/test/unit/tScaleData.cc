@@ -35,7 +35,6 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using casacore::Complex;
 using std::vector;
 using DP3::ParameterSet;
 using DP3::DPPP::DPInput;
