@@ -1,7 +1,6 @@
 #include <casacore/casa/BasicMath/Math.h> // near
 
 #include <vector>
-#include <iostream>
 #include <complex>
 
 #include "../../RotationConstraint.h"
@@ -10,9 +9,11 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-using namespace std;
-using namespace DP3;
-using namespace casacore;
+using std::complex;
+using std::vector;
+using casacore::near;
+using DP3::RotationConstraint;
+using DP3::RotationAndDiagonalConstraint;
 
 BOOST_AUTO_TEST_SUITE(rotationconstraint)
 
@@ -25,8 +26,6 @@ BOOST_AUTO_TEST_CASE( test_rotation )
   onesolution[0].resize(4);
   double pi = 3.1415;
   for (double phi=-pi; phi<pi; phi+=pi/6) {
-    //cout<<"test phi = "<<phi<<endl;
-
     /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
     */
@@ -39,7 +38,6 @@ BOOST_AUTO_TEST_CASE( test_rotation )
 
     BOOST_CHECK( constraint_result.size() == 1 );
     BOOST_CHECK( constraint_result[0].axes == "ant,dir,freq" );
-    //cout<<" got phi = "<<constraint_result[0].vals[0] <<endl;
     BOOST_CHECK( near(constraint_result[0].vals[0], phi) );
     BOOST_CHECK( constraint_result[0].name == "rotation" );
     BOOST_CHECK( constraint_result[0].dims.size() == 3 );

@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -36,10 +35,14 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StringUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::PreFlagger;
+using DP3::DPPP::Counter;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(preflagger)
 
@@ -50,7 +53,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->setInfo (DPInfo());
   DPStep::ShPtr step = step1;
   while (step) {
-    // step->show (cout);
     step = step->getNextStep();
   }
   // Execute the steps.
@@ -74,8 +76,8 @@ public:
     info().init (ncorr, 0, nchan, ntime, 0.5, 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(nbl);
-    Vector<Int> ant2(nbl);
+    vector<int> ant1(nbl);
+    vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<nbl; ++i) {
@@ -88,31 +90,27 @@ public:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
-    Vector<double> vals(3);
+    vector<casacore::MPosition> antPos(4);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
+    casacore::Vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 100000.);
-    Vector<double> chanFreqs(nchan);
+    vector<double> chanWidth(nchan, 100000.);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -123,11 +121,11 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -137,15 +135,15 @@ private:
     buf.setTime (itsCount*5 + 3);   //same interval as in updateAveragInfo
     buf.setData (data);
     buf.setUVW  (uvw);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -188,7 +186,7 @@ private:
     //      T         F         F          T    T
     //      F         F         F          T    F
     // The lines marked with * are the cases in the if below.
-    Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
     bool compFlag = itsFlag;
     bool selFlag  = !itsClear;
     if (itsUseComplement && itsFlag == itsClear) {
@@ -209,7 +207,6 @@ private:
         }
       }
     }
-    ///    cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -259,8 +256,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag,
   step2->setNextStep (step3);
   step3->setNextStep (step4);
   execute (step1);
-  // step2->showCounts (cout);
-  // step3->showCounts (cout);
 }
 
 
@@ -277,7 +272,7 @@ private:
   {
     // A few baselines should be flagged (0, 7, 13, 15)
     // Furthermore channel 1,4,5,11,12,13 are flagged.
-    Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
     result = false;
     for (int i=0; i<itsNBl; ++i) {
       if (i%16 == 0  ||  i%16 == 7  ||  i%16 == 13  ||  i%16 == 15) {
@@ -290,7 +285,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -365,7 +359,7 @@ private:
   {
     // All baselines except autocorr should be flagged.
     // Furthermore channel 1,4,5 are flagged.
-    Cube<bool> result(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<bool> result(itsNCorr,itsNChan,itsNBl);
     result = true;
     for (int i=0; i<itsNBl; ++i) {
       if (i%16==0 || i%16==5 || i%16==10 || i%16==15) {
@@ -378,7 +372,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -420,7 +413,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag)
   execute (step1);
 }
 
-typedef bool CheckFunc (Complex value, double time, int ant1, int ant2,
+typedef bool CheckFunc (casacore::Complex value, double time, int ant1, int ant2,
                         const double* uvw);
 
 // Class to check result of flagged, unaveraged TestInput run by test5.
@@ -434,10 +427,10 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    const Cube<Complex>& data = buf.getData();
+    const casacore::Cube<casacore::Complex>& data = buf.getData();
     const double* uvw = buf.getUVW().data();
-    const IPosition& shp = data.shape();
-    Cube<bool> result(shp);
+    const casacore::IPosition& shp = data.shape();
+    casacore::Cube<bool> result(shp);
     for (int i=0; i<shp[2]; ++i) {
       int a1 = i/4;
       int a2 = i%4;
@@ -452,7 +445,6 @@ private:
         }
       }
     }
-    ///cout << buf.getFlags() << endl << result << endl;
     BOOST_CHECK (allEQ(buf.getFlags(), result));
     itsCount++;
     return true;
@@ -498,37 +490,37 @@ void test6(const string& key1, const string& value1,
   execute (step1);
 }
 
-bool checkBL(Complex, double, int a1, int a2, const double*)
+bool checkBL(casacore::Complex, double, int a1, int a2, const double*)
   { return a1==a2; }
-bool checkAmplMin (Complex data, double, int, int, const double*)
+bool checkAmplMin (casacore::Complex data, double, int, int, const double*)
   { return abs(data) < 9.5; }
-bool checkAmplMax (Complex data, double, int, int, const double*)
+bool checkAmplMax (casacore::Complex data, double, int, int, const double*)
   { return abs(data) > 31.5; }
-bool checkPhaseMin (Complex data, double, int, int, const double*)
+bool checkPhaseMin (casacore::Complex data, double, int, int, const double*)
   { return arg(data) < 1.4; }
-bool checkPhaseMax (Complex data, double, int, int, const double*)
+bool checkPhaseMax (casacore::Complex data, double, int, int, const double*)
   { return arg(data) > 2.1; }
-bool checkRealMin (Complex data, double, int, int, const double*)
+bool checkRealMin (casacore::Complex data, double, int, int, const double*)
   { return real(data) < 5.5; }
-bool checkRealMax (Complex data, double, int, int, const double*)
+bool checkRealMax (casacore::Complex data, double, int, int, const double*)
   { return real(data) > 29.4; }
-bool checkImagMin (Complex data, double, int, int, const double*)
+bool checkImagMin (casacore::Complex data, double, int, int, const double*)
   { return imag(data) < -1.4; }
-bool checkImagMax (Complex data, double, int, int, const double*)
+bool checkImagMax (casacore::Complex data, double, int, int, const double*)
   { return imag(data) > 20.5; }
-bool checkUVMin (Complex, double, int, int, const double* uvw)
+bool checkUVMin (casacore::Complex, double, int, int, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) <= 30; }
-bool checkUVBL (Complex, double, int a1, int a2, const double* uvw)
+bool checkUVBL (casacore::Complex, double, int a1, int a2, const double* uvw)
   { return sqrt(uvw[0]*uvw[0] + uvw[1]*uvw[1]) >= 30 && (a1==0 || a2==0); }
-bool checkBLMin (Complex, double, int a1, int a2, const double*)
+bool checkBLMin (casacore::Complex, double, int a1, int a2, const double*)
   { return abs(a1-a2) < 2; }   // adjacent ant have bl<145
-bool checkBLMinMax (Complex, double, int a1, int a2, const double*)
+bool checkBLMinMax (casacore::Complex, double, int a1, int a2, const double*)
   { return abs(a1-a2) != 1; }  // adjacent ant have bl<145
-bool checkTimeSlot (Complex, double time, int, int, const double*)
+bool checkTimeSlot (casacore::Complex, double time, int, int, const double*)
   { return time<5; }
-bool checkNone (Complex, double, int, int, const double*)
+bool checkNone (casacore::Complex, double, int, int, const double*)
   { return false; }
-bool checkAll (Complex, double, int, int, const double*)
+bool checkAll (casacore::Complex, double, int, int, const double*)
   { return true; }
 
 // Test flagging on various fields.

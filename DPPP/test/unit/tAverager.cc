@@ -26,7 +26,6 @@
 #include <casacore/casa/Arrays/ArrayIO.h>
 
 #include <casacore/casa/Quanta/Quantum.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -36,10 +35,13 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StringUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::Averager;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(averager)
 
@@ -61,25 +63,25 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     indgen (uvw, double(itsCount*100));
     buf.setUVW (uvw);
     getNextStep()->process (buf);
@@ -94,8 +96,8 @@ private:
     // Use timeInterval=5
     info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000.);
+    casacore::Vector<double> chanFreqs(itsNChan);
+    vector<double> chanWidth(itsNChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -119,21 +121,21 @@ private:
     int nchan = 1+(itsNChan-1)/itsNAvgChan;
     int navgtime = std::min(itsNAvgTime, itsNTime-itsCount*itsNAvgTime);
     // Fill expected result in similar way as TestInput.
-    Cube<Complex>  data(itsNCorr,itsNChan,itsNBl);
-    Cube<float> weights(itsNCorr,itsNChan,itsNBl);
-    Cube<bool> fullResFlags(itsNChan,itsNAvgTime,itsNBl);
+    casacore::Cube<casacore::Complex>  data(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<float> weights(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan,itsNAvgTime,itsNBl);
     fullResFlags = true;   // takes care of missing times at the end
     weights = 0;
     for (int j=itsCount*itsNAvgTime; j<itsCount*itsNAvgTime+navgtime; ++j) {
       for (int i=0; i<int(data.size()); ++i) {
-        data.data()[i] += Complex(i+j*10,i-1000+j*6);
+        data.data()[i] += casacore::Complex(i+j*10,i-1000+j*6);
         weights.data()[i] += float(1);
       }
-      fullResFlags(Slicer(IPosition(3,0,0,0),
-                          IPosition(3,itsNChan,navgtime,itsNBl))) = itsFlag;
+      fullResFlags(casacore::Slicer(casacore::IPosition(3,0,0,0),
+                          casacore::IPosition(3,itsNChan,navgtime,itsNBl))) = itsFlag;
     }
-    Cube<Complex> result(itsNCorr,nchan,itsNBl);
-    Cube<float> resultw(itsNCorr,nchan,itsNBl);
+    casacore::Cube<casacore::Complex> result(itsNCorr,nchan,itsNBl);
+    casacore::Cube<float> resultw(itsNCorr,nchan,itsNBl);
     resultw = 0;
     // Average to get the true expected result.
     for (int k=0; k<itsNBl; ++k) {
@@ -151,18 +153,16 @@ private:
     }
     // Check the averaged result.
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
-    ///cout << imag(buf.getData()) << endl<<imag(result);
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
-    BOOST_CHECK (near(buf.getTime(),
+    BOOST_CHECK (casacore::near(buf.getTime(),
                  2+5*(itsCount*itsNAvgTime + (itsNAvgTime-1)/2.)));
     BOOST_CHECK (allNear(buf.getWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
-      Matrix<double> uvw(3,itsNBl);
+      casacore::Matrix<double> uvw(3,itsNBl);
       indgen (uvw, 100*(itsCount*itsNAvgTime + 0.5*(itsNAvgTime-1)));
       BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
     }
-    // cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
@@ -203,14 +203,14 @@ private:
     if (itsCount == itsNrTime) {
       return false;
     }
-    Cube<Complex> data(itsNrCorr,itsNrChan,itsNrBl);
-    Cube<float> weights(itsNrCorr,itsNrChan,itsNrBl);
-    Cube<bool> flags(itsNrCorr,itsNrChan,itsNrBl);
+    casacore::Cube<casacore::Complex> data(itsNrCorr,itsNrChan,itsNrBl);
+    casacore::Cube<float> weights(itsNrCorr,itsNrChan,itsNrBl);
+    casacore::Cube<bool> flags(itsNrCorr,itsNrChan,itsNrBl);
     int i = 0;
     for (int ib=0; ib<itsNrBl; ++ib) {
       for (int ic=0; ic<itsNrChan; ++ic) {
         for (int ip=0; ip<itsNrCorr; ++ip) {
-          data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+          data.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
           weights.data()[i] = (1 + (itsCount+ib+ic)%5) / 5.;
           flags.data()[i] = ((itsCount+2*ib+3*ic) % 7 == 0);
           i++;
@@ -223,7 +223,7 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setFlags (flags);
-    Vector<unsigned int> rownrs(1,itsCount);
+    vector<DP3::DPPP::rownr_t> rownrs(1,itsCount);
     buf.setRowNrs (rownrs);
     getNextStep()->process (buf);
     ++itsCount;
@@ -248,13 +248,13 @@ private:
     // Use timeInterval=5
     info().init (itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, string(), string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNrChan);
-    Vector<double> chanWidth(itsNrChan, 100000.);
+    casacore::Vector<double> chanFreqs(itsNrChan);
+    vector<double> chanWidth(itsNrChan, 100000.);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
-  Cube<bool> itsFullResFlags;
+  casacore::Cube<bool> itsFullResFlags;
 };
 
 // Class to check result of averaging TestInput3.
@@ -269,10 +269,10 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    Cube<Complex> result(itsNrCorr,1,itsNrBl);
-    Cube<float> weights(itsNrCorr,1,itsNrBl);
-    Cube<bool> flags(itsNrCorr,1,itsNrBl);
-    Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
+    casacore::Cube<casacore::Complex> result(itsNrCorr,1,itsNrBl);
+    casacore::Cube<float> weights(itsNrCorr,1,itsNrBl);
+    casacore::Cube<bool> flags(itsNrCorr,1,itsNrBl);
+    casacore::Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
     weights = float(0);
     flags = true;
     fullResFlags = true;
@@ -284,9 +284,8 @@ private:
           for (int ip=0; ip<itsNrCorr; ++ip) {
             if ((it+2*ib+3*ic) % 7 != 0) {
               float weight = (1 + (it+ib+ic)%5) / 5.;
-              result(ip,0,ib) += weight * Complex(i+it*10,i-1000+it*6);
+              result(ip,0,ib) += weight * casacore::Complex(i+it*10,i-1000+it*6);
               weights(ip,0,ib) += weight;
-              ///  cout << result(ip,0,ib)  << weight << endl;
               flags(ip,0,ib) = false;
               fullResFlags(ic,it,ib) = false;
             }
@@ -300,16 +299,14 @@ private:
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
-    ///cout << real(buf.getData()) << endl<<real(result);
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), flags));
-    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (casacore::near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
     BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
-    Matrix<double> uvw(3,itsNrBl);
+    casacore::Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
@@ -345,7 +342,6 @@ private:
     bool* flagPtr = buf2.getFlags().data();
     for (int i=0; i<np; ++i) {
       if ((i+itsCount)%itsStep == 0) {
-        ///cout << "flagged " <<itsCount <<' '<<  i << endl;
         for (int j=0; j<ncorr; ++j) {
           flagPtr[i*ncorr + j] = true;
         }
@@ -375,10 +371,10 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   {
-    Cube<Complex> result(itsNrCorr,1,itsNrBl);
-    Cube<float> weights(itsNrCorr,1,itsNrBl);
-    Cube<bool> flags(itsNrCorr,1,itsNrBl);
-    Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
+    casacore::Cube<casacore::Complex> result(itsNrCorr,1,itsNrBl);
+    casacore::Cube<float> weights(itsNrCorr,1,itsNrBl);
+    casacore::Cube<bool> flags(itsNrCorr,1,itsNrBl);
+    casacore::Cube<bool> fullResFlags(itsNrChan,itsNrTime,itsNrBl);
     weights = float(0);
     flags = true;
     fullResFlags = true;
@@ -390,15 +386,13 @@ private:
           // TestFlagger flags every step-th point of 2x2 averaged data.
           int tf = it/2;    // same as itsCount in testFlagger
           if (((ib*itsNrChan + ic)/2 + tf) % itsStep == 0) {
-            ///cout << "out4 flagged "<< tf<<' '<< i/itsNrCorr<<' ' <<ib<<' '<<ic/2 << endl;
             i += itsNrCorr;
           } else {
             for (int ip=0; ip<itsNrCorr; ++ip) {
               if ((it+2*ib+3*ic) % 7 != 0) {
                 float weight = (1 + (it+ib+ic)%5) / 5.;
-                result(ip,0,ib) += weight * Complex(i+it*10,i-1000+it*6);
+                result(ip,0,ib) += weight * casacore::Complex(i+it*10,i-1000+it*6);
                 weights(ip,0,ib) += weight;
-                ///  cout << result(ip,0,ib)  << weight << endl;
                 flags(ip,0,ib) = false;
                 fullResFlags(ic,it,ib) = false;
               }
@@ -414,16 +408,14 @@ private:
       }
     }
     // Check the averaged result.
-    ///cout << real(buf.getData()) << endl<<real(result);
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-5));
     BOOST_CHECK (allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (allEQ(buf.getFlags(), flags));
-    BOOST_CHECK (near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
+    BOOST_CHECK (casacore::near(buf.getTime(), 2.+5*(itsNrTime-1)/2.));
     BOOST_CHECK (allNear(buf.getWeights(), weights, 1e-5));
-    Matrix<double> uvw(3,itsNrBl);
+    casacore::Matrix<double> uvw(3,itsNrBl);
     indgen (uvw);
     BOOST_CHECK (allNear(buf.getUVW(), uvw, 1e-5));
-    ///cout <<buf.getFullResFlags()<< fullResFlags;
     BOOST_CHECK (allEQ(buf.getFullResFlags(), fullResFlags));
     return true;
   }
@@ -463,8 +455,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("freqstep", toString(navgchan));
-  parset.add ("timestep", toString(navgtime));
+  parset.add ("freqstep", DP3::toString(navgchan));
+  parset.add ("timestep", DP3::toString(navgtime));
   DPStep::ShPtr step2(new Averager(in, parset, ""));
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr,
                                      navgtime, navgchan, flag));
@@ -481,12 +473,12 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add ("freqresolution", toString(freqresolution)+frequnit);
-  parset.add ("timeresolution", toString(timeresolution));
+  parset.add ("freqresolution", DP3::toString(freqresolution)+frequnit);
+  parset.add ("timeresolution", DP3::toString(timeresolution));
   DPStep::ShPtr step2(new Averager(in, parset, ""));
 
   if (!frequnit.empty()) {
-    Quantity q(freqresolution, frequnit);
+    casacore::Quantity q(freqresolution, frequnit);
     freqresolution = q.getValue("Hz", true);
   }
 

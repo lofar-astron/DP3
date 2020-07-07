@@ -34,12 +34,13 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <iostream>
-
-using namespace DP3::DPPP;
-using namespace DP3;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::PhaseShift;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(phaseshift)
 
@@ -55,12 +56,13 @@ public:
       itsNCorr(ncorr), itsFlag(flag)
   {
     info().init (ncorr, 0, nchan, ntime, 0., 10., string(), string());
-    MDirection phaseCenter(Quantity(45,"deg"), Quantity(30,"deg"),
-                           MDirection::J2000);
-    info().set (MPosition(), phaseCenter, phaseCenter, phaseCenter);
+    casacore::MDirection phaseCenter(casacore::Quantity(45,"deg"), 
+                                     casacore::Quantity(30,"deg"),
+                                     casacore::MDirection::J2000);
+    info().set (casacore::MPosition(), phaseCenter, phaseCenter, phaseCenter);
     // Define the frequencies.
-    Vector<double> chanWidth (nchan, 100000.);
-    Vector<double> chanFreqs (nchan);
+    vector<double> chanWidth (nchan, 100000.);
+    casacore::Vector<double> chanFreqs (nchan);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
     // Fill the baseline stations.
@@ -77,8 +79,8 @@ public:
       grpszant = nant;
       grpszbl  = nbl;
     }
-    Vector<Int> ant1(nbl);
-    Vector<Int> ant2(nbl);
+    vector<int> ant1(nbl);
+    vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     int lastant = grpszant;
@@ -95,9 +97,9 @@ public:
         }
       }
     }
-    Vector<String> antNames(nant);
-    vector<MPosition> antPos(nant);
-    Vector<double> antDiam(nant, 70.);
+    vector<string> antNames(nant);
+    vector<casacore::MPosition> antPos(nant);
+    vector<double> antDiam(nant, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     itsStatUVW.resize (3, nant);
     for (int i=0; i<nant; ++i) {
@@ -107,7 +109,7 @@ public:
     }
   }
 
-  void fillUVW (Matrix<double>& uvw, int count)
+  void fillUVW (casacore::Matrix<double>& uvw, int count)
   {
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = (itsStatUVW(0,getInfo().getAnt2()[i]) + count*0.002 -
@@ -116,8 +118,6 @@ public:
                   (itsStatUVW(1,getInfo().getAnt1()[i]) + count*0.004));
       uvw(2,i) = (itsStatUVW(2,getInfo().getAnt2()[i]) + count*0.006 -
                   (itsStatUVW(2,getInfo().getAnt1()[i]) + count*0.006));
-      //cout <<getInfo().getAnt1()[i]<<' '<<getInfo().getAnt2()[i]<<' '
-      //     <<uvw(0,i)<<' '<<uvw(1,i)<<' '<<uvw(2,i)<<endl;
     }
   }
 
@@ -128,25 +128,25 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     fillUVW (uvw, itsCount);
     buf.setUVW (uvw);
     getNextStep()->process (buf);
@@ -160,7 +160,7 @@ private:
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
-  Matrix<double> itsStatUVW;
+  casacore::Matrix<double> itsStatUVW;
 };
 
 // Class to check result of null phase-shifted TestInput.
@@ -180,15 +180,14 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> result(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(result.size()); ++i) {
-      result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      result.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
     BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-7));
-    ///cout << imag(buf.getData()) << endl<<imag(result);
     BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-7));
     BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
     BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2.+5*itsCount, 1e-6);
@@ -202,7 +201,7 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    MVDirection dir = infoIn.phaseCenter().getValue();
+    casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45., 1e-6);
     BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 30., 1e-6);
   }
@@ -230,16 +229,15 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> result(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(result.size()); ++i) {
-      result.data()[i] = Complex(i+itsCount*10,i-1000+itsCount*6);
+      result.data()[i] = casacore::Complex(i+itsCount*10,i-1000+itsCount*6);
     }
-    Matrix<double> uvw(3,itsNBl);
+    casacore::Matrix<double> uvw(3,itsNBl);
     itsInput->fillUVW (uvw, itsCount);
     // Check the result.
     BOOST_CHECK (! allNear(real(buf.getData()), real(result), 1e-5));
     BOOST_CHECK (! allEQ(real(buf.getData()), real(result)));
-    ///cout << imag(buf.getData()) << endl<<imag(result);
     BOOST_CHECK (! allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK (! allEQ(imag(buf.getData()), imag(result)));
     BOOST_CHECK (allEQ(buf.getFlags(), itsFlag));
@@ -254,7 +252,7 @@ private:
   virtual void updateInfo (const DPInfo& infoIn)
   {
     info() = infoIn;
-    MVDirection dir = infoIn.phaseCenter().getValue();
+    casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION (dir.getLong("deg").getValue(), 50., 1e-5);
     BOOST_CHECK_CLOSE_FRACTION (dir.getLat("deg").getValue(), 35., 1e-5);
   }
@@ -280,8 +278,6 @@ void execute (const DPStep::ShPtr& step1)
 // Test with a shift to the original center.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
-  //cout << "test1: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-  //     << " ncorr=" << ncorr << " flag=" << flag << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
@@ -298,8 +294,6 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag)
 // Test with a shift to another and then to the original phase center.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag)
 {
-  //cout << "test2: ntime=" << ntime << " nrbl=" << nbl << " nchan=" << nchan
-  //     << " ncorr=" << ncorr << " flag=" << flag << endl;
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);

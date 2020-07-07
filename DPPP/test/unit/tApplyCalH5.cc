@@ -24,7 +24,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
@@ -37,10 +36,16 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::complex;
+using std::vector;
+using casacore::max;
+using DP3::ParameterSet;
+using DP3::H5Parm;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::ApplyCal;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(applycalh5)
 
@@ -58,8 +63,8 @@ public:
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    vector<int> ant1(itsNBl);
+    vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -72,27 +77,24 @@ public:
         }
       }
     }
-    Vector<String> antNames(3);
-    antNames[0] = "ant1";
-    antNames[1] = "ant2";
-    antNames[2] = "ant3";
+    vector<string> antNames {"ant1", "ant2", "ant3"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(3);
-    Vector<double> vals(3);
+    vector<casacore::MPosition> antPos(3);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
-    Vector<double> antDiam(3, 70.);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
+    vector<double> antDiam(3, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 100.e6);
-    Vector<double> chanFreqs(nchan);
+    vector<double> chanWidth(nchan, 100.e6);
+    vector<double> chanFreqs(nchan);
     for (unsigned int ch=0; ch<nchan; ++ch) {
       double freq = 100.e6 + ch*10.e6;
       if (ch>2) {
@@ -120,14 +122,14 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(1,0);
+      data.data()[i] = casacore::Complex(1,0);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     weights=1.;
 
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -138,10 +140,10 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setUVW  (uvw);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags (flags);
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = false;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -174,14 +176,14 @@ public:
 private:
   virtual bool process (const DPBuffer& buf)
   { 
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(1,0);
+      data.data()[i] = casacore::Complex(1,0);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 1.0f, 0.0f);
 
-    vector<double> rightTimes(max(itsNTime, 5));
+    vector<double> rightTimes(std::max(itsNTime, 5));
     rightTimes[0] = 0;
     rightTimes[1] = 2;
     rightTimes[2] = 3;
@@ -192,7 +194,7 @@ private:
       rightTimes.assign(itsNTime, 0);
     }
 
-    vector<double> rightFreqs(max(itsNChan, 5));
+    vector<double> rightFreqs(std::max(itsNChan, 5));
     rightFreqs[0] = 1;
     rightFreqs[1] = 1;
     rightFreqs[2] = 2;
@@ -206,7 +208,6 @@ private:
     }
 
     if (itsDoTest) {
-      //cout<<endl;
       for (unsigned int bl=0; bl<info().nbaselines(); ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
             unsigned int ant1 = info().getAnt1()[bl];
@@ -219,7 +220,7 @@ private:
               BOOST_CHECK(flag);
             } else {
               BOOST_CHECK(!flag);
-              BOOST_CHECK(near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
+              BOOST_CHECK(casacore::near(rightTimes[itsTimeStep]*100 + rightFreqs[chan], val));
             }
         }
       }
@@ -268,11 +269,6 @@ void execute (const DPStep::ShPtr& step1)
   // Set DPInfo.
   step1->setInfo (DPInfo());
 
-  const DPStep::ShPtr& step=step1->getNextStep();
-
-  // TODO: do line below for any step that is an ApplyCal
-  step->show (cout);
-
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -309,7 +305,7 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   vector<vector<double> > antPositions;
   vector<double> oneAntPos(3, 42.);
   for (unsigned int i=0; i<3; ++i) {
-    stringstream antNameStr;
+    std::stringstream antNameStr;
     antNameStr<<"ant"<<(i+1);
     antNames.push_back(antNameStr.str());
     antPositions.push_back(oneAntPos);
@@ -352,51 +348,30 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
 
 
 BOOST_AUTO_TEST_CASE( testampl1 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 7, true, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl2 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 2, true, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl3 ) {
-  vector<double> times;
-  times.push_back(4472025742.0);
-  times.push_back(4472025745.0);
-  times.push_back(4472025747.5);
-  times.push_back(4472025748.0);
-  times.push_back(4472025762.0);
+  const vector<double> times {4472025742.0, 4472025745.0, 4472025747.5, 
+                              4472025748.0, 4472025762.0};
   createH5Parm(times, vector<double>());
   testampl(8, 9, false, true);
 }
 
 BOOST_AUTO_TEST_CASE( testampl4 ) {
-  vector<double> freqs;
-  freqs.push_back(90.e6);
-  freqs.push_back(139.e6);
-  freqs.push_back(170.e6);
+  const vector<double> freqs {90.e6, 139.e6, 170.e6};
   createH5Parm(vector<double>(), freqs);
   testampl(13, 3, true, false);
 }

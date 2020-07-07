@@ -24,9 +24,9 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include "../../MedFlagger.h"
 #include "../../DPInput.h"
@@ -35,10 +35,13 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StringUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::MedFlagger;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(medflagger)
 
@@ -61,22 +64,22 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      data.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
     DPBuffer buf;
     buf.setTime (itsCount*5 + 2);   //same interval as in updateAveragInfo
     buf.setData (data);
-    Cube<float> weights(data.shape());
+    casacore::Cube<float> weights(data.shape());
     weights = 1.;
     buf.setWeights (weights);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags (flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -93,8 +96,8 @@ private:
     info().init (itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    vector<int> ant1(itsNBl);
+    vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -107,31 +110,27 @@ private:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "rs01.s01";
-    antNames[1] = "rs02.s01";
-    antNames[2] = "cs01.s01";
-    antNames[3] = "cs01.s02";
+    vector<string> antNames {"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
-    Vector<double> vals(3);
+    vector<casacore::MPosition> antPos(4);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
+    vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000);
+    casacore::Vector<double> chanFreqs(itsNChan);
+    vector<double> chanWidth(itsNChan, 100000);
     indgen (chanFreqs, 1050000., 100000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -156,9 +155,9 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     // Fill expected result in similar way as TestInput.
-    Cube<Complex> result(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<casacore::Complex> result(itsNCorr,itsNChan,itsNBl);
     for (int i=0; i<int(result.size()); ++i) {
-      result.data()[i] = Complex(i+itsCount*10,i-10+itsCount*6);
+      result.data()[i] = casacore::Complex(i+itsCount*10,i-10+itsCount*6);
     }
     // Check the result.
     BOOST_CHECK (allNear(real(buf.getData()), real(result), 1e-10));
@@ -169,7 +168,7 @@ private:
     // nr of baselines (thus do not use nant>2 in test2 with flag=false).
     // If short baselines are used, bl 2,3,7,8,12,13 are not flagged.
     // The others have length 0 or 144.
-    Cube<bool> expFlag(itsNCorr,itsNChan,itsNBl);
+    casacore::Cube<bool> expFlag(itsNCorr,itsNChan,itsNBl);
     expFlag = itsFlag;
     if (itsUseAutoCorr) {
       for (int i=0; i<itsNBl; ++i) {
@@ -182,7 +181,7 @@ private:
       }
     }
     BOOST_CHECK (allEQ(buf.getFlags(), expFlag));
-    BOOST_CHECK (near(buf.getTime(), 2+5.*itsCount));
+    BOOST_CHECK (casacore::near(buf.getTime(), 2+5.*itsCount));
     ++itsCount;
     return true;
   }
@@ -216,7 +215,6 @@ void execute (const DPStep::ShPtr& step1)
   step1->finish();
   DPStep::ShPtr step = step1;
   while (step) {
-    // step->showCounts (cout);
     step = step->getNextStep();
   }
 }
@@ -231,7 +229,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   ParameterSet parset;
   parset.add ("freqwindow", "1");
   parset.add ("timewindow", "1");
-  parset.add ("threshold", toString(threshold));
+  parset.add ("threshold", DP3::toString(threshold));
   if (shortbl) {
     parset.add ("blmin", "0");
     parset.add ("blmax", "145");
@@ -241,7 +239,6 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
                                      shortbl));
   step1->setNextStep (step2);
   step2->setNextStep (step3);
-  // step2->show (cout);
   execute (step1);
 }
 
@@ -255,7 +252,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   ParameterSet parset;
   parset.add ("freqwindow", "3");
   parset.add ("timewindow", "min(1,max(1,bl))");
-  parset.add ("threshold", toString(threshold));
+  parset.add ("threshold", DP3::toString(threshold));
   parset.add ("applyautocorr", "True");
   if (shortbl) {
     parset.add ("blmax", "145");
@@ -268,34 +265,39 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   execute (step1);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_1 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test1(10, 2, 32, 4, false, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_1, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(10, 2, 32, 4, false, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_2 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test1(10, 5, 32, 4, true, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_2, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_3 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2( 4, 2,  8, 4, false, 100, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_3, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test1(4, 2,  8, 4, false, 100, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_4 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2(10, 5, 32, 4, true, 1, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_4, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test2(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_AUTO_TEST_CASE( test_medflagger_5 ) {
-  for (unsigned int i=0; i<2; ++i) {
-    test2( 4, 2,  8, 4, false, 100, i>0);
-  }
+BOOST_DATA_TEST_CASE( test_medflagger_5, 
+                      boost::unit_test::data::make({ true, false }), 
+                      shortbl )
+{
+  test2( 4, 2,  8, 4, false, 100, shortbl);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

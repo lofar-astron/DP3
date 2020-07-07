@@ -1,5 +1,5 @@
-// tNDPPP.cc: test program for NDPPP
-// Copyright (C) 2010
+// tDPPP.cc: test program for DPPP
+// Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -36,7 +36,7 @@
 using namespace DP3::DPPP;
 using namespace casacore;
 
-BOOST_AUTO_TEST_SUITE(ndppp)
+BOOST_AUTO_TEST_SUITE(dppp)
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
 // The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.

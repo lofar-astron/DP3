@@ -298,12 +298,15 @@ set(TEST_FILENAMES
   DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tGridInterpolate.cc
   # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tMirror.cc
   # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
-  # DPPP/test/unit/tPSet.cc # Friend class is not working
+  DPPP/test/unit/tUpsample.cc
+  DPPP/test/unit/tUVWFlagger.cc
+  DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
@@ -345,7 +348,7 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
     add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
     set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
   endforeach()
-  
+
   foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})

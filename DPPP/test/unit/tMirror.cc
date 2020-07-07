@@ -21,17 +21,15 @@
 //
 // @author Ger van Diepen
 
-#include <assert.h>
-
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 
 #include "../../../Common/StreamUtil.h"
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
-using namespace casacore;
-using namespace DP3;
+using std::vector;
 
 BOOST_AUTO_TEST_SUITE(mirror)
 
@@ -52,8 +50,6 @@ void doChan (int windowSize, int nchan, int chan)
     e2 = nchan-1;
     e1 = nchan;
   }
-  //std::cout <<"wdw,nch=" << windowSize << ',' << nchan << " chan=" << chan
-  //          << ' ' << s1 << '-' << e1 << ' ' << s2 << '-' << e2 << std::endl;
   BOOST_CHECK_EQUAL(e1-s1 + e2-s2, windowSize);
 }
 
@@ -71,14 +67,14 @@ void testAdd()
       ++inx;
     }
   }
-  vector<Vector<int> > itsParts(2);
+  vector<casacore::Vector<int> > itsParts(2);
   itsParts[0].resize (2);
   itsParts[0][0] = 0;
   itsParts[0][1] = 1;
   itsParts[1].resize (2);
   itsParts[1][0] = 3;
   itsParts[1][1] = 4;
-  
+
   vector<int> newbl(nrnew);
   vector<vector<int> > itsBufRows;
   bool itsMakeAutoCorr = true;
@@ -132,7 +128,6 @@ void testAdd()
     // Copy the new baselines for this superstation to the baseline list.
     // Give a warning if nothing found.
     if (newAnt1.empty()) {
-      //          DPLOG_WARN_STR ("StationAdder: no baseline found for superstation");
       throw std::runtime_error("StationAdder: no baseline found for superstation");
     } else {
       unsigned int oldsz = itsAnt1.size();
@@ -144,22 +139,21 @@ void testAdd()
       }
     }
   }
-  //cout << itsAnt1<<endl<<itsAnt2<<endl;
-  //writeVector (cout, itsBufRows);
-  //cout<<endl;
+}
+
+constexpr unsigned int kNChannels = 8;
+
+BOOST_DATA_TEST_CASE( test_chan,
+                      boost::unit_test::data::xrange(kNChannels),
+                      chan )
+{
+  const unsigned int kWindowSize = 5;
+  doChan(kWindowSize, kNChannels, chan);
 }
 
 BOOST_AUTO_TEST_CASE( add )
 {
-  unsigned int windowSize = 5;
-  unsigned int nchan = 8;
-
-  for (unsigned int i=0; i<nchan; ++i) {
-    doChan (windowSize, nchan, i);
-  }
-
-  testAdd();
+  BOOST_CHECK_NO_THROW(testAdd());
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

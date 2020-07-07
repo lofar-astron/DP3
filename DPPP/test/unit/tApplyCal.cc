@@ -24,10 +24,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
-
 
 #include "../../ApplyCal.h"
 #include "../../DPInput.h"
@@ -37,16 +35,17 @@
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::DPPP::ApplyCal;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(applycal)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
-class TestInput: public DPInput
+class TestInput: public DP3::DPPP::DPInput
 {
 public:
   TestInput(int ntime, int nchan)
@@ -58,8 +57,8 @@ public:
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
-    Vector<Int> ant1(itsNBl);
-    Vector<Int> ant2(itsNBl);
+    vector<int> ant1(itsNBl);
+    vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i=0; i<itsNBl; ++i) {
@@ -72,30 +71,27 @@ public:
         }
       }
     }
-    Vector<String> antNames(4);
-    antNames[0] = "ant1";
-    antNames[1] = "ant2";
-    antNames[2] = "ant3";
+    vector<string> antNames {"ant1", "ant2", "ant3", ""};
     // Define their positions (more or less WSRT RT0-3).
-    vector<MPosition> antPos(4);
-    Vector<double> vals(3);
+    vector<casacore::MPosition> antPos(4);
+    vector<double> vals(3);
     vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-    antPos[0] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-    antPos[1] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[1] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828729; vals[1] = 442735; vals[2] = 5064925;
-    antPos[2] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
+    antPos[2] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
     vals[0] = 3828713; vals[1] = 442878; vals[2] = 5064926;
-    antPos[3] = MPosition(Quantum<Vector<double> >(vals,"m"),
-                          MPosition::ITRF);
-    Vector<double> antDiam(4, 70.);
+    antPos[3] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"),
+                          casacore::MPosition::ITRF);
+    vector<double> antDiam(4, 70.);
     info().set (antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    Vector<double> chanWidth(nchan, 1000000.);
-    Vector<double> chanFreqs(nchan);
+    vector<double> chanWidth(nchan, 1000000.);
+    casacore::Vector<double> chanFreqs(nchan);
     indgen (chanFreqs, 10500000., 1000000.);
     info().set (chanFreqs, chanWidth);
   }
@@ -106,14 +102,14 @@ private:
     if (itsCount == itsNTime) {
       return false;
     }
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(1,0);
+      data.data()[i] = casacore::Complex(1,0);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     weights=1.;
 
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -124,10 +120,10 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setUVW  (uvw);
-    Cube<bool> flags(data.shape());
+    casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags (flags);
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
+    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = false;
     buf.setFullResFlags (fullResFlags);
     getNextStep()->process (buf);
@@ -158,15 +154,15 @@ private:
   virtual bool process (const DPBuffer& buf)
   {
     // Fill data and scale as needed.
-    Cube<Complex> data(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
 
     for (int i=0; i<int(data.size()); ++i) {
-      data.data()[i] = Complex(1,0);
+      data.data()[i] = casacore::Complex(1,0);
     }
-    Cube<Float> weights(itsNCorr, itsNChan, itsNBl);
+    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
     indgen (weights, 1.0f, 0.0f);
 
-    Matrix<double> uvw(3, itsNBl);
+    casacore::Matrix<double> uvw(3, itsNBl);
     for (int i=0; i<itsNBl; ++i) {
       uvw(0,i) = 1 + itsCount + i;
       uvw(1,i) = 2 + itsCount + i;
@@ -174,24 +170,23 @@ private:
     }
 
     // The same gain corrections as in tApplyCal_tmp.parmdb
-    vector<Cube<Complex> > gains(4); // cube for every corr
+    vector<casacore::Cube<casacore::Complex> > gains(4); // cube for every corr
     for (int corr=0; corr<4; ++corr) {
-      gains[corr].resize(IPosition(3,2,2,3)); //freq,time,ant;
+      gains[corr].resize(casacore::IPosition(3,2,2,3)); //freq,time,ant;
     }
 
-    gains[0](Slice(0,2),Slice(0,2),Slice(0,3))=1;
-    gains[1](Slice(0,2),Slice(0,2),Slice(0,3))=0;
-    gains[2](Slice(0,2),Slice(0,2),Slice(0,3))=0;
-    gains[3](Slice(0,2),Slice(0,2),Slice(0,3))=1;
+    gains[0](casacore::Slice(0,2),casacore::Slice(0,2),casacore::Slice(0,3))=1;
+    gains[1](casacore::Slice(0,2),casacore::Slice(0,2),casacore::Slice(0,3))=0;
+    gains[2](casacore::Slice(0,2),casacore::Slice(0,2),casacore::Slice(0,3))=0;
+    gains[3](casacore::Slice(0,2),casacore::Slice(0,2),casacore::Slice(0,3))=1;
     // ant2
     gains[0](0,0,1)=2;
     gains[3](0,0,1)=3;
-    gains[0](1,1,1)=Complex(3.,4.);
+    gains[0](1,1,1)=casacore::Complex(3.,4.);
     // ant3
     gains[2](1,0,2)=.5;
 
     if (itsDoTest & DataEquals) {
-      //cout<<"weights="<<buf.getWeights()<<endl;
       for (int bl=0; bl<itsNBl; ++bl) {
         for (int chan=0; chan<itsNChan; ++chan) {
           for (int corr=0; corr<itsNCorr; ++corr) {
@@ -203,13 +198,13 @@ private:
           }
           if (info().getAnt2()[bl]==2 && (itsTimeStep/(itsNTime/2))==0
               && (chan/(itsNChan/2))==1) {
-            data(0,chan,bl)-=0.5*data(1,chan,bl);
-            data(2,chan,bl)-=0.5*data(3,chan,bl);
+            data(0,chan,bl)-=0.5f*data(1,chan,bl);
+            data(2,chan,bl)-=0.5f*data(3,chan,bl);
           }
           if (info().getAnt1()[bl]==2 && (itsTimeStep/(itsNTime/2))==0
               && (chan/(itsNChan/2))==1) {
-            data(0,chan,bl)-=0.5*data(2,chan,bl);
-            data(1,chan,bl)-=0.5*data(3,chan,bl);
+            data(0,chan,bl)-=0.5f*data(2,chan,bl);
+            data(1,chan,bl)-=0.5f*data(3,chan,bl);
           }
         }
       }
@@ -217,11 +212,11 @@ private:
     }
 
     if (itsDoTest & WeightEquals) {
-      BOOST_CHECK ( near(buf.getWeights()(0,0,1),4.));
-      BOOST_CHECK ( near(buf.getWeights()(1,0,1),9.));
-      BOOST_CHECK ( near(buf.getWeights()(2,0,1),4.));
-      BOOST_CHECK ( near(buf.getWeights()(3,0,1),9.));
-      BOOST_CHECK ( near(buf.getWeights()(0,31,5),0.8));
+      BOOST_CHECK ( casacore::near(buf.getWeights()(0,0,1),4.));
+      BOOST_CHECK ( casacore::near(buf.getWeights()(1,0,1),9.));
+      BOOST_CHECK ( casacore::near(buf.getWeights()(2,0,1),4.));
+      BOOST_CHECK ( casacore::near(buf.getWeights()(3,0,1),9.));
+      BOOST_CHECK ( casacore::near(buf.getWeights()(0,31,5),0.8));
     }
 
     if (itsDoTest & DataEquals) {
@@ -266,11 +261,6 @@ void execute (const DPStep::ShPtr& step1)
   // Set DPInfo.
   step1->setInfo (DPInfo());
 
-  const DPStep::ShPtr& step=step1->getNextStep();
-
-  // TODO: do line below for any step that is an ApplyCal
-  step->show (cout);
-
   // Execute the steps.
   DPBuffer buf;
   while (step1->process(buf));
@@ -284,21 +274,21 @@ void testclocktec(int ntime, int nchan)
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
 
-  ParameterSet parset1;
+  DP3::ParameterSet parset1;
   parset1.add ("correction", "tec");
   parset1.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add ("timeslotsperparmupdate", "5");
   parset1.add ("updateweights", "true");
   DPStep::ShPtr step2(new ApplyCal(in, parset1, ""));
 
-  ParameterSet parset2;
+  DP3::ParameterSet parset2;
   parset2.add ("correction", "clock");
   parset2.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset2.add ("timeslotsperparmupdate", "5");
   parset2.add ("updateweights", "true");
   DPStep::ShPtr step3(new ApplyCal(in, parset2, ""));
 
-  ParameterSet parset3;
+  DP3::ParameterSet parset3;
   parset3.add ("correction", "commonscalarphase");
   parset3.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset3.add ("timeslotsperparmupdate", "1");
@@ -322,7 +312,7 @@ void testgain(int ntime, int nchan)
   TestInput* in = new TestInput(ntime, nchan);
   DPStep::ShPtr step1(in);
 
-  ParameterSet parset1;
+  DP3::ParameterSet parset1;
   parset1.add ("correction", "gain");
   parset1.add ("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add ("timeslotsperparmupdate", "5");
