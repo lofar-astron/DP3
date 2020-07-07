@@ -8,11 +8,7 @@
 #include "../../H5Parm.h"
 
 using std::vector;
-using DP3::ParameterSet;
 using DP3::H5Parm;
-using DP3::DPPP::DPInput;
-using DP3::DPPP::DPBuffer;
-using DP3::DPPP::DPInfo;
 
 BOOST_AUTO_TEST_SUITE(h5parm)
 

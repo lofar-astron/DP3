@@ -22,7 +22,6 @@
 // @author Ger van Diepen
 
 #include "../../PreFlagger.h"
-#include "../../DPInfo.h"
 #include "../../../Common/ParameterSet.h"
 
 #include <casacore/casa/Arrays/ArrayIO.h>
