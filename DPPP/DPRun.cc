@@ -53,6 +53,7 @@
 #include "StationAdder.h"
 #include "UVWFlagger.h"
 #include "Upsample.h"
+#include "CalculateSomething.h"
 
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
@@ -383,6 +384,8 @@ namespace DP3 {
           step = DPStep::ShPtr(new DDECal (reader, parset, prefix));
         } else if (type == "interpolate") {
           step = DPStep::ShPtr(new Interpolate (reader, parset, prefix));
+        } else if (type == "calculatesomething") {
+          step = DPStep::ShPtr(new CalculateSomething (reader, parset, prefix));
         } else if (type == "out" || type=="output" || type=="msout") {
           step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix, currentMSName);
           needsOutputStep = false;

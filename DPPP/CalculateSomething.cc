@@ -72,12 +72,21 @@ namespace DP3 {
     bool CalculateSomething::process (const DPBuffer& bufin)
     {
       itsTimer.start();
-      itsBuffer.copy (bufin);
-      itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
-      itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
-
+      //CLA
+      //itsBuffer.copy (bufin);
+      //itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
+      //itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
+      cout << "This is my first implementation of CalculateSomething" << endl;
+      Array<Complex>::const_contiter indIter = bufin.getData().cbegin();
+      int icount = 0;
+      //while (outnIter != outnIterEnd) {
+      while (icount < 10) {
+	      cout << icount << "   " << *indIter << endl;
+              icount++;
+	      indIter++;
+      }
       itsTimer.stop();
-      getNextStep()->process(itsBuffer);
+      //getNextStep()->process(itsBuffer);
       return false;
     }
 
