@@ -3,13 +3,8 @@ stages:
   - build
   - deploy-doc
 
-.env:
-  before_script:
-  - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
-
 build_base:
   stage: prepare
-  extends: .env
   script:
   - docker build --tag dppp_base:20.04.0 -f ./docker/ubuntu_20_04_base .
 
@@ -17,7 +12,6 @@ build-lofar:
   stage: build
   dependencies: 
     - build_base
-  extends: .env
   script:
   - docker build --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
@@ -25,12 +19,12 @@ build-test:
   stage: build
   dependencies: 
     - build_base
-  extends: .env
   image: dppp_base:20.04.0
   before_script:
     - apt-get -y install python3-pip
     - pip3 install gcovr
   script:
+    - ADD . /src
     - mkdir /build
     - cd /build
     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../src

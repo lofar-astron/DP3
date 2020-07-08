@@ -1,5 +1,7 @@
 FROM dppp_base:20.04.0
 
+ADD . /src
+
 # Build DPPP
 RUN mkdir /build && cd /build \
     && cmake ../src \
