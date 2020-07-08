@@ -94,6 +94,7 @@ namespace DP3 {
             const std::vector<everybeam::Station::Ptr>& antBeamInfo,
             std::vector<everybeam::matrix22c_t>& beamValues,
             bool useChannelFreq, bool invert, BeamCorrectionMode mode,
+            everybeam::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
         template<typename T>
@@ -105,6 +106,7 @@ namespace DP3 {
             const std::vector<everybeam::Station::Ptr>& antBeamInfo,
             std::vector<everybeam::complex_t>& beamValues,
             bool useChannelFreq, bool invert, BeamCorrectionMode mode,
+            everybeam::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
       private:
@@ -121,6 +123,7 @@ namespace DP3 {
         casacore::MDirection itsDirection;
         bool                 itsUseChannelFreq;
         BeamCorrectionMode   itsMode;
+        everybeam::ElementResponseModel itsElementResponseModel;
         
         /// If a beam had already been applied before running this step, that beam
         /// needs to undone; hence we register that beam info here:

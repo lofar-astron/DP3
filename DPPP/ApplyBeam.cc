@@ -73,6 +73,19 @@ namespace DP3 {
       } else {
         itsInvert=parset.getBool(prefix + "invert", true);
       }
+
+      string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
+      if (element_model=="hamaker") {
+          itsElementResponseModel = everybeam::ElementResponseModel::Hamaker;
+      } else if (element_model=="lobes") {
+          itsElementResponseModel = everybeam::ElementResponseModel::LOBES;
+      } else if (element_model=="oskar") {
+          itsElementResponseModel = everybeam::ElementResponseModel::OSKARSphericalWave;
+      } else if (element_model=="oskardipole") {
+          itsElementResponseModel = everybeam::ElementResponseModel::OSKARDipole;
+      } else {
+          throw Exception("Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
+      }
     }
 
     ApplyBeam::ApplyBeam()
@@ -229,15 +242,19 @@ namespace DP3 {
       {
         // A beam was previously applied to this MS, and a different direction
         // was asked this time. 'Undo' applying the input beam.
+        // TODO itsElementResponseModel should be read from the measurement set instead
+        // of assumed to be the same from the target beam.
         applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                   itsAntBeamInfo[thread], itsBeamValues[thread],
-                  itsUseChannelFreq, false, itsModeAtStart, itsUpdateWeights);
+                  itsUseChannelFreq, false, itsModeAtStart, itsElementResponseModel, 
+                  itsUpdateWeights);
         srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
       }
 
       applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
                 itsAntBeamInfo[thread], itsBeamValues[thread],
-                itsUseChannelFreq, itsInvert, itsMode, itsUpdateWeights);
+                itsUseChannelFreq, itsInvert, itsMode, itsElementResponseModel, 
+                itsUpdateWeights);
 
       itsTimer.stop();
       getNextStep()->process(itsBuffer);
@@ -271,13 +288,19 @@ void ApplyBeam::applyBeam(
   const everybeam::vector3r_t& tiledir,
   const vector<everybeam::Station::Ptr>& antBeamInfo,
   vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, BeamCorrectionMode mode, bool doUpdateWeights)
+  bool invert, BeamCorrectionMode mode,
+  everybeam::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
+
+  for (auto &station : antBeamInfo) {
+    station->setModel(element_reponse_model);
+  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -379,7 +402,9 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, std::complex<double>*
   const everybeam::vector3r_t& tiledir,
   const vector<everybeam::Station::Ptr>& antBeamInfo,
   vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-  bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
+  bool invert, BeamCorrectionMode mode,
+  everybeam::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights);
 
 template<typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -389,13 +414,19 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   const everybeam::vector3r_t& tiledir,
   const vector<everybeam::Station::Ptr>& antBeamInfo,
   vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, BeamCorrectionMode mode, bool doUpdateWeights)
+  bool invert, BeamCorrectionMode mode,
+  everybeam::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights)
 {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
+
+  for (size_t st = 0; st < nSt; ++st) {
+    antBeamInfo[st]->setModel(element_reponse_model);
+  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -442,6 +473,8 @@ void ApplyBeam::applyBeamStokesIArrayFactor(const DPInfo& info, double time, std
   const everybeam::vector3r_t& tiledir,
   const vector<everybeam::Station::Ptr>& antBeamInfo,
   vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-  bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
+  bool invert, BeamCorrectionMode mode,
+  everybeam::ElementResponseModel element_reponse_model,
+  bool doUpdateWeights);
 
 }} // end namespaces

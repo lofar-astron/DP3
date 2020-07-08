@@ -151,6 +151,7 @@ namespace DP3 {
       std::vector<std::vector<everybeam::matrix22c_t> >  itsBeamValues;
       std::vector<std::vector<everybeam::complex_t> >  itsBeamValuesSingle;
       BeamCorrectionMode itsBeamMode;
+      everybeam::ElementResponseModel itsElementResponseModel;
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
       std::vector<casacore::MDirection::Convert>          itsMeasConverters;
 
