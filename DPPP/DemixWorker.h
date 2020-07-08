@@ -24,8 +24,6 @@
 #ifndef DPPP_DEMIXWORKER_H
 #define DPPP_DEMIXWORKER_H
 
-#ifdef HAVE_LOFAR_BEAM
-
 #include "DemixInfo.h"
 #include "DPInput.h"
 #include "DPBuffer.h"
@@ -34,7 +32,7 @@
 #include "Filter.h"
 #include "EstimateNew.h"
 
-#include <StationResponse/Station.h>
+#include <EveryBeam/Station.h>
 
 #include "../ParmDB/ParmDB.h"
 
@@ -175,7 +173,7 @@ namespace DP3 {
                       dcomplex* data);
 
       /// Convert a direction to ITRF.
-      LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection&);
+      everybeam::vector3r_t dir2Itrf (const casacore::MDirection&);
       
       /// Calculate the StokesI amplitude from the predicted visibilities.
       /// (0.5 * (XX+YY))
@@ -234,10 +232,8 @@ namespace DP3 {
       MultiResultStep*                      itsAvgResultSubtr;
       /// The sources to demix (excluding target).
       std::vector<Patch::ConstPtr>               itsDemixList;
-#ifdef HAVE_LOFAR_BEAM
       /// The info needed to calculate the station beams.
-      std::vector<LOFAR::StationResponse::Station::Ptr> itsAntBeamInfo;
-#endif
+      std::vector<everybeam::Station::Ptr> itsAntBeamInfo;
       /// Measure objects unique to this worker (thread).
       /// This is needed because they are not thread-safe.
       casacore::MPosition                       itsArrayPos;
@@ -270,7 +266,7 @@ namespace DP3 {
       /// Variables for conversion of directions to ITRF.
       casacore::MeasFrame                       itsMeasFrame;
       casacore::MDirection::Convert             itsMeasConverter;
-      std::vector<LOFAR::StationResponse::matrix22c_t>  itsBeamValues; ///< [nst,nch]
+      std::vector<everybeam::matrix22c_t>  itsBeamValues; ///< [nst,nch]
 
       /// Indices telling which Ateam sources to use.
       std::vector<unsigned int>                          itsSrcSet;
@@ -347,7 +343,5 @@ namespace DP3 {
 
   } // end namespace
 } // end namespace
-
-#endif // HAVE_LOFAR_BEAM
 
 #endif

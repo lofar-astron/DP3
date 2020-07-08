@@ -95,9 +95,7 @@ namespace DP3 {
       itsName = prefix;
       itsSourceDBName = parset.getString (prefix + "sourcedb");
       setOperation(parset.getString (prefix + "operation", "replace"));
-#ifdef HAVE_LOFAR_BEAM
       itsApplyBeam = parset.getBool (prefix + "usebeammodel", false);
-#endif
       itsDebugLevel = parset.getInt (prefix + "debuglevel", 0);
       itsPatchList = vector<Patch::ConstPtr> ();
 
@@ -120,7 +118,6 @@ namespace DP3 {
         throw std::runtime_error(std::string("Something went wrong while reading the source model. The error was: ") + exception.what());
       }
       
-#ifdef HAVE_LOFAR_BEAM
       if (itsApplyBeam) {
         itsUseChannelFreq=parset.getBool (prefix + "usechannelfreq", true);
         itsOneBeamPerPatch=parset.getBool (prefix + "onebeamperpatch", false);
@@ -141,7 +138,6 @@ namespace DP3 {
           itsPatchList = makeOnePatchPerComponent(itsPatchList);
         }
       }
-#endif
 
       // If called from h5parmpredict, applycal gets set by that step,
       // so must not be read from parset
@@ -156,15 +152,11 @@ namespace DP3 {
 
       // Determine whether any sources are polarized. If not, enable Stokes-I-
       // only mode (note that this mode cannot be used with itsApplyBeam)
-#ifdef HAVE_LOFAR_BEAM
       if (itsApplyBeam && itsBeamMode!=ArrayFactorBeamCorrection) {
         itsStokesIOnly = false;
       } else {
         itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
       }
-#else
-      itsStokesIOnly = !checkPolarized(sourceDB, patchNames, patchNames.size());
-#endif
     }
 
     void Predict::setApplyCal(DPInput* input,
@@ -196,7 +188,6 @@ namespace DP3 {
 
       itsModelVis.resize(nThreads);
       itsModelVisPatch.resize(nThreads);
-#ifdef HAVE_LOFAR_BEAM
       itsBeamValues.resize(nThreads);
       itsBeamValuesSingle.resize(nThreads);
       itsAntBeamInfo.resize(nThreads);
@@ -204,7 +195,6 @@ namespace DP3 {
       // The time and direction are filled in later.
       itsMeasConverters.resize(nThreads);
       itsMeasFrames.resize(nThreads);
-#endif
 
       for (unsigned int thread=0; thread<nThreads; ++thread) {
         if (itsStokesIOnly) {
@@ -213,9 +203,7 @@ namespace DP3 {
           itsModelVis[thread].resize(nCr,nCh,nBl);
         }
         bool needMeasConverters = itsMovingPhaseRef;
-#ifdef HAVE_LOFAR_BEAM
         needMeasConverters = needMeasConverters || itsApplyBeam;
-#endif
         if (needMeasConverters) {
           // Prepare measures converters
           itsMeasFrames[thread].set (info().arrayPosCopy());
@@ -224,7 +212,6 @@ namespace DP3 {
           itsMeasConverters[thread].set (MDirection::J2000,
                                          MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
         }
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeam) {
           if (itsStokesIOnly) {
             itsModelVisPatch[thread].resize(1,nCh,nBl);
@@ -235,7 +222,6 @@ namespace DP3 {
           itsBeamValuesSingle[thread].resize(nSt*nCh);
           itsInput->fillBeamInfo (itsAntBeamInfo[thread], info().antennaNames());
         }
-#endif
       }
     }
 
@@ -291,7 +277,6 @@ namespace DP3 {
       os << "   number of patches: " << itsPatchList.size() << '\n';
       os << "   number of sources: " << itsSourceList.size() << '\n';
       os << "   all unpolarized:   " << boolalpha << itsStokesIOnly << '\n';
-#ifdef HAVE_LOFAR_BEAM
       os << "  apply beam:         " << boolalpha << itsApplyBeam << '\n';
       if (itsApplyBeam) {
         os << "   mode:              ";
@@ -304,7 +289,6 @@ namespace DP3 {
         os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n';
         os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << '\n';
       }
-#endif
       os << "  operation:          " << itsOperation << '\n';
       os << "  threads:            " << getInfo().nThreads() << '\n';
       if (itsDoApplyCal) {
@@ -339,15 +323,11 @@ namespace DP3 {
       nsplitUVW(itsUVWSplitIndex, itsBaselines, itsTempBuffer.getUVW(), itsUVW);
 
       double time = itsTempBuffer.getTime();
-#ifdef HAVE_LOFAR_BEAM
       //Set up directions for beam evaluation
-      LOFAR::StationResponse::vector3r_t refdir, tiledir;
-#endif
+      everybeam::vector3r_t refdir, tiledir;
 
       bool needMeasConverters = itsMovingPhaseRef;
-#ifdef HAVE_LOFAR_BEAM
       needMeasConverters = needMeasConverters || itsApplyBeam;
-#endif
       if (needMeasConverters)
       {
         // Because multiple predict steps might be predicting simultaneously, and
@@ -359,10 +339,8 @@ namespace DP3 {
           itsMeasFrames[thread].resetEpoch (MEpoch(MVEpoch(time/86400),
                                                    MEpoch::UTC));
           //Do a conversion on all threads
-#ifdef HAVE_LOFAR_BEAM
           refdir  = dir2Itrf(info().delayCenter(), itsMeasConverters[thread]);
           tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
-#endif
         }
       }
 
@@ -395,13 +373,9 @@ namespace DP3 {
         itsModelVis[thread]=dcomplex();
         itsModelVisPatch[thread]=dcomplex();
 
-#ifdef HAVE_LOFAR_BEAM
         //When applying beam, simulate into patch vector
         Cube<dcomplex>& simulatedest=(itsApplyBeam ? itsModelVisPatch[thread]
           : itsModelVis[thread]);
-#else
-        Cube<dcomplex>& simulatedest=itsModelVis[thread];
-#endif
         simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
           info().chanFreqs(), itsUVW, simulatedest,
           itsStokesIOnly);
@@ -411,7 +385,6 @@ namespace DP3 {
       pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
         // Keep on predicting, only apply beam when an entire patch is done
         Patch::ConstPtr& curPatch = curPatches[thread];
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeam && curPatch!=itsSourceList[iter].second && curPatch!=nullptr) {
           if (itsStokesIOnly) {
             addBeamToData (curPatch, time, refdir, tiledir, thread, nSamples/nCr,
@@ -421,11 +394,9 @@ namespace DP3 {
               itsModelVisPatch[thread].data(), itsStokesIOnly);
           }
         }
-#endif
         simulators[thread].simulate(itsSourceList[iter].first);
         curPatch=itsSourceList[iter].second;
       });
-#ifdef HAVE_LOFAR_BEAM
       // Apply beam to the last patch
       pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
         if (itsApplyBeam && curPatches[thread]!=nullptr) {
@@ -438,7 +409,6 @@ namespace DP3 {
           }
         }
       });
-#endif
 
       // Add all thread model data to one buffer
       itsTempBuffer.getData()=Complex();
@@ -484,12 +454,11 @@ namespace DP3 {
       return false;
     }
 
-#ifdef HAVE_LOFAR_BEAM
-    LOFAR::StationResponse::vector3r_t Predict::dir2Itrf (const MDirection& dir,
+    everybeam::vector3r_t Predict::dir2Itrf (const MDirection& dir,
                                       MDirection::Convert& measConverter) {
       const MDirection& itrfDir = measConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      LOFAR::StationResponse::vector3r_t vec;
+      everybeam::vector3r_t vec;
       vec[0] = itrf[0];
       vec[1] = itrf[1];
       vec[2] = itrf[2];
@@ -497,15 +466,15 @@ namespace DP3 {
     }
 
     void Predict::addBeamToData (Patch::ConstPtr patch, double time,
-                                 const LOFAR::StationResponse::vector3r_t& refdir,
-                                 const LOFAR::StationResponse::vector3r_t& tiledir,
+                                 const everybeam::vector3r_t& refdir,
+                                 const everybeam::vector3r_t& tiledir,
                                  unsigned int thread, unsigned int nSamples, dcomplex* data0,
                                  bool stokesIOnly) {
       //Apply beam for a patch, add result to itsModelVis
       MDirection dir (MVDirection(patch->position()[0],
                                   patch->position()[1]),
                       MDirection::J2000);
-      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
+      everybeam::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
 
       float* dummyweight = 0;
 
@@ -528,7 +497,6 @@ namespace DP3 {
                      itsModelVis[thread].data(), std::plus<dcomplex>());
       itsModelVisPatch[thread]=dcomplex();
     }
-#endif
 
     void Predict::finish()
     {

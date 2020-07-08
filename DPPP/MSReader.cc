@@ -27,9 +27,8 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/LofarMetaDataUtil.h>
-#endif
+#include <EveryBeam/load.h>
+#include <EveryBeam/LofarMetaDataUtil.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
@@ -651,9 +650,7 @@ namespace DP3 {
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
       
-#ifdef HAVE_LOFAR_BEAM
-      tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
-#endif
+      tileBeamDir = everybeam::readTileBeamDirection(itsMS);
       
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
@@ -937,15 +934,14 @@ namespace DP3 {
       }
     }
 
-#ifdef HAVE_LOFAR_BEAM
-    void MSReader::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>& vec,
+    void MSReader::fillBeamInfo (vector<everybeam::Station::Ptr>& vec,
                                  const casacore::Vector<casacore::String>& antNames)
     {
       // Get the names of all stations in the MS.
       const Vector<String>& allNames = getInfo().antennaNames();
       // Create a vector holding the beam info of all stations.
-      vector<LOFAR::StationResponse::Station::Ptr> beams (allNames.size());
-      LOFAR::StationResponse::readStations (itsMS, beams.begin());
+      vector<everybeam::Station::Ptr> beams (allNames.size());
+      everybeam::readStations (itsMS, beams.begin());
       // Copy only the ones for which the station name matches.
       // Note: the order of the station names in both vectors match.
       vec.resize (antNames.size());
@@ -960,7 +956,6 @@ namespace DP3 {
         throw Exception("MSReader::fillBeamInfo -"
                  " some stations miss the beam info");
     }
-#endif
 
   } // end namespace
 }
