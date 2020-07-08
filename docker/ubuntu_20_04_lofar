@@ -6,6 +6,6 @@ ADD . /src
 # Build DPPP
 RUN mkdir /build && cd /build \
     && cmake ../src \
-    && make -j2 \
-    && make install -j2 \
+    && make -j4 \
+    && make install -j4 \
     && DPPP
