@@ -28,7 +28,7 @@ build-test:
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - CTEST_OUTPUT_ON_FAILURE=1 make test -j2
-    - gcovr -r . -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*'
+    - gcovr -r . -f '.*/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*'
 
 build-doc:
   stage: build
