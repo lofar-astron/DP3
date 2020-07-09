@@ -336,7 +336,9 @@ add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
-add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
+add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
+set_tests_properties(buildruntests PROPERTIES LABELS "unittest")
+
 # Add each test as a cmake test. Works only for:
 # - Tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE
 # - Tests added with BOOST_DATA_TEST_CASE
@@ -355,16 +357,28 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
 
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+    add_test(
+      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
+      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TESTSUITE_NAME}.${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unittest"
+    )
   endforeach()
 
   foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
 
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+    add_test(
+      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
+      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TESTSUITE_NAME}.${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unittest"
+    )
   endforeach()
 endforeach()
 

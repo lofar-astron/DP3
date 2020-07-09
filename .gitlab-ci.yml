@@ -10,14 +10,14 @@ build_base:
 
 build-lofar:
   stage: build
-  dependencies: 
+  dependencies:
     - build_base
   script:
   - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
-build-test:
+build-unittest:
   stage: build
-  dependencies: 
+  dependencies:
     - build_base
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
@@ -28,7 +28,7 @@ build-test:
     - mkdir build
     - cd build
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
-    - ninja test
+    - ctest -L unittest
     - gcovr -r . -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*'
 
 build-doc:
@@ -48,7 +48,7 @@ build-doc:
 
 deploy-doc:
   stage: deploy-doc
-  dependencies: 
+  dependencies:
     - build-doc
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
