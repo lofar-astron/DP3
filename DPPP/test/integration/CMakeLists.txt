@@ -7,9 +7,14 @@ configure_file(testInit.sh.in testInit.sh)
 file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
      RESULT DUMMY_RESULT SYMBOLIC)
 
-# Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
-# support symbolic links.
-add_test(tApplyBeam ${CMAKE_CURRENT_SOURCE_DIR}/tApplyBeam.sh)
-add_test(tGainCal ${CMAKE_CURRENT_SOURCE_DIR}/tGainCal.sh)
-add_test(tGainCalH5Parm ${CMAKE_CURRENT_SOURCE_DIR}/tGainCalH5Parm.sh)
-add_test(tPredict ${CMAKE_CURRENT_SOURCE_DIR}/tPredict.sh)
+set(INTEGRATION_TESTS
+  tGainCal
+  ${LOFAR_DEPENDENT_INTEGRATION_TESTS}
+)
+
+foreach(TEST ${INTEGRATION_TESTS})
+  # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
+  # support symbolic links.
+  add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
+  set_tests_properties(${TEST} PROPERTIES LABELS "integration" )
+endforeach()

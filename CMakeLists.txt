@@ -70,6 +70,11 @@ if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
     DPPP/DemixWorker.cc
   )
 
+  set(LOFAR_DEPENDENT_INTEGRATION_TESTS
+    tApplyBeam
+    tGainCalH5Parm
+    tPredict
+  )
 else()
   if(WITH_LOFAR_BEAM)
     message(FATAL_ERROR "LOFAR beam library not found")
@@ -77,6 +82,7 @@ else()
     message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
     set(LOFAR_STATION_RESPONSE_LIB "")
     set(LOFAR_DEPENDENT_FILES "")
+    set(LOFAR_DEPENDENT_INTEGRATION_TESTS "")
   endif(WITH_LOFAR_BEAM)
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
