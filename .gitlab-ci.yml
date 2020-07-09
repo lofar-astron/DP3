@@ -29,10 +29,12 @@ build-test:
     - cd build
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ninja test
-    - pwd
-    - gcovr -r ../ -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*' -k
-    - gcovr -r ../ -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*' -k -g -x > coverage.xml
-    - gcovr -r ../ -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*' -g -x
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' k
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --xml
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --xml-pretty
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --html
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --sonarqube
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -k -g -x -o coverage.xml
   artifacts:
     reports:
       cobertura: build/coverage.xml
