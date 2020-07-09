@@ -331,9 +331,6 @@ execute_process(
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP-generic.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
 
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 

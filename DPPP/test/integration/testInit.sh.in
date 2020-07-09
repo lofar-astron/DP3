@@ -6,7 +6,6 @@
 
 # Set common environment for scripts. CMake configures these variables.
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
-resourcedir=@CMAKE_CURRENT_SOURCE_DIR@/../resources
 dpppexe=@CMAKE_CURRENT_BINARY_DIR@/../../DPPP
 taqlexe=@TAQL_EXECUTABLE@
 
@@ -15,4 +14,4 @@ TMP_DIR=$(basename $0)_tmp
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
 cd $TMP_DIR
-tar xfz $resourcedir/tNDPPP-generic.MS.tgz
+tar xfz $srcdir/tNDPPP-generic.MS.tgz
