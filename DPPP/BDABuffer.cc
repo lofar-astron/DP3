@@ -60,6 +60,7 @@ namespace DP3 {
     , weights_()
     , full_res_flags_()
     , rows_()
+    , original_capacity_(pool_size)
     , remaining_capacity_(pool_size)
     {
       if (enable_data) {
@@ -82,7 +83,8 @@ namespace DP3 {
     , weights_(other.weights_)
     , full_res_flags_(other.full_res_flags_)
     , rows_()
-    , remaining_capacity_(0)
+    , original_capacity_(other.original_capacity_)
+    , remaining_capacity_(other.original_capacity_)
     {
       // Copy rows but set their iterators to the new memory pools.
       auto data_it = data_.begin();
@@ -109,6 +111,7 @@ namespace DP3 {
         flags_it += kDataSize;
         weights_it += kDataSize;
         full_res_flags_it += kDataSize;
+        remaining_capacity_ -= kDataSize;
       }
     }
 
@@ -119,6 +122,7 @@ namespace DP3 {
       weights_.clear();
       full_res_flags_.clear();
       rows_.clear();
+      remaining_capacity_ = original_capacity_;
     }
 
     std::size_t BDABuffer::GetNumberOfElements() const
