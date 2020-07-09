@@ -1,11 +1,11 @@
 ARG BASE_TAG=latest
 FROM dppp_base:$BASE_TAG
 
-RUN pwd && ls -l && ls -l /
+ADD . /src
 
 # Build DPPP
-RUN mkdir build && cd build \
-    && cmake .. \
+RUN mkdir /build && cd /build \
+    && cmake ../src \
     && make -j4 \
     && make install -j4 \
     && DPPP

@@ -31,6 +31,7 @@ build-unittest:
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ctest -L unittest
     - gcovr -r . -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*'
+  when: manual
 
 build-doc:
   stage: build
@@ -46,20 +47,16 @@ build-doc:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
+  when: manual
 
 integration-test:
   stage: integration
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
-  before_script:
-    - apt-get update
-    - apt-get -y install ninja-build
   script:
-    - mkdir build
-    - cd build
-    - cmake -G Ninja ..
-    - ninja
+    - ls -l /
+    - cd /build
     - ctest -VV -L integration
 
 deploy-doc:
