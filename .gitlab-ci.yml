@@ -56,13 +56,11 @@ integration-test:
     - apt-get update
     - apt-get -y install ninja-build
   script:
-    - cat /proc/cpuinfo
-    - which nproc
     - mkdir build
     - cd build
     - cmake -G Ninja ..
     - ninja
-    - ctest -L integration
+    - ctest -VV -L integration
 
 deploy-doc:
   stage: deploy-doc
