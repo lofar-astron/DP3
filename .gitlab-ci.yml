@@ -60,6 +60,7 @@ integration-test:
   script:
     - ls -l /
     - cd /build
+    - cmake . # Regenerate, since taql is now availabel.
     - ctest -VV -L integration
 
 deploy-doc:
