@@ -28,7 +28,7 @@
 
 using DP3::DPPP::BDABuffer;
 
-BOOST_AUTO_TEST_SUITE(dbabuffer)
+BOOST_AUTO_TEST_SUITE(bdabuffer)
 
 BOOST_AUTO_TEST_CASE( test_bda_initialization )
 {
@@ -38,6 +38,61 @@ BOOST_AUTO_TEST_CASE( test_bda_initialization )
     BOOST_CHECK_EQUAL(buffer.GetFlags(), nullptr);
     BOOST_CHECK_EQUAL(buffer.GetWeights(), nullptr);
     BOOST_CHECK_EQUAL(buffer.GetFullResFlags(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE( test_copy )
+{
+    const size_t n_channels {2};
+    const size_t n_correlations {3};
+    BDABuffer buffer {3 * n_channels * n_correlations + 1};
+    bool flags[] {true};
+    const std::complex<float> data {1};
+    float weights[] {1};
+
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data);
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags);
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights);
+
+    BDABuffer buffer_copy {buffer};
+
+    BOOST_CHECK(buffer.GetData() != buffer_copy.GetData());
+    BOOST_CHECK_EQUAL(*buffer.GetData(), *buffer_copy.GetData());
+}
+
+BOOST_AUTO_TEST_CASE( test_wrong_add_row_order )
+{
+    const size_t n_channels {2};
+    const size_t n_correlations {3};
+    BDABuffer buffer {3 * n_channels * n_correlations + 1};
+    const std::complex<float> data {1};
+
+    buffer.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data);
+    BOOST_CHECK_THROW(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE( test_get_row_data )
+{
+    // TODO
+}
+
+BOOST_AUTO_TEST_CASE( test_get_row_flags )
+{
+    // TODO
+}
+
+BOOST_AUTO_TEST_CASE( test_get_row_weights )
+{
+    // TODO
+}
+
+BOOST_AUTO_TEST_CASE( test_get_row_full_res_flags )
+{
+    // TODO
+}
+
+BOOST_AUTO_TEST_CASE( test_get_row_uvw )
+{
+    // TODO
 }
 
 BOOST_AUTO_TEST_CASE( test_bda_add_null_data )
@@ -74,7 +129,7 @@ BOOST_AUTO_TEST_CASE( test_bda_add_null_weight )
     BOOST_CHECK(std::isnan(*buffer.GetWeights()));
 }
 
-BOOST_AUTO_TEST_CASE( test_dba_data )
+BOOST_AUTO_TEST_CASE( test_bda_data )
 {
     const size_t n_channels {2};
     const size_t n_correlations {4};
@@ -89,13 +144,13 @@ BOOST_AUTO_TEST_CASE( test_dba_data )
     BOOST_CHECK_EQUAL(*(buffer.GetData() + 1), data2);
 }
 
-BOOST_AUTO_TEST_CASE( test_dba_flags )
+BOOST_AUTO_TEST_CASE( test_bda_flags )
 {
     const size_t n_channels {1};
     const size_t n_correlations {5};
     BDABuffer buffer {n_channels * n_correlations};
-    bool flags[] {true};
-    bool flags2[] {false};
+    const bool flags[] {true};
+    const bool flags2[] {false};
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags));
     BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags2));
@@ -104,17 +159,15 @@ BOOST_AUTO_TEST_CASE( test_dba_flags )
     BOOST_CHECK_EQUAL(*(buffer.GetFlags() + 1), flags2[0]);
 }
 
-// TODO test that memory allocation is correct in constructor
-
-BOOST_AUTO_TEST_CASE( test_dba_weights )
+BOOST_AUTO_TEST_CASE( test_bda_weights )
 {
     const size_t n_channels {2};
     const size_t n_correlations {3};
 
     BDABuffer buffer {2 * n_channels * n_correlations + 1};
-    float weights[] {1, 2};
-    float weights2[] {3, 4};
-    float weights3[] {5, 6};
+    const float weights[] {1, 2};
+    const float weights2[] {3, 4};
+    const float weights3[] {5, 6};
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights));
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights2));
@@ -128,22 +181,75 @@ BOOST_AUTO_TEST_CASE( test_dba_weights )
     BOOST_CHECK_EQUAL(*(buffer.GetWeights() + 5), weights3[1]);
 }
 
-BOOST_AUTO_TEST_CASE( test_dba_clear )
+BOOST_AUTO_TEST_CASE( test_bda_full_res_flags )
+{
+    const size_t n_channels {1};
+    const size_t n_correlations {5};
+    BDABuffer buffer {n_channels * n_correlations};
+    const bool flags[] {true};
+    const bool flags2[] {false};
+
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, flags));
+    BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, flags2));
+    BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {n_channels * n_correlations});
+    BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(), flags[0]);
+    BOOST_CHECK_EQUAL(*(buffer.GetFullResFlags() + 1), flags2[0]);
+}
+
+BOOST_AUTO_TEST_CASE( test_bda_uvw )
+{
+    const size_t n_channels {2};
+    const size_t n_correlations {3};
+
+    BDABuffer buffer {2 * n_channels * n_correlations + 1};
+    const double uvw[] {1, 2, 3};
+    const double uvw2[] {3, 4, 5};
+
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, nullptr, uvw));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, nullptr, uvw2));
+    BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {2 * n_channels * n_correlations});
+    const std::vector<BDABuffer::Row> rows = buffer.GetRows();
+    BOOST_CHECK_EQUAL(rows[0].uvw_[0], uvw[0]);
+    BOOST_CHECK_EQUAL(rows[0].uvw_[1], uvw[1]);
+    BOOST_CHECK_EQUAL(rows[1].uvw_[0], uvw2[0]);
+    BOOST_CHECK_EQUAL(rows[1].uvw_[1], uvw2[1]);
+}
+
+BOOST_AUTO_TEST_CASE( test_bda_clear )
 {
     const size_t n_channels {2};
     const size_t n_correlations {3};
     BDABuffer buffer {3 * n_channels * n_correlations + 1};
-    bool flags[] {true};
+    const bool flags[] {true};
+    const bool fr_flags[] {true, true};
     const std::complex<float> data {1};
-    float weights[] {1};
+    const float weights[] {1};
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags));
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights, fr_flags));
     BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {3 * n_channels * n_correlations});
     buffer.Clear();
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {0});
+}
+
+BOOST_AUTO_TEST_CASE( test_get_rows )
+{
+    const size_t n_channels {2};
+    const size_t n_correlations {3};
+    BDABuffer buffer {3 * n_channels * n_correlations + 1};
+    const bool flags[] {true};
+    const bool fr_flags[] {false};
+    const std::complex<float> data {1};
+    const float weights[] {1};
+
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data, flags, weights, fr_flags);
+
+    BOOST_CHECK_EQUAL(*buffer.GetData(size_t {0}), data);
+    BOOST_CHECK_EQUAL(*buffer.GetFlags(size_t {0}), flags[0]);
+    BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(size_t {0}), fr_flags[0]);
+    BOOST_CHECK_EQUAL(*buffer.GetWeights(size_t {0}), weights[0]);
 }
 
 BOOST_AUTO_TEST_CASE( test_modify_data ) 
@@ -194,6 +300,24 @@ BOOST_AUTO_TEST_CASE( test_modify_weights )
     BOOST_CHECK_EQUAL(*buffer.GetWeights(), new_weights[0]);
     BOOST_CHECK_EQUAL(*(buffer.GetWeights() + 1), new_weights[1]);
     BOOST_CHECK_EQUAL(*(buffer.GetWeights() + 2), new_weights[2]);
+}
+
+BOOST_AUTO_TEST_CASE( test_modify_full_resflags )
+{
+    const size_t n_channels {2};
+    const size_t n_correlations {4};
+    BDABuffer buffer {n_channels * n_correlations};
+    bool flags[] {false, true, false};
+
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, flags);
+    
+    bool new_flags[] {true, false, true};
+    *buffer.GetFullResFlags() = new_flags[0];
+    *(buffer.GetFullResFlags() + 1) = new_flags[1];
+    *(buffer.GetFullResFlags() + 2) = new_flags[2];
+    BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(), new_flags[0]);
+    BOOST_CHECK_EQUAL(*(buffer.GetFullResFlags() + 1), new_flags[1]);
+    BOOST_CHECK_EQUAL(*(buffer.GetFullResFlags() + 2), new_flags[2]);
 }
 
 BOOST_AUTO_TEST_CASE( test_time_is_less ) {
@@ -260,7 +384,5 @@ BOOST_AUTO_TEST_CASE( test_time_is_not_near_equal ) {
     BDABuffer buffer {0};
     BOOST_CHECK_EQUAL(buffer.TimeIsEqual(9.99999999, 10.0000000), false);
 }
-
-// TODO add tests for the different flags  if data is reserved or not
 
 BOOST_AUTO_TEST_SUITE_END()
