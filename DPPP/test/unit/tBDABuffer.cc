@@ -61,7 +61,8 @@ BOOST_AUTO_TEST_CASE( copy )
     BOOST_CHECK(std::isnan(*buffer.GetWeights()) && std::isnan(*buffer_copy.GetWeights()));
     BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(), *buffer_copy.GetFullResFlags());
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), buffer_copy.GetNumberOfElements());
-    BOOST_CHECK(buffer.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(!buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data));
 }
 
 BOOST_AUTO_TEST_CASE( wrong_add_row_order )
@@ -234,10 +235,10 @@ BOOST_AUTO_TEST_CASE( clear )
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {0});
 
     // Check that 3 elements can be added again
-    // BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    // BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    // BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    // BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
 }
 
 BOOST_AUTO_TEST_CASE( get_rows )

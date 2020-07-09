@@ -212,6 +212,7 @@ namespace DP3 {
       /// The rows, which contain iterators to the memory pools above.
       std::vector<Row> rows_;
 
+      std::size_t original_capacity_; ///< Original capacity (number of items)
       std::size_t remaining_capacity_; ///< Remaining capacity (number of items)
     };
 
