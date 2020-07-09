@@ -1,6 +1,7 @@
 stages:
   - prepare
   - build
+  - integration
   - deploy-doc
 
 build_base:
@@ -45,6 +46,19 @@ build-doc:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
+
+integration-test:
+  stage: integration
+  dependencies:
+    - build-lofar
+  image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  script:
+    - echo PWD:
+    - pwd
+    - ls -l
+    - ls -l build
+    - cd build
+    - ctest -L integration
 
 deploy-doc:
   stage: deploy-doc
