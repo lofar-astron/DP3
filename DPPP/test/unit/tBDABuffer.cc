@@ -201,14 +201,17 @@ BOOST_AUTO_TEST_CASE( test_bda_uvw )
     const size_t n_channels {2};
     const size_t n_correlations {3};
 
-    BDABuffer buffer {2 * n_channels * n_correlations + 1};
+    BDABuffer buffer {2 * n_channels * n_correlations};
     const double uvw[] {1, 2, 3};
     const double uvw2[] {3, 4, 5};
+    const double uvw3[] {5, 6, 7};
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, nullptr, uvw));
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, nullptr, uvw2));
+    BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, nullptr, uvw3));
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {2 * n_channels * n_correlations});
     const std::vector<BDABuffer::Row> rows = buffer.GetRows();
+    BOOST_CHECK_EQUAL(rows[0].GetDataSize(), n_channels * n_correlations);
     BOOST_CHECK_EQUAL(rows[0].uvw_[0], uvw[0]);
     BOOST_CHECK_EQUAL(rows[0].uvw_[1], uvw[1]);
     BOOST_CHECK_EQUAL(rows[1].uvw_[0], uvw2[0]);
