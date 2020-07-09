@@ -1,30 +1,20 @@
 #!/bin/bash
 
-# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
-source findenv.run_script
-echo "srcdirx=$rt_srcdir"
-
-# Set srcdir if not defined (in case run by hand).
-if test "$srcdir" = ""; then
-  srcdir="$rt_srcdir"
+# Locate the executables and srcdir (script created by cmake's configure_file).
+INIT=testInit.sh
+if [ ! -f $INIT ]; then
+  echo $INIT not found. Please run this script from build/DPPP/test.
+  exit 1;
 fi
+source $INIT
 
-if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
-  exit 3   # untested
-fi
-
-rm -rf tApplyBeam_tmp
-mkdir -p tApplyBeam_tmp
-# Unpack the MS and other files and do the DPPP run.
-cd tApplyBeam_tmp
-tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
 tar zxf ${srcdir}/tApplyBeam.tab.tgz
 
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
 echo; echo "Test with invert=true and usechannelfreq=false"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=outinv.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=true'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=true"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
@@ -32,7 +22,7 @@ $taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "### Test with invert=false on the output of the previous step"; echo
-cmd='NDPPP msin=outinv.ms msout=out.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=false'
+cmd="$dpppexe msin=outinv.ms msout=out.ms steps=[applybeam] applybeam.usechannelfreq=false applybeam.invert=false"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the original MS.
@@ -40,7 +30,7 @@ $taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with invert=true and usechannelfreq=true"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
@@ -48,7 +38,7 @@ $taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with invert=false on the output of the previous step"; echo
-cmd='NDPPP msin=outinv.ms msout=out.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=false'
+cmd="$dpppexe msin=outinv.ms msout=out.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=false"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the original MS.
@@ -56,7 +46,7 @@ $taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beammode=ARRAY_FACTOR"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ARRAY_FACTOR'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ARRAY_FACTOR"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
@@ -64,7 +54,7 @@ $taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beammode=ELEMENT"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ELEMENT'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ELEMENT"
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
@@ -72,7 +62,7 @@ $taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with updateweights=true"; echo
-cmd='NDPPP msin=tNDPPP-generic.MS msout=. steps=[applybeam] applybeam.updateweights=truue msout.weightcolumn=NEW_WEIGHT_SPECTRUM'
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[applybeam] applybeam.updateweights=truue msout.weightcolumn=NEW_WEIGHT_SPECTRUM"
 echo $cmd
 $cmd
 # Check that the weights have changed
