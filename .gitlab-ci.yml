@@ -52,12 +52,16 @@ integration-test:
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get update
+    - apt-get -y install ninja-build
   script:
-    - echo PWD
-    - pwd
-    - ls -l
-    - ls -l build
+    - cat /proc/cpuinfo
+    - which nproc
+    - mkdir build
     - cd build
+    - cmake -G Ninja ..
+    - ninja
     - ctest -L integration
 
 deploy-doc:
