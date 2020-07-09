@@ -54,6 +54,9 @@ integration-test:
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get update
+    - apt-get -y install casacore-tools # For taql
   script:
     - ls -l /
     - cd /build
