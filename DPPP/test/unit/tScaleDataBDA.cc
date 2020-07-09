@@ -22,23 +22,27 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayIO.h>
-#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-#include "../ScaleData.h"
-#include "../DPInput.h"
-#include "../DPBuffer.h"
-#include "../DPInfo.h"
-#include "../../Common/ParameterSet.h"
-#include "../../Common/StringUtil.h"
-#include "../../Common/StreamUtil.h"
+#include "../../ScaleData.h"
+#include "../../DPInput.h"
+#include "../../DPBuffer.h"
+#include "../../BDABuffer.h"
+#include "../../DPInfo.h"
+#include "../../../Common/ParameterSet.h"
+#include "../../../Common/StringUtil.h"
+#include "../../../Common/StreamUtil.h"
 
-using namespace DP3;
-using namespace DP3::DPPP;
-using namespace casacore;
-using namespace std;
+using std::vector;
+using DP3::ParameterSet;
+using DP3::DPPP::DPInput;
+using DP3::DPPP::DPBuffer;
+using DP3::DPPP::BDABuffer;
+using DP3::DPPP::DPInfo;
+using DP3::DPPP::ScaleData;
+using DP3::DPPP::DPStep;
 
 BOOST_AUTO_TEST_SUITE(rotationconstraint)
 
@@ -71,8 +75,8 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   info.init (ncorr, 0, nchan, ntime, 0., 5., string(), string());
   // Fill the baseline stations; use 2 stations.
   // So they are called 00 01 02 03 10 11 12 13 20, etc.
-  Vector<Int> ant1(nbl);
-  Vector<Int> ant2(nbl);
+  vector<int> ant1(nbl);
+  vector<int> ant2(nbl);
   int st1 = 0;
   int st2 = 0;
   for (int i=0; i<nbl; ++i) {
@@ -85,22 +89,22 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
       }
     }
   }
-  Vector<String> ant_names(2);
+  vector<string> ant_names(2);
   ant_names[0] = "rs01.s01";
   ant_names[1] = "rs02.s01";
   // Define their positions (more or less WSRT RT0-3).
-  vector<MPosition> ant_pos(2);
-  Vector<double> vals(3);
+  vector<casacore::MPosition> ant_pos(2);
+  vector<double> vals(3);
   vals[0] = 3828763; vals[1] = 442449; vals[2] = 5064923;
-  ant_pos[0] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
+  ant_pos[0] = casacore::MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"), casacore::MPosition::ITRF);
   vals[0] = 3828746; vals[1] = 442592; vals[2] = 5064924;
-  ant_pos[1] = MPosition(Quantum<Vector<double> >(vals,"m"), MPosition::ITRF);
-  Vector<double> antDiam(2, 70.);
+  ant_pos[1] =casacore:: MPosition(casacore::Quantum<casacore::Vector<double> >(vals,"m"), casacore::MPosition::ITRF);
+  vector<double> antDiam(2, 70.);
   info.set(ant_names, antDiam, ant_pos, ant1, ant2);
   // Define the frequencies.
-  Vector<double> chan_width(nchan, 3.);
-  Vector<double> chan_freqs(nchan);
-  indgen (chan_freqs, 1., 3.);
+  vector<double> chan_width(nchan, 3.);
+  casacore::Vector<double> chan_freqs(nchan);
+  casacore::indgen (chan_freqs, 1., 3.);
   info.set (chan_freqs, chan_width);
 
   return info;
@@ -143,8 +147,8 @@ BOOST_AUTO_TEST_CASE( test_processing_for_bda_buffer )
   const auto results = step_test_output->results_->GetData();
   // size shoule be equal to datasize
   BOOST_CHECK_EQUAL(size_t{4}, step_test_output->results_->GetNumberOfElements());
-  BOOST_CHECK(near(4., results[0].real()));
-  BOOST_CHECK(near(9.798, results[2].real()));
+  BOOST_CHECK(casacore::near(4., results[0].real()));
+  BOOST_CHECK(casacore::near(9.798, results[2].real()));
   // Results 1 and 3 are close to zero, but slightly different every test.
 }
 
