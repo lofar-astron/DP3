@@ -29,7 +29,7 @@ build-test:
     - cd build
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ninja test
-    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' k
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*'
     - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --xml
     - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --xml-pretty
     - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -g --html
