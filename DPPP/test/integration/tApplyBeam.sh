@@ -18,7 +18,7 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms steps=[applybeam] applybeam
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))'
+taqlcmd='select t1.DATA as t1_DATA, t2.DATA_noucf as t2_DATA_noucf, t1.DATA-t2.DATA_noucf  from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))'
 echo $taqlcmd
 $taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
