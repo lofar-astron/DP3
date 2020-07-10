@@ -46,10 +46,10 @@ BOOST_AUTO_TEST_CASE( copy )
     const size_t n_correlations {3};
     BDABuffer buffer {4 * n_channels * n_correlations};
     const bool flags[n_channels * n_correlations] {true};
-    const std::complex<float> data {1};
+    const std::complex<float> data[n_channels * n_correlations] {1};
     const float weights[n_channels * n_correlations] {1};
 
-    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data);
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data);
     buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags);
     buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights);
 
@@ -65,8 +65,8 @@ BOOST_AUTO_TEST_CASE( copy )
     BOOST_CHECK(std::isnan(*buffer.GetWeights()) && std::isnan(*buffer_copy.GetWeights()));
     BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(), *buffer_copy.GetFullResFlags());
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), buffer_copy.GetNumberOfElements());
-    BOOST_CHECK(buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data));
-    BOOST_CHECK_EQUAL(buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data), false);
+    BOOST_CHECK(buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, data));
+    BOOST_CHECK_EQUAL(buffer_copy.AddRow(1., 1., 0, 0, n_channels, n_correlations, data), false);
 }
 
 BOOST_AUTO_TEST_CASE( wrong_add_row_order )
@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE( wrong_add_row_order )
     const size_t n_channels {2};
     const size_t n_correlations {3};
     BDABuffer buffer {3 * n_channels * n_correlations};
-    const std::complex<float> data {1};
+    const std::complex<float> data[n_channels * n_correlations] {1};
 
-    buffer.AddRow(1., 1., 0, 0, n_channels, n_correlations, &data);
+    buffer.AddRow(1., 1., 0, 0, n_channels, n_correlations, data);
     BOOST_CHECK_THROW(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations), std::invalid_argument);
 }
 
@@ -124,15 +124,14 @@ BOOST_AUTO_TEST_CASE( data )
     const size_t n_channels {2};
     const size_t n_correlations {4};
     BDABuffer buffer {n_channels * n_correlations};
-    const std::complex<float> data {1};
-    const std::complex<float> data2 {2};
+    const std::complex<float> data[n_channels * n_correlations] {1};
+    const std::complex<float> data2[n_channels * n_correlations] {2};
 
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data2), false);
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data));
+    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data2), false);
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {n_channels * n_correlations});
     BOOST_CHECK(buffer.GetData() != nullptr);
-    BOOST_CHECK_EQUAL(*buffer.GetData(), data);
-    BOOST_CHECK_EQUAL(*(buffer.GetData() + 1), data2);
+    BOOST_CHECK_EQUAL(*buffer.GetData(), data[0]);
 }
 
 BOOST_AUTO_TEST_CASE( flags )
@@ -233,22 +232,22 @@ BOOST_AUTO_TEST_CASE( clear )
     BDABuffer buffer {3 * n_channels * n_correlations + 1};
     const bool flags[n_channels * n_correlations] {true};
     const bool fr_flags[n_channels * n_correlations] {true, true};
-    const std::complex<float> data {1};
+    const std::complex<float> data[n_channels * n_correlations] {1};
     const float weights[n_channels * n_correlations] {1};
 
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data));
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags));
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights, fr_flags));
-    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data), false);
+    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data), false);
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {3 * n_channels * n_correlations});
     buffer.Clear();
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {0});
 
     // Check that 3 elements can be added again
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data));
-    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data), false);
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data));
+    BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data));
+    BOOST_CHECK_EQUAL(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data), false);
 }
 
 BOOST_AUTO_TEST_CASE( get_rows )
@@ -260,16 +259,16 @@ BOOST_AUTO_TEST_CASE( get_rows )
     BDABuffer buffer {3 * n_channels * n_correlations + 1};
     const bool flags[n_channels * n_correlations] {true};
     const bool fr_flags[n_channels * n_correlations] {false};
-    const std::complex<float> data {1};
+    const std::complex<float> data[n_channels * n_correlations] {1};
     const float weights[n_channels * n_correlations] {1};
 
-    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data, flags, weights, fr_flags);
+    buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, data, flags, weights, fr_flags);
 
     BOOST_CHECK(buffer.GetData() != nullptr);
     BOOST_CHECK(buffer.GetFlags() != nullptr);
     BOOST_CHECK(buffer.GetWeights() != nullptr);
     BOOST_CHECK(buffer.GetFullResFlags() != nullptr);
-    BOOST_CHECK_EQUAL(*buffer.GetData(0), data);
+    BOOST_CHECK_EQUAL(*buffer.GetData(0), data[0]);
     BOOST_CHECK_EQUAL(*buffer.GetFlags(0), flags[0]);
     BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(0), fr_flags[0]);
     BOOST_CHECK_EQUAL(*buffer.GetWeights(0), weights[0]);
