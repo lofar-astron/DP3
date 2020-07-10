@@ -29,7 +29,8 @@ build-test:
     - cd build
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ninja test
-    - gcovr -r . -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*' --xml -o coverage.xml
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*'
+    - gcovr -r /builds/RD/DP3 -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' --xml > coverage.xml
   artifacts:
     reports:
       cobertura: build/coverage.xml
