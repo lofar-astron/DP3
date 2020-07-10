@@ -18,7 +18,9 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms steps=[applybeam] applybeam
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))' > taql.out
+taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_noucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_noucf)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "### Test with invert=false on the output of the previous step"; echo
@@ -26,7 +28,9 @@ cmd="$dpppexe msin=outinv.ms msout=out.ms steps=[applybeam] applybeam.usechannel
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the original MS.
-$taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+taqlcmd='select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with invert=true and usechannelfreq=true"; echo
@@ -34,7 +38,9 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ucf)))' > taql.out
+taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ucf,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ucf)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with invert=false on the output of the previous step"; echo
@@ -42,7 +48,9 @@ cmd="$dpppexe msin=outinv.ms msout=out.ms msout.overwrite=true steps=[applybeam]
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the original MS.
-$taqlexe 'select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))' > taql.out
+taqlcmd='select from out.ms t1, tNDPPP-generic.MS t2 where not all(near(t1.DATA,t2.DATA,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beammode=ARRAY_FACTOR"; echo
@@ -50,7 +58,9 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ARRAY_FACTOR,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ARRAY_FACTOR)))' > taql.out
+taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ARRAY_FACTOR,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ARRAY_FACTOR)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beammode=ELEMENT"; echo
@@ -58,7 +68,9 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-$taqlexe 'select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ELEMENT,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ELEMENT)))' > taql.out
+taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ELEMENT,5e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ELEMENT)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with updateweights=true"; echo
@@ -66,5 +78,7 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[applybeam] applybeam.updatew
 echo $cmd
 $cmd
 # Check that the weights have changed
-$taqlexe 'select from tNDPPP-generic.MS where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1

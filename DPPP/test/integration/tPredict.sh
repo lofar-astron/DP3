@@ -65,7 +65,7 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tN
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))' > taql.out
+taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))'
 echo $taqlcmd
 $taqlexe $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
