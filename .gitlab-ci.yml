@@ -54,7 +54,9 @@ integration-test:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
   script:
-    - cd /build
+    - mkdir build && cd build
+    - cmake ..
+    - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
     - ctest -VV -L integration
 
 deploy-doc:
