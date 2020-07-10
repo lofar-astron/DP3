@@ -57,7 +57,7 @@ integration-test:
     - mkdir build && cd build
     - cmake ..
     - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
-    - ctest -VV -L integration
+    - ctest -j4 -L integration
 
 deploy-doc:
   stage: integration_and_deploy
