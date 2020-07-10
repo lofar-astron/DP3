@@ -56,9 +56,12 @@ integration-test:
   before_script:
     - apt-get update
     - apt-get -y install casacore-tools wget
+    - pwd
+    - cd ~
+    - pwd
     - wget ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar
     - cd /var/lib/casacore/data
-    - tar xfz /WSRT_Measures.ztar
+    - tar xfz ~/WSRT_Measures.ztar
   script:
     - cd /build
     - cmake . # Regenerate, since taql is now availabele.
