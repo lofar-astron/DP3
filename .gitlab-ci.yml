@@ -55,7 +55,7 @@ integration-test:
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
-    - apt-get -y install casacore-tools
+    - apt-get -y install casacore-tools wget
     - wget ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar
     - cd /var/lib/casacore/data
     - tar xfz /WSRT_Measures.ztar
