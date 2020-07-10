@@ -12,19 +12,23 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libboost-numpy-dev liblua5.3-dev \
     casacore-dev casacore-tools aoflagger-dev \
 # Build latest IDG master from source
-    && mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git src \
+    && mkdir /idg && cd /idg \
+    && git clone https://gitlab.com/astron-idg/idg.git src \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src \
-    && make install -j2 \
+    && make install -j4 \
+    && cd / && rm -rf idg \
 # Build LOFARBeam
-    && mkdir /lofarbeam && cd /lofarbeam && git clone https://github.com/lofar-astron/LOFARBeam.git src \
+    && mkdir /lofarbeam && cd /lofarbeam \
+    && git clone https://github.com/lofar-astron/LOFARBeam.git src \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-    && make install -j2 \
+    && make install -j4 \
+    && cd / && rm -rf lofarbeam \
 # Install WSRT Measures (extra casacore data, for integration tests)
 # Note: The file on the ftp site is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
-    && wget -O ~/WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
+    && wget -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
     && cd /var/lib/casacore/data \
-    && tar xfz ~/WSRT_Measures.ztar \
-    && rm ~/WSRT_Measures.ztar
+    && tar xfz /WSRT_Measures.ztar \
+    && rm /WSRT_Measures.ztar
