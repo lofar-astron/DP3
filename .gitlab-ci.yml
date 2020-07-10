@@ -1,10 +1,9 @@
 stages:
   - prepare
   - build
-  - integration
-  - deploy-doc
+  - integration_and_deploy
 
-build_base:
+build-base:
   stage: prepare
   script:
   - docker build --tag dppp_base:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_base .
@@ -12,14 +11,14 @@ build_base:
 build-lofar:
   stage: build
   dependencies:
-    - build_base
+    - build-base
   script:
   - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
 build-unittest:
   stage: build
   dependencies:
-    - build_base
+    - build-base
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
@@ -50,21 +49,23 @@ build-doc:
   when: manual
 
 integration-test:
-  stage: integration
+  stage: integration_and_deploy
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
-    - apt-get -y install casacore-data casacore-tools
+    - apt-get -y install casacore-tools
+    - wget ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar
+    - cd /var/lib/casacore/data
+    - tar xfz /WSRT_Measures.ztar
   script:
-    - ls -l /
     - cd /build
     - cmake . # Regenerate, since taql is now availabele.
     - ctest -VV -L integration
 
 deploy-doc:
-  stage: deploy-doc
+  stage: integration_and_deploy
   dependencies:
     - build-doc
   before_script:
