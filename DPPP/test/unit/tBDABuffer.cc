@@ -57,6 +57,9 @@ BOOST_AUTO_TEST_CASE( copy )
 
     BOOST_CHECK(buffer.GetData() != buffer_copy.GetData());
     BOOST_CHECK(buffer.GetData() != nullptr);
+    BOOST_CHECK(buffer.GetFlags() != nullptr);
+    BOOST_CHECK(buffer.GetWeights() != nullptr);
+    BOOST_CHECK(buffer.GetFullResFlags() != nullptr);
     BOOST_CHECK_EQUAL(*buffer.GetData(), *buffer_copy.GetData());
     BOOST_CHECK_EQUAL(*buffer.GetFlags(), *buffer_copy.GetFlags());
     BOOST_CHECK(std::isnan(*buffer.GetWeights()) && std::isnan(*buffer_copy.GetWeights()));
@@ -109,6 +112,7 @@ BOOST_AUTO_TEST_CASE( add_null_weight )
     const size_t n_correlations {4};
     BDABuffer buffer {n_channels * n_correlations, false, false, true, false};
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations));
+    BOOST_CHECK(buffer.GetWeights() != nullptr);
     BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
     BOOST_CHECK_EQUAL(buffer.GetFlags(), nullptr);
     BOOST_CHECK_EQUAL(buffer.GetFullResFlags(), nullptr);
@@ -141,6 +145,7 @@ BOOST_AUTO_TEST_CASE( flags )
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags));
     BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, flags2));
+    BOOST_CHECK(buffer.GetFlags() != nullptr);
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {n_channels * n_correlations});
     BOOST_CHECK_EQUAL(*buffer.GetFlags(), flags[0]);
     BOOST_CHECK_EQUAL(*(buffer.GetFlags() + 1), flags2[0]);
@@ -161,6 +166,7 @@ BOOST_AUTO_TEST_CASE( weights )
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights2));
     BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, weights3));
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {2 * n_channels * n_correlations});
+    BOOST_CHECK(buffer.GetWeights() != nullptr);
     BOOST_CHECK_EQUAL(*buffer.GetWeights(), weights[0]);
     BOOST_CHECK_EQUAL(*(buffer.GetWeights() + 1), weights[1]);
     BOOST_CHECK_EQUAL(*(buffer.GetWeights() + 2), weights2[0]);
@@ -179,6 +185,7 @@ BOOST_AUTO_TEST_CASE( full_res_flags )
 
     BOOST_CHECK(buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, flags));
     BOOST_CHECK(!buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, nullptr, nullptr, nullptr, flags2));
+    BOOST_CHECK(buffer.GetFullResFlags() != nullptr);
     BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), size_t {n_channels * n_correlations});
     BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(), flags[0]);
     BOOST_CHECK_EQUAL(*(buffer.GetFullResFlags() + 1), flags2[0]);
@@ -259,6 +266,9 @@ BOOST_AUTO_TEST_CASE( get_rows )
     buffer.AddRow(0., 1., 0, 0, n_channels, n_correlations, &data, flags, weights, fr_flags);
 
     BOOST_CHECK(buffer.GetData() != nullptr);
+    BOOST_CHECK(buffer.GetFlags() != nullptr);
+    BOOST_CHECK(buffer.GetWeights() != nullptr);
+    BOOST_CHECK(buffer.GetFullResFlags() != nullptr);
     BOOST_CHECK_EQUAL(*buffer.GetData(0), data);
     BOOST_CHECK_EQUAL(*buffer.GetFlags(0), flags[0]);
     BOOST_CHECK_EQUAL(*buffer.GetFullResFlags(0), fr_flags[0]);
