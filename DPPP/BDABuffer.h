@@ -28,6 +28,7 @@
 #include "../Common/Types.h"
 #include "../Common/UVector.h"
 
+#include <cmath>
 #include <complex>
 #include <vector>
 
@@ -192,7 +193,7 @@ namespace DP3 {
       }
 
       static constexpr bool TimeIsEqual(double x, double y) {
-        return abs(x - y) < kTimeEpsilon;
+        return fabs(x - y) < kTimeEpsilon;
       }
 
     private:

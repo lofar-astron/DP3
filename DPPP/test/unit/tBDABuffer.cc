@@ -39,6 +39,10 @@ namespace {
     const std::size_t k1Channel {1};
     const std::size_t k1Correlation {1};
     const std::size_t k1DataSize {k1Channel * k1Correlation};
+
+    const double kTimeEpsilon = 1.0e-8;
+    const double kHalfEpsilon = kTimeEpsilon / 2;
+    const double kTwoEpsilon = 2.0 * kTimeEpsilon;
 }
 
 BOOST_AUTO_TEST_SUITE(bdabuffer)
@@ -246,24 +250,25 @@ BOOST_AUTO_TEST_CASE( time_is_less )
 {
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(5., 10.), true);
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(15., 10.), false);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(9.99999998, 10.0000000), true);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(9.99999999, 10.0000000), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(10. - kTwoEpsilon, 10.), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(10. - kHalfEpsilon, 10.), false);
 }
 
 BOOST_AUTO_TEST_CASE( time_is_greater_equal )
 {
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(5., 10.), false);
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(15., 10.), true);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(9.99999998, 10.0000000), false);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(9.999999999, 10.0000000), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(10., 10.), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(10. - kTwoEpsilon, 10.), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsGreaterEqual(10. - kHalfEpsilon, 10.), true);
 }
 
 BOOST_AUTO_TEST_CASE( time_is_equal )
 {
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(10.0000000, 10.0000000), true);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(20.0000000, 10.0000000), false);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(9.999999991, 10.0000000), true);
-    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(9.99999999, 10.0000000), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(10., 10.), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(20., 10.), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(10. + kHalfEpsilon, 10.), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(10. - kTwoEpsilon, 10.), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
