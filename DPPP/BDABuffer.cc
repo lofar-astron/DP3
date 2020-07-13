@@ -51,10 +51,7 @@ namespace DP3 {
     {}
 
     BDABuffer::BDABuffer(const std::size_t pool_size,
-                         const bool enable_data,
-                         const bool enable_flags,
-                         const bool enable_weights,
-                         const bool enable_full_res_flags)
+                         const Fields fields)
     : data_()
     , flags_()
     , weights_()
@@ -63,28 +60,31 @@ namespace DP3 {
     , original_capacity_(pool_size)
     , remaining_capacity_(pool_size)
     {
-      if (enable_data) {
+      if (fields[Field::kData]) {
         data_.reserve(remaining_capacity_);
       }
-      if (enable_flags) {
+      if (fields[Field::kFlags]) {
         flags_.reserve(remaining_capacity_);
       }
-      if (enable_weights) {
+      if (fields[Field::kWeights]) {
         weights_.reserve(remaining_capacity_);
       }
-      if (enable_full_res_flags) {
+      if (fields[Field::kFullResFlags]) {
         full_res_flags_.reserve(remaining_capacity_);
       }
     }
 
+    // When copying the memory pools in this copy-constructor, the capacity
+    // of the new memory pools will equal their size. There is therefore
+    // no remaining capacity in the new copy.
     BDABuffer::BDABuffer(const BDABuffer& other)
     : data_(other.data_)
     , flags_(other.flags_)
     , weights_(other.weights_)
     , full_res_flags_(other.full_res_flags_)
     , rows_()
-    , original_capacity_(other.original_capacity_)
-    , remaining_capacity_(other.original_capacity_)
+    , original_capacity_(0)
+    , remaining_capacity_(0)
     {
       // Copy rows but set their iterators to the new memory pools.
       auto data_it = data_.begin();
@@ -111,7 +111,7 @@ namespace DP3 {
         flags_it += kDataSize;
         weights_it += kDataSize;
         full_res_flags_it += kDataSize;
-        remaining_capacity_ -= kDataSize;
+        original_capacity_ += kDataSize;
       }
     }
 
@@ -127,8 +127,7 @@ namespace DP3 {
 
     std::size_t BDABuffer::GetNumberOfElements() const
     {
-      return std::max({data_.size(), flags_.size(),
-                       weights_.size(), full_res_flags_.size()});
+      return original_capacity_ - remaining_capacity_;
     }
 
     bool BDABuffer::AddRow(double time,

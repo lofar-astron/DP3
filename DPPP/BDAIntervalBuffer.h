@@ -74,17 +74,10 @@ namespace DP3 {
 
       /**
        * Get a buffer containing the weighted data for the current interval.
-       * @param enable_data Add visibilities to the output buffer.
-       * @param enable_flags Add flags to the output buffer.
-       * @param enable_weights Add weights to the output buffer.
-       * @param enable_full_res_flags Add full res flags to the output buffer.
+       * @param fields Bitset with the requested fields.
        * @return A BDABuffer with the requested data.
-       * @todo Use a bitset from BDABuffer for the enable* flags.
        */
-      std::unique_ptr<BDABuffer> GetBuffer(bool enable_data = true,
-                                           bool enable_flags = true,
-                                           bool enable_weights = true,
-                                           bool enable_full_res_flags = true) const;
+      std::unique_ptr<BDABuffer> GetBuffer(BDABuffer::Fields fields = BDABuffer::Fields().Set()) const;
 
     private:
       void removeOld();
