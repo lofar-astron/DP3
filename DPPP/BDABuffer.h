@@ -24,6 +24,7 @@
 #ifndef DPPP_BDABUFFER_H
 #define DPPP_BDABUFFER_H
 
+#include "../Common/EnumBitset.h"
 #include "../Common/Types.h"
 #include "../Common/UVector.h"
 
@@ -36,6 +37,9 @@ namespace DP3 {
     class BDABuffer
     {
     public:
+      enum class Field { kData, kFlags, kWeights, kFullResFlags, kBitCount };
+      using Fields = EnumBitset<Field>;
+
       struct Row {
         Row(double time,
             double interval,
@@ -69,23 +73,15 @@ namespace DP3 {
     public:
       /**
        * Create a new BDABuffer.
-       * @param pool_size Size of the memory pool for this buffer
-       *                 (number of complex values)
-       * @param enable_data Enable the data buffer.
-       * @param enable_flags Enable the flags buffer.
-       * @param enable_weights Enable the weights buffer.
-       * @param enable_full_res_flags Enable the full res flags buffer.
-       * @todo Use a bitset for the enable* flags.
+       * @param pool_size Size of the memory pool for this buffer.
+       *                  (number of items)
+       * @param fields The fields that should be enabled in this buffer.
        */
-      explicit BDABuffer(std::size_t pool_size,
-                         bool enable_data = true,
-                         bool enable_flags = true,
-                         bool enable_weights = true,
-                         bool enable_full_res_flags = true);
+      explicit BDABuffer(std::size_t pool_size, Fields fields = Fields().Set());
 
       /**
        * Copy constructor.
-       * This constructor sets the memory pool size to the
+       * This constructor sets the memory pool size of the new buffer to the
        * actual memory usage of the other buffer.
        * Adding new rows to the new buffer is not possible.
        * @param other An existing BDABuffer.

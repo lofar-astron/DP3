@@ -76,10 +76,7 @@ namespace DP3 {
     }
 
     std::unique_ptr<BDABuffer>
-    BDAIntervalBuffer::GetBuffer(const bool enable_data,
-                                 const bool enable_flags,
-                                 const bool enable_weights,
-                                 const bool enable_full_res_flags) const
+    BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields fields) const
     {
       // Count the number of elements in all rows.
       std::size_t pool_size = 0;
@@ -93,11 +90,7 @@ namespace DP3 {
       }
 
       // Create the result buffer and fill it.
-      auto result = boost::make_unique<BDABuffer>(pool_size,
-                                                  enable_data,
-                                                  enable_flags,
-                                                  enable_weights,
-                                                  enable_full_res_flags);
+      auto result = boost::make_unique<BDABuffer>(pool_size, fields);
       for (const auto& row : rows_) {
         if (BDABuffer::TimeIsGreaterEqual(row->time_, time_ + interval_)) {
           break;
@@ -121,7 +114,7 @@ namespace DP3 {
         assert(success);
 
         // Adjust weights if the row partially overlaps the interval.
-        if (enable_weights && row->weights_ &&
+        if (fields[BDABuffer::Field::kWeights] && row->weights_ &&
             BDABuffer::TimeIsLess(kRowInterval, interval_) &&
             BDABuffer::TimeIsLess(kRowInterval, row->interval_)) {
 
