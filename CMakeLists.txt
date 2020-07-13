@@ -292,6 +292,7 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
+  Common/test/unit/tEnumBitset.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
