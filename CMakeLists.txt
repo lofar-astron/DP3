@@ -6,7 +6,9 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
+#CLA
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -pg")
 
 if(NOT PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
@@ -150,6 +152,7 @@ add_library(IDGPredict OBJECT
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
+  DPPP/AddNoiseLBA.cc	
   DPPP/Apply.cc
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
