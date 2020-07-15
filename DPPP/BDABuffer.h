@@ -24,7 +24,6 @@
 #ifndef DPPP_BDABUFFER_H
 #define DPPP_BDABUFFER_H
 
-#include "../Common/EnumBitset.h"
 #include "../Common/Types.h"
 #include "../Common/UVector.h"
 
