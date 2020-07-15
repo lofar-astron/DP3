@@ -260,7 +260,13 @@ BOOST_AUTO_TEST_CASE( disabled_fields )
     const float kWeights[kDataSize] {42};
     const double kUvw[3] {42};
 
-    BDABuffer buffer {kDataSize, BDABuffer::Fields()};
+    BDABuffer::Fields fields;
+    fields.data_ = false;
+    fields.flags_ = false;
+    fields.weights_ = false;
+    fields.full_res_flags_ = false;
+
+    BDABuffer buffer {kDataSize, fields};
     BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr,
                               kNChannels, kNCorrelations,
                               kData, kFlags, kWeights, kFlags, kUvw));
