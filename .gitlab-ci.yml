@@ -1,22 +1,35 @@
 stages:
+  - prepare
   - build
   - deploy-doc
 
-.env:
+build_base:
+  stage: prepare
+  script:
+  - docker build --tag dppp_base:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_base .
+
+build-lofar:
+  stage: build
+  dependencies: 
+    - build_base
+  script:
+  - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
+
+build-test:
+  stage: build
+  dependencies: 
+    - build_base
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
-  - export DOCKER_IMAGE=`echo $CI_PROJECT_NAME | awk '{print tolower($0)}'`:$CI_COMMIT_SHORT_SHA
-
-build_lofar:
-  stage: build
-  extends: .env
+    - apt-get update
+    - apt-get -y install python3-pip ninja-build
+    - pip3 install gcovr
   script:
-  - docker build --tag ${DOCKER_IMAGE}_lofar -f ./docker/ubuntu_20_04_lofar .
-
-build_nolofar:
-  stage: build
-  extends: .env
-  script:
-  - docker build --tag ${DOCKER_IMAGE}_nolofar -f ./docker/ubuntu_20_04_nolofar .
+    - mkdir build
+    - cd build
+    - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - ninja test
+    - gcovr -r . -f '/builds/RD/DP3/.*' -e '.*/CompilerIdCXX/.*' -e '.*/test/.*' -e '.*/build/.*'
 
 build-doc:
   stage: build
@@ -35,6 +48,8 @@ build-doc:
 
 deploy-doc:
   stage: deploy-doc
+  dependencies: 
+    - build-doc
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
