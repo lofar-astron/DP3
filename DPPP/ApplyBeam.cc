@@ -76,13 +76,13 @@ namespace DP3 {
 
       string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
       if (element_model=="hamaker") {
-          itsElementResponseModel = everybeam::ElementResponseModel::Hamaker;
+          itsElementResponseModel = everybeam::ElementResponseModel::kHamaker;
       } else if (element_model=="lobes") {
-          itsElementResponseModel = everybeam::ElementResponseModel::LOBES;
+          itsElementResponseModel = everybeam::ElementResponseModel::kLOBES;
       } else if (element_model=="oskar") {
-          itsElementResponseModel = everybeam::ElementResponseModel::OSKARSphericalWave;
+          itsElementResponseModel = everybeam::ElementResponseModel::kOSKARSphericalWave;
       } else if (element_model=="oskardipole") {
-          itsElementResponseModel = everybeam::ElementResponseModel::OSKARDipole;
+          itsElementResponseModel = everybeam::ElementResponseModel::kOSKARDipole;
       } else {
           throw Exception("Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
       }
@@ -299,7 +299,7 @@ void ApplyBeam::applyBeam(
   unsigned int nBl = info.nbaselines();
 
   for (auto &station : antBeamInfo) {
-    station->setModel(element_reponse_model);
+    station->SetResponseModel(element_reponse_model);
   }
 
   // Store array factor in diagonal matrix (in other modes this variable
@@ -319,7 +319,7 @@ void ApplyBeam::applyBeam(
     case FullBeamCorrection:
       // Fill beamValues for channel ch
       for (size_t st = 0; st < nSt; ++st) {
-        beamValues[nCh * st + ch] = antBeamInfo[st]->response(time,
+        beamValues[nCh * st + ch] = antBeamInfo[st]->Response(time,
                                       info.chanFreqs()[ch], srcdir,
                                       reffreq, refdir, tiledir);
         if (invert) {
@@ -330,7 +330,7 @@ void ApplyBeam::applyBeam(
     case ArrayFactorBeamCorrection:
       // Fill beamValues for channel ch
       for (size_t st = 0; st < nSt; ++st) {
-        af_tmp = antBeamInfo[st]->arrayFactor(time,
+        af_tmp = antBeamInfo[st]->ArrayFactor(time,
                                       info.chanFreqs()[ch], srcdir,
                                       reffreq, refdir, tiledir);
         beamValues[nCh * st + ch][0][1]=0.;
@@ -348,7 +348,7 @@ void ApplyBeam::applyBeam(
     case ElementBeamCorrection:
       // Fill beamValues for channel ch
       for (size_t st = 0; st < nSt; ++st) {
-        beamValues[nCh * st + ch] = antBeamInfo[st]->elementResponse(
+        beamValues[nCh * st + ch] = antBeamInfo[st]->ComputeElementResponse(
             time, info.chanFreqs()[ch], srcdir);
         if (invert) {
           ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
@@ -425,7 +425,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   unsigned int nBl = info.nbaselines();
 
   for (size_t st = 0; st < nSt; ++st) {
-    antBeamInfo[st]->setModel(element_reponse_model);
+    antBeamInfo[st]->SetResponseModel(element_reponse_model);
   }
 
   // Store array factor in diagonal matrix (in other modes this variable
@@ -442,7 +442,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
 
     // Fill beamValues for channel ch
     for (size_t st = 0; st < nSt; ++st) {
-      af_tmp = antBeamInfo[st]->arrayFactor(time,
+      af_tmp = antBeamInfo[st]->ArrayFactor(time,
                                     info.chanFreqs()[ch], srcdir,
                                     reffreq, refdir, tiledir);
       if (invert) {

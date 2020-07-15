@@ -135,13 +135,13 @@ namespace DP3 {
 
         string element_model=boost::to_lower_copy(parset.getString(prefix + "elementmodel","hamaker"));
         if (element_model=="hamaker") {
-            itsElementResponseModel = everybeam::ElementResponseModel::Hamaker;
+            itsElementResponseModel = everybeam::ElementResponseModel::kHamaker;
         } else if (element_model=="lobes") {
-            itsElementResponseModel = everybeam::ElementResponseModel::LOBES;
+            itsElementResponseModel = everybeam::ElementResponseModel::kLOBES;
         } else if (element_model=="oskar") {
-            itsElementResponseModel = everybeam::ElementResponseModel::OSKARSphericalWave;
+            itsElementResponseModel = everybeam::ElementResponseModel::kOSKARSphericalWave;
         } else if (element_model=="oskardipole") {
-            itsElementResponseModel = everybeam::ElementResponseModel::OSKARDipole;
+            itsElementResponseModel = everybeam::ElementResponseModel::kOSKARDipole;
         } else {
             throw Exception("Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
         }

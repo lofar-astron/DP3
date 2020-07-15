@@ -32,7 +32,7 @@
 #include "Filter.h"
 #include "EstimateNew.h"
 
-#include <EveryBeam/Station.h>
+#include <EveryBeam/station.h>
 
 #include "../ParmDB/ParmDB.h"
 

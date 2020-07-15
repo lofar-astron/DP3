@@ -41,8 +41,8 @@
 
 #include "../Common/ParallelFor.h"
 
-#include <EveryBeam/Station.h>
-#include <EveryBeam/common/Types.h>
+#include <EveryBeam/station.h>
+#include <EveryBeam/common/types.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>

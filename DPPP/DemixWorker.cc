@@ -772,7 +772,7 @@ namespace DP3 {
       // Get the beam values for each station.
       unsigned int nchan = chanFreqs.size();
       for (size_t st=0; st<itsMix->nstation(); ++st) {
-        itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+        itsAntBeamInfo[st]->Response (nchan, time, chanFreqs.cbegin(),
                                       srcdir, itsMix->getInfo().refFreq(),
                                       refdir, tiledir,
                                       &(itsBeamValues[nchan*st]));

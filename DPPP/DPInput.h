@@ -30,7 +30,7 @@
 #include "UVWCalculator.h"
 #include "FlagCounter.h"
 
-#include <EveryBeam/Station.h>
+#include <EveryBeam/station.h>
 
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/RefRows.h>

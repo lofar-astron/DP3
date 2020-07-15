@@ -55,10 +55,12 @@ find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOST
 include_directories(${Boost_INCLUDE_DIR})
 
 find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+message(Jakob says ${EVERYBEAM_INCLUDE_DIR})
 if(NOT EVERYBEAM_INCLUDE_DIR)
   message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
 endif()
 find_library(EVERYBEAM_LIB everybeam)
+message(Jakob says ${EVERYBEAM_LIB})
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
   message(STATUS "EveryBeam library found.")

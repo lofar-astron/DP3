@@ -650,7 +650,7 @@ namespace DP3 {
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
       
-      tileBeamDir = everybeam::readTileBeamDirection(itsMS);
+      tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
       
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
@@ -941,7 +941,7 @@ namespace DP3 {
       const Vector<String>& allNames = getInfo().antennaNames();
       // Create a vector holding the beam info of all stations.
       vector<everybeam::Station::Ptr> beams (allNames.size());
-      everybeam::readStations (itsMS, beams.begin());
+      everybeam::ReadStations (itsMS, beams.begin());
       // Copy only the ones for which the station name matches.
       // Note: the order of the station names in both vectors match.
       vec.resize (antNames.size());
