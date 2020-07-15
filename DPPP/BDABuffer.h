@@ -102,8 +102,15 @@ namespace DP3 {
 
       /**
        * Add a measurement line to the buffer.
+       *
+       * Measurement lines have to obey the following ordering constraint:
+       * If a row starts at time T, all rows that end before or at T must be
+       * added before this row. A new row thus may not have an end time before
+       * or equal to the start time of the last row.
+       *
        * @return True if the line is added.
        *         False if the buffer is full.
+       * @throw std::invalid_argument If the row ordering is incorrect.
        */
       bool AddRow(double time,
                   double interval,
@@ -197,6 +204,10 @@ namespace DP3 {
     public:
       static constexpr bool TimeIsLess(double x, double y) {
         return x < (y - kTimeEpsilon);
+      }
+
+      static constexpr bool TimeIsLessEqual(double x, double y) {
+        return x < (y + kTimeEpsilon);
       }
 
       static constexpr bool TimeIsGreaterEqual(double x, double y) {

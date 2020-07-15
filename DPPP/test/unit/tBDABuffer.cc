@@ -292,18 +292,42 @@ BOOST_AUTO_TEST_CASE( disabled_fields )
     BOOST_CHECK_EQUAL(row.full_res_flags_, nullptr);
 }
 
-BOOST_AUTO_TEST_CASE( add_wrong_order )
+BOOST_AUTO_TEST_CASE( add_wrong_ordering )
 {
-    // Add two rows where the second row has a time before the first row.
-    const double kTime1 = 1.0;
+    const double kTime1 = 3.0;
+    const double kInterval1 = 3.0;
     const double kTime2 = 0.0;
-    BDABuffer buffer {kDataSize};
+    const double kInterval2 = 3.0;
 
-    BOOST_CHECK(buffer.AddRow(kTime1, kInterval, kRowNr, kBaselineNr,
+    BDABuffer buffer {2 * kDataSize};
+
+    BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr,
                               kNChannels, kNCorrelations));
-    BOOST_CHECK_THROW(buffer.AddRow(kTime2, kInterval, kRowNr, kBaselineNr,
+    // end time equals start time of last row -> invalid ordering.
+    BOOST_CHECK_THROW(buffer.AddRow(kTime2, kInterval2, kRowNr, kBaselineNr,
                                     kNChannels, kNCorrelations),
                       std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE( add_overlap )
+{
+    const double kTime1 = 3.0;
+    const double kInterval1 = 3.0;
+    const double kTimePartialOverlap = 2.0;
+    const double kIntervalPartialOverlap = 2.0;
+    const double kTimeFullOverlap = 1.0;
+    const double kIntervalFullOverlap = 10.0;
+
+    BDABuffer buffer {3 * kDataSize};
+
+    BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr,
+                              kNChannels, kNCorrelations));
+    // Add partially overlapping row, starting before the last row.
+    BOOST_CHECK(buffer.AddRow(kTimePartialOverlap, kIntervalPartialOverlap,
+                              kRowNr, kBaselineNr, kNChannels, kNCorrelations));
+    // Add fully overlapping row, starting before the last row.
+    BOOST_CHECK(buffer.AddRow(kTimeFullOverlap, kIntervalFullOverlap,
+                              kRowNr, kBaselineNr, kNChannels, kNCorrelations));
 }
 
 BOOST_AUTO_TEST_CASE( clear )
@@ -342,6 +366,14 @@ BOOST_AUTO_TEST_CASE( time_is_less )
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(15., 10.), false);
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(10. - kTwoEpsilon, 10.), true);
     BOOST_CHECK_EQUAL(BDABuffer::TimeIsLess(10. - kHalfEpsilon, 10.), false);
+}
+
+BOOST_AUTO_TEST_CASE( time_is_less_equal )
+{
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLessEqual(5., 10.), true);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLessEqual(15., 10.), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLessEqual(10. + kTwoEpsilon, 10.), false);
+    BOOST_CHECK_EQUAL(BDABuffer::TimeIsLessEqual(10. + kHalfEpsilon, 10.), true);
 }
 
 BOOST_AUTO_TEST_CASE( time_is_greater_equal )
