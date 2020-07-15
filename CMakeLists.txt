@@ -70,6 +70,11 @@ if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
     DPPP/DemixWorker.cc
   )
 
+  set(LOFAR_DEPENDENT_INTEGRATION_TESTS
+    tApplyBeam
+    tGainCalH5Parm
+    tPredict
+  )
 else()
   if(WITH_LOFAR_BEAM)
     message(FATAL_ERROR "LOFAR beam library not found")
@@ -77,6 +82,7 @@ else()
     message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
     set(LOFAR_STATION_RESPONSE_LIB "")
     set(LOFAR_DEPENDENT_FILES "")
+    set(LOFAR_DEPENDENT_INTEGRATION_TESTS "")
   endif(WITH_LOFAR_BEAM)
 endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
@@ -325,15 +331,14 @@ execute_process(
 execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP-generic.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
 
 add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
-add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
+add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
+set_tests_properties(buildruntests PROPERTIES LABELS "unittest")
+
 # Add each test as a cmake test. Works only for:
 # - Tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE
 # - Tests added with BOOST_DATA_TEST_CASE
@@ -352,16 +357,28 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
 
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+    add_test(
+      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
+      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TESTSUITE_NAME}.${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unittest"
+    )
   endforeach()
 
   foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
 
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+    add_test(
+      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
+      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TESTSUITE_NAME}.${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unittest"
+    )
   endforeach()
 endforeach()
 

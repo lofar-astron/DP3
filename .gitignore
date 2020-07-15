@@ -1,6 +1,7 @@
 .kdev4/
 DP3.kdev4
 build/
+builds/
 cmakestrap.sh
 *~
 .vscode
