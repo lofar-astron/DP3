@@ -37,8 +37,21 @@ namespace DP3 {
     class BDABuffer
     {
     public:
-      enum class Field { kData, kFlags, kWeights, kFullResFlags, kBitCount };
-      using Fields = EnumBitset<Field>;
+      /**
+       * Parameter structure for indicating which buffer elements are enabled.
+       */
+      struct Fields {
+        /**
+         * This constructor is necessary because of bugs in gcc and clang.
+         * See https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
+         */
+        Fields(){}
+
+        bool data_ = true; ///< Enable/Disable visibilities.
+        bool flags_ = true; ///< Enable/Disable flags.
+        bool weights_ = true; ///< Enable/Disable weights.
+        bool full_res_flags_ = true; ///< Enable/Disable full res flags.
+      };
 
       struct Row {
         Row(double time,
@@ -77,7 +90,7 @@ namespace DP3 {
        *                  (number of items)
        * @param fields The fields that should be enabled in this buffer.
        */
-      explicit BDABuffer(std::size_t pool_size, Fields fields = Fields().Set());
+      explicit BDABuffer(std::size_t pool_size, const Fields& fields = Fields());
 
       /**
        * Copy constructor.

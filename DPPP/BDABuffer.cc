@@ -51,7 +51,7 @@ namespace DP3 {
     {}
 
     BDABuffer::BDABuffer(const std::size_t pool_size,
-                         const Fields fields)
+                         const Fields& fields)
     : data_()
     , flags_()
     , weights_()
@@ -60,16 +60,16 @@ namespace DP3 {
     , original_capacity_(pool_size)
     , remaining_capacity_(pool_size)
     {
-      if (fields[Field::kData]) {
+      if (fields.data_) {
         data_.reserve(remaining_capacity_);
       }
-      if (fields[Field::kFlags]) {
+      if (fields.flags_) {
         flags_.reserve(remaining_capacity_);
       }
-      if (fields[Field::kWeights]) {
+      if (fields.weights_) {
         weights_.reserve(remaining_capacity_);
       }
-      if (fields[Field::kFullResFlags]) {
+      if (fields.full_res_flags_) {
         full_res_flags_.reserve(remaining_capacity_);
       }
     }

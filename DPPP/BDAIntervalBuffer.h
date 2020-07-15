@@ -77,7 +77,7 @@ namespace DP3 {
        * @param fields Bitset with the requested fields.
        * @return A BDABuffer with the requested data.
        */
-      std::unique_ptr<BDABuffer> GetBuffer(BDABuffer::Fields fields = BDABuffer::Fields().Set()) const;
+      std::unique_ptr<BDABuffer> GetBuffer(const BDABuffer::Fields& fields = BDABuffer::Fields()) const;
 
     private:
       void removeOld();

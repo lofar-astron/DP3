@@ -76,7 +76,7 @@ namespace DP3 {
     }
 
     std::unique_ptr<BDABuffer>
-    BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields fields) const
+    BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields& fields) const
     {
       // Count the number of elements in all rows.
       std::size_t pool_size = 0;
@@ -114,7 +114,7 @@ namespace DP3 {
         assert(success);
 
         // Adjust weights if the row partially overlaps the interval.
-        if (fields[BDABuffer::Field::kWeights] && row->weights_ &&
+        if (fields.weights_ && row->weights_ &&
             BDABuffer::TimeIsLess(kRowInterval, interval_) &&
             BDABuffer::TimeIsLess(kRowInterval, row->interval_)) {
 
