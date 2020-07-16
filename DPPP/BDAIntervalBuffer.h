@@ -21,7 +21,7 @@
 /// @brief Provide BDA data for time intervals.
 /// @author Maik Nijhuis
 
-#ifndef DPPP_BDAINTERVNALBUFFER_H
+#ifndef DPPP_BDAINTERVALBUFFER_H
 #define DPPP_BDAINTERVALBUFFER_H
 
 #include "BDABuffer.h"
@@ -41,8 +41,9 @@ namespace DP3 {
        * Constructor.
        * @param time Start time for the first interval, in seconds.
        * @param interval Duration for the first interval, in seconds.
+       * @param max_row_interval The maximum duration for a BDABuffer row.
        */
-      BDAIntervalBuffer(double time, double interval);
+      BDAIntervalBuffer(double time, double interval, double max_row_interval);
 
       /**
        * Add new data to the interval.
@@ -80,16 +81,17 @@ namespace DP3 {
       std::unique_ptr<BDABuffer> GetBuffer(const BDABuffer::Fields& fields = BDABuffer::Fields()) const;
 
     private:
-      void removeOld();
+      enum class Completeness { kUnknown, kComplete, kIncomplete };
+      mutable Completeness completeness_; ///< Cached completeness status.
 
-    private:
       double time_; ///< Start time of current interval.
       double interval_; ///< Duration of current interval.
+      const double max_row_interval_; // Maximum duration of a BDA row.
 
-      std::list<std::unique_ptr<const BDABuffer>> buffers_;
+      std::list<BDABuffer> buffers_;
 
-      /// Contains an ordered collection of all valid rows in buffers_.
-      std::list<const BDABuffer::Row*> rows_;
+      /// Contains all rows for the current interval.
+      std::vector<const BDABuffer::Row*> current_rows_;
     };
 
   }

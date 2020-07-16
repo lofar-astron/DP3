@@ -27,75 +27,132 @@ namespace DP3 {
   namespace DPPP {
 
     BDAIntervalBuffer::BDAIntervalBuffer(const double time,
-                                         const double interval)
-    : time_(time)
+                                         const double interval,
+                                         const double max_row_interval)
+    : completeness_(Completeness::kIncomplete)
+    , time_(time)
     , interval_(interval)
+    , max_row_interval_(max_row_interval)
     , buffers_()
-    , rows_()
+    , current_rows_()
     {}
 
     void BDAIntervalBuffer::AddBuffer(const BDABuffer& buffer)
     {
-      // Check if 'buffer' is valid.
-      if (buffer.GetRows().empty()) {
-        return;
-      }
+      if (!buffer.GetRows().empty()) {
+        buffers_.emplace_back(buffer);
 
-      if (!buffers_.empty() &&
-          BDABuffer::TimeIsLess(buffer.GetRows().front().time_,
-                                buffers_.back()->GetRows().back().time_)) {
-        throw std::invalid_argument("New row does not follow existing row.");
-      }
+        for (const BDABuffer::Row& row : buffers_.back().GetRows()) {
+          if (BDABuffer::TimeIsLess(max_row_interval_, row.interval_)) {
+            buffers_.pop_back();
+            throw std::invalid_argument("Row interval > Max row interval");
+          }
 
-      buffers_.push_back(boost::make_unique<BDABuffer>(buffer));
+          // Add row to current_rows if it overlaps the current interval
+          // (it isn't completely before or after the current interval).
+          if (!BDABuffer::TimeIsLessEqual(row.time_ + row.interval_, time_) &&
+              !BDABuffer::TimeIsLessEqual(time_ + interval_, row.time_)) {
+            current_rows_.push_back(&row);
+          }
+        }
 
-      // Add the rows of the new buffer to valid_rows_.
-      for(const auto& row: buffers_.back()->GetRows()) {
-        rows_.push_back(&row);
+        if (completeness_ == Completeness::kIncomplete) {
+          // Re-evaluate completeness in next IsComplete call.
+          completeness_ = Completeness::kUnknown;
+        }
       }
     }
 
     void BDAIntervalBuffer::Advance(const double interval)
     {
+      completeness_ = Completeness::kUnknown;
       time_ += interval_;
       interval_ = interval;
-      removeOld();
+
+      current_rows_.clear();
+
+      // Fill current_rows with rows from the existing buffers.
+      // Also detect and remove buffers that only have old rows.
+      auto buffer_it = buffers_.begin();
+      while(buffer_it != buffers_.end()) {
+        bool buffer_is_old = true;
+
+        for (const BDABuffer::Row& row : buffer_it->GetRows()) {
+          // Check if the row interval overlaps the bda interval.
+          // If row_end <= bda start, it does not overlap and is old -> Ignore.
+          // If bda_end <= row start, it does not overlap and is new.
+          // In all other cases, it overlaps and is added to current_rows_.
+
+          if (!BDABuffer::TimeIsLessEqual(row.time_ + row.interval_, time_)) {
+            buffer_is_old = false;
+            if (!BDABuffer::TimeIsLessEqual(time_ + interval_, row.time_)) {
+              current_rows_.push_back(&row);
+            }
+          }
+        }
+
+        if (buffer_is_old) {
+          buffer_it = buffers_.erase(buffer_it);
+        } else {
+          ++buffer_it;
+        }
+      }
     }
 
     bool BDAIntervalBuffer::IsComplete() const
     {
-      if (buffers_.empty()) {
-        return false;
-      } else {
-        // If the start time of the last input row is later than the end time of
-        // the interval, the interval is complete.
-        const double kEnd = time_ + interval_;
-        const double kLastRowStart = buffers_.back()->GetRows().back().time_;
-        return BDABuffer::TimeIsLess(kEnd, kLastRowStart);
+      // Try using cached completeness status from earlier calls.
+      if (Completeness::kUnknown != completeness_) {
+        return Completeness::kComplete == completeness_;
       }
+
+      const double kTimeComplete = time_ + interval_ + max_row_interval_;
+      // Evaluate the rows in the BDABuffers backwards.
+      //
+      // If a row starts at/after kTimeComplete, the interval is complete:
+      // Because of max_row_interval_, future rows start at/after kTimeEnd.
+      //
+      // If a row ends at/before kTimeComplete, the interval is not complete:
+      // All possible rows that satisfy the completeness criterion are after
+      // that row but we didn't find any while searching backwards.
+      //
+      // When all rows are checked, the interval is also not complete.
+
+      for (auto buffer_it = buffers_.rbegin();
+           (buffer_it != buffers_.rend()) && (Completeness::kUnknown == completeness_);
+           ++buffer_it) {
+        const std::vector<BDABuffer::Row>& rows = buffer_it->GetRows();
+        for (auto row_it = rows.rbegin(); row_it != rows.rend(); ++row_it) {
+          if (BDABuffer::TimeIsGreaterEqual(row_it->time_, kTimeComplete)) {
+            completeness_ = Completeness::kComplete;
+            break;
+          } else if (BDABuffer::TimeIsLessEqual(row_it->time_ + row_it->interval_,
+                                                kTimeComplete)) {
+            completeness_ = Completeness::kIncomplete;
+            break;
+          }
+        }
+      }
+
+      if (Completeness::kUnknown == completeness_) {
+        completeness_ = Completeness::kIncomplete;
+      }
+
+      return Completeness::kComplete == completeness_;
     }
 
     std::unique_ptr<BDABuffer>
     BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields& fields) const
     {
-      // Count the number of elements in all rows.
+      // Count the number of elements in all current rows.
       std::size_t pool_size = 0;
-      for (const auto& row : rows_) {
-        if (BDABuffer::TimeIsGreaterEqual(row->time_, time_ + interval_)) {
-          break;
-        } else {
-          assert(BDABuffer::TimeIsLess(time_, row->time_ + row->interval_));
-          pool_size += row->GetDataSize();
-        }
+      for (const auto& row : current_rows_) {
+        pool_size += row->GetDataSize();
       }
 
       // Create the result buffer and fill it.
       auto result = boost::make_unique<BDABuffer>(pool_size, fields);
-      for (const auto& row : rows_) {
-        if (BDABuffer::TimeIsGreaterEqual(row->time_, time_ + interval_)) {
-          break;
-        }
-
+      for (const auto& row : current_rows_) {
         const double kRowTime = std::max(row->time_, time_);
         const double kRowInterval = std::min(row->time_ + row->interval_,
                                              time_ + interval_) - kRowTime;
@@ -119,7 +176,7 @@ namespace DP3 {
             BDABuffer::TimeIsLess(kRowInterval, row->interval_)) {
 
           const double kWeightFactor = kRowInterval / row->interval_;
-          float* weights = result->GetWeights(result->GetRows().size() - 1);
+          float* weights = result->GetRows().back().weights_;
           const std::size_t kDataSize = row->GetDataSize();
 
           for (std::size_t i = 0; i < kDataSize; ++i) {
@@ -130,49 +187,6 @@ namespace DP3 {
       }
 
       return result;
-    }
-
-    void BDAIntervalBuffer::removeOld()
-    {
-      // Remove old rows from rows_ before removing old buffers from buffers_,
-      // since the elements of rows_ point to rows in buffers_.
-
-      // If the start time is after time_, the loop is done, since the rows
-      // are ordered by start time.
-      auto row_it = rows_.begin();
-      while(row_it != rows_.end() &&
-            BDABuffer::TimeIsLess((*row_it)->time_, time_)) {
-        const double kRowEnd = (*row_it)->time_ + (*row_it)->interval_;
-        if (BDABuffer::TimeIsLess(time_, kRowEnd)) {
-          ++row_it;
-        } else {
-          row_it = rows_.erase(row_it);
-        }
-      }
-
-      // Only buffers with start times before time_ can possibly be removed.
-      // If the start time is after time_, the loop is done, since the buffers
-      // in buffers_ and the rows in those buffers are ordered by start time.
-      auto buffer_it = buffers_.begin();
-      while(buffer_it != buffers_.end() &&
-            BDABuffer::TimeIsLess((*buffer_it)->GetRows().back().time_, time_ )) {
-
-        // Check if there is a row with an end time after time_.
-        bool buffer_is_old = true;
-        for (const auto& row : (*buffer_it)->GetRows()) {
-          const double kRowEnd = row.time_ + row.interval_;
-          if (BDABuffer::TimeIsLess(time_, kRowEnd)) {
-            buffer_is_old = false;
-            break;
-          }
-        }
-
-        if (buffer_is_old) {
-          buffer_it = buffers_.erase(buffer_it);
-        } else {
-          ++buffer_it;
-        }
-      }
     }
   }
 }
