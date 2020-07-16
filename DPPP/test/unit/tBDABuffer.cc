@@ -20,11 +20,9 @@
 /// @brief Unit tests for the BDABuffer class.
 /// @author Lars Krombeen & Maik Nijhuis
 
-#include "../Common/Types.h"
+#include "../../BDABuffer.h"
 
 #include <boost/test/unit_test.hpp>
-
-#include "../../BDABuffer.h"
 
 using DP3::DPPP::BDABuffer;
 

@@ -26,6 +26,8 @@
 
 #include "BDABuffer.h"
 
+#include <boost/noncopyable.hpp>
+
 #include <memory>
 #include <list>
 #include <set>
@@ -34,7 +36,7 @@
 namespace DP3 {
   namespace DPPP {
 
-    class BDAIntervalBuffer
+    class BDAIntervalBuffer : private boost::noncopyable
     {
     public:
       /**
@@ -79,6 +81,14 @@ namespace DP3 {
        * @return A BDABuffer with the requested data.
        */
       std::unique_ptr<BDABuffer> GetBuffer(const BDABuffer::Fields& fields = BDABuffer::Fields()) const;
+
+      /**
+       * Access the number of internally stored buffers.
+       *
+       * Tests use this function for checking that Advance() releases old data.
+       * @return The number of stored buffers.
+       */
+      std::size_t GetPendingBufferCount() const { return buffers_.size(); }
 
     private:
       enum class Completeness { kUnknown, kComplete, kIncomplete };

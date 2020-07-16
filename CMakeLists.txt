@@ -297,6 +297,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tAverager.cc
   DPPP/test/unit/tBaselineSelection.cc
   DPPP/test/unit/tBDABuffer.cc
+  DPPP/test/unit/tBDAIntervalBuffer.cc
   # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
   DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tGridInterpolate.cc
