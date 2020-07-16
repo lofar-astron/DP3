@@ -8,4 +8,5 @@ RUN mkdir /build && cd /build \
     && cmake ../src \
     && make -j4 \
     && make install -j4 \
-    && DPPP
+    && DPPP \
+    && rm -r /src /build
