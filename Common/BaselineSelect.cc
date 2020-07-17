@@ -40,6 +40,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/version.h>
 
+#include "Types.h"
+
 using namespace casacore;
 
 namespace DP3 {
@@ -134,7 +136,7 @@ namespace DP3 {
     try {
       // Create a table expression representing the selection.
       TableExprNode node = msAntennaGramParseCommand
-        (anttab, a1, a2, baselineSelection, 
+        (anttab, a1, a2, baselineSelection,
          selectedAnts1, selectedAnts2, selectedBaselines);
       // Get the antenna numbers.
       Table seltab = node.table()(node);

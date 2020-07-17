@@ -223,7 +223,7 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setFlags (flags);
-    vector<DP3::DPPP::rownr_t> rownrs(1,itsCount);
+    vector<DP3::rownr_t> rownrs(1,itsCount);
     buf.setRowNrs (rownrs);
     getNextStep()->process (buf);
     ++itsCount;
