@@ -1,7 +1,7 @@
 stages:
   - prepare
   - build
-  - deploy-doc
+  - integration_and_deploy
 
 build-base:
   stage: prepare
@@ -10,14 +10,14 @@ build-base:
 
 build-lofar:
   stage: build
-  dependencies: 
+  dependencies:
     - build-base
   script:
   - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
-build-test:
+build-unittest:
   stage: build
-  dependencies: 
+  dependencies:
     - build-base
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
@@ -29,7 +29,7 @@ build-test:
     - mkdir build
     - cd build
     - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
-    - ninja test
+    - ctest -L unittest
     - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
     - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
   artifacts:
@@ -51,9 +51,20 @@ build-doc:
     paths:
     - build/docs
 
+integration-test:
+  stage: integration_and_deploy
+  dependencies:
+    - build-lofar
+  image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  script:
+    - mkdir build && cd build
+    - cmake ..
+    - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
+    - ctest -j4 -L integration
+
 deploy-doc:
-  stage: deploy-doc
-  dependencies: 
+  stage: integration_and_deploy
+  dependencies:
     - build-doc
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'

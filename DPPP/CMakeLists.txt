@@ -28,3 +28,5 @@ install(
 python_install(
   __init__.py
   DESTINATION lofar/dppp)
+
+add_subdirectory(test/integration)
