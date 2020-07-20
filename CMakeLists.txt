@@ -297,6 +297,7 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
+  DPPP/test/runtests.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
@@ -322,11 +323,12 @@ set(TEST_FILENAMES
   DDECal/test/unit/tRotationConstraint.cc
 )
 
-set(RUNTEST_SOURCES
-  DPPP/test/runtests.cc
-  ${TEST_FILENAMES}
-  ${OS_SPECIFIC_TESTS}
-  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+# Add boost dynamic link flag for all test files.
+# https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
+# Without this flag, linking is incorrect and boost performs duplicate delete()
+# calls after running all tests, in the cleanup phase.
+set_source_files_properties(
+  ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
 )
 
 # Untar files needed for some tests. It may be prettier to do this at build time instead of CMake time.
@@ -337,52 +339,61 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
+add_executable(
+  runtests EXCLUDE_FROM_ALL
+  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
+  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT}
+  ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
 
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
 
 add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
-set_tests_properties(buildruntests PROPERTIES LABELS "unittest")
+set_tests_properties(buildruntests PROPERTIES LABELS "unit")
 
-# Add each test as a cmake test. Works only for:
-# - Tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE
-# - Tests added with BOOST_DATA_TEST_CASE
+# Add each test as a cmake test.
+# - A file with tests should have one BOOST_AUTO_TEST_SUITE line.
+# - Only BOOST_AUTO_TEST_CASE and BOOST_DATA_TEST_CASE tests are supported.
+#   These test cases must be between the BOOST_AUTO_TEST_SUITE and
+#   a BOOST_AUTO_TEST_SUITE_END macros.
+# - Helper files without BOOST_AUTO_TEST_SUITE are ignored here.
 foreach(TEST_FILENAME ${TEST_FILENAMES})
   file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
 
-  # Extract test suite names
+  # Get testsuite name.
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+  if(TESTSUITE_NAME_FULL)
+    #Extract testsuite name, since REGEX MATCHALL always stores the entire match.
+    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+  endif()
+
+  # Gather test names.
   string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *[A-Za-z_0-9]+ *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
   string(REGEX MATCHALL "BOOST_DATA_TEST_CASE\\( *[A-Za-z_0-9]+," FOUND_DATA_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
 
-  # Extract testsuite name, since REGEX MATCHALL always stores the entire match.
-  string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
-
-  foreach(FOUND_TEST ${FOUND_TESTS})
+  foreach(FOUND_TEST ${FOUND_TESTS} ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+    if(FOUND_TEST MATCHES "BOOST_AUTO_TEST_CASE")
+      string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+    elseif(FOUND_TEST MATCHES "BOOST_DATA_TEST_CASE")
+      string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_TEST})
+    else()
+      message(FATAL_ERROR "Invalid FOUND_TEST")
+    endif()
+
+    if (NOT TESTSUITE_NAME)
+      message(FATAL_ERROR "No testsuite found for ${TEST_NAME} in ${TEST_FILENAME}")
+    endif()
+
+    set(TEST_NAME ${TESTSUITE_NAME}/${TEST_NAME})
 
     add_test(
-      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
-      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
+      NAME ${TEST_NAME}
+      COMMAND runtests -t ${TEST_NAME} --catch_system_error=yes
     )
     set_tests_properties(
-      ${TESTSUITE_NAME}.${TEST_NAME}
-      PROPERTIES DEPENDS buildruntests LABELS "unittest"
-    )
-  endforeach()
-
-  foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
-    # Extract test name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
-
-    add_test(
-      NAME "${TESTSUITE_NAME}.${TEST_NAME}"
-      COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes
-    )
-    set_tests_properties(
-      ${TESTSUITE_NAME}.${TEST_NAME}
-      PROPERTIES DEPENDS buildruntests LABELS "unittest"
+      ${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unit"
     )
   endforeach()
 endforeach()
