@@ -160,10 +160,10 @@ void ScreenConstraint::CalculatePiercepoints(){
     error=1.0;
     size_t nrch(0);
     for(size_t ch=0;ch<_nChannelBlocks; ++ch) {
-      if(std::isfinite(solutions[ch][dirIndex])) {
+      if(isfinite(solutions[ch][dirIndex])) {
 	double refphase=std::arg(solutions[ch][dirIndex]);
 	//TODO: more advance frequency averaging...
-	if (std::isfinite(solutions[ch][solutionIndex])) {
+	if (isfinite(solutions[ch][solutionIndex])) {
 	  avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
 	  nrch++;
 	}
@@ -187,7 +187,7 @@ void ScreenConstraint::CalculatePiercepoints(){
     for(size_t ch=0;ch<_nChannelBlocks; ++ch){
       phfit.FrequencyData()[ch]=itsFrequencies.data()[ch];
       
-    if(std::isfinite(solutions[ch][solutionIndex])) {
+    if(isfinite(solutions[ch][solutionIndex])) {
       phfit.PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
     else
