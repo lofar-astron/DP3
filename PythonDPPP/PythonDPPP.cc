@@ -40,44 +40,39 @@ using namespace boost::python;
 // and thereafter used to create a PythonStep.
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
-    // Define the interface for the PythonStep C++ functions callable
-    // from python.
-    // Note that the python functions called from C++ are done using
-    // the boost::python attr function.
-    void dpstepbase()
-    {
-      class_<DPStepBase> ("_DPStepBase")
-        .def (init<>())
-        .def ("_getData", &DPStepBase::_getData,
-              "Get the visibility data into the given array",
-              (boost::python::arg("value")))
-        .def ("_getFlags", &DPStepBase::_getFlags,
-              "Get the flags into the given array",
-              (boost::python::arg("value")))
-        .def ("_getWeights", &DPStepBase::_getWeights,
-              "Get the weights into the given array",
-              (boost::python::arg("value")))
-        .def ("_getUVW", &DPStepBase::_getUVW,
-              "Get the UVW coordinates into the given array",
-              (boost::python::arg("value")))
-        .def ("_getModelData", &DPStepBase::_getModelData,
-              "Get the model data into the given array",
-              (boost::python::arg("value")))
-        .def ("_processNext", &DPStepBase::_processNext,
-              "Process the next step in the DPPP run",
-              (boost::python::arg("values")))
-        ;
-    }
-
-  }
+// Define the interface for the PythonStep C++ functions callable
+// from python.
+// Note that the python functions called from C++ are done using
+// the boost::python attr function.
+void dpstepbase() {
+  class_<DPStepBase>("_DPStepBase")
+      .def(init<>())
+      .def("_getData", &DPStepBase::_getData,
+           "Get the visibility data into the given array",
+           (boost::python::arg("value")))
+      .def("_getFlags", &DPStepBase::_getFlags,
+           "Get the flags into the given array", (boost::python::arg("value")))
+      .def("_getWeights", &DPStepBase::_getWeights,
+           "Get the weights into the given array",
+           (boost::python::arg("value")))
+      .def("_getUVW", &DPStepBase::_getUVW,
+           "Get the UVW coordinates into the given array",
+           (boost::python::arg("value")))
+      .def("_getModelData", &DPStepBase::_getModelData,
+           "Get the model data into the given array",
+           (boost::python::arg("value")))
+      .def("_processNext", &DPStepBase::_processNext,
+           "Process the next step in the DPPP run",
+           (boost::python::arg("values")));
 }
 
+}  // namespace DPPP
+}  // namespace DP3
 
 // Define the python module itself.
-BOOST_PYTHON_MODULE(_pythondppp)
-{
+BOOST_PYTHON_MODULE(_pythondppp) {
   casacore::python::register_convert_excp();
   casacore::python::register_convert_basicdata();
   casacore::python::register_convert_casa_valueholder();

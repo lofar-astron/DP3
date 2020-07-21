@@ -25,62 +25,59 @@
 #include <Common/ParameterSet.h>
 #include <vector>
 
-namespace casa
-{
-  class MeasurementSet; //foreward declaration
+namespace casa {
+class MeasurementSet;  // foreward declaration
 }
 
-namespace DP3
-{
-  namespace CS1
-  {
-    class SPWCombine; //foreward declaration
+namespace DP3 {
+namespace CS1 {
+class SPWCombine;  // foreward declaration
 
-    class CombinerProcessControl : public DP3ACC::PLC::ProcessControl
-    {
-    private:
-      vector<std::string> itsInMS;
-      std::string  itsOutMS;
-      vector<casa::MeasurementSet*> inMS;
-      SPWCombine*   itsCombiner;
-    public:
-      CombinerProcessControl(void);
+class CombinerProcessControl : public DP3ACC::PLC::ProcessControl {
+ private:
+  vector<std::string> itsInMS;
+  std::string itsOutMS;
+  vector<casa::MeasurementSet*> inMS;
+  SPWCombine* itsCombiner;
 
-      ~CombinerProcessControl(void);
-      /// \name Command to control the processes.
-      /// There are a dozen commands that can be sent to a application process
-      /// to control its flow. The return values for these command are:<br>
-      /// - True   - Command executed succesfully.
-      /// - False  - Command could not be executed.
-      //
-      /// @{
+ public:
+  CombinerProcessControl(void);
 
-      /// During the \c define state the process check the contents of the
-      /// ParameterSet it received during start-up. When everthing seems ok the
-      /// process constructs the communication channels for exchanging data
-      /// with the other processes. The connection are NOT made in the stage.
-      tribool define   (void);
+  ~CombinerProcessControl(void);
+  /// \name Command to control the processes.
+  /// There are a dozen commands that can be sent to a application process
+  /// to control its flow. The return values for these command are:<br>
+  /// - True   - Command executed succesfully.
+  /// - False  - Command could not be executed.
+  //
+  /// @{
 
-      /// When a process receives an \c init command it allocates the buffers it
-      /// needs an makes the connections with the other processes. When the
-      /// process succeeds in this it is ready for dataprocessing (or whatever
-      /// task the process has).
-      tribool init     (void);
+  /// During the \c define state the process check the contents of the
+  /// ParameterSet it received during start-up. When everthing seems ok the
+  /// process constructs the communication channels for exchanging data
+  /// with the other processes. The connection are NOT made in the stage.
+  tribool define(void);
 
-      /// During the \c run phase the process does the work it is designed for.
-      /// The run phase stays active until another command is send.
-      tribool run      (void);
+  /// When a process receives an \c init command it allocates the buffers it
+  /// needs an makes the connections with the other processes. When the
+  /// process succeeds in this it is ready for dataprocessing (or whatever
+  /// task the process has).
+  tribool init(void);
 
-      tribool pause(const std::string&);
-      tribool release(void);
-      tribool quit(void);
-      tribool recover(const std::string&);
-      tribool reinit(const  std::string&);
-      tribool snapshot(const std::string&);
-      std::string askInfo(const std::string&);
+  /// During the \c run phase the process does the work it is designed for.
+  /// The run phase stays active until another command is send.
+  tribool run(void);
 
-    }; //class CombinerProcessControl
-  } //namespace CS1
-}; //namespace LOFAR
+  tribool pause(const std::string&);
+  tribool release(void);
+  tribool quit(void);
+  tribool recover(const std::string&);
+  tribool reinit(const std::string&);
+  tribool snapshot(const std::string&);
+  std::string askInfo(const std::string&);
+
+};  // class CombinerProcessControl
+}  // namespace CS1
+};  // namespace DP3
 
 #endif

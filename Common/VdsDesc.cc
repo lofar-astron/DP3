@@ -29,43 +29,37 @@
 #include <ostream>
 
 namespace std {
-  using DP3::operator<<;
+using DP3::operator<<;
 }
 using namespace std;
 
-namespace DP3 { namespace CEP {
+namespace DP3 {
+namespace CEP {
 
-    VdsDesc::VdsDesc (const VdsPartDesc& desc)
-    : itsDesc (desc)
-  {}
+VdsDesc::VdsDesc(const VdsPartDesc& desc) : itsDesc(desc) {}
 
-  VdsDesc::VdsDesc (const string& parsetName)
-  {
-    init (ParameterSet (parsetName));
+VdsDesc::VdsDesc(const string& parsetName) { init(ParameterSet(parsetName)); }
+
+void VdsDesc::init(const ParameterSet& parset) {
+  itsDesc = VdsPartDesc(parset);
+  int npart = parset.getInt32("NParts");
+  for (int i = 0; i < npart; ++i) {
+    ostringstream prefix;
+    prefix << "Part" << i << '.';
+    ParameterSet subset = parset.makeSubset(prefix.str());
+    itsParts.push_back(VdsPartDesc(subset));
   }
+}
 
-  void VdsDesc::init (const ParameterSet& parset)
-  {
-    itsDesc = VdsPartDesc (parset);
-    int npart = parset.getInt32 ("NParts");
-    for (int i=0; i<npart; ++i) {
-      ostringstream prefix;
-      prefix << "Part" << i << '.';
-      ParameterSet subset = parset.makeSubset (prefix.str());
-      itsParts.push_back (VdsPartDesc(subset));
-    }
+void VdsDesc::write(ostream& os) const {
+  itsDesc.write(os, "");
+  os << "NParts = " << itsParts.size() << endl;
+  for (unsigned i = 0; i < itsParts.size(); ++i) {
+    ostringstream prefix;
+    prefix << "Part" << i << '.';
+    itsParts[i].write(os, prefix.str());
   }
-
-  void VdsDesc::write (ostream& os) const
-  {
-    itsDesc.write (os, "");
-    os << "NParts = " << itsParts.size() << endl;
-    for (unsigned i=0; i<itsParts.size(); ++i) {
-      ostringstream prefix;
-      prefix << "Part" << i << '.';
-      itsParts[i].write (os, prefix.str());
-    }
-  }
+}
 
 //   int VdsDesc::findPart (const string& fileSystem,
 // 			     const vector<int>& done) const
@@ -78,4 +72,5 @@ namespace DP3 { namespace CEP {
 //     return -1;
 //   }
 
-}} // end namespaces
+}  // namespace CEP
+}  // namespace DP3

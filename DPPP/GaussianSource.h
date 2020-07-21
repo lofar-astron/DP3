@@ -23,43 +23,40 @@
 
 #include "PointSource.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// \brief Gaussian source model component.
 
 /// @{
 
-class GaussianSource: public PointSource
-{
-public:
-    typedef std::shared_ptr<GaussianSource>          Ptr;
-    typedef std::shared_ptr<const GaussianSource>    ConstPtr;
+class GaussianSource : public PointSource {
+ public:
+  typedef std::shared_ptr<GaussianSource> Ptr;
+  typedef std::shared_ptr<const GaussianSource> ConstPtr;
 
-    GaussianSource(const Position &position);
-    GaussianSource(const Position &position, const Stokes &stokes);
+  GaussianSource(const Position &position);
+  GaussianSource(const Position &position, const Stokes &stokes);
 
-    /// Set position angle in radians. The position angle is the smallest angle
-    /// between the major axis and North, measured positively North over East.
-    void setPositionAngle(double angle);
-    double positionAngle() const;
+  /// Set position angle in radians. The position angle is the smallest angle
+  /// between the major axis and North, measured positively North over East.
+  void setPositionAngle(double angle);
+  double positionAngle() const;
 
-    /// Set the major axis length (FWHM in radians).
-    void setMajorAxis(double fwhm);
-    double majorAxis() const;
+  /// Set the major axis length (FWHM in radians).
+  void setMajorAxis(double fwhm);
+  double majorAxis() const;
 
-    /// Set the minor axis length (FWHM in radians).
-    void setMinorAxis(double fwhm);
-    double minorAxis() const;
+  /// Set the minor axis length (FWHM in radians).
+  void setMinorAxis(double fwhm);
+  double minorAxis() const;
 
-    virtual void accept(ModelComponentVisitor &visitor) const;
+  virtual void accept(ModelComponentVisitor &visitor) const;
 
-private:
-    double      itsPositionAngle;
-    double      itsMajorAxis;
-    double      itsMinorAxis;
+ private:
+  double itsPositionAngle;
+  double itsMajorAxis;
+  double itsMinorAxis;
 };
 
 /// @}
@@ -68,22 +65,13 @@ private:
 // - Implementation: GaussianSource                                         - //
 // -------------------------------------------------------------------------- //
 
-inline double GaussianSource::positionAngle() const
-{
-    return itsPositionAngle;
-}
+inline double GaussianSource::positionAngle() const { return itsPositionAngle; }
 
-inline double GaussianSource::majorAxis() const
-{
-    return itsMajorAxis;
-}
+inline double GaussianSource::majorAxis() const { return itsMajorAxis; }
 
-inline double GaussianSource::minorAxis() const
-{
-    return itsMinorAxis;
-}
+inline double GaussianSource::minorAxis() const { return itsMinorAxis; }
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

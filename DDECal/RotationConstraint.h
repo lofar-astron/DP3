@@ -26,17 +26,15 @@
 
 namespace DP3 {
 
-class RotationConstraint : public Constraint
-{
-public:
-  RotationConstraint() {};
-  
-  virtual std::vector<Result> Apply(
-                    std::vector<std::vector<dcomplex> >& solutions,
-                    double time, std::ostream* statStream);
+class RotationConstraint : public Constraint {
+ public:
+  RotationConstraint(){};
 
-  virtual void InitializeDimensions(size_t nAntennas,
-                                    size_t nDirections,
+  virtual std::vector<Result> Apply(
+      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::ostream* statStream);
+
+  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
                                     size_t nChannelBlocks);
 
   virtual void SetWeights(const std::vector<double>& weights);
@@ -44,11 +42,10 @@ public:
   /* Compute the rotation from a 2x2 full jones solution */
   static double get_rotation(std::complex<double>* data);
 
-private:
+ private:
   std::vector<Constraint::Result> _res;
 };
 
-} // namespace LOFAR
+}  // namespace DP3
 
 #endif
-

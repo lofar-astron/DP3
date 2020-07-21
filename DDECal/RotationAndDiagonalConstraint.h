@@ -26,29 +26,26 @@
 
 namespace DP3 {
 
-class RotationAndDiagonalConstraint : public Constraint
-{
-public:
+class RotationAndDiagonalConstraint : public Constraint {
+ public:
   RotationAndDiagonalConstraint();
-  
-  virtual std::vector<Result> Apply(
-                    std::vector<std::vector<dcomplex> >& solutions,
-                    double time, std::ostream* statStream);
 
-  virtual void InitializeDimensions(size_t nAntennas,
-                                    size_t nDirections,
+  virtual std::vector<Result> Apply(
+      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::ostream* statStream);
+
+  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
                                     size_t nChannelBlocks);
 
   virtual void SetWeights(const std::vector<double>& weights);
 
   void SetDoRotationReference(bool doRotationReference);
 
-private:
+ private:
   std::vector<Constraint::Result> _res;
   bool _doRotationReference;
 };
 
-} // namespace LOFAR
+}  // namespace DP3
 
 #endif
-

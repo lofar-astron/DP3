@@ -22,10 +22,8 @@
 #ifndef DPPP_MODELCOMPONENTVISITOR_H
 #define DPPP_MODELCOMPONENTVISITOR_H
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 class PointSource;
 class GaussianSource;
@@ -34,18 +32,17 @@ class GaussianSource;
 
 /// @{
 
-class ModelComponentVisitor
-{
-public:
-    virtual ~ModelComponentVisitor();
+class ModelComponentVisitor {
+ public:
+  virtual ~ModelComponentVisitor();
 
-    virtual void visit(const PointSource&) = 0;
-    virtual void visit(const GaussianSource&) = 0;
+  virtual void visit(const PointSource&) = 0;
+  virtual void visit(const GaussianSource&) = 0;
 };
 
 /// @}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

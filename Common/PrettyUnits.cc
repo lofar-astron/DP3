@@ -28,18 +28,17 @@
 #include <iomanip>
 #include <cmath>
 
-
 namespace DP3 {
 
-PrettyUnits::PrettyUnits(double value, const char *unit, unsigned precision)
-{
+PrettyUnits::PrettyUnits(double value, const char *unit, unsigned precision) {
   static const char *prefixes = "yzafpnum kMGTPEZY";
-  const char	    *prefix;
+  const char *prefix;
 
   if (value == 0.0)
     prefix = " ";
   else
-    for (value *= 1e24, prefix = prefixes; fabs(value) >= 999.5 && prefix[1] != '\0'; prefix ++)
+    for (value *= 1e24, prefix = prefixes;
+         fabs(value) >= 999.5 && prefix[1] != '\0'; prefix++)
       value /= 1000.0;
 
   std::stringstream stream;
@@ -47,4 +46,4 @@ PrettyUnits::PrettyUnits(double value, const char *unit, unsigned precision)
   *static_cast<std::string *>(this) = stream.str() + ' ' + *prefix + unit;
 }
 
-}  // end namespace LOFAR
+}  // namespace DP3

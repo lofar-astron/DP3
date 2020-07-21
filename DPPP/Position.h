@@ -23,25 +23,22 @@
 
 #include <cstring>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// \brief A position on the celestial sphere.
 /// @{
 
-class Position
-{
-public:
-    Position();
-    Position(double alpha, double delta);
+class Position {
+ public:
+  Position();
+  Position(double alpha, double delta);
 
-    const double &operator[](size_t i) const;
-    double &operator[](size_t i);
+  const double &operator[](size_t i) const;
+  double &operator[](size_t i);
 
-private:
-    double  itsPosition[2];
+ private:
+  double itsPosition[2];
 };
 
 /// @}
@@ -50,17 +47,13 @@ private:
 // - Implementation: Position                                               - //
 // -------------------------------------------------------------------------- //
 
-inline const double &Position::operator[](size_t i) const
-{
-    return itsPosition[i];
+inline const double &Position::operator[](size_t i) const {
+  return itsPosition[i];
 }
 
-inline double &Position::operator[](size_t i)
-{
-    return itsPosition[i];
-}
+inline double &Position::operator[](size_t i) { return itsPosition[i]; }
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

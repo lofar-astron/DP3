@@ -1,6 +1,5 @@
-// H5ParmPredict.h: DPPP step class to H5ParmPredict visibilities from a source model
-// Copyright (C) 2013
-// ASTRON (Netherlands Institute for Radio Astronomy)
+// H5ParmPredict.h: DPPP step class to H5ParmPredict visibilities from a source
+// model Copyright (C) 2013 ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
 // This file is part of the LOFAR software suite.
@@ -35,59 +34,59 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
+namespace DPPP {
 
-    /// This class is a DPStep class to H5ParmPredict visibilities with optionally beam
+/// This class is a DPStep class to H5ParmPredict visibilities with optionally
+/// beam
 
-    typedef std::pair<size_t, size_t> Baseline;
-    typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
+typedef std::pair<size_t, size_t> Baseline;
+typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
 
-    /// @brief DPPP step class to H5ParmPredict visibilities from a source model
-    class H5ParmPredict: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      H5ParmPredict (DPInput*, const ParameterSet&, const string& prefix);
+/// @brief DPPP step class to H5ParmPredict visibilities from a source model
+class H5ParmPredict : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  H5ParmPredict(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~H5ParmPredict();
+  virtual ~H5ParmPredict();
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      DPInput*         itsInput;
-      string           itsName;
-      DPBuffer         itsBuffer;
+ private:
+  DPInput* itsInput;
+  string itsName;
+  DPBuffer itsBuffer;
 
-      std::vector<Predict::ShPtr> itsPredictSteps;
-      ResultStep*      itsResultStep;
+  std::vector<Predict::ShPtr> itsPredictSteps;
+  ResultStep* itsResultStep;
 
-      std::string      itsH5ParmName;
-      std::vector<std::string> itsDirections;
+  std::string itsH5ParmName;
+  std::vector<std::string> itsDirections;
 
-      NSTimer          itsTimer;
-      ThreadPool itsThreadPool;
-      std::mutex itsMeasuresMutex;
-    };
+  NSTimer itsTimer;
+  ThreadPool itsThreadPool;
+  std::mutex itsMeasuresMutex;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

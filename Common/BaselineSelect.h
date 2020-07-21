@@ -30,15 +30,13 @@
 
 #include <ostream>
 
-namespace casacore
-{
-  class Table;
-  class TableExprNode;
-  class MPosition;
-}
+namespace casacore {
+class Table;
+class TableExprNode;
+class MPosition;
+}  // namespace casacore
 
-namespace DP3
-{
+namespace DP3 {
 
 /// @ingroup MS
 /// @brief Convert MSSelection baseline string to a Matrix
@@ -47,55 +45,48 @@ namespace DP3
 /// Class with a static function to convert a casacore MSSelection baseline
 /// string to a Matrix<Bool> telling which baselines are selected.
 
-class BaselineSelect
-{
-public:
+class BaselineSelect {
+ public:
   /// Parse the MSSelection baseline string and create a Matrix telling
   /// which baselines are selected.
   /// Possible messages from the parser are written to the ostream.
-  static casacore::Matrix<bool> convert (const string& msName,
-                                     const string& baselineSelection,
-                                     std::ostream&);
+  static casacore::Matrix<bool> convert(const string& msName,
+                                        const string& baselineSelection,
+                                        std::ostream&);
 
   /// Parse the MSSelection baseline string and create a Matrix telling
   /// which baselines are selected.
   /// The input is a vector of station names and positions.
   /// Possible messages from the parser are written to the ostream.
-  static casacore::Matrix<bool> convert (const casacore::Vector<casacore::String>& names,
-                                     const std::vector<casacore::MPosition>& pos,
-                                     const casacore::Vector<casacore::Int>& ant1,
-                                     const casacore::Vector<casacore::Int>& ant2,
-                                     const string& baselineSelection,
-                                     std::ostream&);
+  static casacore::Matrix<bool> convert(
+      const casacore::Vector<casacore::String>& names,
+      const std::vector<casacore::MPosition>& pos,
+      const casacore::Vector<casacore::Int>& ant1,
+      const casacore::Vector<casacore::Int>& ant2,
+      const string& baselineSelection, std::ostream&);
 
-private:
-  static casacore::Matrix<bool> convert (casacore::Table& anttab,
-                                     casacore::TableExprNode& a1,
-                                     casacore::TableExprNode& a2,
-                                     const string& baselineSelection,
-                                     std::ostream& os);
-
+ private:
+  static casacore::Matrix<bool> convert(casacore::Table& anttab,
+                                        casacore::TableExprNode& a1,
+                                        casacore::TableExprNode& a2,
+                                        const string& baselineSelection,
+                                        std::ostream& os);
 };
-
-
 
 /// @brief This class handles an error from the Casacore's MSAntennaParse.
 /// It adds the message to the message list of the parent BaselineSelect.
-class BaselineSelectErrorHandler : public casacore::MSSelectionErrorHandler
-{
-public:
-  BaselineSelectErrorHandler (std::ostream& os)
-    : itsStream (os)
-  {}
+class BaselineSelectErrorHandler : public casacore::MSSelectionErrorHandler {
+ public:
+  BaselineSelectErrorHandler(std::ostream& os) : itsStream(os) {}
   virtual ~BaselineSelectErrorHandler();
-  virtual void reportError (const char *token, const casacore::String message);
-private:
+  virtual void reportError(const char* token, const casacore::String message);
+
+ private:
   std::ostream& itsStream;
 };
 
-
 /// @}
 
-} // end namespace
+}  // namespace DP3
 
 #endif

@@ -23,63 +23,57 @@
 
 #include "SubtractMixed.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 void subtract(size_t nBaseline, size_t nChannel,
-    const_cursor<Baseline> baselines, cursor<fcomplex> data,
-    const_cursor<dcomplex> model, const_cursor<dcomplex> weight)
-{
-    for(size_t bl = 0; bl < nBaseline; ++bl)
-    {
-        const size_t p = baselines->first;
-        const size_t q = baselines->second;
+              const_cursor<Baseline> baselines, cursor<fcomplex> data,
+              const_cursor<dcomplex> model, const_cursor<dcomplex> weight) {
+  for (size_t bl = 0; bl < nBaseline; ++bl) {
+    const size_t p = baselines->first;
+    const size_t q = baselines->second;
 
-        if(p != q)
-        {
-            for(size_t ch = 0; ch < nChannel; ++ch)
-            {
-                // Subtract weighted model from data.
-                *data -= static_cast<fcomplex>((*weight) * (*model));
-                ++weight;
-                ++model;
-                ++data;
-                *data -= static_cast<fcomplex>((*weight) * (*model));
-                ++weight;
-                ++model;
-                ++data;
-                *data -= static_cast<fcomplex>((*weight) * (*model));
-                ++weight;
-                ++model;
-                ++data;
-                *data -= static_cast<fcomplex>((*weight) * (*model));
-                ++weight;
-                ++model;
-                ++data;
+    if (p != q) {
+      for (size_t ch = 0; ch < nChannel; ++ch) {
+        // Subtract weighted model from data.
+        *data -= static_cast<fcomplex>((*weight) * (*model));
+        ++weight;
+        ++model;
+        ++data;
+        *data -= static_cast<fcomplex>((*weight) * (*model));
+        ++weight;
+        ++model;
+        ++data;
+        *data -= static_cast<fcomplex>((*weight) * (*model));
+        ++weight;
+        ++model;
+        ++data;
+        *data -= static_cast<fcomplex>((*weight) * (*model));
+        ++weight;
+        ++model;
+        ++data;
 
-                // Move to the next channel.
-                weight -= 4;
-                weight.forward(1);
-                model -= 4;
-                model.forward(1);
-                data -= 4;
-                data.forward(1);
-            } // Channels.
+        // Move to the next channel.
+        weight -= 4;
+        weight.forward(1);
+        model -= 4;
+        model.forward(1);
+        data -= 4;
+        data.forward(1);
+      }  // Channels.
 
-            weight.backward(1, nChannel);
-            model.backward(1, nChannel);
-            data.backward(1, nChannel);
-        }
+      weight.backward(1, nChannel);
+      model.backward(1, nChannel);
+      data.backward(1, nChannel);
+    }
 
-        // Move to the next baseline.
-        weight.forward(2);
-        model.forward(2);
-        data.forward(2);
-        ++baselines;
-    } // Baselines.
+    // Move to the next baseline.
+    weight.forward(2);
+    model.forward(2);
+    data.forward(2);
+    ++baselines;
+  }  // Baselines.
 }
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3

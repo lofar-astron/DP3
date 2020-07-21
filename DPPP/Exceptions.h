@@ -24,4 +24,3 @@
 typedef std::runtime_error Exception;
 
 #endif
-

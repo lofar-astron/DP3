@@ -23,27 +23,25 @@
 
 #include "ParameterSet.h"
 
-namespace DP3 { 
+namespace DP3 {
 
-  /// \brief A record of parameter values
-  class ParameterRecord: public ParameterSet
-  {
-  public:
-    /// Define the iterators for this class.
-    typedef ParameterSet::iterator       iterator;
-    typedef ParameterSet::const_iterator const_iterator;
+/// \brief A record of parameter values
+class ParameterRecord : public ParameterSet {
+ public:
+  /// Define the iterators for this class.
+  typedef ParameterSet::iterator iterator;
+  typedef ParameterSet::const_iterator const_iterator;
 
-    /// Default constructor creates empty record.
-    ParameterRecord()
-    {}
+  /// Default constructor creates empty record.
+  ParameterRecord() {}
 
-    /// Try to get a value from the record or from a nested record.
-    bool getRecursive (const std::string& key, ParameterValue& value) const;
+  /// Try to get a value from the record or from a nested record.
+  bool getRecursive(const std::string& key, ParameterValue& value) const;
 
-    /// Put to ostream.
-    friend std::ostream& operator<< (std::ostream& os, const ParameterRecord&);
-  };
+  /// Put to ostream.
+  friend std::ostream& operator<<(std::ostream& os, const ParameterRecord&);
+};
 
-}
+}  // namespace DP3
 
 #endif

@@ -29,154 +29,149 @@ using DP3::DPPP::BDABuffer;
 using DP3::DPPP::BDAIntervalBuffer;
 
 namespace {
-  const double kTime = 0.0;
-  const double kInterval = 10.0;
-  const double kRowInterval = 2.0;
-  const double kMaxRowInterval = 20.0;
-  const float kWeight = 2.0;
+const double kTime = 0.0;
+const double kInterval = 10.0;
+const double kRowInterval = 2.0;
+const double kMaxRowInterval = 20.0;
+const float kWeight = 2.0;
 
-  const DP3::rownr_t kRowNr = 42;
-  const std::size_t kBaselineNr = 42;
-  const std::size_t kNChannels = 3;
-  const std::size_t kNCorrelations = 2;
-  const std::size_t kDataSize = kNChannels * kNCorrelations;
+const DP3::rownr_t kRowNr = 42;
+const std::size_t kBaselineNr = 42;
+const std::size_t kNChannels = 3;
+const std::size_t kNCorrelations = 2;
+const std::size_t kDataSize = kNChannels * kNCorrelations;
 
-  /**
-   * Add a row and fill its data values.
-   */
-  void AddRow(BDABuffer& buffer, double time, double interval,
-              DP3::rownr_t row_nr, std::size_t baseline_nr,
-              bool flag, float weight)
-  {
-    const bool flags[kDataSize]{ flag };
+/**
+ * Add a row and fill its data values.
+ */
+void AddRow(BDABuffer& buffer, double time, double interval,
+            DP3::rownr_t row_nr, std::size_t baseline_nr, bool flag,
+            float weight) {
+  const bool flags[kDataSize]{flag};
 
-    BOOST_CHECK(buffer.AddRow(time, interval, row_nr, baseline_nr,
-                              kNChannels, kNCorrelations,
-                              nullptr, flags, nullptr, flags));
+  BOOST_CHECK(buffer.AddRow(time, interval, row_nr, baseline_nr, kNChannels,
+                            kNCorrelations, nullptr, flags, nullptr, flags));
 
-    const BDABuffer::Row& row = buffer.GetRows().back();
-    for (std::size_t i = 0; i < row.GetDataSize(); ++i) {
-      const float value = row_nr * kDataSize + i;
-      row.data_[i] = { value, -value };
-      row.weights_[i] = weight;
-    }
-  }
-
-  /**
-   * Add a 'short' row, with interval 2, to a BDABuffer.
-   * @param weight_factor The contribution factor for the row.
-   */
-  void AddShortRow(BDABuffer& buffer, double time, DP3::rownr_t row_nr,
-                   bool flag, float weight_factor = 1.0f)
-  {
-    AddRow(buffer, time, kRowInterval * weight_factor, row_nr, kBaselineNr,
-           flag, kWeight * weight_factor);
-  }
-
-  /**
-   * Add a 'long' row, with interval 4, to a BDABuffer.
-   * @param weight_factor The contribution factor for the row.
-   */
-  void AddLongRow(BDABuffer& buffer, double time, DP3::rownr_t row_nr,
-                  float weight_factor = 1.0f)
-  {
-    AddRow(buffer, time, 2.0 * kRowInterval * weight_factor, row_nr,
-           kBaselineNr + 1, false, kWeight * weight_factor);
-  }
-
-  /**
-   * Advance the interval buffer and check that GetBuffer() returns
-   * an empty buffer.
-   */
-  void CheckAdvanceBeyondEnd(BDAIntervalBuffer& interval)
-  {
-    // Advance the interval: GetBuffer() should return an empty buffer now.
-    interval.Advance(kInterval);
-    BOOST_CHECK(!interval.IsComplete());
-    BOOST_CHECK_EQUAL(interval.GetPendingBufferCount(), 0u);
-    std::unique_ptr<BDABuffer> buffer = interval.GetBuffer();
-    BOOST_CHECK(buffer && buffer->GetRows().empty());
-  }
-
-  void CheckBuffer(const BDAIntervalBuffer& interval, const BDABuffer& expected)
-  {
-    const std::unique_ptr<BDABuffer> result = interval.GetBuffer();
-
-    BOOST_CHECK_EQUAL(result->GetRows().size(), expected.GetRows().size());
-    BOOST_CHECK_EQUAL(result->GetNumberOfElements(), expected.GetNumberOfElements());
-
-    auto result_row_it = result->GetRows().begin();
-    auto expected_row_it = expected.GetRows().begin();
-    while (result_row_it != result->GetRows().end()) {
-      BOOST_CHECK_EQUAL(result_row_it->time_, expected_row_it->time_);
-      BOOST_CHECK_EQUAL(result_row_it->interval_, expected_row_it->interval_);
-      BOOST_CHECK_EQUAL(result_row_it->row_nr_, expected_row_it->row_nr_);
-      BOOST_CHECK_EQUAL(result_row_it->baseline_nr_, expected_row_it->baseline_nr_);
-      // Ignore other row members in this test: The checked values already clearly
-      // indicate that the intervalbuffer copied the correct row into the result.
-
-      for (std::size_t i = 0; i < kDataSize; ++i) {
-        // Data should be absolutely equal: The intervalbuffer should not
-        // perform any computations on it and only copy the data.
-        BOOST_CHECK_EQUAL(result_row_it->data_[i], expected_row_it->data_[i]);
-        BOOST_CHECK_EQUAL(result_row_it->flags_[i], expected_row_it->flags_[i]);
-        // Weights may differ slightly because of rounding errors.
-        BOOST_CHECK(BDABuffer::TimeIsEqual(result_row_it->weights_[i],
-                                           expected_row_it->weights_[i]));
-        BOOST_CHECK_EQUAL(result_row_it->full_res_flags_[i],
-                          expected_row_it->full_res_flags_[i]);
-      }
-
-      ++result_row_it;
-      ++expected_row_it;
-    }
-
-    // Verify that the result has no remaining capacacity.
-    BOOST_CHECK(!result->AddRow(kTime + 42.0, kRowInterval, 42, kBaselineNr, 1, 1));
-  }
-
-  /**
-   * Common part of the add_cross_boundary tests, for checking the result.
-   * @param interval The interval that is under test.
-   */
-  void CheckCrossBoundary(BDAIntervalBuffer& interval)
-  {
-    auto expected_buffer1 = boost::make_unique<BDABuffer>(kDataSize * 8);
-    AddShortRow(*expected_buffer1, kTime + 1.0, kRowNr + 0, false);
-    AddShortRow(*expected_buffer1, kTime + 3.0, kRowNr + 1, true);
-    AddLongRow(*expected_buffer1, kTime + 1.0, kRowNr + 2);
-    AddShortRow(*expected_buffer1, kTime + 5.0, kRowNr + 3, false);
-    AddShortRow(*expected_buffer1, kTime + 7.0, kRowNr + 4, true);
-    AddLongRow(*expected_buffer1, kTime + 5.0, kRowNr + 5);
-    // This short row has 1/2 in the first interval.
-    AddShortRow(*expected_buffer1, kTime + 9.0, kRowNr + 6, false, 1.0f / 2.0f);
-    // This long row has 1/4 in the first interval.
-    AddLongRow(*expected_buffer1, kTime + 9.0, kRowNr + 8, 1.0f / 4.0f);
-
-    auto expected_buffer2 = boost::make_unique<BDABuffer>(kDataSize * 6);
-    // This short row has 1/2 in the second interval.
-    AddShortRow(*expected_buffer2, kTime + 10.0, kRowNr + 6, false, 1.0f / 2.0f);
-    AddShortRow(*expected_buffer2, kTime + 11.0, kRowNr + 7, true);
-    // This long row has 3/4 in the second interval.
-    AddLongRow(*expected_buffer2, kTime + 10.0, kRowNr + 8, 3.0f / 4.0f);
-    AddShortRow(*expected_buffer2, kTime + 13.0, kRowNr + 9, false);
-    AddShortRow(*expected_buffer2, kTime + 15.0, kRowNr + 10, true);
-    AddLongRow(*expected_buffer2, kTime + 13.0, kRowNr + 11);
-
-    CheckBuffer(interval, *expected_buffer1);
-
-    interval.Advance(kInterval);
-
-    CheckBuffer(interval, *expected_buffer2);
-
-    CheckAdvanceBeyondEnd(interval);
+  const BDABuffer::Row& row = buffer.GetRows().back();
+  for (std::size_t i = 0; i < row.GetDataSize(); ++i) {
+    const float value = row_nr * kDataSize + i;
+    row.data_[i] = {value, -value};
+    row.weights_[i] = weight;
   }
 }
 
-BOOST_AUTO_TEST_SUITE( bdaintervalbuffer )
+/**
+ * Add a 'short' row, with interval 2, to a BDABuffer.
+ * @param weight_factor The contribution factor for the row.
+ */
+void AddShortRow(BDABuffer& buffer, double time, DP3::rownr_t row_nr, bool flag,
+                 float weight_factor = 1.0f) {
+  AddRow(buffer, time, kRowInterval * weight_factor, row_nr, kBaselineNr, flag,
+         kWeight * weight_factor);
+}
 
-BOOST_AUTO_TEST_CASE( initialization )
-{
+/**
+ * Add a 'long' row, with interval 4, to a BDABuffer.
+ * @param weight_factor The contribution factor for the row.
+ */
+void AddLongRow(BDABuffer& buffer, double time, DP3::rownr_t row_nr,
+                float weight_factor = 1.0f) {
+  AddRow(buffer, time, 2.0 * kRowInterval * weight_factor, row_nr,
+         kBaselineNr + 1, false, kWeight * weight_factor);
+}
+
+/**
+ * Advance the interval buffer and check that GetBuffer() returns
+ * an empty buffer.
+ */
+void CheckAdvanceBeyondEnd(BDAIntervalBuffer& interval) {
+  // Advance the interval: GetBuffer() should return an empty buffer now.
+  interval.Advance(kInterval);
+  BOOST_CHECK(!interval.IsComplete());
+  BOOST_CHECK_EQUAL(interval.GetPendingBufferCount(), 0u);
+  std::unique_ptr<BDABuffer> buffer = interval.GetBuffer();
+  BOOST_CHECK(buffer && buffer->GetRows().empty());
+}
+
+void CheckBuffer(const BDAIntervalBuffer& interval, const BDABuffer& expected) {
+  const std::unique_ptr<BDABuffer> result = interval.GetBuffer();
+
+  BOOST_CHECK_EQUAL(result->GetRows().size(), expected.GetRows().size());
+  BOOST_CHECK_EQUAL(result->GetNumberOfElements(),
+                    expected.GetNumberOfElements());
+
+  auto result_row_it = result->GetRows().begin();
+  auto expected_row_it = expected.GetRows().begin();
+  while (result_row_it != result->GetRows().end()) {
+    BOOST_CHECK_EQUAL(result_row_it->time_, expected_row_it->time_);
+    BOOST_CHECK_EQUAL(result_row_it->interval_, expected_row_it->interval_);
+    BOOST_CHECK_EQUAL(result_row_it->row_nr_, expected_row_it->row_nr_);
+    BOOST_CHECK_EQUAL(result_row_it->baseline_nr_,
+                      expected_row_it->baseline_nr_);
+    // Ignore other row members in this test: The checked values already clearly
+    // indicate that the intervalbuffer copied the correct row into the result.
+
+    for (std::size_t i = 0; i < kDataSize; ++i) {
+      // Data should be absolutely equal: The intervalbuffer should not
+      // perform any computations on it and only copy the data.
+      BOOST_CHECK_EQUAL(result_row_it->data_[i], expected_row_it->data_[i]);
+      BOOST_CHECK_EQUAL(result_row_it->flags_[i], expected_row_it->flags_[i]);
+      // Weights may differ slightly because of rounding errors.
+      BOOST_CHECK(BDABuffer::TimeIsEqual(result_row_it->weights_[i],
+                                         expected_row_it->weights_[i]));
+      BOOST_CHECK_EQUAL(result_row_it->full_res_flags_[i],
+                        expected_row_it->full_res_flags_[i]);
+    }
+
+    ++result_row_it;
+    ++expected_row_it;
+  }
+
+  // Verify that the result has no remaining capacacity.
+  BOOST_CHECK(
+      !result->AddRow(kTime + 42.0, kRowInterval, 42, kBaselineNr, 1, 1));
+}
+
+/**
+ * Common part of the add_cross_boundary tests, for checking the result.
+ * @param interval The interval that is under test.
+ */
+void CheckCrossBoundary(BDAIntervalBuffer& interval) {
+  auto expected_buffer1 = boost::make_unique<BDABuffer>(kDataSize * 8);
+  AddShortRow(*expected_buffer1, kTime + 1.0, kRowNr + 0, false);
+  AddShortRow(*expected_buffer1, kTime + 3.0, kRowNr + 1, true);
+  AddLongRow(*expected_buffer1, kTime + 1.0, kRowNr + 2);
+  AddShortRow(*expected_buffer1, kTime + 5.0, kRowNr + 3, false);
+  AddShortRow(*expected_buffer1, kTime + 7.0, kRowNr + 4, true);
+  AddLongRow(*expected_buffer1, kTime + 5.0, kRowNr + 5);
+  // This short row has 1/2 in the first interval.
+  AddShortRow(*expected_buffer1, kTime + 9.0, kRowNr + 6, false, 1.0f / 2.0f);
+  // This long row has 1/4 in the first interval.
+  AddLongRow(*expected_buffer1, kTime + 9.0, kRowNr + 8, 1.0f / 4.0f);
+
+  auto expected_buffer2 = boost::make_unique<BDABuffer>(kDataSize * 6);
+  // This short row has 1/2 in the second interval.
+  AddShortRow(*expected_buffer2, kTime + 10.0, kRowNr + 6, false, 1.0f / 2.0f);
+  AddShortRow(*expected_buffer2, kTime + 11.0, kRowNr + 7, true);
+  // This long row has 3/4 in the second interval.
+  AddLongRow(*expected_buffer2, kTime + 10.0, kRowNr + 8, 3.0f / 4.0f);
+  AddShortRow(*expected_buffer2, kTime + 13.0, kRowNr + 9, false);
+  AddShortRow(*expected_buffer2, kTime + 15.0, kRowNr + 10, true);
+  AddLongRow(*expected_buffer2, kTime + 13.0, kRowNr + 11);
+
+  CheckBuffer(interval, *expected_buffer1);
+
+  interval.Advance(kInterval);
+
+  CheckBuffer(interval, *expected_buffer2);
+
+  CheckAdvanceBeyondEnd(interval);
+}
+}  // namespace
+
+BOOST_AUTO_TEST_SUITE(bdaintervalbuffer)
+
+BOOST_AUTO_TEST_CASE(initialization) {
   const BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
   BOOST_CHECK(!interval.IsComplete());
   BOOST_CHECK_EQUAL(interval.GetPendingBufferCount(), 0u);
@@ -184,8 +179,7 @@ BOOST_AUTO_TEST_CASE( initialization )
   BOOST_CHECK(resultBuffer && resultBuffer->GetRows().empty());
 }
 
-BOOST_AUTO_TEST_CASE( add_single )
-{
+BOOST_AUTO_TEST_CASE(add_single) {
   BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
 
   auto buffer = boost::make_unique<BDABuffer>(kDataSize);
@@ -196,8 +190,7 @@ BOOST_AUTO_TEST_CASE( add_single )
   CheckBuffer(interval, *buffer);
 }
 
-BOOST_AUTO_TEST_CASE( add_multiple )
-{
+BOOST_AUTO_TEST_CASE(add_multiple) {
   BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize);
@@ -220,8 +213,7 @@ BOOST_AUTO_TEST_CASE( add_multiple )
   CheckBuffer(interval, *combined);
 }
 
-BOOST_AUTO_TEST_CASE( add_cross_boundary_single )
-{
+BOOST_AUTO_TEST_CASE(add_cross_boundary_single) {
   BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
 
   auto buffer = boost::make_unique<BDABuffer>(kDataSize * 12);
@@ -243,8 +235,7 @@ BOOST_AUTO_TEST_CASE( add_cross_boundary_single )
   CheckCrossBoundary(interval);
 }
 
-BOOST_AUTO_TEST_CASE( add_cross_boundary_multiple )
-{
+BOOST_AUTO_TEST_CASE(add_cross_boundary_multiple) {
   BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize * 3);
@@ -272,12 +263,12 @@ BOOST_AUTO_TEST_CASE( add_cross_boundary_multiple )
   CheckCrossBoundary(interval);
 }
 
-BOOST_AUTO_TEST_CASE( add_longer_than_interval )
-{
+BOOST_AUTO_TEST_CASE(add_longer_than_interval) {
   const double kRowInterval = 16.0;
-  const double kRowInterval1 = 1.0; // Overlap in the first BDA interval.
-  const double kRowInterval2 = kInterval; // Overlap in the second BDA interval.
-  const double kRowInterval3 = 5.0; // Overlap in the third BDA interval.
+  const double kRowInterval1 = 1.0;  // Overlap in the first BDA interval.
+  const double kRowInterval2 =
+      kInterval;                     // Overlap in the second BDA interval.
+  const double kRowInterval3 = 5.0;  // Overlap in the third BDA interval.
 
   BDAIntervalBuffer interval{0.0, kInterval, kMaxRowInterval};
 
@@ -285,17 +276,17 @@ BOOST_AUTO_TEST_CASE( add_longer_than_interval )
   AddRow(*buffer, 9.0, kRowInterval, kRowNr, kBaselineNr, true, kWeight);
 
   auto expected1 = boost::make_unique<BDABuffer>(kDataSize);
-  AddRow(*expected1, 9.0, kRowInterval1, kRowNr, kBaselineNr,
-         true, kWeight * kRowInterval1 / kRowInterval);
+  AddRow(*expected1, 9.0, kRowInterval1, kRowNr, kBaselineNr, true,
+         kWeight * kRowInterval1 / kRowInterval);
 
   // Rows that fully overlap the interval do not have an adjusted weight.
   auto expected2 = boost::make_unique<BDABuffer>(kDataSize);
-  AddRow(*expected2, kInterval, kRowInterval2, kRowNr, kBaselineNr, true, kWeight);
+  AddRow(*expected2, kInterval, kRowInterval2, kRowNr, kBaselineNr, true,
+         kWeight);
 
   auto expected3 = boost::make_unique<BDABuffer>(kDataSize);
-  AddRow(*expected3, 2.0 * kInterval, kRowInterval3, kRowNr,
-         kBaselineNr, true, kWeight * kRowInterval3 / kRowInterval);
-
+  AddRow(*expected3, 2.0 * kInterval, kRowInterval3, kRowNr, kBaselineNr, true,
+         kWeight * kRowInterval3 / kRowInterval);
 
   BOOST_CHECK_NO_THROW(interval.AddBuffer(*buffer));
   CheckBuffer(interval, *expected1);
@@ -307,25 +298,25 @@ BOOST_AUTO_TEST_CASE( add_longer_than_interval )
   CheckBuffer(interval, *expected3);
 }
 
-BOOST_AUTO_TEST_CASE( add_max_interval )
-{
+BOOST_AUTO_TEST_CASE(add_max_interval) {
   auto buffer_max = boost::make_unique<BDABuffer>(kDataSize);
-  AddRow(*buffer_max, kTime, kMaxRowInterval, kRowNr, kBaselineNr, true, kWeight);
+  AddRow(*buffer_max, kTime, kMaxRowInterval, kRowNr, kBaselineNr, true,
+         kWeight);
 
   auto buffer_over_max = boost::make_unique<BDABuffer>(kDataSize);
-  AddRow(*buffer_over_max,
-         kTime + kMaxRowInterval + 4.0, // Do not overlap the row in buffer_max.
-         kMaxRowInterval + 0.01, // Set a too high interval.
-         kRowNr, kBaselineNr, true, kWeight);
-
+  AddRow(
+      *buffer_over_max,
+      kTime + kMaxRowInterval + 4.0,  // Do not overlap the row in buffer_max.
+      kMaxRowInterval + 0.01,         // Set a too high interval.
+      kRowNr, kBaselineNr, true, kWeight);
 
   BDAIntervalBuffer interval{0.0, kInterval, kMaxRowInterval};
   BOOST_CHECK_NO_THROW(interval.AddBuffer(*buffer_max));
-  BOOST_CHECK_THROW(interval.AddBuffer(*buffer_over_max), std::invalid_argument);
+  BOOST_CHECK_THROW(interval.AddBuffer(*buffer_over_max),
+                    std::invalid_argument);
 }
 
-BOOST_AUTO_TEST_CASE( is_complete )
-{
+BOOST_AUTO_TEST_CASE(is_complete) {
   BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize);

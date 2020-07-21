@@ -28,20 +28,18 @@
 
 #include <cassert>
 
-DP3::BlobHeader::BlobHeader (int version, unsigned int level)
-: itsLength         (0),
-  itsMagicValue     (bobMagicValue()),
-  itsVersion        (version),
-  itsDataFormat     (DP3::dataFormat()),
-  itsLevel          (level),
-  itsNameLength     (0)
-{
-  assert (version > -128  &&  version < 128);
-  assert (level < 256);
+DP3::BlobHeader::BlobHeader(int version, unsigned int level)
+    : itsLength(0),
+      itsMagicValue(bobMagicValue()),
+      itsVersion(version),
+      itsDataFormat(DP3::dataFormat()),
+      itsLevel(level),
+      itsNameLength(0) {
+  assert(version > -128 && version < 128);
+  assert(level < 256);
 }
-    
-void DP3::BlobHeader::setLocalDataFormat()
-{
-  itsLength     = DP3::dataConvert (getDataFormat(), itsLength);
+
+void DP3::BlobHeader::setLocalDataFormat() {
+  itsLength = DP3::dataConvert(getDataFormat(), itsLength);
   itsDataFormat = DP3::dataFormat();
 }

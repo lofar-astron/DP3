@@ -23,39 +23,28 @@
 
 #include <string>
 
-
 namespace DP3 {
 
-  /// \brief Print units in a human-readable way
-  class PrettyUnits : public std::string
-  {
-    protected:
-      PrettyUnits(double value, const char *unit, unsigned precision);
-  };
+/// \brief Print units in a human-readable way
+class PrettyUnits : public std::string {
+ protected:
+  PrettyUnits(double value, const char *unit, unsigned precision);
+};
 
-  /// \brief Print time in a human-readable way
-  class PrettyTime : public PrettyUnits
-  {
-    public:
-      PrettyTime(double seconds = 0, unsigned precision = 3)
-      :
-	PrettyUnits(seconds, "s", precision)
-      {
-      }
-  };
+/// \brief Print time in a human-readable way
+class PrettyTime : public PrettyUnits {
+ public:
+  PrettyTime(double seconds = 0, unsigned precision = 3)
+      : PrettyUnits(seconds, "s", precision) {}
+};
 
-  /// \brief Print frequency in a human-readable way
-  class PrettyFrequency : public PrettyUnits
-  {
-    public:
-      PrettyFrequency(double frequency = 0, unsigned precision = 3)
-      :
-	PrettyUnits(frequency, "Hz", precision)
-      {
-      }
-  };
+/// \brief Print frequency in a human-readable way
+class PrettyFrequency : public PrettyUnits {
+ public:
+  PrettyFrequency(double frequency = 0, unsigned precision = 3)
+      : PrettyUnits(frequency, "Hz", precision) {}
+};
 
-}  // end namespace LOFAR
-
+}  // namespace DP3
 
 #endif

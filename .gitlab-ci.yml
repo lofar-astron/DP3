@@ -17,9 +17,8 @@ check-format:
     - apt-get -y install python3-pip
     - pip3 install clang-format==9.0.0
   script:
-    - echo "clang-format check not yet enabled"
     # Check formatting of header (*.h) and source (*.cc) files
-    # - ./scripts/clang-format-check.sh -i '*.h' -i '*.cc'
+    - ./scripts/clang-format-check.sh -i '*.h' -i '*.cc'
 
 build-lofar:
   stage: build

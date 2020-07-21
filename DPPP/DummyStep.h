@@ -31,48 +31,47 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
-    /// @brief DPPP step class to DummyStep visibilities from a source model
+namespace DPPP {
+/// @brief DPPP step class to DummyStep visibilities from a source model
 
-    /// This class is an empty DPStep subclass to use as implementation template
+/// This class is an empty DPStep subclass to use as implementation template
 
-    class DummyStep: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      DummyStep (DPInput*, const ParameterSet&, const string& prefix);
+class DummyStep : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  DummyStep(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~DummyStep();
+  virtual ~DummyStep();
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      DPInput*         itsInput;
-      string           itsName;
-      DPBuffer         itsBuffer;
+ private:
+  DPInput* itsInput;
+  string itsName;
+  DPBuffer itsBuffer;
 
-      NSTimer          itsTimer;
-    };
+  NSTimer itsTimer;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

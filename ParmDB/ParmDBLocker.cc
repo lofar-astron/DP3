@@ -27,26 +27,23 @@
 namespace DP3 {
 namespace BBS {
 
-  ParmDBLocker::ParmDBLocker (const ParmSet& parmSet, bool lockForWrite)
-    : itsDBs (parmSet.getDBs())
-  {
-    for (unsigned int i=0; i<itsDBs.size(); ++i) {
-      itsDBs[i]->lock (lockForWrite);
-    }
+ParmDBLocker::ParmDBLocker(const ParmSet& parmSet, bool lockForWrite)
+    : itsDBs(parmSet.getDBs()) {
+  for (unsigned int i = 0; i < itsDBs.size(); ++i) {
+    itsDBs[i]->lock(lockForWrite);
   }
+}
 
-  ParmDBLocker::ParmDBLocker (ParmDB& parmdb, bool lockForWrite)
-    : itsDBs (1, &parmdb)
-  {
-    parmdb.lock (lockForWrite);
+ParmDBLocker::ParmDBLocker(ParmDB& parmdb, bool lockForWrite)
+    : itsDBs(1, &parmdb) {
+  parmdb.lock(lockForWrite);
+}
+
+ParmDBLocker::~ParmDBLocker() {
+  for (unsigned int i = 0; i < itsDBs.size(); ++i) {
+    itsDBs[i]->unlock();
   }
+}
 
-  ParmDBLocker::~ParmDBLocker()
-  {
-    for (unsigned int i=0; i<itsDBs.size(); ++i) {
-      itsDBs[i]->unlock();
-    }
-  }
-
-} // end namespace BBS
-} // end namespace LOFAR
+}  // end namespace BBS
+}  // namespace DP3

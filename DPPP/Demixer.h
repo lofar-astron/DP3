@@ -43,169 +43,167 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
+namespace DPPP {
 
-    typedef std::vector<Patch::ConstPtr> PatchList;
+typedef std::vector<Patch::ConstPtr> PatchList;
 
-    /// @brief DPPP step class to subtract A-team sources
-    /// This class is a DPStep class to subtract the strong A-team sources.
-    /// It is based on the demixing.py script made by Bas vd Tol and operates
-    /// per time chunk as follows:
-    /// <ul>
-    ///  <li> The data are phase-shifted and averaged for each source.
-    ///  <li> Demixing is done using the combined results.
-    ///  <li> For each source a BBS solve, smooth, and predict is done.
-    ///  <li> The predicted results are subtracted from the averaged data.
-    /// </ul>
+/// @brief DPPP step class to subtract A-team sources
+/// This class is a DPStep class to subtract the strong A-team sources.
+/// It is based on the demixing.py script made by Bas vd Tol and operates
+/// per time chunk as follows:
+/// <ul>
+///  <li> The data are phase-shifted and averaged for each source.
+///  <li> Demixing is done using the combined results.
+///  <li> For each source a BBS solve, smooth, and predict is done.
+///  <li> The predicted results are subtracted from the averaged data.
+/// </ul>
 
-    class Demixer: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      Demixer (DPInput*, const ParameterSet&, const string& prefix);
+class Demixer : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  Demixer(DPInput*, const ParameterSet&, const string& prefix);
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the counts.
-      virtual void showCounts (std::ostream&) const;
+  /// Show the counts.
+  virtual void showCounts(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      /// Add the decorrelation factor contribution for each time slot.
-      void addFactors (const DPBuffer& newBuf,
-                       casacore::Array<casacore::DComplex>& factorBuf);
+ private:
+  /// Add the decorrelation factor contribution for each time slot.
+  void addFactors(const DPBuffer& newBuf,
+                  casacore::Array<casacore::DComplex>& factorBuf);
 
-      /// Calculate the decorrelation factors by averaging them.
-      /// Apply the P matrix to deproject the sources without a model.
-      void makeFactors (const casacore::Array<casacore::DComplex>& bufIn,
-                        casacore::Array<casacore::DComplex>& bufOut,
-                        const casacore::Cube<float>& weightSums,
-                        unsigned int nChanOut,
-                        unsigned int nChanAvg);
+  /// Calculate the decorrelation factors by averaging them.
+  /// Apply the P matrix to deproject the sources without a model.
+  void makeFactors(const casacore::Array<casacore::DComplex>& bufIn,
+                   casacore::Array<casacore::DComplex>& bufOut,
+                   const casacore::Cube<float>& weightSums,
+                   unsigned int nChanOut, unsigned int nChanAvg);
 
-      /// Do the demixing.
-      void handleDemix();
+  /// Do the demixing.
+  void handleDemix();
 
-      /// Deproject the sources without a model.
-      void deproject (casacore::Array<casacore::DComplex>& factors,
-                      std::vector<MultiResultStep*> avgResults,
-                      unsigned int resultIndex);
+  /// Deproject the sources without a model.
+  void deproject(casacore::Array<casacore::DComplex>& factors,
+                 std::vector<MultiResultStep*> avgResults,
+                 unsigned int resultIndex);
 
-      /// Solve gains and subtract sources.
-      void demix();
+  /// Solve gains and subtract sources.
+  void demix();
 
-      /// Export the solutions to a ParmDB.
-      void dumpSolutions();
+  /// Export the solutions to a ParmDB.
+  void dumpSolutions();
 
-      /// Merge the data of the selected baselines from the subtract buffer
-      /// into the full buffer.
-      void mergeSubtractResult();
+  /// Merge the data of the selected baselines from the subtract buffer
+  /// into the full buffer.
+  void mergeSubtractResult();
 
-      DPInput*                              itsInput;
-      string                                itsName;
-      DPBuffer                              itsBufTmp;
-      string                                itsSkyName;
-      string                                itsInstrumentName;
-      double                                itsDefaultGain;
-      size_t                                itsMaxIter;
-      BaselineSelection                     itsSelBL;
-      Filter                                itsFilter;
-      std::vector<PhaseShift*>                   itsPhaseShifts;
-      /// Phase shift and average steps for demix.
-      std::vector<DPStep::ShPtr>                 itsFirstSteps;
-      /// Result of phase shifting and averaging the directions of interest
-      /// at the demix resolution.
-      std::vector<MultiResultStep*>              itsAvgResults;
-      DPStep::ShPtr                         itsAvgStepSubtr;
-      Filter*                               itsFilterSubtr;
-      /// Result of averaging the target at the subtract resolution.
-      MultiResultStep*                      itsAvgResultFull;
-      MultiResultStep*                      itsAvgResultSubtr;
-      /// Ignore target in demixing?
-      bool                                  itsIgnoreTarget;
-      /// Name of the target. Empty if no model is available for the target.
-      string                                itsTargetSource;
-      std::vector<string>                        itsSubtrSources;
-      std::vector<string>                        itsModelSources;
-      std::vector<string>                        itsExtraSources;
-      std::vector<string>                        itsAllSources;
-//      std::vector<double>                        itsCutOffs;
-      bool                                  itsPropagateSolutions;
-      unsigned int                                  itsNDir;
-      unsigned int                                  itsNModel;
-      unsigned int                                  itsNStation;
-      unsigned int                                  itsNBl;
-      unsigned int                                  itsNCorr;
-      unsigned int                                  itsNChanIn;
-      unsigned int                                  itsNTimeIn;
-      unsigned int                                  itsNTimeDemix;
-      unsigned int                                  itsNChanAvgSubtr;
-      unsigned int                                  itsNTimeAvgSubtr;
-      unsigned int                                  itsNChanOutSubtr;
-      unsigned int                                  itsNTimeOutSubtr;
-      unsigned int                                  itsNTimeChunk;
-      unsigned int                                  itsNTimeChunkSubtr;
-      unsigned int                                  itsNChanAvg;
-      unsigned int                                  itsNTimeAvg;
-      unsigned int                                  itsNChanOut;
-      unsigned int                                  itsNTimeOut;
-      double                                itsTimeIntervalAvg;
+  DPInput* itsInput;
+  string itsName;
+  DPBuffer itsBufTmp;
+  string itsSkyName;
+  string itsInstrumentName;
+  double itsDefaultGain;
+  size_t itsMaxIter;
+  BaselineSelection itsSelBL;
+  Filter itsFilter;
+  std::vector<PhaseShift*> itsPhaseShifts;
+  /// Phase shift and average steps for demix.
+  std::vector<DPStep::ShPtr> itsFirstSteps;
+  /// Result of phase shifting and averaging the directions of interest
+  /// at the demix resolution.
+  std::vector<MultiResultStep*> itsAvgResults;
+  DPStep::ShPtr itsAvgStepSubtr;
+  Filter* itsFilterSubtr;
+  /// Result of averaging the target at the subtract resolution.
+  MultiResultStep* itsAvgResultFull;
+  MultiResultStep* itsAvgResultSubtr;
+  /// Ignore target in demixing?
+  bool itsIgnoreTarget;
+  /// Name of the target. Empty if no model is available for the target.
+  string itsTargetSource;
+  std::vector<string> itsSubtrSources;
+  std::vector<string> itsModelSources;
+  std::vector<string> itsExtraSources;
+  std::vector<string> itsAllSources;
+  //      std::vector<double>                        itsCutOffs;
+  bool itsPropagateSolutions;
+  unsigned int itsNDir;
+  unsigned int itsNModel;
+  unsigned int itsNStation;
+  unsigned int itsNBl;
+  unsigned int itsNCorr;
+  unsigned int itsNChanIn;
+  unsigned int itsNTimeIn;
+  unsigned int itsNTimeDemix;
+  unsigned int itsNChanAvgSubtr;
+  unsigned int itsNTimeAvgSubtr;
+  unsigned int itsNChanOutSubtr;
+  unsigned int itsNTimeOutSubtr;
+  unsigned int itsNTimeChunk;
+  unsigned int itsNTimeChunkSubtr;
+  unsigned int itsNChanAvg;
+  unsigned int itsNTimeAvg;
+  unsigned int itsNChanOut;
+  unsigned int itsNTimeOut;
+  double itsTimeIntervalAvg;
 
-      /// Accumulator used for computing the demixing weights at the demix
-      /// resolution. The shape of this buffer is #correlations x #channels
-      /// x #baselines x #directions x #directions (fastest axis first).
-      casacore::Array<casacore::DComplex>           itsFactorBuf;
-      /// Buffer of demixing weights at the demix resolution. Each Array is a
-      /// cube of shape #correlations x #channels x #baselines of matrices of
-      /// shape #directions x #directions.
-      std::vector<casacore::Array<casacore::DComplex> >  itsFactors;
+  /// Accumulator used for computing the demixing weights at the demix
+  /// resolution. The shape of this buffer is #correlations x #channels
+  /// x #baselines x #directions x #directions (fastest axis first).
+  casacore::Array<casacore::DComplex> itsFactorBuf;
+  /// Buffer of demixing weights at the demix resolution. Each Array is a
+  /// cube of shape #correlations x #channels x #baselines of matrices of
+  /// shape #directions x #directions.
+  std::vector<casacore::Array<casacore::DComplex> > itsFactors;
 
-      /// Accumulator used for computing the demixing weights. The shape of this
-      /// buffer is #correlations x #channels x #baselines x #directions
-      /// x #directions (fastest axis first).
-      casacore::Array<casacore::DComplex>           itsFactorBufSubtr;
-      /// Buffer of demixing weights at the subtract resolution. Each Array is a
-      /// cube of shape #correlations x #channels x #baselines of matrices of
-      /// shape #directions x #directions.
-      std::vector<casacore::Array<casacore::DComplex> >  itsFactorsSubtr;
+  /// Accumulator used for computing the demixing weights. The shape of this
+  /// buffer is #correlations x #channels x #baselines x #directions
+  /// x #directions (fastest axis first).
+  casacore::Array<casacore::DComplex> itsFactorBufSubtr;
+  /// Buffer of demixing weights at the subtract resolution. Each Array is a
+  /// cube of shape #correlations x #channels x #baselines of matrices of
+  /// shape #directions x #directions.
+  std::vector<casacore::Array<casacore::DComplex> > itsFactorsSubtr;
 
-      PatchList                             itsPatchList;
-      Position                              itsPhaseRef;
-      std::vector<Baseline>                      itsBaselines;
-      std::vector<int>                           itsUVWSplitIndex;
-      casacore::Vector<double>                  itsFreqDemix;
-      casacore::Vector<double>                  itsFreqSubtr;
-      std::vector<double>                        itsUnknowns;
-      std::vector<double>                        itsPrevSolution;
-      unsigned int                                  itsTimeIndex;
-      unsigned int                                  itsNConverged;
-      FlagCounter                           itsFlagCounter;
+  PatchList itsPatchList;
+  Position itsPhaseRef;
+  std::vector<Baseline> itsBaselines;
+  std::vector<int> itsUVWSplitIndex;
+  casacore::Vector<double> itsFreqDemix;
+  casacore::Vector<double> itsFreqSubtr;
+  std::vector<double> itsUnknowns;
+  std::vector<double> itsPrevSolution;
+  unsigned int itsTimeIndex;
+  unsigned int itsNConverged;
+  FlagCounter itsFlagCounter;
 
-      NSTimer                               itsTimer;
-      NSTimer                               itsTimerPhaseShift;
-      NSTimer                               itsTimerDemix;
-      NSTimer                               itsTimerSolve;
-      NSTimer                               itsTimerDump;
-    };
+  NSTimer itsTimer;
+  NSTimer itsTimerPhaseShift;
+  NSTimer itsTimerDemix;
+  NSTimer itsTimerSolve;
+  NSTimer itsTimerDump;
+};
 
-  } // end namespace
-} // end namespace
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

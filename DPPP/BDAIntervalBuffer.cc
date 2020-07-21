@@ -26,8 +26,7 @@
 namespace DP3 {
 namespace DPPP {
 
-BDAIntervalBuffer::BDAIntervalBuffer(const double time,
-                                     const double interval,
+BDAIntervalBuffer::BDAIntervalBuffer(const double time, const double interval,
                                      const double max_row_interval)
     : completeness_(Completeness::kIncomplete),
       time_(time),
@@ -69,7 +68,7 @@ void BDAIntervalBuffer::Advance(const double interval) {
   // Fill current_rows with rows from the existing buffers.
   // Also detect and remove buffers that only have old rows.
   auto buffer_it = buffers_.begin();
-  while(buffer_it != buffers_.end()) {
+  while (buffer_it != buffers_.end()) {
     bool buffer_is_old = true;
     for (const BDABuffer::Row& row : buffer_it->GetRows()) {
       // Check if the row interval overlaps the bda interval.
@@ -108,7 +107,8 @@ bool BDAIntervalBuffer::IsComplete() const {
   //
   // When all rows are checked, the interval is also not complete.
   for (auto buffer_it = buffers_.rbegin();
-       (buffer_it != buffers_.rend()) && (Completeness::kUnknown == completeness_);
+       (buffer_it != buffers_.rend()) &&
+       (Completeness::kUnknown == completeness_);
        ++buffer_it) {
     const std::vector<BDABuffer::Row>& rows = buffer_it->GetRows();
     for (auto row_it = rows.rbegin(); row_it != rows.rend(); ++row_it) {
@@ -130,8 +130,8 @@ bool BDAIntervalBuffer::IsComplete() const {
   return Completeness::kComplete == completeness_;
 }
 
-std::unique_ptr<BDABuffer>
-BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields& fields) const {
+std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
+    const BDABuffer::Fields& fields) const {
   // Count the number of elements in all current rows.
   std::size_t pool_size = 0;
   for (const BDABuffer::Row* row : current_rows_) {
@@ -142,19 +142,12 @@ BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields& fields) const {
   auto result = boost::make_unique<BDABuffer>(pool_size, fields);
   for (const BDABuffer::Row* row : current_rows_) {
     const double row_time = std::max(row->time_, time_);
-    const double row_interval = std::min(row->time_ + row->interval_,
-                                         time_ + interval_) - row_time;
-    const bool success = result->AddRow(row_time,
-                                        row_interval,
-                                        row->row_nr_,
-                                        row->baseline_nr_,
-                                        row->n_channels_,
-                                        row->n_correlations_,
-                                        row->data_,
-                                        row->flags_,
-                                        row->weights_,
-                                        row->full_res_flags_,
-                                        row->uvw_);
+    const double row_interval =
+        std::min(row->time_ + row->interval_, time_ + interval_) - row_time;
+    const bool success = result->AddRow(
+        row_time, row_interval, row->row_nr_, row->baseline_nr_,
+        row->n_channels_, row->n_correlations_, row->data_, row->flags_,
+        row->weights_, row->full_res_flags_, row->uvw_);
     (void)success;
     assert(success);
 
@@ -174,5 +167,5 @@ BDAIntervalBuffer::GetBuffer(const BDABuffer::Fields& fields) const {
   return result;
 }
 
-} // namespace DPPP
-} // namespace DP3
+}  // namespace DPPP
+}  // namespace DP3

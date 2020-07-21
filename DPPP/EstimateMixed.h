@@ -35,10 +35,8 @@
 
 #include <vector>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// Estimate Jones matrices for several directions simultaneously. A separate
 /// data stream is used for each direction. The mixing coefficients quantify the
@@ -73,10 +71,12 @@ namespace DPPP
 /// \param[in]   unknowns
 /// A pointer to a buffer of unknowns of size nDirection * nStation * 8.
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
-    size_t nChannel, const_cursor<Baseline> baselines,
-    std::vector<const_cursor<fcomplex> > data, std::vector<const_cursor<dcomplex> > model,
-    const_cursor<bool> flag, const_cursor<float> weight,
-    const_cursor<dcomplex> mix, double *unknowns, size_t maxiter=50);
+              size_t nChannel, const_cursor<Baseline> baselines,
+              std::vector<const_cursor<fcomplex> > data,
+              std::vector<const_cursor<dcomplex> > model,
+              const_cursor<bool> flag, const_cursor<float> weight,
+              const_cursor<dcomplex> mix, double* unknowns,
+              size_t maxiter = 50);
 
 /// Estimate for a variable nr of stations per source.
 bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
@@ -84,13 +84,11 @@ bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
                  std::vector<const_cursor<fcomplex> > data,
                  std::vector<const_cursor<dcomplex> > model,
                  const_cursor<bool> flag, const_cursor<float> weight,
-                 const_cursor<dcomplex> mix, double *unknowns,
-                 size_t nUnknowns,
+                 const_cursor<dcomplex> mix, double* unknowns, size_t nUnknowns,
                  std::vector<dcomplex>& M, std::vector<dcomplex>& dM,
                  std::vector<double>& dR, std::vector<double>& dI);
 
-
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

@@ -24,7 +24,7 @@
 #include "DPLogger.h"
 
 namespace DP3 {
-  namespace DPPP {
-    bool DPLogger::useLogger = false;
-  }
+namespace DPPP {
+bool DPLogger::useLogger = false;
 }
+}  // namespace DP3

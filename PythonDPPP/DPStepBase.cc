@@ -31,10 +31,10 @@
 // and thereafter used to create a PythonStep.
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
-    // Define the static.
-    DPStepBase* DPStepBase::theirPtr=0;
+// Define the static.
+DPStepBase* DPStepBase::theirPtr = 0;
 
-  }
-}
+}  // namespace DPPP
+}  // namespace DP3

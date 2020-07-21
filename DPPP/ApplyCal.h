@@ -33,94 +33,92 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
+namespace DPPP {
 
-    /// \brief DPPP step class to ApplyCal visibilities from a source model
+/// \brief DPPP step class to ApplyCal visibilities from a source model
 
-    /// This class is a DPStep class to apply multiple ParmDB or H5Parm
-    /// solutions to data.
+/// This class is a DPStep class to apply multiple ParmDB or H5Parm
+/// solutions to data.
 
-    class ApplyCal: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      ApplyCal (DPInput*, const ParameterSet&, const string& prefix,
-                bool substep=false, std::string predictDirection="");
+class ApplyCal : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  ApplyCal(DPInput*, const ParameterSet&, const string& prefix,
+           bool substep = false, std::string predictDirection = "");
 
-      ApplyCal () = default;
+  ApplyCal() = default;
 
-      virtual ~ApplyCal() = default;
+  virtual ~ApplyCal() = default;
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer& buffer);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer& buffer);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Set the next step. It squeezes in the actual OneApplyCal steps
-      /// between this ApplyCal step and the next step.
-      virtual void setNextStep (DPStep::ShPtr nextStep);
+  /// Set the next step. It squeezes in the actual OneApplyCal steps
+  /// between this ApplyCal step and the next step.
+  virtual void setNextStep(DPStep::ShPtr nextStep);
 
-      /// Show the step. When ApplyCal is a step in the main chain, this does
-      /// nothing; the nextStep mechanism in DPRun will call show on the actual
-      /// OneApplyCals.
-      virtual void show(std::ostream&) const;
+  /// Show the step. When ApplyCal is a step in the main chain, this does
+  /// nothing; the nextStep mechanism in DPRun will call show on the actual
+  /// OneApplyCals.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings. When ApplyCal is a step in the main chain, this does
-      /// nothing; the nextStep mechanism in DPRun will call show on the actual
-      /// OneApplyCals.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings. When ApplyCal is a step in the main chain, this does
+  /// nothing; the nextStep mechanism in DPRun will call show on the actual
+  /// OneApplyCals.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-      /// Invert a 2x2 matrix in place
-      static void invert (casacore::DComplex* v, double sigmaMMSE=0);
+  /// Invert a 2x2 matrix in place
+  static void invert(casacore::DComplex* v, double sigmaMMSE = 0);
 
-      /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyDiag (const casacore::DComplex* gainA,
-                             const casacore::DComplex* gainB,
-                             casacore::Complex* vis, float* weight, bool* flag,
-                             unsigned int bl, unsigned int chan, bool updateWeights,
-                             FlagCounter& flagCounter);
+  /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
+  static void applyDiag(const casacore::DComplex* gainA,
+                        const casacore::DComplex* gainB, casacore::Complex* vis,
+                        float* weight, bool* flag, unsigned int bl,
+                        unsigned int chan, bool updateWeights,
+                        FlagCounter& flagCounter);
 
-      /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
-      /// where the solution is equal for both polarizations
-      static void applyScalar(const casacore::DComplex* gainA,
-                              const casacore::DComplex* gainB,
-                              casacore::Complex* vis, float* weight, bool* flag,
-                              unsigned int bl, unsigned int chan, bool updateWeights,
-                              FlagCounter& flagCounter);
+  /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
+  /// where the solution is equal for both polarizations
+  static void applyScalar(const casacore::DComplex* gainA,
+                          const casacore::DComplex* gainB,
+                          casacore::Complex* vis, float* weight, bool* flag,
+                          unsigned int bl, unsigned int chan,
+                          bool updateWeights, FlagCounter& flagCounter);
 
-      /// Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-      static void applyFull (const casacore::DComplex* gainA,
-                             const casacore::DComplex* gainB,
-                             casacore::Complex* vis, float* weight, bool* flag,
-                             unsigned int bl, unsigned int chan, bool updateWeights,
-                             FlagCounter& flagCounter);
+  /// Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
+  static void applyFull(const casacore::DComplex* gainA,
+                        const casacore::DComplex* gainB, casacore::Complex* vis,
+                        float* weight, bool* flag, unsigned int bl,
+                        unsigned int chan, bool updateWeights,
+                        FlagCounter& flagCounter);
 
-      /// Do the same as the combination of BBS + python script
-      /// covariance2weight.py (cookbook), except it stores weights per freq.
-      /// The diagonal of covariance matrix is transferred to the weights.
-      /// Note that the real covariance (mixing of noise terms after which they
-      /// are not independent anymore) is not stored.
-      /// The input covariance matrix C is assumed to be diagonal with elements
-      /// w_i (the weights), the result the diagonal of
-      /// (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-      static void applyWeights (const casacore::DComplex* gainA,
-                                const casacore::DComplex* gainB,
-                                float* weight);
+  /// Do the same as the combination of BBS + python script
+  /// covariance2weight.py (cookbook), except it stores weights per freq.
+  /// The diagonal of covariance matrix is transferred to the weights.
+  /// Note that the real covariance (mixing of noise terms after which they
+  /// are not independent anymore) is not stored.
+  /// The input covariance matrix C is assumed to be diagonal with elements
+  /// w_i (the weights), the result the diagonal of
+  /// (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
+  static void applyWeights(const casacore::DComplex* gainA,
+                           const casacore::DComplex* gainB, float* weight);
 
-    private:
-      bool             itsIsSubstep;
-      string           itsName;
+ private:
+  bool itsIsSubstep;
+  string itsName;
 
-      std::vector<OneApplyCal::ShPtr> itsApplyCals;
-    };
+  std::vector<OneApplyCal::ShPtr> itsApplyCals;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

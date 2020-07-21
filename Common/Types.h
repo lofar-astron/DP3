@@ -28,12 +28,13 @@
 
 namespace DP3 {
 
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
-  typedef unsigned int rownr_t;
+#if CASACORE_MAJOR_VERSION < 3 || \
+    (CASACORE_MAJOR_VERSION == 3 && CASACORE_MINOR_VERSION < 4)
+typedef unsigned int rownr_t;
 #else
-  typedef casacore::rownr_t rownr_t;
+typedef casacore::rownr_t rownr_t;
 #endif
 
-}
+}  // namespace DP3
 
 #endif

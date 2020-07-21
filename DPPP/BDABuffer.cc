@@ -24,17 +24,11 @@
 namespace DP3 {
 namespace DPPP {
 
-BDABuffer::Row::Row(double time,
-                    double interval,
-                    rownr_t row_nr,
-                    std::size_t baseline_nr,
-                    std::size_t n_channels,
-                    std::size_t n_correlations,
-                    std::complex<float>* data,
-                    bool* flags,
-                    float* weights,
-                    bool* full_res_flags,
-                    const double *const uvw)
+BDABuffer::Row::Row(double time, double interval, rownr_t row_nr,
+                    std::size_t baseline_nr, std::size_t n_channels,
+                    std::size_t n_correlations, std::complex<float>* data,
+                    bool* flags, float* weights, bool* full_res_flags,
+                    const double* const uvw)
     : time_(time),
       interval_(interval),
       row_nr_(row_nr),
@@ -45,12 +39,11 @@ BDABuffer::Row::Row(double time,
       flags_(flags),
       weights_(weights),
       full_res_flags_(full_res_flags),
-      uvw_{ uvw ? uvw[0] : std::numeric_limits<double>::quiet_NaN(),
-            uvw ? uvw[1] : std::numeric_limits<double>::quiet_NaN(),
-            uvw ? uvw[2] : std::numeric_limits<double>::quiet_NaN() } {}
+      uvw_{uvw ? uvw[0] : std::numeric_limits<double>::quiet_NaN(),
+           uvw ? uvw[1] : std::numeric_limits<double>::quiet_NaN(),
+           uvw ? uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
 
-BDABuffer::BDABuffer(const std::size_t pool_size,
-                     const Fields& fields)
+BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
     : data_(),
       flags_(),
       weights_(),
@@ -90,17 +83,9 @@ BDABuffer::BDABuffer(const BDABuffer& other)
   auto* full_res_flags_ptr = full_res_flags_.data();
   rows_.reserve(other.rows_.size());
   for (const BDABuffer::Row& row : other.rows_) {
-    rows_.emplace_back(row.time_,
-                       row.interval_,
-                       row.row_nr_,
-                       row.baseline_nr_,
-                       row.n_channels_,
-                       row.n_correlations_,
-                       data_ptr,
-                       flags_ptr,
-                       weights_ptr,
-                       full_res_flags_ptr,
-                       row.uvw_);
+    rows_.emplace_back(row.time_, row.interval_, row.row_nr_, row.baseline_nr_,
+                       row.n_channels_, row.n_correlations_, data_ptr,
+                       flags_ptr, weights_ptr, full_res_flags_ptr, row.uvw_);
     const std::size_t data_size = row.n_channels_ * row.n_correlations_;
     data_ptr += data_size;
     flags_ptr += data_size;
@@ -123,15 +108,11 @@ std::size_t BDABuffer::GetNumberOfElements() const {
   return original_capacity_ - remaining_capacity_;
 }
 
-bool BDABuffer::AddRow(double time,
-                       double interval,
-                       rownr_t row_nr,
-                       std::size_t baseline_nr,
-                       std::size_t n_channels,
+bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
+                       std::size_t baseline_nr, std::size_t n_channels,
                        std::size_t n_correlations,
                        const std::complex<float>* const data,
-                       const bool* const flags,
-                       const float* const weights,
+                       const bool* const flags, const float* const weights,
                        const bool* const full_res_flags,
                        const double* const uvw) {
   if (!rows_.empty() && TimeIsLessEqual(time + interval, rows_.back().time_)) {
@@ -152,7 +133,7 @@ bool BDABuffer::AddRow(double time,
       data_.insert(data_.end(), data, data + data_size);
     } else {
       const float kNaN = std::numeric_limits<float>::quiet_NaN();
-      data_.insert(data_.end(), data_size, { kNaN, kNaN });
+      data_.insert(data_.end(), data_size, {kNaN, kNaN});
     }
   }
   if (flags_.capacity() > 0) {
@@ -175,26 +156,17 @@ bool BDABuffer::AddRow(double time,
   if (full_res_flags_.capacity() > 0) {
     row_full_res_flags = full_res_flags_.end();
     if (full_res_flags) {
-      full_res_flags_.insert(full_res_flags_.end(),
-                             full_res_flags,
+      full_res_flags_.insert(full_res_flags_.end(), full_res_flags,
                              full_res_flags + data_size);
     } else {
       full_res_flags_.insert(full_res_flags_.end(), data_size, false);
     }
   }
-  rows_.emplace_back(time,
-                     interval,
-                     row_nr,
-                     baseline_nr,
-                     n_channels,
-                     n_correlations,
-                     row_data,
-                     row_flags,
-                     row_weights,
-                     row_full_res_flags,
-                     uvw);
+  rows_.emplace_back(time, interval, row_nr, baseline_nr, n_channels,
+                     n_correlations, row_data, row_flags, row_weights,
+                     row_full_res_flags, uvw);
   return true;
 }
 
-} // namespace DPPP
-} // namespace DP3
+}  // namespace DPPP
+}  // namespace DP3

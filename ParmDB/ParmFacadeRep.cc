@@ -23,10 +23,9 @@
 #include "ParmFacadeRep.h"
 
 namespace DP3 {
-  namespace BBS {
+namespace BBS {
 
-    ParmFacadeRep::~ParmFacadeRep()
-    {}
+ParmFacadeRep::~ParmFacadeRep() {}
 
-  } // namespace ParmDB
-} // namespace LOFAR
+}  // namespace BBS
+}  // namespace DP3

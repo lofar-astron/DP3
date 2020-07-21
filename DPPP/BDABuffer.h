@@ -41,31 +41,23 @@ class BDABuffer {
   struct Fields {
     /**
      * This constructor is necessary because of bugs in gcc and clang.
-     * See https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
+     * See
+     * https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
      */
-    Fields(){}
-    bool data_ = true; ///< Enable/Disable visibilities.
-    bool flags_ = true; ///< Enable/Disable flags.
-    bool weights_ = true; ///< Enable/Disable weights.
-    bool full_res_flags_ = true; ///< Enable/Disable full res flags.
+    Fields() {}
+    bool data_ = true;            ///< Enable/Disable visibilities.
+    bool flags_ = true;           ///< Enable/Disable flags.
+    bool weights_ = true;         ///< Enable/Disable weights.
+    bool full_res_flags_ = true;  ///< Enable/Disable full res flags.
   };
   struct Row {
-    Row(double time,
-        double interval,
-        rownr_t row_nr,
-        std::size_t baseline_nr,
-        std::size_t n_channels,
-        std::size_t n_correlations,
-        std::complex<float>* data,
-        bool* flags,
-        float* weights,
-        bool* fullResFlags,
-        const double* uvw);
-    std::size_t GetDataSize() const {
-      return n_channels_ * n_correlations_;
-    }
-    const double time_; ///< Start time for the measurements in MJD seconds.
-    const double interval_; ///< Duration time for the measurements in seconds.
+    Row(double time, double interval, rownr_t row_nr, std::size_t baseline_nr,
+        std::size_t n_channels, std::size_t n_correlations,
+        std::complex<float>* data, bool* flags, float* weights,
+        bool* fullResFlags, const double* uvw);
+    std::size_t GetDataSize() const { return n_channels_ * n_correlations_; }
+    const double time_;  ///< Start time for the measurements in MJD seconds.
+    const double interval_;  ///< Duration time for the measurements in seconds.
     const rownr_t row_nr_;
     const std::size_t baseline_nr_;
     const std::size_t n_channels_;
@@ -104,15 +96,11 @@ class BDABuffer {
    *         False if the buffer is full.
    * @throw std::invalid_argument If the row ordering is incorrect.
    */
-  bool AddRow(double time,
-              double interval,
-              rownr_t row_nr,
-              std::size_t baseline_nr,
-              std::size_t n_channels,
+  bool AddRow(double time, double interval, rownr_t row_nr,
+              std::size_t baseline_nr, std::size_t n_channels,
               std::size_t n_correlations,
               const std::complex<float>* data = nullptr,
-              const bool* flags = nullptr,
-              const float* weights = nullptr,
+              const bool* flags = nullptr, const float* weights = nullptr,
               const bool* full_res_flags = nullptr,
               const double* uvw = nullptr);
   /**
@@ -136,48 +124,30 @@ class BDABuffer {
   const bool* GetFlags() const {
     return flags_.empty() ? nullptr : flags_.data();
   }
-  bool* GetFlags() {
-    return flags_.empty() ? nullptr : flags_.data();
-  }
+  bool* GetFlags() { return flags_.empty() ? nullptr : flags_.data(); }
   const float* GetWeights() const {
     return weights_.empty() ? nullptr : weights_.data();
   }
-  float* GetWeights() {
-    return weights_.empty() ? nullptr : weights_.data();
-  }
+  float* GetWeights() { return weights_.empty() ? nullptr : weights_.data(); }
   const bool* GetFullResFlags() const {
     return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
   }
   bool* GetFullResFlags() {
     return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
   }
-  const std::complex<float>* GetData(std::size_t row)  const {
+  const std::complex<float>* GetData(std::size_t row) const {
     return rows_[row].data_;
   }
-  std::complex<float>* GetData(std::size_t row) {
-    return rows_[row].data_;
-  }
-  const bool* GetFlags(std::size_t row) const {
-    return rows_[row].flags_;
-  }
-  bool* GetFlags(std::size_t row) {
-    return rows_[row].flags_;
-  }
-  const float* GetWeights(std::size_t row) const {
-    return rows_[row].weights_;
-  }
-  float* GetWeights(std::size_t row) {
-    return rows_[row].weights_;
-  }
+  std::complex<float>* GetData(std::size_t row) { return rows_[row].data_; }
+  const bool* GetFlags(std::size_t row) const { return rows_[row].flags_; }
+  bool* GetFlags(std::size_t row) { return rows_[row].flags_; }
+  const float* GetWeights(std::size_t row) const { return rows_[row].weights_; }
+  float* GetWeights(std::size_t row) { return rows_[row].weights_; }
   const bool* GetFullResFlags(std::size_t row) const {
     return rows_[row].full_res_flags_;
   }
-  bool* GetFullResFlags(std::size_t row) {
-    return rows_[row].full_res_flags_;
-  }
-  const std::vector<Row>& GetRows() const {
-    return rows_;
-  }
+  bool* GetFullResFlags(std::size_t row) { return rows_[row].full_res_flags_; }
+  const std::vector<Row>& GetRows() const { return rows_; }
 
   static constexpr bool TimeIsLess(double x, double y) {
     return x < (y - kTimeEpsilon);
@@ -194,7 +164,8 @@ class BDABuffer {
   }
 
  private:
-  static constexpr double kTimeEpsilon = 1.0e-8; // For comparing measurement timestamps.
+  static constexpr double kTimeEpsilon =
+      1.0e-8;  // For comparing measurement timestamps.
 
   /// Memory pools for the data in the rows. Since std::vector<bool>
   /// does not support pointers to its elements, use ao::uvector instead.
@@ -206,11 +177,11 @@ class BDABuffer {
   /// @}
   /// The rows, which contain iterators to the memory pools above.
   std::vector<Row> rows_;
-  std::size_t original_capacity_; ///< Original capacity (number of items)
-  std::size_t remaining_capacity_; ///< Remaining capacity (number of items)
+  std::size_t original_capacity_;   ///< Original capacity (number of items)
+  std::size_t remaining_capacity_;  ///< Remaining capacity (number of items)
 };
 
-} // namespace DPPP
-} // namespace DP3
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

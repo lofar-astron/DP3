@@ -57,158 +57,161 @@ class FacetPredict;
 
 namespace DP3 {
 
-  class ParameterSet;
-	class ThreadPool;
+class ParameterSet;
+class ThreadPool;
 
-  namespace DPPP {
+namespace DPPP {
 
-    typedef std::vector<Patch::ConstPtr> PatchList;
-    typedef std::pair<size_t, size_t> Baseline;
+typedef std::vector<Patch::ConstPtr> PatchList;
+typedef std::pair<size_t, size_t> Baseline;
 
-    /// @brief This class is a DPStep class to calibrate (direction independent) gains.
-    class DDECal: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      DDECal (DPInput*, const ParameterSet&, const std::string& prefix);
+/// @brief This class is a DPStep class to calibrate (direction independent)
+/// gains.
+class DDECal : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  DDECal(DPInput*, const ParameterSet&, const std::string& prefix);
 
-      virtual ~DDECal();
+  virtual ~DDECal();
 
-      /// Create an DDECal object using the given parset.
-      static DPStep::ShPtr makeStep (DPInput*, const ParameterSet&,
-                                     const std::string&);
+  /// Create an DDECal object using the given parset.
+  static DPStep::ShPtr makeStep(DPInput*, const ParameterSet&,
+                                const std::string&);
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      void checkMinimumVisibilities();
+  void checkMinimumVisibilities();
 
-      void flagChannelBlock(size_t cbIndex);
+  void flagChannelBlock(size_t cbIndex);
 
-      /// Call the actual solver (called once per solution interval)
-      void doSolve();
+  /// Call the actual solver (called once per solution interval)
+  void doSolve();
 
-      /// Initialize H5parm-file
-      void initH5parm();
+  /// Initialize H5parm-file
+  void initH5parm();
 
-      /// Write out the solutions
-      void writeSolutions();
+  /// Write out the solutions
+  void writeSolutions();
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      void initializeConstraints(const ParameterSet& parset, const string& prefix);
-      void initializeIDG(const ParameterSet& parset, const string& prefix);
-      void initializePredictSteps(const ParameterSet& parset, const string& prefix);
+ private:
+  void initializeConstraints(const ParameterSet& parset, const string& prefix);
+  void initializeIDG(const ParameterSet& parset, const string& prefix);
+  void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
-      /// Initialize solutions
-      void initializeScalarSolutions();
+  /// Initialize solutions
+  void initializeScalarSolutions();
 
-      void initializeFullMatrixSolutions();
+  void initializeFullMatrixSolutions();
 
-      /// Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
-      /// Used for setting source names.
-      std::vector<std::string> getDirectionNames();
+  /// Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
+  /// Used for setting source names.
+  std::vector<std::string> getDirectionNames();
 
-      void subtractCorrectedModel(bool fullJones);
-      
-      void idgCallback(size_t row, size_t direction, size_t dataDescId, const std::complex<float>* values);
+  void subtractCorrectedModel(bool fullJones);
 
-      DPInput*         itsInput;
-      std::string      itsName;
-      std::vector<DPBuffer> itsBufs;
-      std::vector<casacore::Cube<bool>> itsOriginalFlags;
-      std::vector<casacore::Cube<float>> itsOriginalWeights;
+  void idgCallback(size_t row, size_t direction, size_t dataDescId,
+                   const std::complex<float>* values);
 
-      bool itsUseModelColumn;
-      std::vector<casacore::Cube<casacore::Complex>> itsModelData;
+  DPInput* itsInput;
+  std::string itsName;
+  std::vector<DPBuffer> itsBufs;
+  std::vector<casacore::Cube<bool>> itsOriginalFlags;
+  std::vector<casacore::Cube<float>> itsOriginalWeights;
 
-      /// The time of the current buffer (in case of solint, average time)
-      double           itsAvgTime;
-      std::vector<casacore::Complex*> itsDataPtrs;
-      std::vector<float*> itsWeightPtrs;
+  bool itsUseModelColumn;
+  std::vector<casacore::Cube<casacore::Complex>> itsModelData;
 
-      /// For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
-      std::vector<std::vector<casacore::Complex*> > itsModelDataPtrs;
-      
-      std::vector<std::vector<std::vector<casacore::Complex>>> itsIDGBuffers;
+  /// The time of the current buffer (in case of solint, average time)
+  double itsAvgTime;
+  std::vector<casacore::Complex*> itsDataPtrs;
+  std::vector<float*> itsWeightPtrs;
 
-      /// For each time, for each channel block, a vector of size nAntennas * nDirections
-      std::vector<std::vector<std::vector<casacore::DComplex> > > itsSols;
-      std::vector<size_t>
-        itsNIter, // Number of iterations taken
-        itsNApproxIter;
+  /// For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
+  std::vector<std::vector<casacore::Complex*>> itsModelDataPtrs;
 
-      /// For each time, for each constraint, a vector of results (e.g. tec and phase)
-      std::vector<std::vector<std::vector<Constraint::Result> > > itsConstraintSols;
+  std::vector<std::vector<std::vector<casacore::Complex>>> itsIDGBuffers;
 
-      std::string      itsH5ParmName;
-      H5Parm           itsH5Parm;
-      std::string      itsParsetString; ///< Parset, for logging in H5Parm
+  /// For each time, for each channel block, a vector of size nAntennas *
+  /// nDirections
+  std::vector<std::vector<std::vector<casacore::DComplex>>> itsSols;
+  std::vector<size_t> itsNIter,  // Number of iterations taken
+      itsNApproxIter;
 
-      GainCal::CalType itsMode;
-      bool itsPropagateSolutions;
-      bool itsPropagateConvergedOnly;
-      bool itsFlagUnconverged;
-      bool itsFlagDivergedOnly;
-      bool itsUseIDG;
-      bool itsOnlyPredict;
-      size_t itsTimeStep;
-      size_t itsSolInt;
-      double itsMinVisRatio;
-      size_t itsStepInSolInt;
-      size_t itsNChan;
-      /// For each channel block, the nr of unflagged vis and the total nr of vis.
-      std::vector<std::pair<size_t, size_t>> itsVisInInterval;
-      /// For each channel block, the index in the channels at which this channel block starts.
-      std::vector<size_t> itsChanBlockStart;
-      std::vector<double> itsChanBlockFreqs;
-      /// For each direction, a vector of patches.
-      std::vector<std::vector<string> > itsDirections;
-      std::vector<std::unique_ptr<Constraint> > itsConstraints;
+  /// For each time, for each constraint, a vector of results (e.g. tec and
+  /// phase)
+  std::vector<std::vector<std::vector<Constraint::Result>>> itsConstraintSols;
 
-      std::vector<double>   itsWeightsPerAntenna;
+  std::string itsH5ParmName;
+  H5Parm itsH5Parm;
+  std::string itsParsetString;  ///< Parset, for logging in H5Parm
 
-      UVWFlagger       itsUVWFlagStep;
-      /// Result step for data after UV-flagging
-      ResultStep::ShPtr itsDataResultStep;
-      std::vector<Predict>     itsPredictSteps;
-      /// For each directions, a multiresultstep with all times.
-      std::vector<MultiResultStep::ShPtr> itsResultSteps;
+  GainCal::CalType itsMode;
+  bool itsPropagateSolutions;
+  bool itsPropagateConvergedOnly;
+  bool itsFlagUnconverged;
+  bool itsFlagDivergedOnly;
+  bool itsUseIDG;
+  bool itsOnlyPredict;
+  size_t itsTimeStep;
+  size_t itsSolInt;
+  double itsMinVisRatio;
+  size_t itsStepInSolInt;
+  size_t itsNChan;
+  /// For each channel block, the nr of unflagged vis and the total nr of vis.
+  std::vector<std::pair<size_t, size_t>> itsVisInInterval;
+  /// For each channel block, the index in the channels at which this channel
+  /// block starts.
+  std::vector<size_t> itsChanBlockStart;
+  std::vector<double> itsChanBlockFreqs;
+  /// For each direction, a vector of patches.
+  std::vector<std::vector<string>> itsDirections;
+  std::vector<std::unique_ptr<Constraint>> itsConstraints;
 
-      NSTimer          itsTimer;
-      NSTimer          itsTimerPredict;
-      NSTimer          itsTimerSolve;
-      NSTimer          itsTimerWrite;
-      double           itsCoreConstraint;
-      std::vector<std::set<std::string>> itsAntennaConstraint;
-      double           itsSmoothnessConstraint;
-      double           itsScreenCoreConstraint;
-      MultiDirSolver   itsMultiDirSolver;
-      bool itsFullMatrixMinimalization;
-      bool itsApproximateTEC;
-			bool itsSubtract;
-      bool itsSaveFacets;
-      std::string itsStatFilename;
-			std::unique_ptr<ThreadPool> itsThreadPool;
-      std::unique_ptr<FacetPredict> itsFacetPredictor;
-      std::unique_ptr<std::ofstream> itsStatStream;
-    };
+  std::vector<double> itsWeightsPerAntenna;
 
-  } // end namespace
-}
+  UVWFlagger itsUVWFlagStep;
+  /// Result step for data after UV-flagging
+  ResultStep::ShPtr itsDataResultStep;
+  std::vector<Predict> itsPredictSteps;
+  /// For each directions, a multiresultstep with all times.
+  std::vector<MultiResultStep::ShPtr> itsResultSteps;
+
+  NSTimer itsTimer;
+  NSTimer itsTimerPredict;
+  NSTimer itsTimerSolve;
+  NSTimer itsTimerWrite;
+  double itsCoreConstraint;
+  std::vector<std::set<std::string>> itsAntennaConstraint;
+  double itsSmoothnessConstraint;
+  double itsScreenCoreConstraint;
+  MultiDirSolver itsMultiDirSolver;
+  bool itsFullMatrixMinimalization;
+  bool itsApproximateTEC;
+  bool itsSubtract;
+  bool itsSaveFacets;
+  std::string itsStatFilename;
+  std::unique_ptr<ThreadPool> itsThreadPool;
+  std::unique_ptr<FacetPredict> itsFacetPredictor;
+  std::unique_ptr<std::ofstream> itsStatStream;
+};
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

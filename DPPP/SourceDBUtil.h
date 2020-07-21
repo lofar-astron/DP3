@@ -29,37 +29,34 @@
 
 #include <vector>
 
-namespace DP3
-{
-namespace BBS
-{
+namespace DP3 {
+namespace BBS {
 class SourceDB;
 }
 
-namespace DPPP
-{
+namespace DPPP {
 
-  std::vector<Patch::ConstPtr> makePatches(BBS::SourceDB &sourceDB,
-                                      const std::vector<std::string> &patchNames,
-                                      unsigned int nModel);
+std::vector<Patch::ConstPtr> makePatches(
+    BBS::SourceDB &sourceDB, const std::vector<std::string> &patchNames,
+    unsigned int nModel);
 
-  /// Create a source list (with patch name) from a patchlist
-  /// Needed for efficient multithreading
-  std::vector<std::pair<ModelComponent::ConstPtr,Patch::ConstPtr> >
-  makeSourceList (const std::vector<Patch::ConstPtr>& patchList);
+/// Create a source list (with patch name) from a patchlist
+/// Needed for efficient multithreading
+std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> >
+makeSourceList(const std::vector<Patch::ConstPtr> &patchList);
 
-  /// From a given PatchList, create a new one with one patch per component
-  std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
-      const std::vector<Patch::ConstPtr>&);
+/// From a given PatchList, create a new one with one patch per component
+std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
+    const std::vector<Patch::ConstPtr> &);
 
-  std::vector<std::string>  makePatchList(BBS::SourceDB &sourceDB,
-                                std::vector<std::string> patterns);
+std::vector<std::string> makePatchList(BBS::SourceDB &sourceDB,
+                                       std::vector<std::string> patterns);
 
-  bool checkPolarized(BBS::SourceDB &sourceDB,
-                      const std::vector<std::string> &patchNames,
-                      unsigned int nModel);
+bool checkPolarized(BBS::SourceDB &sourceDB,
+                    const std::vector<std::string> &patchNames,
+                    unsigned int nModel);
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif
