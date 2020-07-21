@@ -264,7 +264,7 @@ class PhaseFitter
 	 */
   static double TEC2ModelFuncWrapped(double nu, double alpha, double beta)
   {
-     return fmod(alpha / nu + beta, 2.0*M_PI);
+    return fmod(alpha / nu + beta, 2.0*M_PI);
   }
   
   double FitDataToTEC1ModelWithInitialValues(double& alpha)

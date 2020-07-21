@@ -173,7 +173,7 @@ void ScreenConstraint::CalculatePiercepoints(){
       avgTEC/=nrch;
     /*
     double mydelay=0;
-    for(size_t ch=0;ch<_nChannelBlocks; ++ch){
+    for(size_t ch=0;ch<_nChannelBlocks; ++ch) {
       double refphase=std::arg(solutions[ch][dirIndex]);
       double wavelength=freqtolambda/itsFrequencies[ch]
       //TODO: more advance frequency averaging...
@@ -197,12 +197,12 @@ void ScreenConstraint::CalculatePiercepoints(){
       avgTEC = 0.0;
       phfit.FitTEC2ModelParameters(avgTEC,offset);
       error=phfit.TEC2ModelCost(avgTEC,offset);
-     }
+    }
     else {
       avgTEC=itsprevsol[solutionIndex]*TECtoph;
       phfit.FitTEC2ModelParameters(avgTEC,offset);
       error=phfit.TEC2ModelCost(avgTEC,offset);
-     }
+    }
     
     avgTEC*=phtoTEC;
   }
