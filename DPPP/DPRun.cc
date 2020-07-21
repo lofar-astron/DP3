@@ -1,25 +1,25 @@
-//# DPRun.cc: Class to run steps like averaging and flagging on an MS
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id$
-//#
-//# @author Ger van Diepen
+// DPRun.cc: Class to run steps like averaging and flagging on an MS
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id$
+//
+// @author Ger van Diepen
 
 #include "DPRun.h"
 
@@ -120,7 +120,7 @@ namespace DP3 {
         parset.adoptFile (parsetName);
       }
       // Adopt possible parameters given at the command line.
-      parset.adoptArgv (argc, argv); //# works fine if argc==0 and argv==0
+      parset.adoptArgv (argc, argv); ///< works fine if argc==0 and argv==0
       DPLogger::useLogger = parset.getBool ("uselogger", false);
       bool showProgress   = parset.getBool ("showprogress", true);
       bool showTimings    = parset.getBool ("showtimings", true);
@@ -339,25 +339,12 @@ namespace DP3 {
           step = DPStep::ShPtr(new Counter (reader, parset, prefix));
         } else if (type == "phaseshifter"  ||  type == "phaseshift") {
           step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
-#ifdef HAVE_LOFAR_BEAM
         } else if (type == "demixer"  ||  type == "demix") {
           step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
         } else if (type == "smartdemixer"  ||  type == "smartdemix") {
           step = DPStep::ShPtr(new DemixerNew (reader, parset, prefix));
         } else if (type == "applybeam") {
           step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
-#else
-        } else if (
-          type == "demixer" ||
-          type == "demix" ||
-          type == "smartdemixer" ||
-          type == "smartdemix" ||
-          type == "applybeam") {
-          throw std::runtime_error(
-            "Your parset includes a " + type + " step, but this step requires "
-            "the LOFAR beam. However, the LOFAR beam is not installed. To fix this, "
-            "install the LOFAR beam library and recompile DP3 with that library.");
-#endif
         } else if (type == "stationadder"  ||  type == "stationadd") {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "scaledata") {
@@ -463,5 +450,5 @@ namespace DP3 {
     }
 
 
-  } //# end namespace
+  } // end namespace
 }

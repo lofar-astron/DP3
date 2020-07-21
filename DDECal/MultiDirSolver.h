@@ -1,3 +1,21 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
 #ifndef MULTI_DIR_SOLVER_H
 #define MULTI_DIR_SOLVER_H
 
@@ -50,11 +68,11 @@ public:
   void init(size_t nAntennas, size_t nDirections, size_t nChannels, 
             const std::vector<int>& ant1, const std::vector<int>& ant2);
   
-  // data[i] is a pointer to the data for timestep i. Those data are then ordered 
-  // as they are in the MS (bl, chan, pol).
-  // mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
-  // Each of these pointers is in the same order as the data.
-  // solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
+  /// data[i] is a pointer to the data for timestep i. Those data are then ordered 
+  /// as they are in the MS (bl, chan, pol).
+  /// mdata[i] is a pointer for timestep i to arrays of ndir model data pointers
+  /// Each of these pointers is in the same order as the data.
+  /// solutions[ch] is a pointer for channelblock ch to antenna x directions solutions.
   SolveResult processScalar(const std::vector<Complex*>& data,
     const std::vector<float*>& weights,
     const std::vector<std::vector<Complex* > >& modelData,
@@ -146,13 +164,15 @@ private:
   std::vector<int> _ant1, _ant2;
   MultiDirBuffer _buffer;
   
-  // Calibration setup
+  /// @name Calibration setup
+  /// @{
   size_t _maxIterations, _nThreads;
   double _accuracy, _constraintAccuracy;
   double _stepSize;
   bool _detectStalling;
   bool _phaseOnly;
   std::vector<Constraint*> _constraints;
+  /// @}
 };
 
 #endif

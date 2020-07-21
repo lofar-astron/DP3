@@ -1,0 +1,156 @@
+description: >-
+  Calibrate direction dependent gains.
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'ddecal' `.`
+  sourcedb:
+    type: string
+    doc: Sourcedb (created with `makesourcedb`) with the sky model to calibrate on `.`
+  directions:
+    default: "[]"
+    type: list
+    doc: >-
+      List of directions to calibrate on. Every element of this list should b a list of facets. Default: every facet is a direction `.`
+  usemodelcolumn:
+    default: false
+    type: bool
+    doc: Use model data from the measurement set. This implies solving for one direction, namely the pointing of the measurement set. If you specify usemodelcolumn to be true, directions and sourcedb are not required `.`
+  maxiter:
+    default: 50
+    type: int
+    doc: Maximum number of iterations `.`
+  detectstalling:
+    default: true
+    type: bool
+    doc: Stop iterating when no improvement is measured anymore (after a minimum of 30 iterations) `.`
+  stepsize:
+    default: 0.2
+    type: double
+    doc: stepsize between iterations `.`
+  h5parm:
+    type: string
+    doc: Filename of output H5Parm (to be read by e.g. losoto). If empty, defaults to `instrument.h5` within the measurement set `.`
+  solint:
+    default: 1
+    type: int
+    doc: Solution interval in timesteps `.`
+  usebeammodel:
+    default: false
+    type: bool
+    doc: use the beam model. All beam-related options of the Predict step are also valid `.`
+  mode:
+    default: diagonal
+    type: string
+    doc: Type of constraint to apply. Options are scalarcomplexgain, scalarphase, scalaramplitude, tec, tecandphase. Modes in development are fulljones, diagonal, phaseonly, amplitudeonly, rotation, rotation+diagonal `.`
+  tolerance:
+    default: 1e-5
+    type: double
+    doc: >-
+      Controls the accuracy to be reached: when the normalized solutions move less than this value, the solutions are considered to be converged and the algorithm finishes. Lower values will cause more iterations to be performed `.`
+  minvisratio:
+    default: 0
+    type: double
+    doc: Minimum number of visibilities within a solution interval, e.g. 0.6 for at least 60% unflagged vis. Intervals with fewer vis will be flagged `.`
+  propagatesolutions:
+    default: false
+    type: bool
+    doc: Initialize solver with the solutions of the previous time slot `.`
+  propagateconvergedonly:
+    default: false
+    type: bool
+    doc: Propagate solutions of the previous time slot only if the solve converged. Only effective when propagatesolutions=true `.`
+  flagunconverged:
+    default: false
+    type: bool
+    doc: Flag unconverged solutions (i.e., those from solves that did not converge within maxiter iterations) `.`
+  flagdivergedonly:
+    default: false
+    type: bool
+    doc: Flag only the unconverged solutions for which divergence was detected. At the moment, this option is effective only for rotation+diagonal solves, where divergence is detected when the amplitudes of any station are found to be more than a factor of 5 from the mean amplitude over all stations. If divergence for any one station is detected, all stations are flagged for that solution interval. Only effective when ``flagunconverged=true`` and ``mode=rotation+diagonal`` `.`
+  approximatetec:
+    default: false
+    type: bool
+    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
+  maxapproxiter:
+    default: maxiter/2
+    type: int
+    doc: Maximum number of iterations during approximating stage `.`
+  approxchunksize:
+    default: 0
+    type: int
+    doc: Size of fitted chunksize during approximation stage in nr of channels. With approxchunksize=1 the constraint is disabled during the approx stage (so channels are solved for independently). Once converged, the solutions are constrained and more iterations are performed until that has converged too. The default is approxchunksize=0, which calculates the chunksize from the bandwidth (resulting in 10 chunks per octave of bandwidth) `.`
+  approxtolerance:
+    default: tolerance*10
+    type: double
+    doc: Tolerance at which the approximating first stage is considered to be converged and the second full-constraining stage is started. The second stage convergences when the tolerance set by the 'tolerance' keyword is reached. Setting approxtolerance to lower values will cause more approximating iterations. Since tolerance is by default 1e-5, approxtolerance is by default 1e-4 `.`
+  nchan:
+    default: 1
+    type: int
+    doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger `.`
+  coreconstraint:
+    default: 0
+    type: double
+    doc: Distance in meters. When unequal to 0, all stations within the given distance from the reference station (0) will be constraint to have the same solution `.`
+  antennaconstraint:
+    default: "[]"
+    type: list
+    doc: >-
+      A list of lists specifying groups of antennas that are to be constrained to have the same solution. Example: "[ [CS002HBA0,CS002HBA1],[CS003HBA0,CS003HBA1] ]" will keep the solutions of CS002HBA0 and 1 the same, and the same for CS003 `.`
+  smoothnessconstraint:
+    default: 0
+    type: double
+    doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point where the kernel is cut off `.`
+  statfilename:
+    type: string
+    doc: >-
+      File to write the step-sizes to. Form of the file is: "<iterationnr> <normalized-stepsize> <unnormalized-stepsize>", and all solution intervals are concatenated. File is not written when this parameter is empty `.`
+  uvlambdamin:
+    default: 0
+    type: double
+    doc: >-
+      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported (New in 3.1) `.`
+  subtract:
+    default: false
+    type: bool
+    doc: Subtracts the corrected model from the data. **NOTE** This may not work when you apply a uv-cut `.`
+  useidg:
+    default: false
+    type: bool
+    doc: Do image-based prediction using IDG `.`
+  idg&#46;images:
+    default: "[]"
+    type: list
+    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://sourceforge.net/p/wsclean/wiki/ComponentList/>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
+  idg&#46;regions:
+    default: "\"\""
+    type: string
+    doc: DS9 regions file describing the facets for IDG prediction `.`
+  idg&#46;buffersize:
+    default: Based on memory
+    type: int
+    doc: Set the amount of timesteps that are to be used for each IDG buffer `.`
+  savefacets:
+    default: false
+    type: bool
+    doc: Write out each facet as a fits file (named facet<N>.fits). Only useful when useidg=true `.`
+  onlypredict:
+    default: false
+    type: bool
+    doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases `.`
+  applycal&#46;*:
+    doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly `.`
+  phasereference:
+    default: true
+    type: bool
+    doc: Use phase referencing. This setting is only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
+  rotationreference:
+    default: false
+    type: bool
+    doc: >-
+      Use rotation referencing with the first antenna as the reference antenna.
+      When enabled, the first antenna gets a rotation angle of 0.
+      The rotation angle of the other antennas will be relative to the first antenna.
+      If the first antenna has no valid data, the second antenna will be the
+      reference antenna, and so on.
+      This setting is only effective when ``mode=rotation+diagonal`` `.`

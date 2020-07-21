@@ -1,0 +1,90 @@
+description: >-
+  Automatic flagging in time/freq windows based on median filtering.
+  Filter to filter on baseline and/or channel (only the given baselines/channels are kept). 
+  The reader step has an implicit filter.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: madflagger
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'madflagger' (or 'madflag') `.`
+    default: madflagger
+  count&#46;save:
+    default: false
+    type: boolean
+    doc: >-
+      If true, the flag percentages per frequency are saved to a table with 
+      extension ``.flagfreq`` and percentages per station to a table with extension ``.flagstat``. 
+      The basename of the table is the MS name (without extension) followed by the stepname and extension `.`    
+  count&#46;path:
+    default: "\"\""
+    type: string
+    doc: >-
+      The directory where to create the flag 
+      percentages table. If empty, the path of the input MS is used `.` 
+  threshold:
+    default: 1
+    type: float
+    doc: >-
+      The flagging threshold that can be baseline dependent.
+      It can be any (`TaQL-like <http://www.astron.nl/casacore/trunk/casacore/doc/notes/199.html>`__) expression that evaluates to a float. 
+      In the expression the variable 'bl' can be used which is the 
+      baseline length (in meters). In this way the value can be made 
+      baseline dependent. For example:
+      ``iif(bl<100, 0.5, iif(bl<500, 0.75, iif(bl<1000, 0.9, 1)))``
+      defines the threshold between the baseline lengths 100, 500, 
+      and 1000 meter. 
+  timewindow:
+    default: 1
+    type: integer
+    doc: >-
+      Number of times in the median box. If not odd, 1 is subtracted. 
+      It is silently reduced if exceeding the actual number of time slots.
+      In a way similar to ``threshold`` it can be made baseline length 
+      dependent. 
+  freqwindow:
+    default: 1
+    type: integer
+    doc: >-
+      Number of channels in the median box. If not odd, 1 is subtracted. 
+      It is silently reduced if exceeding the actual number of channels.
+      In a way similar to ``threshold`` it can be made baseline length 
+      dependent.
+  correlations:
+    default: "[]"
+    type: integer?
+    doc: >-
+        The correlations to use in the flagger; an empty vector means all. 
+        They are handled in the order given; if the flagging criterium 
+        holds for one correlation, the other correlations are not tested 
+        anymore. So if one knows that most RFI is found in YY, then in 
+        XX and finally some in XY and YX, the vector should be ``[3,0,1,2]`` 
+        because it makes the program run faster. Note that the statistics 
+        printed at the end show how many flagged data points have been 
+        found per correlation. 
+  applyautocorr:
+    default: false
+    type: boolean
+    doc: >-
+      True means that the MADFlagger is used on the auto-correlations only. 
+      The resulting flags are applied to the cross-correlations, thus data 
+      are flagged where the corresponding auto-correlations are flagged.
+      An error is given if set to True, while the MS does not contain 
+      auto-correlations `.` 
+
+  blmin:
+    default: -1
+    type: integer
+    doc: >-
+      Minimum baseline length (in meters).
+      Only baselines with a length >= this minimum are flagged. 
+      If ``applyautocorr=true``, the autocorrelations are applied to the 
+      matching baselines only.  
+  blmax:
+    default: 1e30
+    type: integer
+    doc: >-
+      Maximum baseline length (in meters). It is similar to minimum `.` 
+

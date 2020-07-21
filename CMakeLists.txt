@@ -6,14 +6,16 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -O3")
+add_compile_options(-Wall -O3)
 
-if(PORTABLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native") 
-endif(PORTABLE)
+if(NOT PORTABLE)
+  add_compile_options(-march=native)
+endif()
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+
+include(CTest)
 enable_testing()
 
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
@@ -22,9 +24,6 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
-# Add old casacore include directory because LOFAR beam library did
-# not use the casacore/ prefix in the includes until 3.2 (Sep '18)
-include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 find_package(Threads REQUIRED)
 
@@ -55,35 +54,23 @@ set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
-find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
-if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-  include_directories(${LOFAR_STATION_RESPONSE_DIR})
-  add_definitions(-DHAVE_LOFAR_BEAM)
-  message(STATUS "LOFAR beam library found.")
-  
-  set(LOFAR_DEPENDENT_FILES
-    DPPP/ApplyBeam.cc
-    DPPP/DemixerNew.cc 
-    DPPP/DemixInfo.cc
-    DPPP/DemixWorker.cc 
-  )
-  
+find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+if(NOT EVERYBEAM_INCLUDE_DIR)
+  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
+endif()
+find_library(EVERYBEAM_LIB everybeam)
+if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  message(STATUS "EveryBeam library found.")
 else()
-  if(WITH_LOFAR_BEAM)
-    message(FATAL_ERROR "LOFAR beam library not found")
-  else()
-    message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
-    set(LOFAR_STATION_RESPONSE_LIB "")
-    set(LOFAR_DEPENDENT_FILES "")
-  endif(WITH_LOFAR_BEAM)
-endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
+  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
+endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Object libraries (which are just file groups, not actual libraries) are made in order
 # to avoid compiling everything multiple times for multiple executables.
-add_library(Common OBJECT 
+add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
   Common/DataConvert.cc
@@ -144,7 +131,7 @@ add_library(IDGPredict OBJECT
   IDGPredict/FitsIOChecker.cc
   IDGPredict/FitsReader.cc
   IDGPredict/FitsWriter.cc)
-  
+
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
@@ -152,6 +139,8 @@ add_library(DPPP_OBJ OBJECT
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
   DPPP/BaselineSelection.cc
+  DPPP/BDABuffer.cc
+  DPPP/BDAIntervalBuffer.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc
   DPPP/DPBuffer.cc
@@ -202,29 +191,15 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Upsample.cc
   DPPP/UVWCalculator.cc
   DPPP/UVWFlagger.cc
-  ${LOFAR_DEPENDENT_FILES}
+  DPPP/ApplyBeam.cc
+  DPPP/DemixerNew.cc
+  DPPP/DemixInfo.cc
+  DPPP/DemixWorker.cc
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-#
-# Dependencies of AOFlagger
-#
-find_package(LibXml2 REQUIRED)
-find_package(PNG REQUIRED)
-find_library(FFTW3_LIB fftw3 REQUIRED)
-find_package(CFITSIO REQUIRED)
-include_directories(${CFITSIO_INCLUDE_DIR})
-
-find_library(AOFLAGGER_LIB aoflagger REQUIRED)
-find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
+find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
-
-find_package(PkgConfig)
-pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
-pkg_check_modules(SIGCXX sigc++-2.0)
-if(GTKMM_FOUND)
-  set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${GTKMM_LIBRARIES} ${GLIBMM_LIBRARIES})
-endif(GTKMM_FOUND)
 
 add_library(AOFlaggerStep_OBJ OBJECT
   AOFlaggerStep/AOFlaggerStep.cc
@@ -232,7 +207,7 @@ add_library(AOFlaggerStep_OBJ OBJECT
 )
 set(AOFLAGGERSTEP_OBJECT $<TARGET_OBJECTS:AOFlaggerStep_OBJ>)
 
-set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
+set(EXTRA_LIBRARIES
   ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -240,7 +215,7 @@ set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES}
   ${Python3_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
-  
+
 #
 # DDECal dependencies
 #
@@ -248,8 +223,8 @@ find_package(Armadillo)
 if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   set(DDE_ARMADILLO_FILES
-    DDECal/KLFitter.cc 
-    DDECal/PiercePoint.cc 
+    DDECal/KLFitter.cc
+    DDECal/PiercePoint.cc
     DDECal/ScreenConstraint.cc)
 else()
   message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
@@ -291,7 +266,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   SET(OS_SPECIFIC_TESTS) # No specific tests for Apple
 else()
   # These run only on Linux
-  SET(OS_SPECIFIC_TESTS 
+  SET(OS_SPECIFIC_TESTS
 #    TestDynDPPP/test/tDynStep.cc # This test still fails
   )
 endif()
@@ -306,37 +281,104 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
-  DPPP/test/tMirror.cc
-  DPPP/test/tPhaseShift.cc
-  DDECal/test/tRotationConstraint.cc
-)
-
-set(RUNTEST_SOURCES
   DPPP/test/runtests.cc
-  ${TEST_FILENAMES}
-  ${OS_SPECIFIC_TESTS}
-  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+  DPPP/test/unit/tApplyCal.cc
+  DPPP/test/unit/tApplyCalH5.cc
+  DPPP/test/unit/tAverager.cc
+  DPPP/test/unit/tBaselineSelection.cc
+  DPPP/test/unit/tBDABuffer.cc
+  DPPP/test/unit/tBDAIntervalBuffer.cc
+  # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
+  DPPP/test/unit/tFilter.cc
+  DPPP/test/unit/tGridInterpolate.cc
+  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  DPPP/test/unit/tInterpolate.cc
+  DPPP/test/unit/tMedFlagger.cc
+  DPPP/test/unit/tMirror.cc
+  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
+  DPPP/test/unit/tPreFlagger.cc
+  DPPP/test/unit/tPhaseShift.cc
+  DPPP/test/unit/tUpsample.cc
+  DPPP/test/unit/tUVWFlagger.cc
+  DPPP/test/unit/tPSet.cc
+  DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tScaleDataBDA.cc
+  DPPP/test/unit/tStationAdder.cc
+  DDECal/test/unit/tRotationConstraint.cc
 )
 
-add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
+# Add boost dynamic link flag for all test files.
+# https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
+# Without this flag, linking is incorrect and boost performs duplicate delete()
+# calls after running all tests, in the cleanup phase.
+set_source_files_properties(
+  ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
+)
 
-target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+# Untar files needed for some tests. It may be prettier to do this at build time instead of CMake time.
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
 
-add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
-# Add each test as a cmake test (only for tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE)
+add_executable(
+  runtests EXCLUDE_FROM_ALL
+  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
+  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT}
+  ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
+
+target_link_libraries(runtests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
+
+add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
+set_tests_properties(buildruntests PROPERTIES LABELS "unit")
+
+# Add each test as a cmake test.
+# - A file with tests should have one BOOST_AUTO_TEST_SUITE line.
+# - Only BOOST_AUTO_TEST_CASE and BOOST_DATA_TEST_CASE tests are supported.
+#   These test cases must be between the BOOST_AUTO_TEST_SUITE and
+#   a BOOST_AUTO_TEST_SUITE_END macros.
+# - Helper files without BOOST_AUTO_TEST_SUITE are ignored here.
 foreach(TEST_FILENAME ${TEST_FILENAMES})
   file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
 
-  # Extract test suite name
-  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\(*([A-Za-z_0-9]+)*\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+  # Get testsuite name.
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+  if(TESTSUITE_NAME_FULL)
+    #Extract testsuite name, since REGEX MATCHALL always stores the entire match.
+    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+  endif()
 
-  # Extract test name
-  string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
-  foreach(FOUND_TEST ${FOUND_TESTS})
-    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests --run_test=${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
+  # Gather test names.
+  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *[A-Za-z_0-9]+ *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
+  string(REGEX MATCHALL "BOOST_DATA_TEST_CASE\\( *[A-Za-z_0-9]+," FOUND_DATA_TESTS ${TEST_FILE_CONTENTS})
+
+  foreach(FOUND_TEST ${FOUND_TESTS} ${FOUND_DATA_TESTS})
+    # Extract test name, since REGEX MATCHALL always stores the entire match.
+    if(FOUND_TEST MATCHES "BOOST_AUTO_TEST_CASE")
+      string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+    elseif(FOUND_TEST MATCHES "BOOST_DATA_TEST_CASE")
+      string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_TEST})
+    else()
+      message(FATAL_ERROR "Invalid FOUND_TEST")
+    endif()
+
+    if (NOT TESTSUITE_NAME)
+      message(FATAL_ERROR "No testsuite found for ${TEST_NAME} in ${TEST_FILENAME}")
+    endif()
+
+    set(TEST_NAME ${TESTSUITE_NAME}/${TEST_NAME})
+
+    add_test(
+      NAME ${TEST_NAME}
+      COMMAND runtests -t ${TEST_NAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TEST_NAME}
+      PROPERTIES DEPENDS buildruntests LABELS "unit"
+    )
   endforeach()
 endforeach()
 
@@ -346,9 +388,6 @@ endforeach()
 #)
 #target_link_libraries(tMirror ${CASACORE_LIBRARIES})
 
-#add_executable(tPhaseShift EXCLUDE_FROM_ALL
-#  DPPP/test/tPhaseShift.cc
-#  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT})
-#target_link_libraries(tPhaseShift ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+install (TARGETS makesourcedb showsourcedb DESTINATION bin)
 
-install (TARGETS makesourcedb showsourcedb DESTINATION bin) 
+include(docs/CMakeLists.txt)

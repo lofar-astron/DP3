@@ -1,25 +1,24 @@
-//# phasefitter.h: Class to perform phase fitting (TEC), allowing phase wraps
-//# Copyright (C) 2016
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: phasefitter.cc 21598 2012-07-16 08:07:34Z offringa $
-//#
-//# @author André Offringa
+// phasefitter.h: Class to perform phase fitting (TEC), allowing phase wraps
+// Copyright (C) 2016
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: phasefitter.cc 21598 2012-07-16 08:07:34Z offringa $
+//
 
 /**
  * @file PhaseFitter.h Implements TEC model phase filter @ref PhaseFitter.
@@ -35,7 +34,8 @@
 #include <cstring>
 
 /**
- * Phase fitter that can force phase solutions over frequency onto a TEC model.
+ * @brief Phase fitter that can force phase solutions over frequency onto a TEC model.
+ * 
  * To use:
  * - Construct and set the frequencies (with @ref FrequencyData() ) and if already possible
  *   the weights (@ref WeightData()).
@@ -245,10 +245,13 @@ class PhaseFitter
 		return alpha / nu + beta;
 	}
   
+	/**
+	 * Dummy comment for making the reference near @ref FitDataToTEC1Model() work.
+	 */
 	double FitDataToTEC1Model(double& alpha);
 
 	/**
-	 * Like @ref FitDataToTEC1Model(double&,double&), but without returning the parameters.
+	 * Like @ref FitDataToTEC1Model(double&), but without returning the parameters.
 	 */
   void FitDataToTEC1Model()
 	{
@@ -285,10 +288,8 @@ class PhaseFitter
 	double TEC1ModelCost(double alpha) const;
 	
 	/**
-	 * Like @ref TEC1ModelFunc(), but 2-pi wrapped.
 	 * @param nu Frequency in Hz
 	 * @param alpha TEC parameter (in undefined units)
-	 * @param beta Phase offset parameter (in radians)
 	 * @returns | alpha / nu_i + beta | % 2pi
 	 */
   static double TEC1ModelFuncWrapped(double nu, double alpha)

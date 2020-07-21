@@ -1,0 +1,38 @@
+description: >-
+  The parameters in the parset are divided into several groups like input (msin), output (msout), madflagger, average, preflagger, and uvwflagger. 
+  Because multiple flagging and averaging steps can be specified, their parameters have to be prefixed with the step name as shown in the example above.
+inputs:
+  steps:
+    type: string?
+    doc: >-
+      Names of the steps to perform. Each step has to be defined using the step name as a prefix. The step ``type`` parameter defines the type of step (averager, madflagger, preflagger, uvwflagger, counter). The step type defaults to the name of the step, which is especially handy for count steps. ``msin`` and ``msout`` are implicit steps which should not be given here. An empty vector ``[]`` means that the input MS is copied to the output MS while flagging NaN and infinite numbers. Note that a step name can be used more than once meaning that the same step will be executed multiple times (e.g., multiple times count) `.`
+  numthreads:
+    default: ${OMP_NUM_THREADS}
+    type: int
+    doc: >-
+      Maximum number of threads to use `.`
+  showprogress:
+    default: true
+    type: bool
+    doc: >-
+      Show a progress bar `?`
+  showcounts:
+    default: true
+    type: bool
+    doc: >-
+      Show flagging statistics `?`
+  showtimings:
+    default: true
+    type: bool
+    doc: >-
+      At the end the percentage of elapsed time each step took can be shown; the overall time is always shown `.`
+  checkparset:
+    default: 0
+    type: integer
+    doc: >-
+      What to do if parameters in the ParSet file are not used. -1 means ignore. 0 means give a warning showing those parameters. In this way misspelled parameters can be detected. 1 means give an error and stop. For backward compatibility False (0) and True (1) can also be given `.`
+  uselogger:
+    default: false
+    type: bool
+    doc: >-
+      If false, all DPPP messages are written on stdout. If true, the logging framework is used `.`

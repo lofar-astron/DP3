@@ -1,28 +1,26 @@
-//# ParmSet.h: Set of parameters to be used
-//#
-//# Copyright (C) 2008
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: ParmSet.h 16977 2010-12-20 08:40:36Z diepen $
+// ParmSet.h: Set of parameters to be used
+//
+// Copyright (C) 2008
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-// @file
-// @brief Set of parameters to be used
-// @author Ger van Diepen (diepen AT astron nl)
+/// @file
+/// @brief Set of parameters to be used
+/// @author Ger van Diepen (diepen AT astron nl)
 
 #ifndef LOFAR_PARMDB_PARMSET_H
 #define LOFAR_PARMDB_PARMSET_H
@@ -34,80 +32,79 @@
 namespace DP3 {
 namespace BBS {
 
-  //# Forward Declarations.
   class ParmDB;
   class ParmValueSet;
   class Box;
 
 
-  // Define the type of a parmId.
+  /// Define the type of a parmId.
   typedef unsigned int ParmId;
 
 
-  // @ingroup ParmDB
-  // @{
+  /// @ingroup ParmDB
+  /// @{
 
-  // @brief Set of parameters to be used
+  /// @brief Set of parameters to be used
   class ParmSet
   {
   public:
-    // Create an empty ParmSet.
-    // It can be filled using function addParm.
+    /// Create an empty ParmSet.
+    /// It can be filled using function addParm.
     ParmSet();
 
-    // Add a parm for the given ParmDB. If not existing in the parmDB,
-    // it will be added to the ParmDB when its values are written.
-    // <br>It returns a unique parmId.
-    // <br>If the parm has been added before to the ParmSet, it returns
-    // the already known parmid.
+    /// Add a parm for the given ParmDB. If not existing in the parmDB,
+    /// it will be added to the ParmDB when its values are written.
+    /// <br>It returns a unique parmId.
+    /// <br>If the parm has been added before to the ParmSet, it returns
+    /// the already known parmid.
     ParmId addParm (ParmDB&, const std::string& name);
 
-    // Does the parm already exist in the ParmDB?
+    /// Does the parm already exist in the ParmDB?
     bool isInParmDB (ParmId parmid) const
       { return itsParms[parmid].getNameId() >= 0; }
 
-    // Add zero or more existing parms.
-    // A vector of unique parmIds is returned.
-    // <group>
-    //    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
-    //    vector<ParmId> addParms (ParmDB&, const string& namePattern);
-    // </group>
+    /// Add zero or more existing parms.
+    /// A vector of unique parmIds is returned.
+    ///@{
+    ///    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
+    ///    vector<ParmId> addParms (ParmDB&, const string& namePattern);
+    ///@}
 
-    // Get the nr of parameters.
+    /// Get the nr of parameters.
     size_t size() const
       { return itsParms.size(); }
 
-    // Find the parmid of a previously added parm.
-    // An exception is thrown if not existing in the ParmSet.
+    /// Find the parmid of a previously added parm.
+    /// An exception is thrown if not existing in the ParmSet.
     ParmId find (const std::string& name) const;
 
-    // Get the ParmDBs used in the ParmSet.
+    /// Get the ParmDBs used in the ParmSet.
     const std::vector<ParmDB*> getDBs() const
       { return itsDBs; }
 
-    // Get the values for the given work domain for all parameters that are
-    // not part of the given vector.
-    // It means that the vector gets extended for all parameters at the end
-    // of itsParms.
+    /// Get the values for the given work domain for all parameters that are
+    /// not part of the given vector.
+    /// It means that the vector gets extended for all parameters at the end
+    /// of itsParms.
     void getValues (std::vector<ParmValueSet>&, const Box& workDomain) const;
 
-    // Write the parm values for the given parmid.
-    // For parms with a new name, ParmKey::itsNameId will get filled in.
-    // For new values, the rowId in the ParmValueSet will be filled in.
+    /// Write the parm values for the given parmid.
+    /// For parms with a new name, ParmKey::itsNameId will get filled in.
+    /// For new values, the rowId in the ParmValueSet will be filled in.
     void write (unsigned int parmId, ParmValueSet&);
 
-    // Clear the ParmSet.
+    /// Clear the ParmSet.
     void clear();
 
   private:
-    // Rescale a polynomial if needed.
+    /// Rescale a polynomial if needed.
     void rescale (ParmValueSet& pset, const Box& newDomain) const;
 
-    // The nested class ParmKey holds the basic info for a parameter.
+    /// The nested class ParmKey holds the basic info for a parameter.
     class ParmKey
     {
     public:
-      // Create a parameter key.
+      /// Create a parameter key.
       ParmKey (ParmDB* parmdb, const std::string& name, int nameId, ParmId parmId)
         : itsParmDB (parmdb),
           itsName   (name),
@@ -115,29 +112,29 @@ namespace BBS {
           itsParmId (parmId)
       {}
 
-      // Get the name.
+      /// Get the name.
       const std::string& getName() const
         { return itsName; }
 
-      // Get the ParmDB used for the parameter.
-      // <group>
+      /// Get the ParmDB used for the parameter.
+      ///@{
       ParmDB* getParmDBPtr()
         { return itsParmDB; }
       const ParmDB* getParmDBPtr() const
         { return itsParmDB; }
-      // </group>
+      ///@}
 
-      // Get the name id.
-      // >= 0 means name is stored in name table;
-      // <0   means not stored.
-      // <group>
+      /// Get the name id.
+      /// >= 0 means name is stored in name table;
+      /// <0   means not stored.
+      ///@{
       int& getNameId()
         { return itsNameId; }
       int getNameId() const
         { return itsNameId; }
-      // </group>
+      ///@}
 
-      // Get he unique parm id.
+      /// Get he unique parm id.
       ParmId getParmId() const
         { return itsParmId; }
 
@@ -148,15 +145,14 @@ namespace BBS {
       ParmId  itsParmId;
     };
 
-    //# Data members of ParmSet.
     std::vector<ParmDB*> itsDBs;
     std::vector<ParmKey> itsParms;
     std::map<std::string,int> itsNames;
   };
 
-  // @}
+  /// @}
 
-} //# end namespace BBS
-} //# end namspace LOFAR
+} // end namespace BBS
+} // end namespace LOFAR
 
 #endif

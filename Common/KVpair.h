@@ -1,43 +1,39 @@
-//# KVpair.h: Implements a KV pair as a pair<string, string>.
-//#
-//# Copyright (C) 2002-2004
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: KVpair.h 31468 2015-04-13 23:26:52Z amesfoort $
+// KVpair.h: Implements a KV pair as a pair<string, string>.
+//
+// Copyright (C) 2002-2004
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef LOFAR_COMMON_KVPAIR_H
 #define LOFAR_COMMON_KVPAIR_H
 
-// \file
-// Implements a KV pair as a pair<string, string>.
-
-//# Never #include <config.h> or #include <lofar_config.h> in a header file!
-//# Includes
+// Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include <ctime>
 #include <utility>
 #include <iosfwd>
 #include <string>
 
 namespace DP3 {
-// \addtogroup Common
-// @{
+/// \ingroup Common
+/// \brief Implements a KV pair as a pair<string, string>.
 
-// Implements a KV pair as a pair<string, string>.
+/// @{
+
+/// Implements a KV pair as a pair<string, string>.
 class KVpair : public std::pair<std::string, std::string>
 {
 public:
@@ -73,7 +69,7 @@ public:
 	};
 };
 
-// @} addgroup
+/// @} addgroup
 
 std::ostream& operator<< (std::ostream& os, const DP3::KVpair& kv);
 

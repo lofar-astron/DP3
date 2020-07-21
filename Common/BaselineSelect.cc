@@ -1,24 +1,24 @@
-//# BaselineSelect.cc: Convert MSSelection baseline string to a Matrix
-//#
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//#  $Id: BaselineSelect.cc 34753 2016-06-20 10:43:42Z schaap $
+// BaselineSelect.cc: Convert MSSelection baseline string to a Matrix
+//
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+//  $Id: BaselineSelect.cc 34753 2016-06-20 10:43:42Z schaap $
 
 #include "BaselineSelect.h"
 
@@ -40,6 +40,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/version.h>
 
+#include "Types.h"
+
 using namespace casacore;
 
 namespace DP3 {
@@ -58,15 +60,15 @@ namespace DP3 {
       Vector<Int> a2 = ROScalarColumn<Int>(tab, "ANTENNA2").getColumn();
       int nant = 1 + std::max(max(a1), max(a2));
       Matrix<bool> bl(nant, nant, false);
-      vector<uInt> rows;
+      vector<rownr_t> rows;
       rows.reserve (nant*nant);
-      for (unsigned int i=0; i<a1.size(); ++i) {
+      for (rownr_t i=0; i<a1.size(); ++i) {
         if (! bl(a1[i], a2[i])) {
           rows.push_back (i);
           bl(a1[i], a2[i]) = true;
         }
       }
-      bltab = tab(Vector<uInt>(rows));
+      bltab = tab(Vector<rownr_t>(rows));
     }
     TableExprNode a1 (bltab.col("ANTENNA1"));
     TableExprNode a2 (bltab.col("ANTENNA2"));
@@ -134,7 +136,7 @@ namespace DP3 {
     try {
       // Create a table expression representing the selection.
       TableExprNode node = msAntennaGramParseCommand
-        (anttab, a1, a2, baselineSelection, 
+        (anttab, a1, a2, baselineSelection,
          selectedAnts1, selectedAnts2, selectedBaselines);
       // Get the antenna numbers.
       Table seltab = node.table()(node);

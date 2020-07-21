@@ -1,25 +1,25 @@
-//# DDECal.cc: DPPP step class to do a direction dependent gain calibration
-//# Copyright (C) 2013
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: DDECal.cc 21598 2012-07-16 08:07:34Z diepen $
-//#
-//# @author Tammo Jan Dijkema & André Offringa
+// DDECal.cc: DPPP step class to do a direction dependent gain calibration
+// Copyright (C) 2013
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: DDECal.cc 21598 2012-07-16 08:07:34Z diepen $
+//
+// @author Tammo Jan Dijkema & André Offringa
 
 #include "DDECal.h"
 
@@ -57,6 +57,7 @@
 #include <utility>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/make_unique.hpp>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
@@ -247,40 +248,29 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
       break;
     case GainCal::TEC:
     case GainCal::TECANDPHASE:
+    {
+      const auto tecMode = (itsMode == GainCal::TEC) ?
+        TECConstraint::TECOnlyMode :
+        TECConstraint::TECAndCommonScalarMode;
+      std::unique_ptr<TECConstraint> constraintPtr;
+
       itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
-      if(itsApproximateTEC)
-      {
-        int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
-        int chunksize = parset.getInt(prefix + "approxchunksize", 0);
-        std::unique_ptr<ApproximateTECConstraint> ptr;
-        if(itsMode == GainCal::TEC)
-          ptr = std::unique_ptr<ApproximateTECConstraint>(
-            new ApproximateTECConstraint(TECConstraint::TECOnlyMode));
-        else
-          ptr = std::unique_ptr<ApproximateTECConstraint>(
-            new ApproximateTECConstraint(TECConstraint::TECAndCommonScalarMode));
-        ptr->SetMaxApproximatingIterations(iters);
-        ptr->SetFittingChunkSize(chunksize);
-        ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-        itsConstraints.emplace_back(std::move(ptr));
+      if(itsApproximateTEC) {
+        const int iters = parset.getInt(prefix + "maxapproxiter", itsMultiDirSolver.max_iterations()/2);
+        const int chunksize = parset.getInt(prefix + "approxchunksize", 0);
+        auto approxConstraint = boost::make_unique<ApproximateTECConstraint>(tecMode);
+        approxConstraint->SetMaxApproximatingIterations(iters);
+        approxConstraint->SetFittingChunkSize(chunksize);
+        constraintPtr = std::move(approxConstraint);
+      } else {
+        constraintPtr = boost::make_unique<TECConstraint>(tecMode);
       }
-      else {
-        if(itsMode == GainCal::TEC)
-        {
-          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECOnlyMode));
-          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-          itsConstraints.emplace_back(std::move(ptr));
-        }
-        else
-        {
-          std::unique_ptr<TECConstraintBase> ptr(new TECConstraint(TECConstraint::TECAndCommonScalarMode));
-          ptr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
-          itsConstraints.emplace_back(std::move(ptr));
-        }
-      }
+      constraintPtr->setDoPhaseReference(parset.getBool(prefix + "phasereference", true));
+      itsConstraints.push_back(std::move(constraintPtr));
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = false;
       break;
+    }
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
       itsConstraints.emplace_back(new ScreenConstraint(parset, prefix+"tecscreen."));
@@ -291,9 +281,13 @@ void DDECal::initializeConstraints(const ParameterSet& parset, const string& pre
 #endif
       break;
     case GainCal::ROTATIONANDDIAGONAL:
-      itsConstraints.emplace_back(new RotationAndDiagonalConstraint());
+    {
+      auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
+      constraintPtr->SetDoRotationReference(parset.getBool(prefix + "rotationreference", false));
+      itsConstraints.push_back(std::move(constraintPtr));
       itsFullMatrixMinimalization = true;
       break;
+    }
     case GainCal::ROTATION:
       itsConstraints.emplace_back(new RotationConstraint());
       itsFullMatrixMinimalization = true;
@@ -1347,4 +1341,4 @@ void DDECal::subtractCorrectedModel(bool fullJones)
   } //time loop
 }
 
-} } //# end namespace
+} } // end namespace

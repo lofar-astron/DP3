@@ -1,0 +1,175 @@
+description: >-
+  Demix in a new, smarter way.
+inputs:
+  type:
+    type: string
+    doc: >-
+      Case-insensitive step type; must be 'smartdemixer' (or 'smartdemix') `.`
+  baseline:
+    default: "\"\""
+    type: string
+    doc: >-
+      Baselines to demix. See :ref:`Description of baseline selection parameters` `.`
+  blrange:
+    default: "\"\""
+    type: double?
+    doc: >-
+      Baselines to demix. See :ref:`Description of baseline selection parameters` `.`
+  corrtype:
+    default: cross
+    type: string
+    doc: >-
+      Baselines to demix. Correlation type to match? Must be auto, cross, or an empty string `.`
+  target&#46;baseline:
+    default: "CS*&"
+    type: string
+    doc: >-
+      Baselines to use in prediction of median target amplitude. See :ref:`Description of baseline selection parameters` `.`
+  target&#46;blrange:
+    default: "\"\""
+    type: double?
+    doc: >-
+      Baselines to use in prediction of median target amplitude. See :ref:`Description of baseline selection parameters` `.`
+  target&#46;corrtype:
+    default: cross
+    type: string
+    doc: >-
+      Baselines to use in prediction of median target amplitude. Correlation type to match? Must be auto, cross, or an empty string `.`
+  timestep:
+    default: 1
+    type: integer
+    doc: >-
+      Number of time slots to average when subtracting. It is truncated if exceeding the actual number of times.  Note that the data itself will also be averaged by this amount `.`
+  freqstep:
+    default: 1
+    type: integer
+    doc: >-
+      Number of channels to average when subtracting. It is truncated if exceeding the actual number of channels.  Note that the data itself will also be averaged by this amount `.`
+  demixtimestep:
+    default: timestep
+    type: integer
+    doc: >-
+      Number of time slots to average when demixing. It is truncated if exceeding the actual number of times. It defaults to the averaging used for the subtract `.`
+  demixfreqstep:
+    default: freqstep
+    type: integer
+    doc: >-
+      Number of channels to average when demixing. It is truncated if exceeding the actual number of channels. It defaults to the averaging used for the subtract `.`
+  chunksize:
+    default: demixtimestep
+    type: integer
+    doc: >-
+      Number of time slots in a chunk for which it is decided how to demix (which sources/stations to use and how to deal with the target). It has to be a multiple of parameter 'demixtimestep' `.`
+  ntimechunk:
+    default: #cores
+    type: integer
+    doc: >-
+      Number of time chunks that are processed jointly in as much a parallel way as possible. Preferably it is a multiple of the number of cores. Note that for a typical LOFAR observation the data of a single time slot is about 4 MB. A typical chunk size can be 2 minutes, thus 120 time slots per core. For 24 cores this amounts to about 11 GB!! `.`
+  ateam&#46;skymodel:
+    type: string
+    doc: >-
+      The detailed sky model of the A-team sources used to solve for the complex gains. It is the name of the SourceDB to use (i.e., the output of makesourcedb) `.`
+  estimate&#46;skymodel:
+    default: "\"\""
+    type: string
+    doc: >-
+      The coarse sky model of the A-team sources used to estimate the visibilities when deciding how to demix a chunk. It is the name of the SourceDB to use (i.e., the output of ``makesourcedb outtype=blob``). If no name is given, the detailed A-team model will be used. The SourceDB must contain the same sources as the detailed model at about the same position. The order can be different though `.`
+  target&#46;skymodel:
+    type: string
+    doc: >-
+      The sky model of the target. It is the name of the SourceDB to use (i.e., the output of makesourcedb) `.`
+  target&#46;delta:
+    default: 60
+    type: double
+    doc: >-
+      Angular distance uncertainty (in arcsec) to determine if an A-team source is at the same position as a target source `.`
+  instrumentmodel:
+    default: instrument
+    type: string
+    doc: >-
+      The name of the ParmDB to use. The ParmDB does not need to exist. If it does not exist it will be created. Note that the ParmDB is created after the output MS is created, so it can be a subdirectory of the output MS `.`
+  sources:
+    default: "\"\""
+    type: string?
+    doc: >-
+      Names of the A-team sources to use. If none are given, all sources in the A-team sky model will be used `.`
+  ateam&#46;threshold:
+    default: 50 for LBA \\ 5 for HBA
+    type: double
+    doc: >-
+      Take a source/baseline into account if its maximum estimated amplitude > threshold `.`
+  minnbaseline:
+    default: 6
+    type: integer
+    doc: >-
+      Solve a source/station if the station occurs in at least 'minnbaseline' baselines with amplitude > ateam.threshold `.`
+  minnstation:
+    default: 5
+    type: integer
+    doc: >-
+      Solve a source if at least 'minnstation' stations are solvable for the source `.`
+  target&#46;threshold:
+    default: 200 for LBA \\ 100 for HBA
+    type: double
+    doc: >-
+      Include the target in the solve if its maximum estimated amplitude > threshold `.`
+  ratio1:
+    default: 5
+    type: double
+    doc: >-
+      Include the target in the solve if the estimated amplitude ratio Target/max(Ateam) > ratio1 `.`
+  distance&#46;threshold:
+    default: 60
+    type: double
+    doc: >-
+      Distance threshold (in degrees). The target is close to the A-team if the angular distance (scaled with freq) < threshold for any A-team source (thus angdist*obsfreq/reffreq < threshold) `.`
+  distance&#46;reffreq:
+    default: 60e6
+    type: double
+    doc: >-
+      The 'reffreq' frequency used above `.`
+  ratio2:
+    default: 0.25
+    type: double
+    doc: >-
+      Include the target in the solve if the target is close to the A-team and the estimated amplitude ratio Target/min(Ateam) > ratio2 `.`
+  maxiter:
+    default: 50
+    type: integer
+    doc: >-
+      Maximum number of iterations to use in the solve `.`
+  propagatesolutions:
+    default: true
+    type: bool
+    doc: >-
+      If set to true, solutions of a time slot are used as initial values for the next time slot. If set to false, the diagonal elements of the Jones matrix are initialized to one and the off-diagonal elements to zero. However, solutions will not be transferred between chunks processed in parallel `.`
+  defaultgain:
+    default: 1e-3
+    type: double
+    doc: >-
+      The default gain to use for the real part of the diagonal Jones elements for the unsolvable sources/stations. Take into account that the scale of the raw visibilities changed when COBALT was adopted. In the case of data correlated with BG/P, this parameter should be tuned down (1e-8) `.`
+  verbose:
+    default: 0
+    type: int
+    doc: >-
+      0 = only show basic demix statistics 1 = show for each time chunk how target is handled, which sources are solvable, and how many stations. >10 = various levels of debugging output `.`
+  solveboth:
+    default: false
+    type: bool
+    doc: >-
+      Mainly for test purposes. True means that in the solve only the baselines are used for which both stations are solvable. Usually this gives worse results `.`
+  targethandling:
+    default: 0
+    type: integer
+    doc: >-
+      Mainly for test purposes. It enforces the target handling. 1=include, 2=deproject, 3=ignore, else=use smart way `.`
+  applybeam:
+    default: true
+    type: bool
+    doc: >-
+      Mainly for test purposes. Apply the station beam in the estimate, solve, and subtract steps `?`
+  subtract:
+    default: true
+    type: bool
+    doc: >-
+      Mainly for test purposes. False means that the subtract step is not done, thus only a solve of the gains is done `.`

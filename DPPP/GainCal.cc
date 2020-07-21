@@ -1,25 +1,25 @@
-//# GainCal.cc: DPPP step class to do a gain calibration
-//# Copyright (C) 2013
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: GainCal.cc 21598 2012-07-16 08:07:34Z diepen $
-//#
-//# @author Tammo Jan Dijkema
+// GainCal.cc: DPPP step class to do a gain calibration
+// Copyright (C) 2013
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: GainCal.cc 21598 2012-07-16 08:07:34Z diepen $
+//
+// @author Tammo Jan Dijkema
 
 #include "GainCal.h"
 #include "Simulate.h"
@@ -118,7 +118,6 @@ namespace DP3 {
         itsResultStep = ResultStep::ShPtr(new ResultStep());
         itsPredictStep->setNextStep(itsResultStep);
       } else {
-#ifdef HAVE_LOFAR_BEAM
         itsApplyBeamToModelColumn=parset.getBool(prefix +
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
@@ -126,7 +125,6 @@ namespace DP3 {
           itsResultStep = ResultStep::ShPtr(new ResultStep());
           itsApplyBeamStep.setNextStep(itsResultStep);
         }
-#endif
       }
 
       itsNIter.resize(4,0);
@@ -214,11 +212,9 @@ namespace DP3 {
       itsUVWFlagStep.updateInfo(infoIn);
 
       if (itsUseModelColumn) {
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep.updateInfo(infoIn);
         }
-#endif
       } else {
         itsPredictStep->updateInfo(infoIn);
         itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
@@ -355,11 +351,9 @@ namespace DP3 {
       if (!itsUseModelColumn) {
         itsPredictStep->show(os);
       }
-#ifdef HAVE_LOFAR_BEAM
       else if (itsApplyBeamToModelColumn) {
         itsApplyBeamStep.show(os);
       }
-#endif
       itsUVWFlagStep.show(os);
     }
 
@@ -436,7 +430,6 @@ namespace DP3 {
 
       if (itsUseModelColumn) {
         itsInput->getModelData (itsBuf[bufIndex].getRowNrs(), itsModelData);
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeamToModelColumn) { // TODO: double check this
           // Temporarily put model data in data column for applybeam step
           // ApplyBeam step will copy the buffer so no harm is done
@@ -445,7 +438,6 @@ namespace DP3 {
           //Put original data back in data column
           itsBuf[bufIndex].getData()=dataCube;
         }
-#endif
       } else { // Predict
         itsPredictStep->process(itsBuf[bufIndex]);
       }
@@ -1328,5 +1320,5 @@ namespace DP3 {
       getNextStep()->finish();
     }
 
-  } //# end namespace
+  } // end namespace
 }

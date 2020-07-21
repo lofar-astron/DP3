@@ -1,0 +1,80 @@
+stages:
+  - prepare
+  - build
+  - integration_and_deploy
+
+build-base:
+  stage: prepare
+  script:
+  - docker build --tag dppp_base:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_base .
+
+build-lofar:
+  stage: build
+  dependencies:
+    - build-base
+  script:
+  - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
+
+build-unittest:
+  stage: build
+  dependencies:
+    - build-base
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get update
+    - apt-get -y install python3-pip ninja-build
+    - pip3 install gcovr
+  script:
+    - export SRC=`pwd`
+    - mkdir build
+    - cd build
+    - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - ctest -L unit
+    - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
+    - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
+  artifacts:
+    reports:
+      cobertura: build/coverage.xml
+
+build-doc:
+  stage: build
+  before_script:
+  - apk update
+  - apk add doxygen cmake ninja python3 py3-pip
+  - python3 -m pip install --user --upgrade pip
+  - python3 -m pip install jsonschema2rst sphinx sphinx-rtd-theme
+  script:
+  - mkdir build && cd build
+  - cmake -G Ninja ../docs
+  - ninja doc userdoc
+  artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
+    paths:
+    - build/docs
+
+integration-test:
+  stage: integration_and_deploy
+  dependencies:
+    - build-lofar
+  image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  script:
+    - mkdir build && cd build
+    - cmake ..
+    - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
+    - ctest -j4 -L integration
+
+deploy-doc:
+  stage: integration_and_deploy
+  dependencies:
+    - build-doc
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
+  script:
+    - scp -r build/docs/* citt@dop288:DP3/
+  only:
+    refs:
+      - master

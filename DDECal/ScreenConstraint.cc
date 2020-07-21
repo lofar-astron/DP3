@@ -1,3 +1,21 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
 #include "ScreenConstraint.h"
 
 #include "../Common/ParallelFor.h"
@@ -157,32 +175,56 @@ void ScreenConstraint::CalculatePiercepoints(){
   void  ScreenConstraint::getPPValue(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,size_t solutionIndex,size_t dirIndex,double &avgTEC,double &error) const {
   if (itsAVGMode=="simple"){
     avgTEC=0;
-    for(size_t ch=0;ch<_nChannelBlocks; ++ch){
-      double refphase=std::arg(solutions[ch][dirIndex]);
-      //TODO: more advance frequency averaging...
-      avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
+    error=1.0;
+    size_t nrch(0);
+    for(size_t ch=0;ch<_nChannelBlocks; ++ch) {
+      if(isfinite(solutions[ch][dirIndex])) {
+	double refphase=std::arg(solutions[ch][dirIndex]);
+	//TODO: more advance frequency averaging...
+	if (isfinite(solutions[ch][solutionIndex])) {
+	  avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
+	  nrch++;
+	}
+      }
     }
-    avgTEC/=_nChannelBlocks;
+    if (nrch>0)
+      avgTEC/=nrch;
+    /*
+    double mydelay=0;
+    for(size_t ch=0;ch<_nChannelBlocks; ++ch) {
+      double refphase=std::arg(solutions[ch][dirIndex]);
+      double wavelength=freqtolambda/itsFrequencies[ch]
+      //TODO: more advance frequency averaging...
+
+      mydelay += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
+    */
   }
   else{
     PhaseFitter phfit(_nChannelBlocks) ;
-    double offset;
+    double offset = 0.0;
     for(size_t ch=0;ch<_nChannelBlocks; ++ch){
       phfit.FrequencyData()[ch]=itsFrequencies.data()[ch];
+      
+    if(isfinite(solutions[ch][solutionIndex])) {
       phfit.PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
+    else
+      phfit.WeightData()[ch]=0.0;
+    }
     if (itsprevsol[solutionIndex]<-100){
+      avgTEC = 0.0;
       phfit.FitTEC2ModelParameters(avgTEC,offset);
       error=phfit.TEC2ModelCost(avgTEC,offset);
-	}
+    }
     else {
       avgTEC=itsprevsol[solutionIndex]*TECtoph;
       phfit.FitTEC2ModelParameters(avgTEC,offset);
       error=phfit.TEC2ModelCost(avgTEC,offset);
-	}
+    }
     
     avgTEC*=phtoTEC;
   }
+  error=1.0;
 }
 
 
@@ -257,7 +299,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       }
     }
     for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex){
-      double avgTEC,error;
+      double avgTEC = 0.0, error = 1.0;
       size_t solutionIndex=antIndex*_nDirections+dirIndex;
       if (itsDebugMode>0 and itsIter<maxIter)
       {

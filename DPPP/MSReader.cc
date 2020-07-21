@@ -1,25 +1,25 @@
-//# MSReader.cc: DPPP step reading from an MS
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id$
-//#
-//# @author Ger van Diepen
+// MSReader.cc: DPPP step reading from an MS
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id$
+//
+// @author Ger van Diepen
 
 #include "MSReader.h"
 #include "DPBuffer.h"
@@ -27,9 +27,8 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/LofarMetaDataUtil.h>
-#endif
+#include <EveryBeam/load.h>
+#include <EveryBeam/LofarMetaDataUtil.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
@@ -651,9 +650,7 @@ namespace DP3 {
       phaseCenter = *(fldcol1(0).data());
       delayCenter = *(fldcol2(0).data());
       
-#ifdef HAVE_LOFAR_BEAM
-      tileBeamDir = LOFAR::StationResponse::readTileBeamDirection(itsMS);
-#endif
+      tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
       
       // Get the array position using the telescope name from the OBSERVATION
       // subtable. 
@@ -937,15 +934,14 @@ namespace DP3 {
       }
     }
 
-#ifdef HAVE_LOFAR_BEAM
-    void MSReader::fillBeamInfo (vector<LOFAR::StationResponse::Station::Ptr>& vec,
+    void MSReader::fillBeamInfo (vector<everybeam::Station::Ptr>& vec,
                                  const casacore::Vector<casacore::String>& antNames)
     {
       // Get the names of all stations in the MS.
       const Vector<String>& allNames = getInfo().antennaNames();
       // Create a vector holding the beam info of all stations.
-      vector<LOFAR::StationResponse::Station::Ptr> beams (allNames.size());
-      LOFAR::StationResponse::readStations (itsMS, beams.begin());
+      vector<everybeam::Station::Ptr> beams (allNames.size());
+      everybeam::ReadStations (itsMS, beams.begin());
       // Copy only the ones for which the station name matches.
       // Note: the order of the station names in both vectors match.
       vec.resize (antNames.size());
@@ -960,7 +956,6 @@ namespace DP3 {
         throw Exception("MSReader::fillBeamInfo -"
                  " some stations miss the beam info");
     }
-#endif
 
-  } //# end namespace
+  } // end namespace
 }

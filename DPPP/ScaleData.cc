@@ -1,28 +1,29 @@
-//# ScaleData.cc: DPPP step class for freq-dependent scaling of the data
-//# Copyright (C) 2013
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id: ScaleData.cc 23223 2012-12-07 14:09:42Z schoenmakers $
-//#
-//# @author Ger van Diepen
+// ScaleData.cc: DPPP step class for freq-dependent scaling of the data
+// Copyright (C) 2013
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id: ScaleData.cc 23223 2012-12-07 14:09:42Z schoenmakers $
+//
+// @author Ger van Diepen
 
 #include "ScaleData.h"
 #include "DPBuffer.h"
+#include "BDABuffer.h"
 #include "DPInfo.h"
 #include "Exceptions.h"
 
@@ -216,6 +217,26 @@ namespace DP3 {
       return true;
     }
 
+    bool ScaleData::process (std::unique_ptr<BDABuffer> bda_buffer)
+    {
+      itsTimer.start();
+
+      std::complex<float>* data = bda_buffer->GetData();
+
+      // Verify vectors are the same size
+      assert (bda_buffer->GetNumberOfElements() == itsFactors.nelements());
+
+      // Apply the scale factors.
+      for (const double& factor : itsFactors) {
+        *data *= factor;
+        ++data;
+      }
+
+      itsTimer.stop();
+      getNextStep()->process(std::move(bda_buffer));
+      return true;
+    }
+
     void ScaleData::finish()
     {
       // Let the next steps finish.
@@ -251,5 +272,5 @@ namespace DP3 {
       }
     }
 
-  } //# end namespace
+  } // end namespace
 }

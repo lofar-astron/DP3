@@ -1,0 +1,33 @@
+description: >-
+  ""
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'predict' `.`
+  sourcedb:
+    type: string
+    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.`
+  sources:
+    default: "[]"
+    type: string?
+    doc: Patches to use in the predict step of the calibration `.`
+  usebeammodel:
+    default: false
+    type: bool
+    doc: Use the LOFAR beam in the predict part of the calibration `.`
+  operation:
+    default: replace
+    type: string
+    doc: Should the predicted visibilities replace those being processed (``replace``, default), should they be subtracted from those being processed (``subtract``) or added to them (``add``) `.`
+  applycal&#46;*:
+    doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb `.`
+  onebeamperpatch:
+    type: string?
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+  usechannelfreq:
+    type: boolean?
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+  beammode:
+    type: enum
+    symbols: array_factor, element, default
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`

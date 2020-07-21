@@ -1,25 +1,25 @@
-//# UVWFlagger.cc: DPPP step class to flag data on UVW coordinates
-//# Copyright (C) 2010
-//# ASTRON (Netherlands Institute for Radio Astronomy)
-//# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//#
-//# This file is part of the LOFAR software suite.
-//# The LOFAR software suite is free software: you can redistribute it and/or
-//# modify it under the terms of the GNU General Public License as published
-//# by the Free Software Foundation, either version 3 of the License, or
-//# (at your option) any later version.
-//#
-//# The LOFAR software suite is distributed in the hope that it will be useful,
-//# but WITHOUT ANY WARRANTY; without even the implied warranty of
-//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//# GNU General Public License for more details.
-//#
-//# You should have received a copy of the GNU General Public License along
-//# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-//#
-//# $Id$
-//#
-//# @author Ger van Diepen
+// UVWFlagger.cc: DPPP step class to flag data on UVW coordinates
+// Copyright (C) 2010
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+//
+// $Id$
+//
+// @author Ger van Diepen
 
 #include "UVWFlagger.h"
 #include "DPBuffer.h"
@@ -163,12 +163,13 @@ namespace DP3 {
       bool* flagPtr = flags.data();
       const bool* origPtr = buf.getFlags().data();
       for (unsigned int i=0; i<nrbl; ++i) {
+        Vector<double> uvw;
         if (! itsCenter.empty()) {
           // A different phase center is given, so calculate UVW for it.
           NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-          Vector<double> uvw = itsUVWCalc.getUVW (getInfo().getAnt1()[i],
-                                                  getInfo().getAnt2()[i],
-                                                  buf.getTime());
+          uvw = itsUVWCalc.getUVW (getInfo().getAnt1()[i],
+                                   getInfo().getAnt2()[i],
+                                   buf.getTime());
           uvwPtr = uvw.data();
           ///cout << "uvw = " << uvw << endl;
         }
@@ -358,5 +359,5 @@ namespace DP3 {
                                   getInfo().antennaPos());
     }
 
-  } //# end namespace
+  } // end namespace
 }

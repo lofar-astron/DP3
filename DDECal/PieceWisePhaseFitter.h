@@ -1,3 +1,21 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
 #ifndef PIECE_WISE_PHASE_FITTER_H
 #define PIECE_WISE_PHASE_FITTER_H
 
@@ -36,7 +54,7 @@ public:
   
   static size_t CalculateChunkSize(double startFrequencyHz, double endFrequencyHz, size_t channelCount)
   {
-    // it seems that 10 chunks per octave seems reasonable
+    /// it seems that 10 chunks per octave seems reasonable
     double nOctaves = (log(endFrequencyHz) - log(startFrequencyHz)) / M_LN2;
     if(nOctaves > 0.0)
       return std::min<size_t>(channelCount, ceil(channelCount / (10.0 * nOctaves)));
@@ -196,13 +214,13 @@ public:
     if(values.empty())
       return 0.0;
     std::sort(values.begin(), values.end());
-    // calculate total weight
+    /// calculate total weight
     double sum = 0.0;
     for(std::pair<double,double>& v : values)
       sum += v.second;
 
     int index = 0;
-    // prefixSum is the weight sum of everything after `index`
+    /// prefixSum is the weight sum of everything after `index`
     double prefixSum = sum - values[0].second;
     while(prefixSum > sum/2)
     {

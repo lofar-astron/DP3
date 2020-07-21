@@ -1,0 +1,166 @@
+description: >-
+  Flag given baselines, time slots, etc.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: preflag
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'preflagger' (or 'preflag') `.`
+    default: preflagger
+  count.save:
+    default: false
+    type: boolean
+    doc: >-
+      If true, the flag percentages per frequency are saved to a table with
+      extension ``.flagfreq`` and percentages per station to a table with extension
+      ``.flagstat``. The basename of the table is the MS name (without extension)
+      followed by the stepname and extension.
+  count.path:
+    type: string?
+    doc: >-
+      The directory where to create the flag percentages table. If empty, the
+      path of the input MS is used `.`
+  mode:
+    default: set
+    type: string
+    doc: >-
+      Case-insensitive string telling what to do with the flags of the data
+      matching (or not matching) the selection criteria given in the other
+      parameters `.`
+  expr:
+    default:  "\"\""
+    type: string?
+    doc: >-
+      Expression of preflagger keyword sets (see above). Operators AND, OR, and
+      NOT are possible (or their equivalents &&,&, `||`, `|`, and !). Parentheses
+      can be used to change precedence order. For example: ``c1 and (c2 or c3)``
+  timeofday:
+    default: "[]"
+    type: string?
+    doc: >-
+      Ranges of UTC time-of-day given as st..end or val+-delta. Each value must
+      be given as 12:34:56.789, 12h34m56.789, or as a value followed by a unit
+      like h, min, or s `.`
+  abstime:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Ranges of absolute UTC date/time given as st..end or val+-delta. Each
+      value (except delta) must be given as a date/time in casacore MVTime
+      format, for instance 12-Mar-2010/11:31:00.000. A delta value must be given
+      as a time (for instance 1:30:0 or 20s) `.`
+  reltime:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Ranges of times (using .. or +-) since the start of the observation. A
+      time can be given like 1:30:0 or 20s `.`
+  timeslot:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Time slot sequence numbers. First time slot is 0. st..end means end
+      inclusive `.`
+  lst:
+    default: "[]"
+    type: string[]
+    doc: >-
+      Ranges of Local Apparent Sidereal Times like `1:30:0 +- 20min`. The LST of a
+      time slot is calculated for the array position, thus not per antenna.
+  azimuth:
+    default: "[]"
+    type: float[]
+    doc: >-
+      Ranges of azimuth angles given as st..end or val+-delta. Each value has to
+      be given as a casacore direction like 12:34:56.789 or 12h34m56.789,
+      12.34.56.789 or 12d34m56.789, or a value followed by a unit like rad or
+      deg `.`
+  elevation:
+    type: string?
+    doc: >-
+      Ranges of elevation angles (similar to azimuth). For example:
+      `0deg..10deg`
+  baseline:
+    default: "[]"
+    type: string[]
+    doc: See `Description of baseline selection parameters <https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:ndppp#description_of_baseline_selection_parameters>`__.
+  corrtype:
+    default:  "\"\""
+    type: string
+    doc: Correlation type to match? Must be auto, cross, or an empty string `.`
+  blmin:
+    default: -1
+    type: float
+    doc: If blmin > 0, baselines with length < blmin meter will match `.`
+  blmax:
+    default: -1
+    type: float
+    doc: If blmax > 0, baselines with length > blmax meter will match `.`
+  uvmmin:
+    default: -1
+    type: float
+    doc: >-
+      If uvmmin > 0, baselines with UV-distance < uvmmin meter will match. Note
+      that the UV-distance is the projected baseline length `.`
+  uvmmax:
+    default: -1
+    type: float
+    doc: If uvmmax > 0, baselines with UV-distance > uvmmax meter will match `.`
+  freqrange:
+    default:  "\"\""
+    type: string
+    doc: >-
+      Channels in the given frequency ranges will match. Each value in the
+      vector is a range which can be given as start..end or start+-delta. A
+      value can be followed by a unit like KHz. If only one value in a range has
+      a unit, the unit is also applied to the other value. If a range has no
+      unit, it defaults to MHz. For example: ``freqrange=[1.2 .. 1.4 MHz, 1.8MHz+-50KHz]`` 
+      flags channels between 1.2MHz and 1.4MHz and between
+      1.75MHz and 1.85MHz. The example shows that blanks can be used at will.
+  chan:
+    default: "\"\""
+    type: string
+    doc: >-
+      The given channels will match (start counting at 0). Channels exceeding
+      the number of channels are ignored. Similar to ``msin``, it is possible to
+      specify the channels as an expression of ``nchan``. Furthermore, ``..`` can be
+      used to specify ranges. For example: ``chan=[0..nchan/32-1, 31*nchan/32..nchan-1]``
+      to flag the first and last 2 or 8 channels
+      (depending on 64 or 256 channels in the observation).
+  amplmin:
+    default: -1e+30
+    type: float
+    doc: >-
+      Correlation data with amplitude < amplmin will match. It can be given per
+      correlation. For example, ``amplmin=[100,,,100]`` matches data points with XX
+      or YY amplitude < 100. The non-specified amplitudes get the default value.
+  amplmax:
+    default: 1e+30
+    type: float
+    doc: Correlation data with amplitude > amplmax will match `.`
+  phasemin:
+    default: -1e+30
+    type: float
+    doc: Correlation data with phase < phasemin (in radians) will match `.`
+  phasemax:
+    default: 1e+30
+    type: float
+    doc: Correlation data with phase > phasemax (in radians) will match `.`
+  realmin:
+    default: -1e+30
+    type: float
+    doc: Correlation data with real complex part < realmin will match `.`
+  realmax:
+    default: 1e+30
+    type: float
+    doc: Correlation data with real complex part > realmax will match `.`
+  imagmin:
+    default: -1e+30
+    type: float
+    doc: Correlation data with imaginary complex part < imagmin will match `.`
+  imagmax:
+    default: 1e+30
+    type: float
+    doc: Correlation data with imaginary complex part > imagmax will match `.`
