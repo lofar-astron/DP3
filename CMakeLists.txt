@@ -61,19 +61,6 @@ find_library(EVERYBEAM_LIB everybeam)
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
   message(STATUS "EveryBeam library found.")
-# TODO everybeam is no longer optional, so these files can become unconditional
-  set(LOFAR_DEPENDENT_FILES
-    DPPP/ApplyBeam.cc
-    DPPP/DemixerNew.cc
-    DPPP/DemixInfo.cc
-    DPPP/DemixWorker.cc
-  )
-
-  set(LOFAR_DEPENDENT_INTEGRATION_TESTS
-    tApplyBeam
-    tGainCalH5Parm
-    tPredict
-  )
 else()
   message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
@@ -201,7 +188,10 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Upsample.cc
   DPPP/UVWCalculator.cc
   DPPP/UVWFlagger.cc
-  ${LOFAR_DEPENDENT_FILES}
+  DPPP/ApplyBeam.cc
+  DPPP/DemixerNew.cc
+  DPPP/DemixInfo.cc
+  DPPP/DemixWorker.cc
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
