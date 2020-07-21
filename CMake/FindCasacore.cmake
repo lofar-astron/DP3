@@ -17,6 +17,8 @@
 #
 # Variables used by this module:
 #  CASACORE_ROOT_DIR         - Casacore root directory. 
+#  BLAS_LIBS                 - override BLAS library
+#  LAPACK_LIBS               - override LAPACK library
 #
 # Variables defined by this module:
 #  CASACORE_FOUND            - System has Casacore, which means that the
@@ -232,7 +234,21 @@ else(NOT CASACORE_INCLUDE_DIR)
     elseif(${_comp} STREQUAL fits)
       casacore_find_package(CFITSIO REQUIRED)
     elseif(${_comp} STREQUAL scimath_f)
-      casacore_find_package(LAPACK REQUIRED)
+      # If only looking for LAPACK, no library will be added if LAPACK
+      # is part of BLAS, as it is customary nowadays. So look for both
+      # to avoid confusing linker errors on symbols used in headers/templates.
+      if(DEFINED ENV{BLAS_LIBS})
+        set(BLAS_FOUND YES)
+        list(APPEND CASACORE_LIBRARIES $ENV{BLAS_LIBS})
+      else()
+        casacore_find_package(BLAS   REQUIRED)
+      endif()
+      if(DEFINED ENV{LAPACK_LIBS})
+        set(LAPACK_FOUND YES)
+        list(APPEND CASACORE_LIBRARIES $ENV{LAPACK_LIBS})
+      else()
+        casacore_find_package(LAPACK REQUIRED)
+      endif()
     endif(${_comp} STREQUAL casa)
   endforeach(_comp ${_find_components})
 endif(NOT CASACORE_INCLUDE_DIR)
