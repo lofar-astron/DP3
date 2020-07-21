@@ -46,17 +46,10 @@ public:
 		cpu_set_t cs;
 		CPU_ZERO(&cs);
 		sched_getaffinity(0, sizeof cs , &cs);
-
-		size_t count = 0;
-		for (size_t i = 0; i != CPU_SETSIZE; i++)
-		{
-			if (CPU_ISSET(i, &cs))
-				++count;
-		}
-		return count;
+		return CPU_COUNT(&cs);
 #endif
 	}
-	
+
 	/**
 	 * Create a thread pool with NThreads()==NCPUs().
 	 */
@@ -73,7 +66,7 @@ public:
 		for(size_t i=1; i!=nThreads; ++i)
 			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
 	}
-	
+
 	/**
 	 * Create a thread pool with the specified number of threads.
 	 */
@@ -89,10 +82,10 @@ public:
 		for(size_t i=1; i!=nThreads; ++i)
 			_threads.emplace_back(&ThreadPool::threadFunc, this, i);
 	}
-	
+
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool& operator=(const ThreadPool&) = delete;
-	
+
 	~ThreadPool()
 	{
 		std::unique_lock<std::mutex> lock(_mutex);
@@ -102,12 +95,12 @@ public:
 		for(std::thread& t : _threads)
 			t.join();
 	}
-	
+
 	size_t NThreads() const
 	{
 		return _threads.size()+1;
 	}
-	
+
   void SetNThreads(size_t nThreads)
   {
     if(nThreads != NThreads())
@@ -118,18 +111,18 @@ public:
       lock.unlock();
       for(std::thread& t : _threads)
         t.join();
-      
+
       _threads.clear();
-      
+
       _threads.reserve(nThreads-1);
       for(size_t i=1; i!=nThreads; ++i)
         _threads.emplace_back(&ThreadPool::threadFunc, this, i);
     }
   }
-	
+
 	/**
 	 * Iteratively call a function in parallel.
-	 * 
+	 *
 	 * The function is expected to accept two size_t parameters, the loop
 	 * index and the thread id, e.g.:
 	 *   void loopFunction(size_t iteration, size_t threadID);
@@ -142,21 +135,21 @@ public:
 		size_t thisPriority = _priority;
 		++_priority;
 		lock.unlock();
-		
+
 		size_t progress = end-start;
-		
+
 		std::thread localThread(&ThreadPool::threadSpecificPriorityFunc, this, 0, thisPriority, &progress);
-		
+
 		// Queue tasks for all iterations
 		while(start!=end)
 		{
 			write(thisPriority, std::bind(func, start, std::placeholders::_1), &progress);
 			++start;
 		}
-			
+
 		localThread.join();
 	}
-	
+
 private:
 	void threadFunc(size_t threadId)
 	{
@@ -164,26 +157,26 @@ private:
 		while(read_highest_priority(func))
 		{
 			func.first(threadId);
-			
+
 			std::unique_lock<std::mutex> lock(_mutex);
 			--(*func.second); // decrease progress counter (requires lock)
 			_onProgress.notify_all();
 		}
 	}
-	
+
 	void threadSpecificPriorityFunc(size_t threadId, size_t priority, size_t* progressPtr)
 	{
 		std::pair<std::function<void(size_t)>, size_t*> func;
 		while(read_specific_priority(priority, func, progressPtr))
 		{
 			func.first(threadId);
-			
+
 			std::unique_lock<std::mutex> lock(_mutex);
 			--(*progressPtr);
 			_onProgress.notify_all();
 		}
 	}
-	
+
 	bool read_highest_priority(std::pair<std::function<void(size_t)>, size_t*>& func)
 	{
 		std::unique_lock<std::mutex> lock(_mutex);
@@ -200,7 +193,7 @@ private:
 			return false;
 		}
 	}
-	
+
 	bool read_specific_priority(size_t priority, std::pair<std::function<void(size_t)>, size_t*>& func, size_t* progress)
 	{
 		std::unique_lock<std::mutex> lock(_mutex);
@@ -221,7 +214,7 @@ private:
 			return false;
 		}
 	}
-	
+
 	void write(size_t priority, std::function<void(size_t)>&& func, size_t* progressPtr)
 	{
 		// Wait until there is space in the map (so that the map
@@ -234,7 +227,7 @@ private:
 		_tasks.emplace(priority, std::make_pair(std::move(func), progressPtr));
 		_onProgress.notify_all();
 	}
-	
+
 	// Priority, (function, progress*)
 	bool _isStopped;
 	size_t _priority;

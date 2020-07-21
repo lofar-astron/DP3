@@ -26,6 +26,7 @@
 
 #include "DPInput.h"
 #include "DPBuffer.h"
+#include "BDABuffer.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 
@@ -64,6 +65,11 @@ namespace DP3 {
       /// It keeps the data.
       /// When processed, it invokes the process function of the next step.
       virtual bool process (const DPBuffer&);
+
+      /// Process the DBA data.
+      /// It keeps the data.
+      /// When processed, it invokes the process function of the next step.
+      bool process (std::unique_ptr<BDABuffer>) override;
 
       /// Finish the processing of this step and subsequent steps.
       virtual void finish();

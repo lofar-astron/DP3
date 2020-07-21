@@ -40,6 +40,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/version.h>
 
+#include "Types.h"
+
 using namespace casacore;
 
 namespace DP3 {
@@ -58,15 +60,15 @@ namespace DP3 {
       Vector<Int> a2 = ROScalarColumn<Int>(tab, "ANTENNA2").getColumn();
       int nant = 1 + std::max(max(a1), max(a2));
       Matrix<bool> bl(nant, nant, false);
-      vector<uInt> rows;
+      vector<rownr_t> rows;
       rows.reserve (nant*nant);
-      for (unsigned int i=0; i<a1.size(); ++i) {
+      for (rownr_t i=0; i<a1.size(); ++i) {
         if (! bl(a1[i], a2[i])) {
           rows.push_back (i);
           bl(a1[i], a2[i]) = true;
         }
       }
-      bltab = tab(Vector<uInt>(rows));
+      bltab = tab(Vector<rownr_t>(rows));
     }
     TableExprNode a1 (bltab.col("ANTENNA1"));
     TableExprNode a2 (bltab.col("ANTENNA2"));
@@ -134,7 +136,7 @@ namespace DP3 {
     try {
       // Create a table expression representing the selection.
       TableExprNode node = msAntennaGramParseCommand
-        (anttab, a1, a2, baselineSelection, 
+        (anttab, a1, a2, baselineSelection,
          selectedAnts1, selectedAnts2, selectedBaselines);
       // Get the antenna numbers.
       Table seltab = node.table()(node);

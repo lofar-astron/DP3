@@ -24,8 +24,6 @@
 #ifndef DPPP_DEMIXERNEW_H
 #define DPPP_DEMIXERNEW_H
 
-#ifdef HAVE_LOFAR_BEAM
-
 #include "DemixInfo.h"
 #include "DemixWorker.h"
 #include "DPInput.h"
@@ -138,7 +136,5 @@ namespace DP3 {
 
   } // end namespace
 } // end namespace
-
-#endif // HAVE_LOFAR_BEAM
 
 #endif

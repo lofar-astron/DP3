@@ -41,10 +41,8 @@
 
 #include "../Common/ParallelFor.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/Station.h>
-#include <StationResponse/Types.h>
-#endif
+#include <EveryBeam/station.h>
+#include <EveryBeam/common/types.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -177,9 +175,7 @@ namespace DP3 {
       ParallelFor<size_t> itsParallelFor;
       std::unique_ptr<class ThreadPool> itsThreadPool;
       std::mutex itsMeasuresMutex;
-#ifdef HAVE_LOFAR_BEAM
       ApplyBeam         itsApplyBeamStep; ///< Beam step for applying beam to modelcol
-#endif
       ResultStep::ShPtr itsResultStep; ///< For catching results from Predict or Beam
       bool              itsApplyBeamToModelColumn;
 

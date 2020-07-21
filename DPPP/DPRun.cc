@@ -339,25 +339,12 @@ namespace DP3 {
           step = DPStep::ShPtr(new Counter (reader, parset, prefix));
         } else if (type == "phaseshifter"  ||  type == "phaseshift") {
           step = DPStep::ShPtr(new PhaseShift (reader, parset, prefix));
-#ifdef HAVE_LOFAR_BEAM
         } else if (type == "demixer"  ||  type == "demix") {
           step = DPStep::ShPtr(new Demixer (reader, parset, prefix));
         } else if (type == "smartdemixer"  ||  type == "smartdemix") {
           step = DPStep::ShPtr(new DemixerNew (reader, parset, prefix));
         } else if (type == "applybeam") {
           step = DPStep::ShPtr(new ApplyBeam (reader, parset, prefix));
-#else
-        } else if (
-          type == "demixer" ||
-          type == "demix" ||
-          type == "smartdemixer" ||
-          type == "smartdemix" ||
-          type == "applybeam") {
-          throw std::runtime_error(
-            "Your parset includes a " + type + " step, but this step requires "
-            "the LOFAR beam. However, the LOFAR beam is not installed. To fix this, "
-            "install the LOFAR beam library and recompile DP3 with that library.");
-#endif
         } else if (type == "stationadder"  ||  type == "stationadd") {
           step = DPStep::ShPtr(new StationAdder (reader, parset, prefix));
         } else if (type == "scaledata") {

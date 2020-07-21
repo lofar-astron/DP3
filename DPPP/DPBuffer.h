@@ -27,17 +27,11 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/BasicSL/Complex.h>
-#include <casacore/casa/version.h>
+
+#include "../Common/Types.h"
 
 namespace DP3 {
   namespace DPPP {
-
-
-#if CASACORE_MAJOR_VERSION<3 || (CASACORE_MAJOR_VERSION==3 && CASACORE_MINOR_VERSION<4)
-    typedef unsigned int rownr_t;
-#else
-    typedef casacore::rownr_t rownr_t;
-#endif
 
     /// @brief Buffer holding the data of a timeslot/band
 

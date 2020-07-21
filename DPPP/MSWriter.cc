@@ -38,6 +38,7 @@
 #include <casacore/tables/DataMan/StandardStMan.h>
 #include <casacore/tables/DataMan/TiledStManAccessor.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
+#include <casacore/measures/TableMeasures/TableMeasDesc.h>
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -47,7 +48,6 @@
 
 #include <iostream>
 #include <limits>
-#include <measures/TableMeasures/TableMeasDesc.h>
 
 using namespace casacore;
 

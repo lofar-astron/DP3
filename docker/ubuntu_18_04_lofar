@@ -23,9 +23,9 @@ RUN mkdir /aoflagger/build && cd /aoflagger/build && cmake -DCMAKE_INSTALL_PREFI
 RUN mkdir /idg && cd /idg && git clone https://gitlab.com/astron-idg/idg.git src
 RUN mkdir /idg/build && cd /idg/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j2
 
-# Build LOFARBeam
-RUN mkdir /lofarbeam && cd /lofarbeam && git clone https://github.com/lofar-astron/LOFARBeam.git src
-RUN mkdir /lofarbeam/build && cd /lofarbeam/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 && make install -j2
+# Build EveryBeam
+RUN mkdir /everybeam && cd /everybeam && git clone https://git.astron.nl/RD/EveryBeam.git src
+RUN mkdir /everybeam/build && cd /everybeam/build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 && make install -j2
 
 ADD . /src
 WORKDIR /src

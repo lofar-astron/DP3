@@ -225,7 +225,7 @@ private:
     buf.setData (data);
     buf.setWeights (weights);
     buf.setFlags (flags);
-    Vector<unsigned int> rownrs(1,itsCount);
+    Vector<rownr_t> rownrs(1,itsCount);
     buf.setRowNrs (rownrs);
     getNextStep()->process (buf);
     ++itsCount;

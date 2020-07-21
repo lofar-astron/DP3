@@ -23,6 +23,7 @@
 
 #include "ScaleData.h"
 #include "DPBuffer.h"
+#include "BDABuffer.h"
 #include "DPInfo.h"
 #include "Exceptions.h"
 
@@ -213,6 +214,26 @@ namespace DP3 {
       bufNew.setData (data);
       itsTimer.stop();
       getNextStep()->process (bufNew);
+      return true;
+    }
+
+    bool ScaleData::process (std::unique_ptr<BDABuffer> bda_buffer)
+    {
+      itsTimer.start();
+
+      std::complex<float>* data = bda_buffer->GetData();
+
+      // Verify vectors are the same size
+      assert (bda_buffer->GetNumberOfElements() == itsFactors.nelements());
+
+      // Apply the scale factors.
+      for (const double& factor : itsFactors) {
+        *data *= factor;
+        ++data;
+      }
+
+      itsTimer.stop();
+      getNextStep()->process(std::move(bda_buffer));
       return true;
     }
 
