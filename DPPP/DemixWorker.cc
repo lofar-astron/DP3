@@ -765,14 +765,14 @@ namespace DP3 {
       }
       // Convert the directions to ITRF for the given time.
       itsMeasFrame.resetEpoch (MEpoch(MVEpoch(time/86400), MEpoch::UTC));
-      LOFAR::StationResponse::vector3r_t refdir  = dir2Itrf(itsDelayCenter);
-      LOFAR::StationResponse::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
+      everybeam::vector3r_t refdir  = dir2Itrf(itsDelayCenter);
+      everybeam::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
       MDirection dir (MVDirection(pos[0], pos[1]), MDirection::J2000);
-      LOFAR::StationResponse::vector3r_t srcdir = dir2Itrf(dir);
+      everybeam::vector3r_t srcdir = dir2Itrf(dir);
       // Get the beam values for each station.
       unsigned int nchan = chanFreqs.size();
       for (size_t st=0; st<itsMix->nstation(); ++st) {
-        itsAntBeamInfo[st]->response (nchan, time, chanFreqs.cbegin(),
+        itsAntBeamInfo[st]->Response (nchan, time, chanFreqs.cbegin(),
                                       srcdir, itsMix->getInfo().refFreq(),
                                       refdir, tiledir,
                                       &(itsBeamValues[nchan*st]));
@@ -780,9 +780,9 @@ namespace DP3 {
       // Apply the beam values of both stations to the predicted data.
       dcomplex tmp[4];
       for (size_t bl=0; bl<itsMix->nbl(); ++bl) {
-        const LOFAR::StationResponse::matrix22c_t* left =
+        const everybeam::matrix22c_t* left =
           &(itsBeamValues[nchan * itsMix->getAnt1()[bl]]);
-        const LOFAR::StationResponse::matrix22c_t* right =
+        const everybeam::matrix22c_t* right =
           &(itsBeamValues[nchan * itsMix->getAnt2()[bl]]);
         for (size_t ch=0; ch<nchan; ++ch) {
           dcomplex l[] = {left[ch][0][0], left[ch][0][1],
@@ -805,11 +805,11 @@ namespace DP3 {
       }
     }
 
-    LOFAR::StationResponse::vector3r_t DemixWorker::dir2Itrf (const MDirection& dir)
+    everybeam::vector3r_t DemixWorker::dir2Itrf (const MDirection& dir)
     {
       const MDirection& itrfDir = itsMeasConverter(dir);
       const Vector<Double>& itrf = itrfDir.getValue().getValue();
-      LOFAR::StationResponse::vector3r_t vec;
+      everybeam::vector3r_t vec;
       vec[0] = itrf[0];
       vec[1] = itrf[1];
       vec[2] = itrf[2];

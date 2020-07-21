@@ -118,7 +118,6 @@ namespace DP3 {
         itsResultStep = ResultStep::ShPtr(new ResultStep());
         itsPredictStep->setNextStep(itsResultStep);
       } else {
-#ifdef HAVE_LOFAR_BEAM
         itsApplyBeamToModelColumn=parset.getBool(prefix +
                                               "applybeamtomodelcolumn", false);
         if (itsApplyBeamToModelColumn) {
@@ -126,7 +125,6 @@ namespace DP3 {
           itsResultStep = ResultStep::ShPtr(new ResultStep());
           itsApplyBeamStep.setNextStep(itsResultStep);
         }
-#endif
       }
 
       itsNIter.resize(4,0);
@@ -214,11 +212,9 @@ namespace DP3 {
       itsUVWFlagStep.updateInfo(infoIn);
 
       if (itsUseModelColumn) {
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeamToModelColumn) {
           itsApplyBeamStep.updateInfo(infoIn);
         }
-#endif
       } else {
         itsPredictStep->updateInfo(infoIn);
         itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
@@ -355,11 +351,9 @@ namespace DP3 {
       if (!itsUseModelColumn) {
         itsPredictStep->show(os);
       }
-#ifdef HAVE_LOFAR_BEAM
       else if (itsApplyBeamToModelColumn) {
         itsApplyBeamStep.show(os);
       }
-#endif
       itsUVWFlagStep.show(os);
     }
 
@@ -436,7 +430,6 @@ namespace DP3 {
 
       if (itsUseModelColumn) {
         itsInput->getModelData (itsBuf[bufIndex].getRowNrs(), itsModelData);
-#ifdef HAVE_LOFAR_BEAM
         if (itsApplyBeamToModelColumn) { // TODO: double check this
           // Temporarily put model data in data column for applybeam step
           // ApplyBeam step will copy the buffer so no harm is done
@@ -445,7 +438,6 @@ namespace DP3 {
           //Put original data back in data column
           itsBuf[bufIndex].getData()=dataCube;
         }
-#endif
       } else { // Predict
         itsPredictStep->process(itsBuf[bufIndex]);
       }

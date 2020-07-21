@@ -21,8 +21,6 @@
 /// @brief DPPP step class to apply the beam model (optionally inverted)
 /// @author Tammo Jan Dijkema
 
-#ifdef HAVE_LOFAR_BEAM
-
 #ifndef DPPP_APPLYBEAM_H
 #define DPPP_APPLYBEAM_H
 
@@ -30,10 +28,8 @@
 #include "DPBuffer.h"
 #include "Position.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/Station.h>
-#include <StationResponse/Types.h>
-#endif
+#include <EveryBeam/station.h>
+#include <EveryBeam/common/types.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -92,27 +88,29 @@ namespace DP3 {
         template<typename T>
         static void applyBeam(
             const DPInfo& info, double time, T* data0, float* weight0,
-            const LOFAR::StationResponse::vector3r_t& srcdir,
-            const LOFAR::StationResponse::vector3r_t& refdir,
-            const LOFAR::StationResponse::vector3r_t& tiledir,
-            const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
-            std::vector<LOFAR::StationResponse::matrix22c_t>& beamValues,
+            const everybeam::vector3r_t& srcdir,
+            const everybeam::vector3r_t& refdir,
+            const everybeam::vector3r_t& tiledir,
+            const std::vector<everybeam::Station::Ptr>& antBeamInfo,
+            std::vector<everybeam::matrix22c_t>& beamValues,
             bool useChannelFreq, bool invert, BeamCorrectionMode mode,
+            everybeam::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
         template<typename T>
         static void applyBeamStokesIArrayFactor(
             const DPInfo& info, double time, T* data0, float* weight0,
-            const LOFAR::StationResponse::vector3r_t& srcdir,
-            const LOFAR::StationResponse::vector3r_t& refdir,
-            const LOFAR::StationResponse::vector3r_t& tiledir,
-            const std::vector<LOFAR::StationResponse::Station::Ptr>& antBeamInfo,
-            std::vector<LOFAR::StationResponse::complex_t>& beamValues,
+            const everybeam::vector3r_t& srcdir,
+            const everybeam::vector3r_t& refdir,
+            const everybeam::vector3r_t& tiledir,
+            const std::vector<everybeam::Station::Ptr>& antBeamInfo,
+            std::vector<everybeam::complex_t>& beamValues,
             bool useChannelFreq, bool invert, BeamCorrectionMode mode,
+            everybeam::ElementResponseModel element_reponse_model,
             bool doUpdateWeights=false);
 
       private:
-        LOFAR::StationResponse::vector3r_t dir2Itrf(
+        everybeam::vector3r_t dir2Itrf(
             const casacore::MDirection& dir,
             casacore::MDirection::Convert& measConverter);
 
@@ -125,6 +123,7 @@ namespace DP3 {
         casacore::MDirection itsDirection;
         bool                 itsUseChannelFreq;
         BeamCorrectionMode   itsMode;
+        everybeam::ElementResponseModel itsElementResponseModel;
         
         /// If a beam had already been applied before running this step, that beam
         /// needs to undone; hence we register that beam info here:
@@ -137,10 +136,10 @@ namespace DP3 {
 
         /// The info needed to calculate the station beams.
         ///@{
-        std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
+        std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
         std::vector<casacore::MeasFrame> itsMeasFrames;
         std::vector<casacore::MDirection::Convert> itsMeasConverters;
-        std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> > itsBeamValues;
+        std::vector<std::vector<everybeam::matrix22c_t> > itsBeamValues;
         ///@}
 
         NSTimer itsTimer;
@@ -148,6 +147,5 @@ namespace DP3 {
 
   } // end namespace
 }
-#endif
 
 #endif // HAVE_LOFAR_BEAM

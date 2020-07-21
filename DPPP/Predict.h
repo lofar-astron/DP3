@@ -32,10 +32,8 @@
 #include "ApplyBeam.h"
 #include "ModelComponent.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/Station.h>
-#include <StationResponse/Types.h>
-#endif
+#include <EveryBeam/station.h>
+#include <EveryBeam/common/types.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -114,25 +112,21 @@ namespace DP3 {
 
     private:
       void initializeThreadData();
-#ifdef HAVE_LOFAR_BEAM
-      LOFAR::StationResponse::vector3r_t dir2Itrf (const casacore::MDirection& dir,
+      everybeam::vector3r_t dir2Itrf (const casacore::MDirection& dir,
                                      casacore::MDirection::Convert& measConverter);
       void addBeamToData (Patch::ConstPtr patch, double time,
-                                   const LOFAR::StationResponse::vector3r_t& refdir,
-                                   const LOFAR::StationResponse::vector3r_t& tiledir,
+                                   const everybeam::vector3r_t& refdir,
+                                   const everybeam::vector3r_t& tiledir,
                                    unsigned int thread, unsigned int nSamples,
                                    dcomplex* data0, bool stokesIOnly);
-#endif
       DPInput*         itsInput;
       string           itsName;
       DPBuffer         itsBuffer;
       string           itsSourceDBName;
       string           itsOperation;
-#ifdef HAVE_LOFAR_BEAM
       bool             itsApplyBeam;
       bool             itsUseChannelFreq;
       bool             itsOneBeamPerPatch;
-#endif
       bool             itsStokesIOnly;
       Position         itsPhaseRef;
       bool             itsMovingPhaseRef;
@@ -152,13 +146,12 @@ namespace DP3 {
       /// UVW coordinates per station (3 coordinates per station)
       casacore::Matrix<double>   itsUVW;
 
-#ifdef HAVE_LOFAR_BEAM
       /// The info needed to calculate the station beams.
-      std::vector<std::vector<LOFAR::StationResponse::Station::Ptr> > itsAntBeamInfo;
-      std::vector<std::vector<LOFAR::StationResponse::matrix22c_t> >  itsBeamValues;
-      std::vector<std::vector<LOFAR::StationResponse::complex_t> >  itsBeamValuesSingle;
+      std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
+      std::vector<std::vector<everybeam::matrix22c_t> >  itsBeamValues;
+      std::vector<std::vector<everybeam::complex_t> >  itsBeamValuesSingle;
       BeamCorrectionMode itsBeamMode;
-#endif
+      everybeam::ElementResponseModel itsElementResponseModel;
       std::vector<casacore::MeasFrame>                    itsMeasFrames;
       std::vector<casacore::MDirection::Convert>          itsMeasConverters;
 

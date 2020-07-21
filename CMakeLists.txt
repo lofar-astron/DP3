@@ -24,9 +24,6 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
-# Add old casacore include directory because LOFAR beam library did
-# not use the casacore/ prefix in the includes until 3.2 (Sep '18)
-include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 find_package(Threads REQUIRED)
 
@@ -56,35 +53,17 @@ set(BOOSTPY ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
-find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
-if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-  include_directories(${LOFAR_STATION_RESPONSE_DIR})
-  add_definitions(-DHAVE_LOFAR_BEAM)
-  message(STATUS "LOFAR beam library found.")
-
-  set(LOFAR_DEPENDENT_FILES
-    DPPP/ApplyBeam.cc
-    DPPP/DemixerNew.cc
-    DPPP/DemixInfo.cc
-    DPPP/DemixWorker.cc
-  )
-
-  set(LOFAR_DEPENDENT_INTEGRATION_TESTS
-    tApplyBeam
-    tGainCalH5Parm
-    tPredict
-  )
+find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+if(NOT EVERYBEAM_INCLUDE_DIR)
+  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
+endif()
+find_library(EVERYBEAM_LIB everybeam)
+if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  message(STATUS "EveryBeam library found.")
 else()
-  if(WITH_LOFAR_BEAM)
-    message(FATAL_ERROR "LOFAR beam library not found")
-  else()
-    message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
-    set(LOFAR_STATION_RESPONSE_LIB "")
-    set(LOFAR_DEPENDENT_FILES "")
-    set(LOFAR_DEPENDENT_INTEGRATION_TESTS "")
-  endif(WITH_LOFAR_BEAM)
-endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
+  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
+endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -211,7 +190,10 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Upsample.cc
   DPPP/UVWCalculator.cc
   DPPP/UVWFlagger.cc
-  ${LOFAR_DEPENDENT_FILES}
+  DPPP/ApplyBeam.cc
+  DPPP/DemixerNew.cc
+  DPPP/DemixInfo.cc
+  DPPP/DemixWorker.cc
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
@@ -346,7 +328,7 @@ add_executable(
   ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
 
-target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+target_link_libraries(runtests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
 set_tests_properties(buildruntests PROPERTIES LABELS "unit")

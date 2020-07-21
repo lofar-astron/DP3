@@ -18,9 +18,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && make install -j4 \
     && cd / && rm -rf idg \
-# Build LOFARBeam
-    && mkdir /lofarbeam && cd /lofarbeam \
-    && git clone https://github.com/lofar-astron/LOFARBeam.git src \
+# Build EveryBeam
+    && mkdir /everybeam && cd /everybeam && git clone https://git.astron.nl/RD/EveryBeam.git src \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     && make install -j4 \
