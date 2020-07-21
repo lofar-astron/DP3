@@ -197,7 +197,7 @@ add_library(DPPP_OBJ OBJECT
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-find_package(AOFlagger 2 REQUIRED)
+find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 add_library(AOFlaggerStep_OBJ OBJECT

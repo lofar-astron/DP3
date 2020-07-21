@@ -21,13 +21,12 @@
 /// @brief Register AOFlag steps in DPPP
 /// @author Ger van Diepen
 
-#ifndef DPPP_AOFLAG_REGISTER_H
-#define DPPP_AOFLAG_REGISTER_H
+#ifndef DPPP_AOFLAGGER_REGISTER_H
+#define DPPP_AOFLAGGER_REGISTER_H
 
 /// Define the function (without name mangling) to register the 'constructor'.
-extern "C"
-{
-  void register_aoflag();
+extern "C" {
+void register_aoflagger();
 }
 
 #endif

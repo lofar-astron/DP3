@@ -10,7 +10,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libgtkmm-3.0-dev git libfftw3-dev \
     gfortran flex bison wcslib-dev \
     libboost-numpy-dev liblua5.3-dev \
-    casacore-dev casacore-tools aoflagger-dev \
+    casacore-dev casacore-tools pybind11-dev \
+# Build aoflagger3
+    && mkdir /aoflagger && cd /aoflagger \
+    && git clone https://gitlab.com/aroffringa/aoflagger.git src \
+    && mkdir build && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src && make install -j4 \
+    && cd / && rm -rf aoflagger \
 # Build latest IDG master from source
     && mkdir /idg && cd /idg \
     && git clone https://gitlab.com/astron-idg/idg.git src \
