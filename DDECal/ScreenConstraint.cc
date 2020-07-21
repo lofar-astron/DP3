@@ -157,16 +157,16 @@ void ScreenConstraint::CalculatePiercepoints(){
   void  ScreenConstraint::getPPValue(std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,size_t solutionIndex,size_t dirIndex,double &avgTEC,double &error) const {
   if (itsAVGMode=="simple"){
     avgTEC=0;
-    error=1.;
-    uint nrch(0);
-    for(size_t ch=0;ch<_nChannelBlocks; ++ch){
-      if(isfinite(solutions[ch][dirIndex])){
+    error=1.0;
+    size_t nrch(0);
+    for(size_t ch=0;ch<_nChannelBlocks; ++ch) {
+      if(std::isfinite(solutions[ch][dirIndex])) {
 	double refphase=std::arg(solutions[ch][dirIndex]);
 	//TODO: more advance frequency averaging...
-	if (isfinite(solutions[ch][solutionIndex])){
-	avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
-	nrch++;
-	  }
+	if (std::isfinite(solutions[ch][solutionIndex])) {
+	  avgTEC += std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
+	  nrch++;
+	}
       }
     }
     if (nrch>0)
@@ -183,18 +183,18 @@ void ScreenConstraint::CalculatePiercepoints(){
   }
   else{
     PhaseFitter phfit(_nChannelBlocks) ;
-    double offset(0.);
+    double offset = 0.0;
     for(size_t ch=0;ch<_nChannelBlocks; ++ch){
       phfit.FrequencyData()[ch]=itsFrequencies.data()[ch];
       
-    if(isfinite(solutions[ch][solutionIndex])){
+    if(std::isfinite(solutions[ch][solutionIndex])) {
       phfit.PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
     }
     else
-      phfit.WeightData()[ch]=0;
+      phfit.WeightData()[ch]=0.0;
     }
     if (itsprevsol[solutionIndex]<-100){
-      avgTEC=0;
+      avgTEC = 0.0;
       phfit.FitTEC2ModelParameters(avgTEC,offset);
       error=phfit.TEC2ModelCost(avgTEC,offset);
      }
@@ -206,7 +206,7 @@ void ScreenConstraint::CalculatePiercepoints(){
     
     avgTEC*=phtoTEC;
   }
-  error=1;
+  error=1.0;
 }
 
 
@@ -281,7 +281,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(std::vector<std::vector<
       }
     }
     for(size_t dirIndex = 0; dirIndex<_nDirections; ++dirIndex){
-      double avgTEC,error(1.);
+      double avgTEC = 0.0, error = 1.0;
       size_t solutionIndex=antIndex*_nDirections+dirIndex;
       if (itsDebugMode>0 and itsIter<maxIter)
       {

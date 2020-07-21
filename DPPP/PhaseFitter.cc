@@ -24,7 +24,6 @@
 #include "PhaseFitter.h"
 
 #include <limits>
-#include <iostream>
 
 double PhaseFitter::TEC2ModelCost(double alpha, double beta) const
 {

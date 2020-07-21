@@ -33,7 +33,6 @@
 #include <vector>
 #include <cmath>
 #include <cstring>
-#include <iostream>
 
 /**
  * Phase fitter that can force phase solutions over frequency onto a TEC model.
