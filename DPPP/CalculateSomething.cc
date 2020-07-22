@@ -71,6 +71,28 @@ namespace DP3 {
 
     bool CalculateSomething::process (const DPBuffer& bufin)
     {
+#ifdef SECOND_VERSION	    
+      itsTimer.start();
+      //CLA
+      //itsBuffer.copy (bufin);
+      //itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
+      //itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
+      cout << "This is my first implementation of AddNoiseLBA" << endl;
+      Array<Complex>::const_contiter indIter = buf.getData().cbegin();
+      Array<Complex>::const_contiter indIterEnd = buf.getData().cend();
+
+      int icount = 0;
+      cout << "Number of frequencies " << getInfo().chanFreqs().size() << endl;
+      //while (indIter != indIterEnd) {
+      while (icount < nsteps) {
+              cout << icount << "   " << *indIter << endl;
+              icount++;
+              indIter++;
+      }
+      itsTimer.stop();
+      //getNextStep()->process(itsBuffer);
+      return false;
+#else
       itsTimer.start();
       //CLA
       //itsBuffer.copy (bufin);
@@ -88,6 +110,7 @@ namespace DP3 {
       itsTimer.stop();
       //getNextStep()->process(itsBuffer);
       return false;
+#endif
     }
 
 
