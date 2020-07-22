@@ -1,12 +1,9 @@
-#!/bin/bash
+#! /bin/bash
 #
 # clang-format-check.sh: checks clang-format compliance of source code in repository.
-# Copyright (C) 2020
-# ASTRON (Netherlands Institute for Radio Astronomy)
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-#
+# This file is part of the DP3 software package.
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # License: GNU General Public License version 3 or any later version
-# SPDX-License-Identifier:  GPL-3.0-or-later
 #
 # To hook this script to pre-commit include the line "./scripts/clang-format-check.sh" to .git/hooks/pre-commit
 # and make sure pre-commit is an executable shell script.
