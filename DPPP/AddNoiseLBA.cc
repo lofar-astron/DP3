@@ -1,4 +1,4 @@
-// GainCal.cc: DPPP step class to AddNoiseLBA visibilities
+// AddNoiseLBA.h: DPPP step class to add LBA random noise to data
 // Copyright (C) 2013
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -19,7 +19,7 @@
 //
 // $Id: GainCal.cc 21598 2012-07-16 08:07:34Z diepen $
 //
-// @author Tammo Jan Dijkema
+// @author Claudio Gheller, Henrik Edler
 
 #include "AddNoiseLBA.h"
 
@@ -121,7 +121,7 @@ namespace DP3 {
       unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
       std::default_random_engine generator (seed);
 
-      for (int icorr=1; icorr<n_corr; icorr++)
+      for (int icorr=0; icorr<n_corr; icorr++)
       {
         for (int ifreq=0; ifreq<n_freq; ifreq++) 
         {
