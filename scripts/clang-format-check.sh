@@ -1,10 +1,12 @@
 #!/bin/bash
-# Do check on clang-format, script is inspired on:
-# - https://dev.to/10xlearner/formatting-cpp-c-javascript-and-other-stuff-2pof
-# - https://gitlab.freedesktop.org/monado/monado/-/blob/master/scripts/format-and-spellcheck.sh
 #
-# Author: Jakob Maljaars
-# Email: jakob.maljaars_@_stcorp.nl
+# clang-format-check.sh: checks clang-format compliance of source code in repository.
+# Copyright (C) 2020
+# ASTRON (Netherlands Institute for Radio Astronomy)
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+#
+# License: GNU General Public License version 3 or any later version
+# SPDX-License-Identifier:  GPL-3.0-or-later
 #
 # To hook this script to pre-commit include the line "./scripts/clang-format-check.sh" to .git/hooks/pre-commit
 # and make sure pre-commit is an executable shell script.
@@ -49,8 +51,6 @@ do
     esac
 done
 
-PATCH_NAME=clang-fixes.diff
-
 echo -e "\e[1mRunning clang-format...\e[0m"
 echo
 
@@ -73,17 +73,15 @@ SCRIPT_PATH=$(dirname "$0")
 $SCRIPT_PATH/run-clang-format.sh $EX_DIR $INC_FILE
 
 # Can't use tee because it hides the exit code
-if git diff --patch --exit-code > $PATCH_NAME; then
+if git diff --patch --exit-code --quiet; then
     echo
     # print in bold-face green
     echo -e "\e[1m\e[32mGreat job, clang-format changed nothing!\e[0m"
-    rm -f $PATCH_NAME
     exit 0;
 else
     echo
     # Print in bold-face red
     echo -e "\e[1m\e[31mClang-format made at least one change. Run clang-format before pushing!\e[0m"
-    rm -f $PATCH_NAME
     exit 1;
 fi
 

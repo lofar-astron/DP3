@@ -1,8 +1,12 @@
-
 #!/bin/bash
 #
-# Author: Jakob Maljaars
-# Email: jakob.maljaars_@_stcorp.nl
+# run-clang-format.sh: formats source code in this repo in accordance with .clang-format file.
+# Copyright (C) 2020
+# ASTRON (Netherlands Institute for Radio Astronomy)
+# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+#
+# License: GNU General Public License version 3 or any later version
+# SPDX-License-Identifier:  GPL-3.0-or-later
 
 programname=$0
 
