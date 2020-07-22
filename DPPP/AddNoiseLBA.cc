@@ -72,26 +72,14 @@ namespace DP3 {
 
     bool AddNoiseLBA::process (const DPBuffer& buf)
     {
-      int i;
       double nu;    
       double stddev;
       double sefd;
       itsTimer.start();
 
-      // Name of the column to add the noise
+      // Name of the column to add the noise (at the moment not used, just a placeholder)
       string column = "DATA";
-
       Array<Complex>::const_contiter indIter = buf.getData().cbegin();
-      Array<Complex>::const_contiter indIterEnd = buf.getData().cend();
-
-      /*
-      int icount = 0;
-      while (indIter != indIterEnd) {
-            cout << icount << "   " << *indIter << endl;
-            icount++;
-            indIter++;
-      }
-      */
 
       // Set the exposure
       double exposure = buf.getExposure();
@@ -99,17 +87,17 @@ namespace DP3 {
       // Load the Antenna columns
       Vector<Int> antenna1 = info().getAnt1();
       Vector<Int> antenna2 = info().getAnt2();
-      cout << endl;
+      //cout << endl;
       //cout << "ANTENNA1 " << antenna1.size() << endl;
       //cout << "ANTENNA2 " << antenna2.size() << endl;
 
       // Set Number of baselines
       int n_baselines = antenna1.size();
-      cout << "Number of baselines = " << n_baselines << endl;
+      //cout << "Number of baselines = " << n_baselines << endl;
 
       // Set the number of correlations
       int n_corr = info().ncorr();
-      cout << "Number of correlations = " << n_corr << endl;
+      //cout << "Number of correlations = " << n_corr << endl;
 
       // Set the LOFAR_ANTENNA_SET
       string antennaSet1 = "LBA_OUTER";
@@ -121,12 +109,12 @@ namespace DP3 {
       if (antennaSet.compare(antennaSet1)) coeff = coeffs_outer;
       if (antennaSet.compare(antennaSet2)) coeff = coeffs_inner;
 
-      int nant = getInfo().antennaNames().size();
+      //int nant = getInfo().antennaNames().size();
       //cout << "N antennas " << nant << endl;
 
       // Set the number of frequency channels
       int n_freq = getInfo().chanFreqs().size();
-      cout << "Number of frequencies = " << n_freq << endl;
+      //cout << "Number of frequencies = " << n_freq << endl;
       Vector<Double> chan_freq = getInfo().chanFreqs();
       Vector<Double> chan_width = getInfo().chanWidths();
 
