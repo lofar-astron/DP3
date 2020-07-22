@@ -26,26 +26,20 @@
 
 namespace DP3 {
 
-BlobOBufStream::BlobOBufStream (std::ostream& os)
-: itsStream (os.rdbuf())
-{}
+BlobOBufStream::BlobOBufStream(std::ostream& os) : itsStream(os.rdbuf()) {}
 
-BlobOBufStream::~BlobOBufStream()
-{}
+BlobOBufStream::~BlobOBufStream() {}
 
-uint64_t BlobOBufStream::put (const void* buffer, uint64_t nbytes)
-{
-  return itsStream->sputn ((const char*)buffer, nbytes);
+uint64_t BlobOBufStream::put(const void* buffer, uint64_t nbytes) {
+  return itsStream->sputn((const char*)buffer, nbytes);
 }
 
-int64_t BlobOBufStream::tellPos() const
-{
-  return itsStream->pubseekoff (0, std::ios::cur);
+int64_t BlobOBufStream::tellPos() const {
+  return itsStream->pubseekoff(0, std::ios::cur);
 }
 
-int64_t BlobOBufStream::setPos (int64_t pos)
-{
-  return itsStream->pubseekoff (pos, std::ios::beg);
+int64_t BlobOBufStream::setPos(int64_t pos) {
+  return itsStream->pubseekoff(pos, std::ios::beg);
 }
 
-} // end namespace
+}  // namespace DP3

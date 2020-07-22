@@ -30,50 +30,49 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
+namespace DPPP {
 
-    /// @brief DPPP step class to count flags
+/// @brief DPPP step class to count flags
 
-    /// This class is a DPStep class counting the number of flags per
-    /// baseline and channel.
-    /// It can be used for test purposes to know how many flags have been
-    /// set by the previous steps.
+/// This class is a DPStep class counting the number of flags per
+/// baseline and channel.
+/// It can be used for test purposes to know how many flags have been
+/// set by the previous steps.
 
-    class Counter: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      Counter (DPInput*, const ParameterSet&, const string& prefix);
+class Counter : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  Counter(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~Counter();
+  virtual ~Counter();
 
-      /// Process the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the flag counts.
-      virtual void showCounts (std::ostream&) const;
+  /// Show the flag counts.
+  virtual void showCounts(std::ostream&) const;
 
-    private:
-      string      itsName;
-      bool        itsFlagData;
-      unsigned int        itsCount;
-      FlagCounter itsFlagCounter;
-    };
+ private:
+  string itsName;
+  bool itsFlagData;
+  unsigned int itsCount;
+  FlagCounter itsFlagCounter;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

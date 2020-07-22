@@ -27,14 +27,12 @@
 #include <cstddef>
 #include <utility>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
-typedef std::pair<size_t, size_t>   Baseline;
+typedef std::pair<size_t, size_t> Baseline;
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

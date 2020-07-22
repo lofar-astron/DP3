@@ -46,12 +46,15 @@ namespace LOFAR { namespace BBS {
   /// It starts the remote processes and connects to them. At the end it
   /// sends them a quit message.
   //
-  /// The remote processes are started via ssh using startdistproc (in LMWCommon).
+  /// The remote processes are started via ssh using startdistproc (in
+LMWCommon).
   /// It starts the script 'parmdbremote-scr' in the background piping its
   /// stdout and stderr output to the log file parmdbremote_$USER_$$. Because it
   /// is started in the background, no ssh-connection is kept open.
-  /// In its turn parmdbremote-scr starts the program parmdbremote which connects
-  /// to ParmFacadeDistr and sends an initial message containing the ParmDB name,
+  /// In its turn parmdbremote-scr starts the program parmdbremote which
+connects
+  /// to ParmFacadeDistr and sends an initial message containing the ParmDB
+name,
   /// the parm names it contains and all default values.
   /// Thereafter it waits for requests which can be one of the following:
   /// <ul>
@@ -60,7 +63,8 @@ namespace LOFAR { namespace BBS {
   ///       of the domains of the parameters.
   ///  <li> GetValues: return the values of the parms calculated on a given grid
   ///  <li> GetValuesVec: as above with grid given as vectors
-  ///  <li> GetValuesGrid: return parm values in box using default freq/time step
+  ///  <li> GetValuesGrid: return parm values in box using default freq/time
+step
   ///  <li> GetCoeff: return the coefficients of polynomial parms
   ///  <li> ClearTables: clear all tables (remove all values and defaults)
   ///  <li> Flush: flush the ParmDB
@@ -108,7 +112,8 @@ namespace LOFAR { namespace BBS {
 
     /// Get the domain range (as startx,endx,starty,endy) of the given
     /// parameters in the table.
-    /// This is the minimum start value and maximum end value for all parameters.
+    /// This is the minimum start value and maximum end value for all
+parameters.
     /// An empty name pattern is the same as * (all parm names).
     virtual vector<double> getRange (const string& parmNamePattern) const;
 

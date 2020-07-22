@@ -34,233 +34,205 @@
 #include <memory>
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
+/// @brief Abstract base class for a DPPP step
 
-    /// @brief Abstract base class for a DPPP step
+/// This class defines a step in the DPPP pipeline.
+/// It is an abstract class from which all steps should be derived.
+/// A few functions can or must be implemented. They are called by
+/// the NDPPP program in the following order.
+/// <ul>
+///  <li> 'updateInfo' should update its DPInfo object with the specific
+///        step information. For example, in this way it is known
+///       in all steps how the data are averaged and what the shape is.
+///  <li> 'show' can be used to show the attributes.
+///  <li> 'process' is called continuously to process the next time slot.
+///        When processed, it should call 'process' of the next step.
+///        When done (i.e. at the end of the input), it should return False.
+///  <li> 'finish' finishes the processing which could mean that 'process'
+///       of the next step has to be called several times. When done,
+///       it should call 'finish' of the next step.
+///  <li> 'addToMS' is called after 'finish'. It gives a step the opportunity
+///       to add some data to the MS written/updated. It is, for example,
+///       used by AOFlagger to write its statistics.
+///  <li> 'showCounts' can be used to show possible counts of flags, etc.
+/// </ul>
+/// A DPStep object contains a DPInfo object telling the data settings for
+/// a step (like channel info, baseline info, etc.).
 
-    /// This class defines a step in the DPPP pipeline.
-    /// It is an abstract class from which all steps should be derived.
-    /// A few functions can or must be implemented. They are called by
-    /// the NDPPP program in the following order.
-    /// <ul>
-    ///  <li> 'updateInfo' should update its DPInfo object with the specific
-    ///        step information. For example, in this way it is known
-    ///       in all steps how the data are averaged and what the shape is.
-    ///  <li> 'show' can be used to show the attributes.
-    ///  <li> 'process' is called continuously to process the next time slot.
-    ///        When processed, it should call 'process' of the next step.
-    ///        When done (i.e. at the end of the input), it should return False.
-    ///  <li> 'finish' finishes the processing which could mean that 'process'
-    ///       of the next step has to be called several times. When done,
-    ///       it should call 'finish' of the next step.
-    ///  <li> 'addToMS' is called after 'finish'. It gives a step the opportunity
-    ///       to add some data to the MS written/updated. It is, for example,
-    ///       used by AOFlagger to write its statistics.
-    ///  <li> 'showCounts' can be used to show possible counts of flags, etc.
-    /// </ul>
-    /// A DPStep object contains a DPInfo object telling the data settings for
-    /// a step (like channel info, baseline info, etc.).
+class DPStep {
+ public:
+  /// Define the shared pointer for this type.
+  typedef std::shared_ptr<DPStep> ShPtr;
 
-    class DPStep
-    {
-    public:
-      /// Define the shared pointer for this type.
-      typedef std::shared_ptr<DPStep> ShPtr;
+  /// Constructor to initialize.
+  DPStep() : itsPrevStep(0) {}
 
-      /// Constructor to initialize.
-      DPStep()
-        : itsPrevStep(0)
-      {}
+  /// Destructor.
+  virtual ~DPStep();
 
-      /// Destructor.
-      virtual ~DPStep();
+  /// Process the data.
+  /// When processed, it invokes the process function of the next step.
+  /// It should return False at the end.
+  virtual bool process(const DPBuffer&) = 0;
 
-      /// Process the data.
-      /// When processed, it invokes the process function of the next step.
-      /// It should return False at the end.
-      virtual bool process (const DPBuffer&) = 0;
+  /// Process the BDA data.
+  /// When processed, it invokes the process function of the next step.
+  /// It should return False at the end.
+  virtual bool process(std::unique_ptr<BDABuffer>) {
+    throw std::runtime_error("Step does not support BDA data processing.");
+  };
 
-      /// Process the BDA data.
-      /// When processed, it invokes the process function of the next step.
-      /// It should return False at the end.
-      virtual bool process (std::unique_ptr<BDABuffer>) {
-        throw std::runtime_error("Step does not support BDA data processing.");
-      };
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish() = 0;
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish() = 0;
+  /// Set the info of this step and its next step.
+  /// It calls the virtual function updateInfo to do the real work.
+  /// It returns the info of the last step.
+  const DPInfo& setInfo(const DPInfo&);
 
-      /// Set the info of this step and its next step.
-      /// It calls the virtual function updateInfo to do the real work.
-      /// It returns the info of the last step.
-      const DPInfo& setInfo (const DPInfo&);
+  /// Get access to the info.
+  const DPInfo& getInfo() const { return itsInfo; }
 
-      /// Get access to the info.
-      const DPInfo& getInfo() const
-        { return itsInfo; }
+  /// Add some data to the MeasurementSet written/updated.
+  /// The default implementation only calls addToMS from the previous step
+  virtual void addToMS(const string& msName);
 
-      /// Add some data to the MeasurementSet written/updated.
-      /// The default implementation only calls addToMS from the previous step
-      virtual void addToMS (const string& msName);
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const = 0;
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const = 0;
+  /// Show the flag counts if needed.
+  /// The default implementation does nothing.
+  virtual void showCounts(std::ostream&) const;
 
-      /// Show the flag counts if needed.
-      /// The default implementation does nothing.
-      virtual void showCounts (std::ostream&) const;
+  /// Show the timings.
+  /// The default implementation does nothing.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-      /// Show the timings.
-      /// The default implementation does nothing.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Set the previous step.
+  void setPrevStep(DPStep* prevStep) { itsPrevStep = prevStep; }
 
-      /// Set the previous step.
-      void setPrevStep (DPStep* prevStep)
-      { itsPrevStep = prevStep; }
+  /// Get the previous step.
+  DPStep* getPrevStep() const { return itsPrevStep; }
 
-      /// Get the previous step.
-      DPStep* getPrevStep () const
-      { return itsPrevStep; }
+  /// Set the next step.
+  virtual void setNextStep(DPStep::ShPtr nextStep) {
+    itsNextStep = nextStep;
+    nextStep->setPrevStep(this);
+  }
 
-      /// Set the next step.
-      virtual void setNextStep (DPStep::ShPtr nextStep)
-        { itsNextStep = nextStep;
-          nextStep->setPrevStep(this);
-        }
+  /// Get the next step.
+  const DPStep::ShPtr& getNextStep() const { return itsNextStep; }
 
-      /// Get the next step.
-      const DPStep::ShPtr& getNextStep() const
-        { return itsNextStep; }
-        
-    protected:
-      DPInfo& info()
-        { return itsInfo; }
+ protected:
+  DPInfo& info() { return itsInfo; }
 
-      /// Update the general info (called by setInfo).
-      /// The default implementation copies the info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info (called by setInfo).
+  /// The default implementation copies the info.
+  virtual void updateInfo(const DPInfo&);
 
-    private:
-      DPStep::ShPtr itsNextStep;
-      DPStep* itsPrevStep; /// Normal pointer for back links, prevent
-                           /// two shared pointers to same object
-      DPInfo itsInfo;
-    };
+ private:
+  DPStep::ShPtr itsNextStep;
+  DPStep* itsPrevStep;  /// Normal pointer for back links, prevent
+                        /// two shared pointers to same object
+  DPInfo itsInfo;
+};
 
+/// @brief This class defines a null step in the DPPP pipeline.
+/// It can be used as the last step in the pipeline, so other steps
+/// do not need to test if there is a next step.
 
+class NullStep : public DPStep {
+ public:
+  virtual ~NullStep();
 
+  /// Process the data. It does nothing.
+  virtual bool process(const DPBuffer&);
 
-    /// @brief This class defines a null step in the DPPP pipeline.
-    /// It can be used as the last step in the pipeline, so other steps
-    /// do not need to test if there is a next step.
+  /// Finish the processing of this step and subsequent steps.
+  /// It does nothing.
+  virtual void finish();
 
-    class NullStep: public DPStep
-    {
-    public:
-      virtual ~NullStep();
+  /// Show the step parameters.
+  /// It does nothing.
+  virtual void show(std::ostream&) const;
+};
 
-      /// Process the data. It does nothing.
-      virtual bool process (const DPBuffer&);
+/// @brief This class defines step in the DPPP pipeline that keeps the result
+/// to make it possible to get the result of another step.
+/// It keeps the result and calls process of the next step.
 
-      /// Finish the processing of this step and subsequent steps.
-      /// It does nothing.
-      virtual void finish();
+class ResultStep : public DPStep {
+ public:
+  typedef std::shared_ptr<ResultStep> ShPtr;
+  /// Create the object. By default it sets its next step to the NullStep.
+  ResultStep();
 
-      /// Show the step parameters.
-      /// It does nothing.
-      virtual void show (std::ostream&) const;
-    };
+  virtual ~ResultStep();
 
+  /// Keep the buffer.
+  virtual bool process(const DPBuffer&);
 
+  /// Finish does not do anything.
+  virtual void finish();
 
+  /// Show the step parameters.
+  /// It does nothing.
+  virtual void show(std::ostream&) const;
 
-    /// @brief This class defines step in the DPPP pipeline that keeps the result
-    /// to make it possible to get the result of another step.
-    /// It keeps the result and calls process of the next step.
+  /// Get the result.
+  const DPBuffer& get() const { return itsBuffer; }
+  DPBuffer& get() { return itsBuffer; }
 
-    class ResultStep: public DPStep
-    {
-    public:
-      typedef std::shared_ptr<ResultStep> ShPtr;
-      /// Create the object. By default it sets its next step to the NullStep.
-      ResultStep();
+  /// Clear the buffer.
+  void clear() { itsBuffer = DPBuffer(); }
 
-      virtual ~ResultStep();
+ private:
+  DPBuffer itsBuffer;
+};
 
-      /// Keep the buffer.
-      virtual bool process (const DPBuffer&);
+/// @brief This class defines step in the DPPP pipeline that keeps the result
+/// to make it possible to get the result of another step.
+/// It keeps the result and calls process of the next step.
+/// Buffers are accumulated until cleared.
 
-      /// Finish does not do anything.
-      virtual void finish();
+class MultiResultStep : public DPStep {
+ public:
+  /// Define the shared pointer for this type.
+  typedef std::shared_ptr<MultiResultStep> ShPtr;
 
-      /// Show the step parameters.
-      /// It does nothing.
-      virtual void show (std::ostream&) const;
+  /// Create the object. By default it sets its next step to the NullStep.
+  MultiResultStep(unsigned int size);
 
-      /// Get the result.
-      const DPBuffer& get() const
-        { return itsBuffer; }
-      DPBuffer& get()
-        { return itsBuffer; }
+  virtual ~MultiResultStep();
 
-      /// Clear the buffer.
-      void clear()
-      { itsBuffer = DPBuffer(); }
+  /// Add the buffer to the vector of kept buffers.
+  virtual bool process(const DPBuffer&);
 
-    private:
-      DPBuffer itsBuffer;
-    };
+  /// Finish does not do anything.
+  virtual void finish();
 
+  /// Show the step parameters.
+  /// It does nothing.
+  virtual void show(std::ostream&) const;
 
+  /// Get the result.
+  const std::vector<DPBuffer>& get() const { return itsBuffers; }
+  std::vector<DPBuffer>& get() { return itsBuffers; }
 
+  /// Get the size of the result.
+  size_t size() const { return itsSize; }
 
-    /// @brief This class defines step in the DPPP pipeline that keeps the result
-    /// to make it possible to get the result of another step.
-    /// It keeps the result and calls process of the next step.
-    /// Buffers are accumulated until cleared.
+  /// Clear the buffers.
+  void clear() { itsSize = 0; }
 
-    class MultiResultStep: public DPStep
-    {
-    public:
-      /// Define the shared pointer for this type.
-      typedef std::shared_ptr<MultiResultStep> ShPtr;
+ private:
+  std::vector<DPBuffer> itsBuffers;
+  size_t itsSize;
+};
 
-      /// Create the object. By default it sets its next step to the NullStep.
-      MultiResultStep (unsigned int size);
-
-      virtual ~MultiResultStep();
-
-      /// Add the buffer to the vector of kept buffers.
-      virtual bool process (const DPBuffer&);
-
-      /// Finish does not do anything.
-      virtual void finish();
-
-      /// Show the step parameters.
-      /// It does nothing.
-      virtual void show (std::ostream&) const;
-
-      /// Get the result.
-      const std::vector<DPBuffer>& get() const
-        { return itsBuffers; }
-      std::vector<DPBuffer>& get()
-        { return itsBuffers; }
-
-      /// Get the size of the result.
-      size_t size() const
-        { return itsSize; }
-
-      /// Clear the buffers.
-      void clear()
-        { itsSize = 0; }
-
-    private:
-      std::vector<DPBuffer> itsBuffers;
-      size_t           itsSize;
-    };
-
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

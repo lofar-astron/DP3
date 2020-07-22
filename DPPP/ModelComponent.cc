@@ -22,14 +22,10 @@
 
 #include "ModelComponent.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
-ModelComponent::~ModelComponent()
-{
-}
+ModelComponent::~ModelComponent() {}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3

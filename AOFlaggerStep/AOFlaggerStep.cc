@@ -54,7 +54,8 @@ AOFlaggerStep::AOFlaggerStep(DPInput* input, const ParameterSet& parset,
       qstats_() {
   strategy_name_ = parset.getString(prefix + "strategy", string());
   if (strategy_name_.empty())
-    strategy_name_ = aoflagger_.FindStrategyFile(aoflagger::TelescopeId::LOFAR_TELESCOPE);
+    strategy_name_ =
+        aoflagger_.FindStrategyFile(aoflagger::TelescopeId::LOFAR_TELESCOPE);
 
   window_size_ = parset.getUint(prefix + "timewindow", 0);
   memory_ = parset.getUint(prefix + "memorymax", 0);

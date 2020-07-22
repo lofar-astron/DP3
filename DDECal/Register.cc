@@ -28,8 +28,6 @@
 
 // Define the function to make the DDECal 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).
-void register_ddecal()
-{
-  DP3::DPPP::DPRun::registerStepCtor ("ddecal",
-                                        DP3::DPPP::DDECal::makeStep);
+void register_ddecal() {
+  DP3::DPPP::DPRun::registerStepCtor("ddecal", DP3::DPPP::DDECal::makeStep);
 }

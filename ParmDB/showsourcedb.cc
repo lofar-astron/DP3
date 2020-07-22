@@ -45,58 +45,49 @@
 using namespace std;
 using namespace casacore;
 
-void show (const string& name, const string& mode, const string& patt)
-{
+void show(const string& name, const string& mode, const string& patt) {
   // Open the input SourceDB.
-  DP3::BBS::SourceDB in ((DP3::BBS::ParmDBMeta(string(), name)));
+  DP3::BBS::SourceDB in((DP3::BBS::ParmDBMeta(string(), name)));
   // Read all patches from the SourceDB and write them.
-  vector<DP3::BBS::PatchInfo> patch (in.getPatchInfo(-1, patt));
-  for (size_t i=0; i<patch.size(); ++i)
-  {
-    if (mode != "source")
-    {
+  vector<DP3::BBS::PatchInfo> patch(in.getPatchInfo(-1, patt));
+  for (size_t i = 0; i < patch.size(); ++i) {
+    if (mode != "source") {
       cout << patch[i] << '\n';
     }
-    if (mode != "patch")
-    {
-      vector<DP3::BBS::SourceData> sources(in.getPatchSourceData (patch[i].getName()));
-      for (DP3::BBS::SourceData& s : sources)
-        s.print (cout);
+    if (mode != "patch") {
+      vector<DP3::BBS::SourceData> sources(
+          in.getPatchSourceData(patch[i].getName()));
+      for (DP3::BBS::SourceData& s : sources) s.print(cout);
     }
   }
 }
 
-
-int main (int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   try {
     // Define the input parameters.
     Input inputs(1);
-    inputs.version ("GvD 2013-Jun-12");
-    inputs.create("in", "",
-                  "Input SourceDB", "string");
-    inputs.create ("mode", "all",
-                   "patch=show all patches, "
-                   "source=show all sources, "
-                   "all=show patches and sources",
-                   "string");
-    inputs.create ("patches", "*",
-                   "Pattern for names of patches to show", "string");
+    inputs.version("GvD 2013-Jun-12");
+    inputs.create("in", "", "Input SourceDB", "string");
+    inputs.create("mode", "all",
+                  "patch=show all patches, "
+                  "source=show all sources, "
+                  "all=show patches and sources",
+                  "string");
+    inputs.create("patches", "*", "Pattern for names of patches to show",
+                  "string");
     // Read and check the input parameters.
     inputs.readArguments(argc, argv);
     string in = inputs.getString("in");
-    if(in.empty())
-      throw std::runtime_error("no input sourcedb name given");
+    if (in.empty()) throw std::runtime_error("no input sourcedb name given");
     string mode = boost::to_lower_copy(inputs.getString("mode"));
-    if(mode!="patch" && mode!="source" && mode!="all")
+    if (mode != "patch" && mode != "source" && mode != "all")
       throw std::runtime_error("incorrect mode given");
     string patt = inputs.getString("patches");
-    show (in, mode, patt);
+    show(in, mode, patt);
   } catch (AipsError& x) {
     cerr << "Caught AIPS error: " << x.what() << endl;
     return 1;
-  }
-  catch (std::exception& x) {
+  } catch (std::exception& x) {
     cerr << "Caught LOFAR exception: " << x.what() << endl;
     return 1;
   }

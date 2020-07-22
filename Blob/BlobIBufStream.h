@@ -27,41 +27,40 @@
 
 namespace DP3 {
 
-  /// \ingroup Blob
-  /// \brief Input buffer for a blob using an istream
+/// \ingroup Blob
+/// \brief Input buffer for a blob using an istream
 
-  /// @{
-  
-  /// This class is the BlobIBuffer that makes use of an istream object.
-  /// The istream can be any type (ifstream, istringstream, ...).
-  /// It can, for instance, be used to read from a file or a socket.
-  
-  class BlobIBufStream : public BlobIBuffer
-    {
-    public:
-      /// Construct it with the underlying istream object.
-      explicit BlobIBufStream (std::istream&);
-      
-      /// Destructor.
-      virtual ~BlobIBufStream();
-      
-      /// Get the requested nr of bytes.
-      virtual uint64_t get (void* buffer, uint64_t nbytes);
-      
-      /// Get the position in the stream.
-      /// -1 is returned if the stream is not seekable.
-      virtual int64_t tellPos() const;
-      
-      /// Set the position in the stream.
-      /// It returns the new position which is -1 if the stream is not seekable.
-      virtual int64_t setPos (int64_t pos);
-      
-    private:
-      std::streambuf* itsStream;
-    };
+/// @{
 
-  /// @}
+/// This class is the BlobIBuffer that makes use of an istream object.
+/// The istream can be any type (ifstream, istringstream, ...).
+/// It can, for instance, be used to read from a file or a socket.
 
-} // end namespace
+class BlobIBufStream : public BlobIBuffer {
+ public:
+  /// Construct it with the underlying istream object.
+  explicit BlobIBufStream(std::istream&);
+
+  /// Destructor.
+  virtual ~BlobIBufStream();
+
+  /// Get the requested nr of bytes.
+  virtual uint64_t get(void* buffer, uint64_t nbytes);
+
+  /// Get the position in the stream.
+  /// -1 is returned if the stream is not seekable.
+  virtual int64_t tellPos() const;
+
+  /// Set the position in the stream.
+  /// It returns the new position which is -1 if the stream is not seekable.
+  virtual int64_t setPos(int64_t pos);
+
+ private:
+  std::streambuf* itsStream;
+};
+
+/// @}
+
+}  // namespace DP3
 
 #endif

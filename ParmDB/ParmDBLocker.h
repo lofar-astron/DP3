@@ -31,47 +31,46 @@
 namespace DP3 {
 namespace BBS {
 
-  class ParmSet;
-  class ParmDB;
+class ParmSet;
+class ParmDB;
 
-  /// @ingroup ParmDB
-  /// @{
+/// @ingroup ParmDB
+/// @{
 
-  /// @brief Class to hold a read or write lock on ParmDBs
-  
-  /// This class locks a single ParmDB or all ParmDBs used by a ParmSet.
-  /// Because the destructor does the unlocking, this class is very well
-  /// suited for automatically managing the locks. Even in case of an
-  /// exception, the locks are automatically released.
-  class ParmDBLocker
-  {
-  public:
-    /// Define a shared pointer for this type.
-    typedef std::shared_ptr<ParmDBLocker> ShPtr;
+/// @brief Class to hold a read or write lock on ParmDBs
 
-    /// Create a read or write lock on all ParmDBs in the ParmSet.
-    explicit ParmDBLocker (const ParmSet& parmSet, bool write=false);
+/// This class locks a single ParmDB or all ParmDBs used by a ParmSet.
+/// Because the destructor does the unlocking, this class is very well
+/// suited for automatically managing the locks. Even in case of an
+/// exception, the locks are automatically released.
+class ParmDBLocker {
+ public:
+  /// Define a shared pointer for this type.
+  typedef std::shared_ptr<ParmDBLocker> ShPtr;
 
-    /// Create a lock on a specific ParmDB.
-    explicit ParmDBLocker (ParmDB& parmdb, bool write=false);
+  /// Create a read or write lock on all ParmDBs in the ParmSet.
+  explicit ParmDBLocker(const ParmSet& parmSet, bool write = false);
 
-    /// The destructor unlocks the ParmDBs locked by the constructor.
-    ~ParmDBLocker();
+  /// Create a lock on a specific ParmDB.
+  explicit ParmDBLocker(ParmDB& parmdb, bool write = false);
 
-  private:
-    /// Cannot copy.
-    ///@{
-    ParmDBLocker (const ParmDBLocker&);
-    ParmDBLocker& operator= (const ParmDBLocker&);
-    ///@}
+  /// The destructor unlocks the ParmDBs locked by the constructor.
+  ~ParmDBLocker();
 
-    /// The locked DBs.
-    std::vector<ParmDB*> itsDBs;
-  };
+ private:
+  /// Cannot copy.
+  ///@{
+  ParmDBLocker(const ParmDBLocker&);
+  ParmDBLocker& operator=(const ParmDBLocker&);
+  ///@}
 
-  /// @}
+  /// The locked DBs.
+  std::vector<ParmDB*> itsDBs;
+};
 
-} // end namespace BBS
-} // end namespace LOFAR
+/// @}
+
+}  // end namespace BBS
+}  // namespace DP3
 
 #endif

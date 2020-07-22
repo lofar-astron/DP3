@@ -26,10 +26,8 @@
 
 #include <complex>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// \brief Apply station Jones matrices to a set of visibilities.
 
@@ -50,10 +48,10 @@ namespace DPPP
 /// A cursor for a 3-D buffer of visibilities of shape
 /// (\p nBaseline, \p nChannel, 4).
 void apply(size_t nBaseline, size_t nChannel, const_cursor<Baseline> baselines,
-    const_cursor<double> coeff, cursor<std::complex<double>> data);
+           const_cursor<double> coeff, cursor<std::complex<double>> data);
 /// @}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

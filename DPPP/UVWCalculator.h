@@ -36,45 +36,45 @@
 #include <casacore/casa/Arrays/Vector.h>
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
-    /// @brief Class to calculate UVW coordinates
+/// @brief Class to calculate UVW coordinates
 
-    /// This class calculates the UVW coordinates for a given baseline and
-    /// time stamp in the same way as done in LofarStMan.
-    /// 
-    /// It calculates and caches the UVW coordinates per antenna and combines
-    /// them to get the baseline UVW coordinates. This is much faster than
-    /// calculating baseline UVW coordinates directly.
+/// This class calculates the UVW coordinates for a given baseline and
+/// time stamp in the same way as done in LofarStMan.
+///
+/// It calculates and caches the UVW coordinates per antenna and combines
+/// them to get the baseline UVW coordinates. This is much faster than
+/// calculating baseline UVW coordinates directly.
 
-    class UVWCalculator
-    {
-    public:
-      /// The default constructor creates an empty object.
-      UVWCalculator();
+class UVWCalculator {
+ public:
+  /// The default constructor creates an empty object.
+  UVWCalculator();
 
-      /// Construct the object for the given phase direction, array position,
-      /// and station positions.
-      UVWCalculator (const casacore::MDirection& phaseDir,
-                     const casacore::MPosition& arrayPosition,
-                     const std::vector<casacore::MPosition>& stationPositions);
+  /// Construct the object for the given phase direction, array position,
+  /// and station positions.
+  UVWCalculator(const casacore::MDirection& phaseDir,
+                const casacore::MPosition& arrayPosition,
+                const std::vector<casacore::MPosition>& stationPositions);
 
-      /// get the UVW coordinates for the given baseline and time.
-      casacore::Vector<double> getUVW (unsigned int ant1, unsigned int ant2, double time);
+  /// get the UVW coordinates for the given baseline and time.
+  casacore::Vector<double> getUVW(unsigned int ant1, unsigned int ant2,
+                                  double time);
 
-    private:
-      casacore::MDirection              itsPhaseDir;
-      bool                          itsMovingPhaseDir;  
-      casacore::MDirection::Convert     itsDirToJ2000; ///< direction to J2000
-      casacore::MBaseline::Convert      itsBLToJ2000; ///< convert ITRF to J2000
-      casacore::MeasFrame               itsFrame;
-      std::vector<casacore::MBaseline>       itsAntMB;
-      std::vector<casacore::Vector<double> > itsAntUvw;
-      casacore::Block<bool>             itsUvwFilled;
-      double                        itsLastTime;
-    };
+ private:
+  casacore::MDirection itsPhaseDir;
+  bool itsMovingPhaseDir;
+  casacore::MDirection::Convert itsDirToJ2000;  ///< direction to J2000
+  casacore::MBaseline::Convert itsBLToJ2000;    ///< convert ITRF to J2000
+  casacore::MeasFrame itsFrame;
+  std::vector<casacore::MBaseline> itsAntMB;
+  std::vector<casacore::Vector<double> > itsAntUvw;
+  casacore::Block<bool> itsUvwFilled;
+  double itsLastTime;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

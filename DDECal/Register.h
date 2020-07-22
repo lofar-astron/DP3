@@ -25,9 +25,8 @@
 #define DPPP_DDECAL_REGISTER_H
 
 // Define the function (without name mangling) to register the 'constructor'.
-extern "C"
-{
-  void register_ddecal();
+extern "C" {
+void register_ddecal();
 }
 
 #endif

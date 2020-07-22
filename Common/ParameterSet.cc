@@ -29,8 +29,7 @@ namespace DP3 {
 
 //-------------------------- creation and destroy ---------------------------
 
-ParameterSet* globalParameterSet()
-{
+ParameterSet* globalParameterSet() {
   static ParameterSet ps;
 
   return &ps;
@@ -41,48 +40,39 @@ ParameterSet* globalParameterSet()
 // Default constructor
 //
 ParameterSet::ParameterSet(KeyCompare::Mode mode)
-  : itsSet (new ParameterSetImpl(mode))
-{}
+    : itsSet(new ParameterSetImpl(mode)) {}
 
 ParameterSet::ParameterSet(bool caseInsensitive)
-  : itsSet (new ParameterSetImpl(caseInsensitive ?
-                                 KeyCompare::NOCASE : KeyCompare::NORMAL))
-{}
+    : itsSet(new ParameterSetImpl(caseInsensitive ? KeyCompare::NOCASE
+                                                  : KeyCompare::NORMAL)) {}
 
 //
 // Construction by reading a parameter file.
 //
 ParameterSet::ParameterSet(const std::string& theFilename, bool caseInsensitive)
-  : itsSet (new ParameterSetImpl(theFilename, caseInsensitive ?
-                                 KeyCompare::NOCASE : KeyCompare::NORMAL))
-{}
+    : itsSet(new ParameterSetImpl(theFilename, caseInsensitive
+                                                   ? KeyCompare::NOCASE
+                                                   : KeyCompare::NORMAL)) {}
 
 //
 // Construction by reading a parameter file.
 //
 ParameterSet::ParameterSet(const std::string& theFilename,
-         KeyCompare::Mode mode)
-  : itsSet (new ParameterSetImpl(theFilename, mode))
-{}
+                           KeyCompare::Mode mode)
+    : itsSet(new ParameterSetImpl(theFilename, mode)) {}
 
-ParameterSet::ParameterSet(const char*  theFilename,
-         KeyCompare::Mode mode)
-  : itsSet (new ParameterSetImpl(std::string(theFilename), mode))
-{}
+ParameterSet::ParameterSet(const char* theFilename, KeyCompare::Mode mode)
+    : itsSet(new ParameterSetImpl(std::string(theFilename), mode)) {}
 
 //
 // Copying is allowed.
 //
-ParameterSet::ParameterSet(const ParameterSet& that)
-  : itsSet (that.itsSet)
-{}
+ParameterSet::ParameterSet(const ParameterSet& that) : itsSet(that.itsSet) {}
 
 //
 // operator= copying
 //
-ParameterSet& 
-ParameterSet::operator=(const ParameterSet& that)
-{
+ParameterSet& ParameterSet::operator=(const ParameterSet& that) {
   if (this != &that) {
     itsSet = that.itsSet;
   }
@@ -92,21 +82,18 @@ ParameterSet::operator=(const ParameterSet& that)
 //
 //  Destructor
 //
-ParameterSet::~ParameterSet()
-{}
+ParameterSet::~ParameterSet() {}
 
-ParameterRecord ParameterSet::getRecord (const std::string& aKey) const
-{
+ParameterRecord ParameterSet::getRecord(const std::string& aKey) const {
   return get(aKey).getRecord();
 }
 
 //
 // operator<<
 //
-std::ostream& operator<< (std::ostream& os, const ParameterSet &thePS)
-{
+std::ostream& operator<<(std::ostream& os, const ParameterSet& thePS) {
   os << *thePS.itsSet;
   return os;
 }
 
-} // namespace LOFAR
+}  // namespace DP3

@@ -45,131 +45,129 @@
 
 namespace DP3 {
 
-  class ParameterSet;
-  class ThreadPool;
+class ParameterSet;
+class ThreadPool;
 
-  namespace DPPP {
+namespace DPPP {
 
-    /// This class is a DPStep class to predict visibilities with optionally beam
+/// This class is a DPStep class to predict visibilities with optionally beam
 
-    typedef std::pair<size_t, size_t> Baseline;
-    typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
-    typedef std::complex<double> dcomplex;
+typedef std::pair<size_t, size_t> Baseline;
+typedef std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> Source;
+typedef std::complex<double> dcomplex;
 
-    /// @brief DPPP step class to predict visibilities from a source model
-    class Predict: public DPStep
-    {
-    public:
-      typedef std::shared_ptr<Predict> ShPtr;
+/// @brief DPPP step class to predict visibilities from a source model
+class Predict : public DPStep {
+ public:
+  typedef std::shared_ptr<Predict> ShPtr;
 
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      Predict (DPInput*, const ParameterSet&, const string& prefix);
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  Predict(DPInput*, const ParameterSet&, const string& prefix);
 
-      /// Constructor with explicit sourcelist
-      Predict (DPInput*, const ParameterSet&, const string& prefix,
-               const std::vector<string>& sourcePatterns);
+  /// Constructor with explicit sourcelist
+  Predict(DPInput*, const ParameterSet&, const string& prefix,
+          const std::vector<string>& sourcePatterns);
 
-      /// The actual constructor
-      void init (DPInput*, const ParameterSet&, const string& prefix,
-                 const std::vector<string>& sourcePatterns);
+  /// The actual constructor
+  void init(DPInput*, const ParameterSet&, const string& prefix,
+            const std::vector<string>& sourcePatterns);
 
-      /// Set the applycal substep
-      void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
+  /// Set the applycal substep
+  void setApplyCal(DPInput*, const ParameterSet&, const string& prefix);
 
-      /// Set the operation type
-      void setOperation(const std::string& type);
+  /// Set the operation type
+  void setOperation(const std::string& type);
 
-      void setThreadData(ThreadPool& pool, std::mutex& measuresMutex) {
-        itsThreadPool = &pool;
-        itsMeasuresMutex = &measuresMutex;
-      }
+  void setThreadData(ThreadPool& pool, std::mutex& measuresMutex) {
+    itsThreadPool = &pool;
+    itsMeasuresMutex = &measuresMutex;
+  }
 
-      virtual ~Predict();
+  virtual ~Predict();
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-      /// Prepare the sources
-      void setSources(const std::vector<string>& sourcePatterns);
+  /// Prepare the sources
+  void setSources(const std::vector<string>& sourcePatterns);
 
-      /// Return the direction of the first patch
-      std::pair<double, double> getFirstDirection() const;
+  /// Return the direction of the first patch
+  std::pair<double, double> getFirstDirection() const;
 
-    private:
-      void initializeThreadData();
-      everybeam::vector3r_t dir2Itrf (const casacore::MDirection& dir,
-                                     casacore::MDirection::Convert& measConverter);
-      void addBeamToData (Patch::ConstPtr patch, double time,
-                                   const everybeam::vector3r_t& refdir,
-                                   const everybeam::vector3r_t& tiledir,
-                                   unsigned int thread, unsigned int nSamples,
-                                   dcomplex* data0, bool stokesIOnly);
-      DPInput*         itsInput;
-      string           itsName;
-      DPBuffer         itsBuffer;
-      string           itsSourceDBName;
-      string           itsOperation;
-      bool             itsApplyBeam;
-      bool             itsUseChannelFreq;
-      bool             itsOneBeamPerPatch;
-      bool             itsStokesIOnly;
-      Position         itsPhaseRef;
-      bool             itsMovingPhaseRef;
+ private:
+  void initializeThreadData();
+  everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
+                                 casacore::MDirection::Convert& measConverter);
+  void addBeamToData(Patch::ConstPtr patch, double time,
+                     const everybeam::vector3r_t& refdir,
+                     const everybeam::vector3r_t& tiledir, unsigned int thread,
+                     unsigned int nSamples, dcomplex* data0, bool stokesIOnly);
+  DPInput* itsInput;
+  string itsName;
+  DPBuffer itsBuffer;
+  string itsSourceDBName;
+  string itsOperation;
+  bool itsApplyBeam;
+  bool itsUseChannelFreq;
+  bool itsOneBeamPerPatch;
+  bool itsStokesIOnly;
+  Position itsPhaseRef;
+  bool itsMovingPhaseRef;
 
-      bool             itsDoApplyCal;
-      ApplyCal         itsApplyCalStep;
-      DPBuffer         itsTempBuffer;
-      ResultStep*      itsResultStep; ///< For catching results from ApplyCal
+  bool itsDoApplyCal;
+  ApplyCal itsApplyCalStep;
+  DPBuffer itsTempBuffer;
+  ResultStep* itsResultStep;  ///< For catching results from ApplyCal
 
-      unsigned int             itsDebugLevel;
+  unsigned int itsDebugLevel;
 
-      std::vector<Baseline> itsBaselines;
+  std::vector<Baseline> itsBaselines;
 
-      /// Vector containing info on converting baseline uvw to station uvw
-      std::vector<int>      itsUVWSplitIndex;
+  /// Vector containing info on converting baseline uvw to station uvw
+  std::vector<int> itsUVWSplitIndex;
 
-      /// UVW coordinates per station (3 coordinates per station)
-      casacore::Matrix<double>   itsUVW;
+  /// UVW coordinates per station (3 coordinates per station)
+  casacore::Matrix<double> itsUVW;
 
-      /// The info needed to calculate the station beams.
-      std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
-      std::vector<std::vector<everybeam::matrix22c_t> >  itsBeamValues;
-      std::vector<std::vector<everybeam::complex_t> >  itsBeamValuesSingle;
-      BeamCorrectionMode itsBeamMode;
-      everybeam::ElementResponseModel itsElementResponseModel;
-      std::vector<casacore::MeasFrame>                    itsMeasFrames;
-      std::vector<casacore::MDirection::Convert>          itsMeasConverters;
+  /// The info needed to calculate the station beams.
+  std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
+  std::vector<std::vector<everybeam::matrix22c_t> > itsBeamValues;
+  std::vector<std::vector<everybeam::complex_t> > itsBeamValuesSingle;
+  BeamCorrectionMode itsBeamMode;
+  everybeam::ElementResponseModel itsElementResponseModel;
+  std::vector<casacore::MeasFrame> itsMeasFrames;
+  std::vector<casacore::MDirection::Convert> itsMeasConverters;
 
-      std::string itsDirectionsStr; ///< Definition of patches, to pass to applycal
-      std::vector<Patch::ConstPtr> itsPatchList;
-      std::vector<Source> itsSourceList;
+  std::string itsDirectionsStr;  ///< Definition of patches, to pass to applycal
+  std::vector<Patch::ConstPtr> itsPatchList;
+  std::vector<Source> itsSourceList;
 
-      std::vector<casacore::Cube<dcomplex> > itsModelVis; ///< one for every thread
-      std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
+  std::vector<casacore::Cube<dcomplex> > itsModelVis;  ///< one for every thread
+  std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
 
-      NSTimer          itsTimer;
-      NSTimer          itsTimerPredict;
+  NSTimer itsTimer;
+  NSTimer itsTimerPredict;
 
-      ThreadPool* itsThreadPool;
-      std::mutex* itsMeasuresMutex;
-    };
+  ThreadPool* itsThreadPool;
+  std::mutex* itsMeasuresMutex;
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

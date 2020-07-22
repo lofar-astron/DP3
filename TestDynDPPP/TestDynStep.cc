@@ -30,28 +30,25 @@
 #include "../DPPP/DPRun.h"
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
-    TestDynStep::TestDynStep (DPInput* input, const ParameterSet& pset,
-                              const std::string& prefix)
-      : Averager (input, pset, prefix)
-    {}
+TestDynStep::TestDynStep(DPInput* input, const ParameterSet& pset,
+                         const std::string& prefix)
+    : Averager(input, pset, prefix) {}
 
-    TestDynStep::~TestDynStep()
-    {}
+TestDynStep::~TestDynStep() {}
 
-    DPStep::ShPtr TestDynStep::makeStep (DPInput* input,
-                                         const ParameterSet& pset,
-                                         const std::string& prefix)
-      { return DPStep::ShPtr(new TestDynStep(input, pset, prefix)); }
-
-  }
+DPStep::ShPtr TestDynStep::makeStep(DPInput* input, const ParameterSet& pset,
+                                    const std::string& prefix) {
+  return DPStep::ShPtr(new TestDynStep(input, pset, prefix));
 }
+
+}  // namespace DPPP
+}  // namespace DP3
 
 // Define the function to make the TestDynStep 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).
-void register_testdyndppp()
-{
-  DP3::DPPP::DPRun::registerStepCtor ("TestDynDPPP",
-                                        DP3::DPPP::TestDynStep::makeStep);
+void register_testdyndppp() {
+  DP3::DPPP::DPRun::registerStepCtor("TestDynDPPP",
+                                     DP3::DPPP::TestDynStep::makeStep);
 }

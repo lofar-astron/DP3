@@ -24,7 +24,6 @@
 // @brief Info about a patch
 // @author Ger van Diepen (diepen AT astron nl)
 
-
 #include "PatchInfo.h"
 
 #include "../Blob/BlobIStream.h"
@@ -39,53 +38,48 @@ using namespace casacore;
 namespace DP3 {
 namespace BBS {
 
-  void PatchSumInfo::add (double ra, double dec, double flux)
-  {
-    // Add the position in xyz coordinates.
-    // Use the flux as the weight.
-    double cosDec = cos(dec);
-    itsSumX += cos(ra) * cosDec * flux;
-    itsSumY += sin(ra) * cosDec * flux;
-    itsSumZ += sin(dec) * flux;
-    itsSumFlux += flux;
-  }
+void PatchSumInfo::add(double ra, double dec, double flux) {
+  // Add the position in xyz coordinates.
+  // Use the flux as the weight.
+  double cosDec = cos(dec);
+  itsSumX += cos(ra) * cosDec * flux;
+  itsSumY += sin(ra) * cosDec * flux;
+  itsSumZ += sin(dec) * flux;
+  itsSumFlux += flux;
+}
 
-  std::ostream& operator<< (std::ostream& os, const PatchInfo& info)
-  {
-    os << "patch=" << info.getName() << " cat=" << info.getCategory();
-    os << " ra=";
-    MVAngle(info.getRa()).print(os, MVAngle::Format(MVAngle::TIME, 9));
-    os << " dec=";
-    MVAngle(info.getDec()).print (os, MVAngle::Format(MVAngle::ANGLE, 9));
-    os << " flux=" << info.apparentBrightness();
-    return os;
-  }
+std::ostream& operator<<(std::ostream& os, const PatchInfo& info) {
+  os << "patch=" << info.getName() << " cat=" << info.getCategory();
+  os << " ra=";
+  MVAngle(info.getRa()).print(os, MVAngle::Format(MVAngle::TIME, 9));
+  os << " dec=";
+  MVAngle(info.getDec()).print(os, MVAngle::Format(MVAngle::ANGLE, 9));
+  os << " flux=" << info.apparentBrightness();
+  return os;
+}
 
-  // Write the contents of a PatchInfo object into a blob.
-  BlobOStream operator<< (BlobOStream& bos, const PatchInfo& info)
-  {
-    int16_t cType = info.getCategory();
-    bos.putStart ("patch", 1);
-    bos << info.getName() << cType << info.apparentBrightness()
-        << info.getRa() << info.getDec();
-    bos.putEnd();
-    return bos;
-  }
+// Write the contents of a PatchInfo object into a blob.
+BlobOStream operator<<(BlobOStream& bos, const PatchInfo& info) {
+  int16_t cType = info.getCategory();
+  bos.putStart("patch", 1);
+  bos << info.getName() << cType << info.apparentBrightness() << info.getRa()
+      << info.getDec();
+  bos.putEnd();
+  return bos;
+}
 
-  // Read the contents of a PatchInfo object from a blob.
-  BlobIStream operator>> (BlobIStream& bis, PatchInfo& info)
-  {
-    string patchName;
-    int16_t cType;
-    double apparentBrightness, ra, dec;
-    if (bis.getStart ("patch") != 1)   // version must be 1
-      throw std::runtime_error("Version of patch must be 1");
-    bis >> patchName >> cType >> apparentBrightness >> ra >> dec;
-    bis.getEnd();
-    info = PatchInfo (patchName, ra, dec, cType, apparentBrightness);
-    return bis;
-  }
+// Read the contents of a PatchInfo object from a blob.
+BlobIStream operator>>(BlobIStream& bis, PatchInfo& info) {
+  string patchName;
+  int16_t cType;
+  double apparentBrightness, ra, dec;
+  if (bis.getStart("patch") != 1)  // version must be 1
+    throw std::runtime_error("Version of patch must be 1");
+  bis >> patchName >> cType >> apparentBrightness >> ra >> dec;
+  bis.getEnd();
+  info = PatchInfo(patchName, ra, dec, cType, apparentBrightness);
+  return bis;
+}
 
-
-} // namespace BBS
-} // namespace LOFAR
+}  // namespace BBS
+}  // namespace DP3

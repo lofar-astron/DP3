@@ -22,22 +22,18 @@
 
 #include "Position.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
-Position::Position()
-{
-    itsPosition[0] = 0.0;
-    itsPosition[1] = 0.0;
+Position::Position() {
+  itsPosition[0] = 0.0;
+  itsPosition[1] = 0.0;
 }
 
-Position::Position(double alpha, double delta)
-{
-    itsPosition[0] = alpha;
-    itsPosition[1] = delta;
+Position::Position(double alpha, double delta) {
+  itsPosition[0] = alpha;
+  itsPosition[1] = delta;
 }
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3

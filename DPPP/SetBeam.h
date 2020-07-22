@@ -35,21 +35,20 @@ class ParameterSet;
 namespace DPPP {
 
 /// @brief DPPP step class to set the beam keywords in a ms
-class SetBeam final : public DPStep
-{
-public:
+class SetBeam final : public DPStep {
+ public:
   /// Parameters are obtained from the parset using the given prefix.
-  SetBeam (DPInput* input, const ParameterSet& parameters, const string& prefix);
+  SetBeam(DPInput* input, const ParameterSet& parameters, const string& prefix);
 
   bool process(const DPBuffer& buffer) override;
 
-  void finish() override { };
+  void finish() override{};
 
   void updateInfo(const DPInfo& info) override;
 
   void show(std::ostream&) const override;
-  
-private:
+
+ private:
   DPInput* _input;
   string _name;
   std::vector<string> _directionStr;
@@ -57,7 +56,7 @@ private:
   BeamCorrectionMode _mode;
 };
 
-} } // end namespaces
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif
-

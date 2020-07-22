@@ -48,7 +48,8 @@ class BDAIntervalBuffer : private boost::noncopyable {
 
   /**
    * Add new data to the interval.
-   * @param buffer A BDA buffer. The interval buffer copies all necessary content.
+   * @param buffer A BDA buffer. The interval buffer copies all necessary
+   * content.
    * @throw std::invalid_argument If the buffer is invalid.
    */
   void AddBuffer(const BDABuffer& buffer);
@@ -79,7 +80,8 @@ class BDAIntervalBuffer : private boost::noncopyable {
    * @param fields Bitset with the requested fields.
    * @return A BDABuffer with the requested data.
    */
-  std::unique_ptr<BDABuffer> GetBuffer(const BDABuffer::Fields& fields = BDABuffer::Fields()) const;
+  std::unique_ptr<BDABuffer> GetBuffer(
+      const BDABuffer::Fields& fields = BDABuffer::Fields()) const;
 
   /**
    * Access the number of internally stored buffers.
@@ -91,19 +93,19 @@ class BDAIntervalBuffer : private boost::noncopyable {
 
  private:
   enum class Completeness { kUnknown, kComplete, kIncomplete };
-  mutable Completeness completeness_; ///< Cached completeness status.
+  mutable Completeness completeness_;  ///< Cached completeness status.
 
-  double time_; ///< Start time of current interval.
-  double interval_; ///< Duration of current interval.
-  const double max_row_interval_; ///< Maximum duration of a BDA row.
+  double time_;                    ///< Start time of current interval.
+  double interval_;                ///< Duration of current interval.
+  const double max_row_interval_;  ///< Maximum duration of a BDA row.
 
-  std::list<BDABuffer> buffers_; ////< Main storage of this class.
+  std::list<BDABuffer> buffers_;  ////< Main storage of this class.
 
   /// Contains all rows for the current interval.
   std::vector<const BDABuffer::Row*> current_rows_;
 };
 
-} // namespace DPPP
-} // namespace DP3
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

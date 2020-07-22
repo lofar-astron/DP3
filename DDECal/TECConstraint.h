@@ -33,89 +33,91 @@
 #include <vector>
 #include <ostream>
 
-class TECConstraintBase : public Constraint
-{
-public:
+class TECConstraintBase : public Constraint {
+ public:
   enum Mode {
     /** Solve for both a (differential) TEC and an XX/YY-common scalar */
     TECAndCommonScalarMode,
     /** Solve only for a (differential) TEC value */
     TECOnlyMode
   };
-  
+
   TECConstraintBase(Mode mode);
 
   /** Initialize metadata with frequencies, resize some members.
    * Should be called after InitializeDimensions.
    */
   void initialize(const double* frequencies);
-  
+
   /** Propagate weights to the phase fitters */
   virtual void SetWeights(const std::vector<double>& weights) final override;
 
   /** Setter for doPhaseReference */
-  void setDoPhaseReference(bool doPhaseReference)
-  {
+  void setDoPhaseReference(bool doPhaseReference) {
     _doPhaseReference = doPhaseReference;
   }
-  
-protected:
-  virtual void initializeChild() { }
-  
-  void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
-  
+
+ protected:
+  virtual void initializeChild() {}
+
+  void applyReferenceAntenna(
+      std::vector<std::vector<dcomplex> >& solutions) const;
+
   Mode _mode;
   bool _doPhaseReference;
   std::vector<PhaseFitter> _phaseFitters;
   std::vector<double> _weights;
 };
 
-class TECConstraint : public TECConstraintBase
-{
-public:
-  TECConstraint(Mode mode) : TECConstraintBase(mode) { }
+class TECConstraint : public TECConstraintBase {
+ public:
+  TECConstraint(Mode mode) : TECConstraintBase(mode) {}
 
   virtual std::vector<Result> Apply(
-                    std::vector<std::vector<dcomplex> >& solutions,
-                    double time,
-                    std::ostream* statStream) override;
+      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::ostream* statStream) override;
 };
 
-class ApproximateTECConstraint : public TECConstraint
-{
-public:
-  ApproximateTECConstraint(Mode mode) :
-    TECConstraint(mode),
-    _finishedApproximateStage(false),
-    _fittingChunkSize(0),
-    _maxApproxIters(50)
-    { }
+class ApproximateTECConstraint : public TECConstraint {
+ public:
+  ApproximateTECConstraint(Mode mode)
+      : TECConstraint(mode),
+        _finishedApproximateStage(false),
+        _fittingChunkSize(0),
+        _maxApproxIters(50) {}
 
-  virtual void PrepareIteration(bool hasReachedPrecision, size_t iteration, bool finalIter) final override {
-    _finishedApproximateStage = hasReachedPrecision || finalIter || iteration >= _maxApproxIters;
-    for(size_t thread=0; thread!=_phaseFitters.size(); ++thread) {
-       std::fill(_phaseFitters[thread].WeightData(),
-                 _phaseFitters[thread].WeightData()+_phaseFitters[thread].Size(),
-                 1.0);
+  virtual void PrepareIteration(bool hasReachedPrecision, size_t iteration,
+                                bool finalIter) final override {
+    _finishedApproximateStage =
+        hasReachedPrecision || finalIter || iteration >= _maxApproxIters;
+    for (size_t thread = 0; thread != _phaseFitters.size(); ++thread) {
+      std::fill(
+          _phaseFitters[thread].WeightData(),
+          _phaseFitters[thread].WeightData() + _phaseFitters[thread].Size(),
+          1.0);
     }
   }
-  
-  virtual bool Satisfied() const final override { return _finishedApproximateStage; }
-  
+
+  virtual bool Satisfied() const final override {
+    return _finishedApproximateStage;
+  }
+
   virtual std::vector<Result> Apply(
-                    std::vector<std::vector<dcomplex> >& solutions,
-                    double time,
-                    std::ostream* statStream) final override;
-  
-  void SetFittingChunkSize(size_t fittingChunkSize)
-  { _fittingChunkSize = fittingChunkSize; }
-  
-  void SetMaxApproximatingIterations(size_t maxApproxIters)
-  { _maxApproxIters = maxApproxIters; }
-protected:
+      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::ostream* statStream) final override;
+
+  void SetFittingChunkSize(size_t fittingChunkSize) {
+    _fittingChunkSize = fittingChunkSize;
+  }
+
+  void SetMaxApproximatingIterations(size_t maxApproxIters) {
+    _maxApproxIters = maxApproxIters;
+  }
+
+ protected:
   virtual void initializeChild() final override;
-  
-private:
+
+ private:
   bool _finishedApproximateStage;
   std::vector<PieceWisePhaseFitter> _pwFitters;
   std::vector<std::vector<double> > _threadData;
@@ -125,4 +127,3 @@ private:
 };
 
 #endif
-
