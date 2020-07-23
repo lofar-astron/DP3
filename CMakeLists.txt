@@ -42,6 +42,7 @@ else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
 find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIRS})
 
 find_package(Python3 COMPONENTS Interpreter Development)
 message(STATUS "Using python version ${Python3_VERSION}")
