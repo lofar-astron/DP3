@@ -17,8 +17,9 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #include "MultiDirSolver.h"
-#include "Matrix2x2.h"
 #include "QRSolver.h"
+
+#include <aocommon/matrix2x2.h>
 
 #ifdef AOPROJECT
 #include "ParallelFor.h"
@@ -111,7 +112,7 @@ void MultiDirSolver::makeSolutionsFinite4pol(
     double average[4] = {0.0, 0.0, 0.0, 0.0};
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 4) {
-      if (Matrix2x2::IsFinite(&*iter)) {
+      if (aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) average[p] += std::abs(iter[0]);
         ++count;
       }
@@ -126,7 +127,7 @@ void MultiDirSolver::makeSolutionsFinite4pol(
     }
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 4) {
-      if (!Matrix2x2::IsFinite(&*iter)) {
+      if (!aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) iter[p] = average[p];
       }
     }
@@ -620,10 +621,10 @@ void MultiDirSolver::performFullMatrixIteration(
             MC2x2 modelMat(modelPtrs[d]), gTimesC1Mat, gTimesC2Mat;
             size_t solIndex1 = (antenna1 * _nDirections + d) * 4;
             size_t solIndex2 = (antenna2 * _nDirections + d) * 4;
-            Matrix2x2::ATimesB(gTimesC2Mat.Data(), &solutions[solIndex1],
-                               modelMat.Data());
-            Matrix2x2::ATimesHermB(gTimesC1Mat.Data(), &solutions[solIndex2],
-                                   modelMat.Data());
+            aocommon::Matrix2x2::ATimesB(
+                gTimesC2Mat.Data(), &solutions[solIndex1], modelMat.Data());
+            aocommon::Matrix2x2::ATimesHermB(
+                gTimesC1Mat.Data(), &solutions[solIndex2], modelMat.Data());
             for (size_t p = 0; p != 4; ++p) {
               gTimesC2(dataIndex1 + (p / 2), d * 2 + p % 2) = gTimesC2Mat[p];
               gTimesC1(dataIndex2 + (p / 2), d * 2 + p % 2) = gTimesC1Mat[p];

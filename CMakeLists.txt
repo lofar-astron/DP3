@@ -34,8 +34,8 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-# Include aocommon (not yet activated)
-# include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+# Include aocommon
+include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
