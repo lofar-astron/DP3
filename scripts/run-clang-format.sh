@@ -1,73 +1,55 @@
-#! /bin/bash
+#!/bin/bash
 #
-# run-clang-format.sh: formats source code in this repo in accordance with .clang-format file.
+# run-clang-format.sh: Formats source code in this repo in accordance with .clang-format file.
 # This file is part of the DP3 software package.
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # License: GNU General Public License version 3 or any later version
+#
+# To hook this script to pre-commit include the line
+# "./scripts/run-clang-format.sh" to .git/hooks/pre-commit
+# and make sure pre-commit is an executable shell script.
 
-programname=$0
+#Script configuration for this repo. Adjust it when copying to a different repo.
+
+#The directory that contains the source files, which clang-format should format.
+SOURCE_DIR=$(dirname "$0")/..
+
+#Directories that must be excluded from formatting. These paths are
+#relative to SOURCE_DIR.
+EXCLUDE_DIRS=()
+
+#The extensions of the source files, which clang-format should format.
+SOURCE_EXT=(*.cc *.h)
+
+#End script configuration.
 
 set -e
 
-# Function to print usage of this script
-usage () {
-    s=$(printf "%-50s" "=")
-    echo "${s// /=}"
-    echo "Script to format C++ header and source files. Expects a .clang-format file in current directory or parent"
-    echo ""
-    echo "Usage: $programname [-i filename/pattern] [-s skip directory]"
-    echo "  -i      include file(pattern), pass wild-card arguments as literals!"
-    echo "  -s      skip directory in diff. Must be specified as a path, e.g. ./external"
-    echo "  -h      display help"
-    exit 1
-}
+# print in bold-face
+echo -e "\e[1mRunning clang-format...\e[0m"
 
-# Function to join array to a string
-join_by () { local d=$1; shift; echo -n "$1"; shift; printf "%s" "${@/#/$d}"; }
-
-SCRIPT_PATH=$(dirname "$0")
-cd $SCRIPT_PATH
-
-# TODO: make SOURCE_ROOT (absolute or relative to SCRIPT_PATH) optional input argument
-SOURCE_ROOT=..
-
-# Fill the include_files and exclude_directories
-include_files=()
-exclude_directories=()
-while getopts ":hi:s:" opt
-do
-    case $opt in
-        h) 
-        usage
-        exit;;
-        i) 
-        include_files=("${include_files[@]}" $OPTARG)
-        ;;
-        s) 
-        exclude_directories=("${exclude_directories[@]}" $OPTARG)
-        ;;
-        \? ) 
-        echo "Execute $programname -h to get usage of this script."
-        exit;;
-    esac
+# Convert SOURCE_EXT into "-name ext1 -o -name ext2 -o name ext3 ..."
+FIND_NAMES="-name ${SOURCE_EXT[0]}"
+for i in `seq 1 $((${#SOURCE_EXT[*]} - 1))`; do
+  FIND_NAMES+=" -o -name ${SOURCE_EXT[$i]}"
 done
 
-# Provide a default set of file extensions if -i flag not set
-if [ ${#include_files[@]} -eq 0 ]; then
-    file_ext=(*.c *.cc *.cxx *.cpp *.c++ *.hh *.hxx *.hpp *.h)
-else
-    file_ext=("${include_files[@]}")
-fi
-# Join into variable
-INC_FILE=$(join_by " -o -name " "${file_ext[@]}")
-# Make sure literals are removed
-INC_FILE=`sed "s/'//g"<<<$INC_FILE`
+# Convert EXCLUDE_DIRS into "-path ./dir1 -prune -o -path ./dir2 -prune -o ..."
+FIND_EXCLUDES=
+for e in ${EXCLUDE_DIRS[*]}; do
+  FIND_EXCLUDES+="-path ./$e -prune -o "
+done
 
-if [ ${#exclude_directories[@]} -eq 0 ]; then
-    EX_DIR=""
-else
-    EX_DIR=$(join_by " -path " "${exclude_directories[@]}")
-fi
+cd $SOURCE_DIR
+find . $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
+  -exec clang-format -i -style=file \{\} +
 
-# Assume source directory is one level up (TODO: make SOURCE_DIR)
-find $SOURCE_ROOT -path $EX_DIR -prune -o -type f \( -name $INC_FILE \) -exec clang-format -i -style=file \{\} +
+if git diff --exit-code --quiet; then
+    # print in bold-face green
+    echo -e "\e[1m\e[32mGreat job, git shows no changed files!\e[0m"
+    exit 0;
+else
+    # Print in bold-face red
+    echo -e "\e[1m\e[31mGit shows at least one changed file now!\e[0m"
+    exit 1;
+fi
