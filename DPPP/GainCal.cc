@@ -40,7 +40,8 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
-#include "../Common/ThreadPool.h"
+
+#include <aocommon/threadpool.h>
 
 #include <fstream>
 #include <ctime>
@@ -225,7 +226,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
   // By giving a thread pool to the predicter, the threads are
   // sustained.
-  itsThreadPool.reset(new ThreadPool(info().nThreads()));
+  itsThreadPool.reset(new aocommon::ThreadPool(info().nThreads()));
   itsParallelFor.SetNThreads(info().nThreads());
   itsUVWFlagStep.updateInfo(infoIn);
 

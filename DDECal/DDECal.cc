@@ -49,10 +49,11 @@
 #include "../ParmDB/ParmValue.h"
 #include "../ParmDB/SourceDB.h"
 
-#include "../Common/ThreadPool.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
+
+#include <aocommon/threadpool.h>
 
 #include <fstream>
 #include <ctime>
@@ -892,7 +893,7 @@ bool DDECal::process(const DPBuffer& bufin) {
     }
   } else {
     if (itsThreadPool == nullptr)
-      itsThreadPool.reset(new ThreadPool(getInfo().nThreads()));
+      itsThreadPool.reset(new aocommon::ThreadPool(getInfo().nThreads()));
     std::mutex measuresMutex;
     for (DP3::DPPP::Predict& predict : itsPredictSteps)
       predict.setThreadData(*itsThreadPool, measuresMutex);
