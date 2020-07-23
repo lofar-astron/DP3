@@ -32,6 +32,10 @@
 
 if(NOT CFITSIO_FOUND)
 
+  if(NOT CFITSIO_ROOT_DIR AND DEFINED ENV{CFITSIO_ROOT_DIR})
+    set(CFITSIO_ROOT_DIR "$ENV{CFITSIO_ROOT_DIR}")
+  endif()
+
   find_path(CFITSIO_INCLUDE_DIR fitsio.h
     HINTS ${CFITSIO_ROOT_DIR} PATH_SUFFIXES include include/cfitsio include/libcfitsio0)
   find_library(CFITSIO_LIBRARY cfitsio
