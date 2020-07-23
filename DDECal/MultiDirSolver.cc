@@ -166,9 +166,9 @@ bool MultiDirSolver::assignSolutions(
         }
         solutions[chBlock][i] = nextSolutions[chBlock][i];
       } else {
-        MC2x2 s(&solutions[chBlock][i]), sInv(s);
+        aocommon::MC2x2 s(&solutions[chBlock][i]), sInv(s);
         if (sInv.Invert()) {
-          MC2x2 ns(&nextSolutions[chBlock][i]);
+          aocommon::MC2x2 ns(&nextSolutions[chBlock][i]);
           ns -= s;
           ns *= sInv;
           double sumabs = 0.0;
@@ -620,7 +620,7 @@ void MultiDirSolver::performFullMatrixIteration(
                                              curChannelBlockSize);
 
           for (size_t d = 0; d != _nDirections; ++d) {
-            MC2x2 modelMat(modelPtrs[d]), gTimesC1Mat, gTimesC2Mat;
+            aocommon::MC2x2 modelMat(modelPtrs[d]), gTimesC1Mat, gTimesC2Mat;
             size_t solIndex1 = (antenna1 * _nDirections + d) * 4;
             size_t solIndex2 = (antenna2 * _nDirections + d) * 4;
             aocommon::Matrix2x2::ATimesB(
