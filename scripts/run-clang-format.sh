@@ -11,10 +11,11 @@
 
 #Script configuration for this repo. Adjust it when copying to a different repo.
 
-#The directories that contain source files, which clang-format should format.
-SOURCE_DIRS=($(dirname "$0")/..)
+#The directory that contains the source files, which clang-format should format.
+SOURCE_DIR=$(dirname "$0")/..
 
-#Directories that must be excluded from formatting.
+#Directories that must be excluded from formatting. These paths are
+#relative to SOURCE_DIR.
 EXCLUDE_DIRS=()
 
 #The extensions of the source files, which clang-format should format.
@@ -33,13 +34,14 @@ for i in `seq 1 $((${#SOURCE_EXT[*]} - 1))`; do
   FIND_NAMES+=" -o -name ${SOURCE_EXT[$i]}"
 done
 
-# Convert EXCLUDE_DIRS into "-path dir1 -prune -o -path dir2 -prune -o ..."
+# Convert EXCLUDE_DIRS into "-path ./dir1 -prune -o -path ./dir2 -prune -o ..."
 FIND_EXCLUDES=
 for e in ${EXCLUDE_DIRS[*]}; do
-  FIND_EXCLUDES+="-path $e -prune -o "
+  FIND_EXCLUDES+="-path ./$e -prune -o "
 done
 
-find ${SOURCE_DIRS[*]} $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
+cd $SOURCE_DIR
+find . $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
   -exec clang-format -i -style=file \{\} +
 
 if git diff --exit-code --quiet; then
