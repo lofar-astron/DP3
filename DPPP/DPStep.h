@@ -75,14 +75,16 @@ class DPStep {
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   /// It should return False at the end.
-  virtual bool process(const DPBuffer&) = 0;
+  virtual bool process(const DPBuffer&) {
+    throw std::runtime_error("Step does not support regular data processing.");
+  }
 
   /// Process the BDA data.
   /// When processed, it invokes the process function of the next step.
   /// It should return False at the end.
   virtual bool process(std::unique_ptr<BDABuffer>) {
     throw std::runtime_error("Step does not support BDA data processing.");
-  };
+  }
 
   /// Finish the processing of this step and subsequent steps.
   virtual void finish() = 0;

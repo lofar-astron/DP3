@@ -160,6 +160,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Averager.cc
   DPPP/BaselineSelection.cc
   DPPP/BDABuffer.cc
+  DPPP/BDACompressor.cc
   DPPP/BDAIntervalBuffer.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc
