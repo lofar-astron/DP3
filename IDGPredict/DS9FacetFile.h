@@ -57,11 +57,11 @@ class DS9FacetFile {
             double dec = *i * (M_PI / 180.0);
             ++i;
             double l, m;
-            aocommon::ImageCoordinates::RaDecToLM(ra, dec, phaseCentreRA, phaseCentreDec,
-                                        l, m);
+            aocommon::ImageCoordinates::RaDecToLM(ra, dec, phaseCentreRA,
+                                                  phaseCentreDec, l, m);
             int x, y;
-            aocommon::ImageCoordinates::LMToXY(l, m, pxScaleX, pxScaleY, width, height, x,
-                                     y);
+            aocommon::ImageCoordinates::LMToXY(l, m, pxScaleX, pxScaleY, width,
+                                               height, x, y);
             facet.AddVertex(x, y);
           }
           lastFacet = &facet;

@@ -1315,7 +1315,8 @@ void DDECal::subtractCorrectedModel(bool fullJones) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
             if (fullJones) {
-              aocommon::MC2x2 sol1(&solutions[chanblock][(ant1 * nDir + dir) * 4]),
+              aocommon::MC2x2 sol1(
+                  &solutions[chanblock][(ant1 * nDir + dir) * 4]),
                   sol2(&solutions[chanblock][(ant2 * nDir + dir) * 4]);
               value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
                            .MultiplyHerm(sol2);
