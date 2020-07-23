@@ -36,7 +36,7 @@
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
 
-#include "aocommon/parallelfor.h>
+#include <aocommon/parallelfor.h>
 
 #include <algorithm>
 #include <cassert>

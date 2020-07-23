@@ -44,6 +44,8 @@ cd $SOURCE_DIR
 find . $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
   -exec clang-format -i -style=file \{\} +
 
+git diff
+
 if git diff --exit-code --quiet; then
     # print in bold-face green
     echo -e "\e[1m\e[32mGreat job, git shows no changed files!\e[0m"
