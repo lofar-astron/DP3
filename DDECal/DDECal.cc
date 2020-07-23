@@ -39,7 +39,7 @@
 #include "SmoothnessConstraint.h"
 
 // Matrix2x2 include seems redundant here
-#include <aocommon::matrix2x2.h>
+#include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_ARMADILLO
 #include "ScreenConstraint.h"

@@ -18,7 +18,7 @@
 
 #include "ScreenConstraint.h"
 
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -113,7 +113,7 @@ void ScreenConstraint::setTime(double time) {
 
     CalculatePiercepoints();
 
-    ParallelFor<size_t> loop(_nThreads);
+    aocommon::ParallelFor<size_t> loop(_nThreads);
     if (itsMode == "station") {
       loop.Run(0, _nAntennas, [&](size_t ipos, size_t /*thread*/) {
         _screenFitters[ipos].calculateCorrMatrix(itsPiercePoints[ipos]);
@@ -266,7 +266,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
 
   // TODOEstimate Weights
 
-  ParallelFor<size_t> loop(_nThreads);
+  aocommon::ParallelFor<size_t> loop(_nThreads);
   loop.Run(0, _nAntennas, [&](size_t antIndex, size_t /*thread*/) {
     int foundantcs = -999;
     int foundantoth = -999;

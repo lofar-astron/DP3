@@ -19,7 +19,7 @@
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
 
 #ifndef SMOOTHNESS_CONSTRAINT_H
 #define SMOOTHNESS_CONSTRAINT_H
@@ -59,7 +59,7 @@ class SmoothnessConstraint : public Constraint {
   std::vector<double> _frequencies, _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
-  std::unique_ptr<DP3::ParallelFor<size_t>> _loop;
+  std::unique_ptr<aocommon::ParallelFor<size_t>> _loop;
 };
 
 #endif

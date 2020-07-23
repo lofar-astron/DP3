@@ -29,9 +29,10 @@
 #include "DPInfo.h"
 #include "MSReader.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
+
+#include <aocommon/parallelfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/OS/File.h>
@@ -403,7 +404,7 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
 
   size_t nchan = itsBuffer.getData().shape()[1];
 
-  ParallelFor<size_t> loop(getInfo().nThreads());
+  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
     for (size_t chan = 0; chan < nchan; chan++) {
       unsigned int timeFreqOffset = (itsTimeStep * info().nchan()) + chan;

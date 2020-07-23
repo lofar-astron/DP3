@@ -24,7 +24,9 @@
 #ifdef AOPROJECT
 #include "ParallelFor.h"
 #else
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
+
+using namespace aocommon;
 #endif
 
 #include <iomanip>
@@ -59,7 +61,7 @@ void MultiDirSolver::makeStep(
     std::vector<std::vector<DComplex> >& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  DP3::ParallelFor<size_t> loop(_nThreads);
+  ParallelFor<size_t> loop(_nThreads);
   loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
     for (size_t i = 0; i != nextSolutions[chBlock].size(); ++i) {
       if (_phaseOnly) {
@@ -265,7 +267,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(
   do {
     makeSolutionsFinite1pol(solutions);
 
-    DP3::ParallelFor<size_t> loop(_nThreads);
+    ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
       performScalarIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                              solutions[chBlock], nextSolutions[chBlock]);
@@ -499,7 +501,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(
   do {
     makeSolutionsFinite4pol(solutions);
 
-    DP3::ParallelFor<size_t> loop(_nThreads);
+    ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
       performFullMatrixIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                                  solutions[chBlock], nextSolutions[chBlock]);
