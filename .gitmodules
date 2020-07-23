@@ -1,0 +1,3 @@
+[submodule "external/aocommon"]
+	path = external/aocommon
+	url = https://gitlab.com/aroffringa/aocommon.git
