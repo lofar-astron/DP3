@@ -28,7 +28,7 @@
 #include "Exceptions.h"
 
 #include <EveryBeam/load.h>
-#include <EveryBeam/LofarMetaDataUtil.h>
+#include <EveryBeam/lofarreadutils.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
