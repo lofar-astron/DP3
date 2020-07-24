@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#include "BDACompressor.h"
+#include "BDAAverager.h"
 
 #include "BDABuffer.h"
 #include "../Common/ParameterSet.h"
@@ -30,8 +30,8 @@
 namespace DP3 {
 namespace DPPP {
 
-BDACompressor::Baseline::Baseline(std::size_t _factor, std::size_t _n_channels,
-                                  std::size_t _n_correlations)
+BDAAverager::Baseline::Baseline(std::size_t _factor, std::size_t _n_channels,
+                                std::size_t _n_correlations)
     : added(0),
       factor(_factor),
       data(_n_channels * _n_correlations, {0.0f, 0.0f}),
@@ -39,12 +39,12 @@ BDACompressor::Baseline::Baseline(std::size_t _factor, std::size_t _n_channels,
       summed_weight(0.0f),
       uvw{0.0f, 0.0f, 0.0f} {}
 
-BDACompressor::BDACompressor()
+BDAAverager::BDAAverager()
     : next_rownr_(0), bda_pool_size_(0), bda_buffer_(), baselines_() {}
 
-BDACompressor::~BDACompressor() {}
+BDAAverager::~BDAAverager() {}
 
-void BDACompressor::updateInfo(const DPInfo& info) {
+void BDAAverager::updateInfo(const DPInfo& info) {
   DPStep::updateInfo(info);
 
   const std::vector<double>& lengths = info.getBaselineLengths();
@@ -76,7 +76,7 @@ void BDACompressor::updateInfo(const DPInfo& info) {
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 }
 
-bool BDACompressor::process(const DPBuffer& buffer) {
+bool BDAAverager::process(const DPBuffer& buffer) {
   const std::size_t buffer_size = buffer.getData().size();
   if (buffer_size != info().ncorr() * info().nchan() * baselines_.size()) {
     throw std::runtime_error("Invalid buffer size");
@@ -147,14 +147,12 @@ bool BDACompressor::process(const DPBuffer& buffer) {
   return true;
 }
 
-void BDACompressor::finish() {
+void BDAAverager::finish() {
   getNextStep()->process(std::move(bda_buffer_));
   getNextStep()->finish();
 }
 
-void BDACompressor::show(std::ostream& stream) const {
-  stream << "BDACompressor";
-}
+void BDAAverager::show(std::ostream& stream) const { stream << "BDAAverager"; }
 
 }  // namespace DPPP
 }  // namespace DP3

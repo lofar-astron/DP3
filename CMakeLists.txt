@@ -159,8 +159,8 @@ add_library(DPPP_OBJ OBJECT
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
   DPPP/BaselineSelection.cc
+  DPPP/BDAAverager.cc
   DPPP/BDABuffer.cc
-  DPPP/BDACompressor.cc
   DPPP/BDAIntervalBuffer.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc

@@ -20,8 +20,8 @@
 /// @brief Step for compressing regular data into BDA data.
 /// @author Maik Nijhuis
 
-#ifndef DPPP_BDACOMPRESS_H
-#define DPPP_BDACOMPRESS_H
+#ifndef DPPP_BDAAVERAGER_H
+#define DPPP_BDAAVERAGER_H
 
 #include "DPStep.h"
 
@@ -38,11 +38,11 @@ namespace DPPP {
 
 class BDABuffer;
 
-class BDACompressor : public DPStep {
+class BDAAverager : public DPStep {
  public:
-  BDACompressor();
+  BDAAverager();
 
-  ~BDACompressor() override;
+  ~BDAAverager() override;
 
   bool process(const DPBuffer&) override;
 
@@ -73,4 +73,4 @@ class BDACompressor : public DPStep {
 }  // namespace DPPP
 }  // namespace DP3
 
-#endif
+#endif  // DPPP_BDAAVERAGER_H
