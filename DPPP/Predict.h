@@ -43,10 +43,13 @@
 #include <mutex>
 #include <utility>
 
+namespace aocommon {
+class ThreadPool;
+}  // namespace aocommon
+
 namespace DP3 {
 
 class ParameterSet;
-class ThreadPool;
 
 namespace DPPP {
 
@@ -79,7 +82,7 @@ class Predict : public DPStep {
   /// Set the operation type
   void setOperation(const std::string& type);
 
-  void setThreadData(ThreadPool& pool, std::mutex& measuresMutex) {
+  void setThreadData(aocommon::ThreadPool& pool, std::mutex& measuresMutex) {
     itsThreadPool = &pool;
     itsMeasuresMutex = &measuresMutex;
   }
@@ -163,7 +166,7 @@ class Predict : public DPStep {
   NSTimer itsTimer;
   NSTimer itsTimerPredict;
 
-  ThreadPool* itsThreadPool;
+  aocommon::ThreadPool* itsThreadPool;
   std::mutex* itsMeasuresMutex;
 };
 
