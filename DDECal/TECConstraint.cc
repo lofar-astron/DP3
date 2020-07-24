@@ -18,7 +18,7 @@
 
 #include "TECConstraint.h"
 
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
 
 TECConstraintBase::TECConstraintBase(Mode mode)
     : _mode(mode), _doPhaseReference(true), _phaseFitters() {}
@@ -124,7 +124,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   // Divide out the reference antenna
   if (_doPhaseReference) applyReferenceAntenna(solutions);
 
-  DP3::ParallelFor<size_t> loop(_nThreads);
+  aocommon::ParallelFor<size_t> loop(_nThreads);
   loop.Run(
       0, _nAntennas * _nDirections, [&](size_t solutionIndex, size_t thread) {
         size_t antennaIndex = solutionIndex / _nDirections;
@@ -178,7 +178,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   else {
     if (_doPhaseReference) applyReferenceAntenna(solutions);
 
-    DP3::ParallelFor<size_t> loop(_nThreads);
+    aocommon::ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nAntennas * _nDirections,
              [&](size_t solutionIndex, size_t thread) {
                size_t antennaIndex = solutionIndex / _nDirections;

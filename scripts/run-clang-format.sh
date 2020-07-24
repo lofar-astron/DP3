@@ -16,7 +16,7 @@ SOURCE_DIR=$(dirname "$0")/..
 
 #Directories that must be excluded from formatting. These paths are
 #relative to SOURCE_DIR.
-EXCLUDE_DIRS=()
+EXCLUDE_DIRS=(external)
 
 #The extensions of the source files, which clang-format should format.
 SOURCE_EXT=(*.cc *.h)

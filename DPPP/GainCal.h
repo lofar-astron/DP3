@@ -39,7 +39,8 @@
 #include "../ParmDB/ParmFacade.h"
 #include "../ParmDB/ParmSet.h"
 
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
+#include <aocommon/threadpool.h>
 
 #include <EveryBeam/station.h>
 #include <EveryBeam/common/types.h>
@@ -188,8 +189,8 @@ class GainCal : public DPStep {
       itsDataResultStep;  ///< Result step for data after UV-flagging
 
   std::unique_ptr<Predict> itsPredictStep;
-  ParallelFor<size_t> itsParallelFor;
-  std::unique_ptr<class ThreadPool> itsThreadPool;
+  aocommon::ParallelFor<size_t> itsParallelFor;
+  std::unique_ptr<class aocommon::ThreadPool> itsThreadPool;
   std::mutex itsMeasuresMutex;
   ApplyBeam itsApplyBeamStep;  ///< Beam step for applying beam to modelcol
   ResultStep::ShPtr

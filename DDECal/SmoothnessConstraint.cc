@@ -18,14 +18,14 @@
 
 #include "KernelSmoother.h"
 #include "SmoothnessConstraint.h"
-#include "ParallelFor.h"
+#include <aocommon/parallelfor.h>
 
 SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz)
     : _kernelType(Smoother::GaussianKernel), _bandwidth(bandwidthHz) {}
 
 void SmoothnessConstraint::Initialize(const double* frequencies) {
   _frequencies.assign(frequencies, frequencies + _nChannelBlocks);
-  if (!_loop) _loop.reset(new DP3::ParallelFor<size_t>(_nThreads));
+  if (!_loop) _loop.reset(new aocommon::ParallelFor<size_t>(_nThreads));
   for (size_t i = 0; i != _nThreads; ++i)
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType,
                           _bandwidth);

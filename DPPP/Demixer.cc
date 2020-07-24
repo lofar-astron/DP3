@@ -43,9 +43,10 @@
 #include "../ParmDB/ParmCache.h"
 #include "../ParmDB/Parm.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
+
+#include <aocommon/parallelfor.h>
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -609,7 +610,7 @@ void Demixer::addFactors(const DPBuffer& newBuf, Array<DComplex>& factorBuf) {
   // source direction. By combining them you get the shift from one
   // source direction to another.
   int dirnr = 0;
-  ParallelFor<size_t> loop(getInfo().nThreads());
+  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   for (unsigned int i1 = 0; i1 < itsNDir - 1; ++i1) {
     for (unsigned int i0 = i1 + 1; i0 < itsNDir; ++i0) {
       if (i0 == itsNDir - 1) {
@@ -682,7 +683,7 @@ void Demixer::makeFactors(const Array<DComplex>& bufIn, Array<DComplex>& bufOut,
       // Note that summing in time is done in addFactors.
       // The sum per output channel is divided by the summed weight.
       // Note there is a summed weight per baseline,outchan,corr.
-      ParallelFor<size_t> loop(getInfo().nThreads());
+      aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, itsNBl, [&](size_t k, size_t /*thread*/) {
         const DComplex* phin = bufIn.data() + (dirnr * itsNBl + k) * nccin;
         DComplex* ph1 = bufOut.data() + k * nccdd + (d0 * itsNDir + d1);
@@ -853,7 +854,7 @@ void Demixer::demix() {
 
   const_cursor<Baseline> cr_baseline(&(itsBaselines[0]));
 
-  ParallelFor<size_t> loop(getInfo().nThreads());
+  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nTime, [&](size_t ts, size_t thread) {
     ThreadPrivateStorage& storage = threadStorage[thread];
 

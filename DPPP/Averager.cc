@@ -25,9 +25,10 @@
 #include "DPBuffer.h"
 #include "DPInfo.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
+
+#include <aocommon/parallelfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Utilities/Regex.h>
@@ -277,7 +278,7 @@ void Averager::average() {
   unsigned int nchan = shp[1];
   unsigned int nbl = shp[2];
   unsigned int npout = ncorr * nchan;
-  ParallelFor<unsigned int> loop(getInfo().nThreads());
+  aocommon::ParallelFor<unsigned int> loop(getInfo().nThreads());
   loop.Run(0, nbl, [&](unsigned int k, size_t /*thread*/) {
     const Complex* indata = itsBuf.getData().data() + k * npin;
     const Complex* inalld = itsAvgAll.data() + k * npin;

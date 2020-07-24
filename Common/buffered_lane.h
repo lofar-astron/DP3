@@ -21,24 +21,24 @@
 
 #include <vector>
 
-#include "../Common/Lane.h"
+#include <aocommon/lane.h>
 
 template <typename Tp>
 class lane_write_buffer {
  public:
-  typedef typename ao::lane<Tp>::size_type size_type;
-  typedef typename ao::lane<Tp>::value_type value_type;
+  typedef typename aocommon::Lane<Tp>::size_type size_type;
+  typedef typename aocommon::Lane<Tp>::value_type value_type;
 
   lane_write_buffer() : _buffer_size(0), _lane(0) {}
 
-  lane_write_buffer(ao::lane<Tp>* lane, size_type buffer_size)
+  lane_write_buffer(aocommon::Lane<Tp>* lane, size_type buffer_size)
       : _buffer_size(buffer_size), _lane(lane) {
     _buffer.reserve(buffer_size);
   }
 
   ~lane_write_buffer() { flush(); }
 
-  void reset(ao::lane<Tp>* lane, size_type buffer_size) {
+  void reset(aocommon::Lane<Tp>* lane, size_type buffer_size) {
     _buffer.clear();
     _buffer.reserve(buffer_size);
     _buffer_size = buffer_size;
@@ -79,13 +79,13 @@ class lane_write_buffer {
  private:
   size_type _buffer_size;
   std::vector<value_type> _buffer;
-  ao::lane<Tp>* _lane;
+  aocommon::Lane<Tp>* _lane;
 };
 
 template <typename Tp>
 class lane_read_buffer {
  public:
-  lane_read_buffer(ao::lane<Tp>* lane, size_t buffer_size)
+  lane_read_buffer(aocommon::Lane<Tp>* lane, size_t buffer_size)
       : _buffer(new Tp[buffer_size]),
         _buffer_size(buffer_size),
         _buffer_pos(0),
@@ -111,7 +111,7 @@ class lane_read_buffer {
 
   Tp* _buffer;
   size_t _buffer_size, _buffer_pos, _buffer_fill_count;
-  ao::lane<Tp>* _lane;
+  aocommon::Lane<Tp>* _lane;
 };
 
 #endif

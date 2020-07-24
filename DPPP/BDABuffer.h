@@ -25,8 +25,8 @@
 #define DPPP_BDABUFFER_H
 
 #include "../Common/Types.h"
-#include "../Common/UVector.h"
 
+#include <aocommon/uvector.h>
 #include <complex>
 #include <vector>
 
@@ -168,12 +168,12 @@ class BDABuffer {
       1.0e-8;  // For comparing measurement timestamps.
 
   /// Memory pools for the data in the rows. Since std::vector<bool>
-  /// does not support pointers to its elements, use ao::uvector instead.
+  /// does not support pointers to its elements, use aocommon::UVector instead.
   /// @{
-  ao::uvector<std::complex<float>> data_;
-  ao::uvector<bool> flags_;
-  ao::uvector<float> weights_;
-  ao::uvector<bool> full_res_flags_;
+  aocommon::UVector<std::complex<float>> data_;
+  aocommon::UVector<bool> flags_;
+  aocommon::UVector<float> weights_;
+  aocommon::UVector<bool> full_res_flags_;
   /// @}
   /// The rows, which contain iterators to the memory pools above.
   std::vector<Row> rows_;

@@ -17,13 +17,16 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #include "MultiDirSolver.h"
-#include "Matrix2x2.h"
 #include "QRSolver.h"
+
+#include <aocommon/matrix2x2.h>
 
 #ifdef AOPROJECT
 #include "ParallelFor.h"
 #else
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
+
+using namespace aocommon;
 #endif
 
 #include <iomanip>
@@ -58,7 +61,7 @@ void MultiDirSolver::makeStep(
     std::vector<std::vector<DComplex> >& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  DP3::ParallelFor<size_t> loop(_nThreads);
+  ParallelFor<size_t> loop(_nThreads);
   loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
     for (size_t i = 0; i != nextSolutions[chBlock].size(); ++i) {
       if (_phaseOnly) {
@@ -111,7 +114,7 @@ void MultiDirSolver::makeSolutionsFinite4pol(
     double average[4] = {0.0, 0.0, 0.0, 0.0};
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 4) {
-      if (Matrix2x2::IsFinite(&*iter)) {
+      if (aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) average[p] += std::abs(iter[0]);
         ++count;
       }
@@ -126,7 +129,7 @@ void MultiDirSolver::makeSolutionsFinite4pol(
     }
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 4) {
-      if (!Matrix2x2::IsFinite(&*iter)) {
+      if (!aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) iter[p] = average[p];
       }
     }
@@ -163,9 +166,9 @@ bool MultiDirSolver::assignSolutions(
         }
         solutions[chBlock][i] = nextSolutions[chBlock][i];
       } else {
-        MC2x2 s(&solutions[chBlock][i]), sInv(s);
+        aocommon::MC2x2 s(&solutions[chBlock][i]), sInv(s);
         if (sInv.Invert()) {
-          MC2x2 ns(&nextSolutions[chBlock][i]);
+          aocommon::MC2x2 ns(&nextSolutions[chBlock][i]);
           ns -= s;
           ns *= sInv;
           double sumabs = 0.0;
@@ -264,7 +267,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processScalar(
   do {
     makeSolutionsFinite1pol(solutions);
 
-    DP3::ParallelFor<size_t> loop(_nThreads);
+    ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
       performScalarIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                              solutions[chBlock], nextSolutions[chBlock]);
@@ -498,7 +501,7 @@ MultiDirSolver::SolveResult MultiDirSolver::processFullMatrix(
   do {
     makeSolutionsFinite4pol(solutions);
 
-    DP3::ParallelFor<size_t> loop(_nThreads);
+    ParallelFor<size_t> loop(_nThreads);
     loop.Run(0, _nChannelBlocks, [&](size_t chBlock, size_t /*thread*/) {
       performFullMatrixIteration(chBlock, gTimesCs[chBlock], vs[chBlock],
                                  solutions[chBlock], nextSolutions[chBlock]);
@@ -617,13 +620,13 @@ void MultiDirSolver::performFullMatrixIteration(
                                              curChannelBlockSize);
 
           for (size_t d = 0; d != _nDirections; ++d) {
-            MC2x2 modelMat(modelPtrs[d]), gTimesC1Mat, gTimesC2Mat;
+            aocommon::MC2x2 modelMat(modelPtrs[d]), gTimesC1Mat, gTimesC2Mat;
             size_t solIndex1 = (antenna1 * _nDirections + d) * 4;
             size_t solIndex2 = (antenna2 * _nDirections + d) * 4;
-            Matrix2x2::ATimesB(gTimesC2Mat.Data(), &solutions[solIndex1],
-                               modelMat.Data());
-            Matrix2x2::ATimesHermB(gTimesC1Mat.Data(), &solutions[solIndex2],
-                                   modelMat.Data());
+            aocommon::Matrix2x2::ATimesB(
+                gTimesC2Mat.Data(), &solutions[solIndex1], modelMat.Data());
+            aocommon::Matrix2x2::ATimesHermB(
+                gTimesC1Mat.Data(), &solutions[solIndex2], modelMat.Data());
             for (size_t p = 0; p != 4; ++p) {
               gTimesC2(dataIndex1 + (p / 2), d * 2 + p % 2) = gTimesC2Mat[p];
               gTimesC1(dataIndex2 + (p / 2), d * 2 + p % 2) = gTimesC1Mat[p];
