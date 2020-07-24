@@ -74,6 +74,9 @@ namespace DP3 {
 
       NSTimer          itsTimer;
       int              nsteps;
+      // SET mode = 0 data are modified with the noise > data = data + noise 
+      // ADD mode = 1 a new array is created > newdata = data + noise
+      int              mode;
       // coefficients for polynomial interpolation (from constant -first- to highet order -last-)
       double           coeffs_outer[POL_DEGREE+1] = {4.46492043e+05, -4.04156579e-02,  1.58636639e-09, -3.09364148e-17,  2.93955326e-25, -1.06998148e-33};
       double           coeffs_inner[POL_DEGREE+1] = {8.32889327e+05, -8.93829326e-02,  3.90153820e-09, -8.23245656e-17,  8.35181243e-25, -3.25202160e-33};

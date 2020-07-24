@@ -46,6 +46,7 @@ namespace DP3 {
     : itsInput(input)
     {
       nsteps = parset.getInt (prefix+"nsteps",10);	   
+      mode = parset.getInt (prefix+"mode",0);
     }
 
     AddNoiseLBA::~AddNoiseLBA()
@@ -80,6 +81,8 @@ namespace DP3 {
       // Name of the column to add the noise (at the moment not used, just a placeholder)
       string column = "DATA";
       Array<Complex>::const_contiter indIter = buf.getData().cbegin();
+      DPBuffer itsBuf;
+      itsBuf.getData().assign (buf.getData());
 
       // Set the exposure
       double exposure = buf.getExposure();
@@ -121,6 +124,10 @@ namespace DP3 {
       unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
       std::default_random_engine generator (seed);
 
+      casacore::Cube<Complex> noise_cube(n_corr,n_freq,n_baselines);
+      casacore::Cube<Complex> c_noise_cube(n_corr,n_freq,n_baselines);
+
+      long icount = 0;
       for (int icorr=0; icorr<n_corr; icorr++)
       {
         for (int ifreq=0; ifreq<n_freq; ifreq++) 
@@ -136,21 +143,51 @@ namespace DP3 {
 	  stddev = stddev / sqrt(2.0*exposure*chan_width[ifreq]);
           std::normal_distribution<double> distribution(0.0,stddev);
 
-	  int ibegin = 0;//ifreq*n_baselines + icorr*n_baselines*n_freq;
-	  int iend = n_baselines;//ibegin+n_baselines;
+	  int ibegin = 0;
+	  int iend = n_baselines;
 	  for (int ibase=ibegin; ibase<iend; ibase++)
 	  { 
 	      double noise_real = distribution(generator);
 	      double noise_img  = distribution(generator);
               std::complex<float> c_noise((float)noise_real, (float)noise_img);
-	      std::complex<float> r_noise;
-	      r_noise = *indIter + c_noise;
+	      noise_cube.at(icorr,ifreq,ibase) = c_noise;
+	      c_noise_cube.at(icorr,ifreq,ibase) = *indIter + c_noise;
 	      indIter++;
-
+	      icount++;
           }
 	}  
 
       }
+
+      if (mode == 0)
+      {
+	      itsBuf.setData(noise_cube);
+	      /*
+              Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+	      for(int i=0; i<10; i++)
+	      {
+		      cout << "--- " << *outdIter << endl;
+	              outdIter++;
+	      }
+	      */
+
+      } else if (mode == 1)
+      {
+	      itsBuf.setData(c_noise_cube);
+	      /*
+              Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+              for(int i=0; i<10; i++)
+              {
+                      cout << "+++ " << *outdIter << endl;
+                      outdIter++;
+              }
+	      */
+
+      } else
+      {
+	      cout << "Mode not supported" << endl;
+              exit(100);
+      }	      
 
       itsTimer.stop();
       return false;
