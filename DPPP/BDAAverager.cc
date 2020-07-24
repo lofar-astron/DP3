@@ -30,10 +30,11 @@
 namespace DP3 {
 namespace DPPP {
 
-BDAAverager::Baseline::Baseline(std::size_t _factor, std::size_t _n_channels,
+BDAAverager::Baseline::Baseline(std::size_t _time_factor,
+                                std::size_t _n_channels,
                                 std::size_t _n_correlations)
     : added(0),
-      factor(_factor),
+      time_factor(_time_factor),
       data(_n_channels * _n_correlations, {0.0f, 0.0f}),
       weights(_n_channels * _n_correlations, 0.0f),
       summed_weight(0.0f),
@@ -66,13 +67,13 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   baselines_.reserve(info.nbaselines());
   for (std::size_t i = 0; i < info.nbaselines(); ++i) {
     std::size_t factor = std::floor(threshold / lengths[i]);
-    factor = std::min(factor, std::size_t(1));
+    factor = std::max(factor, std::size_t(1));
     baselines_.emplace_back(factor, info.nchan(), info.ncorr());
   }
 
-  // BDA buffers will hold kBdaRatio times less elements than 'buffer'.
-  const std::size_t kBdaRatio = 8;
-  bda_pool_size_ = info.ncorr() * info.nchan() * baselines_.size() / kBdaRatio;
+  // BDA buffers will hold 8 times less elements than 'buffer'.
+  const std::size_t bda_rows = std::max(baselines_.size() / 8u, std::size_t(1));
+  bda_pool_size_ = info.ncorr() * info.nchan() * bda_rows;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 }
 
@@ -107,8 +108,8 @@ bool BDAAverager::process(const DPBuffer& buffer) {
 
     // Check if the BDA baseline is complete.
     ++baseline.added;
-    if (baseline.added == baseline.factor) {
-      const float factor = 1.0f / baseline.factor;
+    if (baseline.added == baseline.time_factor) {
+      const float factor = 1.0f / baseline.time_factor;
       for (std::complex<float>& d : baseline.data) {
         d *= factor;
       }
@@ -120,9 +121,9 @@ bool BDAAverager::process(const DPBuffer& buffer) {
       baseline.uvw[1] /= baseline.summed_weight;
       baseline.uvw[2] /= baseline.summed_weight;
 
-      const double time =
-          buffer.getTime() - ((baseline.factor - 1) * buffer.getExposure());
-      const double interval = buffer.getExposure() * baseline.factor;
+      const double time = buffer.getTime() -
+                          ((baseline.time_factor - 1) * buffer.getExposure());
+      const double interval = buffer.getExposure() * baseline.time_factor;
 
       if (!bda_buffer_->AddRow(time, interval, next_rownr_, b, info().nchan(),
                                info().ncorr(), baseline.data.data(), nullptr,

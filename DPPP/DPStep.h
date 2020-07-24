@@ -25,7 +25,6 @@
 #define DPPP_DPSTEP_H
 
 #include "DPBuffer.h"
-#include "BDABuffer.h"
 #include "DPInfo.h"
 
 #include "../Common/Timer.h"
@@ -35,6 +34,8 @@
 
 namespace DP3 {
 namespace DPPP {
+
+class BDABuffer;
 
 /// @brief Abstract base class for a DPPP step
 

@@ -54,10 +54,10 @@ class BDAAverager : public DPStep {
 
  private:
   struct Baseline {
-    Baseline(std::size_t factor, std::size_t n_channels,
+    Baseline(std::size_t time_factor, std::size_t n_channels,
              std::size_t n_correlations);
-    std::size_t added;         ///< Number of added regular intervals.
-    const std::size_t factor;  ///< Averaging factor for this baseline.
+    std::size_t added;              ///< Number of added regular intervals.
+    const std::size_t time_factor;  ///< Time averaging factor.
     std::vector<std::complex<float>> data;
     std::vector<float> weights;
     float summed_weight;

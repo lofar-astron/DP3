@@ -1,6 +1,7 @@
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
 # CMake 3.9.
 cmake_minimum_required(VERSION 3.9)
+cmake_policy(SET CMP0074 NEW)
 
 project(DP3)
 
@@ -49,14 +50,12 @@ find_package(Threads REQUIRED)
 find_package(IDGAPI NO_MODULE QUIET)
 
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-#  set(IDG_FILES ....)
   include_directories(${IDGAPI_INCLUDE_DIRS})
   set(HAVE_IDG TRUE)
   add_definitions(-DHAVE_IDG)
   message(STATUS "Image domain gridder API libraries found.")
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
-  set(IDG_FILES)
   message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
@@ -303,6 +302,7 @@ endif()
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
   DPPP/test/runtests.cc
+  DPPP/test/unit/mock/MockStep.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
@@ -327,6 +327,15 @@ set(TEST_FILENAMES
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
+
+# Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
+if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
+  list(APPEND TEST_FILENAMES
+    DPPP/test/unit/tBDAAverager.cc
+  )
+else()
+  message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
+endif()
 
 # Add boost dynamic link flag for all test files.
 # https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html

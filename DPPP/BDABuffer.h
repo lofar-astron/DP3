@@ -175,7 +175,7 @@ class BDABuffer {
   aocommon::UVector<float> weights_;
   aocommon::UVector<bool> full_res_flags_;
   /// @}
-  /// The rows, which contain iterators to the memory pools above.
+  /// The rows, which contain pointers to the memory pools above.
   std::vector<Row> rows_;
   std::size_t original_capacity_;   ///< Original capacity (number of items)
   std::size_t remaining_capacity_;  ///< Remaining capacity (number of items)
