@@ -28,7 +28,7 @@
 #include "Predict.h"
 #include "H5Parm.h"
 
-#include "../Common/ThreadPool.h"
+#include <aocommon/threadpool.h>
 
 #include <utility>
 
@@ -82,7 +82,7 @@ class H5ParmPredict : public DPStep {
   std::vector<std::string> itsDirections;
 
   NSTimer itsTimer;
-  ThreadPool itsThreadPool;
+  aocommon::ThreadPool itsThreadPool;
   std::mutex itsMeasuresMutex;
 };
 

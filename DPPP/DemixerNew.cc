@@ -31,9 +31,10 @@
 #include "../ParmDB/ParmDB.h"
 #include "../ParmDB/ParmValue.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
+
+#include <aocommon/parallelfor.h>
 
 #include <casacore/casa/Arrays/ArrayPartMath.h>
 
@@ -356,7 +357,7 @@ void DemixerNew::processData() {
                   itsDemixInfo.ntimeAvgSubtr());
   int ntimeSol =
       ((itsNTime + itsDemixInfo.ntimeAvg() - 1) / itsDemixInfo.ntimeAvg());
-  ParallelFor<int> loop(getInfo().nThreads());
+  aocommon::ParallelFor<int> loop(getInfo().nThreads());
   loop.Run(0, lastChunk, [&](int i, size_t thread) {
     if (i == lastChunk) {
       itsWorkers[thread].process(&(itsBufIn[i * timeWindowIn]), lastNTimeIn,

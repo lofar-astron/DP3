@@ -53,7 +53,7 @@ DPInfo::DPInfo()
       itsTimeInterval(0),
       itsPhaseCenterIsOriginal(true),
       itsBeamCorrectionMode(NoBeamCorrection),
-      itsNThreads(ThreadPool::NCPUs()) {}
+      itsNThreads(aocommon::ThreadPool::NCPUs()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,
                   unsigned int nchan, unsigned int ntime, double startTime,

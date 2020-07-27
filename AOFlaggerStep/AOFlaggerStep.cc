@@ -28,11 +28,11 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
-#include "../Common/ParallelFor.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/OS/File.h>
 
+#include <aocommon/parallelfor.h>
 #include <aoflagger.h>
 
 #include <iostream>
@@ -299,7 +299,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     threadData[t].strategy = aoflagger_.LoadStrategyFile(strategy_name_);
   }
 
-  ParallelFor<int> loop(getInfo().nThreads());
+  aocommon::ParallelFor<int> loop(getInfo().nThreads());
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
     if (ant1[ib] == ant2[ib]) {

@@ -33,11 +33,13 @@
 
 #include "../IDGPredict/FacetPredict.h"
 
-#include "Matrix2x2.h"
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
 #include "RotationAndDiagonalConstraint.h"
 #include "SmoothnessConstraint.h"
+
+// Matrix2x2 include seems redundant here
+#include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_ARMADILLO
 #include "ScreenConstraint.h"
@@ -47,10 +49,11 @@
 #include "../ParmDB/ParmValue.h"
 #include "../ParmDB/SourceDB.h"
 
-#include "../Common/ThreadPool.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
+
+#include <aocommon/threadpool.h>
 
 #include <fstream>
 #include <ctime>
@@ -890,7 +893,7 @@ bool DDECal::process(const DPBuffer& bufin) {
     }
   } else {
     if (itsThreadPool == nullptr)
-      itsThreadPool.reset(new ThreadPool(getInfo().nThreads()));
+      itsThreadPool.reset(new aocommon::ThreadPool(getInfo().nThreads()));
     std::mutex measuresMutex;
     for (DP3::DPPP::Predict& predict : itsPredictSteps)
       predict.setThreadData(*itsThreadPool, measuresMutex);
@@ -1303,19 +1306,20 @@ void DDECal::subtractCorrectedModel(bool fullJones) {
         }
         const size_t index = (bl * nCh + ch) * 4;
         if (itsOnlyPredict) {
-          MC2x2 value(MC2x2::Zero());
+          aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 
           for (size_t dir = 0; dir != nDir; ++dir)
-            value += MC2x2(&modelData[dir][index]);
+            value += aocommon::MC2x2(&modelData[dir][index]);
 
           for (size_t cr = 0; cr < 4; ++cr) data[index + cr] = value[cr];
         } else {
-          MC2x2 value(MC2x2::Zero());
+          aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
             if (fullJones) {
-              MC2x2 sol1(&solutions[chanblock][(ant1 * nDir + dir) * 4]),
+              aocommon::MC2x2 sol1(
+                  &solutions[chanblock][(ant1 * nDir + dir) * 4]),
                   sol2(&solutions[chanblock][(ant2 * nDir + dir) * 4]);
-              value += sol1.Multiply(MC2x2(&modelData[dir][index]))
+              value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
                            .MultiplyHerm(sol2);
             } else {
               std::complex<double> solfactor(

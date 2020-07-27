@@ -27,7 +27,6 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
-#include "../Common/ParallelFor.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
@@ -36,6 +35,8 @@
 #include <casacore/casa/Containers/RecordField.h>
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
+
+#include <aocommon/parallelfor.h>
 
 #include <algorithm>
 #include <cassert>
@@ -297,7 +298,7 @@ void MedFlagger::flag(unsigned int index,
 
   // The for loop can be parallellized. This must be done dynamically,
   // because the execution time of each iteration can vary a lot.
-  ParallelFor<size_t> loop(getInfo().nThreads());
+  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     ThreadData& data = threadData[thread];
     const float* dataPtr = bufDataPtr + ib * blsize;

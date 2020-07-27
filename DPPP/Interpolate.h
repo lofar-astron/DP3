@@ -25,8 +25,9 @@
 #include "../DPPP/DPInput.h"
 #include "../DPPP/DPBuffer.h"
 
-#include "../Common/Lane.h"
 #include "../Common/ParameterSet.h"
+
+#include <aocommon/lane.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 
@@ -88,7 +89,7 @@ class Interpolate : public DPStep {
   std::deque<DPBuffer> _buffers;
   size_t _windowSize;
   NSTimer _timer;
-  ao::lane<Sample> _lane;
+  aocommon::Lane<Sample> _lane;
   std::vector<float> _kernelLookup;
 };
 

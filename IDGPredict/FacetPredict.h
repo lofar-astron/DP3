@@ -31,7 +31,7 @@
 #include "FitsReader.h"
 #include "FitsWriter.h"
 
-#include "../Common/UVector.h"
+#include <aocommon/uvector.h>
 
 #include <algorithm>
 #include <functional>
@@ -54,7 +54,7 @@ class FacetPredict {
     _refFrequency = _readers.front().Frequency();
     _pixelSizeX = _readers.front().PixelSizeX();
     _pixelSizeY = _readers.front().PixelSizeY();
-    std::vector<ao::uvector<double>> models(_readers.size());
+    std::vector<aocommon::UVector<double>> models(_readers.size());
     for (size_t img = 0; img != _readers.size(); ++img) {
       if (_readers[img].ImageWidth() != _fullWidth ||
           _readers[img].ImageHeight() != _fullHeight)
@@ -140,7 +140,7 @@ class FacetPredict {
     }
     idg::api::options_type options;
     IdgConfiguration::Read(proxyType, buffersize, options);
-    std::vector<ao::uvector<double>> data(nTerms);
+    std::vector<aocommon::UVector<double>> data(nTerms);
     _metaData.clear();
     FitsReader& reader = _readers.front();
     for (FacetImage& img : _images) {

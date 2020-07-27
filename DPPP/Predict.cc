@@ -26,7 +26,6 @@
 #include <iostream>
 
 #include "../Common/ParameterSet.h"
-#include "../Common/ThreadPool.h"
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
 
@@ -45,6 +44,8 @@
 #include "GaussianSource.h"
 
 #include "../ParmDB/SourceDB.h"
+
+#include <aocommon/threadpool.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -357,12 +358,12 @@ bool Predict::process(const DPBuffer& bufin) {
     itsPhaseRef = Position(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }
 
-  std::unique_ptr<ThreadPool> localThreadPool;
-  ThreadPool* pool = itsThreadPool;
+  std::unique_ptr<aocommon::ThreadPool> localThreadPool;
+  aocommon::ThreadPool* pool = itsThreadPool;
   if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
     // for executation of this part.
-    localThreadPool.reset(new ThreadPool(info().nThreads()));
+    localThreadPool.reset(new aocommon::ThreadPool(info().nThreads()));
     pool = localThreadPool.get();
   } else {
     if (pool->NThreads() != info().nThreads())

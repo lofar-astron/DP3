@@ -55,10 +55,13 @@
 
 class FacetPredict;
 
+namespace aocommon {
+class ThreadPool;
+}  // namespace aocommon
+
 namespace DP3 {
 
 class ParameterSet;
-class ThreadPool;
 
 namespace DPPP {
 
@@ -206,7 +209,7 @@ class DDECal : public DPStep {
   bool itsSubtract;
   bool itsSaveFacets;
   std::string itsStatFilename;
-  std::unique_ptr<ThreadPool> itsThreadPool;
+  std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<FacetPredict> itsFacetPredictor;
   std::unique_ptr<std::ofstream> itsStatStream;
 };

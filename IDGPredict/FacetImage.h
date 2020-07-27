@@ -21,7 +21,7 @@
 
 #include "FacetMap.h"
 
-#include "../Common/UVector.h"
+#include <aocommon/uvector.h>
 
 class FacetImage {
  public:
@@ -44,7 +44,7 @@ class FacetImage {
   }
 
   void CopyFacetPart(const Facet& facet,
-                     const std::vector<ao::uvector<double>>& inputs,
+                     const std::vector<aocommon::UVector<double>>& inputs,
                      size_t inputWidth, size_t inputHeight, double padding,
                      bool makeSquare) {
     Facet cFacet = clippedFacet(facet, inputWidth, inputHeight);
@@ -103,7 +103,7 @@ class FacetImage {
 
   double* Data(size_t spectralTerm) { return _data[spectralTerm].data(); }
 
-  ao::uvector<double> AcquireData(size_t spectralTerm) {
+  aocommon::UVector<double> AcquireData(size_t spectralTerm) {
     return std::move(_data[spectralTerm]);
   }
 
@@ -122,7 +122,7 @@ class FacetImage {
 
   /// A vector with Nterms elements, each holding the image data.
   /// Each uvector holds the data for one spectral frequency term.
-  std::vector<ao::uvector<double>> _data;
+  std::vector<aocommon::UVector<double>> _data;
   size_t _width, _height;
   int _offsetX, _offsetY;
 };
