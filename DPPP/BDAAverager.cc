@@ -40,6 +40,14 @@ BDAAverager::Baseline::Baseline(std::size_t _time_factor,
       summed_weight(0.0f),
       uvw{0.0f, 0.0f, 0.0f} {}
 
+void BDAAverager::Baseline::Clear() {
+  added = 0;
+  std::fill(data.begin(), data.end(), std::complex<float>{0.0f, 0.0f});
+  std::fill(weights.begin(), weights.end(), 0.0f);
+  summed_weight = 0.0f;
+  std::fill(uvw, uvw + 3, 0.0);
+}
+
 BDAAverager::BDAAverager()
     : next_rownr_(0), bda_pool_size_(0), bda_buffer_(), baselines_() {}
 
@@ -98,6 +106,9 @@ bool BDAAverager::process(const DPBuffer& buffer) {
           *data += buffer.getData()(corr, ch, b) * weight;
           *weights += weight;
           total_weight += weight;
+
+          ++data;
+          ++weights;
         }
       }
     }
@@ -109,12 +120,14 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     // Check if the BDA baseline is complete.
     ++baseline.added;
     if (baseline.added == baseline.time_factor) {
-      const float factor = 1.0f / baseline.time_factor;
-      for (std::complex<float>& d : baseline.data) {
-        d *= factor;
-      }
-      for (float& w : baseline.weights) {
-        w *= factor;
+      if (baseline.time_factor != 1u) {
+        const float factor = 1.0f / baseline.time_factor;
+        for (std::complex<float>& d : baseline.data) {
+          d *= factor;
+        }
+        for (float& w : baseline.weights) {
+          w *= factor;
+        }
       }
 
       baseline.uvw[0] /= baseline.summed_weight;
@@ -141,7 +154,8 @@ bool BDAAverager::process(const DPBuffer& buffer) {
         }
       }
 
-      baseline.added = 0;
+      // Prepare baseline for the next iteration.
+      baseline.Clear();
     }
   }
 

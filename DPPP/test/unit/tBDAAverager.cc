@@ -84,20 +84,8 @@ std::unique_ptr<DPBuffer> createBuffer(const double time,
 
 void checkData(const std::complex<float>& expected,
                const std::complex<float>& actual) {
-  // BDABuffer::TimeIsEqual should also work with data values.
   BOOST_TEST(expected.real() == actual.real());
-
-  BOOST_CHECK(BDABuffer::TimeIsEqual(expected.imag(), actual.imag()));
-}
-
-void checkWeight(const float expected, const float actual) {
-  // BDABuffer::TimeIsEqual should also work with weight values.
-  BOOST_CHECK(BDABuffer::TimeIsEqual(expected, actual));
-}
-
-void checkUvw(const double expected, const double actual) {
-  // BDABuffer::TimeIsEqual should also work with uvw values.
-  BOOST_CHECK(BDABuffer::TimeIsEqual(expected, actual));
+  BOOST_TEST(expected.imag() == actual.imag());
 }
 
 void checkBuffer(const DPBuffer& expected, const BDABuffer& actual) {
@@ -110,15 +98,19 @@ void checkBuffer(const DPBuffer& expected, const BDABuffer& actual) {
 
   for (std::size_t bl = 0; bl < n_bl; ++bl) {
     const BDABuffer::Row& row = actual.GetRows()[bl];
-    BOOST_CHECK(BDABuffer::TimeIsEqual(expected.getTime(), row.time_));
-    BOOST_CHECK(BDABuffer::TimeIsEqual(expected.getExposure(), row.interval_));
+    BOOST_TEST(expected.getTime() == row.time_);
+    BOOST_TEST(expected.getExposure() == row.interval_);
     // ??? TODO:compare row_nr ???
     BOOST_REQUIRE_EQUAL(bl, row.baseline_nr_);
     BOOST_REQUIRE_EQUAL(n_chan, row.n_channels_);
     BOOST_REQUIRE_EQUAL(n_corr, row.n_correlations_);
-    checkUvw(expected.getUVW()(0, bl), row.uvw_[0]);
-    checkUvw(expected.getUVW()(1, bl), row.uvw_[1]);
-    checkUvw(expected.getUVW()(2, bl), row.uvw_[2]);
+    BOOST_TEST(expected.getUVW()(0, bl) == row.uvw_[0]);
+    BOOST_TEST(expected.getUVW()(1, bl) == row.uvw_[1]);
+    BOOST_TEST(expected.getUVW()(2, bl) == row.uvw_[2]);
+
+    if (expected.getUVW()(0, bl) != row.uvw_[0]) {
+      std::cout << "EEK" << std::endl;
+    }
 
     std::complex<float>* row_data = row.data_;
     bool* row_flag = row.flags_;
@@ -131,10 +123,10 @@ void checkBuffer(const DPBuffer& expected, const BDABuffer& actual) {
     for (std::size_t chan = 0; chan < n_chan; ++chan) {
       for (std::size_t corr = 0; corr < n_corr; ++corr) {
         checkData(expected.getData()(corr, chan, bl), *row_data);
-        BOOST_CHECK_EQUAL(expected.getFlags()(corr, chan, bl), *row_flag);
-        checkWeight(expected.getWeights()(corr, chan, bl), *row_weight);
+        BOOST_TEST(expected.getFlags()(corr, chan, bl) == *row_flag);
+        BOOST_TEST(expected.getWeights()(corr, chan, bl) == *row_weight);
         // !!! TODO: add proper full res flags test.
-        BOOST_CHECK_EQUAL(false, *row_full_res_flag);
+        BOOST_TEST(false == *row_full_res_flag);
         ++row_data;
         ++row_flag;
         ++row_weight;
@@ -174,11 +166,11 @@ BOOST_AUTO_TEST_CASE(single_baseline) {
 
   // When the BDAAverager merely copies data, it may delay output until
   // the next process() call.
-  BOOST_CHECK(averager.process(*buffer0));
-  BOOST_CHECK(averager.process(*buffer1));
-  BOOST_CHECK(mock_step->GetBdaBuffers().size() >= 1);
-  BOOST_CHECK(averager.process(*buffer2));
-  BOOST_CHECK(mock_step->GetBdaBuffers().size() >= 2);
+  BOOST_TEST(averager.process(*buffer0));
+  BOOST_TEST(averager.process(*buffer1));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() >= std::size_t(1));
+  BOOST_TEST(averager.process(*buffer2));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() >= std::size_t(2));
 
   mock_step->CheckFinishCount(0);
   averager.finish();
