@@ -60,11 +60,15 @@ class BDAAverager : public DPStep {
 
     std::size_t added;              ///< Number of added regular intervals.
     const std::size_t time_factor;  ///< Time averaging factor.
+    double time;
+    double interval;
     std::vector<std::complex<float>> data;
     std::vector<float> weights;
     float summed_weight;
     double uvw[3];
   };
+
+  void AddBaseline(std::size_t baseline_nr);
 
   rownr_t next_rownr_;
   std::size_t bda_pool_size_;

@@ -35,6 +35,8 @@ BDAAverager::Baseline::Baseline(std::size_t _time_factor,
                                 std::size_t _n_correlations)
     : added(0),
       time_factor(_time_factor),
+      time(0.0),
+      interval(0.0),
       data(_n_channels * _n_correlations, {0.0f, 0.0f}),
       weights(_n_channels * _n_correlations, 0.0f),
       summed_weight(0.0f),
@@ -42,6 +44,8 @@ BDAAverager::Baseline::Baseline(std::size_t _time_factor,
 
 void BDAAverager::Baseline::Clear() {
   added = 0;
+  time = 0.0;
+  interval = 0.0;
   std::fill(data.begin(), data.end(), std::complex<float>{0.0f, 0.0f});
   std::fill(weights.begin(), weights.end(), 0.0f);
   summed_weight = 0.0f;
@@ -70,6 +74,10 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   const double threshold =
       *std::max_element(lengths.begin(), lengths.end()) / kThresholdFactor;
 
+  // Sum the relative contribution of each baseline to the output, for
+  // determining the number of rows in the BDA output buffers.
+  double bda_baselines = 0.0;
+
   // Apply the threshold to all baselines.
   baselines_.clear();
   baselines_.reserve(info.nbaselines());
@@ -77,10 +85,10 @@ void BDAAverager::updateInfo(const DPInfo& info) {
     std::size_t factor = std::floor(threshold / lengths[i]);
     factor = std::max(factor, std::size_t(1));
     baselines_.emplace_back(factor, info.nchan(), info.ncorr());
+    bda_baselines += 1.0 / factor;
   }
 
-  // BDA buffers will hold 8 times less elements than 'buffer'.
-  const std::size_t bda_rows = std::max(baselines_.size() / 8u, std::size_t(1));
+  const std::size_t bda_rows = std::ceil(bda_baselines);
   bda_pool_size_ = info.ncorr() * info.nchan() * bda_rows;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 }
@@ -95,6 +103,13 @@ bool BDAAverager::process(const DPBuffer& buffer) {
 
   for (std::size_t b = 0; b < baselines_.size(); ++b) {
     Baseline& baseline = baselines_[b];
+    ++baseline.added;
+
+    if (1 == baseline.added) {
+      baseline.time = buffer.getTime();
+    }
+    baseline.interval += buffer.getExposure();
+
     std::complex<float>* data = baseline.data.data();
     float* weights = baseline.weights.data();
     float total_weight = 0.0;
@@ -117,54 +132,68 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     baseline.uvw[2] += buffer.getUVW()(2, b) * total_weight;
     baseline.summed_weight += total_weight;
 
-    // Check if the BDA baseline is complete.
-    ++baseline.added;
     if (baseline.added == baseline.time_factor) {
-      if (baseline.time_factor != 1u) {
-        const float factor = 1.0f / baseline.time_factor;
-        for (std::complex<float>& d : baseline.data) {
-          d *= factor;
-        }
-        for (float& w : baseline.weights) {
-          w *= factor;
-        }
-      }
-
-      baseline.uvw[0] /= baseline.summed_weight;
-      baseline.uvw[1] /= baseline.summed_weight;
-      baseline.uvw[2] /= baseline.summed_weight;
-
-      const double time = buffer.getTime() -
-                          ((baseline.time_factor - 1) * buffer.getExposure());
-      const double interval = buffer.getExposure() * baseline.time_factor;
-
-      if (!bda_buffer_->AddRow(time, interval, next_rownr_, b, info().nchan(),
-                               info().ncorr(), baseline.data.data(), nullptr,
-                               baseline.weights.data(), nullptr,
-                               baseline.uvw)) {
-        // BDA buffer is full. Send it away and create a new one.
-        getNextStep()->process(std::move(bda_buffer_));
-        bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
-
-        if (!bda_buffer_->AddRow(time, interval, next_rownr_, b, info().nchan(),
-                                 info().ncorr(), baseline.data.data(), nullptr,
-                                 baseline.weights.data(), nullptr,
-                                 baseline.uvw)) {
-          throw std::runtime_error("Empty BDA buffer has no space");
-        }
-      }
-
-      // Prepare baseline for the next iteration.
-      baseline.Clear();
+      AddBaseline(b);    // Baseline is complete: Add it.
+      baseline.Clear();  // Prepare baseline for the next iteration.
     }
+  }
+
+  // Send out full buffers immediately / don't wait for the next iteration
+  // with detecting that there's no space left.
+  if (0 == bda_buffer_->GetRemainingCapacity()) {
+    getNextStep()->process(std::move(bda_buffer_));
+    bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
   }
 
   return true;
 }
 
 void BDAAverager::finish() {
-  getNextStep()->process(std::move(bda_buffer_));
+  assert(bda_buffer_);
+
+  for (std::size_t b = 0; b < baselines_.size(); ++b) {
+    if (baselines_[b].added > 0) {
+      AddBaseline(b);
+      baselines_[b].Clear();
+    }
+  }
+
+  if (bda_buffer_->GetNumberOfElements() > 0) {
+    getNextStep()->process(std::move(bda_buffer_));
+  }
+  bda_buffer_.reset();
+
   getNextStep()->finish();
+}
+
+void BDAAverager::AddBaseline(std::size_t baseline_nr) {
+  BDAAverager::Baseline& baseline = baselines_[baseline_nr];
+  assert(baseline.added > 0);
+
+  // Divide data and weight by the number of added values.
+  if (baseline.added != 1u) {
+    const float factor = 1.0f / baseline.added;
+    for (std::complex<float>& d : baseline.data) {
+      d *= factor;
+    }
+    for (float& w : baseline.weights) {
+      w *= factor;
+    }
+  }
+
+  baseline.uvw[0] /= baseline.summed_weight;
+  baseline.uvw[1] /= baseline.summed_weight;
+  baseline.uvw[2] /= baseline.summed_weight;
+
+  if (bda_buffer_->GetRemainingCapacity() < info().nchan() * info().ncorr()) {
+    getNextStep()->process(std::move(bda_buffer_));
+    bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+  }
+
+  bda_buffer_->AddRow(baseline.time, baseline.interval, next_rownr_,
+                      baseline_nr, info().nchan(), info().ncorr(),
+                      baseline.data.data(), nullptr, baseline.weights.data(),
+                      nullptr, baseline.uvw);
 }
 
 void BDAAverager::show(std::ostream& stream) const { stream << "BDAAverager"; }
