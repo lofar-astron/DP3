@@ -335,12 +335,22 @@ set_source_files_properties(
   ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
 )
 
-# Untar files needed for some tests. It may be prettier to do this at build time instead of CMake time.
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+add_test(
+  NAME extract_applycal
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz
 )
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+set_tests_properties(
+  extract_applycal
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP applycal
+)
+
+add_test(
+  NAME extract_NDPPP
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP ndppp
 )
 
 add_executable(
@@ -353,7 +363,7 @@ add_executable(
 target_link_libraries(runtests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
-set_tests_properties(buildruntests PROPERTIES LABELS "unit")
+set_tests_properties(buildruntests PROPERTIES FIXTURES_SETUP runtests)
 
 # Add each test as a cmake test.
 # - A file with tests should have one BOOST_AUTO_TEST_SUITE line.
@@ -378,9 +388,9 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
   foreach(FOUND_TEST ${FOUND_TESTS} ${FOUND_DATA_TESTS})
     # Extract test name, since REGEX MATCHALL always stores the entire match.
     if(FOUND_TEST MATCHES "BOOST_AUTO_TEST_CASE")
-      string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+      string(REGEX REPLACE "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" "\\1" TEST_NAME ${FOUND_TEST})
     elseif(FOUND_TEST MATCHES "BOOST_DATA_TEST_CASE")
-      string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_TEST})
+      string(REGEX REPLACE "BOOST_DATA_TEST_CASE\\( *([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_TEST})
     else()
       message(FATAL_ERROR "Invalid FOUND_TEST")
     endif()
@@ -396,9 +406,12 @@ foreach(TEST_FILENAME ${TEST_FILENAMES})
       COMMAND runtests -t ${TEST_NAME} --catch_system_error=yes
     )
     set_tests_properties(
-      ${TEST_NAME}
-      PROPERTIES DEPENDS buildruntests LABELS "unit"
+      ${TEST_NAME} PROPERTIES FIXTURES_REQUIRED runtests LABELS unit
     )
+
+    if (${TESTSUITE_NAME} STREQUAL "applycal")
+      set_property(TEST ${TEST_NAME} APPEND PROPERTY FIXTURES_REQUIRED applycal)
+    endif()
   endforeach()
 endforeach()
 

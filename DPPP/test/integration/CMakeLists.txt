@@ -18,5 +18,8 @@ foreach(TEST ${INTEGRATION_TESTS})
   # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
   # support symbolic links.
   add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
-  set_tests_properties(${TEST} PROPERTIES LABELS "integration" )
+  set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
+
+#When enabling tNDPPP, The extract_ndppp 'test' must run before it.
+#set_property(TEST tNDPPP APPEND PROPERTY FIXTURES_REQUIRED ndppp)
