@@ -71,7 +71,10 @@ integration-test:
     - mkdir build && cd build
     - cmake ..
     - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
-    - ctest -j4 -L integration
+    # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
+    # option. Older versions require a manual check.
+    - ctest -j4 -L integration |& tee ctest.out
+    - if grep -q 'No tests were found' ctest.out; then exit 1; fi
 
 deploy-doc:
   stage: integration_and_deploy
