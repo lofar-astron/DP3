@@ -1,25 +1,14 @@
 #!/bin/bash
 
-# Get the taql executable and srcdir (script created by cmake's CONFIGURE_FILE).
-source findenv.run_script
-echo "srcdirx=$rt_srcdir"
-
-# Set srcdir if not defined (in case run by hand).
-if test "$srcdir" = ""; then
-  srcdir="$rt_srcdir"
-fi
-
-if test ! -f ${srcdir}/tNDPPP-generic.in_MS.tgz; then
-  exit 3   # untested
-fi
-
 set -e # Stop on any error
 
-rm -rf tApplyCal2_tmp
-mkdir -p tApplyCal2_tmp
-# Unpack the MS and other files and do the DPPP run.
-cd tApplyCal2_tmp
-tar zxf ${srcdir}/tNDPPP-generic.in_MS.tgz
+# Locate the executables and srcdir (script created by cmake's configure_file).
+INIT=testInit.sh
+if [ ! -f $INIT ]; then
+  echo $INIT not found. Please run this script from build/DPPP/test.
+  exit 1;
+fi
+source $INIT
 
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
@@ -142,4 +131,3 @@ EOL
 cmd='NDPPP msin=tNDPPP-generic.MS msout=. msout.datacolumn=DATA3 steps=[applycal] applycal.parmdb=tApplyCal.parmdb applycal.correction=rotationmeasure showcounts=false'
 echo $cmd
 eval $cmd
-

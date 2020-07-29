@@ -8,8 +8,9 @@ file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
      RESULT DUMMY_RESULT SYMBOLIC)
 
 set(INTEGRATION_TESTS
-  tGainCal
   tApplyBeam
+  tApplyCal2
+  tGainCal
   tGainCalH5Parm
   tPredict
 )
@@ -21,5 +22,8 @@ foreach(TEST ${INTEGRATION_TESTS})
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
 
-#When enabling tNDPPP, The extract_ndppp 'test' must run before it.
+# All tests in tApplyCal2 use parmdbm, which is deprecated.
+set_property(TEST tApplyCal2 PROPERTY DISABLED True)
+
+#When enabling tNDPPP, extract_ndppp must run before it.
 #set_property(TEST tNDPPP APPEND PROPERTY FIXTURES_REQUIRED ndppp)
