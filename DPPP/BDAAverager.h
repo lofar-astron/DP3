@@ -40,7 +40,17 @@ class BDABuffer;
 
 class BDAAverager : public DPStep {
  public:
-  BDAAverager();
+  /**
+   * Constructor.
+   * @param length_threshold_time The baseline length after which the averager
+   * does not perform any time averaging. The time averaging factor for a
+   * baseline is length_threshold_time / baseline length, rounded down.
+   * @param length_threshold_channels The baseline length after which the
+   * averager does not perform any channel averaging. The number of channels for
+   * a baseline becomes baseline length / length_threshold_channels * original
+   * channel count, rounded up.
+   */
+  BDAAverager(double length_threshold_time, double length_threshold_channels);
 
   ~BDAAverager() override;
 
@@ -54,12 +64,14 @@ class BDAAverager : public DPStep {
 
  private:
   struct BaselineBuffer {
-    BaselineBuffer(std::size_t time_factor, std::size_t n_channels,
-                   std::size_t n_correlations);
+    BaselineBuffer(std::size_t time_factor, std::size_t n_input_channels,
+                   std::size_t n_output_channels, std::size_t n_correlations);
     void Clear();
 
     std::size_t times_added;        ///< Number of added regular intervals.
     const std::size_t time_factor;  ///< Time averaging factor.
+    /// Input channel start and end index for each output channel.
+    std::vector<std::size_t> input_channel_indices;
     double time;
     double interval;
     std::vector<std::complex<float>> data;
@@ -69,6 +81,9 @@ class BDAAverager : public DPStep {
 
   void AddBaseline(std::size_t baseline_nr);
 
+  const double
+      length_threshold_time_;  ///< Threshold length for time averaging.
+  const double length_threshold_channel_;  ///< Threshold for channel averaging.
   rownr_t next_rownr_;
   std::size_t bda_pool_size_;
   std::unique_ptr<BDABuffer> bda_buffer_;

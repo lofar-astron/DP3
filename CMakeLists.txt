@@ -7,7 +7,7 @@ project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-add_compile_options(-Wall -O3)
+add_compile_options(-Wall -O0)
 
 if(NOT PORTABLE)
   add_compile_options(-march=native)
