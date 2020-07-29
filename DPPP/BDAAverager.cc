@@ -111,6 +111,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
 
     std::complex<float>* data = bb.data.data();
     float* weights = bb.weights.data();
+    float total_weight = 0.0f;
     for (std::size_t ch = 0; ch < info().nchan(); ++ch) {
       for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
         if (!buffer.getFlags()(corr, ch, b)) {
@@ -118,15 +119,16 @@ bool BDAAverager::process(const DPBuffer& buffer) {
 
           *data += buffer.getData()(corr, ch, b) * weight;
           *weights += weight;
+          total_weight += weight;
 
           ++data;
           ++weights;
         }
       }
     }
-    bb.uvw[0] += buffer.getUVW()(0, b);
-    bb.uvw[1] += buffer.getUVW()(1, b);
-    bb.uvw[2] += buffer.getUVW()(2, b);
+    bb.uvw[0] += buffer.getUVW()(0, b) * total_weight;
+    bb.uvw[1] += buffer.getUVW()(1, b) * total_weight;
+    bb.uvw[2] += buffer.getUVW()(2, b) * total_weight;
 
     if (bb.times_added == bb.time_factor) {
       AddBaseline(b);  // BaselineBuffer is complete: Add it.
@@ -168,12 +170,14 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
   // Divide data values by their total weight.
   float* weights = bb.weights.data();
+  float total_weight = 0.0f;
   for (std::complex<float>& d : bb.data) {
     d /= *weights;
+    total_weight += *weights;
     ++weights;
   }
 
-  const double factor = 1.0 / bb.times_added;
+  const double factor = 1.0 / total_weight;
   bb.uvw[0] *= factor;
   bb.uvw[1] *= factor;
   bb.uvw[2] *= factor;
