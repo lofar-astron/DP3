@@ -63,17 +63,23 @@ void InitInfo(BDAAverager& averager, const std::vector<int>& ant1,
  * @param n_baselines Number of baselines in the buffer.
  * @param base_value Base value for the data values, for distinguising buffers.
  *        For distinguishing baselines, this function adds baseline_nr * 10.0.
+ *        When the buffer represents averaged data, the base_value should be
+ *        the total of the base values of the original buffers.
+ *        This function divides the base_value by the supplied weight so the
+ *        caller does not have to do that division.
+ * @param weight Weight value for the data values in the buffer.
  */
 std::unique_ptr<DPBuffer> CreateBuffer(const double time, const double interval,
                                        std::size_t n_baselines,
-                                       const float base_value) {
+                                       const float base_value,
+                                       const float weight = 1.0) {
   casacore::Cube<casacore::Complex> data(kNCorr, kNChan, n_baselines);
   casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), 1.0f);
+  casacore::Cube<float> weights(data.shape(), weight);
   casacore::Cube<bool> full_res_flags(kNChan, 1, n_baselines, false);
   casacore::Matrix<double> uvw(3, n_baselines);
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
-    float bl_value = base_value + bl * 10.0;
+    float bl_value = (base_value / weight) + (bl * 10.0);
     for (unsigned int corr = 0; corr < kNCorr; ++corr) {
       for (unsigned int chan = 0; chan < kNChan; ++chan) {
         data(corr, chan, bl) = bl_value;
@@ -218,21 +224,21 @@ BOOST_AUTO_TEST_CASE(three_baselines) {
   // Create the expected output data for the second baseline. The third buffer
   // is written out after the finish() call and is thus not averaged.
   std::vector<std::unique_ptr<DPBuffer>> expected_second;
-  expected_second.push_back(CreateBuffer(
-      kStartTime + 0 * kInterval, 2 * kInterval, 1, (10.0 + 110.0) / 2.0));
-  expected_second.push_back(CreateBuffer(
-      kStartTime + 2 * kInterval, 2 * kInterval, 1, (210.0 + 310.0) / 2.0));
+  expected_second.push_back(CreateBuffer(kStartTime + 0 * kInterval,
+                                         2 * kInterval, 1, 10.0 + 110.0, 2.0));
+  expected_second.push_back(CreateBuffer(kStartTime + 2 * kInterval,
+                                         2 * kInterval, 1, 210.0 + 310.0, 2.0));
   expected_second.push_back(
-      CreateBuffer(kStartTime + 4 * kInterval, kInterval, 1, 410.0));
+      CreateBuffer(kStartTime + 4 * kInterval, kInterval, 1, 410.0, 1.0));
 
   // Create the expected output data for the third baseline.
   // The second buffer is written out after the finish() call and thus
   // contains the average of two input buffers instead of three.
   std::vector<std::unique_ptr<DPBuffer>> expected_third;
   expected_third.push_back(
-      CreateBuffer(kStartTime, 3 * kInterval, 1, (20.0 + 120.0 + 220.0) / 3.0));
-  expected_third.push_back(CreateBuffer(
-      kStartTime + 3 * kInterval, 2 * kInterval, 1, (320.0 + 420.0) / 2.0));
+      CreateBuffer(kStartTime, 3 * kInterval, 1, 20.0 + 120.0 + 220.0, 3.0));
+  expected_third.push_back(CreateBuffer(kStartTime + 3 * kInterval,
+                                        2 * kInterval, 1, 320.0 + 420.0, 2.0));
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   averager.setNextStep(mock_step);

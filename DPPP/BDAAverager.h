@@ -53,18 +53,17 @@ class BDAAverager : public DPStep {
   void updateInfo(const DPInfo&) override;
 
  private:
-  struct Baseline {
-    Baseline(std::size_t time_factor, std::size_t n_channels,
-             std::size_t n_correlations);
+  struct BaselineBuffer {
+    BaselineBuffer(std::size_t time_factor, std::size_t n_channels,
+                   std::size_t n_correlations);
     void Clear();
 
-    std::size_t added;              ///< Number of added regular intervals.
+    std::size_t times_added;        ///< Number of added regular intervals.
     const std::size_t time_factor;  ///< Time averaging factor.
     double time;
     double interval;
     std::vector<std::complex<float>> data;
     std::vector<float> weights;
-    float summed_weight;
     double uvw[3];
   };
 
@@ -73,7 +72,7 @@ class BDAAverager : public DPStep {
   rownr_t next_rownr_;
   std::size_t bda_pool_size_;
   std::unique_ptr<BDABuffer> bda_buffer_;
-  std::vector<Baseline> baselines_;
+  std::vector<BaselineBuffer> baseline_buffers_;
 };
 
 }  // namespace DPPP
