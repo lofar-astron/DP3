@@ -48,6 +48,7 @@ BOOST_AUTO_TEST_SUITE(bdabuffer)
 BOOST_AUTO_TEST_CASE(initialization) {
   BDABuffer buffer{2};
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 0u);
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 2u);
   BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetFlags(), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetWeights(), nullptr);
@@ -66,11 +67,12 @@ BOOST_AUTO_TEST_CASE(copy) {
   const double kUvw[3]{41, 42, 43};
 
   BDABuffer buffer{3 * kDataSize};
-  buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                kNCorrelations, kData1, nullptr, kWeights1, kFlags, kUvw);
-  buffer.AddRow(kTime + 1., kInterval + 1., kRowNr + 1, kBaselineNr + 1,
-                kNChannels, kNCorrelations, kData2, kFlags, kWeights2, nullptr,
-                kUvw);
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
+                            kNCorrelations, kData1, nullptr, kWeights1, kFlags,
+                            kUvw));
+  BOOST_CHECK(buffer.AddRow(kTime + 1., kInterval + 1., kRowNr + 1,
+                            kBaselineNr + 1, kNChannels, kNCorrelations, kData2,
+                            kFlags, kWeights2, nullptr, kUvw));
 
   BDABuffer buffer_copy{buffer};
 
@@ -119,10 +121,8 @@ BOOST_AUTO_TEST_CASE(copy) {
   }
 
   // Verify that the original has remaining capacity, but the copy doesn't.
-  BOOST_CHECK(buffer.AddRow(kTime + 2., kInterval, kRowNr, kBaselineNr + 2,
-                            kNChannels, kNCorrelations));
-  BOOST_CHECK(!buffer_copy.AddRow(kTime + 2., kInterval, kRowNr,
-                                  kBaselineNr + 2, kNChannels, kNCorrelations));
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kDataSize);
+  BOOST_CHECK_EQUAL(buffer_copy.GetRemainingCapacity(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(add_all_fields) {
@@ -214,6 +214,7 @@ BOOST_AUTO_TEST_CASE(add_no_fields) {
   BDABuffer buffer{kDataSize};
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
                             kNCorrelations));
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 0u);
   BOOST_CHECK(buffer.GetData());
   BOOST_CHECK(buffer.GetFlags());
   BOOST_CHECK(buffer.GetWeights());
@@ -334,10 +335,12 @@ BOOST_AUTO_TEST_CASE(clear) {
   BOOST_CHECK(!buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 3,
                              kNChannels, kNCorrelations));
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 3 * kDataSize);
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 3u);
 
   buffer.Clear();
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 0u);
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 3 * kDataSize);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
 
   // Check that 3 rows can be added again.

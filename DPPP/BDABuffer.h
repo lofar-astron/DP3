@@ -84,6 +84,7 @@ class BDABuffer {
    * @param other An existing BDABuffer.
    */
   explicit BDABuffer(const BDABuffer& other);
+
   /**
    * Add a measurement line to the buffer.
    *
@@ -91,6 +92,8 @@ class BDABuffer {
    * If a row starts at time T, all rows that end before or at T must be
    * added before this row. A new row thus may not have an end time before
    * or equal to the start time of the last row.
+   *
+   * Use GetRemainingCapacity() for checking if the buffer has enough space.
    *
    * @return True if the line is added.
    *         False if the buffer is full.
@@ -103,6 +106,7 @@ class BDABuffer {
               const bool* flags = nullptr, const float* weights = nullptr,
               const bool* full_res_flags = nullptr,
               const double* uvw = nullptr);
+
   /**
    * Clears all data in the buffer.
    *
@@ -110,11 +114,19 @@ class BDABuffer {
    * reusing the buffer.
    */
   void Clear();
+
   /**
    * Determine the number of stored elements in all rows.
    * @return The total number of elements in this buffer.
    */
   std::size_t GetNumberOfElements() const;
+
+  /**
+   * Determine the remaining capacity.
+   * @return The remaining capacity (in number of elements) for this buffer.
+   */
+  std::size_t GetRemainingCapacity() const { return remaining_capacity_; }
+
   const std::complex<float>* GetData() const {
     return data_.empty() ? nullptr : data_.data();
   }
@@ -138,6 +150,7 @@ class BDABuffer {
   const std::complex<float>* GetData(std::size_t row) const {
     return rows_[row].data_;
   }
+
   std::complex<float>* GetData(std::size_t row) { return rows_[row].data_; }
   const bool* GetFlags(std::size_t row) const { return rows_[row].flags_; }
   bool* GetFlags(std::size_t row) { return rows_[row].flags_; }
@@ -175,7 +188,7 @@ class BDABuffer {
   aocommon::UVector<float> weights_;
   aocommon::UVector<bool> full_res_flags_;
   /// @}
-  /// The rows, which contain iterators to the memory pools above.
+  /// The rows, which contain pointers to the memory pools above.
   std::vector<Row> rows_;
   std::size_t original_capacity_;   ///< Original capacity (number of items)
   std::size_t remaining_capacity_;  ///< Remaining capacity (number of items)
