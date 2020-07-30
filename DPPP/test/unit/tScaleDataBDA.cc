@@ -44,7 +44,7 @@ using DP3::DPPP::DPStep;
 using DP3::DPPP::ScaleData;
 using std::vector;
 
-BOOST_AUTO_TEST_SUITE(rotationconstraint)
+BOOST_AUTO_TEST_SUITE(scaledata_bda)
 
 // Class to check result of TestInput run by test1.
 class TestOutput : public DPStep {
