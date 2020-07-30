@@ -364,67 +364,24 @@ set_tests_properties(
 )
 
 add_executable(
-  runtests EXCLUDE_FROM_ALL
+  unittests EXCLUDE_FROM_ALL
   ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
   ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT}
   ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
 )
+target_link_libraries(unittests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
-target_link_libraries(runtests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
+add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
+set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 
-add_test(buildruntests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target runtests)
-set_tests_properties(buildruntests PROPERTIES FIXTURES_SETUP runtests)
-
-# Add each test as a cmake test.
-# - A file with tests should have one BOOST_AUTO_TEST_SUITE line.
-# - Only BOOST_AUTO_TEST_CASE and BOOST_DATA_TEST_CASE tests are supported.
-#   These test cases must be between the BOOST_AUTO_TEST_SUITE and
-#   a BOOST_AUTO_TEST_SUITE_END macros.
-# - Helper files without BOOST_AUTO_TEST_SUITE are ignored here.
-foreach(TEST_FILENAME ${TEST_FILENAMES})
-  file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
-
-  # Get testsuite name. Clear any previously set name beforehand.
-  unset(TESTSUITE_NAME)
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
-  if(TESTSUITE_NAME_FULL)
-    #Extract testsuite name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+)" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
-  endif()
-
-  # Gather test names.
-  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *[A-Za-z_0-9]+ *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCHALL "BOOST_DATA_TEST_CASE\\( *[A-Za-z_0-9]+," FOUND_DATA_TESTS ${TEST_FILE_CONTENTS})
-
-  foreach(FOUND_TEST ${FOUND_TESTS} ${FOUND_DATA_TESTS})
-    # Extract test name, since REGEX MATCHALL always stores the entire match.
-    if(FOUND_TEST MATCHES "BOOST_AUTO_TEST_CASE")
-      string(REGEX REPLACE "BOOST_AUTO_TEST_CASE\\( *([A-Za-z_0-9]+) *\\)" "\\1" TEST_NAME ${FOUND_TEST})
-    elseif(FOUND_TEST MATCHES "BOOST_DATA_TEST_CASE")
-      string(REGEX REPLACE "BOOST_DATA_TEST_CASE\\( *([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_TEST})
-    else()
-      message(FATAL_ERROR "Invalid FOUND_TEST")
-    endif()
-
-    if (NOT TESTSUITE_NAME)
-      message(FATAL_ERROR "No testsuite found for ${TEST_NAME} in ${TEST_FILENAME}")
-    endif()
-
-    set(TEST_NAME ${TESTSUITE_NAME}/${TEST_NAME})
-
-    add_test(
-      NAME ${TEST_NAME}
-      COMMAND runtests -t ${TEST_NAME} --catch_system_error=yes
-    )
-    set_tests_properties(
-      ${TEST_NAME} PROPERTIES FIXTURES_REQUIRED runtests LABELS unit
-    )
-
-    if (${TESTSUITE_NAME} STREQUAL "applycal")
-      set_property(TEST ${TEST_NAME} APPEND PROPERTY FIXTURES_REQUIRED applycal)
-    endif()
-  endforeach()
-endforeach()
+add_test(
+  NAME unittests
+  COMMAND unittests -f JUNIT -k unittests.xml --catch_system_error=yes
+)
+set_tests_properties(
+  unittests PROPERTIES LABELS unit
+  FIXTURES_REQUIRED "unittests;applycal"
+)
 
 # I'll leave this here as an example how separate test executables could be added
 #add_executable(tMirror EXCLUDE_FROM_ALL
