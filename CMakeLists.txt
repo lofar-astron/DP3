@@ -384,11 +384,12 @@ set_tests_properties(buildruntests PROPERTIES FIXTURES_SETUP runtests)
 foreach(TEST_FILENAME ${TEST_FILENAMES})
   file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
 
-  # Get testsuite name.
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+  # Get testsuite name. Clear any previously set name beforehand.
+  unset(TESTSUITE_NAME)
+  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
   if(TESTSUITE_NAME_FULL)
     #Extract testsuite name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+)" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
   endif()
 
   # Gather test names.
