@@ -379,15 +379,17 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsNChan = info().nchan();
   }
 
-  // Convert from casacore::Vector to std::vector
+  // Convert from casacore::Vector to std::vector, pass only used antennas to
+  // multidirsolver
   vector<int> ant1(info().getAnt1().size());
   vector<int> ant2(info().getAnt2().size());
   for (unsigned int i = 0; i < ant1.size(); ++i) {
-    ant1[i] = info().getAnt1()[i];
-    ant2[i] = info().getAnt2()[i];
+    ant1[i] = info().antennaMap()[info().getAnt1()[i]];
+    ant2[i] = info().antennaMap()[info().getAnt2()[i]];
   }
 
   // Fill antenna info in H5Parm, need to convert from casa types to std types
+  // Fill in metadata for all antennas, also those that may be filtered out.
   std::vector<std::string> antennaNames(info().antennaNames().size());
   std::vector<std::vector<double>> antennaPos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
@@ -444,8 +446,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
   itsChanBlockStart.back() = info().nchan();
 
-  itsWeightsPerAntenna.assign(itsChanBlockFreqs.size() * info().nantenna(),
-                              0.0);
+  itsWeightsPerAntenna.assign(
+      itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
   for (unsigned int i = 0; i < itsConstraints.size(); ++i) {
     // Initialize the constraint with some common metadata
@@ -490,7 +492,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
             auto iter = std::find(antNamesStl.begin(), antNamesStl.end(),
                                   constraintName);
             if (iter != antNamesStl.end())
-              constraintList.back().insert(iter - antNamesStl.begin());
+              constraintList.back().insert(
+                  info().antennaMap()[iter - antNamesStl.begin()]);
           }
           if (constraintList.back().size() <= 1)
             throw std::runtime_error(
@@ -519,9 +522,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                dz = refZ - antennaPos[ant][2],
                distSq = dx * dx + dy * dy + dz * dz;
         if (distSq <= coreDistSq)
-          coreAntennaIndices.emplace_back(ant);
+          coreAntennaIndices.emplace_back(info().antennaMap()[ant]);
         else
-          otherAntennaIndices.emplace_back(ant);
+          otherAntennaIndices.emplace_back(info().antennaMap()[ant]);
       }
       screenConstraint->setCoreAntennas(coreAntennaIndices);
       screenConstraint->setOtherAntennas(otherAntennaIndices);
@@ -540,7 +543,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  unsigned int nSt = info().antennaNames().size();
+  unsigned int nSt = info().antennaUsed().size();
+  // Give renumbered antennas to multidirsolver
+
   itsMultiDirSolver.init(nSt, nDir, info().nchan(), ant1, ant2);
   itsMultiDirSolver.set_channel_blocks(nChannelBlocks);
 
@@ -626,7 +631,7 @@ void DDECal::initializeScalarSolutions() {
             itsMultiDirSolver.max_iterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with 1.
-      size_t n = itsDirections.size() * info().antennaNames().size();
+      size_t n = itsDirections.size() * info().antennaUsed().size();
       for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
         solvec.assign(n, 1.0);
       }
@@ -636,7 +641,7 @@ void DDECal::initializeScalarSolutions() {
     }
   } else {
     // initialize solutions with 1.
-    size_t n = itsDirections.size() * info().antennaNames().size();
+    size_t n = itsDirections.size() * info().antennaUsed().size();
     for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
       solvec.assign(n, 1.0);
     }
@@ -649,7 +654,7 @@ void DDECal::initializeFullMatrixSolutions() {
             itsMultiDirSolver.max_iterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
-      size_t n = itsDirections.size() * info().antennaNames().size();
+      size_t n = itsDirections.size() * info().antennaUsed().size();
       for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
         solvec.resize(n * 4);
         for (size_t i = 0; i != n; ++i) {
@@ -665,7 +670,7 @@ void DDECal::initializeFullMatrixSolutions() {
     }
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
-    size_t n = itsDirections.size() * info().antennaNames().size();
+    size_t n = itsDirections.size() * info().antennaUsed().size();
     for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
       solvec.resize(n * 4);
       for (size_t i = 0; i != n; ++i) {
@@ -703,7 +708,8 @@ void DDECal::flagChannelBlock(size_t cbIndex) {
                nChanBlocks = itsChanBlockFreqs.size();
   // Set the antenna-based weights to zero
   for (size_t bl = 0; bl < nBl; ++bl) {
-    size_t ant1 = info().getAnt1()[bl], ant2 = info().getAnt2()[bl];
+    size_t ant1 = info().antennaMap()[info().getAnt1()[bl]];
+    size_t ant2 = info().antennaMap()[info().getAnt2()[bl]];
     for (size_t ch = itsChanBlockStart[cbIndex];
          ch != itsChanBlockStart[cbIndex + 1]; ++ch) {
       itsWeightsPerAntenna[ant1 * nChanBlocks + cbIndex] = 0.0;
@@ -866,7 +872,7 @@ bool DDECal::process(const DPBuffer& bufin) {
       std::vector<double> band1(info().chanFreqs().begin(),
                                 info().chanFreqs().end());
       std::vector<std::vector<double>> bands({std::move(band1)});
-      size_t nAnt = info().nantenna();
+      size_t nAnt = info().antennaUsed().size();
       itsFacetPredictor->SetMSInfo(std::move(bands), nAnt);
       itsFacetPredictor->StartIDG(itsSaveFacets);
     }
@@ -886,9 +892,10 @@ bool DDECal::process(const DPBuffer& bufin) {
       for (size_t bl = 0; bl < nBl; ++bl) {
         casacore::Array<double> uvw = uvws[bl];
         size_t id = bl + itsStepInSolInt * nBl;
-        itsFacetPredictor->RequestPredict(direction, 0, id, itsStepInSolInt,
-                                          info().getAnt1()[bl],
-                                          info().getAnt2()[bl], uvw.data());
+        itsFacetPredictor->RequestPredict(
+            direction, 0, id, itsStepInSolInt,
+            info().antennaMap()[info().getAnt1()[bl]],
+            info().antennaMap()[info().getAnt2()[bl]], uvw.data());
       }
     }
   } else {
@@ -913,11 +920,12 @@ bool DDECal::process(const DPBuffer& bufin) {
 
   size_t nchanblocks = itsChanBlockFreqs.size();
 
-  double weightFactor = 1. / (nCh * (info().nantenna() - 1) * nCr * itsSolInt);
+  double weightFactor =
+      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
 
   for (size_t bl = 0; bl < nBl; ++bl) {
-    size_t chanblock = 0, ant1 = info().getAnt1()[bl],
-           ant2 = info().getAnt2()[bl];
+    size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
+           ant2 = info().antennaMap()[info().getAnt2()[bl]];
     for (size_t ch = 0; ch < nCh; ++ch) {
       if (ch == itsChanBlockStart[chanblock + 1]) {
         chanblock++;
@@ -1017,8 +1025,8 @@ void DDECal::writeSolutions() {
     unsigned int nSolChan = itsSols[0].size();
     assert(nSolChan == itsChanBlockFreqs.size());
 
-    vector<DComplex> sols(nSolChan * info().nantenna() * nSolTimes * nDir *
-                          nPol);
+    size_t nSt = info().antennaUsed().size();
+    vector<DComplex> sols(nSolChan * nSt * nSolTimes * nDir * nPol);
     size_t i = 0;
 
     // For nPol=1, loop over pol runs just once
@@ -1029,7 +1037,7 @@ void DDECal::writeSolutions() {
     // Put solutions in a contiguous piece of memory
     for (unsigned int time = 0; time < nSolTimes; ++time) {
       for (unsigned int chan = 0; chan < nSolChan; ++chan) {
-        for (unsigned int ant = 0; ant < info().nantenna(); ++ant) {
+        for (unsigned int ant = 0; ant < nSt; ++ant) {
           for (unsigned int dir = 0; dir < nDir; ++dir) {
             for (unsigned int pol = 0; pol < maxPol; pol += polIncr) {
               assert(!itsSols[time].empty());
@@ -1050,7 +1058,7 @@ void DDECal::writeSolutions() {
     vector<H5Parm::AxisInfo> axes;
     axes.emplace_back(H5Parm::AxisInfo("time", itsSols.size()));
     axes.emplace_back(H5Parm::AxisInfo("freq", nSolChan));
-    axes.emplace_back(H5Parm::AxisInfo("ant", info().nantenna()));
+    axes.emplace_back(H5Parm::AxisInfo("ant", info().antennaUsed().size()));
     axes.emplace_back(H5Parm::AxisInfo("dir", nDir));
     if (nPol > 1) {
       axes.emplace_back(H5Parm::AxisInfo("pol", nPol));
@@ -1108,12 +1116,12 @@ void DDECal::writeSolutions() {
           throw std::runtime_error("Constraint should have produced output");
       }
 
-      // Tell H5Parm that all antennas and directions were used
-      std::vector<std::string> antennaNames(info().antennaNames().size());
-      for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
-        antennaNames[i] = info().antennaNames()[i];
+      // Tell H5Parm which antennas were used
+      std::vector<std::string> antennaUsedNames(info().antennaUsed().size());
+      for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
+        antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
       }
-      soltab.setAntennas(antennaNames);
+      soltab.setAntennas(antennaUsedNames);
       soltab.setSources(getDirectionNames());
 
       if (nPol > 1) {
@@ -1198,12 +1206,12 @@ void DDECal::writeSolutions() {
                              "step " + itsName + " in parset: \n" +
                              itsParsetString);
 
-        // Tell H5Parm that all antennas and directions were used
-        std::vector<std::string> antennaNames(info().antennaNames().size());
-        for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
-          antennaNames[i] = info().antennaNames()[i];
+        // Tell H5Parm which antennas were used
+        std::vector<std::string> antennaUsedNames(info().antennaUsed().size());
+        for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
+          antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
         }
-        soltab.setAntennas(antennaNames);
+        soltab.setAntennas(antennaUsedNames);
 
         soltab.setSources(getDirectionNames());
 

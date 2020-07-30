@@ -373,6 +373,7 @@ target_link_libraries(unittests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
 set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
+add_subdirectory(DDECal/test/integration)
 
 add_test(
   NAME unittests
