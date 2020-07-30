@@ -46,8 +46,6 @@ using std::vector;
 
 BOOST_AUTO_TEST_SUITE(scaledata_bda)
 
-BOOST_AUTO_TEST_CASE(fails) { BOOST_CHECK(false); }
-
 // Class to check result of TestInput run by test1.
 class TestOutput : public DPStep {
  public:
