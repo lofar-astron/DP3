@@ -121,7 +121,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   if (shape.size() != 3u || shape[0] != info().ncorr() ||
       shape[1] != info().nchan() ||
       shape[2] != ssize_t(baseline_buffers_.size())) {
-    throw std::runtime_error("Invalid buffer size");
+    throw std::runtime_error("Invalid buffer shape");
   }
 
   assert(bda_buffer_);
