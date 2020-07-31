@@ -95,7 +95,11 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   baseline_buffers_.reserve(info.nbaselines());
   for (std::size_t i = 0; i < info.nbaselines(); ++i) {
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
-    factor_time = std::max(factor_time, std::size_t(1));
+    if (factor_time < 1) {
+      factor_time = 1;
+    } else if (factor_time * info.timeInterval() > max_interval_) {
+      factor_time = std::floor(max_interval_ / info.timeInterval());
+    }
 
     // Determine the number of channels in the output.
     std::size_t nchan = info.nchan();
@@ -103,8 +107,8 @@ void BDAAverager::updateInfo(const DPInfo& info) {
       nchan = std::ceil(lengths[i] / bl_threshold_channel_ * double(nchan));
       if (nchan > info.nchan()) {
         nchan = info.nchan();
-      } else if (nchan < 1) {
-        nchan = 1;
+      } else if (nchan < min_channels_) {
+        nchan = min_channels_;
       }
     }
 
@@ -126,7 +130,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   if (shape.size() != 3u || shape[0] != info().ncorr() ||
       shape[1] != info().nchan() ||
       shape[2] != ssize_t(baseline_buffers_.size())) {
-    throw std::runtime_error("Invalid buffer shape");
+    throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 
   assert(bda_buffer_);
