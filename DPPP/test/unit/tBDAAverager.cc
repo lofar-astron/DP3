@@ -303,7 +303,60 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   CheckRow(*averaged, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
 }
 
-BOOST_AUTO_TEST_CASE(three_baselines) {
+BOOST_AUTO_TEST_CASE(mixed_averaging) {
+  const std::size_t kChannelFactor = 3;
+  const std::size_t kTimeFactor = 2;
+  const std::size_t kNBaselines = 1;
+  const std::vector<std::size_t> kInputChannelCounts(7, 1);
+  const std::vector<std::size_t> kOutputChannelCounts{2, 2, 3};
+  const std::vector<int> kAnt1{0};
+  const std::vector<int> kAnt2{1};
+
+  DPInfo info;
+  InitInfo(info, kAnt1, kAnt2, kInputChannelCounts.size());
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  BDAAverager averager(baseline_length * kTimeFactor,
+                       baseline_length * kChannelFactor);
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  std::unique_ptr<DPBuffer> buffer0 =
+      CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
+                   kInputChannelCounts, 0.0);
+  std::unique_ptr<DPBuffer> buffer1 =
+      CreateBuffer(kStartTime + 1.0 * kInterval, kInterval, kNBaselines,
+                   kInputChannelCounts, 1000.0);
+  std::unique_ptr<DPBuffer> buffer2 =
+      CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
+                   kInputChannelCounts, 2000.0);
+
+  std::unique_ptr<DPBuffer> average01 =
+      CreateBuffer(kStartTime, kInterval * 2.0, kNBaselines,
+                   kOutputChannelCounts, 0.0 + 1000.0, 2.0);
+  std::unique_ptr<DPBuffer> average2 =
+      CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
+                   kOutputChannelCounts, 2000.0);
+
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer0));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(0));
+  BOOST_TEST(averager.process(*buffer1));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
+  BOOST_TEST(averager.process(*buffer2));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
+
+  Finish(averager, *mock_step);
+
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), std::size_t(2));
+  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[0]->GetRows().size());
+  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[1]->GetRows().size());
+  CheckRow(*average01, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
+  CheckRow(*average2, mock_step->GetBdaBuffers()[1]->GetRows()[0], 0);
+}
+
+BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   // This test uses three baselines with lengths of 2400, 300 and 200.
   // The averager should copy the contents of the first, long, baseline.
   // The averager should average the second baseline by a factor of 2.
@@ -314,7 +367,7 @@ BOOST_AUTO_TEST_CASE(three_baselines) {
 
   DPInfo info;
   InitInfo(info, kAnt1, kAnt2);
-  const double time_threshold = 600.0;  // Enable time averaging.
+  const double time_threshold = 600.0;  // Time averaging factors become 1,2,3.
   const double chan_threshold = 100.0;  // No channel averaging.
 
   BDAAverager averager(time_threshold, chan_threshold);
