@@ -64,10 +64,9 @@ void BDAAverager::BaselineBuffer::Clear() {
   std::fill(uvw, uvw + 3, 0.0);
 }
 
-BDAAverager::BDAAverager(double length_threshold_time,
-                         double length_threshold_channel)
-    : length_threshold_time_(length_threshold_time),
-      length_threshold_channel_(length_threshold_channel),
+BDAAverager::BDAAverager(double bl_threshold_time, double bl_threshold_channel)
+    : bl_threshold_time_(bl_threshold_time),
+      bl_threshold_channel_(bl_threshold_channel),
       next_rownr_(0),
       bda_pool_size_(0),
       bda_buffer_(),
@@ -91,12 +90,12 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   baseline_buffers_.clear();
   baseline_buffers_.reserve(info.nbaselines());
   for (std::size_t i = 0; i < info.nbaselines(); ++i) {
-    std::size_t factor_time = std::floor(length_threshold_time_ / lengths[i]);
+    std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
     factor_time = std::max(factor_time, std::size_t(1));
 
     // Determine the number of channels in the output.
     std::size_t nchan =
-        std::ceil(lengths[i] / length_threshold_channel_ * info.nchan());
+        std::ceil(lengths[i] / bl_threshold_channel_ * info.nchan());
     if (nchan > info.nchan()) {
       nchan = info.nchan();
     } else if (nchan < 1) {
