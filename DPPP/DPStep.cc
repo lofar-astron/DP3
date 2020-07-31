@@ -58,7 +58,7 @@ void NullStep::finish() {}
 
 void NullStep::show(std::ostream&) const {}
 
-ResultStep::ResultStep() { setNextStep(DPStep::ShPtr(new NullStep())); }
+ResultStep::ResultStep() { setNextStep(std::make_shared<NullStep>()); }
 
 ResultStep::~ResultStep() {}
 
@@ -73,7 +73,7 @@ void ResultStep::finish() { getNextStep()->finish(); }
 void ResultStep::show(std::ostream&) const {}
 
 MultiResultStep::MultiResultStep(unsigned int size) : itsSize(0) {
-  setNextStep(DPStep::ShPtr(new NullStep()));
+  setNextStep(std::make_shared<NullStep>());
   itsBuffers.resize(size);
 }
 

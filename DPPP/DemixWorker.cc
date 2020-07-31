@@ -156,8 +156,8 @@ DemixWorker::DemixWorker(DPInput* input, const string& prefix,
   // The entire average result is needed for the next NDPPP step.
   // Only the selected baselines need to be subtracted, so add a
   // filter step as the last one.
-  itsAvgStepSubtr = DPStep::ShPtr(new Averager(
-      input, prefix, itsMix->nchanAvgSubtr(), itsMix->ntimeAvgSubtr()));
+  itsAvgStepSubtr = std::make_shared<Averager>(
+      input, prefix, itsMix->nchanAvgSubtr(), itsMix->ntimeAvgSubtr());
   itsAvgResultFull = new MultiResultStep(itsMix->ntimeOutSubtr());
   itsFilterSubtr = new Filter(input, itsMix->selBL());
   itsAvgResultSubtr = new MultiResultStep(itsMix->ntimeOutSubtr());

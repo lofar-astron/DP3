@@ -196,7 +196,7 @@ DDECal::~DDECal() {}
 
 DPStep::ShPtr DDECal::makeStep(DPInput* input, const ParameterSet& parset,
                                const std::string& prefix) {
-  return DPStep::ShPtr(new DDECal(input, parset, prefix));
+  return std::make_shared<DDECal>(input, parset, prefix);
 }
 
 void DDECal::initializeConstraints(const ParameterSet& parset,
