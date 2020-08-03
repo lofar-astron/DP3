@@ -208,44 +208,39 @@ BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
 
 BOOST_AUTO_TEST_CASE(no_averaging) {
   const std::size_t kNBaselines = 1;
+  const std::size_t kTimeSteps = 7;
 
   DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  // With the default options, the averager performs no averaging: It only
+  // copies data from DPBuffers into BDABuffers.
   DP3::ParameterSet parset;
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
-  std::unique_ptr<DPBuffer> buffer0 =
-      CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 0.0);
-  std::unique_ptr<DPBuffer> buffer1 =
-      CreateBuffer(kStartTime + 1.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 1000.0);
-  std::unique_ptr<DPBuffer> buffer2 =
-      CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 2000.0);
+  std::vector<std::unique_ptr<DPBuffer>> buffers;
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                   kNBaselines, kChannelCounts, i * 1000.0));
+  }
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   averager.setNextStep(mock_step);
 
   // When the BDAAverager merely copies data, each input buffer should
   // generate one output buffer.
-  BOOST_TEST(averager.process(*buffer0));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
-  BOOST_TEST(averager.process(*buffer1));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(2));
-  BOOST_TEST(averager.process(*buffer2));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(3));
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    BOOST_TEST(averager.process(*buffers[i]));
+    BOOST_TEST(mock_step->GetBdaBuffers().size() == (i + 1));
+  }
 
   Finish(averager, *mock_step);
 
-  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), std::size_t(3));
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[0]->GetRows().size());
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[1]->GetRows().size());
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[2]->GetRows().size());
-  CheckRow(*buffer0, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
-  CheckRow(*buffer1, mock_step->GetBdaBuffers()[1]->GetRows()[0], 0);
-  CheckRow(*buffer2, mock_step->GetBdaBuffers()[2]->GetRows()[0], 0);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), kTimeSteps);
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[i]->GetRows().size());
+    CheckRow(*buffers[i], mock_step->GetBdaBuffers()[i]->GetRows()[0], 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(time_averaging) {
