@@ -185,6 +185,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc
   DPPP/MSUpdater.cc
   DPPP/MSWriter.cc
