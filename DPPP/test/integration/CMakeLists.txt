@@ -10,10 +10,13 @@ file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
 set(INTEGRATION_TESTS
   tApplyBeam
   tApplyCal2
+  tDemix
   tGainCal
   tGainCalH5Parm
+  tMultiApplyCal
   tPredict
 )
+# TODO tDPPP.cc to unit tests???
 
 foreach(TEST ${INTEGRATION_TESTS})
   # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
@@ -21,9 +24,6 @@ foreach(TEST ${INTEGRATION_TESTS})
   add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
-
-# All tests in tApplyCal2 use parmdbm, which is deprecated.
-set_property(TEST tApplyCal2 PROPERTY DISABLED True)
 
 #When enabling tNDPPP, extract_ndppp must run before it.
 #set_property(TEST tNDPPP APPEND PROPERTY FIXTURES_REQUIRED ndppp)

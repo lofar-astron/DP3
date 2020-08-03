@@ -36,6 +36,8 @@
 using namespace DP3::DPPP;
 using namespace casacore;
 
+#define BOOST_TEST_MODULE DPPP
+
 BOOST_AUTO_TEST_SUITE(dppp)
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
