@@ -16,7 +16,6 @@ set(INTEGRATION_TESTS
   tMultiApplyCal
   tPredict
 )
-# TODO tDPPP.cc to unit tests???
 
 foreach(TEST ${INTEGRATION_TESTS})
   # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
