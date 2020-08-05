@@ -168,20 +168,20 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   const std::size_t n_corr = expected.getData().shape()[0];
   const std::size_t n_chan = expected.getData().shape()[1];
 
-  BOOST_TEST(expected.getTime() == row.time_);
-  BOOST_TEST(expected.getExposure() == row.interval_);
+  BOOST_TEST(expected.getTime() == row.time);
+  BOOST_TEST(expected.getExposure() == row.interval);
   // ??? TODO:compare row_nr ???
-  BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr_);
-  BOOST_REQUIRE_EQUAL(n_chan, row.n_channels_);
-  BOOST_REQUIRE_EQUAL(n_corr, row.n_correlations_);
-  BOOST_TEST(expected.getUVW()(0, 0) == row.uvw_[0]);
-  BOOST_TEST(expected.getUVW()(1, 0) == row.uvw_[1]);
-  BOOST_TEST(expected.getUVW()(2, 0) == row.uvw_[2]);
+  BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr);
+  BOOST_REQUIRE_EQUAL(n_chan, row.n_channels);
+  BOOST_REQUIRE_EQUAL(n_corr, row.n_correlations);
+  BOOST_TEST(expected.getUVW()(0, 0) == row.uvw[0]);
+  BOOST_TEST(expected.getUVW()(1, 0) == row.uvw[1]);
+  BOOST_TEST(expected.getUVW()(2, 0) == row.uvw[2]);
 
-  std::complex<float>* row_data = row.data_;
-  bool* row_flag = row.flags_;
-  float* row_weight = row.weights_;
-  bool* row_full_res_flag = row.full_res_flags_;
+  std::complex<float>* row_data = row.data;
+  bool* row_flag = row.flags;
+  float* row_weight = row.weights;
+  bool* row_full_res_flag = row.full_res_flags;
   BOOST_REQUIRE(row_data);
   BOOST_REQUIRE(row_flag);
   BOOST_REQUIRE(row_weight);
@@ -581,7 +581,7 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   for (const auto& bdabuffer : bdabuffers) {
     const std::vector<BDABuffer::Row> rows = bdabuffer->GetRows();
     BOOST_REQUIRE_EQUAL(1u, rows.size());
-    BOOST_TEST(kInterval * kFactor == rows[0].interval_);
+    BOOST_TEST(kInterval * kFactor == rows[0].interval);
   }
 }
 

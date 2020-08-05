@@ -24,24 +24,24 @@
 namespace DP3 {
 namespace DPPP {
 
-BDABuffer::Row::Row(double time, double interval, rownr_t row_nr,
-                    std::size_t baseline_nr, std::size_t n_channels,
-                    std::size_t n_correlations, std::complex<float>* data,
-                    bool* flags, float* weights, bool* full_res_flags,
-                    const double* const uvw)
-    : time_(time),
-      interval_(interval),
-      row_nr_(row_nr),
-      baseline_nr_(baseline_nr),
-      n_channels_(n_channels),
-      n_correlations_(n_correlations),
-      data_(data),
-      flags_(flags),
-      weights_(weights),
-      full_res_flags_(full_res_flags),
-      uvw_{uvw ? uvw[0] : std::numeric_limits<double>::quiet_NaN(),
-           uvw ? uvw[1] : std::numeric_limits<double>::quiet_NaN(),
-           uvw ? uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
+BDABuffer::Row::Row(double _time, double _interval, rownr_t _row_nr,
+                    std::size_t _baseline_nr, std::size_t _n_channels,
+                    std::size_t _n_correlations, std::complex<float>* _data,
+                    bool* _flags, float* _weights, bool* _full_res_flags,
+                    const double* const _uvw)
+    : time(_time),
+      interval(_interval),
+      row_nr(_row_nr),
+      baseline_nr(_baseline_nr),
+      n_channels(_n_channels),
+      n_correlations(_n_correlations),
+      data(_data),
+      flags(_flags),
+      weights(_weights),
+      full_res_flags(_full_res_flags),
+      uvw{_uvw ? _uvw[0] : std::numeric_limits<double>::quiet_NaN(),
+          _uvw ? _uvw[1] : std::numeric_limits<double>::quiet_NaN(),
+          _uvw ? _uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
 
 BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
     : data_(),
@@ -83,10 +83,10 @@ BDABuffer::BDABuffer(const BDABuffer& other)
   auto* full_res_flags_ptr = full_res_flags_.data();
   rows_.reserve(other.rows_.size());
   for (const BDABuffer::Row& row : other.rows_) {
-    rows_.emplace_back(row.time_, row.interval_, row.row_nr_, row.baseline_nr_,
-                       row.n_channels_, row.n_correlations_, data_ptr,
-                       flags_ptr, weights_ptr, full_res_flags_ptr, row.uvw_);
-    const std::size_t data_size = row.n_channels_ * row.n_correlations_;
+    rows_.emplace_back(row.time, row.interval, row.row_nr, row.baseline_nr,
+                       row.n_channels, row.n_correlations, data_ptr, flags_ptr,
+                       weights_ptr, full_res_flags_ptr, row.uvw);
+    const std::size_t data_size = row.n_channels * row.n_correlations;
     data_ptr += data_size;
     flags_ptr += data_size;
     weights_ptr += data_size;
@@ -115,7 +115,7 @@ bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
                        const bool* const flags, const float* const weights,
                        const bool* const full_res_flags,
                        const double* const uvw) {
-  if (!rows_.empty() && TimeIsLessEqual(time + interval, rows_.back().time_)) {
+  if (!rows_.empty() && TimeIsLessEqual(time + interval, rows_.back().time)) {
     throw std::invalid_argument("Rows are not properly ordered");
   }
   const std::size_t data_size = n_channels * n_correlations;

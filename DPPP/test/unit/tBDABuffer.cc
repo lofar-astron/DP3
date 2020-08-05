@@ -100,24 +100,24 @@ BOOST_AUTO_TEST_CASE(copy) {
   const auto& rows_copy = buffer_copy.GetRows();
   BOOST_CHECK_EQUAL(rows_copy.size(), 2u);
   BOOST_CHECK_EQUAL(rows_copy[0].GetDataSize(), kDataSize);
-  BOOST_CHECK_EQUAL(rows_copy[0].time_, kTime);
-  BOOST_CHECK_EQUAL(rows_copy[0].interval_, kInterval);
-  BOOST_CHECK_EQUAL(rows_copy[0].row_nr_, kRowNr);
-  BOOST_CHECK_EQUAL(rows_copy[0].baseline_nr_, kBaselineNr);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_channels_, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_correlations_, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows_copy[0].time, kTime);
+  BOOST_CHECK_EQUAL(rows_copy[0].interval, kInterval);
+  BOOST_CHECK_EQUAL(rows_copy[0].row_nr, kRowNr);
+  BOOST_CHECK_EQUAL(rows_copy[0].baseline_nr, kBaselineNr);
+  BOOST_CHECK_EQUAL(rows_copy[0].n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(rows_copy[0].n_correlations, kNCorrelations);
 
   BOOST_CHECK_EQUAL(rows_copy[1].GetDataSize(), kDataSize);
-  BOOST_CHECK_EQUAL(rows_copy[1].time_, kTime + 1.);
-  BOOST_CHECK_EQUAL(rows_copy[1].interval_, kInterval + 1.);
-  BOOST_CHECK_EQUAL(rows_copy[1].row_nr_, kRowNr + 1);
-  BOOST_CHECK_EQUAL(rows_copy[1].baseline_nr_, kBaselineNr + 1);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_channels_, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_correlations_, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows_copy[1].time, kTime + 1.);
+  BOOST_CHECK_EQUAL(rows_copy[1].interval, kInterval + 1.);
+  BOOST_CHECK_EQUAL(rows_copy[1].row_nr, kRowNr + 1);
+  BOOST_CHECK_EQUAL(rows_copy[1].baseline_nr, kBaselineNr + 1);
+  BOOST_CHECK_EQUAL(rows_copy[1].n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(rows_copy[1].n_correlations, kNCorrelations);
 
   for (std::size_t i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(rows_copy[0].uvw_[i], kUvw[i]);
-    BOOST_CHECK_EQUAL(rows_copy[1].uvw_[i], kUvw[i]);
+    BOOST_CHECK_EQUAL(rows_copy[0].uvw[i], kUvw[i]);
+    BOOST_CHECK_EQUAL(rows_copy[1].uvw[i], kUvw[i]);
   }
 
   // Verify that the original has remaining capacity, but the copy doesn't.
@@ -182,31 +182,31 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
   const auto& rows = buffer.GetRows();
   BOOST_CHECK_EQUAL(rows.size(), 2u);
   BOOST_CHECK_EQUAL(rows[0].GetDataSize(), kDataSize);
-  BOOST_CHECK_EQUAL(rows[0].time_, kTime);
-  BOOST_CHECK_EQUAL(rows[0].interval_, kInterval);
-  BOOST_CHECK_EQUAL(rows[0].row_nr_, kRowNr);
-  BOOST_CHECK_EQUAL(rows[0].baseline_nr_, kBaselineNr);
-  BOOST_CHECK_EQUAL(rows[0].n_channels_, kNChannels);
-  BOOST_CHECK_EQUAL(rows[0].n_correlations_, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows[0].time, kTime);
+  BOOST_CHECK_EQUAL(rows[0].interval, kInterval);
+  BOOST_CHECK_EQUAL(rows[0].row_nr, kRowNr);
+  BOOST_CHECK_EQUAL(rows[0].baseline_nr, kBaselineNr);
+  BOOST_CHECK_EQUAL(rows[0].n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(rows[0].n_correlations, kNCorrelations);
 
   BOOST_CHECK_EQUAL(rows[1].GetDataSize(), k1DataSize);
-  BOOST_CHECK_EQUAL(rows[1].time_, kTime + 1.);
-  BOOST_CHECK_EQUAL(rows[1].interval_, kInterval + 1.);
-  BOOST_CHECK_EQUAL(rows[1].row_nr_, kRowNr + 1);
-  BOOST_CHECK_EQUAL(rows[1].baseline_nr_, kBaselineNr + 1);
-  BOOST_CHECK_EQUAL(rows[1].n_channels_, k1Channel);
-  BOOST_CHECK_EQUAL(rows[1].n_correlations_, k1Correlation);
+  BOOST_CHECK_EQUAL(rows[1].time, kTime + 1.);
+  BOOST_CHECK_EQUAL(rows[1].interval, kInterval + 1.);
+  BOOST_CHECK_EQUAL(rows[1].row_nr, kRowNr + 1);
+  BOOST_CHECK_EQUAL(rows[1].baseline_nr, kBaselineNr + 1);
+  BOOST_CHECK_EQUAL(rows[1].n_channels, k1Channel);
+  BOOST_CHECK_EQUAL(rows[1].n_correlations, k1Correlation);
 
   for (std::size_t i = 0; i < 2; ++i) {
-    BOOST_CHECK_EQUAL(rows[i].data_, buffer.GetData(i));
-    BOOST_CHECK_EQUAL(rows[i].flags_, buffer.GetFlags(i));
-    BOOST_CHECK_EQUAL(rows[i].weights_, buffer.GetWeights(i));
-    BOOST_CHECK_EQUAL(rows[i].full_res_flags_, buffer.GetFullResFlags(i));
+    BOOST_CHECK_EQUAL(rows[i].data, buffer.GetData(i));
+    BOOST_CHECK_EQUAL(rows[i].flags, buffer.GetFlags(i));
+    BOOST_CHECK_EQUAL(rows[i].weights, buffer.GetWeights(i));
+    BOOST_CHECK_EQUAL(rows[i].full_res_flags, buffer.GetFullResFlags(i));
   }
 
   for (std::size_t i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(rows[0].uvw_[i], kUvw1[i]);
-    BOOST_CHECK_EQUAL(rows[1].uvw_[i], kUvw2[i]);
+    BOOST_CHECK_EQUAL(rows[0].uvw[i], kUvw1[i]);
+    BOOST_CHECK_EQUAL(rows[1].uvw[i], kUvw2[i]);
   }
 }
 
@@ -234,18 +234,18 @@ BOOST_AUTO_TEST_CASE(add_no_fields) {
   BOOST_CHECK_EQUAL(rows.size(), 1u);
   const auto& row = rows.front();
   BOOST_CHECK_EQUAL(row.GetDataSize(), kDataSize);
-  BOOST_CHECK_EQUAL(row.time_, kTime);
-  BOOST_CHECK_EQUAL(row.interval_, kInterval);
-  BOOST_CHECK_EQUAL(row.row_nr_, kRowNr);
-  BOOST_CHECK_EQUAL(row.baseline_nr_, kBaselineNr);
-  BOOST_CHECK_EQUAL(row.n_channels_, kNChannels);
-  BOOST_CHECK_EQUAL(row.n_correlations_, kNCorrelations);
-  BOOST_CHECK_EQUAL(row.data_, buffer.GetData(0));
-  BOOST_CHECK_EQUAL(row.flags_, buffer.GetFlags(0));
-  BOOST_CHECK_EQUAL(row.weights_, buffer.GetWeights(0));
-  BOOST_CHECK_EQUAL(row.full_res_flags_, buffer.GetFullResFlags(0));
+  BOOST_CHECK_EQUAL(row.time, kTime);
+  BOOST_CHECK_EQUAL(row.interval, kInterval);
+  BOOST_CHECK_EQUAL(row.row_nr, kRowNr);
+  BOOST_CHECK_EQUAL(row.baseline_nr, kBaselineNr);
+  BOOST_CHECK_EQUAL(row.n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(row.n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(row.data, buffer.GetData(0));
+  BOOST_CHECK_EQUAL(row.flags, buffer.GetFlags(0));
+  BOOST_CHECK_EQUAL(row.weights, buffer.GetWeights(0));
+  BOOST_CHECK_EQUAL(row.full_res_flags, buffer.GetFullResFlags(0));
   for (std::size_t i = 0; i < 3; ++i) {
-    BOOST_CHECK(std::isnan(row.uvw_[i]));
+    BOOST_CHECK(std::isnan(row.uvw[i]));
   }
 }
 
@@ -281,10 +281,10 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   const auto& rows = buffer.GetRows();
   BOOST_CHECK_EQUAL(rows.size(), 1u);
   const auto& row = rows.front();
-  BOOST_CHECK_EQUAL(row.data_, nullptr);
-  BOOST_CHECK_EQUAL(row.flags_, nullptr);
-  BOOST_CHECK_EQUAL(row.weights_, nullptr);
-  BOOST_CHECK_EQUAL(row.full_res_flags_, nullptr);
+  BOOST_CHECK_EQUAL(row.data, nullptr);
+  BOOST_CHECK_EQUAL(row.flags, nullptr);
+  BOOST_CHECK_EQUAL(row.weights, nullptr);
+  BOOST_CHECK_EQUAL(row.full_res_flags, nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
