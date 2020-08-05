@@ -9,6 +9,9 @@
 # "./scripts/run-clang-format.sh" to .git/hooks/pre-commit
 # and make sure pre-commit is an executable shell script.
 
+# Disable globbing
+set -e -f
+
 #Script configuration for this repo. Adjust it when copying to a different repo.
 
 #The directory that contains the source files, which clang-format should format.
@@ -22,8 +25,6 @@ EXCLUDE_DIRS=(external)
 SOURCE_EXT=(*.cc *.h)
 
 #End script configuration.
-
-set -e
 
 # Detect run environment.
 if [ -n "$CI" ]; then
