@@ -36,6 +36,8 @@
 using namespace DP3::DPPP;
 using namespace casacore;
 
+namespace utf = boost::unit_test;
+
 BOOST_AUTO_TEST_SUITE(dppp)
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
@@ -997,44 +999,82 @@ void testErrorOut() {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_copy) { testCopy(); }
+BOOST_AUTO_TEST_CASE(test_copy, *utf::disabled()) { testCopy(); }
 
-BOOST_AUTO_TEST_CASE(test_copy_column) { testCopyColumn(); }
+BOOST_AUTO_TEST_CASE(test_copy_column, *utf::depends_on("dppp/test_copy")) {
+  testCopyColumn();
+}
 
-BOOST_AUTO_TEST_CASE(test_multi_in) { testMultiIn(); }
+BOOST_AUTO_TEST_CASE(test_multi_in, *utf::depends_on("dppp/test_copy_column")) {
+  testMultiIn();
+}
 
-BOOST_AUTO_TEST_CASE(test_avg1) { testAvg1(); }
+BOOST_AUTO_TEST_CASE(test_avg1, *utf::depends_on("dppp/test_multi_in")) {
+  testAvg1();
+}
 
-BOOST_AUTO_TEST_CASE(test_avg2) { testAvg2(); }
+BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dppp/test_avg1")) {
+  testAvg2();
+}
 
-BOOST_AUTO_TEST_CASE(test_avg3) { testAvg3(); }
+BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dppp/test_avg2")) {
+  testAvg3();
+}
 
-BOOST_AUTO_TEST_CASE(test_avg4) { testAvg4(); }
+BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
+  testAvg4();
+}
 
-BOOST_AUTO_TEST_CASE(test_update1) { testUpdate1(); }
+BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
+  testUpdate1();
+}
 
-BOOST_AUTO_TEST_CASE(test_update2) { testUpdate2(); }
+BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dppp/test_update1")) {
+  testUpdate2();
+}
 
-BOOST_AUTO_TEST_CASE(test_update_scale) { testUpdateScale(); }
+BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
+  testUpdateScale();
+}
 
-BOOST_AUTO_TEST_CASE(test_flags1) { testFlags1(); }
+BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dppp/test_update_scale")) {
+  testFlags1();
+}
 
-BOOST_AUTO_TEST_CASE(test_flags2) { testFlags2(); }
+BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dppp/test_flags1")) {
+  testFlags2();
+}
 
-BOOST_AUTO_TEST_CASE(test_flags3) { testFlags3(); }
+BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dppp/test_flags2")) {
+  testFlags3();
+}
 
-BOOST_AUTO_TEST_CASE(test_station_add) { testStationAdd(); }
+BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
+  testStationAdd();
+}
 
-BOOST_AUTO_TEST_CASE(test_filter1) { testFilter1(); }
+BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
+  testFilter1();
+}
 
-BOOST_AUTO_TEST_CASE(test_filter2) { testFilter2(); }
+BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
+  testFilter2();
+}
 
-BOOST_AUTO_TEST_CASE(test_filter3) { testFilter3(); }
+BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dppp/test_filter2")) {
+  testFilter3();
+}
 
-BOOST_AUTO_TEST_CASE(test_clear) { testClear(); }
+BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
+  testClear();
+}
 
-BOOST_AUTO_TEST_CASE(test_multi_out) { testMultiOut(); }
+BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dppp/test_clear")) {
+  testMultiOut();
+}
 
-BOOST_AUTO_TEST_CASE(test_error_out) { testErrorOut(); }
+BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
+  testErrorOut();
+}
 
 BOOST_AUTO_TEST_SUITE_END()
