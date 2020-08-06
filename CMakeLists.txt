@@ -8,6 +8,7 @@ project(DP3)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 if(NOT PORTABLE)
   add_compile_options(-march=native)
@@ -293,8 +294,9 @@ endif()
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_library(dppp_testdyndppp SHARED
-    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT} ${IDGPREDICT_OBJECT}
   )
+  target_link_libraries(dppp_testdyndppp ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
   set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
 endif()
 
