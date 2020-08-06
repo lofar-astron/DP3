@@ -168,8 +168,8 @@ void MultiMSReader::fillBands() {
   // Add missing channels to the total nr.
   itsNrChan += itsNMissing * itsFillNChan;
   // Collect the channel info of all MSs.
-  Vector<double> chanFreqs(itsNrChan);
-  Vector<double> chanWidths(itsNrChan);
+  std::vector<double> chanFreqs(itsNrChan);
+  std::vector<double> chanWidths(itsNrChan);
   unsigned int inx = 0;
   // Data for a missing MS can only be inserted if all other MSs have
   // the same nr of channels and are in increasing order of freq.
@@ -200,7 +200,7 @@ void MultiMSReader::fillBands() {
     }
   }
 
-  info().set(chanFreqs, chanWidths);
+  info().set(std::move(chanFreqs), std::move(chanWidths));
 }
 
 bool MultiMSReader::process(const DPBuffer& buf) {
@@ -330,15 +330,18 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
 
   // check that channels are regularly spaced, give warning otherwise
   if (itsNrChan > 1) {
-    Vector<Double> upFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 1), IPosition(1, itsNrChan - 1)));
-    Vector<Double> lowFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 0), IPosition(1, itsNrChan - 1)));
-    Double freqstep0 = upFreq(0) - lowFreq(0);
-    // Compare up to 1kHz accuracy
-    itsRegularChannels =
-        allNearAbs(upFreq - lowFreq, freqstep0, 1.e3) &&
-        allNearAbs(info().chanWidths(), info().chanWidths()(0), 1.e3);
+    itsRegularChannels = true;
+    const std::vector<double>& freqs = info().chanFreqs();
+    const std::vector<double>& widths = info().chanWidths();
+    const double freqstep0 = freqs[1] - freqs[0];
+    const double tolerance = 1.e3;  // Compare up to 1kHz accuracy.
+    for (std::size_t i = 1; i < freqs.size(); ++i) {
+      if ((std::abs(freqs[i] - freqs[i - 1] - freqstep0) >= tolerance) ||
+          (std::abs(widths[i] - widths[0]) >= tolerance)) {
+        itsRegularChannels = false;
+        break;
+      }
+    }
   }
 
   // Set correct nr of channels.

@@ -142,10 +142,12 @@ class TestInput : public DPInput {
     vector<double> antDiam(4, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    casacore::Vector<double> chanFreqs(itsNChan);
-    vector<double> chanWidth(itsNChan, 100000);
-    indgen(chanFreqs, 1050000., 100000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanFreqs;
+    std::vector<double> chanWidth(itsNChan, 100000);
+    for (int i = 0; i < itsNChan; i++) {
+      chanFreqs.push_back(1050000. + i * 100000.);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
   }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;

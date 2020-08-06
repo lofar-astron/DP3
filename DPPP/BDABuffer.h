@@ -50,6 +50,7 @@ class BDABuffer {
     bool weights_ = true;         ///< Enable/Disable weights.
     bool full_res_flags_ = true;  ///< Enable/Disable full res flags.
   };
+
   struct Row {
     Row(double time, double interval, rownr_t row_nr, std::size_t baseline_nr,
         std::size_t n_channels, std::size_t n_correlations,

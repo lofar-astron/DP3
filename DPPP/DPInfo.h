@@ -99,16 +99,22 @@ class DPInfo {
   /// Set time interval
   void setTimeInterval(double timeInterval) { itsTimeInterval = timeInterval; }
 
-  /// Set the frequency info.
-  /// An empty resolutions or effectiveBW is default to chanWidths.
-  /// If totalBW is 0, it is set to the sum of effectiveBW.
-  /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
+  /// Set the frequency info (legacy interface)
   void set(
       const casacore::Vector<double>& chanFreqs,
       const casacore::Vector<double>& chanWidths,
       const casacore::Vector<double>& resolutions = casacore::Vector<double>(),
       const casacore::Vector<double>& effectiveBW = casacore::Vector<double>(),
       double totalBW = 0, double refFreq = 0);
+
+  /// Set the frequency info.
+  /// An empty resolutions or effectiveBW is default to chanWidths.
+  /// If totalBW is 0, it is set to the sum of effectiveBW.
+  /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
+  void set(std::vector<double>&& chanFreqs, std::vector<double>&& chanWidths,
+           std::vector<double>&& resolutions = std::vector<double>(),
+           std::vector<double>&& effectiveBW = std::vector<double>(),
+           double totalBW = 0, double refFreq = 0);
 
   /// Set array info.
   void set(const casacore::MPosition& arrayPos,
@@ -197,10 +203,10 @@ class DPInfo {
   const casacore::MDirection tileBeamDirCopy() const {
     return copyMeasure(casacore::MeasureHolder(itsTileBeamDir)).asMDirection();
   }
-  const casacore::Vector<double>& chanFreqs() const { return itsChanFreqs; }
-  const casacore::Vector<double>& chanWidths() const { return itsChanWidths; }
-  const casacore::Vector<double>& resolutions() const { return itsResolutions; }
-  const casacore::Vector<double>& effectiveBW() const { return itsEffectiveBW; }
+  const std::vector<double>& chanFreqs() const { return itsChanFreqs; }
+  const std::vector<double>& chanWidths() const { return itsChanWidths; }
+  const std::vector<double>& resolutions() const { return itsResolutions; }
+  const std::vector<double>& effectiveBW() const { return itsEffectiveBW; }
   const std::string& getDataColName() const { return itsDataColName; }
   const std::string& getWeightColName() const { return itsWeightColName; }
   double totalBW() const { return itsTotalBW; }
@@ -306,10 +312,10 @@ class DPInfo {
   enum BeamCorrectionMode itsBeamCorrectionMode;
   casacore::MDirection itsBeamCorrectionDir;
   casacore::MPosition itsArrayPos;
-  casacore::Vector<double> itsChanFreqs;
-  casacore::Vector<double> itsChanWidths;
-  casacore::Vector<double> itsResolutions;
-  casacore::Vector<double> itsEffectiveBW;
+  std::vector<double> itsChanFreqs;
+  std::vector<double> itsChanWidths;
+  std::vector<double> itsResolutions;
+  std::vector<double> itsEffectiveBW;
   double itsTotalBW;
   double itsRefFreq;
   casacore::Vector<casacore::String> itsAntNames;

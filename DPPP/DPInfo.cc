@@ -75,29 +75,39 @@ void DPInfo::set(const Vector<double>& chanFreqs,
                  const Vector<double>& resolutions,
                  const Vector<double>& effectiveBW, double totalBW,
                  double refFreq) {
-  itsChanFreqs.reference(chanFreqs);
-  itsChanWidths.reference(chanWidths);
+  set(chanFreqs.tovector(), chanWidths.tovector(), resolutions.tovector(),
+      effectiveBW.tovector(), totalBW, refFreq);
+}
+
+void DPInfo::set(std::vector<double>&& chan_freqs,
+                 std::vector<double>&& chan_widths,
+                 std::vector<double>&& resolutions,
+                 std::vector<double>&& effective_bw, double total_bw,
+                 double ref_freq) {
+  itsChanFreqs = std::move(chan_freqs);
+  itsChanWidths = std::move(chan_widths);
   if (resolutions.size() == 0) {
-    itsResolutions.reference(chanWidths);
+    itsResolutions = itsChanWidths;
   } else {
-    itsResolutions.reference(resolutions);
+    itsResolutions = std::move(resolutions);
   }
-  if (effectiveBW.size() == 0) {
-    itsEffectiveBW.reference(chanWidths);
+  if (effective_bw.size() == 0) {
+    itsEffectiveBW = itsChanWidths;
   } else {
-    itsEffectiveBW.reference(effectiveBW);
+    itsEffectiveBW = std::move(effective_bw);
   }
-  if (totalBW == 0) {
-    itsTotalBW = sum(itsEffectiveBW);
+  if (total_bw == 0) {
+    itsTotalBW =
+        std::accumulate(itsEffectiveBW.begin(), itsEffectiveBW.end(), 0.0);
   } else {
-    itsTotalBW = totalBW;
+    itsTotalBW = total_bw;
   }
-  if (refFreq == 0) {
+  if (ref_freq == 0) {
     int n = itsChanFreqs.size();
     // Takes mean of middle elements if n is even; takes middle if odd.
     itsRefFreq = 0.5 * (itsChanFreqs[(n - 1) / 2] + itsChanFreqs[n / 2]);
   } else {
-    itsRefFreq = refFreq;
+    itsRefFreq = ref_freq;
   }
 }
 
@@ -175,10 +185,10 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   itsTimeAvg *= timeAvg;
   itsNTime = (itsNTime + timeAvg - 1) / timeAvg;
   itsTimeInterval *= timeAvg;
-  Vector<double> freqs(itsNChan);
-  Vector<double> widths(itsNChan, 0.);
-  Vector<double> resols(itsNChan, 0.);
-  Vector<double> effBWs(itsNChan, 0.);
+  std::vector<double> freqs(itsNChan);
+  std::vector<double> widths(itsNChan, 0.);
+  std::vector<double> resols(itsNChan, 0.);
+  std::vector<double> effBWs(itsNChan, 0.);
   double totBW = 0;
   for (unsigned int i = 0; i < itsNChan; ++i) {
     freqs[i] =
@@ -190,22 +200,25 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
     }
     totBW += effBWs[i];
   }
-  itsChanFreqs.reference(freqs);
-  itsChanWidths.reference(widths);
-  itsResolutions.reference(resols);
-  itsEffectiveBW.reference(effBWs);
+  itsChanFreqs = std::move(freqs);
+  itsChanWidths = std::move(widths);
+  itsResolutions = std::move(resols);
+  itsEffectiveBW = std::move(effBWs);
   itsTotalBW = totBW;
   return chanAvg;
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
                     const vector<unsigned int>& baselines, bool removeAnt) {
-  Slice slice(startChan, nchan);
   itsStartChan = startChan;
-  itsChanFreqs.reference(itsChanFreqs(slice).copy());
-  itsChanWidths.reference(itsChanWidths(slice).copy());
-  itsResolutions.reference(itsResolutions(slice).copy());
-  itsEffectiveBW.reference(itsEffectiveBW(slice).copy());
+  auto freqs_begin = itsChanFreqs.begin() + startChan;
+  auto widths_begin = itsChanWidths.begin() + startChan;
+  auto resol_begin = itsResolutions.begin() + startChan;
+  auto effbw_begin = itsEffectiveBW.begin() + startChan;
+  itsChanFreqs = std::vector<double>(freqs_begin, freqs_begin + nchan);
+  itsChanWidths = std::vector<double>(widths_begin, widths_begin + nchan);
+  itsResolutions = std::vector<double>(resol_begin, resol_begin + nchan);
+  itsEffectiveBW = std::vector<double>(effbw_begin, effbw_begin + nchan);
   itsNChan = nchan;
   // Keep only selected baselines.
   if (!baselines.empty()) {
@@ -314,10 +327,10 @@ Record DPInfo::toRecord() const {
   rec.define("TimeAvg", itsTimeAvg);
   rec.define("StartTime", itsStartTime);
   rec.define("TimeInterval", itsTimeInterval);
-  rec.define("ChanFreqs", itsChanFreqs);
-  rec.define("ChanWidths", itsChanWidths);
-  rec.define("Resolutions", itsResolutions);
-  rec.define("EffectiveBW", itsEffectiveBW);
+  rec.define("ChanFreqs", casacore::Vector<double>(itsChanFreqs));
+  rec.define("ChanWidths", casacore::Vector<double>(itsChanWidths));
+  rec.define("Resolutions", casacore::Vector<double>(itsResolutions));
+  rec.define("EffectiveBW", casacore::Vector<double>(itsEffectiveBW));
   rec.define("TotalBW", itsTotalBW);
   rec.define("RefFreq", itsRefFreq);
   rec.define("AntNames", itsAntNames);
@@ -381,16 +394,16 @@ void DPInfo::fromRecord(const Record& rec) {
     rec.get("TimeInterval", itsTimeInterval);
   }
   if (rec.isDefined("ChanFreqs")) {
-    rec.get("ChanFreqs", itsChanFreqs);
+    itsChanFreqs = rec.toArrayDouble("ChanFreqs").tovector();
   }
   if (rec.isDefined("ChanWidths")) {
-    rec.get("ChanWidths", itsChanWidths);
+    itsChanWidths = rec.toArrayDouble("ChanWidths").tovector();
   }
   if (rec.isDefined("Resolutions")) {
-    rec.get("Resolutions", itsResolutions);
+    itsResolutions = rec.toArrayDouble("Resolutions").tovector();
   }
   if (rec.isDefined("EffectiveBW")) {
-    rec.get("EffectiveBW", itsEffectiveBW);
+    itsEffectiveBW = rec.toArrayDouble("EffectiveBW").tovector();
   }
   if (rec.isDefined("TotalBW")) {
     rec.get("TotalBW", itsTotalBW);

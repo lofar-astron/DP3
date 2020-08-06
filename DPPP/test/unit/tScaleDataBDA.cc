@@ -111,10 +111,13 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   vector<double> antDiam(2, 70.);
   info.set(ant_names, antDiam, ant_pos, ant1, ant2);
   // Define the frequencies.
-  vector<double> chan_width(nchan, 3.);
-  casacore::Vector<double> chan_freqs(nchan);
-  casacore::indgen(chan_freqs, 1., 3.);
-  info.set(chan_freqs, chan_width);
+  std::vector<double> chan_width(nchan, 3.0);
+  std::vector<double> chan_freqs;
+  chan_freqs.reserve(nchan);
+  for (int i = 0; i < nchan; i++) {
+    chan_freqs.push_back(1.0 + i * 3.0);
+  }
+  info.set(std::move(chan_freqs), std::move(chan_width));
 
   return info;
 }

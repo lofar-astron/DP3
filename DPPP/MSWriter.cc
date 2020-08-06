@@ -466,10 +466,10 @@ void MSWriter::updateSpw(const string& outName, const DPInfo& info) {
   ArrayColumn<Double> outRESOLUTION(outSPW, "RESOLUTION");
   ScalarColumn<Double> outTOTALBW(outSPW, "TOTAL_BANDWIDTH");
   ScalarColumn<Double> outREFFREQ(outSPW, "REF_FREQUENCY");
-  outFREQ.put(0, info.chanFreqs());
-  outWIDTH.put(0, info.chanWidths());
-  outBW.put(0, info.effectiveBW());
-  outRESOLUTION.put(0, info.resolutions());
+  outFREQ.put(0, casacore::Vector<double>(info.chanFreqs()));
+  outWIDTH.put(0, casacore::Vector<double>(info.chanWidths()));
+  outBW.put(0, casacore::Vector<double>(info.effectiveBW()));
+  outRESOLUTION.put(0, casacore::Vector<double>(info.resolutions()));
   outTOTALBW.put(0, info.totalBW());
   outREFFREQ.put(0, info.refFreq());
   // Adjust the spwid in the DATA_DESCRIPTION.
