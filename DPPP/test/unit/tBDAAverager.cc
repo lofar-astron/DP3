@@ -75,10 +75,16 @@ void InitParset(DP3::ParameterSet& parset,
 void InitInfo(DPInfo& info, const std::vector<int>& ant1,
               const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
   BOOST_REQUIRE(ant1.size() == ant2.size());
+  std::vector<double> chan_freqs(n_chan);
+  std::vector<double> chan_widths(n_chan, 5000.0);
+  for (std::size_t i = 1; i < n_chan; i++) {
+    chan_freqs[i] = chan_freqs[i - 1] + 10000.0;
+  }
 
   info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval, kMsName,
             kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
+  info.set(std::move(chan_freqs), std::move(chan_widths));
 }
 
 void Finish(BDAAverager& averager, DP3::DPPP::MockStep& mock_step) {

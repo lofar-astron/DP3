@@ -117,10 +117,10 @@ void MultiMSReader::handleBands() {
   }
 
   // Collect the channel info of all MSs.
-  Vector<double> chanFreqs(itsNrChan);
-  Vector<double> chanWidths(itsNrChan);
-  Vector<double> resolutions(itsNrChan);
-  Vector<double> effectiveBW(itsNrChan);
+  std::vector<double> chanFreqs(itsNrChan);
+  std::vector<double> chanWidths(itsNrChan);
+  std::vector<double> resolutions(itsNrChan);
+  std::vector<double> effectiveBW(itsNrChan);
   unsigned int inx = 0;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     unsigned int nchan = itsReaders[i]->getInfo().nchan();
@@ -134,7 +134,8 @@ void MultiMSReader::handleBands() {
             itsReaders[i]->getInfo().effectiveBW().data(), nchan);
     inx += nchan;
   }
-  info().set(chanFreqs, chanWidths, resolutions, effectiveBW, 0., 0.);
+  info().set(std::move(chanFreqs), std::move(chanWidths),
+             std::move(resolutions), std::move(effectiveBW));
 }
 
 void MultiMSReader::sortBands() {
@@ -329,20 +330,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   handleBands();
 
   // check that channels are regularly spaced, give warning otherwise
-  if (itsNrChan > 1) {
-    itsRegularChannels = true;
-    const std::vector<double>& freqs = info().chanFreqs();
-    const std::vector<double>& widths = info().chanWidths();
-    const double freqstep0 = freqs[1] - freqs[0];
-    const double tolerance = 1.e3;  // Compare up to 1kHz accuracy.
-    for (std::size_t i = 1; i < freqs.size(); ++i) {
-      if ((std::abs(freqs[i] - freqs[i - 1] - freqstep0) >= tolerance) ||
-          (std::abs(widths[i] - widths[0]) >= tolerance)) {
-        itsRegularChannels = false;
-        break;
-      }
-    }
-  }
+  itsRegularChannels = info().channelsAreRegular();
 
   // Set correct nr of channels.
   info().setNChan(itsNrChan);

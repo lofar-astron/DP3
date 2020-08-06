@@ -330,18 +330,8 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   itsFlagCounter.init(getInfo());
 
   // Check that channels are evenly spaced
-  if (info().nchan() > 1 && !itsUseH5Parm) {
-    const std::vector<double>& freqs = info().chanFreqs();
-    const std::vector<double>& widths = info().chanWidths();
-    const double freqstep0 = freqs[1] - freqs[0];
-    const double tolerance = 1.e3;  // Compare up to 1kHz accuracy.
-    for (std::size_t i = 1; i < freqs.size(); ++i) {
-      if ((std::abs(freqs[i] - freqs[i - 1] - freqstep0) >= tolerance) ||
-          (std::abs(widths[i] - widths[0]) >= tolerance)) {
-        throw Exception(
-            "ApplyCal with parmdb requires evenly spaced channels.");
-      }
-    }
+  if (!itsUseH5Parm && !info().channelsAreRegular()) {
+    throw Exception("ApplyCal with parmdb requires evenly spaced channels.");
   }
 }
 

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <numeric>
 
 namespace DP3 {
 namespace DPPP {
@@ -78,10 +79,18 @@ BDAAverager::BDAAverager(const DP3::ParameterSet& parset,
 
 BDAAverager::~BDAAverager() {}
 
-void BDAAverager::updateInfo(const DPInfo& info) {
-  DPStep::updateInfo(info);
+void BDAAverager::updateInfo(const DPInfo& _info) {
+  if (_info.nchan() != _info.chanFreqs().size() ||
+      !_info.channelsAreRegular()) {
+    throw std::invalid_argument("Invalid info in BDA averager");
+  }
 
-  const std::vector<double>& lengths = info.getBaselineLengths();
+  DPStep::updateInfo(_info);
+
+  std::vector<std::vector<double>> freqs(_info.nbaselines());
+  std::vector<std::vector<double>> widths(_info.nbaselines());
+
+  const std::vector<double>& lengths = _info.getBaselineLengths();
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -92,37 +101,53 @@ void BDAAverager::updateInfo(const DPInfo& info) {
 
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
-  baseline_buffers_.reserve(info.nbaselines());
-  for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+  baseline_buffers_.reserve(_info.nbaselines());
+  for (std::size_t i = 0; i < _info.nbaselines(); ++i) {
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
     if (factor_time < 1) {
       factor_time = 1;
-    } else if (factor_time * info.timeInterval() > max_interval_) {
-      factor_time = std::floor(max_interval_ / info.timeInterval());
+    } else if (factor_time * _info.timeInterval() > max_interval_) {
+      factor_time = std::floor(max_interval_ / _info.timeInterval());
     }
 
     // Determine the number of channels in the output.
-    std::size_t nchan = info.nchan();
+    std::size_t nchan = _info.nchan();
     if (bl_threshold_channel_ > 0.0) {
       nchan = std::ceil(lengths[i] / bl_threshold_channel_ * double(nchan));
-      if (nchan > info.nchan()) {
-        nchan = info.nchan();
+      if (nchan > _info.nchan()) {
+        nchan = _info.nchan();
       } else if (nchan < min_channels_) {
         nchan = min_channels_;
       }
     }
 
-    baseline_buffers_.emplace_back(factor_time, info.nchan(), nchan,
-                                   info.ncorr());
+    baseline_buffers_.emplace_back(factor_time, _info.nchan(), nchan,
+                                   _info.ncorr());
     relative_channels += float(nchan) / float(factor_time);
     max_channels = std::max(max_channels, nchan);
+
+    // Calculate the center frequency and width of the averaged channels.
+    const std::vector<std::size_t>& indices =
+        baseline_buffers_.back().input_channel_indices;
+    const auto input_widths_begin = _info.chanWidths().begin();
+    freqs[i].reserve(nchan);
+    widths[i].reserve(nchan);
+    for (std::size_t ch = 0; ch < nchan; ++ch) {
+      freqs[i].push_back(0.5 * (_info.chanFreqs()[indices[ch]] +
+                                _info.chanFreqs()[indices[ch + 1] - 1]));
+      widths[i].push_back(std::accumulate(input_widths_begin + indices[ch],
+                                          input_widths_begin + indices[ch + 1],
+                                          0.0));
+    }
   }
 
   std::size_t bda_channels = std::ceil(relative_channels);
   bda_channels = std::max(bda_channels, max_channels);
 
-  bda_pool_size_ = info.ncorr() * bda_channels;
+  bda_pool_size_ = _info.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+
+  info().set(std::move(freqs), std::move(widths));
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {

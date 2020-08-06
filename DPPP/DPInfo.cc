@@ -31,6 +31,9 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/BasicSL/STLIO.h>
 
+#include <algorithm>
+#include <cmath>
+
 using namespace casacore;
 using namespace std;
 
@@ -70,45 +73,114 @@ void DPInfo::init(unsigned int ncorr, unsigned int startChan,
   itsAntennaSet = antennaSet;
 }
 
-void DPInfo::set(const Vector<double>& chanFreqs,
-                 const Vector<double>& chanWidths,
-                 const Vector<double>& resolutions,
-                 const Vector<double>& effectiveBW, double totalBW,
-                 double refFreq) {
-  set(chanFreqs.tovector(), chanWidths.tovector(), resolutions.tovector(),
-      effectiveBW.tovector(), totalBW, refFreq);
-}
-
 void DPInfo::set(std::vector<double>&& chan_freqs,
                  std::vector<double>&& chan_widths,
                  std::vector<double>&& resolutions,
-                 std::vector<double>&& effective_bw, double total_bw,
+                 std::vector<double>&& effective_bw, double ref_freq) {
+  if (resolutions.empty()) {
+    resolutions = chan_widths;
+  }
+  if (effective_bw.empty()) {
+    effective_bw = chan_widths;
+  }
+
+  if (ref_freq == 0) {
+    int n = chan_freqs.size();
+    // Takes mean of middle elements if n is even; takes middle if odd.
+    ref_freq = 0.5 * (chan_freqs[(n - 1) / 2] + chan_freqs[n / 2]);
+  }
+
+  itsChanFreqs.clear();
+  itsChanWidths.clear();
+  itsResolutions.clear();
+  itsEffectiveBW.clear();
+
+  itsChanFreqs.push_back(std::move(chan_freqs));
+  itsChanWidths.push_back(std::move(chan_widths));
+  itsResolutions.push_back(std::move(resolutions));
+  itsEffectiveBW.push_back(std::move(effective_bw));
+
+  itsTotalBW = std::accumulate(itsEffectiveBW.front().begin(),
+                               itsEffectiveBW.front().end(), 0.0);
+  itsRefFreq = ref_freq;
+}
+
+void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
+                 std::vector<std::vector<double>>&& chan_widths,
+                 std::vector<std::vector<double>>&& resolutions,
+                 std::vector<std::vector<double>>&& effective_bw,
                  double ref_freq) {
+  if (resolutions.empty()) {
+    resolutions = chan_widths;
+  }
+  if (effective_bw.empty()) {
+    effective_bw = chan_widths;
+  }
+  if (chan_freqs.empty() || chan_freqs.size() != chan_widths.size() ||
+      chan_freqs.size() != resolutions.size() ||
+      chan_freqs.size() != effective_bw.size()) {
+    throw Exception("Invalid baseline count while setting frequency info");
+  }
+
+  const double total_bw = std::accumulate(effective_bw.front().begin(),
+                                          effective_bw.front().end(), 0.0);
+  for (std::vector<double>& eff_bw_bl : effective_bw) {
+    if (std::accumulate(eff_bw_bl.begin(), eff_bw_bl.end(), 0.0) != total_bw) {
+      throw Exception("Total BW is not equal for all baselines");
+    }
+  }
+
+  if (ref_freq == 0) {
+    // Find the baseline with the most channels.
+    auto comp = [](const std::vector<double>& left,
+                   const std::vector<double>& right) {
+      return left.size() < right.size();
+    };
+    auto it = std::max_element(chan_freqs.begin(), chan_freqs.end(), comp);
+
+    std::size_t n = it->size();
+    // Takes mean of middle elements if n is even; takes middle if odd.
+    ref_freq = 0.5 * ((*it)[(n - 1) / 2] + (*it)[n / 2]);
+  }
+
   itsChanFreqs = std::move(chan_freqs);
   itsChanWidths = std::move(chan_widths);
-  if (resolutions.size() == 0) {
-    itsResolutions = itsChanWidths;
-  } else {
-    itsResolutions = std::move(resolutions);
+  itsResolutions = std::move(resolutions);
+  itsEffectiveBW = std::move(effective_bw);
+  itsTotalBW = total_bw;
+  itsRefFreq = ref_freq;
+}
+
+bool DPInfo::channelsAreRegular() const {
+  if (itsChanFreqs.empty()) {
+    return true;
   }
-  if (effective_bw.size() == 0) {
-    itsEffectiveBW = itsChanWidths;
-  } else {
-    itsEffectiveBW = std::move(effective_bw);
+
+  // Check that all baselines have equal channel layouts.
+  for (std::size_t bl = 1; bl < itsChanFreqs.size(); ++bl) {
+    if (itsChanFreqs.front() != itsChanFreqs[bl] ||
+        itsChanWidths.front() != itsChanWidths[bl] ||
+        itsResolutions.front() != itsResolutions[bl] ||
+        itsEffectiveBW.front() != itsEffectiveBW[bl]) {
+      return false;
+    }
   }
-  if (total_bw == 0) {
-    itsTotalBW =
-        std::accumulate(itsEffectiveBW.begin(), itsEffectiveBW.end(), 0.0);
-  } else {
-    itsTotalBW = total_bw;
+
+  // Check that channels are evenly spaced.
+  const std::vector<double>& freqs = itsChanFreqs.front();
+  const std::vector<double>& widths = itsChanWidths.front();
+  if (freqs.size() > 1) {
+    const double freqstep0 = freqs[1] - freqs[0];
+    const double kTolerance = 1.e3;  // Compare up to 1kHz accuracy.
+    for (std::size_t i = 1; i < freqs.size(); ++i) {
+      if ((std::abs(freqs[i] - freqs[i - 1] - freqstep0) >= kTolerance) ||
+          (std::abs(widths[i] - widths[0]) >= kTolerance)) {
+        return false;
+      }
+    }
   }
-  if (ref_freq == 0) {
-    int n = itsChanFreqs.size();
-    // Takes mean of middle elements if n is even; takes middle if odd.
-    itsRefFreq = 0.5 * (itsChanFreqs[(n - 1) / 2] + itsChanFreqs[n / 2]);
-  } else {
-    itsRefFreq = ref_freq;
-  }
+
+  return true;
 }
 
 void DPInfo::set(const MPosition& arrayPos, const MDirection& phaseCenter,
@@ -169,6 +241,10 @@ MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
 }
 
 unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
+  if (itsChanFreqs.size() != 1) {
+    throw Exception("Averaging does not support BDA");
+  }
+
   if (chanAvg > itsNChan) {
     chanAvg = itsNChan;
   }
@@ -191,34 +267,40 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   std::vector<double> effBWs(itsNChan, 0.);
   double totBW = 0;
   for (unsigned int i = 0; i < itsNChan; ++i) {
-    freqs[i] =
-        0.5 * (itsChanFreqs[i * chanAvg] + itsChanFreqs[(i + 1) * chanAvg - 1]);
+    freqs[i] = 0.5 * (itsChanFreqs.front()[i * chanAvg] +
+                      itsChanFreqs.front()[(i + 1) * chanAvg - 1]);
     for (unsigned int j = 0; j < chanAvg; ++j) {
-      widths[i] += itsChanWidths[i * chanAvg + j];
-      resols[i] += itsResolutions[i * chanAvg + j];
-      effBWs[i] += itsEffectiveBW[i * chanAvg + j];
+      widths[i] += itsChanWidths.front()[i * chanAvg + j];
+      resols[i] += itsResolutions.front()[i * chanAvg + j];
+      effBWs[i] += itsEffectiveBW.front()[i * chanAvg + j];
     }
     totBW += effBWs[i];
   }
-  itsChanFreqs = std::move(freqs);
-  itsChanWidths = std::move(widths);
-  itsResolutions = std::move(resols);
-  itsEffectiveBW = std::move(effBWs);
+  itsChanFreqs.front() = std::move(freqs);
+  itsChanWidths.front() = std::move(widths);
+  itsResolutions.front() = std::move(resols);
+  itsEffectiveBW.front() = std::move(effBWs);
   itsTotalBW = totBW;
   return chanAvg;
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
                     const vector<unsigned int>& baselines, bool removeAnt) {
+  if (itsChanFreqs.size() != 1) {
+    throw Exception("Channel selection does not support BDA");
+  }
   itsStartChan = startChan;
-  auto freqs_begin = itsChanFreqs.begin() + startChan;
-  auto widths_begin = itsChanWidths.begin() + startChan;
-  auto resol_begin = itsResolutions.begin() + startChan;
-  auto effbw_begin = itsEffectiveBW.begin() + startChan;
-  itsChanFreqs = std::vector<double>(freqs_begin, freqs_begin + nchan);
-  itsChanWidths = std::vector<double>(widths_begin, widths_begin + nchan);
-  itsResolutions = std::vector<double>(resol_begin, resol_begin + nchan);
-  itsEffectiveBW = std::vector<double>(effbw_begin, effbw_begin + nchan);
+  auto freqs_begin = itsChanFreqs.front().begin() + startChan;
+  auto widths_begin = itsChanWidths.front().begin() + startChan;
+  auto resol_begin = itsResolutions.front().begin() + startChan;
+  auto effbw_begin = itsEffectiveBW.front().begin() + startChan;
+  itsChanFreqs.front() = std::vector<double>(freqs_begin, freqs_begin + nchan);
+  itsChanWidths.front() =
+      std::vector<double>(widths_begin, widths_begin + nchan);
+  itsResolutions.front() =
+      std::vector<double>(resol_begin, resol_begin + nchan);
+  itsEffectiveBW.front() =
+      std::vector<double>(effbw_begin, effbw_begin + nchan);
   itsNChan = nchan;
   // Keep only selected baselines.
   if (!baselines.empty()) {
@@ -275,7 +357,7 @@ const vector<double>& DPInfo::getBaselineLengths() const {
   if (itsBLength.empty()) {
     // First get the antenna positions.
     const vector<MPosition>& antPos = antennaPos();
-    vector<Vector<double> > antVec;
+    vector<Vector<double>> antVec;
     antVec.reserve(antPos.size());
     for (vector<MPosition>::const_iterator iter = antPos.begin();
          iter != antPos.end(); ++iter) {
@@ -327,10 +409,10 @@ Record DPInfo::toRecord() const {
   rec.define("TimeAvg", itsTimeAvg);
   rec.define("StartTime", itsStartTime);
   rec.define("TimeInterval", itsTimeInterval);
-  rec.define("ChanFreqs", casacore::Vector<double>(itsChanFreqs));
-  rec.define("ChanWidths", casacore::Vector<double>(itsChanWidths));
-  rec.define("Resolutions", casacore::Vector<double>(itsResolutions));
-  rec.define("EffectiveBW", casacore::Vector<double>(itsEffectiveBW));
+  rec.define("ChanFreqs", casacore::Vector<double>(itsChanFreqs.front()));
+  rec.define("ChanWidths", casacore::Vector<double>(itsChanWidths.front()));
+  rec.define("Resolutions", casacore::Vector<double>(itsResolutions.front()));
+  rec.define("EffectiveBW", casacore::Vector<double>(itsEffectiveBW.front()));
   rec.define("TotalBW", itsTotalBW);
   rec.define("RefFreq", itsRefFreq);
   rec.define("AntNames", itsAntNames);
@@ -394,16 +476,20 @@ void DPInfo::fromRecord(const Record& rec) {
     rec.get("TimeInterval", itsTimeInterval);
   }
   if (rec.isDefined("ChanFreqs")) {
-    itsChanFreqs = rec.toArrayDouble("ChanFreqs").tovector();
+    itsChanFreqs.clear();
+    itsChanFreqs.push_back(rec.toArrayDouble("ChanFreqs").tovector());
   }
   if (rec.isDefined("ChanWidths")) {
-    itsChanWidths = rec.toArrayDouble("ChanWidths").tovector();
+    itsChanWidths.clear();
+    itsChanWidths.push_back(rec.toArrayDouble("ChanWidths").tovector());
   }
   if (rec.isDefined("Resolutions")) {
-    itsResolutions = rec.toArrayDouble("Resolutions").tovector();
+    itsResolutions.clear();
+    itsResolutions.push_back(rec.toArrayDouble("Resolutions").tovector());
   }
   if (rec.isDefined("EffectiveBW")) {
-    itsEffectiveBW = rec.toArrayDouble("EffectiveBW").tovector();
+    itsEffectiveBW.clear();
+    itsEffectiveBW.push_back(rec.toArrayDouble("EffectiveBW").tovector());
   }
   if (rec.isDefined("TotalBW")) {
     rec.get("TotalBW", itsTotalBW);

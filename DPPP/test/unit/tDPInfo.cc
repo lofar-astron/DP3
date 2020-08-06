@@ -1,0 +1,114 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
+//
+// This file is part of the LOFAR software suite.
+// The LOFAR software suite is free software: you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The LOFAR software suite is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
+
+#include "../../DPInfo.h"
+
+#include <boost/test/unit_test.hpp>
+
+BOOST_AUTO_TEST_SUITE(dpinfo)
+
+BOOST_AUTO_TEST_CASE(set_frequency_info) {
+  DP3::DPPP::DPInfo info;
+  const std::vector<double> kFreqs{10.0, 20.0};
+  const std::vector<double> kWidths{5.0, 6.0};
+  const double kRefFreq = 15.0;
+  const double kTotalWidth = 11.0;
+
+  info.set(std::vector<double>(kFreqs), std::vector<double>(kWidths));
+  BOOST_TEST(kFreqs == info.chanFreqs());
+  BOOST_TEST(kWidths == info.chanWidths());
+  BOOST_TEST(kWidths == info.resolutions());
+  BOOST_TEST(kWidths == info.effectiveBW());
+  BOOST_TEST(kRefFreq == info.refFreq());
+  BOOST_TEST(kTotalWidth == info.totalBW());
+}
+
+BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
+  DP3::DPPP::DPInfo info;
+  const std::vector<std::vector<double>> kFreqs{
+      {30.0}, {10.0, 20.0, 30.0, 40.0, 50.0}, {20.0, 45.0}};
+  const std::vector<std::vector<double>> kWidths{
+      {50.0}, {10.0, 10.0, 10.0, 10.0, 10.0}, {30.0, 20.0}};
+  const double kRefFreq = 30.0;
+  const double kTotalWidth = 50.0;
+
+  info.set(std::vector<std::vector<double>>(kFreqs),
+           std::vector<std::vector<double>>(kWidths));
+  for (std::size_t i = 0; i < kFreqs.size(); i++) {
+    BOOST_TEST(kFreqs[i] == info.chanFreqs(i));
+    BOOST_TEST(kWidths[i] == info.chanWidths(i));
+    BOOST_TEST(kWidths[i] == info.resolutions(i));
+    BOOST_TEST(kWidths[i] == info.effectiveBW(i));
+  }
+  BOOST_TEST(kRefFreq == info.refFreq());
+  BOOST_TEST(kTotalWidth == info.totalBW());
+}
+
+BOOST_AUTO_TEST_CASE(channels_are_regular) {
+  // Note that the tolerance in channelsAreRegular is 1000 Hz.
+
+  const std::vector<std::vector<double>> kRegularFreqs(
+      4, {10000.0, 20000.0, 30000.0, 40000.0});
+  const std::vector<std::vector<double>> kRegularWidths(
+      4, {5000.0, 5000.0, 5000.0, 5000.0});
+
+  const std::vector<double> kIrregularFreqs{10000.0, 20000.0, 30000.0, 42000.0};
+  const std::vector<double> kIrregularWidths{5000.0, 7500.0, 5000.0, 5000.0};
+
+  // In the BDA data, each baseline is regular, however, BDA makes it irregular.
+  const std::vector<std::vector<double>> kIrregularFreqsBDA{
+      {10000.0, 20000.0, 30000.0, 40000.0}, {250000.0}, {250000.0}};
+  const std::vector<std::vector<double>> kIrregularWidthsBDA{
+      {5000.0, 5000.0, 5000.0, 5000.0}, {20000.0}, {20000.0}};
+
+  // Test using a single baseline.
+  {
+    DP3::DPPP::DPInfo info;
+    info.set(std::vector<double>(kRegularFreqs.front()),
+             std::vector<double>(kRegularWidths.front()));
+    BOOST_TEST(info.channelsAreRegular());
+  }
+  {
+    DP3::DPPP::DPInfo info;
+    info.set(std::vector<double>(kRegularFreqs.front()),
+             std::vector<double>(kIrregularWidths));
+    BOOST_TEST(!info.channelsAreRegular());
+  }
+  {
+    DP3::DPPP::DPInfo info;
+    info.set(std::vector<double>(kIrregularFreqs),
+             std::vector<double>(kRegularWidths.front()));
+    BOOST_TEST(!info.channelsAreRegular());
+  }
+
+  // Test using multiple baselines.
+  {
+    DP3::DPPP::DPInfo info;
+    info.set(std::vector<std::vector<double>>(kRegularFreqs),
+             std::vector<std::vector<double>>(kRegularWidths));
+    BOOST_TEST(info.channelsAreRegular());
+  }
+  {
+    DP3::DPPP::DPInfo info;
+    info.set(std::vector<std::vector<double>>(kIrregularFreqsBDA),
+             std::vector<std::vector<double>>(kIrregularWidthsBDA));
+    BOOST_TEST(!info.channelsAreRegular());
+  }
+}
+
+BOOST_AUTO_TEST_SUITE_END()

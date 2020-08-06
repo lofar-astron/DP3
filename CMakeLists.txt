@@ -332,6 +332,7 @@ set(TEST_FILENAMES
 if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
     DPPP/test/unit/tBDAAverager.cc
+    DPPP/test/unit/tDPInfo.cc
   )
 else()
   message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
