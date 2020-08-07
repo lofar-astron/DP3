@@ -94,12 +94,13 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   baseline_buffers_.clear();
   baseline_buffers_.reserve(info.nbaselines());
   for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+    // Determine the time averaging factor. Ignore max_interval_ if it is 0.0.
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
-    if (factor_time < 1) {
-      factor_time = 1;
-    } else if (factor_time * info.timeInterval() > max_interval_) {
+    if (max_interval_ > 0.0 &&
+        factor_time * info.timeInterval() > max_interval_) {
       factor_time = std::floor(max_interval_ / info.timeInterval());
     }
+    factor_time = std::max(factor_time, std::size_t{1});
 
     // Determine the number of channels in the output.
     std::size_t nchan = info.nchan();
