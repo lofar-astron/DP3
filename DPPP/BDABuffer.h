@@ -53,16 +53,14 @@ class BDABuffer {
 
   struct Row {
     Row(double time, double interval, rownr_t row_nr, std::size_t baseline_nr,
-        std::size_t n_channels, std::size_t n_correlations,
-        std::complex<float>* data, bool* flags, float* weights,
-        bool* fullResFlags, const double* uvw);
-    std::size_t GetDataSize() const { return n_channels * n_correlations; }
+        std::size_t n_elements, std::complex<float>* data, bool* flags,
+        float* weights, bool* fullResFlags, const double* uvw);
     const double time;      ///< Start time for the measurements in MJD seconds.
     const double interval;  ///< Duration time for the measurements in seconds.
     const rownr_t row_nr;
     const std::size_t baseline_nr;
-    const std::size_t n_channels;
-    const std::size_t n_correlations;
+    /// Number of elements behind the pointers (n_channels * n_correlations).
+    const std::size_t n_elements;
     std::complex<float>* const data;
     bool* const flags;
     float* const weights;
@@ -101,8 +99,7 @@ class BDABuffer {
    * @throw std::invalid_argument If the row ordering is incorrect.
    */
   bool AddRow(double time, double interval, rownr_t row_nr,
-              std::size_t baseline_nr, std::size_t n_channels,
-              std::size_t n_correlations,
+              std::size_t baseline_nr, std::size_t n_elements,
               const std::complex<float>* data = nullptr,
               const bool* flags = nullptr, const float* weights = nullptr,
               const bool* full_res_flags = nullptr,

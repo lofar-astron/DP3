@@ -49,11 +49,11 @@ void AddRow(BDABuffer& buffer, double time, double interval,
             float weight) {
   const bool flags[kDataSize]{flag};
 
-  BOOST_CHECK(buffer.AddRow(time, interval, row_nr, baseline_nr, kNChannels,
-                            kNCorrelations, nullptr, flags, nullptr, flags));
+  BOOST_CHECK(buffer.AddRow(time, interval, row_nr, baseline_nr, kDataSize,
+                            nullptr, flags, nullptr, flags));
 
   const BDABuffer::Row& row = buffer.GetRows().back();
-  for (std::size_t i = 0; i < row.GetDataSize(); ++i) {
+  for (std::size_t i = 0; i < row.n_elements; ++i) {
     const float value = row_nr * kDataSize + i;
     row.data[i] = {value, -value};
     row.weights[i] = weight;
@@ -126,9 +126,7 @@ void CheckBuffer(const BDAIntervalBuffer& interval, const BDABuffer& expected) {
     ++expected_row_it;
   }
 
-  // Verify that the result has no remaining capacacity.
-  BOOST_CHECK(
-      !result->AddRow(kTime + 42.0, kRowInterval, 42, kBaselineNr, 1, 1));
+  BOOST_TEST(result->GetRemainingCapacity() == std::size_t{0});
 }
 
 /**

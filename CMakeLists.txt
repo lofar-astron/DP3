@@ -323,7 +323,6 @@ set(TEST_FILENAMES
   DPPP/test/unit/tUVWFlagger.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
-  DPPP/test/unit/tScaleDataBDA.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
@@ -333,7 +332,8 @@ if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
-  )
+    DPPP/test/unit/tScaleDataBDA.cc
+    )
 else()
   message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
 endif()

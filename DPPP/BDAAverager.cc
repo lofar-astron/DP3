@@ -232,7 +232,7 @@ void BDAAverager::finish() {
 void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   BDAAverager::BaselineBuffer& bb = baseline_buffers_[baseline_nr];
   assert(bb.times_added > 0);
-  const std::size_t nchan = bb.input_channel_indices.size() - 1;
+  const std::size_t nchan = info().chanFreqs(baseline_nr).size();
 
   // Divide data values by their total weight.
   float* weights = bb.weights.data();
@@ -253,8 +253,8 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
   }
 
-  bda_buffer_->AddRow(bb.time, bb.interval, next_rownr_, baseline_nr, nchan,
-                      info().ncorr(), bb.data.data(), nullptr,
+  bda_buffer_->AddRow(bb.time, bb.interval, next_rownr_, baseline_nr,
+                      nchan * info().ncorr(), bb.data.data(), nullptr,
                       bb.weights.data(), nullptr, bb.uvw);
 }
 

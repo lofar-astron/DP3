@@ -67,12 +67,11 @@ BOOST_AUTO_TEST_CASE(copy) {
   const double kUvw[3]{41, 42, 43};
 
   BDABuffer buffer{3 * kDataSize};
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations, kData1, nullptr, kWeights1, kFlags,
-                            kUvw));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize,
+                            kData1, nullptr, kWeights1, kFlags, kUvw));
   BOOST_CHECK(buffer.AddRow(kTime + 1., kInterval + 1., kRowNr + 1,
-                            kBaselineNr + 1, kNChannels, kNCorrelations, kData2,
-                            kFlags, kWeights2, nullptr, kUvw));
+                            kBaselineNr + 1, kDataSize, kData2, kFlags,
+                            kWeights2, nullptr, kUvw));
 
   BDABuffer buffer_copy{buffer};
 
@@ -99,21 +98,17 @@ BOOST_AUTO_TEST_CASE(copy) {
   // Verify the copied rows.
   const auto& rows_copy = buffer_copy.GetRows();
   BOOST_CHECK_EQUAL(rows_copy.size(), 2u);
-  BOOST_CHECK_EQUAL(rows_copy[0].GetDataSize(), kDataSize);
   BOOST_CHECK_EQUAL(rows_copy[0].time, kTime);
   BOOST_CHECK_EQUAL(rows_copy[0].interval, kInterval);
   BOOST_CHECK_EQUAL(rows_copy[0].row_nr, kRowNr);
   BOOST_CHECK_EQUAL(rows_copy[0].baseline_nr, kBaselineNr);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows_copy[0].n_elements, kDataSize);
 
-  BOOST_CHECK_EQUAL(rows_copy[1].GetDataSize(), kDataSize);
   BOOST_CHECK_EQUAL(rows_copy[1].time, kTime + 1.);
   BOOST_CHECK_EQUAL(rows_copy[1].interval, kInterval + 1.);
   BOOST_CHECK_EQUAL(rows_copy[1].row_nr, kRowNr + 1);
   BOOST_CHECK_EQUAL(rows_copy[1].baseline_nr, kBaselineNr + 1);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows_copy[1].n_elements, kDataSize);
 
   for (std::size_t i = 0; i < 3; ++i) {
     BOOST_CHECK_EQUAL(rows_copy[0].uvw[i], kUvw[i]);
@@ -139,14 +134,13 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
   BDABuffer buffer{kDataSize + k1DataSize};
 
   // Add rows and verify that the capacity is reached at the third row.
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations, kData1, kFlags1, kWeights1, kFlags1,
-                            kUvw1));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize,
+                            kData1, kFlags1, kWeights1, kFlags1, kUvw1));
   BOOST_CHECK(buffer.AddRow(kTime + 1., kInterval + 1., kRowNr + 1,
-                            kBaselineNr + 1, k1Channel, k1Correlation, kData2,
-                            kFlags2, kWeights2, kFlags2, kUvw2));
+                            kBaselineNr + 1, k1DataSize, kData2, kFlags2,
+                            kWeights2, kFlags2, kUvw2));
   BOOST_CHECK(!buffer.AddRow(kTime + 2., kInterval, kRowNr, kBaselineNr + 2,
-                             k1Channel, k1Correlation));
+                             k1DataSize));
 
   // Verify the data in the buffer.
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), kDataSize + k1DataSize);
@@ -181,21 +175,17 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
   // Verify the rows.
   const auto& rows = buffer.GetRows();
   BOOST_CHECK_EQUAL(rows.size(), 2u);
-  BOOST_CHECK_EQUAL(rows[0].GetDataSize(), kDataSize);
   BOOST_CHECK_EQUAL(rows[0].time, kTime);
   BOOST_CHECK_EQUAL(rows[0].interval, kInterval);
   BOOST_CHECK_EQUAL(rows[0].row_nr, kRowNr);
   BOOST_CHECK_EQUAL(rows[0].baseline_nr, kBaselineNr);
-  BOOST_CHECK_EQUAL(rows[0].n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(rows[0].n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(rows[0].n_elements, kDataSize);
 
-  BOOST_CHECK_EQUAL(rows[1].GetDataSize(), k1DataSize);
   BOOST_CHECK_EQUAL(rows[1].time, kTime + 1.);
   BOOST_CHECK_EQUAL(rows[1].interval, kInterval + 1.);
   BOOST_CHECK_EQUAL(rows[1].row_nr, kRowNr + 1);
   BOOST_CHECK_EQUAL(rows[1].baseline_nr, kBaselineNr + 1);
-  BOOST_CHECK_EQUAL(rows[1].n_channels, k1Channel);
-  BOOST_CHECK_EQUAL(rows[1].n_correlations, k1Correlation);
+  BOOST_CHECK_EQUAL(rows[1].n_elements, k1DataSize);
 
   for (std::size_t i = 0; i < 2; ++i) {
     BOOST_CHECK_EQUAL(rows[i].data, buffer.GetData(i));
@@ -212,8 +202,7 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
 
 BOOST_AUTO_TEST_CASE(add_no_fields) {
   BDABuffer buffer{kDataSize};
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize));
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 0u);
   BOOST_CHECK(buffer.GetData());
   BOOST_CHECK(buffer.GetFlags());
@@ -233,13 +222,11 @@ BOOST_AUTO_TEST_CASE(add_no_fields) {
   const auto& rows = buffer.GetRows();
   BOOST_CHECK_EQUAL(rows.size(), 1u);
   const auto& row = rows.front();
-  BOOST_CHECK_EQUAL(row.GetDataSize(), kDataSize);
   BOOST_CHECK_EQUAL(row.time, kTime);
   BOOST_CHECK_EQUAL(row.interval, kInterval);
   BOOST_CHECK_EQUAL(row.row_nr, kRowNr);
   BOOST_CHECK_EQUAL(row.baseline_nr, kBaselineNr);
-  BOOST_CHECK_EQUAL(row.n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(row.n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(row.n_elements, kDataSize);
   BOOST_CHECK_EQUAL(row.data, buffer.GetData(0));
   BOOST_CHECK_EQUAL(row.flags, buffer.GetFlags(0));
   BOOST_CHECK_EQUAL(row.weights, buffer.GetWeights(0));
@@ -262,9 +249,8 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   fields.full_res_flags_ = false;
 
   BDABuffer buffer{kDataSize, fields};
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations, kData, kFlags, kWeights, kFlags,
-                            kUvw));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize,
+                            kData, kFlags, kWeights, kFlags, kUvw));
 
   // Verify the data pointers from buffer.Get*().
   BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
@@ -295,12 +281,12 @@ BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
 
   BDABuffer buffer{2 * kDataSize};
 
-  BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations));
+  BOOST_CHECK(
+      buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr, kDataSize));
   // end time equals start time of last row -> invalid ordering.
-  BOOST_CHECK_THROW(buffer.AddRow(kTime2, kInterval2, kRowNr, kBaselineNr,
-                                  kNChannels, kNCorrelations),
-                    std::invalid_argument);
+  BOOST_CHECK_THROW(
+      buffer.AddRow(kTime2, kInterval2, kRowNr, kBaselineNr, kDataSize),
+      std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(add_overlap) {
@@ -313,27 +299,26 @@ BOOST_AUTO_TEST_CASE(add_overlap) {
 
   BDABuffer buffer{3 * kDataSize};
 
-  BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations));
+  BOOST_CHECK(
+      buffer.AddRow(kTime1, kInterval1, kRowNr, kBaselineNr, kDataSize));
   // Add partially overlapping row, starting before the last row.
   BOOST_CHECK(buffer.AddRow(kTimePartialOverlap, kIntervalPartialOverlap,
-                            kRowNr, kBaselineNr, kNChannels, kNCorrelations));
+                            kRowNr, kBaselineNr, kDataSize));
   // Add fully overlapping row, starting before the last row.
   BOOST_CHECK(buffer.AddRow(kTimeFullOverlap, kIntervalFullOverlap, kRowNr,
-                            kBaselineNr, kNChannels, kNCorrelations));
+                            kBaselineNr, kDataSize));
 }
 
 BOOST_AUTO_TEST_CASE(clear) {
   BDABuffer buffer{3 * kDataSize};
 
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations));
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 1,
-                            kNChannels, kNCorrelations));
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 2,
-                            kNChannels, kNCorrelations));
-  BOOST_CHECK(!buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 3,
-                             kNChannels, kNCorrelations));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize));
+  BOOST_CHECK(
+      buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 1, kDataSize));
+  BOOST_CHECK(
+      buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 2, kDataSize));
+  BOOST_CHECK(
+      !buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 3, kDataSize));
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 3 * kDataSize);
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 3u);
@@ -344,14 +329,13 @@ BOOST_AUTO_TEST_CASE(clear) {
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
 
   // Check that 3 rows can be added again.
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kNChannels,
-                            kNCorrelations));
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 1,
-                            kNChannels, kNCorrelations));
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 2,
-                            kNChannels, kNCorrelations));
-  BOOST_CHECK(!buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 3,
-                             kNChannels, kNCorrelations));
+  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr, kDataSize));
+  BOOST_CHECK(
+      buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 1, kDataSize));
+  BOOST_CHECK(
+      buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 2, kDataSize));
+  BOOST_CHECK(
+      !buffer.AddRow(kTime, kInterval, kRowNr, kBaselineNr + 3, kDataSize));
 }
 
 BOOST_AUTO_TEST_CASE(time_is_less) {
