@@ -69,7 +69,7 @@ BDAAverager::BDAAverager(const DP3::ParameterSet& parset,
     : bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
       bl_threshold_channel_(
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
-      max_interval_(parset.getDouble(prefix + "maxinterval", 3600.0)),
+      max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
       next_rownr_(0),
       bda_pool_size_(0),
