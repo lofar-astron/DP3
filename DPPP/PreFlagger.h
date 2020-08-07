@@ -150,7 +150,8 @@ class PreFlagger : public DPStep {
     /// Test if azimuth or elevation of given antenna mismatches.
     /// If so, clear itsMatchBL for all baselines containing the antenna.
     void testAzEl(casacore::MDirection::Convert& converter, unsigned int blnr,
-                  int ant, const int* ant1, const int* ant2);
+                  std::size_t ant, const std::vector<std::size_t>& ant1,
+                  const std::vector<std::size_t>& ant2);
 
     /// Set the flags based on amplitude threshold per correlation.
     void flagAmpl(const casacore::Cube<float>& amplitudes);

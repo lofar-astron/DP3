@@ -181,8 +181,8 @@ class DPInfo {
   unsigned int ntimeAvg() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
-  const casacore::Vector<casacore::Int>& getAnt1() const { return itsAnt1; }
-  const casacore::Vector<casacore::Int>& getAnt2() const { return itsAnt2; }
+  const std::vector<std::size_t>& getAnt1() const { return itsAnt1; }
+  const std::vector<std::size_t>& getAnt2() const { return itsAnt2; }
   const casacore::Vector<casacore::String>& antennaNames() const {
     return itsAntNames;
   }
@@ -221,6 +221,7 @@ class DPInfo {
   const std::vector<double>& effectiveBW(std::size_t baseline = 0) const {
     return itsEffectiveBW[baseline];
   }
+  bool hasBDAChannels() const { return itsChanFreqs.size() == nbaselines(); }
   const std::string& getDataColName() const { return itsDataColName; }
   const std::string& getWeightColName() const { return itsWeightColName; }
   double totalBW() const { return itsTotalBW; }
@@ -343,8 +344,8 @@ class DPInfo {
   std::vector<casacore::MPosition> itsAntPos;
   std::vector<int> itsAntUsed;
   std::vector<int> itsAntMap;
-  casacore::Vector<casacore::Int> itsAnt1;    ///< ant1 of all baselines
-  casacore::Vector<casacore::Int> itsAnt2;    ///< ant2 of all baselines
+  std::vector<std::size_t> itsAnt1;           ///< ant1 of all baselines
+  std::vector<std::size_t> itsAnt2;           ///< ant2 of all baselines
   mutable std::vector<double> itsBLength;     ///< baseline lengths
   mutable std::vector<int> itsAutoCorrIndex;  ///< autocorr index per ant
   unsigned int itsNThreads;

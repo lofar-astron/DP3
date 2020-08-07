@@ -314,10 +314,10 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
       if (getInfo().antennaSet() != rdinfo.antennaSet())
         throw Exception("Antenna set of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
-      if (!allEQ(getInfo().getAnt1(), rdinfo.getAnt1()))
+      if (getInfo().getAnt1() != rdinfo.getAnt1())
         throw Exception("Baseline order (ant1) of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
-      if (!allEQ(getInfo().getAnt2(), rdinfo.getAnt2()))
+      if (getInfo().getAnt2() != rdinfo.getAnt2())
         throw Exception("Baseline order (ant2) of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
       itsNrChan += rdinfo.nchan();

@@ -20,15 +20,21 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace {
+const std::vector<std::string> kAntNames{"foobar"};
+const std::vector<double> kAntDiam = {42.0};
+const std::vector<casacore::MPosition> kAntPos(1);
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(dpinfo)
 
 BOOST_AUTO_TEST_CASE(set_frequency_info) {
-  DP3::DPPP::DPInfo info;
   const std::vector<double> kFreqs{10.0, 20.0};
   const std::vector<double> kWidths{5.0, 6.0};
   const double kRefFreq = 15.0;
   const double kTotalWidth = 11.0;
 
+  DP3::DPPP::DPInfo info;
   info.set(std::vector<double>(kFreqs), std::vector<double>(kWidths));
   BOOST_TEST(kFreqs == info.chanFreqs());
   BOOST_TEST(kWidths == info.chanWidths());
@@ -39,7 +45,7 @@ BOOST_AUTO_TEST_CASE(set_frequency_info) {
 }
 
 BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
-  DP3::DPPP::DPInfo info;
+  const std::vector<int> kAnt(3, 0);
   const std::vector<std::vector<double>> kFreqs{
       {30.0}, {10.0, 20.0, 30.0, 40.0, 50.0}, {20.0, 45.0}};
   const std::vector<std::vector<double>> kWidths{
@@ -47,6 +53,8 @@ BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
   const double kRefFreq = 30.0;
   const double kTotalWidth = 50.0;
 
+  DP3::DPPP::DPInfo info;
+  info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
   info.set(std::vector<std::vector<double>>(kFreqs),
            std::vector<std::vector<double>>(kWidths));
   for (std::size_t i = 0; i < kFreqs.size(); i++) {
@@ -62,10 +70,12 @@ BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
 BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Note that the tolerance in channelsAreRegular is 1000 Hz.
 
+  const std::vector<int> kAnt(3, 0);
+
   const std::vector<std::vector<double>> kRegularFreqs(
-      4, {10000.0, 20000.0, 30000.0, 40000.0});
+      3, {10000.0, 20000.0, 30000.0, 40000.0});
   const std::vector<std::vector<double>> kRegularWidths(
-      4, {5000.0, 5000.0, 5000.0, 5000.0});
+      3, {5000.0, 5000.0, 5000.0, 5000.0});
 
   const std::vector<double> kIrregularFreqs{10000.0, 20000.0, 30000.0, 42000.0};
   const std::vector<double> kIrregularWidths{5000.0, 7500.0, 5000.0, 5000.0};
@@ -99,12 +109,14 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Test using multiple baselines.
   {
     DP3::DPPP::DPInfo info;
+    info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
     info.set(std::vector<std::vector<double>>(kRegularFreqs),
              std::vector<std::vector<double>>(kRegularWidths));
     BOOST_TEST(info.channelsAreRegular());
   }
   {
     DP3::DPPP::DPInfo info;
+    info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
     info.set(std::vector<std::vector<double>>(kIrregularFreqsBDA),
              std::vector<std::vector<double>>(kIrregularWidthsBDA));
     BOOST_TEST(!info.channelsAreRegular());

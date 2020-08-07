@@ -74,17 +74,28 @@ void InitParset(DP3::ParameterSet& parset,
 
 void InitInfo(DPInfo& info, const std::vector<int>& ant1,
               const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
-  BOOST_REQUIRE(ant1.size() == ant2.size());
+  BOOST_REQUIRE_EQUAL(ant1.size(), ant2.size());
   std::vector<double> chan_freqs(n_chan);
   std::vector<double> chan_widths(n_chan, 5000.0);
-  for (std::size_t i = 1; i < n_chan; i++) {
-    chan_freqs[i] = chan_freqs[i - 1] + 10000.0;
+  for (std::size_t i = 0; i < n_chan; i++) {
+    chan_freqs[i] = i * 10000.0;
   }
 
   info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval, kMsName,
             kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.set(std::move(chan_freqs), std::move(chan_widths));
+}
+
+void CheckInfo(const DPInfo& info,
+               const std::vector<std::vector<double>>& chan_freqs,
+               const std::vector<std::vector<double>>& chan_widths) {
+  BOOST_TEST_REQUIRE(info.hasBDAChannels());
+  BOOST_TEST_REQUIRE(info.nbaselines() == chan_freqs.size());
+  for (std::size_t bl = 0; bl < info.nbaselines(); ++bl) {
+    BOOST_TEST(info.chanFreqs(bl) == chan_freqs[bl]);
+    BOOST_TEST(info.chanWidths(bl) == chan_widths[bl]);
+  }
 }
 
 void Finish(BDAAverager& averager, DP3::DPPP::MockStep& mock_step) {
@@ -222,6 +233,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   DP3::ParameterSet parset;
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::vector<std::unique_ptr<DPBuffer>> buffers;
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
@@ -260,6 +272,7 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
   InitParset(parset, baseline_length * kFactor);
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -298,6 +311,8 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
   const std::vector<std::size_t> kOutputChannelCounts{2, 2, 3};
+  const std::vector<double> kOutputFreqs{5000.0, 25000.0, 50000.0};
+  const std::vector<double> kOutputWidths{10000.0, 10000.0, 15000.0};
 
   DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
@@ -307,6 +322,7 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   InitParset(parset, boost::none, baseline_length * kFactor);
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kInputChannelCounts, 0.0);
@@ -334,6 +350,8 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
   const std::vector<std::size_t> kOutputChannelCounts{2, 2, 3};
+  const std::vector<double> kOutputFreqs{5000.0, 25000.0, 50000.0};
+  const std::vector<double> kOutputWidths{10000.0, 10000.0, 15000.0};
 
   DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
@@ -344,6 +362,7 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
              baseline_length * kChannelFactor);
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,

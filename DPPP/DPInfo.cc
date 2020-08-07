@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 using namespace casacore;
 using namespace std;
@@ -116,9 +117,9 @@ void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
   if (effective_bw.empty()) {
     effective_bw = chan_widths;
   }
-  if (chan_freqs.empty() || chan_freqs.size() != chan_widths.size() ||
-      chan_freqs.size() != resolutions.size() ||
-      chan_freqs.size() != effective_bw.size()) {
+  if (chan_freqs.size() != nbaselines() || chan_widths.size() != nbaselines() ||
+      resolutions.size() != nbaselines() ||
+      effective_bw.size() != nbaselines()) {
     throw Exception("Invalid baseline count while setting frequency info");
   }
 
@@ -203,8 +204,8 @@ void DPInfo::set(const Vector<casacore::String>& antNames,
   itsAntNames.reference(antNames);
   itsAntDiam.reference(antDiam);
   itsAntPos = antPos;
-  itsAnt1.reference(ant1);
-  itsAnt2.reference(ant2);
+  itsAnt1 = std::vector<std::size_t>(ant1.begin(), ant1.end());
+  itsAnt2 = std::vector<std::size_t>(ant2.begin(), ant2.end());
   // Set which antennae are used.
   setAntUsed();
 }
@@ -214,8 +215,8 @@ void DPInfo::setAntUsed() {
   itsAntMap.resize(itsAntNames.size());
   std::fill(itsAntMap.begin(), itsAntMap.end(), -1);
   for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-    if (!(itsAnt1[i] >= 0 && itsAnt1[i] < int(itsAntMap.size()) &&
-          itsAnt2[i] >= 0 && itsAnt2[i] < int(itsAntMap.size())))
+    if (!(itsAnt1[i] >= 0 && itsAnt1[i] < itsAntMap.size() && itsAnt2[i] >= 0 &&
+          itsAnt2[i] < itsAntMap.size()))
       throw std::runtime_error("Antenna map has an inconsistent size");
     itsAntMap[itsAnt1[i]] = 0;
     itsAntMap[itsAnt2[i]] = 0;
@@ -304,14 +305,14 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
   itsNChan = nchan;
   // Keep only selected baselines.
   if (!baselines.empty()) {
-    Vector<Int> ant1(baselines.size());
-    Vector<Int> ant2(baselines.size());
+    std::vector<std::size_t> ant1(baselines.size());
+    std::vector<std::size_t> ant2(baselines.size());
     for (unsigned int i = 0; i < baselines.size(); ++i) {
       ant1[i] = itsAnt1[baselines[i]];
       ant2[i] = itsAnt2[baselines[i]];
     }
-    itsAnt1.reference(ant1);
-    itsAnt2.reference(ant2);
+    itsAnt1 = std::move(ant1);
+    itsAnt2 = std::move(ant2);
     // Clear; they'll be recalculated if needed.
     itsBLength.resize(0);
     itsAutoCorrIndex.resize(0);
@@ -378,7 +379,8 @@ const vector<double>& DPInfo::getBaselineLengths() const {
 
 const vector<int>& DPInfo::getAutoCorrIndex() const {
   if (itsAutoCorrIndex.empty()) {
-    int nant = 1 + std::max(max(itsAnt1), max(itsAnt2));
+    int nant = 1 + std::max(*std::max_element(itsAnt1.begin(), itsAnt1.end()),
+                            *std::max_element(itsAnt2.begin(), itsAnt2.end()));
     itsAutoCorrIndex.resize(nant);
     std::fill(itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
     // Keep the baseline table index for the autocorrelations.
@@ -419,8 +421,8 @@ Record DPInfo::toRecord() const {
   rec.define("AntDiam", itsAntDiam);
   rec.define("AntUsed", Vector<int>(itsAntUsed));
   rec.define("AntMap", Vector<int>(itsAntMap));
-  rec.define("Ant1", itsAnt1);
-  rec.define("Ant2", itsAnt2);
+  rec.define("Ant1", Vector<int>(itsAnt1));
+  rec.define("Ant2", Vector<int>(itsAnt2));
   rec.define("BLength", Vector<double>(itsBLength));
   rec.define("AutoCorrIndex", Vector<int>(itsAutoCorrIndex));
   return rec;
@@ -510,10 +512,12 @@ void DPInfo::fromRecord(const Record& rec) {
   ///  itsAntMap = rec.toArrayInt("AntMap").tovector();
   ///}
   if (rec.isDefined("Ant1")) {
-    rec.get("Ant1", itsAnt1);
+    casacore::Vector<casacore::Int> ant1 = rec.toArrayInt("Ant1");
+    itsAnt1 = std::vector<std::size_t>(ant1.begin(), ant1.end());
   }
   if (rec.isDefined("Ant2")) {
-    rec.get("Ant2", itsAnt2);
+    casacore::Vector<casacore::Int> ant2 = rec.toArrayInt("Ant2");
+    itsAnt2 = std::vector<std::size_t>(ant2.begin(), ant2.end());
   }
   /// if (rec.isDefined ("BLength")) {
   ///  itsBLength = rec.toArrayDouble("BLength").tovector();
