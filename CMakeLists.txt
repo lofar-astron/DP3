@@ -320,6 +320,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
+  DPPP/test/unit/tMSBDAWriter.cc
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
