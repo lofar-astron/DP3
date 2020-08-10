@@ -36,16 +36,16 @@ namespace DPPP {
 class MSBDAWriter : public DPStep {
  public:
   MSBDAWriter(MSReader*, const string&, const ParameterSet&, const string&);
-  virtual ~MSBDAWriter();
 
-  /// Update the general info.
+  ~MSBDAWriter() override;
+
   void updateInfo(const DPInfo&) override;
 
-  /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  virtual bool process(std::unique_ptr<BDABuffer>) override;
 
-  /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void finish() override;
+
+  void show(std::ostream&) const override;
 
  private:
   /// Create the MS by cloning all subtables from the input MS.
