@@ -49,13 +49,14 @@ class MSBDAWriter : public DPStep {
   /// Show the step parameters.
   virtual void show(std::ostream&) const;
 
+ private:
   /// Create the MS by cloning all subtables from the input MS.
   /// All output columns in the main table are using normal storage managers.
-  void createMS(const DPInfo&);
+  void createMS();
 
- private:
-  void createMainTable(const DPInfo&);
-  void createBDATimeAxis(const DPInfo&);
+  void createMainTable();
+  void createBDATimeAxis();
+  void createBDATimeFactor();
 
  private:
   MSReader* reader_;
