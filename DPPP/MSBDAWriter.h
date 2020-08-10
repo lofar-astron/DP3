@@ -57,6 +57,7 @@ class MSBDAWriter : public DPStep {
   void CreateMainTable();
   void CreateBDATimeAxis();
   void CreateBDATimeFactor();
+  void AddMetaDataFrequency();
 
  private:
   MSReader* reader_;

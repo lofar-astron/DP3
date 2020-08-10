@@ -65,6 +65,8 @@ void MSBDAWriter::CreateMS() {
   CreateMainTable();
   // TODO fill the main table
 
+  AddMetaDataFrequency();
+
   if (create_bda_time_axis) {
     CreateBDATimeAxis();
   }
@@ -166,6 +168,19 @@ void MSBDAWriter::CreateBDATimeFactor() {
   SetupNewTable newTable(outName_ + '/' + tableName, td, Table::New);
   Table bdaTimeFactorTable(newTable);
   ms_.rwKeywordSet().defineTable(tableName, bdaTimeFactorTable);
+}
+
+void MSBDAWriter::AddMetaDataFrequency() {
+  Table outSPW = Table(outName_ + "/SPECTRAL_WINDOW", Table::Update);
+
+  // Add table if not exists
+  if (outSPW.tableDesc().isColumn("BDA_FREQ_AXIS_ID")) {
+    ScalarColumnDesc<Int> bdaFreqAxisIdColumn("BDA_FREQ_AXIS_ID");
+    bdaFreqAxisIdColumn.setDefault(-1);
+    outSPW.addColumn(bdaFreqAxisIdColumn);
+  }
+
+  // TODO fill / overwrite column
 }
 
 }  // namespace DPPP
