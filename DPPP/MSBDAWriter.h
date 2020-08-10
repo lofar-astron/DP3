@@ -52,11 +52,11 @@ class MSBDAWriter : public DPStep {
  private:
   /// Create the MS by cloning all subtables from the input MS.
   /// All output columns in the main table are using normal storage managers.
-  void createMS();
+  void CreateMS();
 
-  void createMainTable();
-  void createBDATimeAxis();
-  void createBDATimeFactor();
+  void CreateMainTable();
+  void CreateBDATimeAxis();
+  void CreateBDATimeFactor();
 
  private:
   MSReader* reader_;

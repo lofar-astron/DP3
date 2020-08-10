@@ -51,26 +51,26 @@ MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& outName,
 MSBDAWriter::~MSBDAWriter() {}
 
 void MSBDAWriter::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  createMS();
+  DPStep::updateInfo(infoIn);
+  CreateMS();
 }
 
 void MSBDAWriter::finish() {}
 
 void MSBDAWriter::show(std::ostream& os) const {}
 
-void MSBDAWriter::createMS() {
+void MSBDAWriter::CreateMS() {
   bool create_bda_time_axis = true;
 
-  createMainTable();
+  CreateMainTable();
   // TODO fill the main table
 
   if (create_bda_time_axis) {
-    createBDATimeAxis();
+    CreateBDATimeAxis();
   }
 }
 
-void MSBDAWriter::createMainTable() {
+void MSBDAWriter::CreateMainTable() {
   // Build the table description.
   TableDesc td(reader_->table().tableDesc());
   // Block<String> fixedColumns(20);
@@ -113,7 +113,7 @@ void MSBDAWriter::createMainTable() {
   ms_ = Table(newtab);
 }
 
-void MSBDAWriter::createBDATimeAxis() {
+void MSBDAWriter::CreateBDATimeAxis() {
   const std::string tableName = "BDA_TIME_AXIS";
   const std::string version_bda_time_axis = "1.0";
 
@@ -147,7 +147,7 @@ void MSBDAWriter::createBDATimeAxis() {
   ms_.rwKeywordSet().defineTable(tableName, bdaTimeAxisTable);
 }
 
-void MSBDAWriter::createBDATimeFactor() {
+void MSBDAWriter::CreateBDATimeFactor() {
   const std::string tableName = "BDA_TIME_FACTOR";
   const std::string version_bda_time_axis = "1.0";
 

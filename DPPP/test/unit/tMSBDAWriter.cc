@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(createBDATimeAxis) {
 
   // Assert if the correct columns are created
   MeasurementSet ms(msOutName, TableLock::AutoNoReadLocking);
-  BOOST_TEST(Bool(true) == ms.keywordSet().isDefined("BDA_TIME_AXIS"));
+  BOOST_TEST(ms.keywordSet().isDefined("BDA_TIME_AXIS"));
   BOOST_REQUIRE_NO_THROW(ms.keywordSet().asTable("BDA_TIME_AXIS").col("BDA_TIME_AXIS_ID"));
   BOOST_REQUIRE_NO_THROW(ms.keywordSet().asTable("BDA_TIME_AXIS").col("IS_BDA_APPLIED"));
   BOOST_REQUIRE_NO_THROW(ms.keywordSet().asTable("BDA_TIME_AXIS").col("SINGLE_FACTOR_PER_BASELINE"));
