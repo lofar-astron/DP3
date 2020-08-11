@@ -1,3 +1,6 @@
+// Copyright (C) 2020
+// ASTRON (Netherlands Institute for Radio Astronomy)
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/TableDesc.h>
@@ -8,6 +11,7 @@
 #include "../../MSBDAWriter.h"
 #include "../../MSReader.h"
 #include "../../../Common/ParameterSet.h"
+#include "./fixtures/fDirectory.cc"
 
 using DP3::ParameterSet;
 using DP3::DPPP::DPInfo;
@@ -20,17 +24,17 @@ using casacore::TableDesc;
 using casacore::TableExprNode;
 using casacore::TableLock;
 
+const std::string prefix = "msout.";
+
 BOOST_AUTO_TEST_SUITE(msbdawriter)
 
-BOOST_AUTO_TEST_CASE(CreateBDATimeAxis) {
+BOOST_FIXTURE_TEST_CASE(CreateBDATimeAxis, FixtureDirectory) {
   // Setup test
-  std::string prefix = "msout.";
-  std::string msOutName = "bda_ms_out.MS";
-
+  const std::string msOutName = "bda_ms_out.MS";
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  MSReader reader("tNDPPP_tmp.MS", parset, prefix);
+  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
   // Execute
@@ -53,15 +57,13 @@ BOOST_AUTO_TEST_CASE(CreateBDATimeAxis) {
   BOOST_TEST(!td.isColumn("FIELD_ID"));
 }
 
-BOOST_AUTO_TEST_CASE(AddMetaDataFrequency) {
+BOOST_FIXTURE_TEST_CASE(AddMetaDataFrequency, FixtureDirectory) {
   // Setup test
-  std::string prefix = "msout.";
-  std::string msOutName = "bda_ms_out_frequency.MS";
-
+  const std::string msOutName = "bda_ms_out_freq.MS";
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  MSReader reader("tNDPPP_tmp.MS", parset, prefix);
+  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
   // Execute

@@ -306,6 +306,7 @@ endif()
 set(TEST_FILENAMES
   DPPP/test/runtests.cc
   DPPP/test/unit/mock/MockStep.cc
+  DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc

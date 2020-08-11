@@ -1,6 +1,5 @@
 // Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
 // This file is part of the LOFAR software suite.
 // The LOFAR software suite is free software: you can redistribute it and/or
