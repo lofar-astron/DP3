@@ -36,8 +36,7 @@ namespace DPPP {
 
 class MSBDAWriter : public DPStep {
  public:
-  MSBDAWriter(MSReader*, const string&, const ParameterSet&,
-              const string&);
+  MSBDAWriter(MSReader*, const string&, const ParameterSet&, const string&);
   virtual ~MSBDAWriter();
 
   /// Update the general info.

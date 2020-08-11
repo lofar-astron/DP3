@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE(AddMetaDataFrequency) {
   // Assert if the correct columns are created
   Table table(msOutName, TableLock::AutoNoReadLocking);
   BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
-  const TableDesc td = table.keywordSet().asTable("SPECTRAL_WINDOW").tableDesc();
+  const TableDesc td =
+      table.keywordSet().asTable("SPECTRAL_WINDOW").tableDesc();
   BOOST_TEST(td.isColumn("BDA_FREQ_AXIS_ID"));
 }
 
