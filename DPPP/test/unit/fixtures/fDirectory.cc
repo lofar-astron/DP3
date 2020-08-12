@@ -10,6 +10,10 @@ using boost::filesystem::remove_all;
 
 using namespace boost::filesystem;
 
+/// Fixture for Boost unit tests.
+/// Creates a temporary directory and set it as working directory.
+/// When the test ends the directory is removed.
+/// The working directory will be something like <path>/build/abc123/ 
 struct FixtureDirectory {
   const path ph = unique_path();
   const path workDir = current_path();
