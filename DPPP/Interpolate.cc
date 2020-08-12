@@ -67,7 +67,7 @@ Interpolate::Interpolate(DPInput* /*input*/, const ParameterSet& parset,
 
 DPStep::ShPtr Interpolate::makeStep(DPInput* input, const ParameterSet& parset,
                                     const std::string& prefix) {
-  return DPStep::ShPtr(new Interpolate(input, parset, prefix));
+  return std::make_shared<Interpolate>(input, parset, prefix);
 }
 
 void Interpolate::updateInfo(const DPInfo& infoIn) {

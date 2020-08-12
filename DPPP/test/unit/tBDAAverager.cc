@@ -20,9 +20,13 @@
 
 #include "../../BDAAverager.h"
 #include "../../BDABuffer.h"
+#include "../../../Common/ParameterSet.h"
 #include "mock/MockStep.h"
 
 #include <boost/make_unique.hpp>
+#include <boost/optional.hpp>
+
+#include <string>
 
 using DP3::DPPP::BDAAverager;
 using DP3::DPPP::BDABuffer;
@@ -44,6 +48,29 @@ const std::vector<casacore::MPosition> kAntPos{
     casacore::MVPosition{0, 0, 0}, casacore::MVPosition{300, 0, 0},
     casacore::MVPosition{200, 0, 0}, casacore::MVPosition{2400, 0, 0}};
 const std::vector<double> kAntDiam(4, 1.0);
+const std::vector<int> kAnt1_1Bl{0};
+const std::vector<int> kAnt2_1Bl{1};
+const std::vector<int> kAnt1_3Bl{0, 0, 0};
+const std::vector<int> kAnt2_3Bl{3, 1, 2};
+
+void InitParset(DP3::ParameterSet& parset,
+                boost::optional<double> timethresholdlength = boost::none,
+                boost::optional<double> freqthresholdlength = boost::none,
+                boost::optional<double> maxinterval = boost::none,
+                boost::optional<int> minchannels = boost::none) {
+  if (timethresholdlength) {
+    parset.add("timethresholdlength", std::to_string(*timethresholdlength));
+  }
+  if (freqthresholdlength) {
+    parset.add("freqthresholdlength", std::to_string(*freqthresholdlength));
+  }
+  if (maxinterval) {
+    parset.add("maxinterval", std::to_string(*maxinterval));
+  }
+  if (minchannels) {
+    parset.add("minchannels", std::to_string(*minchannels));
+  }
+}
 
 void InitInfo(DPInfo& info, const std::vector<int>& ant1,
               const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
@@ -181,60 +208,52 @@ BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
 
 BOOST_AUTO_TEST_CASE(no_averaging) {
   const std::size_t kNBaselines = 1;
-  const std::vector<int> kAnt1{0};
-  const std::vector<int> kAnt2{1};
+  const std::size_t kTimeSteps = 7;
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2);
-  const double baseline_length = info.getBaselineLengths()[0];
-
-  BDAAverager averager(baseline_length, baseline_length);
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  // With the default options, the averager performs no averaging: It only
+  // copies data from DPBuffers into BDABuffers.
+  DP3::ParameterSet parset;
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
-  std::unique_ptr<DPBuffer> buffer0 =
-      CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 0.0);
-  std::unique_ptr<DPBuffer> buffer1 =
-      CreateBuffer(kStartTime + 1.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 1000.0);
-  std::unique_ptr<DPBuffer> buffer2 =
-      CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
-                   kChannelCounts, 2000.0);
+  std::vector<std::unique_ptr<DPBuffer>> buffers;
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                   kNBaselines, kChannelCounts, i * 1000.0));
+  }
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   averager.setNextStep(mock_step);
 
   // When the BDAAverager merely copies data, each input buffer should
   // generate one output buffer.
-  BOOST_TEST(averager.process(*buffer0));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
-  BOOST_TEST(averager.process(*buffer1));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(2));
-  BOOST_TEST(averager.process(*buffer2));
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(3));
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    BOOST_TEST(averager.process(*buffers[i]));
+    BOOST_TEST(mock_step->GetBdaBuffers().size() == (i + 1));
+  }
 
   Finish(averager, *mock_step);
 
-  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), std::size_t(3));
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[0]->GetRows().size());
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[1]->GetRows().size());
-  BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[2]->GetRows().size());
-  CheckRow(*buffer0, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
-  CheckRow(*buffer1, mock_step->GetBdaBuffers()[1]->GetRows()[0], 0);
-  CheckRow(*buffer2, mock_step->GetBdaBuffers()[2]->GetRows()[0], 0);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), kTimeSteps);
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[i]->GetRows().size());
+    CheckRow(*buffers[i], mock_step->GetBdaBuffers()[i]->GetRows()[0], 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(time_averaging) {
+  const std::size_t kFactor = 2;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
-  const std::vector<int> kAnt1{0};
-  const std::vector<int> kAnt2{1};
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2);
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  // baseline_length * 2 should trigger time-based averaging with a factor of 2.
-  BDAAverager averager(baseline_length * 2, baseline_length);
+  DP3::ParameterSet parset;
+  InitParset(parset, baseline_length * kFactor);
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer0 =
@@ -274,19 +293,18 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
   const std::vector<std::size_t> kOutputChannelCounts{2, 2, 3};
-  const std::vector<int> kAnt1{0};
-  const std::vector<int> kAnt2{1};
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2, kInputChannelCounts.size());
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
-  BDAAverager averager(baseline_length, baseline_length * kFactor);
+  DP3::ParameterSet parset;
+  InitParset(parset, boost::none, baseline_length * kFactor);
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kInputChannelCounts, 0.0);
-
   std::unique_ptr<DPBuffer> averaged = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
 
@@ -311,15 +329,15 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
   const std::vector<std::size_t> kOutputChannelCounts{2, 2, 3};
-  const std::vector<int> kAnt1{0};
-  const std::vector<int> kAnt2{1};
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2, kInputChannelCounts.size());
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
-  BDAAverager averager(baseline_length * kTimeFactor,
-                       baseline_length * kChannelFactor);
+  DP3::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeFactor,
+             baseline_length * kChannelFactor);
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer0 =
@@ -364,15 +382,15 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   // The averager should average the second baseline by a factor of 2.
   // The averager should average the third baseline by a factor of 3.
   const std::size_t kNBaselines = 3;
-  const std::vector<int> kAnt1{0, 0, 0};
-  const std::vector<int> kAnt2{3, 1, 2};
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2);
+  InitInfo(info, kAnt1_3Bl, kAnt2_3Bl);
   const double time_threshold = 600.0;  // Time averaging factors become 1,2,3.
   const double chan_threshold = 100.0;  // No channel averaging.
 
-  BDAAverager averager(time_threshold, chan_threshold);
+  DP3::ParameterSet parset;
+  InitParset(parset, time_threshold, chan_threshold);
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers for the averager. For the first baseline, these
@@ -461,16 +479,16 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
   const std::vector<std::size_t> kInputChannelCounts(9, 1);
   const std::vector<std::size_t> kOutputChannelCounts2{1, 2, 2, 2, 2};
   const std::vector<std::size_t> kOutputChannelCounts3{3, 3, 3};
-  const std::vector<int> kAnt1{0, 0, 0};
-  const std::vector<int> kAnt2{3, 1, 2};
   const std::size_t kTimeSteps = 5;
 
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2, kInputChannelCounts.size());
+  InitInfo(info, kAnt1_3Bl, kAnt2_3Bl, kInputChannelCounts.size());
   const double time_threshold = 100.0;  // No averaging, baselines are longer.
   const double chan_threshold = 600.0;  // Averaging factors become 1, 2, 3.
 
-  BDAAverager averager(time_threshold, chan_threshold);
+  DP3::ParameterSet parset;
+  InitParset(parset, time_threshold, chan_threshold);
+  BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers and expected output data for the averager.
@@ -512,15 +530,13 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(baselines_mismatch) {
+BOOST_AUTO_TEST_CASE(shape_mismatch) {
   // The antenna vectors indicate there is a single baseline.
-  const std::vector<int> kAnt1{0};
-  const std::vector<int> kAnt2{1};
-
   DPInfo info;
-  InitInfo(info, kAnt1, kAnt2);
-  const double baseline_length = info.getBaselineLengths()[0];
-  BDAAverager averager(baseline_length, baseline_length);
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  DP3::ParameterSet parset;
+  BDAAverager averager(parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   averager.setNextStep(mock_step);
@@ -529,6 +545,77 @@ BOOST_AUTO_TEST_CASE(baselines_mismatch) {
   std::unique_ptr<DPBuffer> buffer =
       CreateBuffer(kStartTime, kInterval, 3, kChannelCounts, 0.0);
   BOOST_CHECK_THROW(averager.process(*buffer), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(max_interval) {
+  const double kMaxInterval = kInterval * 3.5;
+  const std::size_t kFactor = std::floor(kMaxInterval);
+  const std::size_t kNBaselines = 1;
+  const std::size_t kTimeSteps = 7 * kFactor;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  // The threshold implies an averaging factor of 42, however, kMaxInterval
+  // should limit the averaging to a factor of 3.
+  DP3::ParameterSet parset;
+  InitParset(parset, baseline_length * 42.0, boost::none, kMaxInterval);
+  BDAAverager averager(parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  averager.setNextStep(mock_step);
+
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    BOOST_TEST(
+        averager.process(*CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                       kNBaselines, kChannelCounts, 0.0)));
+    BOOST_TEST(mock_step->GetBdaBuffers().size() == (i + 1) / kFactor);
+  }
+
+  Finish(averager, *mock_step);
+
+  const auto& bdabuffers = mock_step->GetBdaBuffers();
+  BOOST_REQUIRE_EQUAL(bdabuffers.size(), kTimeSteps / kFactor);
+  for (const auto& bdabuffer : bdabuffers) {
+    const std::vector<BDABuffer::Row> rows = bdabuffer->GetRows();
+    BOOST_REQUIRE_EQUAL(1u, rows.size());
+    BOOST_TEST(kInterval * kFactor == rows[0].interval_);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(min_channels) {
+  const std::size_t kMinChannels = 3;
+  const std::size_t kNBaselines = 1;
+  const std::vector<std::size_t> kOutputChannelCounts{1, 2, 2};
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  DP3::ParameterSet parset;
+  // The threshold implies that all channels should be averaged into one
+  // channel, however, we specify a minimum of three channels per baseline.
+  InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
+             kMinChannels);
+  BDAAverager averager(parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  std::unique_ptr<DPBuffer> buffer =
+      CreateBuffer(kStartTime, kInterval, kNBaselines, kChannelCounts, 0.0);
+  std::unique_ptr<DPBuffer> averaged = CreateBuffer(
+      kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
+
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer));
+  Finish(averager, *mock_step);
+
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
+  BOOST_REQUIRE_EQUAL(bda_buffers.size(), std::size_t(1));
+  CheckRow(*averaged, bda_buffers[0]->GetRows()[0], 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -40,7 +40,7 @@ TestDynStep::~TestDynStep() {}
 
 DPStep::ShPtr TestDynStep::makeStep(DPInput* input, const ParameterSet& pset,
                                     const std::string& prefix) {
-  return DPStep::ShPtr(new TestDynStep(input, pset, prefix));
+  return std::make_shared<TestDynStep>(input, pset, prefix);
 }
 
 }  // namespace DPPP
