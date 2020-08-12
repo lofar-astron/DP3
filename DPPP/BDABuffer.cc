@@ -162,10 +162,20 @@ bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
       full_res_flags_.insert(full_res_flags_.end(), data_size, false);
     }
   }
+  // TODO after merging bdachannelmetadata: Remove row_nr argument, and
+  // uncomment:
+  // const rownr_t row_nr = rows_.empty() ? 0 : rows_.back().row_nr_ + 1;
   rows_.emplace_back(time, interval, row_nr, baseline_nr, n_channels,
                      n_correlations, row_data, row_flags, row_weights,
                      row_full_res_flags, uvw);
   return true;
+}
+
+void BDABuffer::SetBaseRowNr(rownr_t row_nr) {
+  for (Row& row : rows_) {
+    row.row_nr_ = row_nr;
+    ++row_nr;
+  }
 }
 
 }  // namespace DPPP

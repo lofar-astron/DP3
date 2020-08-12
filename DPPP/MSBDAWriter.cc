@@ -131,7 +131,7 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
 }
 
 bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
-  // TODO: buffer->SetBaseRowNr(ms_.nrow());
+  buffer->SetBaseRowNr(ms_.nrow());
 
   const std::vector<BDABuffer::Row>& rows = buffer->GetRows();
 

@@ -58,7 +58,7 @@ class BDABuffer {
     std::size_t GetDataSize() const { return n_channels_ * n_correlations_; }
     const double time_;  ///< Start time for the measurements in MJD seconds.
     const double interval_;  ///< Duration time for the measurements in seconds.
-    const rownr_t row_nr_;
+    rownr_t row_nr_;
     const std::size_t baseline_nr_;
     const std::size_t n_channels_;
     const std::size_t n_correlations_;
@@ -106,6 +106,15 @@ class BDABuffer {
               const bool* flags = nullptr, const float* weights = nullptr,
               const bool* full_res_flags = nullptr,
               const double* uvw = nullptr);
+
+  /**
+   * Update the row numbers of the rows in this buffer.
+   * Does nothing if the buffer is empty.
+   * @param base_rownr The row number for the first row in this buffer.
+   *        The following rows get base_rownr + 1, base_rownr + 2, etc. as
+   *        their row number.
+   */
+  void SetBaseRowNr(rownr_t base_rownr);
 
   /**
    * Clears all data in the buffer.
