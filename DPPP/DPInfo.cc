@@ -24,6 +24,7 @@
 #include "DPInfo.h"
 #include "DPInput.h"
 #include "Exceptions.h"
+#include "../Common/Epsilon.h"
 
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MCPosition.h>
@@ -158,11 +159,12 @@ bool DPInfo::channelsAreRegular() const {
   }
 
   // Check that all baselines have equal channel layouts.
+  const double kTolerance = 1.0;  // Hz
   for (std::size_t bl = 1; bl < itsChanFreqs.size(); ++bl) {
-    if (itsChanFreqs.front() != itsChanFreqs[bl] ||
-        itsChanWidths.front() != itsChanWidths[bl] ||
-        itsResolutions.front() != itsResolutions[bl] ||
-        itsEffectiveBW.front() != itsEffectiveBW[bl]) {
+    if (!EpsilonEqual(itsChanFreqs.front(), itsChanFreqs[bl], kTolerance) ||
+        !EpsilonEqual(itsChanWidths.front(), itsChanWidths[bl], kTolerance) ||
+        !EpsilonEqual(itsResolutions.front(), itsResolutions[bl], kTolerance) ||
+        !EpsilonEqual(itsEffectiveBW.front(), itsEffectiveBW[bl], kTolerance)) {
       return false;
     }
   }
