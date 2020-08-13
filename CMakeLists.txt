@@ -8,6 +8,7 @@ project(DP3)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 if(NOT PORTABLE)
   add_compile_options(-march=native)
@@ -293,8 +294,9 @@ endif()
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_library(dppp_testdyndppp SHARED
-    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT} ${IDGPREDICT_OBJECT}
   )
+  target_link_libraries(dppp_testdyndppp ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
   set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
 endif()
 
@@ -312,11 +314,11 @@ set(TEST_FILENAMES
   # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
   DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tGridInterpolate.cc
-  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  # DPPP/test/unit/tH5Parm.cc # Fails because sol001 cannot be found
   DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
+  DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
-  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
@@ -357,11 +359,11 @@ set_tests_properties(
 
 add_test(
   NAME extract_NDPPP
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP.in_MS.tgz
 )
 set_tests_properties(
   extract_NDPPP
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP ndppp
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 
 add_executable(
@@ -374,6 +376,7 @@ target_link_libraries(unittests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
 set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
+add_subdirectory(DDECal/test/integration)
 
 add_test(
   NAME unittests
@@ -381,7 +384,7 @@ add_test(
 )
 set_tests_properties(
   unittests PROPERTIES LABELS unit
-  FIXTURES_REQUIRED "unittests;applycal"
+  FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
 
 # I'll leave this here as an example how separate test executables could be added

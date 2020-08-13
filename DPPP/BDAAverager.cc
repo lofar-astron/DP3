@@ -73,7 +73,7 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
       bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
       bl_threshold_channel_(
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
-      max_interval_(parset.getDouble(prefix + "maxinterval", 3600.0)),
+      max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
       next_rownr_(0),
       bda_pool_size_(0),
@@ -105,14 +105,15 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
-  baseline_buffers_.reserve(_info.nbaselines());
-  for (std::size_t i = 0; i < _info.nbaselines(); ++i) {
+  baseline_buffers_.reserve(info.nbaselines());
+  for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+    // Determine the time averaging factor. Ignore max_interval_ if it is 0.0.
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
-    if (factor_time < 1) {
-      factor_time = 1;
-    } else if (factor_time * _info.timeInterval() > max_interval_) {
-      factor_time = std::floor(max_interval_ / _info.timeInterval());
+    if (max_interval_ > 0.0 &&
+        factor_time * info.timeInterval() > max_interval_) {
+      factor_time = std::floor(max_interval_ / info.timeInterval());
     }
+    factor_time = std::max(factor_time, std::size_t{1});
 
     // Determine the number of channels in the output.
     std::size_t nchan = _info.nchan();
