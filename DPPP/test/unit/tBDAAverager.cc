@@ -20,6 +20,7 @@
 
 #include "../../BDAAverager.h"
 #include "../../BDABuffer.h"
+#include "../../DPInput.h"
 #include "../../../Common/ParameterSet.h"
 #include "mock/MockStep.h"
 
@@ -90,6 +91,7 @@ void InitInfo(DPInfo& info, const std::vector<int>& ant1,
 void CheckInfo(const DPInfo& info,
                const std::vector<std::vector<double>>& chan_freqs,
                const std::vector<std::vector<double>>& chan_widths) {
+  BOOST_TEST(info.needVisData());
   BOOST_TEST_REQUIRE(info.hasBDAChannels());
   BOOST_TEST_REQUIRE(info.nbaselines() == chan_freqs.size());
   for (std::size_t bl = 0; bl < info.nbaselines(); ++bl) {
@@ -217,6 +219,27 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   }
 }
 
+/// In this test, the input buffers always contain weights and UVW.
+/// -> Use a mock input class that only checks the buffer.
+class MockInput : public DP3::DPPP::DPInput {
+ public:
+  MockInput() {}
+  ~MockInput() override {}
+
+  void getUVW(const casacore::RefRows&, double, DPBuffer& buffer) override {
+    BOOST_TEST(!buffer.getUVW().empty());
+  }
+  void getWeights(const casacore::RefRows&, DPBuffer& buffer) override {
+    BOOST_TEST(!buffer.getWeights().empty());
+  }
+  void finish() override { BOOST_ERROR("Unexpected finish() call"); }
+  void show(std::ostream&) const override {
+    BOOST_ERROR("Unexpected show() call");
+  }
+};
+
+MockInput mock_input;
+
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
@@ -231,7 +254,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   // With the default options, the averager performs no averaging: It only
   // copies data from DPBuffers into BDABuffers.
   DP3::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -270,7 +293,7 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
 
   DP3::ParameterSet parset;
   InitParset(parset, baseline_length * kFactor);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -320,7 +343,7 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
 
   DP3::ParameterSet parset;
   InitParset(parset, boost::none, baseline_length * kFactor);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -360,7 +383,7 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   DP3::ParameterSet parset;
   InitParset(parset, baseline_length * kTimeFactor,
              baseline_length * kChannelFactor);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -414,7 +437,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
 
   DP3::ParameterSet parset;
   InitParset(parset, time_threshold, chan_threshold);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers for the averager. For the first baseline, these
@@ -512,7 +535,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 
   DP3::ParameterSet parset;
   InitParset(parset, time_threshold, chan_threshold);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers and expected output data for the averager.
@@ -559,7 +582,7 @@ BOOST_AUTO_TEST_CASE(shape_mismatch) {
   DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
   DP3::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
@@ -585,7 +608,7 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   // should limit the averaging to a factor of 3.
   DP3::ParameterSet parset;
   InitParset(parset, baseline_length * 42.0, boost::none, kMaxInterval);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
@@ -623,7 +646,7 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   // channel, however, we specify a minimum of three channels per baseline.
   InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
              kMinChannels);
-  BDAAverager averager(parset, "");
+  BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer =
