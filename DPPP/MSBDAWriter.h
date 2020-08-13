@@ -28,8 +28,8 @@
 #include "MSReader.h"
 #include "../Common/ParameterSet.h"
 
-using casacore::Table;
 using casacore::Int;
+using casacore::Table;
 
 namespace DP3 {
 namespace DPPP {
@@ -72,16 +72,23 @@ class MSBDAWriter : public DPStep {
   /// If an entry already exists, nothing is written.
   void WriteMetaData();
 
-  /// Write a row in the BDA_TIME_AXIS table
+  /// Write all the baselines to the BDA_TIME_FACTOR table.
+  void WriteTimeFactorRows(const Int&, size_t&, size_t&);
+
+  /// Write a row in the BDA_TIME_AXIS table.
   void WriteTimeAxisRow(Table&, const Int&, const double&, const double&);
+
+  /// Write data to the BDA data columns of the SPECTRAL_WINDOW table.
+  /// The BDA_SET_ID will be all zeros.
+  void FillSpectralWindowColumns(const Int&);
 
  private:
   MSReader* reader_;
   const std::string outName_;
   const ParameterSet parset_;
   const std::string prefix_;
-
-  bool overwrite_;
+  const bool overwrite_;
+  
   casacore::Table ms_;
 };
 

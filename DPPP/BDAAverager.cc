@@ -74,10 +74,11 @@ BDAAverager::BDAAverager(double bl_threshold_time, double bl_threshold_channel)
 
 BDAAverager::~BDAAverager() {}
 
-void BDAAverager::updateInfo(const DPInfo& info) {
-  DPStep::updateInfo(info);
+void BDAAverager::updateInfo(const DPInfo& info_in) {
+  DPStep::updateInfo(info_in);
 
-  const std::vector<double>& lengths = info.getBaselineLengths();
+  const std::vector<double>& lengths = info_in.getBaselineLengths();
+  std::vector<size_t> baseline_factors(info_in.nbaselines());
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -88,22 +89,23 @@ void BDAAverager::updateInfo(const DPInfo& info) {
 
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
-  baseline_buffers_.reserve(info.nbaselines());
-  for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+  baseline_buffers_.reserve(info_in.nbaselines());
+  for (std::size_t i = 0; i < info_in.nbaselines(); ++i) {
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
     factor_time = std::max(factor_time, std::size_t(1));
 
     // Determine the number of channels in the output.
     std::size_t nchan =
-        std::ceil(lengths[i] / bl_threshold_channel_ * info.nchan());
-    if (nchan > info.nchan()) {
-      nchan = info.nchan();
+        std::ceil(lengths[i] / bl_threshold_channel_ * info_in.nchan());
+    if (nchan > info_in.nchan()) {
+      nchan = info_in.nchan();
     } else if (nchan < 1) {
       nchan = 1;
     }
 
-    baseline_buffers_.emplace_back(factor_time, info.nchan(), nchan,
-                                   info.ncorr());
+    baseline_factors.emplace_back(factor_time);
+    baseline_buffers_.emplace_back(factor_time, info_in.nchan(), nchan,
+                                   info_in.ncorr());
     relative_channels += float(nchan) / float(factor_time);
     max_channels = std::max(max_channels, nchan);
   }
@@ -111,8 +113,10 @@ void BDAAverager::updateInfo(const DPInfo& info) {
   std::size_t bda_channels = std::ceil(relative_channels);
   bda_channels = std::max(bda_channels, max_channels);
 
-  bda_pool_size_ = info.ncorr() * bda_channels;
+  bda_pool_size_ = info_in.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+
+  info().setBDAFactors(baseline_factors);
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {

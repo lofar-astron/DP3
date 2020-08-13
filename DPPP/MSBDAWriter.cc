@@ -43,6 +43,7 @@ using casacore::TableCopy;
 using casacore::TableDesc;
 using casacore::TableLock;
 using casacore::True;
+using casacore::Vector;
 
 namespace {
 /// Measurement Set column names (main table). Uses the same order as
@@ -111,9 +112,11 @@ namespace DPPP {
 
 MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
                          const ParameterSet& parset, const std::string& prefix)
-    : reader_(reader), outName_(out_name), parset_(parset), prefix_(prefix) {
-  overwrite_ = parset.getBool(prefix + "overwrite", false);
-}
+    : reader_(reader),
+      outName_(out_name),
+      parset_(parset),
+      prefix_(prefix),
+      overwrite_(parset.getBool(prefix + "overwrite", false)) {}
 
 MSBDAWriter::~MSBDAWriter() {}
 
@@ -294,19 +297,34 @@ void MSBDAWriter::WriteMetaData() {
     return;
   }
 
-  Int pid = ObjectID().pid();
-
-  // TODO write all baselines to BDA_TIME_FACTOR using the unique id and info
-  //      from bdaaverager (TODO). Keep track of max and min factors.
+  const Int pid = ObjectID().pid();
   std::size_t min_factor_time = 65535;
   std::size_t max_factor_time = 1;
 
+  WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
   WriteTimeAxisRow(bda_time_axis, pid, min_factor_time, max_factor_time);
+  FillSpectralWindowColumns(pid);
+}
 
-  // Write to SPECTRAL_WINDOW using the unique id and 0 for BDA_SET_ID
-  Table spectral_window(outName_ + '/' + kSpectralWindowTable, Table::Update);
-  ScalarColumn<casacore::Int>(spectral_window, kBDAFreqAxisId).fillColumn(pid);
-  ScalarColumn<casacore::Int>(spectral_window, kBDASetId).fillColumn(0);
+void MSBDAWriter::WriteTimeFactorRows(const Int& pid, size_t& min_factor_time,
+                                      size_t& max_factor_time) {
+  Table bda_time_factor(outName_ + '/' + kBDATimeFactorTable, Table::Update);
+  int row = bda_time_factor.nrow();
+  const Vector<Int>& ant1 = info().getAnt1();
+  const Vector<Int>& ant2 = info().getAnt2();
+  const std::vector<size_t>& factors = info().getBDAFactors();
+  for (std::size_t i = 0; i < info().nbaselines(); ++i) {
+    bda_time_factor.addRow();
+    const size_t factor = factors[i];
+    min_factor_time = std::min(min_factor_time, factor);
+    max_factor_time = std::max(max_factor_time, factor);
+
+    ScalarColumn<casacore::Int>(bda_time_factor, kTimeAxisId).put(row, pid);
+    ScalarColumn<casacore::Int>(bda_time_factor, kAntenna1).put(row, ant1[i]);
+    ScalarColumn<casacore::Int>(bda_time_factor, kAntenna2).put(row, ant2[i]);
+    ScalarColumn<casacore::Int>(bda_time_factor, kFactor).put(row, factor);
+    ++row;
+  }
 }
 
 void MSBDAWriter::WriteTimeAxisRow(Table& bda_time_axis, const Int& pid,
@@ -327,6 +345,12 @@ void MSBDAWriter::WriteTimeAxisRow(Table& bda_time_axis, const Int& pid,
       .put(row, interval);
   ScalarColumn<casacore::Bool>(bda_time_axis, kIntervalFactors).put(row, True);
   ScalarColumn<casacore::Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
+}
+
+void MSBDAWriter::FillSpectralWindowColumns(const Int& pid) {
+  Table spectral_window(outName_ + '/' + kSpectralWindowTable, Table::Update);
+  ScalarColumn<casacore::Int>(spectral_window, kBDAFreqAxisId).fillColumn(pid);
+  ScalarColumn<casacore::Int>(spectral_window, kBDASetId).fillColumn(0);
 }
 
 }  // namespace DPPP

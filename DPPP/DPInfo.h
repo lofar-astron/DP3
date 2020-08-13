@@ -169,6 +169,7 @@ class DPInfo {
   unsigned int ntimeAvg() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
+  const std::vector<size_t>& getBDAFactors() const { return itsBDAFactors; }
   const casacore::Vector<casacore::Int>& getAnt1() const { return itsAnt1; }
   const casacore::Vector<casacore::Int>& getAnt2() const { return itsAnt2; }
   const casacore::Vector<casacore::String>& antennaNames() const {
@@ -273,6 +274,10 @@ class DPInfo {
     itsBeamCorrectionDir = dir;
   }
 
+  void setBDAFactors(const std::vector<size_t>& factors) {
+    itsBDAFactors = factors;
+  }
+
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -317,6 +322,7 @@ class DPInfo {
   std::vector<casacore::MPosition> itsAntPos;
   std::vector<int> itsAntUsed;
   std::vector<int> itsAntMap;
+  std::vector<size_t> itsBDAFactors;  ///< Averaging factor of all baselines
   casacore::Vector<casacore::Int> itsAnt1;    ///< ant1 of all baselines
   casacore::Vector<casacore::Int> itsAnt2;    ///< ant2 of all baselines
   mutable std::vector<double> itsBLength;     ///< baseline lengths
