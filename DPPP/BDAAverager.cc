@@ -105,13 +105,13 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
-  baseline_buffers_.reserve(info.nbaselines());
-  for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+  baseline_buffers_.reserve(_info.nbaselines());
+  for (std::size_t i = 0; i < _info.nbaselines(); ++i) {
     // Determine the time averaging factor. Ignore max_interval_ if it is 0.0.
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
     if (max_interval_ > 0.0 &&
-        factor_time * info.timeInterval() > max_interval_) {
-      factor_time = std::floor(max_interval_ / info.timeInterval());
+        factor_time * _info.timeInterval() > max_interval_) {
+      factor_time = std::floor(max_interval_ / _info.timeInterval());
     }
     factor_time = std::max(factor_time, std::size_t{1});
 
