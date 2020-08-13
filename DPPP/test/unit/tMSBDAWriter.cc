@@ -115,7 +115,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   writer.process(std::move(buffer));
   writer.finish();
 
-  Table table(kMsName, TableLock::AutoNoReadLocking);
+  MeasurementSet ms(kMsName);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
