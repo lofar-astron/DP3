@@ -6,14 +6,17 @@
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/TaQL/TableParse.h>
 
+#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include "../../BDABuffer.h"
 #include "../../MSBDAWriter.h"
 #include "../../MSReader.h"
 #include "../../../Common/ParameterSet.h"
 #include "./fixtures/fDirectory.cc"
 
 using DP3::ParameterSet;
+using DP3::DPPP::BDABuffer;
 using DP3::DPPP::DPInfo;
 using DP3::DPPP::MSBDAWriter;
 using DP3::DPPP::MSReader;
@@ -75,6 +78,37 @@ BOOST_FIXTURE_TEST_CASE(CreateMetaDataFrequencyColumns, FixtureDirectory) {
   const TableDesc td =
       table.keywordSet().asTable("SPECTRAL_WINDOW").tableDesc();
   BOOST_TEST(td.isColumn("BDA_FREQ_AXIS_ID"));
+}
+
+BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
+  // BOOST_AUTO_TEST_CASE(process_simple) {
+  const double kTime(3.0);
+  const double kInterval(1.5);
+  const std::complex<float> kData(42.0, 43.0);
+  const float kWeight(44.0);
+  const bool kFlag(false);
+  const double kUVW[3]{45.0, 46.0, 47.0};
+  const std::string kMsName = "bda_simple.MS";
+
+  // TODO: Remove reader, when the writer can create subtables etc.
+  MSReader reader("../tNDPPP_tmp.MS", ParameterSet(), "");
+  MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
+
+  DPInfo info;
+  info.init(1, 0, 1, 1, kTime, kInterval, "", "");
+  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+           std::vector<int>{0});
+  info.setBDAFactors({1});
+  writer.updateInfo(info);
+
+  auto buffer = boost::make_unique<BDABuffer>(1);
+  buffer->AddRow(kTime, kInterval, 0, 0, 1, 1, &kData, &kFlag, &kWeight,
+                 nullptr, kUVW);
+  writer.process(std::move(buffer));
+  writer.finish();
+
+  Table table(kMsName, TableLock::AutoNoReadLocking);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

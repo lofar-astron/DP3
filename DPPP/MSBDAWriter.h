@@ -88,7 +88,7 @@ class MSBDAWriter : public DPStep {
   const ParameterSet parset_;
   const std::string prefix_;
   const bool overwrite_;
-  
+
   casacore::Table ms_;
 };
 

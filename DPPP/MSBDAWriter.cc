@@ -123,6 +123,10 @@ MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
 MSBDAWriter::~MSBDAWriter() {}
 
 void MSBDAWriter::updateInfo(const DPInfo& info_in) {
+  if (info_in.getBDAFactors().size() != info_in.nbaselines()) {
+    throw std::invalid_argument("Invalid time averaging factors");
+  }
+
   DPStep::updateInfo(info_in);
   CreateMS();
 
@@ -371,7 +375,7 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid, size_t& min_factor_time,
     ScalarColumn<casacore::Int>(bda_time_factor, kTimeAxisId).put(row, pid);
     ScalarColumn<casacore::Int>(bda_time_factor, kAntenna1).put(row, ant1[i]);
     ScalarColumn<casacore::Int>(bda_time_factor, kAntenna2).put(row, ant2[i]);
-    ScalarColumn<casacore::Int>(bda_time_factor, kFactor).put(row, factor);
+    ScalarColumn<casacore::Double>(bda_time_factor, kFactor).put(row, factor);
     ++row;
   }
 }
