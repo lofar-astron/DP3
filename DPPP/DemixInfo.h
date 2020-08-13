@@ -109,10 +109,10 @@ class DemixInfo {
   }
 
   /// Get the baselines.
-  const casacore::Vector<casacore::Int>& getAnt1() const {
+  const std::vector<std::size_t>& getAnt1() const {
     return itsInfoSel.getAnt1();
   }
-  const casacore::Vector<casacore::Int>& getAnt2() const {
+  const std::vector<std::size_t>& getAnt2() const {
     return itsInfoSel.getAnt2();
   }
 

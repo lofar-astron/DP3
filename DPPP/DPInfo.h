@@ -101,14 +101,26 @@ class DPInfo {
 
   /// Set the frequency info.
   /// An empty resolutions or effectiveBW is default to chanWidths.
-  /// If totalBW is 0, it is set to the sum of effectiveBW.
+  /// itsTotalBW is set to the sum of effectiveBW.
   /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
-  void set(
-      const casacore::Vector<double>& chanFreqs,
-      const casacore::Vector<double>& chanWidths,
-      const casacore::Vector<double>& resolutions = casacore::Vector<double>(),
-      const casacore::Vector<double>& effectiveBW = casacore::Vector<double>(),
-      double totalBW = 0, double refFreq = 0);
+  void set(std::vector<double>&& chanFreqs, std::vector<double>&& chanWidths,
+           std::vector<double>&& resolutions = std::vector<double>(),
+           std::vector<double>&& effectiveBW = std::vector<double>(),
+           double refFreq = 0);
+
+  /// Set the frequency info, using different info per baseline.
+  /// An empty resolutions or effectiveBW is default to chanWidths.
+  /// itsTotalBW is set to the sum of effectiveBW, which should be equal for
+  /// all baselines.
+  /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
+  /// of the baseline with the most channels.
+  void set(std::vector<std::vector<double>>&& chanFreqs,
+           std::vector<std::vector<double>>&& chanWidths,
+           std::vector<std::vector<double>>&& resolutions =
+               std::vector<std::vector<double>>(),
+           std::vector<std::vector<double>>&& effectiveBW =
+               std::vector<std::vector<double>>(),
+           double refFreq = 0);
 
   /// Set array info.
   void set(const casacore::MPosition& arrayPos,
@@ -169,8 +181,8 @@ class DPInfo {
   unsigned int ntimeAvg() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
-  const casacore::Vector<casacore::Int>& getAnt1() const { return itsAnt1; }
-  const casacore::Vector<casacore::Int>& getAnt2() const { return itsAnt2; }
+  const std::vector<std::size_t>& getAnt1() const { return itsAnt1; }
+  const std::vector<std::size_t>& getAnt2() const { return itsAnt2; }
   const casacore::Vector<casacore::String>& antennaNames() const {
     return itsAntNames;
   }
@@ -197,10 +209,19 @@ class DPInfo {
   const casacore::MDirection tileBeamDirCopy() const {
     return copyMeasure(casacore::MeasureHolder(itsTileBeamDir)).asMDirection();
   }
-  const casacore::Vector<double>& chanFreqs() const { return itsChanFreqs; }
-  const casacore::Vector<double>& chanWidths() const { return itsChanWidths; }
-  const casacore::Vector<double>& resolutions() const { return itsResolutions; }
-  const casacore::Vector<double>& effectiveBW() const { return itsEffectiveBW; }
+  const std::vector<double>& chanFreqs(std::size_t baseline = 0) const {
+    return itsChanFreqs[baseline];
+  }
+  const std::vector<double>& chanWidths(std::size_t baseline = 0) const {
+    return itsChanWidths[baseline];
+  }
+  const std::vector<double>& resolutions(std::size_t baseline = 0) const {
+    return itsResolutions[baseline];
+  }
+  const std::vector<double>& effectiveBW(std::size_t baseline = 0) const {
+    return itsEffectiveBW[baseline];
+  }
+  bool hasBDAChannels() const { return itsChanFreqs.size() == nbaselines(); }
   const std::string& getDataColName() const { return itsDataColName; }
   const std::string& getWeightColName() const { return itsWeightColName; }
   double totalBW() const { return itsTotalBW; }
@@ -273,6 +294,9 @@ class DPInfo {
     itsBeamCorrectionDir = dir;
   }
 
+  /// Determine if the channels have a regular layout.
+  bool channelsAreRegular() const;
+
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -306,10 +330,13 @@ class DPInfo {
   enum BeamCorrectionMode itsBeamCorrectionMode;
   casacore::MDirection itsBeamCorrectionDir;
   casacore::MPosition itsArrayPos;
-  casacore::Vector<double> itsChanFreqs;
-  casacore::Vector<double> itsChanWidths;
-  casacore::Vector<double> itsResolutions;
-  casacore::Vector<double> itsEffectiveBW;
+  /// Channels may differ between baselines when using BDA.
+  /// If all baselines have equal channels, the outer vector only holds one
+  /// inner vector. When using BDA, each baseline has its own inner vector.
+  std::vector<std::vector<double>> itsChanFreqs;
+  std::vector<std::vector<double>> itsChanWidths;
+  std::vector<std::vector<double>> itsResolutions;
+  std::vector<std::vector<double>> itsEffectiveBW;
   double itsTotalBW;
   double itsRefFreq;
   casacore::Vector<casacore::String> itsAntNames;
@@ -317,8 +344,8 @@ class DPInfo {
   std::vector<casacore::MPosition> itsAntPos;
   std::vector<int> itsAntUsed;
   std::vector<int> itsAntMap;
-  casacore::Vector<casacore::Int> itsAnt1;    ///< ant1 of all baselines
-  casacore::Vector<casacore::Int> itsAnt2;    ///< ant2 of all baselines
+  std::vector<std::size_t> itsAnt1;           ///< ant1 of all baselines
+  std::vector<std::size_t> itsAnt2;           ///< ant2 of all baselines
   mutable std::vector<double> itsBLength;     ///< baseline lengths
   mutable std::vector<int> itsAutoCorrIndex;  ///< autocorr index per ant
   unsigned int itsNThreads;

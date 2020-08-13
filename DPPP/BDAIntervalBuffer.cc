@@ -40,14 +40,14 @@ void BDAIntervalBuffer::AddBuffer(const BDABuffer& buffer) {
     buffers_.emplace_back(buffer);
 
     for (const BDABuffer::Row& row : buffers_.back().GetRows()) {
-      if (BDABuffer::TimeIsLess(max_row_interval_, row.interval_)) {
+      if (BDABuffer::TimeIsLess(max_row_interval_, row.interval)) {
         buffers_.pop_back();
         throw std::invalid_argument("Row interval > Max row interval");
       }
       // Add row to current_rows if it overlaps the current interval
       // (it isn't completely before or after the current interval).
-      if (!BDABuffer::TimeIsLessEqual(row.time_ + row.interval_, time_) &&
-          !BDABuffer::TimeIsLessEqual(time_ + interval_, row.time_)) {
+      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval, time_) &&
+          !BDABuffer::TimeIsLessEqual(time_ + interval_, row.time)) {
         current_rows_.push_back(&row);
       }
     }
@@ -75,9 +75,9 @@ void BDAIntervalBuffer::Advance(const double interval) {
       // If row_end <= bda start, it does not overlap and is old -> Ignore.
       // If bda_end <= row start, it does not overlap and is new.
       // In all other cases, it overlaps and is added to current_rows_.
-      if (!BDABuffer::TimeIsLessEqual(row.time_ + row.interval_, time_)) {
+      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval, time_)) {
         buffer_is_old = false;
-        if (!BDABuffer::TimeIsLessEqual(time_ + interval_, row.time_)) {
+        if (!BDABuffer::TimeIsLessEqual(time_ + interval_, row.time)) {
           current_rows_.push_back(&row);
         }
       }
@@ -112,10 +112,10 @@ bool BDAIntervalBuffer::IsComplete() const {
        ++buffer_it) {
     const std::vector<BDABuffer::Row>& rows = buffer_it->GetRows();
     for (auto row_it = rows.rbegin(); row_it != rows.rend(); ++row_it) {
-      if (BDABuffer::TimeIsGreaterEqual(row_it->time_, time_complete)) {
+      if (BDABuffer::TimeIsGreaterEqual(row_it->time, time_complete)) {
         completeness_ = Completeness::kComplete;
         break;
-      } else if (BDABuffer::TimeIsLessEqual(row_it->time_ + row_it->interval_,
+      } else if (BDABuffer::TimeIsLessEqual(row_it->time + row_it->interval,
                                             time_complete)) {
         completeness_ = Completeness::kIncomplete;
         break;
@@ -135,29 +135,28 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
   // Count the number of elements in all current rows.
   std::size_t pool_size = 0;
   for (const BDABuffer::Row* row : current_rows_) {
-    pool_size += row->GetDataSize();
+    pool_size += row->n_elements;
   }
 
   // Create the result buffer and fill it.
   auto result = boost::make_unique<BDABuffer>(pool_size, fields);
   for (const BDABuffer::Row* row : current_rows_) {
-    const double row_time = std::max(row->time_, time_);
+    const double row_time = std::max(row->time, time_);
     const double row_interval =
-        std::min(row->time_ + row->interval_, time_ + interval_) - row_time;
+        std::min(row->time + row->interval, time_ + interval_) - row_time;
     const bool success = result->AddRow(
-        row_time, row_interval, row->row_nr_, row->baseline_nr_,
-        row->n_channels_, row->n_correlations_, row->data_, row->flags_,
-        row->weights_, row->full_res_flags_, row->uvw_);
+        row_time, row_interval, row->row_nr, row->baseline_nr, row->n_elements,
+        row->data, row->flags, row->weights, row->full_res_flags, row->uvw);
     (void)success;
     assert(success);
 
     // Adjust weights if the row partially overlaps the interval.
-    if (fields.weights_ && row->weights_ &&
+    if (fields.weights_ && row->weights &&
         BDABuffer::TimeIsLess(row_interval, interval_) &&
-        BDABuffer::TimeIsLess(row_interval, row->interval_)) {
-      const double weight_factor = row_interval / row->interval_;
-      float* weights = result->GetRows().back().weights_;
-      for (std::size_t i = 0; i < row->GetDataSize(); ++i) {
+        BDABuffer::TimeIsLess(row_interval, row->interval)) {
+      const double weight_factor = row_interval / row->interval;
+      float* weights = result->GetRows().back().weights;
+      for (std::size_t i = 0; i < row->n_elements; ++i) {
         *weights *= weight_factor;
         ++weights;
       }

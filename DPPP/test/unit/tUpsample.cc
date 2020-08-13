@@ -97,10 +97,12 @@ class TestInput : public DPInput {
     info().init(itsNCorr, 0, itsNChan, itsTimes.size(), itsTimes[0],
                 itsTimeInterval, string(), string());
     // Define the frequencies.
-    casacore::Vector<double> chanFreqs(itsNChan);
-    vector<double> chanWidth(itsNChan, 100000.);
-    indgen(chanFreqs, 1050000., 100000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanFreqs;
+    std::vector<double> chanWidth(itsNChan, 100000.);
+    for (unsigned int i = 0; i < itsNChan; i++) {
+      chanFreqs.push_back(1050000. + i * 100000.);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
   }
   unsigned int itsTimeStep, itsNBl, itsNChan, itsNCorr;
   vector<double> itsTimes;

@@ -44,6 +44,10 @@ using DP3::DPPP::DPStep;
 using DP3::DPPP::ScaleData;
 using std::vector;
 
+namespace {
+const float kFreq = 10.5;  // MHz
+}
+
 BOOST_AUTO_TEST_SUITE(scaledata_bda)
 
 // Class to check result of TestInput run by test1.
@@ -75,20 +79,12 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   DPInfo info = DPInfo();
   info.init(ncorr, 0, nchan, ntime, 0., 5., string(), string());
   // Fill the baseline stations; use 2 stations.
-  // So they are called 00 01 02 03 10 11 12 13 20, etc.
+  // So they are called 00 01 10 11 00 01 ...
   vector<int> ant1(nbl);
   vector<int> ant2(nbl);
-  int st1 = 0;
-  int st2 = 0;
   for (int i = 0; i < nbl; ++i) {
-    ant1[i] = st1;
-    ant2[i] = st2;
-    if (++st2 == 2) {
-      st2 = 0;
-      if (++st1 == 2) {
-        st1 = 0;
-      }
-    }
+    ant1[i] = i / 2;
+    ant2[i] = i % 2;
   }
   vector<string> ant_names(2);
   ant_names[0] = "rs01.s01";
@@ -100,31 +96,32 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   vals[1] = 442449;
   vals[2] = 5064923;
   ant_pos[0] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vals[0] = 3828746;
   vals[1] = 442592;
   vals[2] = 5064924;
   ant_pos[1] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vector<double> antDiam(2, 70.);
   info.set(ant_names, antDiam, ant_pos, ant1, ant2);
   // Define the frequencies.
-  vector<double> chan_width(nchan, 3.);
-  casacore::Vector<double> chan_freqs(nchan);
-  casacore::indgen(chan_freqs, 1., 3.);
-  info.set(chan_freqs, chan_width);
+  std::vector<double> chan_width(nchan, 1e6);
+  std::vector<double> chan_freqs(nchan, kFreq * 1e6);
+  info.set(std::move(chan_freqs), std::move(chan_width));
 
   return info;
 }
 
 BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
   int ntime{10};
-  int nbl{2};
+  int nbl{4};
   int nchan{1};
   int ncorr{2};
-  int nantennas{2};
+  const int datasize{nbl * nchan * ncorr};
+  const std::vector<float> coeffs{2 + 1 * kFreq,
+                                  3 + 2 * kFreq + 1 * kFreq * kFreq};
 
   // Preparation
   ParameterSet parset;
@@ -134,33 +131,37 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
 
   DPInfo info = GenerateDPInfo(ntime, nbl, nchan, ncorr);
 
-  std::shared_ptr<ScaleData> step_scale_data(
-      new ScaleData(nullptr, parset, ""));
-  std::shared_ptr<TestOutput> step_test_output(
-      new TestOutput(ntime, nbl, nchan, ncorr));
+  auto step_scale_data = std::make_shared<ScaleData>(nullptr, parset, "");
+  auto step_test_output =
+      std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   step_scale_data->setNextStep(step_test_output);
   step_scale_data->setInfo(info);
 
   // Initialize buffer
-  const int datasize{nbl * nchan * ncorr};
   std::unique_ptr<BDABuffer> bda_buffer{new BDABuffer(datasize)};
-  for (int ind = 0; ind < nbl * nantennas; ++ind) {
-    const std::complex<float> data = ind + 1;
-    bda_buffer->AddRow(ntime, 5., 0, nchan, ncorr, ind % nantennas, &data,
-                       nullptr, nullptr, nullptr, nullptr);
+  std::vector<std::complex<float>> data;
+  std::vector<std::complex<float>> expected_data;
+  for (int bl = 0; bl < nbl; ++bl) {
+    const float scale =
+        std::sqrt(coeffs[info.getAnt1()[bl]] * coeffs[info.getAnt2()[bl]]);
+    for (int i = 0; i < nchan * ncorr; ++i) {
+      data.emplace_back(10.0 * bl + i + 1, -10.0 * bl - i - 1);
+      expected_data.push_back(data.back() * scale);
+    }
+    bda_buffer->AddRow(ntime, 5., 0, bl, nchan * ncorr,
+                       data.data() + bl * nchan * ncorr);
   }
 
-  // // Execution
+  // Execution
   step_scale_data->process(std::move(bda_buffer));
 
   // Assertion
-  const auto results = step_test_output->results_->GetData();
-  // size shoule be equal to datasize
-  BOOST_CHECK_EQUAL(size_t{4},
-                    step_test_output->results_->GetNumberOfElements());
-  BOOST_CHECK(casacore::near(4., results[0].real()));
-  BOOST_CHECK(casacore::near(9.798, results[2].real()));
-  // Results 1 and 3 are close to zero, but slightly different every test.
+  BOOST_REQUIRE_EQUAL(expected_data.size(),
+                      step_test_output->results_->GetNumberOfElements());
+  const auto* results = step_test_output->results_->GetData();
+  for (std::size_t i = 0; i < expected_data.size(); ++i) {
+    BOOST_TEST(expected_data[i] == results[i]);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

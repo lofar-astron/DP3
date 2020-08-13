@@ -19,6 +19,7 @@
 #include "BDAAverager.h"
 
 #include "BDABuffer.h"
+#include "DPInput.h"
 #include "../Common/ParameterSet.h"
 
 #include <boost/make_unique.hpp>
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <numeric>
 
 namespace DP3 {
 namespace DPPP {
@@ -64,9 +66,11 @@ void BDAAverager::BaselineBuffer::Clear() {
   std::fill(uvw, uvw + 3, 0.0);
 }
 
-BDAAverager::BDAAverager(const DP3::ParameterSet& parset,
+BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
                          const std::string& prefix)
-    : bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
+    : input_(input),
+      timer_("BDA Averager"),
+      bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
       bl_threshold_channel_(
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
@@ -78,10 +82,19 @@ BDAAverager::BDAAverager(const DP3::ParameterSet& parset,
 
 BDAAverager::~BDAAverager() {}
 
-void BDAAverager::updateInfo(const DPInfo& info) {
-  DPStep::updateInfo(info);
+void BDAAverager::updateInfo(const DPInfo& _info) {
+  if (_info.nchan() != _info.chanFreqs().size() ||
+      !_info.channelsAreRegular()) {
+    throw std::invalid_argument("Invalid info in BDA averager");
+  }
 
-  const std::vector<double>& lengths = info.getBaselineLengths();
+  DPStep::updateInfo(_info);
+  info().setNeedVisData();
+
+  std::vector<std::vector<double>> freqs(_info.nbaselines());
+  std::vector<std::vector<double>> widths(_info.nbaselines());
+
+  const std::vector<double>& lengths = _info.getBaselineLengths();
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -92,45 +105,70 @@ void BDAAverager::updateInfo(const DPInfo& info) {
 
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
-  baseline_buffers_.reserve(info.nbaselines());
-  for (std::size_t i = 0; i < info.nbaselines(); ++i) {
+  baseline_buffers_.reserve(_info.nbaselines());
+  for (std::size_t i = 0; i < _info.nbaselines(); ++i) {
     // Determine the time averaging factor. Ignore max_interval_ if it is 0.0.
     std::size_t factor_time = std::floor(bl_threshold_time_ / lengths[i]);
     if (max_interval_ > 0.0 &&
-        factor_time * info.timeInterval() > max_interval_) {
-      factor_time = std::floor(max_interval_ / info.timeInterval());
+        factor_time * _info.timeInterval() > max_interval_) {
+      factor_time = std::floor(max_interval_ / _info.timeInterval());
     }
     factor_time = std::max(factor_time, std::size_t{1});
 
     // Determine the number of channels in the output.
-    std::size_t nchan = info.nchan();
+    std::size_t nchan = _info.nchan();
     if (bl_threshold_channel_ > 0.0) {
       nchan = std::ceil(lengths[i] / bl_threshold_channel_ * double(nchan));
-      if (nchan > info.nchan()) {
-        nchan = info.nchan();
+      if (nchan > _info.nchan()) {
+        nchan = _info.nchan();
       } else if (nchan < min_channels_) {
         nchan = min_channels_;
       }
     }
 
-    baseline_buffers_.emplace_back(factor_time, info.nchan(), nchan,
-                                   info.ncorr());
+    baseline_buffers_.emplace_back(factor_time, _info.nchan(), nchan,
+                                   _info.ncorr());
     relative_channels += float(nchan) / float(factor_time);
     max_channels = std::max(max_channels, nchan);
+
+    // Calculate the center frequency and width of the averaged channels.
+    const std::vector<std::size_t>& indices =
+        baseline_buffers_.back().input_channel_indices;
+    const auto input_widths_begin = _info.chanWidths().begin();
+    freqs[i].reserve(nchan);
+    widths[i].reserve(nchan);
+    for (std::size_t ch = 0; ch < nchan; ++ch) {
+      freqs[i].push_back(0.5 * (_info.chanFreqs()[indices[ch]] +
+                                _info.chanFreqs()[indices[ch + 1] - 1]));
+      widths[i].push_back(std::accumulate(input_widths_begin + indices[ch],
+                                          input_widths_begin + indices[ch + 1],
+                                          0.0));
+    }
   }
 
   std::size_t bda_channels = std::ceil(relative_channels);
   bda_channels = std::max(bda_channels, max_channels);
 
-  bda_pool_size_ = info.ncorr() * bda_channels;
+  bda_pool_size_ = _info.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+
+  info().set(std::move(freqs), std::move(widths));
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {
-  const casacore::IPosition& shape = buffer.getData().shape();
-  if (shape.size() != 3u || shape[0] != info().ncorr() ||
-      shape[1] != info().nchan() ||
-      shape[2] != ssize_t(baseline_buffers_.size())) {
+  NSTimer::StartStop sstime(timer_);
+
+  DPBuffer dummy_buffer;
+  const casacore::Cube<float>& weights =
+      input_.fetchWeights(buffer, dummy_buffer, timer_);
+  const casacore::Matrix<double>& uvw =
+      input_.fetchUVW(buffer, dummy_buffer, timer_);
+
+  const casacore::IPosition expected_shape(3, info().ncorr(), info().nchan(),
+                                           baseline_buffers_.size());
+  if (buffer.getData().shape() != expected_shape ||
+      buffer.getFlags().shape() != expected_shape ||
+      weights.shape() != expected_shape) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 
@@ -145,8 +183,8 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     }
     bb.interval += buffer.getExposure();
 
-    std::complex<float>* data = bb.data.data();
-    float* weights = bb.weights.data();
+    std::complex<float>* bb_data = bb.data.data();
+    float* bb_weights = bb.weights.data();
     float total_weight = 0.0f;
 
     for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
@@ -155,21 +193,21 @@ bool BDAAverager::process(const DPBuffer& buffer) {
            ich < bb.input_channel_indices[och + 1]; ++ich) {
         for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
           if (!buffer.getFlags()(corr, ich, b)) {
-            const float weight = buffer.getWeights()(corr, ich, b);
+            const float weight = weights(corr, ich, b);
 
-            data[corr] += buffer.getData()(corr, ich, b) * weight;
-            weights[corr] += weight;
+            bb_data[corr] += buffer.getData()(corr, ich, b) * weight;
+            bb_weights[corr] += weight;
             total_weight += weight;
           }
         }
       }
-      data += info().ncorr();
-      weights += info().ncorr();
+      bb_data += info().ncorr();
+      bb_weights += info().ncorr();
     }
 
-    bb.uvw[0] += buffer.getUVW()(0, b) * total_weight;
-    bb.uvw[1] += buffer.getUVW()(1, b) * total_weight;
-    bb.uvw[2] += buffer.getUVW()(2, b) * total_weight;
+    bb.uvw[0] += uvw(0, b) * total_weight;
+    bb.uvw[1] += uvw(1, b) * total_weight;
+    bb.uvw[2] += uvw(2, b) * total_weight;
 
     if (bb.times_added == bb.time_factor) {
       AddBaseline(b);  // BaselineBuffer is complete: Add it.
@@ -208,7 +246,7 @@ void BDAAverager::finish() {
 void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   BDAAverager::BaselineBuffer& bb = baseline_buffers_[baseline_nr];
   assert(bb.times_added > 0);
-  const std::size_t nchan = bb.input_channel_indices.size() - 1;
+  const std::size_t nchan = info().chanFreqs(baseline_nr).size();
 
   // Divide data values by their total weight.
   float* weights = bb.weights.data();
@@ -229,8 +267,8 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
   }
 
-  bda_buffer_->AddRow(bb.time, bb.interval, next_rownr_, baseline_nr, nchan,
-                      info().ncorr(), bb.data.data(), nullptr,
+  bda_buffer_->AddRow(bb.time, bb.interval, next_rownr_, baseline_nr,
+                      nchan * info().ncorr(), bb.data.data(), nullptr,
                       bb.weights.data(), nullptr, bb.uvw);
 }
 

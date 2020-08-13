@@ -322,7 +322,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     } else if (type == "averager" || type == "average" || type == "squash") {
       step = std::make_shared<Averager>(reader, parset, prefix);
     } else if (type == "bdaaverager") {
-      step = std::make_shared<BDAAverager>(parset, prefix);
+      step = std::make_shared<BDAAverager>(*reader, parset, prefix);
     } else if (type == "madflagger" || type == "madflag") {
       step = std::make_shared<MedFlagger>(reader, parset, prefix);
     } else if (type == "preflagger" || type == "preflag") {
@@ -433,9 +433,8 @@ DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
     // Create MSUpdater.
     // Take care the history is not written twice.
     // Note that if there is nothing to write, the updater won't do anything.
-    step =
-        std::make_shared<MSUpdater>(dynamic_cast<MSReader*>(reader), outName,
-                                    parset, prefix, outName != currentMSName);
+    step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                       outName != currentMSName);
   } else {
     step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
     reader->setReadVisData(true);

@@ -119,7 +119,11 @@ void UVWFlagger::updateInfo(const DPInfo& infoIn) {
   info().setWriteFlags();
   // Convert the given frequencies to possibly averaged frequencies.
   // Divide it by speed of light to get reciproke of wavelengths.
-  itsRecWavel = infoIn.chanFreqs() / casacore::C::c;
+  itsRecWavel = infoIn.chanFreqs();
+  const double inv_c = 1.0 / casacore::C::c;
+  for (double& wl : itsRecWavel) {
+    wl *= inv_c;
+  }
   // Handle the phase center (if given).
   if (!itsCenter.empty()) {
     handleCenter();

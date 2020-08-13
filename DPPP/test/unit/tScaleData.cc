@@ -43,6 +43,10 @@ using DP3::DPPP::DPStep;
 using DP3::DPPP::ScaleData;
 using std::vector;
 
+namespace {
+const double kBaseFreq = 10.5;  // MHz
+}
+
 BOOST_AUTO_TEST_SUITE(scaledata)
 
 // Simple class to generate input arrays.
@@ -61,17 +65,9 @@ class TestInput : public DPInput {
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(nbl);
     vector<int> ant2(nbl);
-    int st1 = 0;
-    int st2 = 0;
     for (int i = 0; i < nbl; ++i) {
-      ant1[i] = st1;
-      ant2[i] = st2;
-      if (++st2 == 4) {
-        st2 = 0;
-        if (++st1 == 4) {
-          st1 = 0;
-        }
-      }
+      ant1[i] = i / 4;
+      ant2[i] = i % 4;
     }
     vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
@@ -104,10 +100,12 @@ class TestInput : public DPInput {
     vector<double> antDiam(4, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    vector<double> chanWidth(nchan, 1000000.);
-    casacore::Vector<double> chanFreqs(nchan);
-    indgen(chanFreqs, 10500000., 1000000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanWidth(nchan, 1e6);
+    std::vector<double> chanFreqs;
+    for (int i = 0; i < nchan; i++) {
+      chanFreqs.push_back((kBaseFreq + i) * 1e6);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:
@@ -180,23 +178,20 @@ class TestOutput : public DPStep {
     casacore::Complex* dataPtr = data.data();
     int cnt = 0;
     for (int i = 0; i < itsNBl; ++i) {
-      double freq = 10.5;
       for (int j = 0; j < itsNChan; ++j) {
-        double sc1 = 3 + 2 * freq + freq * freq;
-        double sc2 = sc1;
-        if ((i % 16) / 4 == 0) {
-          sc1 = 2 + 0.5 * freq;
-        }
-        if (i % 4 == 0) {
-          sc2 = 2 + 0.5 * freq;
-        }
+        double freq = kBaseFreq + j;
+        double coeff1 = 2 + 0.5 * freq;
+        double coeff2 = 3 + 2 * freq + 1 * freq * freq;
+        // The first antenna uses coeff1, the others use coeff2.
+        double sc1 = info().getAnt1()[i] == 0 ? coeff1 : coeff2;
+        double sc2 = info().getAnt2()[i] == 0 ? coeff1 : coeff2;
         double scale = sqrt(sc1 * sc2);
-        freq += 1;
         for (int k = 0; k < itsNCorr; ++k) {
-          *dataPtr++ =
+          *dataPtr =
               casacore::Complex(cnt + itsCount * 10, cnt - 10 + itsCount * 6) *
               float(scale);
-          cnt++;
+          ++dataPtr;
+          ++cnt;
         }
       }
     }

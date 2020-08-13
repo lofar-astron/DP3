@@ -330,22 +330,8 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   itsFlagCounter.init(getInfo());
 
   // Check that channels are evenly spaced
-  if (info().nchan() > 1) {
-    Vector<Double> upFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 1), IPosition(1, info().nchan() - 1)));
-    Vector<Double> lowFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 0), IPosition(1, info().nchan() - 1)));
-    Double freqstep0 = upFreq(0) - lowFreq(0);
-    // Compare up to 1kHz accuracy
-    bool regularChannels =
-        allNearAbs(upFreq - lowFreq, freqstep0, 1.e3) &&
-        allNearAbs(info().chanWidths(), info().chanWidths()(0), 1.e3);
-
-    if (!itsUseH5Parm) {
-      if (!regularChannels)
-        throw Exception(
-            "ApplyCal with parmdb requires evenly spaced channels.");
-    }
+  if (!itsUseH5Parm && !info().channelsAreRegular()) {
+    throw Exception("ApplyCal with parmdb requires evenly spaced channels.");
   }
 }
 
