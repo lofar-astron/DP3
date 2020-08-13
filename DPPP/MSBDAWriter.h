@@ -29,6 +29,7 @@
 #include "../Common/ParameterSet.h"
 
 using casacore::Table;
+using casacore::Int;
 
 namespace DP3 {
 namespace DPPP {
@@ -53,9 +54,26 @@ class MSBDAWriter : public DPStep {
   void CreateMS();
 
   void CreateMainTable();
+
+  ///  Add the BDA_TIME_AXIS table to the measurement set
+  /// if it does not already exist.
   void CreateBDATimeAxis();
+
+  ///  Add the BDA_TIME_FACTOR table to the measurement set
+  /// if it does not already exist.
   void CreateBDATimeFactor();
-  void AddMetaDataFrequency();
+
+  /// Add the BDA_FREQ_AXIS_ID and BDA_SET_ID columns to SPECTRAL_WINDOW.
+  void CreateMetaDataFrequencyColumns();
+
+  /// Write a metadata row to BDA_TIME_AXIS
+  /// metadata of the baselines to BDA_TIME_FACTOR
+  /// and write to the metadata columns of SPECTRAL_WINDOW.
+  /// If an entry already exists, nothing is written.
+  void WriteMetaData();
+
+  /// Write a row in the BDA_TIME_AXIS table
+  void WriteTimeAxisRow(Table&, const Int&, const double&, const double&);
 
  private:
   MSReader* reader_;

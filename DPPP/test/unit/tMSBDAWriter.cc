@@ -57,7 +57,7 @@ BOOST_FIXTURE_TEST_CASE(CreateBDATimeAxis, FixtureDirectory) {
   BOOST_TEST(!td.isColumn("FIELD_ID"));
 }
 
-BOOST_FIXTURE_TEST_CASE(AddMetaDataFrequency, FixtureDirectory) {
+BOOST_FIXTURE_TEST_CASE(CreateMetaDataFrequencyColumns, FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_ms_out_freq.MS";
   ParameterSet parset;

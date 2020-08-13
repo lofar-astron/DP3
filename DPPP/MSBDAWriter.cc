@@ -33,6 +33,7 @@ using casacore::Bool;
 using casacore::Double;
 using casacore::Int;
 using casacore::MeasurementSet;
+using casacore::ObjectID;
 using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
 using casacore::SetupNewTable;
@@ -41,6 +42,7 @@ using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
 using casacore::TableLock;
+using casacore::True;
 
 namespace {
 /// Measurement Set column names (main table). Uses the same order as
@@ -69,24 +71,57 @@ const std::string kWeightSpectrum = "WEIGHT_SPECTRUM";
 const std::string kFlag = "FLAG";
 const std::string kFlagCategory = "FLAG_CATEGORY";
 const std::string kFlagRow = "FLAG_ROW";
-const std::string kBdaFreqAxisId = "BDA_FREQ_AXIS_ID";
+/// @}
+}  // namespace
+
+namespace {
+/// BDA_TIME_AXIS table column names.
+const std::string kBDATimeAxisTable = "BDA_TIME_AXIS";
+
+const std::string kTimeAxisId = "BDA_TIME_AXIS_ID";
+const std::string kIsBdaApplied = "IS_BDA_APPLIED";
+const std::string kSingleFactorPerBL = "SINGLE_FACTOR_PER_BASELINE";
+const std::string kMaxTimeInterval = "MAX_TIME_INTERVAL";
+const std::string kMinTimeInterval = "MIN_TIME_INTERVAL";
+const std::string kUnitTimeInterval = "UNIT_TIME_INTERVAL";
+const std::string kIntervalFactors = "INTEGER_INTERVAL_FACTORS";
+const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
+/// @}
+}  // namespace
+
+namespace {
+/// BDA_TIME_FACTOR table column names.
+const std::string kBDATimeFactorTable = "BDA_TIME_FACTOR";
+
+const std::string kFactor = "FACTOR";
+/// @}
+}  // namespace
+
+namespace {
+/// BDA metadata table column names for SPECTRAL_WINDOW.
+const std::string kSpectralWindowTable = "SPECTRAL_WINDOW";
+
+const std::string kBDAFreqAxisId = "BDA_FREQ_AXIS_ID";
+const std::string kBDASetId = "BDA_SET_ID";
 /// @}
 }  // namespace
 
 namespace DP3 {
 namespace DPPP {
 
-MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& outName,
+MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
                          const ParameterSet& parset, const std::string& prefix)
-    : reader_(reader), outName_(outName), parset_(parset), prefix_(prefix) {
+    : reader_(reader), outName_(out_name), parset_(parset), prefix_(prefix) {
   overwrite_ = parset.getBool(prefix + "overwrite", false);
 }
 
 MSBDAWriter::~MSBDAWriter() {}
 
-void MSBDAWriter::updateInfo(const DPInfo& infoIn) {
-  DPStep::updateInfo(infoIn);
+void MSBDAWriter::updateInfo(const DPInfo& info_in) {
+  DPStep::updateInfo(info_in);
   CreateMS();
+
+  WriteMetaData();
 
   MSWriter::writeHistory(ms_, parset_);
   ms_.flush(true, true);
@@ -149,16 +184,12 @@ void MSBDAWriter::finish() {}
 void MSBDAWriter::show(std::ostream& os) const {}
 
 void MSBDAWriter::CreateMS() {
-  bool create_bda_time_axis = true;
-
   CreateMainTable();
   // TODO fill the main table
 
-  AddMetaDataFrequency();
-
-  if (create_bda_time_axis) {
-    CreateBDATimeAxis();
-  }
+  CreateMetaDataFrequencyColumns();
+  CreateBDATimeAxis();
+  CreateBDATimeFactor();
 }
 
 void MSBDAWriter::CreateMainTable() {
@@ -184,7 +215,6 @@ void MSBDAWriter::CreateMainTable() {
   fixedColumns[17] = kWeight;
   // fixedColumns[1] = "FLAG_CATEGORY";
   // fixedColumns[12] = "FLAG_ROW";
-  // fixedColumns[20] = "BDA_FREQ_AXIS_ID";
   const TableDesc& td = reader_->table().project(fixedColumns).tableDesc();
 
   // Add DATA, WEIGHT_SPECTRUM and FLAG columns.
@@ -201,76 +231,102 @@ void MSBDAWriter::CreateMainTable() {
   TableCopy::copyInfo(ms_, reader_->table());
 
   casacore::Block<casacore::String> omitted_subtables(1);
-  omitted_subtables[0] = "BDA_TIME_AXIS";
+  omitted_subtables[0] = kBDATimeAxisTable;
   TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
 }
 
 void MSBDAWriter::CreateBDATimeAxis() {
-  const std::string tableName = "BDA_TIME_AXIS";
-  const std::string version_bda_time_axis = "1.0";
-
   // Build the table description for BDA_TIME_AXIS.
-  TableDesc td(tableName, version_bda_time_axis, TableDesc::Scratch);
+  TableDesc td(kBDATimeAxisTable, TableDesc::Scratch);
   td.comment() = "Meta information that specify the regularity of the MS.";
-  td.addColumn(ScalarColumnDesc<Int>("BDA_TIME_AXIS_ID", "unique id"));
-  td.addColumn(ScalarColumnDesc<Bool>("IS_BDA_APPLIED",
-                                      "BDA has been applied to the time axis"));
-  td.addColumn(ScalarColumnDesc<Bool>(
-      "SINGLE_FACTOR_PER_BASELINE",
-      "If for every baseline, the averaging factor is constant in time."));
-  td.addColumn(ScalarColumnDesc<Double>(
-      "MAX_TIME_INTERVAL", "maximum TIME_INTERVAL over this subset"));
-  td.addColumn(ScalarColumnDesc<Double>(
-      "MIN_TIME_INTERVAL", "minimum TIME_INTERVAL over this subset"));
-  td.addColumn(ScalarColumnDesc<Double>(
-      "UNIT_TIME_INTERVAL",
-      "An integer multiple of the UNIT_TIME_INTERVAL value"));
-  td.addColumn(ScalarColumnDesc<Double>(
-      "INTEGER_INTERVAL_FACTORS",
-      "The TIME_INTERVAL between two consecutive timesteps"));
-  td.addColumn(ScalarColumnDesc<Bool>(
-      "HAS_BDA_ORDERING",
-      "if a row starts at T_0 (where T_0 = TIME - 0.5 * TIME_INTERVAL) then "
-      "all visibilities that end before T_0 are before this row"));
+  td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
+  td.addColumn(ScalarColumnDesc<Bool>(kIsBdaApplied));
+  td.addColumn(ScalarColumnDesc<Bool>(kSingleFactorPerBL));
+  td.addColumn(ScalarColumnDesc<Double>(kMaxTimeInterval));
+  td.addColumn(ScalarColumnDesc<Double>(kMinTimeInterval));
+  td.addColumn(ScalarColumnDesc<Double>(kUnitTimeInterval));
+  td.addColumn(ScalarColumnDesc<Bool>(kIntervalFactors));
+  td.addColumn(ScalarColumnDesc<Bool>(kHasBDAOrdering));
 
   // Add the BDA_TIME_AXIS as a subtable to the output measurementset.
-  SetupNewTable newTable(outName_ + '/' + tableName, td, Table::New);
-  Table bdaTimeAxisTable(newTable);
-  ms_.rwKeywordSet().defineTable(tableName, bdaTimeAxisTable);
+  SetupNewTable new_table(outName_ + '/' + kBDATimeAxisTable, td, Table::New);
+  Table bda_time_axis_table(new_table);
+  ms_.rwKeywordSet().defineTable(kBDATimeAxisTable, bda_time_axis_table);
 }
 
 void MSBDAWriter::CreateBDATimeFactor() {
-  const std::string tableName = "BDA_TIME_FACTOR";
-  const std::string version_bda_time_axis = "1.0";
-
-  // Build the table description for BDA_TIME_AXIS.
-  TableDesc td(tableName, version_bda_time_axis, TableDesc::Scratch);
-  td.addColumn(ScalarColumnDesc<Int>(
-      "BDA_TIME_AXIS_ID", "refers back to a row in the table BDA_TIME_AXIS"));
-  td.addColumn(ScalarColumnDesc<Int>("ANTENNA1"));
-  td.addColumn(ScalarColumnDesc<Int>("ANTENNA2"));
-  td.addColumn(ScalarColumnDesc<Double>(
-      "FACTOR",
-      "Averaging factor for this baseline relative to UNIT_TIME_INTERVAL in "
-      "the table TIME_AXIS_BDA"));
+  // Build the table description for BDA_TIME_FACTOR.
+  TableDesc td(kBDATimeFactorTable, TableDesc::Scratch);
+  td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
+  td.addColumn(ScalarColumnDesc<Int>(kAntenna1));
+  td.addColumn(ScalarColumnDesc<Int>(kAntenna2));
+  td.addColumn(ScalarColumnDesc<Double>(kFactor));
 
   // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
-  SetupNewTable newTable(outName_ + '/' + tableName, td, Table::New);
-  Table bdaTimeFactorTable(newTable);
-  ms_.rwKeywordSet().defineTable(tableName, bdaTimeFactorTable);
+  SetupNewTable new_table(outName_ + '/' + kBDATimeFactorTable, td, Table::New);
+  Table bda_time_factor_table(new_table);
+  ms_.rwKeywordSet().defineTable(kBDATimeFactorTable, bda_time_factor_table);
 }
 
-void MSBDAWriter::AddMetaDataFrequency() {
-  Table outSPW = Table(outName_ + "/SPECTRAL_WINDOW", Table::Update);
+void MSBDAWriter::CreateMetaDataFrequencyColumns() {
+  Table out_spw = Table(outName_ + '/' + kSpectralWindowTable, Table::Update);
 
-  // Add table if not exists
-  if (outSPW.tableDesc().isColumn("BDA_FREQ_AXIS_ID")) {
-    ScalarColumnDesc<Int> bdaFreqAxisIdColumn("BDA_FREQ_AXIS_ID");
+  // Add column BDA_FREQ_AXIS_ID if not exists
+  if (!out_spw.tableDesc().isColumn(kBDAFreqAxisId)) {
+    ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDAFreqAxisId);
     bdaFreqAxisIdColumn.setDefault(-1);
-    outSPW.addColumn(bdaFreqAxisIdColumn);
+    out_spw.addColumn(bdaFreqAxisIdColumn);
   }
 
-  // TODO fill / overwrite column
+  // Add column BDA_SET_ID if not exists
+  if (!out_spw.tableDesc().isColumn(kBDASetId)) {
+    ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDASetId);
+    bdaFreqAxisIdColumn.setDefault(-1);
+    out_spw.addColumn(bdaFreqAxisIdColumn);
+  }
+}
+
+void MSBDAWriter::WriteMetaData() {
+  Table bda_time_axis(outName_ + '/' + kBDATimeAxisTable, Table::Update);
+  if (bda_time_axis.nrow() > 0) {
+    // BDA metadata already exists, do nothing.
+    // TODO test that the SPECTRAL_WINDOW has not been overwritten in this case.
+    return;
+  }
+
+  Int pid = ObjectID().pid();
+
+  // TODO write all baselines to BDA_TIME_FACTOR using the unique id and info
+  //      from bdaaverager (TODO). Keep track of max and min factors.
+  std::size_t min_factor_time = 65535;
+  std::size_t max_factor_time = 1;
+
+  WriteTimeAxisRow(bda_time_axis, pid, min_factor_time, max_factor_time);
+
+  // Write to SPECTRAL_WINDOW using the unique id and 0 for BDA_SET_ID
+  Table spectral_window(outName_ + '/' + kSpectralWindowTable, Table::Update);
+  ScalarColumn<casacore::Int>(spectral_window, kBDAFreqAxisId).fillColumn(pid);
+  ScalarColumn<casacore::Int>(spectral_window, kBDASetId).fillColumn(0);
+}
+
+void MSBDAWriter::WriteTimeAxisRow(Table& bda_time_axis, const Int& pid,
+                                   const double& min_factor_time,
+                                   const double& max_factor_time) {
+  const double interval = info().timeInterval();
+  int row = bda_time_axis.nrow();
+  bda_time_axis.addRow();
+  ScalarColumn<casacore::Int>(bda_time_axis, kTimeAxisId).put(row, pid);
+  ScalarColumn<casacore::Bool>(bda_time_axis, kIsBdaApplied).put(row, True);
+  ScalarColumn<casacore::Bool>(bda_time_axis, kSingleFactorPerBL)
+      .put(row, True);
+  ScalarColumn<casacore::Double>(bda_time_axis, kMaxTimeInterval)
+      .put(row, max_factor_time * interval);
+  ScalarColumn<casacore::Double>(bda_time_axis, kMinTimeInterval)
+      .put(row, min_factor_time * interval);
+  ScalarColumn<casacore::Double>(bda_time_axis, kUnitTimeInterval)
+      .put(row, interval);
+  ScalarColumn<casacore::Bool>(bda_time_axis, kIntervalFactors).put(row, True);
+  ScalarColumn<casacore::Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
 }
 
 }  // namespace DPPP
