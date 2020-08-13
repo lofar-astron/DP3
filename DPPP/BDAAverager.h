@@ -35,15 +35,18 @@ namespace DP3 {
 namespace DPPP {
 
 class BDABuffer;
+class DPInput;
 
 class BDAAverager : public DPStep {
  public:
   /**
    * Constructor, which uses a parset for configuring the step.
+   * @param input DPInput object, for fetching weights, UVW etc.
    * @param parset A ParameterSet that contains the configuration.
    * @param prefix ParameterSet Prefix for obtaining the configuration.
    */
-  BDAAverager(const DP3::ParameterSet& parset, const std::string& prefix);
+  BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
+              const std::string& prefix);
 
   ~BDAAverager() override;
 
@@ -73,6 +76,9 @@ class BDAAverager : public DPStep {
   };
 
   void AddBaseline(std::size_t baseline_nr);
+
+  DPInput& input_;
+  NSTimer timer_;
 
   /// Baseline threshold length for time averaging.
   const double bl_threshold_time_;

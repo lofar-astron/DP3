@@ -19,6 +19,7 @@
 #include "BDAAverager.h"
 
 #include "BDABuffer.h"
+#include "DPInput.h"
 #include "../Common/ParameterSet.h"
 
 #include <boost/make_unique.hpp>
@@ -65,9 +66,11 @@ void BDAAverager::BaselineBuffer::Clear() {
   std::fill(uvw, uvw + 3, 0.0);
 }
 
-BDAAverager::BDAAverager(const DP3::ParameterSet& parset,
+BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
                          const std::string& prefix)
-    : bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
+    : input_(input),
+      timer_("BDA Averager"),
+      bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
       bl_threshold_channel_(
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 3600.0)),
@@ -86,6 +89,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   }
 
   DPStep::updateInfo(_info);
+  info().setNeedVisData();
 
   std::vector<std::vector<double>> freqs(_info.nbaselines());
   std::vector<std::vector<double>> widths(_info.nbaselines());
@@ -151,10 +155,19 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {
-  const casacore::IPosition& shape = buffer.getData().shape();
-  if (shape.size() != 3u || shape[0] != info().ncorr() ||
-      shape[1] != info().nchan() ||
-      shape[2] != ssize_t(baseline_buffers_.size())) {
+  NSTimer::StartStop sstime(timer_);
+
+  DPBuffer dummy_buffer;
+  const casacore::Cube<float>& weights =
+      input_.fetchWeights(buffer, dummy_buffer, timer_);
+  const casacore::Matrix<double>& uvw =
+      input_.fetchUVW(buffer, dummy_buffer, timer_);
+
+  const casacore::IPosition expected_shape(3, info().ncorr(), info().nchan(),
+                                           baseline_buffers_.size());
+  if (buffer.getData().shape() != expected_shape ||
+      buffer.getFlags().shape() != expected_shape ||
+      weights.shape() != expected_shape) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 
@@ -169,8 +182,8 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     }
     bb.interval += buffer.getExposure();
 
-    std::complex<float>* data = bb.data.data();
-    float* weights = bb.weights.data();
+    std::complex<float>* bb_data = bb.data.data();
+    float* bb_weights = bb.weights.data();
     float total_weight = 0.0f;
 
     for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
@@ -179,21 +192,21 @@ bool BDAAverager::process(const DPBuffer& buffer) {
            ich < bb.input_channel_indices[och + 1]; ++ich) {
         for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
           if (!buffer.getFlags()(corr, ich, b)) {
-            const float weight = buffer.getWeights()(corr, ich, b);
+            const float weight = weights(corr, ich, b);
 
-            data[corr] += buffer.getData()(corr, ich, b) * weight;
-            weights[corr] += weight;
+            bb_data[corr] += buffer.getData()(corr, ich, b) * weight;
+            bb_weights[corr] += weight;
             total_weight += weight;
           }
         }
       }
-      data += info().ncorr();
-      weights += info().ncorr();
+      bb_data += info().ncorr();
+      bb_weights += info().ncorr();
     }
 
-    bb.uvw[0] += buffer.getUVW()(0, b) * total_weight;
-    bb.uvw[1] += buffer.getUVW()(1, b) * total_weight;
-    bb.uvw[2] += buffer.getUVW()(2, b) * total_weight;
+    bb.uvw[0] += uvw(0, b) * total_weight;
+    bb.uvw[1] += uvw(1, b) * total_weight;
+    bb.uvw[2] += uvw(2, b) * total_weight;
 
     if (bb.times_added == bb.time_factor) {
       AddBaseline(b);  // BaselineBuffer is complete: Add it.
