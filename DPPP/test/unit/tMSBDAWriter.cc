@@ -37,6 +37,10 @@ BOOST_FIXTURE_TEST_CASE(CreateBDATimeAxis, FixtureDirectory) {
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
+  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+           std::vector<int>{0});
   MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
@@ -66,6 +70,10 @@ BOOST_FIXTURE_TEST_CASE(CreateMetaDataFrequencyColumns, FixtureDirectory) {
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
+  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+           std::vector<int>{0});
   MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
@@ -99,7 +107,6 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
-  info.setBDAFactors({1});
   writer.updateInfo(info);
 
   auto buffer = boost::make_unique<BDABuffer>(1);

@@ -73,10 +73,10 @@ class MSBDAWriter : public DPStep {
   void WriteMetaData();
 
   /// Write all the baselines to the BDA_TIME_FACTOR table.
-  void WriteTimeFactorRows(const Int&, size_t&, size_t&);
+  void WriteTimeFactorRows(const Int&, unsigned int&, unsigned int&);
 
   /// Write a row in the BDA_TIME_AXIS table.
-  void WriteTimeAxisRow(Table&, const Int&, const double&, const double&);
+  void WriteTimeAxisRow(const Int&, const unsigned int&, const unsigned int&);
 
   /// Write data to the BDA data columns of the SPECTRAL_WINDOW table.
   /// The BDA_SET_ID will be all zeros.

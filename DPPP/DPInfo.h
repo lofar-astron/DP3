@@ -144,6 +144,9 @@ class DPInfo {
   void update(unsigned int startChan, unsigned int nchan,
               const std::vector<unsigned int>& baselines, bool remove);
 
+  /// Update the info for the given average factors.
+  void update(const std::vector<unsigned int> timeAvg);
+
   /// Remove unused stations from the antenna lists.
   void removeUnusedAnt();
 
@@ -166,10 +169,12 @@ class DPInfo {
   unsigned int nantenna() const { return itsAntNames.size(); }
   unsigned int nbaselines() const { return itsAnt1.size(); }
   unsigned int ntime() const { return itsNTime; }
-  unsigned int ntimeAvg() const { return itsTimeAvg; }
+  unsigned int ntimeAvg(unsigned int baseline = 0) const {
+    return itsTimeAvg[baseline];
+  }
+  const std::vector<unsigned int>& ntimeAvgs() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
-  const std::vector<size_t>& getBDAFactors() const { return itsBDAFactors; }
   const casacore::Vector<casacore::Int>& getAnt1() const { return itsAnt1; }
   const casacore::Vector<casacore::Int>& getAnt2() const { return itsAnt2; }
   const casacore::Vector<casacore::String>& antennaNames() const {
@@ -274,10 +279,6 @@ class DPInfo {
     itsBeamCorrectionDir = dir;
   }
 
-  void setBDAFactors(const std::vector<size_t>& factors) {
-    itsBDAFactors = factors;
-  }
-
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -301,7 +302,7 @@ class DPInfo {
   unsigned int itsNChan;
   unsigned int itsChanAvg;
   unsigned int itsNTime;
-  unsigned int itsTimeAvg;
+  std::vector<unsigned int> itsTimeAvg;
   double itsStartTime;
   double itsTimeInterval;
   casacore::MDirection itsPhaseCenter;
@@ -322,7 +323,6 @@ class DPInfo {
   std::vector<casacore::MPosition> itsAntPos;
   std::vector<int> itsAntUsed;
   std::vector<int> itsAntMap;
-  std::vector<size_t> itsBDAFactors;  ///< Averaging factor of all baselines
   casacore::Vector<casacore::Int> itsAnt1;    ///< ant1 of all baselines
   casacore::Vector<casacore::Int> itsAnt2;    ///< ant2 of all baselines
   mutable std::vector<double> itsBLength;     ///< baseline lengths

@@ -78,7 +78,7 @@ void BDAAverager::updateInfo(const DPInfo& info_in) {
   DPStep::updateInfo(info_in);
 
   const std::vector<double>& lengths = info_in.getBaselineLengths();
-  std::vector<size_t> baseline_factors(info_in.nbaselines());
+  std::vector<unsigned int> baseline_factors(info_in.nbaselines());
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -116,7 +116,7 @@ void BDAAverager::updateInfo(const DPInfo& info_in) {
   bda_pool_size_ = info_in.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 
-  info().setBDAFactors(baseline_factors);
+  info().update(baseline_factors);
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {

@@ -123,7 +123,7 @@ MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
 MSBDAWriter::~MSBDAWriter() {}
 
 void MSBDAWriter::updateInfo(const DPInfo& info_in) {
-  if (info_in.getBDAFactors().size() != info_in.nbaselines()) {
+  if (info_in.ntimeAvgs().size() != info_in.nbaselines()) {
     throw std::invalid_argument("Invalid time averaging factors");
   }
 
@@ -316,7 +316,7 @@ void MSBDAWriter::CreateBDATimeFactor() {
   td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
   td.addColumn(ScalarColumnDesc<Int>(kAntenna1));
   td.addColumn(ScalarColumnDesc<Int>(kAntenna2));
-  td.addColumn(ScalarColumnDesc<Double>(kFactor));
+  td.addColumn(ScalarColumnDesc<Int>(kFactor));
 
   // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
   SetupNewTable new_table(outName_ + '/' + kBDATimeFactorTable, td, Table::New);
@@ -343,46 +343,40 @@ void MSBDAWriter::CreateMetaDataFrequencyColumns() {
 }
 
 void MSBDAWriter::WriteMetaData() {
-  Table bda_time_axis(outName_ + '/' + kBDATimeAxisTable, Table::Update);
-  if (bda_time_axis.nrow() > 0) {
-    // BDA metadata already exists, do nothing.
-    // TODO test that the SPECTRAL_WINDOW has not been overwritten in this case.
-    return;
-  }
-
   const Int pid = ObjectID().pid();
-  std::size_t min_factor_time = 65535;
-  std::size_t max_factor_time = 1;
+  unsigned int min_factor_time = 65535;
+  unsigned int max_factor_time = 1;
 
   WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
-  WriteTimeAxisRow(bda_time_axis, pid, min_factor_time, max_factor_time);
+  WriteTimeAxisRow(pid, min_factor_time, max_factor_time);
   FillSpectralWindowColumns(pid);
 }
 
-void MSBDAWriter::WriteTimeFactorRows(const Int& pid, size_t& min_factor_time,
-                                      size_t& max_factor_time) {
+void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
+                                      unsigned int& min_factor_time,
+                                      unsigned int& max_factor_time) {
   Table bda_time_factor(outName_ + '/' + kBDATimeFactorTable, Table::Update);
   int row = bda_time_factor.nrow();
   const Vector<Int>& ant1 = info().getAnt1();
   const Vector<Int>& ant2 = info().getAnt2();
-  const std::vector<size_t>& factors = info().getBDAFactors();
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
     bda_time_factor.addRow();
-    const size_t factor = factors[i];
+    const unsigned int factor = info().ntimeAvg(i);
     min_factor_time = std::min(min_factor_time, factor);
     max_factor_time = std::max(max_factor_time, factor);
 
     ScalarColumn<casacore::Int>(bda_time_factor, kTimeAxisId).put(row, pid);
     ScalarColumn<casacore::Int>(bda_time_factor, kAntenna1).put(row, ant1[i]);
     ScalarColumn<casacore::Int>(bda_time_factor, kAntenna2).put(row, ant2[i]);
-    ScalarColumn<casacore::Double>(bda_time_factor, kFactor).put(row, factor);
+    ScalarColumn<casacore::Int>(bda_time_factor, kFactor).put(row, factor);
     ++row;
   }
 }
 
-void MSBDAWriter::WriteTimeAxisRow(Table& bda_time_axis, const Int& pid,
-                                   const double& min_factor_time,
-                                   const double& max_factor_time) {
+void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
+                                   const unsigned int& min_factor_time,
+                                   const unsigned int& max_factor_time) {
+  Table bda_time_axis(outName_ + '/' + kBDATimeAxisTable, Table::Update);
   const double interval = info().timeInterval();
   int row = bda_time_axis.nrow();
   bda_time_axis.addRow();
