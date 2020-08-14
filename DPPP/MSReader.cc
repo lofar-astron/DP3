@@ -677,20 +677,24 @@ void MSReader::prepare2() {
   ArrayColumn<double> resolCol(spwtab, "RESOLUTION");
   ArrayColumn<double> effBWCol(spwtab, "EFFECTIVE_BW");
   ScalarColumn<Double> refCol(spwtab, "REF_FREQUENCY");
-  Vector<double> chanFreqs = freqCol(itsSpw);
-  Vector<double> chanWidths = widthCol(itsSpw);
-  Vector<double> resolutions = resolCol(itsSpw);
-  Vector<double> effectiveBW = effBWCol(itsSpw);
-  double refFreq = refCol(itsSpw);
+  std::vector<double> chanFreqs = freqCol(itsSpw).tovector();
+  std::vector<double> chanWidths = widthCol(itsSpw).tovector();
+  std::vector<double> resolutions = resolCol(itsSpw).tovector();
+  std::vector<double> effectiveBW = effBWCol(itsSpw).tovector();
+  const double refFreq = refCol(itsSpw);
   if (itsUseAllChan) {
-    info().set(chanFreqs, chanWidths, resolutions, effectiveBW,
-               sum(effectiveBW), refFreq);
+    info().set(std::move(chanFreqs), std::move(chanWidths),
+               std::move(resolutions), std::move(effectiveBW), refFreq);
   } else {
-    Vector<double> cwSlice(effectiveBW(Slice(itsStartChan, itsNrChan)));
-    info().set(chanFreqs(Slice(itsStartChan, itsNrChan)),
-               chanWidths(Slice(itsStartChan, itsNrChan)),
-               resolutions(Slice(itsStartChan, itsNrChan)), cwSlice,
-               sum(cwSlice), refFreq);
+    auto freqBegin = chanFreqs.begin() + itsStartChan;
+    auto widthBegin = chanWidths.begin() + itsStartChan;
+    auto resolBegin = resolutions.begin() + itsStartChan;
+    auto effbwBegin = effectiveBW.begin() + itsStartChan;
+    info().set(std::vector<double>(freqBegin, freqBegin + itsNrChan),
+               std::vector<double>(widthBegin, widthBegin + itsNrChan),
+               std::vector<double>(resolBegin, resolBegin + itsNrChan),
+               std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
+               refFreq);
   }
 }
 

@@ -50,23 +50,24 @@ class BDABuffer {
     bool weights_ = true;         ///< Enable/Disable weights.
     bool full_res_flags_ = true;  ///< Enable/Disable full res flags.
   };
+
   struct Row {
     Row(double time, double interval, rownr_t row_nr, std::size_t baseline_nr,
         std::size_t n_channels, std::size_t n_correlations,
         std::complex<float>* data, bool* flags, float* weights,
         bool* fullResFlags, const double* uvw);
-    std::size_t GetDataSize() const { return n_channels_ * n_correlations_; }
-    const double time_;  ///< Start time for the measurements in MJD seconds.
-    const double interval_;  ///< Duration time for the measurements in seconds.
-    rownr_t row_nr_;
-    const std::size_t baseline_nr_;
-    const std::size_t n_channels_;
-    const std::size_t n_correlations_;
-    std::complex<float>* const data_;
-    bool* const flags_;
-    float* const weights_;
-    bool* const full_res_flags_;
-    double uvw_[3];
+    std::size_t GetDataSize() const { return n_channels * n_correlations; }
+    const double time;      ///< Start time for the measurements in MJD seconds.
+    const double interval;  ///< Duration time for the measurements in seconds.
+    rownr_t row_nr;
+    const std::size_t baseline_nr;
+    const std::size_t n_channels;
+    const std::size_t n_correlations;
+    std::complex<float>* const data;
+    bool* const flags;
+    float* const weights;
+    bool* const full_res_flags;
+    double uvw[3];
   };
 
   /**
@@ -99,9 +100,8 @@ class BDABuffer {
    *         False if the buffer is full.
    * @throw std::invalid_argument If the row ordering is incorrect.
    */
-  bool AddRow(double time, double interval, rownr_t row_nr,
-              std::size_t baseline_nr, std::size_t n_channels,
-              std::size_t n_correlations,
+  bool AddRow(double time, double interval, std::size_t baseline_nr,
+              std::size_t n_channels, std::size_t n_correlations,
               const std::complex<float>* data = nullptr,
               const bool* flags = nullptr, const float* weights = nullptr,
               const bool* full_res_flags = nullptr,
@@ -157,18 +157,18 @@ class BDABuffer {
     return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
   }
   const std::complex<float>* GetData(std::size_t row) const {
-    return rows_[row].data_;
+    return rows_[row].data;
   }
 
-  std::complex<float>* GetData(std::size_t row) { return rows_[row].data_; }
-  const bool* GetFlags(std::size_t row) const { return rows_[row].flags_; }
-  bool* GetFlags(std::size_t row) { return rows_[row].flags_; }
-  const float* GetWeights(std::size_t row) const { return rows_[row].weights_; }
-  float* GetWeights(std::size_t row) { return rows_[row].weights_; }
+  std::complex<float>* GetData(std::size_t row) { return rows_[row].data; }
+  const bool* GetFlags(std::size_t row) const { return rows_[row].flags; }
+  bool* GetFlags(std::size_t row) { return rows_[row].flags; }
+  const float* GetWeights(std::size_t row) const { return rows_[row].weights; }
+  float* GetWeights(std::size_t row) { return rows_[row].weights; }
   const bool* GetFullResFlags(std::size_t row) const {
-    return rows_[row].full_res_flags_;
+    return rows_[row].full_res_flags;
   }
-  bool* GetFullResFlags(std::size_t row) { return rows_[row].full_res_flags_; }
+  bool* GetFullResFlags(std::size_t row) { return rows_[row].full_res_flags; }
   const std::vector<Row>& GetRows() const { return rows_; }
 
   static constexpr bool TimeIsLess(double x, double y) {

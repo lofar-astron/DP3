@@ -28,6 +28,7 @@
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "Averager.h"
+#include "BDAAverager.h"
 #include "Counter.h"
 #include "Demixer.h"
 #include "DemixerNew.h"
@@ -317,50 +318,52 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     boost::algorithm::to_lower(type);
     // Define correct name for AOFlagger synonyms.
     if (type == "aoflagger" || type == "aoflag") {
-      step = DPStep::ShPtr(new AOFlaggerStep(reader, parset, prefix));
+      step = std::make_shared<AOFlaggerStep>(reader, parset, prefix);
     } else if (type == "averager" || type == "average" || type == "squash") {
-      step = DPStep::ShPtr(new Averager(reader, parset, prefix));
+      step = std::make_shared<Averager>(reader, parset, prefix);
+    } else if (type == "bdaaverager") {
+      step = std::make_shared<BDAAverager>(*reader, parset, prefix);
     } else if (type == "madflagger" || type == "madflag") {
-      step = DPStep::ShPtr(new MedFlagger(reader, parset, prefix));
+      step = std::make_shared<MedFlagger>(reader, parset, prefix);
     } else if (type == "preflagger" || type == "preflag") {
-      step = DPStep::ShPtr(new PreFlagger(reader, parset, prefix));
+      step = std::make_shared<PreFlagger>(reader, parset, prefix);
     } else if (type == "uvwflagger" || type == "uvwflag") {
-      step = DPStep::ShPtr(new UVWFlagger(reader, parset, prefix));
+      step = std::make_shared<UVWFlagger>(reader, parset, prefix);
     } else if (type == "counter" || type == "count") {
-      step = DPStep::ShPtr(new Counter(reader, parset, prefix));
+      step = std::make_shared<Counter>(reader, parset, prefix);
     } else if (type == "phaseshifter" || type == "phaseshift") {
-      step = DPStep::ShPtr(new PhaseShift(reader, parset, prefix));
+      step = std::make_shared<PhaseShift>(reader, parset, prefix);
     } else if (type == "demixer" || type == "demix") {
-      step = DPStep::ShPtr(new Demixer(reader, parset, prefix));
+      step = std::make_shared<Demixer>(reader, parset, prefix);
     } else if (type == "smartdemixer" || type == "smartdemix") {
-      step = DPStep::ShPtr(new DemixerNew(reader, parset, prefix));
+      step = std::make_shared<DemixerNew>(reader, parset, prefix);
     } else if (type == "applybeam") {
-      step = DPStep::ShPtr(new ApplyBeam(reader, parset, prefix));
+      step = std::make_shared<ApplyBeam>(reader, parset, prefix);
     } else if (type == "stationadder" || type == "stationadd") {
-      step = DPStep::ShPtr(new StationAdder(reader, parset, prefix));
+      step = std::make_shared<StationAdder>(reader, parset, prefix);
     } else if (type == "scaledata") {
-      step = DPStep::ShPtr(new ScaleData(reader, parset, prefix));
+      step = std::make_shared<ScaleData>(reader, parset, prefix);
     } else if (type == "setbeam") {
-      step = DPStep::ShPtr(new SetBeam(reader, parset, prefix));
+      step = std::make_shared<SetBeam>(reader, parset, prefix);
     } else if (type == "filter") {
-      step = DPStep::ShPtr(new Filter(reader, parset, prefix));
+      step = std::make_shared<Filter>(reader, parset, prefix);
     } else if (type == "applycal" || type == "correct") {
-      step = DPStep::ShPtr(new ApplyCal(reader, parset, prefix));
+      step = std::make_shared<ApplyCal>(reader, parset, prefix);
     } else if (type == "predict") {
-      step = DPStep::ShPtr(new Predict(reader, parset, prefix));
+      step = std::make_shared<Predict>(reader, parset, prefix);
     } else if (type == "h5parmpredict") {
-      step = DPStep::ShPtr(new H5ParmPredict(reader, parset, prefix));
+      step = std::make_shared<H5ParmPredict>(reader, parset, prefix);
     } else if (type == "gaincal" || type == "calibrate") {
-      step = DPStep::ShPtr(new GainCal(reader, parset, prefix));
+      step = std::make_shared<GainCal>(reader, parset, prefix);
     } else if (type == "upsample") {
-      step = DPStep::ShPtr(new Upsample(reader, parset, prefix));
+      step = std::make_shared<Upsample>(reader, parset, prefix);
     } else if (type == "split" || type == "explode") {
-      step = DPStep::ShPtr(new Split(reader, parset, prefix));
+      step = std::make_shared<Split>(reader, parset, prefix);
       needsOutputStep = false;
     } else if (type == "ddecal") {
-      step = DPStep::ShPtr(new DDECal(reader, parset, prefix));
+      step = std::make_shared<DDECal>(reader, parset, prefix);
     } else if (type == "interpolate") {
-      step = DPStep::ShPtr(new Interpolate(reader, parset, prefix));
+      step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
       step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix,
                             currentMSName);
@@ -430,11 +433,10 @@ DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
     // Create MSUpdater.
     // Take care the history is not written twice.
     // Note that if there is nothing to write, the updater won't do anything.
-    step =
-        DPStep::ShPtr(new MSUpdater(dynamic_cast<MSReader*>(reader), outName,
-                                    parset, prefix, outName != currentMSName));
+    step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                       outName != currentMSName);
   } else {
-    step = DPStep::ShPtr(new MSWriter(reader, outName, parset, prefix));
+    step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
     reader->setReadVisData(true);
   }
   casacore::Path pathOut(outName);

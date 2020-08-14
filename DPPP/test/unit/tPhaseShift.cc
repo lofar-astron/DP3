@@ -63,10 +63,12 @@ class TestInput : public DPInput {
                                      casacore::MDirection::J2000);
     info().set(casacore::MPosition(), phaseCenter, phaseCenter, phaseCenter);
     // Define the frequencies.
-    vector<double> chanWidth(nchan, 100000.);
-    casacore::Vector<double> chanFreqs(nchan);
-    indgen(chanFreqs, 1050000., 100000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanWidth(nchan, 100000.);
+    std::vector<double> chanFreqs;
+    for (int i = 0; i < nchan; i++) {
+      chanFreqs.push_back(1050000. + i * 100000.);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
     // Fill the baseline stations.
     // Determine nr of stations using:  na*(na+1)/2 = nbl
     // If many baselines, divide into groups of 6 to test if

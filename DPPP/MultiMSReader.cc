@@ -117,10 +117,10 @@ void MultiMSReader::handleBands() {
   }
 
   // Collect the channel info of all MSs.
-  Vector<double> chanFreqs(itsNrChan);
-  Vector<double> chanWidths(itsNrChan);
-  Vector<double> resolutions(itsNrChan);
-  Vector<double> effectiveBW(itsNrChan);
+  std::vector<double> chanFreqs(itsNrChan);
+  std::vector<double> chanWidths(itsNrChan);
+  std::vector<double> resolutions(itsNrChan);
+  std::vector<double> effectiveBW(itsNrChan);
   unsigned int inx = 0;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     unsigned int nchan = itsReaders[i]->getInfo().nchan();
@@ -134,7 +134,8 @@ void MultiMSReader::handleBands() {
             itsReaders[i]->getInfo().effectiveBW().data(), nchan);
     inx += nchan;
   }
-  info().set(chanFreqs, chanWidths, resolutions, effectiveBW, 0., 0.);
+  info().set(std::move(chanFreqs), std::move(chanWidths),
+             std::move(resolutions), std::move(effectiveBW));
 }
 
 void MultiMSReader::sortBands() {
@@ -168,8 +169,8 @@ void MultiMSReader::fillBands() {
   // Add missing channels to the total nr.
   itsNrChan += itsNMissing * itsFillNChan;
   // Collect the channel info of all MSs.
-  Vector<double> chanFreqs(itsNrChan);
-  Vector<double> chanWidths(itsNrChan);
+  std::vector<double> chanFreqs(itsNrChan);
+  std::vector<double> chanWidths(itsNrChan);
   unsigned int inx = 0;
   // Data for a missing MS can only be inserted if all other MSs have
   // the same nr of channels and are in increasing order of freq.
@@ -200,7 +201,7 @@ void MultiMSReader::fillBands() {
     }
   }
 
-  info().set(chanFreqs, chanWidths);
+  info().set(std::move(chanFreqs), std::move(chanWidths));
 }
 
 bool MultiMSReader::process(const DPBuffer& buf) {
@@ -313,10 +314,10 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
       if (getInfo().antennaSet() != rdinfo.antennaSet())
         throw Exception("Antenna set of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
-      if (!allEQ(getInfo().getAnt1(), rdinfo.getAnt1()))
+      if (getInfo().getAnt1() != rdinfo.getAnt1())
         throw Exception("Baseline order (ant1) of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
-      if (!allEQ(getInfo().getAnt2(), rdinfo.getAnt2()))
+      if (getInfo().getAnt2() != rdinfo.getAnt2())
         throw Exception("Baseline order (ant2) of MS " + itsMSNames[i] +
                         " differs from " + itsMSNames[itsFirst]);
       itsNrChan += rdinfo.nchan();
@@ -329,17 +330,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   handleBands();
 
   // check that channels are regularly spaced, give warning otherwise
-  if (itsNrChan > 1) {
-    Vector<Double> upFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 1), IPosition(1, itsNrChan - 1)));
-    Vector<Double> lowFreq = info().chanFreqs()(
-        Slicer(IPosition(1, 0), IPosition(1, itsNrChan - 1)));
-    Double freqstep0 = upFreq(0) - lowFreq(0);
-    // Compare up to 1kHz accuracy
-    itsRegularChannels =
-        allNearAbs(upFreq - lowFreq, freqstep0, 1.e3) &&
-        allNearAbs(info().chanWidths(), info().chanWidths()(0), 1.e3);
-  }
+  itsRegularChannels = info().channelsAreRegular();
 
   // Set correct nr of channels.
   info().setNChan(itsNrChan);

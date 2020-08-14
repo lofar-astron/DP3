@@ -647,11 +647,9 @@ bool PreFlagger::PSet::flagUV(const Matrix<double>& uvw) {
 bool PreFlagger::PSet::flagBL() {
   bool match = false;
   unsigned int nrbl = itsMatchBL.size();
-  const Int* ant1Ptr = itsInfo->getAnt1().data();
-  const Int* ant2Ptr = itsInfo->getAnt2().data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     if (itsMatchBL[i]) {
-      if (!itsFlagBL(ant1Ptr[i], ant2Ptr[i])) {
+      if (!itsFlagBL(itsInfo->getAnt1()[i], itsInfo->getAnt2()[i])) {
         // do not flag this baseline
         itsMatchBL[i] = false;
       } else {
@@ -665,8 +663,6 @@ bool PreFlagger::PSet::flagBL() {
 bool PreFlagger::PSet::flagAzEl(double time) {
   bool match = false;
   unsigned int nrbl = itsMatchBL.size();
-  const Int* ant1Ptr = itsInfo->getAnt1().data();
-  const Int* ant2Ptr = itsInfo->getAnt2().data();
   // Calculate AzEl for each flagged antenna for this time slot.
   MeasFrame frame;
   Quantity qtime(time, "s");
@@ -681,17 +677,17 @@ bool PreFlagger::PSet::flagAzEl(double time) {
       // If needed, check if ant1 matches AzEl criterium.
       // If not matching, itsMatchBL is cleared for this baseline and all
       // subsequent baselines with this antenna.
-      int a1 = ant1Ptr[i];
-      int a2 = ant2Ptr[i];
+      std::size_t a1 = itsInfo->getAnt1()[i];
+      std::size_t a2 = itsInfo->getAnt2()[i];
       if (!done[a1]) {
         frame.set(itsInfo->antennaPos()[a1]);
-        testAzEl(converter, i, a1, ant1Ptr, ant2Ptr);
+        testAzEl(converter, i, a1, itsInfo->getAnt1(), itsInfo->getAnt2());
         done[a1] = true;
       }
       // If needed, check if ant2 matches AzEl criterium.
       if (itsMatchBL[i] && !done[a2]) {
         frame.set(itsInfo->antennaPos()[a2]);
-        testAzEl(converter, i, a2, ant1Ptr, ant2Ptr);
+        testAzEl(converter, i, a2, itsInfo->getAnt1(), itsInfo->getAnt2());
         done[a2] = true;
       }
       if (itsMatchBL[i]) {
@@ -703,8 +699,9 @@ bool PreFlagger::PSet::flagAzEl(double time) {
 }
 
 void PreFlagger::PSet::testAzEl(MDirection::Convert& converter,
-                                unsigned int blnr, int ant, const int* ant1,
-                                const int* ant2) {
+                                unsigned int blnr, std::size_t ant,
+                                const std::vector<std::size_t>& ant1,
+                                const std::vector<std::size_t>& ant2) {
   // Calculate AzEl (n seconds because ranges are in seconds too).
   MVDirection mvAzel(converter().getValue());
   Vector<double> azel = mvAzel.getAngle("s").getValue();

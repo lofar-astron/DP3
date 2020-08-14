@@ -28,29 +28,25 @@
 #include <vector>
 
 namespace DP3 {
-namespace Common {
 class ParameterSet;
-}  // namespace Common
 }  // namespace DP3
 
 namespace DP3 {
 namespace DPPP {
 
 class BDABuffer;
+class DPInput;
 
 class BDAAverager : public DPStep {
  public:
   /**
-   * Constructor.
-   * @param bl_threshold_time The baseline length after which the averager
-   * does not perform any time averaging. The time averaging factor for a
-   * baseline is bl_threshold_time / baseline length, rounded down.
-   * @param bl_threshold_channels The baseline length after which the
-   * averager does not perform any channel averaging. The number of channels for
-   * a baseline becomes baseline length / bl_threshold_channels * original
-   * channel count, rounded up.
+   * Constructor, which uses a parset for configuring the step.
+   * @param input DPInput object, for fetching weights, UVW etc.
+   * @param parset A ParameterSet that contains the configuration.
+   * @param prefix ParameterSet Prefix for obtaining the configuration.
    */
-  BDAAverager(double bl_threshold_time, double bl_threshold_channels);
+  BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
+              const std::string& prefix);
 
   ~BDAAverager() override;
 
@@ -81,10 +77,17 @@ class BDAAverager : public DPStep {
 
   void AddBaseline(std::size_t baseline_nr);
 
+  DPInput& input_;
+  NSTimer timer_;
+
   /// Baseline threshold length for time averaging.
   const double bl_threshold_time_;
   /// Baseline threshold length for channel averaging.
   const double bl_threshold_channel_;
+  /// Maximum interval / exposure time when doing time averaging.
+  const double max_interval_;
+  /// Minimum number of channels in the output.
+  std::size_t min_channels_;
   rownr_t next_rownr_;
   std::size_t bda_pool_size_;
   std::unique_ptr<BDABuffer> bda_buffer_;

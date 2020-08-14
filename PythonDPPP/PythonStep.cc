@@ -110,7 +110,7 @@ PythonStep::~PythonStep() {}
 
 DPStep::ShPtr PythonStep::makeStep(DPInput* input, const ParameterSet& pset,
                                    const std::string& prefix) {
-  return DPStep::ShPtr(new PythonStep(input, pset, prefix));
+  return std::make_shared<PythonStep>(input, pset, prefix);
 }
 
 void PythonStep::updateInfo(const DPInfo& infoIn) {

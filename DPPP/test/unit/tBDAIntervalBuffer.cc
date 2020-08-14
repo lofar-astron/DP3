@@ -49,14 +49,14 @@ void AddRow(BDABuffer& buffer, double time, double interval,
             float weight) {
   const bool flags[kDataSize]{flag};
 
-  BOOST_CHECK(buffer.AddRow(time, interval, row_nr, baseline_nr, kNChannels,
+  BOOST_CHECK(buffer.AddRow(time, interval, baseline_nr, kNChannels,
                             kNCorrelations, nullptr, flags, nullptr, flags));
 
   const BDABuffer::Row& row = buffer.GetRows().back();
   for (std::size_t i = 0; i < row.GetDataSize(); ++i) {
     const float value = row_nr * kDataSize + i;
-    row.data_[i] = {value, -value};
-    row.weights_[i] = weight;
+    row.data[i] = {value, -value};
+    row.weights[i] = weight;
   }
 }
 
@@ -103,33 +103,30 @@ void CheckBuffer(const BDAIntervalBuffer& interval, const BDABuffer& expected) {
   auto result_row_it = result->GetRows().begin();
   auto expected_row_it = expected.GetRows().begin();
   while (result_row_it != result->GetRows().end()) {
-    BOOST_CHECK_EQUAL(result_row_it->time_, expected_row_it->time_);
-    BOOST_CHECK_EQUAL(result_row_it->interval_, expected_row_it->interval_);
-    BOOST_CHECK_EQUAL(result_row_it->row_nr_, expected_row_it->row_nr_);
-    BOOST_CHECK_EQUAL(result_row_it->baseline_nr_,
-                      expected_row_it->baseline_nr_);
+    BOOST_CHECK_EQUAL(result_row_it->time, expected_row_it->time);
+    BOOST_CHECK_EQUAL(result_row_it->interval, expected_row_it->interval);
+    BOOST_CHECK_EQUAL(result_row_it->row_nr, expected_row_it->row_nr);
+    BOOST_CHECK_EQUAL(result_row_it->baseline_nr, expected_row_it->baseline_nr);
     // Ignore other row members in this test: The checked values already clearly
     // indicate that the intervalbuffer copied the correct row into the result.
 
     for (std::size_t i = 0; i < kDataSize; ++i) {
       // Data should be absolutely equal: The intervalbuffer should not
       // perform any computations on it and only copy the data.
-      BOOST_CHECK_EQUAL(result_row_it->data_[i], expected_row_it->data_[i]);
-      BOOST_CHECK_EQUAL(result_row_it->flags_[i], expected_row_it->flags_[i]);
+      BOOST_CHECK_EQUAL(result_row_it->data[i], expected_row_it->data[i]);
+      BOOST_CHECK_EQUAL(result_row_it->flags[i], expected_row_it->flags[i]);
       // Weights may differ slightly because of rounding errors.
-      BOOST_CHECK(BDABuffer::TimeIsEqual(result_row_it->weights_[i],
-                                         expected_row_it->weights_[i]));
-      BOOST_CHECK_EQUAL(result_row_it->full_res_flags_[i],
-                        expected_row_it->full_res_flags_[i]);
+      BOOST_CHECK(BDABuffer::TimeIsEqual(result_row_it->weights[i],
+                                         expected_row_it->weights[i]));
+      BOOST_CHECK_EQUAL(result_row_it->full_res_flags[i],
+                        expected_row_it->full_res_flags[i]);
     }
 
     ++result_row_it;
     ++expected_row_it;
   }
 
-  // Verify that the result has no remaining capacacity.
-  BOOST_CHECK(
-      !result->AddRow(kTime + 42.0, kRowInterval, 42, kBaselineNr, 1, 1));
+  BOOST_TEST(result->GetRemainingCapacity() == std::size_t{0});
 }
 
 /**

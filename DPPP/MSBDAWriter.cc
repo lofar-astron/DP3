@@ -131,33 +131,33 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   std::vector<DP3::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
   for (const BDABuffer::Row& row : rows) {
-    time.put(row.row_nr_, row.time_);
-    time_centroid.put(row.row_nr_, row.time_);
-    exposure.put(row.row_nr_, row.interval_);
+    time.put(row.row_nr, row.time);
+    time_centroid.put(row.row_nr, row.time);
+    exposure.put(row.row_nr, row.interval);
 
-    ant1.put(row.row_nr_, info().getAnt1()[row.baseline_nr_]);
-    ant2.put(row.row_nr_, info().getAnt2()[row.baseline_nr_]);
+    ant1.put(row.row_nr, info().getAnt1()[row.baseline_nr]);
+    ant2.put(row.row_nr, info().getAnt2()[row.baseline_nr]);
 
     // TODO: When DPInfo is updated, remove the assert and the comment below.
-    assert(row.baseline_nr_ == 0);
+    assert(row.baseline_nr == 0);
     const std::size_t n_chan =
-        row.n_channels_;  // row.chanFreqs(row.baseline_nr_).size();
+        row.n_channels;  // row.chanFreqs(row.baseline_nr_).size();
     const casacore::IPosition dim(2, info().ncorr(), n_chan);
-    data.put(row.row_nr_, casacore::Array<casacore::Complex>(dim, row.data_,
+    data.put(row.row_nr, casacore::Array<casacore::Complex>(dim, row.data,
+                                                            casacore::SHARE));
+    weights.put(row.row_nr, casacore::Array<casacore::Float>(dim, row.weights,
                                                              casacore::SHARE));
-    weights.put(row.row_nr_, casacore::Array<casacore::Float>(dim, row.weights_,
-                                                              casacore::SHARE));
-    flags.put(row.row_nr_, casacore::Array<casacore::Bool>(dim, row.flags_,
-                                                           casacore::SHARE));
+    flags.put(row.row_nr,
+              casacore::Array<casacore::Bool>(dim, row.flags, casacore::SHARE));
     // Set the row_flag if all flags in the row are true / none are false.
     const bool row_flag =
-        std::count(row.flags_, row.flags_ + row.GetDataSize(), false) == 0;
-    flags_row.put(row.row_nr_, row_flag);
+        std::count(row.flags, row.flags + row.GetDataSize(), false) == 0;
+    flags_row.put(row.row_nr, row_flag);
 
     const casacore::IPosition uvw_dim(1, 3);
-    uvw.put(row.row_nr_, casacore::Array<casacore::Double>(uvw_dim, row.uvw_));
+    uvw.put(row.row_nr, casacore::Array<casacore::Double>(uvw_dim, row.uvw));
 
-    row_nrs.push_back(row.row_nr_);
+    row_nrs.push_back(row.row_nr);
   }
 
   // Create a table view containing only the added rows.

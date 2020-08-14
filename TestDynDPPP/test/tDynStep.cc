@@ -98,10 +98,12 @@ class TestInput : public DPInput {
     info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string(),
                 std::string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNChan);
-    Vector<double> chanWidth(itsNChan, 100000.);
-    indgen(chanFreqs, 1050000., 100000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanFreqs;
+    std::vector<double> chanWidth(itsNChan, 100000.);
+    for (int i = 0; i < itsNChan; i++) {
+      chanFreqs.push_back(1050000. + i * 100000.);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
   }
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -253,10 +255,12 @@ class TestInput3 : public DPInput {
     info().init(itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, std::string(),
                 std::string());
     // Define the frequencies.
-    Vector<double> chanFreqs(itsNrChan);
-    Vector<double> chanWidth(itsNrChan, 100000.);
-    indgen(chanFreqs, 1050000., 100000.);
-    info().set(chanFreqs, chanWidth);
+    std::vector<double> chanFreqs;
+    std::vector<double> chanWidth(itsNChan, 100000.);
+    for (int i = 0; i < itsNChan; i++) {
+      chanFreqs.push_back(1050000. + i * 100000.);
+    }
+    info().set(std::move(chanFreqs), std::move(chanWidth));
   }
   int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
   Cube<bool> itsFullResFlags;

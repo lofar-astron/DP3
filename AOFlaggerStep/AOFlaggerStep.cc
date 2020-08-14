@@ -75,7 +75,7 @@ AOFlaggerStep::~AOFlaggerStep() {}
 DPStep::ShPtr AOFlaggerStep::makeStep(DPInput* input,
                                       const ParameterSet& parset,
                                       const std::string& prefix) {
-  return DPStep::ShPtr(new AOFlaggerStep(input, parset, prefix));
+  return std::make_shared<AOFlaggerStep>(input, parset, prefix);
 }
 
 void AOFlaggerStep::show(std::ostream& os) const {

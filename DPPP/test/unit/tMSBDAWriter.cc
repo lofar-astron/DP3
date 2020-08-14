@@ -139,8 +139,8 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   writer.updateInfo(info);
 
   auto buffer = boost::make_unique<BDABuffer>(1);
-  buffer->AddRow(kTime, kInterval, 0, 0, 1, 1, &kData, &kFlag, &kWeight,
-                 nullptr, kUVW);
+  buffer->AddRow(kTime, kInterval, 0, 1, 1, &kData, &kFlag, &kWeight, nullptr,
+                 kUVW);
   writer.process(std::move(buffer));
   writer.finish();
 
