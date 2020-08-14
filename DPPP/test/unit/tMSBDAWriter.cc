@@ -149,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
 
   MeasurementSet ms(kMsName, TableLock::AutoNoReadLocking);
 
-  // TODO assert data
+  // Assert the visibility data
   BOOST_TEST(ms.col("TIME").getDouble(0) == Double(kTime));
   BOOST_TEST(ms.col("TIME_CENTROID").getDouble(0) == Double(kTime));
   BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == Double(kInterval));
@@ -189,9 +189,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
   const double kInterval(1.5);
   const std::string kMsName = "bda_exception.MS";
 
-  // TODO: Remove reader, when the writer can create subtables etc.
-  MSReader reader("../tNDPPP_tmp.MS", ParameterSet(), "");
-  MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
+  MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
 
   DPInfo info;
   info.init(1, 0, 1, 1, kTime, kInterval, "", "");
@@ -231,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
       MeasurementSet ms(kMsName, TableLock::AutoNoReadLocking));
 }
 
-// TODO Test BDA_TIME_AXIS for different max and min intervals.
+// Test BDA_TIME_AXIS for different max and min intervals.
 BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_multiple_ms_out.MS";
