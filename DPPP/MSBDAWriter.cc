@@ -35,7 +35,9 @@ using casacore::Bool;
 using casacore::ColumnDesc;
 using casacore::Double;
 using casacore::Int;
+using casacore::IPosition;
 using casacore::MeasurementSet;
+using casacore::MS;
 using casacore::ObjectID;
 using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
@@ -44,38 +46,9 @@ using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
 using casacore::TableLock;
+using casacore::TiledColumnStMan;
 using casacore::True;
 using casacore::Vector;
-
-namespace {
-/// Measurement Set column names (main table). Uses the same order as
-/// https://casacore.github.io/casacore-notes/229.html#x1-630005.1
-/// @{
-const std::string kTime = "TIME";
-const std::string kAntenna1 = "ANTENNA1";
-const std::string kAntenna2 = "ANTENNA2";
-const std::string kFeed1 = "FEED1";
-const std::string kFeed2 = "FEED2";
-const std::string kDataDescId = "DATA_DESC_ID";
-const std::string kProcessorId = "PROCESSOR_ID";
-const std::string kFieldId = "FIELD_ID";
-const std::string kInterval = "INTERVAL";
-const std::string kExposure = "EXPOSURE";
-const std::string kTimeCentroid = "TIME_CENTROID";
-const std::string kScanNumber = "SCAN_NUMBER";
-const std::string kArrayId = "ARRAY_ID";
-const std::string kObservationId = "OBSERVATION_ID";
-const std::string kStateId = "STATE_ID";
-const std::string kUVW = "UVW";
-const std::string kData = "DATA";
-const std::string kSigma = "SIGMA";
-const std::string kWeight = "WEIGHT";
-const std::string kWeightSpectrum = "WEIGHT_SPECTRUM";
-const std::string kFlag = "FLAG";
-const std::string kFlagCategory = "FLAG_CATEGORY";  // Is ignored when writing.
-const std::string kFlagRow = "FLAG_ROW";
-/// @}
-}  // namespace
 
 namespace {
 /// BDA_TIME_AXIS table column names.
@@ -143,16 +116,18 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
   ms_.addRow(rows.size());
 
-  ScalarColumn<casacore::Double> time(ms_, kTime);
-  ScalarColumn<casacore::Double> time_centroid(ms_, kTimeCentroid);
-  ScalarColumn<casacore::Double> exposure(ms_, kExposure);
-  ScalarColumn<casacore::Int> ant1(ms_, kAntenna1);
-  ScalarColumn<casacore::Int> ant2(ms_, kAntenna2);
-  ArrayColumn<casacore::Complex> data(ms_, kData);
-  ArrayColumn<casacore::Float> weights(ms_, kWeightSpectrum);
-  ArrayColumn<casacore::Bool> flags(ms_, kFlag);
-  ScalarColumn<casacore::Bool> flags_row(ms_, kFlagRow);
-  ArrayColumn<casacore::Double> uvw(ms_, kUVW);
+  ScalarColumn<casacore::Double> time(ms_, MS::columnName(MS::TIME));
+  ScalarColumn<casacore::Double> time_centroid(
+      ms_, MS::columnName(MS::TIME_CENTROID));
+  ScalarColumn<casacore::Double> exposure(ms_, MS::columnName(MS::EXPOSURE));
+  ScalarColumn<casacore::Int> ant1(ms_, MS::columnName(MS::ANTENNA1));
+  ScalarColumn<casacore::Int> ant2(ms_, MS::columnName(MS::ANTENNA2));
+  ArrayColumn<casacore::Complex> data(ms_, MS::columnName(MS::DATA));
+  ArrayColumn<casacore::Float> weights(ms_,
+                                       MS::columnName(MS::WEIGHT_SPECTRUM));
+  ArrayColumn<casacore::Bool> flags(ms_, MS::columnName(MS::FLAG));
+  ScalarColumn<casacore::Bool> flags_row(ms_, MS::columnName(MS::FLAG_ROW));
+  ArrayColumn<casacore::Double> uvw(ms_, MS::columnName(MS::UVW));
   std::vector<DP3::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
   for (const BDABuffer::Row& row : rows) {
@@ -189,20 +164,31 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   casacore::Table tbl_added(ms_(row_nrs));
 
   // Fill various mandatory columns with default values.
-  ScalarColumn<casacore::Int>(tbl_added, kFeed1).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kFeed2).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kDataDescId).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kProcessorId).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kFieldId).fillColumn(0);
-  ScalarColumn<casacore::Double>(tbl_added, kInterval)
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FEED1))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FEED2))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::DATA_DESC_ID))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::PROCESSOR_ID))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FIELD_ID))
+      .fillColumn(0);
+  ScalarColumn<casacore::Double>(tbl_added, MS::columnName(MS::INTERVAL))
       .fillColumn(info().timeInterval());
-  ScalarColumn<casacore::Int>(tbl_added, kScanNumber).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kArrayId).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kObservationId).fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, kStateId).fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::SCAN_NUMBER))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::ARRAY_ID))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::OBSERVATION_ID))
+      .fillColumn(0);
+  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::STATE_ID))
+      .fillColumn(0);
   casacore::Vector<casacore::Float> sigma_weight(info().ncorr(), 1);
-  ArrayColumn<casacore::Float>(tbl_added, kSigma).fillColumn(sigma_weight);
-  ArrayColumn<casacore::Float>(tbl_added, kWeight).fillColumn(sigma_weight);
+  ArrayColumn<casacore::Float>(tbl_added, MS::columnName(MS::SIGMA))
+      .fillColumn(sigma_weight);
+  ArrayColumn<casacore::Float>(tbl_added, MS::columnName(MS::WEIGHT))
+      .fillColumn(sigma_weight);
 
   return true;
 }
@@ -213,77 +199,55 @@ void MSBDAWriter::show(std::ostream& os) const {}
 
 void MSBDAWriter::CreateMS() {
   CreateMainTable();
-  // TODO fill the main table
 
   CreateMetaDataFrequencyColumns();
   CreateBDATimeAxis();
   CreateBDATimeFactor();
 }
 
+/// Based on the example on
+/// https://casacore.github.io/casacore/group__Tables__module.html#Tables:performance
 void MSBDAWriter::CreateMainTable() {
   // Create an empty table.
-  Table::TableOption opt = overwrite_ ? Table::New : Table::NewNoReplace;
-  SetupNewTable setup(outName_, TableDesc(), opt);
-  ms_ = Table(setup);
-
-  TableDesc desc_inc;
-  TableDesc desc_std;
-
-  // Add fixed fields with the incremental storage manager.
-  for (const std::string& name :
-       {kFeed1, kFeed2, kDataDescId, kProcessorId, kFieldId, kScanNumber,
-        kArrayId, kObservationId, kStateId}) {
-    ScalarColumnDesc<casacore::Int> column(name, ColumnDesc::FixedShape);
-    desc_inc.addColumn(column);
-  }
-  for (const std::string& name : {kInterval}) {
-    ScalarColumnDesc<casacore::Double> column(name, ColumnDesc::FixedShape);
-    desc_inc.addColumn(column);
-  }
-  for (const std::string& name : {kSigma, kWeight}) {
-    const casacore::IPosition dim(1, info().ncorr());
-    ArrayColumnDesc<casacore::Float> column(name, dim, ColumnDesc::FixedShape);
-    desc_inc.addColumn(column);
-  }
-
-  // Add fixed-shape fields with the standard storange manager.
-  for (const std::string& name : {kTime, kExposure, kTimeCentroid}) {
-    ScalarColumnDesc<casacore::Double> column(name, ColumnDesc::FixedShape);
-    desc_std.addColumn(column);
-  }
-  for (const std::string& name : {kAntenna1, kAntenna2}) {
-    ScalarColumnDesc<casacore::Int> column(name, ColumnDesc::FixedShape);
-    desc_std.addColumn(column);
-  }
-  {
-    ScalarColumnDesc<Bool> column(kFlagRow, ColumnDesc::FixedShape);
-    desc_std.addColumn(column);
-  }
-  {
-    const casacore::IPosition dim(1, 3);
-    ArrayColumnDesc<casacore::Double> column(kUVW, dim, ColumnDesc::FixedShape);
-    desc_std.addColumn(column);
-  }
-
-  // Add variable-shaped fields.
-  ArrayColumnDesc<casacore::Complex> col_data(kData);
-  ArrayColumnDesc<casacore::Float> col_weights(kWeightSpectrum);
-  ArrayColumnDesc<casacore::Bool> col_flags(kFlag);
-  desc_std.addColumn(col_data);
-  desc_std.addColumn(col_weights);
-  desc_std.addColumn(col_flags);
+  TableDesc td = MS::requiredTableDesc();
+  MS::addColumnToDesc(td, MS::DATA);
+  MS::addColumnToDesc(td, MS::WEIGHT_SPECTRUM);
 
   casacore::IncrementalStMan man_inc;
   casacore::StandardStMan man_std(32768);
-  ms_.addColumn(desc_inc, man_inc);
-  ms_.addColumn(desc_std, man_std);
+
+  Table::TableOption opt = overwrite_ ? Table::New : Table::NewNoReplace;
+  SetupNewTable setup(outName_, td, opt);
+
+  // Set fixed shapes for columns that allow it.
+  setup.setShapeColumn(MS::columnName(MS::UVW), IPosition(1, 3));
+
+  // Set fixed fields with the incremental storage manager.
+  setup.bindAll(man_inc);
+  // Set fixed-shape fields with the standard storage manager.
+  setup.bindColumn(MS::columnName(MS::TIME), man_std);
+  setup.bindColumn(MS::columnName(MS::ANTENNA1), man_std);
+  setup.bindColumn(MS::columnName(MS::ANTENNA2), man_std);
+  setup.bindColumn(MS::columnName(MS::EXPOSURE), man_std);
+  setup.bindColumn(MS::columnName(MS::TIME_CENTROID), man_std);
+  setup.bindColumn(MS::columnName(MS::UVW), man_std);
+  setup.bindColumn(MS::columnName(MS::DATA), man_std);
+  setup.bindColumn(MS::columnName(MS::WEIGHT_SPECTRUM), man_std);
+  setup.bindColumn(MS::columnName(MS::FLAG), man_std);
+  setup.bindColumn(MS::columnName(MS::FLAG_CATEGORY), man_std);
+  setup.bindColumn(MS::columnName(MS::FLAG_ROW), man_std);
+
+  // ms_.addColumn(desc_inc, man_inc);
+  // ms_.addColumn(desc_std, man_std);
+
+  ms_ = Table(setup);
 
   if (reader_) {
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 
     casacore::Block<casacore::String> omitted_subtables(1);
-    omitted_subtables[0] = "BDA_TIME_AXIS";
+    omitted_subtables[0] = kBDATimeAxisTable;
     TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
   } else {
     // TODO: Create info and subtables.
@@ -314,8 +278,8 @@ void MSBDAWriter::CreateBDATimeFactor() {
   // Build the table description for BDA_TIME_FACTOR.
   TableDesc td(kBDATimeFactorTable, TableDesc::Scratch);
   td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
-  td.addColumn(ScalarColumnDesc<Int>(kAntenna1));
-  td.addColumn(ScalarColumnDesc<Int>(kAntenna2));
+  td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA1)));
+  td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA2)));
   td.addColumn(ScalarColumnDesc<Int>(kFactor));
 
   // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
@@ -366,8 +330,10 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
     max_factor_time = std::max(max_factor_time, factor);
 
     ScalarColumn<casacore::Int>(bda_time_factor, kTimeAxisId).put(row, pid);
-    ScalarColumn<casacore::Int>(bda_time_factor, kAntenna1).put(row, ant1[i]);
-    ScalarColumn<casacore::Int>(bda_time_factor, kAntenna2).put(row, ant2[i]);
+    ScalarColumn<casacore::Int>(bda_time_factor, MS::columnName(MS::ANTENNA1))
+        .put(row, ant1[i]);
+    ScalarColumn<casacore::Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
+        .put(row, ant2[i]);
     ScalarColumn<casacore::Int>(bda_time_factor, kFactor).put(row, factor);
     ++row;
   }
