@@ -250,8 +250,8 @@ void MSBDAWriter::CreateMainTable() {
     omitted_subtables[0] = kBDATimeAxisTable;
     TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
   } else {
-    // TODO: Create info and subtables.
-    assert(false);
+    // Create empty subtables.
+    MeasurementSet(ms_).createDefaultSubtables(Table::New);
   }
 }  // namespace DPPP
 

@@ -22,6 +22,8 @@ using DP3::DPPP::MSBDAWriter;
 using DP3::DPPP::MSReader;
 
 using casacore::Bool;
+using casacore::Double;
+using casacore::Int;
 using casacore::MeasurementSet;
 using casacore::TableDesc;
 using casacore::TableExprNode;
@@ -31,13 +33,16 @@ const std::string prefix = "msout.";
 
 BOOST_AUTO_TEST_SUITE(msbdawriter)
 
-BOOST_FIXTURE_TEST_CASE(CreateBDATimeAxis, FixtureDirectory) {
+// Test that the BDA_TIME_AXIS table is created and correctly filled for basic
+// data.
+BOOST_FIXTURE_TEST_CASE(ms_contains_bda_time_axis_table, FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_ms_out.MS";
+  const double timeInterval = 1.5;
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.init(1, 0, 1, 1, 3.0, timeInterval, "", "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
@@ -60,11 +65,30 @@ BOOST_FIXTURE_TEST_CASE(CreateBDATimeAxis, FixtureDirectory) {
   BOOST_TEST(td.isColumn("INTEGER_INTERVAL_FACTORS"));
   BOOST_TEST(td.isColumn("HAS_BDA_ORDERING"));
 
+  // Assert that these columns are not in this table
   BOOST_TEST(!td.isColumn("BDA_FREQ_AXIS_ID"));
   BOOST_TEST(!td.isColumn("FIELD_ID"));
+
+  // Assert that the data is filled correctly
+  Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
+  BOOST_TEST(t.nrow() == casacore::uInt(1));
+  BOOST_TEST(t.col("IS_BDA_APPLIED").getBool(0));
+  BOOST_TEST(t.col("SINGLE_FACTOR_PER_BASELINE").getBool(0));
+  // Assert that the interval is correct
+  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) ==
+             casacore::Double(timeInterval));
+  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) ==
+             casacore::Double(timeInterval));
+  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) ==
+             casacore::Double(timeInterval));
+
+  BOOST_TEST(t.col("INTEGER_INTERVAL_FACTORS").getBool(0));
+  BOOST_TEST(t.col("HAS_BDA_ORDERING").getBool(0));
 }
 
-BOOST_FIXTURE_TEST_CASE(CreateMetaDataFrequencyColumns, FixtureDirectory) {
+// Test that the SPECTRAL_WINDOW was correctly appended with BDA data.
+BOOST_FIXTURE_TEST_CASE(spectral_window_contains_bda_freq_axisid,
+                        FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_ms_out_freq.MS";
   ParameterSet parset;
@@ -83,13 +107,18 @@ BOOST_FIXTURE_TEST_CASE(CreateMetaDataFrequencyColumns, FixtureDirectory) {
   // Assert if the correct columns are created
   Table table(msOutName, TableLock::AutoNoReadLocking);
   BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
-  const TableDesc td =
-      table.keywordSet().asTable("SPECTRAL_WINDOW").tableDesc();
-  BOOST_TEST(td.isColumn("BDA_FREQ_AXIS_ID"));
+  const Table td = table.keywordSet().asTable("SPECTRAL_WINDOW");
+  BOOST_TEST(td.tableDesc().isColumn("BDA_FREQ_AXIS_ID"));
+  BOOST_TEST(td.tableDesc().isColumn("BDA_SET_ID"));
+
+  BOOST_TEST(td.col("BDA_FREQ_AXIS_ID").getInt(0) != Int(-1));
+  BOOST_TEST(td.col("BDA_SET_ID").getInt(0) == Int(0));
 }
 
+// Test that the output measurementset is correct for simple data.
 BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
-  // BOOST_AUTO_TEST_CASE(process_simple) {
+  const unsigned int ncorr(1);
+  const unsigned int nchan(1);
   const double kTime(3.0);
   const double kInterval(1.5);
   const std::complex<float> kData(42.0, 43.0);
@@ -103,7 +132,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
 
   DPInfo info;
-  info.init(1, 0, 1, 1, kTime, kInterval, "", "");
+  info.init(ncorr, 0, 1, nchan, kTime, kInterval, "", "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
@@ -115,7 +144,127 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   writer.process(std::move(buffer));
   writer.finish();
 
+  // Created MS should be valid
+  BOOST_CHECK_NO_THROW(MeasurementSet(kMsName, TableLock::AutoNoReadLocking));
+
   MeasurementSet ms(kMsName, TableLock::AutoNoReadLocking);
+
+  // TODO assert data
+  BOOST_TEST(ms.col("TIME").getDouble(0) == Double(kTime));
+  BOOST_TEST(ms.col("TIME_CENTROID").getDouble(0) == Double(kTime));
+  BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == Double(kInterval));
+  BOOST_TEST(ms.col("ANTENNA1").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("ANTENNA2").getInt(0) == Int(0));
+  casacore::IPosition dim(2, ncorr, nchan);
+  BOOST_TEST(ms.col("DATA").getArrayDComplex(0).tovector()[0].imag() ==
+             kData.imag());
+  BOOST_TEST(ms.col("DATA").getArrayDComplex(0).tovector()[0].real() ==
+             kData.real());
+  BOOST_TEST(ms.col("WEIGHT_SPECTRUM").getArrayDouble(0).tovector()[0] ==
+             kWeight);
+  BOOST_TEST(ms.col("FLAG").getArrayBool(0).tovector()[0] == kFlag);
+  BOOST_TEST(ms.col("UVW").getArrayDouble(0).tovector() ==
+             std::vector<double>(std::begin(kUVW), std::end(kUVW)));
+
+  // Assert default values
+  BOOST_TEST(ms.col("FEED1").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("FEED2").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("DATA_DESC_ID").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("PROCESSOR_ID").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("INTERVAL").getDouble(0) == Double(kInterval));
+  BOOST_TEST(ms.col("SCAN_NUMBER").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("ARRAY_ID").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("OBSERVATION_ID").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("STATE_ID").getInt(0) == Int(0));
+
+  // Assert sigma and weight
+  std::vector<double> sigma_weight(ncorr, 1);
+  BOOST_TEST(ms.col("WEIGHT").getArrayDouble(0).tovector() == sigma_weight);
+  BOOST_TEST(ms.col("SIGMA").getArrayDouble(0).tovector() == sigma_weight);
+}
+
+// Test that an exception is thrown when the base lines are not correct
+BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
+  const double kTime(3.0);
+  const double kInterval(1.5);
+  const std::string kMsName = "bda_exception.MS";
+
+  // TODO: Remove reader, when the writer can create subtables etc.
+  MSReader reader("../tNDPPP_tmp.MS", ParameterSet(), "");
+  MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
+
+  DPInfo info;
+  info.init(1, 0, 1, 1, kTime, kInterval, "", "");
+  info.set(std::vector<std::string>{"ant", "ant2"},
+           std::vector<double>{1.0, 2.0},
+           {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
+           std::vector<int>{0, 1}, std::vector<int>{0, 1});
+
+  // ntimeAvgs is 1, nbaselines 2 so we expect an exception
+  BOOST_TEST(info.ntimeAvgs().size() == size_t(1));
+  BOOST_TEST(info.nbaselines() == static_cast<unsigned int>(2));
+  BOOST_CHECK_THROW(writer.updateInfo(info), std::invalid_argument);
+}
+
+// Test that empty default subtables are created when there is no reader data
+// available.
+BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
+  DPInfo info;
+  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+           std::vector<int>{0});
+  const std::string kMsName = "default_tables.MS";
+
+  MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
+  writer.updateInfo(info);
+
+  Table table(kMsName, TableLock::AutoNoReadLocking);
+  BOOST_TEST(table.keywordSet().isDefined("ANTENNA"));
+  BOOST_TEST(table.keywordSet().isDefined("DATA_DESCRIPTION"));
+  BOOST_TEST(table.keywordSet().isDefined("FEED"));
+  BOOST_TEST(table.keywordSet().isDefined("FIELD"));
+  BOOST_TEST(table.keywordSet().isDefined("HISTORY"));
+  BOOST_TEST(table.keywordSet().isDefined("OBSERVATION"));
+  BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
+  BOOST_CHECK_NO_THROW(
+      MeasurementSet ms(kMsName, TableLock::AutoNoReadLocking));
+}
+
+// TODO Test BDA_TIME_AXIS for different max and min intervals.
+BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
+  // Setup test
+  const std::string msOutName = "bda_multiple_ms_out.MS";
+  const double timeInterval = 1;
+  const unsigned int kMinTimeInterval = 2 * timeInterval;
+  const unsigned int kMaxTimeInterval = 10 * timeInterval;
+  ParameterSet parset;
+  parset.add(prefix + "overwrite", "true");
+  DPInfo info;
+  info.init(1, 0, 1, 1, 3.0, timeInterval, "", "");
+  info.set(std::vector<std::string>{"ant", "ant2"},
+           std::vector<double>{1.0, 1.0},
+           {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},
+           std::vector<int>{0, 1}, std::vector<int>{0, 1});
+  info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});
+  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
+  MSBDAWriter writer(&reader, msOutName, parset, prefix);
+
+  // Execute
+  writer.setInfo(info);
+
+  // Assert if the correct columns are created
+  Table table(msOutName, TableLock::AutoNoReadLocking);
+  const TableDesc td = table.keywordSet().asTable("BDA_TIME_AXIS").tableDesc();
+
+  // Assert that the data is filled correctly
+  Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
+  // Assert that the interval is correct
+  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) ==
+             Double(kMinTimeInterval));
+  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) ==
+             Double(kMaxTimeInterval));
+  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == Double(timeInterval));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
