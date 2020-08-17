@@ -116,6 +116,8 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
   ms_.addRow(rows.size());
 
+  casacore::Vector<casacore::Float> sigma_weight(info().ncorr(), 1);
+
   ScalarColumn<casacore::Double> time(ms_, MS::columnName(MS::TIME));
   ScalarColumn<casacore::Double> time_centroid(
       ms_, MS::columnName(MS::TIME_CENTROID));
@@ -128,6 +130,10 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   ArrayColumn<casacore::Bool> flags(ms_, MS::columnName(MS::FLAG));
   ScalarColumn<casacore::Bool> flags_row(ms_, MS::columnName(MS::FLAG_ROW));
   ArrayColumn<casacore::Double> uvw(ms_, MS::columnName(MS::UVW));
+  ScalarColumn<casacore::Double> interval(ms_, MS::columnName(MS::INTERVAL));
+  ArrayColumn<casacore::Float> sigma(ms_, MS::columnName(MS::SIGMA));
+  ArrayColumn<casacore::Float> weight(ms_, MS::columnName(MS::WEIGHT));
+
   std::vector<DP3::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
   for (const BDABuffer::Row& row : rows) {
@@ -138,10 +144,7 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
     ant1.put(row.row_nr, info().getAnt1()[row.baseline_nr]);
     ant2.put(row.row_nr, info().getAnt2()[row.baseline_nr]);
 
-    // TODO: When DPInfo is updated, remove the assert and the comment below.
-    assert(row.baseline_nr == 0);
-    const std::size_t n_chan =
-        row.n_channels;  // row.chanFreqs(row.baseline_nr_).size();
+    const std::size_t n_chan = info().chanFreqs(row.baseline_nr).size();
     const casacore::IPosition dim(2, info().ncorr(), n_chan);
     data.put(row.row_nr, casacore::Array<casacore::Complex>(dim, row.data,
                                                             casacore::SHARE));
@@ -157,38 +160,16 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
     const casacore::IPosition uvw_dim(1, 3);
     uvw.put(row.row_nr, casacore::Array<casacore::Double>(uvw_dim, row.uvw));
 
+    // Fill values in all the cells of various columns.
+    interval.put(row.row_nr, info().timeInterval());
+    sigma.put(row.row_nr, sigma_weight);
+    weight.put(row.row_nr, sigma_weight);
+
     row_nrs.push_back(row.row_nr);
   }
 
   // Create a table view containing only the added rows.
   casacore::Table tbl_added(ms_(row_nrs));
-
-  // Fill various mandatory columns with default values.
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FEED1))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FEED2))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::DATA_DESC_ID))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::PROCESSOR_ID))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::FIELD_ID))
-      .fillColumn(0);
-  ScalarColumn<casacore::Double>(tbl_added, MS::columnName(MS::INTERVAL))
-      .fillColumn(info().timeInterval());
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::SCAN_NUMBER))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::ARRAY_ID))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::OBSERVATION_ID))
-      .fillColumn(0);
-  ScalarColumn<casacore::Int>(tbl_added, MS::columnName(MS::STATE_ID))
-      .fillColumn(0);
-  casacore::Vector<casacore::Float> sigma_weight(info().ncorr(), 1);
-  ArrayColumn<casacore::Float>(tbl_added, MS::columnName(MS::SIGMA))
-      .fillColumn(sigma_weight);
-  ArrayColumn<casacore::Float>(tbl_added, MS::columnName(MS::WEIGHT))
-      .fillColumn(sigma_weight);
 
   return true;
 }
@@ -291,19 +272,15 @@ void MSBDAWriter::CreateBDATimeFactor() {
 void MSBDAWriter::CreateMetaDataFrequencyColumns() {
   Table out_spw = Table(outName_ + '/' + kSpectralWindowTable, Table::Update);
 
-  // Add column BDA_FREQ_AXIS_ID if not exists
-  if (!out_spw.tableDesc().isColumn(kBDAFreqAxisId)) {
-    ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDAFreqAxisId);
-    bdaFreqAxisIdColumn.setDefault(-1);
-    out_spw.addColumn(bdaFreqAxisIdColumn);
-  }
+  // Add column BDA_FREQ_AXIS_ID
+  ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDAFreqAxisId);
+  bdaFreqAxisIdColumn.setDefault(-1);
+  out_spw.addColumn(bdaFreqAxisIdColumn);
 
-  // Add column BDA_SET_ID if not exists
-  if (!out_spw.tableDesc().isColumn(kBDASetId)) {
-    ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDASetId);
-    bdaFreqAxisIdColumn.setDefault(-1);
-    out_spw.addColumn(bdaFreqAxisIdColumn);
-  }
+  // Add column BDA_SET_ID
+  ScalarColumnDesc<Int> bdaSetIdColumn(kBDASetId);
+  bdaSetIdColumn.setDefault(-1);
+  out_spw.addColumn(bdaSetIdColumn);
 }
 
 void MSBDAWriter::WriteMetaData() {

@@ -136,6 +136,8 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
+  info.set(std::vector<std::vector<double>>{{1.}},
+           std::vector<std::vector<double>>{{10.}});
   writer.updateInfo(info);
 
   auto buffer = boost::make_unique<BDABuffer>(1);
