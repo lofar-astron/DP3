@@ -70,6 +70,7 @@ class BDAAverager : public DPStep {
     std::vector<std::size_t> input_channel_indices;
     double time;
     double interval;
+    double exposure;
     std::vector<std::complex<float>> data;
     std::vector<float> weights;
     double uvw[3];

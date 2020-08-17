@@ -24,13 +24,14 @@
 namespace DP3 {
 namespace DPPP {
 
-BDABuffer::Row::Row(double _time, double _interval, rownr_t _row_nr,
-                    std::size_t _baseline_nr, std::size_t _n_channels,
-                    std::size_t _n_correlations, std::complex<float>* _data,
-                    bool* _flags, float* _weights, bool* _full_res_flags,
-                    const double* const _uvw)
+BDABuffer::Row::Row(double _time, double _interval, double _exposure,
+                    rownr_t _row_nr, std::size_t _baseline_nr,
+                    std::size_t _n_channels, std::size_t _n_correlations,
+                    std::complex<float>* _data, bool* _flags, float* _weights,
+                    bool* _full_res_flags, const double* const _uvw)
     : time(_time),
       interval(_interval),
+      exposure(_exposure),
       row_nr(_row_nr),
       baseline_nr(_baseline_nr),
       n_channels(_n_channels),
@@ -79,8 +80,8 @@ BDABuffer::BDABuffer(const BDABuffer& other)
   // Copy rows but set their pointers to the new memory pools.
   rows_.reserve(other.rows_.size());
   for (const BDABuffer::Row& row : other.rows_) {
-    rows_.emplace_back(row.time, row.interval, row.row_nr, row.baseline_nr,
-                       row.n_channels, row.n_correlations,
+    rows_.emplace_back(row.time, row.interval, row.exposure, row.row_nr,
+                       row.baseline_nr, row.n_channels, row.n_correlations,
                        data_.data() + (row.data - other.data_.data()),
                        flags_.data() + (row.flags - other.flags_.data()),
                        weights_.data() + (row.weights - other.weights_.data()),
@@ -103,8 +104,9 @@ std::size_t BDABuffer::GetNumberOfElements() const {
   return original_capacity_ - remaining_capacity_;
 }
 
-bool BDABuffer::AddRow(double time, double interval, std::size_t baseline_nr,
-                       std::size_t n_channels, std::size_t n_correlations,
+bool BDABuffer::AddRow(double time, double interval, double exposure,
+                       std::size_t baseline_nr, std::size_t n_channels,
+                       std::size_t n_correlations,
                        const std::complex<float>* const data,
                        const bool* const flags, const float* const weights,
                        const bool* const full_res_flags,
@@ -158,7 +160,7 @@ bool BDABuffer::AddRow(double time, double interval, std::size_t baseline_nr,
   }
 
   const rownr_t row_nr = rows_.empty() ? 0 : rows_.back().row_nr + 1;
-  rows_.emplace_back(time, interval, row_nr, baseline_nr, n_channels,
+  rows_.emplace_back(time, interval, exposure, row_nr, baseline_nr, n_channels,
                      n_correlations, row_data, row_flags, row_weights,
                      row_full_res_flags, uvw);
   return true;

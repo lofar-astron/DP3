@@ -145,7 +145,7 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
     const double row_interval =
         std::min(row->time + row->interval, time_ + interval_) - row_time;
     const bool success =
-        result->AddRow(row_time, row_interval, row->baseline_nr,
+        result->AddRow(row_time, row_interval, row->exposure, row->baseline_nr,
                        row->n_channels, row->n_correlations, row->data,
                        row->flags, row->weights, row->full_res_flags, row->uvw);
     (void)success;

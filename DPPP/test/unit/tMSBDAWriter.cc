@@ -121,6 +121,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   const unsigned int nchan(1);
   const double kTime(3.0);
   const double kInterval(1.5);
+  const double kExposure(1);
   const std::complex<float> kData(42.0, 43.0);
   const float kWeight(44.0);
   const bool kFlag(false);
@@ -141,8 +142,8 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   writer.updateInfo(info);
 
   auto buffer = boost::make_unique<BDABuffer>(1);
-  buffer->AddRow(kTime, kInterval, 0, 1, 1, &kData, &kFlag, &kWeight, nullptr,
-                 kUVW);
+  buffer->AddRow(kTime, kInterval, kExposure, 0, 1, 1, &kData, &kFlag, &kWeight,
+                 nullptr, kUVW);
   writer.process(std::move(buffer));
   writer.finish();
 
@@ -154,7 +155,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   // Assert the visibility data
   BOOST_TEST(ms.col("TIME").getDouble(0) == Double(kTime));
   BOOST_TEST(ms.col("TIME_CENTROID").getDouble(0) == Double(kTime));
-  BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == Double(kInterval));
+  BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == Double(kExposure));
   BOOST_TEST(ms.col("ANTENNA1").getInt(0) == Int(0));
   BOOST_TEST(ms.col("ANTENNA2").getInt(0) == Int(0));
   casacore::IPosition dim(2, ncorr, nchan);

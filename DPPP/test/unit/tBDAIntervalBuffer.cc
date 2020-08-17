@@ -31,6 +31,7 @@ using DP3::DPPP::BDAIntervalBuffer;
 namespace {
 const double kTime = 0.0;
 const double kInterval = 10.0;
+const double kExposure = 9.95;
 const double kRowInterval = 2.0;
 const double kMaxRowInterval = 20.0;
 const float kWeight = 2.0;
@@ -49,7 +50,7 @@ void AddRow(BDABuffer& buffer, double time, double interval,
             float weight) {
   const bool flags[kDataSize]{flag};
 
-  BOOST_CHECK(buffer.AddRow(time, interval, baseline_nr, kNChannels,
+  BOOST_CHECK(buffer.AddRow(time, interval, kExposure, baseline_nr, kNChannels,
                             kNCorrelations, nullptr, flags, nullptr, flags));
 
   const BDABuffer::Row& row = buffer.GetRows().back();

@@ -141,7 +141,8 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   for (const BDABuffer::Row& row : rows) {
     time.put(row.row_nr, row.time);
     time_centroid.put(row.row_nr, row.time);
-    exposure.put(row.row_nr, row.interval);
+    interval.put(row.row_nr, row.interval);
+    exposure.put(row.row_nr, row.exposure);
 
     ant1.put(row.row_nr, info().getAnt1()[row.baseline_nr]);
     ant2.put(row.row_nr, info().getAnt2()[row.baseline_nr]);
@@ -163,7 +164,6 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
     uvw.put(row.row_nr, casacore::Array<casacore::Double>(uvw_dim, row.uvw));
 
     // Fill values in all the cells of various columns.
-    interval.put(row.row_nr, info().timeInterval());
     sigma.put(row.row_nr, sigma_weight);
     weight.put(row.row_nr, sigma_weight);
 
