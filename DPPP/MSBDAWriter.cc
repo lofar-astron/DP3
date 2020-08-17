@@ -28,6 +28,7 @@
 #include "BDABuffer.h"
 #include "MSBDAWriter.h"
 #include "MSWriter.h"
+#include "DPLogger.h"
 
 using casacore::ArrayColumn;
 using casacore::ArrayColumnDesc;
@@ -107,6 +108,7 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
 
   MSWriter::writeHistory(ms_, parset_);
   ms_.flush(true, true);
+  DPLOG_INFO("Finished preparing output MS", false);
 }
 
 bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
@@ -218,12 +220,10 @@ void MSBDAWriter::CreateMainTable() {
   setup.bindColumn(MS::columnName(MS::FLAG_CATEGORY), man_std);
   setup.bindColumn(MS::columnName(MS::FLAG_ROW), man_std);
 
-  // ms_.addColumn(desc_inc, man_inc);
-  // ms_.addColumn(desc_std, man_std);
-
   ms_ = Table(setup);
 
   if (reader_) {
+    DPLOG_INFO("Copying info and subtables ...", false);
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 

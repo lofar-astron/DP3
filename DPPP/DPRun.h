@@ -76,7 +76,8 @@ class DPRun {
   static DPStep::ShPtr makeOutputStep(MSReader* reader,
                                       const ParameterSet& parset,
                                       const string& prefix,
-                                      casacore::String& currentMSName);
+                                      casacore::String& currentMSName,
+                                      const bool& isBDA);
 
   /// The map to create a step object from its type name.
   static std::map<std::string, StepCtor*> theirStepMap;

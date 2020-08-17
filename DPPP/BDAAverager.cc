@@ -95,7 +95,8 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   std::vector<std::vector<double>> widths(_info.nbaselines());
 
   const std::vector<double>& lengths = _info.getBaselineLengths();
-  std::vector<unsigned int> baseline_factors(_info.nbaselines());
+  std::vector<unsigned int> baseline_factors;
+  baseline_buffers_.reserve(_info.nbaselines());
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
