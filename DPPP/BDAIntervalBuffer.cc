@@ -135,7 +135,7 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
   // Count the number of elements in all current rows.
   std::size_t pool_size = 0;
   for (const BDABuffer::Row* row : current_rows_) {
-    pool_size += row->n_elements;
+    pool_size += row->GetDataSize();
   }
 
   // Create the result buffer and fill it.
@@ -144,9 +144,10 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
     const double row_time = std::max(row->time, time_);
     const double row_interval =
         std::min(row->time + row->interval, time_ + interval_) - row_time;
-    const bool success = result->AddRow(
-        row_time, row_interval, row->row_nr, row->baseline_nr, row->n_elements,
-        row->data, row->flags, row->weights, row->full_res_flags, row->uvw);
+    const bool success =
+        result->AddRow(row_time, row_interval, row->exposure, row->baseline_nr,
+                       row->n_channels, row->n_correlations, row->data,
+                       row->flags, row->weights, row->full_res_flags, row->uvw);
     (void)success;
     assert(success);
 
@@ -156,7 +157,7 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
         BDABuffer::TimeIsLess(row_interval, row->interval)) {
       const double weight_factor = row_interval / row->interval;
       float* weights = result->GetRows().back().weights;
-      for (std::size_t i = 0; i < row->n_elements; ++i) {
+      for (std::size_t i = 0; i < row->GetDataSize(); ++i) {
         *weights *= weight_factor;
         ++weights;
       }

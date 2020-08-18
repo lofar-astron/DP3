@@ -53,7 +53,7 @@ DPInfo::DPInfo()
       itsNChan(0),
       itsChanAvg(1),
       itsNTime(0),
-      itsTimeAvg(1),
+      itsTimeAvg({1}),
       itsStartTime(0),
       itsTimeInterval(0),
       itsPhaseCenterIsOriginal(true),
@@ -261,7 +261,7 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
         std::to_string(itsNChan) + " chanAvg=" + std::to_string(chanAvg));
   itsChanAvg *= chanAvg;
   itsNChan = (itsNChan + chanAvg - 1) / chanAvg;
-  itsTimeAvg *= timeAvg;
+  itsTimeAvg.front() *= timeAvg;
   itsNTime = (itsNTime + timeAvg - 1) / timeAvg;
   itsTimeInterval *= timeAvg;
   std::vector<double> freqs(itsNChan);
@@ -285,6 +285,10 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   itsEffectiveBW.front() = std::move(effBWs);
   itsTotalBW = totBW;
   return chanAvg;
+}
+
+void DPInfo::update(const std::vector<unsigned int> timeAvg) {
+  itsTimeAvg = timeAvg;
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
@@ -410,7 +414,7 @@ Record DPInfo::toRecord() const {
   rec.define("NChan", itsNChan);
   rec.define("ChanAvg", itsChanAvg);
   rec.define("NTime", itsNTime);
-  rec.define("TimeAvg", itsTimeAvg);
+  rec.define("TimeAvg", itsTimeAvg.front());
   rec.define("StartTime", itsStartTime);
   rec.define("TimeInterval", itsTimeInterval);
   rec.define("ChanFreqs", casacore::Vector<double>(itsChanFreqs.front()));
@@ -471,7 +475,7 @@ void DPInfo::fromRecord(const Record& rec) {
     rec.get("NTime", itsNTime);
   }
   if (rec.isDefined("TimeAvg")) {
-    rec.get("TimeAvg", itsTimeAvg);
+    rec.get("TimeAvg", itsTimeAvg.front());
   }
   if (rec.isDefined("StartTime")) {
     rec.get("StartTime", itsStartTime);

@@ -41,6 +41,7 @@ BDAAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
       input_channel_indices(),
       time(0.0),
       interval(0.0),
+      exposure(0.0),
       data(n_output_channels * n_correlations, {0.0f, 0.0f}),
       weights(n_output_channels * n_correlations, 0.0f),
       uvw{0.0f, 0.0f, 0.0f} {
@@ -61,6 +62,7 @@ void BDAAverager::BaselineBuffer::Clear() {
   times_added = 0;
   time = 0.0;
   interval = 0.0;
+  exposure = 0.0;
   std::fill(data.begin(), data.end(), std::complex<float>{0.0f, 0.0f});
   std::fill(weights.begin(), weights.end(), 0.0f);
   std::fill(uvw, uvw + 3, 0.0);
@@ -95,6 +97,8 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   std::vector<std::vector<double>> widths(_info.nbaselines());
 
   const std::vector<double>& lengths = _info.getBaselineLengths();
+  std::vector<unsigned int> baseline_factors;
+  baseline_buffers_.reserve(_info.nbaselines());
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -126,6 +130,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
       }
     }
 
+    baseline_factors.emplace_back(factor_time);
     baseline_buffers_.emplace_back(factor_time, _info.nchan(), nchan,
                                    _info.ncorr());
     relative_channels += float(nchan) / float(factor_time);
@@ -152,6 +157,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   bda_pool_size_ = _info.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 
+  info().update(baseline_factors);
   info().set(std::move(freqs), std::move(widths));
 }
 
@@ -181,7 +187,8 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     if (1 == bb.times_added) {
       bb.time = buffer.getTime();
     }
-    bb.interval += buffer.getExposure();
+    bb.interval += info().timeInterval();
+    bb.exposure += buffer.getExposure();
 
     std::complex<float>* bb_data = bb.data.data();
     float* bb_weights = bb.weights.data();
@@ -267,12 +274,14 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
   }
 
-  bda_buffer_->AddRow(bb.time, bb.interval, next_rownr_, baseline_nr,
-                      nchan * info().ncorr(), bb.data.data(), nullptr,
+  bda_buffer_->AddRow(bb.time, bb.interval, bb.exposure, baseline_nr, nchan,
+                      info().ncorr(), bb.data.data(), nullptr,
                       bb.weights.data(), nullptr, bb.uvw);
 }
 
 void BDAAverager::show(std::ostream& stream) const { stream << "BDAAverager"; }
+
+DPStep::MSType BDAAverager::outputs() const { return BDA; };
 
 }  // namespace DPPP
 }  // namespace DP3

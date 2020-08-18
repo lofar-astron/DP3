@@ -67,6 +67,9 @@ class DPStep {
   /// Define the shared pointer for this type.
   typedef std::shared_ptr<DPStep> ShPtr;
 
+  /// To check compatibility between steps before running.
+  enum MSType { REGULAR, BDA };
+
   /// Constructor to initialize.
   DPStep() : itsPrevStep(0) {}
 
@@ -127,6 +130,12 @@ class DPStep {
 
   /// Get the next step.
   const DPStep::ShPtr& getNextStep() const { return itsNextStep; }
+
+  /// Return which datatype this step outputs.
+  virtual MSType outputs() const { return REGULAR; }
+
+  /// Boolean if this step can process this type of data.
+  virtual bool accepts(MSType dt) const { return dt == REGULAR; }
 
  protected:
   DPInfo& info() { return itsInfo; }

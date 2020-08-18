@@ -185,6 +185,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc
   DPPP/MSUpdater.cc
   DPPP/MSWriter.cc
@@ -305,6 +306,7 @@ endif()
 set(TEST_FILENAMES
   DPPP/test/runtests.cc
   DPPP/test/unit/mock/MockStep.cc
+  DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
@@ -319,6 +321,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
+  DPPP/test/unit/tMSBDAWriter.cc
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc

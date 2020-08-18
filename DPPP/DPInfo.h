@@ -156,6 +156,9 @@ class DPInfo {
   void update(unsigned int startChan, unsigned int nchan,
               const std::vector<unsigned int>& baselines, bool remove);
 
+  /// Update the info for the given average factors.
+  void update(const std::vector<unsigned int> timeAvg);
+
   /// Remove unused stations from the antenna lists.
   void removeUnusedAnt();
 
@@ -178,7 +181,10 @@ class DPInfo {
   unsigned int nantenna() const { return itsAntNames.size(); }
   unsigned int nbaselines() const { return itsAnt1.size(); }
   unsigned int ntime() const { return itsNTime; }
-  unsigned int ntimeAvg() const { return itsTimeAvg; }
+  unsigned int ntimeAvg(unsigned int baseline = 0) const {
+    return itsTimeAvg[baseline];
+  }
+  const std::vector<unsigned int>& ntimeAvgs() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
   const std::vector<std::size_t>& getAnt1() const { return itsAnt1; }
@@ -320,7 +326,7 @@ class DPInfo {
   unsigned int itsNChan;
   unsigned int itsChanAvg;
   unsigned int itsNTime;
-  unsigned int itsTimeAvg;
+  std::vector<unsigned int> itsTimeAvg;
   double itsStartTime;
   double itsTimeInterval;
   casacore::MDirection itsPhaseCenter;

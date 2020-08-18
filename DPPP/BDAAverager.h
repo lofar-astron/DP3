@@ -58,6 +58,9 @@ class BDAAverager : public DPStep {
 
   void updateInfo(const DPInfo&) override;
 
+  /// Return which datatype this step outputs.
+  MSType outputs() const override;
+
  private:
   struct BaselineBuffer {
     BaselineBuffer(std::size_t time_factor, std::size_t n_input_channels,
@@ -70,6 +73,7 @@ class BDAAverager : public DPStep {
     std::vector<std::size_t> input_channel_indices;
     double time;
     double interval;
+    double exposure;
     std::vector<std::complex<float>> data;
     std::vector<float> weights;
     double uvw[3];

@@ -191,7 +191,7 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   BOOST_TEST(expected.getExposure() == row.interval);
   // ??? TODO:compare row_nr ???
   BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr);
-  BOOST_REQUIRE_EQUAL(n_chan * n_corr, row.n_elements);
+  BOOST_REQUIRE_EQUAL(n_chan * n_corr, row.GetDataSize());
   BOOST_TEST(expected.getUVW()(0, 0) == row.uvw[0]);
   BOOST_TEST(expected.getUVW()(1, 0) == row.uvw[1]);
   BOOST_TEST(expected.getUVW()(2, 0) == row.uvw[2]);

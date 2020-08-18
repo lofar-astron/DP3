@@ -40,6 +40,7 @@
 #include "H5ParmPredict.h"
 #include "Interpolate.h"
 #include "MedFlagger.h"
+#include "MSBDAWriter.h"
 #include "MSReader.h"
 #include "MSUpdater.h"
 #include "MSWriter.h"
@@ -366,12 +367,19 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
       step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix,
-                            currentMSName);
+                            currentMSName,
+                            lastStep->outputs() == DPStep::MSType::BDA);
       needsOutputStep = false;
     } else {
       // Maybe the step is defined in a dynamic library.
       step = findStepCtor(type)(reader, parset, prefix);
     }
+
+    if (!step->accepts(lastStep->outputs())) {
+      throw std::invalid_argument("Step " + type +
+                                  " is incompatible with input data.");
+    }
+
     if (lastStep) {
       lastStep->setNextStep(step);
     }
@@ -385,7 +393,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   // 'split' step)
   if (needsOutputStep) {
     step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.",
-                          currentMSName);
+                          currentMSName,
+                          lastStep->outputs() == DPStep::MSType::BDA);
     lastStep->setNextStep(step);
     lastStep = step;
   }
@@ -403,7 +412,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
 DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
                                     const ParameterSet& parset,
                                     const string& prefix,
-                                    casacore::String& currentMSName) {
+                                    casacore::String& currentMSName,
+                                    const bool& isBDA) {
   DPStep::ShPtr step;
   casacore::String outName;
   bool doUpdate = false;
@@ -429,15 +439,24 @@ DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
       doUpdate = true;
     }
   }
-  if (doUpdate) {
-    // Create MSUpdater.
-    // Take care the history is not written twice.
-    // Note that if there is nothing to write, the updater won't do anything.
-    step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
-                                       outName != currentMSName);
+  if (isBDA) {
+    if (doUpdate) {
+      throw std::invalid_argument("No updater for BDA data.");
+    } else {
+      step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
+      reader->setReadVisData(true);
+    }
   } else {
-    step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
-    reader->setReadVisData(true);
+    if (doUpdate) {
+      // Create MSUpdater.
+      // Take care the history is not written twice.
+      // Note that if there is nothing to write, the updater won't do anything.
+      step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                         outName != currentMSName);
+    } else {
+      step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
+      reader->setReadVisData(true);
+    }
   }
   casacore::Path pathOut(outName);
   currentMSName = pathOut.absoluteName();

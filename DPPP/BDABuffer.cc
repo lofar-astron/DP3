@@ -24,15 +24,18 @@
 namespace DP3 {
 namespace DPPP {
 
-BDABuffer::Row::Row(double _time, double _interval, rownr_t _row_nr,
-                    std::size_t _baseline_nr, std::size_t n_elements,
+BDABuffer::Row::Row(double _time, double _interval, double _exposure,
+                    rownr_t _row_nr, std::size_t _baseline_nr,
+                    std::size_t _n_channels, std::size_t _n_correlations,
                     std::complex<float>* _data, bool* _flags, float* _weights,
                     bool* _full_res_flags, const double* const _uvw)
     : time(_time),
       interval(_interval),
+      exposure(_exposure),
       row_nr(_row_nr),
       baseline_nr(_baseline_nr),
-      n_elements(n_elements),
+      n_channels(_n_channels),
+      n_correlations(_n_correlations),
       data(_data),
       flags(_flags),
       weights(_weights),
@@ -77,8 +80,8 @@ BDABuffer::BDABuffer(const BDABuffer& other)
   // Copy rows but set their pointers to the new memory pools.
   rows_.reserve(other.rows_.size());
   for (const BDABuffer::Row& row : other.rows_) {
-    rows_.emplace_back(row.time, row.interval, row.row_nr, row.baseline_nr,
-                       row.n_elements,
+    rows_.emplace_back(row.time, row.interval, row.exposure, row.row_nr,
+                       row.baseline_nr, row.n_channels, row.n_correlations,
                        data_.data() + (row.data - other.data_.data()),
                        flags_.data() + (row.flags - other.flags_.data()),
                        weights_.data() + (row.weights - other.weights_.data()),
@@ -101,8 +104,9 @@ std::size_t BDABuffer::GetNumberOfElements() const {
   return original_capacity_ - remaining_capacity_;
 }
 
-bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
-                       std::size_t baseline_nr, std::size_t n_elements,
+bool BDABuffer::AddRow(double time, double interval, double exposure,
+                       std::size_t baseline_nr, std::size_t n_channels,
+                       std::size_t n_correlations,
                        const std::complex<float>* const data,
                        const bool* const flags, const float* const weights,
                        const bool* const full_res_flags,
@@ -110,6 +114,7 @@ bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
   if (!rows_.empty() && TimeIsLessEqual(time + interval, rows_.back().time)) {
     throw std::invalid_argument("Rows are not properly ordered");
   }
+  const std::size_t n_elements = n_channels * n_correlations;
   if (remaining_capacity_ < n_elements) {
     return false;
   }
@@ -153,9 +158,19 @@ bool BDABuffer::AddRow(double time, double interval, rownr_t row_nr,
       full_res_flags_.insert(full_res_flags_.end(), n_elements, false);
     }
   }
-  rows_.emplace_back(time, interval, row_nr, baseline_nr, n_elements, row_data,
-                     row_flags, row_weights, row_full_res_flags, uvw);
+
+  const rownr_t row_nr = rows_.empty() ? 0 : rows_.back().row_nr + 1;
+  rows_.emplace_back(time, interval, exposure, row_nr, baseline_nr, n_channels,
+                     n_correlations, row_data, row_flags, row_weights,
+                     row_full_res_flags, uvw);
   return true;
+}
+
+void BDABuffer::SetBaseRowNr(rownr_t row_nr) {
+  for (Row& row : rows_) {
+    row.row_nr = row_nr;
+    ++row_nr;
+  }
 }
 
 }  // namespace DPPP
