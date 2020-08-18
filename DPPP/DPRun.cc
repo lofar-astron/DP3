@@ -301,9 +301,6 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   lastStep = firstStep;
   DPStep::ShPtr step;
   bool needsOutputStep = true;
-  // TODO this boolean should not be needed when the BDA implementation is
-  // completed.
-  bool isBDA = false;
   for (std::vector<string>::const_iterator iter = steps.begin();
        iter != steps.end(); ++iter) {
     string prefix(*iter + '.');
@@ -327,7 +324,6 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<Averager>(reader, parset, prefix);
     } else if (type == "bdaaverager") {
       step = std::make_shared<BDAAverager>(*reader, parset, prefix);
-      isBDA = true;
     } else if (type == "madflagger" || type == "madflag") {
       step = std::make_shared<MedFlagger>(reader, parset, prefix);
     } else if (type == "preflagger" || type == "preflag") {
@@ -371,12 +367,19 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
       step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix,
-                            currentMSName, isBDA);
+                            currentMSName,
+                            lastStep->outputs() == DPStep::MSType::BDA);
       needsOutputStep = false;
     } else {
       // Maybe the step is defined in a dynamic library.
       step = findStepCtor(type)(reader, parset, prefix);
     }
+
+    if (!step->accepts(lastStep->outputs())) {
+      throw std::invalid_argument("Step " + type +
+                                  " is incompatible with input data.");
+    }
+
     if (lastStep) {
       lastStep->setNextStep(step);
     }
@@ -390,7 +393,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   // 'split' step)
   if (needsOutputStep) {
     step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.",
-                          currentMSName, isBDA);
+                          currentMSName,
+                          lastStep->outputs() == DPStep::MSType::BDA);
     lastStep->setNextStep(step);
     lastStep = step;
   }

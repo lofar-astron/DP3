@@ -82,6 +82,12 @@ class ScaleData : public DPStep {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
+  /// Return which datatype this step outputs.
+  MSType outputs() const override;
+
+  /// Boolean if this step can process this type of data.
+  bool accepts(MSType dt) const override;
+
  private:
   /// Fill the scale factors for stations having different nr of tiles.
   void fillSizeScaleFactors(unsigned int nNominal, std::vector<double>& fact);
