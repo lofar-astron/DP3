@@ -23,12 +23,15 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableCopy.h>
 #include <casacore/tables/Tables/TableDesc.h>
+#include <map>
 
 #include "../Common/ParameterSet.h"
 #include "BDABuffer.h"
 #include "MSBDAWriter.h"
 #include "MSWriter.h"
 #include "DPLogger.h"
+
+#include <casacore/tables/TaQL/TableParse.h>
 
 using casacore::ArrayColumn;
 using casacore::ArrayColumnDesc;
@@ -39,7 +42,6 @@ using casacore::Int;
 using casacore::IPosition;
 using casacore::MeasurementSet;
 using casacore::MS;
-using casacore::ObjectID;
 using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
 using casacore::SetupNewTable;
@@ -77,6 +79,7 @@ const std::string kFactor = "FACTOR";
 namespace {
 /// BDA metadata table column names for SPECTRAL_WINDOW.
 const std::string kSpectralWindowTable = "SPECTRAL_WINDOW";
+const std::string kDataDescTable = "DATA_DESCRIPTION";
 
 const std::string kBDAFreqAxisId = "BDA_FREQ_AXIS_ID";
 const std::string kBDASetId = "BDA_SET_ID";
@@ -120,21 +123,21 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
   casacore::Vector<casacore::Float> sigma_weight(info().ncorr(), 1);
 
-  ScalarColumn<casacore::Double> time(ms_, MS::columnName(MS::TIME));
-  ScalarColumn<casacore::Double> time_centroid(
-      ms_, MS::columnName(MS::TIME_CENTROID));
-  ScalarColumn<casacore::Double> exposure(ms_, MS::columnName(MS::EXPOSURE));
-  ScalarColumn<casacore::Int> ant1(ms_, MS::columnName(MS::ANTENNA1));
-  ScalarColumn<casacore::Int> ant2(ms_, MS::columnName(MS::ANTENNA2));
+  ScalarColumn<Double> time(ms_, MS::columnName(MS::TIME));
+  ScalarColumn<Double> time_centroid(ms_, MS::columnName(MS::TIME_CENTROID));
+  ScalarColumn<Double> exposure(ms_, MS::columnName(MS::EXPOSURE));
+  ScalarColumn<Int> ant1(ms_, MS::columnName(MS::ANTENNA1));
+  ScalarColumn<Int> ant2(ms_, MS::columnName(MS::ANTENNA2));
   ArrayColumn<casacore::Complex> data(ms_, MS::columnName(MS::DATA));
   ArrayColumn<casacore::Float> weights(ms_,
                                        MS::columnName(MS::WEIGHT_SPECTRUM));
   ArrayColumn<casacore::Bool> flags(ms_, MS::columnName(MS::FLAG));
   ScalarColumn<casacore::Bool> flags_row(ms_, MS::columnName(MS::FLAG_ROW));
-  ArrayColumn<casacore::Double> uvw(ms_, MS::columnName(MS::UVW));
-  ScalarColumn<casacore::Double> interval(ms_, MS::columnName(MS::INTERVAL));
+  ArrayColumn<Double> uvw(ms_, MS::columnName(MS::UVW));
+  ScalarColumn<Double> interval(ms_, MS::columnName(MS::INTERVAL));
   ArrayColumn<casacore::Float> sigma(ms_, MS::columnName(MS::SIGMA));
   ArrayColumn<casacore::Float> weight(ms_, MS::columnName(MS::WEIGHT));
+  ScalarColumn<Int> dataDescId(ms_, MS::columnName(MS::DATA_DESC_ID));
 
   std::vector<DP3::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
@@ -161,11 +164,12 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
     flags_row.put(row.row_nr, row_flag);
 
     const casacore::IPosition uvw_dim(1, 3);
-    uvw.put(row.row_nr, casacore::Array<casacore::Double>(uvw_dim, row.uvw));
+    uvw.put(row.row_nr, casacore::Array<Double>(uvw_dim, row.uvw));
 
     // Fill values in all the cells of various columns.
     sigma.put(row.row_nr, sigma_weight);
     weight.put(row.row_nr, sigma_weight);
+    dataDescId.put(row.row_nr, nchanToDescId[n_chan]);
 
     row_nrs.push_back(row.row_nr);
   }
@@ -222,17 +226,19 @@ void MSBDAWriter::CreateMainTable() {
 
   ms_ = Table(setup);
 
+  // Create empty subtables.
+  MeasurementSet(ms_).createDefaultSubtables(Table::New);
   if (reader_) {
     DPLOG_INFO("Copying info and subtables ...", false);
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 
-    casacore::Block<casacore::String> omitted_subtables(1);
+    casacore::Block<casacore::String> omitted_subtables(4);
     omitted_subtables[0] = kBDATimeAxisTable;
+    omitted_subtables[1] = kBDATimeFactorTable;
+    omitted_subtables[2] = kSpectralWindowTable;
+    omitted_subtables[3] = kDataDescTable;
     TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
-  } else {
-    // Create empty subtables.
-    MeasurementSet(ms_).createDefaultSubtables(Table::New);
   }
 }  // namespace DPPP
 
@@ -281,16 +287,24 @@ void MSBDAWriter::CreateMetaDataFrequencyColumns() {
   ScalarColumnDesc<Int> bdaSetIdColumn(kBDASetId);
   bdaSetIdColumn.setDefault(-1);
   out_spw.addColumn(bdaSetIdColumn);
+
+  // Remove fixed size options from columns
+  TableDesc td = out_spw.tableDesc();
+  td.rwColumnDesc("CHAN_FREQ").setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc("CHAN_WIDTH").setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc("EFFECTIVE_BW").setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc("RESOLUTION").setOptions(ColumnDesc::Direct);
 }
 
 void MSBDAWriter::WriteMetaData() {
-  const Int pid = ObjectID().pid();
+  const Int pid = 0;
   unsigned int min_factor_time = 65535;
   unsigned int max_factor_time = 1;
 
   WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
   WriteTimeAxisRow(pid, min_factor_time, max_factor_time);
-  FillSpectralWindowColumns(pid);
+
+  OverwriteSubTables(pid);
 }
 
 void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
@@ -306,12 +320,12 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
     min_factor_time = std::min(min_factor_time, factor);
     max_factor_time = std::max(max_factor_time, factor);
 
-    ScalarColumn<casacore::Int>(bda_time_factor, kTimeAxisId).put(row, pid);
-    ScalarColumn<casacore::Int>(bda_time_factor, MS::columnName(MS::ANTENNA1))
+    ScalarColumn<Int>(bda_time_factor, kTimeAxisId).put(row, pid);
+    ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA1))
         .put(row, ant1[i]);
-    ScalarColumn<casacore::Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
+    ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
         .put(row, ant2[i]);
-    ScalarColumn<casacore::Int>(bda_time_factor, kFactor).put(row, factor);
+    ScalarColumn<Int>(bda_time_factor, kFactor).put(row, factor);
     ++row;
   }
 }
@@ -323,24 +337,71 @@ void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
   const double interval = info().timeInterval();
   int row = bda_time_axis.nrow();
   bda_time_axis.addRow();
-  ScalarColumn<casacore::Int>(bda_time_axis, kTimeAxisId).put(row, pid);
-  ScalarColumn<casacore::Bool>(bda_time_axis, kIsBdaApplied).put(row, True);
-  ScalarColumn<casacore::Bool>(bda_time_axis, kSingleFactorPerBL)
-      .put(row, True);
-  ScalarColumn<casacore::Double>(bda_time_axis, kMaxTimeInterval)
+  ScalarColumn<Int>(bda_time_axis, kTimeAxisId).put(row, pid);
+  ScalarColumn<Bool>(bda_time_axis, kIsBdaApplied).put(row, True);
+  ScalarColumn<Bool>(bda_time_axis, kSingleFactorPerBL).put(row, True);
+  ScalarColumn<Double>(bda_time_axis, kMaxTimeInterval)
       .put(row, max_factor_time * interval);
-  ScalarColumn<casacore::Double>(bda_time_axis, kMinTimeInterval)
+  ScalarColumn<Double>(bda_time_axis, kMinTimeInterval)
       .put(row, min_factor_time * interval);
-  ScalarColumn<casacore::Double>(bda_time_axis, kUnitTimeInterval)
-      .put(row, interval);
-  ScalarColumn<casacore::Bool>(bda_time_axis, kIntervalFactors).put(row, True);
-  ScalarColumn<casacore::Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
+  ScalarColumn<Double>(bda_time_axis, kUnitTimeInterval).put(row, interval);
+  ScalarColumn<Bool>(bda_time_axis, kIntervalFactors).put(row, True);
+  ScalarColumn<Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
 }
 
-void MSBDAWriter::FillSpectralWindowColumns(const Int& pid) {
-  Table spectral_window(outName_ + '/' + kSpectralWindowTable, Table::Update);
-  ScalarColumn<casacore::Int>(spectral_window, kBDAFreqAxisId).fillColumn(pid);
-  ScalarColumn<casacore::Int>(spectral_window, kBDASetId).fillColumn(0);
+void MSBDAWriter::OverwriteSubTables(const Int& pid) {
+  unsigned int id = 0;
+  std::string name;
+  int measFreqRef;
+
+  Table outDD(outName_ + '/' + kDataDescTable, Table::Update);
+  Table outSPW(outName_ + '/' + kSpectralWindowTable, Table::Update);
+
+  if (outSPW.nrow() != outDD.nrow())
+    throw std::runtime_error(
+        "nrow in SPECTRAL_WINDOW table is not the same as nrow in "
+        "DATA_DESCRIPTION table");
+
+  // Remove all rows before and after the selected band.
+  // Do it from the end, otherwise row numbers change.
+  for (unsigned int i = outSPW.nrow(); i > 0;) {
+    if (--i == reader_->spectralWindow()) {
+      measFreqRef = outSPW.col("MEAS_FREQ_REF").getInt(i);
+      name = outSPW.col("NAME").getString(i);
+    }
+    outSPW.removeRow(i);
+    outDD.removeRow(i);
+  }
+
+  for (std::size_t i = 0; i < info().nbaselines(); ++i) {
+    std::size_t nchanFreqs = info().chanFreqs(i).size();
+    if (nchanToDescId.count(nchanFreqs)) {
+      continue;
+    }
+
+    outDD.addRow();
+    ScalarColumn<Int>(outDD, "SPECTRAL_WINDOW_ID").put(id, id);
+
+    outSPW.addRow();
+    ScalarColumn<Int>(outSPW, "NUM_CHAN").put(id, nchanFreqs);
+    ScalarColumn<Int>(outSPW, "MEAS_FREQ_REF").put(id, measFreqRef);
+    ScalarColumn<casacore::String>(outSPW, "NAME").put(id, name);
+    ArrayColumn<Double>(outSPW, "CHAN_FREQ")
+        .put(id, Vector<double>(info().chanFreqs(i)));
+    ArrayColumn<Double>(outSPW, "CHAN_WIDTH")
+        .put(id, Vector<double>(info().chanWidths(i)));
+    ArrayColumn<Double>(outSPW, "EFFECTIVE_BW")
+        .put(id, Vector<double>(info().effectiveBW(i)));
+    ArrayColumn<Double>(outSPW, "RESOLUTION")
+        .put(id, Vector<double>(info().resolutions(i)));
+    ScalarColumn<Double>(outSPW, "TOTAL_BANDWIDTH").put(id, info().totalBW());
+    ScalarColumn<Double>(outSPW, "REF_FREQUENCY").put(id, info().refFreq());
+    ScalarColumn<Int>(outSPW, kBDAFreqAxisId).put(id, pid);
+    ScalarColumn<Int>(outSPW, kBDASetId).put(id, id);
+
+    nchanToDescId[nchanFreqs] = id;
+    ++id;
+  }
 }
 
 }  // namespace DPPP
