@@ -281,5 +281,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
 void BDAAverager::show(std::ostream& stream) const { stream << "BDAAverager"; }
 
+DPStep::MSType BDAAverager::outputs() const { return BDA; };
+
 }  // namespace DPPP
 }  // namespace DP3
