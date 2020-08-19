@@ -33,11 +33,16 @@
 
 #include <casacore/tables/TaQL/TableParse.h>
 
+using casacore::Array;
 using casacore::ArrayColumn;
 using casacore::ArrayColumnDesc;
+using casacore::Block;
 using casacore::Bool;
 using casacore::ColumnDesc;
+using casacore::Complex;
 using casacore::Double;
+using casacore::Float;
+using casacore::IncrementalStMan;
 using casacore::Int;
 using casacore::IPosition;
 using casacore::MeasurementSet;
@@ -45,6 +50,8 @@ using casacore::MS;
 using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
 using casacore::SetupNewTable;
+using casacore::StandardStMan;
+using casacore::String;
 using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
@@ -121,22 +128,21 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
   ms_.addRow(rows.size());
 
-  casacore::Vector<casacore::Float> sigma_weight(info().ncorr(), 1);
+  Vector<Float> sigma_weight(info().ncorr(), 1);
 
   ScalarColumn<Double> time(ms_, MS::columnName(MS::TIME));
   ScalarColumn<Double> time_centroid(ms_, MS::columnName(MS::TIME_CENTROID));
   ScalarColumn<Double> exposure(ms_, MS::columnName(MS::EXPOSURE));
   ScalarColumn<Int> ant1(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<Int> ant2(ms_, MS::columnName(MS::ANTENNA2));
-  ArrayColumn<casacore::Complex> data(ms_, MS::columnName(MS::DATA));
-  ArrayColumn<casacore::Float> weights(ms_,
-                                       MS::columnName(MS::WEIGHT_SPECTRUM));
-  ArrayColumn<casacore::Bool> flags(ms_, MS::columnName(MS::FLAG));
-  ScalarColumn<casacore::Bool> flags_row(ms_, MS::columnName(MS::FLAG_ROW));
+  ArrayColumn<Complex> data(ms_, MS::columnName(MS::DATA));
+  ArrayColumn<Float> weights(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
+  ArrayColumn<Bool> flags(ms_, MS::columnName(MS::FLAG));
+  ScalarColumn<Bool> flags_row(ms_, MS::columnName(MS::FLAG_ROW));
   ArrayColumn<Double> uvw(ms_, MS::columnName(MS::UVW));
   ScalarColumn<Double> interval(ms_, MS::columnName(MS::INTERVAL));
-  ArrayColumn<casacore::Float> sigma(ms_, MS::columnName(MS::SIGMA));
-  ArrayColumn<casacore::Float> weight(ms_, MS::columnName(MS::WEIGHT));
+  ArrayColumn<Float> sigma(ms_, MS::columnName(MS::SIGMA));
+  ArrayColumn<Float> weight(ms_, MS::columnName(MS::WEIGHT));
   ScalarColumn<Int> dataDescId(ms_, MS::columnName(MS::DATA_DESC_ID));
 
   std::vector<DP3::rownr_t> row_nrs;
@@ -151,20 +157,17 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
     ant2.put(row.row_nr, info().getAnt2()[row.baseline_nr]);
 
     const std::size_t n_chan = info().chanFreqs(row.baseline_nr).size();
-    const casacore::IPosition dim(2, info().ncorr(), n_chan);
-    data.put(row.row_nr, casacore::Array<casacore::Complex>(dim, row.data,
-                                                            casacore::SHARE));
-    weights.put(row.row_nr, casacore::Array<casacore::Float>(dim, row.weights,
-                                                             casacore::SHARE));
-    flags.put(row.row_nr,
-              casacore::Array<casacore::Bool>(dim, row.flags, casacore::SHARE));
+    const IPosition dim(2, info().ncorr(), n_chan);
+    data.put(row.row_nr, Array<Complex>(dim, row.data, casacore::SHARE));
+    weights.put(row.row_nr, Array<Float>(dim, row.weights, casacore::SHARE));
+    flags.put(row.row_nr, Array<Bool>(dim, row.flags, casacore::SHARE));
     // Set the row_flag if all flags in the row are true / none are false.
     const bool row_flag =
         std::count(row.flags, row.flags + row.GetDataSize(), false) == 0;
     flags_row.put(row.row_nr, row_flag);
 
-    const casacore::IPosition uvw_dim(1, 3);
-    uvw.put(row.row_nr, casacore::Array<Double>(uvw_dim, row.uvw));
+    const IPosition uvw_dim(1, 3);
+    uvw.put(row.row_nr, Array<Double>(uvw_dim, row.uvw));
 
     // Fill values in all the cells of various columns.
     sigma.put(row.row_nr, sigma_weight);
@@ -175,7 +178,7 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   }
 
   // Create a table view containing only the added rows.
-  casacore::Table tbl_added(ms_(row_nrs));
+  Table tbl_added(ms_(row_nrs));
 
   return true;
 }
@@ -200,8 +203,8 @@ void MSBDAWriter::CreateMainTable() {
   MS::addColumnToDesc(td, MS::DATA);
   MS::addColumnToDesc(td, MS::WEIGHT_SPECTRUM);
 
-  casacore::IncrementalStMan man_inc;
-  casacore::StandardStMan man_std(32768);
+  IncrementalStMan man_inc;
+  StandardStMan man_std(32768);
 
   Table::TableOption opt = overwrite_ ? Table::New : Table::NewNoReplace;
   SetupNewTable setup(outName_, td, opt);
@@ -233,7 +236,7 @@ void MSBDAWriter::CreateMainTable() {
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 
-    casacore::Block<casacore::String> omitted_subtables(4);
+    Block<String> omitted_subtables(4);
     omitted_subtables[0] = kBDATimeAxisTable;
     omitted_subtables[1] = kBDATimeFactorTable;
     omitted_subtables[2] = kSpectralWindowTable;
@@ -385,7 +388,7 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
     outSPW.addRow();
     ScalarColumn<Int>(outSPW, "NUM_CHAN").put(id, nchanFreqs);
     ScalarColumn<Int>(outSPW, "MEAS_FREQ_REF").put(id, measFreqRef);
-    ScalarColumn<casacore::String>(outSPW, "NAME").put(id, name);
+    ScalarColumn<String>(outSPW, "NAME").put(id, name);
     ArrayColumn<Double>(outSPW, "CHAN_FREQ")
         .put(id, Vector<double>(info().chanFreqs(i)));
     ArrayColumn<Double>(outSPW, "CHAN_WIDTH")
@@ -397,7 +400,9 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
     ScalarColumn<Double>(outSPW, "TOTAL_BANDWIDTH").put(id, info().totalBW());
     ScalarColumn<Double>(outSPW, "REF_FREQUENCY").put(id, info().refFreq());
     ScalarColumn<Int>(outSPW, kBDAFreqAxisId).put(id, pid);
-    ScalarColumn<Int>(outSPW, kBDASetId).put(id, id);
+    // When we support multiple SPECTRAL_WINDOW entries this value will be used
+    // to keep track of the old windows
+    ScalarColumn<Int>(outSPW, kBDASetId).put(id, 0);
 
     nchanToDescId[nchanFreqs] = id;
     ++id;
