@@ -77,6 +77,9 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
+      name_ (prefix),
+      maxfreqfactor_ (1),
+      maxtimefactor_ (1),
       next_rownr_(0),
       bda_pool_size_(0),
       bda_buffer_(),
@@ -120,6 +123,10 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
     }
     factor_time = std::max(factor_time, std::size_t{1});
 
+    if (factor_time > maxtimefactor_) {
+      maxtimefactor_ = factor_time;
+    }
+
     // Determine the number of channels in the output.
     std::size_t nchan = _info.nchan();
     if (bl_threshold_channel_ > 0.0) {
@@ -144,6 +151,10 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
     freqs[i].reserve(nchan);
     widths[i].reserve(nchan);
     for (std::size_t ch = 0; ch < nchan; ++ch) {
+      size_t freqfactor = indices[ch+1] - indices[ch];
+      if (freqfactor > maxfreqfactor_) {
+        maxfreqfactor_ = freqfactor;
+      }
       freqs[i].push_back(0.5 * (_info.chanFreqs()[indices[ch]] +
                                 _info.chanFreqs()[indices[ch + 1] - 1]));
       widths[i].push_back(std::accumulate(input_widths_begin + indices[ch],
@@ -280,7 +291,15 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
                       bb.weights.data(), nullptr, bb.uvw);
 }
 
-void BDAAverager::show(std::ostream& stream) const { stream << "BDAAverager"; }
+void BDAAverager::show(std::ostream& os) const {
+  os << "BDAAverager " << name_ << '\n';
+  os << "  timethresholdlength:   " << bl_threshold_time_ << "s\n";
+  os << "  max interval:          " << max_interval_ << "s\n";
+  os << "  freqthresholdlength:   " << bl_threshold_channel_ << '\n';
+  os << "  min channels:          " << min_channels_ << "\n";
+  os << "  max time factor:       " << maxtimefactor_ << '\n';
+  os << "  max freq factor:       " << maxfreqfactor_ << '\n';
+}
 
 DPStep::MSType BDAAverager::outputs() const { return BDA; };
 

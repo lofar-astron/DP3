@@ -92,6 +92,14 @@ class BDAAverager : public DPStep {
   const double max_interval_;
   /// Minimum number of channels in the output.
   std::size_t min_channels_;
+  /// Name of the step
+  std::string name_;
+
+  /// Maximum frequency factor computed from actual baseline lengths
+  std::size_t maxfreqfactor_;
+  /// Maximum time factor computed from actual baseline lengths
+  std::size_t maxtimefactor_;
+
   rownr_t next_rownr_;
   std::size_t bda_pool_size_;
   std::unique_ptr<BDABuffer> bda_buffer_;
