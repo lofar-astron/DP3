@@ -78,11 +78,23 @@ namespace DP3 {
       double sefd;
       itsTimer.start();
 
+
       // Name of the column to add the noise (at the moment not used, just a placeholder)
       string column = "DATA";
-      Array<Complex>::const_contiter indIter = buf.getData().cbegin();
       DPBuffer itsBuf;
-      itsBuf.getData().assign (buf.getData());
+      //////itsBuf.getData().assign (buf.getData());
+      //itsBuf.setData(buf.getData());
+      // Read the MODEL_DATA
+      if (mode == 10)
+      {
+         casacore::Cube<casacore::Complex> itsModelData;
+         itsInput->getModelData (buf.getRowNrs(), itsModelData);
+         itsBuf.setData(itsModelData);
+      } else {
+         itsBuf.setData(buf.getData());
+      }
+
+      Array<Complex>::const_contiter indIter = itsBuf.getData().cbegin();
 
       // Set the exposure
       double exposure = buf.getExposure();
@@ -127,6 +139,9 @@ namespace DP3 {
       casacore::Cube<Complex> noise_cube(n_corr,n_freq,n_baselines);
       casacore::Cube<Complex> c_noise_cube(n_corr,n_freq,n_baselines);
 
+
+      // Add noise
+
       long icount = 0;
       for (int icorr=0; icorr<n_corr; icorr++)
       {
@@ -159,17 +174,21 @@ namespace DP3 {
 
       }
 
+      //cout << "ITSMODELDATA [0]: " << endl;
+      //cout << itsModelData[0] << "  " << c_noise_cube[0] << endl;
+      //cout << "ITSMODELDATA [10]: " << endl;
+      //cout << itsModelData[10] << "  " << c_noise_cube[10] << endl;
       if (mode == 0)
       {
 	      itsBuf.setData(noise_cube);
-	      /*
               Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+              Array<Complex>::const_contiter indIter = buf.getData().cbegin();
 	      for(int i=0; i<10; i++)
 	      {
-		      cout << "--- " << *outdIter << endl;
+		      cout << "--- " << *outdIter << "  " << *indIter << endl;
 	              outdIter++;
+	              indIter++;
 	      }
-	      */
 
       } else if (mode == 1)
       {
@@ -183,6 +202,17 @@ namespace DP3 {
               }
 	      */
 
+      } else if (mode == 10)
+      {
+              Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+              Array<Complex>::const_contiter indIter = buf.getData().cbegin();
+	      for(int i=0; i<10; i++)
+	      {
+		      cout << "--- " << *outdIter << "  " << *indIter << endl;
+	              outdIter++;
+	              indIter++;
+	      }
+
       } else
       {
 	      cout << "Mode not supported" << endl;
@@ -190,6 +220,7 @@ namespace DP3 {
       }	      
 
       itsTimer.stop();
+      getNextStep()->process(itsBuf);
       return false;
     }
 
