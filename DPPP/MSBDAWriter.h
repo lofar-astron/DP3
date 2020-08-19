@@ -23,6 +23,7 @@
 #define DPPP_MSBDAWRITER_H
 
 #include <casacore/tables/Tables/Table.h>
+#include <map>
 
 #include "DPStep.h"
 #include "MSReader.h"
@@ -78,9 +79,8 @@ class MSBDAWriter : public DPStep {
   /// Write a row in the BDA_TIME_AXIS table.
   void WriteTimeAxisRow(const Int&, const unsigned int&, const unsigned int&);
 
-  /// Write data to the BDA data columns of the SPECTRAL_WINDOW table.
-  /// The BDA_SET_ID will be all zeros.
-  void FillSpectralWindowColumns(const Int&);
+  /// Overwrite the SPECTRAL_WINDOW and DATA_DESCRIPTION tables.
+  void OverwriteSubTables(const Int&);
 
  private:
   MSReader* reader_;
@@ -89,6 +89,9 @@ class MSBDAWriter : public DPStep {
   const std::string prefix_;
   const bool overwrite_;
 
+  unsigned int ncorr_;
+  unsigned int nbl_;
+  std::map<std::size_t, unsigned int> nchanToDescId;
   casacore::Table ms_;
 };
 

@@ -39,13 +39,16 @@ BOOST_FIXTURE_TEST_CASE(ms_contains_bda_time_axis_table, FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_ms_out.MS";
   const double timeInterval = 1.5;
+  const int nchan = 4;
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  info.init(1, 0, 1, 1, 3.0, timeInterval, "", "");
+  info.init(1, 0, nchan, 1, 3.0, timeInterval, "", "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
+
+  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
   MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
@@ -91,13 +94,15 @@ BOOST_FIXTURE_TEST_CASE(spectral_window_contains_bda_freq_axisid,
                         FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_ms_out_freq.MS";
+  const int nchan = 1;
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.init(1, 0, nchan, 1, 3.0, 1.5, "", "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
+  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
   MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
@@ -139,6 +144,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
            std::vector<int>{0});
   info.set(std::vector<std::vector<double>>{{1.}},
            std::vector<std::vector<double>>{{10.}});
+  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
   writer.updateInfo(info);
 
   auto buffer = boost::make_unique<BDABuffer>(1);
@@ -200,6 +206,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
            std::vector<double>{1.0, 2.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
            std::vector<int>{0, 1}, std::vector<int>{0, 1});
+  info.set(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
 
   // ntimeAvgs is 1, nbaselines 2 so we expect an exception
   BOOST_TEST(info.ntimeAvgs().size() == size_t(1));
@@ -215,6 +222,7 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
+  info.set(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
   const std::string kMsName = "default_tables.MS";
 
   MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
@@ -247,6 +255,8 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
            std::vector<double>{1.0, 1.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},
            std::vector<int>{0, 1}, std::vector<int>{0, 1});
+  info.set(std::vector<std::vector<double>>{{1.}, {1.}},
+           std::vector<std::vector<double>>{{5000.}, {5000.}});
   info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});
   MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
