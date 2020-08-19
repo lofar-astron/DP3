@@ -112,6 +112,8 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
   }
 
   DPStep::updateInfo(info_in);
+  nbl_ = info().nbaselines();
+  ncorr_ = info().ncorr();
   CreateMS();
 
   WriteMetaData();
@@ -185,7 +187,14 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
 void MSBDAWriter::finish() {}
 
-void MSBDAWriter::show(std::ostream& os) const {}
+void MSBDAWriter::show(std::ostream& os) const {
+  os << "MSWriter " << prefix_ << std::endl;
+  os << "  output MS:      " << ms_.tableName() << std::endl;
+  os << "  ncorrelations:  " << ncorr_ << std::endl;
+  os << "  nbaselines:     " << nbl_ << std::endl;
+  os << "  DATA column:    DATA" << std::endl;
+  os << "  Compressed:     no\n";
+}
 
 void MSBDAWriter::CreateMS() {
   CreateMainTable();
