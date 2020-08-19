@@ -77,9 +77,9 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
           parset.getDouble(prefix + "freqthresholdlength", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
-      name_ (prefix),
-      maxfreqfactor_ (1),
-      maxtimefactor_ (1),
+      name_(prefix),
+      maxfreqfactor_(1),
+      maxtimefactor_(1),
       next_rownr_(0),
       bda_pool_size_(0),
       bda_buffer_(),
@@ -151,7 +151,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
     freqs[i].reserve(nchan);
     widths[i].reserve(nchan);
     for (std::size_t ch = 0; ch < nchan; ++ch) {
-      size_t freqfactor = indices[ch+1] - indices[ch];
+      size_t freqfactor = indices[ch + 1] - indices[ch];
       if (freqfactor > maxfreqfactor_) {
         maxfreqfactor_ = freqfactor;
       }
