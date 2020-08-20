@@ -29,6 +29,8 @@
 #include "UVWCalculator.h"
 #include "FlagCounter.h"
 
+#include "../Common/ParameterSet.h"
+
 #include <EveryBeam/station.h>
 
 #include <casacore/tables/Tables/TableIter.h>
@@ -121,6 +123,8 @@ class DPInput : public DPStep {
   /// <br>It does a stop/start of the timer when actually reading the data.
   const casacore::Matrix<double>& fetchUVW(const DPBuffer& bufin,
                                            DPBuffer& bufout, NSTimer& timer);
+
+  static DPInput* InitReader(const ParameterSet&, const string&);
 };
 
 }  // namespace DPPP

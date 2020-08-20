@@ -185,6 +185,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MSBDAReader.cc
   DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc
   DPPP/MSUpdater.cc
@@ -319,6 +320,7 @@ set(TEST_FILENAMES
   # DPPP/test/unit/tH5Parm.cc # Fails because sol001 cannot be found
   DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
+  DPPP/test/unit/tDPInput.cc
   DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
   DPPP/test/unit/tMSBDAWriter.cc

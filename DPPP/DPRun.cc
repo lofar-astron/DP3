@@ -248,48 +248,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   DPStep::ShPtr firstStep;
   DPStep::ShPtr lastStep;
   if (!reader) {
-    // Get input and output MS name.
-    // Those parameters were always called msin and msout.
-    // However, SAS/MAC cannot handle a parameter and a group with the same
-    // name, hence one can also use msin.name and msout.name.
-    std::vector<string> inNames =
-        parset.getStringVector("msin.name", std::vector<string>());
-    if (inNames.empty()) {
-      inNames = parset.getStringVector("msin");
-    }
-    if (inNames.size() == 0) throw Exception("No input MeasurementSets given");
-    // Find all file names matching a possibly wildcarded input name.
-    // This is only possible if a single name is given.
-    if (inNames.size() == 1) {
-      if (inNames[0].find_first_of("*?{['") != string::npos) {
-        std::vector<string> names;
-        names.reserve(80);
-        casacore::Path path(inNames[0]);
-        casacore::String dirName(path.dirName());
-        casacore::Directory dir(dirName);
-        // Use the basename as the file name pattern.
-        casacore::DirectoryIterator dirIter(
-            dir,
-            casacore::Regex(casacore::Regex::fromPattern(path.baseName())));
-        while (!dirIter.pastEnd()) {
-          names.push_back(dirName + '/' + dirIter.name());
-          dirIter++;
-        }
-        if (names.empty())
-          throw Exception("No datasets found matching msin " + inNames[0]);
-        inNames = names;
-      }
-    }
-
-    // Get the steps.
-    // Currently the input MS must be given.
-    // In the future it might be possible to have a simulation step instead.
-    // Create MSReader step if input ms given.
-    if (inNames.size() == 1) {
-      reader = new MSReader(inNames[0], parset, "msin.");
-    } else {
-      reader = new MultiMSReader(inNames, parset, "msin.");
-    }
+    reader = DPInput::InitReader(parset, prefix);
     firstStep = DPStep::ShPtr(reader);
   }
 
