@@ -266,6 +266,11 @@ MSReader::MSReader(const string& msName, const ParameterSet& parset,
 MSReader::~MSReader() {}
 
 void MSReader::updateInfo(const DPInfo& dpInfo) {
+  if (itsMS.keywordSet().isDefined("BDA_TIME_AXIS")) {
+    throw std::invalid_argument(
+        "Input MS contains BDA data. Table BDA_TIME_AXIS is present");
+  }
+
   info().setNThreads(dpInfo.nThreads());
 }
 

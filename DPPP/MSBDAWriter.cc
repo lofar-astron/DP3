@@ -280,6 +280,7 @@ void MSBDAWriter::CreateBDATimeFactor() {
   td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA1)));
   td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA2)));
   td.addColumn(ScalarColumnDesc<Int>(kFactor));
+  td.addColumn(ScalarColumnDesc<Int>("SPECTRAL_WINDOW_ID"));
 
   // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
   SetupNewTable new_table(outName_ + '/' + kBDATimeFactorTable, td, Table::New);
@@ -313,10 +314,9 @@ void MSBDAWriter::WriteMetaData() {
   unsigned int min_factor_time = 65535;
   unsigned int max_factor_time = 1;
 
+  OverwriteSubTables(pid);
   WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
   WriteTimeAxisRow(pid, min_factor_time, max_factor_time);
-
-  OverwriteSubTables(pid);
 }
 
 void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
@@ -327,6 +327,7 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
   const Vector<Int>& ant1 = info().getAnt1();
   const Vector<Int>& ant2 = info().getAnt2();
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
+    std::size_t nchan = info().chanFreqs(i).size();
     bda_time_factor.addRow();
     const unsigned int factor = info().ntimeAvg(i);
     min_factor_time = std::min(min_factor_time, factor);
@@ -338,6 +339,8 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
     ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
         .put(row, ant2[i]);
     ScalarColumn<Int>(bda_time_factor, kFactor).put(row, factor);
+    ScalarColumn<Int>(bda_time_factor, "SPECTRAL_WINDOW_ID")
+        .put(row, nchanToDescId[nchan]);
     ++row;
   }
 }

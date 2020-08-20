@@ -31,6 +31,8 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
+#include <map>
+
 namespace DP3 {
 
 class ParameterSet;
@@ -189,12 +191,24 @@ class MSBDAReader : public DPInput {
   unsigned int spectralWindow() const { return spw_; }
 
  protected:
-  unsigned int spw_;  ///< spw (band) to use (<0 no select)
   casacore::Table ms_;
+  std::string msName_;
   bool readVisData_;  ///< read visibility data?
   double lastMSTime_;
+  double interval_;
+  unsigned int spw_;        ///< spw (band) to use (<0 no select)
   unsigned int nread_;      ///< nr of time slots read from MS
   unsigned int ninserted_;  ///< nr of inserted time slots
+  unsigned int ncorr_;
+  unsigned int nbl_;
+  NSTimer timer_;
+
+  std::map<int, std::size_t> descIdToNchan_;
+
+  casacore::TableIterator iter_;
+
+ private:
+  void FillMetaData();
 };
 
 }  // namespace DPPP
