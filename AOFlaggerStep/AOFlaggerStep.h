@@ -97,6 +97,9 @@ class AOFlaggerStep : public DPStep {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
+  /// Format a number as kB, MB, etc.
+  static void formatBytes(std::ostream&, double);
+
  private:
   /// Flag all baselines in the time window (using OpenMP to parallellize).
   /// Process the buffers in the next step.
@@ -113,9 +116,6 @@ class AOFlaggerStep : public DPStep {
                 const aoflagger::ImageSet& values,
                 const aoflagger::FlagMask& rfiMask,
                 const aoflagger::FlagMask& origMask, int bl);
-
-  /// Format a number as kB, MB, etc.
-  static void formatBytes(std::ostream&, double);
 
   string name_;
   unsigned int buffer_index_;

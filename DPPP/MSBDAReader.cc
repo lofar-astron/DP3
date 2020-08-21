@@ -27,7 +27,9 @@
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
+#include "../AOFlaggerStep/AOFlaggerStep.h"
 
+#include <casacore/casa/OS/HostInfo.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
@@ -70,6 +72,8 @@ MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
   spw_ = parset.getInt(prefix + "band", -1);
   dataColName_ = parset.getString(prefix + "datacolumn", "DATA");
   weightColName_ = parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
+  memory_ = parset.getUint(prefix + "memorymax", 0);
+  memory_percentage_ = parset.getUint(prefix + "memoryperc", 0);
 }
 
 MSBDAReader::~MSBDAReader() {}
@@ -78,6 +82,7 @@ DPStep::MSType MSBDAReader::outputs() const { return BDA; };
 
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
+  DetermineAvailableMemory();
 
   if (!Table::isReadable(msName_)) {
     throw std::invalid_argument("No such MS: " + msName_);
@@ -106,13 +111,17 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
     antennaSet = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
   }
 
-  // TODO check optimal rows per buffer (e.g. based on memory)
-  unsigned int rowsPerBuffer = nbl_;
-  poolSize_ = ncorr_ * maxChanWidth_ * rowsPerBuffer;
-  unsigned int ntimeAprox = ms_.nrow() / rowsPerBuffer;
+  // Determine the pool size for the bda buffers
+  std::size_t expected_row_size =
+      (sizeof(float) * 2 + sizeof(casacore::Complex) + sizeof(double) * 2) *
+          ncorr_ * maxChanWidth_ +
+      3 * sizeof(double) + 4 * sizeof(std::size_t) + 3 * sizeof(double);
+  std::size_t rowsPerBuffer = memory_avail_ / expected_row_size;
+  poolSize_ = std::max(std::size_t(1), rowsPerBuffer);
 
   double startTime = 0;
   unsigned int startChan = 0;
+  unsigned int ntimeAprox = std::ceil(ms_.nrow() / (float)rowsPerBuffer);
 
   info().init(ncorr_, startChan, maxChanWidth_, ntimeAprox, startTime,
               interval_, msName(), antennaSet);
@@ -221,6 +230,25 @@ void MSBDAReader::FillInfoMetaData() {
   info().set(std::move(freqs), std::move(widths));
 }
 
+void MSBDAReader::DetermineAvailableMemory() {
+  // Determine available memory.
+  double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
+  // Determine how much memory can be used.
+  double memoryMax = memory_ * 1024 * 1024 * 1024;
+  double memory = memoryMax;
+  if (memory_percentage_ > 0) {
+    memory = memory_percentage_ * availMemory / 100.;
+    if (memoryMax > 0 && memory > memoryMax) {
+      memory = memoryMax;
+    }
+  } else if (memory_ <= 0) {
+    // Nothing given, so use available memory on this machine.
+    // Set 50% (max 2 GB) aside for other purposes.
+    memory = availMemory - std::min(0.5 * availMemory, 2. * 1024 * 1024 * 1024);
+  }
+  memory_avail_ = memory;
+}
+
 void MSBDAReader::show(std::ostream& os) const {
   os << "MSReader\n";
   os << "  input MS:       " << msName_ << '\n';
@@ -241,6 +269,8 @@ void MSBDAReader::show(std::ostream& os) const {
     os << "  DATA column:    " << dataColName_;
     os << '\n';
     os << "  WEIGHT column:  " << weightColName_ << '\n';
+    os << "  memory ";
+    AOFlaggerStep::formatBytes(os, memory_avail_);
   }
 }
 

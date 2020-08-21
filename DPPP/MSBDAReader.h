@@ -184,11 +184,16 @@ class MSBDAReader : public DPInput {
   /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
 
+  void DetermineAvailableMemory();
+
  private:
   std::map<int, std::size_t>
       descIdToNchan_;  ///< Maps DATA_DESC_ID to channel width
   std::map<std::pair<int, int>, unsigned int>
-      blToBLId_;  ///< Maps a baseline to a baseline id
+      blToBLId_;   ///< Maps a baseline to a baseline id
+  double memory_;  ///< Usable memory in GBytes
+  double memory_percentage_;
+  double memory_avail_;  ///< Amount of bytes available for memory
 };
 
 }  // namespace DPPP
