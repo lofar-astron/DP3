@@ -56,11 +56,16 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSBDAReader::MSBDAReader() : readVisData_(False), lastMSTime_(0), nread_(0) {}
+MSBDAReader::MSBDAReader()
+    : readVisData_(False), lastMSTime_(0), nread_(0), maxChanWidth_(0) {}
 
 MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
                          const string& prefix)
-    : msName_(msName), readVisData_(False), lastMSTime_(0), nread_(0) {
+    : msName_(msName),
+      readVisData_(False),
+      lastMSTime_(0),
+      nread_(0),
+      maxChanWidth_(0) {
   NSTimer::StartStop sstime(timer_);
   spw_ = parset.getInt(prefix + "band", -1);
   dataColName_ = parset.getString(prefix + "datacolumn", "DATA");
@@ -100,8 +105,6 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   // info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
   // info().init(ncorr_, itsStartChan, itsNrChan, ntime, itsStartTime,
   //             interval_, msName(), antennaSet);
-  info().setDataColName(dataColName_);
-  info().setWeightColName(weightColName_);
   // TODO this logic can be done in the metadata filling method
   // if (itsUseAllChan) {
   //   info().set(std::move(chanFreqs), std::move(chanWidths),
@@ -118,6 +121,27 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   //              refFreq);
   // }
   FillInfoMetaData();
+
+  // Read the antenna set.
+  Table obstab(ms_.keywordSet().asTable("OBSERVATION"));
+  string antennaSet;
+  if (obstab.nrow() > 0 && obstab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
+    antennaSet = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+  }
+
+  // TODO check optimal rows per buffer (e.g. based on memory)
+  unsigned int rowsPerBuffer = nbl_;
+  poolSize_ = ncorr_ * maxChanWidth_ * rowsPerBuffer;
+  unsigned int ntimeAprox = ms_.nrow() / rowsPerBuffer;
+
+  // TODO determine these 2, if possible
+  double startTime = 0;
+  unsigned int startChan = 0;
+
+  info().init(ncorr_, startChan, maxChanWidth_, ntimeAprox, startTime,
+              interval_, msName(), antennaSet);
+  info().setDataColName(dataColName_);
+  info().setWeightColName(weightColName_);
 }
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
@@ -127,10 +151,7 @@ void MSBDAReader::setReadVisData(bool readVisData) {
 }
 
 bool MSBDAReader::process(const DPBuffer&) {
-  // TODO determine actual size
-  // TODO cannot use info().nchan(), maybe use max nchan?
-  size_t poolSize = ncorr_ * info().nchan();
-  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(poolSize);
+  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(poolSize_);
 
   ScalarColumn<int> ant1Col(ms_, "ANTENNA1");
   ScalarColumn<int> ant2Col(ms_, "ANTENNA2");
@@ -169,7 +190,7 @@ bool MSBDAReader::process(const DPBuffer&) {
   getNextStep()->process(std::move(buffer));
 
   // Return true while there are still items remaining
-  return !(nread_ < ms_.nrow());
+  return nread_ < ms_.nrow();
 }
 
 void MSBDAReader::finish() { getNextStep()->finish(); }
@@ -218,6 +239,7 @@ void MSBDAReader::FillInfoMetaData() {
     freqs[i] = freqsCol.get(spwId).tovector();
     widths[i] = widthsCol.get(spwId).tovector();
 
+    maxChanWidth_ = std::max(maxChanWidth_, freqs[i].size());
     descIdToNchan_[idsCol(i)] = freqs[i].size();
     blToBLId_[std::make_pair(ant1Col(i), ant2Col(i))] = i;
   }

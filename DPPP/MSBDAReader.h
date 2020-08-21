@@ -206,6 +206,8 @@ class MSBDAReader : public DPInput {
   unsigned int ncorr_;
   unsigned int nbl_;
   NSTimer timer_;
+  std::size_t maxChanWidth_;
+  std::size_t poolSize_;
 
  private:
   void FillInfoMetaData();
