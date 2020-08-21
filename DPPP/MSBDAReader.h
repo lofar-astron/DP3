@@ -49,15 +49,9 @@ namespace DPPP {
 /// Currently the following can be given:
 /// <ul>
 ///  <li> msin: name of the MS
-///  <li> msin.autoweight: calculate weights from autocorrelations? [no]
-///  <li> msin.startchan: first channel to use [0]
-///  <li> msin.nchan: number of channels to use [all]
-///  <li> msin.useflag: use the existing flags? [yes]
 ///  <li> msin.datacolumn: the data column to use [DATA]
 ///  <li> msin.weightcolumn: the weights column to use [WEIGHT_SPECTRUM or
 ///           WEIGHT]
-///  <li> msin.starttime: first time to use [first time in MS]
-///  <li> msin.endtime: last time to use [last time in MS]
 /// </ul>
 ///
 /// The process function only reads the data and flags to avoid that
@@ -157,29 +151,6 @@ class MSBDAReader : public DPInput {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
-  /// Read the UVW at the given row numbers into the buffer.
-  void getUVW(const casacore::RefRows& rowNrs, double time, DPBuffer&) override;
-
-  /// Read the weights at the given row numbers into the buffer.
-  /// Note: the buffer must contain DATA if autoweighting is in effect.
-  void getWeights(const casacore::RefRows& rowNrs, DPBuffer&) override;
-
-  /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
-  /// into the buffer.
-  /// If there is no such column, the flags are set to false and false is
-  /// returned.
-  bool getFullResFlags(const casacore::RefRows& rowNrs, DPBuffer&) override;
-
-  /// Read the model data at the given row numbers into the array.
-  void getModelData(const casacore::RefRows& rowNrs,
-                    casacore::Cube<casacore::Complex>&) override;
-
-  /// Fill the vector with station beam info from the input MS.
-  /// Only fill it for the given station names.
-  void fillBeamInfo(
-      std::vector<everybeam::Station::Ptr>&,
-      const casacore::Vector<casacore::String>& antNames) override;
-
   /// Get the name of the MS.
   std::string msName() const override;
 
@@ -200,21 +171,24 @@ class MSBDAReader : public DPInput {
   std::string weightColName_;
   bool readVisData_;  ///< read visibility data?
   double lastMSTime_;
-  double interval_;
+  double interval_;     ///< original interval of the MS
   unsigned int spw_;    ///< spw (band) to use (<0 no select)
   unsigned int nread_;  ///< nr of time slots read from MS
-  unsigned int ncorr_;
-  unsigned int nbl_;
+  unsigned int ncorr_;  ///< nr of correlations in the MS
+  unsigned int nbl_;    ///< nr of baselines in the MS
   NSTimer timer_;
-  std::size_t maxChanWidth_;
-  std::size_t poolSize_;
+  std::size_t maxChanWidth_;  ///< maximum width of channels in SPECTRAL_WINDOW
+  std::size_t poolSize_;  ///< Pool size that will be used for the BDA buffers
 
  private:
+  /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
 
  private:
-  std::map<int, std::size_t> descIdToNchan_;
-  std::map<std::pair<int, int>, unsigned int> blToBLId_;
+  std::map<int, std::size_t>
+      descIdToNchan_;  ///< Maps DATA_DESC_ID to channel width
+  std::map<std::pair<int, int>, unsigned int>
+      blToBLId_;  ///< Maps a baseline to a baseline id
 };
 
 }  // namespace DPPP

@@ -96,28 +96,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   IPosition shp(ArrayColumn<Complex>(ms_, "DATA").shape(0));
   ncorr_ = shp[0];
 
-  // TODO initialize info
-
-  // if (itsAutoWeight) {
-  //   info().setNeedVisData();
-  //   info().setWriteWeights();
-  // }
-  // info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
-  // TODO this logic can be done in the metadata filling method
-  // if (itsUseAllChan) {
-  //   info().set(std::move(chanFreqs), std::move(chanWidths),
-  //              std::move(resolutions), std::move(effectiveBW), refFreq);
-  // } else {
-  //   auto freqBegin = chanFreqs.begin() + itsStartChan;
-  //   auto widthBegin = chanWidths.begin() + itsStartChan;
-  //   auto resolBegin = resolutions.begin() + itsStartChan;
-  //   auto effbwBegin = effectiveBW.begin() + itsStartChan;
-  //   info().set(std::vector<double>(freqBegin, freqBegin + itsNrChan),
-  //              std::vector<double>(widthBegin, widthBegin + itsNrChan),
-  //              std::vector<double>(resolBegin, resolBegin + itsNrChan),
-  //              std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
-  //              refFreq);
-  // }
+  // Read the meta data tables and store required values.
   FillInfoMetaData();
 
   // Read the antenna set.
@@ -132,7 +111,6 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   poolSize_ = ncorr_ * maxChanWidth_ * rowsPerBuffer;
   unsigned int ntimeAprox = ms_.nrow() / rowsPerBuffer;
 
-  // TODO determine these 2, if possible and do something with it
   double startTime = 0;
   unsigned int startChan = 0;
 
@@ -149,6 +127,7 @@ void MSBDAReader::setReadVisData(bool readVisData) {
 }
 
 bool MSBDAReader::process(const DPBuffer&) {
+  NSTimer::StartStop sstime(timer_);
   std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(poolSize_);
 
   ScalarColumn<int> ant1Col(ms_, "ANTENNA1");
@@ -193,25 +172,6 @@ bool MSBDAReader::process(const DPBuffer&) {
 
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
-void MSBDAReader::show(std::ostream& os) const {}
-
-void MSBDAReader::showCounts(std::ostream& os) const {}
-
-void MSBDAReader::showTimings(std::ostream& os, double duration) const {}
-
-void MSBDAReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {}
-
-void MSBDAReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {}
-
-bool MSBDAReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
-  return true;
-}
-
-void MSBDAReader::getModelData(const RefRows& rowNrs, Cube<Complex>& arr) {}
-
-void MSBDAReader::fillBeamInfo(vector<everybeam::Station::Ptr>& vec,
-                               const Vector<String>& antNames) {}
-
 void MSBDAReader::FillInfoMetaData() {
   Table factors = ms_.keywordSet().asTable("BDA_FACTORS");
   Table axis = ms_.keywordSet().asTable("BDA_TIME_AXIS");
@@ -220,6 +180,7 @@ void MSBDAReader::FillInfoMetaData() {
   interval_ = axis.col("UNIT_TIME_INTERVAL").getDouble(0);
   nbl_ = factors.nrow();
 
+  // Required columns to read
   ScalarColumn<int> factorCol(factors, "FACTOR");
   ScalarColumn<int> ant1Col(factors, "ANTENNA1");
   ScalarColumn<int> ant2Col(factors, "ANTENNA2");
@@ -258,6 +219,41 @@ void MSBDAReader::FillInfoMetaData() {
 
   info().update(baseline_factors);
   info().set(std::move(freqs), std::move(widths));
+}
+
+void MSBDAReader::show(std::ostream& os) const {
+  os << "MSReader\n";
+  os << "  input MS:       " << msName_ << '\n';
+  if (ms_.isNull()) {
+    os << "    *** MS does not exist ***\n";
+  } else {
+    os << "  band            " << spw_ << '\n';
+    os << "  startchan:      " << 0 << '\n';
+    os << "  nchan:          " << getInfo().nchan() << '\n';
+    os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
+    os << "  nbaselines:     " << nbl_ << '\n';
+    os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(0)
+       << '\n';
+    os << "  last time:      " << MVTime::Format(MVTime::YMD)
+       << MVTime(lastMSTime_ / (24 * 3600.)) << '\n';
+    os << "  ntimes:         " << getInfo().ntime() << '\n';
+    os << "  time interval:  " << getInfo().timeInterval() << '\n';
+    os << "  DATA column:    " << dataColName_;
+    os << '\n';
+    os << "  WEIGHT column:  " << weightColName_ << '\n';
+  }
+}
+
+void MSBDAReader::showCounts(std::ostream& os) const {
+  os << endl << "NaN/infinite data flagged in reader";
+  os << endl << "===================================" << endl;
+  os << 0 << " missing time slots were inserted" << endl;
+}
+
+void MSBDAReader::showTimings(std::ostream& os, double duration) const {
+  os << "  ";
+  FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " MSBDAReader" << endl;
 }
 
 }  // namespace DPPP
