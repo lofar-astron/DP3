@@ -76,8 +76,8 @@ const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
 }  // namespace
 
 namespace {
-/// BDA_TIME_FACTOR table column names.
-const std::string kBDATimeFactorTable = "BDA_TIME_FACTOR";
+/// BDA_FACTORS table column names.
+const std::string kBDATimeFactorTable = "BDA_FACTORS";
 
 const std::string kFactor = "FACTOR";
 /// @}
@@ -274,7 +274,7 @@ void MSBDAWriter::CreateBDATimeAxis() {
 }
 
 void MSBDAWriter::CreateBDATimeFactor() {
-  // Build the table description for BDA_TIME_FACTOR.
+  // Build the table description for BDA_FACTORS.
   TableDesc td(kBDATimeFactorTable, TableDesc::Scratch);
   td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
   td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA1)));
@@ -282,7 +282,7 @@ void MSBDAWriter::CreateBDATimeFactor() {
   td.addColumn(ScalarColumnDesc<Int>(kFactor));
   td.addColumn(ScalarColumnDesc<Int>("SPECTRAL_WINDOW_ID"));
 
-  // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
+  // Add the BDA_FACTORS as a subtable to the output measurementset.
   SetupNewTable new_table(outName_ + '/' + kBDATimeFactorTable, td, Table::New);
   Table bda_time_factor_table(new_table);
   ms_.rwKeywordSet().defineTable(kBDATimeFactorTable, bda_time_factor_table);

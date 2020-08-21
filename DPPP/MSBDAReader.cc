@@ -85,10 +85,10 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   ms_ = MeasurementSet(msName_, TableLock::AutoNoReadLocking);
 
-  if (!ms_.keywordSet().isDefined("BDA_TIME_FACTOR") ||
-      ms_.keywordSet().asTable("BDA_TIME_FACTOR").nrow() == 0) {
+  if (!ms_.keywordSet().isDefined("BDA_FACTORS") ||
+      ms_.keywordSet().asTable("BDA_FACTORS").nrow() == 0) {
     throw std::invalid_argument(
-        "Input MS does not contain BDA data. Table BDA_TIME_FACTOR is missing "
+        "Input MS does not contain BDA data. Table BDA_FACTORS is missing "
         "or not filled");
   }
 
@@ -103,8 +103,6 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   //   info().setWriteWeights();
   // }
   // info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
-  // info().init(ncorr_, itsStartChan, itsNrChan, ntime, itsStartTime,
-  //             interval_, msName(), antennaSet);
   // TODO this logic can be done in the metadata filling method
   // if (itsUseAllChan) {
   //   info().set(std::move(chanFreqs), std::move(chanWidths),
@@ -134,7 +132,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   poolSize_ = ncorr_ * maxChanWidth_ * rowsPerBuffer;
   unsigned int ntimeAprox = ms_.nrow() / rowsPerBuffer;
 
-  // TODO determine these 2, if possible
+  // TODO determine these 2, if possible and do something with it
   double startTime = 0;
   unsigned int startChan = 0;
 
@@ -215,7 +213,7 @@ void MSBDAReader::fillBeamInfo(vector<everybeam::Station::Ptr>& vec,
                                const Vector<String>& antNames) {}
 
 void MSBDAReader::FillInfoMetaData() {
-  Table factors = ms_.keywordSet().asTable("BDA_TIME_FACTOR");
+  Table factors = ms_.keywordSet().asTable("BDA_FACTORS");
   Table axis = ms_.keywordSet().asTable("BDA_TIME_AXIS");
   Table spw = ms_.keywordSet().asTable("SPECTRAL_WINDOW");
 
@@ -229,7 +227,7 @@ void MSBDAReader::FillInfoMetaData() {
   ArrayColumn<double> freqsCol(spw, "CHAN_FREQ");
   ArrayColumn<double> widthsCol(spw, "CHAN_WIDTH");
 
-  // Fill info with the data required to repopulate BDA_TIME_FACTOR
+  // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl_);
   std::vector<std::vector<double>> widths(nbl_);
   std::vector<unsigned int> baseline_factors(nbl_);

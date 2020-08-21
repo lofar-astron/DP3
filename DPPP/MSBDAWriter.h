@@ -60,7 +60,7 @@ class MSBDAWriter : public DPStep {
   /// if it does not already exist.
   void CreateBDATimeAxis();
 
-  ///  Add the BDA_TIME_FACTOR table to the measurement set
+  ///  Add the BDA_FACTORS table to the measurement set
   /// if it does not already exist.
   void CreateBDATimeFactor();
 
@@ -68,12 +68,12 @@ class MSBDAWriter : public DPStep {
   void CreateMetaDataFrequencyColumns();
 
   /// Write a metadata row to BDA_TIME_AXIS
-  /// metadata of the baselines to BDA_TIME_FACTOR
+  /// metadata of the baselines to BDA_FACTORS
   /// and write to the metadata columns of SPECTRAL_WINDOW.
   /// If an entry already exists, nothing is written.
   void WriteMetaData();
 
-  /// Write all the baselines to the BDA_TIME_FACTOR table.
+  /// Write all the baselines to the BDA_FACTORS table.
   void WriteTimeFactorRows(const Int&, unsigned int&, unsigned int&);
 
   /// Write a row in the BDA_TIME_AXIS table.

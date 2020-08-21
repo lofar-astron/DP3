@@ -266,10 +266,10 @@ MSReader::MSReader(const string& msName, const ParameterSet& parset,
 MSReader::~MSReader() {}
 
 void MSReader::updateInfo(const DPInfo& dpInfo) {
-  if (itsMS.keywordSet().isDefined("BDA_TIME_FACTOR") &&
-      itsMS.keywordSet().asTable("BDA_TIME_FACTOR").nrow() > 0) {
+  if (itsMS.keywordSet().isDefined("BDA_FACTORS") &&
+      itsMS.keywordSet().asTable("BDA_FACTORS").nrow() > 0) {
     throw std::invalid_argument(
-        "Input MS contains BDA data. Table BDA_TIME_FACTOR is present and "
+        "Input MS contains BDA data. Table BDA_FACTORS is present and "
         "filled. Use bdain=true instead.");
   }
 
