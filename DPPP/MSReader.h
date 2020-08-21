@@ -184,10 +184,10 @@ class MSReader : public DPInput {
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.
-  virtual void setReadVisData(bool readVisData);
+  void setReadVisData(bool readVisData) override;
 
   /// Get the main MS table.
-  casacore::Table& table() { return itsMS; }
+  casacore::Table& table() override { return itsMS; }
 
   /// Get the name of the data column to be used.
   const std::string& dataColumnName() const { return itsDataColName; }
@@ -213,7 +213,7 @@ class MSReader : public DPInput {
   double lastTime() const { return itsLastTime; }
 
   /// Get the selected spectral window.
-  unsigned int spectralWindow() const { return itsSpw; }
+  unsigned int spectralWindow() const override { return itsSpw; }
 
   /// Get the baseline selection.
   const string& baselineSelection() const { return itsSelBL; }

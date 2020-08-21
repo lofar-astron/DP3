@@ -96,7 +96,7 @@ const std::string kBDASetId = "BDA_SET_ID";
 namespace DP3 {
 namespace DPPP {
 
-MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
+MSBDAWriter::MSBDAWriter(DPInput* reader, const std::string& out_name,
                          const ParameterSet& parset, const std::string& prefix)
     : reader_(reader),
       outName_(out_name),

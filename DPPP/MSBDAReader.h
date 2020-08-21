@@ -133,10 +133,13 @@ class MSBDAReader : public DPInput {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  bool process(std::unique_ptr<BDABuffer>) override;
+  bool process(const DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
+
+  /// Return which datatype this step outputs.
+  MSType outputs() const override;
 
   /// Update the general info.
   void updateInfo(const DPInfo&) override;
@@ -182,33 +185,34 @@ class MSBDAReader : public DPInput {
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.
-  void setReadVisData(bool readVisData);
+  void setReadVisData(bool readVisData) override;
 
   /// Get the main MS table.
-  casacore::Table& table() { return ms_; }
+  casacore::Table& table() override { return ms_; }
 
   /// Get the selected spectral window.
-  unsigned int spectralWindow() const { return spw_; }
+  unsigned int spectralWindow() const override { return spw_; }
 
  protected:
   casacore::Table ms_;
   std::string msName_;
+  std::string dataColName_;
+  std::string weightColName_;
   bool readVisData_;  ///< read visibility data?
   double lastMSTime_;
   double interval_;
-  unsigned int spw_;        ///< spw (band) to use (<0 no select)
-  unsigned int nread_;      ///< nr of time slots read from MS
-  unsigned int ninserted_;  ///< nr of inserted time slots
+  unsigned int spw_;    ///< spw (band) to use (<0 no select)
+  unsigned int nread_;  ///< nr of time slots read from MS
   unsigned int ncorr_;
   unsigned int nbl_;
   NSTimer timer_;
 
-  std::map<int, std::size_t> descIdToNchan_;
-
-  casacore::TableIterator iter_;
+ private:
+  void FillInfoMetaData();
 
  private:
-  void FillMetaData();
+  std::map<int, std::size_t> descIdToNchan_;
+  std::map<std::pair<int, int>, unsigned int> blToBLId_;
 };
 
 }  // namespace DPPP

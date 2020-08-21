@@ -260,6 +260,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   lastStep = firstStep;
   DPStep::ShPtr step;
   bool needsOutputStep = true;
+
   for (std::vector<string>::const_iterator iter = steps.begin();
        iter != steps.end(); ++iter) {
     string prefix(*iter + '.');
@@ -325,8 +326,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     } else if (type == "interpolate") {
       step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
-      step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix,
-                            currentMSName,
+      step = makeOutputStep(reader, parset, prefix, currentMSName,
                             lastStep->outputs() == DPStep::MSType::BDA);
       needsOutputStep = false;
     } else {
@@ -351,8 +351,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   // Add an output step if not explicitly added in steps (unless last step is a
   // 'split' step)
   if (needsOutputStep) {
-    step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.",
-                          currentMSName,
+    step = makeOutputStep(reader, parset, "msout.", currentMSName,
                           lastStep->outputs() == DPStep::MSType::BDA);
     lastStep->setNextStep(step);
     lastStep = step;
@@ -368,8 +367,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   return firstStep;
 }
 
-DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
-                                    const ParameterSet& parset,
+DPStep::ShPtr DPRun::makeOutputStep(DPInput* reader, const ParameterSet& parset,
                                     const string& prefix,
                                     casacore::String& currentMSName,
                                     const bool& isBDA) {
@@ -410,10 +408,12 @@ DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
       // Create MSUpdater.
       // Take care the history is not written twice.
       // Note that if there is nothing to write, the updater won't do anything.
-      step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
-                                         outName != currentMSName);
+      step =
+          std::make_shared<MSUpdater>(dynamic_cast<MSReader*>(reader), outName,
+                                      parset, prefix, outName != currentMSName);
     } else {
-      step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
+      step = std::make_shared<MSWriter>(dynamic_cast<MSReader*>(reader),
+                                        outName, parset, prefix);
       reader->setReadVisData(true);
     }
   }

@@ -94,6 +94,16 @@ class DPInput : public DPStep {
   virtual void fillBeamInfo(std::vector<everybeam::Station::Ptr>&,
                             const casacore::Vector<casacore::String>& antNames);
 
+  /// Tell if the visibility data are to be read. If set to true once,
+  /// this will stay true.
+  virtual void setReadVisData(bool);
+
+  /// Get the main MS table.
+  virtual casacore::Table& table();
+
+  /// Get the selected spectral window.
+  virtual unsigned int spectralWindow() const;
+
   /// Fetch the FullRes flags.
   /// If defined in the buffer, they are taken from there.
   /// Otherwise there are read from the input.

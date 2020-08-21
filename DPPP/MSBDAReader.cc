@@ -56,21 +56,20 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSBDAReader::MSBDAReader()
-    : readVisData_(False), lastMSTime_(0), nread_(0), ninserted_(0) {}
+MSBDAReader::MSBDAReader() : readVisData_(False), lastMSTime_(0), nread_(0) {}
 
 MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
                          const string& prefix)
-    : msName_(msName),
-      readVisData_(False),
-      lastMSTime_(0),
-      nread_(0),
-      ninserted_(0) {
+    : msName_(msName), readVisData_(False), lastMSTime_(0), nread_(0) {
   NSTimer::StartStop sstime(timer_);
   spw_ = parset.getInt(prefix + "band", -1);
+  dataColName_ = parset.getString(prefix + "datacolumn", "DATA");
+  weightColName_ = parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
 }
 
 MSBDAReader::~MSBDAReader() {}
+
+DPStep::MSType MSBDAReader::outputs() const { return BDA; };
 
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
@@ -79,29 +78,20 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
     throw std::invalid_argument("No such MS: " + msName_);
   }
 
-  if (!ms_.keywordSet().isDefined("BDA_TIME_AXIS")) {
-    throw std::invalid_argument(
-        "Input MS does not contain BDA data. Table BDA_TIME_AXIS is missing");
-  }
-
   ms_ = MeasurementSet(msName_, TableLock::AutoNoReadLocking);
 
-  // Create iterator over time. Do not sort again.
-  iter_ = TableIterator(ms_, Block<String>(1, "TIME"), TableIterator::Ascending,
-                        TableIterator::NoSort);
+  if (!ms_.keywordSet().isDefined("BDA_TIME_FACTOR") ||
+      ms_.keywordSet().asTable("BDA_TIME_FACTOR").nrow() == 0) {
+    throw std::invalid_argument(
+        "Input MS does not contain BDA data. Table BDA_TIME_FACTOR is missing "
+        "or not filled");
+  }
 
   // Find the nr of corr, chan, and baseline.
   IPosition shp(ArrayColumn<Complex>(ms_, "DATA").shape(0));
   ncorr_ = shp[0];
-  // TODO move to other part
-  // itsNrChan = shp[1];
-  // TODO if this is correct, then the iter is used wrong in the process
-  nbl_ = iter_.table().nrow();
 
   // TODO initialize info
-  // // Set antenna/baseline info.
-  // info().set(nameCol.getColumn(), diamCol.getColumn(), antPos,
-  //            ant1col.getColumn(), ant2col.getColumn());
 
   // if (itsAutoWeight) {
   //   info().setNeedVisData();
@@ -110,8 +100,9 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   // info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
   // info().init(ncorr_, itsStartChan, itsNrChan, ntime, itsStartTime,
   //             interval_, msName(), antennaSet);
-  // info().setDataColName(itsDataColName);
-  // info().setWeightColName(itsWeightColName);
+  info().setDataColName(dataColName_);
+  info().setWeightColName(weightColName_);
+  // TODO this logic can be done in the metadata filling method
   // if (itsUseAllChan) {
   //   info().set(std::move(chanFreqs), std::move(chanWidths),
   //              std::move(resolutions), std::move(effectiveBW), refFreq);
@@ -126,7 +117,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   //              std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
   //              refFreq);
   // }
-  FillMetaData();
+  FillInfoMetaData();
 }
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
@@ -135,52 +126,50 @@ void MSBDAReader::setReadVisData(bool readVisData) {
   readVisData_ = readVisData || readVisData_;
 }
 
-bool MSBDAReader::process(std::unique_ptr<BDABuffer>) {
+bool MSBDAReader::process(const DPBuffer&) {
   // TODO determine actual size
   // TODO cannot use info().nchan(), maybe use max nchan?
   size_t poolSize = ncorr_ * info().nchan();
   std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(poolSize);
 
-  while (!iter_.pastEnd() && buffer->GetRemainingCapacity() > 0) {
+  ScalarColumn<int> ant1Col(ms_, "ANTENNA1");
+  ScalarColumn<int> ant2Col(ms_, "ANTENNA2");
+  ArrayColumn<Complex> dataCol(ms_, "DATA");
+  ArrayColumn<float> weightsCol(ms_, "WEIGHT_SPECTRUM");
+  ArrayColumn<double> uvwCol(ms_, "UVW");
+
+  while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
     // Take time from row 0 in subset.
-    double msTime = ScalarColumn<double>(iter_.table(), "TIME")(0);
+    double msTime = ScalarColumn<double>(ms_, "TIME")(0);
 
     if (msTime < lastMSTime_) {
-      DPLOG_WARN_STR("Time at rownr " +
-                     std::to_string(iter_.table().rowNumbers(ms_)[0]) +
-                     " of MS " + msName() + " is less than previous time slot");
+      DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
+                     msName() + " is less than previous time slot");
+      ++nread_;
       continue;
     }
 
-    casacore::Cube<casacore::Complex> data;
-    casacore::Cube<float> weights;
-    casacore::Cube<double> uvw;
-    // TODO dont use iter
-    double interval = ScalarColumn<double>(iter_.table(), "INTERVAL")(0);
-    double exposure = ScalarColumn<double>(iter_.table(), "EXPOSURE")(0);
-    int dataDescId = ScalarColumn<int>(iter_.table(), "DATA_DESC_ID")(0);
-    ArrayColumn<casacore::Complex>(iter_.table(), "DATA").getColumn(data);
-    ArrayColumn<float>(iter_.table(), "WEIGHT_SPECTRUM").getColumn(weights);
-    ArrayColumn<double>(iter_.table(), "UVW").getColumn(uvw);
+    Cube<Complex> data = dataCol.get(nread_);
+    Cube<float> weights = weightsCol.get(nread_);
+    Cube<double> uvw = uvwCol.get(nread_);
+    double interval = ScalarColumn<double>(ms_, "INTERVAL")(nread_);
+    double exposure = ScalarColumn<double>(ms_, "EXPOSURE")(nread_);
+    int dataDescId = ScalarColumn<int>(ms_, "DATA_DESC_ID")(nread_);
 
-    // TODO for i in range(info().nbaselines) if ant1 == ANTENNA1 and ant2 ==
-    // ANTENNA2
-    size_t baselineNr = 0;
-    // TODO make map from DATA_DESC_ID to nchan // from SPECTRAL_WINDOW and
-    // DATA_DESCRIPTION
-    buffer->AddRow(msTime, interval, exposure, baselineNr,
-                   descIdToNchan_[dataDescId], info().ncorr(),
-                   data.tovector().data(), nullptr, weights.tovector().data(),
-                   nullptr, uvw.tovector().data());
+    size_t blNr = blToBLId_[std::make_pair(ant1Col(nread_), ant2Col(nread_))];
+
+    buffer->AddRow(msTime, interval, exposure, blNr, descIdToNchan_[dataDescId],
+                   info().ncorr(), data.tovector().data(), nullptr,
+                   weights.tovector().data(), nullptr, uvw.tovector().data());
 
     lastMSTime_ = msTime;
-    iter_.next();
+    ++nread_;
   }
 
   getNextStep()->process(std::move(buffer));
 
   // Return true while there are still items remaining
-  return !iter_.pastEnd();
+  return !(nread_ < ms_.nrow());
 }
 
 void MSBDAReader::finish() { getNextStep()->finish(); }
@@ -199,38 +188,56 @@ bool MSBDAReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   return true;
 }
 
-void MSBDAReader::getModelData(const casacore::RefRows& rowNrs,
-                               casacore::Cube<casacore::Complex>& arr) {}
+void MSBDAReader::getModelData(const RefRows& rowNrs, Cube<Complex>& arr) {}
 
-void MSBDAReader::fillBeamInfo(
-    vector<everybeam::Station::Ptr>& vec,
-    const casacore::Vector<casacore::String>& antNames) {}
+void MSBDAReader::fillBeamInfo(vector<everybeam::Station::Ptr>& vec,
+                               const Vector<String>& antNames) {}
 
-void MSBDAReader::FillMetaData() {
-  // Fill info with the data required repopulate BDA_TIME_AXIS
-  casacore::Table t = ms_.keywordSet().asTable("BDA_TIME_AXIS");
-  if (t.nrow() > 1) {
-    // TODO throw if the factors table is empty instead!
-    throw std::runtime_error(
-        "DP3 cannot handle multiple BDA_TIME_AXIS entries");
-  }
-  interval_ = t.col("UNIT_TIME_INTERVAL").getDouble(0);
+void MSBDAReader::FillInfoMetaData() {
+  Table factors = ms_.keywordSet().asTable("BDA_TIME_FACTOR");
+  Table axis = ms_.keywordSet().asTable("BDA_TIME_AXIS");
+  Table spw = ms_.keywordSet().asTable("SPECTRAL_WINDOW");
 
-  // TODO read SPECTRAL_WINDOW and make maps for id -> freqs and widths
+  interval_ = axis.col("UNIT_TIME_INTERVAL").getDouble(0);
+  nbl_ = factors.nrow();
+
+  ScalarColumn<int> factorCol(factors, "FACTOR");
+  ScalarColumn<int> ant1Col(factors, "ANTENNA1");
+  ScalarColumn<int> ant2Col(factors, "ANTENNA2");
+  ScalarColumn<int> idsCol(factors, "SPECTRAL_WINDOW_ID");
+  ArrayColumn<double> freqsCol(spw, "CHAN_FREQ");
+  ArrayColumn<double> widthsCol(spw, "CHAN_WIDTH");
 
   // Fill info with the data required to repopulate BDA_TIME_FACTOR
-  t = ms_.keywordSet().asTable("BDA_TIME_FACTOR");
-  std::vector<unsigned int> baseline_factors;
-  baseline_factors.reserve(nbl_);
-  for (unsigned int i = 0; i < t.nrow(); ++i) {
-    baseline_factors.emplace_back(t.col("FACTOR").getDouble(i));
-    // TODO add to freqs and widths
-  }
-  info().update(baseline_factors);
+  std::vector<std::vector<double>> freqs(nbl_);
+  std::vector<std::vector<double>> widths(nbl_);
+  std::vector<unsigned int> baseline_factors(nbl_);
+  for (unsigned int i = 0; i < nbl_; ++i) {
+    unsigned int spwId = idsCol(i);
+    baseline_factors[i] = factorCol(i);
+    freqs[i] = freqsCol.get(spwId).tovector();
+    widths[i] = widthsCol.get(spwId).tovector();
 
-  // TODO
-  // Fill info with the data required repopulate the main table
-  // info().set(std::move(freqs), std::move(widths));
+    descIdToNchan_[idsCol(i)] = freqs[i].size();
+    blToBLId_[std::make_pair(ant1Col(i), ant2Col(i))] = i;
+  }
+
+  Table anttab(ms_.keywordSet().asTable("ANTENNA"));
+  ScalarColumn<String> nameCol(anttab, "NAME");
+  ScalarColumn<Double> diamCol(anttab, "DISH_DIAMETER");
+  ROScalarMeasColumn<MPosition> antCol(anttab, "POSITION");
+  vector<MPosition> antPos;
+  antPos.reserve(anttab.nrow());
+  for (unsigned int i = 0; i < anttab.nrow(); ++i) {
+    antPos.push_back(antCol(i));
+  }
+
+  // Set antenna/baseline info.
+  info().set(nameCol.getColumn(), diamCol.getColumn(), antPos,
+             ant1Col.getColumn(), ant2Col.getColumn());
+
+  info().update(baseline_factors);
+  info().set(std::move(freqs), std::move(widths));
 }
 
 }  // namespace DPPP

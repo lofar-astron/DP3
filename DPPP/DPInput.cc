@@ -125,6 +125,18 @@ void DPInput::fillBeamInfo(vector<everybeam::Station::Ptr>&,
   throw Exception("DPInput::fillBeamInfo not implemented");
 }
 
+void DPInput::setReadVisData(bool) {
+  throw Exception("DPInput::setReadVisData not implemented");
+}
+
+casacore::Table& DPInput::table() {
+  throw Exception("DPInput::table not implemented");
+}
+
+unsigned int DPInput::spectralWindow() const {
+  throw Exception("DPInput::spectralWindow not implemented");
+}
+
 DPInput* DPInput::InitReader(const ParameterSet& parset, const string& prefix) {
   // Get input and output MS name.
   // Those parameters were always called msin and msout.
@@ -164,7 +176,6 @@ DPInput* DPInput::InitReader(const ParameterSet& parset, const string& prefix) {
     // In the future it might be possible to have a simulation step instead.
     // Create MSReader step if input ms given.
     if (inNames.size() == 1) {
-      std::cout << "regular" << std::endl;
       return new MSReader(inNames[0], parset, "msin.");
     } else {
       return new MultiMSReader(inNames, parset, "msin.");
@@ -174,7 +185,6 @@ DPInput* DPInput::InitReader(const ParameterSet& parset, const string& prefix) {
       throw std::invalid_argument(
           "DP3 does not support multiple in MS for BDA data.");
     }
-    std::cout << "BDA" << std::endl;
     return new MSBDAReader(inNames[0], parset, "msin.");
   }
 }

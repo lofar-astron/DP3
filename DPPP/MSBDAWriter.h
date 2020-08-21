@@ -37,7 +37,7 @@ namespace DPPP {
 
 class MSBDAWriter : public DPStep {
  public:
-  MSBDAWriter(MSReader*, const string&, const ParameterSet&, const string&);
+  MSBDAWriter(DPInput*, const string&, const ParameterSet&, const string&);
 
   ~MSBDAWriter() override;
 
@@ -83,7 +83,7 @@ class MSBDAWriter : public DPStep {
   void OverwriteSubTables(const Int&);
 
  private:
-  MSReader* reader_;
+  DPInput* reader_;
   const std::string outName_;
   const ParameterSet parset_;
   const std::string prefix_;

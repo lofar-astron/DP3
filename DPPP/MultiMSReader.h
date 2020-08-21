@@ -163,7 +163,7 @@ class MultiMSReader : public MSReader {
   virtual bool getFullResFlags(const casacore::RefRows& rowNrs, DPBuffer& buf);
 
   /// Tell if the visibility data are to be read.
-  virtual void setReadVisData(bool readVisData);
+  void setReadVisData(bool readVisData) override;
 
  private:
   /// Handle the info for all bands.
