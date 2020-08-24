@@ -59,20 +59,21 @@ namespace DP3 {
 namespace DPPP {
 
 MSBDAReader::MSBDAReader()
-    : readVisData_(False), lastMSTime_(0), nread_(0), maxChanWidth_(0) {}
+    : read_vis_data_(False), last_ms_time_(0), nread_(0), max_chan_width_(0) {}
 
 MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
                          const string& prefix)
-    : msName_(msName),
-      readVisData_(False),
-      lastMSTime_(0),
+    : ms_name_(msName),
+      read_vis_data_(False),
+      last_ms_time_(0),
       nread_(0),
-      maxChanWidth_(0) {
+      max_chan_width_(0) {
   NSTimer::StartStop sstime(timer_);
   spw_ = parset.getInt(prefix + "band", -1);
-  dataColName_ = parset.getString(prefix + "datacolumn", "DATA");
-  weightColName_ = parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
-  memory_ = parset.getUint(prefix + "memorymax", 0);
+  data_col_name_ = parset.getString(prefix + "data_column", "DATA");
+  weight_col_name_ =
+      parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
+  memory_ = parset.getUint(prefix + "memory_max", 0);
   memory_percentage_ = parset.getUint(prefix + "memoryperc", 0);
 }
 
@@ -84,11 +85,11 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
   DetermineAvailableMemory();
 
-  if (!Table::isReadable(msName_)) {
-    throw std::invalid_argument("No such MS: " + msName_);
+  if (!Table::isReadable(ms_name_)) {
+    throw std::invalid_argument("No such MS: " + ms_name_);
   }
 
-  ms_ = MeasurementSet(msName_, TableLock::AutoNoReadLocking);
+  ms_ = MeasurementSet(ms_name_, TableLock::AutoNoReadLocking);
 
   if (!ms_.keywordSet().isDefined("BDA_FACTORS") ||
       ms_.keywordSet().asTable("BDA_FACTORS").nrow() == 0) {
@@ -98,78 +99,79 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   }
 
   // Find the nr of corr, chan, and baseline.
-  IPosition shp(ArrayColumn<Complex>(ms_, "DATA").shape(0));
-  ncorr_ = shp[0];
+
+  ncorr_ = IPosition(ArrayColumn<Complex>(ms_, "DATA").shape(0))[0];
 
   // Read the meta data tables and store required values.
   FillInfoMetaData();
 
   // Read the antenna set.
   Table obstab(ms_.keywordSet().asTable("OBSERVATION"));
-  string antennaSet;
+  string antenna_set;
   if (obstab.nrow() > 0 && obstab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
-    antennaSet = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+    antenna_set = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
   }
 
   // Determine the pool size for the bda buffers
   std::size_t expected_row_size =
       (sizeof(float) * 2 + sizeof(casacore::Complex) + sizeof(double) * 2) *
-          ncorr_ * maxChanWidth_ +
+          ncorr_ * max_chan_width_ +
       3 * sizeof(double) + 4 * sizeof(std::size_t) + 3 * sizeof(double);
   std::size_t rowsPerBuffer = memory_avail_ / expected_row_size;
-  poolSize_ = std::max(std::size_t(1), rowsPerBuffer);
+  pool_size_ = std::max(std::size_t(1), rowsPerBuffer);
 
-  double startTime = 0;
-  unsigned int startChan = 0;
-  unsigned int ntimeAprox = std::ceil(ms_.nrow() / (float)rowsPerBuffer);
+  double start_time = 0;
+  unsigned int start_chan = 0;
+  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rowsPerBuffer);
 
-  info().init(ncorr_, startChan, maxChanWidth_, ntimeAprox, startTime,
-              interval_, msName(), antennaSet);
-  info().setDataColName(dataColName_);
-  info().setWeightColName(weightColName_);
+  info().init(ncorr_, start_chan, max_chan_width_, ntime_approx, start_time,
+              interval_, msName(), antenna_set);
+  info().setDataColName(data_col_name_);
+  info().setWeightColName(weight_col_name_);
 }
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
 void MSBDAReader::setReadVisData(bool readVisData) {
-  readVisData_ = readVisData || readVisData_;
+  read_vis_data_ = readVisData || read_vis_data_;
 }
 
 bool MSBDAReader::process(const DPBuffer&) {
   NSTimer::StartStop sstime(timer_);
-  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(poolSize_);
+  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(pool_size_);
 
-  ScalarColumn<int> ant1Col(ms_, "ANTENNA1");
-  ScalarColumn<int> ant2Col(ms_, "ANTENNA2");
-  ArrayColumn<Complex> dataCol(ms_, "DATA");
-  ArrayColumn<float> weightsCol(ms_, "WEIGHT_SPECTRUM");
-  ArrayColumn<double> uvwCol(ms_, "UVW");
+  ScalarColumn<int> ant1_col(ms_, "ANTENNA1");
+  ScalarColumn<int> ant2_col(ms_, "ANTENNA2");
+  ArrayColumn<Complex> data_col(ms_, "DATA");
+  ArrayColumn<float> weights_col(ms_, "WEIGHT_SPECTRUM");
+  ArrayColumn<double> uvw_col(ms_, "UVW");
 
   while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
     // Take time from row 0 in subset.
-    double msTime = ScalarColumn<double>(ms_, "TIME")(0);
+    double ms_time = ScalarColumn<double>(ms_, "TIME")(0);
 
-    if (msTime < lastMSTime_) {
+    if (ms_time < last_ms_time_) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
       ++nread_;
       continue;
     }
 
-    Cube<Complex> data = dataCol.get(nread_);
-    Cube<float> weights = weightsCol.get(nread_);
-    Cube<double> uvw = uvwCol.get(nread_);
+    Cube<Complex> data = data_col.get(nread_);
+    Cube<float> weights = weights_col.get(nread_);
+    Cube<double> uvw = uvw_col.get(nread_);
     double interval = ScalarColumn<double>(ms_, "INTERVAL")(nread_);
     double exposure = ScalarColumn<double>(ms_, "EXPOSURE")(nread_);
-    int dataDescId = ScalarColumn<int>(ms_, "DATA_DESC_ID")(nread_);
+    int data_desc_id = ScalarColumn<int>(ms_, "DATA_DESC_ID")(nread_);
 
-    size_t blNr = blToBLId_[std::make_pair(ant1Col(nread_), ant2Col(nread_))];
+    size_t blNr = bl_to_id_[std::make_pair(ant1_col(nread_), ant2_col(nread_))];
 
-    buffer->AddRow(msTime, interval, exposure, blNr, descIdToNchan_[dataDescId],
-                   info().ncorr(), data.tovector().data(), nullptr,
-                   weights.tovector().data(), nullptr, uvw.tovector().data());
+    buffer->AddRow(ms_time, interval, exposure, blNr,
+                   desc_id_to_nchan_[data_desc_id], info().ncorr(),
+                   data.tovector().data(), nullptr, weights.tovector().data(),
+                   nullptr, uvw.tovector().data());
 
-    lastMSTime_ = msTime;
+    last_ms_time_ = ms_time;
     ++nread_;
   }
 
@@ -190,41 +192,41 @@ void MSBDAReader::FillInfoMetaData() {
   nbl_ = factors.nrow();
 
   // Required columns to read
-  ScalarColumn<int> factorCol(factors, "FACTOR");
-  ScalarColumn<int> ant1Col(factors, "ANTENNA1");
-  ScalarColumn<int> ant2Col(factors, "ANTENNA2");
-  ScalarColumn<int> idsCol(factors, "SPECTRAL_WINDOW_ID");
-  ArrayColumn<double> freqsCol(spw, "CHAN_FREQ");
-  ArrayColumn<double> widthsCol(spw, "CHAN_WIDTH");
+  ScalarColumn<int> factor_col(factors, "FACTOR");
+  ScalarColumn<int> ant1_col(factors, "ANTENNA1");
+  ScalarColumn<int> ant2_col(factors, "ANTENNA2");
+  ScalarColumn<int> ids_col(factors, "SPECTRAL_WINDOW_ID");
+  ArrayColumn<double> freqs_col(spw, "CHAN_FREQ");
+  ArrayColumn<double> widths_col(spw, "CHAN_WIDTH");
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl_);
   std::vector<std::vector<double>> widths(nbl_);
   std::vector<unsigned int> baseline_factors(nbl_);
   for (unsigned int i = 0; i < nbl_; ++i) {
-    unsigned int spwId = idsCol(i);
-    baseline_factors[i] = factorCol(i);
-    freqs[i] = freqsCol.get(spwId).tovector();
-    widths[i] = widthsCol.get(spwId).tovector();
+    unsigned int spw_id = ids_col(i);
+    baseline_factors[i] = factor_col(i);
+    freqs[i] = freqs_col.get(spw_id).tovector();
+    widths[i] = widths_col.get(spw_id).tovector();
 
-    maxChanWidth_ = std::max(maxChanWidth_, freqs[i].size());
-    descIdToNchan_[idsCol(i)] = freqs[i].size();
-    blToBLId_[std::make_pair(ant1Col(i), ant2Col(i))] = i;
+    max_chan_width_ = std::max(max_chan_width_, freqs[i].size());
+    desc_id_to_nchan_[ids_col(i)] = freqs[i].size();
+    bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
   }
 
   Table anttab(ms_.keywordSet().asTable("ANTENNA"));
-  ScalarColumn<String> nameCol(anttab, "NAME");
-  ScalarColumn<Double> diamCol(anttab, "DISH_DIAMETER");
-  ROScalarMeasColumn<MPosition> antCol(anttab, "POSITION");
+  ScalarColumn<String> name_col(anttab, "NAME");
+  ScalarColumn<Double> diam_col(anttab, "DISH_DIAMETER");
+  ROScalarMeasColumn<MPosition> ant_col(anttab, "POSITION");
   vector<MPosition> antPos;
   antPos.reserve(anttab.nrow());
   for (unsigned int i = 0; i < anttab.nrow(); ++i) {
-    antPos.push_back(antCol(i));
+    antPos.push_back(ant_col(i));
   }
 
   // Set antenna/baseline info.
-  info().set(nameCol.getColumn(), diamCol.getColumn(), antPos,
-             ant1Col.getColumn(), ant2Col.getColumn());
+  info().set(name_col.getColumn(), diam_col.getColumn(), antPos,
+             ant1_col.getColumn(), ant2_col.getColumn());
 
   info().update(baseline_factors);
   info().set(std::move(freqs), std::move(widths));
@@ -232,43 +234,44 @@ void MSBDAReader::FillInfoMetaData() {
 
 void MSBDAReader::DetermineAvailableMemory() {
   // Determine available memory.
-  double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
+  double avail_memory = casacore::HostInfo::memoryTotal() * 1024.;
   // Determine how much memory can be used.
-  double memoryMax = memory_ * 1024 * 1024 * 1024;
-  double memory = memoryMax;
+  double memory_max = memory_ * 1024 * 1024 * 1024;
+  double memory = memory_max;
   if (memory_percentage_ > 0) {
-    memory = memory_percentage_ * availMemory / 100.;
-    if (memoryMax > 0 && memory > memoryMax) {
-      memory = memoryMax;
+    memory = memory_percentage_ * avail_memory / 100.;
+    if (memory_max > 0 && memory > memory_max) {
+      memory = memory_max;
     }
   } else if (memory_ <= 0) {
     // Nothing given, so use available memory on this machine.
     // Set 50% (max 2 GB) aside for other purposes.
-    memory = availMemory - std::min(0.5 * availMemory, 2. * 1024 * 1024 * 1024);
+    memory =
+        avail_memory - std::min(0.5 * avail_memory, 2. * 1024 * 1024 * 1024);
   }
   memory_avail_ = memory;
 }
 
 void MSBDAReader::show(std::ostream& os) const {
   os << "MSReader\n";
-  os << "  input MS:       " << msName_ << '\n';
+  os << "  input MS:       " << ms_name_ << '\n';
   if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
     os << "  band            " << spw_ << '\n';
-    os << "  startchan:      " << 0 << '\n';
+    os << "  start_chan:      " << 0 << '\n';
     os << "  nchan:          " << getInfo().nchan() << '\n';
     os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
     os << "  nbaselines:     " << nbl_ << '\n';
     os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(0)
        << '\n';
     os << "  last time:      " << MVTime::Format(MVTime::YMD)
-       << MVTime(lastMSTime_ / (24 * 3600.)) << '\n';
+       << MVTime(last_ms_time_ / (24 * 3600.)) << '\n';
     os << "  ntimes:         " << getInfo().ntime() << '\n';
     os << "  time interval:  " << getInfo().timeInterval() << '\n';
-    os << "  DATA column:    " << dataColName_;
+    os << "  DATA column:    " << data_col_name_;
     os << '\n';
-    os << "  WEIGHT column:  " << weightColName_ << '\n';
+    os << "  WEIGHT column:  " << weight_col_name_ << '\n';
     os << "  memory ";
     AOFlaggerStep::formatBytes(os, memory_avail_);
   }

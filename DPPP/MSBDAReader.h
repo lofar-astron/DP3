@@ -166,19 +166,20 @@ class MSBDAReader : public DPInput {
 
  protected:
   casacore::Table ms_;
-  std::string msName_;
-  std::string dataColName_;
-  std::string weightColName_;
-  bool readVisData_;  ///< read visibility data?
-  double lastMSTime_;
+  std::string ms_name_;
+  std::string data_col_name_;
+  std::string weight_col_name_;
+  bool read_vis_data_;  ///< read visibility data?
+  double last_ms_time_;
   double interval_;     ///< original interval of the MS
   unsigned int spw_;    ///< spw (band) to use (<0 no select)
   unsigned int nread_;  ///< nr of time slots read from MS
   unsigned int ncorr_;  ///< nr of correlations in the MS
   unsigned int nbl_;    ///< nr of baselines in the MS
   NSTimer timer_;
-  std::size_t maxChanWidth_;  ///< maximum width of channels in SPECTRAL_WINDOW
-  std::size_t poolSize_;  ///< Pool size that will be used for the BDA buffers
+  std::size_t
+      max_chan_width_;     ///< maximum width of channels in SPECTRAL_WINDOW
+  std::size_t pool_size_;  ///< Pool size that will be used for the BDA buffers
 
  private:
   /// Reads the BDA subtables from an MS and stores the values that are required
@@ -188,9 +189,9 @@ class MSBDAReader : public DPInput {
 
  private:
   std::map<int, std::size_t>
-      descIdToNchan_;  ///< Maps DATA_DESC_ID to channel width
+      desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel width
   std::map<std::pair<int, int>, unsigned int>
-      blToBLId_;   ///< Maps a baseline to a baseline id
+      bl_to_id_;   ///< Maps a baseline to a baseline id
   double memory_;  ///< Usable memory in GBytes
   double memory_percentage_;
   double memory_avail_;  ///< Amount of bytes available for memory
