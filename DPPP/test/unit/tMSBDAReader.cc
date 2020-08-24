@@ -22,13 +22,15 @@
 #include "../../../Common/ParameterSet.h"
 
 #include <boost/test/unit_test.hpp>
+#include "boost/iostreams/stream.hpp"
+#include "boost/iostreams/device/null.hpp"
 
 using DP3::ParameterSet;
 using DP3::DPPP::DPInfo;
 using DP3::DPPP::MSBDAReader;
 
 namespace {
-const std::string prefix = "msout.";
+const std::string prefix = "";
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(dpinfo)
@@ -59,13 +61,18 @@ BOOST_AUTO_TEST_CASE(wrong_input_format) {
 }
 
 BOOST_AUTO_TEST_CASE(set_info) {
+  const std::string kMSName = "tNDPPP_bda_tmp.MS";
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
+  MSBDAReader reader(kMSName, parset, prefix);
 
   reader.setInfo(info);
 
   info = reader.getInfo();
+  BOOST_TEST(reader.table().tableName().compare(
+                 reader.table().tableName().length() - kMSName.length(),
+                 kMSName.length(), kMSName) == 0);
+  BOOST_TEST(reader.spectralWindow() == -1U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
   BOOST_TEST(info.ntime() == 1U);
@@ -81,6 +88,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
                                   boost::unit_test::tolerance(0.0001f)) {
   DPInfo info;
   ParameterSet parset;
+  parset.add("memoryperc", "100");
+  parset.add("memory_max", "1");
   MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   reader.setNextStep(mock_step);
@@ -107,6 +116,12 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
     BOOST_TEST(*(mock_step->GetBdaBuffers()[0]->GetRows()[0].weights + i) ==
                kExpectedWeights[i]);
   }
+
+  // Check that the print methods do not throw any error
+  std::ostream nullout(nullptr);
+  BOOST_CHECK_NO_THROW(reader.show(nullout));
+  BOOST_CHECK_NO_THROW(reader.showCounts(nullout));
+  BOOST_CHECK_NO_THROW(reader.showTimings(nullout, 10));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
