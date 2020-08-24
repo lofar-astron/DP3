@@ -55,12 +55,12 @@ const std::vector<int> kAnt1_3Bl{0, 0, 0};
 const std::vector<int> kAnt2_3Bl{3, 1, 2};
 
 void InitParset(DP3::ParameterSet& parset,
-                boost::optional<double> timethresholdlength = boost::none,
+                boost::optional<double> bdatimebase = boost::none,
                 boost::optional<double> freqthresholdlength = boost::none,
                 boost::optional<double> maxinterval = boost::none,
                 boost::optional<int> minchannels = boost::none) {
-  if (timethresholdlength) {
-    parset.add("timethresholdlength", std::to_string(*timethresholdlength));
+  if (bdatimebase) {
+    parset.add("bdatimebase", std::to_string(*bdatimebase));
   }
   if (freqthresholdlength) {
     parset.add("freqthresholdlength", std::to_string(*freqthresholdlength));
