@@ -93,7 +93,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   if (!ms_.keywordSet().isDefined("BDA_FACTORS") ||
       ms_.keywordSet().asTable("BDA_FACTORS").nrow() == 0) {
-    throw std::invalid_argument(
+    throw std::domain_error(
         "Input MS does not contain BDA data. Table BDA_FACTORS is missing "
         "or not filled");
   }

@@ -121,7 +121,7 @@ class MSBDAReader : public DPInput {
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   MSBDAReader(const std::string& msName, const ParameterSet&,
-              const string& prefix);
+              const std::string& prefix);
 
   virtual ~MSBDAReader();
 

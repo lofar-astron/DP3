@@ -320,10 +320,8 @@ set(TEST_FILENAMES
   # DPPP/test/unit/tH5Parm.cc # Fails because sol001 cannot be found
   DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
-  DPPP/test/unit/tDPInput.cc
   DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
-  DPPP/test/unit/tMSBDAWriter.cc
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
@@ -339,6 +337,9 @@ if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
+    DPPP/test/unit/tDPInput.cc
+    DPPP/test/unit/tMSBDAReader.cc
+    DPPP/test/unit/tMSBDAWriter.cc
     DPPP/test/unit/tScaleDataBDA.cc
     )
 else()
@@ -368,6 +369,15 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
+
+add_test(
+  NAME extract_NDPPP_BDA
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_bda.in_MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP_BDA
   PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 
