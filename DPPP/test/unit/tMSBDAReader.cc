@@ -91,6 +91,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
   parset.add("memoryperc", "100");
   parset.add("memory_max", "1");
   MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
+  reader.setReadVisData(true);
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   reader.setNextStep(mock_step);
   reader.setInfo(info);
@@ -122,6 +123,27 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
   BOOST_CHECK_NO_THROW(reader.show(nullout));
   BOOST_CHECK_NO_THROW(reader.showCounts(nullout));
   BOOST_CHECK_NO_THROW(reader.showTimings(nullout, 10));
+}
+
+BOOST_AUTO_TEST_CASE(process_nan) {
+  DPInfo info;
+  ParameterSet parset;
+  parset.add("memoryperc", "100");
+  parset.add("memory_max", "1");
+  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  reader.setNextStep(mock_step);
+  reader.setInfo(info);
+  DP3::DPPP::DPBuffer buf;
+
+  reader.setReadVisData(false);
+  reader.process(buf);
+  reader.finish();
+
+  BOOST_TEST(
+      std::isnan(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->imag()));
+  BOOST_TEST(
+      std::isnan(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->real()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -69,7 +69,7 @@ BOOST_FIXTURE_TEST_CASE(ms_contains_bda_time_axis_table, FixtureDirectory) {
   BOOST_TEST(td.isColumn("HAS_BDA_ORDERING"));
 
   // Check that the version is present and set
-  BOOST_TEST(td.keywordSet().asString("BDA_TIME_AXIS_VERSION") == "1");
+  BOOST_TEST(td.keywordSet().asString("BDA_TIME_AXIS_VERSION") == "1.0");
 
   // Assert that these columns are not in this table
   BOOST_TEST(!td.isColumn("BDA_FREQ_AXIS_ID"));

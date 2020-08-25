@@ -75,7 +75,7 @@ const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
 
 // Keywords
 const std::string kBDATimeAxisVersionKW = "BDA_TIME_AXIS_VERSION";
-const std::string kBDATimeAxisVersion = "1";
+const std::string kBDATimeAxisVersion = "1.0";
 /// @}
 }  // namespace
 

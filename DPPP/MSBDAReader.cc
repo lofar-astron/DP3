@@ -53,7 +53,24 @@
 #include <iostream>
 #include <boost/make_unique.hpp>
 
-using namespace casacore;
+using casacore::ArrayColumn;
+using casacore::Complex;
+using casacore::Cube;
+using casacore::Double;
+using casacore::False;
+using casacore::IPosition;
+using casacore::MeasurementSet;
+using casacore::MPosition;
+using casacore::MVTime;
+using casacore::ScalarColumn;
+using casacore::ScalarMeasColumn;
+using casacore::String;
+using casacore::Table;
+using casacore::TableLock;
+
+using std::cout;
+using std::endl;
+using std::vector;
 
 namespace DP3 {
 namespace DPPP {
@@ -114,8 +131,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // Determine the pool size for the bda buffers
   std::size_t expected_row_size =
-      (sizeof(float) * 2 + sizeof(casacore::Complex) + sizeof(double) * 2) *
-          ncorr_ * max_chan_width_ +
+      (sizeof(float) * 2 + sizeof(Complex) + sizeof(double) * 2) * ncorr_ *
+          max_chan_width_ +
       3 * sizeof(double) + 4 * sizeof(std::size_t) + 3 * sizeof(double);
   std::size_t rowsPerBuffer = memory_avail_ / expected_row_size;
   pool_size_ = std::max(std::size_t(1), rowsPerBuffer);
@@ -168,8 +185,8 @@ bool MSBDAReader::process(const DPBuffer&) {
 
     buffer->AddRow(ms_time, interval, exposure, blNr,
                    desc_id_to_nchan_[data_desc_id], info().ncorr(),
-                   data.tovector().data(), nullptr, weights.tovector().data(),
-                   nullptr, uvw.tovector().data());
+                   read_vis_data_ ? data.tovector().data() : nullptr, nullptr,
+                   weights.tovector().data(), nullptr, uvw.tovector().data());
 
     last_ms_time_ = ms_time;
     ++nread_;
