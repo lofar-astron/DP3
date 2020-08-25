@@ -270,7 +270,7 @@ void MSReader::updateInfo(const DPInfo& dpInfo) {
       itsMS.keywordSet().asTable("BDA_FACTORS").nrow() > 0) {
     throw std::invalid_argument(
         "Input MS contains BDA data. Table BDA_FACTORS is present and "
-        "filled. Use bdain=true instead.");
+        "filled. Use bda=true instead.");
   }
 
   info().setNThreads(dpInfo.nThreads());

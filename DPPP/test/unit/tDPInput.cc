@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(reader_initialization_multiple_regular) {
 BOOST_AUTO_TEST_CASE(reader_initialization_bda) {
   ParameterSet parset;
   parset.add("msin", "tNDPPP_tmp.MS");
-  parset.add("bdain", "true");
+  parset.add("bda", "true");
   DPInput* reader = DPInput::InitReader(parset, "");
 
   BOOST_TEST(dynamic_cast<MSBDAReader*>(reader));
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(reader_initialization_bda) {
 BOOST_AUTO_TEST_CASE(reader_initialization_multiple_bda) {
   ParameterSet parset;
   parset.add("msin", "[tNDPPP_tmp.MS, tNDPPP_tmp.MS]");
-  parset.add("bdain", "true");
+  parset.add("bda", "true");
 
   BOOST_CHECK_THROW(DPInput::InitReader(parset, ""), std::invalid_argument);
 }

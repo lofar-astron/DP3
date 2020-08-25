@@ -170,7 +170,7 @@ DPInput* DPInput::InitReader(const ParameterSet& parset, const string& prefix) {
     }
   }
 
-  if (!parset.getBool(prefix + "bdain", false)) {
+  if (!parset.getBool(prefix + "bda", false)) {
     // Get the steps.
     // Currently the input MS must be given.
     // In the future it might be possible to have a simulation step instead.

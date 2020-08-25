@@ -72,9 +72,8 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
                          const std::string& prefix)
     : input_(input),
       timer_("BDA Averager"),
-      bl_threshold_time_(parset.getDouble(prefix + "bdatimebase", 0.0)),
-      bl_threshold_channel_(
-          parset.getDouble(prefix + "freqthresholdlength", 0.0)),
+      bl_threshold_time_(parset.getDouble(prefix + "timebase", 0.0)),
+      bl_threshold_channel_(parset.getDouble(prefix + "frequencybase", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
       name_(prefix),
@@ -293,9 +292,9 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
 void BDAAverager::show(std::ostream& os) const {
   os << "BDAAverager " << name_ << '\n';
-  os << "  bdatimebase:   " << bl_threshold_time_ << "s\n";
+  os << "  timebase:   " << bl_threshold_time_ << "s\n";
   os << "  max interval:          " << max_interval_ << "s\n";
-  os << "  freqthresholdlength:   " << bl_threshold_channel_ << '\n';
+  os << "  frequencybase:   " << bl_threshold_channel_ << '\n';
   os << "  min channels:          " << min_channels_ << "\n";
   os << "  max time factor:       " << maxtimefactor_ << '\n';
   os << "  max freq factor:       " << maxfreqfactor_ << '\n';

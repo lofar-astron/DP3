@@ -10,20 +10,20 @@ inputs:
     type: string
     doc: Case-insensitive step type; must be 'bdaaverager' `.`
     default: bdaaverager
-  bdatimebase:
+  timebase:
     type: double
     doc: >-
       The baseline length (in meters) after which the averager does not perform
       any averaging over time. The BDA time averaging factor for a baseline becomes
-      bdatimebase / baseline length, rounded down.
+      timebase / baseline length, rounded down.
       The maximum time interval will be clipped to maxinterval `.`
     default: 0.0
-  freqthresholdlength:
+  frequencybase:
     type: int
     doc: >-
       The baseline length (in meters) after which the averager does not perform
       any averaging over frequencies. The number of channels for a baseline
-      becomes baseline length / freqthresholdlength * original number of
+      becomes baseline length / frequencybase * original number of
       channels, rounded up.
       The minchannels setting specifies the minimum number of channels.
       The maximum numbef of channels is the original number of channels `.`
