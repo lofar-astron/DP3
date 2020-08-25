@@ -21,9 +21,6 @@ using DP3::DPPP::DPInfo;
 using DP3::DPPP::MSBDAWriter;
 using DP3::DPPP::MSReader;
 
-using casacore::Bool;
-using casacore::Double;
-using casacore::Int;
 using casacore::MeasurementSet;
 using casacore::TableDesc;
 using casacore::TableExprNode;
@@ -67,29 +64,25 @@ BOOST_FIXTURE_TEST_CASE(ms_contains_bda_time_axis_table, FixtureDirectory) {
   BOOST_TEST(td.isColumn("UNIT_TIME_INTERVAL"));
   BOOST_TEST(td.isColumn("INTEGER_INTERVAL_FACTORS"));
   BOOST_TEST(td.isColumn("HAS_BDA_ORDERING"));
+  BOOST_TEST(td.isColumn("BDA_FREQ_AXIS_ID"));
+  BOOST_TEST(td.isColumn("FIELD_ID"));
 
   // Check that the version is present and set
   BOOST_TEST(td.keywordSet().asString("BDA_TIME_AXIS_VERSION") == "1.0");
 
-  // Assert that these columns are not in this table
-  BOOST_TEST(!td.isColumn("BDA_FREQ_AXIS_ID"));
-  BOOST_TEST(!td.isColumn("FIELD_ID"));
-
   // Assert that the data is filled correctly
   Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
-  BOOST_TEST(t.nrow() == casacore::uInt(1));
+  BOOST_TEST(t.nrow() == 1U);
   BOOST_TEST(t.col("IS_BDA_APPLIED").getBool(0));
   BOOST_TEST(t.col("SINGLE_FACTOR_PER_BASELINE").getBool(0));
   // Assert that the interval is correct
-  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) ==
-             casacore::Double(timeInterval));
-  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) ==
-             casacore::Double(timeInterval));
-  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) ==
-             casacore::Double(timeInterval));
-
+  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) == timeInterval);
+  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) == timeInterval);
+  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == timeInterval);
   BOOST_TEST(t.col("INTEGER_INTERVAL_FACTORS").getBool(0));
   BOOST_TEST(t.col("HAS_BDA_ORDERING").getBool(0));
+  BOOST_TEST(t.col("BDA_FREQ_AXIS_ID").getInt(0) == -1);
+  BOOST_TEST(t.col("FIELD_ID").getInt(0) == -1);
 }
 
 // Test that the SPECTRAL_WINDOW was correctly appended with BDA data.
@@ -116,11 +109,10 @@ BOOST_FIXTURE_TEST_CASE(spectral_window_contains_bda_freq_axisid,
   Table table(msOutName, TableLock::AutoNoReadLocking);
   BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
   const Table td = table.keywordSet().asTable("SPECTRAL_WINDOW");
-  BOOST_TEST(td.tableDesc().isColumn("BDA_FREQ_AXIS_ID"));
+  BOOST_TEST(!td.tableDesc().isColumn("BDA_FREQ_AXIS_ID"));
   BOOST_TEST(td.tableDesc().isColumn("BDA_SET_ID"));
 
-  BOOST_TEST(td.col("BDA_FREQ_AXIS_ID").getInt(0) != Int(-1));
-  BOOST_TEST(td.col("BDA_SET_ID").getInt(0) == Int(0));
+  BOOST_TEST(td.col("BDA_SET_ID").getInt(0) == 0);
 }
 
 // Test that the output measurementset is correct for simple data.
@@ -162,11 +154,11 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   MeasurementSet ms(kMsName, TableLock::AutoNoReadLocking);
 
   // Assert the visibility data
-  BOOST_TEST(ms.col("TIME").getDouble(0) == Double(kTime));
-  BOOST_TEST(ms.col("TIME_CENTROID").getDouble(0) == Double(kTime));
-  BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == Double(kExposure));
-  BOOST_TEST(ms.col("ANTENNA1").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("ANTENNA2").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("TIME").getDouble(0) == kTime);
+  BOOST_TEST(ms.col("TIME_CENTROID").getDouble(0) == kTime);
+  BOOST_TEST(ms.col("EXPOSURE").getDouble(0) == kExposure);
+  BOOST_TEST(ms.col("ANTENNA1").getInt(0) == 0);
+  BOOST_TEST(ms.col("ANTENNA2").getInt(0) == 0);
   casacore::IPosition dim(2, ncorr, nchan);
   BOOST_TEST(ms.col("DATA").getArrayDComplex(0).tovector()[0].imag() ==
              kData.imag());
@@ -179,15 +171,15 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
              std::vector<double>(std::begin(kUVW), std::end(kUVW)));
 
   // Assert default values
-  BOOST_TEST(ms.col("FEED1").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("FEED2").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("DATA_DESC_ID").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("PROCESSOR_ID").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("INTERVAL").getDouble(0) == Double(kInterval));
-  BOOST_TEST(ms.col("SCAN_NUMBER").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("ARRAY_ID").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("OBSERVATION_ID").getInt(0) == Int(0));
-  BOOST_TEST(ms.col("STATE_ID").getInt(0) == Int(0));
+  BOOST_TEST(ms.col("FEED1").getInt(0) == 0);
+  BOOST_TEST(ms.col("FEED2").getInt(0) == 0);
+  BOOST_TEST(ms.col("DATA_DESC_ID").getInt(0) == 0);
+  BOOST_TEST(ms.col("PROCESSOR_ID").getInt(0) == 0);
+  BOOST_TEST(ms.col("INTERVAL").getDouble(0) == kInterval);
+  BOOST_TEST(ms.col("SCAN_NUMBER").getInt(0) == 0);
+  BOOST_TEST(ms.col("ARRAY_ID").getInt(0) == 0);
+  BOOST_TEST(ms.col("OBSERVATION_ID").getInt(0) == 0);
+  BOOST_TEST(ms.col("STATE_ID").getInt(0) == 0);
 
   // Assert sigma and weight
   std::vector<double> sigma_weight(ncorr, 1);
@@ -274,11 +266,9 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
   // Assert that the data is filled correctly
   Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
   // Assert that the interval is correct
-  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) ==
-             Double(kMinTimeInterval));
-  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) ==
-             Double(kMaxTimeInterval));
-  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == Double(timeInterval));
+  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) == kMinTimeInterval);
+  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) == kMaxTimeInterval);
+  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == timeInterval);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

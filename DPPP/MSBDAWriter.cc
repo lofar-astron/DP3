@@ -72,6 +72,7 @@ const std::string kMinTimeInterval = "MIN_TIME_INTERVAL";
 const std::string kUnitTimeInterval = "UNIT_TIME_INTERVAL";
 const std::string kIntervalFactors = "INTEGER_INTERVAL_FACTORS";
 const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
+const std::string kFieldId = "FIELD_ID";
 
 // Keywords
 const std::string kBDATimeAxisVersionKW = "BDA_TIME_AXIS_VERSION";
@@ -264,6 +265,8 @@ void MSBDAWriter::CreateBDATimeAxis() {
   td.comment() = "Meta information that specify the regularity of the MS.";
   td.rwKeywordSet().define(kBDATimeAxisVersionKW, kBDATimeAxisVersion);
   td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
+  td.addColumn(ScalarColumnDesc<Int>(kFieldId));
+  td.addColumn(ScalarColumnDesc<Int>(kBDAFreqAxisId));
   td.addColumn(ScalarColumnDesc<Bool>(kIsBdaApplied));
   td.addColumn(ScalarColumnDesc<Bool>(kSingleFactorPerBL));
   td.addColumn(ScalarColumnDesc<Double>(kMaxTimeInterval));
@@ -296,14 +299,13 @@ void MSBDAWriter::CreateBDATimeFactor() {
 void MSBDAWriter::CreateMetaDataFrequencyColumns() {
   Table out_spw = Table(outName_ + '/' + kSpectralWindowTable, Table::Update);
 
-  // Add column BDA_FREQ_AXIS_ID
-  ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDAFreqAxisId);
-  bdaFreqAxisIdColumn.setDefault(-1);
-  out_spw.addColumn(bdaFreqAxisIdColumn);
+  // Don't add BDA_FREQ_AXIS_ID
 
   // Add column BDA_SET_ID
   ScalarColumnDesc<Int> bdaSetIdColumn(kBDASetId);
-  bdaSetIdColumn.setDefault(-1);
+  // When we support multiple SPECTRAL_WINDOW entries this value will be used
+  // to keep track of the old windows
+  bdaSetIdColumn.setDefault(0);
   out_spw.addColumn(bdaSetIdColumn);
 
   // Remove fixed size options from columns
@@ -367,6 +369,9 @@ void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
   ScalarColumn<Double>(bda_time_axis, kUnitTimeInterval).put(row, interval);
   ScalarColumn<Bool>(bda_time_axis, kIntervalFactors).put(row, True);
   ScalarColumn<Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
+
+  ScalarColumn<Int>(bda_time_axis, kFieldId).put(row, -1);
+  ScalarColumn<Int>(bda_time_axis, kBDAFreqAxisId).put(row, -1);
 }
 
 void MSBDAWriter::OverwriteSubTables(const Int& pid) {
@@ -416,10 +421,6 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
         .put(id, Vector<double>(info().resolutions(i)));
     ScalarColumn<Double>(outSPW, "TOTAL_BANDWIDTH").put(id, info().totalBW());
     ScalarColumn<Double>(outSPW, "REF_FREQUENCY").put(id, info().refFreq());
-    ScalarColumn<Int>(outSPW, kBDAFreqAxisId).put(id, pid);
-    // When we support multiple SPECTRAL_WINDOW entries this value will be used
-    // to keep track of the old windows
-    ScalarColumn<Int>(outSPW, kBDASetId).put(id, 0);
 
     nchanToDescId[nchanFreqs] = id;
     ++id;
