@@ -72,6 +72,10 @@ const std::string kMinTimeInterval = "MIN_TIME_INTERVAL";
 const std::string kUnitTimeInterval = "UNIT_TIME_INTERVAL";
 const std::string kIntervalFactors = "INTEGER_INTERVAL_FACTORS";
 const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
+
+// Keywords
+const std::string kBDATimeAxisVersionKW = "BDA_TIME_AXIS_VERSION";
+const std::string kBDATimeAxisVersion = "1";
 /// @}
 }  // namespace
 
@@ -258,6 +262,7 @@ void MSBDAWriter::CreateBDATimeAxis() {
   // Build the table description for BDA_TIME_AXIS.
   TableDesc td(kBDATimeAxisTable, TableDesc::Scratch);
   td.comment() = "Meta information that specify the regularity of the MS.";
+  td.rwKeywordSet().define(kBDATimeAxisVersionKW, kBDATimeAxisVersion);
   td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
   td.addColumn(ScalarColumnDesc<Bool>(kIsBdaApplied));
   td.addColumn(ScalarColumnDesc<Bool>(kSingleFactorPerBL));
