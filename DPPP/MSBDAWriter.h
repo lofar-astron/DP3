@@ -47,6 +47,10 @@ class MSBDAWriter : public DPStep {
 
   void finish() override;
 
+  /// Add some data to the MeasurementSet written/updated.
+  /// Calls addToMS from the previous step, with the current output msname.
+  void addToMS(const string&) override;
+
   void show(std::ostream&) const override;
 
  private:

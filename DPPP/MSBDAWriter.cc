@@ -192,6 +192,8 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
 void MSBDAWriter::finish() {}
 
+void MSBDAWriter::addToMS(const string&) { getPrevStep()->addToMS(outName_); }
+
 void MSBDAWriter::show(std::ostream& os) const {
   os << "MSWriter " << prefix_ << std::endl;
   os << "  output MS:      " << ms_.tableName() << std::endl;
