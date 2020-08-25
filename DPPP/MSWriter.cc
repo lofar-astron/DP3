@@ -619,8 +619,8 @@ void MSWriter::writeData(Table& out, const DPBuffer& buf) {
 
   flagCol.putColumn(buf.getFlags());
   // A row is flagged if no flags in the row are False.
-  Vector<Bool> rowFlags(partialNFalse(buf.getFlags(), IPosition(2, 0, 1)) ==
-                        uInt(0));
+  auto c = partialNFalse(buf.getFlags(), IPosition(2, 0, 1));
+  Vector<Bool> rowFlags(c == decltype(c)::value_type(0));
   flagRowCol.putColumn(rowFlags);
   if (itsWriteFullResFlags) {
     writeFullResFlags(out, buf);
