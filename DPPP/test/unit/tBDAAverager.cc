@@ -665,4 +665,38 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   CheckRow(*averaged, bda_buffers[0]->GetRows()[0], 0);
 }
 
+BOOST_AUTO_TEST_CASE(zero_values_weight) {
+  const std::size_t kMinChannels = 3;
+  const std::size_t kNBaselines = 1;
+  const std::vector<std::size_t> kOutputChannelCounts{1, 2, 2};
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  DP3::ParameterSet parset;
+  // The threshold implies that all channels should be averaged into one
+  // channel, however, we specify a minimum of three channels per baseline.
+  InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
+             kMinChannels);
+  BDAAverager averager(mock_input, parset, "");
+  averager.updateInfo(info);
+
+  std::unique_ptr<DPBuffer> buffer = CreateBuffer(
+      kStartTime, kInterval, kNBaselines, kChannelCounts, 0.0, 0.0);
+  std::unique_ptr<DPBuffer> averaged = CreateBuffer(
+      kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
+
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer));
+  Finish(averager, *mock_step);
+
+  // A weight of 0 should not result in a nan
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
+  BOOST_TEST(!std::isnan(bda_buffers[0]->GetData()[0].imag()));
+  BOOST_TEST(bda_buffers[0]->GetData()[0].imag() == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

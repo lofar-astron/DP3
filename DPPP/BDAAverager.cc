@@ -270,7 +270,9 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   float* weights = bb.weights.data();
   float total_weight = 0.0f;
   for (std::complex<float>& d : bb.data) {
-    d /= *weights;
+    if (*weights > 0) {
+      d /= *weights;
+    }
     total_weight += *weights;
     ++weights;
   }
