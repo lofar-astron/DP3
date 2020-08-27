@@ -162,6 +162,9 @@ bool MSBDAReader::process(const DPBuffer&) {
   ArrayColumn<Complex> data_col(ms_, "DATA");
   ArrayColumn<float> weights_col(ms_, "WEIGHT_SPECTRUM");
   ArrayColumn<double> uvw_col(ms_, "UVW");
+  ScalarColumn<double> interval_col(ms_, "INTERVAL");
+  ScalarColumn<double> exposure_col(ms_, "EXPOSURE");
+  ScalarColumn<int> data_desc_id_col(ms_, "DATA_DESC_ID");
 
   while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
     // Take time from row 0 in subset.
@@ -177,9 +180,9 @@ bool MSBDAReader::process(const DPBuffer&) {
     Cube<Complex> data = data_col.get(nread_);
     Cube<float> weights = weights_col.get(nread_);
     Cube<double> uvw = uvw_col.get(nread_);
-    double interval = ScalarColumn<double>(ms_, "INTERVAL")(nread_);
-    double exposure = ScalarColumn<double>(ms_, "EXPOSURE")(nread_);
-    int data_desc_id = ScalarColumn<int>(ms_, "DATA_DESC_ID")(nread_);
+    double interval = interval_col(nread_);
+    double exposure = exposure_col(nread_);
+    int data_desc_id = data_desc_id_col(nread_);
 
     size_t blNr = bl_to_id_[std::make_pair(ant1_col(nread_), ant2_col(nread_))];
 
