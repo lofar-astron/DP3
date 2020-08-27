@@ -62,6 +62,7 @@ using casacore::IPosition;
 using casacore::MeasurementSet;
 using casacore::MPosition;
 using casacore::MVTime;
+using casacore::RefRows;
 using casacore::ScalarColumn;
 using casacore::ScalarMeasColumn;
 using casacore::String;
@@ -166,6 +167,17 @@ bool MSBDAReader::process(const DPBuffer&) {
   ScalarColumn<double> exposure_col(ms_, "EXPOSURE");
   ScalarColumn<int> data_desc_id_col(ms_, "DATA_DESC_ID");
 
+  // Cache the data that will be add to the buffer
+  RefRows cell_range{nread_,
+                     std::min(ms_.nrow() - 1, unsigned(nread_ + pool_size_))};
+  auto data = data_col.getColumnCells(cell_range);
+  auto weights = weights_col.getColumnCells(cell_range);
+  auto uvw = uvw_col.getColumnCells(cell_range);
+  auto interval = interval_col.getColumnCells(cell_range);
+  auto exposure = exposure_col.getColumnCells(cell_range);
+  auto data_desc_id = data_desc_id_col.getColumnCells(cell_range);
+
+  unsigned i = 0;
   while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
     // Take time from row 0 in subset.
     double ms_time = ScalarColumn<double>(ms_, "TIME")(0);
@@ -173,25 +185,20 @@ bool MSBDAReader::process(const DPBuffer&) {
     if (ms_time < last_ms_time_) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
+      ++i;
       ++nread_;
       continue;
     }
 
-    Cube<Complex> data = data_col.get(nread_);
-    Cube<float> weights = weights_col.get(nread_);
-    Cube<double> uvw = uvw_col.get(nread_);
-    double interval = interval_col(nread_);
-    double exposure = exposure_col(nread_);
-    int data_desc_id = data_desc_id_col(nread_);
-
     size_t blNr = bl_to_id_[std::make_pair(ant1_col(nread_), ant2_col(nread_))];
 
-    buffer->AddRow(ms_time, interval, exposure, blNr,
-                   desc_id_to_nchan_[data_desc_id], info().ncorr(),
-                   read_vis_data_ ? data.tovector().data() : nullptr, nullptr,
-                   weights.tovector().data(), nullptr, uvw.tovector().data());
+    buffer->AddRow(ms_time, interval[i], exposure[i], blNr,
+                   desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
+                   read_vis_data_ ? data[i].data() : nullptr, nullptr,
+                   weights[i].data(), nullptr, uvw[i].data());
 
     last_ms_time_ = ms_time;
+    ++i;
     ++nread_;
   }
 
