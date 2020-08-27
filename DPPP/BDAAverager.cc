@@ -294,12 +294,12 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
 void BDAAverager::show(std::ostream& os) const {
   os << "BDAAverager " << name_ << '\n';
-  os << "  timebase:   " << bl_threshold_time_ << "s\n";
-  os << "  max interval:          " << max_interval_ << "s\n";
+  os << "  timebase:        " << bl_threshold_time_ << "s\n";
+  os << "  max interval:    " << max_interval_ << "s\n";
   os << "  frequencybase:   " << bl_threshold_channel_ << '\n';
-  os << "  min channels:          " << min_channels_ << "\n";
-  os << "  max time factor:       " << maxtimefactor_ << '\n';
-  os << "  max freq factor:       " << maxfreqfactor_ << '\n';
+  os << "  min channels:    " << min_channels_ << "\n";
+  os << "  max time factor: " << maxtimefactor_ << '\n';
+  os << "  max freq factor: " << maxfreqfactor_ << '\n';
 }
 
 DPStep::MSType BDAAverager::outputs() const { return BDA; };
