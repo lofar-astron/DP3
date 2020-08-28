@@ -132,8 +132,8 @@ class MSReader : public DPInput {
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   /// The missingData argument is for MultiMSReader.
-  MSReader(const std::string& msName, const ParameterSet&, const std::string& prefix,
-           bool missingData = false);
+  MSReader(const std::string& msName, const ParameterSet&,
+           const std::string& prefix, bool missingData = false);
 
   virtual ~MSReader();
 

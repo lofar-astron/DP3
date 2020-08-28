@@ -173,6 +173,9 @@ class MSBDAReader : public DPInput {
   std::size_t
       max_chan_width_;     ///< maximum width of channels in SPECTRAL_WINDOW
   std::size_t pool_size_;  ///< Pool size that will be used for the BDA buffers
+  std::size_t buffer_size_factor_;  ///< Number of rows per buffer will be nbl_
+                                    ///< * this factor
+  std::size_t rows_per_buffer_;     ///< Rows per BDA buffer
 
  private:
   /// Reads the BDA subtables from an MS and stores the values that are required

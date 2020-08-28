@@ -91,6 +91,7 @@ MSBDAReader::MSBDAReader(const std::string& msName, const ParameterSet& parset,
       parset.getString(prefix + "data_column", MS::columnName(MS::DATA));
   weight_col_name_ = parset.getString(prefix + "weightcolumn",
                                       MS::columnName(MS::WEIGHT_SPECTRUM));
+  buffer_size_factor_ = parset.getInt(prefix + "size_factor", 4);
 }
 
 MSBDAReader::~MSBDAReader() {}
@@ -129,12 +130,12 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   }
 
   // Determine the pool size for the bda buffers
-  const size_t rows_per_buffer = nbl_ * ncorr_ * max_chan_width_;
-  pool_size_ = nbl_ * ncorr_ * max_chan_width_;
+  rows_per_buffer_ = std::max(size_t(1), nbl_ * buffer_size_factor_);
+  pool_size_ = rows_per_buffer_ * max_chan_width_ * ncorr_;
 
   double start_time = 0;
   unsigned int start_chan = 0;
-  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rows_per_buffer);
+  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rows_per_buffer_);
 
   info().init(ncorr_, start_chan, max_chan_width_, ntime_approx, start_time,
               interval_, msName(), antenna_set);
@@ -162,8 +163,8 @@ bool MSBDAReader::process(const DPBuffer&) {
   ScalarColumn<int> data_desc_id_col(ms_, MS::columnName(MS::DATA_DESC_ID));
 
   // Cache the data that will be add to the buffer
-  RefRows cell_range{nread_,
-                     std::min(ms_.nrow() - 1, unsigned(nread_ + pool_size_))};
+  RefRows cell_range{
+      nread_, std::min(ms_.nrow() - 1, unsigned(nread_ + rows_per_buffer_))};
   auto data = data_col.getColumnCells(cell_range);
   auto weights = weights_col.getColumnCells(cell_range);
   auto uvw = uvw_col.getColumnCells(cell_range);
