@@ -85,7 +85,8 @@ namespace DP3 {
       //////itsBuf.getData().assign (buf.getData());
       //itsBuf.setData(buf.getData());
 
-      Array<Complex>::const_contiter indIter = itsBuf.getData().cbegin();
+      //Array<Complex>::const_contiter indIter = itsBuf.getData().cbegin();
+      Array<Complex>::contiter indIter = itsBuf.getData().cbegin();
 
       // Set the exposure
       double exposure = buf.getExposure();
@@ -127,9 +128,16 @@ namespace DP3 {
       unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
       std::default_random_engine generator (seed);
 
-      casacore::Cube<Complex> noise_cube(n_corr,n_freq,n_baselines);
-      casacore::Cube<Complex> c_noise_cube(n_corr,n_freq,n_baselines);
+      //casacore::Cube<Complex> noise_cube(n_corr,n_freq,n_baselines);
+      //casacore::Cube<Complex> c_noise_cube(n_corr,n_freq,n_baselines);
 
+      DPBuffer runBuf1;
+      runBuf1.copy(buf);
+      Array<Complex>::contiter run1Iter = runBuf1.getData().cbegin();
+      DPBuffer runBuf2;
+      runBuf2.copy(buf);
+      Array<Complex>::contiter run2Iter = runBuf2.getData().cbegin();
+      
 
       // Add noise
 
@@ -157,8 +165,12 @@ namespace DP3 {
 	      double noise_img  = distribution(generator);
               std::complex<float> c_noise((float)noise_real, (float)noise_img);
 	      // update this with direct bracketing
-	      noise_cube.at(icorr,ifreq,ibase) = c_noise;
-	      c_noise_cube.at(icorr,ifreq,ibase) = *indIter + c_noise;
+	      *run1Iter = c_noise;
+	      *run2Iter = *indIter + 1000.0*c_noise;
+	      run1Iter++;
+	      run2Iter++;
+	      //noise_cube.at(icorr,ifreq,ibase) = c_noise;
+	      //c_noise_cube.at(icorr,ifreq,ibase) = *indIter;// + c_noise;
 	      indIter++;
 	      icount++;
           }
@@ -168,7 +180,8 @@ namespace DP3 {
 
       if (mode == 0)
       {
-	      itsBuf.setData(noise_cube);
+	      //itsBuf.setData(noise_cube);
+	      itsBuf.setData(runBuf1.getData());
 	      /*
               Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
               Array<Complex>::const_contiter indIter = buf.getData().cbegin();
@@ -182,13 +195,16 @@ namespace DP3 {
 
       } else if (mode == 1)
       {
-	      itsBuf.setData(c_noise_cube);
+	      //itsBuf.setData(c_noise_cube);
+	      itsBuf.setData(runBuf2.getData());
 	      /*
               Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
+              Array<Complex>::const_contiter indIter = buf.getData().cbegin();
               for(int i=0; i<10; i++)
               {
-                      cout << "+++ " << *outdIter << endl;
-                      outdIter++;
+		      cout << "--- " << *outdIter << "  " << *indIter << endl;
+	              outdIter++;
+	              indIter++;
               }
 	      */
       } else
