@@ -248,8 +248,9 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   DPStep::ShPtr firstStep;
   DPStep::ShPtr lastStep;
   if (!reader) {
-    reader = DPInput::CreateReader(parset, prefix);
-    firstStep = DPStep::ShPtr(reader);
+    std::unique_ptr<DPInput> new_reader = DPInput::CreateReader(parset, prefix);
+    reader = new_reader.get();
+    firstStep = std::move(new_reader);
   }
 
   casacore::Path pathIn(reader->msName());

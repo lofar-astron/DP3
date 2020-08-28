@@ -36,6 +36,8 @@
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
 
+#include <boost/make_unique.hpp>
+
 using namespace casacore;
 
 namespace DP3 {
@@ -153,8 +155,8 @@ unsigned int DPInput::ntimeAvgFullRes() const {
   throw Exception("DPInput::ntimeAvgFullRes not implemented");
 }
 
-DPInput* DPInput::CreateReader(const ParameterSet& parset,
-                               const string& prefix) {
+std::unique_ptr<DPInput> DPInput::CreateReader(const ParameterSet& parset,
+                                               const string& prefix) {
   // Get input and output MS name.
   // Those parameters were always called msin and msout.
   // However, SAS/MAC cannot handle a parameter and a group with the same
@@ -193,16 +195,16 @@ DPInput* DPInput::CreateReader(const ParameterSet& parset,
     // In the future it might be possible to have a simulation step instead.
     // Create MSReader step if input ms given.
     if (inNames.size() == 1) {
-      return new MSReader(inNames[0], parset, "msin.");
+      return boost::make_unique<MSReader>(inNames[0], parset, "msin.");
     } else {
-      return new MultiMSReader(inNames, parset, "msin.");
+      return boost::make_unique<MultiMSReader>(inNames, parset, "msin.");
     }
   } else {
     if (inNames.size() > 1) {
       throw std::invalid_argument(
           "DP3 does not support multiple in MS for BDA data.");
     }
-    return new MSBDAReader(inNames[0], parset, "msin.");
+    return boost::make_unique<MSBDAReader>(inNames[0], parset, "msin.");
   }
 }
 

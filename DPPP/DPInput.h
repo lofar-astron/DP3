@@ -147,7 +147,8 @@ class DPInput : public DPStep {
 
   /// Creates an MS reader.
   /// Based on the MS it will create either a BDAMSReader or a regular
-  static DPInput* CreateReader(const ParameterSet&, const string&);
+  static std::unique_ptr<DPInput> CreateReader(const ParameterSet&,
+                                               const string&);
 };
 
 }  // namespace DPPP
