@@ -91,7 +91,7 @@ namespace DP3 {
          itsInput->getModelData (buf.getRowNrs(), itsModelData);
          itsBuf.setData(itsModelData);
       } else {
-         itsBuf.setData(buf.getData());
+         itsBuf.copy(buf);
       }
 
       Array<Complex>::const_contiter indIter = itsBuf.getData().cbegin();
@@ -165,6 +165,7 @@ namespace DP3 {
 	      double noise_real = distribution(generator);
 	      double noise_img  = distribution(generator);
               std::complex<float> c_noise((float)noise_real, (float)noise_img);
+	      // update this with direct bracketing
 	      noise_cube.at(icorr,ifreq,ibase) = c_noise;
 	      c_noise_cube.at(icorr,ifreq,ibase) = *indIter + c_noise;
 	      indIter++;
@@ -174,13 +175,10 @@ namespace DP3 {
 
       }
 
-      //cout << "ITSMODELDATA [0]: " << endl;
-      //cout << itsModelData[0] << "  " << c_noise_cube[0] << endl;
-      //cout << "ITSMODELDATA [10]: " << endl;
-      //cout << itsModelData[10] << "  " << c_noise_cube[10] << endl;
       if (mode == 0)
       {
 	      itsBuf.setData(noise_cube);
+	      /*
               Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
               Array<Complex>::const_contiter indIter = buf.getData().cbegin();
 	      for(int i=0; i<10; i++)
@@ -189,6 +187,7 @@ namespace DP3 {
 	              outdIter++;
 	              indIter++;
 	      }
+	      */
 
       } else if (mode == 1)
       {
