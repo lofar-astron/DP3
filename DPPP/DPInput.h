@@ -103,8 +103,17 @@ class DPInput : public DPStep {
   /// Get the main MS table.
   const virtual casacore::Table& table() const;
 
+  /// Get the time information.
+  virtual double firstTime() const;
+  virtual double lastTime() const;
+
   /// Get the selected spectral window.
   virtual unsigned int spectralWindow() const;
+
+  /// Get the nr of averaged full resolution channels.
+  virtual unsigned int nchanAvgFullRes() const;
+  /// Get the nr of averaged full resolution time slots.
+  virtual unsigned int ntimeAvgFullRes() const;
 
   /// Fetch the FullRes flags.
   /// If defined in the buffer, they are taken from there.

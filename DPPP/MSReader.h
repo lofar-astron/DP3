@@ -209,8 +209,8 @@ class MSReader : public DPInput {
   virtual std::string msName() const;
 
   /// Get the time information.
-  double firstTime() const { return itsFirstTime; }
-  double lastTime() const { return itsLastTime; }
+  double firstTime() const override { return itsFirstTime; }
+  double lastTime() const override { return itsLastTime; }
 
   /// Get the selected spectral window.
   unsigned int spectralWindow() const override { return itsSpw; }
@@ -225,9 +225,9 @@ class MSReader : public DPInput {
   unsigned int startChan() const { return itsStartChan; }
 
   /// Get the nr of averaged full resolution channels.
-  unsigned int nchanAvgFullRes() const { return itsFullResNChanAvg; }
+  unsigned int nchanAvgFullRes() const override { return itsFullResNChanAvg; }
   /// Get the nr of averaged full resolution time slots.
-  unsigned int ntimeAvgFullRes() const { return itsFullResNTimeAvg; }
+  unsigned int ntimeAvgFullRes() const override { return itsFullResNTimeAvg; }
 
   /// Tell if the input MS has LOFAR_FULL_RES_FLAG.
   bool hasFullResFlags() const { return itsHasFullResFlags; }

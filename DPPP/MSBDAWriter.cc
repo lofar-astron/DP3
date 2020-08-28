@@ -56,7 +56,6 @@ using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
 using casacore::TableLock;
-using casacore::TiledColumnStMan;
 using casacore::True;
 using casacore::Vector;
 

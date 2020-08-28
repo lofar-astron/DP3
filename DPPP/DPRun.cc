@@ -408,12 +408,10 @@ DPStep::ShPtr DPRun::makeOutputStep(DPInput* reader, const ParameterSet& parset,
       // Create MSUpdater.
       // Take care the history is not written twice.
       // Note that if there is nothing to write, the updater won't do anything.
-      step =
-          std::make_shared<MSUpdater>(dynamic_cast<MSReader*>(reader), outName,
-                                      parset, prefix, outName != currentMSName);
+      step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                         outName != currentMSName);
     } else {
-      step = std::make_shared<MSWriter>(dynamic_cast<MSReader*>(reader),
-                                        outName, parset, prefix);
+      step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
       reader->setReadVisData(true);
     }
   }

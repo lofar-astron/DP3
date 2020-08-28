@@ -25,19 +25,22 @@
 #define DPPP_MSWRITER_H
 
 #include "DPStep.h"
-#include "MSReader.h"
 #include "StManParsetKeys.h"
 
-#include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ColumnDesc.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
-#include <casacore/tables/DataMan/TiledColumnStMan.h>
+
+namespace casacore {
+class Table;
+}
 
 namespace DP3 {
 class ParameterSet;
 
 namespace DPPP {
+class DPInput;
+
 /// @brief DPPP step writing to an MS
 
 /// This class is a DPStep creating a new MeasurementSet and writing
@@ -58,7 +61,7 @@ namespace DPPP {
 
 class MSWriter : public DPStep {
  public:
-  explicit MSWriter(MSReader* reader, const std::string& outName,
+  explicit MSWriter(DPInput* reader, const std::string& outName,
                     const ParameterSet&, const string& prefix);
 
   virtual ~MSWriter();
@@ -160,7 +163,7 @@ class MSWriter : public DPStep {
     outCol.putColumn(inCol.getColumn());
   }
 
-  MSReader* itsReader;
+  DPInput* itsReader;
   string itsName;
   string itsOutName;
   DPBuffer itsBuffer;

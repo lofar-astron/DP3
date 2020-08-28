@@ -133,8 +133,24 @@ const casacore::Table& DPInput::table() const {
   throw Exception("DPInput::table not implemented");
 }
 
+double DPInput::firstTime() const {
+  throw Exception("DPInput::firstTime not implemented");
+}
+
+double DPInput::lastTime() const {
+  throw Exception("DPInput::lastTime not implemented");
+}
+
 unsigned int DPInput::spectralWindow() const {
   throw Exception("DPInput::spectralWindow not implemented");
+}
+
+unsigned int DPInput::nchanAvgFullRes() const {
+  throw Exception("DPInput::nchanAvgFullRes not implemented");
+}
+
+unsigned int DPInput::ntimeAvgFullRes() const {
+  throw Exception("DPInput::ntimeAvgFullRes not implemented");
 }
 
 DPInput* DPInput::CreateReader(const ParameterSet& parset,

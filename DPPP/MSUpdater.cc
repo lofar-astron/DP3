@@ -28,12 +28,12 @@
 
 #include "../Common/ParameterSet.h"
 
-#include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/ColumnDesc.h>
 #include <casacore/tables/DataMan/StandardStMan.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -45,9 +45,8 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSUpdater::MSUpdater(MSReader* reader, String msName,
-                     const ParameterSet& parset, const string& prefix,
-                     bool writeHistory)
+MSUpdater::MSUpdater(DPInput* reader, String msName, const ParameterSet& parset,
+                     const string& prefix, bool writeHistory)
     : itsReader(reader),
       itsName(prefix),
       itsMSName(msName),

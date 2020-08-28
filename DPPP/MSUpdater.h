@@ -27,16 +27,19 @@
 #include "DPStep.h"
 #include "StManParsetKeys.h"
 
-#include <casacore/tables/Tables/ColumnDesc.h>
-#include <casacore/tables/Tables/RefRows.h>
 #include <casacore/tables/Tables/Table.h>
+
+namespace casacore {
+class ColumnDesc;
+class RefRows;
+}  // namespace casacore
 
 namespace DP3 {
 
 class ParameterSet;
 
 namespace DPPP {
-class MSReader;
+class DPInput;
 
 /// @brief DPPP step writing to an MS
 
@@ -49,7 +52,7 @@ class MSReader;
 
 class MSUpdater : public DPStep {
  public:
-  MSUpdater(MSReader* reader, casacore::String msName,
+  MSUpdater(DPInput* reader, casacore::String msName,
             const ParameterSet& parset, const std::string& prefix,
             bool writeHistory = true);
 
@@ -100,7 +103,7 @@ class MSUpdater : public DPStep {
   bool addColumn(const string& colname, const casacore::DataType dataType,
                  const casacore::ColumnDesc& cd);
 
-  MSReader* itsReader;
+  DPInput* itsReader;
   string itsName;
   casacore::String itsMSName;
   casacore::Table itsMS;
