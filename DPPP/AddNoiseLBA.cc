@@ -166,7 +166,7 @@ namespace DP3 {
               std::complex<float> c_noise((float)noise_real, (float)noise_img);
 	      // update this with direct bracketing
 	      *run1Iter = c_noise;
-	      *run2Iter = *indIter + 1000.0*c_noise;
+	      *run2Iter = *indIter + c_noise;
 	      run1Iter++;
 	      run2Iter++;
 	      //noise_cube.at(icorr,ifreq,ibase) = c_noise;
