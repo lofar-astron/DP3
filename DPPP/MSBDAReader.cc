@@ -87,9 +87,10 @@ MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
       nread_(0),
       max_chan_width_(0) {
   spw_ = parset.getInt(prefix + "band", -1);
-  data_col_name_ = parset.getString(prefix + "data_column", "DATA");
-  weight_col_name_ =
-      parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
+  data_col_name_ =
+      parset.getString(prefix + "data_column", MS::columnName(MS::DATA));
+  weight_col_name_ = parset.getString(prefix + "weightcolumn",
+                                      MS::columnName(MS::WEIGHT_SPECTRUM));
 }
 
 MSBDAReader::~MSBDAReader() {}
@@ -121,7 +122,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   FillInfoMetaData();
 
   // Read the antenna set.
-  Table obstab(ms_.keywordSet().asTable("OBSERVATION"));
+  Table obstab(ms_.keywordSet().asTable(kObservationTable));
   string antenna_set;
   if (obstab.nrow() > 0 && obstab.tableDesc().isColumn(kLofarAntennaSet)) {
     antenna_set = ScalarColumn<casacore::String>(obstab, kLofarAntennaSet)(0);

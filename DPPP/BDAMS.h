@@ -67,6 +67,8 @@ const string kDishDiameter = "DISH_DIAMETER";
 const string kPosition = "POSITION";
 const string kMeasFreqRef = "MEAS_FREQ_REF";
 
+const string kObservationTable = "OBSERVATION";
+
 }  // namespace BDAMS
 }  // namespace DPPP
 }  // namespace DP3
