@@ -45,8 +45,12 @@ void MockStep::show(std::ostream&) const { BOOST_CHECK(false); }
 
 void MockStep::ClearBdaBuffers() { bda_buffers_.clear(); }
 
-void MockStep::CheckFinishCount(std::size_t expected_count) const {
-  BOOST_CHECK_EQUAL(finish_count_, expected_count);
+std::size_t MockStep::TotalRowCount() const {
+  std::size_t count = 0;
+  for (const std::unique_ptr<BDABuffer>& buffer : bda_buffers_) {
+    count += buffer->GetRows().size();
+  }
+  return count;
 }
 
 }  // namespace DPPP

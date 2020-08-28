@@ -77,29 +77,44 @@ namespace DP3 {
 namespace DPPP {
 
 MSBDAReader::MSBDAReader()
-    : read_vis_data_(false), last_ms_time_(0), nread_(0), max_chan_width_(0) {}
+    : ms_(),
+      ms_name_(),
+      data_col_name_(),
+      weight_col_name_(),
+      read_vis_data_(false),
+      last_ms_time_(0),
+      interval_(0),
+      spw_(0),
+      nread_(0),
+      timer_(),
+      pool_size_(0),
+      desc_id_to_nchan_(),
+      ant_to_bl_() {}
 
 MSBDAReader::MSBDAReader(const std::string& msName, const ParameterSet& parset,
                          const std::string& prefix)
-    : ms_name_(msName),
+    : ms_(),
+      ms_name_(msName),
+      data_col_name_(
+          parset.getString(prefix + "data_column", MS::columnName(MS::DATA))),
+      weight_col_name_(parset.getString(prefix + "weightcolumn",
+                                        MS::columnName(MS::WEIGHT_SPECTRUM))),
       read_vis_data_(false),
       last_ms_time_(0),
+      interval_(0),
+      spw_(parset.getInt(prefix + "band", -1)),
       nread_(0),
-      max_chan_width_(0) {
-  spw_ = parset.getInt(prefix + "band", -1);
-  data_col_name_ =
-      parset.getString(prefix + "data_column", MS::columnName(MS::DATA));
-  weight_col_name_ = parset.getString(prefix + "weightcolumn",
-                                      MS::columnName(MS::WEIGHT_SPECTRUM));
-  buffer_size_factor_ = parset.getInt(prefix + "size_factor", 4);
-}
+      timer_(),
+      pool_size_(0),
+      desc_id_to_nchan_(),
+      ant_to_bl_() {}
 
 MSBDAReader::~MSBDAReader() {}
 
 DPStep::MSType MSBDAReader::outputs() const { return BDA; };
 
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
-  info().setNThreads(dpInfo.nThreads());
+  DPInput::updateInfo(dpInfo);
 
   if (!Table::isReadable(ms_name_)) {
     throw std::invalid_argument("No such MS: " + ms_name_);
@@ -114,10 +129,10 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
         "or not filled");
   }
 
-  // Find the nr of corr, chan, and baseline.
+  // Find the nr of correlations, channels, and baselines.
 
-  ncorr_ = IPosition(
-      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0))[0];
+  unsigned int ncorr =
+      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0)[0];
 
   // Read the meta data tables and store required values.
   FillInfoMetaData();
@@ -129,16 +144,14 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
     antenna_set = ScalarColumn<casacore::String>(obstab, kLofarAntennaSet)(0);
   }
 
-  // Determine the pool size for the bda buffers
-  rows_per_buffer_ = std::max(size_t(1), nbl_ * buffer_size_factor_);
-  pool_size_ = rows_per_buffer_ * max_chan_width_ * ncorr_;
-
-  double start_time = 0;
+  // TODO: Read actual values from the metadata.
   unsigned int start_chan = 0;
-  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rows_per_buffer_);
+  unsigned int ntime = 0;
+  double start_time = 0;
 
-  info().init(ncorr_, start_chan, max_chan_width_, ntime_approx, start_time,
-              interval_, msName(), antenna_set);
+  // FillInfoMetaData already set the number of channels via DPInfo::set.
+  info().init(ncorr, start_chan, info().nchan(), ntime, start_time, interval_,
+              msName(), antenna_set);
   info().setDataColName(data_col_name_);
   info().setWeightColName(weight_col_name_);
 }
@@ -151,31 +164,35 @@ void MSBDAReader::setReadVisData(bool readVisData) {
 
 bool MSBDAReader::process(const DPBuffer&) {
   NSTimer::StartStop sstime(timer_);
-  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(pool_size_);
+
+  // TODO: Pre-calculate actual required pool size beforehand.
+  auto buffer = boost::make_unique<BDABuffer>(info().nbaselines() *
+                                              info().nchan() * info().ncorr());
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
   ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
   ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
+  ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
   ScalarColumn<double> exposure_col(ms_, MS::columnName(MS::EXPOSURE));
   ScalarColumn<int> data_desc_id_col(ms_, MS::columnName(MS::DATA_DESC_ID));
 
   // Cache the data that will be add to the buffer
   RefRows cell_range{
-      nread_, std::min(ms_.nrow() - 1, unsigned(nread_ + rows_per_buffer_))};
+      nread_, std::min(ms_.nrow() - 1, unsigned(nread_ + info().nbaselines()))};
   auto data = data_col.getColumnCells(cell_range);
   auto weights = weights_col.getColumnCells(cell_range);
   auto uvw = uvw_col.getColumnCells(cell_range);
+  auto time = time_col.getColumnCells(cell_range);
   auto interval = interval_col.getColumnCells(cell_range);
   auto exposure = exposure_col.getColumnCells(cell_range);
   auto data_desc_id = data_desc_id_col.getColumnCells(cell_range);
 
   unsigned i = 0;
-  while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
-    // Take time from row 0 in subset.
-    double ms_time = ScalarColumn<double>(ms_, MS::columnName(MS::TIME))(0);
+  while (nread_ < ms_.nrow() && i < info().nbaselines()) {
+    const double ms_time = time[i];
 
     if (ms_time < last_ms_time_) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
@@ -185,12 +202,14 @@ bool MSBDAReader::process(const DPBuffer&) {
       continue;
     }
 
-    size_t blNr = bl_to_id_[std::make_pair(ant1_col(nread_), ant2_col(nread_))];
+    const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    buffer->AddRow(ms_time, interval[i], exposure[i], blNr,
-                   desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
-                   read_vis_data_ ? data[i].data() : nullptr, nullptr,
-                   weights[i].data(), nullptr, uvw[i].data());
+    if (!buffer->AddRow(ms_time, interval[i], exposure[i], ant_to_bl_[ant12],
+                        desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
+                        read_vis_data_ ? data[i].data() : nullptr, nullptr,
+                        weights[i].data(), nullptr, uvw[i].data())) {
+      throw std::runtime_error("Internal MSBDAReader error: Buffer too small");
+    }
 
     last_ms_time_ = ms_time;
     ++i;
@@ -211,7 +230,7 @@ void MSBDAReader::FillInfoMetaData() {
   Table spw = ms_.keywordSet().asTable(kSpectralWindowTable);
 
   interval_ = axis.col(kUnitTimeInterval).getDouble(0);
-  nbl_ = factors.nrow();
+  unsigned int nbl = factors.nrow();
 
   // Required columns to read
   ScalarColumn<int> factor_col(factors, kFactor);
@@ -222,18 +241,17 @@ void MSBDAReader::FillInfoMetaData() {
   ArrayColumn<double> widths_col(spw, kChanWidth);
 
   // Fill info with the data required to repopulate BDA_FACTORS
-  std::vector<std::vector<double>> freqs(nbl_);
-  std::vector<std::vector<double>> widths(nbl_);
-  std::vector<unsigned int> baseline_factors(nbl_);
-  for (unsigned int i = 0; i < nbl_; ++i) {
+  std::vector<std::vector<double>> freqs(nbl);
+  std::vector<std::vector<double>> widths(nbl);
+  std::vector<unsigned int> baseline_factors(nbl);
+  for (unsigned int i = 0; i < nbl; ++i) {
     unsigned int spw_id = ids_col(i);
     baseline_factors[i] = factor_col(i);
     freqs[i] = freqs_col.get(spw_id).tovector();
     widths[i] = widths_col.get(spw_id).tovector();
 
-    max_chan_width_ = std::max(max_chan_width_, freqs[i].size());
     desc_id_to_nchan_[ids_col(i)] = freqs[i].size();
-    bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
+    ant_to_bl_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
   }
 
   Table anttab(ms_.keywordSet().asTable(kAntennaTable));
@@ -264,7 +282,7 @@ void MSBDAReader::show(std::ostream& os) const {
     os << "  start_chan:      " << 0 << '\n';
     os << "  nchan:          " << getInfo().nchan() << '\n';
     os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
-    os << "  nbaselines:     " << nbl_ << '\n';
+    os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
     os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(0)
        << '\n';
     os << "  last time:      " << MVTime::Format(MVTime::YMD)

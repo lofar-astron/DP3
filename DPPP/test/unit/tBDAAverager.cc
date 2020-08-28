@@ -101,9 +101,9 @@ void CheckInfo(const DPInfo& info,
 }
 
 void Finish(BDAAverager& averager, DP3::DPPP::MockStep& mock_step) {
-  mock_step.CheckFinishCount(0);
+  BOOST_TEST(mock_step.FinishCount() == std::size_t(0));
   averager.finish();
-  mock_step.CheckFinishCount(1);
+  BOOST_TEST(mock_step.FinishCount() == std::size_t(1));
 }
 
 /**

@@ -157,7 +157,7 @@ class DPInfo {
               const std::vector<unsigned int>& baselines, bool remove);
 
   /// Update the info for the given average factors.
-  void update(const std::vector<unsigned int> timeAvg);
+  void update(std::vector<unsigned int>&& timeAvg);
 
   /// Remove unused stations from the antenna lists.
   void removeUnusedAnt();

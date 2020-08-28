@@ -75,7 +75,8 @@ BOOST_AUTO_TEST_CASE(set_info) {
   BOOST_TEST(reader.spectralWindow() == -1U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
-  BOOST_TEST(info.ntime() == 5U);
+  // With BDA, ntime is always 0 since it may vary between baselines.
+  BOOST_TEST(info.ntime() == 0U);
   BOOST_TEST(info.channelsAreRegular());
   BOOST_TEST(info.hasBDAChannels());
   BOOST_TEST(info.nbaselines() == 6U);
@@ -103,10 +104,12 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   auto kExpectedWeights = std::vector<float>(
       reader.getInfo().ncorr() * reader.getInfo().nchan(), 1);
 
-  auto rows = mock_step->GetBdaBuffers()[0]->GetRows();
-  mock_step->CheckFinishCount(1);
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == 1U);
-  BOOST_TEST(rows.size() == reader.getInfo().nbaselines() * 4);
+  BOOST_TEST(mock_step->FinishCount() == std::size_t(1));
+  BOOST_TEST(mock_step->TotalRowCount() == std::size_t(6));
+
+  BOOST_REQUIRE(!mock_step->GetBdaBuffers().empty());
+  auto rows = mock_step->GetBdaBuffers().front()->GetRows();
+  BOOST_REQUIRE(!rows.empty());
   BOOST_TEST(rows[0].data->imag() == kExpectedData.imag());
   BOOST_TEST(rows[0].data->real() == kExpectedData.real());
   BOOST_TEST(rows[0].uvw == kExpectedUVW);

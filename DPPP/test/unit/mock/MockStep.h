@@ -71,7 +71,9 @@ class MockStep : public DPStep {
 
   void ClearBdaBuffers();
 
-  void CheckFinishCount(std::size_t expected_count) const;
+  std::size_t FinishCount() const { return finish_count_; };
+
+  std::size_t TotalRowCount() const;
 
  private:
   std::function<void(const DPBuffer&)>* check_buffer_;

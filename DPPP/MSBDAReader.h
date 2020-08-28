@@ -158,6 +158,9 @@ class MSBDAReader : public DPInput {
   unsigned int spectralWindow() const override { return spw_; }
 
  private:
+  /// Reads the BDA subtables from an MS and stores the values that are required
+  void FillInfoMetaData();
+
   casacore::Table ms_;
   std::string ms_name_;
   std::string data_col_name_;
@@ -167,25 +170,13 @@ class MSBDAReader : public DPInput {
   double interval_;     ///< original interval of the MS
   unsigned int spw_;    ///< spw (band) to use (<0 no select)
   unsigned int nread_;  ///< nr of time slots read from MS
-  unsigned int ncorr_;  ///< nr of correlations in the MS
-  unsigned int nbl_;    ///< nr of baselines in the MS
   NSTimer timer_;
-  std::size_t
-      max_chan_width_;     ///< maximum width of channels in SPECTRAL_WINDOW
   std::size_t pool_size_;  ///< Pool size that will be used for the BDA buffers
-  std::size_t buffer_size_factor_;  ///< Number of rows per buffer will be nbl_
-                                    ///< * this factor
-  std::size_t rows_per_buffer_;     ///< Rows per BDA buffer
 
- private:
-  /// Reads the BDA subtables from an MS and stores the values that are required
-  void FillInfoMetaData();
-
- private:
   std::map<int, std::size_t>
-      desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel width
+      desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel count.
   std::map<std::pair<int, int>, unsigned int>
-      bl_to_id_;  ///< Maps a baseline to a baseline id
+      ant_to_bl_;  ///< Maps an antenna pair to a baseline index.
 };
 
 }  // namespace DPPP
