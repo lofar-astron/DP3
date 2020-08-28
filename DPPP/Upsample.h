@@ -21,8 +21,8 @@
 /// @brief DPPP step class to Upsample visibilities
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_DummyStep_H
-#define DPPP_DummyStep_H
+#ifndef DPPP_Upsample_H
+#define DPPP_Upsample_H
 
 #include "DPInput.h"
 #include "DPBuffer.h"
