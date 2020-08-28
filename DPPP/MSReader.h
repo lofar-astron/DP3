@@ -187,7 +187,7 @@ class MSReader : public DPInput {
   void setReadVisData(bool readVisData) override;
 
   /// Get the main MS table.
-  casacore::Table& table() override { return itsMS; }
+  const casacore::Table& table() const override { return itsMS; }
 
   /// Get the name of the data column to be used.
   const std::string& dataColumnName() const { return itsDataColName; }

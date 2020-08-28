@@ -56,8 +56,6 @@
 using casacore::ArrayColumn;
 using casacore::Complex;
 using casacore::Cube;
-using casacore::Double;
-using casacore::False;
 using casacore::IPosition;
 using casacore::MeasurementSet;
 using casacore::MPosition;
@@ -65,7 +63,6 @@ using casacore::MVTime;
 using casacore::RefRows;
 using casacore::ScalarColumn;
 using casacore::ScalarMeasColumn;
-using casacore::String;
 using casacore::Table;
 using casacore::TableLock;
 
@@ -77,12 +74,12 @@ namespace DP3 {
 namespace DPPP {
 
 MSBDAReader::MSBDAReader()
-    : read_vis_data_(False), last_ms_time_(0), nread_(0), max_chan_width_(0) {}
+    : read_vis_data_(false), last_ms_time_(0), nread_(0), max_chan_width_(0) {}
 
 MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
                          const string& prefix)
     : ms_name_(msName),
-      read_vis_data_(False),
+      read_vis_data_(false),
       last_ms_time_(0),
       nread_(0),
       max_chan_width_(0) {
@@ -127,7 +124,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   Table obstab(ms_.keywordSet().asTable("OBSERVATION"));
   string antenna_set;
   if (obstab.nrow() > 0 && obstab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
-    antenna_set = ScalarColumn<String>(obstab, "LOFAR_ANTENNA_SET")(0);
+    antenna_set =
+        ScalarColumn<casacore::String>(obstab, "LOFAR_ANTENNA_SET")(0);
   }
 
   // Determine the pool size for the bda buffers
@@ -148,7 +146,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setWeightColName(weight_col_name_);
 }
 
-std::string MSBDAReader::msName() const { return ms_.tableName(); }
+string MSBDAReader::msName() const { return ms_.tableName(); }
 
 void MSBDAReader::setReadVisData(bool readVisData) {
   read_vis_data_ = readVisData || read_vis_data_;
@@ -242,8 +240,8 @@ void MSBDAReader::FillInfoMetaData() {
   }
 
   Table anttab(ms_.keywordSet().asTable("ANTENNA"));
-  ScalarColumn<String> name_col(anttab, "NAME");
-  ScalarColumn<Double> diam_col(anttab, "DISH_DIAMETER");
+  ScalarColumn<casacore::String> name_col(anttab, "NAME");
+  ScalarColumn<double> diam_col(anttab, "DISH_DIAMETER");
   ROScalarMeasColumn<MPosition> ant_col(anttab, "POSITION");
   vector<MPosition> antPos;
   antPos.reserve(anttab.nrow());

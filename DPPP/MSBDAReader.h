@@ -159,12 +159,12 @@ class MSBDAReader : public DPInput {
   void setReadVisData(bool readVisData) override;
 
   /// Get the main MS table.
-  casacore::Table& table() override { return ms_; }
+  const casacore::Table& table() const override { return ms_; }
 
   /// Get the selected spectral window.
   unsigned int spectralWindow() const override { return spw_; }
 
- protected:
+ private:
   casacore::Table ms_;
   std::string ms_name_;
   std::string data_col_name_;

@@ -129,7 +129,7 @@ void DPInput::setReadVisData(bool) {
   throw Exception("DPInput::setReadVisData not implemented");
 }
 
-casacore::Table& DPInput::table() {
+const casacore::Table& DPInput::table() const {
   throw Exception("DPInput::table not implemented");
 }
 
@@ -137,7 +137,8 @@ unsigned int DPInput::spectralWindow() const {
   throw Exception("DPInput::spectralWindow not implemented");
 }
 
-DPInput* DPInput::InitReader(const ParameterSet& parset, const string& prefix) {
+DPInput* DPInput::CreateReader(const ParameterSet& parset,
+                               const string& prefix) {
   // Get input and output MS name.
   // Those parameters were always called msin and msout.
   // However, SAS/MAC cannot handle a parameter and a group with the same

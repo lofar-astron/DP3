@@ -277,7 +277,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     ++weights;
   }
 
-  const double factor = total_weight == 0 ? 0 : 1.0 / total_weight;
+  const double factor = total_weight > 0 ? 1.0 / total_weight : 0;
   bb.uvw[0] *= factor;
   bb.uvw[1] *= factor;
   bb.uvw[2] *= factor;

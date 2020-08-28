@@ -29,8 +29,6 @@
 #include "UVWCalculator.h"
 #include "FlagCounter.h"
 
-#include "../Common/ParameterSet.h"
-
 #include <EveryBeam/station.h>
 
 #include <casacore/tables/Tables/TableIter.h>
@@ -43,6 +41,10 @@
 #include <memory>
 
 namespace DP3 {
+
+// Forward declaration.
+class ParameterSet;
+
 namespace DPPP {
 
 /// @brief Abstract base class for a DPStep generating input
@@ -99,7 +101,7 @@ class DPInput : public DPStep {
   virtual void setReadVisData(bool);
 
   /// Get the main MS table.
-  virtual casacore::Table& table();
+  const virtual casacore::Table& table() const;
 
   /// Get the selected spectral window.
   virtual unsigned int spectralWindow() const;
@@ -134,7 +136,9 @@ class DPInput : public DPStep {
   const casacore::Matrix<double>& fetchUVW(const DPBuffer& bufin,
                                            DPBuffer& bufout, NSTimer& timer);
 
-  static DPInput* InitReader(const ParameterSet&, const string&);
+  /// Creates an MS reader.
+  /// Based on the MS it will create either a BDAMSReader or a regular
+  static DPInput* CreateReader(const ParameterSet&, const string&);
 };
 
 }  // namespace DPPP

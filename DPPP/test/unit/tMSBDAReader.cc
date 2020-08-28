@@ -33,9 +33,9 @@ namespace {
 const std::string prefix = "";
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(dpinfo)
+BOOST_AUTO_TEST_SUITE(msbdareader)
 
-BOOST_AUTO_TEST_CASE(flow) {
+BOOST_AUTO_TEST_CASE(step_output_is_bda) {
   DPInfo info;
   ParameterSet parset;
   MSBDAReader reader("does_not_exist.MS", parset, prefix);
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
   BOOST_TEST(info.timeInterval() == 30U);
 }
 
-BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
+BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
                                   boost::unit_test::tolerance(0.0001f)) {
   DPInfo info;
   ParameterSet parset;
@@ -105,17 +105,15 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.001) *
   auto kExpectedWeights = std::vector<float>(
       reader.getInfo().ncorr() * reader.getInfo().nchan(), 1);
 
+  auto rows = mock_step->GetBdaBuffers()[0]->GetRows();
   mock_step->CheckFinishCount(1);
   BOOST_TEST(mock_step->GetBdaBuffers().size() == 1U);
-  BOOST_TEST(mock_step->GetBdaBuffers()[0]->GetRows().size() == 120U);
-  BOOST_TEST(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->imag() ==
-             kExpectedData.imag());
-  BOOST_TEST(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->real() ==
-             kExpectedData.real());
-  BOOST_TEST(mock_step->GetBdaBuffers()[0]->GetRows()[0].uvw == kExpectedUVW);
+  BOOST_TEST(rows.size() == 120U);
+  BOOST_TEST(rows[0].data->imag() == kExpectedData.imag());
+  BOOST_TEST(rows[0].data->real() == kExpectedData.real());
+  BOOST_TEST(rows[0].uvw == kExpectedUVW);
   for (unsigned i = 0; i < kExpectedWeights.size(); ++i) {
-    BOOST_TEST(*(mock_step->GetBdaBuffers()[0]->GetRows()[0].weights + i) ==
-               kExpectedWeights[i]);
+    BOOST_TEST(*(rows[0].weights + i) == kExpectedWeights[i]);
   }
 
   // Check that the print methods do not throw any error
@@ -140,10 +138,9 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.process(buf);
   reader.finish();
 
-  BOOST_TEST(
-      std::isnan(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->imag()));
-  BOOST_TEST(
-      std::isnan(mock_step->GetBdaBuffers()[0]->GetRows()[0].data->real()));
+  auto data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;
+  BOOST_TEST(std::isnan(data->imag()));
+  BOOST_TEST(std::isnan(data->real()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

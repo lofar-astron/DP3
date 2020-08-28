@@ -248,7 +248,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   DPStep::ShPtr firstStep;
   DPStep::ShPtr lastStep;
   if (!reader) {
-    reader = DPInput::InitReader(parset, prefix);
+    reader = DPInput::CreateReader(parset, prefix);
     firstStep = DPStep::ShPtr(reader);
   }
 

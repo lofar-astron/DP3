@@ -63,7 +63,7 @@ class DPRun {
                                  const std::string& prefix, DPInput* reader);
 
  private:
-  /// Create an output step, either an MSWriter, MSUpdater or and MSBDAWriter
+  /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
   /// If no data are modified (for example if only count was done),
   /// still an MSUpdater is created, but it will not write anything.
   /// It reads the output name from the parset. If the prefix is "", it
