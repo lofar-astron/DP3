@@ -37,7 +37,8 @@ namespace DPPP {
 
 class MSBDAWriter : public DPStep {
  public:
-  MSBDAWriter(DPInput*, const string&, const ParameterSet&, const string&);
+  MSBDAWriter(DPInput*, const std::string&, const ParameterSet&,
+              const std::string&);
 
   ~MSBDAWriter() override;
 
@@ -49,7 +50,7 @@ class MSBDAWriter : public DPStep {
 
   /// Add some data to the MeasurementSet written/updated.
   /// Calls addToMS from the previous step, with the current output msname.
-  void addToMS(const string&) override;
+  void addToMS(const std::string&) override;
 
   void show(std::ostream&) const override;
 

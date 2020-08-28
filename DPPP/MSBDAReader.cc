@@ -79,8 +79,8 @@ namespace DPPP {
 MSBDAReader::MSBDAReader()
     : read_vis_data_(false), last_ms_time_(0), nread_(0), max_chan_width_(0) {}
 
-MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
-                         const string& prefix)
+MSBDAReader::MSBDAReader(const std::string& msName, const ParameterSet& parset,
+                         const std::string& prefix)
     : ms_name_(msName),
       read_vis_data_(false),
       last_ms_time_(0),
@@ -123,7 +123,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // Read the antenna set.
   Table obstab(ms_.keywordSet().asTable(kObservationTable));
-  string antenna_set;
+  std::string antenna_set;
   if (obstab.nrow() > 0 && obstab.tableDesc().isColumn(kLofarAntennaSet)) {
     antenna_set = ScalarColumn<casacore::String>(obstab, kLofarAntennaSet)(0);
   }
@@ -142,7 +142,7 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setWeightColName(weight_col_name_);
 }
 
-string MSBDAReader::msName() const { return ms_.tableName(); }
+std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
 void MSBDAReader::setReadVisData(bool readVisData) {
   read_vis_data_ = readVisData || read_vis_data_;

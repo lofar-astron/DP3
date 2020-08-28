@@ -55,8 +55,8 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSWriter::MSWriter(DPInput* reader, const string& outName,
-                   const ParameterSet& parset, const string& prefix)
+MSWriter::MSWriter(DPInput* reader, const std::string& outName,
+                   const ParameterSet& parset, const std::string& prefix)
     : itsReader(reader),
       itsName(prefix),
       itsOutName(outName),

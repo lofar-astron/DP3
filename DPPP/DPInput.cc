@@ -156,13 +156,13 @@ unsigned int DPInput::ntimeAvgFullRes() const {
 }
 
 std::unique_ptr<DPInput> DPInput::CreateReader(const ParameterSet& parset,
-                                               const string& prefix) {
+                                               const std::string& prefix) {
   // Get input and output MS name.
   // Those parameters were always called msin and msout.
   // However, SAS/MAC cannot handle a parameter and a group with the same
   // name, hence one can also use msin.name and msout.name.
   std::vector<std::string> inNames =
-      parset.getStringVector("msin.name", std::vector<string>());
+      parset.getStringVector("msin.name", std::vector<std::string>());
   if (inNames.empty()) {
     inNames = parset.getStringVector("msin");
   }
@@ -170,8 +170,8 @@ std::unique_ptr<DPInput> DPInput::CreateReader(const ParameterSet& parset,
   // Find all file names matching a possibly wildcarded input name.
   // This is only possible if a single name is given.
   if (inNames.size() == 1) {
-    if (inNames[0].find_first_of("*?{['") != string::npos) {
-      std::vector<string> names;
+    if (inNames[0].find_first_of("*?{['") != std::string::npos) {
+      std::vector<std::string> names;
       names.reserve(80);
       casacore::Path path(inNames[0]);
       casacore::String dirName(path.dirName());

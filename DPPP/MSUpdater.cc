@@ -45,8 +45,9 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSUpdater::MSUpdater(DPInput* reader, String msName, const ParameterSet& parset,
-                     const string& prefix, bool writeHistory)
+MSUpdater::MSUpdater(DPInput* reader, casacore::String msName,
+                     const ParameterSet& parset, const std::string& prefix,
+                     bool writeHistory)
     : itsReader(reader),
       itsName(prefix),
       itsMSName(msName),

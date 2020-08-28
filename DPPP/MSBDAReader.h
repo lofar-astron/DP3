@@ -136,7 +136,7 @@ class MSBDAReader : public DPInput {
 
   /// Add some data to the MeasurementSet written/updated.
   /// Do nothing.
-  void addToMS(const string&) override{};
+  void addToMS(const std::string&) override{};
 
   /// Show the step parameters.
   void show(std::ostream&) const override;

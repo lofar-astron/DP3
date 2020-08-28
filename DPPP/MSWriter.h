@@ -62,7 +62,7 @@ class DPInput;
 class MSWriter : public DPStep {
  public:
   explicit MSWriter(DPInput* reader, const std::string& outName,
-                    const ParameterSet&, const string& prefix);
+                    const ParameterSet&, const std::string& prefix);
 
   virtual ~MSWriter();
 

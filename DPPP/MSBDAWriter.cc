@@ -52,7 +52,6 @@ using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
 using casacore::SetupNewTable;
 using casacore::StandardStMan;
-using casacore::String;
 using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
@@ -163,7 +162,9 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
 void MSBDAWriter::finish() {}
 
-void MSBDAWriter::addToMS(const string&) { getPrevStep()->addToMS(outName_); }
+void MSBDAWriter::addToMS(const std::string&) {
+  getPrevStep()->addToMS(outName_);
+}
 
 void MSBDAWriter::show(std::ostream& os) const {
   os << "MSWriter " << prefix_ << std::endl;
@@ -223,7 +224,7 @@ void MSBDAWriter::CreateMainTable() {
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 
-    Block<String> omitted_subtables(4);
+    Block<casacore::String> omitted_subtables(4);
     omitted_subtables[0] = kBDATimeAxisTable;
     omitted_subtables[1] = kBDAFactorsTable;
     omitted_subtables[2] = kSpectralWindowTable;
@@ -383,7 +384,7 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
     outSPW.addRow();
     ScalarColumn<Int>(outSPW, kNumChan).put(id, nchanFreqs);
     ScalarColumn<Int>(outSPW, kMeasFreqRef).put(id, measFreqRef);
-    ScalarColumn<String>(outSPW, kName).put(id, name);
+    ScalarColumn<casacore::String>(outSPW, kName).put(id, name);
     ArrayColumn<Double>(outSPW, kChanFreq)
         .put(id, Vector<double>(info().chanFreqs(i)));
     ArrayColumn<Double>(outSPW, kChanWidth)
