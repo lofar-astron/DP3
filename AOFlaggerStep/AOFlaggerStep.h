@@ -97,13 +97,13 @@ class AOFlaggerStep : public DPStep {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
-  /// Format a number as kB, MB, etc.
-  static void formatBytes(std::ostream&, double);
-
  private:
   /// Flag all baselines in the time window (using OpenMP to parallellize).
   /// Process the buffers in the next step.
   void flag(unsigned int rightOverlap);
+
+  /// Format a number as kB, MB, etc.
+  static void formatBytes(std::ostream&, double);
 
   /// Flag a single baseline using the rfistrategy.
   void flagBaseline(unsigned int leftOverlap, unsigned int windowSize,

@@ -168,7 +168,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   bda_pool_size_ = _info.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 
-  info().update(baseline_factors);
+  info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));
 }
 
@@ -277,10 +277,12 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     ++weights;
   }
 
-  const double factor = total_weight > 0 ? 1.0 / total_weight : 0;
-  bb.uvw[0] *= factor;
-  bb.uvw[1] *= factor;
-  bb.uvw[2] *= factor;
+  if (total_weight > 0) {
+    const double factor = 1.0 / total_weight;
+    bb.uvw[0] *= factor;
+    bb.uvw[1] *= factor;
+    bb.uvw[2] *= factor;
+  }
 
   if (bda_buffer_->GetRemainingCapacity() < nchan * info().ncorr()) {
     getNextStep()->process(std::move(bda_buffer_));

@@ -54,11 +54,6 @@ namespace DPPP {
 ///           WEIGHT]
 /// </ul>
 ///
-/// The process function only reads the data and flags to avoid that
-/// too much data is kept in memory.
-/// Other columns (like WEIGHT, UVW) can be read when needed by using the
-/// appropriate DPInput::fetch function.
-///
 /// The data columns are handled in the following way:
 /// <table>
 ///  <tr>
@@ -102,6 +97,7 @@ namespace DPPP {
 ///  </tr>
 ///  <tr>
 ///   <td>FULLRESFLAG</td>
+///   <td>NOT YET IMPLEMENTED FOR BDA BUFFERS</td>
 ///   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
 ///       a uChar array with shape [orignchan/8, ntimeavg]. The bits
 ///       represent the flags. They are converted to a Bool array with shape
@@ -145,9 +141,6 @@ class MSBDAReader : public DPInput {
   /// Show the step parameters.
   void show(std::ostream&) const override;
 
-  /// If needed, show the flag counts.
-  void showCounts(std::ostream&) const override;
-
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
@@ -185,16 +178,11 @@ class MSBDAReader : public DPInput {
   /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
 
-  void DetermineAvailableMemory();
-
  private:
   std::map<int, std::size_t>
       desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel width
   std::map<std::pair<int, int>, unsigned int>
-      bl_to_id_;   ///< Maps a baseline to a baseline id
-  double memory_;  ///< Usable memory in GBytes
-  double memory_percentage_;
-  double memory_avail_;  ///< Amount of bytes available for memory
+      bl_to_id_;  ///< Maps a baseline to a baseline id
 };
 
 }  // namespace DPPP

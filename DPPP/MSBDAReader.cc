@@ -21,13 +21,13 @@
 #include "DPInfo.h"
 #include "DPLogger.h"
 #include "Exceptions.h"
+#include "BDAMS.h"
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/lofarreadutils.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
-#include "../AOFlaggerStep/AOFlaggerStep.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -59,6 +59,7 @@ using casacore::Cube;
 using casacore::IPosition;
 using casacore::MeasurementSet;
 using casacore::MPosition;
+using casacore::MS;
 using casacore::MVTime;
 using casacore::RefRows;
 using casacore::ScalarColumn;
@@ -69,6 +70,8 @@ using casacore::TableLock;
 using std::cout;
 using std::endl;
 using std::vector;
+
+using namespace DP3::DPPP::BDAMS;
 
 namespace DP3 {
 namespace DPPP {
@@ -83,13 +86,10 @@ MSBDAReader::MSBDAReader(const string& msName, const ParameterSet& parset,
       last_ms_time_(0),
       nread_(0),
       max_chan_width_(0) {
-  NSTimer::StartStop sstime(timer_);
   spw_ = parset.getInt(prefix + "band", -1);
   data_col_name_ = parset.getString(prefix + "data_column", "DATA");
   weight_col_name_ =
       parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
-  memory_ = parset.getUint(prefix + "memory_max", 0);
-  memory_percentage_ = parset.getUint(prefix + "memoryperc", 0);
 }
 
 MSBDAReader::~MSBDAReader() {}
@@ -98,7 +98,6 @@ DPStep::MSType MSBDAReader::outputs() const { return BDA; };
 
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
-  DetermineAvailableMemory();
 
   if (!Table::isReadable(ms_name_)) {
     throw std::invalid_argument("No such MS: " + ms_name_);
@@ -106,8 +105,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   ms_ = MeasurementSet(ms_name_, TableLock::AutoNoReadLocking);
 
-  if (!ms_.keywordSet().isDefined("BDA_FACTORS") ||
-      ms_.keywordSet().asTable("BDA_FACTORS").nrow() == 0) {
+  if (!ms_.keywordSet().isDefined(kBDAFactorsTable) ||
+      ms_.keywordSet().asTable(kBDAFactorsTable).nrow() == 0) {
     throw std::domain_error(
         "Input MS does not contain BDA data. Table BDA_FACTORS is missing "
         "or not filled");
@@ -115,7 +114,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // Find the nr of corr, chan, and baseline.
 
-  ncorr_ = IPosition(ArrayColumn<Complex>(ms_, "DATA").shape(0))[0];
+  ncorr_ = IPosition(
+      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0))[0];
 
   // Read the meta data tables and store required values.
   FillInfoMetaData();
@@ -123,22 +123,17 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   // Read the antenna set.
   Table obstab(ms_.keywordSet().asTable("OBSERVATION"));
   string antenna_set;
-  if (obstab.nrow() > 0 && obstab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
-    antenna_set =
-        ScalarColumn<casacore::String>(obstab, "LOFAR_ANTENNA_SET")(0);
+  if (obstab.nrow() > 0 && obstab.tableDesc().isColumn(kLofarAntennaSet)) {
+    antenna_set = ScalarColumn<casacore::String>(obstab, kLofarAntennaSet)(0);
   }
 
   // Determine the pool size for the bda buffers
-  std::size_t expected_row_size =
-      (sizeof(float) * 2 + sizeof(Complex) + sizeof(double) * 2) * ncorr_ *
-          max_chan_width_ +
-      3 * sizeof(double) + 4 * sizeof(std::size_t) + 3 * sizeof(double);
-  std::size_t rowsPerBuffer = memory_avail_ / expected_row_size;
-  pool_size_ = std::max(std::size_t(1), rowsPerBuffer);
+  const size_t rows_per_buffer = nbl_ * ncorr_ * max_chan_width_;
+  pool_size_ = nbl_ * ncorr_ * max_chan_width_;
 
   double start_time = 0;
   unsigned int start_chan = 0;
-  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rowsPerBuffer);
+  unsigned int ntime_approx = std::ceil(ms_.nrow() / (float)rows_per_buffer);
 
   info().init(ncorr_, start_chan, max_chan_width_, ntime_approx, start_time,
               interval_, msName(), antenna_set);
@@ -156,14 +151,14 @@ bool MSBDAReader::process(const DPBuffer&) {
   NSTimer::StartStop sstime(timer_);
   std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(pool_size_);
 
-  ScalarColumn<int> ant1_col(ms_, "ANTENNA1");
-  ScalarColumn<int> ant2_col(ms_, "ANTENNA2");
-  ArrayColumn<Complex> data_col(ms_, "DATA");
-  ArrayColumn<float> weights_col(ms_, "WEIGHT_SPECTRUM");
-  ArrayColumn<double> uvw_col(ms_, "UVW");
-  ScalarColumn<double> interval_col(ms_, "INTERVAL");
-  ScalarColumn<double> exposure_col(ms_, "EXPOSURE");
-  ScalarColumn<int> data_desc_id_col(ms_, "DATA_DESC_ID");
+  ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
+  ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
+  ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
+  ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
+  ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
+  ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
+  ScalarColumn<double> exposure_col(ms_, MS::columnName(MS::EXPOSURE));
+  ScalarColumn<int> data_desc_id_col(ms_, MS::columnName(MS::DATA_DESC_ID));
 
   // Cache the data that will be add to the buffer
   RefRows cell_range{nread_,
@@ -178,7 +173,7 @@ bool MSBDAReader::process(const DPBuffer&) {
   unsigned i = 0;
   while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
     // Take time from row 0 in subset.
-    double ms_time = ScalarColumn<double>(ms_, "TIME")(0);
+    double ms_time = ScalarColumn<double>(ms_, MS::columnName(MS::TIME))(0);
 
     if (ms_time < last_ms_time_) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
@@ -209,20 +204,20 @@ bool MSBDAReader::process(const DPBuffer&) {
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
 void MSBDAReader::FillInfoMetaData() {
-  Table factors = ms_.keywordSet().asTable("BDA_FACTORS");
-  Table axis = ms_.keywordSet().asTable("BDA_TIME_AXIS");
-  Table spw = ms_.keywordSet().asTable("SPECTRAL_WINDOW");
+  Table factors = ms_.keywordSet().asTable(kBDAFactorsTable);
+  Table axis = ms_.keywordSet().asTable(kBDATimeAxisTable);
+  Table spw = ms_.keywordSet().asTable(kSpectralWindowTable);
 
-  interval_ = axis.col("UNIT_TIME_INTERVAL").getDouble(0);
+  interval_ = axis.col(kUnitTimeInterval).getDouble(0);
   nbl_ = factors.nrow();
 
   // Required columns to read
-  ScalarColumn<int> factor_col(factors, "FACTOR");
-  ScalarColumn<int> ant1_col(factors, "ANTENNA1");
-  ScalarColumn<int> ant2_col(factors, "ANTENNA2");
-  ScalarColumn<int> ids_col(factors, "SPECTRAL_WINDOW_ID");
-  ArrayColumn<double> freqs_col(spw, "CHAN_FREQ");
-  ArrayColumn<double> widths_col(spw, "CHAN_WIDTH");
+  ScalarColumn<int> factor_col(factors, kFactor);
+  ScalarColumn<int> ant1_col(factors, MS::columnName(MS::ANTENNA1));
+  ScalarColumn<int> ant2_col(factors, MS::columnName(MS::ANTENNA2));
+  ScalarColumn<int> ids_col(factors, kSpectralWindowId);
+  ArrayColumn<double> freqs_col(spw, kChanFreq);
+  ArrayColumn<double> widths_col(spw, kChanWidth);
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl_);
@@ -239,10 +234,10 @@ void MSBDAReader::FillInfoMetaData() {
     bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
   }
 
-  Table anttab(ms_.keywordSet().asTable("ANTENNA"));
-  ScalarColumn<casacore::String> name_col(anttab, "NAME");
-  ScalarColumn<double> diam_col(anttab, "DISH_DIAMETER");
-  ROScalarMeasColumn<MPosition> ant_col(anttab, "POSITION");
+  Table anttab(ms_.keywordSet().asTable(kAntennaTable));
+  ScalarColumn<casacore::String> name_col(anttab, kName);
+  ScalarColumn<double> diam_col(anttab, kDishDiameter);
+  ROScalarMeasColumn<MPosition> ant_col(anttab, kPosition);
   vector<MPosition> antPos;
   antPos.reserve(anttab.nrow());
   for (unsigned int i = 0; i < anttab.nrow(); ++i) {
@@ -253,28 +248,8 @@ void MSBDAReader::FillInfoMetaData() {
   info().set(name_col.getColumn(), diam_col.getColumn(), antPos,
              ant1_col.getColumn(), ant2_col.getColumn());
 
-  info().update(baseline_factors);
+  info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));
-}
-
-void MSBDAReader::DetermineAvailableMemory() {
-  // Determine available memory.
-  double avail_memory = casacore::HostInfo::memoryTotal() * 1024.;
-  // Determine how much memory can be used.
-  double memory_max = memory_ * 1024 * 1024 * 1024;
-  double memory = memory_max;
-  if (memory_percentage_ > 0) {
-    memory = memory_percentage_ * avail_memory / 100.;
-    if (memory_max > 0 && memory > memory_max) {
-      memory = memory_max;
-    }
-  } else if (memory_ <= 0) {
-    // Nothing given, so use available memory on this machine.
-    // Set 50% (max 2 GB) aside for other purposes.
-    memory =
-        avail_memory - std::min(0.5 * avail_memory, 2. * 1024 * 1024 * 1024);
-  }
-  memory_avail_ = memory;
 }
 
 void MSBDAReader::show(std::ostream& os) const {
@@ -297,15 +272,7 @@ void MSBDAReader::show(std::ostream& os) const {
     os << "  DATA column:    " << data_col_name_;
     os << '\n';
     os << "  WEIGHT column:  " << weight_col_name_ << '\n';
-    os << "  memory ";
-    AOFlaggerStep::formatBytes(os, memory_avail_);
   }
-}
-
-void MSBDAReader::showCounts(std::ostream& os) const {
-  os << endl << "NaN/infinite data flagged in reader";
-  os << endl << "===================================" << endl;
-  os << 0 << " missing time slots were inserted" << endl;
 }
 
 void MSBDAReader::showTimings(std::ostream& os, double duration) const {

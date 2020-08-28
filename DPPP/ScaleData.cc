@@ -213,7 +213,8 @@ bool ScaleData::process(std::unique_ptr<BDABuffer> bda_buffer) {
   // Apply the scale factors.
   std::vector<BDABuffer::Row> rows = bda_buffer->GetRows();
   for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
-    casacore::Array<double> factors = itsFactors[rows[row_nr].baseline_nr];
+    const casacore::Array<double>& factors =
+        itsFactors[rows[row_nr].baseline_nr];
     // Verify vectors are the same size
     assert(rows[row_nr].n_correlations * rows[row_nr].n_channels ==
            factors.size());
