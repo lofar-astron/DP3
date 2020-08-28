@@ -45,7 +45,6 @@ namespace DP3 {
                       const string& prefix)
     : itsInput(input)
     {
-      nsteps = parset.getInt (prefix+"nsteps",10);	   
       mode = parset.getInt (prefix+"mode",0);
     }
 
@@ -82,17 +81,9 @@ namespace DP3 {
       // Name of the column to add the noise (at the moment not used, just a placeholder)
       string column = "DATA";
       DPBuffer itsBuf;
+      itsBuf.copy(buf);
       //////itsBuf.getData().assign (buf.getData());
       //itsBuf.setData(buf.getData());
-      // Read the MODEL_DATA
-      if (mode == 10)
-      {
-         casacore::Cube<casacore::Complex> itsModelData;
-         itsInput->getModelData (buf.getRowNrs(), itsModelData);
-         itsBuf.setData(itsModelData);
-      } else {
-         itsBuf.copy(buf);
-      }
 
       Array<Complex>::const_contiter indIter = itsBuf.getData().cbegin();
 
@@ -200,18 +191,6 @@ namespace DP3 {
                       outdIter++;
               }
 	      */
-
-      } else if (mode == 10)
-      {
-              Array<Complex>::contiter outdIter = itsBuf.getData().cbegin();
-              Array<Complex>::const_contiter indIter = buf.getData().cbegin();
-	      for(int i=0; i<10; i++)
-	      {
-		      cout << "--- " << *outdIter << "  " << *indIter << endl;
-	              outdIter++;
-	              indIter++;
-	      }
-
       } else
       {
 	      cout << "Mode not supported" << endl;

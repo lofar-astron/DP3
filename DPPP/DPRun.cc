@@ -55,6 +55,7 @@
 #include "Upsample.h"
 #include "CalculateSomething.h"
 #include "AddNoiseLBA.h"
+#include "DummyStep.h"
 
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
@@ -387,6 +388,8 @@ namespace DP3 {
           step = DPStep::ShPtr(new Interpolate (reader, parset, prefix));
         } else if (type == "addnoiselba") {
           step = DPStep::ShPtr(new AddNoiseLBA (reader, parset, prefix));
+        } else if (type == "dummystep") {
+          step = DPStep::ShPtr(new DummyStep (reader, parset, prefix));
         } else if (type == "out" || type=="output" || type=="msout") {
           step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix, currentMSName);
           needsOutputStep = false;

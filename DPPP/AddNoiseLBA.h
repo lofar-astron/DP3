@@ -73,7 +73,6 @@ namespace DP3 {
       DPBuffer         itsBuffer;
 
       NSTimer          itsTimer;
-      int              nsteps;
       // SET mode = 0 data are modified with the noise > data = data + noise 
       // ADD mode = 1 a new array is created > newdata = data + noise
       int              mode;
