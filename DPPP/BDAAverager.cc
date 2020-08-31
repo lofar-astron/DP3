@@ -82,7 +82,8 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
       next_rownr_(0),
       bda_pool_size_(0),
       bda_buffer_(),
-      baseline_buffers_() {}
+      baseline_buffers_(),
+      expected_input_shape_() {}
 
 BDAAverager::~BDAAverager() {}
 
@@ -94,6 +95,9 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 
   DPStep::updateInfo(_info);
   info().setNeedVisData();
+
+  expected_input_shape_ = casacore::IPosition(3, info().ncorr(), info().nchan(),
+                                              info().nbaselines());
 
   std::vector<std::vector<double>> freqs(_info.nbaselines());
   std::vector<std::vector<double>> widths(_info.nbaselines());
@@ -181,11 +185,9 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   const casacore::Matrix<double>& uvw =
       input_.fetchUVW(buffer, dummy_buffer, timer_);
 
-  const casacore::IPosition expected_shape(3, info().ncorr(), info().nchan(),
-                                           baseline_buffers_.size());
-  if (buffer.getData().shape() != expected_shape ||
-      buffer.getFlags().shape() != expected_shape ||
-      weights.shape() != expected_shape) {
+  if (buffer.getData().shape() != expected_input_shape_ ||
+      buffer.getFlags().shape() != expected_input_shape_ ||
+      weights.shape() != expected_input_shape_) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 

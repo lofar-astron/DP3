@@ -25,6 +25,8 @@
 
 #include "DPStep.h"
 
+#include <casacore/casa/Arrays/IPosition.h>
+
 #include <vector>
 
 namespace DP3 {
@@ -104,6 +106,8 @@ class BDAAverager : public DPStep {
   std::size_t bda_pool_size_;
   std::unique_ptr<BDABuffer> bda_buffer_;
   std::vector<BaselineBuffer> baseline_buffers_;
+
+  casacore::IPosition expected_input_shape_;
 };
 
 }  // namespace DPPP
