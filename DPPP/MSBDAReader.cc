@@ -174,6 +174,7 @@ bool MSBDAReader::process(const DPBuffer&) {
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
   ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
+  ArrayColumn<casacore::Complex> data_col(ms_, MS::columnName(MS::DATA));
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
   ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
@@ -184,13 +185,6 @@ bool MSBDAReader::process(const DPBuffer&) {
   RefRows cell_range{
       nread_, std::min(ms_.nrow() - 1, rownr_t(nread_ + info().nbaselines()))};
 
-  casacore::Array<casacore::Complex> data;
-  if (read_vis_data_) {
-    ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
-    data = data_col.getColumnCells(cell_range);
-  }
-  auto weights = weights_col.getColumnCells(cell_range);
-  auto uvw = uvw_col.getColumnCells(cell_range);
   auto time = time_col.getColumnCells(cell_range);
   auto interval = interval_col.getColumnCells(cell_range);
   auto exposure = exposure_col.getColumnCells(cell_range);
@@ -209,12 +203,19 @@ bool MSBDAReader::process(const DPBuffer&) {
     }
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
+    casacore::Complex* data_ptr = nullptr;
+    std::vector<casacore::Complex> data;
+    if (read_vis_data_) {
+      data = data_col.get(nread_).tovector();
+      data_ptr = data.data();
+    }
+    Cube<float> weights = weights_col.get(nread_);
+    Cube<double> uvw = uvw_col.get(nread_);
 
-    auto* data_ptr = read_vis_data_ ? data[i].data() : nullptr;
     const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
         desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
-        weights[i].data(), nullptr, uvw[i].data());
+        weights.tovector().data(), nullptr, uvw.tovector().data());
     (void)success;
     assert(success);  // The buffer should always be large enough.
 
