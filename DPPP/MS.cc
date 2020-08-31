@@ -18,11 +18,11 @@
 /// @file
 /// @author Lars Krombeen
 
-#include "BDAMS.h"
+#include "MS.h"
 
 namespace DP3 {
 namespace DPPP {
-namespace BDAMS {
+namespace DP3MS {
 
 /// BDA_TIME_AXIS table.
 const std::string kBDATimeAxisTable = "BDA_TIME_AXIS";
@@ -64,6 +64,6 @@ const std::string kMeasFreqRef = "MEAS_FREQ_REF";
 
 const std::string kObservationTable = "OBSERVATION";
 
-}  // namespace BDAMS
+}  // namespace DP3MS
 }  // namespace DPPP
 }  // namespace DP3

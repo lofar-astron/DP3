@@ -162,7 +162,6 @@ add_library(DPPP_OBJ OBJECT
   DPPP/BDAAverager.cc
   DPPP/BDABuffer.cc
   DPPP/BDAIntervalBuffer.cc
-  DPPP/BDAMS.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc
   DPPP/DPBuffer.cc
@@ -186,6 +185,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MS.cc
   DPPP/MSBDAReader.cc
   DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc

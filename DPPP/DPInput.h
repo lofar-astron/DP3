@@ -42,7 +42,6 @@
 
 namespace DP3 {
 
-// Forward declaration.
 class ParameterSet;
 
 namespace DPPP {

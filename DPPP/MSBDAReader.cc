@@ -16,12 +16,13 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 #include "MSBDAReader.h"
+
 #include "BDABuffer.h"
 #include "DPBuffer.h"
 #include "DPInfo.h"
 #include "DPLogger.h"
 #include "Exceptions.h"
-#include "BDAMS.h"
+#include "MS.h"
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/lofarreadutils.h>
@@ -70,8 +71,6 @@ using casacore::TableLock;
 using std::cout;
 using std::endl;
 using std::vector;
-
-using namespace DP3::DPPP::BDAMS;
 
 namespace DP3 {
 namespace DPPP {
@@ -122,8 +121,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   ms_ = MeasurementSet(ms_name_, TableLock::AutoNoReadLocking);
 
-  if (!ms_.keywordSet().isDefined(kBDAFactorsTable) ||
-      ms_.keywordSet().asTable(kBDAFactorsTable).nrow() == 0) {
+  if (!ms_.keywordSet().isDefined(DP3MS::kBDAFactorsTable) ||
+      ms_.keywordSet().asTable(DP3MS::kBDAFactorsTable).nrow() == 0) {
     throw std::domain_error(
         "Input MS does not contain BDA data. Table BDA_FACTORS is missing "
         "or not filled");
@@ -138,10 +137,12 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   FillInfoMetaData();
 
   // Read the antenna set.
-  Table obstab(ms_.keywordSet().asTable(kObservationTable));
+  Table obstab(ms_.keywordSet().asTable(DP3MS::kObservationTable));
   std::string antenna_set;
-  if (obstab.nrow() > 0 && obstab.tableDesc().isColumn(kLofarAntennaSet)) {
-    antenna_set = ScalarColumn<casacore::String>(obstab, kLofarAntennaSet)(0);
+  if (obstab.nrow() > 0 &&
+      obstab.tableDesc().isColumn(DP3MS::kLofarAntennaSet)) {
+    antenna_set =
+        ScalarColumn<casacore::String>(obstab, DP3MS::kLofarAntennaSet)(0);
   }
 
   // TODO: Read actual values from the metadata.
@@ -182,7 +183,7 @@ bool MSBDAReader::process(const DPBuffer&) {
 
   // Cache the data that will be add to the buffer
   RefRows cell_range{
-      nread_, std::min(ms_.nrow() - 1, unsigned(nread_ + info().nbaselines()))};
+      nread_, std::min(ms_.nrow() - 1, rownr_t(nread_ + info().nbaselines()))};
   auto data = data_col.getColumnCells(cell_range);
   auto weights = weights_col.getColumnCells(cell_range);
   auto uvw = uvw_col.getColumnCells(cell_range);
@@ -205,11 +206,11 @@ bool MSBDAReader::process(const DPBuffer&) {
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    const bool success =
-        buffer->AddRow(ms_time, interval[i], exposure[i], bl_to_id_[ant12],
-                       desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
-                       read_vis_data_ ? data[i].data() : nullptr, nullptr,
-                       weights[i].data(), nullptr, uvw[i].data());
+    auto data_ptr = read_vis_data_ ? data[i].data() : nullptr;
+    const bool success = buffer->AddRow(
+        ms_time, interval[i], exposure[i], bl_to_id_[ant12],
+        desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
+        weights[i].data(), nullptr, uvw[i].data());
     (void)success;
     assert(success);  // The buffer should always be large enough.
 
@@ -227,20 +228,20 @@ bool MSBDAReader::process(const DPBuffer&) {
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
 void MSBDAReader::FillInfoMetaData() {
-  Table factors = ms_.keywordSet().asTable(kBDAFactorsTable);
-  Table axis = ms_.keywordSet().asTable(kBDATimeAxisTable);
-  Table spw = ms_.keywordSet().asTable(kSpectralWindowTable);
+  Table factors = ms_.keywordSet().asTable(DP3MS::kBDAFactorsTable);
+  Table axis = ms_.keywordSet().asTable(DP3MS::kBDATimeAxisTable);
+  Table spw = ms_.keywordSet().asTable(DP3MS::kSpectralWindowTable);
 
-  interval_ = axis.col(kUnitTimeInterval).getDouble(0);
+  interval_ = axis.col(DP3MS::kUnitTimeInterval).getDouble(0);
   unsigned int nbl = factors.nrow();
 
   // Required columns to read
-  ScalarColumn<int> factor_col(factors, kFactor);
+  ScalarColumn<int> factor_col(factors, DP3MS::kFactor);
   ScalarColumn<int> ant1_col(factors, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(factors, MS::columnName(MS::ANTENNA2));
-  ScalarColumn<int> ids_col(factors, kSpectralWindowId);
-  ArrayColumn<double> freqs_col(spw, kChanFreq);
-  ArrayColumn<double> widths_col(spw, kChanWidth);
+  ScalarColumn<int> ids_col(factors, DP3MS::kSpectralWindowId);
+  ArrayColumn<double> freqs_col(spw, DP3MS::kChanFreq);
+  ArrayColumn<double> widths_col(spw, DP3MS::kChanWidth);
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl);
@@ -256,10 +257,10 @@ void MSBDAReader::FillInfoMetaData() {
     bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
   }
 
-  Table anttab(ms_.keywordSet().asTable(kAntennaTable));
-  ScalarColumn<casacore::String> name_col(anttab, kName);
-  ScalarColumn<double> diam_col(anttab, kDishDiameter);
-  ROScalarMeasColumn<MPosition> ant_col(anttab, kPosition);
+  Table anttab(ms_.keywordSet().asTable(DP3MS::kAntennaTable));
+  ScalarColumn<casacore::String> name_col(anttab, DP3MS::kName);
+  ScalarColumn<double> diam_col(anttab, DP3MS::kDishDiameter);
+  ROScalarMeasColumn<MPosition> ant_col(anttab, DP3MS::kPosition);
   vector<MPosition> antPos;
   antPos.reserve(anttab.nrow());
   for (unsigned int i = 0; i < anttab.nrow(); ++i) {

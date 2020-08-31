@@ -16,6 +16,7 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 /// @file
+/// @brief Measurement Set constants which are not (yet) in casacore.
 /// @author Lars Krombeen
 
 #ifndef DPPP_MS_H
@@ -25,7 +26,7 @@
 
 namespace DP3 {
 namespace DPPP {
-namespace BDAMS {
+namespace DP3MS {  // Avoid name conflict with casacore::MS.
 
 /// BDA_TIME_AXIS table.
 extern const std::string kBDATimeAxisTable;
@@ -67,7 +68,7 @@ extern const std::string kMeasFreqRef;
 
 extern const std::string kObservationTable;
 
-}  // namespace BDAMS
+}  // namespace DP3MS
 }  // namespace DPPP
 }  // namespace DP3
 
