@@ -30,7 +30,6 @@
 #include <casacore/casa/IO/AipsIO.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
 #include <casacore/casa/Utilities/GenSort.h>
 
 using namespace DP3::CEP;
