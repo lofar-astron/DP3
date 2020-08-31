@@ -75,8 +75,8 @@ BOOST_AUTO_TEST_CASE(set_info) {
   BOOST_TEST(reader.spectralWindow() == -1U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
-  // With BDA, ntime is always 0 since it may vary between baselines.
-  BOOST_TEST(info.ntime() == 0U);
+  // With BDA we approximate this amount of buffers to be streamed.
+  BOOST_TEST(info.ntime() == reader.table().nrow() / info.nbaselines());
   BOOST_TEST(info.channelsAreRegular());
   BOOST_TEST(info.hasBDAChannels());
   BOOST_TEST(info.nbaselines() == 6U);

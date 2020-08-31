@@ -146,7 +146,8 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // TODO: Read actual values from the metadata.
   unsigned int start_chan = 0;
-  unsigned int ntime = 0;
+  // this ntime must only be used for DP3 progress
+  unsigned int ntime = std::ceil(ms_.nrow() / (float)info().nbaselines());
   double start_time = 0;
 
   // FillInfoMetaData already set the number of channels via DPInfo::set.
