@@ -176,7 +176,7 @@ class MSBDAReader : public DPInput {
   std::map<int, std::size_t>
       desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel count.
   std::map<std::pair<int, int>, unsigned int>
-      ant_to_bl_;  ///< Maps an antenna pair to a baseline index.
+      bl_to_id_;  ///< Maps a baseline(antenna pair) to a baseline index.
 };
 
 }  // namespace DPPP

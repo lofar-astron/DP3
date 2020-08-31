@@ -89,7 +89,7 @@ MSBDAReader::MSBDAReader()
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      ant_to_bl_() {}
+      bl_to_id_() {}
 
 MSBDAReader::MSBDAReader(const std::string& msName, const ParameterSet& parset,
                          const std::string& prefix)
@@ -107,7 +107,7 @@ MSBDAReader::MSBDAReader(const std::string& msName, const ParameterSet& parset,
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      ant_to_bl_() {}
+      bl_to_id_() {}
 
 MSBDAReader::~MSBDAReader() {}
 
@@ -205,7 +205,7 @@ bool MSBDAReader::process(const DPBuffer&) {
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    if (!buffer->AddRow(ms_time, interval[i], exposure[i], ant_to_bl_[ant12],
+    if (!buffer->AddRow(ms_time, interval[i], exposure[i], bl_to_id_[ant12],
                         desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
                         read_vis_data_ ? data[i].data() : nullptr, nullptr,
                         weights[i].data(), nullptr, uvw[i].data())) {
@@ -252,7 +252,7 @@ void MSBDAReader::FillInfoMetaData() {
     widths[i] = widths_col.get(spw_id).tovector();
 
     desc_id_to_nchan_[ids_col(i)] = freqs[i].size();
-    ant_to_bl_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
+    bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
   }
 
   Table anttab(ms_.keywordSet().asTable(kAntennaTable));
