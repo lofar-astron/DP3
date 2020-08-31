@@ -174,52 +174,45 @@ bool MSBDAReader::process(const DPBuffer&) {
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
   ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
+  ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
   ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
   ScalarColumn<double> exposure_col(ms_, MS::columnName(MS::EXPOSURE));
   ScalarColumn<int> data_desc_id_col(ms_, MS::columnName(MS::DATA_DESC_ID));
 
-  // Cache the data that will be add to the buffer
-  RefRows cell_range{
-      nread_, std::min(ms_.nrow() - 1, rownr_t(nread_ + info().nbaselines()))};
-
-  casacore::Array<casacore::Complex> data;
-  if (read_vis_data_) {
-    ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
-    data = data_col.getColumnCells(cell_range);
-  }
-  auto weights = weights_col.getColumnCells(cell_range);
-  auto uvw = uvw_col.getColumnCells(cell_range);
-  auto time = time_col.getColumnCells(cell_range);
-  auto interval = interval_col.getColumnCells(cell_range);
-  auto exposure = exposure_col.getColumnCells(cell_range);
-  auto data_desc_id = data_desc_id_col.getColumnCells(cell_range);
-
-  unsigned i = 0;
-  while (nread_ < ms_.nrow() && i < info().nbaselines()) {
-    const double ms_time = time[i];
+  while (nread_ < ms_.nrow() && buffer->GetRemainingCapacity() > 0) {
+    const double ms_time = ScalarColumn<double>(ms_, "TIME")(nread_);
 
     if (ms_time < last_ms_time_) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
-      ++i;
       ++nread_;
       continue;
     }
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    auto* data_ptr = read_vis_data_ ? data[i].data() : nullptr;
+    Complex* data_ptr = nullptr;
+    std::vector<Complex> data;
+    if (read_vis_data_) {
+      data = data_col.get(nread_).tovector();
+      data_ptr = data.data();
+    }
+    Cube<float> weights = weights_col.get(nread_);
+    Cube<double> uvw = uvw_col.get(nread_);
+    double interval = interval_col(nread_);
+    double exposure = exposure_col(nread_);
+    int data_desc_id = data_desc_id_col(nread_);
+
     const bool success = buffer->AddRow(
-        ms_time, interval[i], exposure[i], bl_to_id_[ant12],
-        desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
-        weights[i].data(), nullptr, uvw[i].data());
+        ms_time, interval, exposure, bl_to_id_[ant12],
+        desc_id_to_nchan_[data_desc_id], info().ncorr(), data_ptr, nullptr,
+        weights.tovector().data(), nullptr, uvw.tovector().data());
     (void)success;
     assert(success);  // The buffer should always be large enough.
 
     last_ms_time_ = ms_time;
-    ++i;
     ++nread_;
   }
 
