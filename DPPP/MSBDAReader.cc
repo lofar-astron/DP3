@@ -173,7 +173,6 @@ bool MSBDAReader::process(const DPBuffer&) {
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
-  ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
   ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
   ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
@@ -184,7 +183,12 @@ bool MSBDAReader::process(const DPBuffer&) {
   // Cache the data that will be add to the buffer
   RefRows cell_range{
       nread_, std::min(ms_.nrow() - 1, rownr_t(nread_ + info().nbaselines()))};
-  auto data = data_col.getColumnCells(cell_range);
+
+  casacore::Array<casacore::Complex> data;
+  if (read_vis_data_) {
+    ArrayColumn<Complex> data_col(ms_, MS::columnName(MS::DATA));
+    data = data_col.getColumnCells(cell_range);
+  }
   auto weights = weights_col.getColumnCells(cell_range);
   auto uvw = uvw_col.getColumnCells(cell_range);
   auto time = time_col.getColumnCells(cell_range);
@@ -206,7 +210,7 @@ bool MSBDAReader::process(const DPBuffer&) {
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    auto data_ptr = read_vis_data_ ? data[i].data() : nullptr;
+    auto* data_ptr = read_vis_data_ ? data[i].data() : nullptr;
     const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
         desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
