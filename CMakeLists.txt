@@ -162,6 +162,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/BDAAverager.cc
   DPPP/BDABuffer.cc
   DPPP/BDAIntervalBuffer.cc
+  DPPP/BDAMS.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc
   DPPP/DPBuffer.cc

@@ -205,12 +205,13 @@ bool MSBDAReader::process(const DPBuffer&) {
 
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
 
-    if (!buffer->AddRow(ms_time, interval[i], exposure[i], bl_to_id_[ant12],
-                        desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
-                        read_vis_data_ ? data[i].data() : nullptr, nullptr,
-                        weights[i].data(), nullptr, uvw[i].data())) {
-      throw std::runtime_error("Internal MSBDAReader error: Buffer too small");
-    }
+    const bool success =
+        buffer->AddRow(ms_time, interval[i], exposure[i], bl_to_id_[ant12],
+                       desc_id_to_nchan_[data_desc_id[i]], info().ncorr(),
+                       read_vis_data_ ? data[i].data() : nullptr, nullptr,
+                       weights[i].data(), nullptr, uvw[i].data());
+    (void)success;
+    assert(success);  // The buffer should always be large enough.
 
     last_ms_time_ = ms_time;
     ++i;

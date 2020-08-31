@@ -23,51 +23,49 @@
 
 #include <string>
 
-using std::string;
-
 namespace DP3 {
 namespace DPPP {
 namespace BDAMS {
 
 /// BDA_TIME_AXIS table.
-const string kBDATimeAxisTable = "BDA_TIME_AXIS";
-const string kTimeAxisId = "BDA_TIME_AXIS_ID";
-const string kIsBdaApplied = "IS_BDA_APPLIED";
-const string kMaxTimeInterval = "MAX_TIME_INTERVAL";
-const string kMinTimeInterval = "MIN_TIME_INTERVAL";
-const string kUnitTimeInterval = "UNIT_TIME_INTERVAL";
-const string kIntervalFactors = "INTEGER_INTERVAL_FACTORS";
-const string kHasBDAOrdering = "HAS_BDA_ORDERING";
-const string kFieldId = "FIELD_ID";
-const string kSingleFactorPerBL = "SINGLE_FACTOR_PER_BASELINE";
+extern const std::string kBDATimeAxisTable;
+extern const std::string kTimeAxisId;
+extern const std::string kIsBdaApplied;
+extern const std::string kMaxTimeInterval;
+extern const std::string kMinTimeInterval;
+extern const std::string kUnitTimeInterval;
+extern const std::string kIntervalFactors;
+extern const std::string kHasBDAOrdering;
+extern const std::string kFieldId;
+extern const std::string kSingleFactorPerBL;
 
 /// BDA_FACTORS table.
-const string kBDAFactorsTable = "BDA_FACTORS";
-const string kFactor = "FACTOR";
+extern const std::string kBDAFactorsTable;
+extern const std::string kFactor;
 
 /// SPECTRAL_WINDOW table.
-const string kSpectralWindowTable = "SPECTRAL_WINDOW";
-const string kSpectralWindowId = "SPECTRAL_WINDOW_ID";
-const string kDataDescTable = "DATA_DESCRIPTION";
-const string kBDAFreqAxisId = "BDA_FREQ_AXIS_ID";
-const string kBDASetId = "BDA_SET_ID";
-const string kChanFreq = "CHAN_FREQ";
-const string kChanWidth = "CHAN_WIDTH";
-const string kEffectiveBW = "EFFECTIVE_BW";
-const string kResolution = "RESOLUTION";
-const string kNumChan = "NUM_CHAN";
-const string kTotalBandWidth = "TOTAL_BANDWIDTH";
-const string kRefFrequency = "REF_FREQUENCY";
+extern const std::string kSpectralWindowTable;
+extern const std::string kSpectralWindowId;
+extern const std::string kDataDescTable;
+extern const std::string kBDAFreqAxisId;
+extern const std::string kBDASetId;
+extern const std::string kChanFreq;
+extern const std::string kChanWidth;
+extern const std::string kEffectiveBW;
+extern const std::string kResolution;
+extern const std::string kNumChan;
+extern const std::string kTotalBandWidth;
+extern const std::string kRefFrequency;
 
-const string kLofarAntennaSet = "LOFAR_ANTENNA_SET";
+extern const std::string kLofarAntennaSet;
 
-const string kAntennaTable = "ANTENNA";
-const string kName = "NAME";
-const string kDishDiameter = "DISH_DIAMETER";
-const string kPosition = "POSITION";
-const string kMeasFreqRef = "MEAS_FREQ_REF";
+extern const std::string kAntennaTable;
+extern const std::string kName;
+extern const std::string kDishDiameter;
+extern const std::string kPosition;
+extern const std::string kMeasFreqRef;
 
-const string kObservationTable = "OBSERVATION";
+extern const std::string kObservationTable;
 
 }  // namespace BDAMS
 }  // namespace DPPP

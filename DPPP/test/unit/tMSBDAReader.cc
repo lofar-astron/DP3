@@ -30,7 +30,7 @@ using DP3::DPPP::DPInfo;
 using DP3::DPPP::MSBDAReader;
 
 namespace {
-const std::string prefix = "";
+const std::string kPrefix = "";
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(msbdareader)
@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_SUITE(msbdareader)
 BOOST_AUTO_TEST_CASE(step_output_is_bda) {
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("does_not_exist.MS", parset, prefix);
+  MSBDAReader reader("does_not_exist.MS", parset, kPrefix);
 
   BOOST_TEST(reader.outputs() == DP3::DPPP::DPStep::MSType::BDA);
 }
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(step_output_is_bda) {
 BOOST_AUTO_TEST_CASE(empty_input) {
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("does_not_exist.MS", parset, prefix);
+  MSBDAReader reader("does_not_exist.MS", parset, kPrefix);
   reader.setReadVisData(true);
 
   BOOST_CHECK_THROW(reader.setInfo(info), std::invalid_argument);
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(empty_input) {
 BOOST_AUTO_TEST_CASE(wrong_input_format) {
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("tNDPPP_tmp.MS", parset, prefix);
+  MSBDAReader reader("tNDPPP_tmp.MS", parset, kPrefix);
 
   BOOST_CHECK_THROW(reader.setInfo(info), std::domain_error);
 }
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
   const std::string kMSName = "tNDPPP_bda_tmp.MS";
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader(kMSName, parset, prefix);
+  MSBDAReader reader(kMSName, parset, kPrefix);
 
   reader.setInfo(info);
 
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
                                   boost::unit_test::tolerance(0.0001f)) {
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
+  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, kPrefix);
   reader.setReadVisData(true);
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   reader.setNextStep(mock_step);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
 BOOST_AUTO_TEST_CASE(process_nan) {
   DPInfo info;
   ParameterSet parset;
-  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, prefix);
+  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, kPrefix);
   auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
   reader.setNextStep(mock_step);
   reader.setInfo(info);
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.process(buf);
   reader.finish();
 
-  auto data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;
+  std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;
   BOOST_TEST(std::isnan(data->imag()));
   BOOST_TEST(std::isnan(data->real()));
 }
