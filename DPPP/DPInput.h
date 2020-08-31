@@ -41,6 +41,9 @@
 #include <memory>
 
 namespace DP3 {
+
+class ParameterSet;
+
 namespace DPPP {
 
 /// @brief Abstract base class for a DPStep generating input
@@ -92,6 +95,25 @@ class DPInput : public DPStep {
   virtual void fillBeamInfo(std::vector<everybeam::Station::Ptr>&,
                             const casacore::Vector<casacore::String>& antNames);
 
+  /// Tell if the visibility data are to be read. If set to true once,
+  /// this will stay true.
+  virtual void setReadVisData(bool);
+
+  /// Get the main MS table.
+  const virtual casacore::Table& table() const;
+
+  /// Get the time information.
+  virtual double firstTime() const;
+  virtual double lastTime() const;
+
+  /// Get the selected spectral window.
+  virtual unsigned int spectralWindow() const;
+
+  /// Get the nr of averaged full resolution channels.
+  virtual unsigned int nchanAvgFullRes() const;
+  /// Get the nr of averaged full resolution time slots.
+  virtual unsigned int ntimeAvgFullRes() const;
+
   /// Fetch the FullRes flags.
   /// If defined in the buffer, they are taken from there.
   /// Otherwise there are read from the input.
@@ -121,6 +143,11 @@ class DPInput : public DPStep {
   /// <br>It does a stop/start of the timer when actually reading the data.
   const casacore::Matrix<double>& fetchUVW(const DPBuffer& bufin,
                                            DPBuffer& bufout, NSTimer& timer);
+
+  /// Creates an MS reader.
+  /// Based on the MS it will create either a BDAMSReader or a regular
+  static std::unique_ptr<DPInput> CreateReader(const ParameterSet&,
+                                               const std::string&);
 };
 
 }  // namespace DPPP

@@ -23,11 +23,20 @@
 
 #include "DPInput.h"
 #include "Exceptions.h"
+#include "MultiMSReader.h"
+#include "MSReader.h"
+#include "MSBDAReader.h"
 
+#include "../Common/ParameterSet.h"
+
+#include <casacore/casa/OS/Path.h>
+#include <casacore/casa/OS/DirectoryIterator.h>
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
+
+#include <boost/make_unique.hpp>
 
 using namespace casacore;
 
@@ -116,6 +125,87 @@ void DPInput::getModelData(const RefRows&, Cube<Complex>&) {
 void DPInput::fillBeamInfo(vector<everybeam::Station::Ptr>&,
                            const Vector<casacore::String>&) {
   throw Exception("DPInput::fillBeamInfo not implemented");
+}
+
+void DPInput::setReadVisData(bool) {
+  throw Exception("DPInput::setReadVisData not implemented");
+}
+
+const casacore::Table& DPInput::table() const {
+  throw Exception("DPInput::table not implemented");
+}
+
+double DPInput::firstTime() const {
+  throw Exception("DPInput::firstTime not implemented");
+}
+
+double DPInput::lastTime() const {
+  throw Exception("DPInput::lastTime not implemented");
+}
+
+unsigned int DPInput::spectralWindow() const {
+  throw Exception("DPInput::spectralWindow not implemented");
+}
+
+unsigned int DPInput::nchanAvgFullRes() const {
+  throw Exception("DPInput::nchanAvgFullRes not implemented");
+}
+
+unsigned int DPInput::ntimeAvgFullRes() const {
+  throw Exception("DPInput::ntimeAvgFullRes not implemented");
+}
+
+std::unique_ptr<DPInput> DPInput::CreateReader(const ParameterSet& parset,
+                                               const std::string& prefix) {
+  // Get input and output MS name.
+  // Those parameters were always called msin and msout.
+  // However, SAS/MAC cannot handle a parameter and a group with the same
+  // name, hence one can also use msin.name and msout.name.
+  std::vector<std::string> inNames =
+      parset.getStringVector("msin.name", std::vector<std::string>());
+  if (inNames.empty()) {
+    inNames = parset.getStringVector("msin");
+  }
+  if (inNames.size() == 0) throw Exception("No input MeasurementSets given");
+  // Find all file names matching a possibly wildcarded input name.
+  // This is only possible if a single name is given.
+  if (inNames.size() == 1) {
+    if (inNames[0].find_first_of("*?{['") != std::string::npos) {
+      std::vector<std::string> names;
+      names.reserve(80);
+      casacore::Path path(inNames[0]);
+      casacore::String dirName(path.dirName());
+      casacore::Directory dir(dirName);
+      // Use the basename as the file name pattern.
+      casacore::DirectoryIterator dirIter(
+          dir, casacore::Regex(casacore::Regex::fromPattern(path.baseName())));
+      while (!dirIter.pastEnd()) {
+        names.push_back(dirName + '/' + dirIter.name());
+        dirIter++;
+      }
+      if (names.empty())
+        throw Exception("No datasets found matching msin " + inNames[0]);
+      inNames = names;
+    }
+  }
+
+  if (!parset.getBool(prefix + "bda", false)) {
+    // Get the steps.
+    // Currently the input MS must be given.
+    // In the future it might be possible to have a simulation step instead.
+    // Create MSReader step if input ms given.
+    if (inNames.size() == 1) {
+      return boost::make_unique<MSReader>(inNames[0], parset, "msin.");
+    } else {
+      return boost::make_unique<MultiMSReader>(inNames, parset, "msin.");
+    }
+  } else {
+    if (inNames.size() > 1) {
+      throw std::invalid_argument(
+          "DP3 does not support multiple in MS for BDA data.");
+    }
+    return boost::make_unique<MSBDAReader>(inNames[0], parset, "msin.");
+  }
 }
 
 }  // namespace DPPP

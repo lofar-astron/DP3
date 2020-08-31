@@ -72,9 +72,8 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
                          const std::string& prefix)
     : input_(input),
       timer_("BDA Averager"),
-      bl_threshold_time_(parset.getDouble(prefix + "timethresholdlength", 0.0)),
-      bl_threshold_channel_(
-          parset.getDouble(prefix + "freqthresholdlength", 0.0)),
+      bl_threshold_time_(parset.getDouble(prefix + "timebase", 0.0)),
+      bl_threshold_channel_(parset.getDouble(prefix + "frequencybase", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
       min_channels_(parset.getUint(prefix + "minchannels", 1)),
       name_(prefix),
@@ -83,7 +82,8 @@ BDAAverager::BDAAverager(DPInput& input, const DP3::ParameterSet& parset,
       next_rownr_(0),
       bda_pool_size_(0),
       bda_buffer_(),
-      baseline_buffers_() {}
+      baseline_buffers_(),
+      expected_input_shape_() {}
 
 BDAAverager::~BDAAverager() {}
 
@@ -96,12 +96,15 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   DPStep::updateInfo(_info);
   info().setNeedVisData();
 
+  expected_input_shape_ = casacore::IPosition(3, info().ncorr(), info().nchan(),
+                                              info().nbaselines());
+
   std::vector<std::vector<double>> freqs(_info.nbaselines());
   std::vector<std::vector<double>> widths(_info.nbaselines());
 
   const std::vector<double>& lengths = _info.getBaselineLengths();
   std::vector<unsigned int> baseline_factors;
-  baseline_buffers_.reserve(_info.nbaselines());
+  baseline_factors.reserve(_info.nbaselines());
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
@@ -169,7 +172,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   bda_pool_size_ = _info.ncorr() * bda_channels;
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 
-  info().update(baseline_factors);
+  info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));
 }
 
@@ -182,11 +185,9 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   const casacore::Matrix<double>& uvw =
       input_.fetchUVW(buffer, dummy_buffer, timer_);
 
-  const casacore::IPosition expected_shape(3, info().ncorr(), info().nchan(),
-                                           baseline_buffers_.size());
-  if (buffer.getData().shape() != expected_shape ||
-      buffer.getFlags().shape() != expected_shape ||
-      weights.shape() != expected_shape) {
+  if (buffer.getData().shape() != expected_input_shape_ ||
+      buffer.getFlags().shape() != expected_input_shape_ ||
+      weights.shape() != expected_input_shape_) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 
@@ -271,15 +272,19 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   float* weights = bb.weights.data();
   float total_weight = 0.0f;
   for (std::complex<float>& d : bb.data) {
-    d /= *weights;
+    if (*weights > 0) {
+      d /= *weights;
+    }
     total_weight += *weights;
     ++weights;
   }
 
-  const double factor = 1.0 / total_weight;
-  bb.uvw[0] *= factor;
-  bb.uvw[1] *= factor;
-  bb.uvw[2] *= factor;
+  if (total_weight > 0) {
+    const double factor = 1.0 / total_weight;
+    bb.uvw[0] *= factor;
+    bb.uvw[1] *= factor;
+    bb.uvw[2] *= factor;
+  }
 
   if (bda_buffer_->GetRemainingCapacity() < nchan * info().ncorr()) {
     getNextStep()->process(std::move(bda_buffer_));
@@ -293,12 +298,12 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
 void BDAAverager::show(std::ostream& os) const {
   os << "BDAAverager " << name_ << '\n';
-  os << "  timethresholdlength:   " << bl_threshold_time_ << "s\n";
-  os << "  max interval:          " << max_interval_ << "s\n";
-  os << "  freqthresholdlength:   " << bl_threshold_channel_ << '\n';
-  os << "  min channels:          " << min_channels_ << "\n";
-  os << "  max time factor:       " << maxtimefactor_ << '\n';
-  os << "  max freq factor:       " << maxfreqfactor_ << '\n';
+  os << "  timebase:        " << bl_threshold_time_ << "s\n";
+  os << "  max interval:    " << max_interval_ << "s\n";
+  os << "  frequencybase:   " << bl_threshold_channel_ << '\n';
+  os << "  min channels:    " << min_channels_ << "\n";
+  os << "  max time factor: " << maxtimefactor_ << '\n';
+  os << "  max freq factor: " << maxfreqfactor_ << '\n';
 }
 
 DPStep::MSType BDAAverager::outputs() const { return BDA; };

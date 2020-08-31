@@ -22,9 +22,9 @@
 // @author Ger van Diepen
 
 #include "MSWriter.h"
-#include "MSUpdater.h"
 #include "DPBuffer.h"
 #include "DPInfo.h"
+#include "DPInput.h"
 #include "DPLogger.h"
 #include "Version.h"
 
@@ -36,6 +36,7 @@
 #include <casacore/tables/Tables/SetupNewTab.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/DataMan/StandardStMan.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
 #include <casacore/tables/DataMan/TiledStManAccessor.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/measures/TableMeasures/TableMeasDesc.h>
@@ -54,8 +55,8 @@ using namespace casacore;
 namespace DP3 {
 namespace DPPP {
 
-MSWriter::MSWriter(MSReader* reader, const string& outName,
-                   const ParameterSet& parset, const string& prefix)
+MSWriter::MSWriter(DPInput* reader, const std::string& outName,
+                   const ParameterSet& parset, const std::string& prefix)
     : itsReader(reader),
       itsName(prefix),
       itsOutName(outName),

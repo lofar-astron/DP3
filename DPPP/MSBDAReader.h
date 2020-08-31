@@ -1,7 +1,5 @@
-// MultiMSReader.h: DPPP step reading from multiple MSs
-// Copyright (C) 2011
+// Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
 // This file is part of the LOFAR software suite.
 // The LOFAR software suite is free software: you can redistribute it and/or
@@ -18,14 +16,14 @@
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
 /// @file
-/// @brief DPPP step reading from multiple MSs
-/// @author Ger van Diepen
+/// @brief Step for reading BDA data from an MS.
+/// @author Lars Krombeen
 
-#ifndef DPPP_MULTIMSREADER_H
-#define DPPP_MULTIMSREADER_H
+#ifndef DPPP_MSBDAREADER_H
+#define DPPP_MSBDAREADER_H
 
-#include "MSReader.h"
-#include "DPBuffer.h"
+#include "DPInput.h"
+#include "BDABuffer.h"
 #include "UVWCalculator.h"
 #include "FlagCounter.h"
 
@@ -33,12 +31,14 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
+#include <map>
+
 namespace DP3 {
 
 class ParameterSet;
 
 namespace DPPP {
-/// @brief DPPP step reading from multiple MSs
+/// @brief Step for reading BDA data from an MS.
 
 /// This class is a DPInput step reading the data from a MeasurementSet.
 /// At the beginning it finds out the shape of the data; i.e., the
@@ -49,24 +49,10 @@ namespace DPPP {
 /// Currently the following can be given:
 /// <ul>
 ///  <li> msin: name of the MS
-///  <li> msin.autoweight: calculate weights from autocorrelations? [no]
-///  <li> msin.startchan: first channel to use [0]
-///  <li> msin.nchan: number of channels to use [all]
-///  <li> msin.useflag: use the existing flags? [yes]
 ///  <li> msin.datacolumn: the data column to use [DATA]
-///  <li> msin.starttime: first time to use [first time in MS]
-///  <li> msin.endtime: last time to use [last time in MS]
+///  <li> msin.weightcolumn: the weights column to use [WEIGHT_SPECTRUM or
+///           WEIGHT]
 /// </ul>
-///
-/// If a time slot is missing, it is inserted with flagged data set to zero.
-/// Missing time slots can also be detected at the beginning or end of the
-/// MS by giving the correct starttime and endtime.
-/// The correct UVW coordinates are calculated for inserted time slots.
-///
-/// The process function only reads the data and flags to avoid that
-/// too much data is kept in memory.
-/// Other columns (like WEIGHT, UVW) can be read when needed by using the
-/// appropriate DPInput::fetch function.
 ///
 /// The data columns are handled in the following way:
 /// <table>
@@ -111,6 +97,7 @@ namespace DPPP {
 ///  </tr>
 ///  <tr>
 ///   <td>FULLRESFLAG</td>
+///   <td>NOT YET IMPLEMENTED FOR BDA BUFFERS</td>
 ///   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
 ///       a uChar array with shape [orignchan/8, ntimeavg]. The bits
 ///       represent the flags. They are converted to a Bool array with shape
@@ -122,69 +109,74 @@ namespace DPPP {
 ///  </tr>
 /// </table>
 
-class MultiMSReader : public MSReader {
+class MSBDAReader : public DPInput {
  public:
+  /// Default constructor.
+  MSBDAReader();
+
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  MultiMSReader(const std::vector<string>& msNames, const ParameterSet&,
-                const string& prefix);
+  MSBDAReader(const std::string& msName, const ParameterSet&,
+              const std::string& prefix);
 
-  virtual ~MultiMSReader();
+  virtual ~MSBDAReader();
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  virtual bool process(const DPBuffer&);
+  bool process(const DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
-  /// Update the general info (by initializing it).
-  virtual void updateInfo(const DPInfo&);
+  /// Return which datatype this step outputs.
+  MSType outputs() const override;
+
+  /// Update the general info.
+  void updateInfo(const DPInfo&) override;
+
+  /// Add some data to the MeasurementSet written/updated.
+  /// Do nothing.
+  void addToMS(const std::string&) override{};
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
-
-  /// If needed, show the flag counts.
-  virtual void showCounts(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
-  /// Read the UVW at the given row numbers.
-  virtual void getUVW(const casacore::RefRows& rowNrs, double time,
-                      DPBuffer& buf);
+  /// Get the name of the MS.
+  std::string msName() const override;
 
-  /// Read the weights at the given row numbers.
-  virtual void getWeights(const casacore::RefRows& rowNrs, DPBuffer& buf);
-
-  /// Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
-  /// It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
-  /// If undefined, false is returned.
-  virtual bool getFullResFlags(const casacore::RefRows& rowNrs, DPBuffer& buf);
-
-  /// Tell if the visibility data are to be read.
+  /// Tell if the visibility data are to be read. If set to true once,
+  /// this will stay true.
   void setReadVisData(bool readVisData) override;
 
+  /// Get the main MS table.
+  const casacore::Table& table() const override { return ms_; }
+
+  /// Get the selected spectral window.
+  unsigned int spectralWindow() const override { return spw_; }
+
  private:
-  /// Handle the info for all bands.
-  void handleBands();
+  /// Reads the BDA subtables from an MS and stores the values that are required
+  void FillInfoMetaData();
 
-  /// Sort the bands (MSs) inorder of frequency.
-  void sortBands();
+  casacore::Table ms_;
+  std::string ms_name_;
+  std::string data_col_name_;
+  std::string weight_col_name_;
+  bool read_vis_data_;  ///< read visibility data?
+  double last_ms_time_;
+  double interval_;     ///< original interval of the MS
+  unsigned int spw_;    ///< spw (band) to use (<0 no select)
+  unsigned int nread_;  ///< nr of time slots read from MS
+  NSTimer timer_;
+  std::size_t pool_size_;  ///< Pool size that will be used for the BDA buffers
 
-  /// Fill the band info where some MSs are missing.
-  void fillBands();
-
-  bool itsOrderMS;  ///< sort multi MS in order of freq?
-  int itsFirst;     ///< first valid MSReader (<0 = none)
-  int itsNMissing;  ///< nr of missing MSs
-  std::vector<string> itsMSNames;
-  std::vector<MSReader*> itsReaders;    ///< same as itsSteps
-  std::vector<DPStep::ShPtr> itsSteps;  ///< used for automatic destruction
-  std::vector<DPBuffer> itsBuffers;
-  unsigned int itsFillNChan;  ///< nr of chans for missing MSs
-  FlagCounter itsFlagCounter;
-  bool itsRegularChannels;  /// Are resulting channels regularly spaced
+  std::map<int, std::size_t>
+      desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel count.
+  std::map<std::pair<int, int>, unsigned int>
+      bl_to_id_;  ///< Maps a baseline(antenna pair) to a baseline index.
 };
 
 }  // namespace DPPP

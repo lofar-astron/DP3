@@ -132,8 +132,8 @@ class MSReader : public DPInput {
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   /// The missingData argument is for MultiMSReader.
-  MSReader(const std::string& msName, const ParameterSet&, const string& prefix,
-           bool missingData = false);
+  MSReader(const std::string& msName, const ParameterSet&,
+           const std::string& prefix, bool missingData = false);
 
   virtual ~MSReader();
 
@@ -184,10 +184,10 @@ class MSReader : public DPInput {
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.
-  virtual void setReadVisData(bool readVisData);
+  void setReadVisData(bool readVisData) override;
 
   /// Get the main MS table.
-  casacore::Table& table() { return itsMS; }
+  const casacore::Table& table() const override { return itsMS; }
 
   /// Get the name of the data column to be used.
   const std::string& dataColumnName() const { return itsDataColName; }
@@ -209,11 +209,11 @@ class MSReader : public DPInput {
   virtual std::string msName() const;
 
   /// Get the time information.
-  double firstTime() const { return itsFirstTime; }
-  double lastTime() const { return itsLastTime; }
+  double firstTime() const override { return itsFirstTime; }
+  double lastTime() const override { return itsLastTime; }
 
   /// Get the selected spectral window.
-  unsigned int spectralWindow() const { return itsSpw; }
+  unsigned int spectralWindow() const override { return itsSpw; }
 
   /// Get the baseline selection.
   const string& baselineSelection() const { return itsSelBL; }
@@ -225,9 +225,9 @@ class MSReader : public DPInput {
   unsigned int startChan() const { return itsStartChan; }
 
   /// Get the nr of averaged full resolution channels.
-  unsigned int nchanAvgFullRes() const { return itsFullResNChanAvg; }
+  unsigned int nchanAvgFullRes() const override { return itsFullResNChanAvg; }
   /// Get the nr of averaged full resolution time slots.
-  unsigned int ntimeAvgFullRes() const { return itsFullResNTimeAvg; }
+  unsigned int ntimeAvgFullRes() const override { return itsFullResNTimeAvg; }
 
   /// Tell if the input MS has LOFAR_FULL_RES_FLAG.
   bool hasFullResFlags() const { return itsHasFullResFlags; }

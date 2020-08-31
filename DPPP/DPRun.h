@@ -63,7 +63,7 @@ class DPRun {
                                  const std::string& prefix, DPInput* reader);
 
  private:
-  /// Create an output step, either an MSWriter or an MSUpdater
+  /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
   /// If no data are modified (for example if only count was done),
   /// still an MSUpdater is created, but it will not write anything.
   /// It reads the output name from the parset. If the prefix is "", it
@@ -73,7 +73,7 @@ class DPRun {
   /// If the user specified an output MS name, a writer or updater is always
   /// created If there is a writer, the reader needs to read the visibility
   /// data. reader should be the original reader
-  static DPStep::ShPtr makeOutputStep(MSReader* reader,
+  static DPStep::ShPtr makeOutputStep(DPInput* reader,
                                       const ParameterSet& parset,
                                       const string& prefix,
                                       casacore::String& currentMSName,

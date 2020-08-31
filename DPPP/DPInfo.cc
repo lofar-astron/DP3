@@ -132,17 +132,17 @@ void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
     }
   }
 
-  if (ref_freq == 0) {
-    // Find the baseline with the most channels.
-    auto comp = [](const std::vector<double>& left,
-                   const std::vector<double>& right) {
-      return left.size() < right.size();
-    };
-    auto it = std::max_element(chan_freqs.begin(), chan_freqs.end(), comp);
+  // Find the baseline with the most channels.
+  auto comp = [](const std::vector<double>& left,
+                 const std::vector<double>& right) {
+    return left.size() < right.size();
+  };
+  auto it = std::max_element(chan_freqs.begin(), chan_freqs.end(), comp);
+  itsNChan = it->size();
 
-    std::size_t n = it->size();
+  if (ref_freq == 0) {
     // Takes mean of middle elements if n is even; takes middle if odd.
-    ref_freq = 0.5 * ((*it)[(n - 1) / 2] + (*it)[n / 2]);
+    ref_freq = 0.5 * ((*it)[(itsNChan - 1) / 2] + (*it)[itsNChan / 2]);
   }
 
   itsChanFreqs = std::move(chan_freqs);
@@ -287,8 +287,8 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   return chanAvg;
 }
 
-void DPInfo::update(const std::vector<unsigned int> timeAvg) {
-  itsTimeAvg = timeAvg;
+void DPInfo::update(std::vector<unsigned int>&& timeAvg) {
+  itsTimeAvg = std::move(timeAvg);
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,

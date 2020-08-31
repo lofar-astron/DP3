@@ -102,6 +102,9 @@ class AOFlaggerStep : public DPStep {
   /// Process the buffers in the next step.
   void flag(unsigned int rightOverlap);
 
+  /// Format a number as kB, MB, etc.
+  static void formatBytes(std::ostream&, double);
+
   /// Flag a single baseline using the rfistrategy.
   void flagBaseline(unsigned int leftOverlap, unsigned int windowSize,
                     unsigned int rightOverlap, unsigned int bl,
@@ -113,9 +116,6 @@ class AOFlaggerStep : public DPStep {
                 const aoflagger::ImageSet& values,
                 const aoflagger::FlagMask& rfiMask,
                 const aoflagger::FlagMask& origMask, int bl);
-
-  /// Format a number as kB, MB, etc.
-  static void formatBytes(std::ostream&, double);
 
   string name_;
   unsigned int buffer_index_;

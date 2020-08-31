@@ -210,15 +210,20 @@ bool ScaleData::process(const DPBuffer& buf) {
 bool ScaleData::process(std::unique_ptr<BDABuffer> bda_buffer) {
   itsTimer.start();
 
-  std::complex<float>* data = bda_buffer->GetData();
-
-  // Verify vectors are the same size
-  assert(bda_buffer->GetNumberOfElements() == itsFactors.nelements());
-
   // Apply the scale factors.
-  for (const double& factor : itsFactors) {
-    *data *= factor;
-    ++data;
+  std::vector<BDABuffer::Row> rows = bda_buffer->GetRows();
+  for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
+    const casacore::Array<double>& factors =
+        itsFactors[rows[row_nr].baseline_nr];
+    // Verify vectors are the same size
+    assert(rows[row_nr].n_correlations * rows[row_nr].n_channels ==
+           factors.size());
+
+    std::complex<float>* data = bda_buffer->GetData(row_nr);
+    for (const double& factor : factors) {
+      *data *= factor;
+      ++data;
+    }
   }
 
   itsTimer.stop();

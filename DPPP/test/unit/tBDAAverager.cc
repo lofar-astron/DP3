@@ -55,15 +55,15 @@ const std::vector<int> kAnt1_3Bl{0, 0, 0};
 const std::vector<int> kAnt2_3Bl{3, 1, 2};
 
 void InitParset(DP3::ParameterSet& parset,
-                boost::optional<double> timethresholdlength = boost::none,
-                boost::optional<double> freqthresholdlength = boost::none,
+                boost::optional<double> timebase = boost::none,
+                boost::optional<double> frequencybase = boost::none,
                 boost::optional<double> maxinterval = boost::none,
                 boost::optional<int> minchannels = boost::none) {
-  if (timethresholdlength) {
-    parset.add("timethresholdlength", std::to_string(*timethresholdlength));
+  if (timebase) {
+    parset.add("timebase", std::to_string(*timebase));
   }
-  if (freqthresholdlength) {
-    parset.add("freqthresholdlength", std::to_string(*freqthresholdlength));
+  if (frequencybase) {
+    parset.add("frequencybase", std::to_string(*frequencybase));
   }
   if (maxinterval) {
     parset.add("maxinterval", std::to_string(*maxinterval));
@@ -101,9 +101,9 @@ void CheckInfo(const DPInfo& info,
 }
 
 void Finish(BDAAverager& averager, DP3::DPPP::MockStep& mock_step) {
-  mock_step.CheckFinishCount(0);
+  BOOST_TEST(mock_step.FinishCount() == std::size_t(0));
   averager.finish();
-  mock_step.CheckFinishCount(1);
+  BOOST_TEST(mock_step.FinishCount() == std::size_t(1));
 }
 
 /**
@@ -663,6 +663,40 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   const auto& bda_buffers = mock_step->GetBdaBuffers();
   BOOST_REQUIRE_EQUAL(bda_buffers.size(), std::size_t(1));
   CheckRow(*averaged, bda_buffers[0]->GetRows()[0], 0);
+}
+
+BOOST_AUTO_TEST_CASE(zero_values_weight) {
+  const std::size_t kMinChannels = 3;
+  const std::size_t kNBaselines = 1;
+  const std::vector<std::size_t> kOutputChannelCounts{1, 2, 2};
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  DP3::ParameterSet parset;
+  // The threshold implies that all channels should be averaged into one
+  // channel, however, we specify a minimum of three channels per baseline.
+  InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
+             kMinChannels);
+  BDAAverager averager(mock_input, parset, "");
+  averager.updateInfo(info);
+
+  std::unique_ptr<DPBuffer> buffer = CreateBuffer(
+      kStartTime, kInterval, kNBaselines, kChannelCounts, 0.0, 0.0);
+  std::unique_ptr<DPBuffer> averaged = CreateBuffer(
+      kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
+
+  auto mock_step = std::make_shared<DP3::DPPP::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer));
+  Finish(averager, *mock_step);
+
+  // A weight of 0 should not result in a nan
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
+  BOOST_TEST(!std::isnan(bda_buffers[0]->GetData()[0].imag()));
+  BOOST_TEST(bda_buffers[0]->GetData()[0].imag() == 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

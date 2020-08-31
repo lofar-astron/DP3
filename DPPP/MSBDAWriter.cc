@@ -23,15 +23,16 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableCopy.h>
 #include <casacore/tables/Tables/TableDesc.h>
+#include <casacore/tables/TaQL/TableParse.h>
+
 #include <map>
 
 #include "../Common/ParameterSet.h"
 #include "BDABuffer.h"
+#include "DPLogger.h"
+#include "MS.h"
 #include "MSBDAWriter.h"
 #include "MSWriter.h"
-#include "DPLogger.h"
-
-#include <casacore/tables/TaQL/TableParse.h>
 
 using casacore::Array;
 using casacore::ArrayColumn;
@@ -51,52 +52,24 @@ using casacore::ScalarColumn;
 using casacore::ScalarColumnDesc;
 using casacore::SetupNewTable;
 using casacore::StandardStMan;
-using casacore::String;
 using casacore::Table;
 using casacore::TableCopy;
 using casacore::TableDesc;
 using casacore::TableLock;
-using casacore::TiledColumnStMan;
 using casacore::True;
 using casacore::Vector;
 
 namespace {
-/// BDA_TIME_AXIS table column names.
-const std::string kBDATimeAxisTable = "BDA_TIME_AXIS";
-
-const std::string kTimeAxisId = "BDA_TIME_AXIS_ID";
-const std::string kIsBdaApplied = "IS_BDA_APPLIED";
-const std::string kSingleFactorPerBL = "SINGLE_FACTOR_PER_BASELINE";
-const std::string kMaxTimeInterval = "MAX_TIME_INTERVAL";
-const std::string kMinTimeInterval = "MIN_TIME_INTERVAL";
-const std::string kUnitTimeInterval = "UNIT_TIME_INTERVAL";
-const std::string kIntervalFactors = "INTEGER_INTERVAL_FACTORS";
-const std::string kHasBDAOrdering = "HAS_BDA_ORDERING";
-/// @}
-}  // namespace
-
-namespace {
-/// BDA_TIME_FACTOR table column names.
-const std::string kBDATimeFactorTable = "BDA_TIME_FACTOR";
-
-const std::string kFactor = "FACTOR";
-/// @}
-}  // namespace
-
-namespace {
-/// BDA metadata table column names for SPECTRAL_WINDOW.
-const std::string kSpectralWindowTable = "SPECTRAL_WINDOW";
-const std::string kDataDescTable = "DATA_DESCRIPTION";
-
-const std::string kBDAFreqAxisId = "BDA_FREQ_AXIS_ID";
-const std::string kBDASetId = "BDA_SET_ID";
+// Keywords
+const std::string kBDATimeAxisVersionKW = "BDA_TIME_AXIS_VERSION";
+const std::string kBDATimeAxisVersion = "1.0";
 /// @}
 }  // namespace
 
 namespace DP3 {
 namespace DPPP {
 
-MSBDAWriter::MSBDAWriter(MSReader* reader, const std::string& out_name,
+MSBDAWriter::MSBDAWriter(DPInput* reader, const std::string& out_name,
                          const ParameterSet& parset, const std::string& prefix)
     : reader_(reader),
       outName_(out_name),
@@ -187,6 +160,10 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
 void MSBDAWriter::finish() {}
 
+void MSBDAWriter::addToMS(const std::string&) {
+  getPrevStep()->addToMS(outName_);
+}
+
 void MSBDAWriter::show(std::ostream& os) const {
   os << "MSWriter " << prefix_ << std::endl;
   os << "  output MS:      " << ms_.tableName() << std::endl;
@@ -245,67 +222,74 @@ void MSBDAWriter::CreateMainTable() {
     // Copy the info and subtables.
     TableCopy::copyInfo(ms_, reader_->table());
 
-    Block<String> omitted_subtables(4);
-    omitted_subtables[0] = kBDATimeAxisTable;
-    omitted_subtables[1] = kBDATimeFactorTable;
-    omitted_subtables[2] = kSpectralWindowTable;
-    omitted_subtables[3] = kDataDescTable;
+    Block<casacore::String> omitted_subtables(4);
+    omitted_subtables[0] = DP3MS::kBDATimeAxisTable;
+    omitted_subtables[1] = DP3MS::kBDAFactorsTable;
+    omitted_subtables[2] = DP3MS::kSpectralWindowTable;
+    omitted_subtables[3] = DP3MS::kDataDescTable;
     TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
   }
 }  // namespace DPPP
 
 void MSBDAWriter::CreateBDATimeAxis() {
   // Build the table description for BDA_TIME_AXIS.
-  TableDesc td(kBDATimeAxisTable, TableDesc::Scratch);
+  TableDesc td(DP3MS::kBDATimeAxisTable, TableDesc::Scratch);
   td.comment() = "Meta information that specify the regularity of the MS.";
-  td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
-  td.addColumn(ScalarColumnDesc<Bool>(kIsBdaApplied));
-  td.addColumn(ScalarColumnDesc<Bool>(kSingleFactorPerBL));
-  td.addColumn(ScalarColumnDesc<Double>(kMaxTimeInterval));
-  td.addColumn(ScalarColumnDesc<Double>(kMinTimeInterval));
-  td.addColumn(ScalarColumnDesc<Double>(kUnitTimeInterval));
-  td.addColumn(ScalarColumnDesc<Bool>(kIntervalFactors));
-  td.addColumn(ScalarColumnDesc<Bool>(kHasBDAOrdering));
+  td.rwKeywordSet().define(kBDATimeAxisVersionKW, kBDATimeAxisVersion);
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kTimeAxisId));
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kFieldId));
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kBDAFreqAxisId));
+  td.addColumn(ScalarColumnDesc<Bool>(DP3MS::kIsBdaApplied));
+  td.addColumn(ScalarColumnDesc<Bool>(DP3MS::kSingleFactorPerBL));
+  td.addColumn(ScalarColumnDesc<Double>(DP3MS::kMaxTimeInterval));
+  td.addColumn(ScalarColumnDesc<Double>(DP3MS::kMinTimeInterval));
+  td.addColumn(ScalarColumnDesc<Double>(DP3MS::kUnitTimeInterval));
+  td.addColumn(ScalarColumnDesc<Bool>(DP3MS::kIntervalFactors));
+  td.addColumn(ScalarColumnDesc<Bool>(DP3MS::kHasBDAOrdering));
 
   // Add the BDA_TIME_AXIS as a subtable to the output measurementset.
-  SetupNewTable new_table(outName_ + '/' + kBDATimeAxisTable, td, Table::New);
+  SetupNewTable new_table(outName_ + '/' + DP3MS::kBDATimeAxisTable, td,
+                          Table::New);
   Table bda_time_axis_table(new_table);
-  ms_.rwKeywordSet().defineTable(kBDATimeAxisTable, bda_time_axis_table);
+  ms_.rwKeywordSet().defineTable(DP3MS::kBDATimeAxisTable, bda_time_axis_table);
 }
 
 void MSBDAWriter::CreateBDATimeFactor() {
-  // Build the table description for BDA_TIME_FACTOR.
-  TableDesc td(kBDATimeFactorTable, TableDesc::Scratch);
-  td.addColumn(ScalarColumnDesc<Int>(kTimeAxisId));
+  // Build the table description for BDA_FACTORS.
+  TableDesc td(DP3MS::kBDAFactorsTable, TableDesc::Scratch);
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kTimeAxisId));
   td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA1)));
   td.addColumn(ScalarColumnDesc<Int>(MS::columnName(MS::ANTENNA2)));
-  td.addColumn(ScalarColumnDesc<Int>(kFactor));
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kFactor));
+  td.addColumn(ScalarColumnDesc<Int>(DP3MS::kSpectralWindowId));
 
-  // Add the BDA_TIME_FACTOR as a subtable to the output measurementset.
-  SetupNewTable new_table(outName_ + '/' + kBDATimeFactorTable, td, Table::New);
+  // Add the BDA_FACTORS as a subtable to the output measurementset.
+  SetupNewTable new_table(outName_ + '/' + DP3MS::kBDAFactorsTable, td,
+                          Table::New);
   Table bda_time_factor_table(new_table);
-  ms_.rwKeywordSet().defineTable(kBDATimeFactorTable, bda_time_factor_table);
+  ms_.rwKeywordSet().defineTable(DP3MS::kBDAFactorsTable,
+                                 bda_time_factor_table);
 }
 
 void MSBDAWriter::CreateMetaDataFrequencyColumns() {
-  Table out_spw = Table(outName_ + '/' + kSpectralWindowTable, Table::Update);
+  Table out_spw =
+      Table(outName_ + '/' + DP3MS::kSpectralWindowTable, Table::Update);
 
-  // Add column BDA_FREQ_AXIS_ID
-  ScalarColumnDesc<Int> bdaFreqAxisIdColumn(kBDAFreqAxisId);
-  bdaFreqAxisIdColumn.setDefault(-1);
-  out_spw.addColumn(bdaFreqAxisIdColumn);
+  // Don't add BDA_FREQ_AXIS_ID
 
   // Add column BDA_SET_ID
-  ScalarColumnDesc<Int> bdaSetIdColumn(kBDASetId);
-  bdaSetIdColumn.setDefault(-1);
+  ScalarColumnDesc<Int> bdaSetIdColumn(DP3MS::kBDASetId);
+  // When we support multiple SPECTRAL_WINDOW entries this value will be used
+  // to keep track of the old windows
+  bdaSetIdColumn.setDefault(0);
   out_spw.addColumn(bdaSetIdColumn);
 
   // Remove fixed size options from columns
   TableDesc td = out_spw.tableDesc();
-  td.rwColumnDesc("CHAN_FREQ").setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc("CHAN_WIDTH").setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc("EFFECTIVE_BW").setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc("RESOLUTION").setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(DP3MS::kChanFreq).setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(DP3MS::kChanWidth).setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(DP3MS::kEffectiveBW).setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(DP3MS::kResolution).setOptions(ColumnDesc::Direct);
 }
 
 void MSBDAWriter::WriteMetaData() {
@@ -313,31 +297,34 @@ void MSBDAWriter::WriteMetaData() {
   unsigned int min_factor_time = 65535;
   unsigned int max_factor_time = 1;
 
+  OverwriteSubTables(pid);
   WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
   WriteTimeAxisRow(pid, min_factor_time, max_factor_time);
-
-  OverwriteSubTables(pid);
 }
 
 void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
                                       unsigned int& min_factor_time,
                                       unsigned int& max_factor_time) {
-  Table bda_time_factor(outName_ + '/' + kBDATimeFactorTable, Table::Update);
+  Table bda_time_factor(outName_ + '/' + DP3MS::kBDAFactorsTable,
+                        Table::Update);
   int row = bda_time_factor.nrow();
   const Vector<Int>& ant1 = info().getAnt1();
   const Vector<Int>& ant2 = info().getAnt2();
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
+    std::size_t nchan = info().chanFreqs(i).size();
     bda_time_factor.addRow();
     const unsigned int factor = info().ntimeAvg(i);
     min_factor_time = std::min(min_factor_time, factor);
     max_factor_time = std::max(max_factor_time, factor);
 
-    ScalarColumn<Int>(bda_time_factor, kTimeAxisId).put(row, pid);
+    ScalarColumn<Int>(bda_time_factor, DP3MS::kTimeAxisId).put(row, pid);
     ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA1))
         .put(row, ant1[i]);
     ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
         .put(row, ant2[i]);
-    ScalarColumn<Int>(bda_time_factor, kFactor).put(row, factor);
+    ScalarColumn<Int>(bda_time_factor, DP3MS::kFactor).put(row, factor);
+    ScalarColumn<Int>(bda_time_factor, DP3MS::kSpectralWindowId)
+        .put(row, nchanToDescId[nchan]);
     ++row;
   }
 }
@@ -345,20 +332,24 @@ void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
 void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
                                    const unsigned int& min_factor_time,
                                    const unsigned int& max_factor_time) {
-  Table bda_time_axis(outName_ + '/' + kBDATimeAxisTable, Table::Update);
+  Table bda_time_axis(outName_ + '/' + DP3MS::kBDATimeAxisTable, Table::Update);
   const double interval = info().timeInterval();
   int row = bda_time_axis.nrow();
   bda_time_axis.addRow();
-  ScalarColumn<Int>(bda_time_axis, kTimeAxisId).put(row, pid);
-  ScalarColumn<Bool>(bda_time_axis, kIsBdaApplied).put(row, True);
-  ScalarColumn<Bool>(bda_time_axis, kSingleFactorPerBL).put(row, True);
-  ScalarColumn<Double>(bda_time_axis, kMaxTimeInterval)
+  ScalarColumn<Int>(bda_time_axis, DP3MS::kTimeAxisId).put(row, pid);
+  ScalarColumn<Bool>(bda_time_axis, DP3MS::kIsBdaApplied).put(row, True);
+  ScalarColumn<Bool>(bda_time_axis, DP3MS::kSingleFactorPerBL).put(row, True);
+  ScalarColumn<Double>(bda_time_axis, DP3MS::kMaxTimeInterval)
       .put(row, max_factor_time * interval);
-  ScalarColumn<Double>(bda_time_axis, kMinTimeInterval)
+  ScalarColumn<Double>(bda_time_axis, DP3MS::kMinTimeInterval)
       .put(row, min_factor_time * interval);
-  ScalarColumn<Double>(bda_time_axis, kUnitTimeInterval).put(row, interval);
-  ScalarColumn<Bool>(bda_time_axis, kIntervalFactors).put(row, True);
-  ScalarColumn<Bool>(bda_time_axis, kHasBDAOrdering).put(row, True);
+  ScalarColumn<Double>(bda_time_axis, DP3MS::kUnitTimeInterval)
+      .put(row, interval);
+  ScalarColumn<Bool>(bda_time_axis, DP3MS::kIntervalFactors).put(row, True);
+  ScalarColumn<Bool>(bda_time_axis, DP3MS::kHasBDAOrdering).put(row, True);
+
+  ScalarColumn<Int>(bda_time_axis, DP3MS::kFieldId).put(row, -1);
+  ScalarColumn<Int>(bda_time_axis, DP3MS::kBDAFreqAxisId).put(row, -1);
 }
 
 void MSBDAWriter::OverwriteSubTables(const Int& pid) {
@@ -366,8 +357,8 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
   std::string name;
   int measFreqRef;
 
-  Table outDD(outName_ + '/' + kDataDescTable, Table::Update);
-  Table outSPW(outName_ + '/' + kSpectralWindowTable, Table::Update);
+  Table outDD(outName_ + '/' + DP3MS::kDataDescTable, Table::Update);
+  Table outSPW(outName_ + '/' + DP3MS::kSpectralWindowTable, Table::Update);
 
   if (outSPW.nrow() != outDD.nrow())
     throw std::runtime_error(
@@ -378,8 +369,8 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
   // Do it from the end, otherwise row numbers change.
   for (unsigned int i = outSPW.nrow(); i > 0;) {
     if (--i == reader_->spectralWindow()) {
-      measFreqRef = outSPW.col("MEAS_FREQ_REF").getInt(i);
-      name = outSPW.col("NAME").getString(i);
+      measFreqRef = outSPW.col(DP3MS::kMeasFreqRef).getInt(i);
+      name = outSPW.col(DP3MS::kName).getString(i);
     }
     outSPW.removeRow(i);
     outDD.removeRow(i);
@@ -392,26 +383,24 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
     }
 
     outDD.addRow();
-    ScalarColumn<Int>(outDD, "SPECTRAL_WINDOW_ID").put(id, id);
+    ScalarColumn<Int>(outDD, DP3MS::kSpectralWindowId).put(id, id);
 
     outSPW.addRow();
-    ScalarColumn<Int>(outSPW, "NUM_CHAN").put(id, nchanFreqs);
-    ScalarColumn<Int>(outSPW, "MEAS_FREQ_REF").put(id, measFreqRef);
-    ScalarColumn<String>(outSPW, "NAME").put(id, name);
-    ArrayColumn<Double>(outSPW, "CHAN_FREQ")
+    ScalarColumn<Int>(outSPW, DP3MS::kNumChan).put(id, nchanFreqs);
+    ScalarColumn<Int>(outSPW, DP3MS::kMeasFreqRef).put(id, measFreqRef);
+    ScalarColumn<casacore::String>(outSPW, DP3MS::kName).put(id, name);
+    ArrayColumn<Double>(outSPW, DP3MS::kChanFreq)
         .put(id, Vector<double>(info().chanFreqs(i)));
-    ArrayColumn<Double>(outSPW, "CHAN_WIDTH")
+    ArrayColumn<Double>(outSPW, DP3MS::kChanWidth)
         .put(id, Vector<double>(info().chanWidths(i)));
-    ArrayColumn<Double>(outSPW, "EFFECTIVE_BW")
+    ArrayColumn<Double>(outSPW, DP3MS::kEffectiveBW)
         .put(id, Vector<double>(info().effectiveBW(i)));
-    ArrayColumn<Double>(outSPW, "RESOLUTION")
+    ArrayColumn<Double>(outSPW, DP3MS::kResolution)
         .put(id, Vector<double>(info().resolutions(i)));
-    ScalarColumn<Double>(outSPW, "TOTAL_BANDWIDTH").put(id, info().totalBW());
-    ScalarColumn<Double>(outSPW, "REF_FREQUENCY").put(id, info().refFreq());
-    ScalarColumn<Int>(outSPW, kBDAFreqAxisId).put(id, pid);
-    // When we support multiple SPECTRAL_WINDOW entries this value will be used
-    // to keep track of the old windows
-    ScalarColumn<Int>(outSPW, kBDASetId).put(id, 0);
+    ScalarColumn<Double>(outSPW, DP3MS::kTotalBandWidth)
+        .put(id, info().totalBW());
+    ScalarColumn<Double>(outSPW, DP3MS::kRefFrequency)
+        .put(id, info().refFreq());
 
     nchanToDescId[nchanFreqs] = id;
     ++id;

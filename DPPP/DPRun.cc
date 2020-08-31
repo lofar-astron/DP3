@@ -248,49 +248,9 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   DPStep::ShPtr firstStep;
   DPStep::ShPtr lastStep;
   if (!reader) {
-    // Get input and output MS name.
-    // Those parameters were always called msin and msout.
-    // However, SAS/MAC cannot handle a parameter and a group with the same
-    // name, hence one can also use msin.name and msout.name.
-    std::vector<string> inNames =
-        parset.getStringVector("msin.name", std::vector<string>());
-    if (inNames.empty()) {
-      inNames = parset.getStringVector("msin");
-    }
-    if (inNames.size() == 0) throw Exception("No input MeasurementSets given");
-    // Find all file names matching a possibly wildcarded input name.
-    // This is only possible if a single name is given.
-    if (inNames.size() == 1) {
-      if (inNames[0].find_first_of("*?{['") != string::npos) {
-        std::vector<string> names;
-        names.reserve(80);
-        casacore::Path path(inNames[0]);
-        casacore::String dirName(path.dirName());
-        casacore::Directory dir(dirName);
-        // Use the basename as the file name pattern.
-        casacore::DirectoryIterator dirIter(
-            dir,
-            casacore::Regex(casacore::Regex::fromPattern(path.baseName())));
-        while (!dirIter.pastEnd()) {
-          names.push_back(dirName + '/' + dirIter.name());
-          dirIter++;
-        }
-        if (names.empty())
-          throw Exception("No datasets found matching msin " + inNames[0]);
-        inNames = names;
-      }
-    }
-
-    // Get the steps.
-    // Currently the input MS must be given.
-    // In the future it might be possible to have a simulation step instead.
-    // Create MSReader step if input ms given.
-    if (inNames.size() == 1) {
-      reader = new MSReader(inNames[0], parset, "msin.");
-    } else {
-      reader = new MultiMSReader(inNames, parset, "msin.");
-    }
-    firstStep = DPStep::ShPtr(reader);
+    std::unique_ptr<DPInput> new_reader = DPInput::CreateReader(parset, prefix);
+    reader = new_reader.get();
+    firstStep = std::move(new_reader);
   }
 
   casacore::Path pathIn(reader->msName());
@@ -301,6 +261,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   lastStep = firstStep;
   DPStep::ShPtr step;
   bool needsOutputStep = true;
+
   for (std::vector<string>::const_iterator iter = steps.begin();
        iter != steps.end(); ++iter) {
     string prefix(*iter + '.');
@@ -366,8 +327,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     } else if (type == "interpolate") {
       step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
-      step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, prefix,
-                            currentMSName,
+      step = makeOutputStep(reader, parset, prefix, currentMSName,
                             lastStep->outputs() == DPStep::MSType::BDA);
       needsOutputStep = false;
     } else {
@@ -392,8 +352,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   // Add an output step if not explicitly added in steps (unless last step is a
   // 'split' step)
   if (needsOutputStep) {
-    step = makeOutputStep(dynamic_cast<MSReader*>(reader), parset, "msout.",
-                          currentMSName,
+    step = makeOutputStep(reader, parset, "msout.", currentMSName,
                           lastStep->outputs() == DPStep::MSType::BDA);
     lastStep->setNextStep(step);
     lastStep = step;
@@ -409,8 +368,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   return firstStep;
 }
 
-DPStep::ShPtr DPRun::makeOutputStep(MSReader* reader,
-                                    const ParameterSet& parset,
+DPStep::ShPtr DPRun::makeOutputStep(DPInput* reader, const ParameterSet& parset,
                                     const string& prefix,
                                     casacore::String& currentMSName,
                                     const bool& isBDA) {
