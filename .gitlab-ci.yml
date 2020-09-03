@@ -43,6 +43,7 @@ build-unittest:
     - ctest -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
+    - ctest -j4 -L integration |& tee ctest.out
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
     - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
     - gcovr -r $SRC -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
