@@ -218,7 +218,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   if (itsUseH5Parm) {
     itsTimeSlotsPerParmUpdate = info().ntime();
   } else {  // Use ParmDB
-    itsParmDB.reset(new BBS::ParmFacade(itsParmDBName));
+    itsParmDB = std::make_shared<BBS::ParmFacade>(itsParmDBName);
   }
 
   // Detect if full jones solutions are present

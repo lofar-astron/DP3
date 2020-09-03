@@ -87,7 +87,7 @@ DemixWorker::DemixWorker(DPInput* input, const string& prefix,
       itsNrIgnoreTarget(0),
       itsNrDeprojectTarget(0) {
   // Add a null step as the last step in the filter.
-  DPStep::ShPtr nullStep(new NullStep());
+  auto nullStep = std::make_shared<NullStep>();
   itsFilter.setNextStep(nullStep);
   // The worker will process up to chunkSize input time slots.
   // Size buffers accordingly.

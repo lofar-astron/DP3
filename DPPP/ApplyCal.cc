@@ -68,8 +68,8 @@ ApplyCal::ApplyCal(DPInput* input, const ParameterSet& parset,
       // Substeps given, use named parameters like applycal.applySol.parmdb
       subStepPrefix = prefix + subStepName + ".";
     }
-    itsApplyCals.push_back(OneApplyCal::ShPtr(new OneApplyCal(
-        input, parset, subStepPrefix, prefix, substep, predictDirection)));
+    itsApplyCals.push_back(std::make_shared<OneApplyCal>(
+        input, parset, subStepPrefix, prefix, substep, predictDirection));
   }
 
   unsigned int numSteps = itsApplyCals.size();

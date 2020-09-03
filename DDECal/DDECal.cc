@@ -132,7 +132,7 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       parset.getBool(prefix + "detectstalling", true));
 
   if (!itsStatFilename.empty())
-    itsStatStream.reset(new std::ofstream(itsStatFilename));
+    itsStatStream = boost::make_unique<std::ofstream>(itsStatFilename);
 
   // Read the antennaconstraint list
   std::vector<std::string> antConstraintList = parset.getStringVector(
@@ -202,7 +202,7 @@ DPStep::ShPtr DDECal::makeStep(DPInput* input, const ParameterSet& parset,
 void DDECal::initializeConstraints(const ParameterSet& parset,
                                    const string& prefix) {
   if (itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
-    itsConstraints.emplace_back(new AntennaConstraint());
+    itsConstraints.push_back(boost::make_unique<AntennaConstraint>());
   }
   if (itsSmoothnessConstraint != 0.0) {
     itsConstraints.emplace_back(
@@ -210,7 +210,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
   }
   switch (itsMode) {
     case GainCal::DIAGONAL:
-      itsConstraints.emplace_back(new DiagonalConstraint(4));
+      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
       itsMultiDirSolver.set_phase_only(false);
       itsFullMatrixMinimalization = true;
       break;
@@ -225,23 +225,23 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
       itsFullMatrixMinimalization = true;
       break;
     case GainCal::PHASEONLY:
-      itsConstraints.emplace_back(new PhaseOnlyConstraint());
-      itsConstraints.emplace_back(new DiagonalConstraint(4));
+      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
+      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = true;
       break;
     case GainCal::SCALARPHASE:
-      itsConstraints.emplace_back(new PhaseOnlyConstraint());
+      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsMultiDirSolver.set_phase_only(true);
       break;
     case GainCal::AMPLITUDEONLY:
-      itsConstraints.emplace_back(new DiagonalConstraint(4));
-      itsConstraints.emplace_back(new AmplitudeOnlyConstraint());
+      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
+      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsMultiDirSolver.set_phase_only(false);
       itsFullMatrixMinimalization = true;
       break;
     case GainCal::SCALARAMPLITUDE:
-      itsConstraints.emplace_back(new AmplitudeOnlyConstraint());
+      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsMultiDirSolver.set_phase_only(false);
       itsFullMatrixMinimalization = false;
       break;
@@ -274,8 +274,8 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
     }
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
-      itsConstraints.emplace_back(
-          new ScreenConstraint(parset, prefix + "tecscreen."));
+      itsConstraints.push_back(
+          boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
       itsMultiDirSolver.set_phase_only(true);
       itsFullMatrixMinimalization = false;
 #else
@@ -293,7 +293,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
       break;
     }
     case GainCal::ROTATION:
-      itsConstraints.emplace_back(new RotationConstraint());
+      itsConstraints.push_back(boost::make_unique<RotationConstraint>());
       itsFullMatrixMinimalization = true;
       break;
     default:
@@ -306,7 +306,8 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   std::string regionFilename = parset.getString(prefix + "idg.regions");
   std::vector<std::string> imageFilenames =
       parset.getStringVector(prefix + "idg.images");
-  itsFacetPredictor.reset(new FacetPredict(imageFilenames, regionFilename));
+  itsFacetPredictor =
+      boost::make_unique<FacetPredict>(imageFilenames, regionFilename);
   itsFacetPredictor->PredictCallback = std::bind(
       &DDECal::idgCallback, this, std::placeholders::_1, std::placeholders::_2,
       std::placeholders::_3, std::placeholders::_4);
@@ -899,8 +900,10 @@ bool DDECal::process(const DPBuffer& bufin) {
       }
     }
   } else {
-    if (itsThreadPool == nullptr)
-      itsThreadPool.reset(new aocommon::ThreadPool(getInfo().nThreads()));
+    if (itsThreadPool == nullptr) {
+      itsThreadPool =
+          boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
+    }
     std::mutex measuresMutex;
     for (DP3::DPPP::Predict& predict : itsPredictSteps)
       predict.setThreadData(*itsThreadPool, measuresMutex);

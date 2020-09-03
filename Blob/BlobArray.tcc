@@ -116,7 +116,7 @@ uint64_t setSpaceBlobArray (BlobOStream& bs, bool useBlobHeader,
 }
 
 
-#if defined(HAVE_BLITZ) 
+#if defined(HAVE_BLITZ)
 template<typename T, unsigned int NDIM>
 BlobOStream& operator<< (BlobOStream& bs, const blitz::Array<T,NDIM>& arr)
 {
@@ -186,21 +186,6 @@ BlobIStream& operator>> (BlobIStream& bs, casacore::Array<T>& arr)
   T* data = arr.getStorage(deleteIt);
   getBlobArrayData (bs, data, arr.nelements());
   arr.putStorage (data, deleteIt);
-  bs.getEnd();
-  return bs;
-}
-
-template<typename T>
-BlobIStream& getBlobVector (BlobIStream& bs, T*& arr, uint64_t& size)
-{
-  bs.getStart (DP3::typeName((const T**)0));
-  bool fortranOrder;
-  uint16_t ndim;
-  unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
-  assert (ndim == 1);
-  getBlobArrayShape (bs, &size, 1, false, nalign);
-  arr = new T[size];
-  getBlobArrayData (bs, arr, size);
   bs.getEnd();
   return bs;
 }

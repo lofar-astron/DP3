@@ -359,7 +359,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
   }
 
   // Add a null step, so the last step can use getNextStep->process().
-  DPStep::ShPtr nullStep(new NullStep());
+  auto nullStep = std::make_shared<NullStep>();
   if (lastStep) {
     lastStep->setNextStep(nullStep);
   } else {

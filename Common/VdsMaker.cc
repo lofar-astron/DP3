@@ -50,6 +50,8 @@
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/Exceptions/Error.h>
 
+#include <boost/make_unique.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -60,8 +62,8 @@ using namespace casacore;
 using namespace std;
 
 void VdsMaker::getFreqInfo(MS& ms, vector<int>& nrchan,
-                           vector<Vector<double> >& startFreq,
-                           vector<Vector<double> >& endFreq) {
+                           vector<Vector<double>>& startFreq,
+                           vector<Vector<double>>& endFreq) {
   MSDataDescription mssub1(ms.dataDescription());
   ROMSDataDescColumns mssub1c(mssub1);
   MSSpectralWindow mssub(ms.spectralWindow());
@@ -220,7 +222,7 @@ void VdsMaker::create(const string& msName, const string& outName,
   msd.addParm("CorrNames", oss1.str());
   // Fill in freq info.
   vector<int> nchan;
-  vector<Vector<double> > startFreq, endFreq;
+  vector<Vector<double>> startFreq, endFreq;
   getFreqInfo(ms, nchan, startFreq, endFreq);
   for (unsigned int i = 0; i < nchan.size(); ++i) {
     vector<double> sfreq, efreq;
@@ -324,17 +326,16 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
   // Determine the minimum and maximum time.
   double startTime = 1e30;
   double endTime = 0;
-  vector<VdsPartDesc*> vpds;
+  std::vector<std::unique_ptr<VdsPartDesc>> vpds;
   vpds.reserve(vdsNames.size());
   for (unsigned int j = 0; j < vdsNames.size(); ++j) {
-    VdsPartDesc* vpd = new VdsPartDesc(ParameterSet(vdsNames[j]));
+    auto vpd = boost::make_unique<VdsPartDesc>(ParameterSet(vdsNames[j]));
     // Skip a VDS with an empty time (it has no data).
     casacore::Path path(vdsNames[j]);
     // File name gets the original MS name.
     // Name gets the name of the VDS file.
     vpd->setFileName(vpd->getName());
     vpd->setName(path.absoluteName(), vpd->getFileSys());
-    vpds.push_back(vpd);
     const vector<int>& chans = vpd->getNChan();
     const vector<double>& sf = vpd->getStartFreqs();
     const vector<double>& ef = vpd->getEndFreqs();
@@ -358,6 +359,7 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
       startTime = std::min(startTime, vpd->getStartTime());
       endTime = std::max(endTime, vpd->getEndTime());
     }
+    vpds.push_back(std::move(vpd));
   }
   // Exit if no valid VDS files.
   if (vpds.empty()) throw std::runtime_error("No VDS files are given");
@@ -393,8 +395,7 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
       cerr << "The times of part " << i << " (" << vpds[i]->getName()
            << ") are different" << endl;
     }
-    delete vpds[i];
-    vpds[i] = 0;
+    vpds[i].reset();
   }
   ofstream ostr(gdsName.c_str());
   if (!ostr)
