@@ -16,8 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FACET_PREDICT_H
-#define FACET_PREDICT_H
+#include "FacetPredict.h"
 
 #ifdef HAVE_IDG
 
@@ -341,39 +340,54 @@ class FacetPredict {
 
 #else  // HAVE_IDG
 
-#include <complex>
-#include <functional>
-#include <string>
-#include <vector>
+namespace {
+void notCompiled() {
+  throw std::runtime_error(
+      "Facet prediction is not available, because DP3 was not compiled with "
+      "IDG support");
+}
+}  // namespace
 
-class FacetPredict {
- public:
-  FacetPredict(const std::vector<std::string>&, const std::string&);
+FacetPredict::FacetPredict(const std::vector<std::string>&,
+                           const std::string&) {
+  notCompiled();
+}
 
-  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations);
+void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
+                             size_t nr_stations) {
+  notCompiled();
+}
 
-  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands,
-                 size_t nr_stations, double max_baseline);
+void FacetPredict::SetMSInfo(double maxW,
+                             std::vector<std::vector<double>>&& bands,
+                             size_t nr_stations, double max_baseline) {
+  notCompiled();
+}
 
-  bool IsStarted() const;
+bool FacetPredict::IsStarted() const {
+  notCompiled();
+  return false;
+}
 
-  void StartIDG(bool);
+void FacetPredict::StartIDG(bool) { notCompiled(); }
 
-  void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t,
-                      const double*);
+void FacetPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t,
+                                  size_t, const double*) {
+  notCompiled();
+}
 
-  size_t NDirections() const;
+size_t FacetPredict::NDirections() const {
+  notCompiled();
+  return 0;
+}
 
-  std::pair<double, double> Direction(size_t) const;
+std::pair<double, double> FacetPredict::Direction(size_t) const {
+  notCompiled();
+  return std::pair<double, double>();
+}
 
-  void Flush();
+void FacetPredict::Flush() { notCompiled(); }
 
-  void SetBufferSize(size_t);
-
-  std::function<void(size_t, size_t, size_t, const std::complex<float>*)>
-      PredictCallback;
-};
+void FacetPredict::SetBufferSize(size_t) { notCompiled(); }
 
 #endif  // HAVE_IDG
-
-#endif  // FACET_PREDICT_H
