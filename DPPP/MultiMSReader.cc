@@ -70,7 +70,7 @@ MultiMSReader::MultiMSReader(const vector<string>& msNames,
   itsNeedSort = parset.getBool(prefix + "sort", false);
   itsOrderMS = parset.getBool(prefix + "orderms", true);
   // Open all MSs.
-  DPStep::ShPtr nullStep(new NullStep());
+  auto nullStep = std::make_shared<NullStep>();
   itsReaders.reserve(msNames.size());
   itsSteps.reserve(msNames.size());
   for (unsigned int i = 0; i < msNames.size(); ++i) {

@@ -151,12 +151,6 @@ template <typename T>
 BlobIStream& operator>>(BlobIStream&, std::vector<T>&);
 /// @}
 
-/// Read back as a C-style vector.
-/// It allocates the required storage and puts the pointer to it in arr.
-/// The user is responsible for deleting the data.
-template <typename T>
-BlobIStream& getBlobVector(BlobIStream& bs, T*& arr, uint64_t& size);
-
 /// Read back as a C-array with the axes in Fortran or C-style order.
 /// It allocates the required storage and puts the pointer to it in arr.
 /// The shape is stored in the vector.
@@ -268,7 +262,6 @@ BLOBARRAY_PUTGET_SPEC(std::string)
 using DP3::operator<<;
 using DP3::operator>>;
 using DP3::getBlobArray;
-using DP3::getBlobVector;
 using DP3::getSpaceBlobArray;
 using DP3::putBlobArray;
 using DP3::putBlobVector;
