@@ -24,7 +24,7 @@
 #include "../../PreFlagger.h"
 #include "../../../Common/ParameterSet.h"
 
-#include <casacore/casa/Arrays/ArrayIO.h>
+#include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/MVTime.h>
 
 #include <boost/make_unique.hpp>

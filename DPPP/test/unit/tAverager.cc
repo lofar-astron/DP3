@@ -23,8 +23,7 @@
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
-
+#include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/Quantum.h>
 
 #include <boost/test/unit_test.hpp>
