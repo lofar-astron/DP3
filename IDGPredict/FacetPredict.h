@@ -53,9 +53,7 @@ class FacetPredict {
                       size_t timeIndex, size_t antenna1, size_t antenna2,
                       const double* uvw);
 
-  size_t NDirections() const;
-
-  std::pair<double, double> Direction(size_t facet) const;
+  const std::vector<std::pair<double, double>>& GetDirections() const;
 
   void Flush();
 
