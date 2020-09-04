@@ -313,7 +313,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
              const std::complex<float>* values) {
         idgCallback(row, direction, data_desc_id, values);
       };
-  itsDirections.resize(itsFacetPredictor->NDirections());
+  itsDirections.resize(itsFacetPredictor->GetDirections().size());
   for (size_t i = 0; i != itsDirections.size(); ++i)
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
   if (parset.isDefined(prefix + "idg.buffersize"))
@@ -415,9 +415,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     sourcePositions[0] = std::pair<double, double>(angles.getBaseValue()[0],
                                                    angles.getBaseValue()[1]);
   } else if (itsUseIDG) {
-    for (size_t i = 0; i != itsFacetPredictor->NDirections(); ++i) {
-      sourcePositions[i] = itsFacetPredictor->Direction(i);
-    }
+    sourcePositions = itsFacetPredictor->GetDirections();
   } else {
     for (unsigned int i = 0; i < itsDirections.size(); ++i) {
       sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
@@ -686,19 +684,19 @@ void DDECal::initializeFullMatrixSolutions() {
   }
 }
 
-vector<string> DDECal::getDirectionNames() {
-  vector<string> res;
+std::vector<std::string> DDECal::getDirectionNames() {
+  std::vector<std::string> res;
 
   if (itsUseModelColumn) {
     res.emplace_back("pointing");
-    return res;
   } else if (itsUseIDG) {
-    size_t nDirections = itsFacetPredictor->NDirections();
-    for (size_t i = 0; i != nDirections; ++i)
+    size_t nDirections = itsFacetPredictor->GetDirections().size();
+    for (size_t i = 0; i != nDirections; ++i) {
       res.emplace_back("dir" + std::to_string(i));
+    }
   } else {
-    for (vector<string>& dir : itsDirections) {
-      stringstream ss;
+    for (const std::vector<std::string>& dir : itsDirections) {
+      std::stringstream ss;
       ss << dir;
       res.emplace_back(ss.str());
     }
@@ -884,12 +882,12 @@ bool DDECal::process(const DPBuffer& bufin) {
     Matrix<double> uvws;
     uvws.reference(itsBufs[itsStepInSolInt].getUVW());
     while (itsIDGBuffers.size() <= itsStepInSolInt) {
-      itsIDGBuffers.emplace_back(itsFacetPredictor->NDirections());
+      itsIDGBuffers.emplace_back(itsFacetPredictor->GetDirections().size());
       for (std::vector<casacore::Complex>& vec : itsIDGBuffers.back())
         vec.resize(info().nbaselines() * info().nchan() * 4);
     }
-    for (size_t direction = 0; direction != itsFacetPredictor->NDirections();
-         ++direction) {
+    for (size_t direction = 0;
+         direction != itsFacetPredictor->GetDirections().size(); ++direction) {
       itsModelDataPtrs[itsStepInSolInt][direction] =
           itsIDGBuffers[itsStepInSolInt][direction].data();
       for (size_t bl = 0; bl < nBl; ++bl) {

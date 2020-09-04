@@ -204,10 +204,9 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
   }
 }
 
-size_t FacetPredict::NDirections() const { return _images.size(); }
-
-std::pair<double, double> FacetPredict::Direction(size_t facet) const {
-  return _directions[facet];
+const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
+    const {
+  return _directions;
 }
 
 void FacetPredict::Flush() {
@@ -316,14 +315,10 @@ void FacetPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t,
   notCompiled();
 }
 
-size_t FacetPredict::NDirections() const {
+std::vector<std::pair<double, double>> FacetPredict::GetDirections(
+    size_t) const {
   notCompiled();
-  return 0;
-}
-
-std::pair<double, double> FacetPredict::Direction(size_t) const {
-  notCompiled();
-  return std::pair<double, double>();
+  return std::vector<std::pair<double, double>>();
 }
 
 void FacetPredict::Flush() { notCompiled(); }
