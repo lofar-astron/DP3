@@ -70,28 +70,32 @@ class FacetPredict {
     return c() / info_.chanFreqs()[channel];
   }
 
-  std::vector<FacetImage> _images;
-  std::vector<std::unique_ptr<idg::api::BufferSet>> _buffersets;
+  std::vector<FacetImage> images_;
+  std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
   struct FacetMetaData {
-    double dl, dm, dp;
-    bool isInitialized;
-    size_t rowIdOffset;
+    double dl;
+    double dm;
+    double dp;
+    bool is_initialized;
+    size_t row_id_offset;
     std::vector<double> uvws;
   };
-  std::vector<FacetMetaData> _metaData;
+  std::vector<FacetMetaData> meta_data_;
 
-  size_t _fullWidth, _fullHeight;
-  double _refFrequency;
-  double _pixelSizeX, _pixelSizeY;
-  std::vector<FitsReader> _readers;
-  double _padding;
-  size_t _bufferSize;
+  std::size_t full_width_;
+  std::size_t full_height_;
+  double ref_frequency_;
+  double pixel_size_x_;
+  double pixel_size_y_;
+  std::vector<FitsReader> readers_;
+  double padding_;
+  size_t buffer_size_;
 
   /// MS info
   DP3::DPPP::DPInfo info_;
-  double _maxW;
-  double _maxBaseline;
-  std::vector<std::pair<double, double>> _directions;
+  double max_w_;
+  double max_baseline_;
+  std::vector<std::pair<double, double>> directions_;
 #endif  // HAVE_IDG
 };
 

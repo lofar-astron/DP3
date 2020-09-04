@@ -33,48 +33,48 @@ constexpr int kDataDescId = 0;  // DP3 only uses a single spectral window.
 
 FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
                            const std::string& ds9RegionsFile)
-    : _padding(1.0), _bufferSize(0) {
+    : padding_(1.0), buffer_size_(0) {
   if (fitsModelFiles.empty())
     throw std::runtime_error("No fits files specified for IDG predict");
-  _readers.reserve(fitsModelFiles.size());
-  for (const std::string& file : fitsModelFiles) _readers.emplace_back(file);
+  readers_.reserve(fitsModelFiles.size());
+  for (const std::string& file : fitsModelFiles) readers_.emplace_back(file);
 
   DS9FacetFile f(ds9RegionsFile);
-  _fullWidth = _readers.front().ImageWidth();
-  _fullHeight = _readers.front().ImageHeight();
-  _refFrequency = _readers.front().Frequency();
-  _pixelSizeX = _readers.front().PixelSizeX();
-  _pixelSizeY = _readers.front().PixelSizeY();
-  std::vector<aocommon::UVector<double>> models(_readers.size());
-  for (size_t img = 0; img != _readers.size(); ++img) {
-    if (_readers[img].ImageWidth() != _fullWidth ||
-        _readers[img].ImageHeight() != _fullHeight)
+  full_width_ = readers_.front().ImageWidth();
+  full_height_ = readers_.front().ImageHeight();
+  ref_frequency_ = readers_.front().Frequency();
+  pixel_size_x_ = readers_.front().PixelSizeX();
+  pixel_size_y_ = readers_.front().PixelSizeY();
+  std::vector<aocommon::UVector<double>> models(readers_.size());
+  for (size_t img = 0; img != readers_.size(); ++img) {
+    if (readers_[img].ImageWidth() != full_width_ ||
+        readers_[img].ImageHeight() != full_height_)
       throw std::runtime_error("Image for spectral term " +
                                std::to_string(img) +
                                " has inconsistent dimensions");
-    if (_readers[img].PixelSizeX() != _pixelSizeX ||
-        _readers[img].PixelSizeY() != _pixelSizeY)
+    if (readers_[img].PixelSizeX() != pixel_size_x_ ||
+        readers_[img].PixelSizeY() != pixel_size_y_)
       throw std::runtime_error("Pixel size of spectral term " +
                                std::to_string(img) +
                                " is inconsistent with first spectral term");
-    models[img].resize(_fullWidth * _fullHeight);
-    _readers[img].Read(models[img].data());
+    models[img].resize(full_width_ * full_height_);
+    readers_[img].Read(models[img].data());
   }
 
   FacetMap map;
-  f.Read(map, _readers.front().PhaseCentreRA(),
-         _readers.front().PhaseCentreDec(), _pixelSizeX, _pixelSizeY,
-         _fullWidth, _fullHeight);
+  f.Read(map, readers_.front().PhaseCentreRA(),
+         readers_.front().PhaseCentreDec(), pixel_size_x_, pixel_size_y_,
+         full_width_, full_height_);
   std::cout << "Read " << map.NFacets() << " facet definitions.\n";
 
   bool makeSquare = true;  // only necessary for IDG though
   size_t area = 0;
   for (size_t i = 0; i != map.NFacets(); ++i) {
     const Facet& facet = map[i];
-    _directions.emplace_back(facet.RA(), facet.Dec());
-    _images.emplace_back();
-    FacetImage& image = _images.back();
-    image.CopyFacetPart(facet, models, _fullWidth, _fullHeight, _padding,
+    directions_.emplace_back(facet.RA(), facet.Dec());
+    images_.emplace_back();
+    FacetImage& image = images_.back();
+    image.CopyFacetPart(facet, models, full_width_, full_height_, padding_,
                         makeSquare);
     area += image.Width() * image.Height();
   }
@@ -86,54 +86,53 @@ void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
 
-  _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
-  _maxW = _maxBaseline * 0.1;
-  std::cout << "Predicting baselines up to " << _maxBaseline
+  max_baseline_ = 1.0 / std::min(pixel_size_x_, pixel_size_y_);
+  max_w_ = max_baseline_ * 0.1;
+  std::cout << "Predicting baselines up to " << max_baseline_
             << " wavelengths.\n";
 }
 
-bool FacetPredict::IsStarted() const { return !_buffersets.empty(); }
+bool FacetPredict::IsStarted() const { return !buffersets_.empty(); }
 
 void FacetPredict::StartIDG(bool saveFacets) {
-  _buffersets.clear();
+  buffersets_.clear();
   idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
-  size_t nTerms = _readers.size();
+  size_t nTerms = readers_.size();
 
-  size_t maxChannels = info_.chanFreqs().size();
   long int pageCount = sysconf(_SC_PHYS_PAGES),
            pageSize = sysconf(_SC_PAGE_SIZE);
   int64_t memory = (int64_t)pageCount * (int64_t)pageSize;
   uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(
-      info_.antennaUsed().size(), maxChannels);
+      info_.antennaUsed().size(), info_.nchan());
   memPerTimestep *= 2;  // IDG uses two internal buffer
   // Allow the directions together to use 1/4th of the available memory for
   // the vis buffers.
   size_t allocatableTimesteps =
-      memory / 4 / _images.size() / nTerms / memPerTimestep;
+      memory / 4 / images_.size() / nTerms / memPerTimestep;
   // TODO once a-terms are supported, this should include the size required
   // for the a-terms.
   std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps
             << '\n';
 
   int buffersize = std::max(allocatableTimesteps, size_t(1));
-  if (_bufferSize != 0) {
-    buffersize = _bufferSize;
+  if (buffer_size_ != 0) {
+    buffersize = buffer_size_;
     std::cout << "Buffer size manually set to " << buffersize << " timesteps\n";
   }
   idg::api::options_type options;
   IdgConfiguration::Read(proxyType, buffersize, options);
   std::vector<aocommon::UVector<double>> data(nTerms);
-  _metaData.clear();
-  FitsReader& reader = _readers.front();
-  for (FacetImage& img : _images) {
+  meta_data_.clear();
+  FitsReader& reader = readers_.front();
+  for (FacetImage& img : images_) {
     double dl = (int(reader.ImageWidth() / 2) -
                  (img.OffsetX() + int(img.Width() / 2))) *
-                _pixelSizeX,
-           dm = (img.OffsetY() + int(img.Height() / 2) -
+                pixel_size_x_;
+    double dm = (img.OffsetY() + int(img.Height() / 2) -
                  int(reader.ImageHeight() / 2)) *
-                _pixelSizeY,
-           dp = sqrt(1.0 - dl * dl - dm * dm) - 1.0;
-    std::cout << "Initializing gridder " << _buffersets.size() << " ("
+                pixel_size_y_;
+    double dp = sqrt(1.0 - dl * dl - dm * dm) - 1.0;
+    std::cout << "Initializing gridder " << buffersets_.size() << " ("
               << img.Width() << " x " << img.Height() << ", +" << img.OffsetX()
               << "," << img.OffsetY() << ", dl=" << dl * 180.0 / M_PI
               << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n";
@@ -144,14 +143,14 @@ void FacetPredict::StartIDG(bool saveFacets) {
       std::copy(img.Data(term), img.Data(term) + img.Width() * img.Height(),
                 data[term].data());
 
-      _buffersets.emplace_back(idg::api::BufferSet::create(proxyType));
-      idg::api::BufferSet& bs = *_buffersets.back();
+      buffersets_.emplace_back(idg::api::BufferSet::create(proxyType));
+      idg::api::BufferSet& bs = *buffersets_.back();
       options["padded_size"] = size_t(1.2 * img.Width());
       // options["max_threads"] = int(1);
-      bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, dl, dm, dp, options);
+      bs.init(img.Width(), pixel_size_x_, max_w_ + 1.0, dl, dm, dp, options);
       bs.set_image(data[term].data());
       bs.init_buffers(buffersize, {info_.chanFreqs()},
-                      info_.antennaUsed().size(), _maxBaseline, options,
+                      info_.antennaUsed().size(), max_baseline_, options,
                       idg::api::BufferSetType::degridding);
     }
 
@@ -159,19 +158,19 @@ void FacetPredict::StartIDG(bool saveFacets) {
       FitsWriter writer;
       writer.SetImageDimensions(img.Width(), img.Height(),
                                 reader.PhaseCentreRA(), reader.PhaseCentreDec(),
-                                _pixelSizeX, _pixelSizeY);
+                                pixel_size_x_, pixel_size_y_);
       writer.SetPhaseCentreShift(dl, dm);
-      writer.Write("facet" + std::to_string(_metaData.size()) + ".fits",
+      writer.Write("facet" + std::to_string(meta_data_.size()) + ".fits",
                    img.Data(0));
     }
 
-    _metaData.emplace_back();
-    FacetMetaData& m = _metaData.back();
+    meta_data_.emplace_back();
+    FacetMetaData& m = meta_data_.back();
     m.dl = dl;
     m.dm = dm;
     m.dp = dp;
-    m.isInitialized = false;
-    m.rowIdOffset = 0;
+    m.is_initialized = false;
+    m.row_id_offset = 0;
   }
 }
 
@@ -179,22 +178,22 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
                                   size_t rowId, size_t timeIndex,
                                   size_t antenna1, size_t antenna2,
                                   const double* uvw) {
-  size_t nTerms = _readers.size();
+  size_t nTerms = readers_.size();
   double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
-  if (uvw[2] > _maxW && uvwr2 <= _maxBaseline * _maxBaseline) {
+  if (uvw[2] > max_w_ && uvwr2 <= max_baseline_ * max_baseline_) {
     Flush();
-    _maxW *= 1.5;
-    std::cout << "Increasing maximum w to " << _maxW << '\n';
+    max_w_ *= 1.5;
+    std::cout << "Increasing maximum w to " << max_w_ << '\n';
     StartIDG(false);
   }
   for (size_t termIndex = 0; termIndex != nTerms; ++termIndex) {
-    idg::api::BufferSet& bs = *_buffersets[direction * nTerms + termIndex];
-    FacetMetaData& meta = _metaData[direction];
-    if (!meta.isInitialized) {
-      meta.rowIdOffset = rowId;
-      meta.isInitialized = true;
+    idg::api::BufferSet& bs = *buffersets_[direction * nTerms + termIndex];
+    FacetMetaData& meta = meta_data_[direction];
+    if (!meta.is_initialized) {
+      meta.row_id_offset = rowId;
+      meta.is_initialized = true;
     }
-    size_t localRowId = rowId - meta.rowIdOffset;
+    size_t localRowId = rowId - meta.row_id_offset;
     if (meta.uvws.size() <= localRowId * 3)
       meta.uvws.resize((localRowId + 1) * 3);
     for (size_t i = 0; i != 3; ++i) meta.uvws[localRowId * 3 + i] = uvw[i];
@@ -210,41 +209,40 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
 
 const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
     const {
-  return _directions;
+  return directions_;
 }
 
 void FacetPredict::Flush() {
-  for (size_t direction = 0; direction != _directions.size(); ++direction) {
+  for (size_t direction = 0; direction != directions_.size(); ++direction) {
     computePredictionBuffer(direction);
   }
 }
 
 void FacetPredict::SetBufferSize(size_t nTimesteps) {
-  _bufferSize = nTimesteps;
+  buffer_size_ = nTimesteps;
 }
 
 void FacetPredict::computePredictionBuffer(size_t direction) {
-  size_t nTerms = _readers.size();
+  size_t nTerms = readers_.size();
   typedef std::vector<std::pair<size_t, std::complex<float>*>> rowidlist_t;
   std::vector<rowidlist_t> available_row_ids(nTerms);
   for (size_t term = 0; term != nTerms; ++term) {
-    idg::api::BufferSet& bs = *_buffersets[direction * nTerms + term];
+    idg::api::BufferSet& bs = *buffersets_[direction * nTerms + term];
     available_row_ids[term] = bs.get_degridder(kDataDescId)->compute();
   }
 
-  size_t nChan = info_.nchan();
-  double dlFact = 2.0 * M_PI * _metaData[direction].dl,
-         dmFact = 2.0 * M_PI * _metaData[direction].dm,
-         dpFact = 2.0 * M_PI * _metaData[direction].dp;
+  double dlFact = 2.0 * M_PI * meta_data_[direction].dl,
+         dmFact = 2.0 * M_PI * meta_data_[direction].dm,
+         dpFact = 2.0 * M_PI * meta_data_[direction].dp;
   for (size_t i = 0; i != available_row_ids[0].size(); ++i) {
     size_t row = available_row_ids[0][i].first;
-    size_t localRow = row - _metaData[direction].rowIdOffset;
-    const double* uvw = &_metaData[direction].uvws[localRow * 3];
+    size_t localRow = row - meta_data_[direction].row_id_offset;
+    const double* uvw = &meta_data_[direction].uvws[localRow * 3];
 
     // Correct the phase shift of the values for this facet
     for (size_t term = 0; term != nTerms; ++term) {
       std::complex<float>* value = available_row_ids[term][i].second;
-      for (size_t ch = 0; ch != nChan; ++ch) {
+      for (size_t ch = 0; ch != info_.nchan(); ++ch) {
         const double lambda = wavelength(ch);
         const double u = uvw[0] / lambda;
         const double v = uvw[1] / lambda;
@@ -268,24 +266,27 @@ void FacetPredict::computePredictionBuffer(size_t direction) {
     // files when 'logarithmic SI' is false. The definition is:
     //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
     std::complex<float>* values0 = available_row_ids[0][i].second;
-    for (size_t ch = 0; ch != nChan; ++ch) {
+    for (size_t ch = 0; ch != info_.nchan(); ++ch) {
       double frequency = info_.chanFreqs()[ch];
-      double freqFactor = frequency / _refFrequency - 1.0;
+      double freqFactor = frequency / ref_frequency_ - 1.0;
       double polynomialFactor = 1.0;
       for (size_t term = 1; term != nTerms; ++term) {
         polynomialFactor *= freqFactor;
-        const std::complex<float>* values = available_row_ids[term][i].second;
-        for (size_t p = 0; p != 4; ++p)
-          values0[ch * 4 + p] += values[ch * 4 + p] * float(polynomialFactor);
+        const std::complex<float>* values =
+            available_row_ids[term][i].second + ch * info_.ncorr();
+        for (size_t corr = 0; corr != info_.ncorr(); ++corr) {
+          values0[corr] += values[corr] * float(polynomialFactor);
+        }
       }
+      values0 += info_.ncorr();
     }
     PredictCallback(row, direction, kDataDescId, values0);
   }
   for (size_t term = 0; term != nTerms; ++term) {
-    idg::api::BufferSet& bs = *_buffersets[direction * nTerms + term];
+    idg::api::BufferSet& bs = *buffersets_[direction * nTerms + term];
     bs.get_degridder(kDataDescId)->finished_reading();
   }
-  _metaData[direction].isInitialized = false;
+  meta_data_[direction].is_initialized = false;
 }
 
 #else  // HAVE_IDG
