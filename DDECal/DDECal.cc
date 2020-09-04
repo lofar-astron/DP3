@@ -308,9 +308,11 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
       parset.getStringVector(prefix + "idg.images");
   itsFacetPredictor =
       boost::make_unique<FacetPredict>(imageFilenames, regionFilename);
-  itsFacetPredictor->PredictCallback = std::bind(
-      &DDECal::idgCallback, this, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3, std::placeholders::_4);
+  itsFacetPredictor->PredictCallback =
+      [this](std::size_t row, std::size_t direction, std::size_t data_desc_id,
+             const std::complex<float>* values) {
+        idgCallback(row, direction, data_desc_id, values);
+      };
   itsDirections.resize(itsFacetPredictor->NDirections());
   for (size_t i = 0; i != itsDirections.size(); ++i)
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
