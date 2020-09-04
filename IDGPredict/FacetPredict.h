@@ -20,13 +20,14 @@
 #define FACET_PREDICT_H
 
 #ifdef HAVE_IDG
-
 #include "FacetImage.h"
 
 #include <idg-api.h>
 
 #include "FitsReader.h"
 #endif
+
+#include "../DPPP/DPInfo.h"
 
 #include <complex>
 #include <functional>
@@ -43,7 +44,7 @@ class FacetPredict {
   FacetPredict(const std::vector<std::string>& fitsModelFiles,
                const std::string& ds9RegionsFile);
 
-  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations);
+  void updateInfo(const DP3::DPPP::DPInfo& info);
 
   bool IsStarted() const;
 
@@ -55,7 +56,7 @@ class FacetPredict {
 
   const std::vector<std::pair<double, double>>& GetDirections() const;
 
-  void Flush();
+  void Flush(size_t dataDescId);
 
   void SetBufferSize(size_t nTimesteps);
 
@@ -83,9 +84,8 @@ class FacetPredict {
   size_t _bufferSize;
 
   /// MS info
+  DP3::DPPP::DPInfo info_;
   double _maxW;
-  std::vector<std::vector<double>> _bands;
-  size_t _nr_stations;
   double _maxBaseline;
   std::vector<std::pair<double, double>> _directions;
 #endif

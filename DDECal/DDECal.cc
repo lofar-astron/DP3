@@ -55,10 +55,6 @@
 
 #include <aocommon/threadpool.h>
 
-#include <fstream>
-#include <ctime>
-#include <utility>
-
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/make_unique.hpp>
 
@@ -71,15 +67,23 @@
 #include <casacore/casa/OS/File.h>
 
 #include <algorithm>
+#include <cassert>
+#include <ctime>
+#include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <utility>
 #include <vector>
-#include <functional>
 
 using namespace casacore;
 using namespace DP3::BBS;
+
+namespace {
+const std::size_t kDataDescId = 0;
+}
 
 namespace DP3 {
 namespace DPPP {
@@ -738,7 +742,7 @@ void DDECal::checkMinimumVisibilities() {
 
 void DDECal::doSolve() {
   if (itsUseIDG) {
-    itsFacetPredictor->Flush();
+    itsFacetPredictor->Flush(kDataDescId);
   }
 
   MultiDirSolver::SolveResult solveResult;
@@ -869,11 +873,7 @@ bool DDECal::process(const DPBuffer& bufin) {
   } else if (itsUseIDG) {
     if (!itsFacetPredictor->IsStarted()) {
       // if this is the first time, hand some meta info to IDG
-      std::vector<double> band1(info().chanFreqs().begin(),
-                                info().chanFreqs().end());
-      std::vector<std::vector<double>> bands({std::move(band1)});
-      size_t nAnt = info().antennaUsed().size();
-      itsFacetPredictor->SetMSInfo(std::move(bands), nAnt);
+      itsFacetPredictor->updateInfo(info());
       itsFacetPredictor->StartIDG(itsSaveFacets);
     }
 
@@ -893,7 +893,7 @@ bool DDECal::process(const DPBuffer& bufin) {
         casacore::Array<double> uvw = uvws[bl];
         size_t id = bl + itsStepInSolInt * nBl;
         itsFacetPredictor->RequestPredict(
-            direction, 0, id, itsStepInSolInt,
+            direction, kDataDescId, id, itsStepInSolInt,
             info().antennaMap()[info().getAnt1()[bl]],
             info().antennaMap()[info().getAnt2()[bl]], uvw.data());
       }
@@ -983,6 +983,7 @@ bool DDECal::process(const DPBuffer& bufin) {
 void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId,
                          const std::complex<float>* values) {
   // std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
+  assert(kDataDescId == dataDescId);
   size_t nBl = info().nbaselines();
   size_t solTimestep = row / nBl;
   size_t bl = row % nBl;
