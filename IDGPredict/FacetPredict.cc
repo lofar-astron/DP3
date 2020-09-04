@@ -27,6 +27,10 @@
 #include <algorithm>
 #include <iostream>
 
+namespace {
+constexpr int kDataDescId = 0;  // DP3 only uses a single spectral window.
+}
+
 FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
                            const std::string& ds9RegionsFile)
     : _padding(1.0), _bufferSize(0) {
@@ -77,14 +81,15 @@ FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
 
-void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
-                             size_t nr_stations) {
+void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
+  // TODO, when FacetPredict is a DPStep:
+  // Remove info_ member, and call DPStep::updateInfo(info); here.
+  info_ = info;
+
   _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
   _maxW = _maxBaseline * 0.1;
   std::cout << "Predicting baselines up to " << _maxBaseline
             << " wavelengths.\n";
-  _bands = std::move(bands);
-  _nr_stations = nr_stations;
 }
 
 bool FacetPredict::IsStarted() const { return !_buffersets.empty(); }
@@ -94,14 +99,12 @@ void FacetPredict::StartIDG(bool saveFacets) {
   idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
   size_t nTerms = _readers.size();
 
-  size_t maxChannels = 0;
-  for (std::vector<double>& band : _bands)
-    maxChannels = std::max(maxChannels, band.size());
+  size_t maxChannels = info_.chanFreqs().size();
   long int pageCount = sysconf(_SC_PHYS_PAGES),
            pageSize = sysconf(_SC_PAGE_SIZE);
   int64_t memory = (int64_t)pageCount * (int64_t)pageSize;
-  uint64_t memPerTimestep =
-      idg::api::BufferSet::get_memory_per_timestep(_nr_stations, maxChannels);
+  uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(
+      info_.antennaUsed().size(), maxChannels);
   memPerTimestep *= 2;  // IDG uses two internal buffer
   // Allow the directions together to use 1/4th of the available memory for
   // the vis buffers.
@@ -147,7 +150,8 @@ void FacetPredict::StartIDG(bool saveFacets) {
       // options["max_threads"] = int(1);
       bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, dl, dm, dp, options);
       bs.set_image(data[term].data());
-      bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options,
+      bs.init_buffers(buffersize, {info_.chanFreqs()},
+                      info_.antennaUsed().size(), _maxBaseline, options,
                       idg::api::BufferSetType::degridding);
     }
 
@@ -199,7 +203,7 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
     while (bs.get_degridder(dataDescId)
                ->request_visibilities(rowId, timeIndex, antenna1, antenna2,
                                       uvwFlipped)) {
-      computePredictionBuffer(dataDescId, direction);
+      computePredictionBuffer(direction);
     }
   }
 }
@@ -210,9 +214,8 @@ const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
 }
 
 void FacetPredict::Flush() {
-  for (size_t b = 0; b != _bands.size(); ++b) {
-    for (size_t direction = 0; direction != _directions.size(); ++direction)
-      computePredictionBuffer(b, direction);
+  for (size_t direction = 0; direction != _directions.size(); ++direction) {
+    computePredictionBuffer(direction);
   }
 }
 
@@ -220,17 +223,16 @@ void FacetPredict::SetBufferSize(size_t nTimesteps) {
   _bufferSize = nTimesteps;
 }
 
-void FacetPredict::computePredictionBuffer(size_t dataDescId,
-                                           size_t direction) {
+void FacetPredict::computePredictionBuffer(size_t direction) {
   size_t nTerms = _readers.size();
   typedef std::vector<std::pair<size_t, std::complex<float>*>> rowidlist_t;
   std::vector<rowidlist_t> available_row_ids(nTerms);
   for (size_t term = 0; term != nTerms; ++term) {
     idg::api::BufferSet& bs = *_buffersets[direction * nTerms + term];
-    available_row_ids[term] = bs.get_degridder(dataDescId)->compute();
+    available_row_ids[term] = bs.get_degridder(kDataDescId)->compute();
   }
 
-  size_t nChan = _bands[dataDescId].size();
+  size_t nChan = info_.nchan();
   double dlFact = 2.0 * M_PI * _metaData[direction].dl,
          dmFact = 2.0 * M_PI * _metaData[direction].dm,
          dpFact = 2.0 * M_PI * _metaData[direction].dp;
@@ -241,17 +243,20 @@ void FacetPredict::computePredictionBuffer(size_t dataDescId,
 
     // Correct the phase shift of the values for this facet
     for (size_t term = 0; term != nTerms; ++term) {
-      std::complex<float>* values = available_row_ids[term][i].second;
+      std::complex<float>* value = available_row_ids[term][i].second;
       for (size_t ch = 0; ch != nChan; ++ch) {
-        double lambda = wavelength(dataDescId, ch), u = uvw[0] / lambda,
-               v = uvw[1] / lambda, w = uvw[2] / lambda;
-        double angle = u * dlFact + v * dmFact + w * dpFact;
-        float rotSin = sin(angle), rotCos = cos(angle);
-        for (size_t p = 0; p != 4; ++p) {
-          std::complex<float> s = values[ch * 4 + p];
-          values[ch * 4 + p] =
-              std::complex<float>(s.real() * rotCos - s.imag() * rotSin,
-                                  s.real() * rotSin + s.imag() * rotCos);
+        const double lambda = wavelength(ch);
+        const double u = uvw[0] / lambda;
+        const double v = uvw[1] / lambda;
+        const double w = uvw[2] / lambda;
+        const double angle = u * dlFact + v * dmFact + w * dpFact;
+        const float rotSin = sin(angle);
+        const float rotCos = cos(angle);
+
+        for (std::size_t corr = 0; corr < info_.ncorr(); ++corr) {
+          *value = {value->real() * rotCos - value->imag() * rotSin,
+                    value->real() * rotSin + value->imag() * rotCos};
+          ++value;
         }
       }
     }
@@ -264,7 +269,7 @@ void FacetPredict::computePredictionBuffer(size_t dataDescId,
     //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
     std::complex<float>* values0 = available_row_ids[0][i].second;
     for (size_t ch = 0; ch != nChan; ++ch) {
-      double frequency = _bands[dataDescId][ch];
+      double frequency = info_.chanFreqs()[ch];
       double freqFactor = frequency / _refFrequency - 1.0;
       double polynomialFactor = 1.0;
       for (size_t term = 1; term != nTerms; ++term) {
@@ -274,11 +279,11 @@ void FacetPredict::computePredictionBuffer(size_t dataDescId,
           values0[ch * 4 + p] += values[ch * 4 + p] * float(polynomialFactor);
       }
     }
-    PredictCallback(row, direction, dataDescId, values0);
+    PredictCallback(row, direction, kDataDescId, values0);
   }
   for (size_t term = 0; term != nTerms; ++term) {
     idg::api::BufferSet& bs = *_buffersets[direction * nTerms + term];
-    bs.get_degridder(dataDescId)->finished_reading();
+    bs.get_degridder(kDataDescId)->finished_reading();
   }
   _metaData[direction].isInitialized = false;
 }

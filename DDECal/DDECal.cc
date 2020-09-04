@@ -870,11 +870,7 @@ bool DDECal::process(const DPBuffer& bufin) {
   } else if (itsUseIDG) {
     if (!itsFacetPredictor->IsStarted()) {
       // if this is the first time, hand some meta info to IDG
-      std::vector<double> band1(info().chanFreqs().begin(),
-                                info().chanFreqs().end());
-      std::vector<std::vector<double>> bands({std::move(band1)});
-      size_t nAnt = info().antennaUsed().size();
-      itsFacetPredictor->SetMSInfo(std::move(bands), nAnt);
+      itsFacetPredictor->updateInfo(info());
       itsFacetPredictor->StartIDG(itsSaveFacets);
     }
 
