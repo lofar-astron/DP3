@@ -183,7 +183,9 @@ void FacetPredict::RequestPredict(const size_t direction, size_t rowId,
   size_t nTerms = readers_.size();
   double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
   if (uvw[2] > max_w_ && uvwr2 <= max_baseline_ * max_baseline_) {
-    Flush();
+    for (std::size_t dir = 0; dir < directions_.size(); ++dir) {
+      Flush(dir);
+    }
     max_w_ *= 1.5;
     std::cout << "Increasing maximum w to " << max_w_ << '\n';
     StartIDG(false);
