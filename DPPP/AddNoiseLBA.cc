@@ -158,7 +158,6 @@ namespace DP3 {
 		 coeff[5]*pow(nu,5.0);
           stddev = eta * sefd;
 	  stddev = stddev / sqrt(2.0*exposure*chan_width[ifreq]);
-          stddev = (ifreq+1)*10.0;
 	  //cout << "STDDEV ======== " << stddev << " " << nu << endl;
           std::normal_distribution<double> distribution(0.0,stddev);
 
