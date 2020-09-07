@@ -20,8 +20,7 @@
 #define BUFFER_LANE_H
 
 #include <aocommon/lane.h>
-
-#include <boost/make_unique.hpp>
+#include <aocommon/uvector.h>
 
 #include <memory>
 #include <vector>
@@ -111,8 +110,9 @@ class lane_read_buffer {
   lane_read_buffer(const lane_read_buffer&) = delete;
   lane_read_buffer& operator=(const lane_read_buffer&) = delete;
 
-  std::vector<Tp> _buffer;
-  size_t _buffer_pos, _buffer_fill_count;
+  aocommon::UVector<Tp> _buffer;
+  std::size_t _buffer_pos;
+  std::size_t _buffer_fill_count;
   aocommon::Lane<Tp>* _lane;
 };
 
