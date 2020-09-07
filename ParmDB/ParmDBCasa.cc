@@ -334,7 +334,7 @@ void ParmDBCasa::getValues(vector<ParmValueSet>& psets,
         double sy = syCol(row);
         double ex = exCol(row);
         double ey = eyCol(row);
-        ParmValue::ShPtr pval = ParmValue::ShPtr(new ParmValue);
+        auto pval = std::make_shared<ParmValue>();
         if (type != ParmValue::Scalar) {
           pval->setCoeff(valCol(row));
         } else {
@@ -507,11 +507,11 @@ Axis::ShPtr ParmDBCasa::getInterval(ROArrayColumn<double>& col,
                                     unsigned int rownr, double st, double end,
                                     unsigned int n) {
   if (!col.isDefined(rownr)) {
-    return Axis::ShPtr(new RegularAxis(st, end, n, true));
+    return std::make_shared<RegularAxis>(st, end, n, true);
   }
   Array<double> arr = col(rownr);
   if (arr.size() == 0) {
-    return Axis::ShPtr(new RegularAxis(st, end, n, true));
+    return std::make_shared<RegularAxis>(st, end, n, true);
   }
   assert(arr.shape()[1] == int(n));
   const double* arrp = arr.data();
@@ -522,7 +522,7 @@ Axis::ShPtr ParmDBCasa::getInterval(ROArrayColumn<double>& col,
     vc.push_back(*arrp++);
     vw.push_back(*arrp++);
   }
-  return Axis::ShPtr(new OrderedAxis(vc, vw, false));
+  return std::make_shared<OrderedAxis>(vc, vw, false);
 }
 
 int ParmDBCasa::putName(const string& name, const ParmValueSet& pset) {

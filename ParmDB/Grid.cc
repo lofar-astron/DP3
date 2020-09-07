@@ -27,15 +27,15 @@
 namespace DP3 {
 namespace BBS {
 
-GridRep::GridRep() : itsIsDefault(true) {
-  itsAxes[0] = Axis::ShPtr(new RegularAxis());
-  itsAxes[1] = Axis::ShPtr(new RegularAxis());
+GridRep::GridRep()
+    : itsAxes{std::make_shared<RegularAxis>(), std::make_shared<RegularAxis>()},
+      itsHash(0),
+      itsIsDefault(true) {
   init();
 }
 
-GridRep::GridRep(Axis::ShPtr first, Axis::ShPtr second) : itsIsDefault(false) {
-  itsAxes[0] = first;
-  itsAxes[1] = second;
+GridRep::GridRep(Axis::ShPtr first, Axis::ShPtr second)
+    : itsAxes{first, second}, itsHash(0), itsIsDefault(false) {
   init();
 }
 
@@ -43,8 +43,8 @@ GridRep::GridRep(const std::vector<Box>& domains, bool unsorted)
     : itsIsDefault(false) {
   if (domains.empty()) {
     itsIsDefault = true;
-    itsAxes[0] = Axis::ShPtr(new RegularAxis());
-    itsAxes[1] = Axis::ShPtr(new RegularAxis());
+    itsAxes[0] = std::make_shared<RegularAxis>();
+    itsAxes[1] = std::make_shared<RegularAxis>();
   } else {
     if (unsorted) {
       std::vector<Box> sortDomains(domains);
@@ -61,8 +61,8 @@ GridRep::GridRep(const std::vector<Grid>& grids, bool unsorted)
     : itsIsDefault(false) {
   if (grids.empty()) {
     itsIsDefault = true;
-    itsAxes[0] = Axis::ShPtr(new RegularAxis());
-    itsAxes[1] = Axis::ShPtr(new RegularAxis());
+    itsAxes[0] = std::make_shared<RegularAxis>();
+    itsAxes[1] = std::make_shared<RegularAxis>();
   } else {
     if (unsorted) {
       std::vector<Grid> sortGrids(grids);
@@ -144,14 +144,14 @@ void GridRep::setup(const std::vector<Box>& domains) {
   // Create the (ir)regular axis.
   // Note that OrderedAxis checks if the intervals are ordered.
   if (xregular) {
-    itsAxes[0] = Axis::ShPtr(new RegularAxis(xaxisStart[0], dx, nx));
+    itsAxes[0] = std::make_shared<RegularAxis>(xaxisStart[0], dx, nx);
   } else {
-    itsAxes[0] = Axis::ShPtr(new OrderedAxis(xaxisStart, xaxisEnd, true));
+    itsAxes[0] = std::make_shared<OrderedAxis>(xaxisStart, xaxisEnd, true);
   }
   if (yregular) {
-    itsAxes[1] = Axis::ShPtr(new RegularAxis(yaxisStart[0], dy, ny));
+    itsAxes[1] = std::make_shared<RegularAxis>(yaxisStart[0], dy, ny);
   } else {
-    itsAxes[1] = Axis::ShPtr(new OrderedAxis(yaxisStart, yaxisEnd, true));
+    itsAxes[1] = std::make_shared<OrderedAxis>(yaxisStart, yaxisEnd, true);
   }
 }
 
@@ -212,7 +212,7 @@ Axis::ShPtr GridRep::combineAxes(const std::vector<Grid>& grids,
   }
   // If regular, return as such.
   if (isRegular) {
-    return Axis::ShPtr(new RegularAxis(faxis->lower(0), width, ncells));
+    return std::make_shared<RegularAxis>(faxis->lower(0), width, ncells);
   }
   // Alas irregular, so create an ordered axis.
   std::vector<double> starts;
@@ -226,7 +226,7 @@ Axis::ShPtr GridRep::combineAxes(const std::vector<Grid>& grids,
       ends.push_back(axis->upper(j));
     }
   }
-  return Axis::ShPtr(new OrderedAxis(starts, ends, true));
+  return std::make_shared<OrderedAxis>(starts, ends, true);
 }
 
 void GridRep::init() {
@@ -250,7 +250,7 @@ Grid::Grid(const std::vector<Grid>& grids, bool unsorted) {
   if (grids.size() == 1) {
     this->operator=(grids[0]);
   } else {
-    itsRep = GridRep::ShPtr(new GridRep(grids, unsorted));
+    itsRep = std::make_shared<GridRep>(grids, unsorted);
   }
 }
 

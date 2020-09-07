@@ -52,7 +52,7 @@ class Axis : public BlobStreamable {
   virtual ~Axis() {}
 
   /// Clone the object.
-  virtual Axis* clone() const = 0;
+  virtual Axis::ShPtr clone() const = 0;
 
   /// Check if two axes are equal. They are if they the same type and values.
   ///@{
@@ -199,19 +199,19 @@ class RegularAxis : public Axis {
   virtual ~RegularAxis();
 
   /// Clone the object.
-  virtual RegularAxis* clone() const;
+  Axis::ShPtr clone() const override;
 
-  virtual Axis::ShPtr doSubset(size_t start, size_t end) const;
-  virtual Axis::ShPtr compress(size_t factor) const;
+  Axis::ShPtr doSubset(size_t start, size_t end) const override;
+  Axis::ShPtr compress(size_t factor) const override;
 
   /// Write the contents of \c *this into the blob output stream \a bos.
-  virtual void write(BlobOStream& bos) const;
+  void write(BlobOStream& bos) const override;
 
   /// Read the contents from the blob input stream \a bis into \c *this.
-  virtual void read(BlobIStream& bis);
+  void read(BlobIStream& bis) override;
 
   /// Return the type of \c *this as a string.
-  virtual const std::string& classType() const;
+  const std::string& classType() const override;
 
  private:
   double itsStart;
@@ -237,19 +237,19 @@ class OrderedAxis : public Axis {
   virtual ~OrderedAxis();
 
   /// Clone the object.
-  virtual OrderedAxis* clone() const;
+  Axis::ShPtr clone() const override;
 
-  virtual Axis::ShPtr doSubset(size_t start, size_t end) const;
-  virtual Axis::ShPtr compress(size_t factor) const;
+  Axis::ShPtr doSubset(size_t start, size_t end) const override;
+  Axis::ShPtr compress(size_t factor) const override;
 
   /// Write the contents of \c *this into the blob output stream \a bos.
-  virtual void write(BlobOStream& bos) const;
+  void write(BlobOStream& bos) const override;
 
   /// Read the contents from the blob input stream \a bis into \c *this.
-  virtual void read(BlobIStream& bis);
+  void read(BlobIStream& bis) override;
 
   /// Return the type of \c *this as a string.
-  virtual const std::string& classType() const;
+  const std::string& classType() const override;
 };
 
 /// @}

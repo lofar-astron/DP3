@@ -534,8 +534,8 @@ Axis::ShPtr ParmFacadeLocal::makeAxis(const Vector<double>& centers,
                                       const Vector<double>& widths,
                                       unsigned int n) const {
   if (centers.size() == 1) {
-    return Axis::ShPtr(
-        new RegularAxis(centers[0] - 0.5 * widths[0], widths[0], n));
+    return std::make_shared<RegularAxis>(centers[0] - 0.5 * widths[0],
+                                         widths[0], n);
   }
   // Convert from center/width to start/end.
   vector<double> low, upp;
