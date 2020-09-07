@@ -179,8 +179,7 @@ class MultiMSReader : public MSReader {
   int itsFirst;     ///< first valid MSReader (<0 = none)
   int itsNMissing;  ///< nr of missing MSs
   std::vector<string> itsMSNames;
-  std::vector<MSReader*> itsReaders;    ///< same as itsSteps
-  std::vector<DPStep::ShPtr> itsSteps;  ///< used for automatic destruction
+  std::vector<std::shared_ptr<MSReader>> itsReaders;
   std::vector<DPBuffer> itsBuffers;
   unsigned int itsFillNChan;  ///< nr of chans for missing MSs
   FlagCounter itsFlagCounter;
