@@ -306,13 +306,12 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   std::string regionFilename = parset.getString(prefix + "idg.regions");
   std::vector<std::string> imageFilenames =
       parset.getStringVector(prefix + "idg.images");
-  itsFacetPredictor =
-      boost::make_unique<FacetPredict>(imageFilenames, regionFilename);
-  itsFacetPredictor->PredictCallback =
-      [this](std::size_t row, std::size_t direction, std::size_t data_desc_id,
+  itsFacetPredictor = boost::make_unique<FacetPredict>(
+      imageFilenames, regionFilename,
+      [this](std::size_t row, std::size_t direction,
              const std::complex<float>* values) {
-        idgCallback(row, direction, data_desc_id, values);
-      };
+        idgCallback(row, direction, values);
+      });
   itsDirections.resize(itsFacetPredictor->GetDirections().size());
   for (size_t i = 0; i != itsDirections.size(); ++i)
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
@@ -739,7 +738,10 @@ void DDECal::checkMinimumVisibilities() {
 
 void DDECal::doSolve() {
   if (itsUseIDG) {
-    itsFacetPredictor->Flush();
+    for (std::size_t direction = 0;
+         direction < itsFacetPredictor->GetDirections().size(); ++direction) {
+      itsFacetPredictor->Flush(direction);
+    }
   }
 
   MultiDirSolver::SolveResult solveResult;
@@ -782,35 +784,28 @@ void DDECal::doSolve() {
   // number
   if (solveResult.iterations > itsMultiDirSolver.max_iterations() &&
       itsFlagUnconverged) {
-    for (size_t i = 0; i != solveResult._results.size(); ++i) {
-      for (size_t j = 0; j != solveResult._results[i].size(); ++j) {
+    for (auto& constraint_results : solveResult._results) {
+      for (auto& result : constraint_results) {
         if (itsFlagDivergedOnly) {
           // Set weights with negative values (indicating unconverged
           // solutions that diverged) to zero (all other unconverged
           // solutions remain unflagged)
-          for (size_t k = 0; k != solveResult._results[i][j].weights.size();
-               ++k) {
-            if (solveResult._results[i][j].weights[k] < 0.) {
-              solveResult._results[i][j].weights[k] = 0.;
-            }
+          for (double& weight : result.weights) {
+            if (weight < 0.) weight = 0.;
           }
         } else {
           // Set all weights to zero
-          solveResult._results[i][j].weights.assign(
-              solveResult._results[i][j].weights.size(), 0.);
+          result.weights.assign(result.weights.size(), 0.);
         }
       }
     }
   } else {
     // Set any negative weights (indicating unconverged solutions that diverged)
     // to one (all other unconverged solutions are unflagged already)
-    for (size_t i = 0; i != solveResult._results.size(); ++i) {
-      for (size_t j = 0; j != solveResult._results[i].size(); ++j) {
-        for (size_t k = 0; k != solveResult._results[i][j].weights.size();
-             ++k) {
-          if (solveResult._results[i][j].weights[k] < 0.) {
-            solveResult._results[i][j].weights[k] = 1.;
-          }
+    for (auto& constraint_results : solveResult._results) {
+      for (auto& result : constraint_results) {
+        for (double& weight : result.weights) {
+          if (weight < 0.) weight = 1.;
         }
       }
     }
@@ -818,9 +813,8 @@ void DDECal::doSolve() {
 
   // Store constraint solutions if any constaint has a non-empty result
   bool someConstraintHasResult = false;
-  for (unsigned int constraintnum = 0;
-       constraintnum < solveResult._results.size(); ++constraintnum) {
-    if (!solveResult._results[constraintnum].empty()) {
+  for (const auto& constraint_results : solveResult._results) {
+    if (!constraint_results.empty()) {
       someConstraintHasResult = true;
       break;
     }
@@ -887,12 +881,11 @@ bool DDECal::process(const DPBuffer& bufin) {
       itsModelDataPtrs[itsStepInSolInt][direction] =
           itsIDGBuffers[itsStepInSolInt][direction].data();
       for (size_t bl = 0; bl < nBl; ++bl) {
-        casacore::Array<double> uvw = uvws[bl];
         size_t id = bl + itsStepInSolInt * nBl;
         itsFacetPredictor->RequestPredict(
-            direction, 0, id, itsStepInSolInt,
+            direction, id, itsStepInSolInt,
             info().antennaMap()[info().getAnt1()[bl]],
-            info().antennaMap()[info().getAnt2()[bl]], uvw.data());
+            info().antennaMap()[info().getAnt2()[bl]], uvws[bl].data());
       }
     }
   } else {
@@ -977,14 +970,15 @@ bool DDECal::process(const DPBuffer& bufin) {
   return false;
 }
 
-void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId,
+void DDECal::idgCallback(size_t row, size_t direction,
                          const std::complex<float>* values) {
   // std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
   size_t nBl = info().nbaselines();
   size_t solTimestep = row / nBl;
   size_t bl = row % nBl;
-  std::copy_n(values, info().nchan() * 4,
-              &itsIDGBuffers[solTimestep][direction][bl * info().nchan() * 4]);
+  const std::size_t bl_size = info().nchan() * info().ncorr();
+  std::copy_n(values, bl_size,
+              &itsIDGBuffers[solTimestep][direction][bl * bl_size]);
 }
 
 void DDECal::writeSolutions() {

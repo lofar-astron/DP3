@@ -36,13 +36,12 @@
 
 class FacetPredict {
  public:
-  std::function<void(size_t /*row*/, size_t /*direction*/,
-                     size_t /*dataDescId*/,
-                     const std::complex<float>* /*values*/)>
-      PredictCallback;
+  using PredictCallback =
+      std::function<void(size_t /*row*/, size_t /*direction*/,
+                         const std::complex<float>* /*values*/)>;
 
   FacetPredict(const std::vector<std::string> fitsModelFiles,
-               const std::string& ds9RegionsFile);
+               const std::string& ds9RegionsFile, PredictCallback&& callback);
 
   void updateInfo(const DP3::DPPP::DPInfo& info);
 
@@ -50,13 +49,12 @@ class FacetPredict {
 
   void StartIDG(bool saveFacets);
 
-  void RequestPredict(size_t direction, size_t dataDescId, size_t rowId,
-                      size_t timeIndex, size_t antenna1, size_t antenna2,
-                      const double* uvw);
+  void RequestPredict(size_t direction, size_t rowId, size_t timeIndex,
+                      size_t antenna1, size_t antenna2, const double* uvw);
 
   const std::vector<std::pair<double, double>>& GetDirections() const;
 
-  void Flush();
+  void Flush(std::size_t direction);
 
   void SetBufferSize(size_t nTimesteps);
 
@@ -70,6 +68,7 @@ class FacetPredict {
     return c() / info_.chanFreqs()[channel];
   }
 
+  PredictCallback predict_callback_;
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
   struct FacetMetaData {

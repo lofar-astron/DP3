@@ -32,10 +32,13 @@ constexpr int kDataDescId = 0;  // DP3 only uses a single spectral window.
 }
 
 FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
-                           const std::string& ds9RegionsFile)
-    : padding_(1.0), buffer_size_(0) {
-  if (fitsModelFiles.empty())
+                           const std::string& ds9RegionsFile,
+                           PredictCallback&& callback)
+    : predict_callback_(std::move(callback)), padding_(1.0), buffer_size_(0) {
+  if (fitsModelFiles.empty()) {
     throw std::runtime_error("No fits files specified for IDG predict");
+  }
+
   readers_.reserve(fitsModelFiles.size());
   for (const std::string& file : fitsModelFiles) readers_.emplace_back(file);
 
@@ -174,10 +177,9 @@ void FacetPredict::StartIDG(bool saveFacets) {
   }
 }
 
-void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
-                                  size_t rowId, size_t timeIndex,
-                                  size_t antenna1, size_t antenna2,
-                                  const double* uvw) {
+void FacetPredict::RequestPredict(const size_t direction, size_t rowId,
+                                  size_t timeIndex, size_t antenna1,
+                                  size_t antenna2, const double* uvw) {
   size_t nTerms = readers_.size();
   double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
   if (uvw[2] > max_w_ && uvwr2 <= max_baseline_ * max_baseline_) {
@@ -197,9 +199,9 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
     if (meta.uvws.size() <= localRowId * 3)
       meta.uvws.resize((localRowId + 1) * 3);
     for (size_t i = 0; i != 3; ++i) meta.uvws[localRowId * 3 + i] = uvw[i];
-    double uvwFlipped[3] = {uvw[0], -uvw[1],
-                            -uvw[2]};  // IDG uses a flipped coordinate system
-    while (bs.get_degridder(dataDescId)
+    // IDG uses a flipped coordinate system
+    double uvwFlipped[3] = {uvw[0], -uvw[1], -uvw[2]};
+    while (bs.get_degridder(kDataDescId)
                ->request_visibilities(rowId, timeIndex, antenna1, antenna2,
                                       uvwFlipped)) {
       computePredictionBuffer(direction);
@@ -212,17 +214,15 @@ const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
   return directions_;
 }
 
-void FacetPredict::Flush() {
-  for (size_t direction = 0; direction != directions_.size(); ++direction) {
-    computePredictionBuffer(direction);
-  }
+void FacetPredict::Flush(const std::size_t direction) {
+  computePredictionBuffer(direction);
 }
 
 void FacetPredict::SetBufferSize(size_t nTimesteps) {
   buffer_size_ = nTimesteps;
 }
 
-void FacetPredict::computePredictionBuffer(size_t direction) {
+void FacetPredict::computePredictionBuffer(const size_t direction) {
   size_t nTerms = readers_.size();
   typedef std::vector<std::pair<size_t, std::complex<float>*>> rowidlist_t;
   std::vector<rowidlist_t> available_row_ids(nTerms);
@@ -280,7 +280,7 @@ void FacetPredict::computePredictionBuffer(size_t direction) {
       }
       values0 += info_.ncorr();
     }
-    PredictCallback(row, direction, kDataDescId, values0);
+    predict_callback_(row, direction, values0);
   }
   for (size_t term = 0; term != nTerms; ++term) {
     idg::api::BufferSet& bs = *buffersets_[direction * nTerms + term];

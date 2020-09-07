@@ -51,7 +51,7 @@ class MultiDirSolver {
 
   struct SolveResult {
     size_t iterations, constraintIterations;
-    std::vector<std::vector<Constraint::Result> > _results;
+    std::vector<std::vector<Constraint::Result>> _results;
   };
 
   MultiDirSolver();
@@ -64,11 +64,11 @@ class MultiDirSolver {
   /// timestep i to arrays of ndir model data pointers Each of these pointers is
   /// in the same order as the data. solutions[ch] is a pointer for channelblock
   /// ch to antenna x directions solutions.
-  SolveResult processScalar(
-      const std::vector<Complex*>& data, const std::vector<float*>& weights,
-      const std::vector<std::vector<Complex*> >& modelData,
-      std::vector<std::vector<DComplex> >& solutions, double time,
-      std::ostream* statStream);
+  SolveResult processScalar(const std::vector<Complex*>& data,
+                            const std::vector<float*>& weights,
+                            const std::vector<std::vector<Complex*>>& modelData,
+                            std::vector<std::vector<DComplex>>& solutions,
+                            double time, std::ostream* statStream);
 
   /**
    * Same as @ref processScalar(), but solves full Jones matrices.
@@ -80,8 +80,8 @@ class MultiDirSolver {
    */
   SolveResult processFullMatrix(
       const std::vector<Complex*>& data, const std::vector<float*>& weights,
-      const std::vector<std::vector<Complex*> >& modelData,
-      std::vector<std::vector<DComplex> >& solutions, double time,
+      const std::vector<std::vector<Complex*>>& modelData,
+      std::vector<std::vector<DComplex>>& solutions, double time,
       std::ostream* statStream);
 
   void set_phase_only(bool phaseOnly) { _phaseOnly = phaseOnly; }
@@ -130,17 +130,17 @@ class MultiDirSolver {
                                   const std::vector<DComplex>& solutions,
                                   std::vector<DComplex>& nextSolutions);
 
-  void makeStep(const std::vector<std::vector<DComplex> >& solutions,
-                std::vector<std::vector<DComplex> >& nextSolutions) const;
+  void makeStep(const std::vector<std::vector<DComplex>>& solutions,
+                std::vector<std::vector<DComplex>>& nextSolutions) const;
 
   bool detectStall(size_t iteration,
                    const std::vector<double>& stepMagnitudes) const;
 
   static void makeSolutionsFinite1pol(
-      std::vector<std::vector<DComplex> >& solutions);
+      std::vector<std::vector<DComplex>>& solutions);
 
   static void makeSolutionsFinite4pol(
-      std::vector<std::vector<DComplex> >& solutions);
+      std::vector<std::vector<DComplex>>& solutions);
 
   template <typename T>
   static bool isfinite(const std::complex<T>& val) {
@@ -153,8 +153,8 @@ class MultiDirSolver {
    * magnitude to step_magnitudes
    */
   template <size_t NPol>
-  bool assignSolutions(std::vector<std::vector<DComplex> >& solutions,
-                       std::vector<std::vector<DComplex> >& nextSolutions,
+  bool assignSolutions(std::vector<std::vector<DComplex>>& solutions,
+                       std::vector<std::vector<DComplex>>& nextSolutions,
                        bool useConstraintAccuracy, double& sum,
                        std::vector<double>& step_magnitudes) const;
 
