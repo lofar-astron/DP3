@@ -43,11 +43,11 @@ ParmFacade::ParmFacade(const string& tableName, bool create) {
   // If it is an existing table, open it directly.
   // Otherwise it is a distributed ParmDB.
   if (create) {
-    itsRep = ParmFacadeRep::ShPtr(new ParmFacadeLocal(tableName, create));
+    itsRep = std::make_shared<ParmFacadeLocal>(tableName, create);
   } else if (Table::isReadable(tableName)) {
-    itsRep = ParmFacadeRep::ShPtr(new ParmFacadeLocal(tableName));
+    itsRep = std::make_shared<ParmFacadeLocal>(tableName);
   } else {
-    // itsRep = ParmFacadeRep::ShPtr(new ParmFacadeDistr(tableName));
+    // itsRep = std::make_shared<ParmFacadeDistr>(tableName);
     throw std::runtime_error("distributed parm facade not available");
   }
 }
