@@ -141,8 +141,11 @@ namespace DP3 {
 
       // Add noise
 
+      int ibegin = 0;
+      int iend = n_baselines;
       long icount = 0;
-      for (int icorr=0; icorr<n_corr; icorr++)
+      /////////for (int icorr=0; icorr<n_corr; icorr++)
+      for (int ibase=ibegin; ibase<iend; ibase++)
       {
         for (int ifreq=0; ifreq<n_freq; ifreq++) 
         {
@@ -155,11 +158,12 @@ namespace DP3 {
 		 coeff[5]*pow(nu,5.0);
           stddev = eta * sefd;
 	  stddev = stddev / sqrt(2.0*exposure*chan_width[ifreq]);
+          stddev = (ifreq+1)*10.0;
+	  //cout << "STDDEV ======== " << stddev << " " << nu << endl;
           std::normal_distribution<double> distribution(0.0,stddev);
 
-	  int ibegin = 0;
-	  int iend = n_baselines;
-	  for (int ibase=ibegin; ibase<iend; ibase++)
+	  //////////for (int ibase=ibegin; ibase<iend; ibase++)
+          for (int icorr=0; icorr<n_corr; icorr++)
 	  { 
 	      double noise_real = distribution(generator);
 	      double noise_img  = distribution(generator);
