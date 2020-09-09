@@ -308,9 +308,9 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
       parset.getStringVector(prefix + "idg.images");
   itsFacetPredictor = boost::make_unique<FacetPredict>(
       imageFilenames, regionFilename,
-      [this](std::size_t row, std::size_t direction,
+      [this](std::size_t row, std::size_t direction, std::size_t data_desc_id,
              const std::complex<float>* values) {
-        idgCallback(row, direction, values);
+        idgCallback(row, direction, data_desc_id, values);
       });
   itsDirections.resize(itsFacetPredictor->GetDirections().size());
   for (size_t i = 0; i != itsDirections.size(); ++i)
@@ -970,9 +970,12 @@ bool DDECal::process(const DPBuffer& bufin) {
   return false;
 }
 
-void DDECal::idgCallback(size_t row, size_t direction,
+void DDECal::idgCallback(size_t row, size_t direction, size_t data_desc_id,
                          const std::complex<float>* values) {
-  // std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
+  // DP3 currently only supports a single spectral window.
+  assert(data_desc_id == 0);
+  (void)data_desc_id;
+
   size_t nBl = info().nbaselines();
   size_t solTimestep = row / nBl;
   size_t bl = row % nBl;

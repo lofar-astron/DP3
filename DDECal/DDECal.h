@@ -128,7 +128,7 @@ class DDECal : public DPStep {
 
   void subtractCorrectedModel(bool fullJones);
 
-  void idgCallback(size_t row, size_t direction,
+  void idgCallback(size_t row, size_t direction, size_t data_desc_id,
                    const std::complex<float>* values);
 
   DPInput* itsInput;

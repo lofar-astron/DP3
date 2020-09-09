@@ -282,7 +282,7 @@ void FacetPredict::computePredictionBuffer(const size_t direction) {
       }
       values0 += info_.ncorr();
     }
-    predict_callback_(row, direction, values0);
+    predict_callback_(row, direction, kDataDescId, values0);
   }
   for (size_t term = 0; term != nTerms; ++term) {
     idg::api::BufferSet& bs = *buffersets_[direction * nTerms + term];

@@ -36,9 +36,9 @@
 
 class FacetPredict {
  public:
-  using PredictCallback =
-      std::function<void(size_t /*row*/, size_t /*direction*/,
-                         const std::complex<float>* /*values*/)>;
+  using PredictCallback = std::function<void(
+      size_t /*row*/, size_t /*direction*/, size_t /*data_desc_id*/,
+      const std::complex<float>* /*values*/)>;
 
   FacetPredict(const std::vector<std::string> fitsModelFiles,
                const std::string& ds9RegionsFile, PredictCallback&& callback);
