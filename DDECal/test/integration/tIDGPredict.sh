@@ -26,7 +26,7 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
 echo $cmd
 $cmd >& /dev/null
 
-cmd="$taqlexe 'select MODEL_DATA,IDG_DATA from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))'
+cmd="$taqlexe 'select MODEL_DATA,IDG_DATA from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))'"
 echo $cmd
 eval $cmd
 diff taql.out taql.ref || exit 1
