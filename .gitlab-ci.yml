@@ -73,6 +73,8 @@ integration-test:
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get -y install wsclean
   script:
     - mkdir build && cd build
     - cmake ..
