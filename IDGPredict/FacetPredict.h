@@ -91,7 +91,12 @@ class FacetPredict {
   }
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
-    _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
+    double max_baseline_x = 1.0 / _pixelSizeX;
+    double max_baseline_y = 1.0 / _pixelSizeY;
+    double max_baseline_z = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
+    _maxBaseline = std::sqrt(max_baseline_x * max_baseline_x +
+                             max_baseline_y * max_baseline_y +
+                             max_baseline_z * max_baseline_z);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline
               << " wavelengths.\n";
@@ -155,10 +160,19 @@ class FacetPredict {
                 << img.Width() << " x " << img.Height() << ", +"
                 << img.OffsetX() << "," << img.OffsetY()
                 << ", dl=" << dl * 180.0 / M_PI
-                << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n";
+                << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n"
+                << std::endl;
 
       // TODO make full polarization
       for (size_t term = 0; term != nTerms; ++term) {
+        for (std::size_t h = 0; h < img.Height(); ++h) {
+          for (std::size_t w = 0; w < img.Width(); ++w) {
+            double v = img.Data(term)[h * img.Width() + w];
+            if (v != 0.0) {
+              std::cout << "img@" << w << "x" << h << " : " << v << std::endl;
+            }
+          }
+        }
         data[term].assign(img.Width() * img.Height() * 4, 0.0);
         std::copy(img.Data(term), img.Data(term) + img.Width() * img.Height(),
                   data[term].data());
@@ -200,7 +214,7 @@ class FacetPredict {
     double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
     if (uvw[2] > _maxW && uvwr2 <= _maxBaseline * _maxBaseline) {
       Flush();
-      _maxW *= 1.5;
+      _maxW = std::max(uvw[2], _maxW * 1.5);
       std::cout << "Increasing maximum w to " << _maxW << '\n';
       StartIDG(false);
     }
