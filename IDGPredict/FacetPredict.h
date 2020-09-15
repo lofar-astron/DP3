@@ -165,14 +165,6 @@ class FacetPredict {
 
       // TODO make full polarization
       for (size_t term = 0; term != nTerms; ++term) {
-        for (std::size_t h = 0; h < img.Height(); ++h) {
-          for (std::size_t w = 0; w < img.Width(); ++w) {
-            double v = img.Data(term)[h * img.Width() + w];
-            if (v != 0.0) {
-              std::cout << "img@" << w << "x" << h << " : " << v << std::endl;
-            }
-          }
-        }
         data[term].assign(img.Width() * img.Height() * 4, 0.0);
         std::copy(img.Data(term), img.Data(term) + img.Width() * img.Height(),
                   data[term].data());
