@@ -33,7 +33,7 @@ build-unittest:
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
-    - apt-get -y install python3-pip ninja-build
+    - apt-get -y install python3-pip ninja-build wsclean
     - pip3 install gcovr
   script:
     - export SRC=`pwd`
@@ -74,6 +74,7 @@ integration-test:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
   before_script:
+    - apt-get update
     - apt-get -y install wsclean
   script:
     - mkdir build && cd build

@@ -18,7 +18,7 @@ echo "    select result of 0 rows" > taql.ref
 $taqlexe 'update tDDECal.MS set WEIGHT_SPECTRUM=1, FLAG=False'
 
 #Use wsclean for generating a reference prediction, in the MODEL_DATA column.
-wsclean -use-idg -predict -name foursources tDDECal.MS
+wsclean -predict -name foursources tDDECal.MS
 
 echo "Predict four point sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
