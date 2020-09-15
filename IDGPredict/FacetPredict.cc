@@ -89,7 +89,12 @@ void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
 
-  max_baseline_ = 1.0 / std::min(pixel_size_x_, pixel_size_y_);
+  double max_baseline_x = 1.0 / pixel_size_x_;
+  double max_baseline_y = 1.0 / pixel_size_y_;
+  double max_baseline_z = 1.0 / std::min(pixel_size_x_, pixel_size_y_);
+  max_baseline_ = std::sqrt(max_baseline_x * max_baseline_x +
+                            max_baseline_y * max_baseline_y +
+                            max_baseline_z * max_baseline_z);
   max_w_ = max_baseline_ * 0.1;
   std::cout << "Predicting baselines up to " << max_baseline_
             << " wavelengths.\n";
@@ -186,7 +191,7 @@ void FacetPredict::RequestPredict(const size_t direction, size_t rowId,
     for (std::size_t dir = 0; dir < directions_.size(); ++dir) {
       Flush(dir);
     }
-    max_w_ *= 1.5;
+    max_w_ = std::max(uvw[2], max_w_ * 1.5);
     std::cout << "Increasing maximum w to " << max_w_ << '\n';
     StartIDG(false);
   }

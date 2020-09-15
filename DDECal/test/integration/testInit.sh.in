@@ -2,7 +2,7 @@
 
 # This script contains common script code for tests.
 # A test script should source this file at its start.
-# If this file is test_common.sh, CMake generated it from test_common.sh.in.
+# If this file is testInit.sh, CMake generated it from testInit.sh.in.
 
 # Set common environment for scripts. CMake configures these variables.
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
