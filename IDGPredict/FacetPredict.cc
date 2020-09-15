@@ -85,6 +85,10 @@ FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
 }
 
 void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
+  if (info.ncorr() != 4) {
+    throw std::invalid_argument("FacetPredict only supports 4 correlations");
+  }
+
   // TODO, when FacetPredict is a DPStep:
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
@@ -258,11 +262,16 @@ void FacetPredict::computePredictionBuffer(const size_t direction) {
         const float rotSin = sin(angle);
         const float rotCos = cos(angle);
 
-        for (std::size_t corr = 0; corr < info_.ncorr(); ++corr) {
-          *value = {value->real() * rotCos - value->imag() * rotSin,
-                    value->real() * rotSin + value->imag() * rotCos};
-          ++value;
-        }
+        assert(info_.ncorr() == 4);
+        value[0] = {value[0].real() * rotCos - value[0].imag() * rotSin,
+                    value[0].real() * rotSin + value[0].imag() * rotCos};
+        value[1] = {value[1].real() * rotCos - value[1].imag() * rotSin,
+                    value[1].real() * rotSin + value[1].imag() * rotCos};
+        value[2] = {value[2].real() * rotCos - value[2].imag() * rotSin,
+                    value[2].real() * rotSin + value[2].imag() * rotCos};
+        value[3] = {value[3].real() * rotCos - value[3].imag() * rotSin,
+                    value[3].real() * rotSin + value[3].imag() * rotCos};
+        value += 4;
       }
     }
 
@@ -272,20 +281,24 @@ void FacetPredict::computePredictionBuffer(const size_t direction) {
     // https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text
     // files when 'logarithmic SI' is false. The definition is:
     //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
-    std::complex<float>* values0 = available_row_ids[0][i].second;
+    std::complex<float>* const values0 = available_row_ids[0][i].second;
     for (size_t ch = 0; ch != info_.nchan(); ++ch) {
       double frequency = info_.chanFreqs()[ch];
       double freqFactor = frequency / ref_frequency_ - 1.0;
       double polynomialFactor = 1.0;
+      const std::size_t ch_offset = ch * info_.ncorr();
       for (size_t term = 1; term != nTerms; ++term) {
         polynomialFactor *= freqFactor;
-        const std::complex<float>* values =
-            available_row_ids[term][i].second + ch * info_.ncorr();
-        for (size_t corr = 0; corr != info_.ncorr(); ++corr) {
-          values0[corr] += values[corr] * float(polynomialFactor);
-        }
+
+        std::complex<float>* const v0 = values0 + ch_offset;
+        const std::complex<float>* const v =
+            available_row_ids[term][i].second + ch_offset;
+        assert(info_.ncorr() == 4);
+        v0[0] += v[0] * float(polynomialFactor);
+        v0[1] += v[1] * float(polynomialFactor);
+        v0[2] += v[2] * float(polynomialFactor);
+        v0[3] += v[3] * float(polynomialFactor);
       }
-      values0 += info_.ncorr();
     }
     predict_callback_(row, direction, kDataDescId, values0);
   }
