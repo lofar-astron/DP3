@@ -26,7 +26,7 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
   ddecal.idg.images=[foursources-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
 echo $cmd
-$cmd # >& /dev/null
+$cmd
 
 cmd="$taqlexe 'select from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))' > taql.out"
 echo $cmd

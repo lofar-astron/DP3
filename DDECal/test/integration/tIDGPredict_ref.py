@@ -9,10 +9,11 @@ import os
 os.system("rm dummy-image.fits dummy-dirty.fits")
 os.system("wsclean -size 1024 1024 -scale 0.01 -name dummy tDDECal.MS")
 
+# IDG does not work with facets that are not centered -> disable offset pixels.
 directions = {
-    "radec_off": ( 800, 128 ),
-    "ra_off": ( 800, 512 ),
-    "dec_off": ( 512, 128 ),
+    #"radec_off": ( 800, 128 ),
+    #"ra_off": ( 800, 512 ),
+    #"dec_off": ( 512, 128 ),
     "center": ( 512, 512 )
     }
 brightness = {
