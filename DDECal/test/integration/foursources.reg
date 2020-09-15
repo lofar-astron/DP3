@@ -2,18 +2,17 @@
 global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
 fk5
 
-# The polygons below were created manually. They create squares around each of the image points.
+# The polygons below were created manually. They create areas around each of the image points.
 # The comments below contain the corresponding 0-based pixel coordinates.
 
-# Ra+dec@(341,155). Polygon is (332, 140) (331, 182) (363, 183) (364, 141).
-polygon(23.53,32.00, 23.53,32.42, 23.15,32.42, 23.15,32.00)
+# Ra+dec@(800,128). Polygon is (726, -1) (720, 298) (1061, 313) (1078, 14).
+polygon(22.0,28.0, 22.0,31.0, 18.0,31.0, 18.0,28.0)
 
-# Ra@(424,258). Polygon is (410, 241) (409, 271) (442, 272) (442, 242).
-polygon(22.59,33.00, 22.59,33.30, 22.20,33.30, 22.20,33.00)
+# Ra@(800,512). Polygon is (717, 398) (710, 698) (1037, 712) (1055, 413).
+polygon(22.0,32.0, 22.0,35.0, 18.0,35.0, 18.0,32.0)
 
-# Dec@(256,155). Polygon is (240, 140) (240, 182) (271, 182) (271, 140).
-polygon(24.61,32.00, 24.61,32.42, 24.25,32.42, 24.25,32.00)
+# Dec@(512,128). Polygon is (373, -2) (377, 297) (720, 298) (726, -1).
+polygon(26.0,28.0, 26.0,31.0, 22.0,31.0, 22.0,28.0)
 
-# Center@(256,256). Polygon is (240, 240) (240, 270) (270, 270) (270, 240).
-polygon(24.61,33.00, 24.61,33.30, 24.25,33.30, 24.25,33.00)
-
+# Center@(512,512). Polygon is (368,368) (368,656) (656,656) (656,368).
+polygon(26.11,31.71 26.17,34.59, 22.67,34.59, 22.73,31.71)

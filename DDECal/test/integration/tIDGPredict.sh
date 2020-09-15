@@ -15,8 +15,10 @@ cp $srcdir/foursources.reg .
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
+$taqlexe 'update tDDECal.MS set WEIGHT_SPECTRUM=1, FLAG=False'
+
 #Use wsclean for generating a reference prediction, in the MODEL_DATA column.
-wsclean -predict -name foursources tDDECal.MS
+wsclean -use-idg -predict -name foursources tDDECal.MS
 
 echo "Predict four point sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
@@ -24,9 +26,9 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
   ddecal.idg.images=[foursources-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
 echo $cmd
-$cmd >& /dev/null
+$cmd # >& /dev/null
 
-cmd="$taqlexe 'select MODEL_DATA,IDG_DATA from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))'"
+cmd="$taqlexe 'select from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))' > taql.out"
 echo $cmd
 eval $cmd
-diff taql.out taql.ref || exit 1
+diff -q taql.out taql.ref || exit 1
