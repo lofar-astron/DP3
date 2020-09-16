@@ -91,12 +91,10 @@ class FacetPredict {
   }
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
-    double max_baseline_x = 1.0 / _pixelSizeX;
-    double max_baseline_y = 1.0 / _pixelSizeY;
-    double max_baseline_z = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
-    _maxBaseline = std::sqrt(max_baseline_x * max_baseline_x +
-                             max_baseline_y * max_baseline_y +
-                             max_baseline_z * max_baseline_z);
+    // Without a factor 1.5, some baselines did not get visibilities from IDG.
+    // TODO: Determine the logic why and how _maxBaseline, which is in meters,
+    // depends on the inverse of the pixel size, which is in radians.
+    _maxBaseline = 1.5 / std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline
               << " wavelengths.\n";
