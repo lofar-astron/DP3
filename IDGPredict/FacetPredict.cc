@@ -93,12 +93,10 @@ void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
 
-  double max_baseline_x = 1.0 / pixel_size_x_;
-  double max_baseline_y = 1.0 / pixel_size_y_;
-  double max_baseline_z = 1.0 / std::min(pixel_size_x_, pixel_size_y_);
-  max_baseline_ = std::sqrt(max_baseline_x * max_baseline_x +
-                            max_baseline_y * max_baseline_y +
-                            max_baseline_z * max_baseline_z);
+  // Without a factor 1.5, some baselines did not get visibilities from IDG.
+  // TODO: Determine the logic why and how _max_baseline, which is in meters,
+  // depends on the inverse of the pixel size, which is in radians.
+  max_baseline_ = 1.5 / std::min(pixel_size_x_, pixel_size_y_);
   max_w_ = max_baseline_ * 0.1;
   std::cout << "Predicting baselines up to " << max_baseline_
             << " wavelengths.\n";
