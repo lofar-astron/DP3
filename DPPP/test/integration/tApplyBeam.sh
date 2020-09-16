@@ -64,15 +64,14 @@ $taqlexe "$taqlcmd" > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with beammode=ELEMENT"; echo
-echo "!!!!!!!!!!! DISABLED, SEE https://github.com/lofar-astron/DP3/issues/273 !!!!!!!!!!!!"
-# cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ELEMENT"
-# echo $cmd
-# $cmd
-# # Compare the DATA column of the output MS with the BBS reference output.
-# taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ELEMENT,8e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ELEMENT)))'
-# echo $taqlcmd
-# $taqlexe "$taqlcmd" > taql.out
-# diff taql.out taql.ref  ||  exit 1
+cmd="$dpppexe msin=tNDPPP-generic.MS msout=outinv.ms msout.overwrite=true steps=[applybeam] applybeam.usechannelfreq=true applybeam.invert=true applybeam.beammode=ELEMENT"
+echo $cmd
+$cmd
+# Compare the DATA column of the output MS with the BBS reference output.
+taqlcmd='select from outinv.ms t1, tApplyBeam.tab t2 where not all(near(t1.DATA,t2.DATA_ELEMENT,8e-5) || (isnan(t1.DATA) && isnan(t2.DATA_ELEMENT)))'
+echo $taqlcmd
+$taqlexe "$taqlcmd" > taql.out
+diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test with updateweights=true"; echo
 cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[applybeam] applybeam.updateweights=truue msout.weightcolumn=NEW_WEIGHT_SPECTRUM"
