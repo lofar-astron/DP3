@@ -260,7 +260,6 @@ void FacetPredict::computePredictionBuffer(const size_t direction) {
         const float rotSin = sin(angle);
         const float rotCos = cos(angle);
 
-        assert(info_.ncorr() == 4);
         value[0] = {value[0].real() * rotCos - value[0].imag() * rotSin,
                     value[0].real() * rotSin + value[0].imag() * rotCos};
         value[1] = {value[1].real() * rotCos - value[1].imag() * rotSin,
