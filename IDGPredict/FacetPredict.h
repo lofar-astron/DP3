@@ -102,7 +102,7 @@ class FacetPredict {
     // get visibilities from the CPU-optimized IDG version.
     // TODO: Determine the logic why and how _maxBaseline, which is in meters,
     // depends on the inverse of the pixel size, which is in radians.
-    _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
+    _maxBaseline = 1.5 / std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline
               << " wavelengths.\n";
