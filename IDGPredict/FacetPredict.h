@@ -80,6 +80,13 @@ class FacetPredict {
     size_t area = 0;
     for (size_t i = 0; i != map.NFacets(); ++i) {
       const Facet& facet = map[i];
+
+      std::cout << "Facet " << i << ": Ra,Dec: " << facet.RA() << ","
+                << facet.Dec() << " Vertices:";
+      for (const Vertex& v : facet)
+        std::cout << " (" << v.x << "," << v.y << ")";
+      std::cout << std::endl;
+
       _directions.emplace_back(facet.RA(), facet.Dec());
       _images.emplace_back();
       FacetImage& image = _images.back();
@@ -91,10 +98,11 @@ class FacetPredict {
   }
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
-    // Without a factor 1.5, some baselines did not get visibilities from IDG.
+    // Without a factor 1.5 (instead of 1.0, below), some baselines did not
+    // get visibilities from the CPU-optimized IDG version.
     // TODO: Determine the logic why and how _maxBaseline, which is in meters,
     // depends on the inverse of the pixel size, which is in radians.
-    _maxBaseline = 1.5 / std::min(_pixelSizeX, _pixelSizeY);
+    _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline
               << " wavelengths.\n";
@@ -114,7 +122,7 @@ class FacetPredict {
 
   void StartIDG(bool saveFacets) {
     _buffersets.clear();
-    idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
+    idg::api::Type proxyType = idg::api::Type::CPU_REFERENCE;
     size_t nTerms = _readers.size();
 
     size_t maxChannels = 0;
@@ -272,15 +280,11 @@ class FacetPredict {
       for (size_t term = 0; term != nTerms; ++term) {
         std::complex<float>* values = available_row_ids[term][i].second;
         for (size_t ch = 0; ch != nChan; ++ch) {
-          double lambda = wavelength(dataDescId, ch), u = uvw[0] / lambda,
-                 v = uvw[1] / lambda, w = uvw[2] / lambda;
-          double angle = u * dlFact + v * dmFact + w * dpFact;
-          float rotSin = sin(angle), rotCos = cos(angle);
+          double angle = uvw[0] * dlFact + uvw[1] * dmFact + uvw[2] * dpFact;
+          angle *= _bands[dataDescId][ch] / c();
+          const std::complex<float> phasor(cos(angle), sin(angle));
           for (size_t p = 0; p != 4; ++p) {
-            std::complex<float> s = values[ch * 4 + p];
-            values[ch * 4 + p] =
-                std::complex<float>(s.real() * rotCos - s.imag() * rotSin,
-                                    s.real() * rotSin + s.imag() * rotCos);
+            values[ch * 4 + p] *= phasor;
           }
         }
       }
