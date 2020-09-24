@@ -122,7 +122,7 @@ class FacetPredict {
 
   void StartIDG(bool saveFacets) {
     _buffersets.clear();
-    idg::api::Type proxyType = idg::api::Type::CPU_REFERENCE;
+    idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;
     size_t nTerms = _readers.size();
 
     size_t maxChannels = 0;
