@@ -1,38 +1,47 @@
 #!/usr/bin/env python3
 from astropy.io import fits
-from astropy.coordinates import SkyCoord
-from astropy.wcs.utils import skycoord_to_pixel
-from astropy.wcs import WCS
-import numpy as np
 import os
 
 os.system("rm dummy-image.fits dummy-dirty.fits")
 os.system("wsclean -size 1024 1024 -scale 0.01 -name dummy tDDECal.MS")
 
-# IDG does not work with facets that are not centered -> disable offset pixels.
-directions = {
-    "radec_off": ( 800, 128 ),
-    "ra_off": ( 800, 512 ),
-    "dec_off": ( 512, 128 ),
+sources = {
+    "radec": ( 800, 128 ),
+    "ra": ( 800, 512 ),
+    "dec": ( 512, 128 ),
     "center": ( 512, 512 )
     }
 brightness = {
-    "radec_off": 10,
-    "ra_off": 20,
-    "dec_off": 20,
+    "radec": 10,
+    "ra": 20,
+    "dec": 20,
     "center": 10
     }
+fits_files=[]
 
 hdu = fits.open("dummy-image.fits")[0]
 
+def write_fits(name):
+    filename = name + "-model.fits"
+    os.system("rm -rf " + filename)
+    hdu.writeto(filename)
+    fits_files.append(filename)
+
+# Generate foursources.fits, which has all four sources.
 hdu.data *= 0
 
-for direction in directions:
-    x, y = directions[direction]
-    hdu.data[0, 0, y, x] = brightness[direction]
+for source in sources:
+    x, y = sources[source]
+    hdu.data[0, 0, y, x] = brightness[source]
 
-os.system("rm -rf foursources.fits")
-hdu.writeto("foursources.fits")
+write_fits("foursources")
 
-os.system("gzip foursources.fits")
+# Generate files with a single source only.
+for source in sources:
+    hdu.data *= 0
+    x, y = sources[source]
+    hdu.data[0, 0, y, x] = brightness[source]
+    write_fits(source)
+
+os.system("tar cfj resources/idg-fits-sources.tbz2 " + " ".join(fits_files))
 os.system("rm dummy-image.fits dummy-dirty.fits")

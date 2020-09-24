@@ -9,26 +9,74 @@ if [ ! -f $INIT ]; then
   exit 1;
 fi
 source $INIT
-gunzip -c -f $srcdir/foursources.fits.gz > foursources-model.fits
-cp $srcdir/foursources.reg .
+
+tar xfj $srcdir/resources/idg-fits-sources.tbz2
+cp $srcdir/resources/*.reg .
 
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
 $taqlexe 'update tDDECal.MS set WEIGHT_SPECTRUM=1, FLAG=False'
 
-#Use wsclean for generating a reference prediction, in the MODEL_DATA column.
+passed=0
+failed=0
+skipped=0
+
+text_boldred="$(tput bold)$(tput setaf 1)"
+text_boldgreen="$(tput bold)$(tput setaf 2)"
+text_boldcyan="$(tput bold)$(tput setaf 6)"
+text_normal=$(tput sgr0)
+
+compare_results() {
+  # Ignore baselines with antennna 6 for now, since not all predictors
+  # generate visibilities for those baselines.
+  # TODO (AST-223): Investigate what the expected behavior is.
+  $taqlexe 'select from tDDECal.MS where ANTENNA2 != 6 and not all(near(MODEL_DATA,IDG_DATA,1e-3))' > taql.out
+  echo -n "Predict source: $1 offset: $2 result: "
+  if diff -q taql.out taql.ref; then
+    echo "${text_boldgreen}Test passed.${text_normal}"
+    passed=$((passed + 1))
+  else
+    echo "${text_boldred}Test failed.${text_normal}"
+    failed=$((failed + 1))
+  fi
+}
+
+# Test an input with four sources.
 wsclean -use-idg -predict -name foursources tDDECal.MS
 
-echo "Predict four point sources using IDG"
+echo "Predict four sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
   steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=foursources.reg\
   ddecal.idg.images=[foursources-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
 echo $cmd
 $cmd
+compare_results foursources "(multiple)"
 
-cmd="$taqlexe 'select from tDDECal.MS where not all(near(MODEL_DATA,IDG_DATA,1e-3))' > taql.out"
-echo $cmd
-eval $cmd
-diff -q taql.out taql.ref || exit 1
+# Test inputs that contain a single source.
+SOURCES="center ra dec radec"
+OFFSETS="center dl dm dldm"
+for source in $SOURCES; do
+  #Use wsclean for generating a reference prediction, in the MODEL_DATA column.
+  wsclean -use-idg -predict -name $source tDDECal.MS
+
+  for offset in $OFFSETS; do
+    echo "Predict source: $source offset: $offset using IDG"
+    if grep -q "^polygon" $source-$offset.reg; then
+      cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+        steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=$source-$offset.reg\
+        ddecal.idg.images=[$source-model.fits]\
+        ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
+      echo $cmd
+      $cmd
+      compare_results $source $offset
+    else
+      echo "${text_boldcyan}Test skipped: No polygon(s) defined!${text_normal}"
+      skipped=$((skipped + 1))
+    fi
+  done
+done
+
+echo Tests passed: $passed skipped: $skipped failed: $failed
+exit $failed
