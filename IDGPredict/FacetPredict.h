@@ -179,7 +179,7 @@ class FacetPredict {
         idg::api::BufferSet& bs = *_buffersets.back();
         options["padded_size"] = size_t(1.2 * img.Width());
         // options["max_threads"] = int(1);
-        bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, dl, dm, dp, options);
+        bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, -dl, -dm, dp, options);
         bs.set_image(data[term].data());
         bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options,
                         idg::api::BufferSetType::degridding);
