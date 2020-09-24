@@ -3,13 +3,13 @@ from astropy.io import fits
 import os
 
 os.system("rm dummy-image.fits dummy-dirty.fits")
-os.system("wsclean -size 1024 1024 -scale 0.01 -name dummy tDDECal.MS")
+os.system("wsclean -size 512 512 -scale 0.01 -name dummy tDDECal.MS")
 
 sources = {
-    "radec": ( 800, 128 ),
-    "ra": ( 800, 512 ),
-    "dec": ( 512, 128 ),
-    "center": ( 512, 512 )
+    "radec": ( 400, 64 ),
+    "ra": ( 400, 256 ),
+    "dec": ( 256, 64 ),
+    "center": ( 256, 256 )
     }
 brightness = {
     "radec": 10,
@@ -44,4 +44,4 @@ for source in sources:
     write_fits(source)
 
 os.system("tar cfj resources/idg-fits-sources.tbz2 " + " ".join(fits_files))
-os.system("rm dummy-image.fits dummy-dirty.fits")
+os.system("rm dummy-image.fits dummy-dirty.fits " + " ".join(fits_files))
