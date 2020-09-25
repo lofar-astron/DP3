@@ -26,6 +26,7 @@
 #include <idg-api.h>
 
 #include "FitsReader.h"
+#endif
 
 #include <complex>
 #include <functional>
@@ -34,12 +35,17 @@
 
 class FacetPredict {
  public:
-  FacetPredict(const std::vector<std::string> fitsModelFiles,
+  std::function<void(size_t /*row*/, size_t /*direction*/,
+                     size_t /*dataDescId*/,
+                     const std::complex<float>* /*values*/)>
+      PredictCallback;
+
+  FacetPredict(const std::vector<std::string>& fitsModelFiles,
                const std::string& ds9RegionsFile);
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations);
 
-  bool IsStarted() const { return !_buffersets.empty(); }
+  bool IsStarted() const;
 
   void StartIDG(bool saveFacets);
 
@@ -47,21 +53,15 @@ class FacetPredict {
                       size_t timeIndex, size_t antenna1, size_t antenna2,
                       const double* uvw);
 
-  std::function<void(size_t /*row*/, size_t /*direction*/,
-                     size_t /*dataDescId*/,
-                     const std::complex<float>* /*values*/)>
-      PredictCallback;
+  size_t NDirections() const;
 
-  size_t NDirections() const { return _images.size(); }
-
-  std::pair<double, double> Direction(size_t facet) const {
-    return _directions[facet];
-  }
+  std::pair<double, double> Direction(size_t facet) const;
 
   void Flush();
 
-  void SetBufferSize(size_t nTimesteps) { _bufferSize = nTimesteps; }
+  void SetBufferSize(size_t nTimesteps);
 
+#ifdef HAVE_IDG
  private:
   void computePredictionBuffer(size_t dataDescId, size_t direction);
 
@@ -90,62 +90,7 @@ class FacetPredict {
   size_t _nr_stations;
   double _maxBaseline;
   std::vector<std::pair<double, double>> _directions;
+#endif
 };
-
-#else  // HAVE_IDG
-
-#include <complex>
-#include <functional>
-#include <string>
-#include <vector>
-
-class FacetPredict {
- public:
-  FacetPredict(const std::vector<std::string>&, const std::string&) {
-    notCompiled();
-  }
-
-  void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
-    notCompiled();
-  }
-
-  bool IsStarted() const {
-    notCompiled();
-    return false;
-  }
-
-  void StartIDG(bool) { notCompiled(); }
-
-  void RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t,
-                      const double*) {
-    notCompiled();
-  }
-
-  std::function<void(size_t, size_t, size_t, const std::complex<float>*)>
-      PredictCallback;
-
-  size_t NDirections() const {
-    notCompiled();
-    return 0;
-  }
-
-  std::pair<double, double> Direction(size_t) const {
-    notCompiled();
-    return std::pair<double, double>();
-  }
-
-  void Flush() { notCompiled(); }
-
-  void SetBufferSize(size_t) { notCompiled(); }
-
- private:
-  void notCompiled() const {
-    throw std::runtime_error(
-        "Facet prediction is not available, because DP3 was not compiled with "
-        "IDG support");
-  }
-};
-
-#endif  // HAVE_IDG
 
 #endif  // header guard

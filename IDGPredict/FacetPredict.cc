@@ -26,7 +26,7 @@
 
 #include <iostream>
 
-FacetPredict::FacetPredict(const std::vector<std::string> fitsModelFiles,
+FacetPredict::FacetPredict(const std::vector<std::string>& fitsModelFiles,
                            const std::string& ds9RegionsFile)
     : _padding(1.0), _bufferSize(0) {
   if (fitsModelFiles.empty())
@@ -95,6 +95,8 @@ void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
   _bands = std::move(bands);
   _nr_stations = nr_stations;
 }
+
+bool FacetPredict::IsStarted() const { return !_buffersets.empty(); }
 
 void FacetPredict::StartIDG(bool saveFacets) {
   _buffersets.clear();
@@ -218,11 +220,21 @@ void FacetPredict::RequestPredict(size_t direction, size_t dataDescId,
   }
 }
 
+size_t FacetPredict::NDirections() const { return _images.size(); }
+
+std::pair<double, double> FacetPredict::Direction(size_t facet) const {
+  return _directions[facet];
+}
+
 void FacetPredict::Flush() {
   for (size_t b = 0; b != _bands.size(); ++b) {
     for (size_t direction = 0; direction != _directions.size(); ++direction)
       computePredictionBuffer(b, direction);
   }
+}
+
+void FacetPredict::SetBufferSize(size_t nTimesteps) {
+  _bufferSize = nTimesteps;
 }
 
 void FacetPredict::computePredictionBuffer(size_t dataDescId,
@@ -283,5 +295,53 @@ void FacetPredict::computePredictionBuffer(size_t dataDescId,
   }
   _metaData[direction].isInitialized = false;
 }
+
+#else  // HAVE_IDG
+
+namespace {
+
+void notCompiled() {
+  throw std::runtime_error(
+      "Facet prediction is not available, because DP3 was not compiled with "
+      "IDG support");
+}
+
+}  // namespace
+
+FacetPredict::FacetPredict(const std::vector<std::string>&,
+                           const std::string&) {
+  notCompiled();
+}
+
+void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
+                             size_t nr_stations) {
+  notCompiled();
+}
+
+bool FacetPredict::IsStarted() const {
+  notCompiled();
+  return false;
+}
+
+void FacetPredict::StartIDG(bool) { notCompiled(); }
+
+void FacetPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t,
+                                  size_t, const double*) {
+  notCompiled();
+}
+
+size_t FacetPredict::NDirections() const {
+  notCompiled();
+  return 0;
+}
+
+std::pair<double, double> FacetPredict::Direction(size_t) const {
+  notCompiled();
+  return std::pair<double, double>();
+}
+
+void FacetPredict::Flush() { notCompiled(); }
+
+void FacetPredict::SetBufferSize(size_t) { notCompiled(); }
 
 #endif  // HAVE_IDG
