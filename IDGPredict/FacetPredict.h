@@ -100,9 +100,9 @@ class FacetPredict {
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
     // Without a factor 1.5 (instead of 1.0, below), some baselines did not
     // get visibilities from the CPU-optimized IDG version.
-    // TODO: Determine the logic why and how _maxBaseline, which is in meters,
-    // depends on the inverse of the pixel size, which is in radians.
-    _maxBaseline = 1.5 / std::min(_pixelSizeX, _pixelSizeY);
+    // TODO (AST-223): Determine the logic why and how _maxBaseline, which is in
+    // meters, depends on the inverse of the pixel size, which is in radians.
+    _maxBaseline = 1.0 / std::min(_pixelSizeX, _pixelSizeY);
     _maxW = _maxBaseline * 0.1;
     std::cout << "Predicting baselines up to " << _maxBaseline
               << " wavelengths.\n";
@@ -317,10 +317,6 @@ class FacetPredict {
   }
 
   constexpr static double c() { return 299792458.0L; }
-
-  double wavelength(size_t dataDescId, size_t channel) const {
-    return c() / _bands[dataDescId][channel];
-  }
 
   std::vector<FacetImage> _images;
   std::vector<std::unique_ptr<idg::api::BufferSet>> _buffersets;
