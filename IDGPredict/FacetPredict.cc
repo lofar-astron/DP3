@@ -96,15 +96,6 @@ void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
   _nr_stations = nr_stations;
 }
 
-void FacetPredict::SetMSInfo(double maxW,
-                             std::vector<std::vector<double>>&& bands,
-                             size_t nr_stations, double max_baseline) {
-  _maxW = maxW;
-  _bands = std::move(bands);
-  _nr_stations = nr_stations;
-  _maxBaseline = max_baseline;
-}
-
 void FacetPredict::StartIDG(bool saveFacets) {
   _buffersets.clear();
   idg::api::Type proxyType = idg::api::Type::CPU_OPTIMIZED;

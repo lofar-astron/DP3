@@ -39,9 +39,6 @@ class FacetPredict {
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations);
 
-  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands,
-                 size_t nr_stations, double max_baseline);
-
   bool IsStarted() const { return !_buffersets.empty(); }
 
   void StartIDG(bool saveFacets);
@@ -109,11 +106,6 @@ class FacetPredict {
   }
 
   void SetMSInfo(std::vector<std::vector<double>>&& bands, size_t nr_stations) {
-    notCompiled();
-  }
-
-  void SetMSInfo(double maxW, std::vector<std::vector<double>>&& bands,
-                 size_t nr_stations, double max_baseline) {
     notCompiled();
   }
 
