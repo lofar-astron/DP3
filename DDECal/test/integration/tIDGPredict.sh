@@ -20,10 +20,13 @@ passed=0
 failed=0
 skipped=0
 
+# Prevent and ignore tput errors an CI.
+if [ -n "$CI" ]; then export TERM=dumb; set +e; fi
 text_boldred="$(tput bold)$(tput setaf 1)"
 text_boldgreen="$(tput bold)$(tput setaf 2)"
 text_boldcyan="$(tput bold)$(tput setaf 6)"
 text_normal=$(tput sgr0)
+if [ -n "$CI" ]; then set -e; fi
 
 compare_results() {
   # Ignore baselines with antennna 6 for now, since not all predictors
