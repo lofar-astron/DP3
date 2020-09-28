@@ -36,7 +36,6 @@ FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
   readers_.reserve(fits_model_files.size());
   for (const std::string& file : fits_model_files) readers_.emplace_back(file);
 
-  DS9FacetFile f(ds9_regions_file);
   full_width_ = readers_.front().ImageWidth();
   full_height_ = readers_.front().ImageHeight();
   ref_frequency_ = readers_.front().Frequency();
@@ -58,19 +57,19 @@ FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
     readers_[img].Read(models[img].data());
   }
 
-  FacetMap map;
-  f.Read(map, readers_.front().PhaseCentreRA(),
-         readers_.front().PhaseCentreDec(), pixel_size_x_, pixel_size_y_,
-         full_width_, full_height_);
-  std::cout << "Read " << map.NFacets() << " facet definitions.\n";
+  DS9FacetFile facet_file(ds9_regions_file);
+  std::vector<Facet> facets = facet_file.Read(
+      readers_.front().PhaseCentreRA(), readers_.front().PhaseCentreDec(),
+      pixel_size_x_, pixel_size_y_, full_width_, full_height_);
+  std::cout << "Read " << facets.size() << " facet definitions.\n";
 
   bool make_square = true;  // only necessary for IDG though
   size_t area = 0;
-  for (size_t i = 0; i != map.NFacets(); ++i) {
-    const Facet& facet = map[i];
-
-    std::cout << "Facet " << i << ": Ra,Dec: " << facet.RA() << ","
-              << facet.Dec() << " Vertices:";
+  directions_.reserve(facets.size());
+  images_.reserve(facets.size());
+  for (const Facet& facet : facets) {
+    std::cout << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
+              << " Vertices:";
     for (const Vertex& v : facet) std::cout << " (" << v.x << "," << v.y << ")";
     std::cout << std::endl;
 

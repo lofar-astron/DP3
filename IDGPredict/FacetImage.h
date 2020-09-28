@@ -19,7 +19,7 @@
 #ifndef FACET_IMAGE_H
 #define FACET_IMAGE_H
 
-#include "FacetMap.h"
+#include "Facet.h"
 
 #include <aocommon/uvector.h>
 
