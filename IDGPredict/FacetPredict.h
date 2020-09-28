@@ -36,13 +36,12 @@
 
 class FacetPredict {
  public:
-  std::function<void(size_t /*row*/, size_t /*direction*/,
-                     size_t /*dataDescId*/,
-                     const std::complex<float>* /*values*/)>
-      predict_callback_;
+  using PredictCallback = std::function<void(
+      size_t /*row*/, size_t /*direction*/, size_t /*dataDescId*/,
+      const std::complex<float>* /*values*/)>;
 
   FacetPredict(const std::vector<std::string>& fitsModelFiles,
-               const std::string& ds9RegionsFile);
+               const std::string& ds9RegionsFile, PredictCallback&& callback);
 
   void updateInfo(const DP3::DPPP::DPInfo& info);
 
@@ -66,6 +65,7 @@ class FacetPredict {
 
   constexpr static double c() { return 299792458.0L; }
 
+  PredictCallback predict_callback_;
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
   struct FacetMetaData {

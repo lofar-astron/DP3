@@ -27,8 +27,9 @@
 #include <iostream>
 
 FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
-                           const std::string& ds9_regions_file)
-    : padding_(1.0), buffer_size_(0) {
+                           const std::string& ds9_regions_file,
+                           PredictCallback&& callback)
+    : predict_callback_(std::move(callback)), padding_(1.0), buffer_size_(0) {
   if (fits_model_files.empty()) {
     throw std::runtime_error("No fits files specified for IDG predict");
   }
@@ -306,8 +307,8 @@ void notCompiled() {
 
 }  // namespace
 
-FacetPredict::FacetPredict(const std::vector<std::string>&,
-                           const std::string&) {
+FacetPredict::FacetPredict(const std::vector<std::string>&, const std::string&,
+                           PredictCallback&&) {
   notCompiled();
 }
 
