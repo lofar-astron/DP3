@@ -148,6 +148,7 @@ add_library(Blob OBJECT
 set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
+  IDGPredict/FacetImage.cc
   IDGPredict/FacetPredict.cc
   IDGPredict/FitsIOChecker.cc
   IDGPredict/FitsReader.cc
