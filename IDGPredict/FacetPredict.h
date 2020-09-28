@@ -155,6 +155,12 @@ class FacetPredict {
     _metaData.clear();
     FitsReader& reader = _readers.front();
     for (FacetImage& img : _images) {
+      // dl and dm indicate the relative difference of the center pixel of the
+      // facet to the center pixel of the fits image.
+      // dl is positive if rA of the facet is larger than the rA of the image.
+      // dm is positive if dec of the facet is larger than the dec of the image.
+      // Note that rA decreases if the x coordinate increases, while dec
+      // increases of the y coordinates increases.
       double dl = (int(reader.ImageWidth() / 2) -
                    (img.OffsetX() + int(img.Width() / 2))) *
                   _pixelSizeX,
@@ -179,7 +185,7 @@ class FacetPredict {
         idg::api::BufferSet& bs = *_buffersets.back();
         options["padded_size"] = size_t(1.2 * img.Width());
         // options["max_threads"] = int(1);
-        bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, -dl, -dm, dp, options);
+        bs.init(img.Width(), _pixelSizeX, _maxW + 1.0, dl, dm, dp, options);
         bs.set_image(data[term].data());
         bs.init_buffers(buffersize, _bands, _nr_stations, _maxBaseline, options,
                         idg::api::BufferSetType::degridding);
