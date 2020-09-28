@@ -85,6 +85,10 @@ FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
 }
 
 void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
+  if (info.ncorr() != 4) {
+    throw std::invalid_argument("FacetPredict only supports 4 correlations.");
+  }
+
   // TODO, when FacetPredict is a DPStep:
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
@@ -262,9 +266,11 @@ void FacetPredict::computePredictionBuffer(size_t data_desc_id,
         double angle = uvw[0] * dl_fact + uvw[1] * dm_fact + uvw[2] * dp_fact;
         angle *= info_.chanFreqs()[ch] / c();
         const std::complex<float> phasor(cos(angle), sin(angle));
-        for (size_t corr = 0; corr != 4; ++corr) {
-          values[ch * 4 + corr] *= phasor;
-        }
+        values[0] *= phasor;
+        values[1] *= phasor;
+        values[2] *= phasor;
+        values[3] *= phasor;
+        values += 4;
       }
     }
 
@@ -274,19 +280,27 @@ void FacetPredict::computePredictionBuffer(size_t data_desc_id,
     // https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text
     // files when 'logarithmic SI' is false. The definition is:
     //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
-    std::complex<float>* values0 = available_row_ids[0][i].second;
+
     for (size_t ch = 0; ch != info_.nchan(); ++ch) {
       double frequency = info_.chanFreqs()[ch];
       double freq_factor = frequency / ref_frequency_ - 1.0;
       double polynomial_factor = 1.0;
+      const std::size_t ch_offset = ch * 4;  // info_.ncorr() == 4
       for (size_t term = 1; term != n_terms; ++term) {
         polynomial_factor *= freq_factor;
-        const std::complex<float>* values = available_row_ids[term][i].second;
-        for (size_t p = 0; p != 4; ++p)
-          values0[ch * 4 + p] += values[ch * 4 + p] * float(polynomial_factor);
+        const float polynomial_factor_float = polynomial_factor;
+        std::complex<float>* values0 =
+            available_row_ids[0][i].second + ch_offset;
+        const std::complex<float>* values =
+            available_row_ids[term][i].second + ch_offset;
+        values0[0] += values[0] * polynomial_factor_float;
+        values0[1] += values[1] * polynomial_factor_float;
+        values0[2] += values[2] * polynomial_factor_float;
+        values0[3] += values[3] * polynomial_factor_float;
       }
     }
-    predict_callback_(row, direction, data_desc_id, values0);
+    predict_callback_(row, direction, data_desc_id,
+                      available_row_ids[0][i].second);
   }
   for (size_t term = 0; term != n_terms; ++term) {
     idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
