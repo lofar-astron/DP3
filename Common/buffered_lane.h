@@ -19,9 +19,11 @@
 #ifndef BUFFER_LANE_H
 #define BUFFER_LANE_H
 
-#include <vector>
-
 #include <aocommon/lane.h>
+#include <aocommon/uvector.h>
+
+#include <memory>
+#include <vector>
 
 template <typename Tp>
 class lane_write_buffer {
@@ -86,17 +88,16 @@ template <typename Tp>
 class lane_read_buffer {
  public:
   lane_read_buffer(aocommon::Lane<Tp>* lane, size_t buffer_size)
-      : _buffer(new Tp[buffer_size]),
-        _buffer_size(buffer_size),
+      : _buffer(buffer_size),
         _buffer_pos(0),
         _buffer_fill_count(0),
         _lane(lane) {}
 
-  ~lane_read_buffer() { delete[] _buffer; }
+  ~lane_read_buffer() {}
 
   bool read(Tp& element) {
     if (_buffer_pos == _buffer_fill_count) {
-      _buffer_fill_count = _lane->read(_buffer, _buffer_size);
+      _buffer_fill_count = _lane->read(_buffer.data(), _buffer.size());
       _buffer_pos = 0;
       if (_buffer_fill_count == 0) return false;
     }
@@ -109,8 +110,9 @@ class lane_read_buffer {
   lane_read_buffer(const lane_read_buffer&) = delete;
   lane_read_buffer& operator=(const lane_read_buffer&) = delete;
 
-  Tp* _buffer;
-  size_t _buffer_size, _buffer_pos, _buffer_fill_count;
+  aocommon::UVector<Tp> _buffer;
+  std::size_t _buffer_pos;
+  std::size_t _buffer_fill_count;
   aocommon::Lane<Tp>* _lane;
 };
 

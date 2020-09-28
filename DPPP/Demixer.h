@@ -103,7 +103,6 @@ class Demixer : public DPStep {
 
   /// Deproject the sources without a model.
   void deproject(casacore::Array<casacore::DComplex>& factors,
-                 std::vector<MultiResultStep*> avgResults,
                  unsigned int resultIndex);
 
   /// Solve gains and subtract sources.
@@ -125,17 +124,17 @@ class Demixer : public DPStep {
   size_t itsMaxIter;
   BaselineSelection itsSelBL;
   Filter itsFilter;
-  std::vector<PhaseShift*> itsPhaseShifts;
+  std::vector<std::shared_ptr<PhaseShift>> itsPhaseShifts;
   /// Phase shift and average steps for demix.
   std::vector<DPStep::ShPtr> itsFirstSteps;
   /// Result of phase shifting and averaging the directions of interest
   /// at the demix resolution.
-  std::vector<MultiResultStep*> itsAvgResults;
-  DPStep::ShPtr itsAvgStepSubtr;
-  Filter* itsFilterSubtr;
+  std::vector<std::shared_ptr<MultiResultStep>> itsAvgResults;
+  std::shared_ptr<DPStep> itsAvgStepSubtr;
+  std::shared_ptr<Filter> itsFilterSubtr;
   /// Result of averaging the target at the subtract resolution.
-  MultiResultStep* itsAvgResultFull;
-  MultiResultStep* itsAvgResultSubtr;
+  std::shared_ptr<MultiResultStep> itsAvgResultFull;
+  std::shared_ptr<MultiResultStep> itsAvgResultSubtr;
   /// Ignore target in demixing?
   bool itsIgnoreTarget;
   /// Name of the target. Empty if no model is available for the target.
@@ -173,7 +172,7 @@ class Demixer : public DPStep {
   /// Buffer of demixing weights at the demix resolution. Each Array is a
   /// cube of shape #correlations x #channels x #baselines of matrices of
   /// shape #directions x #directions.
-  std::vector<casacore::Array<casacore::DComplex> > itsFactors;
+  std::vector<casacore::Array<casacore::DComplex>> itsFactors;
 
   /// Accumulator used for computing the demixing weights. The shape of this
   /// buffer is #correlations x #channels x #baselines x #directions
@@ -182,7 +181,7 @@ class Demixer : public DPStep {
   /// Buffer of demixing weights at the subtract resolution. Each Array is a
   /// cube of shape #correlations x #channels x #baselines of matrices of
   /// shape #directions x #directions.
-  std::vector<casacore::Array<casacore::DComplex> > itsFactorsSubtr;
+  std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
 
   PatchList itsPatchList;
   Position itsPhaseRef;

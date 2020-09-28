@@ -216,38 +216,39 @@ Demixer::Demixer(DPInput* input, const ParameterSet& parset,
       sourceVec[0] = toString(itsPatchList[i]->position()[0]);
       sourceVec.push_back(toString(itsPatchList[i]->position()[1]));
     }
-    PhaseShift* step1 = new PhaseShift(
+    auto step1 = std::make_shared<PhaseShift>(
         input, parset, prefix + itsAllSources[i] + '.', sourceVec);
-    itsFirstSteps.push_back(DPStep::ShPtr(step1));
+    itsFirstSteps.push_back(step1);
     itsPhaseShifts.push_back(step1);
-    DPStep::ShPtr step2(new Averager(input, prefix, itsNChanAvg, itsNTimeAvg));
+    auto step2 =
+        std::make_shared<Averager>(input, prefix, itsNChanAvg, itsNTimeAvg);
     step1->setNextStep(step2);
-    MultiResultStep* step3 = new MultiResultStep(itsNTimeChunk);
-    step2->setNextStep(DPStep::ShPtr(step3));
+    auto step3 = std::make_shared<MultiResultStep>(itsNTimeChunk);
+    step2->setNextStep(step3);
     // There is a single demix factor step which needs to get all results.
     itsAvgResults.push_back(step3);
   }
 
   // Now create the step to average the data themselves.
-  DPStep::ShPtr targetAvg(
-      new Averager(input, prefix, itsNChanAvg, itsNTimeAvg));
+  auto targetAvg =
+      std::make_shared<Averager>(input, prefix, itsNChanAvg, itsNTimeAvg);
   itsFirstSteps.push_back(targetAvg);
-  MultiResultStep* targetAvgRes = new MultiResultStep(itsNTimeChunk);
-  targetAvg->setNextStep(DPStep::ShPtr(targetAvgRes));
+  auto targetAvgRes = std::make_shared<MultiResultStep>(itsNTimeChunk);
+  targetAvg->setNextStep(targetAvgRes);
   itsAvgResults.push_back(targetAvgRes);
 
   // Create the data average step for the subtract.
   // The entire average result is needed for the next NDPPP step.
   // Only the selected baselines need to be subtracted, so add a
   // filter step as the last one.
-  itsAvgStepSubtr = DPStep::ShPtr(
-      new Averager(input, prefix, itsNChanAvgSubtr, itsNTimeAvgSubtr));
-  itsAvgResultFull = new MultiResultStep(itsNTimeChunkSubtr);
-  itsFilterSubtr = new Filter(input, itsSelBL);
-  itsAvgResultSubtr = new MultiResultStep(itsNTimeChunkSubtr);
-  itsAvgStepSubtr->setNextStep(DPStep::ShPtr(itsAvgResultFull));
-  itsAvgResultFull->setNextStep(DPStep::ShPtr(itsFilterSubtr));
-  itsFilterSubtr->setNextStep(DPStep::ShPtr(itsAvgResultSubtr));
+  itsAvgStepSubtr = std::make_shared<Averager>(input, prefix, itsNChanAvgSubtr,
+                                               itsNTimeAvgSubtr);
+  itsAvgResultFull = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
+  itsFilterSubtr = std::make_shared<Filter>(input, itsSelBL);
+  itsAvgResultSubtr = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
+  itsAvgStepSubtr->setNextStep(itsAvgResultFull);
+  itsAvgResultFull->setNextStep(itsFilterSubtr);
+  itsFilterSubtr->setNextStep(itsAvgResultSubtr);
 
   //      while(itsCutOffs.size() < itsNModel) {
   //        itsCutOffs.push_back(0.0);
@@ -464,7 +465,7 @@ bool Demixer::process(const DPBuffer& buf) {
                 itsAvgResults[0]->get()[itsNTimeOut].getWeights(), itsNChanOut,
                 itsNChanAvg);
     // Deproject sources without a model.
-    deproject(itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
+    deproject(itsFactors[itsNTimeOut], itsNTimeOut);
     itsFactorBuf = Complex();  // Clear summation buffer
     itsNTimeOut++;
   }
@@ -509,7 +510,7 @@ void Demixer::finish() {
                   itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
                   itsNChanOut, itsNChanAvg);
       // Deproject sources without a model.
-      deproject(itsFactors[itsNTimeOut], itsAvgResults, itsNTimeOut);
+      deproject(itsFactors[itsNTimeOut], itsNTimeOut);
       itsNTimeOut++;
     }
     if (itsNTimeIn % itsNTimeAvgSubtr != 0) {
@@ -715,9 +716,7 @@ void Demixer::makeFactors(const Array<DComplex>& bufIn, Array<DComplex>& bufOut,
   /// cout<<"makefactors "<<weightSums<<bufOut;
 }
 
-void Demixer::deproject(Array<DComplex>& factors,
-                        vector<MultiResultStep*> avgResults,
-                        unsigned int resultIndex) {
+void Demixer::deproject(Array<DComplex>& factors, unsigned int resultIndex) {
   // Sources without a model have to be deprojected.
   // Optionally no deprojection of target direction.
   unsigned int nrDeproject = itsNDir - itsNModel;
@@ -729,7 +728,7 @@ void Demixer::deproject(Array<DComplex>& factors,
   // Get pointers to the data for the various directions.
   vector<Complex*> resultPtr(itsNDir);
   for (unsigned int j = 0; j < itsNDir; ++j) {
-    resultPtr[j] = avgResults[j]->get()[resultIndex].getData().data();
+    resultPtr[j] = itsAvgResults[j]->get()[resultIndex].getData().data();
   }
   // The projection matrix is given by
   //     P = I - A * inv(A.T.conj * A) * A.T.conj

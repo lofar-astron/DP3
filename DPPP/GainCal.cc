@@ -53,6 +53,8 @@
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/casa/OS/File.h>
 
+#include <boost/make_unique.hpp>
+
 #include <vector>
 #include <algorithm>
 
@@ -112,8 +114,8 @@ GainCal::GainCal(DPInput* input, const ParameterSet& parset,
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    itsPredictStep.reset(new Predict(input, parset, prefix));
-    itsResultStep = ResultStep::ShPtr(new ResultStep());
+    itsPredictStep = boost::make_unique<Predict>(input, parset, prefix);
+    itsResultStep = std::make_shared<ResultStep>();
     itsPredictStep->setNextStep(itsResultStep);
   } else {
     itsApplyBeamToModelColumn =
@@ -226,7 +228,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
   // By giving a thread pool to the predicter, the threads are
   // sustained.
-  itsThreadPool.reset(new aocommon::ThreadPool(info().nThreads()));
+  itsThreadPool = boost::make_unique<aocommon::ThreadPool>(info().nThreads());
   itsParallelFor.SetNThreads(info().nThreads());
   itsUVWFlagStep.updateInfo(infoIn);
 
