@@ -72,11 +72,11 @@ class H5ParmPredict : public DPStep {
 
  private:
   DPInput* itsInput;
-  string itsName;
+  std::string itsName;
   DPBuffer itsBuffer;
 
-  std::vector<Predict::ShPtr> itsPredictSteps;
-  ResultStep* itsResultStep;
+  std::vector<std::shared_ptr<Predict>> itsPredictSteps;
+  std::shared_ptr<ResultStep> itsResultStep;
 
   std::string itsH5ParmName;
   std::vector<std::string> itsDirections;

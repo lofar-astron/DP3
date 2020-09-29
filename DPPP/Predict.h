@@ -135,7 +135,8 @@ class Predict : public DPStep {
   bool itsDoApplyCal;
   ApplyCal itsApplyCalStep;
   DPBuffer itsTempBuffer;
-  ResultStep* itsResultStep;  ///< For catching results from ApplyCal
+  std::shared_ptr<ResultStep>
+      itsResultStep;  ///< For catching results from ApplyCal
 
   unsigned int itsDebugLevel;
 

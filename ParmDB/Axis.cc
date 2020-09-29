@@ -272,14 +272,14 @@ Axis::ShPtr Axis::combine(const Axis& that, int& s1, int& e1, int& s2,
   if (s1 == 0 && nr == nr2) {
     e1 = nr1;
     e2 = s2 + nr;
-    return Axis::ShPtr(this->clone());
+    return this->clone();
   }
   // If that fully covers this, return that axis and set which parts
   // of that are not contained in this.
   if (s2 == 0 && nr == nr1) {
     e1 = s1 + nr;
     e2 = nr2;
-    return Axis::ShPtr(that.clone());
+    return that.clone();
   }
   // Partial overlap, so make a new axis.
   std::vector<double> low, upp;
@@ -352,10 +352,10 @@ Axis::ShPtr Axis::makeAxis(const std::vector<double>& low,
   double width = upp[0] - low[0];
   for (unsigned int i = 1; i < low.size(); ++i) {
     if (!casacore::near(width, upp[i] - low[i])) {
-      return Axis::ShPtr(new OrderedAxis(low, upp, true));
+      return std::make_shared<OrderedAxis>(low, upp, true);
     }
   }
-  return Axis::ShPtr(new RegularAxis(low[0], width, low.size()));
+  return std::make_shared<RegularAxis>(low[0], width, low.size());
 }
 
 Axis::ShPtr Axis::subset(double start, double end, size_t& index) const {
@@ -399,7 +399,9 @@ RegularAxis::RegularAxis(double start, double width, unsigned int count,
 
 RegularAxis::~RegularAxis() {}
 
-RegularAxis* RegularAxis::clone() const { return new RegularAxis(*this); }
+Axis::ShPtr RegularAxis::clone() const {
+  return std::make_shared<RegularAxis>(*this);
+}
 
 //   size_t RegularAxis::locate (double x, bool biasRight, size_t) const
 //   {
@@ -429,17 +431,17 @@ Axis::ShPtr RegularAxis::doSubset(size_t start, size_t end) const {
     end = size() - 1;
   }
   if (start > end) {
-    return Axis::ShPtr(new RegularAxis());
+    return std::make_shared<RegularAxis>();
   }
-  return Axis::ShPtr(
-      new RegularAxis(itsStart + start * itsWidth, itsWidth, end - start + 1));
+  return std::make_shared<RegularAxis>(itsStart + start * itsWidth, itsWidth,
+                                       end - start + 1);
 }
 
 Axis::ShPtr RegularAxis::compress(size_t factor) const {
   // Is the resulting axis still regular?
   if (itsCount % factor == 0) {
-    return Axis::ShPtr(
-        new RegularAxis(itsStart, itsWidth * factor, itsCount / factor));
+    return std::make_shared<RegularAxis>(itsStart, itsWidth * factor,
+                                         itsCount / factor);
   }
   std::vector<double> centers(itsCount / factor + 1);
   for (size_t i = 0; i < itsCount / factor; ++i) {
@@ -449,7 +451,7 @@ Axis::ShPtr RegularAxis::compress(size_t factor) const {
                    0.5 * (itsCount % factor) * itsWidth;
   std::vector<double> widths(itsCount / factor + 1, factor * itsWidth);
   widths.back() = (itsCount % factor) * itsWidth;
-  return Axis::ShPtr(new OrderedAxis(centers, widths));
+  return std::make_shared<OrderedAxis>(centers, widths);
 }
 
 void RegularAxis::write(BlobOStream& bos) const {
@@ -475,20 +477,22 @@ OrderedAxis::OrderedAxis(const std::vector<double>& starts,
 
 OrderedAxis::~OrderedAxis() {}
 
-OrderedAxis* OrderedAxis::clone() const { return new OrderedAxis(*this); }
+Axis::ShPtr OrderedAxis::clone() const {
+  return std::make_shared<OrderedAxis>(*this);
+}
 
 Axis::ShPtr OrderedAxis::doSubset(size_t start, size_t end) const {
   if (end >= size()) {
     end = size() - 1;
   }
   if (start > end) {
-    return Axis::ShPtr(new RegularAxis());
+    return std::make_shared<RegularAxis>();
   }
   std::vector<double> centers(itsCenter.begin() + start,
                               itsCenter.begin() + end + 1);
   std::vector<double> widths(itsWidth.begin() + start,
                              itsWidth.begin() + end + 1);
-  return Axis::ShPtr(new OrderedAxis(centers, widths));
+  return std::make_shared<OrderedAxis>(centers, widths);
 }
 
 Axis::ShPtr OrderedAxis::compress(size_t factor) const {
@@ -502,7 +506,7 @@ Axis::ShPtr OrderedAxis::compress(size_t factor) const {
     centers[i] = 0.5 * (upper(end) + lower(start));
     widths[i] = upper(end) - lower(start);
   }
-  return Axis::ShPtr(new OrderedAxis(centers, widths));
+  return std::make_shared<OrderedAxis>(centers, widths);
 }
 
 const std::string& OrderedAxis::classType() const {

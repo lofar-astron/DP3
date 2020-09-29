@@ -46,9 +46,15 @@ namespace DPPP {
 H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
                              const string& prefix)
     : itsInput(input),
+      itsName(),
+      itsPredictSteps(),
+      itsResultStep(),
       itsH5ParmName(parset.getString(prefix + "applycal.parmdb")),
       itsDirections(
-          parset.getStringVector(prefix + "directions", vector<string>())) {
+          parset.getStringVector(prefix + "directions", vector<string>())),
+      itsTimer(),
+      itsThreadPool(),
+      itsMeasuresMutex() {
   H5Parm h5parm = H5Parm(itsH5ParmName, false);
   std::string soltabName = parset.getString(prefix + "applycal.correction");
   if (soltabName == "fulljones") soltabName = "amplitude000";
@@ -74,9 +80,9 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
   }
 
   for (unsigned int i = 0; i < itsDirections.size(); ++i) {
-    string directionStr = itsDirections[i];
-    vector<string>
-        directionVec;  // each direction should be like '[patch1,patch2]'
+    std::string directionStr = itsDirections[i];
+    std::vector<std::string> directionVec;
+    // each direction should be like '[patch1,patch2]'
     if (directionStr.size() <= 2 || directionStr[0] != '[' ||
         directionStr[directionStr.size() - 1] != ']')
       throw std::runtime_error(
@@ -84,29 +90,30 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
           "e.g. [a, b]");
     directionVec = StringUtil::tokenize(
         directionStr.substr(1, directionStr.size() - 2), ",");
-    Predict* predictStep = new Predict(input, parset, prefix, directionVec);
+    auto predictStep =
+        std::make_shared<Predict>(input, parset, prefix, directionVec);
 
     if (operation == "replace" && i > 0) {
       predictStep->setOperation("add");
     } else {
       predictStep->setOperation(operation);
     }
+    predictStep->setThreadData(itsThreadPool, itsMeasuresMutex);
 
-    itsPredictSteps.push_back(Predict::ShPtr(predictStep));
-    if (i > 0) {
-      itsPredictSteps[i - 1]->setNextStep(itsPredictSteps[i]);
+    if (!itsPredictSteps.empty()) {
+      itsPredictSteps.back()->setNextStep(predictStep);
     }
-    itsPredictSteps[i]->setThreadData(itsThreadPool, itsMeasuresMutex);
+    itsPredictSteps.push_back(predictStep);
   }
 
-  itsResultStep = new ResultStep();
-  itsPredictSteps.back()->setNextStep(DPStep::ShPtr(itsResultStep));
+  itsResultStep = std::make_shared<ResultStep>();
+  itsPredictSteps.back()->setNextStep(itsResultStep);
 }
 
 H5ParmPredict::~H5ParmPredict() {}
 
 void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  DPStep::updateInfo(infoIn);
   info().setNeedVisData();
   info().setWriteData();
 

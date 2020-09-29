@@ -335,7 +335,7 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
 }
 
 void DDECal::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  DPStep::updateInfo(infoIn);
   info().setNeedVisData();
   if (itsSubtract) info().setWriteData();
 
@@ -366,13 +366,12 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsOriginalFlags.resize(itsSolInt);
   itsOriginalWeights.resize(itsSolInt);
 
-  itsDataResultStep = ResultStep::ShPtr(new ResultStep());
+  itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   itsResultSteps.resize(itsPredictSteps.size());
   for (size_t dir = 0; dir < itsPredictSteps.size(); ++dir) {
-    itsResultSteps[dir] =
-        MultiResultStep::ShPtr(new MultiResultStep(itsSolInt));
+    itsResultSteps[dir] = std::make_shared<MultiResultStep>(itsSolInt);
     itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
   }
 

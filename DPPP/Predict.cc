@@ -179,8 +179,8 @@ void Predict::setApplyCal(DPInput* input, const ParameterSet& parset,
       parset.getBool(prefix + "applycal.updateweights", false))
     throw std::invalid_argument(
         "Weights cannot be updated when operation is not replace");
-  itsResultStep = new ResultStep();
-  itsApplyCalStep.setNextStep(DPStep::ShPtr(itsResultStep));
+  itsResultStep = std::make_shared<ResultStep>();
+  itsApplyCalStep.setNextStep(itsResultStep);
 }
 
 Predict::~Predict() {}

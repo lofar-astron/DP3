@@ -272,7 +272,7 @@ PreFlagger::PSet::PSet(DPInput* input, const ParameterSet& parset,
     itsPSets.reserve(names.size());
     for (unsigned int i = 0; i < names.size(); ++i) {
       itsPSets.push_back(
-          PSet::ShPtr(new PSet(itsInput, parset, prefix + names[i] + '.')));
+          std::make_shared<PSet>(itsInput, parset, prefix + names[i] + '.'));
     }
   }
 }

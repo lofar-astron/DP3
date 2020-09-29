@@ -110,7 +110,7 @@ GainCal::GainCal(DPInput* input, const ParameterSet& parset,
     itsTimeSlotsPerParmUpdate = 0;
   }
 
-  itsDataResultStep = ResultStep::ShPtr(new ResultStep());
+  itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
@@ -122,7 +122,7 @@ GainCal::GainCal(DPInput* input, const ParameterSet& parset,
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
     if (itsApplyBeamToModelColumn) {
       itsApplyBeamStep = ApplyBeam(input, parset, prefix, true);
-      itsResultStep = ResultStep::ShPtr(new ResultStep());
+      itsResultStep = std::make_shared<ResultStep>();
       itsApplyBeamStep.setNextStep(itsResultStep);
     }
   }

@@ -72,21 +72,19 @@ MultiMSReader::MultiMSReader(const vector<string>& msNames,
   // Open all MSs.
   auto nullStep = std::make_shared<NullStep>();
   itsReaders.reserve(msNames.size());
-  itsSteps.reserve(msNames.size());
   for (unsigned int i = 0; i < msNames.size(); ++i) {
-    itsReaders.push_back(
-        new MSReader(msNames[i], parset, prefix, itsMissingData));
-    // itsSteps takes care of deletion of the MSReader object.
-    itsSteps.push_back(DPStep::ShPtr(itsReaders[i]));
+    auto reader =
+        std::make_shared<MSReader>(msNames[i], parset, prefix, itsMissingData);
     // Add a null step for the reader.
-    itsSteps[i]->setNextStep(nullStep);
+    reader->setNextStep(nullStep);
     // Ignore if the MS is missing.
-    if (itsReaders[i]->table().isNull()) {
-      itsReaders[i] = 0;
+    if (reader->table().isNull()) {
+      reader.reset();
       itsNMissing++;
     } else if (itsFirst < 0) {
       itsFirst = i;
     }
+    itsReaders.push_back(std::move(reader));
   }
 
   // TODO: check if frequencies are regular, insert some empy readers
@@ -153,7 +151,7 @@ void MultiMSReader::sortBands() {
 #else
   GenSortIndirect<double, rownr_t>::sort(index, freqs);
 #endif
-  vector<MSReader*> oldReaders(itsReaders);
+  std::vector<std::shared_ptr<MSReader>> oldReaders(itsReaders);
   for (int i = 0; i < nband; ++i) {
     itsReaders[i] = oldReaders[index[i]];
   }
