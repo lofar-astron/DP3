@@ -22,7 +22,7 @@
 #include <fstream>
 #include <vector>
 
-#include "FacetMap.h"
+#include "Facet.h"
 
 #include <aocommon/imagecoordinates.h>
 
@@ -34,9 +34,10 @@ class DS9FacetFile {
     Skip();
   }
 
-  void Read(FacetMap& map, double phaseCentreRA, double phaseCentreDec,
-            double pxScaleX, double pxScaleY, size_t width, size_t height) {
-    Facet* lastFacet = nullptr;
+  std::vector<Facet> Read(double phaseCentreRA, double phaseCentreDec,
+                          double pxScaleX, double pxScaleY, size_t width,
+                          size_t height) {
+    std::vector<Facet> facets;
     while (Type() != DS9FacetFile::Empty) {
       std::string t = Token();
       if (t == "global" || t == "fk5")
@@ -50,7 +51,7 @@ class DS9FacetFile {
             throw std::runtime_error(
                 "Polygon is expecting an even number of numbers in its list");
           std::vector<double>::const_iterator i = vals.begin();
-          Facet& facet = map.AddFacet();
+          Facet facet;
           while (i != vals.end()) {
             double ra = *i * (M_PI / 180.0);
             ++i;
@@ -64,19 +65,21 @@ class DS9FacetFile {
                                                height, x, y);
             facet.AddVertex(x, y);
           }
-          lastFacet = &facet;
+          facets.push_back(std::move(facet));
         } else if (t == "point") {
           std::vector<double> vals = readNumList();
-          if (vals.size() != 2)
+          if (vals.size() != 2) {
             throw std::runtime_error(
                 "Point is expecting exactly two numbers in its list");
-          if (lastFacet) {
-            lastFacet->SetRA(vals[0] * (M_PI / 180.0));
-            lastFacet->SetDec(vals[1] * (M_PI / 180.0));
+          }
+          if (!facets.empty()) {
+            facets.back().SetRA(vals[0] * (M_PI / 180.0));
+            facets.back().SetDec(vals[1] * (M_PI / 180.0));
           }
         }
       }
     }
+    return facets;
   }
 
   std::vector<double> readNumList() {

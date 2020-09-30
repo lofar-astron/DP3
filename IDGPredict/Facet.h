@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FACET_MAP_H
-#define FACET_MAP_H
+#ifndef FACET_H
+#define FACET_H
 
 #include <string>
 #include <vector>
@@ -30,7 +30,7 @@ struct Vertex {
 
 class Facet {
  public:
-  Facet() : _dirRA(0.0), _dirDec(0.0) {}
+  Facet() : _vertices(), _dirRA(0.0), _dirDec(0.0) {}
 
   typedef std::vector<Vertex>::iterator iterator;
   typedef std::vector<Vertex>::const_iterator const_iterator;
@@ -100,27 +100,6 @@ class Facet {
  private:
   std::vector<Vertex> _vertices;
   double _dirRA, _dirDec;
-};
-
-class FacetMap {
- public:
-  typedef std::vector<Facet>::const_iterator const_iterator;
-
-  const_iterator begin() const { return _facets.begin(); }
-
-  const_iterator end() const { return _facets.end(); }
-
-  Facet& operator[](size_t index) { return _facets[index]; }
-
-  Facet& AddFacet() {
-    _facets.emplace_back();
-    return _facets.back();
-  }
-
-  size_t NFacets() const { return _facets.size(); }
-
- private:
-  std::vector<Facet> _facets;
 };
 
 #endif
