@@ -101,7 +101,13 @@ DemixWorker::DemixWorker(DPInput* input, const string& prefix,
 
   // Read the antenna beam info from the MS.
   // Only take the stations actually used.
-  input->fillBeamInfo(itsAntBeamInfo, itsMix->antennaNames());
+  //
+  // TODO: right now the response model is hard-coded to Hamaker
+  // previously, this was implicit in the call to everybeam::ReadStations
+  everybeam::ElementResponseModel element_response_model =
+      everybeam::ElementResponseModel::kHamaker;
+  input->fillBeamInfo(itsAntBeamInfo, itsMix->antennaNames(),
+                      element_response_model);
 
   // Create the solve and subtract steps for the sources to be removed.
   // Solving consists of the following steps:

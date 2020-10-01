@@ -231,7 +231,8 @@ void Predict::initializeThreadData() {
       }
       itsBeamValues[thread].resize(nSt * nCh);
       itsBeamValuesSingle[thread].resize(nSt * nCh);
-      itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames());
+      itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames(),
+                             itsElementResponseModel);
     }
   }
 }
@@ -489,12 +490,11 @@ void Predict::addBeamToData(Patch::ConstPtr patch, double time,
     ApplyBeam::applyBeamStokesIArrayFactor(
         info(), time, data0, dummyweight, srcdir, refdir, tiledir,
         itsAntBeamInfo[thread], itsBeamValuesSingle[thread], itsUseChannelFreq,
-        false, itsBeamMode, itsElementResponseModel, false);
+        false, itsBeamMode, false);
   } else {
     ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
                          tiledir, itsAntBeamInfo[thread], itsBeamValues[thread],
-                         itsUseChannelFreq, false, itsBeamMode,
-                         itsElementResponseModel, false);
+                         itsUseChannelFreq, false, itsBeamMode, false);
   }
 
   // Add temporary buffer to itsModelVis
