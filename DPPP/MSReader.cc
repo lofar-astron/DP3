@@ -927,12 +927,13 @@ void MSReader::getModelData(const casacore::RefRows& rowNrs,
 
 void MSReader::fillBeamInfo(
     vector<everybeam::Station::Ptr>& vec,
-    const casacore::Vector<casacore::String>& antNames) {
+    const casacore::Vector<casacore::String>& antNames,
+    const everybeam::ElementResponseModel element_reponse_model) const {
   // Get the names of all stations in the MS.
   const Vector<String>& allNames = getInfo().antennaNames();
   // Create a vector holding the beam info of all stations.
   vector<everybeam::Station::Ptr> beams(allNames.size());
-  everybeam::ReadStations(itsMS, beams.begin());
+  everybeam::ReadStations(itsMS, beams.begin(), element_reponse_model);
   // Copy only the ones for which the station name matches.
   // Note: the order of the station names in both vectors match.
   vec.resize(antNames.size());

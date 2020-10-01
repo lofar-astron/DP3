@@ -30,6 +30,7 @@
 #include "FlagCounter.h"
 
 #include <EveryBeam/station.h>
+#include <EveryBeam/elementresponse.h>
 
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/RefRows.h>
@@ -92,8 +93,10 @@ class DPInput : public DPStep {
   /// Fill the vector with station beam info from the input source (MS).
   /// Only fill it for the given station names.
   /// The default implementation throws an exception.
-  virtual void fillBeamInfo(std::vector<everybeam::Station::Ptr>&,
-                            const casacore::Vector<casacore::String>& antNames);
+  virtual void fillBeamInfo(
+      std::vector<everybeam::Station::Ptr>&,
+      const casacore::Vector<casacore::String>& antNames,
+      const everybeam::ElementResponseModel element_reponse_model) const;
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.

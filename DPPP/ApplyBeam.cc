@@ -174,7 +174,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsMeasConverters[thread].set(
         MDirection::J2000,
         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames());
+    itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames(),
+                           itsElementResponseModel);
   }
 }
 
@@ -245,13 +246,13 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
     // instead of assumed to be the same from the target beam.
     applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
               itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq,
-              false, itsModeAtStart, itsElementResponseModel, itsUpdateWeights);
+              false, itsModeAtStart, itsUpdateWeights);
     srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
   }
 
   applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
             itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq,
-            itsInvert, itsMode, itsElementResponseModel, itsUpdateWeights);
+            itsInvert, itsMode, itsUpdateWeights);
 
   itsTimer.stop();
   getNextStep()->process(itsBuffer);
@@ -284,18 +285,12 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
                           const vector<everybeam::Station::Ptr>& antBeamInfo,
                           vector<everybeam::matrix22c_t>& beamValues,
                           bool useChannelFreq, bool invert,
-                          BeamCorrectionMode mode,
-                          everybeam::ElementResponseModel element_reponse_model,
-                          bool doUpdateWeights) {
+                          BeamCorrectionMode mode, bool doUpdateWeights) {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
-
-  for (auto& station : antBeamInfo) {
-    station->SetResponseModel(element_reponse_model);
-  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -394,9 +389,7 @@ template void ApplyBeam::applyBeam(
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
     const vector<everybeam::Station::Ptr>& antBeamInfo,
     vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-    bool invert, BeamCorrectionMode mode,
-    everybeam::ElementResponseModel element_reponse_model,
-    bool doUpdateWeights);
+    bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
 
 template <typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -405,18 +398,12 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& tiledir,
     const vector<everybeam::Station::Ptr>& antBeamInfo,
     vector<everybeam::complex_t>& beamValues, bool useChannelFreq, bool invert,
-    BeamCorrectionMode mode,
-    everybeam::ElementResponseModel element_reponse_model,
-    bool doUpdateWeights) {
+    BeamCorrectionMode mode, bool doUpdateWeights) {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
   unsigned int nBl = info.nbaselines();
-
-  for (size_t st = 0; st < nSt; ++st) {
-    antBeamInfo[st]->SetResponseModel(element_reponse_model);
-  }
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
@@ -459,9 +446,7 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
     const vector<everybeam::Station::Ptr>& antBeamInfo,
     vector<everybeam::complex_t>& beamValues, bool useChannelFreq, bool invert,
-    BeamCorrectionMode mode,
-    everybeam::ElementResponseModel element_reponse_model,
-    bool doUpdateWeights);
+    BeamCorrectionMode mode, bool doUpdateWeights);
 
 }  // namespace DPPP
 }  // namespace DP3
