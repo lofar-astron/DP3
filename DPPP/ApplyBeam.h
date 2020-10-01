@@ -83,16 +83,15 @@ class ApplyBeam : public DPStep {
   bool invert() { return itsInvert; }
 
   template <typename T>
-  static void applyBeam(const DPInfo& info, double time, T* data0,
-                        float* weight0, const everybeam::vector3r_t& srcdir,
-                        const everybeam::vector3r_t& refdir,
-                        const everybeam::vector3r_t& tiledir,
-                        const std::vector<everybeam::Station::Ptr>& antBeamInfo,
-                        std::vector<everybeam::matrix22c_t>& beamValues,
-                        bool useChannelFreq, bool invert,
-                        BeamCorrectionMode mode,
-                        everybeam::ElementResponseModel element_reponse_model,
-                        bool doUpdateWeights = false);
+  static void applyBeam(
+      const DPInfo& info, double time, T* data0, float* weight0,
+      const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
+      const everybeam::vector3r_t& tiledir,
+      const std::vector<everybeam::Station::Ptr>& antBeamInfo,
+      std::vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
+      bool invert, BeamCorrectionMode mode,
+      // everybeam::ElementResponseModel element_reponse_model,
+      bool doUpdateWeights = false);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -102,7 +101,7 @@ class ApplyBeam : public DPStep {
       const std::vector<everybeam::Station::Ptr>& antBeamInfo,
       std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
       bool invert, BeamCorrectionMode mode,
-      everybeam::ElementResponseModel element_reponse_model,
+      // everybeam::ElementResponseModel element_reponse_model,
       bool doUpdateWeights = false);
 
  private:

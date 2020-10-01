@@ -179,8 +179,10 @@ class MSReader : public DPInput {
 
   /// Fill the vector with station beam info from the input MS.
   /// Only fill it for the given station names.
-  virtual void fillBeamInfo(std::vector<everybeam::Station::Ptr>&,
-                            const casacore::Vector<casacore::String>& antNames);
+  virtual void fillBeamInfo(
+      std::vector<everybeam::Station::Ptr>&,
+      const casacore::Vector<casacore::String>& antNames,
+      const everybeam::ElementResponseModel element_reponse_model) const;
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.

@@ -123,7 +123,8 @@ void DPInput::getModelData(const RefRows&, Cube<Complex>&) {
 }
 
 void DPInput::fillBeamInfo(vector<everybeam::Station::Ptr>&,
-                           const Vector<casacore::String>&) {
+                           const Vector<casacore::String>&,
+                           const everybeam::ElementResponseModel) const {
   throw Exception("DPInput::fillBeamInfo not implemented");
 }
 
