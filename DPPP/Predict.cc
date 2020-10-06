@@ -107,6 +107,9 @@ void Predict::init(DPInput* input, const ParameterSet& parset,
   try {
     patchNames = makePatchList(sourceDB, sourcePatterns);
     itsPatchList = makePatches(sourceDB, patchNames, patchNames.size());
+    if (itsPatchList.empty()) {
+      throw Exception("Couldn't find patch for direction " + itsDirectionsStr);
+    }
   } catch (std::exception& exception) {
     throw std::runtime_error(std::string("Something went wrong while reading "
                                          "the source model. The error was: ") +
@@ -268,6 +271,7 @@ void Predict::updateInfo(const DPInfo& infoIn) {
 
 std::pair<double, double> Predict::getFirstDirection() const {
   std::pair<double, double> res;
+
   res.first = itsPatchList[0]->position()[0];
   res.second = itsPatchList[0]->position()[1];
   return res;
