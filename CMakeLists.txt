@@ -208,6 +208,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Simulate.cc
   DPPP/Simulator.cc
   DPPP/SolTab.cc
+  DPPP/SolutionInterval.cc
   DPPP/SourceDBUtil.cc
   DPPP/Split.cc
   DPPP/StationAdder.cc
@@ -331,6 +332,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tUVWFlagger.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )

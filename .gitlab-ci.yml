@@ -71,6 +71,10 @@ integration-test:
   dependencies:
     - build-lofar
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get update
+    - apt-get -y install python3-pip
+    - pip3 install h5py
   script:
     - mkdir build && cd build
     - cmake ..
