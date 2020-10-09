@@ -107,8 +107,11 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
       itsTimeStep(0),
       itsSolInt(parset.getInt(prefix + "solint", 1)),
+      itsSolIntCount(parset.getInt(prefix + "solintcount", 1)),
+      itsNSolInts(0),
       itsMinVisRatio(parset.getDouble(prefix + "minvisratio", 0.0)),
       itsStepInSolInt(0),
+      itsStepInSolInts(0),
       itsNChan(parset.getInt(prefix + "nchan", 1)),
       itsUVWFlagStep(input, parset, prefix),
       itsCoreConstraint(parset.getDouble(prefix + "coreconstraint", 0.0)),
@@ -138,6 +141,10 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
   if (!itsStatFilename.empty())
     itsStatStream = boost::make_unique<std::ofstream>(itsStatFilename);
 
+  if (!itsUseIDG && itsSolIntCount > 1) {
+    throw std::runtime_error("solintcount should be 1 for this predict type");
+  }
+
   // Read the antennaconstraint list
   std::vector<std::string> antConstraintList = parset.getStringVector(
       prefix + "antennaconstraint", std::vector<std::string>());
@@ -159,7 +166,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
   // read the directions parameter setting
   vector<string> strDirections;
   if (itsUseModelColumn) {
-    itsModelData.resize(itsSolInt);
     itsDirections.emplace_back();
   } else if (itsUseIDG) {
     // TODO handle directions key in parset
@@ -356,20 +362,10 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsSolInt = info().ntime();
   }
 
-  itsDataPtrs.resize(itsSolInt);
-  itsWeightPtrs.resize(itsSolInt);
-  itsModelDataPtrs.resize(itsSolInt);
-  for (unsigned int t = 0; t < itsSolInt; ++t) {
-    itsModelDataPtrs[t].resize(nDir);
-  }
   for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
     constraint->SetNThreads(getInfo().nThreads());
     itsMultiDirSolver.add_constraint(constraint.get());
   }
-
-  itsBufs.resize(itsSolInt);
-  itsOriginalFlags.resize(itsSolInt);
-  itsOriginalWeights.resize(itsSolInt);
 
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
@@ -628,37 +624,41 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "]" << endl;
 }
 
-void DDECal::initializeScalarSolutions() {
-  if (itsTimeStep / itsSolInt > 0 && itsPropagateSolutions) {
-    if (itsNIter[itsTimeStep / itsSolInt - 1] >
+void DDECal::initializeScalarSolutions(size_t bufferIndex) {
+  if (sol_ints_[bufferIndex].NSolution() > 0 && itsPropagateSolutions) {
+    if (itsNIter[sol_ints_[bufferIndex].NSolution() - 1] >
             itsMultiDirSolver.max_iterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with 1.
       size_t n = itsDirections.size() * info().antennaUsed().size();
-      for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
+      for (vector<DComplex>& solvec :
+           itsSols[sol_ints_[bufferIndex].NSolution()]) {
         solvec.assign(n, 1.0);
       }
     } else {
       // initialize solutions with those of the previous step
-      itsSols[itsTimeStep / itsSolInt] = itsSols[itsTimeStep / itsSolInt - 1];
+      itsSols[sol_ints_[bufferIndex].NSolution()] =
+          itsSols[sol_ints_[bufferIndex].NSolution() - 1];
     }
   } else {
     // initialize solutions with 1.
     size_t n = itsDirections.size() * info().antennaUsed().size();
-    for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
+    for (vector<DComplex>& solvec :
+         itsSols[sol_ints_[bufferIndex].NSolution()]) {
       solvec.assign(n, 1.0);
     }
   }
 }
 
-void DDECal::initializeFullMatrixSolutions() {
-  if (itsTimeStep / itsSolInt > 0 && itsPropagateSolutions) {
-    if (itsNIter[itsTimeStep / itsSolInt - 1] >
+void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
+  if (sol_ints_[bufferIndex].NSolution() > 0 && itsPropagateSolutions) {
+    if (itsNIter[sol_ints_[bufferIndex].NSolution() - 1] >
             itsMultiDirSolver.max_iterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
       size_t n = itsDirections.size() * info().antennaUsed().size();
-      for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
+      for (vector<DComplex>& solvec :
+           itsSols[sol_ints_[bufferIndex].NSolution()]) {
         solvec.resize(n * 4);
         for (size_t i = 0; i != n; ++i) {
           solvec[i * 4 + 0] = 1.0;
@@ -669,12 +669,14 @@ void DDECal::initializeFullMatrixSolutions() {
       }
     } else {
       // initialize solutions with those of the previous step
-      itsSols[itsTimeStep / itsSolInt] = itsSols[itsTimeStep / itsSolInt - 1];
+      itsSols[sol_ints_[bufferIndex].NSolution()] =
+          itsSols[sol_ints_[bufferIndex].NSolution() - 1];
     }
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
     size_t n = itsDirections.size() * info().antennaUsed().size();
-    for (vector<DComplex>& solvec : itsSols[itsTimeStep / itsSolInt]) {
+    for (vector<DComplex>& solvec :
+         itsSols[sol_ints_[bufferIndex].NSolution()]) {
       solvec.resize(n * 4);
       for (size_t i = 0; i != n; ++i) {
         solvec[i * 4 + 0] = 1.0;
@@ -706,7 +708,7 @@ std::vector<std::string> DDECal::getDirectionNames() {
   return res;
 }
 
-void DDECal::flagChannelBlock(size_t cbIndex) {
+void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
   const size_t nBl = info().nbaselines(), nCh = info().nchan(),
                nChanBlocks = itsChanBlockFreqs.size();
   // Set the antenna-based weights to zero
@@ -720,22 +722,22 @@ void DDECal::flagChannelBlock(size_t cbIndex) {
     }
   }
   // Set the visibility weights to zero
-  for (size_t step = 0; step != itsStepInSolInt; ++step) {
+  for (size_t step = 0; step != sol_ints_[bufferIndex].Size(); ++step) {
     for (size_t bl = 0; bl < nBl; ++bl) {
       for (size_t chcr = itsChanBlockStart[cbIndex] * 4;
            chcr != itsChanBlockStart[cbIndex + 1] * 4; ++chcr) {
         const size_t index = bl * nCh * 4 + chcr;
-        itsWeightPtrs[step][index] = 0;
+        sol_ints_[bufferIndex].WeightPtrs()[step][index] = 0;
       }
     }
   }
 }
 
-void DDECal::checkMinimumVisibilities() {
+void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
   for (size_t cb = 0; cb != itsChanBlockFreqs.size(); ++cb) {
     double fraction =
         double(itsVisInInterval[cb].first) / itsVisInInterval[cb].second;
-    if (fraction < itsMinVisRatio) flagChannelBlock(cb);
+    if (fraction < itsMinVisRatio) flagChannelBlock(cb, bufferIndex);
   }
 }
 
@@ -744,93 +746,98 @@ void DDECal::doSolve() {
     itsFacetPredictor->Flush(kDataDescId);
   }
 
-  MultiDirSolver::SolveResult solveResult;
-  if (!itsOnlyPredict) {
-    checkMinimumVisibilities();
+  for (size_t i = 0; i < sol_ints_.size(); ++i) {
+    MultiDirSolver::SolveResult solveResult;
+    if (!itsOnlyPredict) {
+      checkMinimumVisibilities(i);
 
-    for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
-      constraint->SetWeights(itsWeightsPerAntenna);
+      for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
+        constraint->SetWeights(itsWeightsPerAntenna);
+      }
+
+      if (itsFullMatrixMinimalization)
+        initializeFullMatrixSolutions(i);
+      else
+        initializeScalarSolutions(i);
+
+      itsTimerSolve.start();
+
+      if (itsFullMatrixMinimalization) {
+        solveResult = itsMultiDirSolver.processFullMatrix(
+            sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+            sol_ints_[i].ModelDataPtrs(), itsSols[sol_ints_[i].NSolution()],
+            itsAvgTime / itsSolInt, itsStatStream.get());
+      } else {
+        solveResult = itsMultiDirSolver.processScalar(
+            sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+            sol_ints_[i].ModelDataPtrs(), itsSols[sol_ints_[i].NSolution()],
+            itsAvgTime / itsSolInt, itsStatStream.get());
+      }
+      itsTimerSolve.stop();
+
+      itsNIter[sol_ints_[i].NSolution()] = solveResult.iterations;
+      itsNApproxIter[sol_ints_[i].NSolution()] =
+          solveResult.constraintIterations;
     }
 
-    if (itsFullMatrixMinimalization)
-      initializeFullMatrixSolutions();
-    else
-      initializeScalarSolutions();
-
-    itsTimerSolve.start();
-    if (itsFullMatrixMinimalization) {
-      solveResult = itsMultiDirSolver.processFullMatrix(
-          itsDataPtrs, itsWeightPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep / itsSolInt], itsAvgTime / itsSolInt,
-          itsStatStream.get());
-    } else {
-      solveResult = itsMultiDirSolver.processScalar(
-          itsDataPtrs, itsWeightPtrs, itsModelDataPtrs,
-          itsSols[itsTimeStep / itsSolInt], itsAvgTime / itsSolInt,
-          itsStatStream.get());
+    if (itsSubtract || itsOnlyPredict) {
+      subtractCorrectedModel(itsFullMatrixMinimalization, i);
     }
-    itsTimerSolve.stop();
 
-    itsNIter[itsTimeStep / itsSolInt] = solveResult.iterations;
-    itsNApproxIter[itsTimeStep / itsSolInt] = solveResult.constraintIterations;
-  }
-
-  if (itsSubtract || itsOnlyPredict) {
-    subtractCorrectedModel(itsFullMatrixMinimalization);
-  }
-
-  // Check for nonconvergence and flag if desired. Unconverged solutions are
-  // identified by the number of iterations being one more than the max allowed
-  // number
-  if (solveResult.iterations > itsMultiDirSolver.max_iterations() &&
-      itsFlagUnconverged) {
-    for (auto& constraint_results : solveResult._results) {
-      for (auto& result : constraint_results) {
-        if (itsFlagDivergedOnly) {
-          // Set weights with negative values (indicating unconverged
-          // solutions that diverged) to zero (all other unconverged
-          // solutions remain unflagged)
-          for (double& weight : result.weights) {
-            if (weight < 0.) weight = 0.;
+    // Check for nonconvergence and flag if desired. Unconverged solutions are
+    // identified by the number of iterations being one more than the max
+    // allowed number
+    if (solveResult.iterations > itsMultiDirSolver.max_iterations() &&
+        itsFlagUnconverged) {
+      for (auto& constraint_results : solveResult._results) {
+        for (auto& result : constraint_results) {
+          if (itsFlagDivergedOnly) {
+            // Set weights with negative values (indicating unconverged
+            // solutions that diverged) to zero (all other unconverged
+            // solutions remain unflagged)
+            for (double& weight : result.weights) {
+              if (weight < 0.) weight = 0.;
+            }
+          } else {
+            // Set all weights to zero
+            result.weights.assign(result.weights.size(), 0.);
           }
-        } else {
-          // Set all weights to zero
-          result.weights.assign(result.weights.size(), 0.);
+        }
+      }
+    } else {
+      // Set any negative weights (indicating unconverged solutions that
+      // diverged) to one (all other unconverged solutions are unflagged
+      // already)
+      for (auto& constraint_results : solveResult._results) {
+        for (auto& result : constraint_results) {
+          for (double& weight : result.weights) {
+            if (weight < 0.) weight = 1.;
+          }
         }
       }
     }
-  } else {
-    // Set any negative weights (indicating unconverged solutions that diverged)
-    // to one (all other unconverged solutions are unflagged already)
-    for (auto& constraint_results : solveResult._results) {
-      for (auto& result : constraint_results) {
-        for (double& weight : result.weights) {
-          if (weight < 0.) weight = 1.;
-        }
-      }
-    }
-  }
 
-  // Store constraint solutions if any constaint has a non-empty result
-  bool someConstraintHasResult = false;
-  for (const auto& constraint_results : solveResult._results) {
-    if (!constraint_results.empty()) {
-      someConstraintHasResult = true;
-      break;
+    // Store constraint solutions if any constaint has a non-empty result
+    bool someConstraintHasResult = false;
+    for (const auto& constraint_results : solveResult._results) {
+      if (!constraint_results.empty()) {
+        someConstraintHasResult = true;
+        break;
+      }
     }
-  }
-  if (someConstraintHasResult) {
-    itsConstraintSols[itsTimeStep / itsSolInt] = solveResult._results;
+    if (someConstraintHasResult) {
+      itsConstraintSols[sol_ints_[i].NSolution()] = solveResult._results;
+    }
   }
 
   itsTimer.stop();
 
-  for (size_t time = 0; time != itsStepInSolInt; ++time) {
-    // Restore the weights and flags
-    itsBufs[time].getFlags().assign(itsOriginalFlags[time]);
-    itsBufs[time].getWeights().assign(itsOriginalWeights[time]);
-    // Push data (possibly changed) to next step
-    getNextStep()->process(itsBufs[time]);
+  for (size_t i = 0; i < sol_ints_.size(); ++i) {
+    sol_ints_[i].RestoreFlagsAndWeights();
+    for (size_t step = 0; step < sol_ints_[i].Size(); ++step) {
+      // Push data (possibly changed) to next step
+      getNextStep()->process(sol_ints_[i][step]);
+    }
   }
 
   itsTimer.start();
@@ -839,135 +846,151 @@ void DDECal::doSolve() {
 bool DDECal::process(const DPBuffer& bufin) {
   itsTimer.start();
 
-  // Fetch inputs because parallel PredictSteps should not read it from disk
-  itsInput->fetchUVW(bufin, itsBufs[itsStepInSolInt], itsTimer);
-  itsInput->fetchWeights(bufin, itsBufs[itsStepInSolInt], itsTimer);
-  itsInput->fetchFullResFlags(bufin, itsBufs[itsStepInSolInt], itsTimer);
-
-  itsBufs[itsStepInSolInt].copy(bufin);
-  itsOriginalFlags[itsStepInSolInt].assign(bufin.getFlags());
-  itsOriginalWeights[itsStepInSolInt].assign(bufin.getWeights());
-
-  itsDataPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getData().data();
-  itsWeightPtrs[itsStepInSolInt] = itsBufs[itsStepInSolInt].getWeights().data();
-
-  // UVW flagging happens on the copy of the buffer
-  // These flags are later restored and therefore not written
-  itsUVWFlagStep.process(itsBufs[itsStepInSolInt]);
-
-  itsTimerPredict.start();
-
-  if (itsUseModelColumn) {
-    itsInput->getModelData(itsBufs[itsStepInSolInt].getRowNrs(),
-                           itsModelData[itsStepInSolInt]);
-    itsModelDataPtrs[itsStepInSolInt][0] = itsModelData[itsStepInSolInt].data();
-  } else if (itsUseIDG) {
-    if (!itsFacetPredictor->IsStarted()) {
-      // if this is the first time, hand some meta info to IDG
-      itsFacetPredictor->updateInfo(info());
-      itsFacetPredictor->StartIDG(itsSaveFacets);
-    }
-
-    const size_t nBl = info().nbaselines();
-    Matrix<double> uvws;
-    uvws.reference(itsBufs[itsStepInSolInt].getUVW());
-    while (itsIDGBuffers.size() <= itsStepInSolInt) {
-      itsIDGBuffers.emplace_back(itsFacetPredictor->GetDirections().size());
-      for (std::vector<casacore::Complex>& vec : itsIDGBuffers.back())
-        vec.resize(info().nbaselines() * info().nchan() * 4);
-    }
-    for (size_t direction = 0;
-         direction != itsFacetPredictor->GetDirections().size(); ++direction) {
-      itsModelDataPtrs[itsStepInSolInt][direction] =
-          itsIDGBuffers[itsStepInSolInt][direction].data();
-      for (size_t bl = 0; bl < nBl; ++bl) {
-        size_t id = bl + itsStepInSolInt * nBl;
-        itsFacetPredictor->RequestPredict(
-            direction, kDataDescId, id, itsStepInSolInt,
-            info().antennaMap()[info().getAnt1()[bl]],
-            info().antennaMap()[info().getAnt2()[bl]], uvws[bl].data());
-      }
-    }
-  } else {
-    if (itsThreadPool == nullptr) {
-      itsThreadPool =
-          boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
-    }
-    std::mutex measuresMutex;
-    for (DP3::DPPP::Predict& predict : itsPredictSteps)
-      predict.setThreadData(*itsThreadPool, measuresMutex);
-
-    itsThreadPool->For(
-        0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
-          itsPredictSteps[dir].process(itsBufs[itsStepInSolInt]);
-          itsModelDataPtrs[itsStepInSolInt][dir] =
-              itsResultSteps[dir]->get()[itsStepInSolInt].getData().data();
-        });
+  // Create a new solution interval if needed
+  if (itsStepInSolInt == 0) {
+    sol_ints_.emplace_back(itsInput, itsNSolInts, itsSolInt,
+                           itsDirections.size(), itsTimer);
   }
 
-  // Handle weights and flags
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  const size_t nCr = 4;
-
-  size_t nchanblocks = itsChanBlockFreqs.size();
-
-  double weightFactor =
-      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
-
-  for (size_t bl = 0; bl < nBl; ++bl) {
-    size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
-           ant2 = info().antennaMap()[info().getAnt2()[bl]];
-    for (size_t ch = 0; ch < nCh; ++ch) {
-      if (ch == itsChanBlockStart[chanblock + 1]) {
-        chanblock++;
-      }
-      for (size_t cr = 0; cr < nCr; ++cr) {
-        const size_t index = (bl * nCh + ch) * nCr + cr;
-        itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (itsBufs[itsStepInSolInt].getFlags().data()[index]) {
-          // Flagged points: set weight to 0
-          itsWeightPtrs[itsStepInSolInt][index] = 0;
-        } else {
-          // Add this weight to both involved antennas
-          double weight = itsBufs[itsStepInSolInt].getWeights().data()[index];
-          itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
-          itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
-          if (weight != 0.0)
-            itsVisInInterval[chanblock].first++;  // unflagged nr of vis
-        }
-      }
-    }
-  }
-
-  for (auto& weight : itsWeightsPerAntenna) {
-    weight *= weightFactor;
-  }
-
-  itsTimerPredict.stop();
-
-  itsAvgTime += itsAvgTime + bufin.getTime();
-
+  sol_ints_[itsStepInSolInts].CopyBuffer(bufin);
   ++itsStepInSolInt;
 
   if (itsStepInSolInt == itsSolInt) {
+    itsStepInSolInt = 0;
+    ++itsStepInSolInts;
+    ++itsNSolInts;
+  }
+
+  if (itsStepInSolInts == itsSolIntCount) {
+    doPrepare();
     doSolve();
 
     // Clean up, prepare for next iteration
-    itsStepInSolInt = 0;
     itsAvgTime = 0;
+    itsStepInSolInts = 0;
     itsVisInInterval.assign(itsVisInInterval.size(),
                             std::pair<size_t, size_t>(0, 0));
     itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
+
     for (size_t dir = 0; dir < itsResultSteps.size(); ++dir) {
       itsResultSteps[dir]->clear();
     }
+    sol_ints_.clear();
   }
 
-  itsTimeStep++;
+  ++itsTimeStep;
   itsTimer.stop();
 
   return false;
+}
+
+void DDECal::doPrepare() {
+  for (size_t i = 0; i < sol_ints_.size(); ++i) {
+    for (size_t step = 0; step < sol_ints_[i].Size(); ++step) {
+      DPBuffer bufin = sol_ints_[i][step];
+
+      // UVW flagging happens on the copy of the buffer
+      // These flags are later restored and therefore not written
+      itsUVWFlagStep.process(bufin);
+
+      itsTimerPredict.start();
+
+      if (itsUseModelColumn) {
+        itsInput->getModelData(bufin.getRowNrs(),
+                               sol_ints_[i].ModelData()[step]);
+        sol_ints_[i].ModelDataPtrs()[step][0] =
+            sol_ints_[i].ModelData()[step].data();
+      } else if (itsUseIDG) {
+        if (!itsFacetPredictor->IsStarted()) {
+          // if this is the first time, hand some meta info to IDG
+          itsFacetPredictor->updateInfo(info());
+          itsFacetPredictor->StartIDG(itsSaveFacets);
+        }
+
+        const size_t nBl = info().nbaselines();
+        Matrix<double> uvws;
+        uvws.reference(bufin.getUVW());
+        while (sol_ints_[i].IDGBuffers().size() <= step) {
+          sol_ints_[i].IDGBuffers().emplace_back(
+              itsFacetPredictor->GetDirections().size());
+          for (std::vector<casacore::Complex>& vec :
+               sol_ints_[i].IDGBuffers().back())
+            vec.resize(info().nbaselines() * info().nchan() * 4);
+        }
+        for (size_t direction = 0;
+             direction != itsFacetPredictor->GetDirections().size();
+             ++direction) {
+          sol_ints_[i].ModelDataPtrs()[step][direction] =
+              sol_ints_[i].IDGBuffers()[itsStepInSolInt][direction].data();
+          for (size_t bl = 0; bl < nBl; ++bl) {
+            size_t id = bl + step * nBl;
+            itsFacetPredictor->RequestPredict(
+                direction, kDataDescId, id, step,
+                info().antennaMap()[info().getAnt1()[bl]],
+                info().antennaMap()[info().getAnt2()[bl]], uvws[bl].data());
+          }
+        }
+      } else {
+        if (itsThreadPool == nullptr) {
+          itsThreadPool =
+              boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
+        }
+        std::mutex measuresMutex;
+        for (DP3::DPPP::Predict& predict : itsPredictSteps)
+          predict.setThreadData(*itsThreadPool, measuresMutex);
+
+        itsThreadPool->For(
+            0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
+              itsPredictSteps[dir].process(bufin);
+              sol_ints_[i].ModelDataPtrs()[step][dir] =
+                  itsResultSteps[dir]->get()[step].getData().data();
+            });
+      }
+
+      // Handle weights and flags
+      const size_t nBl = info().nbaselines();
+      const size_t nCh = info().nchan();
+      const size_t nCr = 4;
+
+      size_t nchanblocks = itsChanBlockFreqs.size();
+
+      double weightFactor =
+          1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
+
+      for (size_t bl = 0; bl < nBl; ++bl) {
+        size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
+               ant2 = info().antennaMap()[info().getAnt2()[bl]];
+        for (size_t ch = 0; ch < nCh; ++ch) {
+          if (ch == itsChanBlockStart[chanblock + 1]) {
+            chanblock++;
+          }
+          for (size_t cr = 0; cr < nCr; ++cr) {
+            const size_t index = (bl * nCh + ch) * nCr + cr;
+            itsVisInInterval[chanblock].second++;  // total nr of vis
+            if (bufin.getFlags().data()[index]) {
+              // Flagged points: set weight to 0
+              sol_ints_[i].WeightPtrs()[step][index] = 0;
+            } else {
+              // Add this weight to both involved antennas
+              double weight = bufin.getWeights().data()[index];
+              itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
+              itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
+              if (weight != 0.0)
+                itsVisInInterval[chanblock].first++;  // unflagged nr of vis
+            }
+          }
+        }
+      }
+
+      for (auto& weight : itsWeightsPerAntenna) {
+        weight *= weightFactor;
+      }
+
+      itsTimerPredict.stop();
+
+      itsAvgTime += itsAvgTime + bufin.getTime();
+    }
+  }
 }
 
 void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId,
@@ -978,8 +1001,12 @@ void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId,
   size_t solTimestep = row / nBl;
   size_t bl = row % nBl;
   const std::size_t bl_size = info().nchan() * info().ncorr();
-  std::copy_n(values, bl_size,
-              &itsIDGBuffers[solTimestep][direction][bl * bl_size]);
+
+  for (size_t t = 0; t < sol_ints_.size(); ++t) {
+    std::copy_n(
+        values, bl_size,
+        &sol_ints_[t].IDGBuffers()[solTimestep][direction][bl * bl_size]);
+  }
 }
 
 void DDECal::writeSolutions() {
@@ -1270,34 +1297,38 @@ void DDECal::writeSolutions() {
 void DDECal::finish() {
   itsTimer.start();
 
-  if (itsStepInSolInt != 0) {
-    itsDataPtrs.resize(itsStepInSolInt);
-    itsWeightPtrs.resize(itsStepInSolInt);
-    itsModelDataPtrs.resize(itsStepInSolInt);
+  if (itsStepInSolInt > 0) {
+    sol_ints_[itsStepInSolInts].Fit();
+  }
 
+  if (sol_ints_.size() > 0) {
+    doPrepare();
     doSolve();
   }
 
   if (!itsOnlyPredict) writeSolutions();
 
+  sol_ints_.clear();
   itsTimer.stop();
 
   // Let the next steps finish.
   getNextStep()->finish();
 }
 
-void DDECal::subtractCorrectedModel(bool fullJones) {
+void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
   // Our original data & modeldata is still in the data buffers (the solver
   // doesn't change those). Here we apply the solutions to all the model data
   // directions and subtract them from the data.
   std::vector<std::vector<DComplex>>& solutions =
-      itsSols[itsTimeStep / itsSolInt];
+      itsSols[sol_ints_[bufferIndex].NSolution()];
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
-  for (size_t time = 0; time != itsStepInSolInt; ++time) {
-    std::complex<float>* data = itsDataPtrs[time];
-    std::vector<std::complex<float>*>& modelData = itsModelDataPtrs[time];
+  for (size_t time = 0; time != sol_ints_[bufferIndex].DataPtrs().size();
+       ++time) {
+    std::complex<float>* data = sol_ints_[bufferIndex].DataPtrs()[time];
+    std::vector<std::complex<float>*>& modelData =
+        sol_ints_[bufferIndex].ModelDataPtrs()[time];
     for (size_t bl = 0; bl < nBl; ++bl) {
       size_t chanblock = 0, ant1 = info().getAnt1()[bl],
              ant2 = info().getAnt2()[bl];

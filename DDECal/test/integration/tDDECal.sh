@@ -15,9 +15,32 @@ $taqlexe 'update tDDECal.MS set WEIGHT_SPECTRUM=1, FLAG=False'
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 
+echo "Create corrupted model"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
+  ddecal.sourcedb=tDDECal.MS/sky ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\
+  ddecal.h5parm=instrumentcorrupted.h5 ddecal.mode=complexgain"
+echo $cmd
+$cmd >& /dev/null
+
+# Modify h5 file for multiple solution intervals
+python3 << EOF
+import h5py
+import numpy as np
+h5file = h5py.File("instrumentcorrupted.h5", "r+")
+sol = h5file['sol000/amplitude000/val']
+sol[:4,:,:,0,:] = np.sqrt(5)
+sol[4:,:,:,0,:] = np.sqrt(5+2)
+sol[:4,:,:,1,:] = np.sqrt(9)
+sol[4:,:,:,1,:] = np.sqrt(9+2)
+sol[:4,:,:,2,:] = np.sqrt(13)
+sol[4:,:,:,2,:] = np.sqrt(13+2)
+h5file.close()
+EOF
+
 echo "Predict corrupted visibilities"
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=DATA\
-  steps=[predict] predict.sourcedb=tDDECal.MS/sky_corrupted"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS/ msout=. msout.datacolumn=DATA steps=[h5parmpredict]\
+  h5parmpredict.sourcedb=tDDECal.MS/sky h5parmpredict.applycal.parmdb=instrumentcorrupted.h5\
+  h5parmpredict.applycal.correction=amplitude000"
 echo $cmd
 $cmd >& /dev/null
 
@@ -31,6 +54,7 @@ for caltype in complexgain scalarcomplexgain amplitudeonly scalaramplitude
 do
   for solint in 0 1 2 4
   do
+    [[ $solint = 0 ]] && tolerance="0.15" || tolerance="0.015"
     for nchan in 1 2 5
     do
           echo "Calibrate on the original sources, caltype=$caltype"
@@ -63,7 +87,7 @@ do
           echo $cmd
           eval $cmd
 
-          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > 0.015 or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
+          cmd="$taqlexe 'select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from tDDECal.MS) where norm_residual/norm_data > $tolerance or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)' > taql.out"
           echo $cmd
           eval $cmd
 
