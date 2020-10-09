@@ -155,7 +155,7 @@ add_library(IDGPredict OBJECT
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
-  DPPP/AddNoiseLBA.cc	
+  DPPP/AddNoiseLBA.cc
   DPPP/Apply.cc
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
@@ -186,6 +186,9 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MS.cc
+  DPPP/MSBDAReader.cc
+  DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc
   DPPP/MSUpdater.cc
   DPPP/MSWriter.cc
@@ -220,8 +223,7 @@ add_library(DPPP_OBJ OBJECT
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-#find_package(AOFlagger 3 REQUIRED)
-#find_package(aoflagger 2 REQUIRED)
+find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 add_library(AOFlaggerStep_OBJ OBJECT
@@ -307,6 +309,7 @@ endif()
 set(TEST_FILENAMES
   DPPP/test/runtests.cc
   DPPP/test/unit/mock/MockStep.cc
+  DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
@@ -336,6 +339,9 @@ if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
+    DPPP/test/unit/tDPInput.cc
+    DPPP/test/unit/tMSBDAReader.cc
+    DPPP/test/unit/tMSBDAWriter.cc
     DPPP/test/unit/tScaleDataBDA.cc
     )
 else()
@@ -365,6 +371,15 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
+
+add_test(
+  NAME extract_NDPPP_BDA
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_bda.in_MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP_BDA
   PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 
