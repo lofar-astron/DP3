@@ -23,13 +23,27 @@
 #include "DS9FacetFile.h"
 #include "FitsWriter.h"
 #include "IDGConfiguration.h"
+#include "../DPPP/DPInput.h"
+
+#include <aocommon/uvector.h>
 
 #include <iostream>
 
-FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
+namespace DP3 {
+namespace DPPP {
+
+FacetPredict::FacetPredict(DPInput& input,
+                           const std::vector<std::string>& fits_model_files,
                            const std::string& ds9_regions_file,
                            PredictCallback&& callback)
-    : predict_callback_(std::move(callback)), padding_(1.0), buffer_size_(0) {
+    : predict_callback_(std::move(callback)),
+      padding_(1.0),
+      buffer_size_(0),
+      input_(input),
+      info_(),
+      ant1_(),
+      ant2_(),
+      timer_() {
   if (fits_model_files.empty()) {
     throw std::runtime_error("No fits files specified for IDG predict");
   }
@@ -62,6 +76,10 @@ FacetPredict::FacetPredict(const std::vector<std::string>& fits_model_files,
       readers_.front().PhaseCentreRA(), readers_.front().PhaseCentreDec(),
       pixel_size_x_, pixel_size_y_, full_width_, full_height_);
   std::cout << "Read " << facets.size() << " facet definitions.\n";
+  if (facets.empty()) {
+    throw std::runtime_error("No facet definitions found in " +
+                             ds9_regions_file);
+  }
 
   bool make_square = true;  // only necessary for IDG though
   size_t area = 0;
@@ -91,6 +109,21 @@ void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   // TODO, when FacetPredict is a DPStep:
   // Remove info_ member, and call DPStep::updateInfo(info); here.
   info_ = info;
+
+  // Generate ant1_ and ant2_, which contain mapped antenna indices.
+  ant1_.clear();
+  ant1_.reserve(info.getAnt1().size());
+  for (size_t ant : info.getAnt1()) {
+    assert(info.antennaMap()[ant] >= 0);
+    ant1_.push_back(info.antennaMap()[ant]);
+  }
+
+  ant2_.clear();
+  ant2_.reserve(info.getAnt2().size());
+  for (size_t ant : info.getAnt2()) {
+    assert(info.antennaMap()[ant] >= 0);
+    ant2_.push_back(info.antennaMap()[ant]);
+  }
 
   // Without a factor 1.5 (instead of 1.0, below), some baselines did not
   // get visibilities from the CPU-optimized IDG version.
@@ -169,7 +202,11 @@ void FacetPredict::StartIDG(bool saveFacets) {
       bs.set_image(data[term].data());
       bs.init_buffers(buffersize, {info_.chanFreqs()},
                       info_.antennaUsed().size(), max_baseline_, options,
+#ifdef BULK_DEGRIDDING
+                      idg::api::BufferSetType::kBulkDegridding);
+#else
                       idg::api::BufferSetType::degridding);
+#endif
     }
 
     if (saveFacets) {
@@ -220,9 +257,145 @@ void FacetPredict::RequestPredict(size_t direction, size_t data_desc_id,
     while (bs.get_degridder(data_desc_id)
                ->request_visibilities(rowId, timeIndex, antenna1, antenna2,
                                       uvwFlipped)) {
-      computePredictionBuffer(data_desc_id, direction);
+      ComputePredictionBuffer(data_desc_id, direction);
     }
   }
+}
+
+std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
+                                            size_t direction) {
+  const size_t n_baselines = ant1_.size();
+  const size_t n_timesteps = buffers_.size();
+  const size_t n_terms = readers_.size();
+  const size_t baseline_size = info_.nchan() * info_.ncorr();
+  const size_t timestep_size = n_baselines * baseline_size;
+  const size_t term_size = n_timesteps * timestep_size;
+
+  std::vector<DPBuffer> result;
+  std::vector<const double*> uvws;
+  // term_data indexing: [term-1][timestep][baseline][channel][correlation].
+  aocommon::UVector<std::complex<float>> term_data((n_terms - 1) * term_size);
+  uvws.reserve(n_timesteps);
+
+  double old_max_w = max_w_;
+  const double max_baseline2 = max_baseline_ * max_baseline_;
+
+  for (DPBuffer& buffer : buffers_) {
+    uvws.push_back(input_.fetchUVW(buffer, buffer, timer_).data());
+
+    const double* uvw = uvws.back();
+    for (std::size_t bl = 0; bl < n_baselines; ++bl) {
+      if (uvw[2] > max_w_) {
+        double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
+        if (uvwr2 <= max_baseline2) {
+          max_w_ = uvw[2];
+        }
+      }
+      uvw += 3;
+    }
+
+    result.emplace_back(buffer);
+    result.back().setData(casacore::Cube<casacore::Complex>(
+        info_.ncorr(), info_.nchan(), n_baselines));
+  }
+
+  if (max_w_ > old_max_w) {
+    // Increase max_w by 10% for preventing repeated IDG initialization calls.
+    max_w_ *= 1.1;
+    std::cout << "Increasing maximum w to " << max_w_ << '\n';
+    StartIDG(false);
+  }
+
+  // IDG uses a flipped coordinate system
+  static const double kUVWFactors[3] = {1.0, -1.0, -1.0};
+
+  // Compute visibilities for all terms and timesteps.
+  for (size_t term = 0; term < n_terms; ++term) {
+    std::vector<std::complex<float>*> data_ptrs;
+    data_ptrs.reserve(n_timesteps);
+
+    if (term == 0) {  // data_ptrs point directly to the buffers.
+      for (size_t t = 0; t < n_timesteps; ++t) {
+        data_ptrs.push_back(result[t].getData().data());
+      }
+    } else {  // Use term_data as auxiliary buffers for the other terms.
+      std::complex<float>* data = term_data.data() + (term - 1) * term_size;
+      for (size_t t = 0; t < n_timesteps; ++t) {
+        data_ptrs.push_back(data);
+        data += timestep_size;
+      }
+    }
+
+    idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
+    bs.get_bulk_degridder(data_desc_id)
+        ->compute_visibilities(ant1_, ant2_, uvws, data_ptrs, kUVWFactors);
+  }
+
+  // Correct phase shift for the computed visibilities. Use the loop over nterms
+  // as the inner loop, since it allows reusing the frequency factor.
+  for (size_t t = 0; t < buffers_.size(); ++t) {
+    const double* uvw = uvws[t];
+
+    // Create pointers to the data for each term.
+    std::vector<std::complex<float>*> term_data_ptrs;
+    term_data_ptrs.reserve(n_terms);
+    term_data_ptrs.push_back(result[t].getData().data());
+    for (size_t term = 1; term < n_terms; ++term) {
+      term_data_ptrs.push_back(term_data.data() + (term - 1) * term_size +
+                               t * timestep_size);
+    }
+
+    for (size_t bl = 0; bl < n_baselines; ++bl) {
+      // The phase shift angle is:
+      // 2*pi * (u*dl + v*dm + w*dp) * (frequency / speed_of_light)
+      // frequency_factor contains all parts except the frequency.
+      const double frequency_factor = (uvw[0] * meta_data_[direction].dl +
+                                       uvw[1] * meta_data_[direction].dm +
+                                       uvw[2] * meta_data_[direction].dp) *
+                                      (2.0 * M_PI / 299792458.0);
+
+      for (auto& term_data_ptr : term_data_ptrs) {
+        CorrectPhaseShift(term_data_ptr, frequency_factor);
+        term_data_ptr += baseline_size;
+      }
+
+      uvw += 3;
+    }
+  }
+
+  // Apply polynomial-term corrections and add all to values of 'term 0'
+  // The "polynomial spectrum" definition is used, equal to the one e.g.
+  // used by WSClean in component outputs (see
+  // https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text
+  // files when 'logarithmic SI' is false. The definition is:
+  //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
+  for (size_t ch = 0; ch != info_.nchan(); ++ch) {
+    double frequency = info_.chanFreqs()[ch];
+    double freq_factor = frequency / ref_frequency_ - 1.0;
+    double polynomial_factor = 1.0;
+    const size_t ch_offset = ch * info_.ncorr();
+
+    for (size_t term = 1; term != n_terms; ++term) {
+      polynomial_factor *= freq_factor;
+      const float polynomial_factor_float = polynomial_factor;
+      for (size_t t = 0; t < n_timesteps; ++t) {
+        std::complex<float>* values0 = result[t].getData().data() + ch_offset;
+        const std::complex<float>* values = term_data.data() +
+                                            (term - 1) * term_size +
+                                            t * timestep_size + ch_offset;
+        for (size_t bl = 0; bl < n_baselines; ++bl) {
+          values0[0] += values[0] * polynomial_factor_float;
+          values0[1] += values[1] * polynomial_factor_float;
+          values0[2] += values[2] * polynomial_factor_float;
+          values0[3] += values[3] * polynomial_factor_float;
+          values0 += baseline_size;
+          values += baseline_size;
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
@@ -232,7 +405,7 @@ const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
 
 void FacetPredict::Flush(size_t data_desc_id) {
   for (size_t direction = 0; direction != directions_.size(); ++direction) {
-    computePredictionBuffer(data_desc_id, direction);
+    ComputePredictionBuffer(data_desc_id, direction);
   }
 }
 
@@ -240,7 +413,20 @@ void FacetPredict::SetBufferSize(size_t n_timesteps) {
   buffer_size_ = n_timesteps;
 }
 
-void FacetPredict::computePredictionBuffer(size_t data_desc_id,
+void FacetPredict::CorrectPhaseShift(std::complex<float>* values,
+                                     double frequency_factor) {
+  for (size_t ch = 0; ch != info_.nchan(); ++ch) {
+    double angle = frequency_factor * info_.chanFreqs()[ch];
+    const std::complex<float> phasor(cos(angle), sin(angle));
+    values[0] *= phasor;
+    values[1] *= phasor;
+    values[2] *= phasor;
+    values[3] *= phasor;
+    values += 4;
+  }
+}
+
+void FacetPredict::ComputePredictionBuffer(size_t data_desc_id,
                                            size_t direction) {
   size_t n_terms = readers_.size();
   typedef std::vector<std::pair<size_t, std::complex<float>*>> rowidlist_t;
@@ -250,27 +436,25 @@ void FacetPredict::computePredictionBuffer(size_t data_desc_id,
     available_row_ids[term] = bs.get_degridder(data_desc_id)->compute();
   }
 
-  const double dl_fact = 2.0 * M_PI * meta_data_[direction].dl;
-  const double dm_fact = 2.0 * M_PI * meta_data_[direction].dm;
-  const double dp_fact = 2.0 * M_PI * meta_data_[direction].dp;
+  constexpr double two_pi_div_c = 2.0 * M_PI / 299792458.0;
+
   for (size_t i = 0; i != available_row_ids[0].size(); ++i) {
     size_t row = available_row_ids[0][i].first;
     size_t localRow = row - meta_data_[direction].row_id_offset;
     const double* uvw = &meta_data_[direction].uvws[localRow * 3];
 
+    // The phase shift angle is:
+    // 2*pi * (u*dl + v*dm + w*dp) * (frequency / speed_of_light)
+    // frequency_factor contains all parts except the frequency.
+    const double frequency_factor =
+        (uvw[0] * meta_data_[direction].dl + uvw[1] * meta_data_[direction].dm +
+         uvw[2] * meta_data_[direction].dp) *
+        two_pi_div_c;
+
     // Correct the phase shift of the values for this facet
     for (size_t term = 0; term != n_terms; ++term) {
       std::complex<float>* values = available_row_ids[term][i].second;
-      for (size_t ch = 0; ch != info_.nchan(); ++ch) {
-        double angle = uvw[0] * dl_fact + uvw[1] * dm_fact + uvw[2] * dp_fact;
-        angle *= info_.chanFreqs()[ch] / c();
-        const std::complex<float> phasor(cos(angle), sin(angle));
-        values[0] *= phasor;
-        values[1] *= phasor;
-        values[2] *= phasor;
-        values[3] *= phasor;
-        values += 4;
-      }
+      CorrectPhaseShift(values, frequency_factor);
     }
 
     // Apply polynomial-term corrections and add all to values of 'term 0'
@@ -308,6 +492,9 @@ void FacetPredict::computePredictionBuffer(size_t data_desc_id,
   meta_data_[direction].is_initialized = false;
 }
 
+}  // namespace DPPP
+}  // namespace DP3
+
 #else  // HAVE_IDG
 
 namespace {
@@ -319,6 +506,9 @@ void notCompiled() {
 }
 
 }  // namespace
+
+namespace DP3 {
+namespace DPPP {
 
 FacetPredict::FacetPredict(const std::vector<std::string>&, const std::string&,
                            PredictCallback&&) {
@@ -348,5 +538,8 @@ const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
 void FacetPredict::Flush(size_t) { notCompiled(); }
 
 void FacetPredict::SetBufferSize(size_t) { notCompiled(); }
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif  // HAVE_IDG

@@ -317,7 +317,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   std::vector<std::string> imageFilenames =
       parset.getStringVector(prefix + "idg.images");
   itsFacetPredictor = boost::make_unique<FacetPredict>(
-      imageFilenames, regionFilename,
+      *itsInput, imageFilenames, regionFilename,
       [this](std::size_t row, std::size_t direction, std::size_t data_desc_id,
              const std::complex<float>* values) {
         idgCallback(row, direction, data_desc_id, values);
@@ -742,8 +742,26 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
+  std::vector<std::vector<DPBuffer>> idg_predictions;
+
   if (itsUseIDG) {
+#ifdef BULK_DEGRIDDING
+    idg_predictions.reserve(itsFacetPredictor->GetDirections().size());
+    for (size_t direction = 0;
+         direction < itsFacetPredictor->GetDirections().size(); ++direction) {
+      idg_predictions.push_back(
+          itsFacetPredictor->Predict(kDataDescId, direction));
+      for (size_t i = 0; i < idg_predictions.back().size(); ++i) {
+        size_t sol_int = i / itsSolIntCount;
+        size_t step = i % itsSolIntCount;
+
+        sol_ints_[sol_int].ModelDataPtrs()[step][direction] =
+            idg_predictions.back()[i].getData().data();
+      }
+    }
+#else
     itsFacetPredictor->Flush(kDataDescId);
+#endif
   }
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
@@ -830,6 +848,13 @@ void DDECal::doSolve() {
     }
   }
 
+#ifdef BULK_DEGRIDDING
+  if (itsUseIDG) {
+    idg_predictions.clear();
+    itsFacetPredictor->FlushBuffers();
+  }
+#endif
+
   itsTimer.stop();
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
@@ -907,9 +932,6 @@ void DDECal::doPrepare() {
           itsFacetPredictor->StartIDG(itsSaveFacets);
         }
 
-        const size_t nBl = info().nbaselines();
-        Matrix<double> uvws;
-        uvws.reference(bufin.getUVW());
         while (sol_ints_[i].IDGBuffers().size() <= step) {
           sol_ints_[i].IDGBuffers().emplace_back(
               itsFacetPredictor->GetDirections().size());
@@ -917,6 +939,12 @@ void DDECal::doPrepare() {
                sol_ints_[i].IDGBuffers().back())
             vec.resize(info().nbaselines() * info().nchan() * 4);
         }
+#ifdef BULK_DEGRIDDING
+        itsFacetPredictor->AddBuffer(bufin);
+#else
+        const size_t nBl = info().nbaselines();
+        Matrix<double> uvws;
+        uvws.reference(bufin.getUVW());
         for (size_t direction = 0;
              direction != itsFacetPredictor->GetDirections().size();
              ++direction) {
@@ -930,6 +958,7 @@ void DDECal::doPrepare() {
                 info().antennaMap()[info().getAnt2()[bl]], uvws[bl].data());
           }
         }
+#endif
       } else {
         if (itsThreadPool == nullptr) {
           itsThreadPool =

@@ -27,12 +27,17 @@
 #include "FitsReader.h"
 #endif
 
-#include "../DPPP/DPInfo.h"
+#include "../DPPP/DPStep.h"
 
 #include <complex>
 #include <functional>
 #include <string>
 #include <vector>
+
+#define BULK_DEGRIDDING 1
+
+namespace DP3 {
+namespace DPPP {
 
 class FacetPredict {
  public:
@@ -40,10 +45,16 @@ class FacetPredict {
       size_t /*row*/, size_t /*direction*/, size_t /*dataDescId*/,
       const std::complex<float>* /*values*/)>;
 
-  FacetPredict(const std::vector<std::string>& fitsModelFiles,
+  FacetPredict(DPInput& input, const std::vector<std::string>& fitsModelFiles,
                const std::string& ds9RegionsFile, PredictCallback&& callback);
 
-  void updateInfo(const DP3::DPPP::DPInfo& info);
+  void updateInfo(const DPInfo& info);
+
+  void AddBuffer(const DPBuffer& buffer) { buffers_.emplace_back(buffer); }
+
+  void FlushBuffers() { buffers_.clear(); }
+
+  std::vector<DPBuffer> Predict(size_t data_desc_id, size_t direction);
 
   bool IsStarted() const;
 
@@ -61,9 +72,9 @@ class FacetPredict {
 
 #ifdef HAVE_IDG
  private:
-  void computePredictionBuffer(size_t dataDescId, size_t direction);
+  void ComputePredictionBuffer(size_t dataDescId, size_t direction);
 
-  constexpr static double c() { return 299792458.0L; }
+  void CorrectPhaseShift(std::complex<float>* values, double frequency_factor);
 
   PredictCallback predict_callback_;
   std::vector<FacetImage> images_;
@@ -76,6 +87,8 @@ class FacetPredict {
   };
   std::vector<FacetMetaData> meta_data_;
 
+  std::vector<DPBuffer> buffers_;
+
   size_t full_width_, full_height_;
   double ref_frequency_;
   double pixel_size_x_, pixel_size_y_;
@@ -83,12 +96,19 @@ class FacetPredict {
   double padding_;
   size_t buffer_size_;
 
-  /// MS info
-  DP3::DPPP::DPInfo info_;
+  DPInput& input_;
+  DPInfo info_;
+  std::vector<std::size_t> ant1_;  // Contains only the used antennas
+  std::vector<std::size_t> ant2_;  // Contains only the used antennas
+
+  NSTimer timer_;
   double max_w_;
   double max_baseline_;
   std::vector<std::pair<double, double>> directions_;
 #endif
 };
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif  // header guard

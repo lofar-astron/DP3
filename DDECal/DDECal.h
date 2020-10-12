@@ -54,8 +54,6 @@
 #include <string>
 #include <vector>
 
-class FacetPredict;
-
 namespace aocommon {
 class ThreadPool;
 }  // namespace aocommon
@@ -65,6 +63,8 @@ namespace DP3 {
 class ParameterSet;
 
 namespace DPPP {
+
+class FacetPredict;
 
 typedef std::vector<Patch::ConstPtr> PatchList;
 typedef std::pair<size_t, size_t> Baseline;
