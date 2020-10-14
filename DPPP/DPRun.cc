@@ -328,7 +328,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     } else if (type == "interpolate") {
       step = std::make_shared<Interpolate>(reader, parset, prefix);
     } else if (type == "addnoiselba") {
-      step = DPStep::ShPtr(new AddNoiseLBA (reader, parset, prefix));
+      step = std::make_shared<AddNoiseLBA>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
       step = makeOutputStep(reader, parset, prefix, currentMSName,
                             lastStep->outputs() == DPStep::MSType::BDA);

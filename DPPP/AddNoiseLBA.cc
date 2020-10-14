@@ -68,7 +68,8 @@ bool AddNoiseLBA::process(const DPBuffer& buf) {
 
   itsTimer.start();
 
-  // Name of the column to add the noise (at the moment not used, just a placeholder)
+  // Name of the column to add the noise (at the moment not used, just a 
+  // placeholder)
   string column = "DATA";
   DPBuffer itsBuf;
   itsBuf.copy(buf);

@@ -47,9 +47,9 @@ class AddNoiseLBA : public DPStep {
 
   virtual ~AddNoiseLBA();
 
-  /// Process the data calculating or adding to DATA the LBA estimated random noise 
-  /// (van Haarlem et al. 2013).  
-  /// When processed, it invokes the process function of the next step.
+  /// Process the data calculating or adding to DATA the LBA estimated random 
+  /// noise (van Haarlem et al. 2013). When processed, it invokes the process
+  /// function of the next step.
   virtual bool process(const DPBuffer&);
 
   /// Finish the processing of this step and subsequent steps.
