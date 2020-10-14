@@ -325,10 +325,7 @@ FacetPredict::FacetPredict(const std::vector<std::string>&, const std::string&,
   notCompiled();
 }
 
-void FacetPredict::SetMSInfo(std::vector<std::vector<double>>&& bands,
-                             size_t nr_stations) {
-  notCompiled();
-}
+void FacetPredict::updateInfo(const DP3::DPPP::DPInfo&) { notCompiled(); }
 
 bool FacetPredict::IsStarted() const {
   notCompiled();
@@ -342,13 +339,13 @@ void FacetPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t,
   notCompiled();
 }
 
-std::vector<std::pair<double, double>> FacetPredict::GetDirections(
-    size_t) const {
+const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
+    const {
   notCompiled();
   return std::vector<std::pair<double, double>>();
 }
 
-void FacetPredict::Flush() { notCompiled(); }
+void FacetPredict::Flush(size_t) { notCompiled(); }
 
 void FacetPredict::SetBufferSize(size_t) { notCompiled(); }
 
