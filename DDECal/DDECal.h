@@ -131,9 +131,6 @@ class DDECal : public DPStep {
 
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
 
-  void idgCallback(size_t row, size_t direction, size_t dataDescId,
-                   const std::complex<float>* values);
-
   DPInput* itsInput;
   std::string itsName;
   /// The solution intervals that are buffered, limited by solintcount

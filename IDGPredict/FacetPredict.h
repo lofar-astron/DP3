@@ -34,19 +34,13 @@
 #include <string>
 #include <vector>
 
-#define BULK_DEGRIDDING 1
-
 namespace DP3 {
 namespace DPPP {
 
 class FacetPredict {
  public:
-  using PredictCallback = std::function<void(
-      size_t /*row*/, size_t /*direction*/, size_t /*dataDescId*/,
-      const std::complex<float>* /*values*/)>;
-
   FacetPredict(DPInput& input, const std::vector<std::string>& fitsModelFiles,
-               const std::string& ds9RegionsFile, PredictCallback&& callback);
+               const std::string& ds9RegionsFile);
 
   void updateInfo(const DPInfo& info);
 
@@ -60,40 +54,30 @@ class FacetPredict {
 
   void StartIDG(bool saveFacets);
 
-  void RequestPredict(size_t direction, size_t dataDescId, size_t rowId,
-                      size_t timeIndex, size_t antenna1, size_t antenna2,
-                      const double* uvw);
-
   const std::vector<std::pair<double, double>>& GetDirections() const;
-
-  void Flush(size_t dataDescId);
 
   void SetBufferSize(size_t nTimesteps);
 
 #ifdef HAVE_IDG
  private:
-  void ComputePredictionBuffer(size_t dataDescId, size_t direction);
-
   void CorrectPhaseShift(std::complex<float>* values, double frequency_factor);
 
-  PredictCallback predict_callback_;
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
   struct FacetMetaData {
+    FacetMetaData(double _dl, double _dm, double _dp)
+        : dl(_dl), dm(_dm), dp(_dp) {}
     double dl, dm, dp;
-    bool is_initialized;
-    size_t row_id_offset;
-    std::vector<double> uvws;
   };
   std::vector<FacetMetaData> meta_data_;
 
   std::vector<DPBuffer> buffers_;
 
-  size_t full_width_, full_height_;
   double ref_frequency_;
   double pixel_size_x_, pixel_size_y_;
   std::vector<FitsReader> readers_;
-  double padding_;
+
+  // Currently unused, will be useful when FacetPredict is a DPStep.
   size_t buffer_size_;
 
   DPInput& input_;
