@@ -19,14 +19,15 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     && cd / && rm -rf aoflagger \
 # Build IDG
     && mkdir /idg && cd /idg \
-    && git clone https://gitlab.com/astron-idg/idg.git src \
-    && ( cd src/ && git checkout 466e8e29907bd93e0dd05b05f19115885f297bed ) \
+    && git clone https://git.astron.nl/RD/idg.git src \
+    && ( cd src/ && git checkout 905fe9dcec5dbcd41f7e45c112eb2602c6992fe4 ) \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && make install -j4 \
     && cd / && rm -rf idg \
 # Build EveryBeam
-    && mkdir /everybeam && cd /everybeam && git clone https://git.astron.nl/RD/EveryBeam.git src \
+    && mkdir /everybeam && cd /everybeam \
+    && git clone https://git.astron.nl/RD/EveryBeam.git src \
     && ( cd src/ && git checkout 466b6651da235a06e1b0c4f78bac95e0fea1cfba ) \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
