@@ -81,10 +81,6 @@
 using namespace casacore;
 using namespace DP3::BBS;
 
-namespace {
-const std::size_t kDataDescId = 0;
-}
-
 namespace DP3 {
 namespace DPPP {
 
@@ -744,11 +740,10 @@ void DDECal::doSolve() {
     idg_predictions.reserve(itsFacetPredictor->GetDirections().size());
     for (size_t direction = 0;
          direction < itsFacetPredictor->GetDirections().size(); ++direction) {
-      idg_predictions.push_back(
-          itsFacetPredictor->Predict(kDataDescId, direction));
+      idg_predictions.push_back(itsFacetPredictor->Predict(direction));
       for (size_t i = 0; i < idg_predictions.back().size(); ++i) {
-        size_t sol_int = i / itsSolIntCount;
-        size_t step = i % itsSolIntCount;
+        const size_t sol_int = i / itsSolInt;
+        const size_t step = i % itsSolInt;
 
         sol_ints_[sol_int].ModelDataPtrs()[step][direction] =
             idg_predictions.back()[i].getData().data();
@@ -920,14 +915,6 @@ void DDECal::doPrepare() {
           // if this is the first time, hand some meta info to IDG
           itsFacetPredictor->updateInfo(info());
           itsFacetPredictor->StartIDG(itsSaveFacets);
-        }
-
-        while (sol_ints_[i].IDGBuffers().size() <= step) {
-          sol_ints_[i].IDGBuffers().emplace_back(
-              itsFacetPredictor->GetDirections().size());
-          for (std::vector<casacore::Complex>& vec :
-               sol_ints_[i].IDGBuffers().back())
-            vec.resize(info().nbaselines() * info().nchan() * info().ncorr());
         }
         itsFacetPredictor->AddBuffer(bufin);
       } else {

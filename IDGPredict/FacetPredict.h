@@ -44,11 +44,19 @@ class FacetPredict {
 
   void updateInfo(const DPInfo& info);
 
+  /** Add a buffer to the facet predictor, for use in Predict(), later. */
   void AddBuffer(const DPBuffer& buffer) { buffers_.emplace_back(buffer); }
 
+  /** Remove all previously added buffers. */
   void FlushBuffers() { buffers_.clear(); }
 
-  std::vector<DPBuffer> Predict(size_t data_desc_id, size_t direction);
+  /**
+   * Predict visibilities for added buffers in a given direction.
+   * @param direction Index for the requested direction.
+   * @return Buffers with the predicted visibilities. For each buffer added
+   *         with AddBuffer(), there is one corresponding output buffer.
+   */
+  std::vector<DPBuffer> Predict(size_t direction);
 
   bool IsStarted() const;
 
@@ -60,7 +68,18 @@ class FacetPredict {
 
 #ifdef HAVE_IDG
  private:
-  void CorrectPhaseShift(std::complex<float>* values, double frequency_factor);
+  std::vector<const double*> InitializeUVWs();
+
+  std::vector<DPBuffer> ComputeVisibilities(
+      size_t direction, const std::vector<const double*>& uvws,
+      std::complex<float>* term_data) const;
+
+  double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
+
+  void CorrectVisibilities(const std::vector<const double*>& uvws,
+                           std::vector<DPBuffer>& result,
+                           const std::complex<float>* term_data,
+                           size_t direction) const;
 
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;

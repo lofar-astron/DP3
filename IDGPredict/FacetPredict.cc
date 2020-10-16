@@ -26,6 +26,7 @@
 #include "../DPPP/DPInput.h"
 
 #include <aocommon/uvector.h>
+#include <aocommon/banddata.h>
 
 #include <iostream>
 
@@ -192,20 +193,31 @@ void FacetPredict::StartIDG(bool saveFacets) {
   }
 }
 
-std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
-                                            size_t direction) {
-  const size_t n_baselines = ant1_.size();
-  const size_t n_timesteps = buffers_.size();
+std::vector<DPBuffer> FacetPredict::Predict(const size_t direction) {
   const size_t n_terms = readers_.size();
-  const size_t baseline_size = info_.nchan() * info_.ncorr();
-  const size_t timestep_size = n_baselines * baseline_size;
-  const size_t term_size = n_timesteps * timestep_size;
+  const size_t term_size =
+      buffers_.size() * info_.nbaselines() * info_.nchan() * info_.ncorr();
 
-  std::vector<DPBuffer> result;
-  std::vector<const double*> uvws;
   // term_data indexing: [term-1][timestep][baseline][channel][correlation].
   aocommon::UVector<std::complex<float>> term_data((n_terms - 1) * term_size);
-  uvws.reserve(n_timesteps);
+
+  // Initialize a vector with uvw pointers. Raise max_w_ if needed.
+  std::vector<const double*> uvws = InitializeUVWs();
+
+  // Initialize output buffers and fill them with IDG predictions. */
+  std::vector<DPBuffer> result =
+      ComputeVisibilities(direction, uvws, term_data.data());
+
+  // Correct phase shift for the computed visibilities.
+  // Apply polynomial-term corrections and add all to values of 'term 0'
+  CorrectVisibilities(uvws, result, term_data.data(), direction);
+
+  return result;
+}
+
+std::vector<const double*> FacetPredict::InitializeUVWs() {
+  std::vector<const double*> uvws;
+  uvws.reserve(buffers_.size());
 
   double old_max_w = max_w_;
   const double max_baseline2 = max_baseline_ * max_baseline_;
@@ -214,7 +226,7 @@ std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
     uvws.push_back(input_.fetchUVW(buffer, buffer, timer_).data());
 
     const double* uvw = uvws.back();
-    for (std::size_t bl = 0; bl < n_baselines; ++bl) {
+    for (std::size_t bl = 0; bl < info_.nbaselines(); ++bl) {
       if (uvw[2] > max_w_) {
         double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
         if (uvwr2 <= max_baseline2) {
@@ -223,10 +235,6 @@ std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
       }
       uvw += 3;
     }
-
-    result.emplace_back(buffer);
-    result.back().setData(casacore::Cube<casacore::Complex>(
-        info_.ncorr(), info_.nchan(), n_baselines));
   }
 
   if (max_w_ > old_max_w) {
@@ -236,20 +244,41 @@ std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
     StartIDG(false);
   }
 
+  return uvws;
+}
+
+std::vector<DPBuffer> FacetPredict::ComputeVisibilities(
+    const size_t direction, const std::vector<const double*>& uvws,
+    std::complex<float>* term_data) const {
+  const size_t n_timesteps = buffers_.size();
+  const size_t n_terms = readers_.size();
+  const size_t timestep_size =
+      info_.nbaselines() * info_.nchan() * info_.ncorr();
+  const size_t term_size = n_timesteps * timestep_size;
+
+  std::vector<DPBuffer> result;
+  result.reserve(buffers_.size());
+  for (const DPBuffer& buffer : buffers_) {
+    result.emplace_back(buffer);
+    result.back().setData(casacore::Cube<casacore::Complex>(
+        info_.ncorr(), info_.nchan(), info_.nbaselines()));
+  }
+
   // IDG uses a flipped coordinate system
   static const double kUVWFactors[3] = {1.0, -1.0, -1.0};
 
+  std::vector<std::complex<float>*> data_ptrs;
+  data_ptrs.reserve(n_timesteps);
+
   // Compute visibilities for all terms and timesteps.
   for (size_t term = 0; term < n_terms; ++term) {
-    std::vector<std::complex<float>*> data_ptrs;
-    data_ptrs.reserve(n_timesteps);
-
+    data_ptrs.clear();
     if (term == 0) {  // data_ptrs point directly to the buffers.
       for (size_t t = 0; t < n_timesteps; ++t) {
         data_ptrs.push_back(result[t].getData().data());
       }
     } else {  // Use term_data as auxiliary buffers for the other terms.
-      std::complex<float>* data = term_data.data() + (term - 1) * term_size;
+      std::complex<float>* data = term_data + (term - 1) * term_size;
       for (size_t t = 0; t < n_timesteps; ++t) {
         data_ptrs.push_back(data);
         data += timestep_size;
@@ -257,75 +286,90 @@ std::vector<DPBuffer> FacetPredict::Predict(size_t data_desc_id,
     }
 
     idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
-    bs.get_bulk_degridder(data_desc_id)
+    // Since we initialize the BufferSet with a single band, the index is 0.
+    constexpr int kDegridderIndex = 0;
+    bs.get_bulk_degridder(kDegridderIndex)
         ->compute_visibilities(ant1_, ant2_, uvws, data_ptrs, kUVWFactors);
   }
 
-  // Correct phase shift for the computed visibilities. Use the loop over nterms
-  // as the inner loop, since it allows reusing the frequency factor.
-  for (size_t t = 0; t < buffers_.size(); ++t) {
-    const double* uvw = uvws[t];
+  return result;
+}
 
-    // Create pointers to the data for each term.
-    std::vector<std::complex<float>*> term_data_ptrs;
-    term_data_ptrs.reserve(n_terms);
-    term_data_ptrs.push_back(result[t].getData().data());
-    for (size_t term = 1; term < n_terms; ++term) {
-      term_data_ptrs.push_back(term_data.data() + (term - 1) * term_size +
-                               t * timestep_size);
-    }
+double FacetPredict::ComputePhaseShiftFactor(const double* uvw,
+                                             const size_t direction) const {
+  // The phase shift angle is:
+  // 2*pi * (u*dl + v*dm + w*dp) * (frequency / speed_of_light)
+  // The computed phase shift factor contains all parts except the frequency.
+  constexpr double two_pi_div_c = 2.0 * M_PI / aocommon::c();
+  return (uvw[0] * meta_data_[direction].dl +
+          uvw[1] * meta_data_[direction].dm +
+          uvw[2] * meta_data_[direction].dp) *
+         two_pi_div_c;
+}
 
-    for (size_t bl = 0; bl < n_baselines; ++bl) {
-      // The phase shift angle is:
-      // 2*pi * (u*dl + v*dm + w*dp) * (frequency / speed_of_light)
-      // frequency_factor contains all parts except the frequency.
-      const double frequency_factor = (uvw[0] * meta_data_[direction].dl +
-                                       uvw[1] * meta_data_[direction].dm +
-                                       uvw[2] * meta_data_[direction].dp) *
-                                      (2.0 * M_PI / 299792458.0);
+void FacetPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
+                                       std::vector<DPBuffer>& result,
+                                       const std::complex<float>* term_data,
+                                       const size_t direction) const {
+  const size_t n_timesteps = buffers_.size();
+  const size_t n_terms = readers_.size();
+  const size_t timestep_size =
+      info_.nbaselines() * info_.nchan() * info_.ncorr();
+  const size_t term_size = n_timesteps * timestep_size;
 
-      for (auto& term_data_ptr : term_data_ptrs) {
-        CorrectPhaseShift(term_data_ptr, frequency_factor);
-        term_data_ptr += baseline_size;
-      }
-
-      uvw += 3;
-    }
-  }
-
-  // Apply polynomial-term corrections and add all to values of 'term 0'
-  // The "polynomial spectrum" definition is used, equal to the one e.g.
-  // used by WSClean in component outputs (see
+  // The polynomial term corrections use the "polynomial spectrum" definition,
+  // equal to the one e.g. used by WSClean in component outputs (see
   // https://sourceforge.net/p/wsclean/wiki/ComponentList/ ) and in text
   // files when 'logarithmic SI' is false. The definition is:
   //   S(nu) = term0 + term1 (nu/refnu - 1) + term2 (nu/refnu - 1)^2 + ...
-  for (size_t ch = 0; ch != info_.nchan(); ++ch) {
-    double frequency = info_.chanFreqs()[ch];
-    double freq_factor = frequency / ref_frequency_ - 1.0;
-    double polynomial_factor = 1.0;
-    const size_t ch_offset = ch * info_.ncorr();
 
-    for (size_t term = 1; term != n_terms; ++term) {
-      polynomial_factor *= freq_factor;
-      const float polynomial_factor_float = polynomial_factor;
-      for (size_t t = 0; t < n_timesteps; ++t) {
-        std::complex<float>* values0 = result[t].getData().data() + ch_offset;
-        const std::complex<float>* values = term_data.data() +
-                                            (term - 1) * term_size +
-                                            t * timestep_size + ch_offset;
-        for (size_t bl = 0; bl < n_baselines; ++bl) {
-          values0[0] += values[0] * polynomial_factor_float;
-          values0[1] += values[1] * polynomial_factor_float;
-          values0[2] += values[2] * polynomial_factor_float;
-          values0[3] += values[3] * polynomial_factor_float;
-          values0 += baseline_size;
-          values += baseline_size;
-        }
-      }
+  // Create pointers to the visibilities for the extra terms.
+  std::vector<const std::complex<float>*> term_data_ptrs;
+  term_data_ptrs.reserve(n_terms - 1);
+  for (size_t term = 0; term < n_terms - 1; ++term) {
+    term_data_ptrs.push_back(term_data + term * term_size);
+  }
+
+  // Precompute polynomial frequency factors for all channels.
+  std::vector<double> freq_factors;
+  if (n_terms > 1) {
+    freq_factors.reserve(info_.nchan());
+    for (double freq : info_.chanFreqs()) {
+      freq_factors.push_back(freq / ref_frequency_ - 1.0);
     }
   }
 
-  return result;
+  for (size_t t = 0; t < n_timesteps; ++t) {
+    const double* uvw = uvws[t];
+    std::complex<float>* result_data = result[t].getData().data();
+    for (size_t bl = 0; bl < info_.nbaselines(); ++bl) {
+      const double phase_factor = ComputePhaseShiftFactor(uvw, direction);
+      uvw += 3;
+
+      for (size_t ch = 0; ch < info_.nchan(); ++ch) {
+        const double angle = phase_factor * info_.chanFreqs()[ch];
+        const std::complex<float> phasor(cos(angle), sin(angle));
+        result_data[0] *= phasor;
+        result_data[1] *= phasor;
+        result_data[2] *= phasor;
+        result_data[3] *= phasor;
+
+        double polynomial_factor = 1.0;
+        for (auto& term_data_ptr : term_data_ptrs) {
+          polynomial_factor *= freq_factors[ch];
+          // Merge the phase shift correction and the polynomial factor.
+          const std::complex<float> term_phasor =
+              phasor * float(polynomial_factor);
+          result_data[0] += term_data_ptr[0] * term_phasor;
+          result_data[1] += term_data_ptr[1] * term_phasor;
+          result_data[2] += term_data_ptr[2] * term_phasor;
+          result_data[3] += term_data_ptr[3] * term_phasor;
+          term_data_ptr += 4;
+        }
+        result_data += 4;
+      }
+    }
+  }
 }
 
 const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
@@ -335,19 +379,6 @@ const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
 
 void FacetPredict::SetBufferSize(size_t n_timesteps) {
   buffer_size_ = n_timesteps;
-}
-
-void FacetPredict::CorrectPhaseShift(std::complex<float>* values,
-                                     double frequency_factor) {
-  for (size_t ch = 0; ch != info_.nchan(); ++ch) {
-    double angle = frequency_factor * info_.chanFreqs()[ch];
-    const std::complex<float> phasor(cos(angle), sin(angle));
-    values[0] *= phasor;
-    values[1] *= phasor;
-    values[2] *= phasor;
-    values[3] *= phasor;
-    values += 4;
-  }
 }
 
 }  // namespace DPPP
