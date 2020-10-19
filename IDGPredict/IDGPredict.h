@@ -27,59 +27,98 @@
 #include "FitsReader.h"
 #endif
 
+#include "../Common/ParameterSet.h"
 #include "../DPPP/DPStep.h"
 
 #include <complex>
 #include <functional>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace DP3 {
 namespace DPPP {
 
-class FacetPredict {
+class IDGPredict : public DPStep {
  public:
-  FacetPredict(DPInput& input, const std::vector<std::string>& fitsModelFiles,
-               const std::string& ds9RegionsFile);
+  IDGPredict(
+      DPInput* input, const ParameterSet&, const string& prefix,
+      std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+          readers,
+      std::vector<Facet>& facets, const std::string& ds9_regions_file = "");
 
-  void updateInfo(const DPInfo& info);
+  IDGPredict(DPInput* input, const ParameterSet&, const string& prefix);
 
-  /** Add a buffer to the facet predictor, for use in Predict(), later. */
-  void AddBuffer(const DPBuffer& buffer) { buffers_.emplace_back(buffer); }
+  void updateInfo(const DPInfo& info) override;
 
-  /** Remove all previously added buffers. */
-  void FlushBuffers() { buffers_.clear(); }
+  /** Add a buffer to the IDG predictor, for use in Predict(), later. Calls
+   * FlushBuffers if the buffer is full. */
+  bool process(const DPBuffer& buffer) override;
+
+  void finish() override;
+
+  void show(std::ostream&) const override;
+
+  /** Flush all available buffers to IDG. */
+  void FlushBuffers();
 
   /**
    * Predict visibilities for added buffers in a given direction.
    * @param direction Index for the requested direction.
    * @return Buffers with the predicted visibilities. For each buffer added
-   *         with AddBuffer(), there is one corresponding output buffer.
+   *         with process(), there is one corresponding output buffer.
    */
   std::vector<DPBuffer> Predict(size_t direction);
 
   bool IsStarted() const;
 
-  void StartIDG(bool saveFacets);
-
   const std::vector<std::pair<double, double>>& GetDirections() const;
 
   void SetBufferSize(size_t nTimesteps);
+  const size_t GetBufferSize() const { return buffer_size_; }
+
+  /// Read the tif files (nterms) for the idg prediction.
+  static std::pair<std::vector<FitsReader>,
+                   std::vector<aocommon::UVector<double>>>
+  GetReaders(const std::vector<std::string>& fits_model_files);
+
+  /// Get the facets from a region file and create the image models with the
+  /// given image size
+  static void GetFacets(std::vector<Facet>& facets_out,
+                        const std::string& ds9_regions_file, const double ra,
+                        const double dec, const double pixel_size_x,
+                        const double pixel_size_y, const size_t full_width,
+                        const size_t full_height);
+
+  /// Get the facets from a region file and use readers to create the image
+  /// models.
+  static void GetFacets(std::vector<Facet>& facets_out,
+                        const std::string& ds9_regions_file,
+                        const FitsReader& reader);
 
 #ifdef HAVE_IDG
  private:
+  void StartIDG();
+
   std::vector<const double*> InitializeUVWs();
 
   std::vector<DPBuffer> ComputeVisibilities(
       size_t direction, const std::vector<const double*>& uvws,
-      std::complex<float>* term_data) const;
+      std::complex<float>* term_data);
 
   double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
 
   void CorrectVisibilities(const std::vector<const double*>& uvws,
                            std::vector<DPBuffer>& result,
                            const std::complex<float>* term_data,
-                           size_t direction) const;
+                           size_t direction);
+
+  /// Return the amount of buffers that can be used by this step.
+  /// If multiple IDG predicts are ran simultaneously, you can update the
+  /// buffer size by using GetBufferSize and SetBufferSize respectively.
+  size_t GetAllocatableBuffers(size_t memory);
+
+  std::string name_;
 
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
@@ -96,11 +135,10 @@ class FacetPredict {
   double pixel_size_x_, pixel_size_y_;
   std::vector<FitsReader> readers_;
 
-  // Currently unused, will be useful when FacetPredict is a DPStep.
+  // Currently unused, will be useful when IDGPredict is a DPStep.
   size_t buffer_size_;
 
-  DPInput& input_;
-  DPInfo info_;
+  DPInput* input_;
   std::vector<std::size_t> ant1_;  // Contains only the used antennas
   std::vector<std::size_t> ant2_;  // Contains only the used antennas
 
@@ -108,6 +146,7 @@ class FacetPredict {
   double max_w_;
   double max_baseline_;
   std::vector<std::pair<double, double>> directions_;
+  bool save_facets_;  ///< Write the facets?
 #endif
 };
 

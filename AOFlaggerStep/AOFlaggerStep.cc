@@ -26,6 +26,7 @@
 #include "../DPPP/DPBuffer.h"
 #include "../DPPP/DPInfo.h"
 
+#include "../Common/Memory.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 
@@ -118,18 +119,8 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
   // Determine available memory.
   double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
   // Determine how much memory can be used.
-  double memoryMax = memory_ * 1024 * 1024 * 1024;
-  double memory = memoryMax;
-  if (memory_percentage_ > 0) {
-    memory = memory_percentage_ * availMemory / 100.;
-    if (memoryMax > 0 && memory > memoryMax) {
-      memory = memoryMax;
-    }
-  } else if (memory_ <= 0) {
-    // Nothing given, so use available memory on this machine.
-    // Set 50% (max 2 GB) aside for other purposes.
-    memory = availMemory - std::min(0.5 * availMemory, 2. * 1024 * 1024 * 1024);
-  }
+  double memory = AvailableMemory(memory_, memory_percentage_, false);
+
   // Determine how much buffer space is needed per time slot.
   // The flagger needs 3 extra work buffers (data+flags) per thread.
   double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *

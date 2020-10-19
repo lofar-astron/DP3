@@ -16,13 +16,14 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#include "FacetPredict.h"
+#include "IDGPredict.h"
 
 #ifdef HAVE_IDG
 
 #include "DS9FacetFile.h"
 #include "FitsWriter.h"
 #include "IDGConfiguration.h"
+#include "../Common/Memory.h"
 #include "../DPPP/DPInput.h"
 
 #include <aocommon/uvector.h>
@@ -33,42 +34,30 @@
 namespace DP3 {
 namespace DPPP {
 
-FacetPredict::FacetPredict(DPInput& input,
-                           const std::vector<std::string>& fits_model_files,
-                           const std::string& ds9_regions_file)
-    : buffer_size_(0), input_(input), info_(), ant1_(), ant2_(), timer_() {
-  if (fits_model_files.empty()) {
-    throw std::runtime_error("No fits files specified for IDG predict");
-  }
-  readers_.reserve(fits_model_files.size());
-  for (const std::string& file : fits_model_files) readers_.emplace_back(file);
-
+IDGPredict::IDGPredict(
+    DPInput* input, const ParameterSet& parset, const string& prefix,
+    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+        readers,
+    std::vector<Facet>& facets, const std::string& ds9_regions_file)
+    : name_(prefix),
+      readers_(readers.first),
+      buffer_size_(0),
+      input_(input),
+      ant1_(),
+      ant2_(),
+      timer_(),
+      save_facets_(parset.getBool(prefix + "savefacets", false)) {
   const size_t full_width = readers_.front().ImageWidth();
   const size_t full_height = readers_.front().ImageHeight();
   ref_frequency_ = readers_.front().Frequency();
   pixel_size_x_ = readers_.front().PixelSizeX();
   pixel_size_y_ = readers_.front().PixelSizeY();
-  std::vector<aocommon::UVector<double>> models(readers_.size());
-  for (size_t img = 0; img != readers_.size(); ++img) {
-    if (readers_[img].ImageWidth() != full_width ||
-        readers_[img].ImageHeight() != full_height)
-      throw std::runtime_error("Image for spectral term " +
-                               std::to_string(img) +
-                               " has inconsistent dimensions");
-    if (readers_[img].PixelSizeX() != pixel_size_x_ ||
-        readers_[img].PixelSizeY() != pixel_size_y_)
-      throw std::runtime_error("Pixel size of spectral term " +
-                               std::to_string(img) +
-                               " is inconsistent with first spectral term");
-    models[img].resize(full_width * full_height);
-    readers_[img].Read(models[img].data());
+  if (facets.empty()) {
+    std::cout << "============================ LOADING" << std::endl;
+    GetFacets(facets, ds9_regions_file, readers_.front());
   }
-
-  DS9FacetFile facet_file(ds9_regions_file);
-  std::vector<Facet> facets = facet_file.Read(
-      readers_.front().PhaseCentreRA(), readers_.front().PhaseCentreDec(),
-      pixel_size_x_, pixel_size_y_, full_width, full_height);
-  std::cout << "Read " << facets.size() << " facet definitions.\n";
+  // TODO improve functionality: if no facets are defined, just process the
+  // entire image
   if (facets.empty()) {
     throw std::runtime_error("No facet definitions found in " +
                              ds9_regions_file);
@@ -88,21 +77,79 @@ FacetPredict::FacetPredict(DPInput& input,
     FacetImage& image = images_.back();
     constexpr bool kMakeSquare = true;  // only necessary for IDG though
     constexpr double kPadding = 1.0;
-    image.CopyFacetPart(facet, models, full_width, full_height, kPadding,
-                        kMakeSquare);
+    image.CopyFacetPart(facet, readers.second, full_width, full_height,
+                        kPadding, kMakeSquare);
     area += image.Width() * image.Height();
   }
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
 
-void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
-  if (info.ncorr() != 4) {
-    throw std::invalid_argument("FacetPredict only supports 4 correlations.");
+IDGPredict::IDGPredict(DPInput* input, const ParameterSet& parset,
+                       const string& prefix)
+    : IDGPredict(input, parset, prefix,
+                 GetReaders(parset.getStringVector(prefix + "images",
+                                                   std::vector<string>())),
+                 *(new std::vector<Facet>()),
+                 parset.getString(prefix + "regions", "")) {}
+
+std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
+  if (fits_model_files.empty()) {
+    throw std::runtime_error("No fits files specified for IDG predict");
+  }
+  std::vector<FitsReader> readers;
+  readers.reserve(fits_model_files.size());
+  for (const std::string& file : fits_model_files) readers.emplace_back(file);
+
+  const size_t full_width = readers.front().ImageWidth();
+  const size_t full_height = readers.front().ImageHeight();
+  const double pixel_size_x = readers.front().PixelSizeX();
+  const double pixel_size_y = readers.front().PixelSizeY();
+
+  std::vector<aocommon::UVector<double>> models(readers.size());
+  for (size_t img = 0; img != readers.size(); ++img) {
+    if (readers[img].ImageWidth() != full_width ||
+        readers[img].ImageHeight() != full_height)
+      throw std::runtime_error("Image for spectral term " +
+                               std::to_string(img) +
+                               " has inconsistent dimensions");
+    if (readers[img].PixelSizeX() != pixel_size_x ||
+        readers[img].PixelSizeY() != pixel_size_y)
+      throw std::runtime_error("Pixel size of spectral term " +
+                               std::to_string(img) +
+                               " is inconsistent with first spectral term");
+    models[img].resize(full_width * full_height);
+    readers[img].Read(models[img].data());
   }
 
-  // TODO, when FacetPredict is a DPStep:
-  // Remove info_ member, and call DPStep::updateInfo(info); here.
-  info_ = info;
+  return std::make_pair(readers, models);
+}
+
+void IDGPredict::GetFacets(std::vector<Facet>& facets_out,
+                           const std::string& ds9_regions_file, const double ra,
+                           const double dec, const double pixel_size_x,
+                           const double pixel_size_y, const size_t full_width,
+                           const size_t full_height) {
+  DS9FacetFile facet_file(ds9_regions_file);
+  facets_out = facet_file.Read(ra, dec, pixel_size_x, pixel_size_y, full_width,
+                               full_height);
+  std::cout << "Read " << facets_out.size() << " facet definitions.\n";
+}
+
+void IDGPredict::GetFacets(std::vector<Facet>& facets_out,
+                           const std::string& ds9_regions_file,
+                           const FitsReader& reader) {
+  GetFacets(facets_out, ds9_regions_file, reader.PhaseCentreRA(),
+            reader.PhaseCentreDec(), reader.PixelSizeX(), reader.PixelSizeY(),
+            reader.ImageWidth(), reader.ImageHeight());
+}
+
+void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
+  if (info.ncorr() != 4) {
+    throw std::invalid_argument("IDGPredict only supports 4 correlations.");
+  }
+
+  DPStep::updateInfo(info);
 
   // Generate ant1_ and ant2_, which contain mapped antenna indices.
   ant1_.clear();
@@ -127,11 +174,61 @@ void FacetPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   max_w_ = max_baseline_ * 0.1;
   std::cout << "Predicting baselines up to " << max_baseline_
             << " wavelengths.\n";
+
+  // Determine available size for buffering
+  // TODO how much memory should this step take by default?
+  if (buffer_size_ == 0) {
+    buffer_size_ = GetAllocatableBuffers(AvailableMemory());
+  }
+
+  StartIDG();
 }
 
-bool FacetPredict::IsStarted() const { return !buffersets_.empty(); }
+bool IDGPredict::process(const DPBuffer& buffer) {
+  buffers_.emplace_back(buffer);
 
-void FacetPredict::StartIDG(bool saveFacets) {
+  if (buffers_.size() == buffer_size_) {
+    FlushBuffers();
+  }
+
+  return false;
+}
+
+void IDGPredict::finish() {
+  FlushBuffers();
+  getNextStep()->finish();
+}
+
+void IDGPredict::FlushBuffers() {
+  if (buffers_.empty()) {
+    return;
+  }
+
+  for (size_t dir = 0; dir < directions_.size(); ++dir) {
+    auto predictions = Predict(dir);
+
+    // TODO verify if this is correct or all directions should be stacked
+    for (DPBuffer& prediction : predictions) {
+      getNextStep()->process(prediction);
+    }
+  }
+
+  buffers_.clear();
+}
+
+void IDGPredict::show(std::ostream& os) const {
+  os << "IDGPredict " << name_ << '\n';
+  os << "  buffer size:    " << buffer_size_ << '\n';
+  for (auto& reader : readers_) {
+    os << "  Fits models " << reader.Filename() << '\n';
+    os << "      RA:     " << reader.PhaseCentreRA() << '\n';
+    os << "      Dec:    " << reader.PhaseCentreDec() << '\n';
+  }
+}
+
+bool IDGPredict::IsStarted() const { return !buffersets_.empty(); }
+
+void IDGPredict::StartIDG() {
   buffersets_.clear();
   idg::api::Type proxy_type = idg::api::Type::CPU_OPTIMIZED;
   int buffersize = 0;
@@ -182,12 +279,12 @@ void FacetPredict::StartIDG(bool saveFacets) {
       // options["max_threads"] = int(1);
       bs.init(img.Width(), pixel_size_x_, max_w_ + 1.0, dl, dm, dp, options);
       bs.set_image(data[term].data());
-      bs.init_buffers(0, {info_.chanFreqs()}, info_.antennaUsed().size(),
+      bs.init_buffers(0, {info().chanFreqs()}, info().antennaUsed().size(),
                       max_baseline_, options,
                       idg::api::BufferSetType::kBulkDegridding);
     }
 
-    if (saveFacets) {
+    if (save_facets_) {
       FitsWriter writer;
       writer.SetImageDimensions(img.Width(), img.Height(),
                                 reader.PhaseCentreRA(), reader.PhaseCentreDec(),
@@ -201,10 +298,10 @@ void FacetPredict::StartIDG(bool saveFacets) {
   }
 }
 
-std::vector<DPBuffer> FacetPredict::Predict(const size_t direction) {
+std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
   const size_t n_terms = readers_.size();
   const size_t term_size =
-      buffers_.size() * info_.nbaselines() * info_.nchan() * info_.ncorr();
+      buffers_.size() * info().nbaselines() * info().nchan() * info().ncorr();
 
   // term_data indexing: [term-1][timestep][baseline][channel][correlation].
   aocommon::UVector<std::complex<float>> term_data((n_terms - 1) * term_size);
@@ -223,7 +320,7 @@ std::vector<DPBuffer> FacetPredict::Predict(const size_t direction) {
   return result;
 }
 
-std::vector<const double*> FacetPredict::InitializeUVWs() {
+std::vector<const double*> IDGPredict::InitializeUVWs() {
   std::vector<const double*> uvws;
   uvws.reserve(buffers_.size());
 
@@ -231,10 +328,10 @@ std::vector<const double*> FacetPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (DPBuffer& buffer : buffers_) {
-    uvws.push_back(input_.fetchUVW(buffer, buffer, timer_).data());
+    uvws.push_back(input_->fetchUVW(buffer, buffer, timer_).data());
 
     const double* uvw = uvws.back();
-    for (std::size_t bl = 0; bl < info_.nbaselines(); ++bl) {
+    for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
       if (uvw[2] > max_w_) {
         double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
         if (uvwr2 <= max_baseline2) {
@@ -249,19 +346,20 @@ std::vector<const double*> FacetPredict::InitializeUVWs() {
     // Increase max_w by 10% for preventing repeated IDG initialization calls.
     max_w_ *= 1.1;
     std::cout << "Increasing maximum w to " << max_w_ << '\n';
-    StartIDG(false);
+    save_facets_ = false;
+    StartIDG();
   }
 
   return uvws;
 }
 
-std::vector<DPBuffer> FacetPredict::ComputeVisibilities(
+std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
     const size_t direction, const std::vector<const double*>& uvws,
-    std::complex<float>* term_data) const {
+    std::complex<float>* term_data) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
-  const size_t timestep_size =
-      info_.nbaselines() * info_.nchan() * info_.ncorr();
+  const size_t baseline_size = info().nchan() * info().ncorr();
+  const size_t timestep_size = info().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
   std::vector<DPBuffer> result;
@@ -269,7 +367,7 @@ std::vector<DPBuffer> FacetPredict::ComputeVisibilities(
   for (const DPBuffer& buffer : buffers_) {
     result.emplace_back(buffer);
     result.back().setData(casacore::Cube<casacore::Complex>(
-        info_.ncorr(), info_.nchan(), info_.nbaselines()));
+        info().ncorr(), info().nchan(), info().nbaselines()));
   }
 
   // IDG uses a flipped coordinate system
@@ -303,8 +401,8 @@ std::vector<DPBuffer> FacetPredict::ComputeVisibilities(
   return result;
 }
 
-double FacetPredict::ComputePhaseShiftFactor(const double* uvw,
-                                             const size_t direction) const {
+double IDGPredict::ComputePhaseShiftFactor(const double* uvw,
+                                           const size_t direction) const {
   // The phase shift angle is:
   // 2*pi * (u*dl - v*dm - w*dp) * (frequency / speed_of_light)
   // TODO revert The v and w terms are negated since IDG uses a flipped
@@ -317,14 +415,14 @@ double FacetPredict::ComputePhaseShiftFactor(const double* uvw,
          two_pi_div_c;
 }
 
-void FacetPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
-                                       std::vector<DPBuffer>& result,
-                                       const std::complex<float>* term_data,
-                                       const size_t direction) const {
+void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
+                                     std::vector<DPBuffer>& result,
+                                     const std::complex<float>* term_data,
+                                     const size_t direction) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
-  const size_t timestep_size =
-      info_.nbaselines() * info_.nchan() * info_.ncorr();
+  const size_t baseline_size = info().nchan() * info().ncorr();
+  const size_t timestep_size = info().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
   // The polynomial term corrections use the "polynomial spectrum" definition,
@@ -343,8 +441,8 @@ void FacetPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   // Precompute polynomial frequency factors for all channels.
   std::vector<double> freq_factors;
   if (n_terms > 1) {
-    freq_factors.reserve(info_.nchan());
-    for (double freq : info_.chanFreqs()) {
+    freq_factors.reserve(info().nchan());
+    for (double freq : info().chanFreqs()) {
       freq_factors.push_back(freq / ref_frequency_ - 1.0);
     }
   }
@@ -352,12 +450,12 @@ void FacetPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   for (size_t t = 0; t < n_timesteps; ++t) {
     const double* uvw = uvws[t];
     std::complex<float>* result_data = result[t].getData().data();
-    for (size_t bl = 0; bl < info_.nbaselines(); ++bl) {
+    for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
       const double phase_factor = ComputePhaseShiftFactor(uvw, direction);
       uvw += 3;
 
-      for (size_t ch = 0; ch < info_.nchan(); ++ch) {
-        const double angle = phase_factor * info_.chanFreqs()[ch];
+      for (size_t ch = 0; ch < info().nchan(); ++ch) {
+        const double angle = phase_factor * info().chanFreqs()[ch];
         const std::complex<float> phasor(cos(angle), sin(angle));
         result_data[0] *= phasor;
         result_data[1] *= phasor;
@@ -382,13 +480,33 @@ void FacetPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 }
 
-const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
+const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
     const {
   return directions_;
 }
 
-void FacetPredict::SetBufferSize(size_t n_timesteps) {
+void IDGPredict::SetBufferSize(size_t n_timesteps) {
   buffer_size_ = n_timesteps;
+}
+
+size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
+  size_t n_terms = readers_.size();
+
+  size_t max_channels = info().chanFreqs().size();
+  uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(
+      info().antennaUsed().size(), max_channels);
+  memPerTimestep *= 2;  // IDG uses two internal buffer
+  // Allow the directions together to use 1/4th of the available memory for
+  // the vis buffers.
+  size_t allocatableTimesteps =
+      memory / 4 / images_.size() / n_terms / memPerTimestep;
+  // TODO once a-terms are supported, this should include the size required
+  // for the a-terms.
+  std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps
+            << '\n';
+
+  size_t buffersize = std::max(allocatableTimesteps, size_t(1));
+  return buffersize;
 }
 
 }  // namespace DPPP
@@ -400,7 +518,7 @@ namespace {
 
 void notCompiled() {
   throw std::runtime_error(
-      "Facet prediction is not available, because DP3 was not compiled with "
+      "IDG prediction is not available, because DP3 was not compiled with "
       "IDG support");
 }
 
@@ -409,34 +527,34 @@ void notCompiled() {
 namespace DP3 {
 namespace DPPP {
 
-FacetPredict::FacetPredict(const std::vector<std::string>&, const std::string&,
-                           PredictCallback&&) {
+IDGPredict::IDGPredict(const std::vector<std::string>&, const std::string&,
+                       PredictCallback&&) {
   notCompiled();
 }
 
-void FacetPredict::updateInfo(const DP3::DPPP::DPInfo&) { notCompiled(); }
+void IDGPredict::updateInfo(const DP3::DPPP::DPInfo&) { notCompiled(); }
 
-bool FacetPredict::IsStarted() const {
+bool IDGPredict::IsStarted() const {
   notCompiled();
   return false;
 }
 
-void FacetPredict::StartIDG(bool) { notCompiled(); }
+void IDGPredict::StartIDG() { notCompiled(); }
 
-void FacetPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t,
-                                  size_t, const double*) {
+void IDGPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t,
+                                const double*) {
   notCompiled();
 }
 
-const std::vector<std::pair<double, double>>& FacetPredict::GetDirections()
+const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
     const {
   notCompiled();
   return std::vector<std::pair<double, double>>();
 }
 
-void FacetPredict::Flush(size_t) { notCompiled(); }
+void IDGPredict::Flush(size_t) { notCompiled(); }
 
-void FacetPredict::SetBufferSize(size_t) { notCompiled(); }
+void IDGPredict::SetBufferSize(size_t) { notCompiled(); }
 
 }  // namespace DPPP
 }  // namespace DP3

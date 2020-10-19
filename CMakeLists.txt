@@ -94,6 +94,7 @@ add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
   Common/DataConvert.cc
+  Common/Memory.cc
   Common/NodeDesc.cc
   Common/ParameterHandler.cc
   Common/ParameterRecord.cc
@@ -149,7 +150,7 @@ set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
   IDGPredict/FacetImage.cc
-  IDGPredict/FacetPredict.cc
+  IDGPredict/IDGPredict.cc
   IDGPredict/FitsIOChecker.cc
   IDGPredict/FitsReader.cc
   IDGPredict/FitsWriter.cc)
@@ -309,6 +310,7 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
+  Common/test/unit/tMemory.cc
   DPPP/test/runtests.cc
   DPPP/test/unit/mock/MockStep.cc
   DPPP/test/unit/fixtures/fDirectory.cc
