@@ -186,6 +186,7 @@ void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
 
 bool IDGPredict::process(const DPBuffer& buffer) {
   buffers_.emplace_back(buffer);
+  input_->fetchUVW(buffer, buffers_.back(), timer_);
 
   if (buffers_.size() == buffer_size_) {
     FlushBuffers();
@@ -204,13 +205,17 @@ void IDGPredict::FlushBuffers() {
     return;
   }
 
-  for (size_t dir = 0; dir < directions_.size(); ++dir) {
-    auto predictions = Predict(dir);
+  std::vector<DPBuffer> front_prediction = Predict(0);
 
-    // TODO verify if this is correct or all directions should be stacked
-    for (DPBuffer& prediction : predictions) {
-      getNextStep()->process(prediction);
+  for (size_t dir = 1; dir < directions_.size(); ++dir) {
+    auto predictions = Predict(dir);
+    for (size_t i = 0; i < predictions.size(); ++i) {
+      front_prediction[i].getData() += predictions[i].getData();
     }
+  }
+
+  for (DPBuffer& prediction : front_prediction) {
+    getNextStep()->process(prediction);
   }
 
   buffers_.clear();
