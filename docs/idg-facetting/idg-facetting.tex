@@ -1,0 +1,95 @@
+\documentclass[a4paper,10pt]{article} 
+%\usepackage[style=nature,backend=biber]{biblatex}
+\usepackage{graphicx}
+\usepackage[font={it},labelfont={bf}]{caption}
+\usepackage{times}
+\usepackage{color}
+%\usepackage{fixltx2e} % fixes placing of image positions
+\usepackage{authblk}
+\usepackage{amsmath}
+\usepackage{courier}
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+%\definecolor{customcitecolor}{rgb}{0.0,0.25,0.25}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+%\definecolor{customlinkcolor}{rgb}{0.0,0.0,1.0}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (Facets)
+               /Author     (A. R. Offringa)
+               /Keywords   (calibration)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\title{Facetting equations}
+
+\author{A.~R.~Offringa}
+%\author[1,2]{A.~R.~Offringa}
+%\affil[1]{RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia}
+%\affil[2]{ARC Centre of Excellence for All-Sky Astrophysics (CAASTRO)}
+\begin{document}
+
+\label{firstpage}
+\maketitle
+
+\section{Facetted imaging}
+
+From:
+\begin{equation}
+V(u,v,w) = \int I(l,m) e^{-i 2\pi \left(ul + vm + w[\sqrt{1-l^2-m^2}-1]\right)} dl dm
+\end{equation}
+With $l\leftarrow l' + \Delta l$ and $m\leftarrow m' + \Delta m$ :
+\begin{equation}
+V = \int I(l+\Delta l,m + \Delta m) e^{-i 2\pi \left(u(l+\Delta l) + v(m+\Delta m) + w[\sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2}-1]\right)}  dl dm
+\end{equation}
+Now, $l,m$ are relative to the facet centre $\Delta l, \Delta m$. Shifting the image centre, using $I_f = I(l+\Delta l,m + \Delta m)$ :
+\begin{equation}
+V = \int I_f(l,m) e^{-i 2\pi \left(u(l+\Delta l) + v(m+\Delta m) + w[\sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2}-1]\right)}  dl dm
+\end{equation}
+The $u$ and $v$ terms can be taken out of the integration:
+\begin{equation}
+V = e^{-i 2\pi \left(u\Delta l + v\Delta m\right)} \int I_f(l,m) e^{-i 2\pi \left(ul + vm + w[\sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2}-1]\right)}  dl dm
+\end{equation}
+Decompose this term into a part that does not depend on $l,m$ and a part that is zero at the facet centre:
+\begin{eqnarray}\notag
+w(\sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2}-1)= w(\sqrt{1 - \Delta l^2 - \Delta m^2}-1) + \\
+ w \left( \sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2}-1 - \sqrt{1 - \Delta l^2 - \Delta m^2}+1 \right)
+\end{eqnarray}
+The first term can be taken out of the integration, thereby making the residual $w$ term 0 at the facet centre ($\Delta l, \Delta m$), which thus minizes the required $w$-kernel and/or number of $w$-layers:
+\begin{eqnarray}\notag
+V e^{+i 2\pi \left(u\Delta l + v\Delta m + w\left[\sqrt{1 - \Delta l^2 - \Delta m^2}-1\right]\right)} = \\ \int I_f(l,m) e^{-i 2\pi \left(ul + vm + w\left[ \sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2} - \sqrt{1 - \Delta l^2 - \Delta m^2} \right]\right)}  dl dm
+\end{eqnarray}
+This is an exact calculation of $V$ from the image $I_f$. The degridder has to know $\Delta l$ and $\Delta m$, and instead of multiplying by the normal $w$-term $e^{-i2\pi w\left[ \sqrt{1-l^2-m^2}\right]}$, needs to multiply the image with $e^{-i2\pi w\left[ \sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2} - \sqrt{1 - \Delta l^2 - \Delta m^2} \right]}$. The ``facet engine'' can perform the multiplication of the degridded visibilities with\\
+$e^{+i 2\pi \left(u\Delta l + v\Delta m + w(\sqrt{1 - \Delta l^2 - \Delta m^2}-1)\right)}$. These formulae are described by Kogan \& Greisen (2009, AIPS memo), with the only difference that they do not intend to correct for the residual $w$-terms, but rather make the facet size small enough to avoid $w$-terms.
+
+A small further improvement can be made by, instead of setting the facet centre to zero, setting the point within the facet to zero that minimizes the maximum absolute $w$-factor:
+\begin{equation}
+ w\textrm{term} = w \left( \min\limits_{x} \max\limits_{l,m} \left| \sqrt {1-(l+\Delta l)^2-(m+\Delta m)^2} - 1 - x \right| \right)
+\end{equation}
+The extremes occur in the four corners of the images or at $l=\Delta l$ and/or $m=\Delta m$, and can thus easily be found. Given those $i \in 9$ points $l_c^i,m_c^i$, we remove points outside the image and chose $x$ from the remaining set of points to be in the centre of the $w$ factors:
+\begin{equation} \label{eq:optimization}
+ x = \left( 0.5 \max_i \sqrt {1-(l_c^i)^2-(m_c^i)^2} + 0.5 \min_i \sqrt {1-(l_c^i)^2-(m_c^i)^2}\right) - 1.
+\end{equation}
+I actually only now realize this can even be applied to non-facetted imaging, thereby reducing the nr $w$-layers or the size of the $w$-kernel by a factor of two. However, both in facetted imaging and non-facetted imaging, the smallest $w$-factors occur no longer in the (facet) centre, but occur elsewhere. Therefore, the $w$-errors in the centre are relatively larger. In the case of facetting this is not really an issue (since sources are everywhere), but without facetting it might be, since most of the emission will be in the centre. The latter is only relevant for tabulated $w$-stacking/$w$-projection: Since IDG does `perfect' $w$-term correction, this optimization does not degrade image quality in any case.
+
+In any case, the most generic approach is achieved by having $x$ be an extra degridding parameter. To support the optimization \textit{or} allow the smallest $w$ terms to be in the centre, the interface should make it possible to set $\Delta l, \Delta m$ and $x$. The $w$-correction to be applied by the degridder (IDG) is
+\begin{equation}
+ e^{-i2\pi w\left[ \sqrt{1-(l+\Delta l)^2-(m+\Delta m)^2} - 1 - x \right]},
+\end{equation}
+and the facet engine should multiply the degridded visibilities with
+\begin{equation}
+e^{+i 2\pi \left(u\Delta l + v\Delta m + wx\right)}.
+\end{equation}
+The IDG-using application can chose $x$ to have minimal $w$-terms in the centre of the facet/image with
+\begin{equation} \label{eq:x}
+x = \sqrt{1 - \Delta l^2 - \Delta m^2}-1,
+\end{equation}
+or alternatively use Eq.~\ref{eq:optimization} to further decrease the required computations. ``In between'' situations can also be chosen by using Eq.~\ref{eq:optimization} with e.g. factors of 0.75 and 0.25 or averaging Eqs.~\ref{eq:optimization} and \ref{eq:x}.
+\label{lastpage}
+
+\end{document}
