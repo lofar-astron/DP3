@@ -152,8 +152,8 @@ void FacetPredict::StartIDG(bool saveFacets) {
     const double dl = (int(reader.ImageWidth() / 2) -
                        (img.OffsetX() + int(img.Width() / 2))) *
                       pixel_size_x_;
-    const double dm = (img.OffsetY() + int(img.Height() / 2) -
-                       int(reader.ImageHeight() / 2)) *
+    const double dm = (int(reader.ImageHeight() / 2) -
+                       (img.OffsetY() + int(img.Height() / 2))) *
                       pixel_size_y_;
     const double dp = sqrt(1.0 - dl * dl - dm * dm) - 1.0;
     std::cout << "Initializing gridder " << buffersets_.size() << " ("
@@ -298,11 +298,12 @@ std::vector<DPBuffer> FacetPredict::ComputeVisibilities(
 double FacetPredict::ComputePhaseShiftFactor(const double* uvw,
                                              const size_t direction) const {
   // The phase shift angle is:
-  // 2*pi * (u*dl + v*dm + w*dp) * (frequency / speed_of_light)
+  // 2*pi * (u*dl - v*dm - w*dp) * (frequency / speed_of_light)
+  // The v and w terms are negated since IDG uses a flipped coordinate system.
   // The computed phase shift factor contains all parts except the frequency.
   constexpr double two_pi_div_c = 2.0 * M_PI / aocommon::c();
-  return (uvw[0] * meta_data_[direction].dl +
-          uvw[1] * meta_data_[direction].dm +
+  return (uvw[0] * meta_data_[direction].dl -
+          uvw[1] * meta_data_[direction].dm -
           uvw[2] * meta_data_[direction].dp) *
          two_pi_div_c;
 }
