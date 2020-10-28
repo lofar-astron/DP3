@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from astropy.io import fits
+from astropy.wcs import WCS
 import os
 
 os.system("rm dummy-image.fits dummy-dirty.fits")
-os.system("wsclean -size 512 512 -scale 0.01 -name dummy tDDECal.MS")
+# -channel-range 0 1 ensures the reference frequency is from the first channel.
+os.system("wsclean -size 512 512 -scale 0.01 -channel-range 0 1 -name dummy tDDECal.MS")
 
 sources = {
     "radec": ( 400, 64 ),
@@ -17,6 +19,8 @@ brightness = {
     "dec": 20,
     "center": 10
     }
+term_brightness = { 0:10, 1:20000, 2:30000 }
+
 fits_files=[]
 
 hdu = fits.open("dummy-image.fits")[0]
@@ -42,6 +46,14 @@ for source in sources:
     x, y = sources[source]
     hdu.data[0, 0, y, x] = brightness[source]
     write_fits(source)
+
+# Generate files for testing polynomial-terms.
+# They have a single pixel at the center position, with different values.
+for term in term_brightness:
+    hdu.data *= 0
+    hdu.data[0, 0, 256, 256] = term_brightness[term]
+    hdu.header
+    write_fits("term" + str(term))
 
 os.system("tar cfj resources/idg-fits-sources.tbz2 " + " ".join(fits_files))
 os.system("rm dummy-image.fits dummy-dirty.fits " + " ".join(fits_files))

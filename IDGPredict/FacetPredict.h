@@ -27,68 +27,91 @@
 #include "FitsReader.h"
 #endif
 
-#include "../DPPP/DPInfo.h"
+#include "../DPPP/DPStep.h"
 
 #include <complex>
 #include <functional>
 #include <string>
 #include <vector>
 
+namespace DP3 {
+namespace DPPP {
+
 class FacetPredict {
  public:
-  using PredictCallback = std::function<void(
-      size_t /*row*/, size_t /*direction*/, size_t /*dataDescId*/,
-      const std::complex<float>* /*values*/)>;
+  FacetPredict(DPInput& input, const std::vector<std::string>& fitsModelFiles,
+               const std::string& ds9RegionsFile);
 
-  FacetPredict(const std::vector<std::string>& fitsModelFiles,
-               const std::string& ds9RegionsFile, PredictCallback&& callback);
+  void updateInfo(const DPInfo& info);
 
-  void updateInfo(const DP3::DPPP::DPInfo& info);
+  /** Add a buffer to the facet predictor, for use in Predict(), later. */
+  void AddBuffer(const DPBuffer& buffer) { buffers_.emplace_back(buffer); }
+
+  /** Remove all previously added buffers. */
+  void FlushBuffers() { buffers_.clear(); }
+
+  /**
+   * Predict visibilities for added buffers in a given direction.
+   * @param direction Index for the requested direction.
+   * @return Buffers with the predicted visibilities. For each buffer added
+   *         with AddBuffer(), there is one corresponding output buffer.
+   */
+  std::vector<DPBuffer> Predict(size_t direction);
 
   bool IsStarted() const;
 
   void StartIDG(bool saveFacets);
 
-  void RequestPredict(size_t direction, size_t dataDescId, size_t rowId,
-                      size_t timeIndex, size_t antenna1, size_t antenna2,
-                      const double* uvw);
-
   const std::vector<std::pair<double, double>>& GetDirections() const;
-
-  void Flush(size_t dataDescId);
 
   void SetBufferSize(size_t nTimesteps);
 
 #ifdef HAVE_IDG
  private:
-  void computePredictionBuffer(size_t dataDescId, size_t direction);
+  std::vector<const double*> InitializeUVWs();
 
-  constexpr static double c() { return 299792458.0L; }
+  std::vector<DPBuffer> ComputeVisibilities(
+      size_t direction, const std::vector<const double*>& uvws,
+      std::complex<float>* term_data) const;
 
-  PredictCallback predict_callback_;
+  double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
+
+  void CorrectVisibilities(const std::vector<const double*>& uvws,
+                           std::vector<DPBuffer>& result,
+                           const std::complex<float>* term_data,
+                           size_t direction) const;
+
   std::vector<FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
   struct FacetMetaData {
+    FacetMetaData(double _dl, double _dm, double _dp)
+        : dl(_dl), dm(_dm), dp(_dp) {}
     double dl, dm, dp;
-    bool is_initialized;
-    size_t row_id_offset;
-    std::vector<double> uvws;
   };
   std::vector<FacetMetaData> meta_data_;
 
-  size_t full_width_, full_height_;
+  std::vector<DPBuffer> buffers_;
+
   double ref_frequency_;
   double pixel_size_x_, pixel_size_y_;
   std::vector<FitsReader> readers_;
-  double padding_;
+
+  // Currently unused, will be useful when FacetPredict is a DPStep.
   size_t buffer_size_;
 
-  /// MS info
-  DP3::DPPP::DPInfo info_;
+  DPInput& input_;
+  DPInfo info_;
+  std::vector<std::size_t> ant1_;  // Contains only the used antennas
+  std::vector<std::size_t> ant2_;  // Contains only the used antennas
+
+  NSTimer timer_;
   double max_w_;
   double max_baseline_;
   std::vector<std::pair<double, double>> directions_;
 #endif
 };
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif  // header guard

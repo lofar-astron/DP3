@@ -30,7 +30,6 @@
 #include <casacore/casa/Arrays/Cube.h>
 
 namespace DP3 {
-
 namespace DPPP {
 
 class SolutionInterval {
@@ -65,9 +64,6 @@ class SolutionInterval {
   };
   std::vector<float*>& WeightPtrs() { return weight_ptrs_; }
   std::vector<casacore::Complex*>& DataPtrs() { return data_ptrs_; }
-  std::vector<std::vector<std::vector<casacore::Complex>>>& IDGBuffers() {
-    return idg_buffers_;
-  }
   /**@}*/
 
   /**
@@ -95,9 +91,8 @@ class SolutionInterval {
   /// For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
   std::vector<std::vector<casacore::Complex*>> model_data_ptrs_;
   std::vector<casacore::Cube<casacore::Complex>> model_data_;
-
-  std::vector<std::vector<std::vector<casacore::Complex>>> idg_buffers_;
 };
+
 }  // namespace DPPP
 }  // namespace DP3
 

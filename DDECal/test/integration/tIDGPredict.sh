@@ -90,5 +90,37 @@ if [ $passed != 1 -a -z "$CI" ]; then
   done
 fi
 
+echo Test polynomial frequency term corrections...
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=center-center.reg\
+  ddecal.idg.images=[term0-model.fits,term1-model.fits,term2-model.fits]\
+  ddecal.onlypredict=True msout.datacolumn=TERMS_DATA"
+echo $cmd
+$cmd
+
+#Since the test involves the center pixel only, taql can check the values.
+ch_count=`taql -nop "select count(CHAN_FREQ) from tDDECal.MS::SPECTRAL_WINDOW"`
+term_failed=0
+for ch in `seq 0 $((ch_count - 1))`; do
+  # The factors 10, 20000 and 30000 match those in tIDGPredict_ref.py.
+  taql "select from tDDECal.MS
+        where not(TERMS_DATA[$ch,0]=0 or near(TERMS_DATA[$ch,0],
+        (select 10+20000*(CHAN_FREQ[$ch]/CHAN_FREQ[0]-1)
+                  +30000*(CHAN_FREQ[$ch]/CHAN_FREQ[0]-1)**2
+         from ::SPECTRAL_WINDOW)[0], 1e-3))" > taql.out
+  if ! diff -q taql.out taql.ref; then
+    term_failed=$((term_failed + 1))
+  fi
+done
+
+echo -n "Frequency term test result: "
+if [ $term_failed -eq 0 ]; then
+  echo "${text_boldgreen}Test passed.${text_normal}"
+  passed=$((passed + 1))
+else
+  echo "${text_boldred}Test has $term_failed failures.${text_normal}"
+  failed=$((failed + 1))
+fi
+
 echo Tests passed: $passed skipped: $skipped failed: $failed
 exit $failed

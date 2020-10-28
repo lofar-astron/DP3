@@ -81,10 +81,6 @@
 using namespace casacore;
 using namespace DP3::BBS;
 
-namespace {
-const std::size_t kDataDescId = 0;
-}
-
 namespace DP3 {
 namespace DPPP {
 
@@ -317,11 +313,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   std::vector<std::string> imageFilenames =
       parset.getStringVector(prefix + "idg.images");
   itsFacetPredictor = boost::make_unique<FacetPredict>(
-      imageFilenames, regionFilename,
-      [this](std::size_t row, std::size_t direction, std::size_t data_desc_id,
-             const std::complex<float>* values) {
-        idgCallback(row, direction, data_desc_id, values);
-      });
+      *itsInput, imageFilenames, regionFilename);
   itsDirections.resize(itsFacetPredictor->GetDirections().size());
   for (size_t i = 0; i != itsDirections.size(); ++i)
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
@@ -742,8 +734,21 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
+  std::vector<std::vector<DPBuffer>> idg_predictions;
+
   if (itsUseIDG) {
-    itsFacetPredictor->Flush(kDataDescId);
+    idg_predictions.reserve(itsFacetPredictor->GetDirections().size());
+    for (size_t direction = 0;
+         direction < itsFacetPredictor->GetDirections().size(); ++direction) {
+      idg_predictions.push_back(itsFacetPredictor->Predict(direction));
+      for (size_t i = 0; i < idg_predictions.back().size(); ++i) {
+        const size_t sol_int = i / itsSolInt;
+        const size_t step = i % itsSolInt;
+
+        sol_ints_[sol_int].ModelDataPtrs()[step][direction] =
+            idg_predictions.back()[i].getData().data();
+      }
+    }
   }
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
@@ -830,6 +835,11 @@ void DDECal::doSolve() {
     }
   }
 
+  if (itsUseIDG) {
+    idg_predictions.clear();
+    itsFacetPredictor->FlushBuffers();
+  }
+
   itsTimer.stop();
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
@@ -906,30 +916,7 @@ void DDECal::doPrepare() {
           itsFacetPredictor->updateInfo(info());
           itsFacetPredictor->StartIDG(itsSaveFacets);
         }
-
-        const size_t nBl = info().nbaselines();
-        Matrix<double> uvws;
-        uvws.reference(bufin.getUVW());
-        while (sol_ints_[i].IDGBuffers().size() <= step) {
-          sol_ints_[i].IDGBuffers().emplace_back(
-              itsFacetPredictor->GetDirections().size());
-          for (std::vector<casacore::Complex>& vec :
-               sol_ints_[i].IDGBuffers().back())
-            vec.resize(info().nbaselines() * info().nchan() * 4);
-        }
-        for (size_t direction = 0;
-             direction != itsFacetPredictor->GetDirections().size();
-             ++direction) {
-          sol_ints_[i].ModelDataPtrs()[step][direction] =
-              sol_ints_[i].IDGBuffers()[itsStepInSolInt][direction].data();
-          for (size_t bl = 0; bl < nBl; ++bl) {
-            size_t id = bl + step * nBl;
-            itsFacetPredictor->RequestPredict(
-                direction, kDataDescId, id, step,
-                info().antennaMap()[info().getAnt1()[bl]],
-                info().antennaMap()[info().getAnt2()[bl]], uvws[bl].data());
-          }
-        }
+        itsFacetPredictor->AddBuffer(bufin);
       } else {
         if (itsThreadPool == nullptr) {
           itsThreadPool =
@@ -990,22 +977,6 @@ void DDECal::doPrepare() {
 
       itsAvgTime += itsAvgTime + bufin.getTime();
     }
-  }
-}
-
-void DDECal::idgCallback(size_t row, size_t direction, size_t dataDescId,
-                         const std::complex<float>* values) {
-  // std::cout << values[0] << ' ' << values[4] << ' ' << values[8] << '\n';
-  assert(kDataDescId == dataDescId);
-  size_t nBl = info().nbaselines();
-  size_t solTimestep = row / nBl;
-  size_t bl = row % nBl;
-  const std::size_t bl_size = info().nchan() * info().ncorr();
-
-  for (size_t t = 0; t < sol_ints_.size(); ++t) {
-    std::copy_n(
-        values, bl_size,
-        &sol_ints_[t].IDGBuffers()[solTimestep][direction][bl * bl_size]);
   }
 }
 

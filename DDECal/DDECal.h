@@ -54,8 +54,6 @@
 #include <string>
 #include <vector>
 
-class FacetPredict;
-
 namespace aocommon {
 class ThreadPool;
 }  // namespace aocommon
@@ -65,6 +63,8 @@ namespace DP3 {
 class ParameterSet;
 
 namespace DPPP {
+
+class FacetPredict;
 
 typedef std::vector<Patch::ConstPtr> PatchList;
 typedef std::pair<size_t, size_t> Baseline;
@@ -130,9 +130,6 @@ class DDECal : public DPStep {
   std::vector<std::string> getDirectionNames();
 
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
-
-  void idgCallback(size_t row, size_t direction, size_t dataDescId,
-                   const std::complex<float>* values);
 
   DPInput* itsInput;
   std::string itsName;
