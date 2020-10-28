@@ -20,7 +20,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 # Build IDG
     && mkdir /idg && cd /idg \
     && git clone https://git.astron.nl/RD/idg.git src \
-    && ( cd src/ && git checkout af0020ab0d2283393ca2f8cfbf883a8d59642d6b ) \
+    && ( cd src/ && git checkout 08b6b922ed224555c5f70acf035f855b05fb8551 ) \
     && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && make install -j4 \
