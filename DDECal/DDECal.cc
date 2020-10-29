@@ -79,6 +79,7 @@
 #include <utility>
 #include <vector>
 
+using aocommon::FitsReader;
 using namespace casacore;
 using namespace DP3::BBS;
 
@@ -333,7 +334,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
     std::vector<Facet> facet{facets[i]};
     itsSteps.push_back(
-        new IDGPredict(itsInput, parset, prefix, readers, facet));
+        std::make_shared<IDGPredict>(itsInput, parset, prefix, readers, facet));
   }
 }
 
@@ -346,8 +347,8 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
         "parset or your sourcedb");
   itsSteps.reserve(nDir);
   for (size_t dir = 0; dir < nDir; ++dir) {
-    itsSteps.push_back(
-        new Predict(itsInput, parset, prefix, itsDirections[dir]));
+    itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
+                                                 itsDirections[dir]));
   }
 }
 
@@ -367,9 +368,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
     itsSteps[dir]->setInfo(infoIn);
 
-    if (Predict* s = dynamic_cast<Predict*>(itsSteps[dir])) {
+    if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
       s->setThreadData(*itsThreadPool, measuresMutex);
-    } else if (IDGPredict* s = dynamic_cast<IDGPredict*>(itsSteps[dir])) {
+    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
       itsSolIntCount = std::max(
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);
       // We increment by one so the IDGPredict will not flush in its process
@@ -436,13 +437,15 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     sourcePositions[0] = std::pair<double, double>(angles.getBaseValue()[0],
                                                    angles.getBaseValue()[1]);
   } else if (itsUseIDG) {
-    // TODO this will change when there is an IDGPredict for each direction
-    IDGPredict* step = dynamic_cast<IDGPredict*>(itsSteps[0]);
-    sourcePositions = step->GetDirections();
+    for (unsigned int i = 0; i < itsDirections.size(); ++i) {
+      // We can take the 0th element of an IDG step since it only contains 1.
+      sourcePositions[i] =
+          std::static_pointer_cast<IDGPredict>(itsSteps[0])->GetDirections()[0];
+    }
   } else {
     for (unsigned int i = 0; i < itsDirections.size(); ++i) {
-      Predict* step = dynamic_cast<Predict*>(itsSteps[i]);
-      sourcePositions[i] = step->getFirstDirection();
+      sourcePositions[i] =
+          std::static_pointer_cast<Predict>(itsSteps[i])->getFirstDirection();
     }
   }
   itsH5Parm.addSources(getDirectionNames(), sourcePositions);
@@ -638,6 +641,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   FlagCounter::showPerc1(os, itsTimerWrite.getElapsed(), totaltime);
   os << " of it spent in writing gain solutions to disk" << endl;
 
+  os << "          ";
   os << "Substepts taken:" << std::endl;
   for (auto& step : itsSteps) {
     os << "          ";
@@ -772,7 +776,7 @@ void DDECal::doSolve() {
   if (itsUseIDG) {
     itsTimerPredict.start();
     for (size_t direction = 0; direction < itsSteps.size(); ++direction) {
-      dynamic_cast<IDGPredict*>(itsSteps[direction])->FlushBuffers();
+      std::static_pointer_cast<IDGPredict>(itsSteps[direction])->FlushBuffers();
     }
     itsTimerPredict.stop();
   }
@@ -977,8 +981,9 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
           double weight = bufin.getWeights().data()[index];
           itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
           itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
-          if (weight != 0.0)
+          if (weight != 0.0) {
             itsVisInInterval[chanblock].first++;  // unflagged nr of vis
+          }
         }
       }
     }

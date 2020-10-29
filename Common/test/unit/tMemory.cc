@@ -6,9 +6,9 @@
 using DP3::AvailableMemory;
 
 namespace {
-const double kGB2BFactor = 1024 * 1024 * 1024;
-const double kTooMuchMemory = 1000 * 1024;                    // GB
-const double kTooMuchMemoryB = kTooMuchMemory * kGB2BFactor;  // B
+constexpr double kGB2BFactor = 1024 * 1024 * 1024;
+constexpr double kTooMuchMemory = 1000 * 1024;                    // GB
+constexpr double kTooMuchMemoryB = kTooMuchMemory * kGB2BFactor;  // B
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(memory)
@@ -44,6 +44,14 @@ BOOST_AUTO_TEST_CASE(default_test) {
   double expected_mem = max_mem - std::min(0.5 * max_mem, 2. * kGB2BFactor);
 
   BOOST_TEST(default_mem == expected_mem);
+}
+
+BOOST_AUTO_TEST_CASE(mem_too_small) {
+  BOOST_CHECK_THROW(AvailableMemory(0, -0.01), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(mem_too_large) {
+  BOOST_CHECK_THROW(AvailableMemory(0, 100.01), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

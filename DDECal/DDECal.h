@@ -187,7 +187,7 @@ class DDECal : public DPStep {
   UVWFlagger itsUVWFlagStep;
   /// Result step for data after UV-flagging
   ResultStep::ShPtr itsDataResultStep;
-  std::vector<DPStep*> itsSteps;
+  std::vector<std::shared_ptr<DPStep>> itsSteps;
   /// For each directions, a multiresultstep with all times.
   std::vector<MultiResultStep::ShPtr> itsResultSteps;
 

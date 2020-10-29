@@ -150,10 +150,7 @@ set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
   IDGPredict/FacetImage.cc
-  IDGPredict/IDGPredict.cc
-  IDGPredict/FitsIOChecker.cc
-  IDGPredict/FitsReader.cc
-  IDGPredict/FitsWriter.cc)
+  IDGPredict/IDGPredict.cc)
 
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
@@ -337,6 +334,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
+  IDGPredict/test/unit/tIDGPredict.cc
 )
 
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
@@ -385,6 +383,15 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP_BDA
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
+
+add_test(
+  NAME extract_IDG
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
+)
+set_tests_properties(
+  extract_IDG
   PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 

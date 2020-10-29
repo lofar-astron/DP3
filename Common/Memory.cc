@@ -28,6 +28,10 @@ namespace DP3 {
 
 double AvailableMemory(const double memory, const double memory_percentage,
                        const bool clip) {
+  if (memory_percentage < 0 || memory_percentage > 100) {
+    throw std::invalid_argument("0 <= memory_percentage <= 100");
+  }
+
   // Determine available memory (bytes).
   double max_system_memory = casacore::HostInfo::memoryTotal() * 1024.;
 

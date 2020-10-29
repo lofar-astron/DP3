@@ -21,15 +21,17 @@
 #ifdef HAVE_IDG
 
 #include "DS9FacetFile.h"
-#include "FitsWriter.h"
 #include "IDGConfiguration.h"
 #include "../Common/Memory.h"
 #include "../DPPP/DPInput.h"
 
 #include <aocommon/uvector.h>
 #include <aocommon/banddata.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include <iostream>
+
+using aocommon::FitsWriter;
 
 namespace DP3 {
 namespace DPPP {
@@ -53,7 +55,6 @@ IDGPredict::IDGPredict(
   pixel_size_x_ = readers_.front().PixelSizeX();
   pixel_size_y_ = readers_.front().PixelSizeY();
   if (facets.empty()) {
-    std::cout << "============================ LOADING" << std::endl;
     GetFacets(facets, ds9_regions_file, readers_.front());
   }
   // TODO improve functionality: if no facets are defined, just process the
@@ -176,7 +177,6 @@ void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
             << " wavelengths.\n";
 
   // Determine available size for buffering
-  // TODO how much memory should this step take by default?
   if (buffer_size_ == 0) {
     buffer_size_ = GetAllocatableBuffers(AvailableMemory());
   }
@@ -416,7 +416,7 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
 }
 
 double IDGPredict::ComputePhaseShiftFactor(const double* uvw,
-                                           const size_t direction) const {
+                                           size_t direction) const {
   // The phase shift angle is:
   // 2*pi * (u*dl - v*dm - w*dp) * (frequency / speed_of_light)
   // TODO revert The v and w terms are negated since IDG uses a flipped
@@ -432,7 +432,7 @@ double IDGPredict::ComputePhaseShiftFactor(const double* uvw,
 void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
                                      std::vector<DPBuffer>& result,
                                      const std::complex<float>* term_data,
-                                     const size_t direction) {
+                                     size_t direction) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
   const size_t baseline_size = info().nchan() * info().ncorr();

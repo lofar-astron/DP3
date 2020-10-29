@@ -16,15 +16,15 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FACET_PREDICT_H
-#define FACET_PREDICT_H
+#ifndef IDG_PREDICT_H
+#define IDG_PREDICT_H
 
 #ifdef HAVE_IDG
 #include "FacetImage.h"
 
 #include <idg-api.h>
 
-#include "FitsReader.h"
+#include <aocommon/fits/fitsreader.h>
 #endif
 
 #include "../Common/ParameterSet.h"
@@ -35,6 +35,8 @@
 #include <string>
 #include <vector>
 #include <utility>
+
+using aocommon::FitsReader;
 
 namespace DP3 {
 namespace DPPP {
@@ -99,9 +101,9 @@ class IDGPredict : public DPStep {
                         const std::string& ds9_regions_file,
                         const FitsReader& reader);
 
-#ifdef HAVE_IDG
  private:
   void StartIDG();
+#ifdef HAVE_IDG
 
   std::vector<const double*> InitializeUVWs();
 
