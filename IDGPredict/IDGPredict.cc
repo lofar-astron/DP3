@@ -231,6 +231,12 @@ void IDGPredict::show(std::ostream& os) const {
   }
 }
 
+void IDGPredict::showTimings(std::ostream& os, double duration) const {
+  os << "  ";
+  FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " IDGPredict " << name_ << std::endl;
+}
+
 bool IDGPredict::IsStarted() const { return !buffersets_.empty(); }
 
 void IDGPredict::StartIDG() {
@@ -245,7 +251,6 @@ void IDGPredict::StartIDG() {
   std::vector<aocommon::UVector<double>> data(n_terms);
   meta_data_.clear();
 
-  options["disable_wstacking"] = true;
   options["disable_wtiling"] = true;
 
   FitsReader& reader = readers_.front();
@@ -304,6 +309,7 @@ void IDGPredict::StartIDG() {
 }
 
 std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
+  timer_.start();
   const size_t n_terms = readers_.size();
   const size_t term_size =
       buffers_.size() * info().nbaselines() * info().nchan() * info().ncorr();
@@ -322,6 +328,7 @@ std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
   // Apply polynomial-term corrections and add all to values of 'term 0'
   CorrectVisibilities(uvws, result, term_data.data(), direction);
 
+  timer_.stop();
   return result;
 }
 
@@ -399,8 +406,10 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
     idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
     // Since we initialize the BufferSet with a single band, the index is 0.
     constexpr int kDegridderIndex = 0;
+    std::cout << "Starting bulk degridding" << std::endl;
     bs.get_bulk_degridder(kDegridderIndex)
         ->compute_visibilities(ant1_, ant2_, uvws, data_ptrs, kUVWFactors);
+    std::cout << "Finished bulk degridding" << std::endl;
   }
 
   return result;
@@ -502,9 +511,9 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
       info().antennaUsed().size(), max_channels);
   memPerTimestep *= 2;  // IDG uses two internal buffer
   // Allow the directions together to use 1/4th of the available memory for
-  // the vis buffers.
+  // the vis buffers. We divide by 3, because 3 copies are being kept in memory.
   size_t allocatableTimesteps =
-      memory / 4 / images_.size() / n_terms / memPerTimestep;
+      memory / images_.size() / n_terms / memPerTimestep / 3;
   // TODO once a-terms are supported, this should include the size required
   // for the a-terms.
   std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps

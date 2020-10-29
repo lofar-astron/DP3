@@ -638,6 +638,12 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   FlagCounter::showPerc1(os, itsTimerWrite.getElapsed(), totaltime);
   os << " of it spent in writing gain solutions to disk" << endl;
 
+  os << "Substepts taken:" << std::endl;
+  for (auto& step : itsSteps) {
+    os << "          ";
+    step->showTimings(os, duration);
+  }
+
   os << "Iterations taken: [";
   for (unsigned int i = 0; i < itsNIter.size() - 1; ++i) {
     os << itsNIter[i];
@@ -764,9 +770,11 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 
 void DDECal::doSolve() {
   if (itsUseIDG) {
+    itsTimerPredict.start();
     for (size_t direction = 0; direction < itsSteps.size(); ++direction) {
       dynamic_cast<IDGPredict*>(itsSteps[direction])->FlushBuffers();
     }
+    itsTimerPredict.stop();
   }
 
   if (!itsUseModelColumn) {

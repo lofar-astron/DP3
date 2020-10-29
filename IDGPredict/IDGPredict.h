@@ -59,6 +59,9 @@ class IDGPredict : public DPStep {
 
   void show(std::ostream&) const override;
 
+  /// Show the timings.
+  void showTimings(std::ostream&, double duration) const override;
+
   /** Flush all available buffers to IDG. */
   void FlushBuffers();
 
