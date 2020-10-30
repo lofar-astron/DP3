@@ -170,7 +170,7 @@ class DDECal : public DPStep {
   /// The current amount of timeslots on the solution interval
   size_t itsStepInSolInt;
   /// The current amount of solution intervals in sol_ints_
-  size_t itsStepInSolInts;
+  size_t itsBufferedSolInts;
   size_t itsNChan;
   /// For each channel block, the nr of unflagged vis and the total nr of vis.
   std::vector<std::pair<size_t, size_t>> itsVisInInterval;

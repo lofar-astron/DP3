@@ -109,7 +109,7 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsNSolInts(0),
       itsMinVisRatio(parset.getDouble(prefix + "minvisratio", 0.0)),
       itsStepInSolInt(0),
-      itsStepInSolInts(0),
+      itsBufferedSolInts(0),
       itsNChan(parset.getInt(prefix + "nchan", 1)),
       itsUVWFlagStep(input, parset, prefix),
       itsCoreConstraint(parset.getDouble(prefix + "coreconstraint", 0.0)),
@@ -192,10 +192,11 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
   initializeConstraints(parset, prefix);
 
-  if (itsUseIDG)
+  if (itsUseIDG) {
     initializeIDG(parset, prefix);
-  else if (!itsUseModelColumn)
+  } else if (!itsUseModelColumn) {
     initializePredictSteps(parset, prefix);
+  }
 }
 
 DDECal::~DDECal() {}
@@ -901,24 +902,24 @@ bool DDECal::process(const DPBuffer& bufin) {
                            itsDirections.size(), itsTimer);
   }
 
-  sol_ints_[itsStepInSolInts].CopyBuffer(bufin);
-  doPrepare(sol_ints_.back()[itsStepInSolInt], itsStepInSolInts,
+  sol_ints_[itsBufferedSolInts].CopyBuffer(bufin);
+  doPrepare(sol_ints_.back()[itsStepInSolInt], itsBufferedSolInts,
             itsStepInSolInt);
 
   ++itsStepInSolInt;
 
   if (itsStepInSolInt == itsSolInt) {
     itsStepInSolInt = 0;
-    ++itsStepInSolInts;
+    ++itsBufferedSolInts;
     ++itsNSolInts;
   }
 
-  if (itsStepInSolInts == itsSolIntCount) {
+  if (itsBufferedSolInts == itsSolIntCount) {
     doSolve();
 
     // Clean up, prepare for next iteration
     itsAvgTime = 0;
-    itsStepInSolInts = 0;
+    itsBufferedSolInts = 0;
     itsVisInInterval.assign(itsVisInInterval.size(),
                             std::pair<size_t, size_t>(0, 0));
     itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
@@ -1287,7 +1288,7 @@ void DDECal::finish() {
   itsTimer.start();
 
   if (itsStepInSolInt > 0) {
-    sol_ints_[itsStepInSolInts].Fit();
+    sol_ints_[itsBufferedSolInts].Fit();
   }
 
   if (sol_ints_.size() > 0) {
