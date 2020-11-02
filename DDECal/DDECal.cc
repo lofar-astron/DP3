@@ -155,13 +155,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
     }
   }
 
-  // TODO read all directions from region-files, plus all patches from the
-  // sourcedb, and from all model data columns read the directions parameter
-  // setting
-  //
-  // TODO facets will be read here, facet does not need to have a name yet
-  // and for each facet an IDGPredict will be created with Ra and Dec in
-  // constructor.
   vector<string> strDirections;
   if (itsUseModelColumn) {
     itsDirections.emplace_back(1, "pointing");
