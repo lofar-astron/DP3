@@ -441,7 +441,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     for (unsigned int i = 0; i < itsDirections.size(); ++i) {
       // We can take the 0th element of an IDG step since it only contains 1.
       sourcePositions[i] =
-          std::static_pointer_cast<IDGPredict>(itsSteps[0])->GetDirections()[0];
+          std::static_pointer_cast<IDGPredict>(itsSteps[i])->GetDirections()[0];
     }
   } else {
     for (unsigned int i = 0; i < itsDirections.size(); ++i) {
