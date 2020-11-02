@@ -165,7 +165,8 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
   // constructor.
   vector<string> strDirections;
   if (itsUseModelColumn) {
-    itsDirections.emplace_back();
+    itsDirections.emplace_back(1, "pointing");
+    // TODO L remove the else if
   } else if (itsUseIDG) {
     // TODO handle directions key in parset
   } else {
@@ -192,6 +193,8 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
   initializeConstraints(parset, prefix);
 
+  // TODO L remove this part, get directions and initializedirectionsteps or
+  // something
   if (itsUseIDG) {
     initializeIDG(parset, prefix);
   } else if (!itsUseModelColumn) {
@@ -375,6 +378,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsSolInt * itsSolIntCount + 1);
+    } else {
+      throw std::runtime_error("DDECal received an invalid first model step");
     }
   }
 
@@ -436,18 +441,18 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     Quantum<Vector<Double>> angles = dirJ2000.getAngle();
     sourcePositions[0] = std::pair<double, double>(angles.getBaseValue()[0],
                                                    angles.getBaseValue()[1]);
-  } else if (itsUseIDG) {
-    for (unsigned int i = 0; i < itsDirections.size(); ++i) {
+  }
+
+  // TODO AST-213 remove the + itsUseModelColumn
+  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
+    if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[i])) {
+      sourcePositions[i + itsUseModelColumn] = s->getFirstDirection();
+    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[i])) {
       // We can take the 0th element of an IDG step since it only contains 1.
-      sourcePositions[i] =
-          std::static_pointer_cast<IDGPredict>(itsSteps[i])->GetDirections()[0];
-    }
-  } else {
-    for (unsigned int i = 0; i < itsDirections.size(); ++i) {
-      sourcePositions[i] =
-          std::static_pointer_cast<Predict>(itsSteps[i])->getFirstDirection();
+      sourcePositions[i + itsUseModelColumn] = s->GetDirections()[0];
     }
   }
+
   itsH5Parm.addSources(getDirectionNames(), sourcePositions);
 
   size_t nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
@@ -580,7 +585,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (unsigned int i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
   }
-}
+}  // namespace DPPP
 
 void DDECal::show(std::ostream& os) const {
   os << "DDECal " << itsName << '\n'
@@ -727,15 +732,12 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
 std::vector<std::string> DDECal::getDirectionNames() {
   std::vector<std::string> res;
 
-  if (itsUseModelColumn) {
-    res.emplace_back("pointing");
-  } else {
-    for (const std::vector<std::string>& dir : itsDirections) {
-      std::stringstream ss;
-      ss << dir;
-      res.emplace_back(ss.str());
-    }
+  for (const std::vector<std::string>& dir : itsDirections) {
+    std::stringstream ss;
+    ss << dir;
+    res.emplace_back(ss.str());
   }
+
   return res;
 }
 
@@ -773,25 +775,23 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
-  if (itsUseIDG) {
-    itsTimerPredict.start();
-    for (size_t direction = 0; direction < itsSteps.size(); ++direction) {
-      std::static_pointer_cast<IDGPredict>(itsSteps[direction])->flush();
+  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+    if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
+      itsTimerPredict.start();
+      s->flush();
+      itsTimerPredict.stop();
     }
-    itsTimerPredict.stop();
-  }
+    for (size_t i = 0; i < itsResultSteps[dir].get()->size(); ++i) {
+      size_t sol_int = i / itsSolInt;
+      size_t step = i % itsSolInt;
 
-  if (!itsUseModelColumn) {
-    for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
-      for (size_t i = 0; i < itsResultSteps[dir].get()->size(); ++i) {
-        size_t sol_int = i / itsSolInt;
-        size_t step = i % itsSolInt;
+      assert(sol_int * itsSolInt + step == i);
 
-        assert(sol_int * itsSolInt + step == i);
-
-        sol_ints_[sol_int].ModelDataPtrs()[step][dir] =
-            itsResultSteps[dir]->get()[i].getData().data();
-      }
+      // Is itsUseModelDataColumn, then ModelDataPtrs()[step][0] was already
+      // filled in doPrepare() so add that to the dir index.
+      // TODO AST-213 this can be removed
+      sol_ints_[sol_int].ModelDataPtrs()[step][dir + itsUseModelColumn] =
+          itsResultSteps[dir]->get()[i].getData().data();
     }
   }
 
@@ -947,11 +947,11 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
                            sol_ints_[sol_int].ModelData()[step]);
     sol_ints_[sol_int].ModelDataPtrs()[step][0] =
         sol_ints_[sol_int].ModelData()[step].data();
-  } else {
-    itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
-      itsSteps[dir]->process(bufin);
-    });
   }
+
+  itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
+    itsSteps[dir]->process(bufin);
+  });
 
   // Handle weights and flags
   const size_t nBl = info().nbaselines();
