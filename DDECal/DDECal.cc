@@ -101,7 +101,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
           parset.getBool(prefix + "propagateconvergedonly", false)),
       itsFlagUnconverged(parset.getBool(prefix + "flagunconverged", false)),
       itsFlagDivergedOnly(parset.getBool(prefix + "flagdivergedonly", false)),
-      itsUseIDG(parset.getBool(prefix + "useidg", false)),
       itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
       itsTimeStep(0),
       itsSolInt(parset.getInt(prefix + "solint", 1)),
@@ -166,26 +165,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
   vector<string> strDirections;
   if (itsUseModelColumn) {
     itsDirections.emplace_back(1, "pointing");
-    // TODO L remove the else if
-  } else if (itsUseIDG) {
-    // TODO handle directions key in parset
-  } else {
-    vector<string> strDirections =
-        parset.getStringVector(prefix + "directions", vector<string>());
-    string sourceDBName = parset.getString(prefix + "sourcedb", "");
-    // Default directions are all patches
-    if (strDirections.empty() && !sourceDBName.empty()) {
-      BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
-      vector<string> patchNames = makePatchList(sourceDB, vector<string>());
-      for (unsigned int i = 0; i < patchNames.size(); ++i) {
-        itsDirections.emplace_back(1, patchNames[i]);
-      }
-    } else {
-      for (unsigned int i = 0; i < strDirections.size(); ++i) {
-        ParameterValue dirStr(strDirections[i]);
-        itsDirections.emplace_back(dirStr.getStringVector());
-      }
-    }
   }
 
   itsMode = GainCal::stringToCalType(
@@ -193,13 +172,13 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
   initializeConstraints(parset, prefix);
 
-  // TODO L remove this part, get directions and initializedirectionsteps or
-  // something
-  if (itsUseIDG) {
-    initializeIDG(parset, prefix);
-  } else if (!itsUseModelColumn) {
-    initializePredictSteps(parset, prefix);
-  }
+  initializeIDG(parset, prefix);
+  initializePredictSteps(parset, prefix);
+
+  if (itsDirections.size() == 0)
+    throw std::runtime_error(
+        "DDECal initialized with 0 directions: something is wrong with your "
+        "parset or your sourcedb");
 }
 
 DDECal::~DDECal() {}
@@ -317,25 +296,21 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   // names of directions and pass that to idgpredict. It will then read it
   // itself instead of DDECal having to do everything. It is better to do it all
   // in IDGPredict, so we can also make it
-  std::string regionFilename = parset.getString(prefix + "idg.regions");
+  std::string regionFilename = parset.getString(prefix + "idg.regions", "");
   std::vector<std::string> imageFilenames =
-      parset.getStringVector(prefix + "idg.images");
+      parset.getStringVector(prefix + "idg.images", vector<string>());
+
+  if (regionFilename.empty() && imageFilenames.empty()) {
+    return;
+  }
 
   std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders(imageFilenames);
   std::vector<Facet> facets =
       IDGPredict::GetFacets(regionFilename, readers.first.front());
 
-  if (facets.size() == 0) {
-    throw std::runtime_error(
-        "DDECal (IDG) initialized with 0 directions: something is wrong with "
-        "your parset");
-  }
-
-  itsSteps.reserve(facets.size());
-  itsDirections.resize(facets.size());
   for (size_t i = 0; i < facets.size(); ++i) {
-    itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
+    itsDirections.emplace_back(1, "dir" + std::to_string(i));
     std::vector<Facet> facet{facets[i]};
     itsSteps.push_back(std::make_shared<IDGPredict>(*itsInput, parset, prefix,
                                                     readers, facet));
@@ -344,13 +319,26 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
 
 void DDECal::initializePredictSteps(const ParameterSet& parset,
                                     const string& prefix) {
-  const size_t nDir = itsDirections.size();
-  if (nDir == 0)
-    throw std::runtime_error(
-        "DDECal initialized with 0 directions: something is wrong with your "
-        "parset or your sourcedb");
-  itsSteps.reserve(nDir);
-  for (size_t dir = 0; dir < nDir; ++dir) {
+  vector<string> strDirections =
+      parset.getStringVector(prefix + "directions", vector<string>());
+  size_t prediction_size = strDirections.size();
+  string sourceDBName = parset.getString(prefix + "sourcedb", "");
+  // Default directions are all patches
+  if (strDirections.empty() && !sourceDBName.empty()) {
+    BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
+    vector<string> patchNames = makePatchList(sourceDB, vector<string>());
+    prediction_size = patchNames.size();
+    for (unsigned int i = 0; i < patchNames.size(); ++i) {
+      itsDirections.emplace_back(1, patchNames[i]);
+    }
+  } else {
+    for (unsigned int i = 0; i < strDirections.size(); ++i) {
+      ParameterValue dirStr(strDirections[i]);
+      itsDirections.emplace_back(dirStr.getStringVector());
+    }
+  }
+
+  for (size_t dir = 0; dir < prediction_size; ++dir) {
     itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
                                                  itsDirections[dir]));
   }

@@ -53,7 +53,7 @@ compare_results() {
 
 echo "Predict four sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=foursources.reg\
+  steps=[ddecal] ddecal.idg.regions=foursources.reg\
   ddecal.idg.images=[foursources-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
 echo $cmd
@@ -89,7 +89,7 @@ if [ $passed != 1 -a -z "$CI" ]; then
       echo "Predict source: $source offset: $offset using IDG"
       if grep -q "^polygon" $source-$offset.reg; then
         cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-          steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=$source-$offset.reg\
+          steps=[ddecal] ddecal.idg.regions=$source-$offset.reg\
           ddecal.idg.images=[$source-model.fits]\
           ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
         echo $cmd
@@ -105,7 +105,7 @@ fi
 
 echo Test polynomial frequency term corrections...
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=center-center.reg\
+  steps=[ddecal] ddecal.idg.regions=center-center.reg\
   ddecal.idg.images=[term0-model.fits,term1-model.fits,term2-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=TERMS_DATA"
 echo $cmd
