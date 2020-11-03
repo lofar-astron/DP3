@@ -64,7 +64,7 @@ class ParameterSet;
 
 namespace DPPP {
 
-class FacetPredict;
+class IDGPredict;
 
 typedef std::vector<Patch::ConstPtr> PatchList;
 typedef std::pair<size_t, size_t> Baseline;
@@ -118,7 +118,7 @@ class DDECal : public DPStep {
   void initializeIDG(const ParameterSet& parset, const string& prefix);
   void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
-  void doPrepare();
+  void doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step);
 
   /// Initialize solutions
   void initializeScalarSolutions(size_t);
@@ -170,7 +170,7 @@ class DDECal : public DPStep {
   /// The current amount of timeslots on the solution interval
   size_t itsStepInSolInt;
   /// The current amount of solution intervals in sol_ints_
-  size_t itsStepInSolInts;
+  size_t itsBufferedSolInts;
   size_t itsNChan;
   /// For each channel block, the nr of unflagged vis and the total nr of vis.
   std::vector<std::pair<size_t, size_t>> itsVisInInterval;
@@ -187,7 +187,7 @@ class DDECal : public DPStep {
   UVWFlagger itsUVWFlagStep;
   /// Result step for data after UV-flagging
   ResultStep::ShPtr itsDataResultStep;
-  std::vector<Predict> itsPredictSteps;
+  std::vector<std::shared_ptr<DPStep>> itsSteps;
   /// For each directions, a multiresultstep with all times.
   std::vector<MultiResultStep::ShPtr> itsResultSteps;
 
@@ -203,10 +203,8 @@ class DDECal : public DPStep {
   bool itsFullMatrixMinimalization;
   bool itsApproximateTEC;
   bool itsSubtract;
-  bool itsSaveFacets;
   std::string itsStatFilename;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
-  std::unique_ptr<FacetPredict> itsFacetPredictor;
   std::unique_ptr<std::ofstream> itsStatStream;
 };
 

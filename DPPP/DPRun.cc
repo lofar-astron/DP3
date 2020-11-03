@@ -63,6 +63,8 @@
 
 #include "../DDECal/DDECal.h"
 
+#include "../IDGPredict/IDGPredict.h"
+
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
 #include <casacore/casa/OS/Timer.h>
@@ -313,6 +315,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<ApplyCal>(reader, parset, prefix);
     } else if (type == "predict") {
       step = std::make_shared<Predict>(reader, parset, prefix);
+    } else if (type == "idgpredict") {
+      step = std::make_shared<IDGPredict>(*reader, parset, prefix);
     } else if (type == "h5parmpredict") {
       step = std::make_shared<H5ParmPredict>(reader, parset, prefix);
     } else if (type == "gaincal" || type == "calibrate") {

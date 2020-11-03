@@ -31,7 +31,7 @@
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 
-#include "../IDGPredict/FacetPredict.h"
+#include "../IDGPredict/IDGPredict.h"
 
 #include "TECConstraint.h"
 #include "RotationConstraint.h"
@@ -49,6 +49,7 @@
 #include "../ParmDB/ParmValue.h"
 #include "../ParmDB/SourceDB.h"
 
+#include "../Common/Memory.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StreamUtil.h"
 #include "../Common/StringUtil.h"
@@ -78,6 +79,7 @@
 #include <utility>
 #include <vector>
 
+using aocommon::FitsReader;
 using namespace casacore;
 using namespace DP3::BBS;
 
@@ -103,11 +105,11 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsOnlyPredict(parset.getBool(prefix + "onlypredict", false)),
       itsTimeStep(0),
       itsSolInt(parset.getInt(prefix + "solint", 1)),
-      itsSolIntCount(parset.getInt(prefix + "solintcount", 1)),
+      itsSolIntCount(1),
       itsNSolInts(0),
       itsMinVisRatio(parset.getDouble(prefix + "minvisratio", 0.0)),
       itsStepInSolInt(0),
-      itsStepInSolInts(0),
+      itsBufferedSolInts(0),
       itsNChan(parset.getInt(prefix + "nchan", 1)),
       itsUVWFlagStep(input, parset, prefix),
       itsCoreConstraint(parset.getDouble(prefix + "coreconstraint", 0.0)),
@@ -119,7 +121,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsFullMatrixMinimalization(false),
       itsApproximateTEC(false),
       itsSubtract(parset.getBool(prefix + "subtract", false)),
-      itsSaveFacets(parset.getBool(prefix + "savefacets", false)),
       itsStatFilename(parset.getString(prefix + "statfilename", "")) {
   stringstream ss;
   ss << parset;
@@ -136,10 +137,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
   if (!itsStatFilename.empty())
     itsStatStream = boost::make_unique<std::ofstream>(itsStatFilename);
-
-  if (!itsUseIDG && itsSolIntCount > 1) {
-    throw std::runtime_error("solintcount should be 1 for this predict type");
-  }
 
   // Read the antennaconstraint list
   std::vector<std::string> antConstraintList = parset.getStringVector(
@@ -159,27 +156,30 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
     }
   }
 
-  // read the directions parameter setting
+  // TODO read all directions from region-files, plus all patches from the
+  // sourcedb, and from all model data columns read the directions parameter
+  // setting
+  //
+  // TODO facets will be read here, facet does not need to have a name yet
+  // and for each facet an IDGPredict will be created with Ra and Dec in
+  // constructor.
   vector<string> strDirections;
   if (itsUseModelColumn) {
     itsDirections.emplace_back();
   } else if (itsUseIDG) {
     // TODO handle directions key in parset
-
   } else {
     vector<string> strDirections =
         parset.getStringVector(prefix + "directions", vector<string>());
+    string sourceDBName = parset.getString(prefix + "sourcedb", "");
     // Default directions are all patches
-    if (strDirections.empty()) {
-      string sourceDBName = parset.getString(prefix + "sourcedb");
+    if (strDirections.empty() && !sourceDBName.empty()) {
       BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
       vector<string> patchNames = makePatchList(sourceDB, vector<string>());
-      itsDirections.reserve(patchNames.size());
       for (unsigned int i = 0; i < patchNames.size(); ++i) {
         itsDirections.emplace_back(1, patchNames[i]);
       }
     } else {
-      itsDirections.reserve(strDirections.size());
       for (unsigned int i = 0; i < strDirections.size(); ++i) {
         ParameterValue dirStr(strDirections[i]);
         itsDirections.emplace_back(dirStr.getStringVector());
@@ -192,10 +192,11 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
   initializeConstraints(parset, prefix);
 
-  if (itsUseIDG)
+  if (itsUseIDG) {
     initializeIDG(parset, prefix);
-  else
+  } else if (!itsUseModelColumn) {
     initializePredictSteps(parset, prefix);
+  }
 }
 
 DDECal::~DDECal() {}
@@ -309,16 +310,33 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
 }
 
 void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
+  // TODO it would be nicer to get a new method in the DS9 reader to first get
+  // names of directions and pass that to idgpredict. It will then read it
+  // itself instead of DDECal having to do everything. It is better to do it all
+  // in IDGPredict, so we can also make it
   std::string regionFilename = parset.getString(prefix + "idg.regions");
   std::vector<std::string> imageFilenames =
       parset.getStringVector(prefix + "idg.images");
-  itsFacetPredictor = boost::make_unique<FacetPredict>(
-      *itsInput, imageFilenames, regionFilename);
-  itsDirections.resize(itsFacetPredictor->GetDirections().size());
-  for (size_t i = 0; i != itsDirections.size(); ++i)
+
+  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+      readers = IDGPredict::GetReaders(imageFilenames);
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets(regionFilename, readers.first.front());
+
+  if (facets.size() == 0) {
+    throw std::runtime_error(
+        "DDECal (IDG) initialized with 0 directions: something is wrong with "
+        "your parset");
+  }
+
+  itsSteps.reserve(facets.size());
+  itsDirections.resize(facets.size());
+  for (size_t i = 0; i < facets.size(); ++i) {
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
-  if (parset.isDefined(prefix + "idg.buffersize"))
-    itsFacetPredictor->SetBufferSize(parset.getInt(prefix + "idg.buffersize"));
+    std::vector<Facet> facet{facets[i]};
+    itsSteps.push_back(std::make_shared<IDGPredict>(*itsInput, parset, prefix,
+                                                    readers, facet));
+  }
 }
 
 void DDECal::initializePredictSteps(const ParameterSet& parset,
@@ -328,12 +346,10 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
     throw std::runtime_error(
         "DDECal initialized with 0 directions: something is wrong with your "
         "parset or your sourcedb");
-  if (!itsUseModelColumn) {
-    itsPredictSteps.reserve(nDir);
-    for (size_t dir = 0; dir < nDir; ++dir) {
-      itsPredictSteps.emplace_back(itsInput, parset, prefix,
-                                   itsDirections[dir]);
-    }
+  itsSteps.reserve(nDir);
+  for (size_t dir = 0; dir < nDir; ++dir) {
+    itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
+                                                 itsDirections[dir]));
   }
 }
 
@@ -345,9 +361,24 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   const size_t nDir = itsDirections.size();
 
   itsUVWFlagStep.updateInfo(infoIn);
-  for (size_t dir = 0; dir < itsPredictSteps.size(); ++dir) {
-    itsPredictSteps[dir].updateInfo(infoIn);
+  itsThreadPool =
+      boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
+
+  // Update info for substeps and set other required parameters
+  std::mutex measuresMutex;
+  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+    itsSteps[dir]->setInfo(infoIn);
+
+    if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
+      s->setThreadData(*itsThreadPool, measuresMutex);
+    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
+      itsSolIntCount = std::max(
+          itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);
+      // We increment by one so the IDGPredict will not flush in its process
+      s->SetBufferSize(itsSolInt * itsSolIntCount + 1);
+    }
   }
+
   itsMultiDirSolver.set_nthreads(getInfo().nThreads());
 
   if (itsSolInt == 0) {
@@ -362,10 +393,12 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
-  itsResultSteps.resize(itsPredictSteps.size());
-  for (size_t dir = 0; dir < itsPredictSteps.size(); ++dir) {
-    itsResultSteps[dir] = std::make_shared<MultiResultStep>(itsSolInt);
-    itsPredictSteps[dir].setNextStep(itsResultSteps[dir]);
+  // Each step should be coupled to a resultstep
+  itsResultSteps.resize(itsSteps.size());
+  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+    itsResultSteps[dir] =
+        std::make_shared<MultiResultStep>(itsSolInt * itsSolIntCount);
+    itsSteps[dir]->setNextStep(itsResultSteps[dir]);
   }
 
   if (itsNChan == 0 || itsNChan > info().nchan()) {
@@ -405,10 +438,15 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     sourcePositions[0] = std::pair<double, double>(angles.getBaseValue()[0],
                                                    angles.getBaseValue()[1]);
   } else if (itsUseIDG) {
-    sourcePositions = itsFacetPredictor->GetDirections();
+    for (unsigned int i = 0; i < itsDirections.size(); ++i) {
+      // We can take the 0th element of an IDG step since it only contains 1.
+      sourcePositions[i] =
+          std::static_pointer_cast<IDGPredict>(itsSteps[i])->GetDirections()[0];
+    }
   } else {
     for (unsigned int i = 0; i < itsDirections.size(); ++i) {
-      sourcePositions[i] = itsPredictSteps[i].getFirstDirection();
+      sourcePositions[i] =
+          std::static_pointer_cast<Predict>(itsSteps[i])->getFirstDirection();
     }
   }
   itsH5Parm.addSources(getDirectionNames(), sourcePositions);
@@ -578,8 +616,8 @@ void DDECal::show(std::ostream& os) const {
   os << "  approximate fitter:  " << itsApproximateTEC << '\n'
      << "  only predict:        " << itsOnlyPredict << '\n'
      << "  subtract model:      " << itsSubtract << '\n';
-  for (unsigned int i = 0; i < itsPredictSteps.size(); ++i) {
-    itsPredictSteps[i].show(os);
+  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
+    itsSteps[i]->show(os);
   }
   itsUVWFlagStep.show(os);
 }
@@ -603,6 +641,13 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "          ";
   FlagCounter::showPerc1(os, itsTimerWrite.getElapsed(), totaltime);
   os << " of it spent in writing gain solutions to disk" << endl;
+
+  os << "          ";
+  os << "Substepts taken:" << std::endl;
+  for (auto& step : itsSteps) {
+    os << "          ";
+    step->showTimings(os, duration);
+  }
 
   os << "Iterations taken: [";
   for (unsigned int i = 0; i < itsNIter.size() - 1; ++i) {
@@ -685,11 +730,6 @@ std::vector<std::string> DDECal::getDirectionNames() {
 
   if (itsUseModelColumn) {
     res.emplace_back("pointing");
-  } else if (itsUseIDG) {
-    size_t nDirections = itsFacetPredictor->GetDirections().size();
-    for (size_t i = 0; i != nDirections; ++i) {
-      res.emplace_back("dir" + std::to_string(i));
-    }
   } else {
     for (const std::vector<std::string>& dir : itsDirections) {
       std::stringstream ss;
@@ -734,19 +774,24 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
-  std::vector<std::vector<DPBuffer>> idg_predictions;
-
   if (itsUseIDG) {
-    idg_predictions.reserve(itsFacetPredictor->GetDirections().size());
-    for (size_t direction = 0;
-         direction < itsFacetPredictor->GetDirections().size(); ++direction) {
-      idg_predictions.push_back(itsFacetPredictor->Predict(direction));
-      for (size_t i = 0; i < idg_predictions.back().size(); ++i) {
-        const size_t sol_int = i / itsSolInt;
-        const size_t step = i % itsSolInt;
+    itsTimerPredict.start();
+    for (size_t direction = 0; direction < itsSteps.size(); ++direction) {
+      std::static_pointer_cast<IDGPredict>(itsSteps[direction])->flush();
+    }
+    itsTimerPredict.stop();
+  }
 
-        sol_ints_[sol_int].ModelDataPtrs()[step][direction] =
-            idg_predictions.back()[i].getData().data();
+  if (!itsUseModelColumn) {
+    for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+      for (size_t i = 0; i < itsResultSteps[dir].get()->size(); ++i) {
+        size_t sol_int = i / itsSolInt;
+        size_t step = i % itsSolInt;
+
+        assert(sol_int * itsSolInt + step == i);
+
+        sol_ints_[sol_int].ModelDataPtrs()[step][dir] =
+            itsResultSteps[dir]->get()[i].getData().data();
       }
     }
   }
@@ -835,11 +880,6 @@ void DDECal::doSolve() {
     }
   }
 
-  if (itsUseIDG) {
-    idg_predictions.clear();
-    itsFacetPredictor->FlushBuffers();
-  }
-
   itsTimer.stop();
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
@@ -862,22 +902,24 @@ bool DDECal::process(const DPBuffer& bufin) {
                            itsDirections.size(), itsTimer);
   }
 
-  sol_ints_[itsStepInSolInts].CopyBuffer(bufin);
+  sol_ints_[itsBufferedSolInts].CopyBuffer(bufin);
+  doPrepare(sol_ints_.back()[itsStepInSolInt], itsBufferedSolInts,
+            itsStepInSolInt);
+
   ++itsStepInSolInt;
 
   if (itsStepInSolInt == itsSolInt) {
     itsStepInSolInt = 0;
-    ++itsStepInSolInts;
+    ++itsBufferedSolInts;
     ++itsNSolInts;
   }
 
-  if (itsStepInSolInts == itsSolIntCount) {
-    doPrepare();
+  if (itsBufferedSolInts == itsSolIntCount) {
     doSolve();
 
     // Clean up, prepare for next iteration
     itsAvgTime = 0;
-    itsStepInSolInts = 0;
+    itsBufferedSolInts = 0;
     itsVisInInterval.assign(itsVisInInterval.size(),
                             std::pair<size_t, size_t>(0, 0));
     itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
@@ -894,90 +936,67 @@ bool DDECal::process(const DPBuffer& bufin) {
   return false;
 }
 
-void DDECal::doPrepare() {
-  for (size_t i = 0; i < sol_ints_.size(); ++i) {
-    for (size_t step = 0; step < sol_ints_[i].Size(); ++step) {
-      DPBuffer bufin = sol_ints_[i][step];
+void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
+  // UVW flagging happens on the copy of the buffer
+  // These flags are later restored and therefore not written
+  itsUVWFlagStep.process(bufin);
 
-      // UVW flagging happens on the copy of the buffer
-      // These flags are later restored and therefore not written
-      itsUVWFlagStep.process(bufin);
+  itsTimerPredict.start();
 
-      itsTimerPredict.start();
+  if (itsUseModelColumn) {
+    itsInput->getModelData(bufin.getRowNrs(),
+                           sol_ints_[sol_int].ModelData()[step]);
+    sol_ints_[sol_int].ModelDataPtrs()[step][0] =
+        sol_ints_[sol_int].ModelData()[step].data();
+  } else {
+    itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
+      itsSteps[dir]->process(bufin);
+    });
+  }
 
-      if (itsUseModelColumn) {
-        itsInput->getModelData(bufin.getRowNrs(),
-                               sol_ints_[i].ModelData()[step]);
-        sol_ints_[i].ModelDataPtrs()[step][0] =
-            sol_ints_[i].ModelData()[step].data();
-      } else if (itsUseIDG) {
-        if (!itsFacetPredictor->IsStarted()) {
-          // if this is the first time, hand some meta info to IDG
-          itsFacetPredictor->updateInfo(info());
-          itsFacetPredictor->StartIDG(itsSaveFacets);
-        }
-        itsFacetPredictor->AddBuffer(bufin);
-      } else {
-        if (itsThreadPool == nullptr) {
-          itsThreadPool =
-              boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
-        }
-        std::mutex measuresMutex;
-        for (DP3::DPPP::Predict& predict : itsPredictSteps)
-          predict.setThreadData(*itsThreadPool, measuresMutex);
+  // Handle weights and flags
+  const size_t nBl = info().nbaselines();
+  const size_t nCh = info().nchan();
+  const size_t nCr = 4;
 
-        itsThreadPool->For(
-            0, itsPredictSteps.size(), [&](size_t dir, size_t /*thread*/) {
-              itsPredictSteps[dir].process(bufin);
-              sol_ints_[i].ModelDataPtrs()[step][dir] =
-                  itsResultSteps[dir]->get()[step].getData().data();
-            });
+  size_t nchanblocks = itsChanBlockFreqs.size();
+
+  double weightFactor =
+      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
+
+  for (size_t bl = 0; bl < nBl; ++bl) {
+    size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
+           ant2 = info().antennaMap()[info().getAnt2()[bl]];
+    for (size_t ch = 0; ch < nCh; ++ch) {
+      if (ch == itsChanBlockStart[chanblock + 1]) {
+        chanblock++;
       }
-
-      // Handle weights and flags
-      const size_t nBl = info().nbaselines();
-      const size_t nCh = info().nchan();
-      const size_t nCr = 4;
-
-      size_t nchanblocks = itsChanBlockFreqs.size();
-
-      double weightFactor =
-          1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
-
-      for (size_t bl = 0; bl < nBl; ++bl) {
-        size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
-               ant2 = info().antennaMap()[info().getAnt2()[bl]];
-        for (size_t ch = 0; ch < nCh; ++ch) {
-          if (ch == itsChanBlockStart[chanblock + 1]) {
-            chanblock++;
-          }
-          for (size_t cr = 0; cr < nCr; ++cr) {
-            const size_t index = (bl * nCh + ch) * nCr + cr;
-            itsVisInInterval[chanblock].second++;  // total nr of vis
-            if (bufin.getFlags().data()[index]) {
-              // Flagged points: set weight to 0
-              sol_ints_[i].WeightPtrs()[step][index] = 0;
-            } else {
-              // Add this weight to both involved antennas
-              double weight = bufin.getWeights().data()[index];
-              itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
-              itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
-              if (weight != 0.0)
-                itsVisInInterval[chanblock].first++;  // unflagged nr of vis
-            }
+      for (size_t cr = 0; cr < nCr; ++cr) {
+        const size_t index = (bl * nCh + ch) * nCr + cr;
+        itsVisInInterval[chanblock].second++;  // total nr of vis
+        if (bufin.getFlags().data()[index]) {
+          // Flagged points: set weight to 0
+          sol_ints_[sol_int].WeightPtrs()[step][index] = 0;
+        } else {
+          // Add this weight to both involved antennas
+          double weight = bufin.getWeights().data()[index];
+          itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
+          itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
+          if (weight != 0.0) {
+            itsVisInInterval[chanblock].first++;  // unflagged nr of vis
           }
         }
       }
-
-      for (auto& weight : itsWeightsPerAntenna) {
-        weight *= weightFactor;
-      }
-
-      itsTimerPredict.stop();
-
-      itsAvgTime += itsAvgTime + bufin.getTime();
     }
   }
+
+  for (auto& weight : itsWeightsPerAntenna) {
+    weight *= weightFactor;
+  }
+
+  itsTimerPredict.stop();
+
+  itsAvgTime += itsAvgTime + bufin.getTime();
 }
 
 void DDECal::writeSolutions() {
@@ -1269,11 +1288,10 @@ void DDECal::finish() {
   itsTimer.start();
 
   if (itsStepInSolInt > 0) {
-    sol_ints_[itsStepInSolInts].Fit();
+    sol_ints_[itsBufferedSolInts].Fit();
   }
 
   if (sol_ints_.size() > 0) {
-    doPrepare();
     doSolve();
   }
 

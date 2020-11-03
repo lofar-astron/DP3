@@ -60,6 +60,19 @@ echo $cmd
 $cmd
 compare_results foursources "(multiple)"
 
+# Test if IDGPredict step will have the same results as DDECal
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=idgout.MS\
+  steps=[idgpredict] idgpredict.regions=foursources.reg\
+  idgpredict.images=[foursources-model.fits]"
+echo $cmd
+$cmd
+
+# Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
+taqlcmd='select from idgout.MS t1, tDDECal.MS t2 where not all(near(t1.DATA,t2.IDG_DATA,5e-2) || (isnan(t1.DATA) && isnan(t2.IDG_DATA)))'
+echo $taqlcmd
+$taqlexe $taqlcmd > taql.out
+diff -q taql.out taql.ref  ||  exit 1
+
 # Test inputs that contain a single source.
 # Since these tests take quite some time, they only run locally, and only
 # if the foursources test fails or if it is commented out.

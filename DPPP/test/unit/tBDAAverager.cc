@@ -23,6 +23,7 @@
 #include "../../DPInput.h"
 #include "../../../Common/ParameterSet.h"
 #include "mock/MockStep.h"
+#include "mock/MockInput.h"
 
 #include <boost/make_unique.hpp>
 #include <boost/optional.hpp>
@@ -219,26 +220,7 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   }
 }
 
-/// In this test, the input buffers always contain weights and UVW.
-/// -> Use a mock input class that only checks the buffer.
-class MockInput : public DP3::DPPP::DPInput {
- public:
-  MockInput() {}
-  ~MockInput() override {}
-
-  void getUVW(const casacore::RefRows&, double, DPBuffer& buffer) override {
-    BOOST_TEST(!buffer.getUVW().empty());
-  }
-  void getWeights(const casacore::RefRows&, DPBuffer& buffer) override {
-    BOOST_TEST(!buffer.getWeights().empty());
-  }
-  void finish() override { BOOST_ERROR("Unexpected finish() call"); }
-  void show(std::ostream&) const override {
-    BOOST_ERROR("Unexpected show() call");
-  }
-};
-
-MockInput mock_input;
+DP3::DPPP::MockInput mock_input;
 
 }  // namespace
 

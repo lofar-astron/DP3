@@ -16,34 +16,26 @@
 // You should have received a copy of the GNU General Public License along
 // with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef FITS_IO_CHECKER_H
-#define FITS_IO_CHECKER_H
+#ifndef MOCK_INPUT_H
+#define MOCK_INPUT_H
 
-#include <string>
+#include <boost/test/unit_test.hpp>
+#include "../../../DPInput.h"
 
-class FitsIOChecker {
- protected:
-  static void checkStatus(int status, const std::string& filename);
-  static void checkStatus(int status, const std::string& filename,
-                          const std::string& operation);
+namespace DP3 {
+namespace DPPP {
 
+class MockInput : public DP3::DPPP::DPInput {
  public:
-  enum Unit { JanskyPerBeam, JanskyPerPixel, Jansky, Kelvin, MilliKelvin };
-  static const char* UnitName(Unit unit) {
-    switch (unit) {
-      case JanskyPerBeam:
-        return "Jansky/beam";
-      case JanskyPerPixel:
-        return "Jansky/pixel";
-      case Jansky:
-        return "Jansky";
-      case Kelvin:
-        return "Kelvin";
-      case MilliKelvin:
-        return "Milli-Kelvin";
-    }
-    return "";
-  }
+  MockInput();
+  ~MockInput() override;
+
+  void getUVW(const casacore::RefRows&, double, DPBuffer& buffer) override;
+  void getWeights(const casacore::RefRows&, DPBuffer& buffer) override;
+  void finish() override;
+  void show(std::ostream&) const override;
 };
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

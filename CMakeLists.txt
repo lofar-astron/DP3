@@ -94,6 +94,7 @@ add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
   Common/DataConvert.cc
+  Common/Memory.cc
   Common/NodeDesc.cc
   Common/ParameterHandler.cc
   Common/ParameterRecord.cc
@@ -149,10 +150,7 @@ set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
   IDGPredict/FacetImage.cc
-  IDGPredict/FacetPredict.cc
-  IDGPredict/FitsIOChecker.cc
-  IDGPredict/FitsReader.cc
-  IDGPredict/FitsWriter.cc)
+  IDGPredict/IDGPredict.cc)
 
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
@@ -310,6 +308,7 @@ endif()
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
   DPPP/test/runtests.cc
+  DPPP/test/unit/mock/MockInput.cc
   DPPP/test/unit/mock/MockStep.cc
   DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
@@ -340,13 +339,14 @@ set(TEST_FILENAMES
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
 if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
+    Common/test/unit/tMemory.cc
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
     DPPP/test/unit/tDPInput.cc
     DPPP/test/unit/tMSBDAReader.cc
     DPPP/test/unit/tMSBDAWriter.cc
     DPPP/test/unit/tScaleDataBDA.cc
-    )
+    IDGPredict/test/unit/tIDGPredict.cc)
 else()
   message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
 endif()
@@ -383,6 +383,15 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP_BDA
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
+
+add_test(
+  NAME extract_IDG
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
+)
+set_tests_properties(
+  extract_IDG
   PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 
