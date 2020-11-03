@@ -307,8 +307,8 @@ endif()
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
-  Common/test/unit/tMemory.cc
   DPPP/test/runtests.cc
+  DPPP/test/unit/mock/MockInput.cc
   DPPP/test/unit/mock/MockStep.cc
   DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
@@ -334,19 +334,19 @@ set(TEST_FILENAMES
   DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
-  IDGPredict/test/unit/tIDGPredict.cc
 )
 
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
 if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
+    Common/test/unit/tMemory.cc
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
     DPPP/test/unit/tDPInput.cc
     DPPP/test/unit/tMSBDAReader.cc
     DPPP/test/unit/tMSBDAWriter.cc
     DPPP/test/unit/tScaleDataBDA.cc
-    )
+    IDGPredict/test/unit/tIDGPredict.cc)
 else()
   message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
 endif()

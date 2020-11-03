@@ -37,7 +37,7 @@ namespace DP3 {
 namespace DPPP {
 
 IDGPredict::IDGPredict(
-    DPInput* input, const ParameterSet& parset, const string& prefix,
+    DPInput& input, const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
         readers,
     std::vector<Facet>& facets, const std::string& ds9_regions_file)
@@ -55,7 +55,7 @@ IDGPredict::IDGPredict(
   pixel_size_x_ = readers_.front().PixelSizeX();
   pixel_size_y_ = readers_.front().PixelSizeY();
   if (facets.empty()) {
-    GetFacets(facets, ds9_regions_file, readers_.front());
+    facets = GetFacets(ds9_regions_file, readers_.front());
   }
   // TODO improve functionality: if no facets are defined, just process the
   // entire image
@@ -85,7 +85,7 @@ IDGPredict::IDGPredict(
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
 
-IDGPredict::IDGPredict(DPInput* input, const ParameterSet& parset,
+IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
                        const string& prefix)
     : IDGPredict(input, parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
@@ -126,23 +126,25 @@ IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
   return std::make_pair(readers, models);
 }
 
-void IDGPredict::GetFacets(std::vector<Facet>& facets_out,
-                           const std::string& ds9_regions_file, const double ra,
-                           const double dec, const double pixel_size_x,
-                           const double pixel_size_y, const size_t full_width,
-                           const size_t full_height) {
+std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
+                                         const double ra, const double dec,
+                                         const double pixel_size_x,
+                                         const double pixel_size_y,
+                                         const size_t full_width,
+                                         const size_t full_height) {
   DS9FacetFile facet_file(ds9_regions_file);
-  facets_out = facet_file.Read(ra, dec, pixel_size_x, pixel_size_y, full_width,
-                               full_height);
+  std::vector<Facet> facets_out = facet_file.Read(
+      ra, dec, pixel_size_x, pixel_size_y, full_width, full_height);
   std::cout << "Read " << facets_out.size() << " facet definitions.\n";
+  return facets_out;
 }
 
-void IDGPredict::GetFacets(std::vector<Facet>& facets_out,
-                           const std::string& ds9_regions_file,
-                           const FitsReader& reader) {
-  GetFacets(facets_out, ds9_regions_file, reader.PhaseCentreRA(),
-            reader.PhaseCentreDec(), reader.PixelSizeX(), reader.PixelSizeY(),
-            reader.ImageWidth(), reader.ImageHeight());
+std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
+                                         const FitsReader& reader) {
+  return GetFacets(ds9_regions_file, reader.PhaseCentreRA(),
+                   reader.PhaseCentreDec(), reader.PixelSizeX(),
+                   reader.PixelSizeY(), reader.ImageWidth(),
+                   reader.ImageHeight());
 }
 
 void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
@@ -186,21 +188,21 @@ void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
 
 bool IDGPredict::process(const DPBuffer& buffer) {
   buffers_.emplace_back(buffer);
-  input_->fetchUVW(buffer, buffers_.back(), timer_);
+  input_.fetchUVW(buffer, buffers_.back(), timer_);
 
   if (buffers_.size() == buffer_size_) {
-    FlushBuffers();
+    flush();
   }
 
   return false;
 }
 
 void IDGPredict::finish() {
-  FlushBuffers();
+  flush();
   getNextStep()->finish();
 }
 
-void IDGPredict::FlushBuffers() {
+void IDGPredict::flush() {
   if (buffers_.empty()) {
     return;
   }
@@ -224,7 +226,7 @@ void IDGPredict::FlushBuffers() {
 void IDGPredict::show(std::ostream& os) const {
   os << "IDGPredict " << name_ << '\n';
   os << "  buffer size:    " << buffer_size_ << '\n';
-  for (auto& reader : readers_) {
+  for (const FitsReader& reader : readers_) {
     os << "  Fits models " << reader.Filename() << '\n';
     os << "      RA:     " << reader.PhaseCentreRA() << '\n';
     os << "      Dec:    " << reader.PhaseCentreDec() << '\n';
@@ -340,7 +342,7 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (DPBuffer& buffer : buffers_) {
-    uvws.push_back(input_->fetchUVW(buffer, buffer, timer_).data());
+    uvws.push_back(input_.fetchUVW(buffer, buffer, timer_).data());
 
     const double* uvw = uvws.back();
     for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
@@ -509,7 +511,8 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
   size_t max_channels = info().chanFreqs().size();
   uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(
       info().antennaUsed().size(), max_channels);
-  memPerTimestep *= 2;  // IDG uses two internal buffer
+  memPerTimestep *= 2;  // IDG uses two internal buffers
+  memPerTimestep *= 4;  // DP3 can store up to 4 times the MS size in memory.
   // Allow the directions together to use 1/4th of the available memory for
   // the vis buffers. We divide by 3, because 3 copies are being kept in memory.
   size_t allocatableTimesteps =

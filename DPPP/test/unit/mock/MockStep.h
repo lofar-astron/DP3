@@ -20,6 +20,9 @@
 /// @brief DPStep mock, for use in tests.
 /// @author Maik Nijhuis
 
+#ifndef MOCK_STEP_H
+#define MOCK_STEP_H
+
 #include "../../../DPStep.h"
 
 #include <functional>
@@ -83,3 +86,5 @@ class MockStep : public DPStep {
 
 }  // namespace DPPP
 }  // namespace DP3
+
+#endif

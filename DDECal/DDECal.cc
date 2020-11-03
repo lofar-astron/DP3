@@ -320,8 +320,8 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
 
   std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders(imageFilenames);
-  std::vector<Facet> facets;
-  IDGPredict::GetFacets(facets, regionFilename, readers.first.front());
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets(regionFilename, readers.first.front());
 
   if (facets.size() == 0) {
     throw std::runtime_error(
@@ -334,8 +334,8 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   for (size_t i = 0; i < facets.size(); ++i) {
     itsDirections[i] = std::vector<std::string>({"dir" + std::to_string(i)});
     std::vector<Facet> facet{facets[i]};
-    itsSteps.push_back(
-        std::make_shared<IDGPredict>(itsInput, parset, prefix, readers, facet));
+    itsSteps.push_back(std::make_shared<IDGPredict>(*itsInput, parset, prefix,
+                                                    readers, facet));
   }
 }
 
@@ -777,7 +777,7 @@ void DDECal::doSolve() {
   if (itsUseIDG) {
     itsTimerPredict.start();
     for (size_t direction = 0; direction < itsSteps.size(); ++direction) {
-      std::static_pointer_cast<IDGPredict>(itsSteps[direction])->FlushBuffers();
+      std::static_pointer_cast<IDGPredict>(itsSteps[direction])->flush();
     }
     itsTimerPredict.stop();
   }

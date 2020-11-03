@@ -316,7 +316,7 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     } else if (type == "predict") {
       step = std::make_shared<Predict>(reader, parset, prefix);
     } else if (type == "idgpredict") {
-      step = std::make_shared<IDGPredict>(reader, parset, prefix);
+      step = std::make_shared<IDGPredict>(*reader, parset, prefix);
     } else if (type == "h5parmpredict") {
       step = std::make_shared<H5ParmPredict>(reader, parset, prefix);
     } else if (type == "gaincal" || type == "calibrate") {

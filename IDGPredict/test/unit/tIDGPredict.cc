@@ -2,6 +2,7 @@
 #include "../../../Common/ParameterSet.h"
 #include "../../../DPPP/DPBuffer.h"
 #include "../../../DPPP/DPInput.h"
+#include "../../../DPPP/test/unit/mock/MockInput.h"
 
 #include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
@@ -29,25 +30,6 @@ const std::vector<double> kAntDiam(4, 1.0);
 const std::vector<int> kAnt1_1Bl{0, 0, 0};
 const std::vector<int> kAnt2_1Bl{3, 1, 2};
 const std::size_t kNBaselines = 3;
-
-/// In this test, the input buffers always contain weights and UVW.
-/// -> Use a mock input class that only checks the buffer.
-class MockInput : public DP3::DPPP::DPInput {
- public:
-  MockInput() {}
-  ~MockInput() override {}
-
-  void getUVW(const casacore::RefRows&, double, DPBuffer& buffer) override {
-    BOOST_TEST(!buffer.getUVW().empty());
-  }
-  void getWeights(const casacore::RefRows&, DPBuffer& buffer) override {
-    BOOST_TEST(!buffer.getWeights().empty());
-  }
-  void finish() override { BOOST_ERROR("Unexpected finish() call"); }
-  void show(std::ostream&) const override {
-    BOOST_ERROR("Unexpected show() call");
-  }
-};
 
 void InitInfo(DP3::DPPP::DPInfo& info, const std::vector<int>& ant1,
               const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
@@ -127,7 +109,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   return buffer;
 }
 
-MockInput mock_input;
+DP3::DPPP::MockInput mock_input;
 }  // namespace
 
 using aocommon::UVector;
@@ -139,11 +121,11 @@ BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
   std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
-  BOOST_TEST(readers.first.size() == size_t(1));
+  BOOST_TEST(readers.first.size() == 1u);
   BOOST_TEST(readers.first[0].PhaseCentreRA() == 0.426245723);
   BOOST_TEST(readers.first[0].PhaseCentreDec() == 0.578746973);
-  BOOST_TEST(readers.first[0].ImageWidth() == size_t(512));
-  BOOST_TEST(readers.first[0].ImageHeight() == size_t(512));
+  BOOST_TEST(readers.first[0].ImageWidth() == 512u);
+  BOOST_TEST(readers.first[0].ImageHeight() == 512u);
   BOOST_TEST(readers.first[0].PixelSizeX() == 0.000174533);
   BOOST_TEST(readers.first[0].PixelSizeY() == 0.000174533);
 }
@@ -152,12 +134,12 @@ BOOST_AUTO_TEST_CASE(getfacets) {
   std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
-  std::vector<Facet> facets;
-  IDGPredict::GetFacets(facets, "sources.reg", readers.first.front());
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets("sources.reg", readers.first.front());
 
-  BOOST_TEST(facets.size() == 4.);
-  BOOST_TEST(facets[0].RA() == 0);
-  BOOST_TEST(facets[0].Dec() == 0);
+  BOOST_TEST(facets.size() == 4u);
+  BOOST_TEST(facets[0].RA() == 0.);
+  BOOST_TEST(facets[0].Dec() == 0.);
 
   auto it = facets[0].begin();
   BOOST_TEST(it->x == 379);
@@ -185,14 +167,14 @@ BOOST_AUTO_TEST_CASE(constructor) {
   std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
-  std::vector<Facet> facets;
-  IDGPredict::GetFacets(facets, "sources.reg", readers.first.front());
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets("sources.reg", readers.first.front());
 
-  IDGPredict predict(&mock_input, parset, "", readers, facets);
+  IDGPredict predict(mock_input, parset, "", readers, facets);
   predict.SetBufferSize(42);
 
   BOOST_TEST(predict.IsStarted() == false);
-  BOOST_TEST(predict.GetBufferSize() == size_t(42));
+  BOOST_TEST(predict.GetBufferSize() == 42u);
 
   // Check that the print methods do not throw any error
   std::ostream nullout(nullptr);
@@ -205,10 +187,10 @@ BOOST_AUTO_TEST_CASE(lean_constructor) {
   parset.add("regions", "sources.reg");
   parset.add("images", {"sources-model.fits"});
 
-  IDGPredict predict(&mock_input, parset, "");
+  IDGPredict predict(mock_input, parset, "");
 
   BOOST_TEST(predict.IsStarted() == false);
-  BOOST_TEST(predict.GetBufferSize() == size_t(0));
+  BOOST_TEST(predict.GetBufferSize() == 0u);
 }
 
 BOOST_AUTO_TEST_CASE(no_regions) {
@@ -216,8 +198,7 @@ BOOST_AUTO_TEST_CASE(no_regions) {
   parset.add("regions", "im-updside-down.reg");
   parset.add("images", {"sources-model.fits"});
 
-  BOOST_CHECK_THROW(new IDGPredict(&mock_input, parset, ""),
-                    std::runtime_error);
+  BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(no_models) {
@@ -225,8 +206,7 @@ BOOST_AUTO_TEST_CASE(no_models) {
   parset.add("regions", "sources.reg");
   parset.add("images", {});
 
-  BOOST_CHECK_THROW(new IDGPredict(&mock_input, parset, ""),
-                    std::runtime_error);
+  BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(update_info_wrong) {
@@ -236,7 +216,7 @@ BOOST_AUTO_TEST_CASE(update_info_wrong) {
 
   DP3::DPPP::DPInfo info;
 
-  IDGPredict predict(&mock_input, parset, "");
+  IDGPredict predict(mock_input, parset, "");
 
   BOOST_CHECK_THROW(predict.setInfo(info), std::invalid_argument);
 }
@@ -249,12 +229,12 @@ BOOST_AUTO_TEST_CASE(update_info) {
   DP3::DPPP::DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
 
-  IDGPredict predict(&mock_input, parset, "");
+  IDGPredict predict(mock_input, parset, "");
 
   predict.setInfo(info);
 
   BOOST_TEST(predict.IsStarted() == true);
-  BOOST_TEST(predict.GetBufferSize() > size_t(0));
+  BOOST_TEST(predict.GetBufferSize() > 0u);
 }
 
 BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f)) {
@@ -273,7 +253,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f)) {
 
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
 
-  IDGPredict predict(&mock_input, parset, "");
+  IDGPredict predict(mock_input, parset, "");
   predict.setNextStep(result_step);
   predict.SetBufferSize(kTimeSteps);
   predict.setInfo(info);

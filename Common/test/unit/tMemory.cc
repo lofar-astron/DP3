@@ -29,8 +29,8 @@ BOOST_AUTO_TEST_CASE(no_clipping) {
 // When the percentage memory result exceeds gbs the returned result should be
 // gbs.
 BOOST_AUTO_TEST_CASE(percentage) {
-  double gbs = 200 / kGB2BFactor;
-  double bytes = gbs * kGB2BFactor;
+  double bytes = 200;
+  double gbs = bytes / kGB2BFactor;
   double mem = AvailableMemory(gbs, 80);
   BOOST_TEST(mem == bytes);
 }

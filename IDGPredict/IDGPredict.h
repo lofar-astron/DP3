@@ -44,17 +44,17 @@ namespace DPPP {
 class IDGPredict : public DPStep {
  public:
   IDGPredict(
-      DPInput* input, const ParameterSet&, const string& prefix,
+      DPInput& input, const ParameterSet&, const string& prefix,
       std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
           readers,
       std::vector<Facet>& facets, const std::string& ds9_regions_file = "");
 
-  IDGPredict(DPInput* input, const ParameterSet&, const string& prefix);
+  IDGPredict(DPInput& input, const ParameterSet&, const string& prefix);
 
   void updateInfo(const DPInfo& info) override;
 
-  /** Add a buffer to the IDG predictor, for use in Predict(), later. Calls
-   * FlushBuffers if the buffer is full. */
+  /// Add a buffer to the IDG predictor, for use in Predict(), later. Calls
+  /// flush if the buffer is full.
   bool process(const DPBuffer& buffer) override;
 
   void finish() override;
@@ -64,15 +64,14 @@ class IDGPredict : public DPStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
-  /** Flush all available buffers to IDG. */
-  void FlushBuffers();
+  /// Process the data in all internal buffers using IDG, and send the results
+  /// to the next step using its process() function. */
+  void flush();
 
-  /**
-   * Predict visibilities for added buffers in a given direction.
-   * @param direction Index for the requested direction.
-   * @return Buffers with the predicted visibilities. For each buffer added
-   *         with process(), there is one corresponding output buffer.
-   */
+  /// Predict visibilities for added buffers in a given direction.
+  /// @param direction Index for the requested direction.
+  /// @return Buffers with the predicted visibilities. For each buffer added
+  ///         with process(), there is one corresponding output buffer.
   std::vector<DPBuffer> Predict(size_t direction);
 
   bool IsStarted() const;
@@ -82,24 +81,24 @@ class IDGPredict : public DPStep {
   void SetBufferSize(size_t nTimesteps);
   const size_t GetBufferSize() const { return buffer_size_; }
 
-  /// Read the tif files (nterms) for the idg prediction.
+  /// Read the fits files (nterms) for the idg prediction.
   static std::pair<std::vector<FitsReader>,
                    std::vector<aocommon::UVector<double>>>
   GetReaders(const std::vector<std::string>& fits_model_files);
 
   /// Get the facets from a region file and create the image models with the
   /// given image size
-  static void GetFacets(std::vector<Facet>& facets_out,
-                        const std::string& ds9_regions_file, const double ra,
-                        const double dec, const double pixel_size_x,
-                        const double pixel_size_y, const size_t full_width,
-                        const size_t full_height);
+  static std::vector<Facet> GetFacets(const std::string& ds9_regions_file,
+                                      const double ra, const double dec,
+                                      const double pixel_size_x,
+                                      const double pixel_size_y,
+                                      const size_t full_width,
+                                      const size_t full_height);
 
   /// Get the facets from a region file and use readers to create the image
   /// models.
-  static void GetFacets(std::vector<Facet>& facets_out,
-                        const std::string& ds9_regions_file,
-                        const FitsReader& reader);
+  static std::vector<Facet> GetFacets(const std::string& ds9_regions_file,
+                                      const FitsReader& reader);
 
  private:
   void StartIDG();
@@ -140,12 +139,11 @@ class IDGPredict : public DPStep {
   double pixel_size_x_, pixel_size_y_;
   std::vector<FitsReader> readers_;
 
-  // Currently unused, will be useful when IDGPredict is a DPStep.
-  size_t buffer_size_;
+  size_t buffer_size_;  ///< Number of DPBuffers to keep before calling flush
 
-  DPInput* input_;
-  std::vector<std::size_t> ant1_;  // Contains only the used antennas
-  std::vector<std::size_t> ant2_;  // Contains only the used antennas
+  DPInput& input_;
+  std::vector<std::size_t> ant1_;  ///< Contains only the used antennas
+  std::vector<std::size_t> ant2_;  ///< Contains only the used antennas
 
   NSTimer timer_;
   double max_w_;
