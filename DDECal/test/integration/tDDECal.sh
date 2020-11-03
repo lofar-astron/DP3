@@ -151,13 +151,14 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=MODEL_DATA\
 echo $cmd
 $cmd >& /dev/null
 
-$taqlexe "update tDDECal.MS set MODEL_DATA=MODEL_DATA*42"
+echo "Multiply MODEL_DATA by 42"
+$taqlexe "update tDDECal.MS set MODEL_DATA=DATA*42"
 
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. steps=[ddecal]\
-  ddecal.usemodelcolumn=true ddecal.h5parm=instrument-modeldata \
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
+  steps=[ddecal] ddecal.usemodelcolumn=true ddecal.h5parm=instrument-modeldata \
   ddecal.solint=2 ddecal.nchan=3 ddecal.subtract=True"
 echo $cmd
 $cmd
 
-$taqlexe 'select from (select abs(gsumsqr(DATA)) as diff from tDDECal.MS) where diff>1.e-6' > taql.out
+$taqlexe 'select from (select abs(sumsqr(SUBTRACTED_DATA)/sumsqr(DATA)) as diff from tDDECal.MS) where diff>1.e-6' > taql.out
 diff taql.out taql.ref || exit 1
