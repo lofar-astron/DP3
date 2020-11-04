@@ -365,12 +365,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
 
   // Update info for substeps and set other required parameters
-  std::mutex measuresMutex;
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
     itsSteps[dir]->setInfo(infoIn);
 
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
-      s->setThreadData(*itsThreadPool, measuresMutex);
+      s->setThreadData(*itsThreadPool, itsMeasuresMutex);
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
       itsSolIntCount = std::max(
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);

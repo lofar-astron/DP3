@@ -195,6 +195,7 @@ class DDECal : public DPStep {
   NSTimer itsTimerPredict;
   NSTimer itsTimerSolve;
   NSTimer itsTimerWrite;
+  std::mutex itsMeasuresMutex;
   double itsCoreConstraint;
   std::vector<std::set<std::string>> itsAntennaConstraint;
   double itsSmoothnessConstraint;
