@@ -19,6 +19,21 @@ check-format:
   script:
     - ./scripts/run-clang-format.sh
 
+build-no-idg:
+  stage: build
+  dependencies:
+    - build-base
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - rm -r /usr/lib/cmake/*idg*
+    - rm -r /usr/lib/cmake/*IDGAPITargets*
+    - rm -r /usr/lib/*idg*
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make install -j4
+
 build-lofar:
   stage: build
   dependencies:

@@ -56,7 +56,7 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   add_definitions(-DHAVE_IDG)
   message(STATUS "Image domain gridder API libraries found.")
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  set(IDGAPI_LIBRARIES)
+  set(IDGAPI_LIBRARIES "")
   message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
@@ -236,7 +236,6 @@ set(EXTRA_LIBRARIES
   ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${EXTRA_LIBRARIES}
   ${Python3_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
