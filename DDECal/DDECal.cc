@@ -304,9 +304,8 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
 
   for (size_t i = 0; i < facets.size(); ++i) {
     itsDirections.emplace_back(1, "dir" + std::to_string(i));
-    std::vector<Facet> facet{facets[i]};
-    itsSteps.push_back(std::make_shared<IDGPredict>(*itsInput, parset, prefix,
-                                                    readers, facet));
+    itsSteps.push_back(std::make_shared<IDGPredict>(
+        *itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
   }
 }
 

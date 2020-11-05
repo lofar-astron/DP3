@@ -51,7 +51,7 @@ class IDGPredict : public DPStep {
       DPInput& input, const ParameterSet&, const string& prefix,
       std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
           readers,
-      std::vector<Facet>& facets, const std::string& ds9_regions_file = "");
+      std::vector<Facet>&& facets, const std::string& ds9_regions_file = "");
 
   IDGPredict(DPInput& input, const ParameterSet&, const string& prefix);
 

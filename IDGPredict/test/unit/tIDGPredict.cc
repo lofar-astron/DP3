@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
   std::vector<Facet> facets =
       IDGPredict::GetFacets("sources.reg", readers.first.front());
 
-  IDGPredict predict(mock_input, parset, "", readers, facets);
+  IDGPredict predict(mock_input, parset, "", readers, std::move(facets));
   predict.SetBufferSize(42);
 
   BOOST_TEST(predict.IsStarted() == false);

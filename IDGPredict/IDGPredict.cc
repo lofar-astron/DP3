@@ -43,14 +43,14 @@ IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
     : IDGPredict(input, parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
                                                    std::vector<string>())),
-                 *(new std::vector<Facet>()),
+                 std::vector<Facet>(),
                  parset.getString(prefix + "regions", "")) {}
 
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
         readers,
-    std::vector<Facet>& facets, const std::string& ds9_regions_file)
+    std::vector<Facet>&& facets, const std::string& ds9_regions_file)
     : name_(prefix),
       readers_(readers.first),
       buffer_size_(0),
