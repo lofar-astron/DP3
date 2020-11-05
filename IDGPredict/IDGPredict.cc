@@ -18,10 +18,12 @@
 
 #include "IDGPredict.h"
 
-#ifdef HAVE_IDG
-
 #include "DS9FacetFile.h"
+
+#ifdef HAVE_IDG
 #include "IDGConfiguration.h"
+#endif
+
 #include "../Common/Memory.h"
 #include "../DPPP/DPInput.h"
 
@@ -35,6 +37,14 @@ using aocommon::FitsWriter;
 
 namespace DP3 {
 namespace DPPP {
+
+IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
+                       const string& prefix)
+    : IDGPredict(input, parset, prefix,
+                 GetReaders(parset.getStringVector(prefix + "images",
+                                                   std::vector<string>())),
+                 *(new std::vector<Facet>()),
+                 parset.getString(prefix + "regions", "")) {}
 
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
@@ -84,14 +94,6 @@ IDGPredict::IDGPredict(
   }
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
-
-IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
-                       const string& prefix)
-    : IDGPredict(input, parset, prefix,
-                 GetReaders(parset.getStringVector(prefix + "images",
-                                                   std::vector<string>())),
-                 *(new std::vector<Facet>()),
-                 parset.getString(prefix + "regions", "")) {}
 
 std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
 IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
@@ -146,6 +148,8 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
                    reader.PixelSizeY(), reader.ImageWidth(),
                    reader.ImageHeight());
 }
+
+#ifdef HAVE_IDG
 
 void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   if (info.ncorr() != 4) {
@@ -526,9 +530,6 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
   return buffersize;
 }
 
-}  // namespace DPPP
-}  // namespace DP3
-
 #else  // HAVE_IDG
 
 namespace {
@@ -541,14 +542,6 @@ void notCompiled() {
 
 }  // namespace
 
-namespace DP3 {
-namespace DPPP {
-
-IDGPredict::IDGPredict(const std::vector<std::string>&, const std::string&,
-                       PredictCallback&&) {
-  notCompiled();
-}
-
 void IDGPredict::updateInfo(const DP3::DPPP::DPInfo&) { notCompiled(); }
 
 bool IDGPredict::IsStarted() const {
@@ -558,22 +551,35 @@ bool IDGPredict::IsStarted() const {
 
 void IDGPredict::StartIDG() { notCompiled(); }
 
-void IDGPredict::RequestPredict(size_t, size_t, size_t, size_t, size_t, size_t,
-                                const double*) {
+std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
+    size_t, const std::vector<const double*>&, std::complex<float>*) {
   notCompiled();
+  return std::vector<DPBuffer>();
 }
 
 const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
     const {
   notCompiled();
-  return std::vector<std::pair<double, double>>();
+  static std::vector<std::pair<double, double>> ret;
+  return ret;
 }
 
-void IDGPredict::Flush(size_t) { notCompiled(); }
+void IDGPredict::flush() { notCompiled(); }
 
 void IDGPredict::SetBufferSize(size_t) { notCompiled(); }
 
-}  // namespace DPPP
-}  // namespace DP3
+bool IDGPredict::process(const DPBuffer&) {
+  notCompiled();
+  return false;
+}
+
+void IDGPredict::finish() { notCompiled(); }
+
+void IDGPredict::show(std::ostream&) const { notCompiled(); }
+
+void IDGPredict::showTimings(std::ostream&, double) const { notCompiled(); }
 
 #endif  // HAVE_IDG
+
+}  // namespace DPPP
+}  // namespace DP3
