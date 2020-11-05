@@ -10,8 +10,7 @@ build-base:
 
 check-format:
   stage: build
-  dependencies:
-    - build-base
+  needs: ["build-base"]
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get -y install python3-pip
@@ -21,8 +20,7 @@ check-format:
 
 build-no-idg:
   stage: build
-  dependencies:
-    - build-base
+  needs: ["build-base"]
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - rm -r /usr/lib/cmake/*idg*
@@ -36,15 +34,13 @@ build-no-idg:
 
 build-lofar:
   stage: build
-  dependencies:
-    - build-base
+  needs: ["build-base"]
   script:
   - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
 build-unittest:
   stage: build
-  dependencies:
-    - build-base
+  needs: ["build-base"]
   image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
@@ -68,6 +64,7 @@ build-unittest:
 
 build-doc:
   stage: build
+  needs: []
   before_script:
   - apk update
   - apk add doxygen cmake ninja python3 py3-pip
@@ -83,8 +80,7 @@ build-doc:
 
 integration-test:
   stage: integration_and_deploy
-  dependencies:
-    - build-lofar
+  needs: ["build-lofar"]
   image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
@@ -101,8 +97,7 @@ integration-test:
 
 deploy-doc:
   stage: integration_and_deploy
-  dependencies:
-    - build-doc
+  needs: ["build-doc"]
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
