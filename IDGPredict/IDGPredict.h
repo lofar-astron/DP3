@@ -20,12 +20,16 @@
 #define IDG_PREDICT_H
 
 #ifdef HAVE_IDG
-#include "FacetImage.h"
 
 #include <idg-api.h>
 
-#include <aocommon/fits/fitsreader.h>
 #endif
+
+#include "FacetImage.h"
+#include "Facet.h"
+
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/uvector.h>
 
 #include "../Common/ParameterSet.h"
 #include "../DPPP/DPStep.h"
@@ -61,11 +65,10 @@ class IDGPredict : public DPStep {
 
   void show(std::ostream&) const override;
 
-  /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
   /// Process the data in all internal buffers using IDG, and send the results
-  /// to the next step using its process() function. */
+  /// to the next step using its process() function.
   void flush();
 
   /// Predict visibilities for added buffers in a given direction.
@@ -102,7 +105,6 @@ class IDGPredict : public DPStep {
 
  private:
   void StartIDG();
-#ifdef HAVE_IDG
 
   std::vector<const double*> InitializeUVWs();
 
@@ -125,7 +127,9 @@ class IDGPredict : public DPStep {
   std::string name_;
 
   std::vector<FacetImage> images_;
+#ifdef HAVE_IDG
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
+#endif
   struct FacetMetaData {
     FacetMetaData(double _dl, double _dm, double _dp)
         : dl(_dl), dm(_dm), dp(_dp) {}
@@ -150,7 +154,6 @@ class IDGPredict : public DPStep {
   double max_baseline_;
   std::vector<std::pair<double, double>> directions_;
   bool save_facets_;  ///< Write the facets?
-#endif
 };
 
 }  // namespace DPPP
