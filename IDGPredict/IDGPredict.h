@@ -79,7 +79,7 @@ class IDGPredict : public DPStep {
 
   bool IsStarted() const;
 
-  const std::vector<std::pair<double, double>>& GetDirections() const;
+  const std::pair<double, double>& GetFirstDirection() const;
 
   void SetBufferSize(size_t nTimesteps);
   const size_t GetBufferSize() const { return buffer_size_; }

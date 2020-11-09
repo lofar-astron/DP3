@@ -155,7 +155,7 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
     }
   }
 
-  vector<string> strDirections;
+  std::vector<string> strDirections;
   if (itsUseModelColumn) {
     itsDirections.emplace_back(1, "pointing");
   }
@@ -291,7 +291,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   // in IDGPredict, so we can also make it
   std::string regionFilename = parset.getString(prefix + "idg.regions", "");
   std::vector<std::string> imageFilenames =
-      parset.getStringVector(prefix + "idg.images", vector<string>());
+      parset.getStringVector(prefix + "idg.images", std::vector<string>());
 
   if (regionFilename.empty() && imageFilenames.empty()) {
     return;
@@ -311,21 +311,22 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
 
 void DDECal::initializePredictSteps(const ParameterSet& parset,
                                     const string& prefix) {
-  vector<string> strDirections =
-      parset.getStringVector(prefix + "directions", vector<string>());
+  std::vector<string> strDirections =
+      parset.getStringVector(prefix + "directions", std::vector<string>());
   size_t prediction_size = strDirections.size();
   string sourceDBName = parset.getString(prefix + "sourcedb", "");
   // Default directions are all patches
   if (strDirections.empty() && !sourceDBName.empty()) {
     BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
-    vector<string> patchNames = makePatchList(sourceDB, vector<string>());
+    std::vector<string> patchNames =
+        makePatchList(sourceDB, std::vector<string>());
     prediction_size = patchNames.size();
-    for (unsigned int i = 0; i < patchNames.size(); ++i) {
-      itsDirections.emplace_back(1, patchNames[i]);
+    for (const string& patch : patchNames) {
+      itsDirections.emplace_back(1, patch);
     }
   } else {
-    for (unsigned int i = 0; i < strDirections.size(); ++i) {
-      ParameterValue dirStr(strDirections[i]);
+    for (const string& direction : strDirections) {
+      ParameterValue dirStr(direction);
       itsDirections.emplace_back(dirStr.getStringVector());
     }
   }
@@ -391,8 +392,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   // Convert from casacore::Vector to std::vector, pass only used antennas to
   // multidirsolver
-  vector<int> ant1(info().getAnt1().size());
-  vector<int> ant2(info().getAnt2().size());
+  std::vector<int> ant1(info().getAnt1().size());
+  std::vector<int> ant2(info().getAnt2().size());
   for (unsigned int i = 0; i < ant1.size(); ++i) {
     ant1[i] = info().antennaMap()[info().getAnt1()[i]];
     ant2[i] = info().antennaMap()[info().getAnt2()[i]];
@@ -423,13 +424,13 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                                                    angles.getBaseValue()[1]);
   }
 
-  // TODO AST-213 remove the + itsUseModelColumn
+  // TODO remove the + itsUseModelColumn when the ColumnReader is finished
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[i])) {
       sourcePositions[i + itsUseModelColumn] = s->getFirstDirection();
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[i])) {
-      // We can take the 0th element of an IDG step since it only contains 1.
-      sourcePositions[i + itsUseModelColumn] = s->GetDirections()[0];
+      // We can take the front element of an IDG step since it only contains 1.
+      sourcePositions[i + itsUseModelColumn] = s->GetFirstDirection();
     }
   }
 
@@ -565,7 +566,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (unsigned int i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
   }
-}  // namespace DPPP
+}
 
 void DDECal::show(std::ostream& os) const {
   os << "DDECal " << itsName << '\n'
@@ -652,7 +653,7 @@ void DDECal::initializeScalarSolutions(size_t bufferIndex) {
         itsPropagateConvergedOnly) {
       // initialize solutions with 1.
       size_t n = itsDirections.size() * info().antennaUsed().size();
-      for (vector<DComplex>& solvec :
+      for (std::vector<DComplex>& solvec :
            itsSols[sol_ints_[bufferIndex].NSolution()]) {
         solvec.assign(n, 1.0);
       }
@@ -664,7 +665,7 @@ void DDECal::initializeScalarSolutions(size_t bufferIndex) {
   } else {
     // initialize solutions with 1.
     size_t n = itsDirections.size() * info().antennaUsed().size();
-    for (vector<DComplex>& solvec :
+    for (std::vector<DComplex>& solvec :
          itsSols[sol_ints_[bufferIndex].NSolution()]) {
       solvec.assign(n, 1.0);
     }
@@ -678,7 +679,7 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
         itsPropagateConvergedOnly) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
       size_t n = itsDirections.size() * info().antennaUsed().size();
-      for (vector<DComplex>& solvec :
+      for (std::vector<DComplex>& solvec :
            itsSols[sol_ints_[bufferIndex].NSolution()]) {
         solvec.resize(n * 4);
         for (size_t i = 0; i != n; ++i) {
@@ -696,7 +697,7 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
     size_t n = itsDirections.size() * info().antennaUsed().size();
-    for (vector<DComplex>& solvec :
+    for (std::vector<DComplex>& solvec :
          itsSols[sol_ints_[bufferIndex].NSolution()]) {
       solvec.resize(n * 4);
       for (size_t i = 0; i != n; ++i) {
@@ -756,7 +757,7 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 
 void DDECal::doSolve() {
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
-    if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
+    if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
       itsTimerPredict.start();
       s->flush();
       itsTimerPredict.stop();
@@ -769,7 +770,7 @@ void DDECal::doSolve() {
 
       // Is itsUseModelDataColumn, then ModelDataPtrs()[step][0] was already
       // filled in doPrepare() so add that to the dir index.
-      // TODO AST-213 this can be removed
+      // TODO this can be removed when the ColumnReader is built
       sol_ints_[sol_int].ModelDataPtrs()[step][dir + itsUseModelColumn] =
           itsResultSteps[dir]->get()[i].getData().data();
     }
@@ -985,7 +986,7 @@ void DDECal::writeSolutions() {
   unsigned int nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
   unsigned int nDir = itsDirections.size();
   assert(nSolTimes == itsSols.size());
-  vector<double> solTimes(nSolTimes);
+  std::vector<double> solTimes(nSolTimes);
   double starttime = info().startTime();
   for (unsigned int t = 0; t < nSolTimes; ++t) {
     solTimes[t] = starttime + (t + 0.5) * info().timeInterval() * itsSolInt;
@@ -996,7 +997,7 @@ void DDECal::writeSolutions() {
 
     unsigned int nPol;
 
-    vector<string> polarizations;
+    std::vector<string> polarizations;
     if (itsMode == GainCal::DIAGONAL || itsMode == GainCal::PHASEONLY ||
         itsMode == GainCal::AMPLITUDEONLY) {
       nPol = 2;
@@ -1016,7 +1017,7 @@ void DDECal::writeSolutions() {
     assert(nSolChan == itsChanBlockFreqs.size());
 
     size_t nSt = info().antennaUsed().size();
-    vector<DComplex> sols(nSolChan * nSt * nSolTimes * nDir * nPol);
+    std::vector<DComplex> sols(nSolChan * nSt * nSolTimes * nDir * nPol);
     size_t i = 0;
 
     // For nPol=1, loop over pol runs just once
@@ -1045,7 +1046,7 @@ void DDECal::writeSolutions() {
         }
       }
     }
-    vector<H5Parm::AxisInfo> axes;
+    std::vector<H5Parm::AxisInfo> axes;
     axes.emplace_back(H5Parm::AxisInfo("time", itsSols.size()));
     axes.emplace_back(H5Parm::AxisInfo("freq", nSolChan));
     axes.emplace_back(H5Parm::AxisInfo("ant", info().antennaUsed().size()));
@@ -1073,12 +1074,12 @@ void DDECal::writeSolutions() {
           if (solnum == 0) {
             solTabName = "phase000";
             soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-            soltab.setComplexValues(sols, vector<double>(), false,
+            soltab.setComplexValues(sols, std::vector<double>(), false,
                                     historyString);
           } else {
             solTabName = "amplitude000";
             soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-            soltab.setComplexValues(sols, vector<double>(), true,
+            soltab.setComplexValues(sols, std::vector<double>(), true,
                                     historyString);
           }
           break;
@@ -1087,12 +1088,12 @@ void DDECal::writeSolutions() {
           if (solnum == 0) {
             solTabName = "phase000";
             soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-            soltab.setComplexValues(sols, vector<double>(), false,
+            soltab.setComplexValues(sols, std::vector<double>(), false,
                                     historyString);
           } else {
             solTabName = "amplitude000";
             soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-            soltab.setComplexValues(sols, vector<double>(), true,
+            soltab.setComplexValues(sols, std::vector<double>(), true,
                                     historyString);
           }
           break;
@@ -1100,7 +1101,8 @@ void DDECal::writeSolutions() {
         case GainCal::AMPLITUDEONLY:
           solTabName = "amplitude000";
           soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-          soltab.setComplexValues(sols, vector<double>(), true, historyString);
+          soltab.setComplexValues(sols, std::vector<double>(), true,
+                                  historyString);
           break;
         default:
           throw std::runtime_error("Constraint should have produced output");
@@ -1136,8 +1138,8 @@ void DDECal::writeSolutions() {
         Constraint::Result firstResult =
             itsConstraintSols[0][constraintNum][solNameNum];
 
-        vector<hsize_t> dims(firstResult.dims.size() +
-                             1);             // Add time dimension at beginning
+        std::vector<hsize_t> dims(firstResult.dims.size() +
+                                  1);        // Add time dimension at beginning
         dims[0] = itsConstraintSols.size();  // Number of times
         size_t numSols = dims[0];
         for (unsigned int i = 1; i < dims.size(); ++i) {
@@ -1145,10 +1147,10 @@ void DDECal::writeSolutions() {
           numSols *= dims[i];
         }
 
-        vector<string> firstaxesnames =
+        std::vector<string> firstaxesnames =
             StringUtil::tokenize(firstResult.axes, ",");
 
-        vector<H5Parm::AxisInfo> axes;
+        std::vector<H5Parm::AxisInfo> axes;
         axes.emplace_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
         for (size_t axisNum = 0; axisNum < firstaxesnames.size(); ++axisNum) {
           axes.emplace_back(H5Parm::AxisInfo(firstaxesnames[axisNum],
@@ -1156,8 +1158,8 @@ void DDECal::writeSolutions() {
         }
 
         // Put solutions in a contiguous piece of memory
-        vector<double> sols(numSols);
-        vector<double>::iterator nextpos = sols.begin();
+        std::vector<double> sols(numSols);
+        std::vector<double>::iterator nextpos = sols.begin();
         for (unsigned int time = 0; time < itsSols.size(); ++time) {
           if (itsConstraintSols[time].size() != itsConstraintSols[0].size())
             throw std::runtime_error(
@@ -1174,10 +1176,10 @@ void DDECal::writeSolutions() {
         }
 
         // Put solution weights in a contiguous piece of memory
-        vector<double> weights;
+        std::vector<double> weights;
         if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
           weights.resize(numSols);
-          vector<double>::iterator nextpos = weights.begin();
+          std::vector<double>::iterator nextpos = weights.begin();
           for (unsigned int time = 0; time < itsSols.size(); ++time) {
             nextpos =
                 std::copy(itsConstraintSols[time][constraintNum][solNameNum]
@@ -1206,7 +1208,7 @@ void DDECal::writeSolutions() {
         soltab.setSources(getDirectionNames());
 
         if (soltab.hasAxis("pol")) {
-          vector<string> polarizations;
+          std::vector<string> polarizations;
           switch (soltab.getAxis("pol").size) {
             case 2:
               polarizations.emplace_back("XX");
@@ -1234,7 +1236,7 @@ void DDECal::writeSolutions() {
         if (soltab.hasAxis("freq")) {
           nChannelBlocks = soltab.getAxis("freq").size;
         }
-        vector<double> chanBlockFreqs;
+        std::vector<double> chanBlockFreqs;
 
         chanBlockFreqs.resize(nChannelBlocks);
         for (size_t chBlock = 0; chBlock != nChannelBlocks; ++chBlock) {

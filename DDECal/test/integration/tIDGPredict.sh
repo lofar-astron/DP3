@@ -43,6 +43,8 @@ compare_results() {
   fi
 }
 
+# NOTE: new tests should be added at the bottom, or at least below sources+offsets loop
+
 # Test an input with four sources.
 
 # Since wsclean on CI does not support IDG, tDDECal.MS has a foursources_DATA
@@ -59,44 +61,6 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
 echo $cmd
 $cmd
 compare_results foursources "(multiple)"
-
-# Test if IDGPredict step will have the same results as DDECal
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=idgout.MS\
-  steps=[idgpredict] idgpredict.regions=foursources.reg\
-  idgpredict.images=[foursources-model.fits]"
-echo $cmd
-$cmd
-
-# Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-taqlcmd='select from idgout.MS t1, tDDECal.MS t2 where not all(near(t1.DATA,t2.MODEL_DATA,5e-2) || (isnan(t1.DATA) && isnan(t2.MODEL_DATA)))'
-echo $taqlcmd
-$taqlexe $taqlcmd > taql.out
-diff -q taql.out taql.ref  ||  exit 1
-
-# Test multiple data sources for DDECal
-echo "Create model data column with 3 sources"
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.idg.regions=threesources.reg\
-  ddecal.idg.images=[foursources-model.fits]\
-  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
-echo $cmd
-$cmd >& /dev/null
-
-echo "Run DDECal with 3 directions in the MODEL_DATA column and 1 direction using IDG"
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.idg.regions=onesource.reg\
-  ddecal.idg.images=[foursources-model.fits]\
-  ddecal.onlypredict=True\
-  ddecal.usemodelcolumn=true\
-  msout.datacolumn=MULTIPLE_SOURCES"
-echo $cmd
-$cmd >& /dev/null
-
-# Results of a the DDECal above (3 directions modeldata and 1 direction IDG) should be equal to a run with foursources (4 direction IDG).
-taqlcmd='select from idgout.MS t1, tDDECal.MS t2 where not all(near(t1.DATA,t2.MULTIPLE_SOURCES,5e-2) || (isnan(t1.DATA) && isnan(t2.MULTIPLE_SOURCES)))'
-echo $taqlcmd
-$taqlexe $taqlcmd > taql.out
-diff taql.out taql.ref || exit 1
 
 # Test inputs that contain a single source.
 # Since these tests take quite some time, they only run locally, and only
@@ -127,6 +91,37 @@ if [ $passed != 1 -a -z "$CI" ]; then
     done
   done
 fi
+
+# Test if IDGPredict step will have the same results as DDECal
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[idgpredict] idgpredict.regions=foursources.reg\
+  idgpredict.images=[foursources-model.fits]\
+  msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd
+compare_results foursources "(idgstep)"
+
+# Test multiple data sources for DDECal
+echo "Create model data column with 3 sources"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[ddecal] ddecal.idg.regions=threesources.reg\
+  ddecal.idg.images=[foursources-model.fits]\
+  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd >& /dev/null
+
+echo "Run DDECal with 3 directions in the MODEL_DATA column and 1 direction using IDG"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[ddecal] ddecal.idg.regions=onesource.reg\
+  ddecal.idg.images=[foursources-model.fits]\
+  ddecal.onlypredict=True\
+  ddecal.usemodelcolumn=true\
+  msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd >& /dev/null
+
+# Results of a the DDECal above (3 directions modeldata and 1 direction IDG) should be equal to a run with foursources (4 direction IDG).
+compare_results foursources "(idgstep + data column)"
 
 echo Test polynomial frequency term corrections...
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\

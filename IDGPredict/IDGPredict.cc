@@ -500,9 +500,8 @@ void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 }
 
-const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
-    const {
-  return directions_;
+const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
+  return directions_.front();
 }
 
 void IDGPredict::SetBufferSize(size_t n_timesteps) {
@@ -557,10 +556,9 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
   return std::vector<DPBuffer>();
 }
 
-const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
-    const {
+const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
   notCompiled();
-  static std::vector<std::pair<double, double>> ret;
+  static std::pair<double, double> ret;
   return ret;
 }
 
