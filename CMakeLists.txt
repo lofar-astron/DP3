@@ -155,7 +155,7 @@ add_library(IDGPredict OBJECT
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
 add_library(DPPP_OBJ OBJECT
-  DPPP/AddNoiseLBA.cc
+  DPPP/AddNoise.cc
   DPPP/Apply.cc
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
