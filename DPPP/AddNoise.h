@@ -76,7 +76,7 @@ class AddNoise : public DPStep {
   int mode;
   /// The antennaSet parameter selects between: LBA=LBA_ALL, LBA_INNER
   ///                                        LBA_OUTER and HBA (read from MS)
-  const string antennaSet;
+  string antennaSet;
   /// Coefficients for polynomial interpolation (from constant -first- to highet
   /// order -last-)
   double coeffs_all_LBA[POL_DEGREE + 1] = {

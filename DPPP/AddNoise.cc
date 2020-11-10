@@ -88,7 +88,6 @@ bool AddNoise::process(const DPBuffer& buf) {
 
   // Set Number of baselines
   int n_baselines = antenna1.size();
-  // cout << "Number of baselines = " << n_baselines << endl;
 
   // Set the number of correlations
   int n_corr = info().ncorr();
@@ -105,7 +104,6 @@ bool AddNoise::process(const DPBuffer& buf) {
 
   // Set the number of frequency channels
   int n_freq = getInfo().chanFreqs().size();
-  // cout << "Number of frequencies = " << n_freq << endl;
   Vector<Double> chan_freq = getInfo().chanFreqs();
   Vector<Double> chan_width = getInfo().chanWidths();
 
@@ -131,7 +129,7 @@ bool AddNoise::process(const DPBuffer& buf) {
   double sefd2;
 
   if (antennaSet.compare("LBA") || antennaSet.compare("LBA_INNER") || antennaSet.compare("LBA_OUTER") ||
-      antennaSet.compare("LBA_ALL") {
+      antennaSet.compare("LBA_ALL")) {
     for (int ibase = ibegin; ibase < iend; ibase++) {
       for (int ifreq = 0; ifreq < n_freq; ifreq++) {
         nu = chan_freq(ifreq);
