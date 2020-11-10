@@ -42,10 +42,9 @@ namespace DP3 {
 namespace DPPP {
 
 AddNoise::AddNoise(DPInput* input, const ParameterSet& parset,
-                         const string& prefix)
+                   const string& prefix)
     : itsInput(input) {
   mode = parset.getInt(prefix + "mode", 0);
-  antenna = parset.getString(prefix + "antenna", "LBA");
 }
 
 AddNoise::~AddNoise() {}
@@ -67,10 +66,9 @@ void AddNoise::showTimings(std::ostream& os, double duration) const {
 }
 
 bool AddNoise::process(const DPBuffer& buf) {
-
   itsTimer.start();
 
-  // Name of the column to add the noise (at the moment not used, just a 
+  // Name of the column to add the noise (at the moment not used, just a
   // placeholder)
   string column = "DATA";
   DPBuffer itsBuf;
@@ -85,6 +83,9 @@ bool AddNoise::process(const DPBuffer& buf) {
   Vector<Int> antenna1 = info().getAnt1();
   Vector<Int> antenna2 = info().getAnt2();
 
+  // Load the Antenna type
+  antennaSet = info().antennaSet();
+
   // Set Number of baselines
   int n_baselines = antenna1.size();
   // cout << "Number of baselines = " << n_baselines << endl;
@@ -92,13 +93,13 @@ bool AddNoise::process(const DPBuffer& buf) {
   // Set the number of correlations
   int n_corr = info().ncorr();
 
-  // Set the LOFAR_ANTENNA_SET
-  string antennaSet = getInfo().antennaSet();
+  // Set the Antenna names
   const Vector<String>& allNames = getInfo().antennaNames();
 
   // Set the Polynomial coefficients
   double* coeff;
-  if (antennaSet.compare("LBA") || antennaSet.compare("LBA_ALL")) coeff = coeffs_all_LBA;
+  if (antennaSet.compare("LBA") || antennaSet.compare("LBA_ALL"))
+    coeff = coeffs_all_LBA;
   if (antennaSet.compare("LBA_INNER")) coeff = coeffs_inner_LBA;
   if (antennaSet.compare("LBA_OUTER")) coeff = coeffs_outer_LBA;
 
@@ -129,80 +130,74 @@ bool AddNoise::process(const DPBuffer& buf) {
   double sefd1;
   double sefd2;
 
-  if (antenna == "LBA" || 
-      antenna == "LBA_INNER" || 
-      antenna == "LBA_OUTER" || 
-      antenna == "LBA_ALL")
-  {
-   for (int ibase = ibegin; ibase < iend; ibase++) {
-    for (int ifreq = 0; ifreq < n_freq; ifreq++) {
-      nu = chan_freq(ifreq);
-      sefd = coeff[0] + coeff[1] * nu + coeff[2] * pow(nu, 2.0) +
-             coeff[3] * pow(nu, 3.0) + coeff[4] * pow(nu, 4.0) +
-             coeff[5] * pow(nu, 5.0);
-      stddev = eta * sefd;
-      stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
-      std::normal_distribution<double> distribution(0.0, stddev);
+  if (antennaSet.compare("LBA") || antennaSet.compare("LBA_INNER") || antennaSet.compare("LBA_OUTER") ||
+      antennaSet.compare("LBA_ALL") {
+    for (int ibase = ibegin; ibase < iend; ibase++) {
+      for (int ifreq = 0; ifreq < n_freq; ifreq++) {
+        nu = chan_freq(ifreq);
+        sefd = coeff[0] + coeff[1] * nu + coeff[2] * pow(nu, 2.0) +
+               coeff[3] * pow(nu, 3.0) + coeff[4] * pow(nu, 4.0) +
+               coeff[5] * pow(nu, 5.0);
+        stddev = eta * sefd;
+        stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
+        std::normal_distribution<double> distribution(0.0, stddev);
 
-      for (int icorr = 0; icorr < n_corr; icorr++) {
-        double noise_real = distribution(generator);
-        double noise_img = distribution(generator);
-        std::complex<float> c_noise((float)noise_real, (float)noise_img);
-        *run1Iter = c_noise;
-        *run2Iter = *indIter + c_noise;
-        run1Iter++;
-        run2Iter++;
-        indIter++;
-        icount++;
+        for (int icorr = 0; icorr < n_corr; icorr++) {
+          double noise_real = distribution(generator);
+          double noise_img = distribution(generator);
+          std::complex<float> c_noise((float)noise_real, (float)noise_img);
+          *run1Iter = c_noise;
+          *run2Iter = *indIter + c_noise;
+          run1Iter++;
+          run2Iter++;
+          indIter++;
+          icount++;
+        }
       }
     }
-   }
-  } 
-  else if (antenna == "HBA")
-  {
-   double * coeff1;
-   double * coeff2;
-   for (int ibase = ibegin; ibase < iend; ibase++) {
-    if (allNames[antenna1[ibase]].substr(0,2) == "RS") {
-	    coeff1 = coeffs_rs_HBA;
-	} else {
-	    coeff1 = coeffs_cs_HBA;
-        }
-    if (allNames[antenna2[ibase]].substr(0,2) == "RS") {
-	    coeff2 = coeffs_rs_HBA;
-	} else {
-	    coeff2 = coeffs_cs_HBA;
-        }
-    for (int ifreq = 0; ifreq < n_freq; ifreq++) {
-      nu = chan_freq(ifreq);
-      sefd1 = coeff1[0] + coeff1[1] * nu + coeff1[2] * pow(nu, 2.0) +
-              coeff1[3] * pow(nu, 3.0) + coeff1[4] * pow(nu, 4.0) +
-              coeff1[5] * pow(nu, 5.0);
-      sefd2 = coeff2[0] + coeff2[1] * nu + coeff2[2] * pow(nu, 2.0) +
-              coeff2[3] * pow(nu, 3.0) + coeff2[4] * pow(nu, 4.0) +
-              coeff2[5] * pow(nu, 5.0);
-      sefd = sqrt(sefd1*sefd2);
-      stddev = eta * sefd;
-      stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
-      std::normal_distribution<double> distribution(0.0, stddev);
+  } else if (antennaSet.substr(0, 3) == "HBA") {
+    double* coeff1;
+    double* coeff2;
+    for (int ibase = ibegin; ibase < iend; ibase++) {
+      if (allNames[antenna1[ibase]].substr(0, 2) == "RS") {
+        coeff1 = coeffs_rs_HBA;
+      } else {
+        coeff1 = coeffs_cs_HBA;
+      }
+      if (allNames[antenna2[ibase]].substr(0, 2) == "RS") {
+        coeff2 = coeffs_rs_HBA;
+      } else {
+        coeff2 = coeffs_cs_HBA;
+      }
+      for (int ifreq = 0; ifreq < n_freq; ifreq++) {
+        nu = chan_freq(ifreq);
+        sefd1 = coeff1[0] + coeff1[1] * nu + coeff1[2] * pow(nu, 2.0) +
+                coeff1[3] * pow(nu, 3.0) + coeff1[4] * pow(nu, 4.0) +
+                coeff1[5] * pow(nu, 5.0);
+        sefd2 = coeff2[0] + coeff2[1] * nu + coeff2[2] * pow(nu, 2.0) +
+                coeff2[3] * pow(nu, 3.0) + coeff2[4] * pow(nu, 4.0) +
+                coeff2[5] * pow(nu, 5.0);
+        sefd = sqrt(sefd1 * sefd2);
+        stddev = eta * sefd;
+        stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
+        std::normal_distribution<double> distribution(0.0, stddev);
 
-      for (int icorr = 0; icorr < n_corr; icorr++) {
-        double noise_real = distribution(generator);
-        double noise_img = distribution(generator);
-        std::complex<float> c_noise((float)noise_real, (float)noise_img);
-        *run1Iter = c_noise;
-        *run2Iter = *indIter + c_noise;
-        run1Iter++;
-        run2Iter++;
-        indIter++;
-        icount++;
+        for (int icorr = 0; icorr < n_corr; icorr++) {
+          double noise_real = distribution(generator);
+          double noise_img = distribution(generator);
+          std::complex<float> c_noise((float)noise_real, (float)noise_img);
+          *run1Iter = c_noise;
+          *run2Iter = *indIter + c_noise;
+          run1Iter++;
+          run2Iter++;
+          indIter++;
+          icount++;
+        }
       }
     }
-   }
-  }
-  else
-  {
-   throw Exception("Antenna should be HBA, LBA, LBA_INNER, LBA_OUTER, LBA_ALL");
+  } else {
+    throw Exception(
+        "Antenna should be HBA, LBA, LBA_INNER, LBA_OUTER, LBA_ALL");
   }
 
   if (mode == 0) {

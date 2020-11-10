@@ -47,7 +47,7 @@ class AddNoise : public DPStep {
 
   virtual ~AddNoise();
 
-  /// Process the data calculating or adding to DATA the estimated random 
+  /// Process the data calculating or adding to DATA the estimated random
   /// noise (van Haarlem et al. 2013). When processed, it invokes the process
   /// function of the next step.
   virtual bool process(const DPBuffer&);
@@ -74,28 +74,26 @@ class AddNoise : public DPStep {
   /// SET mode = 0 data are modified with the noise > data = data + noise
   /// ADD mode = 1 a new array is created > newdata = data + noise
   int mode;
-  /// The antenna parameter selects between: LBA=LBA_ALL, LBA_INNER 
-  ///                                        LBA_OUTER and HBA
-  string antenna;
+  /// The antennaSet parameter selects between: LBA=LBA_ALL, LBA_INNER
+  ///                                        LBA_OUTER and HBA (read from MS)
+  const string antennaSet;
   /// Coefficients for polynomial interpolation (from constant -first- to highet
   /// order -last-)
-  double coeffs_all_LBA[POL_DEGREE + 1] = {4.194759691372669e+05, -0.040624470842582,
-                                           1.657038099833047e-09, -3.318591685264548e-17,
-                                           3.220530883859981e-25, -1.199723767939448e-33 };
-  double coeffs_inner_LBA[POL_DEGREE + 1] = {6.468156199342838e+05, -0.065296541139271,
-                                             2.752773309538937e-09, -5.659747549065881e-17,
-                                             5.612743945799180e-25, -2.133417264334753e-33};
-  double coeffs_outer_LBA[POL_DEGREE + 1] = {4.716452746313004e+05, -0.042301679603444,
-                                             1.632924288392071e-09, -3.129891572910005e-17,
-                                             2.925471926740372e-25, -1.048279929083482e-33};
-  double coeffs_cs_HBA[POL_DEGREE + 1] = {1.403173283860732e+06, -0.044309811184301,
-                                          5.564568767538230e-10, -3.461658816150442e-18,
-                                          1.064770242682354e-26, -1.292413137320037e-35};
-  double coeffs_rs_HBA[POL_DEGREE + 1] = {2.643667639489899e+05, -0.007554769559170,
-                                          8.554267734878638e-11, -4.722267097362212e-19,
-                                          1.251625317661630e-27, -1.236074872829482e-36};
-  /// lba_mode can be: lba_inner or lba_outer. Read from the parset file
-  string lba_mode;
+  double coeffs_all_LBA[POL_DEGREE + 1] = {
+      4.194759691372669e+05,  -0.040624470842582,    1.657038099833047e-09,
+      -3.318591685264548e-17, 3.220530883859981e-25, -1.199723767939448e-33};
+  double coeffs_inner_LBA[POL_DEGREE + 1] = {
+      6.468156199342838e+05,  -0.065296541139271,    2.752773309538937e-09,
+      -5.659747549065881e-17, 5.612743945799180e-25, -2.133417264334753e-33};
+  double coeffs_outer_LBA[POL_DEGREE + 1] = {
+      4.716452746313004e+05,  -0.042301679603444,    1.632924288392071e-09,
+      -3.129891572910005e-17, 2.925471926740372e-25, -1.048279929083482e-33};
+  double coeffs_cs_HBA[POL_DEGREE + 1] = {
+      1.403173283860732e+06,  -0.044309811184301,    5.564568767538230e-10,
+      -3.461658816150442e-18, 1.064770242682354e-26, -1.292413137320037e-35};
+  double coeffs_rs_HBA[POL_DEGREE + 1] = {
+      2.643667639489899e+05,  -0.007554769559170,    8.554267734878638e-11,
+      -4.722267097362212e-19, 1.251625317661630e-27, -1.236074872829482e-36};
   /// system efficiency: roughly 1.0
   double eta = 0.95;
 };
