@@ -114,10 +114,6 @@ inputs:
     default: false
     type: bool
     doc: Subtracts the corrected model from the data. **NOTE** This may not work when you apply a uv-cut `.`
-  useidg:
-    default: false
-    type: bool
-    doc: Do image-based prediction using IDG `.`
   idg&#46;images:
     default: "[]"
     type: list
@@ -133,7 +129,7 @@ inputs:
   savefacets:
     default: false
     type: bool
-    doc: Write out each facet as a fits file (named facet<N>.fits). Only useful when useidg=true `.`
+    doc: Write out each facet as a fits file (named facet<N>.fits). Only useful using idg `.`
   onlypredict:
     default: false
     type: bool

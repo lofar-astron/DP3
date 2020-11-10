@@ -160,7 +160,6 @@ class DDECal : public DPStep {
   bool itsPropagateConvergedOnly;
   bool itsFlagUnconverged;
   bool itsFlagDivergedOnly;
-  bool itsUseIDG;
   bool itsOnlyPredict;
   size_t itsTimeStep;
   size_t itsSolInt;  ///< Number of timeslots to store per solution interval

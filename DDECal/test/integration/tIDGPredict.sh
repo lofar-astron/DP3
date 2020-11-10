@@ -32,7 +32,7 @@ compare_results() {
   # Ignore baselines with antennna 6 for now, since not all predictors
   # generate visibilities for those baselines.
   # TODO (AST-223): Investigate what the expected behavior is.
-  $taqlexe "select from tDDECal.MS where ANTENNA2 != 6 and not all(near($1_DATA,IDG_DATA,1e-3))" > taql.out
+  $taqlexe "select from tDDECal.MS where ANTENNA2 != 6 and not all(near($1_DATA,MODEL_DATA,1e-3))" > taql.out
   echo -n "Predict source: $1 offset: $2 result: "
   if diff -q taql.out taql.ref; then
     echo "${text_boldgreen}Test passed.${text_normal}"
@@ -42,6 +42,8 @@ compare_results() {
     failed=$((failed + 1))
   fi
 }
+
+# NOTE: new tests should be added at the bottom, or at least below sources+offsets loop
 
 # Test an input with four sources.
 
@@ -53,25 +55,12 @@ compare_results() {
 
 echo "Predict four sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=foursources.reg\
+  steps=[ddecal] ddecal.idg.regions=foursources.reg\
   ddecal.idg.images=[foursources-model.fits]\
-  ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
+  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
 echo $cmd
 $cmd
 compare_results foursources "(multiple)"
-
-# Test if IDGPredict step will have the same results as DDECal
-cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=idgout.MS\
-  steps=[idgpredict] idgpredict.regions=foursources.reg\
-  idgpredict.images=[foursources-model.fits]"
-echo $cmd
-$cmd
-
-# Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-taqlcmd='select from idgout.MS t1, tDDECal.MS t2 where not all(near(t1.DATA,t2.IDG_DATA,5e-2) || (isnan(t1.DATA) && isnan(t2.IDG_DATA)))'
-echo $taqlcmd
-$taqlexe $taqlcmd > taql.out
-diff -q taql.out taql.ref  ||  exit 1
 
 # Test inputs that contain a single source.
 # Since these tests take quite some time, they only run locally, and only
@@ -89,9 +78,9 @@ if [ $passed != 1 -a -z "$CI" ]; then
       echo "Predict source: $source offset: $offset using IDG"
       if grep -q "^polygon" $source-$offset.reg; then
         cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-          steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=$source-$offset.reg\
+          steps=[ddecal] ddecal.idg.regions=$source-$offset.reg\
           ddecal.idg.images=[$source-model.fits]\
-          ddecal.onlypredict=True msout.datacolumn=IDG_DATA"
+          ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
         echo $cmd
         $cmd
         compare_results $source $offset
@@ -103,9 +92,40 @@ if [ $passed != 1 -a -z "$CI" ]; then
   done
 fi
 
+# Test if IDGPredict step will have the same results as DDECal
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[idgpredict] idgpredict.regions=foursources.reg\
+  idgpredict.images=[foursources-model.fits]\
+  msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd
+compare_results foursources "(idgstep)"
+
+# Test multiple data sources for DDECal
+echo "Create model data column with 3 sources"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[ddecal] ddecal.idg.regions=threesources.reg\
+  ddecal.idg.images=[foursources-model.fits]\
+  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd >& /dev/null
+
+echo "Run DDECal with 3 directions in the MODEL_DATA column and 1 direction using IDG"
+cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
+  steps=[ddecal] ddecal.idg.regions=onesource.reg\
+  ddecal.idg.images=[foursources-model.fits]\
+  ddecal.onlypredict=True\
+  ddecal.usemodelcolumn=true\
+  msout.datacolumn=MODEL_DATA"
+echo $cmd
+$cmd >& /dev/null
+
+# Results of a the DDECal above (3 directions modeldata and 1 direction IDG) should be equal to a run with foursources (4 direction IDG).
+compare_results foursources "(idgstep + data column)"
+
 echo Test polynomial frequency term corrections...
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
-  steps=[ddecal] ddecal.useidg=True ddecal.idg.regions=center-center.reg\
+  steps=[ddecal] ddecal.idg.regions=center-center.reg\
   ddecal.idg.images=[term0-model.fits,term1-model.fits,term2-model.fits]\
   ddecal.onlypredict=True msout.datacolumn=TERMS_DATA"
 echo $cmd

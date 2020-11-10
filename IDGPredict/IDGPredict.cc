@@ -43,14 +43,14 @@ IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
     : IDGPredict(input, parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
                                                    std::vector<string>())),
-                 *(new std::vector<Facet>()),
+                 std::vector<Facet>(),
                  parset.getString(prefix + "regions", "")) {}
 
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
         readers,
-    std::vector<Facet>& facets, const std::string& ds9_regions_file)
+    std::vector<Facet>&& facets, const std::string& ds9_regions_file)
     : name_(prefix),
       readers_(readers.first),
       buffer_size_(0),
@@ -500,9 +500,8 @@ void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 }
 
-const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
-    const {
-  return directions_;
+const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
+  return directions_.front();
 }
 
 void IDGPredict::SetBufferSize(size_t n_timesteps) {
@@ -557,10 +556,9 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
   return std::vector<DPBuffer>();
 }
 
-const std::vector<std::pair<double, double>>& IDGPredict::GetDirections()
-    const {
+const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
   notCompiled();
-  static std::vector<std::pair<double, double>> ret;
+  static std::pair<double, double> ret;
   return ret;
 }
 

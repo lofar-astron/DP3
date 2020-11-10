@@ -51,7 +51,7 @@ class IDGPredict : public DPStep {
       DPInput& input, const ParameterSet&, const string& prefix,
       std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
           readers,
-      std::vector<Facet>& facets, const std::string& ds9_regions_file = "");
+      std::vector<Facet>&& facets, const std::string& ds9_regions_file = "");
 
   IDGPredict(DPInput& input, const ParameterSet&, const string& prefix);
 
@@ -79,7 +79,7 @@ class IDGPredict : public DPStep {
 
   bool IsStarted() const;
 
-  const std::vector<std::pair<double, double>>& GetDirections() const;
+  const std::pair<double, double>& GetFirstDirection() const;
 
   void SetBufferSize(size_t nTimesteps);
   const size_t GetBufferSize() const { return buffer_size_; }
