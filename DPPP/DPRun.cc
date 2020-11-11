@@ -29,6 +29,7 @@
 #include "ApplyCal.h"
 #include "Averager.h"
 #include "BDAAverager.h"
+#include "ColumnReader.h"
 #include "Counter.h"
 #include "Demixer.h"
 #include "DemixerNew.h"
@@ -293,6 +294,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<PreFlagger>(reader, parset, prefix);
     } else if (type == "uvwflagger" || type == "uvwflag") {
       step = std::make_shared<UVWFlagger>(reader, parset, prefix);
+    } else if (type == "columnreader") {
+      step = std::make_shared<ColumnReader>(*reader, parset, prefix);
     } else if (type == "counter" || type == "count") {
       step = std::make_shared<Counter>(reader, parset, prefix);
     } else if (type == "phaseshifter" || type == "phaseshift") {

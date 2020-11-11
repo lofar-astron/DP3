@@ -1,0 +1,7 @@
+description: >-
+  Read a column from the measurementset and continue to process as if it is the DATA column.
+inputs:
+  column:
+    default: "MODEL_DATA"
+    type: string
+    doc: Name of the column to read `.`
