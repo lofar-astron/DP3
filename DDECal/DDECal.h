@@ -115,6 +115,7 @@ class DDECal : public DPStep {
 
  private:
   void initializeConstraints(const ParameterSet& parset, const string& prefix);
+  void initializeColumnReaders(const ParameterSet&, const string& prefix);
   void initializeIDG(const ParameterSet& parset, const string& prefix);
   void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
@@ -135,8 +136,6 @@ class DDECal : public DPStep {
   std::string itsName;
   /// The solution intervals that are buffered, limited by solintcount
   std::vector<SolutionInterval> sol_ints_;
-
-  bool itsUseModelColumn;
 
   /// The time of the current buffer (in case of solint, average time)
   double itsAvgTime;

@@ -115,7 +115,7 @@ cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
   steps=[ddecal] ddecal.idg.regions=onesource.reg\
   ddecal.idg.images=[foursources-model.fits]\
   ddecal.onlypredict=True\
-  ddecal.usemodelcolumn=true\
+  ddecal.modeldatacolumns=[MODEL_DATA]\
   msout.datacolumn=MODEL_DATA"
 echo $cmd
 $cmd >& /dev/null

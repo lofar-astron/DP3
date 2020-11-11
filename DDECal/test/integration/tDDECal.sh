@@ -155,7 +155,7 @@ echo "Multiply MODEL_DATA by 42"
 $taqlexe "update tDDECal.MS set MODEL_DATA=DATA*42"
 
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. msout.datacolumn=SUBTRACTED_DATA\
-  steps=[ddecal] ddecal.usemodelcolumn=true ddecal.h5parm=instrument-modeldata \
+  steps=[ddecal] ddecal.modeldatacolumns=[MODEL_DATA] ddecal.h5parm=instrument-modeldata \
   ddecal.solint=2 ddecal.nchan=3 ddecal.subtract=True"
 echo $cmd
 $cmd

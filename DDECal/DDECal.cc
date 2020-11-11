@@ -30,6 +30,7 @@
 #include "../DPPP/Simulate.h"
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
+#include "../DPPP/ColumnReader.h"
 
 #include "../IDGPredict/IDGPredict.h"
 
@@ -89,7 +90,6 @@ namespace DPPP {
 DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
     : itsInput(input),
       itsName(prefix),
-      itsUseModelColumn(parset.getBool(prefix + "usemodelcolumn", false)),
       itsAvgTime(0),
       itsSols(),
       itsH5ParmName(parset.getString(
@@ -155,16 +155,13 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
     }
   }
 
-  std::vector<string> strDirections;
-  if (itsUseModelColumn) {
-    itsDirections.emplace_back(1, "pointing");
-  }
-
   itsMode = GainCal::stringToCalType(
       boost::to_lower_copy(parset.getString(prefix + "mode", "complexgain")));
 
   initializeConstraints(parset, prefix);
 
+  // Initialize steps
+  initializeColumnReaders(parset, prefix);
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
 
@@ -284,6 +281,21 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
   }
 }
 
+void DDECal::initializeColumnReaders(const ParameterSet& parset,
+                                     const string& prefix) {
+  std::vector<std::string> cols = parset.getStringVector(
+      prefix + "modeldatacolumns", std::vector<std::string>());
+  for (string& col : cols) {
+    if (cols.size() == 1) {
+      itsDirections.emplace_back(1, "pointing");
+    } else {
+      itsDirections.emplace_back(1, col);
+    }
+    itsSteps.push_back(
+        std::make_shared<ColumnReader>(*itsInput, parset, prefix, col));
+  }
+}
+
 void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
   // TODO it would be nicer to get a new method in the DS9 reader to first get
   // names of directions and pass that to idgpredict. It will then read it
@@ -313,14 +325,13 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
                                     const string& prefix) {
   std::vector<string> strDirections =
       parset.getStringVector(prefix + "directions", std::vector<string>());
-  size_t prediction_size = strDirections.size();
+  size_t start = itsDirections.size();
   string sourceDBName = parset.getString(prefix + "sourcedb", "");
   // Default directions are all patches
   if (strDirections.empty() && !sourceDBName.empty()) {
     BBS::SourceDB sourceDB(BBS::ParmDBMeta("", sourceDBName), false);
     std::vector<string> patchNames =
         makePatchList(sourceDB, std::vector<string>());
-    prediction_size = patchNames.size();
     for (const string& patch : patchNames) {
       itsDirections.emplace_back(1, patch);
     }
@@ -331,7 +342,7 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
     }
   }
 
-  for (size_t dir = 0; dir < prediction_size; ++dir) {
+  for (size_t dir = start; dir < itsDirections.size(); ++dir) {
     itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
                                                  itsDirections[dir]));
   }
@@ -359,7 +370,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsSolInt * itsSolIntCount + 1);
-    } else {
+    } else if (!std::dynamic_pointer_cast<ColumnReader>(itsSteps[dir])) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }
   }
@@ -416,21 +427,19 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsH5Parm.addAntennas(antennaNames, antennaPos);
 
   std::vector<std::pair<double, double>> sourcePositions(itsDirections.size());
-  if (itsUseModelColumn) {
-    MDirection dirJ2000(
-        MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-    Quantum<Vector<Double>> angles = dirJ2000.getAngle();
-    sourcePositions[0] = std::pair<double, double>(angles.getBaseValue()[0],
-                                                   angles.getBaseValue()[1]);
-  }
 
-  // TODO remove the + itsUseModelColumn when the ColumnReader is finished
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[i])) {
-      sourcePositions[i + itsUseModelColumn] = s->getFirstDirection();
+      sourcePositions[i] = s->getFirstDirection();
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[i])) {
       // We can take the front element of an IDG step since it only contains 1.
-      sourcePositions[i + itsUseModelColumn] = s->GetFirstDirection();
+      sourcePositions[i] = s->GetFirstDirection();
+    } else if (auto s = std::dynamic_pointer_cast<ColumnReader>(itsSteps[i])) {
+      MDirection dirJ2000(
+          MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
+      Quantum<Vector<Double>> angles = dirJ2000.getAngle();
+      sourcePositions[i] = std::pair<double, double>(angles.getBaseValue()[0],
+                                                     angles.getBaseValue()[1]);
     }
   }
 
@@ -573,8 +582,7 @@ void DDECal::show(std::ostream& os) const {
      << "  H5Parm:              " << itsH5ParmName << '\n'
      << "  solint:              " << itsSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
-     << "  directions:          " << itsDirections << '\n'
-     << "  use model column:    " << boolalpha << itsUseModelColumn << '\n';
+     << "  directions:          " << itsDirections << '\n';
   if (itsMinVisRatio != 0.0) {
     os << "  min visib. ratio:    " << itsMinVisRatio << '\n';
   }
@@ -768,10 +776,7 @@ void DDECal::doSolve() {
 
       assert(sol_int * itsSolInt + step == i);
 
-      // Is itsUseModelDataColumn, then ModelDataPtrs()[step][0] was already
-      // filled in doPrepare() so add that to the dir index.
-      // TODO this can be removed when the ColumnReader is built
-      sol_ints_[sol_int].ModelDataPtrs()[step][dir + itsUseModelColumn] =
+      sol_ints_[sol_int].ModelDataPtrs()[step][dir] =
           itsResultSteps[dir]->get()[i].getData().data();
     }
   }
@@ -922,13 +927,6 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   itsUVWFlagStep.process(bufin);
 
   itsTimerPredict.start();
-
-  if (itsUseModelColumn) {
-    itsInput->getModelData(bufin.getRowNrs(),
-                           sol_ints_[sol_int].ModelData()[step]);
-    sol_ints_[sol_int].ModelDataPtrs()[step][0] =
-        sol_ints_[sol_int].ModelData()[step].data();
-  }
 
   itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
     itsSteps[dir]->process(bufin);
