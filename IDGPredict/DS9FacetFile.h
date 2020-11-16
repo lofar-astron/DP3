@@ -40,9 +40,11 @@ class DS9FacetFile {
     std::vector<Facet> facets;
     while (Type() != DS9FacetFile::Empty) {
       std::string t = Token();
-      if (t == "global" || t == "fk5")
+      if (t == "global" || t == "fk5") {
         SkipLine();
-      else {
+      } else if (Type() == Comment) {
+        Skip();
+      } else if (Type() == DS9FacetFile::Word) {
         Skip();
 
         if (t == "polygon") {
@@ -65,6 +67,10 @@ class DS9FacetFile {
                                                height, x, y);
             facet.AddVertex(x, y);
           }
+
+          std::string dir = parseDirection(Type(), Token());
+
+          facet.SetDirection(dir);
           facets.push_back(std::move(facet));
         } else if (t == "point") {
           std::vector<double> vals = readNumList();
@@ -85,11 +91,11 @@ class DS9FacetFile {
   std::vector<double> readNumList() {
     std::vector<double> vals;
     if (Token() != "(")
-      throw std::runtime_error("Excepting '(' after polygon keyword");
+      throw std::runtime_error("Expecting '(' after polygon keyword");
     Skip();
     while (Token() != ")") {
       if (Type() != Number)
-        throw std::runtime_error("Excepted number or ')' after '(' ");
+        throw std::runtime_error("Expected number or ')' after '(' ");
       vals.push_back(atof(Token().c_str()));
       Skip();
       if (Token() == ",") Skip();
@@ -155,13 +161,34 @@ class DS9FacetFile {
             cont = false;
             break;
           case Comment:
-            if (c == '\n') _type = Empty;
+            if (c == '\n') {
+              cont = false;
+            } else {
+              _token += c;
+            }
             break;
         }
       } else {
         cont = false;
       }
     } while (cont);
+  }
+
+  /// Take a comment as input e.g. text={direction} and retrieves direction.
+  static std::string parseDirection(TokenType type, std::string comment) {
+    const std::string classifier = "text=";
+    std::string dir = "";
+
+    if (type == Comment && comment.find(classifier) != std::string::npos) {
+      dir = comment.substr(comment.find(classifier) + classifier.length(),
+                           comment.length());
+      // Remove trailing parts
+      dir = dir.substr(0, dir.find(","))
+                .substr(0, dir.find(" "))
+                .substr(0, dir.find("\n"));
+    }
+
+    return dir;
   }
 
  private:
@@ -187,7 +214,7 @@ class DS9FacetFile {
   char _char;
 
   static bool isAlpha(char c) {
-    return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_');
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
   }
   static bool isWhiteSpace(char c) {
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';

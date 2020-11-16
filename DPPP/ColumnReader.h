@@ -46,10 +46,13 @@ class ColumnReader : public DPStep {
 
   void show(std::ostream&) const override;
 
+  void showTimings(std::ostream& os, double duration) const override;
+
  private:
   DPInput& input_;           ///< Input MS to read the column from
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
+  std::string operation_;    ///< Operation to use on the DATA column
 };
 
 }  // namespace DPPP

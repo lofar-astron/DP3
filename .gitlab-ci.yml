@@ -55,8 +55,8 @@ build-unittest:
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
-    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
+    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
+    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --xml > coverage.xml
   artifacts:
     reports:
       cobertura: build/coverage.xml

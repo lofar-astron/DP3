@@ -31,6 +31,7 @@
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 #include "../DPPP/ColumnReader.h"
+#include "../DPPP/DPRun.h"
 
 #include "../IDGPredict/IDGPredict.h"
 
@@ -293,6 +294,7 @@ void DDECal::initializeColumnReaders(const ParameterSet& parset,
     }
     itsSteps.push_back(
         std::make_shared<ColumnReader>(*itsInput, parset, prefix, col));
+    setModelNextSteps(itsSteps.back(), col, parset, prefix);
   }
 }
 
@@ -318,6 +320,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
     itsDirections.emplace_back(1, "dir" + std::to_string(i));
     itsSteps.push_back(std::make_shared<IDGPredict>(
         *itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
+    setModelNextSteps(itsSteps.back(), facets[i].Direction(), parset, prefix);
   }
 }
 
@@ -345,7 +348,33 @@ void DDECal::initializePredictSteps(const ParameterSet& parset,
   for (size_t dir = start; dir < itsDirections.size(); ++dir) {
     itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
                                                  itsDirections[dir]));
+    setModelNextSteps(itsSteps.back(), itsDirections[dir][0], parset, prefix);
   }
+}
+
+void DDECal::setModelNextSteps(std::shared_ptr<DPStep> step,
+                               const std::string direction,
+                               const ParameterSet& parset,
+                               const string prefix) {
+  std::string current_steps = parset.getString("steps");
+  std::string model_next_steps =
+      parset.getString(prefix + "modelnextsteps", "[]");
+  if (parset.isDefined(prefix + "modelnextsteps." + direction)) {
+    model_next_steps = parset.getString(prefix + "modelnextsteps." + direction);
+  }
+
+  // Make a shallow copy to work around constness of parset
+  ParameterSet parset_new(parset);
+  parset_new.replace("steps", model_next_steps);
+
+  auto first_step = DPRun::makeSteps(parset_new, "", itsInput, false);
+
+  if (first_step) {
+    step->setNextStep(first_step);
+  }
+
+  // Revert the changes made to the shallow copy
+  parset_new.replace("steps", current_steps);
 }
 
 void DDECal::updateInfo(const DPInfo& infoIn) {
@@ -394,7 +423,13 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
     itsResultSteps[dir] =
         std::make_shared<MultiResultStep>(itsSolInt * itsSolIntCount);
-    itsSteps[dir]->setNextStep(itsResultSteps[dir]);
+
+    // Add the resultstep to the end of the model next steps
+    std::shared_ptr<DPStep> step = itsSteps[dir];
+    while (step->getNextStep()) {
+      step = step->getNextStep();
+    }
+    step->setNextStep(itsResultSteps[dir]);
   }
 
   if (itsNChan == 0 || itsNChan > info().nchan()) {
@@ -610,7 +645,12 @@ void DDECal::show(std::ostream& os) const {
      << "  only predict:        " << itsOnlyPredict << '\n'
      << "  subtract model:      " << itsSubtract << '\n';
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
-    itsSteps[i]->show(os);
+    std::shared_ptr<DPStep> step = itsSteps[i];
+    os << "Model steps for direction " << itsDirections[i][0] << '\n';
+    do {
+      step->show(os);
+    } while (step = step->getNextStep());
+    os << '\n';
   }
   itsUVWFlagStep.show(os);
 }
@@ -636,7 +676,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << " of it spent in writing gain solutions to disk" << endl;
 
   os << "          ";
-  os << "Substepts taken:" << std::endl;
+  os << "Substeps taken:" << std::endl;
   for (auto& step : itsSteps) {
     os << "          ";
     step->showTimings(os, duration);
