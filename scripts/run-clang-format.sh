@@ -1,9 +1,9 @@
 #!/bin/bash
-#
-# run-clang-format.sh: Formats source code in this repo in accordance with .clang-format file.
-# This file is part of the DP3 software package.
+
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
-# License: GNU General Public License version 3 or any later version
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# run-clang-format.sh: Formats source code in this repo in accordance with .clang-format file.
 #
 # To hook this script to pre-commit include the line
 # "./scripts/run-clang-format.sh" to .git/hooks/pre-commit

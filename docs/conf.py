@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
 # dppp documentation build configuration file, created by
 # sphinx-quickstart on Mon Jun 22 11:00:01 2020.
 #

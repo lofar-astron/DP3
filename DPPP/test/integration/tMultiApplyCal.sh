@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Locate the executables and srcdir (script created by cmake's configure_file).
 INIT=testInit.sh
 if [ ! -f $INIT ]; then
@@ -26,4 +29,3 @@ echo $cmd
 eval $cmd
 $taqlexe 'select from tNDPPP-generic.MS where not(all(DATA~=9*DATA3))' > taql.out
 diff taql.out taql.ref  ||  exit 1
-

@@ -1,3 +1,6 @@
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
 # CMake 3.9.
 cmake_minimum_required(VERSION 3.9)
@@ -84,7 +87,7 @@ set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-# We could use find_package(EveryBeam 0.1.0 REQUIRED), 
+# We could use find_package(EveryBeam 0.1.0 REQUIRED),
 # however conditions below make it somewhat more explicit
 find_package(EveryBeam)
 if(${EVERYBEAM_FOUND})
