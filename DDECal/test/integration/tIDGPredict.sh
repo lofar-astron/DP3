@@ -57,7 +57,8 @@ echo "Predict four sources using IDG"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=.\
   steps=[ddecal] ddecal.idg.regions=foursources.reg\
   ddecal.idg.images=[foursources-model.fits]\
-  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA"
+  ddecal.onlypredict=True msout.datacolumn=MODEL_DATA\
+  ddecal.modelnextsteps.CygA=[uvwflag]"
 echo $cmd
 $cmd
 compare_results foursources "(multiple)"

@@ -93,13 +93,16 @@ class Facet {
 
   double RA() const { return _dirRA; }
   double Dec() const { return _dirDec; }
+  std::string Direction() const { return _direction; }
 
   void SetRA(double dirRA) { _dirRA = dirRA; }
   void SetDec(double dirDec) { _dirDec = dirDec; }
+  void SetDirection(std::string direction) { _direction = direction; }
 
  private:
   std::vector<Vertex> _vertices;
   double _dirRA, _dirDec;
+  std::string _direction;
 };
 
 #endif

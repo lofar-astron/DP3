@@ -6,7 +6,7 @@ fk5
 # The comments below contain the corresponding 0-based pixel coordinates.
 
 # Ra+dec@(400,64). Polygon is (379,-9) (377,91) (548,95) (551,-5).
-polygon(23.0,30.5, 23.0,31.5, 21.0,31.5, 21.0,30.5)
+polygon(23.0,30.5, 23.0,31.5, 21.0,31.5, 21.0,30.5) # text=CygA
 
 # Ra@(400,256). Polygon is (364,129) (366,301) (541,305) (547,128).
 polygon(23.15,31.88, 23.10,33.6, 21.0,33.6, 21.0,31.83)

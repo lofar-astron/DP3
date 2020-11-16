@@ -59,8 +59,10 @@ class DPRun {
                       char* argv[] = 0);
 
   /// Create the step objects.
+  /// If optionalWriter=false, no undefined writer will be added to the steps
   static DPStep::ShPtr makeSteps(const ParameterSet& parset,
-                                 const std::string& prefix, DPInput* reader);
+                                 const std::string& prefix, DPInput* reader,
+                                 bool optionalWriter = true);
 
  private:
   /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter

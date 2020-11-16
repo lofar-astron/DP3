@@ -5,3 +5,7 @@ inputs:
     default: "MODEL_DATA"
     type: string
     doc: Name of the column to read `.`
+  operation:
+    default: "replace"
+    type: string
+    doc: Optional operation to apply on the DATA col. ``replace`` (default), ``add`` or ``subtract`` `.`

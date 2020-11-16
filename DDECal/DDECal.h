@@ -119,6 +119,9 @@ class DDECal : public DPStep {
   void initializeIDG(const ParameterSet& parset, const string& prefix);
   void initializePredictSteps(const ParameterSet& parset, const string& prefix);
 
+  void setModelNextSteps(std::shared_ptr<DPStep>, const std::string direction,
+                         const ParameterSet& parset, const string prefix);
+
   void doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step);
 
   /// Initialize solutions

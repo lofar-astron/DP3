@@ -247,7 +247,7 @@ void DPRun::execute(const string& parsetName, int argc, char* argv[]) {
 }
 
 DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
-                               DPInput* reader) {
+                               DPInput* reader, bool optionalWriter) {
   DPStep::ShPtr firstStep;
   DPStep::ShPtr lastStep;
   if (!reader) {
@@ -342,12 +342,11 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = findStepCtor(type)(reader, parset, prefix);
     }
 
-    if (!step->accepts(lastStep->outputs())) {
-      throw std::invalid_argument("Step " + type +
-                                  " is incompatible with input data.");
-    }
-
     if (lastStep) {
+      if (!step->accepts(lastStep->outputs())) {
+        throw std::invalid_argument("Step " + type +
+                                    " is incompatible with input data.");
+      }
       lastStep->setNextStep(step);
     }
     lastStep = step;
@@ -355,6 +354,10 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
     if (!firstStep) {
       firstStep = step;
     }
+  }
+
+  if (!optionalWriter) {
+    return firstStep;
   }
   // Add an output step if not explicitly added in steps (unless last step is a
   // 'split' step)
