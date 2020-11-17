@@ -6,15 +6,25 @@ stages:
   - publish
   - pages
 
+.common: {tags: []}
+
 build-base:
   stage: prepare
+  image: docker:stable
+  services:
+  - docker:dind
+  extends: .common
   script:
-  - docker build --tag dppp_base:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_base .
+  - echo ${CI_REGISTRY}
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
 
 build-no-idg:
   stage: build
   needs: ["build-base"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -24,11 +34,15 @@ build-no-idg:
     - cd build
     - cmake -G Ninja ..
     - ninja
+  only:
+    variables:
+      - $CI_SERVER_HOST == "git.astron.nl"
 
 build-debug:
   stage: build
   needs: ["build-base"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
@@ -40,12 +54,18 @@ build-debug:
 
 build-lofar-release:
   stage: build
+  image: docker:stable
+  services:
+  - docker:dind
+  extends: .common
   needs: ["build-base"]
   script:
-  - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
+  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
 build-doc:
   stage: build
+  image: docker:stable
+  extends: .common
   needs: []
   before_script:
   - apk update
@@ -59,11 +79,15 @@ build-doc:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
+  only:
+    variables:
+      - $CI_SERVER_HOST == "git.astron.nl"
 
 linting:
   stage: linting
   needs: ["build-base"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   before_script:
     - pip3 install clang-format==9.0.0
   script:
@@ -72,18 +96,19 @@ linting:
 unit-test:
   stage: test
   needs: ["build-debug"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   before_script:
     - pip3 install gcovr
   script:
-    - export SRC=`pwd`
     - cd build
-    - ctest -j$(($(nproc) / 2)) -L unit |& tee ctest.out
+    - ninja # Needed when ran on different containers with different timestamps
+    - ctest -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
-    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
+    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
+    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
   artifacts:
     paths: 
       - build/run-unit.json
@@ -95,23 +120,26 @@ unit-test:
 integration-test:
   stage: test
   needs: ["build-debug"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   before_script:
     - pip3 install gcovr h5py
   script:
-    - export SRC=`pwd`
     - cd build
-    - ctest -j$(($(nproc) / 2)) -L integration |& tee ctest.out
+    - ninja # Needed when ran on different containers with different timestamps
+    - ctest -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -L integration |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
+    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
   artifacts:
     paths: 
       - build/run-integration.json
 
 publish-doc:
   stage: publish
+  image: docker:stable
+  extends: .common
   needs: ["build-doc"]
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -130,18 +158,18 @@ publish-doc:
 
 pages:
   stage: pages
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .common
   needs: ["build-debug", "unit-test", "integration-test"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
     - apt-get update
     - apt-get -y install curl
     - pip3 install gcovr
   script:
-    - export SRC=`pwd`
     - mkdir -p .public/build/reports
     - cd .public
-    - gcovr -j$(($(nproc) / 2)) -r $SRC -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
-    - gcovr -j$(($(nproc) / 2)) -r $SRC -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
+    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
+    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
     - cp ../build/unittests.xml build/reports/unit-tests.xml
     # Create and upload GitLab badges
     - chmod -R 700 ../CI

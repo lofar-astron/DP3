@@ -1,12 +1,12 @@
 ARG BASE_TAG=latest
-FROM dppp_base:$BASE_TAG
+FROM $BASE_TAG
 
 ADD . /src
 
 # Build DPPP
 RUN mkdir /build && cd /build \
     && cmake ../src \
-    && make -j$(($(nproc) / 2)) \
-    && make install -j$(($(nproc) / 2)) \
+    && make -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
+    && make install -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
     && DPPP \
     && rm -r /src /build

@@ -156,7 +156,7 @@ def main():
     env_default_branch = os.environ["CI_DEFAULT_BRANCH"]
 
     # Read pipeline status
-    project_url = "https://git.astron.nl/api/v4/projects/" + env_project_id
+    project_url = "https://gitlab.com/api/v4/projects/" + env_project_id
     project_pipelines_url = project_url + "/pipelines"
 
     # Setup defaults in case of problems getting the data
