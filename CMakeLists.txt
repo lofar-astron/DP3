@@ -16,6 +16,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
 enable_testing()
@@ -150,7 +151,8 @@ set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
   IDGPredict/FacetImage.cc
-  IDGPredict/IDGPredict.cc)
+  IDGPredict/IDGPredict.cc
+)
 
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
@@ -384,6 +386,15 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP_BDA
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
+
+add_test(
+  NAME extract_NDPPP_generic
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/integration/tNDPPP-generic.MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP_generic
   PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
 )
 

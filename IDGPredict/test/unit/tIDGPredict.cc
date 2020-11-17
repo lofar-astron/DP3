@@ -7,8 +7,10 @@
 #include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+#include <memory>
 
 using DP3::DPPP::DPBuffer;
+using DP3::DPPP::DPInput;
 using DP3::DPPP::MultiResultStep;
 
 namespace {
@@ -63,10 +65,10 @@ void InitInfo(DP3::DPPP::DPInfo& info, const std::vector<int>& ant1,
  *        number of averaged input buffers for each output buffer.
  * @param weight Weight value for the data values in the buffer.
  */
-std::unique_ptr<DPBuffer> CreateBuffer(
-    const double time, const double interval, std::size_t n_baselines,
-    const std::vector<std::size_t>& channel_counts, const float base_value,
-    const float weight = 1.0) {
+DPBuffer CreateBuffer(const double time, const double interval,
+                      std::size_t n_baselines,
+                      const std::vector<std::size_t>& channel_counts,
+                      const float base_value, const float weight = 1.0) {
   casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
                                          n_baselines);
   casacore::Cube<bool> flags(data.shape(), false);
@@ -97,28 +99,34 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     uvw(2, bl) = bl_value + 2.0;
   }
 
-  auto buffer = boost::make_unique<DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
-  buffer->setData(data);
-  buffer->setWeights(weights);
-  buffer->setFlags(flags);
-  buffer->setFullResFlags(full_res_flags);
-  buffer->setUVW(uvw);
-
+  DPBuffer buffer;
+  buffer.setTime(time);
+  buffer.setExposure(interval);
+  buffer.setData(data);
+  buffer.setWeights(weights);
+  buffer.setFlags(flags);
+  buffer.setFullResFlags(full_res_flags);
+  buffer.setUVW(uvw);
   return buffer;
+}
+
+DP3::ParameterSet CreateParset() {
+  DP3::ParameterSet parset;
+  parset.add("regions", "sources.reg");
+  parset.add("images", "sources-model.fits");
+  return parset;
 }
 
 DP3::DPPP::MockInput mock_input;
 }  // namespace
 
-using aocommon::UVector;
 using DP3::DPPP::IDGPredict;
 
 BOOST_AUTO_TEST_SUITE(idgpredict)
 
 BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
-  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+  std::pair<std::vector<aocommon::FitsReader>,
+            std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   BOOST_TEST(readers.first.size() == 1u);
@@ -131,7 +139,8 @@ BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
 }
 
 BOOST_AUTO_TEST_CASE(getfacets) {
-  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+  std::pair<std::vector<aocommon::FitsReader>,
+            std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
@@ -164,7 +173,8 @@ BOOST_AUTO_TEST_CASE(getfacets) {
 
 BOOST_AUTO_TEST_CASE(constructor) {
   DP3::ParameterSet parset;
-  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+  std::pair<std::vector<aocommon::FitsReader>,
+            std::vector<aocommon::UVector<double>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
@@ -183,9 +193,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 }
 
 BOOST_AUTO_TEST_CASE(lean_constructor) {
-  DP3::ParameterSet parset;
-  parset.add("regions", "sources.reg");
-  parset.add("images", {"sources-model.fits"});
+  const DP3::ParameterSet parset = CreateParset();
 
   IDGPredict predict(mock_input, parset, "");
 
@@ -196,7 +204,7 @@ BOOST_AUTO_TEST_CASE(lean_constructor) {
 BOOST_AUTO_TEST_CASE(no_regions) {
   DP3::ParameterSet parset;
   parset.add("regions", "im-updside-down.reg");
-  parset.add("images", {"sources-model.fits"});
+  parset.add("images", "sources-model.fits");
 
   BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
 }
@@ -204,15 +212,12 @@ BOOST_AUTO_TEST_CASE(no_regions) {
 BOOST_AUTO_TEST_CASE(no_models) {
   DP3::ParameterSet parset;
   parset.add("regions", "sources.reg");
-  parset.add("images", {});
 
   BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(update_info_wrong) {
-  DP3::ParameterSet parset;
-  parset.add("regions", "sources.reg");
-  parset.add("images", {"sources-model.fits"});
+  const DP3::ParameterSet parset = CreateParset();
 
   DP3::DPPP::DPInfo info;
 
@@ -222,9 +227,7 @@ BOOST_AUTO_TEST_CASE(update_info_wrong) {
 }
 
 BOOST_AUTO_TEST_CASE(update_info) {
-  DP3::ParameterSet parset;
-  parset.add("regions", "sources.reg");
-  parset.add("images", {"sources-model.fits"});
+  const DP3::ParameterSet parset = CreateParset();
 
   DP3::DPPP::DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
@@ -238,34 +241,96 @@ BOOST_AUTO_TEST_CASE(update_info) {
 }
 
 BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f)) {
-  DP3::ParameterSet parset;
-  parset.add("regions", "sources.reg");
-  parset.add("images", {"sources-model.fits"});
+  const DP3::ParameterSet parset = CreateParset();
 
-  DP3::DPPP::DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
-
-  std::vector<std::unique_ptr<DPBuffer>> buffers;
-  for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
-                                   kNBaselines, kChannelCounts, i * 1000.0));
-  }
+  IDGPredict predict(mock_input, parset, "");
+  predict.SetBufferSize(kTimeSteps);
 
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
 
-  IDGPredict predict(mock_input, parset, "");
   predict.setNextStep(result_step);
-  predict.SetBufferSize(kTimeSteps);
+
+  DP3::DPPP::DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
   predict.setInfo(info);
+
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    predict.process(*buffers[i]);
+    DPBuffer buffer = CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                   kNBaselines, kChannelCounts, i * 1000.0);
+    predict.process(buffer);
   }
   predict.finish();
 
-  BOOST_TEST(result_step.get()->size() == kTimeSteps);
+  BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(result_step->get()[i].getData().data()->imag() == 0.f);
-    BOOST_TEST(result_step->get()[i].getData().data()->real() == 60.f);
+    BOOST_TEST(result_step->get()[i].getData()(0, 0, 0).real() == 60.f);
+    BOOST_TEST(result_step->get()[i].getData()(0, 0, 0).imag() == 0.f);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f)) {
+  DP3::ParameterSet parset = CreateParset();
+  parset.add("msin", "tNDPPP-generic.MS");
+  parset.add("aterms", "beam");
+  parset.add("beam.element_response_model", "hamaker");
+
+  // This test needs a real reader, since IDGPredict passes a MeasurementSet to
+  // Everybeam::Load when using aterms. MockInput does not suffice.
+  std::unique_ptr<DPInput> reader = DPInput::CreateReader(parset, "");
+  auto predict = std::make_shared<IDGPredict>(*reader, parset, "");
+  predict->SetBufferSize(kTimeSteps);
+  auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
+
+  reader->setNextStep(predict);
+  predict->setNextStep(result_step);
+
+  DP3::DPPP::DPInfo info;
+  reader->setInfo(info);
+
+  DPBuffer buffer;
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    reader->process(buffer);
+  }
+  reader->finish();
+
+  // These samples were gathered while running this test initially.
+  // Ideally this test should use a mocked aterm, and check that IDGPredict
+  // calls the proper functions on the mock. For now, this approach will do.
+  const std::complex<float> kExpectedData[kTimeSteps][3] = {
+      {{0.00020892531, 0.000115041898},
+       {-0.000436737319, -0.000309092226},
+       {0.00273089739, 0.00102706277}},
+      {{0.000207837016, 0.000117528049},
+       {-0.000436606992, -0.000309304567},
+       {0.00272684987, 0.00102799805}},
+      {{0.000206714481, 0.000119998658},
+       {-0.000436475908, -0.000309517025},
+       {0.00272280071, 0.00102892378}},
+      {{0.000205557706, 0.000122453159},
+       {-0.000436344679, -0.000309729861},
+       {0.00271875248, 0.00102983904}},
+      {{0.000204367054, 0.00012489123},
+       {-0.000436212751, -0.00030994293},
+       {0.00271470915, 0.00103074359}}};
+
+  BOOST_TEST(result_step->size() == kTimeSteps);
+  for (std::size_t i = 0; i < kTimeSteps; ++i) {
+    const auto& data = result_step->get()[i].getData();
+    BOOST_TEST_REQUIRE(data.nplane() == reader->getInfo().nbaselines());
+    BOOST_TEST_REQUIRE(data.ncolumn() == reader->getInfo().nchan());
+    BOOST_TEST_REQUIRE(data.nrow() == reader->getInfo().ncorr());
+
+    // Take samples of the result values and compare those.
+    const std::complex<float>& data0 = data(0, 0, 0);
+    const std::complex<float>& data1 = data(11, 6, 1);
+    const std::complex<float>& data2 =
+        data(data.nplane() - 1, data.ncolumn() - 1, data.nrow() - 1);
+    BOOST_TEST(data0.real() == kExpectedData[i][0].real());
+    BOOST_TEST(data0.imag() == kExpectedData[i][0].imag());
+    BOOST_TEST(data1.real() == kExpectedData[i][1].real());
+    BOOST_TEST(data1.imag() == kExpectedData[i][1].imag());
+    BOOST_TEST(data2.real() == kExpectedData[i][2].real());
+    BOOST_TEST(data2.imag() == kExpectedData[i][2].imag());
   }
 }
 

@@ -31,6 +31,8 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/uvector.h>
 
+#include <EveryBeam/aterms/atermbase.h>
+
 #include "../Common/ParameterSet.h"
 #include "../DPPP/DPStep.h"
 
@@ -40,18 +42,17 @@
 #include <vector>
 #include <utility>
 
-using aocommon::FitsReader;
-
 namespace DP3 {
 namespace DPPP {
 
 class IDGPredict : public DPStep {
  public:
-  IDGPredict(
-      DPInput& input, const ParameterSet&, const string& prefix,
-      std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
-          readers,
-      std::vector<Facet>&& facets, const std::string& ds9_regions_file = "");
+  IDGPredict(DPInput& input, const ParameterSet& parset, const string& prefix,
+             std::pair<std::vector<aocommon::FitsReader>,
+                       std::vector<aocommon::UVector<double>>>
+                 readers,
+             std::vector<Facet>&& facets,
+             const std::string& ds9_regions_file = "");
 
   IDGPredict(DPInput& input, const ParameterSet&, const string& prefix);
 
@@ -82,10 +83,10 @@ class IDGPredict : public DPStep {
   const std::pair<double, double>& GetFirstDirection() const;
 
   void SetBufferSize(size_t nTimesteps);
-  const size_t GetBufferSize() const { return buffer_size_; }
+  size_t GetBufferSize() const;
 
   /// Read the fits files (nterms) for the idg prediction.
-  static std::pair<std::vector<FitsReader>,
+  static std::pair<std::vector<aocommon::FitsReader>,
                    std::vector<aocommon::UVector<double>>>
   GetReaders(const std::vector<std::string>& fits_model_files);
 
@@ -101,35 +102,63 @@ class IDGPredict : public DPStep {
   /// Get the facets from a region file and use readers to create the image
   /// models.
   static std::vector<Facet> GetFacets(const std::string& ds9_regions_file,
-                                      const FitsReader& reader);
+                                      const aocommon::FitsReader& reader);
 
+#ifdef HAVE_IDG
  private:
+  /// Initializes IDG buffersets for all directions and terms.
   void StartIDG();
 
+  /// Initializes the aterms_ and aterm_values_ lists.
+  void InitializeATerms();
+
+  /// Calculates the ATerms IDG should use.
+  /// @param direction Direction index.
+  /// @return The ATerms for the given direction.
+  aocommon::UVector<std::complex<float>> GetAtermValues(size_t direction) const;
+
+  /// Creates a vector with uvw pointers. Raises max_w_ if needed.
+  /// @return A vector with pointers to the uvw values of the input buffers.
   std::vector<const double*> InitializeUVWs();
 
+  /// Initializes output buffers and fills them with IDG predictions.
+  /// @param direction Direction index.
+  /// @param uvws uvw pointers from InitializeUVWs.
+  /// @param term_data Buffer for storing results of non-first terms.
+  ///        The returned result buffers have the results for the first term.
+  /// @return Result buffer.
   std::vector<DPBuffer> ComputeVisibilities(
       size_t direction, const std::vector<const double*>& uvws,
-      std::complex<float>* term_data);
+      std::complex<float>* term_data) const;
 
+  /// Computes a multiplication factor for use in CorrectVisibilities().
   double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
 
+  /// Applies phase shift and polynomial term corrections to computed
+  /// visibilities.
+  /// @param uvws uvw pointers from InitializeUVWs.
+  /// @param result Result buffer, as computed by ComputeVisibilities().
+  /// @param term_data Buffer that has results for non-first terms.
+  /// @param direction Direction index.
   void CorrectVisibilities(const std::vector<const double*>& uvws,
                            std::vector<DPBuffer>& result,
                            const std::complex<float>* term_data,
                            size_t direction);
 
-  /// Return the amount of buffers that can be used by this step.
-  /// If multiple IDG predicts are ran simultaneously, you can update the
+  /// Returns the amount of buffers that can be used by this step.
+  /// If multiple IDG predicts have to run simultaneously, you can update the
   /// buffer size by using GetBufferSize and SetBufferSize respectively.
   size_t GetAllocatableBuffers(size_t memory);
 
+  /// @return The number of items in a subgrid, for one antenna.
+  size_t GetSubgridCount(size_t direction) const;
+
   std::string name_;
+  const ParameterSet& parset_;
 
   std::vector<FacetImage> images_;
-#ifdef HAVE_IDG
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
-#endif
+
   struct FacetMetaData {
     FacetMetaData(double _dl, double _dm, double _dp)
         : dl(_dl), dm(_dm), dp(_dp) {}
@@ -141,7 +170,7 @@ class IDGPredict : public DPStep {
 
   double ref_frequency_;
   double pixel_size_x_, pixel_size_y_;
-  std::vector<FitsReader> readers_;
+  std::vector<aocommon::FitsReader> readers_;
 
   size_t buffer_size_;  ///< Number of DPBuffers to keep before calling flush
 
@@ -154,6 +183,14 @@ class IDGPredict : public DPStep {
   double max_baseline_;
   std::vector<std::pair<double, double>> directions_;
   bool save_facets_;  ///< Write the facets?
+
+  // Required for aterms (beam)
+  std::vector<std::unique_ptr<everybeam::aterms::ATermBase>> aterms_;
+  /// For every aterm, stores the values returned from aterm.Calculate(). This
+  /// member is mutable since it acts as a cache: If aterm.Calculate() returns
+  /// false, GetAtermValues() should use the old / cached values.
+  mutable std::vector<aocommon::UVector<std::complex<float>>> aterm_values_;
+#endif
 };
 
 }  // namespace DPPP
