@@ -1,22 +1,15 @@
 stages:
   - prepare
   - build
-  - integration_and_deploy
+  - linting
+  - test
+  - publish
+  - pages
 
 build-base:
   stage: prepare
   script:
   - docker build --tag dppp_base:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_base .
-
-check-format:
-  stage: build
-  needs: ["build-base"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
-  before_script:
-    - apt-get -y install python3-pip
-    - pip3 install clang-format==9.0.0
-  script:
-    - ./scripts/run-clang-format.sh
 
 build-no-idg:
   stage: build
@@ -29,38 +22,27 @@ build-no-idg:
   script:
     - mkdir build
     - cd build
-    - cmake ..
-    - make install -j4
+    - cmake -G Ninja ..
+    - ninja
 
-build-lofar:
+build-debug:
+  stage: build
+  needs: ["build-base"]
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  script:
+    - mkdir build && cd build
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - ninja
+    - ninja install
+  artifacts:
+    paths:
+      - build
+
+build-lofar-release:
   stage: build
   needs: ["build-base"]
   script:
   - docker build --build-arg BASE_TAG=${CI_COMMIT_SHORT_SHA} --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
-
-build-unittest:
-  stage: build
-  needs: ["build-base"]
-  image: dppp_base:${CI_COMMIT_SHORT_SHA}
-  before_script:
-    - apt-get update
-    - apt-get -y install python3-pip ninja-build wsclean
-    - pip3 install gcovr
-  script:
-    - export SRC=`pwd`
-    - mkdir build
-    - cd build
-    - cmake -G Ninja -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
-    - ctest -j4 -L unit |& tee ctest.out
-    # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
-    # option. Older versions require a manual check.
-    - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
-    - gcovr -j4 -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --xml > coverage.xml
-  artifacts:
-    reports:
-      cobertura: build/coverage.xml
-      junit: build/unittests.xml
 
 build-doc:
   stage: build
@@ -78,25 +60,58 @@ build-doc:
     paths:
     - build/docs
 
-integration-test:
-  stage: integration_and_deploy
-  needs: ["build-lofar"]
-  image: dppp_lofar:${CI_COMMIT_SHORT_SHA}
+linting:
+  stage: linting
+  needs: ["build-base"]
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
   before_script:
-    - apt-get update
-    - apt-get -y install python3-pip
-    - pip3 install h5py
+    - pip3 install clang-format==9.0.0
   script:
-    - mkdir build && cd build
-    - cmake ..
-    - ln -sf `which DPPP` DPPP/DPPP # Use existing installed executable
+    - ./scripts/run-clang-format.sh
+
+unit-test:
+  stage: test
+  needs: ["build-debug"]
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - pip3 install gcovr
+  script:
+    - export SRC=`pwd`
+    - cd build
+    - ctest -j$(($(nproc) / 2)) -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
-    - ctest -j4 -L integration |& tee ctest.out
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
+    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
+    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
+  artifacts:
+    paths: 
+      - build/run-unit.json
+      - build/unittests.xml
+    reports:
+      junit: build/unittests.xml
 
-deploy-doc:
-  stage: integration_and_deploy
+
+integration-test:
+  stage: test
+  needs: ["build-debug"]
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - pip3 install gcovr h5py
+  script:
+    - export SRC=`pwd`
+    - cd build
+    - ctest -j$(($(nproc) / 2)) -L integration |& tee ctest.out
+    # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
+    # option. Older versions require a manual check.
+    - if grep -q 'No tests were found' ctest.out; then exit 1; fi
+    - gcovr -j$(($(nproc) / 2)) -r $SRC -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
+  artifacts:
+    paths: 
+      - build/run-integration.json
+
+publish-doc:
+  stage: publish
   needs: ["build-doc"]
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -108,5 +123,34 @@ deploy-doc:
   script:
     - scp -r build/docs/* citt@dop288:DP3/
   only:
+    variables:
+      - $CI_SERVER_HOST == "git.astron.nl"
     refs:
       - master
+
+pages:
+  stage: pages
+  needs: ["build-debug", "unit-test", "integration-test"]
+  image: dppp_base:${CI_COMMIT_SHORT_SHA}
+  before_script:
+    - apt-get update
+    - apt-get -y install curl
+    - pip3 install gcovr
+  script:
+    - export SRC=`pwd`
+    - mkdir -p .public/build/reports
+    - cd .public
+    - gcovr -j$(($(nproc) / 2)) -r $SRC -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
+    - gcovr -j$(($(nproc) / 2)) -r $SRC -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
+    - cp ../build/unittests.xml build/reports/unit-tests.xml
+    # Create and upload GitLab badges
+    - chmod -R 700 ../CI
+    - python3 ../CI/.produce-ci-metrics.py build/reports > ci-metrics.json
+    - sh ../CI/ci-badges-func.sh
+    - cd ..
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+    reports:
+      cobertura: public/build/reports/code-coverage.xml
