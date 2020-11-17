@@ -24,6 +24,7 @@
 #include "IDGConfiguration.h"
 #endif
 
+#include "ParsetAterms.h"
 #include "../Common/Memory.h"
 #include "../DPPP/DPInput.h"
 
@@ -31,9 +32,14 @@
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitswriter.h>
 
+#include <EveryBeam/aterms/atermconfig.h>
+
 #include <iostream>
 
+using aocommon::FitsReader;
 using aocommon::FitsWriter;
+using everybeam::aterms::ATermBase;
+using everybeam::aterms::ATermConfig;
 
 namespace DP3 {
 namespace DPPP {
@@ -46,24 +52,31 @@ IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
                  std::vector<Facet>(),
                  parset.getString(prefix + "regions", "")) {}
 
+#ifdef HAVE_IDG
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file)
     : name_(prefix),
-      readers_(readers.first),
+      parset_(parset),
+      ref_frequency_(readers.first.front().Frequency()),
+      pixel_size_x_(readers.first.front().PixelSizeX()),
+      pixel_size_y_(readers.first.front().PixelSizeY()),
+      readers_(std::move(readers.first)),
       buffer_size_(0),
       input_(input),
       ant1_(),
       ant2_(),
       timer_(),
-      save_facets_(parset.getBool(prefix + "savefacets", false)) {
+      max_w_(0.0),
+      max_baseline_(0.0),
+      directions_(),
+      save_facets_(parset.getBool(prefix + "savefacets", false)),
+      aterms_(),
+      aterm_values_() {
   const size_t full_width = readers_.front().ImageWidth();
   const size_t full_height = readers_.front().ImageHeight();
-  ref_frequency_ = readers_.front().Frequency();
-  pixel_size_x_ = readers_.front().PixelSizeX();
-  pixel_size_y_ = readers_.front().PixelSizeY();
   if (facets.empty()) {
     facets = GetFacets(ds9_regions_file, readers_.front());
   }
@@ -94,6 +107,7 @@ IDGPredict::IDGPredict(
   }
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
+#endif  // HAVE_IDG
 
 std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
 IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
@@ -188,6 +202,17 @@ void IDGPredict::updateInfo(const DP3::DPPP::DPInfo& info) {
   }
 
   StartIDG();
+
+  if (!parset_.getStringVector(name_ + "aterms", std::vector<string>())
+           .empty()) {
+    if (info.nantenna() != input_.getInfo().nantenna()) {
+      throw std::runtime_error(
+          "Number of antennas not matching the number of antennas in the "
+          "original MS. This is as yet unsupported for beam calculations.");
+    }
+
+    InitializeATerms();
+  }
 }
 
 bool IDGPredict::process(const DPBuffer& buffer) {
@@ -254,7 +279,7 @@ void IDGPredict::StartIDG() {
   idg::api::options_type options;
 
   IdgConfiguration::Read(proxy_type, buffersize, options);
-  std::vector<aocommon::UVector<double>> data(n_terms);
+  std::vector<double> image_data;
   meta_data_.clear();
 
   options["disable_wtiling"] = true;
@@ -283,21 +308,30 @@ void IDGPredict::StartIDG() {
               << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n"
               << std::endl;
 
-    // TODO make full polarization
+    size_t subgrid_size = 0;
     for (size_t term = 0; term != n_terms; ++term) {
-      data[term].assign(img.Width() * img.Height() * 4, 0.0);
-      std::copy(img.Data(term), img.Data(term) + img.Width() * img.Height(),
-                data[term].data());
+      // Reserve space for 4 polarizations but only use the first polarization.
+      // TODO Copy data for the other polarizations, too.
+      image_data.resize(img.Width() * img.Height() * 4, 0.0);
+      std::copy_n(img.Data(term), img.Width() * img.Height(),
+                  image_data.data());
 
       buffersets_.emplace_back(idg::api::BufferSet::create(proxy_type));
       idg::api::BufferSet& bs = *buffersets_.back();
       options["padded_size"] = size_t(1.2 * img.Width());
       // options["max_threads"] = int(1);
       bs.init(img.Width(), pixel_size_x_, max_w_ + 1.0, dl, dm, dp, options);
-      bs.set_image(data[term].data());
+      bs.set_image(image_data.data());
       bs.init_buffers(0, {info().chanFreqs()}, info().antennaUsed().size(),
                       max_baseline_, options,
                       idg::api::BufferSetType::kBulkDegridding);
+
+      // GetSubgridCount assumes that the subgrid size is equal for all terms.
+      if (term == 0) {
+        subgrid_size = bs.get_subgridsize();
+      } else {
+        assert(bs.get_subgridsize() == subgrid_size);
+      }
     }
 
     if (save_facets_) {
@@ -314,6 +348,40 @@ void IDGPredict::StartIDG() {
   }
 }
 
+void IDGPredict::InitializeATerms() {
+  const size_t n_terms = readers_.size();
+  const size_t n_antennas = getInfo().nantenna();
+
+  everybeam::ATermSettings settings;
+  // https://wsclean.readthedocs.io/en/latest/a_term_correction.html?highlight=kernel#kernel-size
+  // describes why 16 is a reasonable default value.
+  settings.max_support = parset_.getInt("atermkernelsize", 16);
+
+  aterms_.clear();
+  aterms_.reserve(directions_.size());
+  aterm_values_.clear();
+  aterm_values_.reserve(directions_.size());
+  for (size_t direction = 0; direction < directions_.size(); ++direction) {
+    const idg::api::BufferSet& bs = *buffersets_[direction * n_terms];
+
+    everybeam::coords::CoordinateSystem cs;
+    // IDG uses a flipped coordinate cs which is moved by half a pixel:
+    cs.dl = -bs.get_subgrid_pixelsize();
+    cs.dm = -bs.get_subgrid_pixelsize();
+    cs.phase_centre_dl = meta_data_[direction].dl - 0.5 * cs.dl;
+    cs.phase_centre_dm = meta_data_[direction].dm + 0.5 * cs.dm;
+    cs.width = bs.get_subgridsize();
+    cs.height = cs.width;
+    cs.ra = directions_[direction].first;
+    cs.dec = directions_[direction].second;
+
+    auto* aterm = new ATermConfig(n_antennas, cs, settings);
+    aterm->Read(input_.table(), ParsetATerms(parset_, name_));
+    aterms_.emplace_back(aterm);
+    aterm_values_.emplace_back(n_antennas * GetSubgridCount(direction));
+  }
+}
+
 std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
   timer_.start();
   const size_t n_terms = readers_.size();
@@ -323,15 +391,11 @@ std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
   // term_data indexing: [term-1][timestep][baseline][channel][correlation].
   aocommon::UVector<std::complex<float>> term_data((n_terms - 1) * term_size);
 
-  // Initialize a vector with uvw pointers. Raise max_w_ if needed.
   std::vector<const double*> uvws = InitializeUVWs();
 
-  // Initialize output buffers and fill them with IDG predictions. */
   std::vector<DPBuffer> result =
       ComputeVisibilities(direction, uvws, term_data.data());
 
-  // Correct phase shift for the computed visibilities.
-  // Apply polynomial-term corrections and add all to values of 'term 0'
   CorrectVisibilities(uvws, result, term_data.data(), direction);
 
   timer_.stop();
@@ -373,11 +437,11 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
 
 std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
     const size_t direction, const std::vector<const double*>& uvws,
-    std::complex<float>* term_data) {
+    std::complex<float>* term_data) const {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
-  const size_t baseline_size = info().nchan() * info().ncorr();
-  const size_t timestep_size = info().nbaselines() * baseline_size;
+  const size_t baseline_size = getInfo().nchan() * getInfo().ncorr();
+  const size_t timestep_size = getInfo().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
   std::vector<DPBuffer> result;
@@ -385,7 +449,7 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
   for (const DPBuffer& buffer : buffers_) {
     result.emplace_back(buffer);
     result.back().setData(casacore::Cube<casacore::Complex>(
-        info().ncorr(), info().nchan(), info().nbaselines()));
+        getInfo().ncorr(), getInfo().nchan(), getInfo().nbaselines()));
   }
 
   // IDG uses a flipped coordinate system
@@ -409,16 +473,69 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
       }
     }
 
-    idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
     // Since we initialize the BufferSet with a single band, the index is 0.
     constexpr int kDegridderIndex = 0;
-    std::cout << "Starting bulk degridding" << std::endl;
-    bs.get_bulk_degridder(kDegridderIndex)
-        ->compute_visibilities(ant1_, ant2_, uvws, data_ptrs, kUVWFactors);
-    std::cout << "Finished bulk degridding" << std::endl;
+    idg::api::BufferSet& bs = *buffersets_[direction * n_terms + term];
+    const idg::api::BulkDegridder* degridder =
+        bs.get_bulk_degridder(kDegridderIndex);
+
+    if (aterms_.empty()) {
+      degridder->compute_visibilities(ant1_, ant2_, uvws, data_ptrs,
+                                      kUVWFactors);
+    } else {
+      // ATerm computations are as yet only meaningful for the leading term.
+      assert(term == 0);
+
+      // Note: IDGPredict currently does not support using different aterms
+      // for different time slots.
+      const aocommon::UVector<std::complex<float>> aterm_values =
+          GetAtermValues(direction);
+
+      degridder->compute_visibilities(ant1_, ant2_, uvws, data_ptrs,
+                                      kUVWFactors, aterm_values.data());
+    }
   }
 
   return result;
+}
+
+aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
+    size_t direction) const {
+  assert(direction < aterms_.size());
+  ATermBase& aterm = *aterms_[direction];
+  aocommon::UVector<std::complex<float>>& aterm_values =
+      aterm_values_[direction];
+
+  const double time_centroid =
+      0.5 * (buffers_.front().getTime() + buffers_.back().getTime());
+
+  // TODO: field_id should be made generic in case DP3 will be used for
+  // other telescopes
+  constexpr size_t field_id = 0;
+
+  // Computes aterm values for all stations. On the first invocation,
+  // aterm.Calculate should always return true and fill aterm_values.
+  // On successive invocations, it may return false, which means it does not
+  // touch aterm_values and IDGPredict should reuse the old values in the cache.
+  aterm.Calculate(aterm_values.data(), time_centroid, getInfo().refFreq(),
+                  field_id, nullptr);
+
+  const std::vector<int>& ant_used = getInfo().antennaUsed();
+  if (getInfo().nantenna() == ant_used.size()) {
+    return aterm_values;
+  } else {
+    // Copy the relevant data into a buffer for the used antennas.
+    const size_t subgrid_count = GetSubgridCount(direction);
+    aocommon::UVector<std::complex<float>> aterm_used(ant_used.size() *
+                                                      subgrid_count);
+    auto aterm_used_it = aterm_used.begin();
+    for (int ant : ant_used) {
+      std::copy_n(aterm_values.begin() + ant * subgrid_count, subgrid_count,
+                  aterm_used_it);
+      aterm_used_it += subgrid_count;
+    }
+    return aterm_used;
+  }
 }
 
 double IDGPredict::ComputePhaseShiftFactor(const double* uvw,
@@ -508,6 +625,8 @@ void IDGPredict::SetBufferSize(size_t n_timesteps) {
   buffer_size_ = n_timesteps;
 }
 
+size_t IDGPredict::GetBufferSize() const { return buffer_size_; }
+
 size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
   size_t n_terms = readers_.size();
 
@@ -517,7 +636,8 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
   memPerTimestep *= 2;  // IDG uses two internal buffers
   memPerTimestep *= 4;  // DP3 can store up to 4 times the MS size in memory.
   // Allow the directions together to use 1/4th of the available memory for
-  // the vis buffers. We divide by 3, because 3 copies are being kept in memory.
+  // the vis buffers. We divide by 3, because 3 copies are being kept in
+  // memory.
   size_t allocatableTimesteps =
       memory / images_.size() / n_terms / memPerTimestep / 3;
   // TODO once a-terms are supported, this should include the size required
@@ -527,6 +647,17 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
 
   size_t buffersize = std::max(allocatableTimesteps, size_t(1));
   return buffersize;
+}
+
+size_t IDGPredict::GetSubgridCount(size_t direction) const {
+  const size_t n_terms = readers_.size();
+  assert(direction * n_terms < buffersets_.size());
+
+  // The subgrid size should be equal for all terms, so use the first BufferSet
+  // for the given direction.
+  const idg::api::BufferSet& bs = *buffersets_[direction * n_terms];
+  const size_t subgrid_size = bs.get_subgridsize();
+  return subgrid_size * subgrid_size * getInfo().ncorr();
 }
 
 #else  // HAVE_IDG
@@ -541,19 +672,19 @@ void notCompiled() {
 
 }  // namespace
 
+IDGPredict::IDGPredict(
+    DPInput& input, const ParameterSet& parset, const string& prefix,
+    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+        readers,
+    std::vector<Facet>&& facets, const std::string& ds9_regions_file) {
+  // Do nothing / create dummy object.
+}
+
 void IDGPredict::updateInfo(const DP3::DPPP::DPInfo&) { notCompiled(); }
 
 bool IDGPredict::IsStarted() const {
   notCompiled();
   return false;
-}
-
-void IDGPredict::StartIDG() { notCompiled(); }
-
-std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
-    size_t, const std::vector<const double*>&, std::complex<float>*) {
-  notCompiled();
-  return std::vector<DPBuffer>();
 }
 
 const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
@@ -565,6 +696,11 @@ const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
 void IDGPredict::flush() { notCompiled(); }
 
 void IDGPredict::SetBufferSize(size_t) { notCompiled(); }
+
+size_t IDGPredict::GetBufferSize() const {
+  notCompiled();
+  return 0;
+}
 
 bool IDGPredict::process(const DPBuffer&) {
   notCompiled();
