@@ -21,13 +21,9 @@
 
 #include <string>
 
-class DPPPVersion
-{
-public:
-	static std::string AsString()
-	{
-		return "DPPP 4.2";
-	}
+class DPPPVersion {
+ public:
+  static std::string AsString() { return "DPPP 4.2"; }
 };
 
 #endif

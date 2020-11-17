@@ -33,14 +33,13 @@
 using namespace LOFAR;
 
 // Use a terminate handler that can produce a backtrace.
-//Exception::TerminateHandler t(Exception::terminate);
+// Exception::TerminateHandler t(Exception::terminate);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   try {
     DP3CS1::CombinerProcessControl myProcess;
     return DP3ACC::PLC::ACCmain(argc, argv, &myProcess);
-  } catch(Exception& ex) {
+  } catch (Exception& ex) {
     std::cerr << ex << std::endl;
     return 1;
   }

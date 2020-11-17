@@ -22,18 +22,10 @@
 
 #include "Stokes.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
-Stokes::Stokes()
-:   I(0.0),
-    Q(0.0),
-    U(0.0),
-    V(0.0)
-{
-}
+Stokes::Stokes() : I(0.0), Q(0.0), U(0.0), V(0.0) {}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3

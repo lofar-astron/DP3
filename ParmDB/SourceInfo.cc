@@ -32,122 +32,107 @@
 
 #include <casacore/casa/Arrays/Array.h>
 
-
 namespace DP3 {
 namespace BBS {
 
-  SourceInfo::SourceInfo (const string& name, Type type,
-                          const string& refType,
-                          bool useLogarithmicSI,
-                          unsigned int nSpectralTerms,
-                          double spectralTermsRefFreqHz,
-                          bool useRotationMeasure)
-    : itsName           (name),
-      itsType           (type),
-      itsRefType        (refType),
-      itsNSpTerms    (nSpectralTerms),
-      itsSpTermsRefFreq   (spectralTermsRefFreqHz),
+SourceInfo::SourceInfo(const string& name, Type type, const string& refType,
+                       bool useLogarithmicSI, unsigned int nSpectralTerms,
+                       double spectralTermsRefFreqHz, bool useRotationMeasure)
+    : itsName(name),
+      itsType(type),
+      itsRefType(refType),
+      itsNSpTerms(nSpectralTerms),
+      itsSpTermsRefFreq(spectralTermsRefFreqHz),
       itsHasLogarithmicSI(useLogarithmicSI),
-      itsUseRotMeas     (useRotationMeasure),
-      itsShapeletScaleI (0),
-      itsShapeletScaleQ (0),
-      itsShapeletScaleU (0),
-      itsShapeletScaleV (0)
-  {}
+      itsUseRotMeas(useRotationMeasure),
+      itsShapeletScaleI(0),
+      itsShapeletScaleQ(0),
+      itsShapeletScaleU(0),
+      itsShapeletScaleV(0) {}
 
-  SourceInfo::SourceInfo (const SourceInfo& that)
-  {
-    operator= (that);
+SourceInfo::SourceInfo(const SourceInfo& that) { operator=(that); }
+
+SourceInfo& SourceInfo::operator=(const SourceInfo& that) {
+  if (this != &that) {
+    itsName = that.itsName;
+    itsType = that.itsType;
+    itsRefType = that.itsRefType;
+    itsNSpTerms = that.itsNSpTerms;
+    itsSpTermsRefFreq = that.itsSpTermsRefFreq;
+    itsHasLogarithmicSI = that.itsHasLogarithmicSI;
+    itsUseRotMeas = that.itsUseRotMeas;
+    itsShapeletScaleI = that.itsShapeletScaleI;
+    itsShapeletScaleQ = that.itsShapeletScaleQ;
+    itsShapeletScaleU = that.itsShapeletScaleU;
+    itsShapeletScaleV = that.itsShapeletScaleV;
+    itsShapeletCoeffI.assign(that.itsShapeletCoeffI);
+    itsShapeletCoeffQ.assign(that.itsShapeletCoeffQ);
+    itsShapeletCoeffU.assign(that.itsShapeletCoeffU);
+    itsShapeletCoeffV.assign(that.itsShapeletCoeffV);
   }
+  return *this;
+}
 
-  SourceInfo& SourceInfo::operator= (const SourceInfo& that)
-  {
-    if (this != &that) {
-      itsName           = that.itsName;
-      itsType           = that.itsType;
-      itsRefType        = that.itsRefType;
-      itsNSpTerms    = that.itsNSpTerms;
-      itsSpTermsRefFreq   = that.itsSpTermsRefFreq;
-      itsHasLogarithmicSI = that.itsHasLogarithmicSI;
-      itsUseRotMeas     = that.itsUseRotMeas;
-      itsShapeletScaleI = that.itsShapeletScaleI;
-      itsShapeletScaleQ = that.itsShapeletScaleQ;
-      itsShapeletScaleU = that.itsShapeletScaleU;
-      itsShapeletScaleV = that.itsShapeletScaleV;
-      itsShapeletCoeffI.assign (that.itsShapeletCoeffI);
-      itsShapeletCoeffQ.assign (that.itsShapeletCoeffQ);
-      itsShapeletCoeffU.assign (that.itsShapeletCoeffU);
-      itsShapeletCoeffV.assign (that.itsShapeletCoeffV);
-    }
-    return *this;
+void SourceInfo::setShapeletCoeff(const casacore::Array<double>& I,
+                                  const casacore::Array<double>& Q,
+                                  const casacore::Array<double>& U,
+                                  const casacore::Array<double>& V) {
+  itsShapeletCoeffI.assign(I);
+  itsShapeletCoeffQ.assign(Q);
+  itsShapeletCoeffU.assign(U);
+  itsShapeletCoeffV.assign(V);
+}
+
+void SourceInfo::setShapeletScale(double scaleI, double scaleQ, double scaleU,
+                                  double scaleV) {
+  itsShapeletScaleI = scaleI;
+  itsShapeletScaleQ = scaleQ;
+  itsShapeletScaleU = scaleU;
+  itsShapeletScaleV = scaleV;
+}
+
+void SourceInfo::write(BlobOStream& bos) const {
+  int16_t version = 2;
+  // TODO itsHasLogarithmicSI has to be written in new blob version
+  bos << version << itsName << int16_t(itsType) << itsRefType
+      << itsHasLogarithmicSI << itsNSpTerms << itsSpTermsRefFreq
+      << itsUseRotMeas;
+  if (itsType == SHAPELET) {
+    bos << itsShapeletScaleI << itsShapeletScaleQ << itsShapeletScaleU
+        << itsShapeletScaleV << itsShapeletCoeffI << itsShapeletCoeffQ
+        << itsShapeletCoeffU << itsShapeletCoeffV;
   }
+}
 
-  void SourceInfo::setShapeletCoeff (const casacore::Array<double>& I,
-                                     const casacore::Array<double>& Q,
-                                     const casacore::Array<double>& U,
-                                     const casacore::Array<double>& V)
-  {
-    itsShapeletCoeffI.assign (I);
-    itsShapeletCoeffQ.assign (Q);
-    itsShapeletCoeffU.assign (U);
-    itsShapeletCoeffV.assign (V);
+// If ever version info is needed,
+void SourceInfo::read(BlobIStream& bis) {
+  int16_t version, type;
+  bis >> version >> itsName >> type >> itsRefType;
+  if (version != 1 && version != 2)
+    throw std::runtime_error("Version of sourcedb must be 1 or 2");
+  if (version >= 2) {
+    bis >> itsHasLogarithmicSI;
+  } else {
+    itsHasLogarithmicSI = true;
   }
-
-  void SourceInfo::setShapeletScale (double scaleI, double scaleQ,
-                                     double scaleU, double scaleV)
-  {
-    itsShapeletScaleI = scaleI;
-    itsShapeletScaleQ = scaleQ;
-    itsShapeletScaleU = scaleU;
-    itsShapeletScaleV = scaleV;
+  bis >> itsNSpTerms >> itsSpTermsRefFreq >> itsUseRotMeas;
+  // Convert to enum.
+  itsType = Type(type);
+  if (itsType == SHAPELET) {
+    bis >> itsShapeletScaleI >> itsShapeletScaleQ >> itsShapeletScaleU >>
+        itsShapeletScaleV >> itsShapeletCoeffI >> itsShapeletCoeffQ >>
+        itsShapeletCoeffU >> itsShapeletCoeffV;
+  } else {
+    itsShapeletScaleI = 0;
+    itsShapeletScaleQ = 0;
+    itsShapeletScaleU = 0;
+    itsShapeletScaleV = 0;
+    itsShapeletCoeffI.resize();
+    itsShapeletCoeffQ.resize();
+    itsShapeletCoeffU.resize();
+    itsShapeletCoeffV.resize();
   }
+}
 
-  void SourceInfo::write (BlobOStream& bos) const
-  {
-    int16_t version = 2;
-      // TODO itsHasLogarithmicSI has to be written in new blob version
-    bos << version << itsName << int16_t(itsType) << itsRefType
-        << itsHasLogarithmicSI
-        << itsNSpTerms << itsSpTermsRefFreq << itsUseRotMeas;
-    if (itsType == SHAPELET) {
-      bos << itsShapeletScaleI << itsShapeletScaleQ
-          << itsShapeletScaleU << itsShapeletScaleV
-          << itsShapeletCoeffI << itsShapeletCoeffQ
-          << itsShapeletCoeffU << itsShapeletCoeffV;
-    }
-  }
-
-  // If ever version info is needed, 
-  void SourceInfo::read (BlobIStream& bis)
-  {
-    int16_t version, type;
-    bis >> version >> itsName >> type >> itsRefType;
-    if (version != 1 && version != 2)
-      throw std::runtime_error("Version of sourcedb must be 1 or 2");
-    if (version >= 2) {
-     bis >> itsHasLogarithmicSI;
-    } else {
-     itsHasLogarithmicSI = true;
-    }
-    bis >> itsNSpTerms >> itsSpTermsRefFreq >> itsUseRotMeas;
-    // Convert to enum.
-    itsType = Type(type);
-    if (itsType == SHAPELET) {
-      bis >> itsShapeletScaleI >> itsShapeletScaleQ
-          >> itsShapeletScaleU >> itsShapeletScaleV
-          >> itsShapeletCoeffI >> itsShapeletCoeffQ
-          >> itsShapeletCoeffU >> itsShapeletCoeffV;
-    } else {
-      itsShapeletScaleI = 0;
-      itsShapeletScaleQ = 0;
-      itsShapeletScaleU = 0;
-      itsShapeletScaleV = 0;
-      itsShapeletCoeffI.resize();
-      itsShapeletCoeffQ.resize();
-      itsShapeletCoeffU.resize();
-      itsShapeletCoeffV.resize();
-    }
-  }
-
-} // namespace BBS
-} // namespace LOFAR
+}  // namespace BBS
+}  // namespace DP3

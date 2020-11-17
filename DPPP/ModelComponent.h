@@ -23,10 +23,8 @@
 
 #include <memory>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 class ModelComponentVisitor;
 class Position;
@@ -35,20 +33,19 @@ class Position;
 
 /// @{
 
-class ModelComponent
-{
-public:
-    typedef std::shared_ptr<ModelComponent>          Ptr;
-    typedef std::shared_ptr<const ModelComponent>    ConstPtr;
+class ModelComponent {
+ public:
+  typedef std::shared_ptr<ModelComponent> Ptr;
+  typedef std::shared_ptr<const ModelComponent> ConstPtr;
 
-    virtual ~ModelComponent();
-    virtual const Position &position() const = 0;
-    virtual void accept(ModelComponentVisitor&) const = 0;
+  virtual ~ModelComponent();
+  virtual const Position &position() const = 0;
+  virtual void accept(ModelComponentVisitor &) const = 0;
 };
 
 /// @}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

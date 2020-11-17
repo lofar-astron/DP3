@@ -11,7 +11,7 @@ add_executable(DPPP DPPP.cc
 target_link_libraries(DPPP
   ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES}
   ${CASACORE_LIBRARIES}
-  ${LOFAR_STATION_RESPONSE_LIB}
+  ${EVERYBEAM_LIB}
   ${CFITSIO_LIBRARY}
   ${EXTRA_LIBRARIES})
 
@@ -28,3 +28,5 @@ install(
 python_install(
   __init__.py
   DESTINATION lofar/dppp)
+
+add_subdirectory(test/integration)

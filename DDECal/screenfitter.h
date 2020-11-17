@@ -1,4 +1,4 @@
-// screenfitter.h: Class to perform screen fitting 
+// screenfitter.h: Class to perform screen fitting
 // Copyright (C) 2016
 // ASTRON (Netherlands Institute for Radio Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -29,15 +29,14 @@
 #include <vector>
 using namespace arma;
 
-/// \brief Class to perform screen fitting 
-class ScreenFitter{
+/// \brief Class to perform screen fitting
+class ScreenFitter {
  public:
   ScreenFitter();
   double* PhaseData() { return _phases.data(); }
 
  private:
-  std::vector<double> _phases,_frequencies, _weights;
+  std::vector<double> _phases, _frequencies, _weights;
   mat _corrmatrix;  ///< correlation matrix
-   
 };
 #endif

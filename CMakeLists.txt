@@ -1,12 +1,14 @@
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
 # CMake 3.9.
 cmake_minimum_required(VERSION 3.9)
+cmake_policy(SET CMP0074 NEW)
 
 project(DP3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 if(NOT PORTABLE)
   add_compile_options(-march=native)
@@ -14,9 +16,29 @@ endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
 enable_testing()
+
+# Find and include aocommon git submodule
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+# Update submodules as needed
+    option(GIT_SUBMODULE "Check submodules during build" ON)
+    if(GIT_SUBMODULE)
+        message(STATUS "Submodule update")
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
+        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+        endif()
+    endif()
+endif()
+
+# Include aocommon
+include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
@@ -24,61 +46,46 @@ include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
-# Add old casacore include directory because LOFAR beam library did
-# not use the casacore/ prefix in the includes until 3.2 (Sep '18)
-include_directories(${CASACORE_INCLUDE_DIR}/casacore)
 
 find_package(Threads REQUIRED)
 
 find_package(IDGAPI NO_MODULE QUIET)
 
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-#  set(IDG_FILES ....)
   include_directories(${IDGAPI_INCLUDE_DIRS})
   set(HAVE_IDG TRUE)
   add_definitions(-DHAVE_IDG)
   message(STATUS "Image domain gridder API libraries found.")
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  set(IDGAPI_LIBRARIES)
-  set(IDG_FILES)
+  set(IDGAPI_LIBRARIES "")
   message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
 find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIRS})
 
-find_package(PythonLibs 3 REQUIRED)
-find_package(PythonInterp REQUIRED)
-message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
+find_package(Python3 COMPONENTS Interpreter Development)
+message(STATUS "Using python version ${Python3_VERSION}")
+
+include_directories(${Python3_INCLUDE_DIRS})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-set(BOOSTPY ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-find_path(LOFAR_STATION_RESPONSE_DIR NAMES StationResponse/Station.h)
-find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
-if(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-  include_directories(${LOFAR_STATION_RESPONSE_DIR})
-  add_definitions(-DHAVE_LOFAR_BEAM)
-  message(STATUS "LOFAR beam library found.")
-
-  set(LOFAR_DEPENDENT_FILES
-    DPPP/ApplyBeam.cc
-    DPPP/DemixerNew.cc
-    DPPP/DemixInfo.cc
-    DPPP/DemixWorker.cc
-  )
-
+find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+if(NOT EVERYBEAM_INCLUDE_DIR)
+  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
+endif()
+find_library(EVERYBEAM_LIB everybeam)
+if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  message(STATUS "EveryBeam library found.")
 else()
-  if(WITH_LOFAR_BEAM)
-    message(FATAL_ERROR "LOFAR beam library not found")
-  else()
-    message("LOFAR beam library not found -- disabling LOFAR beam prediction.")
-    set(LOFAR_STATION_RESPONSE_LIB "")
-    set(LOFAR_DEPENDENT_FILES "")
-  endif(WITH_LOFAR_BEAM)
-endif(LOFAR_STATION_RESPONSE_DIR AND LOFAR_STATION_RESPONSE_LIB)
+  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
+endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -88,6 +95,7 @@ add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
   Common/DataConvert.cc
+  Common/Memory.cc
   Common/NodeDesc.cc
   Common/ParameterHandler.cc
   Common/ParameterRecord.cc
@@ -142,9 +150,9 @@ add_library(Blob OBJECT
 set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
 
 add_library(IDGPredict OBJECT
-  IDGPredict/FitsIOChecker.cc
-  IDGPredict/FitsReader.cc
-  IDGPredict/FitsWriter.cc)
+  IDGPredict/FacetImage.cc
+  IDGPredict/IDGPredict.cc
+)
 
 set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
 
@@ -153,6 +161,10 @@ add_library(DPPP_OBJ OBJECT
   DPPP/ApplyCal.cc
   DPPP/Averager.cc
   DPPP/BaselineSelection.cc
+  DPPP/BDAAverager.cc
+  DPPP/BDABuffer.cc
+  DPPP/BDAIntervalBuffer.cc
+  DPPP/ColumnReader.cc
   DPPP/Counter.cc
   DPPP/Demixer.cc
   DPPP/DPBuffer.cc
@@ -176,6 +188,9 @@ add_library(DPPP_OBJ OBJECT
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
   DPPP/ModelComponentVisitor.cc
+  DPPP/MS.cc
+  DPPP/MSBDAReader.cc
+  DPPP/MSBDAWriter.cc
   DPPP/MSReader.cc
   DPPP/MSUpdater.cc
   DPPP/MSWriter.cc
@@ -194,6 +209,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Simulate.cc
   DPPP/Simulator.cc
   DPPP/SolTab.cc
+  DPPP/SolutionInterval.cc
   DPPP/SourceDBUtil.cc
   DPPP/Split.cc
   DPPP/StationAdder.cc
@@ -203,11 +219,14 @@ add_library(DPPP_OBJ OBJECT
   DPPP/Upsample.cc
   DPPP/UVWCalculator.cc
   DPPP/UVWFlagger.cc
-  ${LOFAR_DEPENDENT_FILES}
+  DPPP/ApplyBeam.cc
+  DPPP/DemixerNew.cc
+  DPPP/DemixInfo.cc
+  DPPP/DemixWorker.cc
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-find_package(AOFlagger 2 REQUIRED)
+find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 add_library(AOFlaggerStep_OBJ OBJECT
@@ -220,7 +239,7 @@ set(EXTRA_LIBRARIES
   ${AOFLAGGER_LIB}
   ${CASACORE_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${PYTHON_LIBRARIES}
+  ${Python3_LIBRARIES}
   ${IDGAPI_LIBRARIES}
   Threads::Threads)
 
@@ -281,89 +300,133 @@ endif()
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_library(dppp_testdyndppp SHARED
-    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT} ${IDGPREDICT_OBJECT}
   )
+  target_link_libraries(dppp_testdyndppp ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
   set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
 endif()
 
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
+  DPPP/test/runtests.cc
+  DPPP/test/unit/mock/MockInput.cc
+  DPPP/test/unit/mock/MockStep.cc
+  DPPP/test/unit/fixtures/fDirectory.cc
   DPPP/test/unit/tApplyCal.cc
   DPPP/test/unit/tApplyCalH5.cc
   DPPP/test/unit/tAverager.cc
   DPPP/test/unit/tBaselineSelection.cc
+  DPPP/test/unit/tBDABuffer.cc
+  DPPP/test/unit/tBDAIntervalBuffer.cc
   # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
   DPPP/test/unit/tFilter.cc
   DPPP/test/unit/tGridInterpolate.cc
-  # DPPP/test/unit/tH5Parm.cc # Failes because sol001 cannot be found
+  # DPPP/test/unit/tH5Parm.cc # Fails because sol001 cannot be found
   DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
+  DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
-  # DPPP/test/unit/tNDPPP.cc # Integration test, not yet working
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
   DPPP/test/unit/tUVWFlagger.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
+  DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
 
-set(RUNTEST_SOURCES
-  DPPP/test/runtests.cc
-  ${TEST_FILENAMES}
-  ${OS_SPECIFIC_TESTS}
-  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+# Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
+if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
+  list(APPEND TEST_FILENAMES
+    Common/test/unit/tMemory.cc
+    DPPP/test/unit/tBDAAverager.cc
+    DPPP/test/unit/tDPInfo.cc
+    DPPP/test/unit/tDPInput.cc
+    DPPP/test/unit/tMSBDAReader.cc
+    DPPP/test/unit/tMSBDAWriter.cc
+    DPPP/test/unit/tScaleDataBDA.cc
+    IDGPredict/test/unit/tDS9FacetFile.cc
+    IDGPredict/test/unit/tIDGPredict.cc)
+else()
+  message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
+endif()
+
+# Add boost dynamic link flag for all test files.
+# https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
+# Without this flag, linking is incorrect and boost performs duplicate delete()
+# calls after running all tests, in the cleanup phase.
+set_source_files_properties(
+  ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
 )
 
-# Untar files needed for some tests. It may be prettier to do this at build time instead of CMake time.
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+add_test(
+  NAME extract_applycal
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz
 )
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_tmp.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP-generic.MS.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+set_tests_properties(
+  extract_applycal
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP applycal
 )
 
-add_executable(runtests EXCLUDE_FROM_ALL ${RUNTEST_SOURCES})
+add_test(
+  NAME extract_NDPPP
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP.in_MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
 
-target_link_libraries(runtests ${EXTRA_LIBRARIES} ${LOFAR_STATION_RESPONSE_LIB})
+add_test(
+  NAME extract_NDPPP_BDA
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_bda.in_MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP_BDA
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
 
-add_test(buildruntests "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target runtests)
-# Add each test as a cmake test. Works only for:
-# - Tests added with BOOST_AUTO_TEST_SUITE and BOOST_AUTO_TEST_CASE
-# - Tests added with BOOST_DATA_TEST_CASE
-foreach(TEST_FILENAME ${TEST_FILENAMES})
-  file(READ ${TEST_FILENAME} TEST_FILE_CONTENTS)
+add_test(
+  NAME extract_NDPPP_generic
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/integration/tNDPPP-generic.MS.tgz
+)
+set_tests_properties(
+  extract_NDPPP_generic
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
 
-  # Extract test suite names
-  string(REGEX MATCHALL "BOOST_AUTO_TEST_CASE\\( *[A-Za-z_0-9]+ *\\)" FOUND_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCHALL "BOOST_DATA_TEST_CASE\\( *[A-Za-z_0-9]+," FOUND_DATA_TESTS ${TEST_FILE_CONTENTS})
-  string(REGEX MATCH "BOOST_AUTO_TEST_SUITE\\( *[A-Za-z_0-9]+ *\\)" TESTSUITE_NAME_FULL ${TEST_FILE_CONTENTS})
+add_test(
+  NAME extract_IDG
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
+)
+set_tests_properties(
+  extract_IDG
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+)
 
-  # Extract testsuite name, since REGEX MATCHALL always stores the entire match.
-  string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TESTSUITE_NAME ${TESTSUITE_NAME_FULL})
+add_executable(
+  unittests EXCLUDE_FROM_ALL
+  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
+  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT}
+  ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+)
+target_link_libraries(unittests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
 
-  foreach(FOUND_TEST ${FOUND_TESTS})
-    # Extract test name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( *([A-Za-z_0-9]+) *\\).*" "\\1" TEST_NAME ${FOUND_TEST})
+add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
+set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
+add_subdirectory(DDECal/test/integration)
 
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
-  endforeach()
-
-  foreach(FOUND_DATA_TEST ${FOUND_DATA_TESTS})
-    # Extract test name, since REGEX MATCHALL always stores the entire match.
-    string(REGEX REPLACE ".*\\( ([A-Za-z_0-9]+)," "\\1" TEST_NAME ${FOUND_DATA_TEST})
-
-    add_test(NAME "${TESTSUITE_NAME}.${TEST_NAME}" COMMAND runtests -t ${TESTSUITE_NAME}/${TEST_NAME} --catch_system_error=yes)
-    set_tests_properties(${TESTSUITE_NAME}.${TEST_NAME} PROPERTIES DEPENDS buildruntests)
-  endforeach()
-endforeach()
+add_test(
+  NAME unittests
+  COMMAND unittests -f JUNIT -k unittests.xml --catch_system_error=yes
+)
+set_tests_properties(
+  unittests PROPERTIES LABELS unit
+  FIXTURES_REQUIRED "unittests;applycal;dppp"
+)
 
 # I'll leave this here as an example how separate test executables could be added
 #add_executable(tMirror EXCLUDE_FROM_ALL

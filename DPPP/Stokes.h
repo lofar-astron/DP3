@@ -21,26 +21,23 @@
 #ifndef DPPP_STOKES_H
 #define DPPP_STOKES_H
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// \brief Complex Stokes vector.
 
 /// @{
 
-class Stokes
-{
-public:
-    Stokes();
+class Stokes {
+ public:
+  Stokes();
 
-    double  I, Q, U, V;
+  double I, Q, U, V;
 };
 
 /// @}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

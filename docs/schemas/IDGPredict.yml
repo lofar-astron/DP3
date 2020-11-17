@@ -1,0 +1,47 @@
+description: >-
+  ""
+inputs:
+  images:
+    default: "[]"
+    type: list
+    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://sourceforge.net/p/wsclean/wiki/ComponentList/>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
+  regions:
+    default: "\"\""
+    type: string
+    doc: DS9 regions file describing the facets for IDG prediction `.`
+  savefacets:
+    default: false
+    type: bool
+    doc: Write out each facet as a fits file (named facet<N>.fits) `.`
+  aterms:
+    default: []
+    type: bool
+    doc: List of aterm names to use `.`
+  saveaterms:
+    default: false
+    type: bool
+    doc: Save the aterms to disk `.`
+  atermkernelsize:
+    default: 16
+    type: integer
+    doc: Kernel size to use for determining aterms. See https://wsclean.readthedocs.io/en/latest/a_term_correction.html?highlight=kernel#kernel-size `.`
+  aterm&#46;type:
+    default: aterms name paramater
+    type: string
+    doc: Use as `atermname.type`, where atermname is the name from the aterms parameter. Type can be one of the following `beam`.
+  beam&#46;frequency_interpolation:
+    default: true
+    type: bool
+    doc: Used in combination with an aterm of type (or name) ``beam`` `.`
+  beam&#46;differential:
+    default: false
+    type: bool
+    doc: Used in combination with an aterm of type (or name) ``beam`` `.`
+  beam&#46;usechannelfreq:
+    default: false
+    type: bool
+    doc: Used in combination with an aterm of type (or name) ``beam`` `.`
+  beam&#46;element_response_model:
+    default: hamaker
+    type: string
+    doc: Used in combination with an aterm of type (or name) ``beam`` `.`

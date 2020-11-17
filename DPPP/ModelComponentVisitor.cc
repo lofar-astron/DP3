@@ -23,14 +23,10 @@
 
 #include "ModelComponentVisitor.h"
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
-ModelComponentVisitor::~ModelComponentVisitor()
-{
-}
+ModelComponentVisitor::~ModelComponentVisitor() {}
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3

@@ -1,0 +1,12 @@
+# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
+fk5
+
+# Facet that covers the center pixel. dl > 0, dm == 0.
+polygon(26.51,31.70, 26.57,34.58, 22.67,34.59, 22.73,31.71)
+
+# For debugging: Facets with increasing dl values.
+#polygon(26.71,31.69, 26.77,34.57, 22.67,34.59, 22.73,31.71)
+#polygon(26.91,31.69, 26.97,34.56, 22.67,34.59, 22.73,31.71)
+#polygon(27.11,31.69, 27.17,34.56, 22.67,34.59, 22.73,31.71)
+#polygon(27.31,31.69, 27.37,34.56, 22.67,34.59, 22.73,31.71)

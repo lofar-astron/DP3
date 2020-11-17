@@ -24,85 +24,82 @@
 #include <string>
 #include <vector>
 
-namespace DP3
-{
+namespace DP3 {
 
-  /// Useful string manipulation methods and classes.
-  namespace StringUtil
-  {
-    /// Split a string into substrings using \c c as the separator character.
-    /// The result may contain empty strings, e.g. when \c str contains two or
-    /// more consecutive occurrences of the separations character.
-    //
-    /// For example:
-    /// \code
-    ///    res = StringUtil::split( "aa,bb,,dd,", ',' )
-    /// \endcode
-    //
-    /// would yield the following array:
-    /// \verbatim
-    ///   res[0] = "aa"
-    ///   res[1] = "bb"
-    ///   res[2] = ""
-    ///   res[3] = "dd"
-    ///   res[4] = ""
-    /// \endverbatim
-    std::vector<std::string> split(const std::string& str, char c);
+/// Useful string manipulation methods and classes.
+namespace StringUtil {
+/// Split a string into substrings using \c c as the separator character.
+/// The result may contain empty strings, e.g. when \c str contains two or
+/// more consecutive occurrences of the separations character.
+//
+/// For example:
+/// \code
+///    res = StringUtil::split( "aa,bb,,dd,", ',' )
+/// \endcode
+//
+/// would yield the following array:
+/// \verbatim
+///   res[0] = "aa"
+///   res[1] = "bb"
+///   res[2] = ""
+///   res[3] = "dd"
+///   res[4] = ""
+/// \endverbatim
+std::vector<std::string> split(const std::string& str, char c);
 
-    /// Tokenize the string \c str using any character in \c delim as a separation character.
-    /// The result does not contain empty strings; consecutive delimiter occurrences count as a single delimiter.
-    /// Any delimiter occurrences at the beginning or end of \c str are ignored.
-    /// 
-    /// For example:
-    /// \code
-    ///    vector<string> tokens = StringUtil::tokenize( " aa\t bb  ", " \t" )
-    /// \endcode
-    //
-    /// would yield the following vector of strings:
-    /// \verbatim
-    ///    tokens[0] = "aa"
-    ///    tokens[1] = "bb"
-    /// \endverbatim
-    std::vector<std::string> tokenize(const std::string& str, const std::string& delims);
+/// Tokenize the string \c str using any character in \c delim as a separation
+/// character. The result does not contain empty strings; consecutive delimiter
+/// occurrences count as a single delimiter. Any delimiter occurrences at the
+/// beginning or end of \c str are ignored.
+///
+/// For example:
+/// \code
+///    vector<string> tokens = StringUtil::tokenize( " aa\t bb  ", " \t" )
+/// \endcode
+//
+/// would yield the following vector of strings:
+/// \verbatim
+///    tokens[0] = "aa"
+///    tokens[1] = "bb"
+/// \endverbatim
+std::vector<std::string> tokenize(const std::string& str,
+                                  const std::string& delims);
 
+/// \brief Functor to compare two strings.
+/// Strings can be compared case sensitive
+/// (\c NORMAL) and case insensitive (\c NOCASE).
+/// \attention This class does not handle locales properly. It does string
+/// comparison the way \c strcmp and \c strcasecmp (or \c stricmp for that
+/// matter) do it.
+class Compare {
+ public:
+  /// String comparison mode.
+  enum Mode { NORMAL, NOCASE };
 
-    /// \brief Functor to compare two strings.
-    /// Strings can be compared case sensitive
-    /// (\c NORMAL) and case insensitive (\c NOCASE).
-    /// \attention This class does not handle locales properly. It does string
-    /// comparison the way \c strcmp and \c strcasecmp (or \c stricmp for that
-    /// matter) do it.
-    class Compare
-    { 
-    public:
-      /// String comparison mode.
-      enum Mode {NORMAL, NOCASE};
+  /// Constructor. Initialize the comparison criterion. Default is "normal"
+  /// case sensitive comparison.
+  Compare(Mode mode = NORMAL) : itsMode(mode) {}
 
-      /// Constructor. Initialize the comparison criterion. Default is "normal"
-      /// case sensitive comparison.
-      Compare(Mode mode=NORMAL) : itsMode(mode) {}
+  /// The comparison operator
+  bool operator()(const std::string& s1, const std::string& s2) const {
+    if (itsMode == NORMAL)
+      return s1 < s2;
+    else
+      return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                                     nocaseCompare);
+  }
 
-      /// The comparison operator
-      bool operator()(const std::string& s1, const std::string& s2) const 
-      {
-	if (itsMode == NORMAL) return s1 < s2;
-	else return lexicographical_compare(s1.begin(), s1.end(),
-					    s2.begin(), s2.end(),
-					    nocaseCompare);
-      }
+ private:
+  /// Helper function to do case insensitive comparison of two chars.
+  static bool nocaseCompare(char c1, char c2) {
+    return toupper(c1) < toupper(c2);
+  }
 
-    private:
-      /// Helper function to do case insensitive comparison of two chars.
-      static bool nocaseCompare(char c1, char c2)
-      {
-	return toupper(c1) < toupper(c2);
-      }
+  /// The current comparison mode.
+  Mode itsMode;
+};
 
-      /// The current comparison mode.
-      Mode itsMode;
-    };
-
-  } // namespace StringUtil
+}  // namespace StringUtil
 
 //
 // formatString(format, ...) --> string up to 10Kb
@@ -120,21 +117,22 @@ const std::string formatlString(const char* format, ...);
 //
 // The function timeString format the given timestamp into a human-readable
 // format. The default format is yyyy-mm-dd hh:mm:ss
-const std::string timeString(time_t     aTime, 
-						bool       gmt = true,
-						const char* format = "%F %T");
+const std::string timeString(time_t aTime, bool gmt = true,
+                             const char* format = "%F %T");
 
 // Skip leading whitespace (blanks and horizontal tabs) starting at st.
 // It returns the position of the first non-whitespace character.
 // It returns end if all whitespace.
 // It can be used in combination with rskipws.
-unsigned int lskipws (const std::string& value, unsigned int st, unsigned int end);
+unsigned int lskipws(const std::string& value, unsigned int st,
+                     unsigned int end);
 
 // Skip trailing whitespace (blanks and horizontal tabs) starting at end.
 // It returns the position after the last non-whitespace character, thus
 // value.substr(st, end-st) extracts the significant value.
 // It returns st if all whitespace.
-unsigned int rskipws (const std::string& value, unsigned int st, unsigned int end);
+unsigned int rskipws(const std::string& value, unsigned int st,
+                     unsigned int end);
 
 // Skip the leading and trailing whitespace and square brackets.
 std::string stripBrackets(const std::string& orgStr);
@@ -143,7 +141,7 @@ std::string stripBrackets(const std::string& orgStr);
 // The quote character is the first character (at position st).
 // Usually the quote character is ' or ", but it could be any other character.
 // An exception is thrown if no ending quote character is found.
-unsigned int skipQuoted (const std::string& str, unsigned int st);
+unsigned int skipQuoted(const std::string& str, unsigned int st);
 
 // Skip past the end of a balanced pair of delimiters where nested pairs
 // are also skipped. Delimiters in quoted parts are ignored.
@@ -153,7 +151,8 @@ unsigned int skipQuoted (const std::string& str, unsigned int st);
 /// <br>An exception is thrown if the delimiters are not balanced, thus if no
 // end delimiter is found before position end.
 /// <br>For example, it will skip something like '[[1,2,3],[4,5,6]]'.
-unsigned int skipBalanced (const std::string& str, unsigned int st, unsigned int end, char endChar);
+unsigned int skipBalanced(const std::string& str, unsigned int st,
+                          unsigned int end, char endChar);
 
 //
 // rtrim(char* CString [,len])
@@ -165,23 +164,22 @@ unsigned int skipBalanced (const std::string& str, unsigned int st, unsigned int
 //
 // NOTE: original string is truncated!
 //
-int32_t rtrim(char*	aCstring, int32_t len = 0, const char* whiteSpace = " \t");
+int32_t rtrim(char* aCstring, int32_t len = 0, const char* whiteSpace = " \t");
 
 //
 // char* ltrim(char*	Cstring)
 //
 // Skip leading spaces. A pointer to the first non-whitespace char is
 // returned. (points into original string)
-char*	ltrim(char*	aCstring, const char* whiteSpace = " \t");
+char* ltrim(char* aCstring, const char* whiteSpace = " \t");
 
 //
 // rtrim(aString)
 //
 // Removes trailing whitespace from the string.
 //
-inline void rtrim(std::string&		aString, const std::string& whiteSpace = " \t")
-{
-	aString = aString.erase(aString.find_last_not_of(whiteSpace)+1);
+inline void rtrim(std::string& aString, const std::string& whiteSpace = " \t") {
+  aString = aString.erase(aString.find_last_not_of(whiteSpace) + 1);
 }
 
 //
@@ -189,9 +187,8 @@ inline void rtrim(std::string&		aString, const std::string& whiteSpace = " \t")
 //
 // Removes leading whitespace from the string.
 //
-inline void ltrim(std::string&		aString, const std::string&	whiteSpace = " \t")
-{
-	aString = aString.erase(0, aString.find_first_not_of(whiteSpace));
+inline void ltrim(std::string& aString, const std::string& whiteSpace = " \t") {
+  aString = aString.erase(0, aString.find_first_not_of(whiteSpace));
 }
 
 /// @name Convert numeric value to string
@@ -206,98 +203,89 @@ inline void ltrim(std::string&		aString, const std::string&	whiteSpace = " \t")
 
 /// @{
 
-inline std::string toString(bool val)
-{
-  return val ? "true" : "false";
+inline std::string toString(bool val) { return val ? "true" : "false"; }
+
+inline std::string toString(char val, const char* fmt = 0) {
+  if (fmt)
+    return formatString(fmt, val);
+  else
+    return formatString("%hhi", val);
 }
 
-inline std::string toString(char val, const char* fmt = 0)
-{
-  if (fmt) return formatString(fmt, val);
-  else return formatString("%hhi", val);
-}
-
-inline std::string toString(unsigned char val, const char* fmt = 0)
-{
+inline std::string toString(unsigned char val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%hhu", val);
 }
 
-inline std::string toString(short val, const char* fmt = 0)
-{
+inline std::string toString(short val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%hi", val);
 }
 
-inline std::string toString(unsigned short val, const char* fmt = 0)
-{
+inline std::string toString(unsigned short val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%hu", val);
 }
 
-inline std::string toString(int val, const char* fmt = 0)
-{
+inline std::string toString(int val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%i", val);
 }
 
-inline std::string toString(unsigned int val, const char* fmt = 0)
-{
+inline std::string toString(unsigned int val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%u", val);
 }
 
-inline std::string toString(long val, const char* fmt = 0)
-{
+inline std::string toString(long val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%li", val);
 }
 
-inline std::string toString(unsigned long val, const char* fmt = 0)
-{
+inline std::string toString(unsigned long val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%lu", val);
 }
 
 #if HAVE_LONG_LONG
-inline std::string toString(long long val, const char* fmt = 0)
-{
+inline std::string toString(long long val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%lli", val);
 }
 
-inline std::string toString(unsigned long long val, const char* fmt = 0)
-{
+inline std::string toString(unsigned long long val, const char* fmt = 0) {
   if (fmt) return formatString(fmt, val);
   return formatString("%llu", val);
 }
 #endif
 
-
-inline std::string toString(float val, const char* fmt = 0)
-{
-  if (fmt) return formatString(fmt, val);
-  else return formatString("%g", val);
+inline std::string toString(float val, const char* fmt = 0) {
+  if (fmt)
+    return formatString(fmt, val);
+  else
+    return formatString("%g", val);
 }
 
-inline std::string toString(double val, const char* fmt = 0)
-{
-  if (fmt) return formatString(fmt, val);
-  else return formatString("%g", val);
+inline std::string toString(double val, const char* fmt = 0) {
+  if (fmt)
+    return formatString(fmt, val);
+  else
+    return formatString("%g", val);
 }
 
 #if HAVE_LONG_DOUBLE
-inline std::string toString(long double val, const char* fmt = 0)
-{
-  if (fmt) return formatString(fmt, val);
-  else return formatString("%Lg", val);
+inline std::string toString(long double val, const char* fmt = 0) {
+  if (fmt)
+    return formatString(fmt, val);
+  else
+    return formatString("%Lg", val);
 }
 #endif
 
 /// @}
 
 /// @name Convert string to numeric value
-// Convert a string to the value of any of the fundamental arithmetic data 
+// Convert a string to the value of any of the fundamental arithmetic data
 // types. Most of the StringTo...() methods provide the user with
 // a means to override the default formatting behaviour by supplying his/her
 // own formatting string, following the well-known <tt>scanf</tt>-like
@@ -310,54 +298,55 @@ inline std::string toString(long double val, const char* fmt = 0)
 /// \attention These functions will be deprecated in a next release.
 /// @{
 
-bool   StringToBool  (const std::string& aString)                   ;
-int16_t  StringToInt16 (const std::string& aString,const char* fmt=0) ;
-uint16_t StringToUint16(const std::string& aString,const char* fmt=0) ;
-int32_t  StringToInt32 (const std::string& aString,const char* fmt=0) ;
-uint32_t StringToUint32(const std::string& aString,const char* fmt=0) ;
-int64_t  StringToInt64 (const std::string& aString,const char* fmt=0) ;
-uint64_t StringToUint64(const std::string& aString,const char* fmt=0) ;
-float  StringToFloat (const std::string& aString,const char* fmt=0) ;
-double StringToDouble(const std::string& aString,const char* fmt=0) ;
+bool StringToBool(const std::string& aString);
+int16_t StringToInt16(const std::string& aString, const char* fmt = 0);
+uint16_t StringToUint16(const std::string& aString, const char* fmt = 0);
+int32_t StringToInt32(const std::string& aString, const char* fmt = 0);
+uint32_t StringToUint32(const std::string& aString, const char* fmt = 0);
+int64_t StringToInt64(const std::string& aString, const char* fmt = 0);
+uint64_t StringToUint64(const std::string& aString, const char* fmt = 0);
+float StringToFloat(const std::string& aString, const char* fmt = 0);
+double StringToDouble(const std::string& aString, const char* fmt = 0);
 
 /// @}
 
 /// @name Strict conversion of string to numeric value
-// Convert a string to the value of any of the fundamental arithmetic data 
+// Convert a string to the value of any of the fundamental arithmetic data
 // types. It checks if the entire string is used for the conversion.
 // An integer value can also be given in hexadecimal format (e.g. 0x123).
 // Leading and trailing whitespace is allowed.
 // It checks if an integer value does not exceed the data type range.
 /// @{
-long          strToLong   (const std::string& aString) ;
-int           strToInt    (const std::string& aString) ;
-int32_t         strToInt32  (const std::string& aString) ;
-int16_t         strToInt16  (const std::string& aString) ;
-unsigned long strToUlong  (const std::string& aString) ;
-unsigned int          strToUint   (const std::string& aString) ;
-uint32_t        strToUint32 (const std::string& aString) ;
-uint16_t        strToUint16 (const std::string& aString) ;
-int64_t         strToInt64  (const std::string& aString) ;
-uint64_t        strToUint64 (const std::string& aString) ;
-float         strToFloat  (const std::string& aString) ;
-double        strToDouble (const std::string& aString) ;
-inline bool   strToBool   (const std::string& aString) 
-  { return StringToBool (aString); }
+long strToLong(const std::string& aString);
+int strToInt(const std::string& aString);
+int32_t strToInt32(const std::string& aString);
+int16_t strToInt16(const std::string& aString);
+unsigned long strToUlong(const std::string& aString);
+unsigned int strToUint(const std::string& aString);
+uint32_t strToUint32(const std::string& aString);
+uint16_t strToUint16(const std::string& aString);
+int64_t strToInt64(const std::string& aString);
+uint64_t strToUint64(const std::string& aString);
+float strToFloat(const std::string& aString);
+double strToDouble(const std::string& aString);
+inline bool strToBool(const std::string& aString) {
+  return StringToBool(aString);
+}
 /// @}
 
 /// @name Manipulate strings containing a array specification
-// Array specifications are often entered by the user with ranges like 3..32,55..58
-// For converting such a string to a real vector the spec must be expanded so that
-// it contains all elements instead of the ranges. 
-// Likewise, when you present a array to the user you often want to show a spec with
-// the ranges instead of all individual elements.
-// See the ParameterSet document for a detailed description of the syntax.
+// Array specifications are often entered by the user with ranges
+// like 3..32,55..58 For converting such a string to a real vector the spec must
+// be expanded so that it contains all elements instead of the ranges. Likewise,
+// when you present a array to the user you often want to show a spec with the
+// ranges instead of all individual elements. See the ParameterSet document for
+// a detailed description of the syntax.
 
 /// @{
 // Given a string 'xx, xx, xx' this utility compacts the string
 // by replacing series with range.
 // Eg. [ lii001, lii002, lii003, lii005 ] --> [ lii001..lii003, lii005 ]
-std::string compactedArrayString(const std::string&	orgStr);
+std::string compactedArrayString(const std::string& orgStr);
 
 // Given a string 'xx..xx, xx' this utility expands the string
 // by replacing ranges with the fill series.
@@ -372,8 +361,8 @@ std::string expandMultString(const std::string&);
 // Apply expandMultString and expandRangeString (in that order) for an array
 // string which must be enclosed in square brackets.
 std::string expandArrayString(const std::string&);
-/// @} 
+/// @}
 
-} // namespace LOFAR
+}  // namespace DP3
 
 #endif

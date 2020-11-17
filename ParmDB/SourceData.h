@@ -31,143 +31,117 @@
 
 namespace DP3 {
 
-  class BlobIStream;
-  class BlobOStream;
-  namespace BBS {
-    class ParmMap;
-  }
+class BlobIStream;
+class BlobOStream;
+namespace BBS {
+class ParmMap;
+}
 
 namespace BBS {
 
-  /// @ingroup ParmDB
-  /// @{
+/// @ingroup ParmDB
+/// @{
 
-  /// @brief Class holding a  data of a source.
-  class SourceData
-  {
-  public:
-    SourceData();
+/// @brief Class holding a  data of a source.
+class SourceData {
+ public:
+  SourceData();
 
-    SourceData (const SourceInfo&, const string& patchName,
-                double ra, double dec);
+  SourceData(const SourceInfo&, const string& patchName, double ra, double dec);
 
-    /// Get the various source parameters.
-    const SourceInfo& getInfo() const
-      { return itsInfo; }
-    const string& getPatchName() const
-      { return itsPatchName; }
-    /// Get right ascension in radians.
-    double getRa() const
-      { return itsRa; }
-    /// Get declination in radians.
-    double getDec() const
-      { return itsDec; }
-    double getI() const
-      { return itsI; }
-    double getQ() const
-      { return itsQ; }
-    double getU() const
-      { return itsU; }
-    double getV() const
-      { return itsV; }
-    /// Get major axis in arcsec.
-    double getMajorAxis() const
-      { return itsMajorAxis; }
-    /// Get minor axis in arcsec.
-    double getMinorAxis() const
-      { return itsMinorAxis; }
-    /// Get orientation in degrees.
-    double getOrientation() const
-      { return itsOrientation; }
-    double getPolarizationAngle() const
-      { return itsPolAngle; }
-    double getPolarizedFraction() const
-      { return itsPolFrac; }
-    double getRotationMeasure() const
-      { return itsRM; }
-    const std::vector<double>& getSpectralTerms() const
-      { return itsSpTerms; }
+  /// Get the various source parameters.
+  const SourceInfo& getInfo() const { return itsInfo; }
+  const string& getPatchName() const { return itsPatchName; }
+  /// Get right ascension in radians.
+  double getRa() const { return itsRa; }
+  /// Get declination in radians.
+  double getDec() const { return itsDec; }
+  double getI() const { return itsI; }
+  double getQ() const { return itsQ; }
+  double getU() const { return itsU; }
+  double getV() const { return itsV; }
+  /// Get major axis in arcsec.
+  double getMajorAxis() const { return itsMajorAxis; }
+  /// Get minor axis in arcsec.
+  double getMinorAxis() const { return itsMinorAxis; }
+  /// Get orientation in degrees.
+  double getOrientation() const { return itsOrientation; }
+  double getPolarizationAngle() const { return itsPolAngle; }
+  double getPolarizedFraction() const { return itsPolFrac; }
+  double getRotationMeasure() const { return itsRM; }
+  const std::vector<double>& getSpectralTerms() const { return itsSpTerms; }
 
-    /// Set the various source parameters.
-    ///@{
-    void setInfo (const SourceInfo& info)
-      { itsInfo = info; }
-    void setPatchName (const string& patchName)
-      { itsPatchName = patchName; }
-    void setRa (double ra)
-      { itsRa = ra; }
-    void setDec (double dec)
-      { itsDec = dec; }
-    void setI (double i)
-      { itsI = i; }
-    void setQ (double q)
-      { itsQ = q; }
-    void setU (double u)
-      { itsU = u; }
-    void setV (double v)
-      { itsV = v; }
-    void setMajorAxis (double majorAxis)
-      { itsMajorAxis = majorAxis; }
-    void setMinorAxis (double minorAxis)
-      { itsMinorAxis = minorAxis; }
-    void setOrientation (double orientation)
-      { itsOrientation = orientation; }
-    void setPolarizationAngle (double polarizationAngle)
-      { itsPolAngle = polarizationAngle; }
-    void setPolarizedFraction (double polarizedFraction)
-      { itsPolFrac =  polarizedFraction; }
-    void setRotationMeasure (double potationMeasure)
-      { itsRM = potationMeasure; }
-    void setSpectralTerms (const std::vector<double>& spectralTerms)
-      { itsSpTerms = spectralTerms; }
-    ///@}
+  /// Set the various source parameters.
+  ///@{
+  void setInfo(const SourceInfo& info) { itsInfo = info; }
+  void setPatchName(const string& patchName) { itsPatchName = patchName; }
+  void setRa(double ra) { itsRa = ra; }
+  void setDec(double dec) { itsDec = dec; }
+  void setI(double i) { itsI = i; }
+  void setQ(double q) { itsQ = q; }
+  void setU(double u) { itsU = u; }
+  void setV(double v) { itsV = v; }
+  void setMajorAxis(double majorAxis) { itsMajorAxis = majorAxis; }
+  void setMinorAxis(double minorAxis) { itsMinorAxis = minorAxis; }
+  void setOrientation(double orientation) { itsOrientation = orientation; }
+  void setPolarizationAngle(double polarizationAngle) {
+    itsPolAngle = polarizationAngle;
+  }
+  void setPolarizedFraction(double polarizedFraction) {
+    itsPolFrac = polarizedFraction;
+  }
+  void setRotationMeasure(double potationMeasure) { itsRM = potationMeasure; }
+  void setSpectralTerms(const std::vector<double>& spectralTerms) {
+    itsSpTerms = spectralTerms;
+  }
+  ///@}
 
-    /// Set the parameters from a ParmMap object.
-    void setParms (const ParmMap& defaultParameters);
+  /// Set the parameters from a ParmMap object.
+  void setParms(const ParmMap& defaultParameters);
 
-    /// Get the parameters as a ParmMap object.
-    void getParms (ParmMap& parms) const;
+  /// Get the parameters as a ParmMap object.
+  void getParms(ParmMap& parms) const;
 
-    /// Write the source data into a blob stream.
-    void writeSource (BlobOStream&) const;
+  /// Write the source data into a blob stream.
+  void writeSource(BlobOStream&) const;
 
-    /// Read the source data from a blob stream.
-    void readSource (BlobIStream&);
+  /// Read the source data from a blob stream.
+  void readSource(BlobIStream&);
 
-    /// Print the source data.
-    void print (std::ostream&) const;
+  /// Print the source data.
+  void print(std::ostream&) const;
 
-  private:
-    /// Set a parameter.
-    /// If defined, its value is taken from the map.
-    /// Otherwise the default value is used.
-    void setParm (const ParmMap& parms, const string& name,
-                  double defValue, double& value);
+ private:
+  /// Set a parameter.
+  /// If defined, its value is taken from the map.
+  /// Otherwise the default value is used.
+  void setParm(const ParmMap& parms, const string& name, double defValue,
+               double& value);
 
-    /// Add a parm to the ParmMap.
-    void makeParm (ParmMap& parms, const string& name,
-                   double value, bool pertRel=true) const;
+  /// Add a parm to the ParmMap.
+  void makeParm(ParmMap& parms, const string& name, double value,
+                bool pertRel = true) const;
 
-    SourceInfo     itsInfo;
-    string         itsPatchName;
-    double         itsRa;            ///< radians
-    double         itsDec;           ///< radians
-    double         itsI;
-    double         itsQ;
-    double         itsU;
-    double         itsV;
-    double         itsMajorAxis;     ///< arcsec
-    double         itsMinorAxis;     ///< arcsec
-    double         itsOrientation;   ///< degrees
-    double         itsPolAngle;
-    double         itsPolFrac;
-    double         itsRM;
-    std::vector<double> itsSpTerms;
-  };
+  SourceInfo itsInfo;
+  string itsPatchName;
+  double itsRa;   ///< radians
+  double itsDec;  ///< radians
+  double itsI;
+  double itsQ;
+  double itsU;
+  double itsV;
+  double itsMajorAxis;    ///< arcsec
+  double itsMinorAxis;    ///< arcsec
+  double itsOrientation;  ///< degrees
+  double itsPolAngle;
+  double itsPolFrac;
+  double itsRM;
+  std::vector<double> itsSpTerms;
+};
 
-  /// @}
+/// @}
 
-} // namespace BBS
-} // namespace LOFAR
+}  // namespace BBS
+}  // namespace DP3
 
 #endif

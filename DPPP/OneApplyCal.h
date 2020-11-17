@@ -39,109 +39,117 @@
 #include <mutex>
 
 namespace DP3 {
-  namespace DPPP {
-    /// @brief DPPP step class to apply a calibration correction to the data
+namespace DPPP {
+/// @brief DPPP step class to apply a calibration correction to the data
 
-    /// This class is a DPStep class applying calibration parameters to the data.
-    /// It only applies one correction.
+/// This class is a DPStep class applying calibration parameters to the data.
+/// It only applies one correction.
 
-    class OneApplyCal: public DPStep
-    {
-    public:
-      /// Define the shared pointer for this type.
-      typedef std::shared_ptr<OneApplyCal> ShPtr;
+class OneApplyCal : public DPStep {
+ public:
+  /// Define the shared pointer for this type.
+  typedef std::shared_ptr<OneApplyCal> ShPtr;
 
-      enum class InterpolationType {NEAREST, LINEAR};
+  enum class InterpolationType { NEAREST, LINEAR };
 
-      enum CorrectType {GAIN, FULLJONES, TEC, CLOCK, ROTATIONANGLE, SCALARPHASE, PHASE,
-                        ROTATIONMEASURE, SCALARAMPLITUDE, AMPLITUDE};
+  enum CorrectType {
+    GAIN,
+    FULLJONES,
+    TEC,
+    CLOCK,
+    ROTATIONANGLE,
+    SCALARPHASE,
+    PHASE,
+    ROTATIONMEASURE,
+    SCALARAMPLITUDE,
+    AMPLITUDE
+  };
 
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      OneApplyCal (DPInput*, const ParameterSet&, const std::string& prefix,
-                const std::string& defaultPrefix,
-                bool substep=false, std::string predictDirection="");
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  OneApplyCal(DPInput*, const ParameterSet&, const std::string& prefix,
+              const std::string& defaultPrefix, bool substep = false,
+              std::string predictDirection = "");
 
-      virtual ~OneApplyCal();
+  virtual ~OneApplyCal();
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer& buffer);
-      
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer& buffer);
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      bool invert() {
-        return itsInvert;
-      }
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      /// Read parameters from the associated parmdb and store them in itsParms
-      void updateParms (const double bufStartTime);
+  bool invert() { return itsInvert; }
 
-      /// If needed, show the flag counts.
-      virtual void showCounts (std::ostream&) const;
+ private:
+  /// Read parameters from the associated parmdb and store them in itsParms
+  void updateParms(const double bufStartTime);
 
-      void initDataArrays();
+  /// If needed, show the flag counts.
+  virtual void showCounts(std::ostream&) const;
 
-      /// Check the number of polarizations in the parmdb or h5parm
-      unsigned int nPol(const std::string& parmName);
+  void initDataArrays();
 
-      /// Replace values by NaN on places where weight is zero
-      static void applyFlags(std::vector<double>& values,
-                             const std::vector<double>& weights);
+  /// Check the number of polarizations in the parmdb or h5parm
+  unsigned int nPol(const std::string& parmName);
 
-      static std::string correctTypeToString(CorrectType);
-      static CorrectType stringToCorrectType(const string&);
+  /// Replace values by NaN on places where weight is zero
+  static void applyFlags(std::vector<double>& values,
+                         const std::vector<double>& weights);
 
-      DPInput*         itsInput;
-      DPBuffer         itsBuffer;
-      string           itsName;
-      string           itsParmDBName;
-      bool             itsUseH5Parm;
-      string           itsSolSetName;
-      std::shared_ptr<BBS::ParmFacade> itsParmDB;
-      H5Parm           itsH5Parm;
-      string           itsSolTabName;
-      H5Parm::SolTab   itsSolTab;
-      H5Parm::SolTab   itsSolTab2; ///< in the case of full Jones, amp and phase table need to be open
-      CorrectType      itsCorrectType;
-      bool             itsInvert;
-      InterpolationType itsInterpolationType;
-      unsigned int             itsTimeSlotsPerParmUpdate;
-      double           itsSigmaMMSE;
-      bool             itsUpdateWeights;
+  static std::string correctTypeToString(CorrectType);
+  static CorrectType stringToCorrectType(const string&);
 
-      unsigned int             itsCount; ///< number of steps
+  DPInput* itsInput;
+  DPBuffer itsBuffer;
+  string itsName;
+  string itsParmDBName;
+  bool itsUseH5Parm;
+  string itsSolSetName;
+  std::shared_ptr<BBS::ParmFacade> itsParmDB;
+  H5Parm itsH5Parm;
+  string itsSolTabName;
+  H5Parm::SolTab itsSolTab;
+  H5Parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp and phase
+                              ///< table need to be open
+  CorrectType itsCorrectType;
+  bool itsInvert;
+  InterpolationType itsInterpolationType;
+  unsigned int itsTimeSlotsPerParmUpdate;
+  double itsSigmaMMSE;
+  bool itsUpdateWeights;
 
-      /// Expressions to search for in itsParmDB
-      std::vector<casacore::String>   itsParmExprs;
+  unsigned int itsCount;  ///< number of steps
 
-      /// parameters, numparms, antennas, time x frequency
-      casacore::Cube<casacore::DComplex> itsParms;
-      unsigned int            itsTimeStep; ///< time step within current chunk
-      unsigned int            itsNCorr;
-      double          itsTimeInterval;
-      double          itsLastTime; ///< last time of current chunk
-      FlagCounter     itsFlagCounter;
-      bool            itsUseAP; ///< use ampl/phase or real/imag
-      hsize_t         itsDirection;
-      NSTimer         itsTimer;
+  /// Expressions to search for in itsParmDB
+  std::vector<casacore::String> itsParmExprs;
 
-      static std::mutex theirHDF5Mutex; ///< Prevent parallel access to HDF5
-    };
+  /// parameters, numparms, antennas, time x frequency
+  casacore::Cube<casacore::DComplex> itsParms;
+  unsigned int itsTimeStep;  ///< time step within current chunk
+  unsigned int itsNCorr;
+  double itsTimeInterval;
+  double itsLastTime;  ///< last time of current chunk
+  FlagCounter itsFlagCounter;
+  bool itsUseAP;  ///< use ampl/phase or real/imag
+  hsize_t itsDirection;
+  NSTimer itsTimer;
 
-  } // end namespace
-}
+  static std::mutex theirHDF5Mutex;  ///< Prevent parallel access to HDF5
+};
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

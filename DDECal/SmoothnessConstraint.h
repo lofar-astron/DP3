@@ -19,39 +19,38 @@
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
-#include "../Common/ParallelFor.h"
+#include <aocommon/parallelfor.h>
 
 #ifndef SMOOTHNESS_CONSTRAINT_H
 #define SMOOTHNESS_CONSTRAINT_H
 
-class SmoothnessConstraint : public Constraint
-{
-public:
+class SmoothnessConstraint : public Constraint {
+ public:
   typedef std::complex<double> dcomplex;
   typedef KernelSmoother<dcomplex, double> Smoother;
-  
+
   SmoothnessConstraint(double bandwidthHz);
-  
+
   std::vector<Constraint::Result> Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double, std::ostream* statStream) final override;
-  
-  void SetWeights(const std::vector<double> &weights) final override {
+      std::vector<std::vector<dcomplex>>& solutions, double,
+      std::ostream* statStream) final override;
+
+  void SetWeights(const std::vector<double>& weights) final override {
     _weights = weights;
   }
-  
+
   void Initialize(const double* frequencies);
-  
-  virtual void InitializeDimensions(size_t nAntennas,
-                                    size_t nDirections,
+
+  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
                                     size_t nChannelBlocks) final override;
-                                    
-  struct FitData
-  {
-    FitData(const double* frequencies, size_t n, Smoother::KernelType kernelType, double kernelBandwidth)
-      : smoother(frequencies, n, kernelType, kernelBandwidth),
-      data(n), weight(n)
-    { }
-    
+
+  struct FitData {
+    FitData(const double* frequencies, size_t n,
+            Smoother::KernelType kernelType, double kernelBandwidth)
+        : smoother(frequencies, n, kernelType, kernelBandwidth),
+          data(n),
+          weight(n) {}
+
     Smoother smoother;
     std::vector<dcomplex> data;
     std::vector<double> weight;
@@ -60,8 +59,7 @@ public:
   std::vector<double> _frequencies, _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
-  std::unique_ptr<DP3::ParallelFor<size_t>> _loop;
+  std::unique_ptr<aocommon::ParallelFor<size_t>> _loop;
 };
 
 #endif
-

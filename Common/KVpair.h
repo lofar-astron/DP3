@@ -34,46 +34,58 @@ namespace DP3 {
 /// @{
 
 /// Implements a KV pair as a pair<string, string>.
-class KVpair : public std::pair<std::string, std::string>
-{
-public:
-	// Note: while this class is not PVSS specific, it is mostly (only?)
-	// used by the PVSSGateway, which uses valueType to map the enum values
-	// below to PVSS types to query (write).
-	// If you add types at all without PVSS support, document that below,
-	// so that PVSS users can avoid them.
-	KVpair(const std::string& aKey, const std::string& aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, const char*   aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, bool			 aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, int			 aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, double		 aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, float		 aValue, bool genTimestamp = false, bool timestampInKeyname = false);
-	KVpair(const std::string& aKey, time_t		 aValue, bool genTimestamp = false, bool timestampInKeyname = false);
+class KVpair : public std::pair<std::string, std::string> {
+ public:
+  // Note: while this class is not PVSS specific, it is mostly (only?)
+  // used by the PVSSGateway, which uses valueType to map the enum values
+  // below to PVSS types to query (write).
+  // If you add types at all without PVSS support, document that below,
+  // so that PVSS users can avoid them.
+  KVpair(const std::string& aKey, const std::string& aValue,
+         bool genTimestamp = false, bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, const char* aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, bool aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, int aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, double aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, float aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
+  KVpair(const std::string& aKey, time_t aValue, bool genTimestamp = false,
+         bool timestampInKeyname = false);
 
-	KVpair();
-	~KVpair();
+  KVpair();
+  ~KVpair();
 
-	// Copying is allowed
-	KVpair(const KVpair&	that);
-	KVpair& operator=(const KVpair& that);
-	inline bool operator==(const KVpair& that) const { 
-		return (first==that.first && second==that.second && timestamp==that.timestamp && valueType==that.valueType); 
-	}
+  // Copying is allowed
+  KVpair(const KVpair& that);
+  KVpair& operator=(const KVpair& that);
+  inline bool operator==(const KVpair& that) const {
+    return (first == that.first && second == that.second &&
+            timestamp == that.timestamp && valueType == that.valueType);
+  }
 
-	// data-members
-	double	timestamp;	// store also as double
-	int16_t	valueType;	
+  // data-members
+  double timestamp;  // store also as double
+  int16_t valueType;
 
-	enum {
-		VT_UNKNOWN = 0, VT_STRING, VT_BOOL, VT_INT, VT_DOUBLE, VT_FLOAT, VT_TIME_T
-	};
+  enum {
+    VT_UNKNOWN = 0,
+    VT_STRING,
+    VT_BOOL,
+    VT_INT,
+    VT_DOUBLE,
+    VT_FLOAT,
+    VT_TIME_T
+  };
 };
 
 /// @} addgroup
 
-std::ostream& operator<< (std::ostream& os, const DP3::KVpair& kv);
+std::ostream& operator<<(std::ostream& os, const DP3::KVpair& kv);
 
-
-} // namespace LOFAR
+}  // namespace DP3
 
 #endif

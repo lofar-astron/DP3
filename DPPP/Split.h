@@ -31,50 +31,50 @@
 
 namespace DP3 {
 
-  class ParameterSet;
+class ParameterSet;
 
-  namespace DPPP {
-    /// @brief DPPP step class to Split visibilities from a source model
+namespace DPPP {
+/// @brief DPPP step class to Split visibilities from a source model
 
-    /// This class is an empty DPStep subclass to use as implementation template
+/// This class is an empty DPStep subclass to use as implementation template
 
-    class Split: public DPStep
-    {
-    public:
-      /// Construct the object.
-      /// Parameters are obtained from the parset using the given prefix.
-      Split (DPInput*, const ParameterSet&, const string& prefix);
+class Split : public DPStep {
+ public:
+  /// Construct the object.
+  /// Parameters are obtained from the parset using the given prefix.
+  Split(DPInput*, const ParameterSet&, const string& prefix);
 
-      virtual ~Split();
+  virtual ~Split();
 
-      /// Process the data.
-      /// It keeps the data.
-      /// When processed, it invokes the process function of the next step.
-      virtual bool process (const DPBuffer&);
+  /// Process the data.
+  /// It keeps the data.
+  /// When processed, it invokes the process function of the next step.
+  virtual bool process(const DPBuffer&);
 
-      /// Finish the processing of this step and subsequent steps.
-      virtual void finish();
+  /// Finish the processing of this step and subsequent steps.
+  virtual void finish();
 
-      virtual void addToMS (const string&);
+  virtual void addToMS(const string&);
 
-      /// Update the general info.
-      virtual void updateInfo (const DPInfo&);
+  /// Update the general info.
+  virtual void updateInfo(const DPInfo&);
 
-      /// Show the step parameters.
-      virtual void show (std::ostream&) const;
+  /// Show the step parameters.
+  virtual void show(std::ostream&) const;
 
-      /// Show the timings.
-      virtual void showTimings (std::ostream&, double duration) const;
+  /// Show the timings.
+  virtual void showTimings(std::ostream&, double duration) const;
 
-    private:
-      string           itsName;
+ private:
+  string itsName;
 
-      std::vector<std::string>   itsReplaceParms; ///< The names of the parameters that differ along the substeps
-      std::vector<DPStep::ShPtr> itsSubsteps;
-      bool             itsAddedToMS; ///< Used in addToMS to prevent recursion
-    };
+  std::vector<std::string> itsReplaceParms;  ///< The names of the parameters
+                                             ///< that differ along the substeps
+  std::vector<DPStep::ShPtr> itsSubsteps;
+  bool itsAddedToMS;  ///< Used in addToMS to prevent recursion
+};
 
-  } // end namespace
-}
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

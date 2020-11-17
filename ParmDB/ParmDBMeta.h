@@ -34,63 +34,56 @@ class BlobIStream;
 
 namespace BBS {
 
-  /// @ingroup ParmDB
-  /// @{
+/// @ingroup ParmDB
+/// @{
 
-  /// @brief Meta information for the name and type of a ParmDB
-  class ParmDBMeta
-  {
-  public:
-    ParmDBMeta();
+/// @brief Meta information for the name and type of a ParmDB
+class ParmDBMeta {
+ public:
+  ParmDBMeta();
 
-    /// Construct from a given type and file/table name.
-    /// The type can be empty, casa or blob.
-    /// If empty, the code doing the open will detect the exact type. At the
-    /// moment that can only be used for SourceDB.
-    ParmDBMeta (const std::string& type, const std::string& tableName);
+  /// Construct from a given type and file/table name.
+  /// The type can be empty, casa or blob.
+  /// If empty, the code doing the open will detect the exact type. At the
+  /// moment that can only be used for SourceDB.
+  ParmDBMeta(const std::string& type, const std::string& tableName);
 
-    void setSQLMeta (const std::string& dbName, const std::string& userName,
-        const std::string& dbPwd, const std::string& hostName);
+  void setSQLMeta(const std::string& dbName, const std::string& userName,
+                  const std::string& dbPwd, const std::string& hostName);
 
-    const std::string& getType() const
-      { return itsType; }
+  const std::string& getType() const { return itsType; }
 
-    const std::string& getTableName() const
-      { return itsTableName; }
+  const std::string& getTableName() const { return itsTableName; }
 
-    const std::string& getDBName() const
-      { return itsDBName; }
-      
-    const std::string& getUserName() const
-      { return itsUserName; }
-      
-    const std::string& getDBPwd() const
-      { return itsDBPwd; }
-    
-    const std::string& getHostName() const
-      { return itsHostName; }
-    
-    /// Write the object into a blob.
-    friend BlobOStream& operator<< (BlobOStream&, const ParmDBMeta&);
+  const std::string& getDBName() const { return itsDBName; }
 
-    /// Read the object from a blob.
-    friend BlobIStream& operator>> (BlobIStream&, ParmDBMeta&);
+  const std::string& getUserName() const { return itsUserName; }
 
-  private:
-    std::string itsType;
-    std::string itsTableName;
-    /// these options are used for sql databases
-    ///@{
-    std::string itsDBName;
-    std::string itsUserName;
-    std::string itsDBPwd;
-    std::string itsHostName;
-    ///@}
-  };
+  const std::string& getDBPwd() const { return itsDBPwd; }
 
-  /// @}
+  const std::string& getHostName() const { return itsHostName; }
 
-} // namespace BBS
-} // namespace LOFAR
+  /// Write the object into a blob.
+  friend BlobOStream& operator<<(BlobOStream&, const ParmDBMeta&);
+
+  /// Read the object from a blob.
+  friend BlobIStream& operator>>(BlobIStream&, ParmDBMeta&);
+
+ private:
+  std::string itsType;
+  std::string itsTableName;
+  /// these options are used for sql databases
+  ///@{
+  std::string itsDBName;
+  std::string itsUserName;
+  std::string itsDBPwd;
+  std::string itsHostName;
+  ///@}
+};
+
+/// @}
+
+}  // namespace BBS
+}  // namespace DP3
 
 #endif

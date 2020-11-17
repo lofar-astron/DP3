@@ -30,13 +30,11 @@
 
 #include <vector>
 
-namespace DP3
-{
-namespace DPPP
-{
+namespace DP3 {
+namespace DPPP {
 
 /// Subtract visibilities from a buffer after weighting by mixing coefficients.
-/// 
+///
 /// \param[in]   nBaseline
 /// Number of baselines.
 /// \param[in]   nChannel
@@ -57,7 +55,7 @@ void subtract(size_t nBaseline, size_t nChannel,
               const_cursor<dcomplex> model, const_cursor<dcomplex> weight,
               std::vector<float>& sumAmpl);
 
-} // namespace DPPP
-} // namespace LOFAR
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

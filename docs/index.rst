@@ -18,6 +18,7 @@ DPPP comes with quite some predefined steps, but it is possible to plugin arbitr
   :hidden:
 
   self
+  commands
 
 .. toctree::
   :maxdepth: 2

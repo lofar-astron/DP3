@@ -27,35 +27,36 @@
 #include <iostream>
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
-    /// @brief This class contains the flag to choose between cout/cerr and logging
-    /// system.
-    class DPLogger
-    {
-    public:
-      static bool useLogger;
-    };
-  }
-}
+/// @brief This class contains the flag to choose between cout/cerr and logging
+/// system.
+class DPLogger {
+ public:
+  static bool useLogger;
+};
+}  // namespace DPPP
+}  // namespace DP3
 
 /// Log an informational message.
-#define DPLOG_INFO_STR(stream)       \
-  std::cout << stream << std::endl;
+#define DPLOG_INFO_STR(stream) std::cout << stream << std::endl;
 
 /// Log a fatal message.
-#define DPLOG_WARN_STR(stream)       \
-    std::cerr << stream << std::endl;
+#define DPLOG_WARN_STR(stream) std::cerr << stream << std::endl;
 
 /// Log an informational message.
-#define DPLOG_INFO(msg, removeEndl)    \
-  std::string str(msg);                \
-  if (removeEndl  &&  str.size() > 0  &&  str[str.size()-1] == '\n') { \
-    str = str.substr(0, str.size()-1); \
-  }                                    \
+#define DPLOG_INFO(msg, removeEndl)                                  \
+  std::string str(msg);                                              \
+  if (removeEndl && str.size() > 0 && str[str.size() - 1] == '\n') { \
+    str = str.substr(0, str.size() - 1);                             \
+  }                                                                  \
   std::cout << str << std::endl;
 
-#define LOGCOUT(msg) \
-  { std::ostringstream ostr; ostr<<msg; printf("%s\n", ostr.str().c_str()); }
+#define LOGCOUT(msg)                    \
+  {                                     \
+    std::ostringstream ostr;            \
+    ostr << msg;                        \
+    printf("%s\n", ostr.str().c_str()); \
+  }
 
 #endif
