@@ -3,7 +3,17 @@
 cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0074 NEW)
 
-project(DP3)
+# Set version number and project name.
+set(DP3_VERSION 5.0.0)
+if(DP3_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")
+  set(DP3_VERSION_MAJOR "${CMAKE_MATCH_1}")
+  set(DP3_VERSION_MINOR "${CMAKE_MATCH_2}")
+  set(DP3_VERSION_PATCH "${CMAKE_MATCH_3}")
+else()
+  message(FATAL_ERROR "Failed to parse DP3_VERSION='${DP3_VERSION}'")
+endif()
+
+project(DP3 VERSION ${DP3_VERSION})
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
@@ -50,7 +60,6 @@ include_directories(${CASACORE_INCLUDE_DIR})
 find_package(Threads REQUIRED)
 
 find_package(IDGAPI NO_MODULE QUIET)
-
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   include_directories(${IDGAPI_INCLUDE_DIRS})
   set(HAVE_IDG TRUE)
@@ -75,17 +84,19 @@ set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
-if(NOT EVERYBEAM_INCLUDE_DIR)
-  message(FATAL_ERROR "EveryBeam include file (EveryBeam/load.h) not found: please install https://git.astron.nl/RD/EveryBeam")
-endif()
-find_library(EVERYBEAM_LIB everybeam)
-if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
-  include_directories(${EVERYBEAM_INCLUDE_DIR})
-  message(STATUS "EveryBeam library found.")
-else()
-  message(FATAL_ERROR "EveryBeam library not found: please install https://git.astron.nl/RD/EveryBeam")
-endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+# We could use find_package(EveryBeam 0.1.0 REQUIRED), 
+# however conditions below make it somewhat more explicit
+find_package(EveryBeam)
+if(${EVERYBEAM_FOUND})
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.1.0" OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.2.0")
+    message(FATAL_ERROR "DP3 needs EveryBeam version 0.1.x, but found version ${EveryBeam_VERSION}")
+  endif()
+include_directories(${EVERYBEAM_INCLUDE_DIR})
+else(${EVERYBEAM_FOUND})
+  message(FATAL_ERROR "DP3 requires EveryBeam, but EveryBeam was not found. \
+    Please install https://git.astron.nl/RD/EveryBeam and make sure that \
+    EveryBeam is added to the CMAKE_PREFIX_PATH")
+endif(${EVERYBEAM_FOUND})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
