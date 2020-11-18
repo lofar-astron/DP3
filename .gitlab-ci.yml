@@ -6,16 +6,12 @@ stages:
   - publish
   - pages
 
-.common: {tags: []}
-
 build-base:
   stage: prepare
   image: docker:stable
   services:
   - docker:dind
-  extends: .common
   script:
-  - echo ${CI_REGISTRY}
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
   - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
@@ -24,7 +20,6 @@ build-no-idg:
   stage: build
   needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -42,7 +37,6 @@ build-debug:
   stage: build
   needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
@@ -57,7 +51,6 @@ build-lofar-release:
   image: docker:stable
   services:
   - docker:dind
-  extends: .common
   needs: ["build-base"]
   script:
   - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
@@ -65,7 +58,6 @@ build-lofar-release:
 build-doc:
   stage: build
   image: docker:stable
-  extends: .common
   needs: []
   before_script:
   - apk update
@@ -87,7 +79,6 @@ linting:
   stage: linting
   needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   before_script:
     - pip3 install clang-format==9.0.0
   script:
@@ -97,18 +88,17 @@ unit-test:
   stage: test
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   before_script:
     - pip3 install gcovr
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
-    - ctest -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -L unit |& tee ctest.out
+    - ctest -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
-    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
   artifacts:
     paths: 
       - build/run-unit.json
@@ -121,17 +111,16 @@ integration-test:
   stage: test
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   before_script:
     - pip3 install gcovr h5py
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
-    - ctest -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -L integration |& tee ctest.out
+    - ctest -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
   artifacts:
     paths: 
       - build/run-integration.json
@@ -139,7 +128,6 @@ integration-test:
 publish-doc:
   stage: publish
   image: docker:stable
-  extends: .common
   needs: ["build-doc"]
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
@@ -159,7 +147,6 @@ publish-doc:
 pages:
   stage: pages
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  extends: .common
   needs: ["build-debug", "unit-test", "integration-test"]
   before_script:
     - apt-get update
@@ -168,8 +155,8 @@ pages:
   script:
     - mkdir -p .public/build/reports
     - cd .public
-    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
-    - gcovr -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
     - cp ../build/unittests.xml build/reports/unit-tests.xml
     # Create and upload GitLab badges
     - chmod -R 700 ../CI
