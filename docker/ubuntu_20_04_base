@@ -1,5 +1,8 @@
 FROM ubuntu:20.04
 
+ENV EVERYBEAM_VERSION_TAG=v0.1.0
+ENV IDG_VERSION_TAG=0.8
+
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     apt-get install -y \
     libboost-python-dev libcfitsio-dev python3-dev python3-numpy cmake wget \
@@ -21,7 +24,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 # Build IDG
     && mkdir /idg && cd /idg \
     && git clone https://git.astron.nl/RD/idg.git src \
-    && ( cd src/ && git checkout 08b6b922ed224555c5f70acf035f855b05fb8551 ) \
+    && ( cd src/ && git checkout ${IDG_VERSION_TAG} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && ninja install \
@@ -29,7 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 # Build EveryBeam
     && mkdir /everybeam && cd /everybeam \
     && git clone https://git.astron.nl/RD/EveryBeam.git src \
-    && ( cd src/ && git checkout v0.1.0 ) \
+    && ( cd src/ && git checkout ${EVERYBEAM_VERSION_TAG} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     && ninja install \
