@@ -1,4 +1,4 @@
-# Retrived from https://gitlab.com/ska-telescope/ci-metrics-utilities/
+# Retrieved from https://gitlab.com/ska-telescope/ci-metrics-utilities/
 
 """Script to collect and parse CI metrics."""
 import sys

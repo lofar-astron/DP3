@@ -1,28 +1,5 @@
-# Retrived from https://gitlab.com/ska-telescope/ci-metrics-utilities/
-"""Create badges for GitLab metric collection.
-
-Run in .gitlab-ci.yml with:
-    ```
-    create ci metrics:
-        stage: .post
-        when: always
-        tags:
-            - <tag>
-        script:
-            - apt-get -y update
-            - apt-get install -y curl --no-install-recommends
-            - curl -s https://gitlab.com/ska-telescope/ci-metrics-utilities/raw/master/scripts/ci-badges-func.sh | sh # pylint: disable=line-too-long
-            # Gitlab CI badges creation: END
-        allow_failure: true
-        artifacts:
-            paths:
-            - ./build
-    ```
-or
-    ```
-    curl https://gitlab.com/ska-telescope/ci-metrics-utilities/raw/master/scripts/create_badges.py | python3 # pylint: disable=line-too-long
-    ```
-"""
+# Retrieved from https://gitlab.com/ska-telescope/ci-metrics-utilities/
+"""Create badges for GitLab metric collection."""
 import sys
 import json
 from datetime import datetime
