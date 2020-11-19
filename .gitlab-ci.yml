@@ -13,13 +13,13 @@ build-base:
   - docker:dind
   script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
-  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH -f ./docker/ubuntu_20_04_base .
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
 
 build-no-idg:
   stage: build
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -36,7 +36,7 @@ build-no-idg:
 build-debug:
   stage: build
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
@@ -53,7 +53,7 @@ build-lofar-release:
   - docker:dind
   needs: ["build-base"]
   script:
-  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
+  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
 
 build-doc:
   stage: build
@@ -78,7 +78,7 @@ build-doc:
 linting:
   stage: linting
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   before_script:
     - pip3 install clang-format==9.0.0
   script:
@@ -87,7 +87,7 @@ linting:
 unit-test:
   stage: test
   needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   before_script:
     - pip3 install gcovr
   script:
@@ -110,7 +110,7 @@ unit-test:
 integration-test:
   stage: test
   needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   before_script:
     - pip3 install gcovr h5py
   script:
@@ -146,7 +146,7 @@ publish-doc:
 
 pages:
   stage: pages
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
   needs: ["build-debug", "unit-test", "integration-test"]
   before_script:
     - apt-get update
