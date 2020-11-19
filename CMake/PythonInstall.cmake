@@ -3,25 +3,8 @@
 # Install Python source files and byte-compile them in the directory
 # ${PYTHON_INSTALL_DIR}/${install_dir}.
 
-# Copyright (C) 2008-2009
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, softwaresupport@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# $Id: PythonInstall.cmake 32905 2015-11-17 15:31:54Z schaap $
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Search for the Python interpreter.
 # No. We expect the toplevel CMakeLists.txt to have found python already!
@@ -33,7 +16,7 @@ if(Python3_EXECUTABLE)
     "from distutils.sysconfig import get_python_lib"
     "from os.path import join"
     "print(join(
-       get_python_lib(plat_specific=True, standard_lib=True, prefix=''), 
+       get_python_lib(plat_specific=True, standard_lib=True, prefix=''),
        'site-packages'))"
   )
   execute_process(
@@ -44,14 +27,14 @@ if(Python3_EXECUTABLE)
   if(_pyerr)
     message(FATAL_ERROR "Python command failed:\n${_pyerr}")
   endif(_pyerr)
-  
+
   if(NOT DEFINED PYTHON_BUILD_DIR)
     set(_PRINT_PYTHON_DIRS TRUE)
   endif()
-  
-  set(PYTHON_BUILD_DIR "${CMAKE_BINARY_DIR}/${_pydir}" CACHE PATH 
+
+  set(PYTHON_BUILD_DIR "${CMAKE_BINARY_DIR}/${_pydir}" CACHE PATH
     "Build directory for Python extensions" FORCE)
-  set(PYTHON_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${_pydir}" CACHE PATH 
+  set(PYTHON_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${_pydir}" CACHE PATH
     "Installation directory for Python extensions" FORCE)
 
   if(_PRINT_PYTHON_DIRS)
@@ -106,8 +89,8 @@ macro(python_install)
   foreach(_py ${_py_files})
     get_filename_component(_py_path ${_py} PATH)
     get_filename_component(_py_abs ${_py} ABSOLUTE)
-    
-    # check if _py is a path in CMAKE_BINARY_DIR. If so, then it is most likely a configured_file. 
+
+    # check if _py is a path in CMAKE_BINARY_DIR. If so, then it is most likely a configured_file.
     # then strip the CMAKE_CURRENT_BINARY_DIR prefix.
     if(${_py} MATCHES "^(${CMAKE_CURRENT_BINARY_DIR})")
       string(REGEX REPLACE "^(${CMAKE_CURRENT_BINARY_DIR}/)" "" _py "${_py}")
@@ -125,7 +108,7 @@ macro(python_install)
         "destdir = os.environ.get('DESTDIR','')"
         "print('-- Byte-compiling: %s${_inst_dir}/${_py}' % destdir)"
         "py_compile.compile('%s${DESTDIR}${_inst_dir}/${_py}' % destdir, doraise=True)")
-      install(CODE 
+      install(CODE
         "execute_process(COMMAND ${PYTHON_EXECUTABLE} -c \"${_py_code}\"
                        RESULT_VARIABLE _result)
        if(NOT _result EQUAL 0)
@@ -141,8 +124,8 @@ macro(python_install)
     set(_init_dir "${_init_dir}/${_dir}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E touch
       "${PYTHON_BUILD_DIR}${_init_dir}/__init__.py")
-    install(CODE 
-      "execute_process(COMMAND ${CMAKE_COMMAND} -E touch 
+    install(CODE
+      "execute_process(COMMAND ${CMAKE_COMMAND} -E touch
         \"\$ENV{DESTDIR}${PYTHON_INSTALL_DIR}${_init_dir}/__init__.py\")")
   endforeach(_dir ${_dir_list})
 

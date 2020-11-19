@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Locate the executables and srcdir (script created by cmake's configure_file).
 INIT=testInit.sh
 if [ ! -f $INIT ]; then
@@ -85,4 +88,3 @@ echo; echo "Test filter"; echo
 cmd="$dpppexe checkparset=1 msin=tNDPPP-generic.MS msout=tNDPPP-filtered.MS steps=[filter,gaincal] gaincal.sourcedb=tNDPPP-generic.MS/sky gaincal.parmdb=tNDPPP-generic.MS/inst-filter.h5 filter.baseline='!CS001HBA0&&*' gaincal.baseline='!CS002HBA1,RS305HBA&&*' gaincal.caltype=diagonal"
 echo $cmd
 $cmd
-

@@ -1,23 +1,7 @@
 # __init__.py: Top level .py file for python DPPP step
-# Copyright (C) 2015
-# ASTRON (Netherlands Institute for Radio Astronomy)
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
-# This file is part of the LOFAR software suite.
-# The LOFAR software suite is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# The LOFAR software suite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-#
-# $Id: __init__.py 23074 2012-12-03 07:51:29Z diepen $
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 from lofar.pythondppp._pythondppp import _DPStepBase
 import numpy as np
@@ -112,7 +96,7 @@ class DPStep(_DPStepBase):
         It should call processNext to process the next DPPP step on the
         output of this step.
 
-        """        
+        """
         raise ValueError("A class derived from DPStep must implement process")
 
     def finish(self):
@@ -122,12 +106,12 @@ class DPStep(_DPStepBase):
         buffered and the last buffers have not been (fully) processed yet.
         In that case finish also has to call processNext.
 
-        """        
+        """
         pass
-    
+
     def show(self):
         """ Show the parset parameters.
- 
+
         It should return a string (with newlines) that will be
         printed by the C++ layer.
         An empty string is not printed.
@@ -168,7 +152,7 @@ class DPStep(_DPStepBase):
 
         This function will only be needed in very special cases
         where dedicated info needs to be added to the MS.
-        
+
         """
         pass
 
@@ -269,4 +253,3 @@ rray")
     def makeArrayUVWIn(self):
         """ Make a numpy array for the input UVW coordinates. """
         return np.empty([self.itsNBlIn, 3], dtype='float64')
-

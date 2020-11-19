@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 set -e # Stop on any error
 
 INIT=testInit.sh

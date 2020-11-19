@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Locate the executables and srcdir (script created by cmake's configure_file).
 INIT=testInit.sh
 if [ ! -f $INIT ]; then

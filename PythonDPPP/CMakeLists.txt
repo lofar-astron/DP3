@@ -1,10 +1,13 @@
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # We set Boost-python as required in toplevel build file.
 if(TRUE)
 
   include(PythonInstall)
 
   add_library(_pythondppp MODULE PythonDPPP.cc)
-  set_target_properties(_pythondppp PROPERTIES 
+  set_target_properties(_pythondppp PROPERTIES
     SOVERSION ${DPPP_GLOBAL_SOVERSION}
     PREFIX ""
     LIBRARY_OUTPUT_DIRECTORY ${PYTHON_BUILD_DIR}/lofar/pythondppp)
@@ -26,6 +29,6 @@ if(TRUE)
   python_install(__init__.py DESTINATION lofar/pythondppp)
 
   find_package(Casacore COMPONENTS python3)
-  
+
 #  add_subdirectory(test)
 endif()
