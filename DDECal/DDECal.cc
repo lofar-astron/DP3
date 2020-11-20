@@ -269,8 +269,12 @@ void DDECal::initializeColumnReaders(const ParameterSet& parset,
                                      const string& prefix) {
   std::vector<std::string> cols = parset.getStringVector(
       prefix + "modeldatacolumns", std::vector<std::string>());
+
+  // The statement below allows DDECal to be backwards compatible, e.g.
+  // DPPP msin.modelcolumn=MY_MODEL_DATA ddecal.usemodelcolumn=true
+  // msin=tDDECal.MS msout=.
   if (cols.size() == 0 && parset.getBool(prefix + "usemodelcolumn", false)) {
-    cols.push_back("MODEL_DATA");
+    cols.push_back(parset.getString("msin.modelcolumn", "MODEL_DATA"));
   }
   for (string& col : cols) {
     if (cols.size() == 1) {
