@@ -269,6 +269,9 @@ void DDECal::initializeColumnReaders(const ParameterSet& parset,
                                      const string& prefix) {
   std::vector<std::string> cols = parset.getStringVector(
       prefix + "modeldatacolumns", std::vector<std::string>());
+  if (cols.size() == 0 && parset.getBool(prefix + "usemodelcolumn", false)) {
+    cols.push_back("MODEL_DATA");
+  }
   for (string& col : cols) {
     if (cols.size() == 1) {
       itsDirections.emplace_back(1, "pointing");
@@ -300,7 +303,12 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
       IDGPredict::GetFacets(regionFilename, readers.first.front());
 
   for (size_t i = 0; i < facets.size(); ++i) {
-    itsDirections.emplace_back(1, "dir" + std::to_string(i));
+    std::string dir_name = "dir" + std::to_string(i);
+    if (!facets[i].Direction().empty()) {
+      dir_name = facets[i].Direction();
+    }
+    itsDirections.emplace_back(1, dir_name);
+
     itsSteps.push_back(std::make_shared<IDGPredict>(
         *itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
     setModelNextSteps(itsSteps.back(), facets[i].Direction(), parset, prefix);
