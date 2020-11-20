@@ -98,10 +98,10 @@ bool AddNoise::process(const DPBuffer& buf) {
 
   // Set the Polynomial coefficients
   double* coeff;
-  if (antennaSet.compare("LBA") || antennaSet.compare("LBA_ALL"))
+  if (antennaSet.compare("LBA") == 0 || antennaSet.compare("LBA_ALL") == 0)
     coeff = coeffs_all_LBA;
-  if (antennaSet.compare("LBA_INNER")) coeff = coeffs_inner_LBA;
-  if (antennaSet.compare("LBA_OUTER")) coeff = coeffs_outer_LBA;
+  if (antennaSet.compare("LBA_INNER") == 0) coeff = coeffs_inner_LBA;
+  if (antennaSet.compare("LBA_OUTER") == 0) coeff = coeffs_outer_LBA;
 
   // Set the number of frequency channels
   int n_freq = getInfo().chanFreqs().size();
@@ -129,8 +129,8 @@ bool AddNoise::process(const DPBuffer& buf) {
   double sefd1;
   double sefd2;
 
-  //if (antennaSet.compare("LBA") || antennaSet.compare("LBA_INNER") || antennaSet.compare("LBA_OUTER") ||
-  //    antennaSet.compare("LBA_ALL")) {
+  //if (antennaSet.compare("LBA") == 0 || antennaSet.compare("LBA_INNER") == 0 || antennaSet.compare("LBA_OUTER") == 0 ||
+  //    antennaSet.compare("LBA_ALL") == 0) {
   if (antennaSet.substr(0, 3) == "LBA") {
     for (int ibase = ibegin; ibase < iend; ibase++) {
       for (int ifreq = 0; ifreq < n_freq; ifreq++) {
