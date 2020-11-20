@@ -25,6 +25,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "AddNoise.h"
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "Averager.h"
@@ -333,6 +334,8 @@ DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
       step = std::make_shared<DDECal>(reader, parset, prefix);
     } else if (type == "interpolate") {
       step = std::make_shared<Interpolate>(reader, parset, prefix);
+    } else if (type == "addnoise") {
+      step = std::make_shared<AddNoise>(reader, parset, prefix);
     } else if (type == "out" || type == "output" || type == "msout") {
       step = makeOutputStep(reader, parset, prefix, currentMSName,
                             lastStep->outputs() == DPStep::MSType::BDA);

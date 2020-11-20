@@ -1,0 +1,1 @@
+cmake .. -DCFITSIO_INCLUDE_DIR="/homes/gheller/Work/cfitsio-3.48/build/include"
