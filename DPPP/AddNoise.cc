@@ -45,6 +45,7 @@ AddNoise::AddNoise(DPInput* input, const ParameterSet& parset,
                    const string& prefix)
     : itsInput(input) {
   mode = parset.getInt(prefix + "mode", 0);
+  factor = parset.getDouble(prefix + "factor", 1.0);
 }
 
 AddNoise::~AddNoise() {}
@@ -128,15 +129,16 @@ bool AddNoise::process(const DPBuffer& buf) {
   double sefd1;
   double sefd2;
 
-  if (antennaSet.compare("LBA") || antennaSet.compare("LBA_INNER") || antennaSet.compare("LBA_OUTER") ||
-      antennaSet.compare("LBA_ALL")) {
+  //if (antennaSet.compare("LBA") || antennaSet.compare("LBA_INNER") || antennaSet.compare("LBA_OUTER") ||
+  //    antennaSet.compare("LBA_ALL")) {
+  if (antennaSet.substr(0, 3) == "LBA") {
     for (int ibase = ibegin; ibase < iend; ibase++) {
       for (int ifreq = 0; ifreq < n_freq; ifreq++) {
         nu = chan_freq(ifreq);
         sefd = coeff[0] + coeff[1] * nu + coeff[2] * pow(nu, 2.0) +
                coeff[3] * pow(nu, 3.0) + coeff[4] * pow(nu, 4.0) +
                coeff[5] * pow(nu, 5.0);
-        stddev = eta * sefd;
+        stddev = factor * sefd / eta;
         stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
         std::normal_distribution<double> distribution(0.0, stddev);
 
@@ -176,7 +178,7 @@ bool AddNoise::process(const DPBuffer& buf) {
                 coeff2[3] * pow(nu, 3.0) + coeff2[4] * pow(nu, 4.0) +
                 coeff2[5] * pow(nu, 5.0);
         sefd = sqrt(sefd1 * sefd2);
-        stddev = eta * sefd;
+        stddev = factor * sefd / eta;
         stddev = stddev / sqrt(2.0 * exposure * chan_width[ifreq]);
         std::normal_distribution<double> distribution(0.0, stddev);
 

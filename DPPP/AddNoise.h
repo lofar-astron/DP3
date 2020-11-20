@@ -96,6 +96,7 @@ class AddNoise : public DPStep {
       -4.722267097362212e-19, 1.251625317661630e-27, -1.236074872829482e-36};
   /// system efficiency: roughly 1.0
   double eta = 0.95;
+  double factor;
 };
 
 }  // namespace DPPP
