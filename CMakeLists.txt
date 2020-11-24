@@ -63,8 +63,10 @@ include_directories(${CASACORE_INCLUDE_DIR})
 find_package(Threads REQUIRED)
 
 find_package(IDGAPI NO_MODULE QUIET)
-if(${IDGAPI_FOUND})
-  if(${IDGAPI_VERSION} VERSION_LESS "0.8")
+
+if(IDGAPI_FOUND)
+  # Throw error if IDG version < 0.8 or version not provided at all
+  if((IDGAPI_VERSION VERSION_LESS "0.8") OR (NOT DEFINED IDGAPI_VERSION))
     message(FATAL_ERROR "IDGAPI was found, but DP3 requires IDGAPI to have version >= 0.8. "
     "Please compile IDG repository at a version >= 0.8")
   endif()
