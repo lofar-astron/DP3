@@ -110,6 +110,8 @@
 #include "../Common/StringUtil.h"
 #include "../Common/StreamUtil.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include <string>  // for getline
 #include <iostream>
 #include <fstream>
@@ -120,8 +122,6 @@
 #include <casacore/casa/Inputs/Input.h>
 #include <casacore/casa/BasicSL/Constants.h>
 #include <casacore/casa/Utilities/Regex.h>
-
-#include <boost/algorithm/string/case_conv.hpp>
 
 using namespace std;
 using namespace casacore;
@@ -642,7 +642,8 @@ SearchInfo getSearchInfo(const string& center, const string& radius,
     searchInfo.search = false;
   } else {
     searchInfo.search = true;
-    vector<string> pos = StringUtil::split(center, ',');
+    vector<string> pos;
+    boost::algorithm::split(pos, center, boost::is_any_of(","));
     if (pos.size() != 2)
       throw std::runtime_error("center not specified as ra,dec");
     searchInfo.ra = string2pos(pos, 0, -1, -1, -1, -1, true);
@@ -655,7 +656,8 @@ SearchInfo getSearchInfo(const string& center, const string& radius,
     if (radius.empty()) {
       double raw, decw;
       searchInfo.asCone = false;
-      pos = StringUtil::split(width, ',');
+      pos.clear();
+      boost::algorithm::split(pos, width, boost::is_any_of(","));
       if (pos.size() != 1 && pos.size() != 2)
         throw std::runtime_error("width should be specified as 1 or 2 values");
       raw = string2pos(pos, 0, -1, -1, -1, -1, true);
@@ -734,7 +736,8 @@ void readShapelet(const string& fileName, Array<double>& coeff, double& scale) {
   string line;
   getInLine(file, line);  // ra dec
   getInLine(file, line);  // order scale
-  vector<string> parts = StringUtil::split(line, ' ');
+  vector<string> parts;
+  boost::algorithm::split(parts, line, boost::is_any_of(" "));
   if (parts.size() != 2)
     throw std::runtime_error("Expected 2 values in shapelet line " + line);
   int order = string2int(parts, 0, 0);
@@ -745,7 +748,8 @@ void readShapelet(const string& fileName, Array<double>& coeff, double& scale) {
   double* coeffData = coeff.data();
   for (unsigned int i = 0; i < coeff.size(); ++i) {
     getInLine(file, line);  // index coeff
-    vector<string> parts = StringUtil::split(line, ' ');
+    vector<string> parts;
+    boost::algorithm::split(parts, line, boost::is_any_of(" "));
     if (parts.size() != 2)
       throw std::runtime_error("Expected 2 values in shapelet line " + line);
     if (string2int(parts, 0, -1) != int(i))
@@ -1175,8 +1179,7 @@ int main(int argc, char* argv[]) {
     // filename means reading from the catalog file itself.
     if (!format.empty() && format[0] == '<') {
       // Skip optional whitespace.
-      uInt st = 1;
-      st = lskipws(format, st, format.size());
+      uInt st = lskipws(format, 1, format.size());
       // Read format from file.
       format = readFormat(format.substr(st), in);
     }

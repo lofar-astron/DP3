@@ -455,8 +455,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   DP3::ParameterSet parset;
-  parset.add("freqstep", DP3::toString(navgchan));
-  parset.add("timestep", DP3::toString(navgtime));
+  parset.add("freqstep", std::to_string(navgchan));
+  parset.add("timestep", std::to_string(navgtime));
   DPStep::ShPtr step2 = DPRun::findStepCtor("TestDynDPPP")(in, parset, "");
   DPStep::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
