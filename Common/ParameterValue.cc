@@ -16,8 +16,8 @@ namespace DP3 {
 ParameterValue::ParameterValue(const std::string& value, bool trim)
     : itsValue(value) {
   if (trim) {
-    unsigned int st = lskipws(0, itsValue.size());
-    unsigned int end = rskipws(st, itsValue.size());
+    unsigned int st = lskipws(itsValue, 0, itsValue.size());
+    unsigned int end = rskipws(itsValue, st, itsValue.size());
     if (st > 0 || end < itsValue.size()) {
       itsValue = itsValue.substr(st, end - st);
     }
@@ -33,7 +33,7 @@ std::vector<ParameterValue> ParameterValue::splitValue(
   // Allocate result.
   // Empty result if only whitespace left.
   std::vector<ParameterValue> result;
-  st = lskipws(st, last);
+  st = lskipws(itsValue, st, last);
   if (st == last) {
     return result;
   }

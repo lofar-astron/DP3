@@ -262,8 +262,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int startchan,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add("startchan", DP3::toString(startchan));
-  parset.add("nchan", DP3::toString(nchanout) + "+nchan-nchan");
+  parset.add("startchan", std::to_string(startchan));
+  parset.add("nchan", std::to_string(nchanout) + "+nchan-nchan");
   DPStep::ShPtr step2(new Filter(in, parset, ""));
   DPStep::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, nbl, startchan, nchanout, flag));
@@ -281,8 +281,8 @@ void test2(int ntime, int nbl, int nchan, int ncorr, int startchan,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add("startchan", DP3::toString(startchan) + "+nchan-nchan");
-  parset.add("nchan", DP3::toString(nchanout));
+  parset.add("startchan", std::to_string(startchan) + "+nchan-nchan");
+  parset.add("nchan", std::to_string(nchanout));
   // This removes the first baseline.
   parset.add("baseline", "[[rs01.s01,rs*]]");
   DPStep::ShPtr step2(new Filter(in, parset, ""));
