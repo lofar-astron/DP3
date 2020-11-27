@@ -443,8 +443,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add("freqstep", std::to_string(navgchan));
-  parset.add("timestep", std::to_string(navgtime));
+  parset.add("freqstep", DP3::toString(navgchan));
+  parset.add("timestep", DP3::toString(navgtime));
   DPStep::ShPtr step2(new Averager(in, parset, ""));
   DPStep::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
@@ -460,8 +460,8 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add("freqresolution", std::to_string(freqresolution) + frequnit);
-  parset.add("timeresolution", std::to_string(timeresolution));
+  parset.add("freqresolution", DP3::toString(freqresolution) + frequnit);
+  parset.add("timeresolution", DP3::toString(timeresolution));
   DPStep::ShPtr step2(new Averager(in, parset, ""));
 
   if (!frequnit.empty()) {

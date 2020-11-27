@@ -8,7 +8,7 @@
 #include "DPLogger.h"
 #include "Exceptions.h"
 
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <casacore/casa/Utilities/Regex.h>
 
@@ -119,8 +119,7 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
     Matrix<bool> sel(BaselineSelect::convert(msName, itsStrBL, os));
     // Show possible messages about unknown stations.
     if (!os.str().empty()) {
-      vector<string> messages;
-      boost::algorithm::split(messages, os.str(), boost::is_any_of("\n"));
+      vector<string> messages = StringUtil::split(os.str(), '\n');
       for (size_t i = 0; i < messages.size(); ++i) {
         DPLOG_WARN_STR(messages[i]);
       }
