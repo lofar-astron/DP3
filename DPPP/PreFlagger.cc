@@ -28,7 +28,6 @@
 #include <casacore/measures/Measures/MCEpoch.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/algorithm/string/trim.hpp>
 
 #include <iostream>
 #include <stack>
@@ -1124,7 +1123,7 @@ void PreFlagger::PSet::getValue(const string& str, double& value,
   // See if a unit is given at the end.
   String v(str);
   // Remove possible trailing blanks.
-  boost::algorithm::trim_right(v);
+  rtrim(v);
   Regex regex("[a-zA-Z]+$");
   string::size_type pos = v.index(regex);
   if (pos != String::npos) {

@@ -16,8 +16,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-#include <boost/algorithm/string/trim.hpp>
-
 #include <iostream>
 #include <iomanip>
 
@@ -364,7 +362,7 @@ double Averager::getFreqHz(const string& freqstr) {
   // See if a unit is given at the end.
   String v(freqstr);
   // Remove possible trailing blanks.
-  boost::algorithm::trim_right(v);
+  rtrim(v);
   Regex regex("[a-zA-Z]+$");
   string::size_type pos = v.index(regex);
   if (pos != String::npos) {

@@ -198,11 +198,12 @@ void ParameterSetImpl::readFile(const std::string& theFilename,
   // Try to pen the file
   paramFile.open(theFilename.c_str(), std::ifstream::in);
   if (!paramFile) {
-    throw APSException("Unable to open file " + theFilename);
+    throw APSException(
+        formatString("Unable to open file %s", theFilename.c_str()));
   }
 
   if (paramFile.eof()) {
-    throw APSException("File " + theFilename + " is empty");
+    throw APSException(formatString("file %s is empty", theFilename.c_str()));
   }
 
   readStream(paramFile, prefix, merge);
@@ -319,7 +320,7 @@ ParameterSetImpl::const_iterator ParameterSetImpl::findKV(
 
   if (iter == end()) {
     if (doThrow) {
-      throw APSException("Key " + aKey + " unknown");
+      throw APSException(formatString("Key %s unknown", aKey.c_str()));
     }
   } else {
     itsAskedParms.insert(aKey);
@@ -441,7 +442,8 @@ void ParameterSetImpl::writeFile(const std::string& theFilename,
                  std::ofstream::out |
                      (append ? std::ofstream::app : std::ofstream::trunc));
   if (!paramFile) {
-    throw APSException("Unable to open file " + theFilename);
+    throw APSException(
+        formatString("Unable to open file %s", theFilename.c_str()));
   }
 
   // Write all the pairs to the file
