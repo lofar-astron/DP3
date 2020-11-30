@@ -7,8 +7,10 @@ configure_file(testInit.sh.in testInit.sh)
 # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead of
 # '../../../../DP3/DPPP/test/integration/tApplyBeam.sh.
 # (Using 'RESULT', fatal errors won't occur on systems without symlink support.)
-file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
-     RESULT DUMMY_RESULT SYMBOLIC)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
+  file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
+       RESULT DUMMY_RESULT SYMBOLIC)
+endif()
 
 set(INTEGRATION_TESTS
   tDDECal
