@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-ENV EVERYBEAM_VERSION_TAG=v0.1.0
+ENV EVERYBEAM_VERSION_TAG=v0.1.1
 ENV IDG_VERSION_TAG=0.8
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \

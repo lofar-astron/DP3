@@ -96,12 +96,12 @@ set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-# We could use find_package(EveryBeam 0.1.0 REQUIRED),
+# We could use find_package(EveryBeam 0.1.1 REQUIRED),
 # however conditions below make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.1.0" OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.2.0")
-    message(FATAL_ERROR "DP3 needs EveryBeam version 0.1.x, but found version ${EveryBeam_VERSION}")
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.1.1" OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.2.0")
+    message(FATAL_ERROR "DP3 needs EveryBeam version 0.1.x - with x > 0 - but found version ${EveryBeam_VERSION}")
   endif()
 include_directories(${EVERYBEAM_INCLUDE_DIR})
 else(${EVERYBEAM_FOUND})
