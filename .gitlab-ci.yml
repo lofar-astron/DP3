@@ -62,8 +62,7 @@ build-doc:
   before_script:
   - apk update
   - apk add doxygen cmake ninja python3 py3-pip
-  - python3 -m pip install --user --upgrade pip
-  - python3 -m pip install autosemver==0.5.5 jsonschema2rst sphinx sphinx-rtd-theme
+  - python3 -m pip install autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
   script:
   - mkdir build && cd build
   - cmake -G Ninja ../docs
