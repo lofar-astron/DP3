@@ -118,18 +118,6 @@ class ParameterValue {
   std::vector<ParameterValue> splitValue(unsigned int st,
                                          unsigned int last) const;
 
-  /// Return the position of the first non-whitespace character in itsValue
-  /// starting at st.
-  unsigned int lskipws(unsigned int st, unsigned int end) const {
-    return DP3::lskipws(itsValue, st, end);
-  }
-
-  /// Return the position after the last non-whitespace character in itsValue
-  /// back from end.
-  unsigned int rskipws(unsigned int st, unsigned int end) const {
-    return DP3::rskipws(itsValue, st, end);
-  }
-
   /// Return the substring with left and right whitespace removed.
   ParameterValue substr(int st, int end) const {
     return ParameterValue(itsValue.substr(st, end - st));

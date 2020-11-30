@@ -6,6 +6,8 @@
 // Always #include <lofar_config.h> first!
 #include "StringUtil.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include <cstring>
 #include <cstdarg>
 #include <cstdio>
@@ -24,26 +26,6 @@ enum rangeElementEnum { PARENTHESIS, ASTERISK, DOTDOT };
 typedef std::map<std::string, rangeElementEnum> rangeElementTable;
 typedef rangeElementTable::const_iterator rangeElementLookup;
 
-std::vector<std::string> StringUtil::split(const std::string& s, char c) {
-  std::vector<std::string> v;
-  std::string::size_type i, j;
-  std::string substring;
-  i = j = 0;
-  while (j != std::string::npos) {
-    j = s.find(c, i);
-    if (j == std::string::npos) {
-      substring = s.substr(i);
-    } else {
-      substring = s.substr(i, j - i);
-    }
-    ltrim(substring);
-    rtrim(substring);
-    v.push_back(substring);
-    i = j + 1;
-  }
-  return (v);
-}
-
 std::vector<std::string> StringUtil::tokenize(const std::string& str,
                                               const std::string& delims) {
   std::vector<std::string> tokens;
@@ -60,12 +42,9 @@ std::vector<std::string> StringUtil::tokenize(const std::string& str,
   return tokens;
 }
 
-//
 // formatString(format, ...) --> string up to 10Kb
 //
-// Define a global function the accepts printf like arguments and returns
-// a string.
-//
+// Function that accepts printf like arguments and returns a string.
 const std::string formatString(const char* format, ...) {
   char tmp_cstring[10240];
   va_list ap;
@@ -75,46 +54,6 @@ const std::string formatString(const char* format, ...) {
   va_end(ap);
 
   return std::string(tmp_cstring);
-}
-
-//
-// formatlString(format, ...) --> string up to 100Kb
-//
-// Define a global function the accepts printf like arguments and returns
-// a string.
-//
-const std::string formatlString(const char* format, ...) {
-  char tmp_cstring[102400];
-  va_list ap;
-
-  va_start(ap, format);
-  vsnprintf(tmp_cstring, sizeof(tmp_cstring), format, ap);
-  va_end(ap);
-
-  return std::string(tmp_cstring);
-}
-
-//
-// timeString(aTime [,format]) --> string
-//
-// Define a global function that convert a timestamp into a human-readable
-// format.
-//
-const std::string timeString(time_t aTime, bool gmt, const char* format) {
-  char theTimeString[256];
-  struct tm tm;
-
-  if (gmt) {
-    gmtime_r(&aTime, &tm);
-  } else {
-    localtime_r(&aTime, &tm);
-  }
-  if (strftime(theTimeString, sizeof(theTimeString), format, &tm) == 0) {
-    strncpy(theTimeString, "unk timestamp", sizeof(theTimeString));
-    theTimeString[sizeof(theTimeString) - 1] = '\0';  // defensive
-  }
-
-  return (theTimeString);
 }
 
 unsigned int lskipws(const std::string& value, unsigned int st,
@@ -133,43 +72,7 @@ unsigned int rskipws(const std::string& value, unsigned int st,
   return end;
 }
 
-//
-// rtrim(char* CString [,len=0])
-//
-// Skip trailing spaces. If len of string is already known at invocation
-// it may be given thus avoiding a relative expensive strlen call.
-//
-// NOTE: original string is truncated!
-//
-int32_t rtrim(char* aCstring, int32_t len, const char* whiteSpace) {
-  if (!aCstring || !(*aCstring)) {  // aCstring must be valid
-    return (0);
-  }
-
-  if (!len || aCstring[len] != '\0') {  // len unknown or wrong?
-    len = strlen(aCstring);             // recalculate it.
-  }
-  --len;  // set on last char
-
-  while ((len >= 0) && (strchr(whiteSpace, aCstring[len]))) {
-    aCstring[len--] = '\0';
-  }
-
-  return (len + 1);
-}
-
-//
-// char* ltrim(char*	Cstring)
-//
-// skip leading spaces. A pointer to the first non-whitespace char is
-// returned.
-char* ltrim(char* aCstring, const char* whiteSpace) {
-  aCstring += strspn(aCstring, whiteSpace);
-
-  return (aCstring);
-}
-
-bool StringToBool(const std::string& aString) {
+bool strToBool(const std::string& aString) {
   char firstChar = aString.c_str()[0];
   if ((firstChar == 't') || (firstChar == 'T') || (firstChar == '1') ||
       (firstChar == 'Y') || (firstChar == 'y'))
@@ -180,88 +83,6 @@ bool StringToBool(const std::string& aString) {
     return (false);
 
   throw std::runtime_error(aString + " is not a boolean value");
-}
-
-int16_t StringToInt16(const std::string& aString, const char* fmt) {
-  int16_t theShort;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theShort)
-           : sscanf(aString.c_str(), "%hd", &theShort)) != 1) {
-    throw std::runtime_error(aString + " is not an short value");
-  }
-
-  return (theShort);
-}
-
-uint16_t StringToUint16(const std::string& aString, const char* fmt) {
-  uint16_t theUshort;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theUshort)
-           : sscanf(aString.c_str(), "%hu", &theUshort)) != 1) {
-    throw std::runtime_error(aString + " is not an unsigned short value");
-  }
-
-  return (theUshort);
-}
-
-int32_t StringToInt32(const std::string& aString, const char* fmt) {
-  int32_t theInt;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theInt)
-           : sscanf(aString.c_str(), "%d", &theInt)) != 1) {
-    throw std::runtime_error(aString + " is not an integer value");
-  }
-  return (theInt);
-}
-
-uint32_t StringToUint32(const std::string& aString, const char* fmt) {
-  uint32_t theUint;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theUint)
-           : sscanf(aString.c_str(), "%u", &theUint)) != 1) {
-    throw std::runtime_error(aString + " is not an unsigned int value");
-  }
-
-  return (theUint);
-}
-
-#if HAVE_LONG_LONG
-int64 StringToInt64(const std::string& aString, const char* fmt) {
-  int64 theLong;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theLong)
-           : sscanf(aString.c_str(), "%lld", &theLong)) != 1) {
-    throw std::runtime_error(aString + " is not a long integer value");
-  }
-
-  return (theLong);
-}
-
-uint64 StringToUint64(const std::string& aString, const char* fmt) {
-  uint64 theUlong;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theUlong)
-           : sscanf(aString.c_str(), "%llu", &theUlong)) != 1) {
-    throw std::runtime_error(aString +
-                             " is not an unsigned long integer value");
-  }
-
-  return (theUlong);
-}
-#endif
-
-float StringToFloat(const std::string& aString, const char* fmt) {
-  float theFloat;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theFloat)
-           : sscanf(aString.c_str(), "%g", &theFloat)) != 1) {
-    throw std::runtime_error(aString + " is not a float value");
-  }
-
-  return (theFloat);
-}
-
-double StringToDouble(const std::string& aString, const char* fmt) {
-  double theDouble;
-  if ((fmt ? sscanf(aString.c_str(), fmt, &theDouble)
-           : sscanf(aString.c_str(), "%lg", &theDouble)) != 1) {
-    throw std::runtime_error(aString + " is not a double value");
-  }
-
-  return (theDouble);
 }
 
 long strToLong(const std::string& aString) {
@@ -301,7 +122,7 @@ int strToInt(const std::string& aString) {
 int32_t strToInt32(const std::string& aString) {
   long val = strToLong(aString);
   if (sizeof(int32_t) != sizeof(long)) {
-    if (val < long(-32768) * 65536 || val <= 2147483647L)
+    if (val < long(-32768) * 65536 || val > 2147483647L)
       throw std::runtime_error(std::to_string(val) +
                                " is outside int32_t range");
   }
@@ -321,6 +142,11 @@ unsigned long strToUlong(const std::string& aString) {
   int end = rskipws(aString, st, aString.size());
   char* endPtr;
   unsigned long val;
+  // For negative numbers, strtoul does not raise an error:
+  // It uses unsigned integer wraparound rules.
+  if (str[st] == '-') {
+    throw std::runtime_error(aString + " is not a positive value");
+  }
   // Clear errno since strtoul does not do it.
   errno = 0;
   // We don't want octal values, so use base 10 unless a hex value is given.
@@ -370,12 +196,11 @@ uint16_t strToUint16(const std::string& aString) {
 
 float strToFloat(const std::string& aString) {
   const char* str = aString.c_str();
-  int st = lskipws(aString, 0, aString.size());
-  int end = rskipws(aString, st, aString.size());
+  int end = rskipws(aString, 0, aString.size());
   char* endPtr;
   // Clear errno since strtof does not do it.
   errno = 0;
-  double val = strtof(str + st, &endPtr);
+  double val = strtof(str, &endPtr);
   if (endPtr != str + end)
     throw std::runtime_error(aString + " is not a floating point value");
   if (errno == ERANGE || errno == EINVAL)
@@ -385,12 +210,11 @@ float strToFloat(const std::string& aString) {
 
 double strToDouble(const std::string& aString) {
   const char* str = aString.c_str();
-  int st = lskipws(aString, 0, aString.size());
-  int end = rskipws(aString, st, aString.size());
+  int end = rskipws(aString, 0, aString.size());
   char* endPtr;
   // Clear errno since strtod does not do it.
   errno = 0;
-  double val = strtod(str + st, &endPtr);
+  double val = strtod(str, &endPtr);
   if (endPtr != str + end)
     throw std::runtime_error(aString + " is not a floating point value");
   if (errno == ERANGE || errno == EINVAL)
@@ -437,6 +261,11 @@ uint64_t strToUint64(const std::string& aString) {
   int end = rskipws(aString, st, aString.size());
   char* endPtr;
   unsigned long long val;
+  // For negative numbers, strtoul does not raise an error:
+  // It uses unsigned integer wraparound rules.
+  if (str[st] == '-') {
+    throw std::runtime_error(aString + " is not a positive value");
+  }
   // Clear errno since strtoull does not do it.
   errno = 0;
   // We don't want octal values, so use base 10 unless a hex value is given.
@@ -452,131 +281,6 @@ uint64_t strToUint64(const std::string& aString) {
     throw std::runtime_error(
         aString + " is invalid or outside long long unsigned int range");
   return val;
-}
-
-//
-// compactedArrayString(string)
-//
-// Given een array string ( '[ xx, xx, xx ]' ) this utility compacts the string
-// by replacing series with range.
-// Eg. [ lii001, lii002, lii003, lii005 ] --> [ lii001..lii003, lii005 ]
-//
-// ----------------------- ATTENTION !!!----------------------------------
-// This routine has been copied to the Navigator software
-// (MAC/Navigator/scripts/libs/nav_usr/CS1/CS1_Common.ctl)
-// if you change anything structural change the Navigator part also please
-// -----------------------------------------------------------------------
-
-std::string compactedArrayString(const std::string& orgStr) {
-  std::string baseString(orgStr);  // destroyable copy
-  ltrim(baseString, " 	[");       // strip off brackets
-  rtrim(baseString, " 	]");
-
-  // and split into a vector
-  std::vector<std::string> strVector = StringUtil::split(baseString, ',');
-  if (strVector.size() < 2) {
-    return (orgStr);
-  }
-
-  // note: we assume that the format of each element is [xxxx]9999
-  std::string::size_type firstDigit(strVector[0].find_first_of("0123456789"));
-  if (firstDigit == std::string::npos) {  // no digits? then return org string
-    return (orgStr);
-  }
-  // construct masks for scanning and formatting.
-  std::string elemName(strVector[0].substr(0, firstDigit));
-  std::string scanMask(elemName + "%ld");
-  std::string rangeScanMask(scanMask + ".." + scanMask);
-  bool rangeElem(strVector[0].find("..", 0) != std::string::npos);
-  int numberLength(strVector[0].length() - elemName.length());
-  if (rangeElem) {
-    numberLength = (numberLength - 2) / 2;
-  }
-  std::string outMask(
-      formatString("%s%%0%dld", elemName.c_str(), numberLength));
-
-  // process all elements in the vector.
-  std::string result("[");
-  long prevValue(-2);
-  bool firstElem(true);
-  bool endOfArray(false);
-  int elemsInRange(0);
-  int nrElems(strVector.size());
-  for (int idx = 0; idx < nrElems; idx++) {
-    long value;
-    long lastValue;
-    if (sscanf(strVector[idx].c_str(), scanMask.c_str(), &value) != 1) {
-      return (orgStr);
-    }
-
-    // check for already compacted elements.
-    rangeElem = (strVector[idx].find("..", 0) != std::string::npos);
-    if (rangeElem && (sscanf(strVector[idx].c_str(), rangeScanMask.c_str(),
-                             &value, &lastValue) != 2)) {
-      return (orgStr);
-    }
-
-    // contiquous numbering?
-    if (value == prevValue + 1) {
-      elemsInRange += rangeElem ? (lastValue - value + 1) : 1;
-      prevValue = rangeElem ? lastValue : value;
-      if (idx < nrElems - 1) {  // when elements left
-        continue;
-      }
-      endOfArray = true;
-    }
-
-    // list not contiguous anymore, write results we collected
-    if (firstElem) {  // don't start with a comma.
-      result += formatString(outMask.c_str(), value);
-    }
-
-    if (elemsInRange == 1) {
-      result += "," + formatString(outMask.c_str(), value);
-    } else {
-      if (elemsInRange == 2) {  // don't compact xx03,xx04 to xx03..xx04
-        result += "," + formatString(outMask.c_str(), prevValue);
-      } else if (elemsInRange > 2) {
-        result += ".." + formatString(outMask.c_str(), prevValue);
-      }
-      if (!firstElem && !endOfArray) {
-        result += "," + formatString(outMask.c_str(), value);
-        if (rangeElem) {
-          result += ".." + formatString(outMask.c_str(), lastValue);
-        }
-      }
-    }
-    elemsInRange = rangeElem ? (lastValue - value + 1) : 1;
-    prevValue = rangeElem ? lastValue : value;
-    firstElem = false;
-  }
-
-  return (result + "]");
-}
-
-std::string stripBrackets(const std::string& orgStr) {
-  std::string baseString(orgStr);  // destroyable copy
-  ltrim(baseString, " \t[");       // strip off brackets
-  rtrim(baseString, " \t]");
-
-  return baseString;
-}
-
-rangeElementTable buildRangeElementTable() {
-  rangeElementTable table;
-  table.insert(std::make_pair("(", PARENTHESIS));
-  table.insert(std::make_pair("*", ASTERISK));
-  table.insert(std::make_pair("..", DOTDOT));
-
-  return table;
-}
-
-std::string findRangeElement(const std::string& orgStr) {
-  if (orgStr.find("(", 0) != std::string::npos) return "(";
-  if (orgStr.find("*", 0) != std::string::npos) return "*";
-  if (orgStr.find("..", 0) != std::string::npos) return "..";
-
-  return orgStr;
 }
 
 //
@@ -599,7 +303,7 @@ std::string expandRangeString(const std::string& strng) {
   std::string str(strng);
   unsigned int i = 0;
   unsigned int last = str.size();
-  while (i < last - 1) {
+  while (i + 1 < last) {
     if (str[i] == '\'' || str[i] == '"') {
       // Ignore a quoted part.
       std::string::size_type pos = str.find(str[i], i + 1);
@@ -697,7 +401,7 @@ std::string expandMultString(const std::string& strng) {
   std::string str(strng);
   unsigned int i = 0;
   unsigned int last = str.size();
-  while (i < last - 1) {
+  while (i + 1 < last) {
     if (str[i] == '\'' || str[i] == '"') {
       // Ignore a quoted part.
       i = skipQuoted(str, i);

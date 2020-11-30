@@ -227,7 +227,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   ParameterSet parset;
   parset.add("freqwindow", "1");
   parset.add("timewindow", "1");
-  parset.add("threshold", DP3::toString(threshold));
+  parset.add("threshold", std::to_string(threshold));
   if (shortbl) {
     parset.add("blmin", "0");
     parset.add("blmax", "145");
@@ -249,7 +249,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   ParameterSet parset;
   parset.add("freqwindow", "3");
   parset.add("timewindow", "min(1,max(1,bl))");
-  parset.add("threshold", DP3::toString(threshold));
+  parset.add("threshold", std::to_string(threshold));
   parset.add("applyautocorr", "True");
   if (shortbl) {
     parset.add("blmax", "145");
