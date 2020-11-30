@@ -365,6 +365,7 @@ set(TEST_FILENAMES
 if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
   list(APPEND TEST_FILENAMES
     Common/test/unit/tMemory.cc
+    Common/test/unit/tStringUtil.cc
     DPPP/test/unit/tBDAAverager.cc
     DPPP/test/unit/tDPInfo.cc
     DPPP/test/unit/tDPInput.cc

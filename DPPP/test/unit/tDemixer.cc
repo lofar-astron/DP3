@@ -195,8 +195,8 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
   DPStep::ShPtr step1(in);
   ParameterSet parset;
-  parset.add("freqstep", DP3::toString(navgchan));
-  parset.add("timestep", DP3::toString(navgtime));
+  parset.add("freqstep", std::to_string(navgchan));
+  parset.add("timestep", std::to_string(navgtime));
   parset.add("sources", "CasA");
   DPStep::ShPtr step2(new Demixer(in, parset, ""));
   DPStep::ShPtr step3(
