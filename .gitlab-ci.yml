@@ -16,6 +16,15 @@ build-base:
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH -f ./docker/ubuntu_20_04_base .
   - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
 
+build-ubuntu18:
+  stage: build
+  needs: []
+  script:
+  - docker build -f ./docker/ubuntu_18_04 .
+  only:
+    variables:
+      - $CI_SERVER_HOST == "git.astron.nl"
+
 build-no-idg:
   stage: build
   needs: ["build-base"]
@@ -46,14 +55,14 @@ build-debug:
     paths:
       - build
 
-build-lofar-release:
+build-release:
   stage: build
   image: docker:stable
   services:
   - docker:dind
   needs: ["build-base"]
   script:
-  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_lofar .
+  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
 
 build-doc:
   stage: build

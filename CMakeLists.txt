@@ -4,7 +4,11 @@
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
 # CMake 3.9.
 cmake_minimum_required(VERSION 3.9)
-cmake_policy(SET CMP0074 NEW)
+
+# CMake >= 3.19.1 gives a warning when this policy is not 'NEW'.
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.1")
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 # Set version number and project name.
 set(DP3_VERSION 5.0.0)
@@ -85,14 +89,24 @@ endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
 
-find_package(Python3 COMPONENTS Interpreter Development)
-message(STATUS "Using python version ${Python3_VERSION}")
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
+  find_package(Python3 COMPONENTS Interpreter Development)
+  set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
+else() # Use old, deprecated means of detecting python.
+  find_package(PythonInterp 3 REQUIRED)
+  find_package(PythonLibs 3 REQUIRED)
+  set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
+  set(Python3_VERSION ${PYTHON_VERSION_STRING})
+  set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
+  set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
+  set(BOOSTPY "")
+endif()
 
+message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
