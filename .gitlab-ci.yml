@@ -1,3 +1,6 @@
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 stages:
   - prepare
   - build
@@ -12,23 +15,28 @@ build-base:
   services:
   - docker:dind
   script:
+  # NOTE: using these two predefined variables might lead to problems
+  # when scheduled jobs are ran
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH -f ./docker/ubuntu_20_04_base .
-  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
+  - if [ $CI_SERVER_HOST != "git.astron.nl" ]; then docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA; fi
+  rules:
+    # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
+    # a branch that has an open MR, see https://gitlab.com/gitlab-org/gitlab/-/issues/201845
+    - when: always
 
 build-ubuntu18:
   stage: build
   needs: []
   script:
   - docker build -f ./docker/ubuntu_18_04 .
-  only:
-    variables:
-      - $CI_SERVER_HOST == "git.astron.nl"
+  rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
 
 build-no-idg:
   stage: build
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -38,14 +46,13 @@ build-no-idg:
     - cd build
     - cmake -G Ninja ..
     - ninja
-  only:
-    variables:
-      - $CI_SERVER_HOST == "git.astron.nl"
+  rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
 
 build-debug:
   stage: build
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
@@ -54,15 +61,19 @@ build-debug:
   artifacts:
     paths:
       - build
+  rules:
+    - when: on_success
 
 build-release:
   stage: build
   image: docker:stable
   services:
-  - docker:dind
+    - docker:dind
   needs: ["build-base"]
   script:
-  - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
+    - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
+  rules:
+    - when: on_success
 
 build-doc:
   stage: build
@@ -79,23 +90,24 @@ build-doc:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
-  only:
-    variables:
-      - $CI_SERVER_HOST == "git.astron.nl"
+  rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
 
 linting:
   stage: linting
   needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - pip3 install clang-format==9.0.0
   script:
     - ./scripts/run-clang-format.sh
+  rules:
+    - when: on_success
 
 unit-test:
   stage: test
   needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - pip3 install gcovr
   script:
@@ -115,11 +127,13 @@ unit-test:
       - build/unittests.xml
     reports:
       junit: build/unittests.xml
+  rules:
+    - when: on_success
 
 integration-test:
   stage: test
   needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - pip3 install gcovr h5py
   script:
@@ -133,6 +147,23 @@ integration-test:
   artifacts:
     paths:
       - build/run-integration.json
+  rules:
+    - when: on_success
+
+check-stack:
+  variables:
+    # Pass commit hash to downstream pipeline
+    DP3_TRIGGER_HASH: $CI_COMMIT_SHA
+  stage: test
+  needs: []
+  trigger:
+    project: RD/schaap-stack
+    branch: master
+    # This will mirror the status of the downstream pipeline
+    strategy: depend
+  rules:
+    # Only add job for a merge request event on git.astron.nl
+    - if: '$CI_SERVER_HOST == "git.astron.nl" && $CI_PIPELINE_SOURCE == "merge_request_event"'
 
 publish-doc:
   stage: publish
@@ -147,15 +178,12 @@ publish-doc:
     - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
   script:
     - scp -r build/docs/* citt@dop288:DP3/
-  only:
-    variables:
-      - $CI_SERVER_HOST == "git.astron.nl"
-    refs:
-      - master
+  rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl" && $CI_COMMIT_BRANCH == "master"'
 
 pages:
   stage: pages
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   needs: ["build-debug", "unit-test", "integration-test"]
   before_script:
     - apt-get update
@@ -178,3 +206,5 @@ pages:
       - public
     reports:
       cobertura: public/build/reports/code-coverage.xml
+  rules:
+    - when: on_success
