@@ -261,14 +261,13 @@ void ApplyBeam::finish() {
 // applyBeam is templated on the type of the data, could be complex<double> or
 // complex<float>
 template <typename T>
-void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
-                          float* weight0, const everybeam::vector3r_t& srcdir,
-                          const everybeam::vector3r_t& refdir,
-                          const everybeam::vector3r_t& tiledir,
-                          const vector<everybeam::Station::Ptr>& antBeamInfo,
-                          vector<everybeam::matrix22c_t>& beamValues,
-                          bool useChannelFreq, bool invert,
-                          BeamCorrectionMode mode, bool doUpdateWeights) {
+void ApplyBeam::applyBeam(
+    const DPInfo& info, double time, T* data0, float* weight0,
+    const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
+    const everybeam::vector3r_t& tiledir,
+    const vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
+    vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
+    bool invert, BeamCorrectionMode mode, bool doUpdateWeights) {
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
@@ -370,7 +369,7 @@ template void ApplyBeam::applyBeam(
     const DPInfo& info, double time, std::complex<double>* data0,
     float* weight0, const everybeam::vector3r_t& srcdir,
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
-    const vector<everybeam::Station::Ptr>& antBeamInfo,
+    const vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
     bool invert, BeamCorrectionMode mode, bool doUpdateWeights);
 
@@ -379,7 +378,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, T* data0, float* weight0,
     const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
     const everybeam::vector3r_t& tiledir,
-    const vector<everybeam::Station::Ptr>& antBeamInfo,
+    const vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     vector<everybeam::complex_t>& beamValues, bool useChannelFreq, bool invert,
     BeamCorrectionMode mode, bool doUpdateWeights) {
   using dcomplex = std::complex<double>;
@@ -427,7 +426,7 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, std::complex<double>* data0,
     float* weight0, const everybeam::vector3r_t& srcdir,
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
-    const vector<everybeam::Station::Ptr>& antBeamInfo,
+    const vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     vector<everybeam::complex_t>& beamValues, bool useChannelFreq, bool invert,
     BeamCorrectionMode mode, bool doUpdateWeights);
 

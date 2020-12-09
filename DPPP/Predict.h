@@ -134,9 +134,9 @@ class Predict : public DPStep {
   casacore::Matrix<double> itsUVW;
 
   /// The info needed to calculate the station beams.
-  std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
-  std::vector<std::vector<everybeam::matrix22c_t> > itsBeamValues;
-  std::vector<std::vector<everybeam::complex_t> > itsBeamValuesSingle;
+  std::vector<std::vector<std::shared_ptr<everybeam::Station>>> itsAntBeamInfo;
+  std::vector<std::vector<everybeam::matrix22c_t>> itsBeamValues;
+  std::vector<std::vector<everybeam::complex_t>> itsBeamValuesSingle;
   BeamCorrectionMode itsBeamMode;
   everybeam::ElementResponseModel itsElementResponseModel;
   std::vector<casacore::MeasFrame> itsMeasFrames;
@@ -146,8 +146,8 @@ class Predict : public DPStep {
   std::vector<Patch::ConstPtr> itsPatchList;
   std::vector<Source> itsSourceList;
 
-  std::vector<casacore::Cube<dcomplex> > itsModelVis;  ///< one for every thread
-  std::vector<casacore::Cube<dcomplex> > itsModelVisPatch;
+  std::vector<casacore::Cube<dcomplex>> itsModelVis;  ///< one for every thread
+  std::vector<casacore::Cube<dcomplex>> itsModelVisPatch;
 
   NSTimer itsTimer;
   NSTimer itsTimerPredict;

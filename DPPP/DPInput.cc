@@ -105,7 +105,7 @@ void DPInput::getModelData(const RefRows&, Cube<Complex>&) {
   throw Exception("DPInput::getModelData not implemented");
 }
 
-void DPInput::fillBeamInfo(vector<everybeam::Station::Ptr>&,
+void DPInput::fillBeamInfo(vector<std::shared_ptr<everybeam::Station>>&,
                            const Vector<casacore::String>&,
                            const everybeam::ElementResponseModel) const {
   throw Exception("DPInput::fillBeamInfo not implemented");
