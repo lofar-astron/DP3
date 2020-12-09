@@ -197,7 +197,7 @@ class DemixWorker {
   /// The sources to demix (excluding target).
   std::vector<Patch::ConstPtr> itsDemixList;
   /// The info needed to calculate the station beams.
-  std::vector<everybeam::Station::Ptr> itsAntBeamInfo;
+  std::vector<std::shared_ptr<everybeam::Station>> itsAntBeamInfo;
   /// Measure objects unique to this worker (thread).
   /// This is needed because they are not thread-safe.
   casacore::MPosition itsArrayPos;
@@ -217,7 +217,7 @@ class DemixWorker {
   /// Buffer of demixing weights at the demix resolution. Each Array is a
   /// cube of shape #correlations x #channels x #baselines of matrices of
   /// shape #directions x #directions.
-  std::vector<casacore::Array<casacore::DComplex> > itsFactors;
+  std::vector<casacore::Array<casacore::DComplex>> itsFactors;
   /// Accumulator used for computing the demixing weights. The shape of this
   /// buffer is #correlations x #channels x #baselines x #directions
   /// x #directions (fastest axis first).
@@ -225,7 +225,7 @@ class DemixWorker {
   /// Buffer of demixing weights at the subtract resolution. Each Array is a
   /// cube of shape #correlations x #channels x #baselines of matrices of
   /// shape #directions x #directions.
-  std::vector<casacore::Array<casacore::DComplex> > itsFactorsSubtr;
+  std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
 
   /// Variables for conversion of directions to ITRF.
   casacore::MeasFrame itsMeasFrame;
@@ -238,7 +238,7 @@ class DemixWorker {
   casacore::Matrix<double> itsAvgUVW;      ///< temp buffer
   casacore::Cube<dcomplex> itsPredictVis;  ///< temp buffer
   /// #nfreq x #bl x #time StokesI amplitude per A-source.
-  std::vector<casacore::Cube<float> > itsAteamAmpl;
+  std::vector<casacore::Cube<float>> itsAteamAmpl;
   /// #bl x #src telling if baseline has sufficient Ateam flux.
   casacore::Matrix<bool> itsAteamAmplSel;
   /// #nfreq x #bl x #time StokesI amplitude of target.
@@ -253,18 +253,18 @@ class DemixWorker {
   double itsTargetMinAmpl;
   double itsTargetMaxAmpl;
   /// Per A-source the stations to use (matching the minimum amplitude).
-  std::vector<std::vector<unsigned int> > itsStationsToUse;
+  std::vector<std::vector<unsigned int>> itsStationsToUse;
   casacore::Block<bool> itsSolveStation;  ///< solve station i?
   /// Per station and source the index in the unknowns vector.
   /// Note there are 8 unknowns (4 pol, ampl/phase) per source/station.
-  std::vector<std::vector<int> > itsUnknownsIndex;
+  std::vector<std::vector<int>> itsUnknownsIndex;
   /// The estimater (solver).
   EstimateNew itsEstimate;
   /// Variables for the predict.
   ///@{
   casacore::Matrix<double> itsUVW;
-  std::vector<casacore::Cube<dcomplex> > itsModelVisDemix;
-  std::vector<casacore::Cube<dcomplex> > itsModelVisSubtr;
+  std::vector<casacore::Cube<dcomplex>> itsModelVisDemix;
+  std::vector<casacore::Cube<dcomplex>> itsModelVisSubtr;
   unsigned int itsNTimeOut;
   unsigned int itsNTimeOutSubtr;
   unsigned int itsTimeIndex;

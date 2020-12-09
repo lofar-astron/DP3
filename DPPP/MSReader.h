@@ -165,7 +165,7 @@ class MSReader : public DPInput {
   /// Fill the vector with station beam info from the input MS.
   /// Only fill it for the given station names.
   virtual void fillBeamInfo(
-      std::vector<everybeam::Station::Ptr>&,
+      std::vector<std::shared_ptr<everybeam::Station>>&,
       const casacore::Vector<casacore::String>& antNames,
       const everybeam::ElementResponseModel element_reponse_model) const;
 

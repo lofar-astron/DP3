@@ -1,6 +1,8 @@
 FROM ubuntu:18.04
 
-ENV EVERYBEAM_VERSION_TAG=v0.1.1
+# TODO: needs to be bumped before next DP3 release
+# ENV EVERYBEAM_VERSION_TAG=v0.1.1
+ENV EVERYBEAM_VERSION=0a3af8b453eec7a5a2c95c267d38d58ebc60d09b
 ENV IDG_VERSION_TAG=0.8
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \

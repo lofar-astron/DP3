@@ -11,7 +11,7 @@
 #include "Exceptions.h"
 
 #include <EveryBeam/load.h>
-#include <EveryBeam/lofarreadutils.h>
+#include <EveryBeam/msreadutils.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
@@ -629,7 +629,14 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   phaseCenter = *(fldcol1(0).data());
   delayCenter = *(fldcol2(0).data());
 
-  tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
+  MDirection tile_beam_dir;
+  try {
+    tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
+  } catch (const std::runtime_error& error) {
+    // everybeam throws an exception error if telescope != [LOFAR, AARTFAAC]
+    // in that case, default back to "DELAY_DIR"
+    tileBeamDir = *(fldcol2(0).data());
+  }
 
   // Get the array position using the telescope name from the OBSERVATION
   // subtable.
@@ -909,14 +916,14 @@ void MSReader::getModelData(const casacore::RefRows& rowNrs,
 }
 
 void MSReader::fillBeamInfo(
-    vector<everybeam::Station::Ptr>& vec,
+    vector<std::shared_ptr<everybeam::Station>>& vec,
     const casacore::Vector<casacore::String>& antNames,
     const everybeam::ElementResponseModel element_reponse_model) const {
   // Get the names of all stations in the MS.
   const Vector<String>& allNames = getInfo().antennaNames();
   // Create a vector holding the beam info of all stations.
-  vector<everybeam::Station::Ptr> beams(allNames.size());
-  everybeam::ReadStations(itsMS, beams.begin(), element_reponse_model);
+  vector<std::shared_ptr<everybeam::Station>> beams(allNames.size());
+  everybeam::ReadAllStations(itsMS, beams.begin(), element_reponse_model);
   // Copy only the ones for which the station name matches.
   // Note: the order of the station names in both vectors match.
   vec.resize(antNames.size());

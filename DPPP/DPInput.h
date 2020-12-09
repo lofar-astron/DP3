@@ -79,7 +79,7 @@ class DPInput : public DPStep {
   /// Only fill it for the given station names.
   /// The default implementation throws an exception.
   virtual void fillBeamInfo(
-      std::vector<everybeam::Station::Ptr>&,
+      std::vector<std::shared_ptr<everybeam::Station>>&,
       const casacore::Vector<casacore::String>& antNames,
       const everybeam::ElementResponseModel element_reponse_model) const;
 

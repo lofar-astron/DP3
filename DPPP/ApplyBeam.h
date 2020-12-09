@@ -72,7 +72,7 @@ class ApplyBeam : public DPStep {
       const DPInfo& info, double time, T* data0, float* weight0,
       const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
       const everybeam::vector3r_t& tiledir,
-      const std::vector<everybeam::Station::Ptr>& antBeamInfo,
+      const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
       std::vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
       bool invert, BeamCorrectionMode mode,
       // everybeam::ElementResponseModel element_reponse_model,
@@ -83,7 +83,7 @@ class ApplyBeam : public DPStep {
       const DPInfo& info, double time, T* data0, float* weight0,
       const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
       const everybeam::vector3r_t& tiledir,
-      const std::vector<everybeam::Station::Ptr>& antBeamInfo,
+      const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
       std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
       bool invert, BeamCorrectionMode mode,
       // everybeam::ElementResponseModel element_reponse_model,
@@ -115,10 +115,10 @@ class ApplyBeam : public DPStep {
 
   /// The info needed to calculate the station beams.
   ///@{
-  std::vector<std::vector<everybeam::Station::Ptr> > itsAntBeamInfo;
+  std::vector<std::vector<std::shared_ptr<everybeam::Station>>> itsAntBeamInfo;
   std::vector<casacore::MeasFrame> itsMeasFrames;
   std::vector<casacore::MDirection::Convert> itsMeasConverters;
-  std::vector<std::vector<everybeam::matrix22c_t> > itsBeamValues;
+  std::vector<std::vector<everybeam::matrix22c_t>> itsBeamValues;
   ///@}
 
   NSTimer itsTimer;

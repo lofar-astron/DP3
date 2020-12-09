@@ -10,9 +10,6 @@
 #include "Exceptions.h"
 #include "MS.h"
 
-#include <EveryBeam/load.h>
-#include <EveryBeam/lofarreadutils.h>
-
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
 
