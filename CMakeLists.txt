@@ -140,6 +140,7 @@ add_library(Common OBJECT
   Common/ParameterSetImpl.cc
   Common/ParameterValue.cc
   Common/PrettyUnits.cc
+  Common/ProximityClustering.cc
   Common/StringUtil.cc
   Common/Timer.cc
   Common/TypeNames.cc
@@ -371,8 +372,10 @@ set(TEST_FILENAMES
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tSolutionInterval.cc
+  DPPP/test/unit/tSourceDBUtil.cc
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
+  Common/test/unit/tProximityClustering.cc
 )
 
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.

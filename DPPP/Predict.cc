@@ -102,6 +102,9 @@ void Predict::init(DPInput* input, const ParameterSet& parset,
   if (itsApplyBeam) {
     itsUseChannelFreq = parset.getBool(prefix + "usechannelfreq", true);
     itsOneBeamPerPatch = parset.getBool(prefix + "onebeamperpatch", false);
+    itsBeamProximityLimit =
+        parset.getDouble(prefix + "beamproximitylimit", 60.0) *
+        (M_PI / (180.0 * 60.0 * 60.0));
 
     string mode =
         boost::to_lower_copy(parset.getString(prefix + "beammode", "default"));
@@ -131,9 +134,17 @@ void Predict::init(DPInput* input, const ParameterSet& parset,
           "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
     }
 
-    // Rework patch list to contain a patch for every source
+    // By default, a source model has each direction in one patch. Therefore,
+    // if one-beam-per-patch is requested, we don't have to do anything.
     if (!itsOneBeamPerPatch) {
-      itsPatchList = makeOnePatchPerComponent(itsPatchList);
+      if (itsBeamProximityLimit > 0.0) {
+        // Rework patch list to cluster proximate sources
+        itsPatchList =
+            clusterProximateSources(itsPatchList, itsBeamProximityLimit);
+      } else {
+        // Rework patch list to contain a patch for every source
+        itsPatchList = makeOnePatchPerComponent(itsPatchList);
+      }
     }
   }
 
@@ -286,6 +297,7 @@ void Predict::show(std::ostream& os) const {
     os << '\n';
     os << "   use channelfreq:   " << boolalpha << itsUseChannelFreq << '\n';
     os << "   one beam per patch:" << boolalpha << itsOneBeamPerPatch << '\n';
+    os << "   beam proximity lim:" << itsBeamProximityLimit << '\n';
   }
   os << "  operation:          " << itsOperation << '\n';
   os << "  threads:            " << getInfo().nThreads() << '\n';

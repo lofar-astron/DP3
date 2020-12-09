@@ -14,6 +14,8 @@
 
 #include "../ParmDB/SourceDB.h"
 
+#include "../Common/ProximityClustering.h"
+
 #include <sstream>
 #include <set>
 
@@ -23,11 +25,11 @@ using BBS::SourceData;
 using BBS::SourceDB;
 using BBS::SourceInfo;
 
-std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
-                                         const std::vector<string> &patchNames,
+std::vector<Patch::ConstPtr> makePatches(SourceDB& sourceDB,
+                                         const std::vector<string>& patchNames,
                                          unsigned int nModel) {
   // Create a component list for each patch name.
-  std::vector<std::vector<ModelComponent::Ptr> > componentsList(nModel);
+  std::vector<std::vector<ModelComponent::Ptr>> componentsList(nModel);
 
   // Loop over all sources.
   sourceDB.lock();
@@ -125,8 +127,8 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB &sourceDB,
   return patchList;
 }
 
-std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> >
-makeSourceList(const std::vector<Patch::ConstPtr> &patchList) {
+std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>>
+makeSourceList(const std::vector<Patch::ConstPtr>& patchList) {
   std::vector<Patch::ConstPtr>::const_iterator pIter = patchList.begin();
   std::vector<Patch::ConstPtr>::const_iterator pEnd = patchList.end();
 
@@ -135,7 +137,7 @@ makeSourceList(const std::vector<Patch::ConstPtr> &patchList) {
     nSources += (*pIter)->nComponents();
   }
 
-  std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> > sourceList;
+  std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>> sourceList;
   sourceList.reserve(nSources);
 
   pIter = patchList.begin();
@@ -152,30 +154,23 @@ makeSourceList(const std::vector<Patch::ConstPtr> &patchList) {
 }
 
 std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
-    const std::vector<Patch::ConstPtr> &patchList) {
+    const std::vector<Patch::ConstPtr>& patchList) {
   size_t numComponents = 0;
-  std::vector<Patch::ConstPtr>::const_iterator patchIt;
 
-  for (patchIt = patchList.begin(); patchIt != patchList.end(); ++patchIt) {
-    numComponents += (*patchIt)->nComponents();
+  for (const auto& patch : patchList) {
+    numComponents += patch->nComponents();
   }
 
   std::vector<Patch::ConstPtr> largePatchList;
   largePatchList.reserve(numComponents);
 
-  for (patchIt = patchList.begin(); patchIt != patchList.end(); ++patchIt) {
-    Patch::const_iterator compIt;
-
+  for (const auto& patch : patchList) {
     size_t compNum = 0;
-    for (compIt = (*patchIt)->begin(); compIt != (*patchIt)->end(); ++compIt) {
-      // convert compNum to string (blegh)
-      std::stringstream ss;
-      ss << compNum;
-
-      Patch::Ptr ppatch(
-          new Patch((*patchIt)->name() + "_" + ss.str(), compIt, compIt + 1));
+    for (auto compIt = patch->begin(); compIt != patch->end(); ++compIt) {
+      Patch::Ptr ppatch(new Patch(patch->name() + "_" + std::to_string(compNum),
+                                  compIt, compIt + 1));
       ppatch->setPosition((*compIt)->position());
-      largePatchList.push_back(ppatch);
+      largePatchList.push_back(std::move(ppatch));
       compNum++;
     }
   }
@@ -183,7 +178,54 @@ std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
   return largePatchList;
 }
 
-std::vector<string> makePatchList(SourceDB &sourceDB,
+std::vector<Patch::ConstPtr> clusterProximateSources(
+    const std::vector<Patch::ConstPtr>& patch_list, double proximity_limit) {
+  // Create a list of all source positions and a lookup table to go from index
+  // back to patch & comp
+  std::vector<std::pair<double, double>> sources;
+  std::vector<std::pair<size_t, size_t>> lookup_table;
+  size_t patchIndex = 0;
+  for (const auto& patch : patch_list) {
+    size_t compIndex = 0;
+    for (const auto& comp : *patch) {
+      sources.emplace_back(comp->position()[0], comp->position()[1]);
+      lookup_table.emplace_back(patchIndex, compIndex);
+      ++compIndex;
+    }
+    ++patchIndex;
+  }
+
+  // Call the clustering algorithm
+  ProximityClustering clustering(sources);
+  std::vector<std::vector<size_t>> clusters = clustering.Group(proximity_limit);
+
+  // Make a new patch list according from the results
+  std::vector<Patch::ConstPtr> clusteredPatchList;
+  for (const auto& groups : clusters) {
+    std::vector<ModelComponent::ConstPtr> componentsInPatch;
+    double alpha = 0.0;
+    double delta = 0.0;
+    for (const auto& component : groups) {
+      auto lookupIndices = lookup_table[component];
+      const auto& patch = patch_list[lookupIndices.first];
+      const ModelComponent::ConstPtr& comp =
+          *(patch->begin() + lookupIndices.second);
+      alpha += comp->position()[0];
+      delta += comp->position()[1];
+      componentsInPatch.emplace_back(comp);
+    }
+    const auto& firstPatch = patch_list[lookup_table[groups.front()].first];
+    Patch::Ptr ppatch(new Patch(
+        firstPatch->name() + "_" + std::to_string(clusteredPatchList.size()),
+        componentsInPatch.begin(), componentsInPatch.end()));
+    ppatch->setPosition(Position(alpha / groups.size(), delta / groups.size()));
+    clusteredPatchList.push_back(std::move(ppatch));
+  }
+
+  return clusteredPatchList;
+}
+
+std::vector<string> makePatchList(SourceDB& sourceDB,
                                   std::vector<string> patterns) {
   if (patterns.empty()) {
     patterns.push_back("*");
@@ -205,7 +247,7 @@ std::vector<string> makePatchList(SourceDB &sourceDB,
   return std::vector<string>(patches.begin(), patches.end());
 }
 
-bool checkPolarized(SourceDB &sourceDB, const std::vector<string> &patchNames,
+bool checkPolarized(SourceDB& sourceDB, const std::vector<string>& patchNames,
                     unsigned int nModel) {
   bool polarized = false;
 
