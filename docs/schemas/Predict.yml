@@ -9,7 +9,7 @@ inputs:
     doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.`
   sources:
     default: "[]"
-    type: string?
+    type: array
     doc: Patches to use in the predict step of the calibration `.`
   usebeammodel:
     default: false
@@ -21,11 +21,14 @@ inputs:
     doc: Should the predicted visibilities replace those being processed (``replace``, default), should they be subtracted from those being processed (``subtract``) or added to them (``add``) `.`
   applycal&#46;*:
     doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb `.`
+  beamproximitylimit:
+    type: float
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   onebeamperpatch:
-    type: string?
+    type: boolean
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   usechannelfreq:
-    type: boolean?
+    type: boolean
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   beammode:
     type: enum

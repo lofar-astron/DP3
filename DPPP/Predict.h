@@ -113,6 +113,10 @@ class Predict : public DPStep {
   bool itsApplyBeam;
   bool itsUseChannelFreq;
   bool itsOneBeamPerPatch;
+  /// If two sources are closer together than given by this setting, they
+  /// will be grouped into one patch. Value is in arcsec; zero means don't
+  /// group.
+  double itsBeamProximityLimit;
   bool itsStokesIOnly;
   Position itsPhaseRef;
   bool itsMovingPhaseRef;

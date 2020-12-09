@@ -34,6 +34,9 @@ makeSourceList(const std::vector<Patch::ConstPtr> &patchList);
 std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
     const std::vector<Patch::ConstPtr> &);
 
+std::vector<Patch::ConstPtr> clusterProximateSources(
+    const std::vector<Patch::ConstPtr> &patchList, double proximityLimit);
+
 std::vector<std::string> makePatchList(BBS::SourceDB &sourceDB,
                                        std::vector<std::string> patterns);
 

@@ -14,17 +14,28 @@ inputs:
     doc: >-
       A RA/Dec value specifying in what direction to correct the beam. See ``phaseshift.phasecenter`` for syntax. 
       If empty, the beam is corrected in the direction of the current phase center. 
+  beamproximitylimit:
+    type: float
+    default: 60
+    doc: >-
+      If non-zero, sources that are near each other are clustered and the
+      beam is only calculated for each cluster. This trades an increase in
+      speed for a very low level of loss in accuracy.
+      This parameter is ignored in the ApplyBeam step itself, and should
+      instead be used as part of predict, ddecal, gaincal,
+      h5parmpredict, etc. This parameter has been introduced in Dec 2020 `.`
   onebeamperpatch:
     type: string?
     doc: >-
-      Compute the beam only for the center of each patch
+      Deprecated: use beamproximitylimit instead.
+      When true, computes the beam only for the center of each patch
       (saves computation time, but you should set this to false for large
       patches). 
       In the ApplyBeam step, this setting does not make sense 
       (but it does if the applybeam is part of predict, ddecal, gaincal,
       h5parmpredict, etc.). 
       Generally, FALSE is the right setting for this option. 
-      The default has changed to false in a recent (Nov 2018) version `.`
+      The default has changed to false in Nov 2018 `.`
   usechannelfreq:
     type: boolean?
     doc: >-
