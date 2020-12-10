@@ -5,7 +5,7 @@
 #include "../../SourceDBUtil.h"
 #include "../../PointSource.h"
 
-#include "../ParmDB/SourceDB.h"
+#include "../../../ParmDB/SourceDB.h"
 
 #include <boost/test/unit_test.hpp>
 

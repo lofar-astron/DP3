@@ -12,6 +12,8 @@
 
 #include "Grid.h"
 
+#include <map>
+
 namespace DP3 {
 namespace BBS {
 
@@ -143,18 +145,19 @@ class AxisMappingCache {
 class GridMapping {
  public:
   /// Find the location in grid 'dest', given the location in grid 'src'.
-  static Location findLocation(AxisMappingCache& cache,
-                               const Location& location, const Grid& src,
-                               const Grid& dest);
+  static Grid::Location findLocation(AxisMappingCache& cache,
+                                     const Grid::Location& location,
+                                     const Grid& src, const Grid& dest);
 
   /// Find the location in grid 'dest', given the cellId in grid 'src'.
-  static Location findLocation(AxisMappingCache& cache, unsigned int cellId,
-                               const Grid& src, const Grid& dest);
+  static Grid::Location findLocation(AxisMappingCache& cache,
+                                     unsigned int cellId, const Grid& src,
+                                     const Grid& dest);
 
   /// Find the cellId in grid 'dest', given the location in grid 'src'.
   static unsigned int findCellId(AxisMappingCache& cache,
-                                 const Location& location, const Grid& src,
-                                 const Grid& dest);
+                                 const Grid::Location& location,
+                                 const Grid& src, const Grid& dest);
 
   /// Find the cellId in grid 'dest', given the cellId in grid 'src'.
   static unsigned int findcellId(AxisMappingCache& cache, unsigned int cellId,

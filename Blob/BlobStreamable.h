@@ -6,9 +6,6 @@
 #ifndef LOFAR_BLOB_BLOBSTREAMABLE_H
 #define LOFAR_BLOB_BLOBSTREAMABLE_H
 
-#include "../Common/Singleton.h"
-#include "../Common/ObjectFactory.h"
-
 #include <string>
 
 namespace DP3 {
@@ -52,11 +49,6 @@ class BlobStreamable {
   /// The private methods must be accessible for DH_BlobStreamable.
   friend class DH_BlobStreamable;
 };
-
-/// Factory that can be used to generate new BlobStreamable objects.
-/// The factory is defined as a singleton.
-typedef Singleton<ObjectFactory<BlobStreamable*(), std::string> >
-    BlobStreamableFactory;
 
 /// @}
 

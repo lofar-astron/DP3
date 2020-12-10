@@ -7,7 +7,6 @@
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 
-#include <memory>
 #include <vector>
 
 template <typename Tp>

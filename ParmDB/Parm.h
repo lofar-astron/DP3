@@ -62,19 +62,20 @@ class Parm {
 
   /// Get the coefficients for the given location in the solve grid.
   /// The solve grid must have been set before.
-  std::vector<double> getCoeff(const Location&, bool useMask = true);
+  std::vector<double> getCoeff(const Grid::Location&, bool useMask = true);
 
   /// Get the errors for the given location in the solve grid.
   /// The solve grid must have been set before.
-  std::vector<double> getErrors(const Location&, bool useMask = true);
+  std::vector<double> getErrors(const Grid::Location&, bool useMask = true);
 
   /// Set the coefficients for the given location in the solve grid.
   /// If given, the errors are set too.
   /// The solve grid must have been set before.
   /// It sets the dirty flag, so the data are written when the ParmCache
   /// is flushed.
-  void setCoeff(const Location&, const double* values, unsigned int nvalues,
-                const double* errors = 0, bool useMask = true);
+  void setCoeff(const Grid::Location&, const double* values,
+                unsigned int nvalues, const double* errors = 0,
+                bool useMask = true);
 
   /// Revert to the original coefficients (as on disk).
   /// (not implemented yet).
