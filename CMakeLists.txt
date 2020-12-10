@@ -23,7 +23,6 @@ endif()
 project(DP3 VERSION ${DP3_VERSION})
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
-
 add_compile_options(-Wall -O3)
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
@@ -264,7 +263,7 @@ add_library(DPPP_OBJ OBJECT
 )
 set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-find_package(AOFlagger 3 REQUIRED)
+find_package(AOFlagger 3.0.1 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 add_library(AOFlaggerStep_OBJ OBJECT
