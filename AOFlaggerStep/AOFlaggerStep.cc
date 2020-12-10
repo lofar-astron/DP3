@@ -156,7 +156,30 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
   buffer_.resize(window_size_ + 2 * overlap_);
   // Initialize the flag counters.
   flag_counter_.init(getInfo());
+
+  // Initialize metadata for aoflagger
   frequencies_ = infoIn.chanFreqs();
+  aoflagger::Band band;
+  band.id = 0;
+  band.channels.resize(frequencies_.size());
+  for (size_t ch = 0; ch != frequencies_.size(); ++ch) {
+    band.channels[ch].frequency = frequencies_[ch];
+    band.channels[ch].width = infoIn.chanWidths()[ch];
+  }
+  aoflagger_.SetBandList({band});
+
+  const casacore::Vector<casacore::String>& ant_names = infoIn.antennaNames();
+  const casacore::Vector<casacore::MPosition>& ant_pos = infoIn.antennaPos();
+  std::vector<aoflagger::Antenna> antennas(ant_names.size());
+  for (size_t i = 0; i != ant_names.size(); ++i) {
+    antennas[i].id = i;
+    antennas[i].name = ant_names[i];
+    casacore::Vector<double> vec = ant_pos[i].getValue().get();
+    antennas[i].x = vec[0];
+    antennas[i].y = vec[1];
+    antennas[i].z = vec[2];
+  }
+  aoflagger_.SetAntennaList(std::move(antennas));
 }
 
 void AOFlaggerStep::showCounts(std::ostream& os) const {
@@ -237,9 +260,8 @@ void AOFlaggerStep::addToMS(const string& msName) {
 
 void AOFlaggerStep::flag(unsigned int rightOverlap) {
   // Get the sizes of the axes.
-  // Note: OpenMP 2.5 needs signed iteration variables.
-  int nrbl = buffer_[0].getData().shape()[2];
-  unsigned int ncorr = buffer_[0].getData().shape()[0];
+  size_t nrbl = buffer_[0].getData().shape()[2];
+  size_t ncorr = buffer_[0].getData().shape()[0];
   if (ncorr != 4)
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
@@ -247,34 +269,35 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   const casacore::Vector<int>& ant1 = getInfo().getAnt1();
   const casacore::Vector<int>& ant2 = getInfo().getAnt2();
   compute_timer_.start();
-  // Now flag each baseline for this time window.
+
+  aoflagger::Interval interval;
+  interval.id = 0;
+  interval.times.resize(buffer_.size());
+  for (std::size_t i = 0; i != buffer_.size(); ++i) {
+    interval.times[i] = buffer_[i].getTime();
+  }
+  aoflagger_.SetIntervalList({interval});
+
+  // Now flag each baseline and collect statistics for this time window.
   // The baselines can be processed in parallel.
 
   struct ThreadData {
     FlagCounter counter;
-    std::vector<double> scan_times;
-    // QualityStatistics object is nullable from aoflagger 2.13, but
-    // wrapped for compatibility with older aoflaggers.
     aoflagger::QualityStatistics qstats;
     aoflagger::Strategy strategy;
   };
   std::vector<ThreadData> threadData(getInfo().nThreads());
-
-  // Create thread-private counter object.
+  // Create thread-private objects.
   for (size_t t = 0; t != getInfo().nThreads(); ++t) {
     threadData[t].counter.init(getInfo());
     // Create a statistics object for all polarizations.
-    threadData[t].scan_times.resize(buffer_.size());
-    for (size_t i = 0; i < buffer_.size(); ++i) {
-      threadData[t].scan_times[i] = buffer_[i].getTime();
-    }
     threadData[t].qstats = aoflagger_.MakeQualityStatistics(
-        threadData[t].scan_times.data(), threadData[t].scan_times.size(),
-        frequencies_.data(), frequencies_.size(), 4, false);
+        interval.times.data(), interval.times.size(), frequencies_.data(),
+        frequencies_.size(), 4, false);
     threadData[t].strategy = aoflagger_.LoadStrategyFile(strategy_name_);
   }
 
-  aocommon::ParallelFor<int> loop(getInfo().nThreads());
+  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
     if (ant1[ib] == ant2[ib]) {
@@ -340,6 +363,9 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   // Fill the rficonsole buffers and flag.
   // Create the objects for the real and imaginary data of all corr.
   aoflagger::ImageSet imageSet = aoflagger_.MakeImageSet(ntime, nchan, 8);
+  imageSet.SetAntennas(info().getAnt1()[bl], info().getAnt2()[bl]);
+  imageSet.SetInterval(0);
+  imageSet.SetBand(0);
   aoflagger::FlagMask origFlags = aoflagger_.MakeFlagMask(ntime, nchan);
   const unsigned int iStride = imageSet.HorizontalStride();
   const unsigned int fStride = origFlags.HorizontalStride();
