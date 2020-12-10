@@ -14,19 +14,19 @@ BOOST_AUTO_TEST_CASE(small_set) {
       {10.0, 1.0}, {0.0, 1.0}, {1.0, 0.0}, {10.0, 0.0}};
   ProximityClustering pc(coords);
   std::vector<std::vector<size_t>> groups = pc.Group(2.0);
-  BOOST_CHECK_EQUAL(groups.size(), 2);
-  BOOST_CHECK_EQUAL(groups[0].size(), 2);
-  BOOST_CHECK_EQUAL(groups[1].size(), 2);
+  BOOST_REQUIRE_EQUAL(groups.size(), 2u);
+  BOOST_REQUIRE_EQUAL(groups[0].size(), 2u);
+  BOOST_REQUIRE_EQUAL(groups[1].size(), 2u);
   // Index 0 and 3 must be grouped together:
-  BOOST_CHECK((groups[0][0] == 0 && groups[0][1] == 3) ||
-              (groups[0][0] == 3 && groups[0][1] == 0) ||
-              (groups[1][0] == 0 && groups[1][1] == 3) ||
-              (groups[1][0] == 3 && groups[1][1] == 0));
+  BOOST_CHECK((groups[0][0] == 0u && groups[0][1] == 3u) ||
+              (groups[0][0] == 3u && groups[0][1] == 0u) ||
+              (groups[1][0] == 0u && groups[1][1] == 3u) ||
+              (groups[1][0] == 3u && groups[1][1] == 0u));
   // Index 1 and 2 must be grouped together:
-  BOOST_CHECK((groups[0][0] == 1 && groups[0][1] == 2) ||
-              (groups[0][0] == 2 && groups[0][1] == 1) ||
-              (groups[1][0] == 1 && groups[1][1] == 2) ||
-              (groups[1][0] == 2 && groups[1][1] == 1));
+  BOOST_CHECK((groups[0][0] == 1u && groups[0][1] == 2u) ||
+              (groups[0][0] == 2u && groups[0][1] == 1u) ||
+              (groups[1][0] == 1u && groups[1][1] == 2u) ||
+              (groups[1][0] == 2u && groups[1][1] == 1u));
 }
 
 BOOST_AUTO_TEST_CASE(large_set) {
@@ -40,14 +40,14 @@ BOOST_AUTO_TEST_CASE(large_set) {
   }
   ProximityClustering pc(coords);
   std::vector<std::vector<size_t>> groups = pc.Group(1.0);
-  BOOST_CHECK_EQUAL(groups.size(), 3);
-  BOOST_CHECK_EQUAL(groups[0].size(), 100);
-  BOOST_CHECK_EQUAL(groups[1].size(), 100);
-  BOOST_CHECK_EQUAL(groups[2].size(), 100);
+  BOOST_REQUIRE_EQUAL(groups.size(), 3u);
+  BOOST_REQUIRE_EQUAL(groups[0].size(), 100u);
+  BOOST_REQUIRE_EQUAL(groups[1].size(), 100u);
+  BOOST_REQUIRE_EQUAL(groups[2].size(), 100u);
   for (size_t i = 0; i != 100; ++i) {
-    BOOST_CHECK_EQUAL(groups[0][i] % 3, 0);
-    BOOST_CHECK_EQUAL(groups[1][i] % 3, 1);
-    BOOST_CHECK_EQUAL(groups[2][i] % 3, 2);
+    BOOST_CHECK_EQUAL(groups[0][i] % 3, 0u);
+    BOOST_CHECK_EQUAL(groups[1][i] % 3, 1u);
+    BOOST_CHECK_EQUAL(groups[2][i] % 3, 2u);
   }
 }
 
