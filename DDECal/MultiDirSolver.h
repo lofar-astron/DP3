@@ -23,12 +23,12 @@ class MultiDirSolver {
   typedef std::complex<double> DComplex;
   typedef std::complex<float> Complex;
 
-  class Matrix : public std::vector<DComplex> {
+  class Matrix : public std::vector<Complex> {
    public:
     Matrix() : _m(0) {}
-    Matrix(size_t m, size_t n) : std::vector<DComplex>(n * m, 0.0), _m(m) {}
-    void zeros() { assign(size(), DComplex(0.0, 0.0)); }
-    DComplex& operator()(size_t i, size_t j) { return (*this)[i + j * _m]; }
+    Matrix(size_t m, size_t n) : std::vector<Complex>(n * m, 0.0), _m(m) {}
+    void zeros() { assign(size(), Complex(0.0, 0.0)); }
+    Complex& operator()(size_t i, size_t j) { return (*this)[i + j * _m]; }
 
    private:
     size_t _m;
