@@ -35,14 +35,14 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_single) {
   std::vector<Patch::ConstPtr> output =
       DP3::DPPP::clusterProximateSources(input, 0.5);
 
-  BOOST_REQUIRE_EQUAL(output.size(), 2);
+  BOOST_REQUIRE_EQUAL(output.size(), 2u);
 
   // Check patch data
-  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3);
+  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3u);
   BOOST_CHECK_CLOSE(output[0]->position()[0], 0.2, 1e-5);
   BOOST_CHECK_CLOSE(output[0]->position()[1], 0.5, 1e-5);
 
-  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1);
+  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1u);
   BOOST_CHECK_CLOSE(output[1]->position()[0], 1.0, 1e-5);
   BOOST_CHECK_CLOSE(output[1]->position()[1], 1.1, 1e-5);
 
@@ -74,14 +74,14 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_multi) {
   std::vector<Patch::ConstPtr> output =
       DP3::DPPP::clusterProximateSources(input, 0.5);
 
-  BOOST_REQUIRE_EQUAL(output.size(), 2);
+  BOOST_REQUIRE_EQUAL(output.size(), 2u);
 
   // Check patch data
-  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3);
+  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3u);
   BOOST_CHECK_CLOSE(output[0]->position()[0], 0.2, 1e-5);
   BOOST_CHECK_CLOSE(output[0]->position()[1], 0.5, 1e-5);
 
-  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1);
+  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1u);
   BOOST_CHECK_CLOSE(output[1]->position()[0], 1.0, 1e-5);
   BOOST_CHECK_CLOSE(output[1]->position()[1], 1.1, 1e-5);
 
