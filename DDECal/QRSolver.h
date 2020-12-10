@@ -8,11 +8,11 @@
 #include <vector>
 #include <cmath>
 
-typedef std::complex<double> dcomplex;
+using complex = std::complex<float>;
 
-/* ZGELS prototype */
-extern "C" void zgels_(char* trans, int* m, int* n, int* nrhs, dcomplex* a,
-                       int* lda, dcomplex* b, int* ldb, dcomplex* work,
+/* CGELS prototype */
+extern "C" void cgels_(char* trans, int* m, int* n, int* nrhs, complex* a,
+                       int* lda, complex* b, int* ldb, complex* work,
                        int* lwork, int* info);
 
 class QRSolver {
@@ -27,18 +27,18 @@ class QRSolver {
    * dimension max(M, N) On succesful exit: the solution vectors, stored
    * columnwise (N, NRHS)
    */
-  bool Solve(dcomplex* a, dcomplex* b) {
+  bool Solve(complex* a, complex* b) {
     int info;
     char trans = 'N';  // No transpose
     int ldb = std::max(_m, _n);
     if (_work.empty()) {
       int lwork = -1;
-      dcomplex wkopt;
-      zgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, &wkopt, &lwork, &info);
+      complex wkopt;
+      cgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, &wkopt, &lwork, &info);
       _work.resize((int)wkopt.real());
     }
     int lwork = _work.size();
-    zgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, _work.data(), &lwork,
+    cgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, _work.data(), &lwork,
            &info);
     /// Check for full rank
     return info == 0;
@@ -54,7 +54,7 @@ class QRSolver {
   /** Number of columns in matrices B and X */
   int _nrhs;
 
-  std::vector<dcomplex> _work;
+  std::vector<complex> _work;
 };
 
 #endif

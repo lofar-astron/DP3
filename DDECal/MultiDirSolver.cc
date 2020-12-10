@@ -383,7 +383,7 @@ void MultiDirSolver::performScalarIteration(
     // solve x^H in [g C] x^H  = v
     bool success = solver.Solve(gTimesCs[ant].data(), vs[ant].data());
     Matrix& x = vs[ant];
-    if (success && x(0, 0) != 0.) {
+    if (success && x(0, 0) != Complex(0.0, 0.0)) {
       for (size_t d = 0; d != _nDirections; ++d)
         nextSolutions[ant * _nDirections + d] = x(d, 0);
     } else {
@@ -641,7 +641,7 @@ void MultiDirSolver::performFullMatrixIteration(
     // solve x^H in [g C] x^H  = v
     bool success = solver.Solve(gTimesCs[ant].data(), vs[ant].data());
     Matrix& x = vs[ant];
-    if (success && x(0, 0) != 0.) {
+    if (success && x(0, 0) != Complex(0.0, 0.0)) {
       for (size_t d = 0; d != _nDirections; ++d) {
         for (size_t p = 0; p != 4; ++p) {
           // The conj transpose is also performed at this point (note swap of %
