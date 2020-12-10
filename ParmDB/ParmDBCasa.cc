@@ -238,8 +238,8 @@ void ParmDBCasa::fillDefMap(ParmMap& defMap) {
   }
 }
 
-pair<string, ParmValueSet> ParmDBCasa::extractDefValue(const Table& tab,
-                                                       int row) {
+std::pair<string, ParmValueSet> ParmDBCasa::extractDefValue(const Table& tab,
+                                                            int row) {
   ROScalarColumn<String> nameCol(tab, "NAME");
   ROScalarColumn<int> typeCol(tab, "FUNKLETTYPE");
   ROArrayColumn<bool> maskCol(tab, "SOLVABLE");

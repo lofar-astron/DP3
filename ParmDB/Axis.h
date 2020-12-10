@@ -13,12 +13,11 @@
 #include "../Blob/BlobStreamable.h"
 
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace DP3 {
 namespace BBS {
-
-using std::make_pair;
-using std::pair;
 
 /// @ingroup ParmDB
 /// @brief Classes representing a regular or irregular axis.
@@ -77,8 +76,8 @@ class Axis : public BlobStreamable {
   ///@}
 
   /// Get the total range of the axis.
-  pair<double, double> range() const {
-    return pair<double, double>(start(), end());
+  std::pair<double, double> range() const {
+    return std::make_pair(start(), end());
   }
 
   /// Get the cellnr of the cell containing value x.
@@ -88,12 +87,12 @@ class Axis : public BlobStreamable {
   /// result of the previous locate).
   /// If the cell is not found, it returns the cellnr of the next higher cell
   /// and sets the bool to false.
-  pair<size_t, bool> find(double x, bool biasRight = true,
-                          size_t start = 0) const;
+  std::pair<size_t, bool> find(double x, bool biasRight = true,
+                               size_t start = 0) const;
 
   /// Get the cellnr as above, but throw an exception if not found.
   size_t locate(double x, bool biasRight = true, size_t start = 0) const {
-    pair<size_t, bool> res = find(x, biasRight, start);
+    std::pair<size_t, bool> res = find(x, biasRight, start);
     if (!res.second) throwNotFound(x);
     return res.first;
   }

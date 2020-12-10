@@ -21,16 +21,6 @@ using DP3::operator<<;
 // Initialize static.
 unsigned int Axis::theirId = 0;
 
-// Register with the BlobStreamableFactory. Use an anonymous namespace. This
-// ensures that the 'dummy' variables get their own private storage area and
-// are only visible in this compilation unit.
-namespace {
-bool dummy1 =
-    BlobStreamableFactory::instance().registerClass<RegularAxis>("RegularAxis");
-bool dummy2 =
-    BlobStreamableFactory::instance().registerClass<OrderedAxis>("OrderedAxis");
-}  // namespace
-
 Axis::Axis() { itsId = theirId++; }
 
 void Axis::setup(double start, double width, unsigned int count) {
@@ -124,7 +114,8 @@ bool Axis::checkIntervals(const Axis& that) const {
   return true;
 }
 
-pair<size_t, bool> Axis::find(double x, bool biasRight, size_t start) const {
+std::pair<size_t, bool> Axis::find(double x, bool biasRight,
+                                   size_t start) const {
   // The locate function searches in a linear way because usually
   // domains are looked up in an ordered way. The start argument can
   // contain the index of the previous interval, so most of the time the
@@ -140,7 +131,7 @@ pair<size_t, bool> Axis::find(double x, bool biasRight, size_t start) const {
   } else if (casacore::near(x, itsLower[start])) {
     // At the left edge, so use it if a bias to the right.
     if (biasRight) {
-      return pair<size_t, bool>(start, true);
+      return std::make_pair(start, true);
     }
     // Otherwise start at beginning (note that the start of this interval
     // does not need to be the end of the previous one).
@@ -183,7 +174,7 @@ pair<size_t, bool> Axis::find(double x, bool biasRight, size_t start) const {
     // Past the current interval, so continue searching if possible.
     ++start;
   }
-  return pair<size_t, bool>(start, fnd);
+  return std::make_pair(start, fnd);
 }
 
 void Axis::throwNotFound(double x) const {
@@ -193,8 +184,8 @@ void Axis::throwNotFound(double x) const {
 
 Axis::ShPtr Axis::combine(const Axis& that, int& s1, int& e1, int& s2,
                           int& e2) const {
-  pair<double, double> range1 = range();
-  pair<double, double> range2 = that.range();
+  std::pair<double, double> range1 = range();
+  std::pair<double, double> range2 = that.range();
   if (range1.second <= range2.first ||
       casacore::near(range1.second, range2.first)) {
     // this is fully left of that.
@@ -300,8 +291,8 @@ Axis::ShPtr Axis::combine(const Axis& that, int& s1, int& e1, int& s2,
 
 Axis::ShPtr Axis::add(const Axis& that) const {
   // That axis will be appended to this one.
-  pair<double, double> range1 = range();
-  pair<double, double> range2 = that.range();
+  std::pair<double, double> range1 = range();
+  std::pair<double, double> range2 = that.range();
   int nr1 = size();
   int nr2 = that.size();
   std::vector<double> low, upp;
@@ -342,14 +333,14 @@ Axis::ShPtr Axis::makeAxis(const std::vector<double>& low,
 }
 
 Axis::ShPtr Axis::subset(double start, double end, size_t& index) const {
-  pair<double, double> rng = range();
+  std::pair<double, double> rng = range();
   int sinx = 0;
   int einx = size() - 1;
   if (start > rng.first) {
     sinx = find(start, true).first;
   }
   if (end < rng.second) {
-    pair<size_t, bool> res = find(end, false);
+    std::pair<size_t, bool> res = find(end, false);
     einx = res.first;
     if (einx == 0 && !res.second) {
       // Entire interval before the range, so make sinx>einx to return

@@ -21,9 +21,6 @@ namespace BBS {
 /// Forward declaration.
 class Grid;
 
-/// Define Location: A location on a 2-D grid.
-typedef pair<size_t, size_t> Location;
-
 /// @ingroup ParmDB
 /// @{
 
@@ -92,6 +89,9 @@ class GridRep {
 /// @brief The envelope class for a 2-D grid with regular or irregular axes. -
 class Grid {
  public:
+  /// Define Location: A location on a 2-D grid.
+  using Location = std::pair<size_t, size_t>;
+
   /// Default constructor creates empty axes.
   Grid() : itsRep(new GridRep()) {}
 
@@ -141,7 +141,7 @@ class Grid {
   ///@}
 
   /// Get the grid shape (nx,ny).
-  std::pair<size_t, size_t> shape() const { return make_pair(nx(), ny()); }
+  std::pair<size_t, size_t> shape() const { return std::make_pair(nx(), ny()); }
 
   /// Get the total number of cells.
   size_t size() const { return nx() * ny(); }
@@ -192,8 +192,8 @@ class Grid {
   /// If the point is on the edge, the left or right cell is chosen
   /// depending on the value of \c biasRight.
   Location locate(const Point& point, bool biasRight = true) const {
-    return make_pair(getAxis(0)->locate(point.first, biasRight),
-                     getAxis(1)->locate(point.second, biasRight));
+    return std::make_pair(getAxis(0)->locate(point.first, biasRight),
+                          getAxis(1)->locate(point.second, biasRight));
   }
 
   /// Apply the given domain to this grid.
@@ -240,7 +240,7 @@ class Grid {
 /// @brief Utility class that simplifies iterating over a 2-D range of cells.
 class CellIterator {
  public:
-  CellIterator(const Location& start, const Location& end)
+  CellIterator(const Grid::Location& start, const Grid::Location& end)
       : itsStart(start), itsEnd(end), itsLocation(start) {}
 
   /// Test if the iterator is at the end.
@@ -258,15 +258,15 @@ class CellIterator {
   ///@}
 
   /// STL-like iterator dereference.
-  const Location& operator*() const { return itsLocation; }
+  const Grid::Location& operator*() const { return itsLocation; }
 
   /// STL-like iterator pointer.
-  const Location* operator->() const { return &itsLocation; }
+  const Grid::Location* operator->() const { return &itsLocation; }
 
  private:
-  Location itsStart;
-  Location itsEnd;
-  Location itsLocation;
+  Grid::Location itsStart;
+  Grid::Location itsEnd;
+  Grid::Location itsLocation;
 };
 
 /// @}

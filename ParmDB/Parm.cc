@@ -45,7 +45,7 @@ unsigned int Parm::getCoeffSize(bool useMask) {
   return ntrue(mask);
 }
 
-vector<double> Parm::getCoeff(const Location& where, bool useMask) {
+vector<double> Parm::getCoeff(const Grid::Location& where, bool useMask) {
   assert(!itsSolveGrid.isDefault());
   const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
   // Find the location in the ParmValueSet grid given the location in
@@ -62,7 +62,7 @@ vector<double> Parm::getCoeff(const Location& where, bool useMask) {
   return vector<double>(1, pv.getValues().data()[cellId]);
 }
 
-vector<double> Parm::getErrors(const Location& where, bool useMask) {
+vector<double> Parm::getErrors(const Grid::Location& where, bool useMask) {
   const ParmValueSet& pvset = itsCache->getValueSet(itsParmId);
   // Find the location in the ParmValueSet grid given the location in
   // the solve grid.
@@ -100,7 +100,7 @@ vector<double> Parm::copyValues(const Array<double>& values,
   return solvCoeff;
 }
 
-void Parm::setCoeff(const Location& where, const double* newValues,
+void Parm::setCoeff(const Grid::Location& where, const double* newValues,
                     unsigned int nvalues, const double* newErrors,
                     bool useMask) {
   assert(!itsSolveGrid.isDefault());

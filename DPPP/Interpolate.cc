@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Interpolate.h"
-#include "buffered_lane.h"
 
 #include "../DPPP/DPBuffer.h"
 #include "../DPPP/DPInfo.h"
 #include "../DPPP/DPRun.h"
 
+#include "../Common/buffered_lane.h"
 #include "../Common/ParameterSet.h"
 #include "../Common/StringUtil.h"
 

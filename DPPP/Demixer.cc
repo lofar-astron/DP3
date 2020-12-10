@@ -1082,7 +1082,7 @@ void Demixer::dumpSolutions() {
   for (size_t ts = 0; ts < itsNTimeDemix; ++ts) {
     double* unknowns = &(itsUnknowns[ts * itsNModel * itsNStation * 8]);
     for (size_t i = 0; i < parms.size(); ++i) {
-      parms[i].setCoeff(BBS::Location(0, ts), unknowns + i, 1);
+      parms[i].setCoeff(BBS::Grid::Location(0, ts), unknowns + i, 1);
     }
   }
 

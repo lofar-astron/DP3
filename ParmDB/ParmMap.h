@@ -12,6 +12,8 @@
 
 #include "ParmValue.h"
 
+#include <map>
+
 namespace DP3 {
 namespace BBS {
 

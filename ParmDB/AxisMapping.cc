@@ -40,22 +40,23 @@ const AxisMapping& AxisMappingCache::makeMapping(const Axis& from,
   return result.first->second;
 }
 
-Location GridMapping::findLocation(AxisMappingCache& cache,
-                                   const Location& location, const Grid& src,
-                                   const Grid& dest) {
+Grid::Location GridMapping::findLocation(AxisMappingCache& cache,
+                                         const Grid::Location& location,
+                                         const Grid& src, const Grid& dest) {
   const AxisMapping& mapx = cache.get(*src.getAxis(0), *dest.getAxis(0));
   const AxisMapping& mapy = cache.get(*src.getAxis(1), *dest.getAxis(1));
-  return Location(mapx[location.first], mapy[location.second]);
+  return Grid::Location(mapx[location.first], mapy[location.second]);
 }
 
-Location GridMapping::findLocation(AxisMappingCache& cache, unsigned int cellId,
-                                   const Grid& src, const Grid& dest) {
+Grid::Location GridMapping::findLocation(AxisMappingCache& cache,
+                                         unsigned int cellId, const Grid& src,
+                                         const Grid& dest) {
   return findLocation(cache, src.getCellLocation(cellId), src, dest);
 }
 
 unsigned int GridMapping::findCellId(AxisMappingCache& cache,
-                                     const Location& location, const Grid& src,
-                                     const Grid& dest) {
+                                     const Grid::Location& location,
+                                     const Grid& src, const Grid& dest) {
   return dest.getCellId(findLocation(cache, location, src, dest));
 }
 

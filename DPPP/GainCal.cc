@@ -944,7 +944,7 @@ void GainCal::writeSolutionsH5Parm(double) {
 
   h5parm.addAntennas(allAntennaNames, antennaPos);
 
-  vector<pair<double, double> > pointingPosition(1);
+  vector<std::pair<double, double> > pointingPosition(1);
   MDirection phasecenter = info().phaseCenter();
   pointingPosition[0].first = phasecenter.getValue().get()[0];
   pointingPosition[0].second = phasecenter.getValue().get()[1];
