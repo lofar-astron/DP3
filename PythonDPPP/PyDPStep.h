@@ -5,20 +5,19 @@
 #include "../Common/ParameterSet.h"
 
 namespace DP3 {
-  namespace DPPP {
+namespace DPPP {
 
 class PyDPStep : public DPStep {
-public:
+ public:
+  static DPStep::ShPtr create_instance(DPInput* input,
+                                       const ParameterSet& parset,
+                                       const string& prefix);
 
-    static DPStep::ShPtr create_instance(DPInput* input,
-                      const ParameterSet& parset,
-                      const string& prefix);
-
-private:
-    using DPStep::DPStep;
+ private:
+  using DPStep::DPStep;
 };
 
-} // namespace DPPP
-} // namespace DP3
+}  // namespace DPPP
+}  // namespace DP3
 
-#endif // DPPP_PYDPSTEP_H
+#endif  // DPPP_PYDPSTEP_H
