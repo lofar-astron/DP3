@@ -18,7 +18,5 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/external/pybind11/CMakeLists.txt")
     message(FATAL_ERROR "Submodules pybind11 was not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules manually and try again.")
 endif()
 
-
-find_package(Python3)
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
 add_subdirectory(pybind11)
