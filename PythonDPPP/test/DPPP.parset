@@ -1,0 +1,10 @@
+msin=
+msout= 
+msin.ntimes=11 
+steps='[pystep]' 
+
+pystep.type=PythonDPPP 
+pystep.python.module=dppp.dummystep 
+pystep.python.class=DummyDPStep 
+pystep.somekey=somevalue
+

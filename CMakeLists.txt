@@ -75,7 +75,6 @@ else() # Use old, deprecated means of detecting python.
   set(Python3_VERSION ${PYTHON_VERSION_STRING})
   set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
   set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
-  set(BOOSTPY "")
 endif()
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
@@ -83,7 +82,7 @@ include_directories(${Python3_INCLUDE_DIRS})
 #Boost depends on python, since we use ${BOOSTPY} here.
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(Threads REQUIRED)
@@ -324,6 +323,8 @@ set(DPPP_LIBRARIES
   ${Python3_LIBRARIES}
   schaapcommon
   Threads::Threads)
+
+add_subdirectory(external)
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
