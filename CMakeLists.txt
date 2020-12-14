@@ -298,10 +298,13 @@ endif()
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
 add_library(DDECal_OBJ OBJECT
-  DDECal/DDECal.cc DDECal/Register.cc DDECal/Stopwatch.cc
+  DDECal/DDECal.cc
+  DDECal/DiagonalSolver.cc
   DDECal/MultiDirSolver.cc
   DDECal/Constraint.cc
+  DDECal/Register.cc 
   DDECal/SmoothnessConstraint.cc
+  DDECal/Stopwatch.cc
   DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
   DDECal/RotationAndDiagonalConstraint.cc
   ${DDE_ARMADILLO_FILES})
@@ -370,6 +373,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tSourceDBUtil.cc
   DPPP/test/unit/tStationAdder.cc
+  DDECal/test/unit/tSolvers.cc
   DDECal/test/unit/tRotationConstraint.cc
   Common/test/unit/tProximityClustering.cc
 )

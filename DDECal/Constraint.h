@@ -50,8 +50,9 @@ class Constraint {
    * far from the correct answer, then switch to a different constraint when
    * hasReachedPrecision=true.
    */
-  virtual void PrepareIteration(bool /*hasReachedPrecision*/,
-                                size_t /*iteration*/, bool /*finalIter*/) {}
+  virtual void PrepareIteration([[maybe_unused]] bool hasReachedPrecision,
+                                [[maybe_unused]] size_t iteration,
+                                [[maybe_unused]] bool finalIter) {}
 
   /**
    * Whether the constraint has been satisfied. The calibration process will
