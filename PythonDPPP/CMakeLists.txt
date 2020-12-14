@@ -1,6 +1,7 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+include(GNUInstallDirs)
 
 pybind11_add_module(pydppp MODULE pydppp.cc)
 
@@ -12,7 +13,7 @@ add_library(dppp_pythondppp SHARED PyDPStep.cc)
 
 target_link_libraries(dppp_pythondppp pybind11::embed)
 
-install(TARGETS dppp_pythondppp)
+install(TARGETS dppp_pythondppp DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(TARGETS pydppp parameterset DESTINATION "${PYTHON_INSTALL_DIR}/dppp")
 install(FILES __init__.py dummystep.py DESTINATION "${PYTHON_INSTALL_DIR}/dppp")
 
