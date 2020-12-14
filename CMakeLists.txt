@@ -23,6 +23,7 @@ endif()
 project(DP3 VERSION ${DP3_VERSION})
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
+
 add_compile_options(-Wall -O3)
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
@@ -35,27 +36,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
-enable_testing()
 
-# Find and include aocommon git submodule
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-# Update submodules as needed
-    option(GIT_SUBMODULE "Check submodules during build" ON)
-    if(GIT_SUBMODULE)
-        message(STATUS "Submodule update")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
-        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-        endif()
-    endif()
+
+# === Load external packages ===
+
+# DDECal dependencies
+find_package(Armadillo)
+if(${ARMADILLO_FOUND})
+  add_definitions(-DHAVE_ARMADILLO)
+  include_directories(${ARMADILLO_INCLUDE_DIRS})
+  set(DDE_ARMADILLO_FILES
+    DDECal/KLFitter.cc
+    DDECal/PiercePoint.cc
+    DDECal/ScreenConstraint.cc)
+else()
+  message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
+  set(DDE_ARMADILLO_FILES)
 endif()
 
-# Include aocommon
-include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
-
+# Casacore depends on HDF5 -> First load HDF5.
 find_package(HDF5 COMPONENTS C CXX REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
@@ -63,33 +62,11 @@ include_directories(${HDF5_INCLUDE_DIRS})
 find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
 
-find_package(Threads REQUIRED)
-
-find_package(IDGAPI NO_MODULE QUIET)
-
-if(IDGAPI_FOUND)
-  # Throw error if IDG version < 0.8 or version not provided at all
-  if((IDGAPI_VERSION VERSION_LESS "0.8") OR (NOT DEFINED IDGAPI_VERSION))
-    message(FATAL_ERROR "IDGAPI was found, but DP3 requires IDGAPI to have version >= 0.8. "
-    "Please compile IDG repository at a version >= 0.8")
-  endif()
-endif()
-
-if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  include_directories(${IDGAPI_INCLUDE_DIRS})
-  set(HAVE_IDG TRUE)
-  add_definitions(-DHAVE_IDG)
-  message(STATUS "Image domain gridder API libraries found.")
-else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  set(IDGAPI_LIBRARIES "")
-  message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
-endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
-  find_package(Python3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
   set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 else() # Use old, deprecated means of detecting python.
   find_package(PythonInterp 3 REQUIRED)
@@ -100,14 +77,22 @@ else() # Use old, deprecated means of detecting python.
   set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
   set(BOOSTPY "")
 endif()
-
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
 
+#Boost depends on python, since we use ${BOOSTPY} here.
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
+
+find_package(Threads REQUIRED)
+
+
+# === Load astron packages ===
+
+find_package(AOFlagger 3.0.1 REQUIRED)
+include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 # We could use find_package(EveryBeam 0.1.1 REQUIRED),
 # however conditions below make it somewhat more explicit
@@ -123,10 +108,67 @@ else(${EVERYBEAM_FOUND})
     "EveryBeam is added to the CMAKE_PREFIX_PATH")
 endif(${EVERYBEAM_FOUND})
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+find_package(IDGAPI NO_MODULE QUIET)
+if(IDGAPI_FOUND)
+  # Throw error if IDG version < 0.8 or version not provided at all
+  if((IDGAPI_VERSION VERSION_LESS "0.8") OR (NOT DEFINED IDGAPI_VERSION))
+    message(FATAL_ERROR "IDGAPI was found, but DP3 requires IDGAPI to have version >= 0.8. "
+    "Please compile IDG repository at a version >= 0.8")
+  endif()
+endif()
+if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+  include_directories(${IDGAPI_INCLUDE_DIRS})
+  set(HAVE_IDG TRUE)
+  add_definitions(-DHAVE_IDG)
+  message(STATUS "Image domain gridder API libraries found.")
+else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+  set(IDGAPI_LIBRARIES "")
+  message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
+endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+
+
+# === Load internal submodule packages. ===
+
+# Update submodules as needed
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+  option(GIT_SUBMODULE "Update submodules during build" ON)
+  if(GIT_SUBMODULE)
+    message(STATUS "Submodule update")
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+    endif()
+  endif()
+endif()
+
+# Include aocommon
+include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+
+# Schaapcommon
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
+include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
+
 
 # Object libraries (which are just file groups, not actual libraries) are made in order
 # to avoid compiling everything multiple times for multiple executables.
+add_library(AOFlaggerStep OBJECT
+  AOFlaggerStep/AOFlaggerStep.cc
+  AOFlaggerStep/Register.cc
+)
+
+add_library(Blob OBJECT
+  Blob/BlobAipsIO.cc
+  Blob/BlobArray.cc
+  Blob/BlobHeader.cc
+  Blob/BlobIBufStream.cc
+  Blob/BlobIStream.cc
+  Blob/BlobOBufStream.cc
+  Blob/BlobOStream.cc
+)
+
 add_library(Common OBJECT
   Common/BaselineSelect.cc
   Common/ClusterDesc.cc
@@ -147,51 +189,19 @@ add_library(Common OBJECT
   Common/VdsMaker.cc
   Common/VdsPartDesc.cc
 )
-set(COMMON_OBJECT $<TARGET_OBJECTS:Common>)
 
-add_library(ParmDB OBJECT
-  ParmDB/Axis.cc
-  ParmDB/AxisMapping.cc
-  ParmDB/Box.cc
-  ParmDB/Grid.cc
-  ParmDB/Parm.cc
-  ParmDB/ParmCache.cc
-  ParmDB/ParmDB.cc
-  ParmDB/ParmDBBlob.cc
-  ParmDB/ParmDBCasa.cc
-  ParmDB/ParmDBLocker.cc
-  ParmDB/ParmDBMeta.cc
-  ParmDB/ParmFacade.cc
-  ParmDB/ParmFacadeLocal.cc
-  ParmDB/ParmFacadeRep.cc
-  ParmDB/ParmSet.cc
-  ParmDB/ParmValue.cc
-  ParmDB/PatchInfo.cc
-  ParmDB/SourceData.cc
-  ParmDB/SourceDB.cc
-  ParmDB/SourceDBBlob.cc
-  ParmDB/SourceDBCasa.cc
-  ParmDB/SourceInfo.cc
-)
-set(PARMDB_OBJECT $<TARGET_OBJECTS:ParmDB>)
-
-add_library(Blob OBJECT
-  Blob/BlobAipsIO.cc
-  Blob/BlobArray.cc
-  Blob/BlobHeader.cc
-  Blob/BlobIBufStream.cc
-  Blob/BlobIStream.cc
-  Blob/BlobOBufStream.cc
-  Blob/BlobOStream.cc
-)
-set(BLOB_OBJECT $<TARGET_OBJECTS:Blob>)
-
-add_library(IDGPredict OBJECT
-  IDGPredict/FacetImage.cc
-  IDGPredict/IDGPredict.cc
-)
-
-set(IDGPREDICT_OBJECT $<TARGET_OBJECTS:IDGPredict>)
+add_library(DDECal OBJECT
+  DDECal/Constraint.cc
+  DDECal/DDECal.cc
+  DDECal/DiagonalSolver.cc
+  DDECal/MultiDirSolver.cc
+  DDECal/Register.cc
+  DDECal/RotationAndDiagonalConstraint.cc
+  DDECal/RotationConstraint.cc
+  DDECal/SmoothnessConstraint.cc
+  DDECal/Stopwatch.cc
+  DDECal/TECConstraint.cc
+  ${DDE_ARMADILLO_FILES})
 
 add_library(DPPP_OBJ OBJECT
   DPPP/Apply.cc
@@ -261,57 +271,62 @@ add_library(DPPP_OBJ OBJECT
   DPPP/DemixInfo.cc
   DPPP/DemixWorker.cc
 )
-set(DPPP_OBJECT $<TARGET_OBJECTS:DPPP_OBJ>)
 
-find_package(AOFlagger 3.0.1 REQUIRED)
-include_directories(${AOFLAGGER_INCLUDE_DIR})
-
-add_library(AOFlaggerStep_OBJ OBJECT
-  AOFlaggerStep/AOFlaggerStep.cc
-  AOFlaggerStep/Register.cc
+add_library(IDGPredict OBJECT
+  IDGPredict/FacetImage.cc
+  IDGPredict/IDGPredict.cc
 )
-set(AOFLAGGERSTEP_OBJECT $<TARGET_OBJECTS:AOFlaggerStep_OBJ>)
 
-set(EXTRA_LIBRARIES
+add_library(ParmDB OBJECT
+  ParmDB/Axis.cc
+  ParmDB/AxisMapping.cc
+  ParmDB/Box.cc
+  ParmDB/Grid.cc
+  ParmDB/Parm.cc
+  ParmDB/ParmCache.cc
+  ParmDB/ParmDB.cc
+  ParmDB/ParmDBBlob.cc
+  ParmDB/ParmDBCasa.cc
+  ParmDB/ParmDBLocker.cc
+  ParmDB/ParmDBMeta.cc
+  ParmDB/ParmFacade.cc
+  ParmDB/ParmFacadeLocal.cc
+  ParmDB/ParmFacadeRep.cc
+  ParmDB/ParmSet.cc
+  ParmDB/ParmValue.cc
+  ParmDB/PatchInfo.cc
+  ParmDB/SourceData.cc
+  ParmDB/SourceDB.cc
+  ParmDB/SourceDBBlob.cc
+  ParmDB/SourceDBCasa.cc
+  ParmDB/SourceInfo.cc
+)
+
+# dppp_testdyndppp requires using position independent code.
+set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB
+             PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+set(DPPP_OBJECTS
+  $<TARGET_OBJECTS:AOFlaggerStep>
+  $<TARGET_OBJECTS:Blob>
+  $<TARGET_OBJECTS:Common>
+  $<TARGET_OBJECTS:DDECal>
+  $<TARGET_OBJECTS:DPPP_OBJ>
+  $<TARGET_OBJECTS:IDGPredict>
+  $<TARGET_OBJECTS:ParmDB>)
+
+set(DPPP_LIBRARIES
   ${AOFLAGGER_LIB}
-  ${CASACORE_LIBRARIES}
+  ${ARMADILLO_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${Python3_LIBRARIES}
+  ${CASACORE_LIBRARIES}
+  ${CFITSIO_LIBRARY}
+  ${EVERYBEAM_LIB}
+  ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES}
   ${IDGAPI_LIBRARIES}
+  ${Python3_LIBRARIES}
+  schaapcommon
   Threads::Threads)
-
-#
-# DDECal dependencies
-#
-find_package(Armadillo)
-if(${ARMADILLO_FOUND})
-  add_definitions(-DHAVE_ARMADILLO)
-  set(DDE_ARMADILLO_FILES
-    DDECal/KLFitter.cc
-    DDECal/PiercePoint.cc
-    DDECal/ScreenConstraint.cc)
-else()
-  message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
-  set(DDE_ARMADILLO_FILES)
-endif()
-
-include_directories(${ARMADILLO_INCLUDE_DIRS})
-set(EXTRA_LIBRARIES ${EXTRA_LIBRARIES} ${ARMADILLO_LIBRARIES})
-add_library(DDECal_OBJ OBJECT
-  DDECal/DDECal.cc
-  DDECal/DiagonalSolver.cc
-  DDECal/MultiDirSolver.cc
-  DDECal/Constraint.cc
-  DDECal/Register.cc 
-  DDECal/SmoothnessConstraint.cc
-  DDECal/Stopwatch.cc
-  DDECal/TECConstraint.cc DDECal/RotationConstraint.cc
-  DDECal/RotationAndDiagonalConstraint.cc
-  ${DDE_ARMADILLO_FILES})
-set(DDECAL_OBJECT $<TARGET_OBJECTS:DDECal_OBJ>)
-
-set(DPPP_GLOBAL_SOVERSION 2)
-
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -320,32 +335,39 @@ endif()
 # SPW Combine has dependencies to LOFAR
 #add_subdirectory(SPWCombine)
 
-add_executable(makesourcedb ParmDB/makesourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
-target_link_libraries(makesourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+set(SOURCEDB_OBJECTS
+  $<TARGET_OBJECTS:Blob>
+  $<TARGET_OBJECTS:Common>
+  $<TARGET_OBJECTS:ParmDB>)
 
-add_executable(showsourcedb ParmDB/showsourcedb.cc ${PARMDB_OBJECT} ${BLOB_OBJECT} ${COMMON_OBJECT})
-target_link_libraries(showsourcedb ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+set(SOURCEDB_LIBRARIES
+  ${CASACORE_LIBRARIES}
+  ${Boost_SYSTEM_LIBRARY})
+
+add_executable(makesourcedb ParmDB/makesourcedb.cc ${SOURCEDB_OBJECTS})
+target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
+
+add_executable(showsourcedb ParmDB/showsourcedb.cc ${SOURCEDB_OBJECTS})
+target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  SET(OS_SPECIFIC_TESTS) # No specific tests for Apple
+  set(OS_SPECIFIC_TESTS) # No specific tests for Apple
 else()
   # These run only on Linux
-  SET(OS_SPECIFIC_TESTS
+  set(OS_SPECIFIC_TESTS
 #    TestDynDPPP/test/tDynStep.cc # This test still fails
   )
-endif()
-
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_library(dppp_testdyndppp SHARED
-    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECT} ${PARMDB_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT} ${COMMON_OBJECT} ${AOFLAGGERSTEP_OBJECT} ${IDGPREDICT_OBJECT}
+    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECTS}
   )
-  target_link_libraries(dppp_testdyndppp ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
-  set_target_properties(dppp_testdyndppp PROPERTIES VERSION ${DPPP_GLOBAL_SOVERSION})
+  target_link_libraries(dppp_testdyndppp ${DPPP_LIBRARIES})
+  add_dependencies(dppp_testdyndppp schaapcommon)
 endif()
 
 # I'm avoiding cmake's test commands, because they build executable tests by default
 # which makes the compilation process more expensive.
 set(TEST_FILENAMES
+  Common/test/unit/tProximityClustering.cc
   DPPP/test/runtests.cc
   DPPP/test/unit/mock/MockInput.cc
   DPPP/test/unit/mock/MockStep.cc
@@ -375,7 +397,6 @@ set(TEST_FILENAMES
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tSolvers.cc
   DDECal/test/unit/tRotationConstraint.cc
-  Common/test/unit/tProximityClustering.cc
 )
 
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
@@ -452,11 +473,10 @@ set_tests_properties(
 
 add_executable(
   unittests EXCLUDE_FROM_ALL
-  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
-  ${DPPP_OBJECT} ${COMMON_OBJECT} ${BLOB_OBJECT} ${DDECAL_OBJECT}
-  ${IDGPREDICT_OBJECT} ${PARMDB_OBJECT} ${AOFLAGGERSTEP_OBJECT}
+  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
 )
-target_link_libraries(unittests ${EXTRA_LIBRARIES} ${EVERYBEAM_LIB})
+target_link_libraries(unittests ${DPPP_LIBRARIES})
+add_dependencies(unittests schaapcommon)
 
 add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
 set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
@@ -471,12 +491,6 @@ set_tests_properties(
   FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
 
-# I'll leave this here as an example how separate test executables could be added
-#add_executable(tMirror EXCLUDE_FROM_ALL
-#  DPPP/test/tMirror.cc
-#)
-#target_link_libraries(tMirror ${CASACORE_LIBRARIES})
-
-install (TARGETS makesourcedb showsourcedb DESTINATION bin)
+install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 include(docs/CMakeLists.txt)

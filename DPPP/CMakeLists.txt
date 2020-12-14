@@ -3,20 +3,9 @@
 
 include(PythonInstall)
 
-add_executable(DPPP DPPP.cc
-  ${DPPP_OBJECT}
-  ${PARMDB_OBJECT}
-  ${BLOB_OBJECT}
-  ${COMMON_OBJECT}
-  ${AOFLAGGERSTEP_OBJECT}
-  ${DDECAL_OBJECT}
-  ${IDGPREDICT_OBJECT})
-target_link_libraries(DPPP
-  ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES}
-  ${CASACORE_LIBRARIES}
-  ${EVERYBEAM_LIB}
-  ${CFITSIO_LIBRARY}
-  ${EXTRA_LIBRARIES})
+add_executable(DPPP DPPP.cc ${DPPP_OBJECTS})
+target_link_libraries(DPPP ${DPPP_LIBRARIES})
+add_dependencies(DPPP schaapcommon)
 
 install(TARGETS DPPP DESTINATION bin)
 
