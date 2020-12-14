@@ -1,6 +1,12 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+workflow:
+  rules:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /(?i)(^WIP.*)/ || $CI_MERGE_REQUEST_TITLE =~ /(?i)(^DRAFT.*)/'
+      when: never
+    - when: always
+
 stages:
   - prepare
   - build
