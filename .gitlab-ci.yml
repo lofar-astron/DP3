@@ -20,9 +20,6 @@ build-base:
   stage: prepare
   image: docker:stable
   script:
-  # NOTE: using these two predefined variables might lead to problems
-  # when scheduled jobs are ran
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
   rules:
     # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
@@ -31,15 +28,13 @@ build-base:
       when: always
     - when: never
 
-# Without the docker cache, we need to push it to the gitlab registry which requires docker:dind
+# On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
 build-base-ska:
   stage: prepare
   image: docker:stable
   services:
   - docker:dind
   script:
-  # NOTE: using these two predefined variables might lead to problems
-  # when scheduled jobs are ran
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
   - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
@@ -94,7 +89,7 @@ build-release:
       when: on_success
     - when: never
 
-# Without the docker cache, we need to push it to the gitlab registry which requires docker:dind
+# On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
 build-release-ska:
   stage: build
   image: docker:stable
