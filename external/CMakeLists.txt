@@ -4,6 +4,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     option(GIT_SUBMODULE "Check submodules during configure" ON)
     if(GIT_SUBMODULE)
         message(STATUS "Submodule update")
+        message(STATUS "Syncing submodules")
         execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync --recursive
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                         RESULT_VARIABLE GIT_SUBMOD_RESULT)
@@ -11,6 +12,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
             message(FATAL_ERROR "Syncing submodules did not succeed" 
             "command '${GIT_EXECUTABLE} submodule sync --recursive' failed with exit code ${GIT_SUBMOD_RESULT}")
         endif()
+        message(STATUS "Updating submodules")
         execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                         RESULT_VARIABLE GIT_SUBMOD_RESULT)
