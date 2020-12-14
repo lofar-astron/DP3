@@ -15,7 +15,24 @@ stages:
   - publish
   - pages
 
+# Build the base image for git.astron
 build-base:
+  stage: prepare
+  image: docker:stable
+  script:
+  # NOTE: using these two predefined variables might lead to problems
+  # when scheduled jobs are ran
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
+  rules:
+    # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
+    # a branch that has an open MR, see https://gitlab.com/gitlab-org/gitlab/-/issues/201845
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+      when: always
+    - when: never
+
+# Without the docker cache, we need to push it to the gitlab registry which requires docker:dind
+build-base-ska:
   stage: prepare
   image: docker:stable
   services:
@@ -25,11 +42,9 @@ build-base:
   # when scheduled jobs are ran
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
-  - if [ $CI_SERVER_HOST != "git.astron.nl" ]; then docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA; fi
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   rules:
-    # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
-    # a branch that has an open MR, see https://gitlab.com/gitlab-org/gitlab/-/issues/201845
-    - when: always
+    - if: '$CI_SERVER_HOST != "git.astron.nl"'
 
 build-ubuntu18:
   stage: build
@@ -41,7 +56,6 @@ build-ubuntu18:
 
 build-no-idg:
   stage: build
-  needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - rm -r /usr/lib/cmake/*idg*
@@ -57,7 +71,6 @@ build-no-idg:
 
 build-debug:
   stage: build
-  needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - mkdir build && cd build
@@ -73,12 +86,26 @@ build-debug:
 build-release:
   stage: build
   image: docker:stable
-  services:
-    - docker:dind
   needs: ["build-base"]
   script:
     - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
   rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+      when: on_success
+    - when: never
+
+# Without the docker cache, we need to push it to the gitlab registry which requires docker:dind
+build-release-ska:
+  stage: build
+  image: docker:stable
+  services:
+    - docker:dind
+  needs: ["build-base-ska"]
+  script:
+    - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
+  rules:
+    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+      when: never
     - when: on_success
 
 build-doc:
@@ -101,7 +128,6 @@ build-doc:
 
 linting:
   stage: linting
-  needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - pip3 install clang-format==9.0.0
