@@ -317,10 +317,10 @@ void MultiDirSolver::performScalarIteration(
   }
 
   const size_t channelIndexStart =
-                   channelBlockIndex * _nChannels / _nChannelBlocks,
-               channelIndexEnd =
-                   (channelBlockIndex + 1) * _nChannels / _nChannelBlocks,
-               curChannelBlockSize = channelIndexEnd - channelIndexStart,
+      channelBlockIndex * _nChannels / _nChannelBlocks;
+  const size_t channelIndexEnd =
+      (channelBlockIndex + 1) * _nChannels / _nChannelBlocks;
+  const size_t curChannelBlockSize = channelIndexEnd - channelIndexStart,
                nTimes = _buffer.Data().size();
 
   // The following loop fills the matrices for all antennas

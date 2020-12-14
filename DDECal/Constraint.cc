@@ -28,8 +28,7 @@ std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
 }
 
 std::vector<Constraint::Result> DiagonalConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
-    std::ostream* statStream) {
+    std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*) {
   if (_polsPerSolution == 4) {
     for (size_t ch = 0; ch < solutions.size(); ++ch) {
       for (size_t solIndex = 0; solIndex < solutions[ch].size();
@@ -50,7 +49,7 @@ std::vector<Constraint::Result> AntennaConstraint::Apply(
   size_t nSols = solutions.front().size() / _nAntennas;
   std::vector<dcomplex> setSolutions(nSols);
   std::vector<size_t> setSolutionCounts(nSols);
-  for (unsigned int ch = 0; ch < solutions.size(); ++ch) {
+  for (size_t ch = 0; ch < solutions.size(); ++ch) {
     for (const std::set<size_t>& antennaSet : _antennaSets) {
       setSolutions.assign(nSols, 0.0);
       setSolutionCounts.assign(nSols, 0);
