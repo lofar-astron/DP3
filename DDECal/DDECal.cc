@@ -18,12 +18,14 @@
 
 #include "../IDGPredict/IDGPredict.h"
 
-#include "TECConstraint.h"
+#include "DiagonalSolver.h"
+#include "FullJonesSolver.h"
 #include "RotationConstraint.h"
 #include "RotationAndDiagonalConstraint.h"
+#include "ScalarSolver.h"
 #include "SmoothnessConstraint.h"
+#include "TECConstraint.h"
 
-// Matrix2x2 include seems redundant here
 #include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_ARMADILLO
@@ -102,22 +104,13 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
           parset.getDouble(prefix + "smoothnessconstraint", 0.0)),
       itsScreenCoreConstraint(
           parset.getDouble(prefix + "tecscreen.coreconstraint", 0.0)),
-      itsFullMatrixMinimalization(false),
+      itsPolsInSolutions(1),
       itsApproximateTEC(false),
       itsSubtract(parset.getBool(prefix + "subtract", false)),
       itsStatFilename(parset.getString(prefix + "statfilename", "")) {
   stringstream ss;
   ss << parset;
   itsParsetString = ss.str();
-
-  itsMultiDirSolver.set_max_iterations(parset.getInt(prefix + "maxiter", 50));
-  double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
-  itsMultiDirSolver.set_accuracy(tolerance);
-  itsMultiDirSolver.set_constraint_accuracy(
-      parset.getDouble(prefix + "approxtolerance", tolerance * 10.0));
-  itsMultiDirSolver.set_step_size(parset.getDouble(prefix + "stepsize", 0.2));
-  itsMultiDirSolver.set_detect_stalling(
-      parset.getBool(prefix + "detectstalling", true));
 
   if (!itsStatFilename.empty())
     itsStatStream = boost::make_unique<std::ofstream>(itsStatFilename);
@@ -143,7 +136,15 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
   itsMode = GainCal::stringToCalType(
       boost::to_lower_copy(parset.getString(prefix + "mode", "complexgain")));
 
-  initializeConstraints(parset, prefix);
+  initializeSolver(parset, prefix);
+
+  itsSolver->SetMaxIterations(parset.getInt(prefix + "maxiter", 50));
+  double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
+  itsSolver->SetAccuracy(tolerance);
+  itsSolver->SetConstraintAccuracy(
+      parset.getDouble(prefix + "approxtolerance", tolerance * 10.0));
+  itsSolver->SetStepSize(parset.getDouble(prefix + "stepsize", 0.2));
+  itsSolver->SetDetectStalling(parset.getBool(prefix + "detectstalling", true));
 
   // Initialize steps
   initializeColumnReaders(parset, prefix);
@@ -163,8 +164,8 @@ DPStep::ShPtr DDECal::makeStep(DPInput* input, const ParameterSet& parset,
   return std::make_shared<DDECal>(input, parset, prefix);
 }
 
-void DDECal::initializeConstraints(const ParameterSet& parset,
-                                   const string& prefix) {
+void DDECal::initializeSolver(const ParameterSet& parset,
+                              const string& prefix) {
   if (itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
     itsConstraints.push_back(boost::make_unique<AntennaConstraint>());
   }
@@ -173,44 +174,51 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
         new SmoothnessConstraint(itsSmoothnessConstraint));
   }
   switch (itsMode) {
-    case GainCal::DIAGONAL:
-      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
-      itsMultiDirSolver.set_phase_only(false);
-      itsFullMatrixMinimalization = true;
-      break;
     case GainCal::SCALARCOMPLEXGAIN:
+      itsSolver = boost::make_unique<ScalarSolver>();
       // no constraints
-      itsMultiDirSolver.set_phase_only(false);
-      itsFullMatrixMinimalization = false;
-      break;
-    case GainCal::FULLJONES:
-      // no constraints
-      itsMultiDirSolver.set_phase_only(false);
-      itsFullMatrixMinimalization = true;
-      break;
-    case GainCal::PHASEONLY:
-      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
-      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
-      itsMultiDirSolver.set_phase_only(true);
-      itsFullMatrixMinimalization = true;
+      itsSolver->SetPhaseOnly(false);
+      itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARPHASE:
+      itsSolver = boost::make_unique<ScalarSolver>();
       itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
-      itsMultiDirSolver.set_phase_only(true);
-      break;
-    case GainCal::AMPLITUDEONLY:
-      itsConstraints.push_back(boost::make_unique<DiagonalConstraint>(4));
-      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
-      itsMultiDirSolver.set_phase_only(false);
-      itsFullMatrixMinimalization = true;
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARAMPLITUDE:
+      itsSolver = boost::make_unique<ScalarSolver>();
       itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
-      itsMultiDirSolver.set_phase_only(false);
-      itsFullMatrixMinimalization = false;
+      itsSolver->SetPhaseOnly(false);
+      itsPolsInSolutions = 1;
+      break;
+    case GainCal::DIAGONAL:
+      itsSolver = boost::make_unique<DiagonalSolver>();
+      // no constraints
+      itsSolver->SetPhaseOnly(false);
+      itsPolsInSolutions = 2;
+      break;
+    case GainCal::DIAGONALPHASE:
+      itsSolver = boost::make_unique<DiagonalSolver>();
+      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 2;
+      break;
+    case GainCal::DIAGONALAMPLITUDE:
+      itsSolver = boost::make_unique<DiagonalSolver>();
+      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
+      itsSolver->SetPhaseOnly(false);
+      itsPolsInSolutions = 2;
+      break;
+    case GainCal::FULLJONES:
+      itsSolver = boost::make_unique<FullJonesSolver>();
+      // no constraints
+      itsSolver->SetPhaseOnly(false);
+      itsPolsInSolutions = 4;
       break;
     case GainCal::TEC:
     case GainCal::TECANDPHASE: {
+      itsSolver = boost::make_unique<ScalarSolver>();
       const auto tecMode = (itsMode == GainCal::TEC)
                                ? TECConstraint::TECOnlyMode
                                : TECConstraint::TECAndCommonScalarMode;
@@ -219,7 +227,7 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
       itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
       if (itsApproximateTEC) {
         const int iters = parset.getInt(prefix + "maxapproxiter",
-                                        itsMultiDirSolver.max_iterations() / 2);
+                                        itsSolver->GetMaxIterations() / 2);
         const int chunksize = parset.getInt(prefix + "approxchunksize", 0);
         auto approxConstraint =
             boost::make_unique<ApproximateTECConstraint>(tecMode);
@@ -232,16 +240,17 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
       constraintPtr->setDoPhaseReference(
           parset.getBool(prefix + "phasereference", true));
       itsConstraints.push_back(std::move(constraintPtr));
-      itsMultiDirSolver.set_phase_only(true);
-      itsFullMatrixMinimalization = false;
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 1;
       break;
     }
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
+      itsSolver = boost::make_unique<ScalarSolver>();
       itsConstraints.push_back(
           boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
-      itsMultiDirSolver.set_phase_only(true);
-      itsFullMatrixMinimalization = false;
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 1;
 #else
       throw std::runtime_error(
           "Can not use TEC screen: Armadillo is not available. Recompile DP3 "
@@ -249,16 +258,18 @@ void DDECal::initializeConstraints(const ParameterSet& parset,
 #endif
       break;
     case GainCal::ROTATIONANDDIAGONAL: {
+      itsSolver = boost::make_unique<FullJonesSolver>();
       auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
       constraintPtr->SetDoRotationReference(
           parset.getBool(prefix + "rotationreference", false));
       itsConstraints.push_back(std::move(constraintPtr));
-      itsFullMatrixMinimalization = true;
+      itsPolsInSolutions = 4;
       break;
     }
     case GainCal::ROTATION:
+      itsSolver = boost::make_unique<FullJonesSolver>();
       itsConstraints.push_back(boost::make_unique<RotationConstraint>());
-      itsFullMatrixMinimalization = true;
+      itsPolsInSolutions = 4;
       break;
     default:
       throw std::runtime_error("Unexpected mode: " +
@@ -400,7 +411,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  itsMultiDirSolver.set_nthreads(getInfo().nThreads());
+  itsSolver->SetNThreads(getInfo().nThreads());
 
   if (itsSolInt == 0) {
     itsSolInt = info().ntime();
@@ -408,7 +419,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
     constraint->SetNThreads(getInfo().nThreads());
-    itsMultiDirSolver.add_constraint(constraint.get());
+    itsSolver->AddConstraint(*constraint);
   }
 
   itsDataResultStep = std::make_shared<ResultStep>();
@@ -600,8 +611,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   unsigned int nSt = info().antennaUsed().size();
   // Give renumbered antennas to multidirsolver
 
-  itsMultiDirSolver.init(nSt, nDir, info().nchan(), ant1, ant2);
-  itsMultiDirSolver.set_channel_blocks(nChannelBlocks);
+  itsSolver->Initialize(nSt, nDir, info().nchan(), nChannelBlocks, ant1, ant2);
 
   for (unsigned int i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
@@ -617,8 +627,8 @@ void DDECal::show(std::ostream& os) const {
   if (itsMinVisRatio != 0.0) {
     os << "  min visib. ratio:    " << itsMinVisRatio << '\n';
   }
-  os << "  tolerance:           " << itsMultiDirSolver.get_accuracy() << '\n'
-     << "  max iter:            " << itsMultiDirSolver.max_iterations() << '\n'
+  os << "  tolerance:           " << itsSolver->GetAccuracy() << '\n'
+     << "  max iter:            " << itsSolver->GetMaxIterations() << '\n'
      << "  flag unconverged:    " << std::boolalpha << itsFlagUnconverged
      << '\n'
      << "     diverged only:    " << std::boolalpha << itsFlagDivergedOnly
@@ -628,8 +638,8 @@ void DDECal::show(std::ostream& os) const {
      << "       converged only: " << std::boolalpha << itsPropagateConvergedOnly
      << '\n'
      << "  detect stalling:     " << std::boolalpha
-     << itsMultiDirSolver.get_detect_stalling() << '\n'
-     << "  step size:           " << itsMultiDirSolver.get_step_size() << '\n'
+     << itsSolver->GetDetectStalling() << '\n'
+     << "  step size:           " << itsSolver->GetStepSize() << '\n'
      << "  mode (constraints):  " << GainCal::calTypeToString(itsMode) << '\n';
   if (!itsAntennaConstraint.empty())
     os << "  antennaconstraint:   " << itsAntennaConstraint << '\n';
@@ -665,7 +675,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   FlagCounter::showPerc1(os, itsTimerSolve.getElapsed(), totaltime);
   os << " of it spent in estimating gains and computing residuals" << endl;
 
-  itsMultiDirSolver.showTimings(os, itsTimerSolve.getElapsed());
+  itsSolver->GetTimings(os, itsTimerSolve.getElapsed());
 
   os << "          ";
   FlagCounter::showPerc1(os, itsTimerWrite.getElapsed(), totaltime);
@@ -693,7 +703,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
 void DDECal::initializeScalarSolutions(size_t bufferIndex) {
   if (sol_ints_[bufferIndex].NSolution() > 0 && itsPropagateSolutions) {
     if (itsNIter[sol_ints_[bufferIndex].NSolution() - 1] >
-            itsMultiDirSolver.max_iterations() &&
+            itsSolver->GetMaxIterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with 1.
       size_t n = itsDirections.size() * info().antennaUsed().size();
@@ -719,7 +729,7 @@ void DDECal::initializeScalarSolutions(size_t bufferIndex) {
 void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
   if (sol_ints_[bufferIndex].NSolution() > 0 && itsPropagateSolutions) {
     if (itsNIter[sol_ints_[bufferIndex].NSolution() - 1] >
-            itsMultiDirSolver.max_iterations() &&
+            itsSolver->GetMaxIterations() &&
         itsPropagateConvergedOnly) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
       size_t n = itsDirections.size() * info().antennaUsed().size();
@@ -818,7 +828,7 @@ void DDECal::doSolve() {
   }
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
-    MultiDirSolver::SolveResult solveResult;
+    SolverBase::SolveResult solveResult;
     if (!itsOnlyPredict) {
       checkMinimumVisibilities(i);
 
@@ -826,41 +836,70 @@ void DDECal::doSolve() {
         constraint->SetWeights(itsWeightsPerAntenna);
       }
 
-      if (itsFullMatrixMinimalization)
+      if (itsPolsInSolutions == 2 || itsPolsInSolutions == 4)
         initializeFullMatrixSolutions(i);
       else
         initializeScalarSolutions(i);
 
       itsTimerSolve.start();
 
-      if (itsFullMatrixMinimalization) {
-        solveResult = itsMultiDirSolver.processFullMatrix(
-            sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-            sol_ints_[i].ModelDataPtrs(), itsSols[sol_ints_[i].NSolution()],
-            itsAvgTime / itsSolInt, itsStatStream.get());
+      // TODO to be done polymorphically once the solvers have been refactored
+      if (dynamic_cast<DiagonalSolver*>(itsSolver.get())) {
+        // Temporary fix: convert solutions from full Jones matrices to diagonal
+        std::vector<std::vector<casacore::DComplex>>& full_solutions =
+            itsSols[sol_ints_[i].NSolution()];
+        std::vector<std::vector<std::complex<double>>> diagonals(
+            full_solutions.size());
+        for (size_t ch_block = 0; ch_block != diagonals.size(); ++ch_block) {
+          diagonals[ch_block].reserve(full_solutions[ch_block].size() / 2);
+          for (size_t s = 0; s != full_solutions[ch_block].size() / 4; ++s) {
+            diagonals[ch_block].push_back(
+                itsSols[sol_ints_[i].NSolution()][ch_block][s * 4]);
+            diagonals[ch_block].push_back(
+                itsSols[sol_ints_[i].NSolution()][ch_block][s * 4 + 3]);
+          }
+        }
+
+        solveResult =
+            static_cast<DiagonalSolver&>(*itsSolver)
+                .Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+                       sol_ints_[i].ModelDataPtrs(), diagonals,
+                       itsAvgTime / itsSolInt, itsStatStream.get());
+
+        // Temporary fix: extend solutions from diagonal to full Jones matrices
+        for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
+          for (size_t s = 0; s != full_solutions[chBlock].size() / 4; ++s) {
+            full_solutions[chBlock][s * 4] = diagonals[chBlock][s * 2];
+            full_solutions[chBlock][s * 4 + 1] = 0.0;
+            full_solutions[chBlock][s * 4 + 2] = 0.0;
+            full_solutions[chBlock][s * 4 + 3] = diagonals[chBlock][s * 2 + 1];
+          }
+        }
       } else {
-        solveResult = itsMultiDirSolver.processScalar(
-            sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-            sol_ints_[i].ModelDataPtrs(), itsSols[sol_ints_[i].NSolution()],
-            itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult =
+            static_cast<ScalarSolver&>(*itsSolver)
+                .Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+                       sol_ints_[i].ModelDataPtrs(),
+                       itsSols[sol_ints_[i].NSolution()],
+                       itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 
       itsNIter[sol_ints_[i].NSolution()] = solveResult.iterations;
       itsNApproxIter[sol_ints_[i].NSolution()] =
-          solveResult.constraintIterations;
+          solveResult.constraint_iterations;
     }
 
     if (itsSubtract || itsOnlyPredict) {
-      subtractCorrectedModel(itsFullMatrixMinimalization, i);
+      subtractCorrectedModel(itsPolsInSolutions != 1, i);
     }
 
     // Check for nonconvergence and flag if desired. Unconverged solutions are
     // identified by the number of iterations being one more than the max
     // allowed number
-    if (solveResult.iterations > itsMultiDirSolver.max_iterations() &&
+    if (solveResult.iterations > itsSolver->GetMaxIterations() &&
         itsFlagUnconverged) {
-      for (auto& constraint_results : solveResult._results) {
+      for (auto& constraint_results : solveResult.results) {
         for (auto& result : constraint_results) {
           if (itsFlagDivergedOnly) {
             // Set weights with negative values (indicating unconverged
@@ -879,10 +918,10 @@ void DDECal::doSolve() {
       // Set any negative weights (indicating unconverged solutions that
       // diverged) to one (all other unconverged solutions are unflagged
       // already)
-      for (auto& constraint_results : solveResult._results) {
+      for (auto& constraint_results : solveResult.results) {
         for (auto& result : constraint_results) {
           for (double& weight : result.weights) {
-            if (weight < 0.) weight = 1.;
+            if (weight < 0.0) weight = 1.0;
           }
         }
       }
@@ -890,14 +929,14 @@ void DDECal::doSolve() {
 
     // Store constraint solutions if any constaint has a non-empty result
     bool someConstraintHasResult = false;
-    for (const auto& constraint_results : solveResult._results) {
+    for (const auto& constraint_results : solveResult.results) {
       if (!constraint_results.empty()) {
         someConstraintHasResult = true;
         break;
       }
     }
     if (someConstraintHasResult) {
-      itsConstraintSols[sol_ints_[i].NSolution()] = solveResult._results;
+      itsConstraintSols[sol_ints_[i].NSolution()] = solveResult.results;
     }
   }
 
@@ -1032,8 +1071,8 @@ void DDECal::writeSolutions() {
     unsigned int nPol;
 
     std::vector<string> polarizations;
-    if (itsMode == GainCal::DIAGONAL || itsMode == GainCal::PHASEONLY ||
-        itsMode == GainCal::AMPLITUDEONLY) {
+    if (itsMode == GainCal::DIAGONAL || itsMode == GainCal::DIAGONALPHASE ||
+        itsMode == GainCal::DIAGONALAMPLITUDE) {
       nPol = 2;
       polarizations.emplace_back("XX");
       polarizations.emplace_back("YY");
@@ -1104,7 +1143,7 @@ void DDECal::writeSolutions() {
       schaapcommon::h5parm::SolTab soltab;
       switch (itsMode) {
         case GainCal::SCALARPHASE:
-        case GainCal::PHASEONLY:
+        case GainCal::DIAGONALPHASE:
         case GainCal::FULLJONES:
           if (solnum == 0) {
             solTabName = "phase000";
@@ -1133,7 +1172,7 @@ void DDECal::writeSolutions() {
           }
           break;
         case GainCal::SCALARAMPLITUDE:
-        case GainCal::AMPLITUDEONLY:
+        case GainCal::DIAGONALAMPLITUDE:
           solTabName = "amplitude000";
           soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
           soltab.SetComplexValues(sols, std::vector<double>(), true,

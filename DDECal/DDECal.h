@@ -20,7 +20,7 @@
 #include "../DPPP/ApplyBeam.h"
 #include "../DPPP/SolutionInterval.h"
 
-#include "MultiDirSolver.h"
+#include "SolverBase.h"
 #include "Constraint.h"
 
 #include <schaapcommon/h5parm/h5parm.h>
@@ -95,7 +95,7 @@ class DDECal : public DPStep {
   virtual void showTimings(std::ostream&, double duration) const;
 
  private:
-  void initializeConstraints(const ParameterSet& parset, const string& prefix);
+  void initializeSolver(const ParameterSet& parset, const string& prefix);
   void initializeColumnReaders(const ParameterSet&, const string& prefix);
   void initializeIDG(const ParameterSet& parset, const string& prefix);
   void initializePredictSteps(const ParameterSet& parset, const string& prefix);
@@ -182,8 +182,8 @@ class DDECal : public DPStep {
   std::vector<std::set<std::string>> itsAntennaConstraint;
   double itsSmoothnessConstraint;
   double itsScreenCoreConstraint;
-  MultiDirSolver itsMultiDirSolver;
-  bool itsFullMatrixMinimalization;
+  std::unique_ptr<SolverBase> itsSolver;
+  size_t itsPolsInSolutions;
   bool itsApproximateTEC;
   bool itsSubtract;
   std::string itsStatFilename;

@@ -1,19 +1,22 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef MULTI_DIR_BUFFER_H
-#define MULTI_DIR_BUFFER_H
+#ifndef DDECAL_SOLVER_BUFFER_H
+#define DDECAL_SOLVER_BUFFER_H
 
 #include <complex>
 #include <vector>
 
-class MultiDirBuffer {
+namespace DP3 {
+namespace DPPP {
+
+class SolverBuffer {
  public:
   typedef std::complex<float> Complex;
 
-  MultiDirBuffer() : _nDirections(0), _nChannels(0), _nBaselines(0) {}
+  SolverBuffer() : _nDirections(0), _nChannels(0), _nBaselines(0) {}
 
-  MultiDirBuffer(size_t nDirections, size_t nChannels, size_t nBaselines)
+  SolverBuffer(size_t nDirections, size_t nChannels, size_t nBaselines)
       : _nDirections(nDirections),
         _nChannels(nChannels),
         _nBaselines(nBaselines) {}
@@ -86,4 +89,7 @@ class MultiDirBuffer {
   }
 };
 
-#endif
+}  // namespace DPPP
+}  // namespace DP3
+
+#endif  // DDECAL_SOLVER_BUFFER_H

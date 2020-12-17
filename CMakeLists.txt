@@ -194,11 +194,13 @@ add_library(DDECal OBJECT
   DDECal/Constraint.cc
   DDECal/DDECal.cc
   DDECal/DiagonalSolver.cc
-  DDECal/MultiDirSolver.cc
+  DDECal/FullJonesSolver.cc
   DDECal/Register.cc
   DDECal/RotationAndDiagonalConstraint.cc
   DDECal/RotationConstraint.cc
+  DDECal/ScalarSolver.cc
   DDECal/SmoothnessConstraint.cc
+  DDECal/SolverBase.cc
   DDECal/Stopwatch.cc
   DDECal/TECConstraint.cc
   ${DDE_ARMADILLO_FILES})
