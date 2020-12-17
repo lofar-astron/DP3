@@ -12,7 +12,6 @@
 #include "../DPPP/DPInput.h"
 #include "../DPPP/GainCal.h"
 #include "../DPPP/DPBuffer.h"
-#include "../DPPP/H5Parm.h"
 #include "../DPPP/BaselineSelection.h"
 #include "../DPPP/Patch.h"
 #include "../DPPP/UVWFlagger.h"
@@ -24,10 +23,7 @@
 #include "MultiDirSolver.h"
 #include "Constraint.h"
 
-#ifdef HAVE_LOFAR_BEAM
-#include <StationResponse/Station.h>
-#include <StationResponse/Types.h>
-#endif
+#include <schaapcommon/h5parm/h5parm.h>
 
 #include "../ParmDB/Parm.h"
 
@@ -139,7 +135,7 @@ class DDECal : public DPStep {
   std::vector<std::vector<std::vector<Constraint::Result>>> itsConstraintSols;
 
   std::string itsH5ParmName;
-  H5Parm itsH5Parm;
+  schaapcommon::h5parm::H5Parm itsH5Parm;
   std::string itsParsetString;  ///< Parset, for logging in H5Parm
 
   GainCal::CalType itsMode;

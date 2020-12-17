@@ -35,6 +35,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <schaapcommon/h5parm/h5parm.h>
+
 /// Convince HDF5 to use new API, even when system is configured to use 1.6 API
 #define H5Acreate_vers 2
 #define H5Tarray_create_vers 2
@@ -100,8 +102,9 @@ class GainCal : public DPStep {
   static std::string calTypeToString(CalType caltype);
 
   /// Make a soltab with the given type
-  static std::vector<H5Parm::SolTab> makeSolTab(
-      H5Parm& h5parm, CalType caltype, std::vector<H5Parm::AxisInfo>& axes);
+  static std::vector<schaapcommon::h5parm::SolTab> makeSolTab(
+      schaapcommon::h5parm::H5Parm& h5parm, CalType caltype,
+      std::vector<schaapcommon::h5parm::AxisInfo>& axes);
 
  private:
   /// Perform gaincal (polarized or unpolarized)

@@ -90,7 +90,8 @@ OneApplyCal::OneApplyCal(DPInput* input, const ParameterSet& parset,
         (parset.isDefined(prefix + "direction")
              ? parset.getString(prefix + "direction")
              : parset.getString(defaultPrefix + "direction", predictDirection));
-    itsH5Parm = H5Parm(itsParmDBName, false, false, itsSolSetName);
+    itsH5Parm = schaapcommon::h5parm::H5Parm(itsParmDBName, false, false,
+                                             itsSolSetName);
 
     itsSolTabName = (parset.isDefined(prefix + "correction")
                          ? parset.getString(prefix + "correction")
@@ -102,15 +103,15 @@ OneApplyCal::OneApplyCal(DPInput* input, const ParameterSet& parset,
         throw std::runtime_error(
             "The soltab parameter requires two soltabs for fulljones "
             "correction (amplitude and phase)");
-      itsSolTab = itsH5Parm.getSolTab(solTabs[0]);
-      itsSolTab2 = itsH5Parm.getSolTab(solTabs[1]);
+      itsSolTab = itsH5Parm.GetSolTab(solTabs[0]);
+      itsSolTab2 = itsH5Parm.GetSolTab(solTabs[1]);
       itsSolTabName =
           solTabs[0] + ", " +
           solTabs[1];  // this is only so that show() shows these tables
       itsCorrectType = FULLJONES;
     } else {
-      itsSolTab = itsH5Parm.getSolTab(itsSolTabName);
-      itsCorrectType = stringToCorrectType(itsSolTab.getType());
+      itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
+      itsCorrectType = stringToCorrectType(itsSolTab.GetType());
     }
     if (itsCorrectType == PHASE && nPol("") == 1) {
       itsCorrectType = SCALARPHASE;
@@ -120,13 +121,13 @@ OneApplyCal::OneApplyCal(DPInput* input, const ParameterSet& parset,
     }
     itsDirection = 0;
     if (directionStr == "") {
-      if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size != 1)
+      if (itsSolTab.HasAxis("dir") && itsSolTab.GetAxis("dir").size != 1)
         throw std::runtime_error(
             "If the soltab contains multiple directions, the direction to be "
             "applied in applycal should be specified");
       // If there is only one direction, silently assume it is the right one
-    } else if (itsSolTab.hasAxis("dir") && itsSolTab.getAxis("dir").size > 1) {
-      itsDirection = itsSolTab.getDirIndex(directionStr);
+    } else if (itsSolTab.HasAxis("dir") && itsSolTab.GetAxis("dir").size > 1) {
+      itsDirection = itsSolTab.GetDirIndex(directionStr);
     }
   } else {
     itsTimeSlotsPerParmUpdate =
@@ -322,7 +323,7 @@ void OneApplyCal::show(std::ostream& os) const {
   os << "ApplyCal " << itsName << '\n';
   if (itsUseH5Parm) {
     os << "  H5Parm:         " << itsParmDBName << '\n';
-    os << "    SolSet:       " << itsH5Parm.getSolSetName() << '\n';
+    os << "    SolSet:       " << itsH5Parm.GetSolSetName() << '\n';
     os << "    SolTab:       " << itsSolTabName << '\n';
     os << "  Direction:      " << itsDirection << '\n';
     os << "  Interpolation:  "
@@ -466,8 +467,8 @@ void OneApplyCal::updateParms(const double bufStartTime) {
 
     // Figure out whether time or frequency is first axis
     bool freqvariesfastest = true;
-    if (itsSolTab.hasAxis("freq") && itsSolTab.hasAxis("time") &&
-        itsSolTab.getAxisIndex("freq") < itsSolTab.getAxisIndex("time")) {
+    if (itsSolTab.HasAxis("freq") && itsSolTab.HasAxis("time") &&
+        itsSolTab.GetAxisIndex("freq") < itsSolTab.GetAxisIndex("time")) {
       freqvariesfastest = false;
     }
     if (!freqvariesfastest)
@@ -488,27 +489,27 @@ void OneApplyCal::updateParms(const double bufStartTime) {
       if (itsCorrectType == FULLJONES) {
         for (unsigned int pol = 0; pol < 4; ++pol) {
           // Place amplitude in even and phase in odd elements
-          parmvalues[pol * 2][ant] = itsSolTab.getValuesOrWeights(
+          parmvalues[pol * 2][ant] = itsSolTab.GetValuesOrWeights(
               "val", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab.getValuesOrWeights(
+          weights = itsSolTab.GetValuesOrWeights(
               "weight", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
           applyFlags(parmvalues[pol * 2][ant], weights);
-          parmvalues[pol * 2 + 1][ant] = itsSolTab2.getValuesOrWeights(
+          parmvalues[pol * 2 + 1][ant] = itsSolTab2.GetValuesOrWeights(
               "val", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab2.getValuesOrWeights(
+          weights = itsSolTab2.GetValuesOrWeights(
               "weight", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
           applyFlags(parmvalues[pol * 2 + 1][ant], weights);
         }
       } else {
         for (unsigned int pol = 0; pol < itsParmExprs.size(); ++pol) {
-          parmvalues[pol][ant] = itsSolTab.getValuesOrWeights(
+          parmvalues[pol][ant] = itsSolTab.GetValuesOrWeights(
               "val", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab.getValuesOrWeights(
+          weights = itsSolTab.GetValuesOrWeights(
               "weight", info().antennaNames()[ant], times, freqs, pol,
               itsDirection, itsInterpolationType == InterpolationType::NEAREST);
           applyFlags(parmvalues[pol][ant], weights);
@@ -713,10 +714,10 @@ void OneApplyCal::updateParms(const double bufStartTime) {
 
 unsigned int OneApplyCal::nPol(const string& parmName) {
   if (itsUseH5Parm) {
-    if (!itsSolTab.hasAxis("pol")) {
+    if (!itsSolTab.HasAxis("pol")) {
       return 1;
     } else {
-      return itsSolTab.getAxis("pol").size;
+      return itsSolTab.GetAxis("pol").size;
     }
   } else {  // Use ParmDB
     if (itsParmDB->getNames(parmName + ":0:*").empty() &&
