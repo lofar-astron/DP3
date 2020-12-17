@@ -67,6 +67,7 @@
 using aocommon::FitsReader;
 using namespace casacore;
 using namespace DP3::BBS;
+using schaapcommon::h5parm::SolTab;
 
 namespace DP3 {
 namespace DPPP {
@@ -454,7 +455,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     antennaPos[i][2] = pos.getValue()[2];
   }
 
-  itsH5Parm.addAntennas(antennaNames, antennaPos);
+  itsH5Parm.AddAntennas(antennaNames, antennaPos);
 
   std::vector<std::pair<double, double>> sourcePositions(itsDirections.size());
 
@@ -473,7 +474,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  itsH5Parm.addSources(getDirectionNames(), sourcePositions);
+  itsH5Parm.AddSources(getDirectionNames(), sourcePositions);
 
   size_t nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
   size_t nChannelBlocks = info().nchan() / itsNChan;
@@ -1079,13 +1080,14 @@ void DDECal::writeSolutions() {
         }
       }
     }
-    std::vector<H5Parm::AxisInfo> axes;
-    axes.emplace_back(H5Parm::AxisInfo("time", itsSols.size()));
-    axes.emplace_back(H5Parm::AxisInfo("freq", nSolChan));
-    axes.emplace_back(H5Parm::AxisInfo("ant", info().antennaUsed().size()));
-    axes.emplace_back(H5Parm::AxisInfo("dir", nDir));
+    std::vector<schaapcommon::h5parm::AxisInfo> axes;
+    axes.emplace_back(schaapcommon::h5parm::AxisInfo("time", itsSols.size()));
+    axes.emplace_back(schaapcommon::h5parm::AxisInfo("freq", nSolChan));
+    axes.emplace_back(
+        schaapcommon::h5parm::AxisInfo("ant", info().antennaUsed().size()));
+    axes.emplace_back(schaapcommon::h5parm::AxisInfo("dir", nDir));
     if (nPol > 1) {
-      axes.emplace_back(H5Parm::AxisInfo("pol", nPol));
+      axes.emplace_back(schaapcommon::h5parm::AxisInfo("pol", nPol));
     }
 
     string historyString = "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
@@ -1099,20 +1101,20 @@ void DDECal::writeSolutions() {
     }
     for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
       string solTabName;
-      H5Parm::SolTab soltab;
+      schaapcommon::h5parm::SolTab soltab;
       switch (itsMode) {
         case GainCal::SCALARPHASE:
         case GainCal::PHASEONLY:
         case GainCal::FULLJONES:
           if (solnum == 0) {
             solTabName = "phase000";
-            soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-            soltab.setComplexValues(sols, std::vector<double>(), false,
+            soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
+            soltab.SetComplexValues(sols, std::vector<double>(), false,
                                     historyString);
           } else {
             solTabName = "amplitude000";
-            soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-            soltab.setComplexValues(sols, std::vector<double>(), true,
+            soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
+            soltab.SetComplexValues(sols, std::vector<double>(), true,
                                     historyString);
           }
           break;
@@ -1120,21 +1122,21 @@ void DDECal::writeSolutions() {
         case GainCal::DIAGONAL:
           if (solnum == 0) {
             solTabName = "phase000";
-            soltab = itsH5Parm.createSolTab(solTabName, "phase", axes);
-            soltab.setComplexValues(sols, std::vector<double>(), false,
+            soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
+            soltab.SetComplexValues(sols, std::vector<double>(), false,
                                     historyString);
           } else {
             solTabName = "amplitude000";
-            soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-            soltab.setComplexValues(sols, std::vector<double>(), true,
+            soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
+            soltab.SetComplexValues(sols, std::vector<double>(), true,
                                     historyString);
           }
           break;
         case GainCal::SCALARAMPLITUDE:
         case GainCal::AMPLITUDEONLY:
           solTabName = "amplitude000";
-          soltab = itsH5Parm.createSolTab(solTabName, "amplitude", axes);
-          soltab.setComplexValues(sols, std::vector<double>(), true,
+          soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
+          soltab.SetComplexValues(sols, std::vector<double>(), true,
                                   historyString);
           break;
         default:
@@ -1146,15 +1148,15 @@ void DDECal::writeSolutions() {
       for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
         antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
       }
-      soltab.setAntennas(antennaUsedNames);
-      soltab.setSources(getDirectionNames());
+      soltab.SetAntennas(antennaUsedNames);
+      soltab.SetSources(getDirectionNames());
 
       if (nPol > 1) {
-        soltab.setPolarizations(polarizations);
+        soltab.SetPolarizations(polarizations);
       }
 
-      soltab.setFreqs(itsChanBlockFreqs);
-      soltab.setTimes(solTimes);
+      soltab.SetFreqs(itsChanBlockFreqs);
+      soltab.SetTimes(solTimes);
     }  // solnums loop
   } else {
     // Record the Constraint::Result in the H5Parm
@@ -1183,11 +1185,12 @@ void DDECal::writeSolutions() {
         std::vector<string> firstaxesnames =
             StringUtil::tokenize(firstResult.axes, ",");
 
-        std::vector<H5Parm::AxisInfo> axes;
-        axes.emplace_back(H5Parm::AxisInfo("time", itsConstraintSols.size()));
+        std::vector<schaapcommon::h5parm::AxisInfo> axes;
+        axes.emplace_back(
+            schaapcommon::h5parm::AxisInfo("time", itsConstraintSols.size()));
         for (size_t axisNum = 0; axisNum < firstaxesnames.size(); ++axisNum) {
-          axes.emplace_back(H5Parm::AxisInfo(firstaxesnames[axisNum],
-                                             firstResult.dims[axisNum]));
+          axes.emplace_back(schaapcommon::h5parm::AxisInfo(
+              firstaxesnames[axisNum], firstResult.dims[axisNum]));
         }
 
         // Put solutions in a contiguous piece of memory
@@ -1224,9 +1227,9 @@ void DDECal::writeSolutions() {
         }
 
         string solTabName = firstResult.name + "000";
-        H5Parm::SolTab soltab =
-            itsH5Parm.createSolTab(solTabName, firstResult.name, axes);
-        soltab.setValues(sols, weights,
+        schaapcommon::h5parm::SolTab soltab =
+            itsH5Parm.CreateSolTab(solTabName, firstResult.name, axes);
+        soltab.SetValues(sols, weights,
                          "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
                              "step " + itsName + " in parset: \n" +
                              itsParsetString);
@@ -1236,13 +1239,13 @@ void DDECal::writeSolutions() {
         for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
           antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
         }
-        soltab.setAntennas(antennaUsedNames);
+        soltab.SetAntennas(antennaUsedNames);
 
-        soltab.setSources(getDirectionNames());
+        soltab.SetSources(getDirectionNames());
 
-        if (soltab.hasAxis("pol")) {
+        if (soltab.HasAxis("pol")) {
           std::vector<string> polarizations;
-          switch (soltab.getAxis("pol").size) {
+          switch (soltab.GetAxis("pol").size) {
             case 2:
               polarizations.emplace_back("XX");
               polarizations.emplace_back("YY");
@@ -1256,18 +1259,18 @@ void DDECal::writeSolutions() {
             default:
               throw std::runtime_error(
                   "No metadata for numpolarizations = " +
-                  std::to_string(soltab.getAxis("pol").size));
+                  std::to_string(soltab.GetAxis("pol").size));
           }
 
-          soltab.setPolarizations(polarizations);
+          soltab.SetPolarizations(polarizations);
         }
 
         // Set channel to frequencies
         // Do not use itsChanBlockFreqs, because constraint may have changed
         // size
         unsigned int nChannelBlocks = 1;
-        if (soltab.hasAxis("freq")) {
-          nChannelBlocks = soltab.getAxis("freq").size;
+        if (soltab.HasAxis("freq")) {
+          nChannelBlocks = soltab.GetAxis("freq").size;
         }
         std::vector<double> chanBlockFreqs;
 
@@ -1287,9 +1290,9 @@ void DDECal::writeSolutions() {
           chanBlockFreqs[chBlock] = meanfreq;
         }
 
-        soltab.setFreqs(chanBlockFreqs);
+        soltab.SetFreqs(chanBlockFreqs);
 
-        soltab.setTimes(solTimes);
+        soltab.SetTimes(solTimes);
       }
     }
   }

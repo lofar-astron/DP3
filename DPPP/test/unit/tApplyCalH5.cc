@@ -9,23 +9,26 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <schaapcommon/h5parm/h5parm.h>
+#include <schaapcommon/h5parm/soltab.h>
+
 #include "../../ApplyCal.h"
 #include "../../DPInput.h"
 #include "../../DPBuffer.h"
-#include "../../H5Parm.h"
 #include "../../DPInfo.h"
 #include "../../../Common/ParameterSet.h"
 #include "../../../Common/StringUtil.h"
 #include "../../../Common/StreamUtil.h"
 
 using casacore::max;
-using DP3::H5Parm;
 using DP3::ParameterSet;
 using DP3::DPPP::ApplyCal;
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInfo;
 using DP3::DPPP::DPInput;
 using DP3::DPPP::DPStep;
+using schaapcommon::h5parm::H5Parm;
+using schaapcommon::h5parm::SolTab;
 using std::complex;
 using std::vector;
 
@@ -312,23 +315,23 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
     antNames.push_back(antNameStr.str());
     antPositions.push_back(oneAntPos);
   }
-  h5parm.addAntennas(antNames, antPositions);
+  h5parm.AddAntennas(antNames, antPositions);
 
-  vector<H5Parm::AxisInfo> axes;
-  axes.push_back(H5Parm::AxisInfo("ant", 3));
+  vector<schaapcommon::h5parm::AxisInfo> axes;
+  axes.push_back(schaapcommon::h5parm::AxisInfo("ant", 3));
   if (!times.empty()) {
-    axes.push_back(H5Parm::AxisInfo("time", times.size()));
+    axes.push_back(schaapcommon::h5parm::AxisInfo("time", times.size()));
   }
   if (!freqs.empty()) {
-    axes.push_back(H5Parm::AxisInfo("freq", freqs.size()));
+    axes.push_back(schaapcommon::h5parm::AxisInfo("freq", freqs.size()));
   }
 
-  H5Parm::SolTab soltab = h5parm.createSolTab("myampl", "amplitude", axes);
-  BOOST_CHECK_EQUAL(size_t{1}, h5parm.nSolTabs());
-  BOOST_CHECK(h5parm.hasSolTab("myampl"));
-  soltab.setTimes(times);
-  soltab.setFreqs(freqs);
-  soltab.setAntennas(antNames);
+  SolTab soltab = h5parm.CreateSolTab("myampl", "amplitude", axes);
+  BOOST_CHECK_EQUAL(size_t{1}, h5parm.NumSolTabs());
+  BOOST_CHECK(h5parm.HasSolTab("myampl"));
+  soltab.SetTimes(times);
+  soltab.SetFreqs(freqs);
+  soltab.SetAntennas(antNames);
 
   unsigned int ntimes = max(times.size(), 1);
   unsigned int nfreqs = max(freqs.size(), 1);
@@ -346,7 +349,7 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
       }
     }
   }
-  soltab.setValues(values, weights, "CREATE with DPPP tApplyCalH5");
+  soltab.SetValues(values, weights, "CREATE with DPPP tApplyCalH5");
 }
 
 BOOST_AUTO_TEST_CASE(testampl1) {

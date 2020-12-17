@@ -20,8 +20,12 @@
 #include <vector>
 #include <iostream>
 
+#include <schaapcommon/h5parm/h5parm.h>
+
 using namespace casacore;
 using namespace DP3::BBS;
+using schaapcommon::h5parm::H5Parm;
+using schaapcommon::h5parm::SolTab;
 
 namespace DP3 {
 namespace DPPP {
@@ -41,9 +45,9 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
   H5Parm h5parm = H5Parm(itsH5ParmName, false);
   std::string soltabName = parset.getString(prefix + "applycal.correction");
   if (soltabName == "fulljones") soltabName = "amplitude000";
-  H5Parm::SolTab soltab = h5parm.getSolTab(soltabName);
+  SolTab soltab = h5parm.GetSolTab(soltabName);
 
-  vector<string> h5directions = soltab.getStringAxis("dir");
+  vector<string> h5directions = soltab.GetStringAxis("dir");
   if (h5directions.empty())
     throw std::runtime_error("H5Parm has empty dir axis");
 

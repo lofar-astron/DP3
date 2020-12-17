@@ -47,6 +47,9 @@
 
 using namespace casacore;
 using namespace DP3::BBS;
+using schaapcommon::h5parm::AxisInfo;
+using schaapcommon::h5parm::H5Parm;
+using schaapcommon::h5parm::SolTab;
 
 namespace DP3 {
 namespace DPPP {
@@ -942,7 +945,7 @@ void GainCal::writeSolutionsH5Parm(double) {
     antennaPos[i][2] = pos.getValue()[2];
   }
 
-  h5parm.addAntennas(allAntennaNames, antennaPos);
+  h5parm.AddAntennas(allAntennaNames, antennaPos);
 
   vector<std::pair<double, double> > pointingPosition(1);
   MDirection phasecenter = info().phaseCenter();
@@ -950,7 +953,7 @@ void GainCal::writeSolutionsH5Parm(double) {
   pointingPosition[0].second = phasecenter.getValue().get()[1];
   vector<string> pointingName(1, "POINTING");
 
-  h5parm.addSources(pointingName, pointingPosition);
+  h5parm.AddSources(pointingName, pointingPosition);
 
   unsigned int nPol;
   vector<string> polarizations;
@@ -986,37 +989,37 @@ void GainCal::writeSolutionsH5Parm(double) {
     nSolFreqs = itsNFreqCells;
   }
 
-  vector<H5Parm::AxisInfo> axes;
-  axes.push_back(H5Parm::AxisInfo("time", itsSols.size()));
-  axes.push_back(H5Parm::AxisInfo("freq", nSolFreqs));
-  axes.push_back(H5Parm::AxisInfo("ant", info().antennaUsed().size()));
+  vector<AxisInfo> axes;
+  axes.push_back(AxisInfo("time", itsSols.size()));
+  axes.push_back(AxisInfo("freq", nSolFreqs));
+  axes.push_back(AxisInfo("ant", info().antennaUsed().size()));
   if (nPol > 1) {
-    axes.push_back(H5Parm::AxisInfo("pol", nPol));
+    axes.push_back(AxisInfo("pol", nPol));
   }
 
-  vector<H5Parm::SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
+  vector<SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
 
   std::vector<std::string> antennaUsedNames;
   for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
     antennaUsedNames.push_back(info().antennaNames()[info().antennaUsed()[st]]);
   }
 
-  vector<H5Parm::SolTab>::iterator soltabiter = soltabs.begin();
+  vector<SolTab>::iterator soltabiter = soltabs.begin();
   for (; soltabiter != soltabs.end(); ++soltabiter) {
-    (*soltabiter).setAntennas(antennaUsedNames);
+    (*soltabiter).SetAntennas(antennaUsedNames);
     if (nPol > 1) {
-      (*soltabiter).setPolarizations(polarizations);
+      (*soltabiter).SetPolarizations(polarizations);
     }
     if (itsMode == TEC || itsMode == TECANDPHASE) {
       // Set channel to frequency of middle channel
       // TODO: fix this for nchan
       vector<double> oneFreq(1);
       oneFreq[0] = info().chanFreqs()[info().nchan() / 2];
-      (*soltabiter).setFreqs(oneFreq);
+      (*soltabiter).SetFreqs(oneFreq);
     } else {
-      (*soltabiter).setFreqs(itsFreqData);
+      (*soltabiter).SetFreqs(itsFreqData);
     }
-    (*soltabiter).setTimes(solTimes);
+    (*soltabiter).SetTimes(solTimes);
   }
 
   // Put solutions in a contiguous piece of memory
@@ -1050,9 +1053,9 @@ void GainCal::writeSolutionsH5Parm(double) {
         }
       }
     }
-    soltabs[0].setValues(tecsols, weights, historyString);
+    soltabs[0].SetValues(tecsols, weights, historyString);
     if (itsMode == TECANDPHASE) {
-      soltabs[1].setValues(phasesols, weights, historyString);
+      soltabs[1].SetValues(phasesols, weights, historyString);
     }
   } else {
     vector<DComplex> sols(nSolFreqs * antennaUsedNames.size() * nSolTimes *
@@ -1076,13 +1079,13 @@ void GainCal::writeSolutionsH5Parm(double) {
     }
 
     if (itsMode != AMPLITUDEONLY) {
-      soltabs[0].setComplexValues(sols, weights, false, historyString);
+      soltabs[0].SetComplexValues(sols, weights, false, historyString);
     } else {
-      soltabs[0].setComplexValues(sols, weights, true, historyString);
+      soltabs[0].SetComplexValues(sols, weights, true, historyString);
     }
     if (soltabs.size() > 1) {
       // Also write amplitudes
-      soltabs[1].setComplexValues(sols, weights, true, historyString);
+      soltabs[1].SetComplexValues(sols, weights, true, historyString);
     }
   }
 
@@ -1090,48 +1093,48 @@ void GainCal::writeSolutionsH5Parm(double) {
   itsTimer.stop();
 }
 
-vector<H5Parm::SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
-                                           vector<H5Parm::AxisInfo>& axes) {
+vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
+                                   vector<AxisInfo>& axes) {
   unsigned int numsols = 1;
   // For [scalar]complexgain, store two soltabs: phase and amplitude
   if (caltype == GainCal::DIAGONAL || caltype == GainCal::SCALARCOMPLEXGAIN ||
       caltype == GainCal::TECANDPHASE || caltype == GainCal::FULLJONES) {
     numsols = 2;
   }
-  vector<H5Parm::SolTab> soltabs;
+  vector<SolTab> soltabs;
   for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
     string solTabName;
-    H5Parm::SolTab soltab;
+    SolTab soltab;
     switch (caltype) {
       case GainCal::SCALARPHASE:
       case GainCal::PHASEONLY:
         solTabName = "phase000";
-        soltab = h5parm.createSolTab(solTabName, "phase", axes);
+        soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         break;
       case GainCal::SCALARCOMPLEXGAIN:
       case GainCal::DIAGONAL:
       case GainCal::FULLJONES:
         if (solnum == 0) {
           solTabName = "phase000";
-          soltab = h5parm.createSolTab(solTabName, "phase", axes);
+          soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         } else {
           solTabName = "amplitude000";
-          soltab = h5parm.createSolTab(solTabName, "amplitude", axes);
+          soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
         }
         break;
       case GainCal::SCALARAMPLITUDE:
       case GainCal::AMPLITUDEONLY:
         solTabName = "amplitude000";
-        soltab = h5parm.createSolTab(solTabName, "amplitude", axes);
+        soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
         break;
       case GainCal::TEC:
       case GainCal::TECANDPHASE:
         if (solnum == 0) {
           solTabName = "tec000";
-          soltab = h5parm.createSolTab(solTabName, "tec", axes);
+          soltab = h5parm.CreateSolTab(solTabName, "tec", axes);
         } else {
           solTabName = "phase000";
-          soltab = h5parm.createSolTab(solTabName, "phase", axes);
+          soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         }
         break;
       default:

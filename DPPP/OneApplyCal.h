@@ -11,7 +11,7 @@
 
 #include "DPInput.h"
 #include "DPBuffer.h"
-#include "H5Parm.h"
+// #include "H5Parm.h"
 #include "FlagCounter.h"
 
 #include "../ParmDB/ParmFacade.h"
@@ -20,6 +20,8 @@
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
+
+#include <schaapcommon/h5parm/h5parm.h>
 
 #include <mutex>
 
@@ -103,11 +105,11 @@ class OneApplyCal : public DPStep {
   bool itsUseH5Parm;
   string itsSolSetName;
   std::shared_ptr<BBS::ParmFacade> itsParmDB;
-  H5Parm itsH5Parm;
+  schaapcommon::h5parm::H5Parm itsH5Parm;
   string itsSolTabName;
-  H5Parm::SolTab itsSolTab;
-  H5Parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp and phase
-                              ///< table need to be open
+  schaapcommon::h5parm::SolTab itsSolTab;
+  schaapcommon::h5parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp
+                                            ///< and phase table need to be open
   CorrectType itsCorrectType;
   bool itsInvert;
   InterpolationType itsInterpolationType;

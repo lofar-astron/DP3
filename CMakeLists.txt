@@ -228,8 +228,6 @@ add_library(DPPP_OBJ OBJECT
   DPPP/GainCal.cc
   DPPP/GainCalAlgorithm.cc
   DPPP/GaussianSource.cc
-  DPPP/GridInterpolate.cc
-  DPPP/H5Parm.cc
   DPPP/H5ParmPredict.cc
   DPPP/Interpolate.cc
   DPPP/MedFlagger.cc
@@ -255,7 +253,6 @@ add_library(DPPP_OBJ OBJECT
   DPPP/SetBeam.cc
   DPPP/Simulate.cc
   DPPP/Simulator.cc
-  DPPP/SolTab.cc
   DPPP/SolutionInterval.cc
   DPPP/SourceDBUtil.cc
   DPPP/Split.cc
@@ -380,8 +377,6 @@ set(TEST_FILENAMES
   DPPP/test/unit/tBDAIntervalBuffer.cc
   # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
   DPPP/test/unit/tFilter.cc
-  DPPP/test/unit/tGridInterpolate.cc
-  # DPPP/test/unit/tH5Parm.cc # Fails because sol001 cannot be found
   DPPP/test/unit/tInterpolate.cc
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tDPPP.cc
