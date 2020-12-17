@@ -6,20 +6,22 @@
 
 #include "../DPPP/PhaseFitter.h"
 
-#include "MultiDirSolver.h"
+#include "Constraint.h"
 #include "PiercePoint.h"
 #include "KLFitter.h"
 
 #include "../Common/ParameterSet.h"
 
 #include <cmath>
-#include <vector>
+#include <complex>
 #include <memory>
 #include <ostream>
+#include <vector>
 
 namespace DP3 {
 class ParameterSet;
 class ScreenConstraint : public Constraint {
+  using DComplex = std::complex<double>;
   static const double phtoTEC;  //=1./8.4479745e9;
   static const double TECtoph;  //=8.4479745e9;
   static const size_t maxIter;  // number of iterations to store in debug mode
@@ -32,8 +34,8 @@ class ScreenConstraint : public Constraint {
    */
   void initialize(const double* frequencies);
   virtual std::vector<Constraint::Result> Apply(
-      std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,
-      double time, std::ostream* statStream);
+      std::vector<std::vector<DComplex> >& solutions, double time,
+      std::ostream* statStream);
   virtual void CalculatePiercepoints();
 
   void setAntennaPositions(const std::vector<std::vector<double> > antenna_pos);

@@ -147,9 +147,8 @@ void ScreenConstraint::CalculatePiercepoints() {
 }
 
 void ScreenConstraint::getPPValue(
-    std::vector<std::vector<MultiDirSolver::DComplex> >& solutions,
-    size_t solutionIndex, size_t dirIndex, double& avgTEC,
-    double& error) const {
+    std::vector<std::vector<DComplex> >& solutions, size_t solutionIndex,
+    size_t dirIndex, double& avgTEC, double& error) const {
   if (itsAVGMode == "simple") {
     avgTEC = 0;
     error = 1.0;
@@ -204,7 +203,7 @@ void ScreenConstraint::getPPValue(
 }
 
 std::vector<Constraint::Result> ScreenConstraint::Apply(
-    std::vector<std::vector<MultiDirSolver::DComplex> >& solutions, double time,
+    std::vector<std::vector<DComplex> >& solutions, double time,
     std::ostream* statStream) {
   // check if we need to reinitialize piercepoints
   setTime(time);

@@ -138,9 +138,9 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
   if (modestr == "diagonal" || modestr == "complexgain")
     return DIAGONAL;
   else if (modestr == "phaseonly")
-    return PHASEONLY;
+    return DIAGONALPHASE;
   else if (modestr == "amplitudeonly")
-    return AMPLITUDEONLY;
+    return DIAGONALAMPLITUDE;
   // Scalar modes
   else if (modestr == "scalarcomplexgain" || modestr == "scalarcomplex")
     return SCALARCOMPLEXGAIN;
@@ -172,11 +172,11 @@ string GainCal::calTypeToString(GainCal::CalType caltype) {
       return "scalarcomplexgain";
     case FULLJONES:
       return "fulljones";
-    case PHASEONLY:
+    case DIAGONALPHASE:
       return "phaseonly";
     case SCALARPHASE:
       return "scalarphase";
-    case AMPLITUDEONLY:
+    case DIAGONALAMPLITUDE:
       return "amplitudeonly";
     case SCALARAMPLITUDE:
       return "scalaramplitude";
@@ -303,12 +303,12 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
         smode = GainCalAlgorithm::FULLJONES;
         break;
       case SCALARPHASE:
-      case PHASEONLY:
+      case DIAGONALPHASE:
       case TEC:
       case TECANDPHASE:
         smode = GainCalAlgorithm::PHASEONLY;
         break;
-      case AMPLITUDEONLY:
+      case DIAGONALAMPLITUDE:
       case SCALARAMPLITUDE:
         smode = GainCalAlgorithm::AMPLITUDEONLY;
         break;
@@ -638,8 +638,8 @@ bool GainCal::scalarMode(CalType caltype) {
 }
 
 bool GainCal::diagonalMode(CalType caltype) {
-  return (caltype == DIAGONAL || caltype == PHASEONLY ||
-          caltype == AMPLITUDEONLY);
+  return (caltype == DIAGONAL || caltype == DIAGONALPHASE ||
+          caltype == DIAGONALAMPLITUDE);
 }
 
 void GainCal::calibrate() {
@@ -826,8 +826,8 @@ void GainCal::calibrate() {
                                     [cr];  // Conjugate transpose ! (only for
                                            // numCorrelations = 4)
         sol(crt, st, freqCell) = conj(tmpsol(st, cr));  // Conjugate transpose
-        if (itsMode == DIAGONAL || itsMode == PHASEONLY ||
-            itsMode == AMPLITUDEONLY) {
+        if (itsMode == DIAGONAL || itsMode == DIAGONALPHASE ||
+            itsMode == DIAGONALAMPLITUDE) {
           sol(crt + 1, st, freqCell) =
               conj(tmpsol(st + nSt, cr));  // Conjugate transpose
         }
@@ -881,7 +881,7 @@ void GainCal::initParmDB() {
   ParmMap parmset;
 
   // Write out default amplitudes
-  if (itsMode == PHASEONLY || itsMode == SCALARPHASE) {
+  if (itsMode == DIAGONALPHASE || itsMode == SCALARPHASE) {
     itsParmDB->getDefValues(parmset, "Gain:0:0:Ampl");
     if (parmset.empty()) {
       ParmValueSet pvset(ParmValue(1.0));
@@ -891,7 +891,7 @@ void GainCal::initParmDB() {
   }
 
   // Write out default phases
-  if (itsMode == AMPLITUDEONLY || itsMode == SCALARAMPLITUDE) {
+  if (itsMode == DIAGONALAMPLITUDE || itsMode == SCALARAMPLITUDE) {
     itsParmDB->getDefValues(parmset, "Gain:0:0:Phase");
     if (parmset.empty()) {
       ParmValueSet pvset(ParmValue(0.0));
@@ -1078,7 +1078,7 @@ void GainCal::writeSolutionsH5Parm(double) {
       }
     }
 
-    if (itsMode != AMPLITUDEONLY) {
+    if (itsMode != DIAGONALAMPLITUDE) {
       soltabs[0].SetComplexValues(sols, weights, false, historyString);
     } else {
       soltabs[0].SetComplexValues(sols, weights, true, historyString);
@@ -1107,7 +1107,7 @@ vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
     SolTab soltab;
     switch (caltype) {
       case GainCal::SCALARPHASE:
-      case GainCal::PHASEONLY:
+      case GainCal::DIAGONALPHASE:
         solTabName = "phase000";
         soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         break;
@@ -1123,7 +1123,7 @@ vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
         }
         break;
       case GainCal::SCALARAMPLITUDE:
-      case GainCal::AMPLITUDEONLY:
+      case GainCal::DIAGONALAMPLITUDE:
         solTabName = "amplitude000";
         soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
         break;
@@ -1224,8 +1224,8 @@ void GainCal::writeSolutionsParmDB(double startTime) {
       }
       int realimmax;  // For tecandphase, this functions as dummy between tec
                       // and commonscalarphase
-      if (itsMode == PHASEONLY || itsMode == SCALARPHASE ||
-          itsMode == AMPLITUDEONLY || itsMode == SCALARAMPLITUDE ||
+      if (itsMode == DIAGONALPHASE || itsMode == SCALARPHASE ||
+          itsMode == DIAGONALAMPLITUDE || itsMode == SCALARAMPLITUDE ||
           itsMode == TEC) {
         realimmax = 1;
       } else {
@@ -1237,9 +1237,9 @@ void GainCal::writeSolutionsParmDB(double startTime) {
 
         if (itsMode != SCALARPHASE && itsMode != SCALARAMPLITUDE) {
           name += str0101[pol];
-          if (itsMode == PHASEONLY) {
+          if (itsMode == DIAGONALPHASE) {
             name = name + "Phase:";
-          } else if (itsMode == AMPLITUDEONLY) {
+          } else if (itsMode == DIAGONALAMPLITUDE) {
             name = name + "Ampl:";
           } else {
             name = name + strri[realim];
@@ -1271,9 +1271,10 @@ void GainCal::writeSolutionsParmDB(double startTime) {
               } else {
                 values(freqCell, ts) = imag(itsSols[ts](pol / 3, st, freqCell));
               }
-            } else if (itsMode == SCALARPHASE || itsMode == PHASEONLY) {
+            } else if (itsMode == SCALARPHASE || itsMode == DIAGONALPHASE) {
               values(freqCell, ts) = arg(itsSols[ts](pol / 3, st, freqCell));
-            } else if (itsMode == SCALARAMPLITUDE || itsMode == AMPLITUDEONLY) {
+            } else if (itsMode == SCALARAMPLITUDE ||
+                       itsMode == DIAGONALAMPLITUDE) {
               values(freqCell, ts) = abs(itsSols[ts](pol / 3, st, freqCell));
             } else if (itsMode == TEC || itsMode == TECANDPHASE) {
               if (realim == 0) {

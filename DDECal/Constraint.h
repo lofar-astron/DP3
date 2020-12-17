@@ -95,7 +95,8 @@ class Constraint {
 
   void SetNThreads(size_t nThreads) { _nThreads = nThreads; }
 
-  virtual void showTimings(std::ostream&, double) const {}
+  virtual void GetTimings([[maybe_unused]] std::ostream& os,
+                          [[maybe_unused]] double duration) const {}
 
  protected:
   size_t _nAntennas, _nDirections, _nChannelBlocks, _nThreads;
