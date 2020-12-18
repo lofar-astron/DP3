@@ -137,9 +137,9 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
   // Diagonal modes
   if (modestr == "diagonal" || modestr == "complexgain")
     return DIAGONAL;
-  else if (modestr == "phaseonly")
+  else if (modestr == "diagonalphase" || modestr == "phaseonly")
     return DIAGONALPHASE;
-  else if (modestr == "amplitudeonly")
+  else if (modestr == "diagonalamplitude" || modestr == "amplitudeonly")
     return DIAGONALAMPLITUDE;
   // Scalar modes
   else if (modestr == "scalarcomplexgain" || modestr == "scalarcomplex")
@@ -148,6 +148,7 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
     return SCALARAMPLITUDE;
   else if (modestr == "scalarphase")
     return SCALARPHASE;
+  // Other modes
   else if (modestr == "tecandphase")
     return TECANDPHASE;
   else if (modestr == "tec")
@@ -167,17 +168,17 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
 string GainCal::calTypeToString(GainCal::CalType caltype) {
   switch (caltype) {
     case DIAGONAL:
-      return "complexgain";
+      return "diagonal";
     case SCALARCOMPLEXGAIN:
       return "scalarcomplexgain";
     case FULLJONES:
       return "fulljones";
     case DIAGONALPHASE:
-      return "phaseonly";
+      return "diagonalphase";
     case SCALARPHASE:
       return "scalarphase";
     case DIAGONALAMPLITUDE:
-      return "amplitudeonly";
+      return "diagonalamplitude";
     case SCALARAMPLITUDE:
       return "scalaramplitude";
     case TECANDPHASE:
