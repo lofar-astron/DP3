@@ -10,8 +10,8 @@
 
 #endif
 
-#include "FacetImage.h"
-#include "Facet.h"
+#include <schaapcommon/facets/facetimage.h>
+#include <schaapcommon/facets/facet.h>
 
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/uvector.h>
@@ -34,9 +34,9 @@ class IDGPredict : public DPStep {
  public:
   IDGPredict(DPInput& input, const ParameterSet& parset, const string& prefix,
              std::pair<std::vector<aocommon::FitsReader>,
-                       std::vector<aocommon::UVector<double>>>
+                       std::vector<aocommon::UVector<float>>>
                  readers,
-             std::vector<Facet>&& facets,
+             std::vector<schaapcommon::facets::Facet>&& facets,
              const std::string& ds9_regions_file = "");
 
   IDGPredict(DPInput& input, const ParameterSet&, const string& prefix);
@@ -72,22 +72,20 @@ class IDGPredict : public DPStep {
 
   /// Read the fits files (nterms) for the idg prediction.
   static std::pair<std::vector<aocommon::FitsReader>,
-                   std::vector<aocommon::UVector<double>>>
+                   std::vector<aocommon::UVector<float>>>
   GetReaders(const std::vector<std::string>& fits_model_files);
 
   /// Get the facets from a region file and create the image models with the
   /// given image size
-  static std::vector<Facet> GetFacets(const std::string& ds9_regions_file,
-                                      const double ra, const double dec,
-                                      const double pixel_size_x,
-                                      const double pixel_size_y,
-                                      const size_t full_width,
-                                      const size_t full_height);
+  static std::vector<schaapcommon::facets::Facet> GetFacets(
+      const std::string& ds9_regions_file, const double ra, const double dec,
+      const double pixel_size_x, const double pixel_size_y,
+      const size_t full_width, const size_t full_height);
 
   /// Get the facets from a region file and use readers to create the image
   /// models.
-  static std::vector<Facet> GetFacets(const std::string& ds9_regions_file,
-                                      const aocommon::FitsReader& reader);
+  static std::vector<schaapcommon::facets::Facet> GetFacets(
+      const std::string& ds9_regions_file, const aocommon::FitsReader& reader);
 
 #ifdef HAVE_IDG
  private:
@@ -141,7 +139,7 @@ class IDGPredict : public DPStep {
   std::string name_;
   const ParameterSet& parset_;
 
-  std::vector<FacetImage> images_;
+  std::vector<schaapcommon::facets::FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
 
   struct FacetMetaData {

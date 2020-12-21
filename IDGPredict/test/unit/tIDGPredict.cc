@@ -7,6 +7,8 @@
 #include "../../../DPPP/DPInput.h"
 #include "../../../DPPP/test/unit/mock/MockInput.h"
 
+#include <schaapcommon/facets/facet.h>
+
 #include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
@@ -15,6 +17,7 @@
 using DP3::DPPP::DPBuffer;
 using DP3::DPPP::DPInput;
 using DP3::DPPP::MultiResultStep;
+using schaapcommon::facets::Facet;
 
 namespace {
 const unsigned int kNCorr = 4;
@@ -129,7 +132,7 @@ BOOST_AUTO_TEST_SUITE(idgpredict)
 
 BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
   std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<double>>>
+            std::vector<aocommon::UVector<float>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   BOOST_TEST(readers.first.size() == 1u);
@@ -143,7 +146,7 @@ BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
 
 BOOST_AUTO_TEST_CASE(getfacets) {
   std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<double>>>
+            std::vector<aocommon::UVector<float>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
@@ -177,7 +180,7 @@ BOOST_AUTO_TEST_CASE(getfacets) {
 BOOST_AUTO_TEST_CASE(constructor) {
   DP3::ParameterSet parset;
   std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<double>>>
+            std::vector<aocommon::UVector<float>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =

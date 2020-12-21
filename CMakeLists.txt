@@ -272,7 +272,6 @@ add_library(DPPP_OBJ OBJECT
 )
 
 add_library(IDGPredict OBJECT
-  IDGPredict/FacetImage.cc
   IDGPredict/IDGPredict.cc
 )
 
@@ -406,8 +405,7 @@ if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
     DPPP/test/unit/tDPInput.cc
     DPPP/test/unit/tMSBDAReader.cc
     DPPP/test/unit/tMSBDAWriter.cc
-    DPPP/test/unit/tScaleDataBDA.cc
-    IDGPredict/test/unit/tDS9FacetFile.cc)
+    DPPP/test/unit/tScaleDataBDA.cc)
   if(HAVE_IDG)
     list(APPEND TEST_FILENAMES IDGPredict/test/unit/tIDGPredict.cc)
   endif()
