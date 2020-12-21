@@ -17,6 +17,7 @@
 #include "../DPPP/DPRun.h"
 
 #include "../IDGPredict/IDGPredict.h"
+#include <schaapcommon/facets/facet.h>
 
 #include "DiagonalSolver.h"
 #include "FullJonesSolver.h"
@@ -67,6 +68,7 @@
 #include <vector>
 
 using aocommon::FitsReader;
+using schaapcommon::facets::Facet;
 using namespace casacore;
 using namespace DP3::BBS;
 using schaapcommon::h5parm::SolTab;
@@ -313,7 +315,7 @@ void DDECal::initializeIDG(const ParameterSet& parset, const string& prefix) {
     return;
   }
 
-  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
       readers = IDGPredict::GetReaders(imageFilenames);
   std::vector<Facet> facets =
       IDGPredict::GetFacets(regionFilename, readers.first.front());

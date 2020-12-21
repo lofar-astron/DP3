@@ -3,8 +3,6 @@
 
 #include "IDGPredict.h"
 
-#include "DS9FacetFile.h"
-
 #ifdef HAVE_IDG
 #include "IDGConfiguration.h"
 #endif
@@ -19,12 +17,18 @@
 
 #include <EveryBeam/aterms/atermconfig.h>
 
+#include <schaapcommon/facets/ds9facetfile.h>
+
 #include <iostream>
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
 using everybeam::aterms::ATermBase;
 using everybeam::aterms::ATermConfig;
+using schaapcommon::facets::DS9FacetFile;
+using schaapcommon::facets::Facet;
+using schaapcommon::facets::FacetImage;
+using schaapcommon::facets::Vertex;
 
 namespace DP3 {
 namespace DPPP {
@@ -40,7 +44,7 @@ IDGPredict::IDGPredict(DPInput& input, const ParameterSet& parset,
 #ifdef HAVE_IDG
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
-    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file)
     : name_(prefix),
@@ -94,7 +98,7 @@ IDGPredict::IDGPredict(
 }
 #endif  // HAVE_IDG
 
-std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
 IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
   if (fits_model_files.empty()) {
     throw std::runtime_error("No fits files specified for IDG predict");
@@ -108,7 +112,7 @@ IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
   const double pixel_size_x = readers.front().PixelSizeX();
   const double pixel_size_y = readers.front().PixelSizeY();
 
-  std::vector<aocommon::UVector<double>> models(readers.size());
+  std::vector<aocommon::UVector<float>> models(readers.size());
   for (size_t img = 0; img != readers.size(); ++img) {
     if (readers[img].ImageWidth() != full_width ||
         readers[img].ImageHeight() != full_height)
@@ -298,7 +302,7 @@ void IDGPredict::StartIDG() {
       // Reserve space for 4 polarizations but only use the first polarization.
       // TODO Copy data for the other polarizations, too.
       image_data.resize(img.Width() * img.Height() * 4, 0.0);
-      std::copy_n(img.Data(term), img.Width() * img.Height(),
+      std::copy_n(img.Data(term).data(), img.Width() * img.Height(),
                   image_data.data());
 
       buffersets_.emplace_back(idg::api::BufferSet::create(proxy_type));
@@ -326,7 +330,7 @@ void IDGPredict::StartIDG() {
                                 pixel_size_x_, pixel_size_y_);
       writer.SetPhaseCentreShift(dl, dm);
       writer.Write("facet" + std::to_string(meta_data_.size()) + ".fits",
-                   img.Data(0));
+                   img.Data(0).data());
     }
 
     meta_data_.emplace_back(dl, dm, dp);
@@ -659,7 +663,7 @@ void notCompiled() {
 
 IDGPredict::IDGPredict(
     DPInput& input, const ParameterSet& parset, const string& prefix,
-    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<double>>>
+    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file) {
   // Do nothing / create dummy object.
