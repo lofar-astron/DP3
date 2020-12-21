@@ -18,12 +18,13 @@ namespace DPPP {
 ScalarSolver::SolveResult ScalarSolver::Solve(
     const std::vector<Complex*>& unweighted_data,
     const std::vector<float*>& weights,
-    const std::vector<std::vector<Complex*> >& unweighted_model_data,
+    std::vector<std::vector<Complex*> >&& unweighted_model_data,
     std::vector<std::vector<DComplex> >& solutions, double time,
     std::ostream* stat_stream) {
   const size_t n_times = unweighted_data.size();
 
-  buffer_.CopyAndWeight(unweighted_data, weights, unweighted_model_data);
+  buffer_.AssignAndWeight(unweighted_data, weights,
+                          std::move(unweighted_model_data));
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);

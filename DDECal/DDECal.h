@@ -114,6 +114,8 @@ class DDECal : public DPStep {
   /// Used for setting source names.
   std::vector<std::string> getDirectionNames();
 
+  void storeModelData(
+      const std::vector<std::vector<std::complex<float>*>>& input_model_data);
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
 
   DPInput* itsInput;
@@ -163,6 +165,11 @@ class DDECal : public DPStep {
   /// For each direction, a vector of patches.
   std::vector<std::vector<string>> itsDirections;
   std::vector<std::unique_ptr<Constraint>> itsConstraints;
+  /// Normally, the solver takes the model data and modifies it, thereby
+  /// destroying the original model data. This model data is used to store
+  /// the result of the predictions when they are still required after
+  /// solving (e.g. for subtraction).
+  std::vector<std::vector<std::vector<std::complex<float>>>> itsModelData;
 
   std::vector<double> itsWeightsPerAntenna;
 
