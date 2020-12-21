@@ -817,17 +817,23 @@ void DDECal::doSolve() {
       itsTimerPredict.stop();
     }
     for (size_t i = 0; i < itsResultSteps[dir].get()->size(); ++i) {
-      size_t sol_int = i / itsSolInt;
-      size_t step = i % itsSolInt;
+      const size_t sol_int = i / itsSolInt;
+      const size_t timestep = i % itsSolInt;
 
-      assert(sol_int * itsSolInt + step == i);
-
-      sol_ints_[sol_int].ModelDataPtrs()[step][dir] =
+      sol_ints_[sol_int].ModelDataPtrs()[timestep][dir] =
           itsResultSteps[dir]->get()[i].getData().data();
     }
   }
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
+    // When the model data is subtracted after calibration, the model data
+    // needs to be stored before solving, because the solver modifies it.
+    // This is done conditionally to prevent using memory when it is
+    // not required (the model data can be large).
+    if (itsSubtract || itsOnlyPredict) {
+      storeModelData(sol_ints_[i].ModelDataPtrs());
+    }
+
     SolverBase::SolveResult solveResult;
     if (!itsOnlyPredict) {
       checkMinimumVisibilities(i);
@@ -861,10 +867,9 @@ void DDECal::doSolve() {
         }
 
         solveResult =
-            static_cast<DiagonalSolver&>(*itsSolver)
-                .Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-                       sol_ints_[i].ModelDataPtrs(), diagonals,
-                       itsAvgTime / itsSolInt, itsStatStream.get());
+            itsSolver->Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+                             std::move(sol_ints_[i].ModelDataPtrs()), diagonals,
+                             itsAvgTime / itsSolInt, itsStatStream.get());
 
         // Temporary fix: extend solutions from diagonal to full Jones matrices
         for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
@@ -877,11 +882,10 @@ void DDECal::doSolve() {
         }
       } else {
         solveResult =
-            static_cast<ScalarSolver&>(*itsSolver)
-                .Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-                       sol_ints_[i].ModelDataPtrs(),
-                       itsSols[sol_ints_[i].NSolution()],
-                       itsAvgTime / itsSolInt, itsStatStream.get());
+            itsSolver->Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
+                             std::move(sol_ints_[i].ModelDataPtrs()),
+                             itsSols[sol_ints_[i].NSolution()],
+                             itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 
@@ -1360,8 +1364,27 @@ void DDECal::finish() {
   getNextStep()->finish();
 }
 
+void DDECal::storeModelData(
+    const std::vector<std::vector<std::complex<float>*>>& input_model_data) {
+  const size_t n_times = input_model_data.size();
+  const size_t n_directions = itsSteps.size();
+  const size_t n_visibilities =
+      info().nbaselines() * info().nchan() * info().ncorr();
+  // The model data might already have data in it. By using resize(),
+  // reallocation between timesteps is avoided.
+  itsModelData.resize(n_times);
+  for (size_t timestep = 0; timestep != n_times; ++timestep) {
+    itsModelData[timestep].resize(n_directions);
+    for (size_t dir = 0; dir < n_directions; ++dir) {
+      itsModelData[timestep][dir].assign(
+          input_model_data[timestep][dir],
+          input_model_data[timestep][dir] + n_visibilities);
+    }
+  }
+}
+
 void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
-  // Our original data & modeldata is still in the data buffers (the solver
+  // The original data is still in the data buffers (the solver
   // doesn't change those). Here we apply the solutions to all the model data
   // directions and subtract them from the data.
   std::vector<std::vector<DComplex>>& solutions =
@@ -1372,11 +1395,12 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
   for (size_t time = 0; time != sol_ints_[bufferIndex].DataPtrs().size();
        ++time) {
     std::complex<float>* data = sol_ints_[bufferIndex].DataPtrs()[time];
-    std::vector<std::complex<float>*>& modelData =
-        sol_ints_[bufferIndex].ModelDataPtrs()[time];
+    const std::vector<std::vector<std::complex<float>>>& modelData =
+        itsModelData[time];
     for (size_t bl = 0; bl < nBl; ++bl) {
-      size_t chanblock = 0, ant1 = info().getAnt1()[bl],
-             ant2 = info().getAnt2()[bl];
+      const size_t ant1 = info().getAnt1()[bl];
+      const size_t ant2 = info().getAnt2()[bl];
+      size_t chanblock = 0;
 
       for (size_t ch = 0; ch < nCh; ++ch) {
         if (ch == itsChanBlockStart[chanblock + 1]) {

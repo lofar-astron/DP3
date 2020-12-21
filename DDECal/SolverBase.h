@@ -61,17 +61,19 @@ class SolverBase {
    * data for timestep i. Those data are then ordered as they are in the MS (bl,
    * chan, pol).
    * @param mdata are the model data, such that mdata[i] is a pointer for
-   * timestep i to arrays of ndir model data pointers Each of these pointers is
-   * in the same order as the data.
+   * timestep i to arrays of ndir model data pointers. Each of these pointers is
+   * in the same order as the data. Because the model data is large
+   * (e.g. tens of GB in extensive slow gain solves), the data is not
+   * copied but moved into this structure, and weighted in place.
    * @param solutions are the per-channel and per-antenna solutions.
    * solutions[ch] is a pointer for channelblock ch to antenna x directions x
    * pol solutions.
    */
-  virtual SolveResult Solve(
-      const std::vector<Complex*>& data, const std::vector<float*>& weights,
-      const std::vector<std::vector<Complex*>>& model_data,
-      std::vector<std::vector<DComplex>>& solutions, double time,
-      std::ostream* statStream) = 0;
+  virtual SolveResult Solve(const std::vector<Complex*>& data,
+                            const std::vector<float*>& weights,
+                            std::vector<std::vector<Complex*>>&& model_data,
+                            std::vector<std::vector<DComplex>>& solutions,
+                            double time, std::ostream* statStream) = 0;
 
   void AddConstraint(Constraint& constraint) {
     constraints_.push_back(&constraint);

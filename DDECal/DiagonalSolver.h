@@ -14,16 +14,15 @@
 namespace DP3 {
 namespace DPPP {
 
-class DiagonalSolver : public SolverBase {
+class DiagonalSolver final : public SolverBase {
  public:
   DiagonalSolver() : SolverBase() {}
 
-  SolveResult Solve(
-      const std::vector<Complex*>& unweighted_data,
-      const std::vector<float*>& weights,
-      const std::vector<std::vector<Complex*>>& unweighted_model_data,
-      std::vector<std::vector<DComplex>>& solutions, double time,
-      std::ostream* stat_stream) override;
+  SolveResult Solve(const std::vector<Complex*>& unweighted_data,
+                    const std::vector<float*>& weights,
+                    std::vector<std::vector<Complex*>>&& unweighted_model_data,
+                    std::vector<std::vector<DComplex>>& solutions, double time,
+                    std::ostream* stat_stream) override;
 
  private:
   void PerformIteration(size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,

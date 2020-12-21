@@ -14,7 +14,7 @@
 namespace DP3 {
 namespace DPPP {
 
-class FullJonesSolver : public SolverBase {
+class FullJonesSolver final : public SolverBase {
  public:
   FullJonesSolver() : SolverBase() {}
 
@@ -26,12 +26,11 @@ class FullJonesSolver : public SolverBase {
    * channelblock @c ch, that points to antenna x directions solutions. Each
    * solution consists of 4 complex values forming the full Jones matrix.
    */
-  SolveResult Solve(
-      const std::vector<Complex*>& unweighted_data,
-      const std::vector<float*>& weights,
-      const std::vector<std::vector<Complex*> >& unweighted_model_data,
-      std::vector<std::vector<DComplex> >& solutions, double time,
-      std::ostream* stat_stream) override;
+  SolveResult Solve(const std::vector<Complex*>& unweighted_data,
+                    const std::vector<float*>& weights,
+                    std::vector<std::vector<Complex*> >&& unweighted_model_data,
+                    std::vector<std::vector<DComplex> >& solutions, double time,
+                    std::ostream* stat_stream) override;
 
  private:
   void PerformIteration(size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,

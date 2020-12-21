@@ -180,7 +180,8 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver, SolverTester) {
   }
 
   // Call the solver
-  result = solver.Solve(data, weights, model_data, solutions, 0.0, nullptr);
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
 
   CheckDiagonalResults(solutions);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -228,7 +229,8 @@ BOOST_FIXTURE_TEST_CASE(full_jones_solver, SolverTester) {
   }
 
   // Call the solver
-  result = solver.Solve(data, weights, model_data, solutions, 0.0, nullptr);
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>> diagonals(solutions);
