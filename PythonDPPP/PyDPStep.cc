@@ -6,14 +6,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>  // everything needed for embedding
 
-// Define the function to make the PythonStep 'constructor' known.
-extern "C" {
-void register_pythondppp() {
-  DP3::DPPP::DPRun::registerStepCtor("pythondppp",
-                                     DP3::DPPP::PyDPStep::create_instance);
-}
-}
-
 namespace DP3 {
 namespace DPPP {
 

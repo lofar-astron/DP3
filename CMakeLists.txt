@@ -133,7 +133,16 @@ find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Update submodules during build" ON)
   if(GIT_SUBMODULE)
-    message(STATUS "Submodule update")
+    message(STATUS "Syncing submodules")
+    # Account for potential changes in git repo URL's
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync --recursive
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "Syncing submodules did not succeed"
+              "command '${GIT_EXECUTABLE} submodule sync --recursive' failed with exit code ${GIT_SUBMOD_RESULT}")
+    endif()
+    message(STATUS "Updating submodules")
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
@@ -146,7 +155,12 @@ endif()
 # Include aocommon
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
-# Schaapcommon
+# Include pybind11
+set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
+include_directories(${pybind11_INCLUDE_DIR})
+
+# Include schaapcommon
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
@@ -267,6 +281,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/DemixerNew.cc
   DPPP/DemixInfo.cc
   DPPP/DemixWorker.cc
+  PythonDPPP/PyDPStep.cc
 )
 
 add_library(IDGPredict OBJECT
@@ -322,9 +337,8 @@ set(DPPP_LIBRARIES
   ${IDGAPI_LIBRARIES}
   ${Python3_LIBRARIES}
   schaapcommon
-  Threads::Threads)
-
-add_subdirectory(external)
+  Threads::Threads
+  pybind11::embed)
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")

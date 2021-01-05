@@ -39,6 +39,7 @@
 #include "StationAdder.h"
 #include "UVWFlagger.h"
 #include "Upsample.h"
+#include "../PythonDPPP/PyDPStep.h"
 
 #include "../Common/Timer.h"
 #include "../Common/StreamUtil.h"
@@ -81,6 +82,7 @@ DPRun::StepCtor* DPRun::findStepCtor(const std::string& type) {
   if (pos != string::npos) {
     libname = libname.substr(0, pos);
   }
+
   // Try to load and initialize the dynamic library.
   casacore::DynLib dl(libname, string("libdppp_"), "register_" + libname,
                       false);
@@ -91,6 +93,7 @@ DPRun::StepCtor* DPRun::findStepCtor(const std::string& type) {
       return iter->second;
     }
   }
+
   throw Exception("Step type " + type +
                   " is unknown and no shared library lib" + libname +
                   " or libdppp_" + libname + " found in (DY)LD_LIBRARY_PATH");
@@ -376,6 +379,8 @@ DPStep::ShPtr DPRun::makeSingleStep(const std::string& type, DPInput* inputStep,
       msName = casacore::Path(inputStep->msName()).absoluteName();
     return makeOutputStep(inputStep, parset, prefix, msName,
                           inputType == DPStep::MSType::BDA);
+  } else if (type == "pythondppp") {
+    step = PyDPStep::create_instance(reader, parset, prefix);
   } else {
     // Maybe the step is defined in a dynamic library.
     return findStepCtor(type)(inputStep, parset, prefix);
