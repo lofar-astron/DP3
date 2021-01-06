@@ -16,7 +16,7 @@ class DummyDPStep(dppp.DPStep):
         print()
         print("DummyDPStep")
         v = self.parset.getString(self.prefix + "somekey")
-        print("    somekey: {v}" )
+        print("    somekey: {v}")
 
     def process(self, dpbuffer) :
 

@@ -13,12 +13,19 @@
 namespace DP3 {
 namespace DPPP {
 void PyDPStepImpl::show(std::ostream& os) const {
-  // TODO redirect sys.stdout to os
-
   pybind11::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.
+
+  // redirect sys.stdout to os
+  py::object sysm = py::module::import("sys");
+  py::object stdout = sysm.attr("stdout");
+  sysm.attr("stdout") = ostream(os);
+
   // Try to look up the overloaded method on the Python side.
   pybind11::function overload = pybind11::get_overload(this, "show");
   if (overload) overload();  // Call the Python function.
+
+  // restore sys.stdout
+  sysm.attr("stdout") = stdout;
 }
 
 bool PyDPStepImpl::process(const DPBuffer& bufin) {

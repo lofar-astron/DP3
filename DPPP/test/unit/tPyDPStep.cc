@@ -2,6 +2,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <sstream>
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/BasicMath/Math.h>
@@ -147,6 +149,13 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr));
   step1->setNextStep(step2);
   step2->setNextStep(step3);
+
+  // Check whether print statements in show() method are
+  // indeed redirected to output stream
+  std::ostringstream output_stream_step;
+  step2->show(output_stream_step);
+  BOOST_TEST(output_stream_step.str() == "\nMockPyStep\n");
+
   Execute(step1);
 }
 

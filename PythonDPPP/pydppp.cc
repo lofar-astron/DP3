@@ -74,6 +74,9 @@ PYBIND11_MODULE(pydppp, m) {
   register_vector<double>(m, "Vector_double");
   register_vector<int>(m, "Vector_int");
 
+  py::class_<ostream>(m, "ostream")
+      .def("write", &ostream::write);
+
   py::class_<DPStepWrapper,
              std::shared_ptr<DPStepWrapper>,  // holder type
              PyDPStepImpl                     /* <--- trampoline*/

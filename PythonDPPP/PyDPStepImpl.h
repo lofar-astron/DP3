@@ -8,10 +8,21 @@
 #include "../DPPP/DPInput.h"
 
 #include <pybind11/pybind11.h>
+#include <ostream>
+
 namespace py = pybind11;
 
 namespace DP3 {
 namespace DPPP {
+
+class ostream {
+ public:
+  ostream(std::ostream& os) : os_(os) {}
+  void write(std::string& s) { os_ << s; }
+
+ private:
+  std::ostream& os_;
+};
 
 class DPStepWrapper : public DPStep {
  public:
