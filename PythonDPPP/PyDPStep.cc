@@ -81,8 +81,6 @@ DPStep::ShPtr PyDPStep::create_instance(DPInput* input,
       pydpstep_instance.cast<std::shared_ptr<PyDPStepImpl>>();
   pydpstep_instance_ptr->hold();
   pydpstep_instance_ptr->set_input(input);
-  //    pydpstep_instance_ptr->set_parset(parset);
-  //    pydpstep_instance_ptr->set_name(prefix);
 
   return pydpstep_instance_ptr;
 }
