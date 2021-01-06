@@ -143,7 +143,7 @@ unit-test:
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
-    - ctest -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L unit |& tee ctest.out
+    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
@@ -169,7 +169,7 @@ integration-test:
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
-    - ctest -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out
+    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
