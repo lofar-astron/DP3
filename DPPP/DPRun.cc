@@ -379,8 +379,8 @@ DPStep::ShPtr DPRun::makeSingleStep(const std::string& type, DPInput* inputStep,
       msName = casacore::Path(inputStep->msName()).absoluteName();
     return makeOutputStep(inputStep, parset, prefix, msName,
                           inputType == DPStep::MSType::BDA);
-  } else if (type == "python") {
-    step = PyDPStep::create_instance(reader, parset, prefix);
+  } else if (type == "python" || type == "pythondppp") {
+    return PyDPStep::create_instance(inputStep, parset, prefix);
   } else {
     // Maybe the step is defined in a dynamic library.
     return findStepCtor(type)(inputStep, parset, prefix);
