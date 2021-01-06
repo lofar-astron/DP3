@@ -1,3 +1,7 @@
+// pydppp.cc: python bindings to create python step
+// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "PyDPStep.h"
 #include "PyDPStepImpl.h"
 
@@ -62,8 +66,6 @@ void register_vector(py::module &m, const char *name) {
 
 PYBIND11_MODULE(pydppp, m) {
   m.doc() = "pybind11 example plugin";  // optional module docstring
-
-  py::module::import("dppp.parameterset");
 
   register_cube<float>(m, "Cube_float");
   register_cube<bool>(m, "Cube_bool");

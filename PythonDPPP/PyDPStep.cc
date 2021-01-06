@@ -1,3 +1,7 @@
+// PyDPStep.cc: "template" for the python DPStep
+// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "PyDPStep.h"
 #include "PyDPStepImpl.h"
 #include "../DPPP/DPRun.h"
@@ -8,8 +12,7 @@
 
 namespace DP3 {
 namespace DPPP {
-
-void PyDPStepImpl ::show(std::ostream& os) const {
+void PyDPStepImpl::show(std::ostream& os) const {
   // TODO redirect sys.stdout to os
 
   pybind11::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.

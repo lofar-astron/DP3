@@ -1,3 +1,6 @@
+// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef DPPP_PYDPSTEPIMPL_H
 #define DPPP_PYDPSTEPIMPL_H
 
@@ -18,11 +21,7 @@ class DPStepWrapper : public DPStep {
 
   using DPStep::getNextStep;
 
-  DPStep::ShPtr get_next_step() {
-    //         const DPStep::ShPtr &result = getNextStep();
-    //         return result;
-    return DPStep::ShPtr(getNextStep());
-  }
+  DPStep::ShPtr get_next_step() { return DPStep::ShPtr(getNextStep()); }
 
   bool process_next_step(const DPBuffer& dpbuffer) {
     return get_next_step()->process(dpbuffer);
@@ -35,21 +34,6 @@ class DPStepWrapper : public DPStep {
 
   bool m_fetch_uvw = false;
   bool m_fetch_weights = false;
-
-  //     casacore::Cube<casacore::Complex>& get_data() {return
-  //     m_dpbuffer.getData();}
-  //
-  //     casacore::Cube<float>& get_weights()
-  //     {
-  //         m_input->fetchWeights(*m_dpbuffer_in, m_dpbuffer, m_timer);
-  //         return m_dpbuffer.getWeights();
-  //     }
-  //
-  //     casacore::Matrix<double>& get_uvw()
-  //     {
-  //         m_input->fetchUVW(*m_dpbuffer_in, m_dpbuffer, m_timer);
-  //         return m_dpbuffer.getUVW();
-  //     }
 
  protected:
   int m_count = 0;

@@ -400,6 +400,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
   DPPP/test/unit/tUVWFlagger.cc
+  DPPP/test/unit/tPyDPStep.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tSolutionInterval.cc
@@ -495,11 +496,13 @@ add_test(
   NAME unittests
   COMMAND unittests -f JUNIT -k unittests.xml --catch_system_error=yes
 )
+set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
+# Adjust the PYTHONPATH to make tPyDPStep working
 set_tests_properties(
   unittests PROPERTIES LABELS unit
+  ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/DPPP/test/unit/mock:${CMAKE_BINARY_DIR}/PythonDPPP:$ENV{PYTHONPATH}"
   FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
-
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 include(docs/CMakeLists.txt)

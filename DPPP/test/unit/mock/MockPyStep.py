@@ -1,11 +1,14 @@
+# MockPyStep.py: simple python step, where the MockPyStep inherits from
+# the (py)dppp.DPStep class.
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import dppp
+import parameterset
+from pydppp import DPStep
 import numpy as np
 
-class DummyDPStep(dppp.DPStep):
 
+class MockPyStep(DPStep):
     def __init__(self,parset, prefix):
         super().__init__()
         self.parset = parset
@@ -14,12 +17,9 @@ class DummyDPStep(dppp.DPStep):
 
     def show(self) :
         print()
-        print("DummyDPStep")
-        v = self.parset.getString(self.prefix + "somekey")
-        print("    somekey: {v}" )
+        print("MockPyStep")
 
     def process(self, dpbuffer) :
-
         # Accumulate buffers
         self.dpbuffers.append(dpbuffer)
 
@@ -35,7 +35,6 @@ class DummyDPStep(dppp.DPStep):
             self.dpbuffers = []
 
     def finish(self):
-
         # If there is any remaining data, process it
         if len(self.dpbuffers):
             self.process_buffers()
@@ -45,20 +44,20 @@ class DummyDPStep(dppp.DPStep):
 
     def process_buffers(self):
         print()
-        print(f"Processing a chunk of {len(self.dpbuffers)}.")
+        print(f"Processing a chunk of length {len(self.dpbuffers)}.")
 
         # Enumerate accumulated data and display just the shapes
         for i, dpbuffer in enumerate(self.dpbuffers):
+            # Multiply (complex-valued) visibilities by a factor 2
             data = np.array(dpbuffer.get_data(), copy=False)
-            flags = np.array(dpbuffer.get_flags(), copy=False)
-            uvw = np.array(dpbuffer.get_uvw(), copy=False)
-            print(f"{i:4d} shape of data: ", data.shape)
-            print(f"     shape of flags: ", flags.shape)
-            print(f"     shape uvw: ", uvw.shape)
+            data *= 2.
+            # Divide weight by a factor 2
+            weights = np.array(dpbuffer.get_weights(), copy=False)
+            weights /= 2.
 
     def update_info(self, dpinfo) :
         super().update_info(dpinfo)
-        print("DummyDPStep.update_info")
+        print("MockPyStep.update_info")
         self.info().set_need_vis_data()
         self.fetch_uvw = True
         self.fetch_weigths = True
