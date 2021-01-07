@@ -124,7 +124,7 @@ void DPRun::execute(const string& parsetName, int argc, char* argv[]) {
   unsigned int numThreads = parset.getInt("numthreads", 0);
 
   // Create the steps, link them together
-  DPStep::ShPtr firstStep = makeSteps(parset, "", 0);
+  DPInput::ShPtr firstStep = makeMainSteps(parset);
 
   DPStep::ShPtr step = firstStep;
   DPStep::ShPtr lastStep;
@@ -137,7 +137,9 @@ void DPRun::execute(const string& parsetName, int argc, char* argv[]) {
   if (numThreads > 0) {
     dpInfo.setNThreads(numThreads);
   }
-  firstStep->setInfo(std::move(dpInfo));
+  dpInfo = firstStep->setInfo(dpInfo);
+  // Tell the reader if visibility data needs to be read.
+  firstStep->setReadVisData(dpInfo.needVisData());
 
   // Show the steps.
   step = firstStep;
@@ -229,150 +231,169 @@ void DPRun::execute(const string& parsetName, int argc, char* argv[]) {
   // The destructors are called automatically at this point.
 }
 
-DPStep::ShPtr DPRun::makeSteps(const ParameterSet& parset, const string& prefix,
-                               DPInput* reader, bool optionalWriter) {
-  DPStep::ShPtr firstStep;
-  DPStep::ShPtr lastStep;
-  if (!reader) {
-    std::unique_ptr<DPInput> new_reader = DPInput::CreateReader(parset, prefix);
-    reader = new_reader.get();
-    firstStep = std::move(new_reader);
+DPInput::ShPtr DPRun::makeMainSteps(const ParameterSet& parset) {
+  DPInput::ShPtr inputStep = DPInput::CreateReader(parset, "");
+  DPStep::ShPtr step = makeStepsFromParset(parset, "", inputStep.get(), false);
+  if (step) inputStep->setNextStep(step);
+
+  // Calculate needsOutputStep to be true if one of the steps changes
+  // the visibility stream and therefore requires the output to be rewritten
+  bool needsOutputStep = false;
+  step = inputStep;
+  while (step->getNextStep()) {
+    step = step->getNextStep();
+    needsOutputStep = needsOutputStep || step->modifiesData();
+  }
+  // step now points to the last step in the chain, which is required later on.
+
+  // Add an output step if not explicitly added as the last step
+  const bool endsWithOutputStep = dynamic_cast<MSWriter*>(step.get()) ||
+                                  dynamic_cast<MSUpdater*>(step.get()) ||
+                                  dynamic_cast<Split*>(step.get());
+
+  if (!endsWithOutputStep) {
+    const std::string msOutName = parset.getString("msout");
+    if (needsOutputStep || !msOutName.empty()) {
+      std::string msName = casacore::Path(inputStep->msName()).absoluteName();
+      DPStep::ShPtr outputStep =
+          makeOutputStep(inputStep.get(), parset, "msout.", msName,
+                         step->outputs() == DPStep::MSType::BDA);
+      step->setNextStep(outputStep);
+      step = outputStep;
+    }
   }
 
-  casacore::Path pathIn(reader->msName());
-  casacore::String currentMSName(pathIn.absoluteName());
+  // Add a null step, so the last step can use getNextStep->process().
+  step->setNextStep(std::make_shared<NullStep>());
+  return inputStep;
+}
 
-  // Create the other steps.
-  std::vector<string> steps = parset.getStringVector(prefix + "steps");
-  lastStep = firstStep;
-  DPStep::ShPtr step;
-  bool needsOutputStep = true;
+DPStep::ShPtr DPRun::makeStepsFromParset(const ParameterSet& parset,
+                                         const std::string& prefix,
+                                         DPInput* inputStep,
+                                         bool terminateChain) {
+  std::string msName;
+  const std::vector<string> stepNames =
+      parset.getStringVector(prefix + "steps");
 
-  for (std::vector<string>::const_iterator iter = steps.begin();
-       iter != steps.end(); ++iter) {
-    string prefix(*iter + '.');
+  DPStep::ShPtr firstStep;
+  DPStep::ShPtr lastStep;
+  for (const std::string& stepName : stepNames) {
+    std::string prefix(stepName + '.');
+
     // The alphabetic part of the name is the default step type.
     // This allows names like average1, out3.
-    string defaulttype = (*iter);
-    while (defaulttype.size() > 0 && std::isdigit(*defaulttype.rbegin())) {
-      defaulttype.resize(defaulttype.size() - 1);
+    std::string defaultType = stepName;
+    while (!defaultType.empty() && std::isdigit(defaultType.back())) {
+      defaultType.resize(defaultType.size() - 1);
     }
-
-    // If no explicit output step is given as last step, one will be added
-    // with the msout. prefix
-    needsOutputStep = true;
-
-    string type = parset.getString(prefix + "type", defaulttype);
+    std::string type = parset.getString(prefix + "type", defaultType);
     boost::algorithm::to_lower(type);
-    // Define correct name for AOFlagger synonyms.
-    if (type == "aoflagger" || type == "aoflag") {
-      step = std::make_shared<AOFlaggerStep>(reader, parset, prefix);
-    } else if (type == "averager" || type == "average" || type == "squash") {
-      step = std::make_shared<Averager>(reader, parset, prefix);
-    } else if (type == "bdaaverager") {
-      step = std::make_shared<BDAAverager>(*reader, parset, prefix);
-    } else if (type == "madflagger" || type == "madflag") {
-      step = std::make_shared<MedFlagger>(reader, parset, prefix);
-    } else if (type == "preflagger" || type == "preflag") {
-      step = std::make_shared<PreFlagger>(reader, parset, prefix);
-    } else if (type == "uvwflagger" || type == "uvwflag") {
-      step = std::make_shared<UVWFlagger>(reader, parset, prefix);
-    } else if (type == "columnreader") {
-      step = std::make_shared<ColumnReader>(*reader, parset, prefix);
-    } else if (type == "counter" || type == "count") {
-      step = std::make_shared<Counter>(reader, parset, prefix);
-    } else if (type == "phaseshifter" || type == "phaseshift") {
-      step = std::make_shared<PhaseShift>(reader, parset, prefix);
-    } else if (type == "demixer" || type == "demix") {
-      step = std::make_shared<Demixer>(reader, parset, prefix);
-    } else if (type == "smartdemixer" || type == "smartdemix") {
-      step = std::make_shared<DemixerNew>(reader, parset, prefix);
-    } else if (type == "applybeam") {
-      step = std::make_shared<ApplyBeam>(reader, parset, prefix);
-    } else if (type == "stationadder" || type == "stationadd") {
-      step = std::make_shared<StationAdder>(reader, parset, prefix);
-    } else if (type == "scaledata") {
-      step = std::make_shared<ScaleData>(reader, parset, prefix);
-    } else if (type == "setbeam") {
-      step = std::make_shared<SetBeam>(reader, parset, prefix);
-    } else if (type == "filter") {
-      step = std::make_shared<Filter>(reader, parset, prefix);
-    } else if (type == "applycal" || type == "correct") {
-      step = std::make_shared<ApplyCal>(reader, parset, prefix);
-    } else if (type == "predict") {
-      step = std::make_shared<Predict>(reader, parset, prefix);
-    } else if (type == "idgpredict") {
-      step = std::make_shared<IDGPredict>(*reader, parset, prefix);
-    } else if (type == "h5parmpredict") {
-      step = std::make_shared<H5ParmPredict>(reader, parset, prefix);
-    } else if (type == "gaincal" || type == "calibrate") {
-      step = std::make_shared<GainCal>(reader, parset, prefix);
-    } else if (type == "upsample") {
-      step = std::make_shared<Upsample>(reader, parset, prefix);
-    } else if (type == "split" || type == "explode") {
-      step = std::make_shared<Split>(reader, parset, prefix);
-      needsOutputStep = false;
-    } else if (type == "ddecal") {
-      step = std::make_shared<DDECal>(reader, parset, prefix);
-    } else if (type == "interpolate") {
-      step = std::make_shared<Interpolate>(reader, parset, prefix);
-    } else if (type == "out" || type == "output" || type == "msout") {
-      step = makeOutputStep(reader, parset, prefix, currentMSName,
-                            lastStep->outputs() == DPStep::MSType::BDA);
-      needsOutputStep = false;
-    } else {
-      // Maybe the step is defined in a dynamic library.
-      step = findStepCtor(type)(reader, parset, prefix);
-    }
+
+    DPStep::MSType inputType = lastStep ? lastStep->outputs() : DPStep::REGULAR;
+    DPStep::ShPtr step =
+        makeSingleStep(type, inputStep, parset, prefix, msName, inputType);
 
     if (lastStep) {
       if (!step->accepts(lastStep->outputs())) {
         throw std::invalid_argument("Step " + type +
-                                    " is incompatible with input data.");
+                                    " is incompatible with the input data.");
       }
       lastStep->setNextStep(step);
     }
     lastStep = step;
-    // Define as first step if not defined yet.
+
     if (!firstStep) {
       firstStep = step;
     }
   }
 
-  if (!optionalWriter) {
-    return firstStep;
-  }
-  // Add an output step if not explicitly added in steps (unless last step is a
-  // 'split' step)
-  if (needsOutputStep) {
-    step = makeOutputStep(reader, parset, "msout.", currentMSName,
-                          lastStep->outputs() == DPStep::MSType::BDA);
-    lastStep->setNextStep(step);
-    lastStep = step;
+  if (terminateChain) {
+    // Add a null step, so the last step can use getNextStep->process().
+    lastStep->setNextStep(std::make_shared<NullStep>());
   }
 
-  // Add a null step, so the last step can use getNextStep->process().
-  auto nullStep = std::make_shared<NullStep>();
-  if (lastStep) {
-    lastStep->setNextStep(nullStep);
-  } else {
-    firstStep = nullStep;
-  }
   return firstStep;
 }
 
+DPStep::ShPtr DPRun::makeSingleStep(const std::string& type, DPInput* inputStep,
+                                    const ParameterSet& parset,
+                                    const std::string& prefix,
+                                    std::string& msName,
+                                    DPStep::MSType inputType) {
+  if (type == "aoflagger" || type == "aoflag") {
+    return std::make_shared<AOFlaggerStep>(inputStep, parset, prefix);
+  } else if (type == "averager" || type == "average" || type == "squash") {
+    return std::make_shared<Averager>(inputStep, parset, prefix);
+  } else if (type == "bdaaverager") {
+    return std::make_shared<BDAAverager>(*inputStep, parset, prefix);
+  } else if (type == "madflagger" || type == "madflag") {
+    return std::make_shared<MedFlagger>(inputStep, parset, prefix);
+  } else if (type == "preflagger" || type == "preflag") {
+    return std::make_shared<PreFlagger>(inputStep, parset, prefix);
+  } else if (type == "uvwflagger" || type == "uvwflag") {
+    return std::make_shared<UVWFlagger>(inputStep, parset, prefix);
+  } else if (type == "columnreader") {
+    return std::make_shared<ColumnReader>(*inputStep, parset, prefix);
+  } else if (type == "counter" || type == "count") {
+    return std::make_shared<Counter>(inputStep, parset, prefix);
+  } else if (type == "phaseshifter" || type == "phaseshift") {
+    return std::make_shared<PhaseShift>(inputStep, parset, prefix);
+  } else if (type == "demixer" || type == "demix") {
+    return std::make_shared<Demixer>(inputStep, parset, prefix);
+  } else if (type == "smartdemixer" || type == "smartdemix") {
+    return std::make_shared<DemixerNew>(inputStep, parset, prefix);
+  } else if (type == "applybeam") {
+    return std::make_shared<ApplyBeam>(inputStep, parset, prefix);
+  } else if (type == "stationadder" || type == "stationadd") {
+    return std::make_shared<StationAdder>(inputStep, parset, prefix);
+  } else if (type == "scaledata") {
+    return std::make_shared<ScaleData>(inputStep, parset, prefix);
+  } else if (type == "setbeam") {
+    return std::make_shared<SetBeam>(inputStep, parset, prefix);
+  } else if (type == "filter") {
+    return std::make_shared<Filter>(inputStep, parset, prefix);
+  } else if (type == "applycal" || type == "correct") {
+    return std::make_shared<ApplyCal>(inputStep, parset, prefix);
+  } else if (type == "predict") {
+    return std::make_shared<Predict>(inputStep, parset, prefix);
+  } else if (type == "idgpredict") {
+    return std::make_shared<IDGPredict>(*inputStep, parset, prefix);
+  } else if (type == "h5parmpredict") {
+    return std::make_shared<H5ParmPredict>(inputStep, parset, prefix);
+  } else if (type == "gaincal" || type == "calibrate") {
+    return std::make_shared<GainCal>(inputStep, parset, prefix);
+  } else if (type == "upsample") {
+    return std::make_shared<Upsample>(inputStep, parset, prefix);
+  } else if (type == "split" || type == "explode") {
+    return std::make_shared<Split>(inputStep, parset, prefix);
+  } else if (type == "ddecal") {
+    return std::make_shared<DDECal>(inputStep, parset, prefix);
+  } else if (type == "interpolate") {
+    return std::make_shared<Interpolate>(inputStep, parset, prefix);
+  } else if (type == "out" || type == "output" || type == "msout") {
+    if (msName.empty())
+      msName = casacore::Path(inputStep->msName()).absoluteName();
+    return makeOutputStep(inputStep, parset, prefix, msName,
+                          inputType == DPStep::MSType::BDA);
+  } else {
+    // Maybe the step is defined in a dynamic library.
+    return findStepCtor(type)(inputStep, parset, prefix);
+  }
+}
+
 DPStep::ShPtr DPRun::makeOutputStep(DPInput* reader, const ParameterSet& parset,
-                                    const string& prefix,
-                                    casacore::String& currentMSName,
+                                    const std::string& prefix,
+                                    std::string& currentMSName,
                                     const bool& isBDA) {
   DPStep::ShPtr step;
-  casacore::String outName;
+  std::string outName;
   bool doUpdate = false;
   if (prefix == "msout.") {
     // The last output step.
     outName = parset.getString("msout.name", "");
     if (outName.empty()) {
-      outName = parset.getString("msout");
+      outName = parset.getString("msout", "");
     }
   } else {
     // An intermediate output step.
@@ -385,7 +406,7 @@ DPStep::ShPtr DPRun::makeOutputStep(DPInput* reader, const ParameterSet& parset,
     doUpdate = true;
   } else {
     casacore::Path pathOut(outName);
-    if (currentMSName == pathOut.absoluteName()) {
+    if (currentMSName == std::string(pathOut.absoluteName())) {
       outName = currentMSName;
       doUpdate = true;
     }

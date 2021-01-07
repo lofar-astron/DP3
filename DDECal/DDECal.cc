@@ -161,11 +161,6 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
 
 DDECal::~DDECal() {}
 
-DPStep::ShPtr DDECal::makeStep(DPInput* input, const ParameterSet& parset,
-                               const std::string& prefix) {
-  return std::make_shared<DDECal>(input, parset, prefix);
-}
-
 void DDECal::initializeSolver(const ParameterSet& parset,
                               const string& prefix) {
   if (itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
@@ -376,7 +371,8 @@ void DDECal::setModelNextSteps(std::shared_ptr<DPStep> step,
   ParameterSet parset_new(parset);
   parset_new.replace("steps", model_next_steps);
 
-  auto first_step = DPRun::makeSteps(parset_new, "", itsInput, false);
+  DPStep::ShPtr first_step =
+      DPRun::makeStepsFromParset(parset_new, "", itsInput, false);
 
   if (first_step) {
     step->setNextStep(first_step);

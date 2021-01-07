@@ -50,6 +50,8 @@ namespace DPPP {
 
 class DPInput : public DPStep {
  public:
+  typedef std::shared_ptr<DPInput> ShPtr;
+
   virtual ~DPInput();
 
   /// Read the UVW at the given row numbers into the buffer.

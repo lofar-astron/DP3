@@ -55,7 +55,7 @@ typedef std::pair<size_t, size_t> Baseline;
 
 /// @brief This class is a DPStep class to calibrate (direction independent)
 /// gains.
-class GainCal : public DPStep {
+class GainCal final : public DPStep {
  public:
   enum CalType {
     DIAGONAL,
@@ -78,22 +78,19 @@ class GainCal : public DPStep {
 
   virtual ~GainCal();
 
-  /// Process the data.
-  /// It keeps the data.
+  /// Process the data. It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const DPBuffer&);
+  virtual bool process(const DPBuffer&) override;
 
-  /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  virtual void finish() override;
 
-  /// Update the general info.
-  virtual void updateInfo(const DPInfo&);
+  virtual void updateInfo(const DPInfo&) override;
 
-  /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  virtual void show(std::ostream&) const override;
 
-  /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  virtual void showTimings(std::ostream&, double duration) const override;
+
+  virtual bool modifiesData() const override { return itsApplySolution; }
 
   /// Convert string to a CalType
   static CalType stringToCalType(const std::string& mode);
