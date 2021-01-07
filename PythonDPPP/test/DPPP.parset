@@ -1,0 +1,9 @@
+msin=<INSERT_PATH_TO_INPUT_MEASUREMENTSET>
+msout=<INSERT_PATH_TO_OUTPUT_MEASUREMENTSET>
+msin.ntimes=11
+steps=[pystep]
+
+pystep.type=PythonDPPP
+pystep.python.module=dppp.dummystep
+pystep.python.class=DummyDPStep
+pystep.somekey=somevalue

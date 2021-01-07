@@ -7,6 +7,8 @@ add_executable(DPPP DPPP.cc ${DPPP_OBJECTS})
 target_link_libraries(DPPP ${DPPP_LIBRARIES})
 add_dependencies(DPPP schaapcommon)
 
+set_target_properties(DPPP PROPERTIES ENABLE_EXPORTS ON)
+
 install(TARGETS DPPP DESTINATION bin)
 
 # Data files

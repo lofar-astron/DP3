@@ -75,7 +75,6 @@ else() # Use old, deprecated means of detecting python.
   set(Python3_VERSION ${PYTHON_VERSION_STRING})
   set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
   set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
-  set(BOOSTPY "")
 endif()
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
@@ -83,7 +82,7 @@ include_directories(${Python3_INCLUDE_DIRS})
 #Boost depends on python, since we use ${BOOSTPY} here.
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem python${BOOSTPY} numpy${BOOSTPY} program_options system unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(Threads REQUIRED)
@@ -134,7 +133,16 @@ find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Update submodules during build" ON)
   if(GIT_SUBMODULE)
-    message(STATUS "Submodule update")
+    message(STATUS "Syncing submodules")
+    # Account for potential changes in git repo URL's
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync --recursive
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "Syncing submodules did not succeed"
+              "command '${GIT_EXECUTABLE} submodule sync --recursive' failed with exit code ${GIT_SUBMOD_RESULT}")
+    endif()
+    message(STATUS "Updating submodules")
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
@@ -147,7 +155,12 @@ endif()
 # Include aocommon
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
-# Schaapcommon
+# Include pybind11
+set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
+include_directories(${pybind11_INCLUDE_DIR})
+
+# Include schaapcommon
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
@@ -268,6 +281,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/DemixerNew.cc
   DPPP/DemixInfo.cc
   DPPP/DemixWorker.cc
+  PythonDPPP/PyDPStep.cc
 )
 
 add_library(IDGPredict OBJECT
@@ -323,7 +337,8 @@ set(DPPP_LIBRARIES
   ${IDGAPI_LIBRARIES}
   ${Python3_LIBRARIES}
   schaapcommon
-  Threads::Threads)
+  Threads::Threads
+  pybind11::embed)
 
 add_subdirectory(DPPP)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -385,6 +400,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
   DPPP/test/unit/tUVWFlagger.cc
+  DPPP/test/unit/tPyDPStep.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tSolutionInterval.cc
@@ -480,11 +496,13 @@ add_test(
   NAME unittests
   COMMAND unittests -f JUNIT -k unittests.xml --catch_system_error=yes
 )
+set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
+# Adjust the PYTHONPATH to make tPyDPStep working
 set_tests_properties(
   unittests PROPERTIES LABELS unit
+  ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/DPPP/test/unit/mock:${CMAKE_BINARY_DIR}/PythonDPPP:$ENV{PYTHONPATH}"
   FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
-
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 include(docs/CMakeLists.txt)

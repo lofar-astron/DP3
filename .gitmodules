@@ -4,3 +4,7 @@
 [submodule "external/schaapcommon"]
 	path = external/schaapcommon
 	url = https://git.astron.nl/RD/schaapcommon.git
+[submodule "external/pybind11"]
+	path = external/pybind11
+	url = https://github.com/pybind/pybind11.git
+
