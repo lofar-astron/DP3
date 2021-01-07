@@ -28,25 +28,27 @@ namespace DPPP {
 Split::Split(DPInput* input, const ParameterSet& parset, const string& prefix)
     : itsAddedToMS(false) {
   itsReplaceParms = parset.getStringVector(prefix + "replaceparms");
-  vector<vector<string> > replaceParmValues;  // For each of the parameters, the
-                                              // values for each substep
-  replaceParmValues.resize(itsReplaceParms.size());
+  // For each of the parameters, the values for each substep
+  vector<vector<string> > replaceParmValues(itsReplaceParms.size());
 
-  vector<vector<string> >::iterator replaceParmValueIt =
-      replaceParmValues.begin();
-  unsigned int numSteps = 0;
-  for (const string& replaceParm : itsReplaceParms) {
-    vector<string> parmValues = parset.getStringVector(replaceParm);
-    *(replaceParmValueIt++) = parmValues;
-    if (numSteps > 0) {
-      if (parmValues.size() != numSteps)
+  // numSplits, the number of 'new streams' that the data are split into is
+  // determined from the replaced parameters.
+  size_t numSplits = 0;
+
+  for (size_t parmIndex = 0; parmIndex != itsReplaceParms.size(); ++parmIndex) {
+    const vector<string> parmValues =
+        parset.getStringVector(itsReplaceParms[parmIndex]);
+    replaceParmValues[parmIndex] = parmValues;
+    if (numSplits == 0) {
+      numSplits = parmValues.size();
+    } else {
+      if (parmValues.size() != numSplits)
         throw Exception(
             "Each parameter in replaceparms should have the same number of "
             "items (expected " +
-            std::to_string(numSteps) + ", got " +
-            std::to_string(parmValues.size()) + " for step " + replaceParm);
-    } else {
-      numSteps = parmValues.size();
+            std::to_string(numSplits) + ", got " +
+            std::to_string(parmValues.size()) + " for step " +
+            itsReplaceParms[parmIndex]);
     }
   }
 
@@ -54,14 +56,16 @@ Split::Split(DPInput* input, const ParameterSet& parset, const string& prefix)
   ParameterSet parsetCopy(parset);
 
   // Create the substeps
-  unsigned int numParameters = itsReplaceParms.size();
-  for (unsigned int i = 0; i < numSteps; ++i) {
-    for (unsigned int j = 0; j < numParameters; ++j) {
+  const size_t numParameters = itsReplaceParms.size();
+  for (size_t i = 0; i != numSplits; ++i) {
+    for (size_t j = 0; j != numParameters; ++j) {
       parsetCopy.replace(itsReplaceParms[j], replaceParmValues[j][i]);
     }
-    DPStep::ShPtr firstStep = DPRun::makeSteps(parsetCopy, prefix, input);
+    DPStep::ShPtr firstStep =
+        DPRun::makeStepsFromParset(parsetCopy, prefix, input, true);
     firstStep->setPrevStep(this);
-    itsSubsteps.push_back(firstStep);
+
+    itsSubsteps.push_back(std::move(firstStep));
   }
 }
 
@@ -70,9 +74,8 @@ Split::~Split() {}
 void Split::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 
-  vector<DPStep::ShPtr>::iterator it;
-  for (it = itsSubsteps.begin(); it != itsSubsteps.end(); ++it) {
-    (*it)->setInfo(infoIn);
+  for (DPStep::ShPtr& step : itsSubsteps) {
+    step->setInfo(infoIn);
   }
 }
 

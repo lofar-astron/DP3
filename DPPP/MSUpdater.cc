@@ -227,8 +227,6 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   // Subsequent steps have to set again if writes need to be done.
   info().clearWrites();
   info().clearMetaChanged();
-  // Tell the reader if visibility data needs to be read.
-  itsReader->setReadVisData(info().needVisData());
 }
 
 void MSUpdater::addToMS(const string&) {

@@ -56,17 +56,10 @@ class DDECal : public DPStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  DDECal(DPInput*, const ParameterSet&, const std::string& prefix);
+  DDECal(DPInput*, const ParameterSet& parameterSet, const std::string& prefix);
 
   virtual ~DDECal();
 
-  /// Create an DDECal object using the given parset.
-  static DPStep::ShPtr makeStep(DPInput*, const ParameterSet&,
-                                const std::string&);
-
-  /// Process the data.
-  /// It keeps the data.
-  /// When processed, it invokes the process function of the next step.
   virtual bool process(const DPBuffer&);
 
   void checkMinimumVisibilities(size_t bufferIndex);
@@ -85,14 +78,15 @@ class DDECal : public DPStep {
   /// Finish the processing of this step and subsequent steps.
   virtual void finish();
 
-  /// Update the general info.
   virtual void updateInfo(const DPInfo&);
 
-  /// Show the step parameters.
   virtual void show(std::ostream&) const;
 
-  /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
+
+  virtual bool modifiesData() const override {
+    return itsSubtract || itsOnlyPredict;
+  }
 
  private:
   void initializeSolver(const ParameterSet& parset, const string& prefix);

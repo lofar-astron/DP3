@@ -195,7 +195,6 @@ add_library(DDECal OBJECT
   DDECal/DDECal.cc
   DDECal/DiagonalSolver.cc
   DDECal/FullJonesSolver.cc
-  DDECal/Register.cc
   DDECal/RotationAndDiagonalConstraint.cc
   DDECal/RotationConstraint.cc
   DDECal/ScalarSolver.cc

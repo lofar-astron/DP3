@@ -20,6 +20,7 @@ set(INTEGRATION_TESTS
   tGainCalH5Parm
   tMultiApplyCal
   tPredict
+  tReadOnly
   tSplit
 )
 

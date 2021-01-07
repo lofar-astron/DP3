@@ -38,7 +38,7 @@ description: |
   2. ``baseline=[CR]S*&&`` for baselines (also autocorrelations) between RS and CS stations (i.e. discard all baselines involving international stations).
   3. ``baseline=CS001,CS002&RS003,RS005`` for CS001-RS003, CS001-RS005, CS002-RS003, and CS002-RS005
 
-  Note that & means cross-correlations, && means cross and auto, &&& means auto only. If there is nothing to the right of the ampersand(s), it means the right bit will be equal to the left bit. Therefore, `baseline=CS*&&` seleccts the same as `baseline=CS*&&CS*` which selects all cross and auto-correlations of the core stations.
+  Note that & means cross-correlations, && means cross and auto, &&& means auto only. If there is nothing to the right of the ampersand(s), it means the right bit will be equal to the left bit. Therefore, `baseline=CS*&&` selects the same as `baseline=CS*&&CS*` which selects all cross and auto-correlations of the core stations.
 
   International stations can be selected most easily using negation `:`
 

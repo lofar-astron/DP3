@@ -43,11 +43,22 @@ class DPRun {
   static void execute(const std::string& parsetName, int argc = 0,
                       char* argv[] = 0);
 
-  /// Create the step objects.
-  /// If optionalWriter=false, no undefined writer will be added to the steps
-  static DPStep::ShPtr makeSteps(const ParameterSet& parset,
-                                 const std::string& prefix, DPInput* reader,
-                                 bool optionalWriter = true);
+  /// Create a chain of step objects that are connected together.
+  /// A writer will be added to the steps if it is not defined,
+  /// and a terminating NullStep is added.
+  static DPInput::ShPtr makeMainSteps(const ParameterSet& parset);
+
+  /// Create a chain of step objects that are connected together.
+  /// Unlike makeMainSteps(), this does neither add a writer nor
+  /// terminate the chain with a NullStep.
+  static DPStep::ShPtr makeStepsFromParset(const ParameterSet& parset,
+                                           const std::string& prefix,
+                                           DPInput* inputStep,
+                                           bool terminateChain);
+
+  static DPStep::ShPtr makeSingleStep(
+      const std::string& type, DPInput* inputStep, const ParameterSet& parset,
+      const std::string& prefix, std::string& msName, DPStep::MSType inputType);
 
  private:
   /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
@@ -62,8 +73,8 @@ class DPRun {
   /// data. reader should be the original reader
   static DPStep::ShPtr makeOutputStep(DPInput* reader,
                                       const ParameterSet& parset,
-                                      const string& prefix,
-                                      casacore::String& currentMSName,
+                                      const std::string& prefix,
+                                      std::string& currentMSName,
                                       const bool& isBDA);
 
   /// The map to create a step object from its type name.
