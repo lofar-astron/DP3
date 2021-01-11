@@ -14,7 +14,11 @@ class SmoothnessConstraint : public Constraint {
   typedef std::complex<double> dcomplex;
   typedef KernelSmoother<dcomplex, double> Smoother;
 
-  SmoothnessConstraint(double bandwidthHz);
+  /**
+   * @param bandwidthRefFrequencyHz may be zero to have a constant kernel size
+   * over frequency.
+   */
+  SmoothnessConstraint(double bandwidthHz, double bandwidthRefFrequencyHz);
 
   std::vector<Constraint::Result> Apply(
       std::vector<std::vector<dcomplex>>& solutions, double,
@@ -24,15 +28,25 @@ class SmoothnessConstraint : public Constraint {
     _weights = weights;
   }
 
-  void Initialize(const double* frequencies);
+  /**
+   * Should be called after constructing.
+   * @param frequencies list of channel frequencies in Hz
+   * @param antennaDistances vector where each element is a distance correction
+   * factor for each antenna. A higher correction factor will perform stronger
+   * smoothing in frequency direction.
+   */
+  void Initialize(const double* frequencies,
+                  std::vector<double> antennaDistanceFactors);
 
   virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
                                     size_t nChannelBlocks) final override;
 
   struct FitData {
     FitData(const double* frequencies, size_t n,
-            Smoother::KernelType kernelType, double kernelBandwidth)
-        : smoother(frequencies, n, kernelType, kernelBandwidth),
+            Smoother::KernelType kernelType, double kernelBandwidth,
+            double bandwidthRefFrequencyHz)
+        : smoother(frequencies, n, kernelType, kernelBandwidth,
+                   bandwidthRefFrequencyHz),
           data(n),
           weight(n) {}
 
@@ -41,9 +55,12 @@ class SmoothnessConstraint : public Constraint {
     std::vector<double> weight;
   };
   std::vector<FitData> _fitData;
-  std::vector<double> _frequencies, _weights;
+  std::vector<double> _frequencies;
+  std::vector<double> _antennaDistanceFactors;
+  std::vector<double> _weights;
   Smoother::KernelType _kernelType;
   double _bandwidth;
+  double _bandwidthRefFrequencyHz;
   std::unique_ptr<aocommon::ParallelFor<size_t>> _loop;
 };
 

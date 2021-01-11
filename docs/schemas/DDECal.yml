@@ -98,9 +98,19 @@ inputs:
     doc: >-
       A list of lists specifying groups of antennas that are to be constrained to have the same solution. Example: "[ [CS002HBA0,CS002HBA1],[CS003HBA0,CS003HBA1] ]" will keep the solutions of CS002HBA0 and 1 the same, and the same for CS003 `.`
   smoothnessconstraint:
-    default: 0
+    default: 0.0
     type: double
     doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point where the kernel is cut off `.`
+  smoothnessreffrequency:
+    default: 0.0
+    type: double
+    doc: >-
+      An optional reference frequency (in Hz) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary over frequency by a factor of "smoothnessreffrequency / frequency", i.e., the kernel will be smaller for lower frequencies. This compensates for the fact that the ionosphere causes larger fluctuations at lower frequencies `.`
+  smoothnessrefdistance:
+    default: 0.0
+    type: double
+    doc: >-
+      An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to antenna 0 will be smoothed stronger, i.e. with a larger kernel size.
   statfilename:
     type: string
     doc: >-

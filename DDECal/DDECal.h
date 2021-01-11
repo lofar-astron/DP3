@@ -182,6 +182,8 @@ class DDECal : public DPStep {
   double itsCoreConstraint;
   std::vector<std::set<std::string>> itsAntennaConstraint;
   double itsSmoothnessConstraint;
+  double itsSmoothnessRefFrequencyHz;
+  double itsSmoothnessRefDistance;
   double itsScreenCoreConstraint;
   std::unique_ptr<SolverBase> itsSolver;
   size_t itsPolsInSolutions;

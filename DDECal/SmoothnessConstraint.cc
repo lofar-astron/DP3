@@ -6,17 +6,22 @@
 #include <aocommon/parallelfor.h>
 #include <boost/make_unique.hpp>
 
-SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz)
-    : _kernelType(Smoother::GaussianKernel), _bandwidth(bandwidthHz) {}
+SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz,
+                                           double bandwidthRefFrequencyHz)
+    : _kernelType(Smoother::GaussianKernel),
+      _bandwidth(bandwidthHz),
+      _bandwidthRefFrequencyHz(bandwidthRefFrequencyHz) {}
 
-void SmoothnessConstraint::Initialize(const double* frequencies) {
+void SmoothnessConstraint::Initialize(
+    const double* frequencies, std::vector<double> antennaDistanceFactors) {
   _frequencies.assign(frequencies, frequencies + _nChannelBlocks);
+  _antennaDistanceFactors = std::move(antennaDistanceFactors);
   if (!_loop) {
     _loop = boost::make_unique<aocommon::ParallelFor<size_t>>(_nThreads);
   }
   for (size_t i = 0; i != _nThreads; ++i)
     _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType,
-                          _bandwidth);
+                          _bandwidth, _bandwidthRefFrequencyHz);
 }
 
 void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
@@ -47,7 +52,8 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
           }
 
           _fitData[thread].smoother.Smooth(_fitData[thread].data.data(),
-                                           _fitData[thread].weight.data());
+                                           _fitData[thread].weight.data(),
+                                           _antennaDistanceFactors[antIndex]);
 
           for (size_t ch = 0; ch != _nChannelBlocks; ++ch) {
             solutions[ch][solutionIndex] = _fitData[thread].data[ch];

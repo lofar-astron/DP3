@@ -62,8 +62,8 @@ void ScreenConstraint::initialize(const double* frequencies) {
 }
 
 void ScreenConstraint::setAntennaPositions(
-    const std::vector<std::vector<double> > antenna_pos) {
-  itsAntennaPos = antenna_pos;
+    const std::vector<std::array<double, 3> > antenna_pos) {
+  itsAntennaPos = std::move(antenna_pos);
 }
 
 void ScreenConstraint::setDirections(

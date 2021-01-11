@@ -78,7 +78,6 @@ class Constraint {
   /**
    * Initialize the dimensions for the constraint. Should be overridden when
    * something more than assigning dimensions is needed (e.g. resizing vectors).
-   * Weights are initialized to 1. here.
    */
   virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
                                     size_t nChannelBlocks) {
@@ -91,7 +90,8 @@ class Constraint {
    * Set weights. The vector should contain an array of size nAntennas *
    * nChannelBlocks, where the channel index varies fastest.
    */
-  virtual void SetWeights(const std::vector<double>&) {}
+  virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
+  }
 
   void SetNThreads(size_t nThreads) { _nThreads = nThreads; }
 
@@ -147,7 +147,7 @@ class DiagonalConstraint : public Constraint {
 
 /**
  * @brief This constraint averages the solutions of several groups of antennas,
- * so that antennas wiuthin the same group have equal solutions.
+ * so that antennas within the same group have equal solutions.
  *
  * The DDE solver can use this constraint e.g. to average the solutions of
  * the core antennas. Core antennas are determined by a given maximum distance

@@ -38,7 +38,8 @@ class ScreenConstraint : public Constraint {
       std::ostream* statStream);
   virtual void CalculatePiercepoints();
 
-  void setAntennaPositions(const std::vector<std::vector<double> > antenna_pos);
+  void setAntennaPositions(
+      const std::vector<std::array<double, 3> > antenna_pos);
   void setDirections(const std::vector<std::pair<double, double> > source_pos);
   void setTime(double time);
   void initPiercePoints();
@@ -54,7 +55,7 @@ class ScreenConstraint : public Constraint {
                   size_t, double&, double&) const;
 
  private:
-  std::vector<std::vector<double> > itsAntennaPos;
+  std::vector<std::array<double, 3> > itsAntennaPos;
   std::vector<std::vector<double> > itsSourcePos;
   std::vector<double> itsFrequencies;
   std::vector<double> itsprevsol;

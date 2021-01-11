@@ -104,6 +104,10 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsAntennaConstraint(),
       itsSmoothnessConstraint(
           parset.getDouble(prefix + "smoothnessconstraint", 0.0)),
+      itsSmoothnessRefFrequencyHz(
+          parset.getDouble(prefix + "smoothnessreffrequency", 0.0)),
+      itsSmoothnessRefDistance(
+          parset.getDouble(prefix + "smoothnessrefdistance", 0.0)),
       itsScreenCoreConstraint(
           parset.getDouble(prefix + "tecscreen.coreconstraint", 0.0)),
       itsPolsInSolutions(1),
@@ -167,8 +171,8 @@ void DDECal::initializeSolver(const ParameterSet& parset,
     itsConstraints.push_back(boost::make_unique<AntennaConstraint>());
   }
   if (itsSmoothnessConstraint != 0.0) {
-    itsConstraints.emplace_back(
-        new SmoothnessConstraint(itsSmoothnessConstraint));
+    itsConstraints.emplace_back(new SmoothnessConstraint(
+        itsSmoothnessConstraint, itsSmoothnessRefFrequencyHz));
   }
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
@@ -453,12 +457,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   // Fill antenna info in H5Parm, need to convert from casa types to std types
   // Fill in metadata for all antennas, also those that may be filtered out.
   std::vector<std::string> antennaNames(info().antennaNames().size());
-  std::vector<std::vector<double>> antennaPos(info().antennaPos().size());
+  std::vector<std::array<double, 3>> antennaPos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
     antennaNames[i] = info().antennaNames()[i];
     casacore::Quantum<casacore::Vector<double>> pos =
         info().antennaPos()[i].get("m");
-    antennaPos[i].resize(3);
     antennaPos[i][0] = pos.getValue()[0];
     antennaPos[i][1] = pos.getValue()[1];
     antennaPos[i][2] = pos.getValue()[2];
@@ -596,13 +599,32 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
     TECConstraintBase* tecConstraint =
         dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
-    if (tecConstraint != nullptr) {
-      tecConstraint->initialize(&itsChanBlockFreqs[0]);
-    }
     SmoothnessConstraint* sConstraint =
         dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
-    if (sConstraint != nullptr) {
-      sConstraint->Initialize(&itsChanBlockFreqs[0]);
+    if (tecConstraint != nullptr) {
+      tecConstraint->initialize(&itsChanBlockFreqs[0]);
+    } else if (sConstraint != nullptr) {
+      std::vector<double> distanceFactors;
+      // If no smoothness reference distance is specified, the smoothing is made
+      // independent of the distance
+      if (itsSmoothnessRefDistance == 0.0) {
+        distanceFactors.assign(antennaPos.size(), 1.0);
+      } else {
+        // Make a list of factors such that more distant antennas apply a
+        // smaller smoothing kernel.
+        distanceFactors.reserve(antennaPos.size());
+        for (size_t i = 1; i != antennaPos.size(); ++i) {
+          const double dx = antennaPos[0][0] - antennaPos[i][0];
+          const double dy = antennaPos[0][1] - antennaPos[i][1];
+          const double dz = antennaPos[0][2] - antennaPos[i][2];
+          const double factor =
+              itsSmoothnessRefDistance / std::sqrt(dx * dx + dy * dy + dz * dz);
+          distanceFactors.push_back(factor);
+          // For antenna 0, the distance of antenna 1 is used:
+          if (i == 1) distanceFactors.push_back(factor);
+        }
+      }
+      sConstraint->Initialize(&itsChanBlockFreqs[0], distanceFactors);
     }
   }
 
