@@ -10,6 +10,20 @@ workflow:
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
+.failable:
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+.docker_only: &if_docker_only
+  if: '$ONLY_BUILD_DOCKER != null'
+.astron_repo: &if_astron_repo
+  if: '$CI_SERVER_HOST == "git.astron.nl"'
+.not_astron_repo: &if_not_astron_repo
+  if: '$CI_SERVER_HOST != "git.astron.nl"'
+
 stages:
   - prepare
   - build
@@ -21,6 +35,7 @@ stages:
 # Build the base image for git.astron
 build-base:
   stage: prepare
+  extends: .failable
   image: docker:stable
   script:
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
@@ -42,18 +57,20 @@ build-base-ska:
   - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
   - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   rules:
-    - if: '$CI_SERVER_HOST != "git.astron.nl"'
+    - <<: *if_not_astron_repo
 
 build-ubuntu18:
   stage: build
+  extends: .failable
   needs: []
   script:
   - docker build -f ./docker/ubuntu_18_04 .
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+    - <<: *if_astron_repo
 
 build-no-idg:
   stage: build
+  extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - rm -r /usr/lib/cmake/*idg*
@@ -65,10 +82,13 @@ build-no-idg:
     - cmake -G Ninja ..
     - ninja
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+    - <<: *if_docker_only
+      when: never
+    - <<: *if_astron_repo
 
 build-debug:
   stage: build
+  extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - mkdir build && cd build
@@ -79,18 +99,19 @@ build-debug:
     paths:
       - build
   rules:
+    - <<: *if_docker_only
+      when: never
     - when: on_success
 
 build-release:
   stage: build
+  extends: .failable
   image: docker:stable
   needs: ["build-base"]
   script:
     - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
-      when: on_success
-    - when: never
+    - <<: *if_astron_repo
 
 # On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
 build-release-ska:
@@ -102,12 +123,11 @@ build-release-ska:
   script:
     - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
-      when: never
-    - when: on_success
+    - <<: *if_not_astron_repo
 
 build-doc:
   stage: build
+  extends: .failable
   image: docker:stable
   needs: []
   before_script:
@@ -122,20 +142,26 @@ build-doc:
     paths:
     - build/docs
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
+    - <<: *if_docker_only
+      when: never
+    - <<: *if_astron_repo
 
 linting:
   stage: linting
+  extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - pip3 install clang-format==9.0.0
   script:
     - ./scripts/run-clang-format.sh
   rules:
+    - <<: *if_docker_only
+      when: never
     - when: on_success
 
 unit-test:
   stage: test
+  extends: .failable
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
@@ -147,10 +173,11 @@ unit-test:
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    # Show coverage of Common separately, since it's excluded from the result.
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -f '.*/Common/.*' -e '.*/test/.*'
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*'
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-unit.json
+    # The line below will show the coverage in the logs which are used in the gitlab coverage. Common is included in this coverage report.
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
+    # The line below will generate the json that is used for the total coverage which we report to SKA using badges.
+    # It will be merged with the integration test coverage later.
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
   artifacts:
     paths:
       - build/run-unit.json
@@ -158,10 +185,13 @@ unit-test:
     reports:
       junit: build/unittests.xml
   rules:
+    - <<: *if_docker_only
+      when: never
     - when: on_success
 
 integration-test:
   stage: test
+  extends: .failable
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
@@ -178,6 +208,8 @@ integration-test:
     paths:
       - build/run-integration.json
   rules:
+    - <<: *if_docker_only
+      when: never
     - when: on_success
 
 check-stack:
@@ -192,8 +224,12 @@ check-stack:
     # This will mirror the status of the downstream pipeline
     strategy: depend
   rules:
+    - <<: *if_docker_only
+      when: never
+    - <<: *if_not_astron_repo
+      when: never
     # Only add job for a merge request event on git.astron.nl
-    - if: '$CI_SERVER_HOST == "git.astron.nl" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 publish-doc:
   stage: publish
@@ -209,7 +245,11 @@ publish-doc:
   script:
     - scp -r build/docs/* citt@dop288:DP3/
   rules:
-    - if: '$CI_SERVER_HOST == "git.astron.nl" && $CI_COMMIT_BRANCH == "master"'
+    - <<: *if_docker_only
+      when: never
+    - <<: *if_not_astron_repo
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
 
 pages:
   stage: pages
@@ -237,4 +277,6 @@ pages:
     reports:
       cobertura: public/build/reports/code-coverage.xml
   rules:
+    - <<: *if_docker_only
+      when: never
     - when: on_success
