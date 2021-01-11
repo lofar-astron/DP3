@@ -41,14 +41,15 @@ class KernelSmoother {
    * @param n Size of the grid (number of channels).
    * @param kernelType Type of kernel to use for smoothing
    * @param kernelBandwidth size of the kernel (smoothing strength) in frequency
-   * units (Hz).
+   * units (Hz). May be 0.0 to disable frequency correction of the kernel size.
    */
   KernelSmoother(const NumType* frequencies, size_t n, KernelType kernelType,
-                 NumType kernelBandwidth)
+                 NumType kernelBandwidth, NumType bandwidthRefFrequency)
       : _frequencies(frequencies, frequencies + n),
         _scratch(n),
         _kernelType(kernelType),
-        _bandwidth(kernelBandwidth) {}
+        _bandwidth(kernelBandwidth),
+        _bandwidthRefFrequency(bandwidthRefFrequency) {}
 
   /**
    * Evaluate the kernel for a given position.
@@ -85,36 +86,41 @@ class KernelSmoother {
    * smoothed on output.
    * @param weight Associated weights, array of size @c n.
    */
-  void Smooth(DataType* data, const NumType* weight) {
+  void Smooth(DataType* data, const NumType* weight, NumType kernelSizeFactor) {
     size_t n = _frequencies.size();
 
-    size_t bandLeft = 0,
-           /// find right kernel value for first element
-        bandRight = std::lower_bound(_frequencies.begin(), _frequencies.end(),
-                                     _frequencies[0] + _bandwidth * 0.5) -
-                    _frequencies.begin() + 1;
+    size_t bandLeft = 0;
+    /// find right-most kernel value corresponding to the first element of data
+    size_t bandRight =
+        std::lower_bound(_frequencies.begin(), _frequencies.end(),
+                         _frequencies[0] + _bandwidth * 0.5) -
+        _frequencies.begin() + 1;
 
     for (size_t i = 0; i != n; ++i) {
+      const NumType localBandwidth =
+          _bandwidthRefFrequency == 0.0
+              ? _bandwidth
+              : _bandwidth * _bandwidthRefFrequency / _frequencies[i];
       /// If a boundary is further than half the bandwidth away, move boundary
-      while (_frequencies[bandLeft] < _frequencies[i] - _bandwidth * 0.5)
+      while (_frequencies[bandLeft] < _frequencies[i] - localBandwidth * 0.5)
         ++bandLeft;
       while (bandRight != n &&
-             _frequencies[bandRight] < _frequencies[i] + _bandwidth * 0.5)
+             _frequencies[bandRight] < _frequencies[i] + localBandwidth * 0.5)
         ++bandRight;
 
       /// A value of 1 is added to make sure we are not skipping a value because
       /// of rounding errors (kernel will be zero past boundaries, so including
       /// an unnecessary value has no effect)
-      size_t start = bandLeft > 0 ? bandLeft - 1 : 0;
-      size_t end = bandRight < n ? bandRight + 1 : n;
+      const size_t start = bandLeft > 0 ? bandLeft - 1 : 0;
+      const size_t end = bandRight < n ? bandRight + 1 : n;
 
       DataType sum(0.0);
       NumType weightSum(0.0);
-      // std::cout << start << " -> " << end << " (" << _frequencies[start] << "
-      // -> " << _frequencies[end] << ")\n";
+      const NumType frequencyCorrection = _bandwidth / localBandwidth;
+      const NumType kernelCorrection = frequencyCorrection * kernelSizeFactor;
       for (size_t j = start; j != end; ++j) {
-        double distance = _frequencies[i] - _frequencies[j];
-        double w = Kernel(distance) * weight[j];
+        NumType distance = _frequencies[i] - _frequencies[j];
+        double w = Kernel(distance * kernelCorrection) * weight[j];
         sum += data[j] * w;
         weightSum += w;
       }
@@ -138,6 +144,7 @@ class KernelSmoother {
   std::vector<DataType> _scratch;
   enum KernelType _kernelType;
   NumType _bandwidth;
+  NumType _bandwidthRefFrequency;
 };
 
 #endif
