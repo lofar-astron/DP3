@@ -406,8 +406,11 @@ set(TEST_FILENAMES
   DPPP/test/unit/tSolutionInterval.cc
   DPPP/test/unit/tSourceDBUtil.cc
   DPPP/test/unit/tStationAdder.cc
-  DDECal/test/unit/tSolvers.cc
   DDECal/test/unit/tRotationConstraint.cc
+)
+set(TEST_SOLVER_FILENAMES
+  DPPP/test/runtests.cc
+  DDECal/test/unit/tSolvers.cc
 )
 
 # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
@@ -433,7 +436,7 @@ endif()
 # Without this flag, linking is incorrect and boost performs duplicate delete()
 # calls after running all tests, in the cleanup phase.
 set_source_files_properties(
-  ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
+  ${TEST_FILENAMES} ${TEST_SOLVER_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
 )
 
 add_test(
@@ -488,7 +491,13 @@ add_executable(
 target_link_libraries(unittests ${DPPP_LIBRARIES})
 add_dependencies(unittests schaapcommon)
 
-add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
+add_executable(
+  unittest_solver EXCLUDE_FROM_ALL
+  ${TEST_SOLVER_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
+)
+target_link_libraries(unittest_solver ${DPPP_LIBRARIES})
+
+add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests unittest_solver)
 set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 add_subdirectory(DDECal/test/integration)
 
@@ -503,6 +512,16 @@ set_tests_properties(
   ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/DPPP/test/unit/mock:${CMAKE_BINARY_DIR}/PythonDPPP:$ENV{PYTHONPATH}"
   FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
+
+add_test(
+  NAME unittest_solver
+  COMMAND unittest_solver -f JUNIT -k unittest_solver.xml --catch_system_error=yes
+)
+set_tests_properties(
+  unittest_solver PROPERTIES LABELS unit
+  FIXTURES_REQUIRED "unittests;dppp"
+)
+
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 include(docs/CMakeLists.txt)

@@ -30,91 +30,6 @@ const std::string prefix = "msout.";
 
 BOOST_AUTO_TEST_SUITE(msbdawriter)
 
-// Test that the BDA_TIME_AXIS table is created and correctly filled for basic
-// data.
-BOOST_FIXTURE_TEST_CASE(ms_contains_bda_time_axis_table, FixtureDirectory) {
-  // Setup test
-  const std::string msOutName = "bda_ms_out.MS";
-  const double timeInterval = 1.5;
-  const int nchan = 4;
-  ParameterSet parset;
-  parset.add(prefix + "overwrite", "true");
-  DPInfo info;
-  info.init(1, 0, nchan, 1, 3.0, timeInterval, "", "");
-  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
-           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
-           std::vector<int>{0});
-
-  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
-  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
-  MSBDAWriter writer(&reader, msOutName, parset, prefix);
-
-  // Execute
-  writer.setInfo(info);
-
-  // Assert if the correct columns are created
-  Table table(msOutName, TableLock::AutoNoReadLocking);
-  BOOST_TEST(table.keywordSet().isDefined("BDA_TIME_AXIS"));
-  const TableDesc td = table.keywordSet().asTable("BDA_TIME_AXIS").tableDesc();
-  BOOST_TEST(td.isColumn("BDA_TIME_AXIS_ID"));
-  BOOST_TEST(td.isColumn("IS_BDA_APPLIED"));
-  BOOST_TEST(td.isColumn("SINGLE_FACTOR_PER_BASELINE"));
-  BOOST_TEST(td.isColumn("MAX_TIME_INTERVAL"));
-  BOOST_TEST(td.isColumn("MIN_TIME_INTERVAL"));
-  BOOST_TEST(td.isColumn("UNIT_TIME_INTERVAL"));
-  BOOST_TEST(td.isColumn("INTEGER_INTERVAL_FACTORS"));
-  BOOST_TEST(td.isColumn("HAS_BDA_ORDERING"));
-  BOOST_TEST(td.isColumn("BDA_FREQ_AXIS_ID"));
-  BOOST_TEST(td.isColumn("FIELD_ID"));
-
-  // Check that the version is present and set
-  BOOST_TEST(td.keywordSet().asString("BDA_TIME_AXIS_VERSION") == "1.0");
-
-  // Assert that the data is filled correctly
-  Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
-  BOOST_TEST(t.nrow() == 1U);
-  BOOST_TEST(t.col("IS_BDA_APPLIED").getBool(0));
-  BOOST_TEST(t.col("SINGLE_FACTOR_PER_BASELINE").getBool(0));
-  // Assert that the interval is correct
-  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) == timeInterval);
-  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) == timeInterval);
-  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == timeInterval);
-  BOOST_TEST(t.col("INTEGER_INTERVAL_FACTORS").getBool(0));
-  BOOST_TEST(t.col("HAS_BDA_ORDERING").getBool(0));
-  BOOST_TEST(t.col("BDA_FREQ_AXIS_ID").getInt(0) == -1);
-  BOOST_TEST(t.col("FIELD_ID").getInt(0) == -1);
-}
-
-// Test that the SPECTRAL_WINDOW was correctly appended with BDA data.
-BOOST_FIXTURE_TEST_CASE(spectral_window_contains_bda_freq_axisid,
-                        FixtureDirectory) {
-  // Setup test
-  const std::string msOutName = "bda_ms_out_freq.MS";
-  const int nchan = 1;
-  ParameterSet parset;
-  parset.add(prefix + "overwrite", "true");
-  DPInfo info;
-  info.init(1, 0, nchan, 1, 3.0, 1.5, "", "");
-  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
-           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
-           std::vector<int>{0});
-  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
-  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
-  MSBDAWriter writer(&reader, msOutName, parset, prefix);
-
-  // Execute
-  writer.setInfo(info);
-
-  // Assert if the correct columns are created
-  Table table(msOutName, TableLock::AutoNoReadLocking);
-  BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
-  const Table td = table.keywordSet().asTable("SPECTRAL_WINDOW");
-  BOOST_TEST(!td.tableDesc().isColumn("BDA_FREQ_AXIS_ID"));
-  BOOST_TEST(td.tableDesc().isColumn("BDA_SET_ID"));
-
-  BOOST_TEST(td.col("BDA_SET_ID").getInt(0) == 0);
-}
-
 // Test that the output measurementset is correct for simple data.
 BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   const unsigned int ncorr(1);
@@ -185,6 +100,46 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   std::vector<double> sigma_weight(ncorr, 1);
   BOOST_TEST(ms.col("WEIGHT").getArrayDouble(0).tovector() == sigma_weight);
   BOOST_TEST(ms.col("SIGMA").getArrayDouble(0).tovector() == sigma_weight);
+
+  // Assert if the correct columns are created
+  Table table(kMsName, TableLock::AutoNoReadLocking);
+  BOOST_TEST(table.keywordSet().isDefined("BDA_TIME_AXIS"));
+  const TableDesc td_bda =
+      table.keywordSet().asTable("BDA_TIME_AXIS").tableDesc();
+  BOOST_TEST(td_bda.isColumn("BDA_TIME_AXIS_ID"));
+  BOOST_TEST(td_bda.isColumn("IS_BDA_APPLIED"));
+  BOOST_TEST(td_bda.isColumn("SINGLE_FACTOR_PER_BASELINE"));
+  BOOST_TEST(td_bda.isColumn("MAX_TIME_INTERVAL"));
+  BOOST_TEST(td_bda.isColumn("MIN_TIME_INTERVAL"));
+  BOOST_TEST(td_bda.isColumn("UNIT_TIME_INTERVAL"));
+  BOOST_TEST(td_bda.isColumn("INTEGER_INTERVAL_FACTORS"));
+  BOOST_TEST(td_bda.isColumn("HAS_BDA_ORDERING"));
+  BOOST_TEST(td_bda.isColumn("BDA_FREQ_AXIS_ID"));
+  BOOST_TEST(td_bda.isColumn("FIELD_ID"));
+
+  // Check that the version is present and set
+  BOOST_TEST(td_bda.keywordSet().asString("BDA_TIME_AXIS_VERSION") == "1.0");
+
+  // Assert if the correct columns are created
+  BOOST_TEST(table.keywordSet().isDefined("SPECTRAL_WINDOW"));
+  const Table td = table.keywordSet().asTable("SPECTRAL_WINDOW");
+  BOOST_TEST(!td.tableDesc().isColumn("BDA_FREQ_AXIS_ID"));
+  BOOST_TEST(td.tableDesc().isColumn("BDA_SET_ID"));
+
+  BOOST_TEST(td.col("BDA_SET_ID").getInt(0) == 0);
+  // Assert that the metadata is filled correctly
+  Table t = table.keywordSet().asTable("BDA_TIME_AXIS");
+  BOOST_TEST(t.nrow() == 1U);
+  BOOST_TEST(t.col("IS_BDA_APPLIED").getBool(0));
+  BOOST_TEST(t.col("SINGLE_FACTOR_PER_BASELINE").getBool(0));
+  // Assert that the interval is correct
+  BOOST_TEST(t.col("MIN_TIME_INTERVAL").getDouble(0) == kInterval);
+  BOOST_TEST(t.col("MAX_TIME_INTERVAL").getDouble(0) == kInterval);
+  BOOST_TEST(t.col("UNIT_TIME_INTERVAL").getDouble(0) == kInterval);
+  BOOST_TEST(t.col("INTEGER_INTERVAL_FACTORS").getBool(0));
+  BOOST_TEST(t.col("HAS_BDA_ORDERING").getBool(0));
+  BOOST_TEST(t.col("BDA_FREQ_AXIS_ID").getInt(0) == -1);
+  BOOST_TEST(t.col("FIELD_ID").getInt(0) == -1);
 }
 
 // Test that an exception is thrown when the base lines are not correct
