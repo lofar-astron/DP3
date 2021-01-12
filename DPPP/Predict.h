@@ -9,13 +9,14 @@
 #ifndef DPPP_PREDICT_H
 #define DPPP_PREDICT_H
 
-#include "ApplyCal.h"
-#include "DPInput.h"
-#include "DPBuffer.h"
-#include "Patch.h"
-#include "SourceDBUtil.h"
 #include "ApplyBeam.h"
+#include "ApplyCal.h"
+#include "DPBuffer.h"
+#include "DPInput.h"
 #include "ModelComponent.h"
+#include "Patch.h"
+#include "PredictBuffer.h"
+#include "SourceDBUtil.h"
 
 #include <EveryBeam/station.h>
 #include <EveryBeam/common/types.h>
@@ -67,9 +68,21 @@ class Predict : public DPStep {
   /// Set the operation type
   void setOperation(const std::string& type);
 
-  void setThreadData(aocommon::ThreadPool& pool, std::mutex& measuresMutex) {
+  /// When multiple Predict steps are running in parallel from multiple threads,
+  /// they require synchronisation. This is done with these two synchronisation
+  /// structures. When multiple Predicts steps run serially (like currently in
+  /// H5ParmPredict), this function should not be called, as otherwise they
+  /// will synchronize needlessly.
+  ///
+  /// It is also possible to make the predict steps share the same threadpool
+  /// without further synchronisation, by setting measuresMutex to nullptr.
+  void setThreadData(aocommon::ThreadPool& pool, std::mutex* measuresMutex) {
     itsThreadPool = &pool;
-    itsMeasuresMutex = &measuresMutex;
+    itsMeasuresMutex = measuresMutex;
+  }
+
+  void setPredictBuffer(std::shared_ptr<PredictBuffer> predictBuffer) {
+    itsPredictBuffer = std::move(predictBuffer);
   }
 
   virtual ~Predict();
@@ -123,7 +136,6 @@ class Predict : public DPStep {
 
   bool itsDoApplyCal;
   ApplyCal itsApplyCalStep;
-  DPBuffer itsTempBuffer;
   std::shared_ptr<ResultStep>
       itsResultStep;  ///< For catching results from ApplyCal
 
@@ -138,9 +150,7 @@ class Predict : public DPStep {
   casacore::Matrix<double> itsUVW;
 
   /// The info needed to calculate the station beams.
-  std::vector<std::vector<std::shared_ptr<everybeam::Station>>> itsAntBeamInfo;
-  std::vector<std::vector<everybeam::matrix22c_t>> itsBeamValues;
-  std::vector<std::vector<everybeam::complex_t>> itsBeamValuesSingle;
+  std::shared_ptr<PredictBuffer> itsPredictBuffer;
   BeamCorrectionMode itsBeamMode;
   everybeam::ElementResponseModel itsElementResponseModel;
   std::vector<casacore::MeasFrame> itsMeasFrames;
@@ -149,9 +159,6 @@ class Predict : public DPStep {
   std::string itsDirectionsStr;  ///< Definition of patches, to pass to applycal
   std::vector<Patch::ConstPtr> itsPatchList;
   std::vector<Source> itsSourceList;
-
-  std::vector<casacore::Cube<dcomplex>> itsModelVis;  ///< one for every thread
-  std::vector<casacore::Cube<dcomplex>> itsModelVisPatch;
 
   NSTimer itsTimer;
   NSTimer itsTimerPredict;

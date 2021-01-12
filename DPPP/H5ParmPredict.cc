@@ -35,13 +35,13 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
     : itsInput(input),
       itsName(),
       itsPredictSteps(),
+      itsPredictBuffer(std::make_shared<PredictBuffer>()),
       itsResultStep(),
       itsH5ParmName(parset.getString(prefix + "applycal.parmdb")),
       itsDirections(
           parset.getStringVector(prefix + "directions", vector<string>())),
       itsTimer(),
-      itsThreadPool(),
-      itsMeasuresMutex() {
+      itsThreadPool() {
   H5Parm h5parm = H5Parm(itsH5ParmName, false);
   std::string soltabName = parset.getString(prefix + "applycal.correction");
   if (soltabName == "fulljones") soltabName = "amplitude000";
@@ -66,7 +66,7 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
     }
   }
 
-  for (unsigned int i = 0; i < itsDirections.size(); ++i) {
+  for (size_t i = 0; i < itsDirections.size(); ++i) {
     std::string directionStr = itsDirections[i];
     std::vector<std::string> directionVec;
     // each direction should be like '[patch1,patch2]'
@@ -85,7 +85,8 @@ H5ParmPredict::H5ParmPredict(DPInput* input, const ParameterSet& parset,
     } else {
       predictStep->setOperation(operation);
     }
-    predictStep->setThreadData(itsThreadPool, itsMeasuresMutex);
+    predictStep->setThreadData(itsThreadPool, nullptr);
+    predictStep->setPredictBuffer(itsPredictBuffer);
 
     if (!itsPredictSteps.empty()) {
       itsPredictSteps.back()->setNextStep(predictStep);

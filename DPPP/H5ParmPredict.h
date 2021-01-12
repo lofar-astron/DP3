@@ -14,6 +14,7 @@
 #include "DPInput.h"
 #include "DPBuffer.h"
 #include "Predict.h"
+#include "PredictBuffer.h"
 
 #include <aocommon/threadpool.h>
 
@@ -63,6 +64,10 @@ class H5ParmPredict : public DPStep {
   DPBuffer itsBuffer;
 
   std::vector<std::shared_ptr<Predict>> itsPredictSteps;
+  /// Buffers used by the predict steps. Normally, each Predict step
+  /// allocates its own buffers. However, since the Predict steps run
+  /// sequentially, they are told to share this single buffer to save memory.
+  std::shared_ptr<PredictBuffer> itsPredictBuffer;
   std::shared_ptr<ResultStep> itsResultStep;
 
   std::string itsH5ParmName;
@@ -70,7 +75,6 @@ class H5ParmPredict : public DPStep {
 
   NSTimer itsTimer;
   aocommon::ThreadPool itsThreadPool;
-  std::mutex itsMeasuresMutex;
 };
 
 }  // namespace DPPP

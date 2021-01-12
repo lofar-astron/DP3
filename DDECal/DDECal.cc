@@ -402,7 +402,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsSteps[dir]->setInfo(infoIn);
 
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
-      s->setThreadData(*itsThreadPool, itsMeasuresMutex);
+      s->setThreadData(*itsThreadPool, &itsMeasuresMutex);
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
       itsSolIntCount = std::max(
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);

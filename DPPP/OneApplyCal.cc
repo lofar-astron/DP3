@@ -427,9 +427,6 @@ void OneApplyCal::applyFlags(vector<double>& values,
 void OneApplyCal::updateParms(const double bufStartTime) {
   unsigned int numAnts = info().antennaNames().size();
 
-  // itsParms contains the parameters to a grid, first for all parameters
-  // (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq * time
-  // as returned by ParmDB
   vector<vector<vector<double> > > parmvalues;
   parmvalues.resize(itsParmExprs.size());
   for (size_t i = 0; i < parmvalues.size(); ++i) {
@@ -700,7 +697,7 @@ void OneApplyCal::updateParms(const double bufStartTime) {
           itsParms(0, ant, tf) = 1. / itsParms(0, ant, tf);
           itsParms(1, ant, tf) = 1. / itsParms(1, ant, tf);
         } else if (itsCorrectType == FULLJONES) {
-          ApplyCal::invert(&itsParms(0, ant, tf), itsSigmaMMSE);
+          ApplyCal::invert(&itsParms(0, ant, tf), float(itsSigmaMMSE));
         } else if (itsCorrectType == ROTATIONMEASURE ||
                    itsCorrectType == ROTATIONANGLE) {
           // rotationmeasure and commonrotationangle are already inverted above

@@ -281,7 +281,6 @@ void ApplyBeam::applyBeam(
   double reffreq = info.refFreq();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
-  std::complex<double> tmp[4];
   for (size_t ch = 0; ch < nCh; ++ch) {
     if (useChannelFreq) {
       reffreq = info.chanFreqs()[ch];
@@ -342,16 +341,19 @@ void ApplyBeam::applyBeam(
       T* data = data0 + bl * 4 * nCh + ch * 4;
       everybeam::matrix22c_t* left = &(beamValues[nCh * info.getAnt1()[bl]]);
       everybeam::matrix22c_t* right = &(beamValues[nCh * info.getAnt2()[bl]]);
-      dcomplex l[] = {left[ch][0][0], left[ch][0][1], left[ch][1][0],
-                      left[ch][1][1]};
+      Complex l[] = {Complex(left[ch][0][0]), Complex(left[ch][0][1]),
+                     Complex(left[ch][1][0]), Complex(left[ch][1][1])};
       // Form transposed conjugate of right.
-      dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
-                      conj(right[ch][0][1]), conj(right[ch][1][1])};
+      Complex r[] = {std::conj(Complex(right[ch][0][0])),
+                     std::conj(Complex(right[ch][1][0])),
+                     std::conj(Complex(right[ch][0][1])),
+                     std::conj(Complex(right[ch][1][1]))};
       // left*data
-      tmp[0] = l[0] * dcomplex(data[0]) + l[1] * dcomplex(data[2]);
-      tmp[1] = l[0] * dcomplex(data[1]) + l[1] * dcomplex(data[3]);
-      tmp[2] = l[2] * dcomplex(data[0]) + l[3] * dcomplex(data[2]);
-      tmp[3] = l[2] * dcomplex(data[1]) + l[3] * dcomplex(data[3]);
+      std::complex<float> tmp[4] = {
+          l[0] * Complex(data[0]) + l[1] * Complex(data[2]),
+          l[0] * Complex(data[1]) + l[1] * Complex(data[3]),
+          l[2] * Complex(data[0]) + l[3] * Complex(data[2]),
+          l[2] * Complex(data[1]) + l[3] * Complex(data[3])};
       // data*conj(right)
       data[0] = tmp[0] * r[0] + tmp[1] * r[2];
       data[1] = tmp[0] * r[1] + tmp[1] * r[3];
