@@ -242,7 +242,7 @@ class TestOutput : public DPStep {
       BOOST_CHECK(!(allNear(buf.getData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(allNear(buf.getWeights(), weights, 1.e-7));
+      BOOST_CHECK(allNear(buf.getWeights(), weights, 1.e-6));
     }
     itsCount++;
     itsTimeStep++;

@@ -103,7 +103,7 @@ void ApplyCal::finish() {
   getNextStep()->finish();
 }
 
-void ApplyCal::applyDiag(const DComplex* gainA, const DComplex* gainB,
+void ApplyCal::applyDiag(const Complex* gainA, const Complex* gainB,
                          Complex* vis, float* weight, bool* flag,
                          unsigned int bl, unsigned int chan, bool updateWeights,
                          FlagCounter& flagCounter) {
@@ -134,7 +134,7 @@ void ApplyCal::applyDiag(const DComplex* gainA, const DComplex* gainB,
   }
 }
 
-void ApplyCal::applyScalar(const DComplex* gainA, const DComplex* gainB,
+void ApplyCal::applyScalar(const Complex* gainA, const Complex* gainB,
                            Complex* vis, float* weight, bool* flag,
                            unsigned int bl, unsigned int chan,
                            bool updateWeights, FlagCounter& flagCounter) {
@@ -165,24 +165,27 @@ void ApplyCal::applyScalar(const DComplex* gainA, const DComplex* gainB,
 }
 
 // Inverts complex 2x2 input matrix
-void ApplyCal::invert(DComplex* v, double sigmaMMSE) {
+template <typename NumType>
+void ApplyCal::invert(std::complex<NumType>* v, NumType sigmaMMSE) {
   // Add the variance of the nuisance term to the elements on the diagonal.
-  const double variance = sigmaMMSE * sigmaMMSE;
-  DComplex v0 = v[0] + variance;
-  DComplex v3 = v[3] + variance;
+  const NumType variance = sigmaMMSE * sigmaMMSE;
+  std::complex<NumType> v0 = v[0] + variance;
+  std::complex<NumType> v3 = v[3] + variance;
   // Compute inverse in the usual way.
-  DComplex invDet(1.0 / (v0 * v3 - v[1] * v[2]));
+  std::complex<NumType> invDet(1.0 / (v0 * v3 - v[1] * v[2]));
   v[0] = v3 * invDet;
   v[2] = v[2] * -invDet;
   v[1] = v[1] * -invDet;
   v[3] = v0 * invDet;
 }
+template void ApplyCal::invert(std::complex<double>* v, double sigmaMMSE);
+template void ApplyCal::invert(std::complex<float>* v, float sigmaMMSE);
 
-void ApplyCal::applyFull(const DComplex* gainA, const DComplex* gainB,
+void ApplyCal::applyFull(const Complex* gainA, const Complex* gainB,
                          Complex* vis, float* weight, bool* flag,
                          unsigned int bl, unsigned int chan,
                          bool doUpdateWeights, FlagCounter& flagCounter) {
-  DComplex gainAxvis[4];
+  Complex gainAxvis[4];
 
   // If parameter is NaN or inf, do not apply anything and flag the data
   bool anyinfnan = false;
@@ -208,16 +211,17 @@ void ApplyCal::applyFull(const DComplex* gainA, const DComplex* gainB,
   for (unsigned int row = 0; row < 2; ++row) {
     for (unsigned int col = 0; col < 2; ++col) {
       gainAxvis[2 * row + col] =
-          gainA[2 * row + 0] * DComplex(vis[2 * 0 + col]) +
-          gainA[2 * row + 1] * DComplex(vis[2 * 1 + col]);
+          gainA[2 * row + 0] * Complex(vis[2 * 0 + col]) +
+          gainA[2 * row + 1] * Complex(vis[2 * 1 + col]);
     }
   }
 
   // vis = gainAxvis * gainB^H
   for (unsigned int row = 0; row < 2; ++row) {
     for (unsigned int col = 0; col < 2; ++col) {
-      vis[2 * row + col] = gainAxvis[2 * row + 0] * conj(gainB[2 * col + 0]) +
-                           gainAxvis[2 * row + 1] * conj(gainB[2 * col + 1]);
+      vis[2 * row + col] =
+          gainAxvis[2 * row + 0] * std::conj(gainB[2 * col + 0]) +
+          gainAxvis[2 * row + 1] * std::conj(gainB[2 * col + 1]);
     }
   }
 
@@ -226,13 +230,13 @@ void ApplyCal::applyFull(const DComplex* gainA, const DComplex* gainB,
   }
 }
 
-void ApplyCal::applyWeights(const DComplex* gainA, const DComplex* gainB,
+void ApplyCal::applyWeights(const Complex* gainA, const Complex* gainB,
                             float* weight) {
   float cov[4], normGainA[4], normGainB[4];
   for (unsigned int i = 0; i < 4; ++i) {
     cov[i] = 1. / weight[i];
-    normGainA[i] = norm(gainA[i]);
-    normGainB[i] = norm(gainB[i]);
+    normGainA[i] = std::norm(gainA[i]);
+    normGainB[i] = std::norm(gainB[i]);
   }
 
   weight[0] = cov[0] * (normGainA[0] * normGainB[0]) +

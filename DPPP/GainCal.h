@@ -115,11 +115,11 @@ class GainCal final : public DPStep {
 
   /// Apply the solution
   void applySolution(DPBuffer& buf,
-                     const casacore::Cube<casacore::DComplex>& invsol);
+                     const casacore::Cube<casacore::Complex>& invsol);
 
   /// Invert solution (for applying it)
-  casacore::Cube<casacore::DComplex> invertSol(
-      const casacore::Cube<casacore::DComplex>& sol);
+  casacore::Cube<casacore::Complex> invertSol(
+      const casacore::Cube<casacore::Complex>& sol);
 
   /// Fills the matrices itsVis and itsMVis
   void fillMatrices(casacore::Complex* model, casacore::Complex* data,
@@ -159,7 +159,7 @@ class GainCal final : public DPStep {
 
   bool itsApplySolution;
 
-  std::vector<casacore::Cube<casacore::DComplex> >
+  std::vector<casacore::Cube<casacore::Complex> >
       itsSols;  ///< for every timeslot, nCr x nSt x nFreqCells
   std::vector<casacore::Matrix<double> >
       itsTECSols;  ///< for every timeslot, 2 x nSt (alpha and beta)
@@ -176,7 +176,6 @@ class GainCal final : public DPStep {
   std::unique_ptr<Predict> itsPredictStep;
   aocommon::ParallelFor<size_t> itsParallelFor;
   std::unique_ptr<class aocommon::ThreadPool> itsThreadPool;
-  std::mutex itsMeasuresMutex;
   ApplyBeam itsApplyBeamStep;  ///< Beam step for applying beam to modelcol
   ResultStep::ShPtr
       itsResultStep;  ///< For catching results from Predict or Beam

@@ -186,29 +186,27 @@ void Predict::initializeThreadData() {
   const size_t nBl = info().nbaselines();
   const size_t nSt = info().nantenna();
   const size_t nCh = info().nchan();
-  const size_t nCr = info().ncorr();
+  const size_t nCr = itsStokesIOnly ? 1 : info().ncorr();
   const size_t nThreads = getInfo().nThreads();
 
   itsUVW.resize(3, nSt);
   itsUVWSplitIndex =
       nsetupSplitUVW(info().nantenna(), info().getAnt1(), info().getAnt2());
 
-  itsModelVis.resize(nThreads);
-  itsModelVisPatch.resize(nThreads);
-  itsBeamValues.resize(nThreads);
-  itsBeamValuesSingle.resize(nThreads);
-  itsAntBeamInfo.resize(nThreads);
+  if (!itsPredictBuffer) {
+    itsPredictBuffer = std::make_shared<PredictBuffer>();
+  }
+  if (itsApplyBeam && itsPredictBuffer->GetStationList().empty()) {
+    itsInput->fillBeamInfo(itsPredictBuffer->GetStationList(),
+                           info().antennaNames(), itsElementResponseModel);
+  }
+  itsPredictBuffer->resize(nThreads, nCr, nCh, nBl, nSt, itsApplyBeam);
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
   itsMeasConverters.resize(nThreads);
   itsMeasFrames.resize(nThreads);
 
-  for (unsigned int thread = 0; thread < nThreads; ++thread) {
-    if (itsStokesIOnly) {
-      itsModelVis[thread].resize(1, nCh, nBl);
-    } else {
-      itsModelVis[thread].resize(nCr, nCh, nBl);
-    }
+  for (size_t thread = 0; thread < nThreads; ++thread) {
     bool needMeasConverters = itsMovingPhaseRef;
     needMeasConverters = needMeasConverters || itsApplyBeam;
     if (needMeasConverters) {
@@ -219,17 +217,6 @@ void Predict::initializeThreadData() {
       itsMeasConverters[thread].set(
           MDirection::J2000,
           MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    }
-    if (itsApplyBeam) {
-      if (itsStokesIOnly) {
-        itsModelVisPatch[thread].resize(1, nCh, nBl);
-      } else {
-        itsModelVisPatch[thread].resize(nCr, nCh, nBl);
-      }
-      itsBeamValues[thread].resize(nSt * nCh);
-      itsBeamValuesSingle[thread].resize(nSt * nCh);
-      itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames(),
-                             itsElementResponseModel);
     }
   }
 }
@@ -314,9 +301,10 @@ void Predict::showTimings(std::ostream& os, double duration) const {
 
 bool Predict::process(const DPBuffer& bufin) {
   itsTimer.start();
-  itsTempBuffer.copy(bufin);
-  itsInput->fetchUVW(bufin, itsTempBuffer, itsTimer);
-  itsInput->fetchWeights(bufin, itsTempBuffer, itsTimer);
+  DPBuffer tempBuffer;
+  tempBuffer.copy(bufin);
+  itsInput->fetchUVW(bufin, tempBuffer, itsTimer);
+  itsInput->fetchWeights(bufin, tempBuffer, itsTimer);
 
   // Determine the various sizes.
   // const size_t nDr = itsPatchList.size();
@@ -328,9 +316,9 @@ bool Predict::process(const DPBuffer& bufin) {
 
   itsTimerPredict.start();
 
-  nsplitUVW(itsUVWSplitIndex, itsBaselines, itsTempBuffer.getUVW(), itsUVW);
+  nsplitUVW(itsUVWSplitIndex, itsBaselines, tempBuffer.getUVW(), itsUVW);
 
-  double time = itsTempBuffer.getTime();
+  double time = tempBuffer.getTime();
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir;
 
@@ -342,7 +330,7 @@ bool Predict::process(const DPBuffer& bufin) {
     std::unique_lock<std::mutex> lock;
     if (itsMeasuresMutex != nullptr)
       lock = std::unique_lock<std::mutex>(*itsMeasuresMutex);
-    for (unsigned int thread = 0; thread != getInfo().nThreads(); ++thread) {
+    for (size_t thread = 0; thread != getInfo().nThreads(); ++thread) {
       itsMeasFrames[thread].resetEpoch(
           MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
       // Do a conversion on all threads
@@ -376,12 +364,13 @@ bool Predict::process(const DPBuffer& bufin) {
   std::vector<Simulator> simulators;
   simulators.reserve(pool->NThreads());
   for (size_t thread = 0; thread != pool->NThreads(); ++thread) {
-    itsModelVis[thread] = dcomplex();
-    itsModelVisPatch[thread] = dcomplex();
+    itsPredictBuffer->GetModel(thread) = dcomplex();
+    if (itsApplyBeam) itsPredictBuffer->GetPatchModel(thread) = dcomplex();
 
     // When applying beam, simulate into patch vector
     Cube<dcomplex>& simulatedest =
-        (itsApplyBeam ? itsModelVisPatch[thread] : itsModelVis[thread]);
+        (itsApplyBeam ? itsPredictBuffer->GetPatchModel(thread)
+                      : itsPredictBuffer->GetModel(thread));
     simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
                             info().chanFreqs(), itsUVW, simulatedest,
                             itsStokesIOnly);
@@ -395,55 +384,60 @@ bool Predict::process(const DPBuffer& bufin) {
         curPatch != nullptr) {
       if (itsStokesIOnly) {
         addBeamToData(curPatch, time, refdir, tiledir, thread, nSamples / nCr,
-                      itsModelVisPatch[thread].data(), itsStokesIOnly);
+                      itsPredictBuffer->GetPatchModel(thread).data(),
+                      itsStokesIOnly);
       } else {
         addBeamToData(curPatch, time, refdir, tiledir, thread, nSamples,
-                      itsModelVisPatch[thread].data(), itsStokesIOnly);
+                      itsPredictBuffer->GetPatchModel(thread).data(),
+                      itsStokesIOnly);
       }
     }
     simulators[thread].simulate(itsSourceList[iter].first);
     curPatch = itsSourceList[iter].second;
   });
   // Apply beam to the last patch
-  pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
-    if (itsApplyBeam && curPatches[thread] != nullptr) {
-      if (itsStokesIOnly) {
-        addBeamToData(curPatches[thread], time, refdir, tiledir, thread,
-                      nSamples / nCr, itsModelVisPatch[thread].data(),
-                      itsStokesIOnly);
-      } else {
-        addBeamToData(curPatches[thread], time, refdir, tiledir, thread,
-                      nSamples, itsModelVisPatch[thread].data(),
-                      itsStokesIOnly);
+  if (itsApplyBeam) {
+    pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
+      if (curPatches[thread] != nullptr) {
+        if (itsStokesIOnly) {
+          addBeamToData(
+              curPatches[thread], time, refdir, tiledir, thread, nSamples / nCr,
+              itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
+        } else {
+          addBeamToData(
+              curPatches[thread], time, refdir, tiledir, thread, nSamples,
+              itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
+        }
       }
-    }
-  });
+    });
+  }
 
   // Add all thread model data to one buffer
-  itsTempBuffer.getData() = Complex();
-  Complex* tdata = itsTempBuffer.getData().data();
-  for (unsigned int thread = 0; thread < pool->NThreads(); ++thread) {
+  tempBuffer.getData() = Complex();
+  Complex* tdata = tempBuffer.getData().data();
+  for (size_t thread = 0; thread < pool->NThreads(); ++thread) {
     if (itsStokesIOnly) {
-      for (unsigned int i = 0, j = 0; i < nSamples; i += nCr, j++) {
-        tdata[i] += itsModelVis[thread].data()[j];
-        tdata[i + nCr - 1] += itsModelVis[thread].data()[j];
+      for (size_t i = 0, j = 0; i < nSamples; i += nCr, j++) {
+        tdata[i] += itsPredictBuffer->GetModel(thread).data()[j];
+        tdata[i + nCr - 1] += itsPredictBuffer->GetModel(thread).data()[j];
       }
     } else {
-      std::transform(tdata, tdata + nSamples, itsModelVis[thread].data(), tdata,
+      std::transform(tdata, tdata + nSamples,
+                     itsPredictBuffer->GetModel(thread).data(), tdata,
                      std::plus<dcomplex>());
     }
   }
 
   // Call ApplyCal step
   if (itsDoApplyCal) {
-    itsApplyCalStep.process(itsTempBuffer);
-    itsTempBuffer = itsResultStep->get();
-    tdata = itsTempBuffer.getData().data();
+    itsApplyCalStep.process(tempBuffer);
+    tempBuffer = itsResultStep->get();
+    tdata = tempBuffer.getData().data();
   }
 
   // Put predict result from temp buffer into the 'real' buffer
   if (itsOperation == "replace") {
-    itsBuffer = itsTempBuffer;
+    itsBuffer = tempBuffer;
   } else {
     itsBuffer.copy(bufin);
     Complex* data = itsBuffer.getData().data();
@@ -478,7 +472,7 @@ void Predict::addBeamToData(Patch::ConstPtr patch, double time,
                             const everybeam::vector3r_t& tiledir,
                             unsigned int thread, unsigned int nSamples,
                             dcomplex* data0, bool stokesIOnly) {
-  // Apply beam for a patch, add result to itsModelVis
+  // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch->position()[0], patch->position()[1]),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
@@ -488,19 +482,21 @@ void Predict::addBeamToData(Patch::ConstPtr patch, double time,
   if (stokesIOnly) {
     ApplyBeam::applyBeamStokesIArrayFactor(
         info(), time, data0, dummyweight, srcdir, refdir, tiledir,
-        itsAntBeamInfo[thread], itsBeamValuesSingle[thread], itsUseChannelFreq,
-        false, itsBeamMode, false);
+        itsPredictBuffer->GetStationList(),
+        itsPredictBuffer->GetScalarBeamValues(thread), itsUseChannelFreq, false,
+        itsBeamMode, false);
   } else {
     ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
-                         tiledir, itsAntBeamInfo[thread], itsBeamValues[thread],
+                         tiledir, itsPredictBuffer->GetStationList(),
+                         itsPredictBuffer->GetFullBeamValues(thread),
                          itsUseChannelFreq, false, itsBeamMode, false);
   }
 
-  // Add temporary buffer to itsModelVis
-  std::transform(itsModelVis[thread].data(),
-                 itsModelVis[thread].data() + nSamples, data0,
-                 itsModelVis[thread].data(), std::plus<dcomplex>());
-  itsModelVisPatch[thread] = dcomplex();
+  // Add temporary buffer to Model
+  std::transform(itsPredictBuffer->GetModel(thread).data(),
+                 itsPredictBuffer->GetModel(thread).data() + nSamples, data0,
+                 itsPredictBuffer->GetModel(thread).data(),
+                 std::plus<dcomplex>());
 }
 
 void Predict::finish() {

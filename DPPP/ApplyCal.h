@@ -61,26 +61,27 @@ class ApplyCal : public DPStep {
   virtual void showTimings(std::ostream&, double duration) const;
 
   /// Invert a 2x2 matrix in place
-  static void invert(casacore::DComplex* v, double sigmaMMSE = 0);
+  template <typename NumType>
+  static void invert(std::complex<NumType>* v, NumType sigmaMMSE = 0);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-  static void applyDiag(const casacore::DComplex* gainA,
-                        const casacore::DComplex* gainB, casacore::Complex* vis,
+  static void applyDiag(const casacore::Complex* gainA,
+                        const casacore::Complex* gainB, casacore::Complex* vis,
                         float* weight, bool* flag, unsigned int bl,
                         unsigned int chan, bool updateWeights,
                         FlagCounter& flagCounter);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
   /// where the solution is equal for both polarizations
-  static void applyScalar(const casacore::DComplex* gainA,
-                          const casacore::DComplex* gainB,
+  static void applyScalar(const casacore::Complex* gainA,
+                          const casacore::Complex* gainB,
                           casacore::Complex* vis, float* weight, bool* flag,
                           unsigned int bl, unsigned int chan,
                           bool updateWeights, FlagCounter& flagCounter);
 
   /// Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-  static void applyFull(const casacore::DComplex* gainA,
-                        const casacore::DComplex* gainB, casacore::Complex* vis,
+  static void applyFull(const casacore::Complex* gainA,
+                        const casacore::Complex* gainB, casacore::Complex* vis,
                         float* weight, bool* flag, unsigned int bl,
                         unsigned int chan, bool updateWeights,
                         FlagCounter& flagCounter);
@@ -93,8 +94,8 @@ class ApplyCal : public DPStep {
   /// The input covariance matrix C is assumed to be diagonal with elements
   /// w_i (the weights), the result the diagonal of
   /// (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-  static void applyWeights(const casacore::DComplex* gainA,
-                           const casacore::DComplex* gainB, float* weight);
+  static void applyWeights(const casacore::Complex* gainA,
+                           const casacore::Complex* gainB, float* weight);
 
  private:
   bool itsIsSubstep;

@@ -122,8 +122,11 @@ class OneApplyCal : public DPStep {
   /// Expressions to search for in itsParmDB
   std::vector<casacore::String> itsParmExprs;
 
-  /// parameters, numparms, antennas, time x frequency
-  casacore::Cube<casacore::DComplex> itsParms;
+  /// itsParms contains the gridded parameters, first for all parameters
+  /// (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq * time
+  /// as returned by ParmDB
+  /// numparms, antennas, time x frequency
+  casacore::Cube<casacore::Complex> itsParms;
   unsigned int itsTimeStep;  ///< time step within current chunk
   unsigned int itsNCorr;
   double itsTimeInterval;

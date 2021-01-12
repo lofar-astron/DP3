@@ -225,7 +225,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     }
   } else {
     itsPredictStep->updateInfo(infoIn);
-    itsPredictStep->setThreadData(*itsThreadPool, itsMeasuresMutex);
+    itsPredictStep->setThreadData(*itsThreadPool, nullptr);
   }
   if (itsApplySolution) {
     info().setWriteData();
@@ -487,7 +487,7 @@ bool GainCal::process(const DPBuffer& bufin) {
     itsStepInParmUpdate++;
 
     if (itsApplySolution) {
-      Cube<DComplex> invsol = invertSol(itsSols.back());
+      Cube<Complex> invsol = invertSol(itsSols.back());
       for (unsigned int stepInSolInt = 0; stepInSolInt < itsSolInt;
            stepInSolInt++) {
         applySolution(itsBuf[stepInSolInt], invsol);
@@ -515,8 +515,8 @@ bool GainCal::process(const DPBuffer& bufin) {
   return false;
 }
 
-Cube<DComplex> GainCal::invertSol(const Cube<DComplex>& sol) {
-  Cube<DComplex> invsol = sol.copy();
+Cube<Complex> GainCal::invertSol(const Cube<Complex>& sol) {
+  Cube<Complex> invsol = sol.copy();
   unsigned int nCr = invsol.shape()[0];
 
   // Invert copy of solutions
@@ -536,7 +536,7 @@ Cube<DComplex> GainCal::invertSol(const Cube<DComplex>& sol) {
   return invsol;
 }
 
-void GainCal::applySolution(DPBuffer& buf, const Cube<DComplex>& invsol) {
+void GainCal::applySolution(DPBuffer& buf, const Cube<Complex>& invsol) {
   unsigned int nbl = buf.getData().shape()[2];
   Complex* data = buf.getData().data();
   float* weight = buf.getWeights().data();  // Not initialized yet
@@ -810,8 +810,8 @@ void GainCal::calibrate() {
 
   // Calibrate terminated (either by maxiter or by converging)
 
-  Cube<DComplex> sol(iS[0].numCorrelations(), info().antennaUsed().size(),
-                     itsNFreqCells);
+  Cube<Complex> sol(iS[0].numCorrelations(), info().antennaUsed().size(),
+                    itsNFreqCells);
 
   unsigned int transpose[2][4] = {{0, 1, 0, 0}, {0, 2, 1, 3}};
 
@@ -1324,7 +1324,7 @@ void GainCal::finish() {
     calibrate();
 
     if (itsApplySolution) {
-      Cube<DComplex> invsol = invertSol(itsSols.back());
+      Cube<Complex> invsol = invertSol(itsSols.back());
       for (unsigned int stepInSolInt = 0; stepInSolInt < itsStepInSolInt;
            stepInSolInt++) {
         applySolution(itsBuf[stepInSolInt], invsol);

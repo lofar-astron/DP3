@@ -61,7 +61,8 @@ inputs:
     type: int?
     doc: >-
       Number of time slots to handle after one read of the parameter file.
-      Optimization to prevent spurious reading from the parmdb `.`
+      Optimization to prevent spurious reading from the parmdb.
+      This parameter has no effect if a H5 file was specified `.`
   interpolation:
     default: "[]"
     type: list

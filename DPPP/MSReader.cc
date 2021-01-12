@@ -927,8 +927,8 @@ void MSReader::fillBeamInfo(
   // Copy only the ones for which the station name matches.
   // Note: the order of the station names in both vectors match.
   vec.resize(antNames.size());
-  unsigned int ant = 0;
-  for (unsigned int i = 0; i < allNames.size(); ++i) {
+  size_t ant = 0;
+  for (size_t i = 0; i < allNames.size(); ++i) {
     if (ant < antNames.size() && allNames[i] == antNames[ant]) {
       vec[ant] = beams[i];
       ant++;
