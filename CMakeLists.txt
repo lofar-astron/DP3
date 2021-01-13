@@ -164,6 +164,9 @@ include_directories(${pybind11_INCLUDE_DIR})
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
+# Add cmake information to headers
+configure_file(DPPP/Version.h.in DPPP/Version.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/DPPP)
 
 # Object libraries (which are just file groups, not actual libraries) are made in order
 # to avoid compiling everything multiple times for multiple executables.
