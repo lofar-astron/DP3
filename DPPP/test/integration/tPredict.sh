@@ -21,9 +21,9 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[
 echo $cmd
 $cmd
 # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))'
+taqlcmd='select t1.MODEL_DATA, t1.DATA-t2.PREDICT_beam, abs(t1.MODEL_DATA/(t1.DATA-t2.PREDICT_beam)-1) from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)) || nearabs(t2.PREDICT_beam, 0, 1e-5))'
 echo $taqlcmd
-$taqlexe $taqlcmd > taql.out
+$taqlexe -noph $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
 
 echo; echo "Test without beam, add"; echo
@@ -68,7 +68,7 @@ cmd="$dpppexe msin=tNDPPP-generic.MS msout=. steps=[predict] predict.sourcedb=tN
 echo $cmd
 $cmd
 # Compare the DATA column of the output MS with the BBS reference output.
-taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)))'
+taqlcmd='select t1.DATA, t2.PREDICT_beam, abs(t1.DATA/t2.PREDICT_beam-1) from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.DATA,t2.PREDICT_beam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_beam)) || nearabs(t2.PREDICT_beam, 0, 1e-5))'
 echo $taqlcmd
-$taqlexe $taqlcmd > taql.out
+$taqlexe -noph $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
