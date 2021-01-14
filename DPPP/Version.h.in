@@ -1,0 +1,21 @@
+// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#ifndef DPPP_VERSION_H
+#define DPPP_VERSION_H
+
+#define DP3_VERSION          "@DP3_VERSION@"
+#define DP3_VERSION_MAJOR    @DP3_VERSION_MAJOR@
+#define DP3_VERSION_MINOR    @DP3_VERSION_MINOR@
+#define DP3_VERSION_PATCH    @DP3_VERSION_PATCH@
+
+#define DP3_INSTALL_PATH     "@CMAKE_INSTALL_PREFIX@"
+
+#include <string>
+
+class DPPPVersion {
+ public:
+  static std::string AsString() { return "DPPP " + std::string(DP3_VERSION); }
+};
+
+#endif
