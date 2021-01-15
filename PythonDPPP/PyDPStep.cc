@@ -12,12 +12,13 @@
 
 namespace DP3 {
 namespace DPPP {
+
 void PyDPStepImpl::show(std::ostream& os) const {
   pybind11::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.
 
   // redirect sys.stdout to os
-  py::object sysm = py::module::import("sys");
-  py::object stdout = sysm.attr("stdout");
+  pybind11::object sysm = pybind11::module::import("sys");
+  pybind11::object stdout = sysm.attr("stdout");
   sysm.attr("stdout") = ostream(os);
 
   // Try to look up the overloaded method on the Python side.
@@ -69,7 +70,8 @@ void PyDPStepImpl::updateInfo(const DPInfo& dpinfo) {
 }
 
 void PyDPStepImpl::hold() {
-  m_py_object = py::cast(static_cast<DPStep*>(this));
+  m_py_object.reset(
+      new pybind11::object(pybind11::cast(static_cast<DPStep*>(this))));
 }
 
 DPStep::ShPtr PyDPStep::create_instance(DPInput* input,
@@ -78,9 +80,10 @@ DPStep::ShPtr PyDPStep::create_instance(DPInput* input,
   std::string module_name = parset.getString(prefix + "python.module");
   std::string class_name = parset.getString(prefix + "python.class");
 
-  static py::scoped_interpreter
+  static pybind11::scoped_interpreter
       guard{};  // start the interpreter and keep it alive
-  static py::module mydpstep_module = py::module::import(module_name.c_str());
+  static pybind11::module mydpstep_module =
+      pybind11::module::import(module_name.c_str());
 
   auto pydpstep_instance =
       mydpstep_module.attr(class_name.c_str())(parset, prefix);

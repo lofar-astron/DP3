@@ -935,12 +935,11 @@ void GainCal::writeSolutionsH5Parm(double) {
 
   // Fill antenna info in H5Parm, need to convert from casa types to std types
   std::vector<std::string> allAntennaNames(info().antennaNames().size());
-  std::vector<std::vector<double> > antennaPos(info().antennaPos().size());
+  std::vector<std::array<double, 3>> antennaPos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
     allAntennaNames[i] = info().antennaNames()[i];
-    casacore::Quantum<casacore::Vector<double> > pos =
+    casacore::Quantum<casacore::Vector<double>> pos =
         info().antennaPos()[i].get("m");
-    antennaPos[i].resize(3);
     antennaPos[i][0] = pos.getValue()[0];
     antennaPos[i][1] = pos.getValue()[1];
     antennaPos[i][2] = pos.getValue()[2];
@@ -948,7 +947,7 @@ void GainCal::writeSolutionsH5Parm(double) {
 
   h5parm.AddAntennas(allAntennaNames, antennaPos);
 
-  vector<std::pair<double, double> > pointingPosition(1);
+  vector<std::pair<double, double>> pointingPosition(1);
   MDirection phasecenter = info().phaseCenter();
   pointingPosition[0].first = phasecenter.getValue().get()[0];
   pointingPosition[0].second = phasecenter.getValue().get()[1];

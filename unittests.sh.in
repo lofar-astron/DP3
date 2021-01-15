@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#PythonDPPP tests requires setting PYTHONPATH.
+export PYTHONPATH=@CMAKE_SOURCE_DIR@/DPPP/test/unit/mock:@CMAKE_BINARY_DIR@/PythonDPPP:$PYTHONPATH
+
+./unittests "$@"

@@ -284,7 +284,6 @@ add_library(DPPP_OBJ OBJECT
   DPPP/DemixerNew.cc
   DPPP/DemixInfo.cc
   DPPP/DemixWorker.cc
-  PythonDPPP/PyDPStep.cc
 )
 
 add_library(IDGPredict OBJECT
@@ -316,8 +315,12 @@ add_library(ParmDB OBJECT
   ParmDB/SourceInfo.cc
 )
 
+add_library(PythonDPPP OBJECT
+  PythonDPPP/PyDPStep.cc
+)
+
 # dppp_testdyndppp requires using position independent code.
-set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB
+set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB PythonDPPP
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(DPPP_OBJECTS
@@ -327,7 +330,8 @@ set(DPPP_OBJECTS
   $<TARGET_OBJECTS:DDECal>
   $<TARGET_OBJECTS:DPPP_OBJ>
   $<TARGET_OBJECTS:IDGPredict>
-  $<TARGET_OBJECTS:ParmDB>)
+  $<TARGET_OBJECTS:ParmDB>
+  $<TARGET_OBJECTS:PythonDPPP>)
 
 set(DPPP_LIBRARIES
   ${AOFLAGGER_LIB}
@@ -491,6 +495,7 @@ add_executable(
   unittests EXCLUDE_FROM_ALL
   ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
 )
+set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(unittests ${DPPP_LIBRARIES})
 add_dependencies(unittests schaapcommon)
 
@@ -504,15 +509,14 @@ add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target un
 set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 add_subdirectory(DDECal/test/integration)
 
+# unittests.sh adjusts the PYTHONPATH to make tPyDPStep working.
+configure_file(unittests.sh.in unittests.sh)
 add_test(
   NAME unittests
-  COMMAND unittests -f JUNIT -k unittests.xml --catch_system_error=yes
+  COMMAND unittests.sh -f JUNIT -k unittests.xml --catch_system_error=yes
 )
-set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
-# Adjust the PYTHONPATH to make tPyDPStep working
 set_tests_properties(
   unittests PROPERTIES LABELS unit
-  ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}/DPPP/test/unit/mock:${CMAKE_BINARY_DIR}/PythonDPPP:$ENV{PYTHONPATH}"
   FIXTURES_REQUIRED "unittests;applycal;dppp"
 )
 
