@@ -1,9 +1,10 @@
 FROM ubuntu:20.04
 
 # TODO: needs to be bumped before next DP3 release
-# ENV EVERYBEAM_VERSION_TAG=v0.1.1
+# ENV EVERYBEAM_VERSION=v0.1.1
+# ENV IDG_VERSION=0.8
 ENV EVERYBEAM_VERSION=0a3af8b453eec7a5a2c95c267d38d58ebc60d09b
-ENV IDG_VERSION_TAG=0.8
+ENV IDG_VERSION=28c24c49b2b32b88ce0aa3f7bb9bcbfdb519daf4
 ENV AOFLAGGER_VERSION=32484400e2ab5214692823eaa8bb994544b1baab
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
@@ -28,7 +29,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 # Build IDG
     && mkdir /idg && cd /idg \
     && git clone https://git.astron.nl/RD/idg.git src \
-    && ( cd src/ && git checkout ${IDG_VERSION_TAG} ) \
+    && ( cd src/ && git checkout ${IDG_VERSION} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && ninja install \
@@ -36,7 +37,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 # Build EveryBeam
     && mkdir /everybeam && cd /everybeam \
     && git clone https://git.astron.nl/RD/EveryBeam.git src \
-    && ( cd src/ && git checkout ${EVERYBEAM_VERSION_TAG} ) \
+    && ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     && ninja install \
