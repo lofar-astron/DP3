@@ -73,19 +73,19 @@ class TestInput : public DPInput {
     vals[1] = 442449;
     vals[2] = 5064923;
     antPos[0] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vals[0] = 3828746;
     vals[1] = 442592;
     vals[2] = 5064924;
     antPos[1] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vals[0] = 3828729;
     vals[1] = 442735;
     vals[2] = 5064925;
     antPos[2] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vector<double> antDiam(3, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
@@ -306,9 +306,9 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   H5Parm h5parm("tApplyCalH5_tmp.h5", true);
 
   // Add antenna metadata
-  vector<string> antNames;
-  vector<vector<double> > antPositions;
-  vector<double> oneAntPos(3, 42.);
+  std::vector<std::string> antNames;
+  std::vector<std::array<double, 3>> antPositions;
+  const std::array<double, 3> oneAntPos{42.0};
   for (unsigned int i = 0; i < 3; ++i) {
     std::stringstream antNameStr;
     antNameStr << "ant" << (i + 1);

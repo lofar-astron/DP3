@@ -7,10 +7,16 @@
 #include "PyDPStep.h"
 #include "../DPPP/DPInput.h"
 
-#include <pybind11/pybind11.h>
+#include <memory>
 #include <ostream>
 
-namespace py = pybind11;
+// Use a forward declaration and a pointer to pybind11::object in PyDPStepImpl,
+// otherwise GCC gives a warning regarding visibility.
+// Note: When #including <pybind11/pybind11.h> before this file, the warning
+// will come back.
+namespace pybind11 {
+class object;
+}
 
 namespace DP3 {
 namespace DPPP {
@@ -71,7 +77,8 @@ class PyDPStepImpl : public DPStepWrapper {
   void hold();
 
  private:
-  py::object m_py_object;
+  // See the comment above near the forward declaration of pybind11::object.
+  std::unique_ptr<pybind11::object> m_py_object;
 };
 
 }  // namespace DPPP
