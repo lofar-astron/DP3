@@ -116,8 +116,8 @@ class Predict : public DPStep {
                                  casacore::MDirection::Convert& measConverter);
   void addBeamToData(Patch::ConstPtr patch, double time,
                      const everybeam::vector3r_t& refdir,
-                     const everybeam::vector3r_t& tiledir, unsigned int thread,
-                     unsigned int nSamples, dcomplex* data0, bool stokesIOnly);
+                     const everybeam::vector3r_t& tiledir, size_t thread,
+                     size_t nBeamValues, dcomplex* data0, bool stokesIOnly);
   DPInput* itsInput;
   string itsName;
   DPBuffer itsBuffer;

@@ -312,7 +312,7 @@ bool Predict::process(const DPBuffer& bufin) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
-  const size_t nSamples = nBl * nCh * nCr;
+  const size_t nBeamValues = itsStokesIOnly ? nBl * nCh : nBl * nCh * nCr;
 
   itsTimerPredict.start();
 
@@ -377,37 +377,32 @@ bool Predict::process(const DPBuffer& bufin) {
   }
   std::vector<Patch::ConstPtr> curPatches(pool->NThreads());
 
-  pool->For(0, itsSourceList.size(), [&](size_t iter, size_t thread) {
-    // Keep on predicting, only apply beam when an entire patch is done
+  pool->For(0, itsSourceList.size(), [&](size_t sourceIndex, size_t thread) {
+    // Predict the source model and apply beam when an entire patch is done
     Patch::ConstPtr& curPatch = curPatches[thread];
-    if (itsApplyBeam && curPatch != itsSourceList[iter].second &&
-        curPatch != nullptr) {
-      if (itsStokesIOnly) {
-        addBeamToData(curPatch, time, refdir, tiledir, thread, nSamples / nCr,
-                      itsPredictBuffer->GetPatchModel(thread).data(),
-                      itsStokesIOnly);
-      } else {
-        addBeamToData(curPatch, time, refdir, tiledir, thread, nSamples,
-                      itsPredictBuffer->GetPatchModel(thread).data(),
-                      itsStokesIOnly);
-      }
+    const bool patchIsFinished =
+        curPatch != itsSourceList[sourceIndex].second && curPatch != nullptr;
+    if (itsApplyBeam && patchIsFinished) {
+      // Apply the beam and add PatchModel to Model
+      addBeamToData(curPatch, time, refdir, tiledir, thread, nBeamValues,
+                    itsPredictBuffer->GetPatchModel(thread).data(),
+                    itsStokesIOnly);
+      // Initialize patchmodel to zero for the next patch
+      itsPredictBuffer->GetPatchModel(thread) = dcomplex();
     }
-    simulators[thread].simulate(itsSourceList[iter].first);
-    curPatch = itsSourceList[iter].second;
+    // Depending on itsApplyBeam, the following call will add to either
+    // the Model or the PatchModel of the predict buffer
+    simulators[thread].simulate(itsSourceList[sourceIndex].first);
+
+    curPatch = itsSourceList[sourceIndex].second;
   });
   // Apply beam to the last patch
   if (itsApplyBeam) {
     pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
       if (curPatches[thread] != nullptr) {
-        if (itsStokesIOnly) {
-          addBeamToData(
-              curPatches[thread], time, refdir, tiledir, thread, nSamples / nCr,
-              itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
-        } else {
-          addBeamToData(
-              curPatches[thread], time, refdir, tiledir, thread, nSamples,
-              itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
-        }
+        addBeamToData(
+            curPatches[thread], time, refdir, tiledir, thread, nBeamValues,
+            itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
       }
     });
   }
@@ -415,14 +410,15 @@ bool Predict::process(const DPBuffer& bufin) {
   // Add all thread model data to one buffer
   tempBuffer.getData() = Complex();
   Complex* tdata = tempBuffer.getData().data();
+  const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < pool->NThreads(); ++thread) {
     if (itsStokesIOnly) {
-      for (size_t i = 0, j = 0; i < nSamples; i += nCr, j++) {
+      for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
         tdata[i] += itsPredictBuffer->GetModel(thread).data()[j];
         tdata[i + nCr - 1] += itsPredictBuffer->GetModel(thread).data()[j];
       }
     } else {
-      std::transform(tdata, tdata + nSamples,
+      std::transform(tdata, tdata + nVisibilities,
                      itsPredictBuffer->GetModel(thread).data(), tdata,
                      std::plus<dcomplex>());
     }
@@ -442,9 +438,10 @@ bool Predict::process(const DPBuffer& bufin) {
     itsBuffer.copy(bufin);
     Complex* data = itsBuffer.getData().data();
     if (itsOperation == "add") {
-      std::transform(data, data + nSamples, tdata, data, std::plus<dcomplex>());
+      std::transform(data, data + nVisibilities, tdata, data,
+                     std::plus<dcomplex>());
     } else if (itsOperation == "subtract") {
-      std::transform(data, data + nSamples, tdata, data,
+      std::transform(data, data + nVisibilities, tdata, data,
                      std::minus<dcomplex>());
     }
   }
@@ -469,9 +466,9 @@ everybeam::vector3r_t Predict::dir2Itrf(const MDirection& dir,
 
 void Predict::addBeamToData(Patch::ConstPtr patch, double time,
                             const everybeam::vector3r_t& refdir,
-                            const everybeam::vector3r_t& tiledir,
-                            unsigned int thread, unsigned int nSamples,
-                            dcomplex* data0, bool stokesIOnly) {
+                            const everybeam::vector3r_t& tiledir, size_t thread,
+                            size_t nBeamValues, dcomplex* data0,
+                            bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch->position()[0], patch->position()[1]),
                  MDirection::J2000);
@@ -494,7 +491,7 @@ void Predict::addBeamToData(Patch::ConstPtr patch, double time,
 
   // Add temporary buffer to Model
   std::transform(itsPredictBuffer->GetModel(thread).data(),
-                 itsPredictBuffer->GetModel(thread).data() + nSamples, data0,
+                 itsPredictBuffer->GetModel(thread).data() + nBeamValues, data0,
                  itsPredictBuffer->GetModel(thread).data(),
                  std::plus<dcomplex>());
 }
