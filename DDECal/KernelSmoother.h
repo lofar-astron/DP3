@@ -100,7 +100,7 @@ class KernelSmoother {
       const NumType localBandwidth =
           _bandwidthRefFrequency == 0.0
               ? _bandwidth
-              : _bandwidth * _bandwidthRefFrequency / _frequencies[i];
+              : _bandwidth * _frequencies[i] / _bandwidthRefFrequency;
       /// If a boundary is further than half the bandwidth away, move boundary
       while (_frequencies[bandLeft] < _frequencies[i] - localBandwidth * 0.5)
         ++bandLeft;
