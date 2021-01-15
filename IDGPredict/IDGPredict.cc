@@ -138,8 +138,11 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
                                          const size_t full_width,
                                          const size_t full_height) {
   DS9FacetFile facet_file(ds9_regions_file);
-  std::vector<Facet> facets_out = facet_file.Read(
-      ra, dec, pixel_size_x, pixel_size_y, full_width, full_height);
+  std::vector<Facet> facets_out = facet_file.Read();
+  for (Facet& facet : facets_out) {
+    facet.CalculatePixelPositions(ra, dec, pixel_size_x, pixel_size_y,
+                                  full_width, full_height, 0.0, 0.0);
+  }
   std::cout << "Read " << facets_out.size() << " facet definitions.\n";
   return facets_out;
 }
