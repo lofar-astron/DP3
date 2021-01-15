@@ -7,6 +7,9 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
+
+#include <casacore/measures/Measures/MDirection.h>
 
 namespace py = pybind11;
 
@@ -103,13 +106,43 @@ PYBIND11_MODULE(pydppp, m) {
            (casacore::Matrix<double> & (DPBuffer::*)())(&DPBuffer::getUVW));
 
   py::class_<DPInfo>(m, "DPInfo")
+      .def("antenna_names",
+           [](DPInfo &self) -> py::array {
+             // Convert casa vector of casa strings to std::vector of strings
+             casacore::Vector<casacore::String> names_casa =
+                 self.antennaNames();
+             std::vector<std::string> names;
+             for (size_t i = 0; i < names_casa.size(); ++i) {
+               names.push_back(names_casa[i]);
+             }
+             py::array ret = py::cast(names);
+             return ret;
+           })
+      .def("antenna_positions",
+           [](DPInfo &self) -> py::array {
+             // Convert vector of casa MPositions to std::vector of positions
+             std::vector<casacore::MPosition> positions_casa =
+                 self.antennaPos();
+             std::vector<std::array<double, 3>> positions;
+             for (size_t i = 0; i < positions_casa.size(); ++i) {
+               casacore::MVPosition position_mv = positions_casa[i].getValue();
+               std::array<double, 3> position_array = {
+                   position_mv(0), position_mv(1), position_mv(2)};
+               positions.push_back(position_array);
+             }
+             py::array ret = py::cast(positions);
+             return ret;
+           })
       .def("set_need_vis_data", &DPInfo::setNeedVisData)
-      .def("get_channel_frequencies", &DPInfo::chanFreqs)
+      .def("get_channel_frequencies", &DPInfo::chanFreqs,
+           py::arg("baseline") = 0)
       .def("get_antenna1", &DPInfo::getAnt1)
       .def("get_antenna2", &DPInfo::getAnt2)
       .def("nantenna", &DPInfo::nantenna)
-      .def("startTime", &DPInfo::startTime)
-      .def("timeInterval", &DPInfo::timeInterval);
+      .def("nchan", &DPInfo::nchan)
+      .def("start_time", &DPInfo::startTime)
+      .def("time_interval", &DPInfo::timeInterval)
+      .def("ntime", &DPInfo::ntime);
 }
 
 void test() {}
