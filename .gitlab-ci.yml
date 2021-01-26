@@ -3,7 +3,8 @@
 
 workflow:
   rules:
-    - if: '$CI_MERGE_REQUEST_TITLE =~ /(?i)(^WIP.*)/ || $CI_MERGE_REQUEST_TITLE =~ /(?i)(^DRAFT.*)/'
+    # don't create a pipeline if its a commit pipeline, on a branch and that branch has open merge requests.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
     - when: always
 
@@ -17,8 +18,6 @@ variables:
       - runner_system_failure
       - stuck_or_timeout_failure
 
-.docker_only: &if_docker_only
-  if: '$ONLY_BUILD_DOCKER != null'
 .astron_repo: &if_astron_repo
   if: '$CI_SERVER_HOST == "git.astron.nl"'
 .not_astron_repo: &if_not_astron_repo
@@ -82,10 +81,10 @@ build-no-idg:
     - cmake -G Ninja ..
     - ninja
   rules:
-    - <<: *if_docker_only
-      when: never
     - <<: *if_astron_repo
 
+# Build debug has no needs entry because it can have either a base
+# image from build-base or build-base-ska which is determined on runtime
 build-debug:
   stage: build
   extends: .failable
@@ -98,10 +97,6 @@ build-debug:
   artifacts:
     paths:
       - build
-  rules:
-    - <<: *if_docker_only
-      when: never
-    - when: on_success
 
 build-release:
   stage: build
@@ -111,7 +106,9 @@ build-release:
   script:
     - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
   rules:
-    - <<: *if_astron_repo
+    - <<: *if_not_astron_repo
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
 
 # On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
 build-release-ska:
@@ -128,12 +125,8 @@ build-release-ska:
 build-doc:
   stage: build
   extends: .failable
-  image: docker:stable
-  needs: []
-  before_script:
-  - apk update
-  - apk add doxygen cmake ninja python3 py3-pip
-  - python3 -m pip install autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["build-base"]
   script:
   - mkdir build && cd build
   - cmake -G Ninja ../docs
@@ -142,30 +135,20 @@ build-doc:
     paths:
     - build/docs
   rules:
-    - <<: *if_docker_only
-      when: never
     - <<: *if_astron_repo
 
 linting:
   stage: linting
   extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  before_script:
-    - pip3 install clang-format==9.0.0
   script:
     - ./scripts/run-clang-format.sh
-  rules:
-    - <<: *if_docker_only
-      when: never
-    - when: on_success
 
 unit-test:
   stage: test
   extends: .failable
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  before_script:
-    - pip3 install gcovr
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -174,28 +157,23 @@ unit-test:
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
     # The line below will show the coverage in the logs which are used in the gitlab coverage. Common is included in this coverage report.
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*'
-    # The line below will generate the json that is used for the total coverage which we report to SKA using badges.
-    # It will be merged with the integration test coverage later.
     - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
+    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    - gcovr --add-tracefile run-unit.json
   artifacts:
     paths:
+      # This will give a warning which is ok
       - build/run-unit.json
       - build/unittests.xml
     reports:
       junit: build/unittests.xml
-  rules:
-    - <<: *if_docker_only
-      when: never
-    - when: on_success
+      cobertura: build/coverage.xml
 
 integration-test:
   stage: test
   extends: .failable
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  before_script:
-    - pip3 install gcovr h5py
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -203,14 +181,12 @@ integration-test:
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json
+    # The json only needs to be built on the SKA repository
+    - if [[ $CI_SERVER_HOST != "git.astron.nl" ]] ; then gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json; fi
   artifacts:
     paths:
+      # This will give a warning and ERROR: No files to upload, which is ok
       - build/run-integration.json
-  rules:
-    - <<: *if_docker_only
-      when: never
-    - when: on_success
 
 check-stack:
   variables:
@@ -224,8 +200,6 @@ check-stack:
     # This will mirror the status of the downstream pipeline
     strategy: depend
   rules:
-    - <<: *if_docker_only
-      when: never
     - <<: *if_not_astron_repo
       when: never
     # Only add job for a merge request event on git.astron.nl
@@ -245,8 +219,6 @@ publish-doc:
   script:
     - scp -r build/docs/* citt@dop288:DP3/
   rules:
-    - <<: *if_docker_only
-      when: never
     - <<: *if_not_astron_repo
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
@@ -258,7 +230,6 @@ pages:
   before_script:
     - apt-get update
     - apt-get -y install curl
-    - pip3 install gcovr
   script:
     - mkdir -p .public/build/reports
     - cd .public
@@ -277,6 +248,4 @@ pages:
     reports:
       cobertura: public/build/reports/code-coverage.xml
   rules:
-    - <<: *if_docker_only
-      when: never
-    - when: on_success
+    - <<: *if_not_astron_repo
