@@ -16,7 +16,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libgtkmm-3.0-dev git libfftw3-dev \
     gfortran flex bison wcslib-dev \
     libboost-numpy-dev liblua5.3-dev \
-    casacore-dev casacore-tools pybind11-dev python3-pip ninja-build \
+    casacore-dev casacore-tools pybind11-dev python3-pip doxygen ninja-build \
 # Build aoflagger3
     && mkdir /aoflagger && cd /aoflagger \
     && git clone https://gitlab.com/aroffringa/aoflagger.git src \
@@ -47,4 +47,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     && wget -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
     && cd /var/lib/casacore/data \
     && tar xfz /WSRT_Measures.ztar \
-    && rm /WSRT_Measures.ztar
+    && rm /WSRT_Measures.ztar \
+# Install pip dependencies
+    && pip3 install gcovr clang-format==9.0.0 h5py \
+    # build-doc dependencies
+    autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
