@@ -403,6 +403,7 @@ set(TEST_FILENAMES
   DPPP/test/unit/tMedFlagger.cc
   DPPP/test/unit/tDPPP.cc
   DPPP/test/unit/tMirror.cc
+  DPPP/test/unit/tMSReader.cc
   DPPP/test/unit/tPreFlagger.cc
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
@@ -452,7 +453,7 @@ add_test(
 )
 set_tests_properties(
   extract_applycal
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP applycal
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
 )
 
 add_test(
@@ -461,7 +462,7 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
 )
 
 add_test(
@@ -470,7 +471,7 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP_BDA
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
 )
 
 add_test(
@@ -479,7 +480,16 @@ add_test(
 )
 set_tests_properties(
   extract_NDPPP_generic
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
+)
+
+add_test(
+  NAME extract_OSKAR
+  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tOSKAR.in_MS.tgz
+)
+set_tests_properties(
+  extract_OSKAR
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
 )
 
 add_test(
@@ -488,7 +498,7 @@ add_test(
 )
 set_tests_properties(
   extract_IDG
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP dppp
+  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
 )
 
 add_executable(
@@ -517,7 +527,7 @@ add_test(
 )
 set_tests_properties(
   unittests PROPERTIES LABELS unit
-  FIXTURES_REQUIRED "unittests;applycal;dppp"
+  FIXTURES_REQUIRED "unittests;extract_resources"
 )
 
 add_test(
@@ -526,7 +536,7 @@ add_test(
 )
 set_tests_properties(
   unittest_solver PROPERTIES LABELS unit
-  FIXTURES_REQUIRED "unittests;dppp"
+  FIXTURES_REQUIRED "unittests"
 )
 
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
