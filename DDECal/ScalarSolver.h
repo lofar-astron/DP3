@@ -4,14 +4,10 @@
 #ifndef DDECAL_SCALAR_SOLVER_H
 #define DDECAL_SCALAR_SOLVER_H
 
-#include "Constraint.h"
 #include "SolverBase.h"
-#include "SolverBuffer.h"
-#include "Stopwatch.h"
 
 #include <complex>
 #include <vector>
-#include <memory>
 
 namespace DP3 {
 namespace DPPP {

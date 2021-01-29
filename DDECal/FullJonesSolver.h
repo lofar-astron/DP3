@@ -4,12 +4,10 @@
 #ifndef DDECAL_FULL_JONES_SOLVER_H
 #define DDECAL_FULL_JONES_SOLVER_H
 
-#include "Constraint.h"
 #include "SolverBase.h"
 
 #include <complex>
 #include <vector>
-#include <memory>
 
 namespace DP3 {
 namespace DPPP {
