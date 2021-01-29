@@ -180,7 +180,7 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
                              ch - channel_index_start +
                              (time_index + (antenna1 * 2 + p1) * n_times) *
                                  cur_channel_block_size,
-                         data_ndex2 =
+                         data_index2 =
                              ch - channel_index_start +
                              (time_index + (antenna2 * 2 + p2) * n_times) *
                                  cur_channel_block_size;
@@ -196,13 +196,13 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
               size_t sol_index2 = (antenna2 * n_directions_ + d) * 2 + p2;
               g_times_c2(data_index1, d) = std::conj(
                   solutions[sol_index1] * predicted);  // using a* b* = (ab)*
-              g_times_c1(data_ndex2, d) =
+              g_times_c1(data_index2, d) =
                   std::conj(solutions[sol_index2]) * predicted;
 
               ++model_ptrs[d];  // Goto the next polarization of this 2x2
                                 // matrix.
             }
-            v1[data_ndex2] = *data_ptr;
+            v1[data_index2] = *data_ptr;
             v2[data_index1] = std::conj(*data_ptr);
             ++data_ptr;  // Goto the next polarization of this 2x2 matrix.
           }
