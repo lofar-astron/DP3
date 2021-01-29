@@ -12,6 +12,7 @@
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
+#include <EveryBeam/telescope/phasedarray.h>
 
 #include "../Common/ParameterSet.h"
 #include "../Common/BaselineSelect.h"
@@ -918,19 +919,31 @@ void MSReader::getModelData(const casacore::RefRows& rowNrs,
 void MSReader::fillBeamInfo(
     vector<std::shared_ptr<everybeam::Station>>& vec,
     const casacore::Vector<casacore::String>& antNames,
-    const everybeam::ElementResponseModel element_reponse_model) const {
-  // Get the names of all stations in the MS.
-  const Vector<String>& allNames = getInfo().antennaNames();
-  // Create a vector holding the beam info of all stations.
-  vector<std::shared_ptr<everybeam::Station>> beams(allNames.size());
-  everybeam::ReadAllStations(itsMS, beams.begin(), element_reponse_model);
-  // Copy only the ones for which the station name matches.
+    const everybeam::ElementResponseModel element_response_model) const {
+  // Load telescope, containing all stations in MS
+  everybeam::Options options;
+  options.element_response_model = element_response_model;
+  std::unique_ptr<everybeam::telescope::Telescope> telescope =
+      everybeam::Load(itsMS, options);
+
+  const everybeam::telescope::PhasedArray* phased_array =
+      dynamic_cast<const everybeam::telescope::PhasedArray*>(telescope.get());
+
+  if (phased_array == nullptr) {
+    throw Exception(
+        "Currently, only PhasedArray telescopes accepted as input, i.e. "
+        "OSKAR or LOFAR");
+  }
+
+  // Copy only those stations for which the name matches.
   // Note: the order of the station names in both vectors match.
   vec.resize(antNames.size());
-  size_t ant = 0;
-  for (size_t i = 0; i < allNames.size(); ++i) {
-    if (ant < antNames.size() && allNames[i] == antNames[ant]) {
-      vec[ant] = beams[i];
+  unsigned int ant = 0;
+  for (unsigned int i = 0; i < phased_array->GetNrStations(); ++i) {
+    if (ant < antNames.size() &&
+        casacore::String(phased_array->GetStation(i)->GetName()) ==
+            antNames[ant]) {
+      vec[ant] = phased_array->GetStation(i);
       ant++;
     }
   }
