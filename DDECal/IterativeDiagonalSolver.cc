@@ -190,7 +190,7 @@ void IterativeDiagonalSolver::SolveDirection(
 
   std::vector<aocommon::MC2x2Diag> numerator(n_antennas_,
                                              aocommon::MC2x2Diag::Zero());
-  std::vector<double> denomenator(n_antennas_ * 2, 0.0);
+  std::vector<double> denominator(n_antennas_ * 2, 0.0);
 
   // Iterate over all data
   for (size_t time_index = 0; time_index != n_times; ++time_index) {
@@ -216,13 +216,13 @@ void IterativeDiagonalSolver::SolveDirection(
               solution1 * HermTranspose(aocommon::MC2x2(model_ptr)));
 
           numerator[antenna1] += Diagonal(data * cor_model1);
-          denomenator[antenna1 * 2] +=
+          denominator[antenna1 * 2] +=
               std::norm(cor_model1[0]) + std::norm(cor_model1[1]);
-          denomenator[antenna1 * 2 + 1] +=
+          denominator[antenna1 * 2 + 1] +=
               std::norm(cor_model1[2]) + std::norm(cor_model1[3]);
 
           // Calculate the contribution of this baseline for antenna2
-          // data_ba = data_ab^H, etc., therefore, numerator and denomenator
+          // data_ba = data_ab^H, etc., therefore, numerator and denominator
           // become: num = data_ab^H * solutions_a * model_ab den =
           // norm(model_ab^H * solutions_a) = norm(model_ab * solutions_a)
           const aocommon::MC2x2Diag solution2(Complex{solution_ant1[0]},
@@ -231,9 +231,9 @@ void IterativeDiagonalSolver::SolveDirection(
                                            aocommon::MC2x2(model_ptr));
 
           numerator[antenna2] += Diagonal(HermTranspose(data) * cor_model2);
-          denomenator[antenna2 * 2] +=
+          denominator[antenna2 * 2] +=
               std::norm(cor_model2[0]) + std::norm(cor_model2[1]);
-          denomenator[antenna2 * 2 + 1] +=
+          denominator[antenna2 * 2 + 1] +=
               std::norm(cor_model2[2]) + std::norm(cor_model2[3]);
 
           data_ptr += 4;  // Skip to next 2x2 matrix
@@ -248,15 +248,15 @@ void IterativeDiagonalSolver::SolveDirection(
     DComplex* destination =
         &next_solutions[(ant * n_directions_ + direction) * 2];
 
-    if (denomenator[ant * 2] == 0.0)
+    if (denominator[ant * 2] == 0.0)
       destination[0] = std::numeric_limits<float>::quiet_NaN();
     else
-      destination[0] = numerator[ant][0] / denomenator[ant * 2];
+      destination[0] = numerator[ant][0] / denominator[ant * 2];
 
-    if (denomenator[ant * 2 + 1] == 0.0)
+    if (denominator[ant * 2 + 1] == 0.0)
       destination[1] = std::numeric_limits<float>::quiet_NaN();
     else
-      destination[1] = numerator[ant][1] / denomenator[ant * 2 + 1];
+      destination[1] = numerator[ant][1] / denominator[ant * 2 + 1];
   }
 }
 
