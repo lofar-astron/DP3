@@ -28,7 +28,6 @@ using everybeam::aterms::ATermConfig;
 using schaapcommon::facets::DS9FacetFile;
 using schaapcommon::facets::Facet;
 using schaapcommon::facets::FacetImage;
-using schaapcommon::facets::Vertex;
 
 namespace DP3 {
 namespace DPPP {
@@ -82,7 +81,9 @@ IDGPredict::IDGPredict(
   for (const Facet& facet : facets) {
     std::cout << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
               << " Vertices:";
-    for (const Vertex& v : facet) std::cout << " (" << v.x << "," << v.y << ")";
+    for (const schaapcommon::facets::Pixel& pixel : facet.GetPixels()) {
+      std::cout << " (" << pixel.x << "," << pixel.y << ")";
+    }
     std::cout << std::endl;
 
     directions_.emplace_back(facet.RA(), facet.Dec());
@@ -141,7 +142,7 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
   std::vector<Facet> facets_out = facet_file.Read();
   for (Facet& facet : facets_out) {
     facet.CalculatePixelPositions(ra, dec, pixel_size_x, pixel_size_y,
-                                  full_width, full_height, 0.0, 0.0);
+                                  full_width, full_height, 0.0, 0.0, false);
   }
   std::cout << "Read " << facets_out.size() << " facet definitions.\n";
   return facets_out;
@@ -287,9 +288,6 @@ void IDGPredict::StartIDG() {
     const double dl = (int(reader.ImageWidth() / 2) -
                        (img.OffsetX() + int(img.Width() / 2))) *
                       pixel_size_x_;
-    // TODO revert to
-    // const double dm = (int(reader.ImageHeight() / 2) -
-    //                   (img.OffsetY() + int(img.Height() / 2))) *
     const double dm = (img.OffsetY() + int(img.Height() / 2) -
                        int(reader.ImageHeight() / 2)) *
                       pixel_size_y_;
