@@ -21,7 +21,7 @@ module lsmrDataModule
   integer,  parameter, public :: dp = selected_real_kind(15)
   integer,  parameter, public :: sp    = selected_real_kind(6)
   integer, parameter, public  :: ip = selected_int_kind(9)       ! R: (-10^R, 10^R)
-  real(dp), parameter, public :: zero = 0.0_dp, one = 1.0_dp, eps=epsilon(zero)
+  real(sp), parameter, public :: zero = 0.0_sp, one = 1.0_sp, eps=epsilon(zero)
 
 
 end module lsmrDataModule

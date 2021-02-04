@@ -320,7 +320,7 @@ contains
     ! Local arrays and variables
     complex(sp)      :: h(n), hbar(n), u(m), v(n), w(n), localV(n,min(localSize,m,n))
     logical          :: damped, localOrtho, localVQueueFull, prnt, show
-    integer(ip)      :: i, localOrthoCount, localOrthoLimit, localPointer, localVecs, &
+    integer(ip)      :: localOrthoCount, localOrthoLimit, localPointer, localVecs, &
                         pcount, pfreq
     real(sp)         :: alpha, alphabar, alphahat, &
                         beta, betaacute, betacheck, betad, betadd, betahat, &

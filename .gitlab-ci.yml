@@ -67,7 +67,7 @@ build-ubuntu18:
   rules:
     - <<: *if_astron_repo
 
-build-no-idg:
+build-no-idg-no-lsmr:
   stage: build
   extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
@@ -91,7 +91,7 @@ build-debug:
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DUSE_LSMR=TRUE ..
     - ninja
     - ninja install
   artifacts:

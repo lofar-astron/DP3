@@ -15,7 +15,7 @@
 
 module mm_ioModule
 
-  use  zlsmrDataModule, only : dp, sp, ip
+  use  clsmrDataModule, only : dp, sp, ip
 
   implicit none
 
@@ -1676,7 +1676,7 @@ subroutine mm_values_read ( input_unit, rep, field, nnz, indx, jndx, &
       do i = 1, nnz
 !!!!    read ( input_unit, *, iostat = ios ) indx(i), jndx(i), cval(i)
         read ( input_unit, *, iostat = ios ) indx(i), jndx(i), cvalr, cvali
-        cval(i) = cmplx(cvalr,cvali)
+        cval(i) = cmplx(cvalr,cvali,kind=sp)
         if ( ios /= 0 ) then
           write ( *, '(a)' ) ' '
           write ( *, '(a)' ) 'MM_VALUES_READ - Fatal error!'
@@ -2175,7 +2175,7 @@ subroutine s_to_i4vec ( s, n, ivec, ierror )
   i = 0
 
   ilo = 1
-
+  length = 0
   do while ( i < n )
 
     i = i + 1
