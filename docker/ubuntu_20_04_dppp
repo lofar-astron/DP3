@@ -5,7 +5,7 @@ ADD . /src
 
 # Build DPPP
 RUN mkdir /build && cd /build \
-    && cmake ../src \
+    && cmake ../src -DUSE_LSMR=True \
     && make -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
     && make install -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
     && DPPP \

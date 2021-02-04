@@ -7,8 +7,10 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>
 
+#include "../../ScalarSolver.h"
 #include "../../DiagonalSolver.h"
 #include "../../FullJonesSolver.h"
+#include "../../LSMRSolver.h"
 #include "../../IterativeDiagonalSolver.h"
 
 #include <boost/test/unit_test.hpp>
@@ -100,6 +102,34 @@ class SolverTester {
     }
   }
 
+  void CheckScalarResults(
+      const std::vector<std::vector<std::complex<double>>>& solutions,
+      double tolerance) {
+    for (size_t ch = 0; ch != n_chan_blocks; ++ch) {
+      for (size_t ant = 0; ant != n_ant; ++ant) {
+        for (size_t d = 0; d != n_dir; ++d) {
+          const std::complex<double> sol0 = solutions[ch][d];
+          const std::complex<double> inp0 = input_solutions[d * 2];
+
+          const std::complex<double> sol = solutions[ch][d + ant * n_dir];
+          const std::complex<double> inp =
+              input_solutions[(d + ant * n_dir) * 2];
+
+          // Compare the squared quantities, because the phase has an ambiguity
+          BOOST_CHECK_CLOSE(std::norm(sol), std::norm(inp), tolerance);
+
+          // Reference to antenna0 to check if relative phase is correct
+          BOOST_CHECK_LT(std::abs((sol * std::conj(sol0)).real() -
+                                  (inp * std::conj(inp0)).real()),
+                         tolerance);
+          BOOST_CHECK_LT(std::abs((sol * std::conj(sol0)).imag() -
+                                  (inp * std::conj(inp0)).imag()),
+                         tolerance);
+        }
+      }
+    }
+  }
+
   void CheckDiagonalResults(
       const std::vector<std::vector<std::complex<double>>>& solutions,
       double tolerance) {
@@ -131,6 +161,23 @@ class SolverTester {
     }
   }
 
+  void SetScalarSolutions() {
+    std::mt19937 mt;
+    std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);
+    for (size_t a = 0; a != n_ant; ++a) {
+      for (size_t d = 0; d != n_dir; ++d) {
+        if (d == 0)
+          input_solutions[(a * n_dir + d) * 2] =
+              cf(uniform_sols(mt), uniform_sols(mt));
+        else
+          input_solutions[(a * n_dir + d) * 2] =
+              cf(uniform_sols(mt) * 0.5, uniform_sols(mt) * 0.5);
+        input_solutions[(a * n_dir + d) * 2 + 1] =
+            input_solutions[(a * n_dir + d) * 2];
+      }
+    }
+  }
+
   typedef std::complex<float> cf;
   size_t n_pol = 4, n_ant = 50, n_dir = 3, n_chan = 10, n_chan_blocks = 4,
          n_times = 50, nBl = n_ant * (n_ant - 1) / 2, max_iter = 100;
@@ -145,6 +192,128 @@ class SolverTester {
 };
 
 BOOST_AUTO_TEST_SUITE(solvers)
+
+#ifdef USE_LSMR
+BOOST_AUTO_TEST_CASE(lsmr_solver) {
+  typedef std::complex<float> complex;
+  int n = 2;
+  int m = 4;
+  std::vector<complex> A{1.0, 1.5, 3.5, 2.0,
+                         0.5, 0.7, 0.8, 0.4};  // column major
+  std::vector<complex> b{1.0, 2.0, 1.5, 1.2};
+
+  LSMRSolver solver(m, n, 1);
+  solver.Solve(A.data(), b.data());
+
+  BOOST_CHECK_CLOSE(b[0].real(), -0.14141126, 1.0E-3);
+  BOOST_CHECK_CLOSE(b[1].real(), 2.79757662, 1.0E-3);
+}
+
+BOOST_FIXTURE_TEST_CASE(scalar_solver_lsmr, SolverTester) {
+  ScalarSolver solver;
+  solver.SetMaxIterations(max_iter);
+  solver.SetAccuracy(1e-9);
+  solver.SetStepSize(0.2);
+  solver.SetNThreads(4);
+  solver.SetPhaseOnly(false);
+  solver.SetLLSSolverType(LLSSolverType::LSMR);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  SetScalarSolutions();
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-values as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant, 1.0);
+  }
+
+  // Call the solver
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
+
+  CheckScalarResults(solutions, 1.0E-2);
+  BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
+}
+#endif
+
+BOOST_FIXTURE_TEST_CASE(scalar_solver, SolverTester) {
+  ScalarSolver solver;
+  solver.SetMaxIterations(max_iter);
+  solver.SetAccuracy(1e-8);
+  solver.SetStepSize(0.2);
+  solver.SetNThreads(4);
+  solver.SetPhaseOnly(false);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  SetScalarSolutions();
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-values as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant, 1.0);
+  }
+
+  // Call the solver
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
+
+  CheckScalarResults(solutions, 1.0E-2);
+  BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
+}
+
+#ifdef USE_LSMR
+BOOST_FIXTURE_TEST_CASE(diagonal_solver_lsmr, SolverTester) {
+  typedef std::complex<float> cf;
+  DiagonalSolver solver;
+  solver.SetMaxIterations(max_iter);
+  solver.SetAccuracy(1e-8);
+  solver.SetStepSize(0.2);
+  solver.SetNThreads(4);
+  solver.SetPhaseOnly(false);
+  solver.SetLLSSolverType(LLSSolverType::LSMR);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  std::mt19937 mt;
+  std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);
+  for (size_t a = 0; a != n_ant; ++a) {
+    for (size_t p = 0; p != 2; ++p) {
+      for (size_t d = 0; d != n_dir; ++d) {
+        if (d == 0)
+          input_solutions[(a * n_dir + d) * 2 + p] =
+              cf(uniform_sols(mt), uniform_sols(mt));
+        else
+          input_solutions[(a * n_dir + d) * 2 + p] =
+              cf(uniform_sols(mt) * 0.5, uniform_sols(mt) * 0.5);
+      }
+    }
+  }
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-matrices as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant * 2, 1.0);
+  }
+
+  // Call the solver
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
+
+  CheckDiagonalResults(solutions, 2e-2);
+  BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
+}
+#endif
 
 BOOST_FIXTURE_TEST_CASE(diagonal_solver, SolverTester) {
   typedef std::complex<float> cf;

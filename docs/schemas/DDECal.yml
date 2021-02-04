@@ -136,6 +136,10 @@ inputs:
     default: Based on memory
     type: int
     doc: Set the amount of timesteps that are to be used for each IDG buffer `.`
+  llssolver:
+    default: qr
+    type: string
+    doc: Select which linear least-squares solver to use. Supported are 'qr', 'svd' or 'lsmr' `.`
   savefacets:
     default: false
     type: bool

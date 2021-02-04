@@ -5,6 +5,7 @@
 
 #include <aocommon/parallelfor.h>
 #include <aocommon/matrix2x2.h>
+#include <iostream>
 
 using aocommon::ParallelFor;
 
@@ -21,7 +22,8 @@ SolverBase::SolverBase()
       constraint_accuracy_(1e-4),
       step_size_(0.2),
       detect_stalling_(true),
-      phase_only_(false) {}
+      phase_only_(false),
+      llsSolverType_(LLSSolverType::QR) {}
 
 void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
                             size_t n_channels, size_t n_channel_blocks,
@@ -245,6 +247,10 @@ void SolverBase::GetTimings(std::ostream& os, double duration) const {
       constraint->GetTimings(os, duration);
     }
   }
+}
+
+void SolverBase::SetLLSSolverType(const LLSSolverType solver) {
+  llsSolverType_ = solver;
 }
 
 }  // namespace DPPP
