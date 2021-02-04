@@ -72,6 +72,7 @@ include_directories(${CFITSIO_INCLUDE_DIRS})
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
   find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+  find_package(Python3 COMPONENTS NumPy)
   set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 else() # Use old, deprecated means of detecting python.
   find_package(PythonInterp 3 REQUIRED)
@@ -80,6 +81,11 @@ else() # Use old, deprecated means of detecting python.
   set(Python3_VERSION ${PYTHON_VERSION_STRING})
   set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
   set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
+
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "-c" "import numpy; print(True)"
+    OUTPUT_VARIABLE Python3_NumPy_FOUND
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
@@ -196,7 +202,7 @@ add_library(LSMR OBJECT
  clsmr/clsmrDataModule.f90
  clsmr/clsmrModule.f90
 )
-endif() 
+endif()
 
 add_library(Blob OBJECT
   Blob/BlobAipsIO.cc
@@ -350,7 +356,7 @@ set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB 
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(USE_LSMR)
-set_property(TARGET LSMR 
+set_property(TARGET LSMR
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
@@ -363,7 +369,7 @@ set(DPPP_OBJECTS
   $<TARGET_OBJECTS:IDGPredict>
   $<TARGET_OBJECTS:ParmDB>
   $<TARGET_OBJECTS:PythonDPPP>)
-  
+
 if(USE_LSMR)
   list(APPEND DPPP_OBJECTS $<TARGET_OBJECTS:LSMR>)
 endif()
@@ -443,7 +449,6 @@ set(TEST_FILENAMES
   DPPP/test/unit/tPhaseShift.cc
   DPPP/test/unit/tUpsample.cc
   DPPP/test/unit/tUVWFlagger.cc
-  DPPP/test/unit/tPyDPStep.cc
   DPPP/test/unit/tPSet.cc
   DPPP/test/unit/tScaleData.cc
   DPPP/test/unit/tSolutionInterval.cc
@@ -451,6 +456,12 @@ set(TEST_FILENAMES
   DPPP/test/unit/tStationAdder.cc
   DDECal/test/unit/tRotationConstraint.cc
 )
+if(${Python3_NumPy_FOUND})
+   list(APPEND TEST_FILENAMES "DPPP/test/unit/tPyDPStep.cc")
+else(${Python3_NumPy_FOUND})
+   message(WARNING "NumPy not found on machine, tPyDPStep test is excluded from tests.")
+endif()
+
 set(TEST_SOLVER_FILENAMES
   DPPP/test/runtests.cc
   DDECal/test/unit/tSolvers.cc
