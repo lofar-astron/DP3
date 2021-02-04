@@ -6,6 +6,9 @@
 
 #include "Constraint.h"
 #include "SolverBuffer.h"
+#include "LLSSolver.h"
+
+#include <boost/algorithm/string.hpp>
 
 #include <complex>
 #include <vector>
@@ -141,6 +144,8 @@ class SolverBase {
    */
   void GetTimings(std::ostream& os, double duration) const;
 
+  void SetLLSSolverType(const LLSSolverType solver);
+
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
             std::vector<std::vector<DComplex>>& next_solutions) const;
@@ -192,6 +197,7 @@ class SolverBase {
   bool phase_only_;
   std::vector<Constraint*>
       constraints_;  // Does not own the Constraint objects.
+  LLSSolverType llsSolverType_;
   /** @} */
 };
 

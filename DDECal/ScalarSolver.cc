@@ -1,8 +1,11 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "QRSolver.h"
 #include "ScalarSolver.h"
+#include "LLSSolver.h"
+#include "QRSolver.h"
+#include "LSMRSolver.h"
+#include "SVDSolver.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
@@ -11,6 +14,7 @@ using aocommon::ParallelFor;
 
 #include <iomanip>
 #include <iostream>
+#include <boost/make_unique.hpp>
 
 namespace DP3 {
 namespace DPPP {
@@ -79,13 +83,17 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(max_iterations_);
 
+  double avg_squared_diff = 1.0E4;
+
   do {
     MakeSolutionsFinite1Pol(solutions);
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
       PerformIteration(chBlock, g_times_cs[chBlock], vs[chBlock],
-                       solutions[chBlock], next_solutions[chBlock]);
+                       solutions[chBlock], next_solutions[chBlock],
+                       (double)(iteration + 1) / max_iterations_,
+                       avg_squared_diff);
     });
 
     Step(solutions, next_solutions);
@@ -110,10 +118,10 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
     if (!constraints_satisfied) constrained_iterations = iteration + 1;
 
-    double avg_squared_diff;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes, 1);
+
     if (stat_stream) {
       (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff
                      << '\n';
@@ -142,7 +150,9 @@ void ScalarSolver::PerformIteration(size_t channel_block_index,
                                     std::vector<Matrix>& g_times_cs,
                                     std::vector<Matrix>& vs,
                                     const std::vector<DComplex>& solutions,
-                                    std::vector<DComplex>& next_solutions) {
+                                    std::vector<DComplex>& next_solutions,
+                                    double iterationfraction,
+                                    double solverprecision) {
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
@@ -211,10 +221,21 @@ void ScalarSolver::PerformIteration(size_t channel_block_index,
   // for each antenna.
   size_t m = n_antennas_ * n_times * cur_channel_block_size * 4;
   size_t n = n_directions_, nrhs = 1;
-  QRSolver solver(m, n, nrhs);
+
+  std::unique_ptr<LLSSolver> solver =
+      LLSSolver::Make(llsSolverType_, m, n, nrhs);
+  solver->SetTolerance(std::min(
+      solverprecision / 10.0,
+      std::min(1.0E-2, 1.0E-7 / (iterationfraction * iterationfraction *
+                                 iterationfraction))));
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     // solve x^H in [g C] x^H  = v
-    bool success = solver.Solve(g_times_cs[ant].data(), vs[ant].data());
+    std::vector<Complex> x0(n_directions_);
+    for (size_t d = 0; d != n_directions_; ++d) {
+      x0[d] = solutions[(ant * n_directions_ + d)];
+    }
+    bool success =
+        solver->Solve(g_times_cs[ant].data(), vs[ant].data(), x0.data());
     Matrix& x = vs[ant];
     if (success && x(0, 0) != Complex(0.0, 0.0)) {
       for (size_t d = 0; d != n_directions_; ++d)

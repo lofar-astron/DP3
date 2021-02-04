@@ -22,6 +22,11 @@ endif()
 
 project(DP3 VERSION ${DP3_VERSION})
 
+option(USE_LSMR "use LSMR solver instead of QR solver" OFF)
+if(USE_LSMR)
+  enable_language(Fortran)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
@@ -175,6 +180,24 @@ add_library(AOFlaggerStep OBJECT
   AOFlaggerStep/Register.cc
 )
 
+if (USE_LSMR)
+  add_definitions(-DUSE_LSMR)
+add_library(LSMR OBJECT
+ clsmr/lsmrblas.f90
+ clsmr/lsmrblasInterface.f90
+ clsmr/lsmrCheckModule.f90
+ clsmr/lsmrDataModule.f90
+ clsmr/lsmrModule.f90
+ clsmr/lsmrReadMtxModule.f90
+ clsmr/mm_io.f90
+ clsmr/mm_ioModule.f90
+ clsmr/clsmrblas.f90
+ clsmr/clsmrblasInterface.f90
+ clsmr/clsmrDataModule.f90
+ clsmr/clsmrModule.f90
+)
+endif() 
+
 add_library(Blob OBJECT
   Blob/BlobAipsIO.cc
   Blob/BlobArray.cc
@@ -212,6 +235,8 @@ add_library(DDECal OBJECT
   DDECal/DiagonalSolver.cc
   DDECal/FullJonesSolver.cc
   DDECal/IterativeDiagonalSolver.cc
+  DDECal/LSMRSolver.cc
+  DDECal/LLSSolver.cc
   DDECal/RotationAndDiagonalConstraint.cc
   DDECal/RotationConstraint.cc
   DDECal/ScalarSolver.cc
@@ -324,6 +349,11 @@ add_library(PythonDPPP OBJECT
 set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB PythonDPPP
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+if(USE_LSMR)
+set_property(TARGET LSMR 
+             PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
 set(DPPP_OBJECTS
   $<TARGET_OBJECTS:AOFlaggerStep>
   $<TARGET_OBJECTS:Blob>
@@ -333,6 +363,10 @@ set(DPPP_OBJECTS
   $<TARGET_OBJECTS:IDGPredict>
   $<TARGET_OBJECTS:ParmDB>
   $<TARGET_OBJECTS:PythonDPPP>)
+  
+if(USE_LSMR)
+  list(APPEND DPPP_OBJECTS $<TARGET_OBJECTS:LSMR>)
+endif()
 
 set(DPPP_LIBRARIES
   ${AOFLAGGER_LIB}

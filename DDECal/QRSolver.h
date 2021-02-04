@@ -8,6 +8,11 @@
 #include <vector>
 #include <cmath>
 
+#include "LLSSolver.h"
+
+namespace DP3 {
+namespace DPPP {
+
 using complex = std::complex<float>;
 
 /* CGELS prototype */
@@ -15,9 +20,9 @@ extern "C" void cgels_(char* trans, int* m, int* n, int* nrhs, complex* a,
                        int* lda, complex* b, int* ldb, complex* work,
                        int* lwork, int* info);
 
-class QRSolver {
+class QRSolver final : public LLSSolver {
  public:
-  QRSolver(int m, int n, int nrhs) : _m(m), _n(n), _nrhs(nrhs) {}
+  QRSolver(int m, int n, int nrhs) : LLSSolver(m, n, nrhs) {}
 
   /**
    * Find X that minimizes || B - A*X || (i.e. best solution to A*X = B ; A
@@ -27,34 +32,28 @@ class QRSolver {
    * dimension max(M, N) On succesful exit: the solution vectors, stored
    * columnwise (N, NRHS)
    */
-  bool Solve(complex* a, complex* b) {
+  virtual bool Solve(complex* a, complex* b) override {
     int info;
     char trans = 'N';  // No transpose
-    int ldb = std::max(_m, _n);
+    int ldb = std::max(m_, n_);
     if (_work.empty()) {
       int lwork = -1;
       complex wkopt;
-      cgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, &wkopt, &lwork, &info);
+      cgels_(&trans, &m_, &n_, &nrhs_, a, &m_, b, &ldb, &wkopt, &lwork, &info);
       _work.resize((int)wkopt.real());
     }
     int lwork = _work.size();
-    cgels_(&trans, &_m, &_n, &_nrhs, a, &_m, b, &ldb, _work.data(), &lwork,
+    cgels_(&trans, &m_, &n_, &nrhs_, a, &m_, b, &ldb, _work.data(), &lwork,
            &info);
     /// Check for full rank
     return info == 0;
   }
 
  private:
-  /** Number of rows in matrix A */
-  int _m;
-
-  /** Number of cols in matrix A */
-  int _n;
-
-  /** Number of columns in matrices B and X */
-  int _nrhs;
-
   std::vector<complex> _work;
 };
+
+}  // namespace DPPP
+}  // namespace DP3
 
 #endif

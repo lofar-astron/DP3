@@ -17,15 +17,17 @@
 #include "../DPPP/DPRun.h"
 
 #include "../IDGPredict/IDGPredict.h"
-#include <schaapcommon/facets/facet.h>
 
 #include "DiagonalSolver.h"
 #include "FullJonesSolver.h"
+#include "LLSSolver.h"
 #include "RotationConstraint.h"
 #include "RotationAndDiagonalConstraint.h"
 #include "ScalarSolver.h"
 #include "SmoothnessConstraint.h"
 #include "TECConstraint.h"
+
+#include <schaapcommon/facets/facet.h>
 
 #include <aocommon/matrix2x2.h>
 
@@ -174,27 +176,33 @@ void DDECal::initializeSolver(const ParameterSet& parset,
     itsConstraints.emplace_back(new SmoothnessConstraint(
         itsSmoothnessConstraint, itsSmoothnessRefFrequencyHz));
   }
+  const LLSSolverType llsSolver =
+      LLSSolver::ParseType(parset.getString(prefix + "llssolver", "qr"));
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
       itsSolver = boost::make_unique<ScalarSolver>();
+      itsSolver->SetLLSSolverType(llsSolver);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARPHASE:
       itsSolver = boost::make_unique<ScalarSolver>();
+      itsSolver->SetLLSSolverType(llsSolver);
       itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsSolver->SetPhaseOnly(true);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARAMPLITUDE:
       itsSolver = boost::make_unique<ScalarSolver>();
+      itsSolver->SetLLSSolverType(llsSolver);
       itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
       break;
     case GainCal::DIAGONAL:
       itsSolver = boost::make_unique<DiagonalSolver>();
+      itsSolver->SetLLSSolverType(llsSolver);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 2;
@@ -220,6 +228,7 @@ void DDECal::initializeSolver(const ParameterSet& parset,
     case GainCal::TEC:
     case GainCal::TECANDPHASE: {
       itsSolver = boost::make_unique<ScalarSolver>();
+      itsSolver->SetLLSSolverType(llsSolver);
       const auto tecMode = (itsMode == GainCal::TEC)
                                ? TECConstraint::TECOnlyMode
                                : TECConstraint::TECAndCommonScalarMode;

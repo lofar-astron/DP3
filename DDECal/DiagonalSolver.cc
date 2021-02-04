@@ -3,6 +3,8 @@
 
 #include "DiagonalSolver.h"
 #include "QRSolver.h"
+#include "SVDSolver.h"
+#include "LSMRSolver.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
@@ -80,13 +82,17 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(max_iterations_);
 
+  double avg_squared_diff = 1.0E4;
+
   do {
     MakeSolutionsFinite2Pol(solutions);
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
       PerformIteration(chBlock, g_times_cs[chBlock], vs[chBlock],
-                       solutions[chBlock], next_solutions[chBlock]);
+                       solutions[chBlock], next_solutions[chBlock],
+                       (double)(iteration + 1) / max_iterations_,
+                       avg_squared_diff);
     });
 
     Step(solutions, next_solutions);
@@ -111,7 +117,6 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
     if (!constraints_satisfied) constrained_iterations = iteration + 1;
 
-    double avg_squared_diff;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes, 2);
@@ -143,7 +148,9 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
                                       std::vector<Matrix>& g_times_cs,
                                       std::vector<std::vector<Complex>>& vs,
                                       const std::vector<DComplex>& solutions,
-                                      std::vector<DComplex>& next_solutions) {
+                                      std::vector<DComplex>& next_solutions,
+                                      double iterationfraction,
+                                      double solverprecision) {
   for (size_t ant = 0; ant != n_antennas_ * 2; ++ant) {
     g_times_cs[ant].SetZero();
     std::fill(vs[ant].begin(), vs[ant].end(), 0.0);
@@ -213,14 +220,25 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
 
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  size_t m = n_antennas_ * 2 * n_times * cur_channel_block_size;
-  size_t n = n_directions_, nrhs = 1;
-  QRSolver solver(m, n, nrhs);
+  const size_t m = n_antennas_ * 2 * n_times * cur_channel_block_size;
+  const size_t n = n_directions_;
+  const size_t nrhs = 1;
+  std::unique_ptr<LLSSolver> solver =
+      LLSSolver::Make(llsSolverType_, m, n, nrhs);
+  solver->SetTolerance(std::min(
+      solverprecision / 10.0,
+      std::min(1.0E-2, 1.0E-7 / (iterationfraction * iterationfraction *
+                                 iterationfraction))));
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
       // solve x^H in [g C] x^H  = v
-      bool success = solver.Solve(g_times_cs[ant * 2 + pol].data(),
-                                  vs[ant * 2 + pol].data());
+      std::vector<Complex> x0(n_directions_);
+      for (size_t d = 0; d != n_directions_; ++d) {
+        x0[d] = solutions[(ant * n_directions_ + d) * 2 + pol];
+      }
+
+      bool success = solver->Solve(g_times_cs[ant * 2 + pol].data(),
+                                   vs[ant * 2 + pol].data(), x0.data());
       std::vector<Complex>& x = vs[ant * 2 + pol];
       if (success && x[0] != Complex(0.0, 0.0)) {
         for (size_t d = 0; d != n_directions_; ++d)

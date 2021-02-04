@@ -26,7 +26,8 @@ class ScalarSolver final : public SolverBase {
   void PerformIteration(size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,
                         std::vector<Matrix>& vs,
                         const std::vector<DComplex>& solutions,
-                        std::vector<DComplex>& nextSolutions);
+                        std::vector<DComplex>& nextSolutions,
+                        double iterationfraction, double solverprecision);
 };
 
 }  // namespace DPPP

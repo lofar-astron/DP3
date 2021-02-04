@@ -26,7 +26,8 @@ class DiagonalSolver final : public SolverBase {
   void PerformIteration(size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,
                         std::vector<std::vector<Complex>>& vs,
                         const std::vector<DComplex>& solutions,
-                        std::vector<DComplex>& nextSolutions);
+                        std::vector<DComplex>& nextSolutions,
+                        double iterationfraction, double solverprecision);
 };
 
 }  // namespace DPPP
