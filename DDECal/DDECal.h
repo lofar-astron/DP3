@@ -189,6 +189,7 @@ class DDECal : public DPStep {
   size_t itsPolsInSolutions;
   bool itsApproximateTEC;
   bool itsSubtract;
+  bool itsIterateDirections;
   std::string itsStatFilename;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;

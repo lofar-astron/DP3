@@ -24,17 +24,17 @@ class IterativeDiagonalSolver final : public SolverBase {
 
  private:
   void PerformIteration(size_t channelBlockIndex,
-                        std::vector<std::vector<DComplex>>& v_residual,
+                        std::vector<std::vector<Complex>>& v_residual,
                         const std::vector<DComplex>& solutions,
                         std::vector<DComplex>& nextSolutions);
 
   template <bool Add>
-  void SubtractDirection(std::vector<std::vector<DComplex>>& v_residual,
+  void SubtractDirection(std::vector<std::vector<Complex>>& v_residual,
                          size_t channel_block_index, size_t direction,
                          const std::vector<DComplex>& solutions);
 
   void SolveDirection(size_t channel_block_index,
-                      const std::vector<std::vector<DComplex>>& v_residual,
+                      const std::vector<std::vector<Complex>>& v_residual,
                       size_t direction, const std::vector<DComplex>& solutions,
                       std::vector<DComplex>& next_solutions);
 };

@@ -139,7 +139,11 @@ inputs:
   llssolver:
     default: qr
     type: string
-    doc: Select which linear least-squares solver to use. Supported are 'qr', 'svd' or 'lsmr' `.`
+    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd`` or ``lsmr`` `.`
+  iteratedirections:
+    default: false
+    type: bool
+    doc: Setting this to true will enable the direction iterating algorithm for solving the DD solutions. This avoids doing the linear least-squares step which is particularly expensive when the number of direction is high. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster. The downside might be that it is less stable and/or less accurate, which is still to be tested. Currently, only diagonal solves are supported; setting iteratedirections to true in other modes will result in an error `.`
   savefacets:
     default: false
     type: bool

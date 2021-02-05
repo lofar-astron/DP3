@@ -397,9 +397,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_solver, SolverTester) {
   result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
                         nullptr);
 
-  // TODO this solver requires a very large tolerance... is this a bug or
-  // inherently part of the algorithm?
-  CheckDiagonalResults(solutions, 10.0);
+  CheckDiagonalResults(solutions, 1e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
 }
 
