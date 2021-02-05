@@ -16,3 +16,10 @@ cmake ..
 make -j4
 make install
 ```
+## Contributing
+
+### Want to Help?
+
+Issues can be filed either at [gitlab](https://git.astron.nl/RD/DP3) or [github](https://github.com/lofar-astron/DP3).
+
+Want to contribute some code, or improve documentation? You can start by cloning our code from the [DP3 development repository](https://git.astron.nl/RD/DP3).
