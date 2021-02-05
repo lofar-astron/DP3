@@ -20,6 +20,7 @@
 
 #include "DiagonalSolver.h"
 #include "FullJonesSolver.h"
+#include "IterativeDiagonalSolver.h"
 #include "LLSSolver.h"
 #include "RotationConstraint.h"
 #include "RotationAndDiagonalConstraint.h"
@@ -115,6 +116,7 @@ DDECal::DDECal(DPInput* input, const ParameterSet& parset, const string& prefix)
       itsPolsInSolutions(1),
       itsApproximateTEC(false),
       itsSubtract(parset.getBool(prefix + "subtract", false)),
+      itsIterateDirections(parset.getBool(prefix + "iteratedirections", false)),
       itsStatFilename(parset.getString(prefix + "statfilename", "")) {
   stringstream ss;
   ss << parset;
@@ -178,6 +180,13 @@ void DDECal::initializeSolver(const ParameterSet& parset,
   }
   const LLSSolverType llsSolver =
       LLSSolver::ParseType(parset.getString(prefix + "llssolver", "qr"));
+  if (itsIterateDirections && itsMode != GainCal::DIAGONAL &&
+      itsMode != GainCal::DIAGONALPHASE &&
+      itsMode != GainCal::DIAGONALAMPLITUDE) {
+    throw std::runtime_error(
+        "The direction-iterating algorithm is currently only available for "
+        "diagonal solving modes");
+  }
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
       itsSolver = boost::make_unique<ScalarSolver>();
@@ -201,20 +210,29 @@ void DDECal::initializeSolver(const ParameterSet& parset,
       itsPolsInSolutions = 1;
       break;
     case GainCal::DIAGONAL:
-      itsSolver = boost::make_unique<DiagonalSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<IterativeDiagonalSolver>();
+      else
+        itsSolver = boost::make_unique<DiagonalSolver>();
       itsSolver->SetLLSSolverType(llsSolver);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 2;
       break;
     case GainCal::DIAGONALPHASE:
-      itsSolver = boost::make_unique<DiagonalSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<IterativeDiagonalSolver>();
+      else
+        itsSolver = boost::make_unique<DiagonalSolver>();
       itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsSolver->SetPhaseOnly(true);
       itsPolsInSolutions = 2;
       break;
     case GainCal::DIAGONALAMPLITUDE:
-      itsSolver = boost::make_unique<DiagonalSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<IterativeDiagonalSolver>();
+      else
+        itsSolver = boost::make_unique<DiagonalSolver>();
       itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 2;
@@ -879,7 +897,8 @@ void DDECal::doSolve() {
       itsTimerSolve.start();
 
       // TODO to be done polymorphically once the solvers have been refactored
-      if (dynamic_cast<DiagonalSolver*>(itsSolver.get())) {
+      if (dynamic_cast<DiagonalSolver*>(itsSolver.get()) ||
+          dynamic_cast<IterativeDiagonalSolver*>(itsSolver.get())) {
         // Temporary fix: convert solutions from full Jones matrices to diagonal
         std::vector<std::vector<casacore::DComplex>>& full_solutions =
             itsSols[sol_ints_[i].NSolution()];
