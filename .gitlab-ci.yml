@@ -41,9 +41,7 @@ build-base:
   rules:
     # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
     # a branch that has an open MR, see https://gitlab.com/gitlab-org/gitlab/-/issues/201845
-    - if: '$CI_SERVER_HOST == "git.astron.nl"'
-      when: always
-    - when: never
+    - <<: *if_astron_repo
 
 # On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
 build-base-ska:

@@ -530,20 +530,6 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
   }
 }
 
-double IDGPredict::ComputePhaseShiftFactor(const double* uvw,
-                                           size_t direction) const {
-  // The phase shift angle is:
-  // 2*pi * (u*dl - v*dm - w*dp) * (frequency / speed_of_light)
-  // TODO revert The v and w terms are negated since IDG uses a flipped
-  // coordinate system. The computed phase shift factor contains all parts
-  // except the frequency.
-  constexpr double two_pi_div_c = 2.0 * M_PI / aocommon::c();
-  return (uvw[0] * meta_data_[direction].dl +
-          uvw[1] * meta_data_[direction].dm +
-          uvw[2] * meta_data_[direction].dp) *
-         two_pi_div_c;
-}
-
 void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
                                      std::vector<DPBuffer>& result,
                                      const std::complex<float>* term_data,
@@ -568,7 +554,7 @@ void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 
   // Precompute polynomial frequency factors for all channels.
-  std::vector<double> freq_factors;
+  std::vector<float> freq_factors;
   if (n_terms > 1) {
     freq_factors.reserve(info().nchan());
     for (double freq : info().chanFreqs()) {
@@ -577,30 +563,16 @@ void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 
   for (size_t t = 0; t < n_timesteps; ++t) {
-    const double* uvw = uvws[t];
     std::complex<float>* result_data = result[t].getData().data();
     for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
-      const double phase_factor = ComputePhaseShiftFactor(uvw, direction);
-      uvw += 3;
-
       for (size_t ch = 0; ch < info().nchan(); ++ch) {
-        const double angle = phase_factor * info().chanFreqs()[ch];
-        const std::complex<float> phasor(cos(angle), sin(angle));
-        result_data[0] *= phasor;
-        result_data[1] *= phasor;
-        result_data[2] *= phasor;
-        result_data[3] *= phasor;
-
-        double polynomial_factor = 1.0;
+        float polynomial_factor = 1.0;
         for (auto& term_data_ptr : term_data_ptrs) {
           polynomial_factor *= freq_factors[ch];
-          // Merge the phase shift correction and the polynomial factor.
-          const std::complex<float> term_phasor =
-              phasor * float(polynomial_factor);
-          result_data[0] += term_data_ptr[0] * term_phasor;
-          result_data[1] += term_data_ptr[1] * term_phasor;
-          result_data[2] += term_data_ptr[2] * term_phasor;
-          result_data[3] += term_data_ptr[3] * term_phasor;
+          result_data[0] += term_data_ptr[0] * polynomial_factor;
+          result_data[1] += term_data_ptr[1] * polynomial_factor;
+          result_data[2] += term_data_ptr[2] * polynomial_factor;
+          result_data[3] += term_data_ptr[3] * polynomial_factor;
           term_data_ptr += 4;
         }
         result_data += 4;
