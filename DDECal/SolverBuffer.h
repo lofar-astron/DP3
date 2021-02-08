@@ -75,18 +75,17 @@ class SolverBuffer {
 
               if (!Isfinite(model_data_[timestep][dir][index + cr]))
                 isFlagged = true;
-              model_data_[timestep][dir][index] *= wSqrt;
+              model_data_[timestep][dir][index + cr] *= wSqrt;
             }
           }
 
           // If either the data or model data has non-finite values, both the
           // data and model data are set to zero.
           if (isFlagged) {
-            for (size_t cr = 0; cr < 4; ++cr) {
-              const size_t index = (bl * n_channels_ + ch) * 4 + cr;
-              data_[timestep][index] = 0.0;
-            }
             const size_t index = (bl * n_channels_ + ch) * 4;
+            for (size_t cr = 0; cr < 4; ++cr) {
+              data_[timestep][index + cr] = 0.0;
+            }
             for (size_t dir = 0; dir < n_directions_; ++dir) {
               for (size_t cr = 0; cr < 4; ++cr) {
                 model_data_[timestep][dir][index + cr] = 0.0;
