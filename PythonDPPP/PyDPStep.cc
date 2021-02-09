@@ -32,7 +32,12 @@ void PyDPStepImpl::show(std::ostream& os) const {
 bool PyDPStepImpl::process(const DPBuffer& bufin) {
   m_count++;
 
-  auto dpbuffer = std::shared_ptr<DPBuffer>(new DPBuffer(bufin));
+  // Make a deep copy of the buffer to make the data
+  // persistent across multiple process calls
+  // This is not always necessary, but for python DPSteps
+  // convenience is more important than performance
+  auto dpbuffer = std::shared_ptr<DPBuffer>(new DPBuffer());
+  dpbuffer->copy(bufin);
 
   // fetch optional data
   if (m_fetch_uvw) {
