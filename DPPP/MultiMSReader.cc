@@ -80,7 +80,7 @@ MultiMSReader::MultiMSReader(const vector<string>& msNames,
 MultiMSReader::~MultiMSReader() {}
 
 void MultiMSReader::setReadVisData(bool readVisData) {
-  itsReadVisData = readVisData;
+  itsReadVisData = readVisData || itsReadVisData;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
       itsReaders[i]->setReadVisData(readVisData);
