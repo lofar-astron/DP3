@@ -22,6 +22,7 @@ using DP3::DPPP::MSBDAWriter;
 using DP3::DPPP::MSReader;
 
 using casacore::MeasurementSet;
+using casacore::Table;
 using casacore::TableDesc;
 using casacore::TableExprNode;
 using casacore::TableLock;

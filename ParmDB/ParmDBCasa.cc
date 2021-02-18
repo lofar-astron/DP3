@@ -344,7 +344,7 @@ void ParmDBCasa::getValues(vector<ParmValueSet>& psets,
       pvset = ParmValueSet(pvdef.getFirstParmValue(), type, pertCol(id),
                            prelCol(id));
     }
-    if (maskCol.isDefined(id)) {
+    if (maskCol.ndim(id) > 0) {
       pvset.setSolvableMask(maskCol(id));
     }
   }

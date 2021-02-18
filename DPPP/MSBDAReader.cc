@@ -216,6 +216,9 @@ bool MSBDAReader::process(const DPBuffer&) {
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
 void MSBDAReader::FillInfoMetaData() {
+  using MS_Ant = casacore::MSAntenna;
+  using MS_SPW = casacore::MSSpectralWindow;
+
   Table factors = ms_.keywordSet().asTable(DP3MS::kBDAFactorsTable);
   Table axis = ms_.keywordSet().asTable(DP3MS::kBDATimeAxisTable);
   Table spw = ms_.keywordSet().asTable(DP3MS::kSpectralWindowTable);
@@ -228,8 +231,8 @@ void MSBDAReader::FillInfoMetaData() {
   ScalarColumn<int> ant1_col(factors, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(factors, MS::columnName(MS::ANTENNA2));
   ScalarColumn<int> ids_col(factors, DP3MS::kSpectralWindowId);
-  ArrayColumn<double> freqs_col(spw, DP3MS::kChanFreq);
-  ArrayColumn<double> widths_col(spw, DP3MS::kChanWidth);
+  ArrayColumn<double> freqs_col(spw, MS_SPW::columnName(MS_SPW::CHAN_FREQ));
+  ArrayColumn<double> widths_col(spw, MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl);
@@ -246,9 +249,12 @@ void MSBDAReader::FillInfoMetaData() {
   }
 
   Table anttab(ms_.keywordSet().asTable(DP3MS::kAntennaTable));
-  ScalarColumn<casacore::String> name_col(anttab, DP3MS::kName);
-  ScalarColumn<double> diam_col(anttab, DP3MS::kDishDiameter);
-  ROScalarMeasColumn<MPosition> ant_col(anttab, DP3MS::kPosition);
+  ScalarColumn<casacore::String> name_col(anttab,
+                                          MS_Ant::columnName(MS_Ant::NAME));
+  ScalarColumn<double> diam_col(anttab,
+                                MS_Ant::columnName(MS_Ant::DISH_DIAMETER));
+  ScalarMeasColumn<MPosition> ant_col(anttab,
+                                      MS_Ant::columnName(MS_Ant::POSITION));
   vector<MPosition> antPos;
   antPos.reserve(anttab.nrow());
   for (unsigned int i = 0; i < anttab.nrow(); ++i) {

@@ -339,7 +339,8 @@ Record ParmFacadeLocal::doGetValues(const string& parmNamePattern,
   // The returned parmId should be the index.
   ParmSet parmSet;
   for (unsigned int i = 0; i < names.size(); ++i) {
-    assert(parmSet.addParm(itsPDB, names[i]) == i);
+    [[maybe_unused]] const ParmId index = parmSet.addParm(itsPDB, names[i]);
+    assert(index == i);
   }
   const Axis& axisx = *predictGrid[0];
   const Axis& axisy = *predictGrid[1];
@@ -388,7 +389,8 @@ Record ParmFacadeLocal::getValuesGrid(const string& parmNamePattern,
   // The returned parmId should be the index.
   ParmSet parmSet;
   for (unsigned int i = 0; i < names.size(); ++i) {
-    assert(parmSet.addParm(itsPDB, names[i]) == i);
+    [[maybe_unused]] const ParmId index = parmSet.addParm(itsPDB, names[i]);
+    assert(index == i);
   }
   // Create and fill the cache for the given domain.
   ParmCache parmCache(parmSet, domain);

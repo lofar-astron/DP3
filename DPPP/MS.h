@@ -29,29 +29,17 @@ extern const std::string kSingleFactorPerBL;
 /// BDA_FACTORS table.
 extern const std::string kBDAFactorsTable;
 extern const std::string kFactor;
+extern const std::string kSpectralWindowId;
 
 /// SPECTRAL_WINDOW table.
 extern const std::string kSpectralWindowTable;
-extern const std::string kSpectralWindowId;
-extern const std::string kDataDescTable;
 extern const std::string kBDAFreqAxisId;
 extern const std::string kBDASetId;
-extern const std::string kChanFreq;
-extern const std::string kChanWidth;
-extern const std::string kEffectiveBW;
-extern const std::string kResolution;
-extern const std::string kNumChan;
-extern const std::string kTotalBandWidth;
-extern const std::string kRefFrequency;
 
 extern const std::string kLofarAntennaSet;
 
 extern const std::string kAntennaTable;
-extern const std::string kName;
-extern const std::string kDishDiameter;
-extern const std::string kPosition;
-extern const std::string kMeasFreqRef;
-
+extern const std::string kDataDescTable;
 extern const std::string kObservationTable;
 
 }  // namespace DP3MS

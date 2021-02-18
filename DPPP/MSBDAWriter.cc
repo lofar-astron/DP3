@@ -258,6 +258,8 @@ void MSBDAWriter::CreateBDATimeFactor() {
 }
 
 void MSBDAWriter::CreateMetaDataFrequencyColumns() {
+  using MS_SPW = casacore::MSSpectralWindow;
+
   Table out_spw =
       Table(outName_ + '/' + DP3MS::kSpectralWindowTable, Table::Update);
 
@@ -272,57 +274,63 @@ void MSBDAWriter::CreateMetaDataFrequencyColumns() {
 
   // Remove fixed size options from columns
   TableDesc td = out_spw.tableDesc();
-  td.rwColumnDesc(DP3MS::kChanFreq).setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc(DP3MS::kChanWidth).setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc(DP3MS::kEffectiveBW).setOptions(ColumnDesc::Direct);
-  td.rwColumnDesc(DP3MS::kResolution).setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(MS_SPW::columnName(MS_SPW::CHAN_FREQ))
+      .setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(MS_SPW::columnName(MS_SPW::CHAN_WIDTH))
+      .setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(MS_SPW::columnName(MS_SPW::EFFECTIVE_BW))
+      .setOptions(ColumnDesc::Direct);
+  td.rwColumnDesc(MS_SPW::columnName(MS_SPW::RESOLUTION))
+      .setOptions(ColumnDesc::Direct);
 }
 
 void MSBDAWriter::WriteMetaData() {
-  const Int pid = 0;
+  const Int bda_set_id = 0;
   unsigned int min_factor_time = 65535;
   unsigned int max_factor_time = 1;
 
-  OverwriteSubTables(pid);
-  WriteTimeFactorRows(pid, min_factor_time, max_factor_time);
-  WriteTimeAxisRow(pid, min_factor_time, max_factor_time);
+  OverwriteSubTables(bda_set_id);
+  WriteTimeFactorRows(bda_set_id, min_factor_time, max_factor_time);
+  WriteTimeAxisRow(bda_set_id, min_factor_time, max_factor_time);
 }
 
-void MSBDAWriter::WriteTimeFactorRows(const Int& pid,
+void MSBDAWriter::WriteTimeFactorRows(Int bda_set_id,
                                       unsigned int& min_factor_time,
                                       unsigned int& max_factor_time) {
   Table bda_time_factor(outName_ + '/' + DP3MS::kBDAFactorsTable,
                         Table::Update);
-  int row = bda_time_factor.nrow();
+
+  ScalarColumn<Int> col_time_axis_id(bda_time_factor, DP3MS::kTimeAxisId);
+  ScalarColumn<Int> col_ant1(bda_time_factor, MS::columnName(MS::ANTENNA1));
+  ScalarColumn<Int> col_ant2(bda_time_factor, MS::columnName(MS::ANTENNA2));
+  ScalarColumn<Int> col_factor(bda_time_factor, DP3MS::kFactor);
+  ScalarColumn<Int> col_spw_id(bda_time_factor, DP3MS::kSpectralWindowId);
+
   const Vector<Int>& ant1 = info().getAnt1();
   const Vector<Int>& ant2 = info().getAnt2();
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
     std::size_t nchan = info().chanFreqs(i).size();
+    const int row = bda_time_factor.nrow();
     bda_time_factor.addRow();
     const unsigned int factor = info().ntimeAvg(i);
     min_factor_time = std::min(min_factor_time, factor);
     max_factor_time = std::max(max_factor_time, factor);
 
-    ScalarColumn<Int>(bda_time_factor, DP3MS::kTimeAxisId).put(row, pid);
-    ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA1))
-        .put(row, ant1[i]);
-    ScalarColumn<Int>(bda_time_factor, MS::columnName(MS::ANTENNA2))
-        .put(row, ant2[i]);
-    ScalarColumn<Int>(bda_time_factor, DP3MS::kFactor).put(row, factor);
-    ScalarColumn<Int>(bda_time_factor, DP3MS::kSpectralWindowId)
-        .put(row, nchanToDescId[nchan]);
-    ++row;
+    col_time_axis_id.put(row, bda_set_id);
+    col_ant1.put(row, ant1[i]);
+    col_ant2.put(row, ant2[i]);
+    col_factor.put(row, factor);
+    col_spw_id.put(row, nchanToDescId[nchan]);
   }
 }
 
-void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
-                                   const unsigned int& min_factor_time,
-                                   const unsigned int& max_factor_time) {
+void MSBDAWriter::WriteTimeAxisRow(Int bda_set_id, unsigned int min_factor_time,
+                                   unsigned int max_factor_time) {
   Table bda_time_axis(outName_ + '/' + DP3MS::kBDATimeAxisTable, Table::Update);
   const double interval = info().timeInterval();
   int row = bda_time_axis.nrow();
   bda_time_axis.addRow();
-  ScalarColumn<Int>(bda_time_axis, DP3MS::kTimeAxisId).put(row, pid);
+  ScalarColumn<Int>(bda_time_axis, DP3MS::kTimeAxisId).put(row, bda_set_id);
   ScalarColumn<Bool>(bda_time_axis, DP3MS::kIsBdaApplied).put(row, True);
   ScalarColumn<Bool>(bda_time_axis, DP3MS::kSingleFactorPerBL).put(row, True);
   ScalarColumn<Double>(bda_time_axis, DP3MS::kMaxTimeInterval)
@@ -338,8 +346,10 @@ void MSBDAWriter::WriteTimeAxisRow(const Int& pid,
   ScalarColumn<Int>(bda_time_axis, DP3MS::kBDAFreqAxisId).put(row, -1);
 }
 
-void MSBDAWriter::OverwriteSubTables(const Int& pid) {
-  unsigned int id = 0;
+void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
+  using MS_DD = casacore::MSDataDescription;
+  using MS_SPW = casacore::MSSpectralWindow;
+
   std::string name;
   int measFreqRef;
 
@@ -354,13 +364,37 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
   // Remove all rows before and after the selected band.
   // Do it from the end, otherwise row numbers change.
   for (unsigned int i = outSPW.nrow(); i > 0;) {
-    if (--i == reader_->spectralWindow()) {
-      measFreqRef = outSPW.col(DP3MS::kMeasFreqRef).getInt(i);
-      name = outSPW.col(DP3MS::kName).getString(i);
+    --i;
+    if (i == reader_->spectralWindow()) {
+      measFreqRef =
+          outSPW.col(MS_SPW::columnName(MS_SPW::MEAS_FREQ_REF)).getInt(i);
+      name = outSPW.col(MS_SPW::columnName(MS_SPW::NAME)).getString(i);
     }
     outSPW.removeRow(i);
     outDD.removeRow(i);
   }
+
+  ScalarColumn<Int> col_spw_id(outDD,
+                               MS_DD::columnName(MS_DD::SPECTRAL_WINDOW_ID));
+
+  ArrayColumn<Double> col_chan_freq(outSPW,
+                                    MS_SPW::columnName(MS_SPW::CHAN_FREQ));
+  ArrayColumn<Double> col_chan_widths(outSPW,
+                                      MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
+  ArrayColumn<Double> col_effective_bw(
+      outSPW, MS_SPW::columnName(MS_SPW::EFFECTIVE_BW));
+  ScalarColumn<Int> col_meas_freq_ref(
+      outSPW, MS_SPW::columnName(MS_SPW::MEAS_FREQ_REF));
+  ScalarColumn<casacore::String> col_name(outSPW,
+                                          MS_SPW::columnName(MS_SPW::NAME));
+  ScalarColumn<Int> col_num_chan(outSPW, MS_SPW::columnName(MS_SPW::NUM_CHAN));
+  ScalarColumn<Double> col_ref_freq(outSPW,
+                                    MS_SPW::columnName(MS_SPW::REF_FREQUENCY));
+  ArrayColumn<Double> col_resolution(outSPW,
+                                     MS_SPW::columnName(MS_SPW::RESOLUTION));
+  ScalarColumn<Double> col_total_bw(
+      outSPW, MS_SPW::columnName(MS_SPW::TOTAL_BANDWIDTH));
+  ScalarColumn<Int> col_bda_set_id(outSPW, DP3MS::kBDASetId);
 
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
     std::size_t nchanFreqs = info().chanFreqs(i).size();
@@ -368,28 +402,25 @@ void MSBDAWriter::OverwriteSubTables(const Int& pid) {
       continue;
     }
 
+    const rownr_t row = outDD.nrow();
+    assert(row == outSPW.nrow());
+
     outDD.addRow();
-    ScalarColumn<Int>(outDD, DP3MS::kSpectralWindowId).put(id, id);
+    col_spw_id.put(row, row);
 
     outSPW.addRow();
-    ScalarColumn<Int>(outSPW, DP3MS::kNumChan).put(id, nchanFreqs);
-    ScalarColumn<Int>(outSPW, DP3MS::kMeasFreqRef).put(id, measFreqRef);
-    ScalarColumn<casacore::String>(outSPW, DP3MS::kName).put(id, name);
-    ArrayColumn<Double>(outSPW, DP3MS::kChanFreq)
-        .put(id, Vector<double>(info().chanFreqs(i)));
-    ArrayColumn<Double>(outSPW, DP3MS::kChanWidth)
-        .put(id, Vector<double>(info().chanWidths(i)));
-    ArrayColumn<Double>(outSPW, DP3MS::kEffectiveBW)
-        .put(id, Vector<double>(info().effectiveBW(i)));
-    ArrayColumn<Double>(outSPW, DP3MS::kResolution)
-        .put(id, Vector<double>(info().resolutions(i)));
-    ScalarColumn<Double>(outSPW, DP3MS::kTotalBandWidth)
-        .put(id, info().totalBW());
-    ScalarColumn<Double>(outSPW, DP3MS::kRefFrequency)
-        .put(id, info().refFreq());
+    col_chan_freq.put(row, Vector<double>(info().chanFreqs(i)));
+    col_chan_widths.put(row, Vector<double>(info().chanWidths(i)));
+    col_effective_bw.put(row, Vector<double>(info().effectiveBW(i)));
+    col_meas_freq_ref.put(row, measFreqRef);
+    col_name.put(row, name);
+    col_num_chan.put(row, nchanFreqs);
+    col_ref_freq.put(row, info().refFreq());
+    col_resolution.put(row, Vector<double>(info().resolutions(i)));
+    col_total_bw.put(row, info().totalBW());
+    col_bda_set_id.put(row, bda_set_id);
 
-    nchanToDescId[nchanFreqs] = id;
-    ++id;
+    nchanToDescId[nchanFreqs] = row;
   }
 }
 

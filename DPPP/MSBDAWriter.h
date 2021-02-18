@@ -15,9 +15,6 @@
 #include "MSReader.h"
 #include "../Common/ParameterSet.h"
 
-using casacore::Int;
-using casacore::Table;
-
 namespace DP3 {
 namespace DPPP {
 
@@ -64,14 +61,18 @@ class MSBDAWriter : public DPStep {
   /// If an entry already exists, nothing is written.
   void WriteMetaData();
 
-  /// Write all the baselines to the BDA_FACTORS table.
-  void WriteTimeFactorRows(const Int&, unsigned int&, unsigned int&);
+  /// Write all the baselines to the BDA_FACTORS table,
+  /// while updating min_factor_time and max_factor_time.
+  void WriteTimeFactorRows(casacore::Int bda_set_id,
+                           unsigned int& min_factor_time,
+                           unsigned int& max_factor_time);
 
   /// Write a row in the BDA_TIME_AXIS table.
-  void WriteTimeAxisRow(const Int&, const unsigned int&, const unsigned int&);
+  void WriteTimeAxisRow(casacore::Int bda_set_id, unsigned int min_factor_time,
+                        unsigned int max_factor_time);
 
   /// Overwrite the SPECTRAL_WINDOW and DATA_DESCRIPTION tables.
-  void OverwriteSubTables(const Int&);
+  void OverwriteSubTables(casacore::Int bda_set_id);
 
  private:
   DPInput* reader_;
