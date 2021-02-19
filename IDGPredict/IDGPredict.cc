@@ -87,12 +87,13 @@ IDGPredict::IDGPredict(
     std::cout << std::endl;
 
     directions_.emplace_back(facet.RA(), facet.Dec());
-    images_.emplace_back();
+    images_.emplace_back(full_width, full_height, readers.second.size());
     FacetImage& image = images_.back();
-    constexpr bool kMakeSquare = true;  // only necessary for IDG though
-    constexpr double kPadding = 1.0;
-    image.CopyFacetPart(facet, readers.second, full_width, full_height,
-                        kPadding, kMakeSquare);
+
+    // The padding is 1.0, so the trimmed and untrimmed boxes are equal.
+    const bool kTrimmed = true;
+    image.SetFacet(facet, kTrimmed);
+    image.CopyToFacet(readers.second);
     area += image.Width() * image.Height();
   }
   std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
@@ -138,14 +139,22 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
                                          const double pixel_size_y,
                                          const size_t full_width,
                                          const size_t full_height) {
+  const double kShiftL = 0.0;
+  const double kShiftM = 0.0;
+  const bool kOriginAtZero = false;
+  const double kPadding = 1.0;
+  const size_t kAlign = 4;
+  const bool kMakeSquare = true;  // Only necessary for IDG.
+
   DS9FacetFile facet_file(ds9_regions_file);
-  std::vector<Facet> facets_out = facet_file.Read();
-  for (Facet& facet : facets_out) {
-    facet.CalculatePixelPositions(ra, dec, pixel_size_x, pixel_size_y,
-                                  full_width, full_height, 0.0, 0.0, false);
+  std::vector<Facet> facets = facet_file.Read();
+  for (Facet& facet : facets) {
+    facet.CalculatePixels(ra, dec, pixel_size_x, pixel_size_y, full_width,
+                          full_height, kShiftL, kShiftM, kOriginAtZero,
+                          kPadding, kAlign, kMakeSquare);
   }
-  std::cout << "Read " << facets_out.size() << " facet definitions.\n";
-  return facets_out;
+  std::cout << "Read " << facets.size() << " facet definitions.\n";
+  return facets;
 }
 
 std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
@@ -303,7 +312,7 @@ void IDGPredict::StartIDG() {
       // Reserve space for 4 polarizations but only use the first polarization.
       // TODO Copy data for the other polarizations, too.
       image_data.resize(img.Width() * img.Height() * 4, 0.0);
-      std::copy_n(img.Data(term).data(), img.Width() * img.Height(),
+      std::copy_n(img.Data(term), img.Width() * img.Height(),
                   image_data.data());
 
       buffersets_.emplace_back(idg::api::BufferSet::create(proxy_type));
@@ -331,7 +340,7 @@ void IDGPredict::StartIDG() {
                                 pixel_size_x_, pixel_size_y_);
       writer.SetPhaseCentreShift(dl, dm);
       writer.Write("facet" + std::to_string(meta_data_.size()) + ".fits",
-                   img.Data(0).data());
+                   img.Data(0));
     }
 
     meta_data_.emplace_back(dl, dm, dp);
