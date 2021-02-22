@@ -39,6 +39,7 @@ class ColumnReader : public DPStep {
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
   std::string operation_;    ///< Operation to use on the DATA column
+  DPBuffer buffer_;          ///< Buffer to copy contents into
 };
 
 }  // namespace DPPP
