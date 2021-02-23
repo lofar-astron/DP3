@@ -134,6 +134,9 @@ PYBIND11_MODULE(pydppp, m) {
              return ret;
            })
       .def("set_need_vis_data", &DPInfo::setNeedVisData)
+      .def("set_write_data", &DPInfo::setWriteData)
+      .def("set_write_flags", &DPInfo::setWriteFlags)
+      .def("set_write_weights", &DPInfo::setWriteWeights)
       .def("get_channel_frequencies", &DPInfo::chanFreqs,
            py::arg("baseline") = 0)
       .def("get_antenna1", &DPInfo::getAnt1)
