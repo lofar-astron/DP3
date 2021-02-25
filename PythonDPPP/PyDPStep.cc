@@ -30,10 +30,10 @@ void PyDPStepImpl::show(std::ostream& os) const {
 }
 
 void PyDPStepImpl::finish() {
-    pybind11::function overload = pybind11::get_overload(this, "finish");
-    if (overload) overload(); // Call the Python function.
+  pybind11::function overload = pybind11::get_overload(this, "finish");
+  if (overload) overload();  // Call the Python function.
 
-    getNextStep()->finish();
+  getNextStep()->finish();
 }
 
 bool PyDPStepImpl::process(const DPBuffer& bufin) {
