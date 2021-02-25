@@ -29,6 +29,13 @@ void PyDPStepImpl::show(std::ostream& os) const {
   sysm.attr("stdout") = stdout;
 }
 
+void PyDPStepImpl::finish() {
+    pybind11::function overload = pybind11::get_overload(this, "finish");
+    if (overload) overload(); // Call the Python function.
+
+    getNextStep()->finish();
+}
+
 bool PyDPStepImpl::process(const DPBuffer& bufin) {
   m_count++;
 
@@ -53,14 +60,6 @@ bool PyDPStepImpl::process(const DPBuffer& bufin) {
       DPStepWrapper, /* Parent class */
       process,       /* Name of function in C++ (must match Python name) */
       dpbuffer       /* Argument(s) */
-  );
-}
-
-void PyDPStepImpl::finish() {
-  PYBIND11_OVERLOAD_PURE(
-      void,          /* Return type */
-      DPStepWrapper, /* Parent class */
-      finish         /* Name of function in C++ (must match Python name) */
   );
 }
 

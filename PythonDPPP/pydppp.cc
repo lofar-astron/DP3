@@ -90,6 +90,8 @@ PYBIND11_MODULE(pydppp, m) {
       .def("update_info", &DPStepWrapper::updateInfo, "Handle metadata")
       .def("info", &DPStepWrapper::info, py::return_value_policy::reference,
            "Get info object (read/write) with metadata")
+      .def("finish", &DPStepWrapper::finish,
+           "Finish processing (nextstep->finish will be called automatically")
       .def("get_next_step", &DPStepWrapper::get_next_step,
            py::return_value_policy::copy, "Get a reference to the next step")
       .def("process_next_step", &DPStepWrapper::process_next_step,
