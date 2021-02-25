@@ -180,6 +180,12 @@ void DDECal::initializeSolver(const ParameterSet& parset,
   }
   const LLSSolverType llsSolver =
       LLSSolver::ParseType(parset.getString(prefix + "llssolver", "qr"));
+  const double llsEndTolerance =
+      parset.getDouble(prefix + "llstolerance", 1.0E-7);
+  const double llsStartTolerance =
+      parset.getDouble(prefix + "llsstarttolerance", llsEndTolerance);
+  const std::pair<double, double> llsTolerances =
+      LLSSolver::ParseTolerances(llsEndTolerance, llsStartTolerance);
   if (itsIterateDirections && itsMode != GainCal::DIAGONAL &&
       itsMode != GainCal::DIAGONALPHASE &&
       itsMode != GainCal::DIAGONALAMPLITUDE) {
@@ -190,21 +196,21 @@ void DDECal::initializeSolver(const ParameterSet& parset,
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
       itsSolver = boost::make_unique<ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver);
+      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARPHASE:
       itsSolver = boost::make_unique<ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver);
+      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsSolver->SetPhaseOnly(true);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARAMPLITUDE:
       itsSolver = boost::make_unique<ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver);
+      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
@@ -214,7 +220,7 @@ void DDECal::initializeSolver(const ParameterSet& parset,
         itsSolver = boost::make_unique<IterativeDiagonalSolver>();
       else
         itsSolver = boost::make_unique<DiagonalSolver>();
-      itsSolver->SetLLSSolverType(llsSolver);
+      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 2;
@@ -246,7 +252,7 @@ void DDECal::initializeSolver(const ParameterSet& parset,
     case GainCal::TEC:
     case GainCal::TECANDPHASE: {
       itsSolver = boost::make_unique<ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver);
+      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       const auto tecMode = (itsMode == GainCal::TEC)
                                ? TECConstraint::TECOnlyMode
                                : TECConstraint::TECAndCommonScalarMode;

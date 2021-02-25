@@ -223,11 +223,9 @@ void ScalarSolver::PerformIteration(size_t channel_block_index,
   size_t n = n_directions_, nrhs = 1;
 
   std::unique_ptr<LLSSolver> solver =
-      LLSSolver::Make(llsSolverType_, m, n, nrhs);
-  solver->SetTolerance(std::min(
-      solverprecision / 10.0,
-      std::min(1.0E-2, 1.0E-7 / (iterationfraction * iterationfraction *
-                                 iterationfraction))));
+      LLSSolver::Make(lls_solver_type_, m, n, nrhs);
+  solver->SetTolerance(
+      calculateLLSTolerance(iterationfraction, solverprecision));
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     // solve x^H in [g C] x^H  = v
     std::vector<Complex> x0(n_directions_);

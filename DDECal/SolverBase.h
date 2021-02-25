@@ -144,7 +144,8 @@ class SolverBase {
    */
   void GetTimings(std::ostream& os, double duration) const;
 
-  void SetLLSSolverType(const LLSSolverType solver);
+  void SetLLSSolverType(LLSSolverType solver,
+                        std::pair<double, double> tolerances);
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
@@ -177,6 +178,9 @@ class SolverBase {
     return std::isfinite(val.real()) && std::isfinite(val.imag());
   }
 
+  double calculateLLSTolerance(double iteration_fraction,
+                               double solver_precision) const;
+
   size_t n_antennas_;
   size_t n_directions_;
   size_t n_channels_;
@@ -197,7 +201,9 @@ class SolverBase {
   bool phase_only_;
   std::vector<Constraint*>
       constraints_;  // Does not own the Constraint objects.
-  LLSSolverType llsSolverType_;
+  LLSSolverType lls_solver_type_;
+  double lls_min_tolerance_;
+  double lls_max_tolerance_;
   /** @} */
 };
 

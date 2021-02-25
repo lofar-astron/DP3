@@ -23,7 +23,9 @@ SolverBase::SolverBase()
       step_size_(0.2),
       detect_stalling_(true),
       phase_only_(false),
-      llsSolverType_(LLSSolverType::QR) {}
+      lls_solver_type_(LLSSolverType::QR),
+      lls_min_tolerance_(1.0E-7),
+      lls_max_tolerance_(1.0E-2) {}
 
 void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
                             size_t n_channels, size_t n_channel_blocks,
@@ -249,8 +251,26 @@ void SolverBase::GetTimings(std::ostream& os, double duration) const {
   }
 }
 
-void SolverBase::SetLLSSolverType(const LLSSolverType solver) {
-  llsSolverType_ = solver;
+void SolverBase::SetLLSSolverType(const LLSSolverType solver,
+                                  const std::pair<double, double> tolerances) {
+  lls_solver_type_ = solver;
+  lls_min_tolerance_ = tolerances.first;
+  lls_max_tolerance_ = tolerances.second;
+}
+
+double SolverBase::calculateLLSTolerance(const double iteration_fraction,
+                                         const double solver_precision) const {
+  double result;
+  if (lls_max_tolerance_ == lls_min_tolerance_) {
+    result = lls_max_tolerance_;
+  } else {
+    result = std::min(
+        solver_precision / 10.0,
+        std::min(lls_max_tolerance_,
+                 lls_min_tolerance_ / (iteration_fraction * iteration_fraction *
+                                       iteration_fraction)));
+  }
+  return result;
 }
 
 }  // namespace DPPP

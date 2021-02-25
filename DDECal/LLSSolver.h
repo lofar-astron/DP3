@@ -55,6 +55,16 @@ class LLSSolver {
     }
   }
 
+  static std::pair<double, double> ParseTolerances(double min_tolerance,
+                                                   double max_tolerance) {
+    double result_min = min_tolerance;
+    double result_max = max_tolerance;
+    if (result_max < result_min) {
+      result_max = result_min;
+    }
+    return std::pair<double, double>(result_min, result_max);
+  }
+
  protected:
   int m_;     // number of rows in matrix A
   int n_;     // number of columns in matrix A
