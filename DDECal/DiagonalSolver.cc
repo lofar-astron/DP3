@@ -224,11 +224,9 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
   const size_t n = n_directions_;
   const size_t nrhs = 1;
   std::unique_ptr<LLSSolver> solver =
-      LLSSolver::Make(llsSolverType_, m, n, nrhs);
-  solver->SetTolerance(std::min(
-      solverprecision / 10.0,
-      std::min(1.0E-2, 1.0E-7 / (iterationfraction * iterationfraction *
-                                 iterationfraction))));
+      LLSSolver::Make(lls_solver_type_, m, n, nrhs);
+  solver->SetTolerance(
+      calculateLLSTolerance(iterationfraction, solverprecision));
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
       // solve x^H in [g C] x^H  = v

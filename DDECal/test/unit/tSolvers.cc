@@ -216,7 +216,8 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_lsmr, SolverTester) {
   solver.SetStepSize(0.2);
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
-  solver.SetLLSSolverType(LLSSolverType::LSMR);
+  solver.SetLLSSolverType(LLSSolverType::LSMR,
+                          std::pair<double, double>(1.0E-7, 1.0E-2));
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
 
   SetScalarSolutions();
@@ -278,7 +279,8 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver_lsmr, SolverTester) {
   solver.SetStepSize(0.2);
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
-  solver.SetLLSSolverType(LLSSolverType::LSMR);
+  solver.SetLLSSolverType(LLSSolverType::LSMR,
+                          std::pair<double, double>(1.0E-7, 1.0E-2));
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
 
   std::mt19937 mt;
