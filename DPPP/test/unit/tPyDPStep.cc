@@ -142,8 +142,10 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
   DPStep::ShPtr step1(in);
   // Requires MockPyStep to be on the PYTHONPATH!
   ParameterSet parset;
-  parset.add("python.module", "MockPyStep");
+  parset.add("python.module", "mockpystep");
   parset.add("python.class", "MockPyStep");
+  parset.add("datafactor", "2");
+  parset.add("weightsfactor", "0.5");
   // Step 2 is the python step
   DPStep::ShPtr step2 = PyDPStep::create_instance(in, parset, "");
   DPStep::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr));
@@ -154,7 +156,7 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
   // indeed redirected to output stream
   std::ostringstream output_stream_step;
   step2->show(output_stream_step);
-  BOOST_TEST(output_stream_step.str() == "\nMockPyStep\n");
+  BOOST_TEST(output_stream_step.str() == "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
 
   Execute(step1);
 }
