@@ -135,7 +135,7 @@ PYBIND11_MODULE(pydppp, m) {
             py::array ret = py::cast(names);
             return ret;
           },
-          "Get list of antenna names (read only)")
+          "Get numpy array with antenna names (read only)")
       .def(
           "antenna_positions",
           [](DPInfo &self) -> py::array {
