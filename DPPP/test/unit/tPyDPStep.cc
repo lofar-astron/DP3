@@ -156,7 +156,8 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
   // indeed redirected to output stream
   std::ostringstream output_stream_step;
   step2->show(output_stream_step);
-  BOOST_TEST(output_stream_step.str() == "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
+  BOOST_TEST(output_stream_step.str() ==
+             "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
 
   Execute(step1);
 }
