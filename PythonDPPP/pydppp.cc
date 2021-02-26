@@ -84,20 +84,29 @@ PYBIND11_MODULE(pydppp, m) {
              PyDPStepImpl                     /* <--- trampoline*/
              >(m, "DPStep")
       .def(py::init<>())
-      .def("show", &DPStepWrapper::show)
-      .def("update_info", &DPStepWrapper::updateInfo)
-      .def("info", &DPStepWrapper::info, py::return_value_policy::reference)
+      .def("show", &DPStepWrapper::show,
+           "Show step summary (stdout will be redirected to DPPP's output "
+           "stream during this step)")
+      .def("update_info", &DPStepWrapper::updateInfo, "Handle metadata")
+      .def("info", &DPStepWrapper::info, py::return_value_policy::reference,
+           "Get info object (read/write) with metadata")
       .def("get_next_step", &DPStepWrapper::get_next_step,
            py::return_value_policy::copy)
       .def("process_next_step", &DPStepWrapper::process_next_step)
       .def("get_count", &DPStepWrapper::get_count)
-      .def_readwrite("fetch_uvw", &DPStepWrapper::m_fetch_uvw)
-      .def_readwrite("fetch_weights", &DPStepWrapper::m_fetch_weights);
+      .def_readwrite("fetch_uvw", &DPStepWrapper::m_fetch_uvw,
+                     "Fill the UVW data in the buffer")
+      .def_readwrite("fetch_weights", &DPStepWrapper::m_fetch_weights,
+                     "Fill the weights data in the buffer");
 
   py::class_<DPBuffer, std::shared_ptr<DPBuffer>>(m, "DPBuffer")
       .def(py::init<>())
-      .def("get_data", (casacore::Cube<casacore::Complex> &
-                        (DPBuffer::*)())(&DPBuffer::getData))
+      .def("get_data",
+           (casacore::Cube<casacore::Complex> &
+            (DPBuffer::*)())(&DPBuffer::getData),
+           "Get data "
+           "buffer that can be read as numpy array. Shape is "
+           "(nr baselines, nr channels, nr polarizations)")
       .def("get_weights",
            (casacore::Cube<float> & (DPBuffer::*)())(&DPBuffer::getWeights))
       .def("get_flags",
@@ -106,46 +115,55 @@ PYBIND11_MODULE(pydppp, m) {
            (casacore::Matrix<double> & (DPBuffer::*)())(&DPBuffer::getUVW));
 
   py::class_<DPInfo>(m, "DPInfo")
-      .def("antenna_names",
-           [](DPInfo &self) -> py::array {
-             // Convert casa vector of casa strings to std::vector of strings
-             casacore::Vector<casacore::String> names_casa =
-                 self.antennaNames();
-             std::vector<std::string> names;
-             for (size_t i = 0; i < names_casa.size(); ++i) {
-               names.push_back(names_casa[i]);
-             }
-             py::array ret = py::cast(names);
-             return ret;
-           })
-      .def("antenna_positions",
-           [](DPInfo &self) -> py::array {
-             // Convert vector of casa MPositions to std::vector of positions
-             std::vector<casacore::MPosition> positions_casa =
-                 self.antennaPos();
-             std::vector<std::array<double, 3>> positions;
-             for (size_t i = 0; i < positions_casa.size(); ++i) {
-               casacore::MVPosition position_mv = positions_casa[i].getValue();
-               std::array<double, 3> position_array = {
-                   position_mv(0), position_mv(1), position_mv(2)};
-               positions.push_back(position_array);
-             }
-             py::array ret = py::cast(positions);
-             return ret;
-           })
-      .def("set_need_vis_data", &DPInfo::setNeedVisData)
-      .def("set_write_data", &DPInfo::setWriteData)
-      .def("set_write_flags", &DPInfo::setWriteFlags)
-      .def("set_write_weights", &DPInfo::setWriteWeights)
+      .def(
+          "antenna_names",
+          [](DPInfo &self) -> py::array {
+            // Convert casa vector of casa strings to std::vector of strings
+            casacore::Vector<casacore::String> names_casa = self.antennaNames();
+            std::vector<std::string> names;
+            for (size_t i = 0; i < names_casa.size(); ++i) {
+              names.push_back(names_casa[i]);
+            }
+            py::array ret = py::cast(names);
+            return ret;
+          },
+          "Get list of antenna names (read only)")
+      .def(
+          "antenna_positions",
+          [](DPInfo &self) -> py::array {
+            // Convert vector of casa MPositions to std::vector of positions
+            std::vector<casacore::MPosition> positions_casa = self.antennaPos();
+            std::vector<std::array<double, 3>> positions;
+            for (size_t i = 0; i < positions_casa.size(); ++i) {
+              casacore::MVPosition position_mv = positions_casa[i].getValue();
+              std::array<double, 3> position_array = {
+                  position_mv(0), position_mv(1), position_mv(2)};
+              positions.push_back(position_array);
+            }
+            py::array ret = py::cast(positions);
+            return ret;
+          },
+          "Get a list of antenna positions in ITRF XYZ (read only)")
+      .def("set_need_vis_data", &DPInfo::setNeedVisData,
+           "Set whether data needs to be read before this step")
+      .def("set_write_data", &DPInfo::setWriteData,
+           "Set whether data needs to be written after this step")
+      .def("set_write_flags", &DPInfo::setWriteFlags,
+           "Set whether flags need to be written after this step")
+      .def("set_write_weights", &DPInfo::setWriteWeights,
+           "Set whether weights need to be written after this step")
       .def("get_channel_frequencies", &DPInfo::chanFreqs,
-           py::arg("baseline") = 0)
-      .def("get_antenna1", &DPInfo::getAnt1)
-      .def("get_antenna2", &DPInfo::getAnt2)
-      .def("nantenna", &DPInfo::nantenna)
-      .def("nchan", &DPInfo::nchan)
-      .def("start_time", &DPInfo::startTime)
-      .def("time_interval", &DPInfo::timeInterval)
-      .def("ntime", &DPInfo::ntime);
+           py::arg("baseline") = 0,
+           "Get a list of channel frequencies (read only)")
+      .def("get_antenna1", &DPInfo::getAnt1,
+           "Get a list of first antenna numbers of correlations")
+      .def("get_antenna2", &DPInfo::getAnt2,
+           "Get a list of second antenna numbers of correlations")
+      .def("nantenna", &DPInfo::nantenna, "Get the number of antennas")
+      .def("nchan", &DPInfo::nchan, "Get the number of channels")
+      .def("start_time", &DPInfo::startTime, "Get the start time")
+      .def("time_interval", &DPInfo::timeInterval, "Get the time interval")
+      .def("ntime", &DPInfo::ntime, "Get the total number of time slots");
 }
 
 void test() {}
