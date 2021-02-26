@@ -140,7 +140,7 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
   DPStep::ShPtr step1(in);
-  // Requires MockPyStep to be on the PYTHONPATH!
+  // Requires mockpystep to be on the PYTHONPATH!
   ParameterSet parset;
   parset.add("python.module", "mockpystep");
   parset.add("python.class", "MockPyStep");

@@ -91,9 +91,11 @@ PYBIND11_MODULE(pydppp, m) {
       .def("info", &DPStepWrapper::info, py::return_value_policy::reference,
            "Get info object (read/write) with metadata")
       .def("get_next_step", &DPStepWrapper::get_next_step,
-           py::return_value_policy::copy)
-      .def("process_next_step", &DPStepWrapper::process_next_step)
-      .def("get_count", &DPStepWrapper::get_count)
+           py::return_value_policy::copy, "Get a reference to the next step")
+      .def("process_next_step", &DPStepWrapper::process_next_step,
+           "Process the next step")
+      .def("get_count", &DPStepWrapper::get_count,
+           "Get the number of time slots processed")
       .def_readwrite("fetch_uvw", &DPStepWrapper::m_fetch_uvw,
                      "Fill the UVW data in the buffer")
       .def_readwrite("fetch_weights", &DPStepWrapper::m_fetch_weights,
@@ -112,7 +114,13 @@ PYBIND11_MODULE(pydppp, m) {
       .def("get_flags",
            (casacore::Cube<bool> & (DPBuffer::*)())(&DPBuffer::getFlags))
       .def("get_uvw",
-           (casacore::Matrix<double> & (DPBuffer::*)())(&DPBuffer::getUVW));
+           (casacore::Matrix<double> & (DPBuffer::*)())(&DPBuffer::getUVW))
+      .def("get_exposure", &DPBuffer::getExposure,
+           "Get the exposure of this buffer")
+      .def("set_exposure", &DPBuffer::setExposure,
+           "Set the exposure of this buffer")
+      .def("get_time", &DPBuffer::getTime, "Get the time of this buffer")
+      .def("set_time", &DPBuffer::setTime, "Set the time of this buffer");
 
   py::class_<DPInfo>(m, "DPInfo")
       .def(

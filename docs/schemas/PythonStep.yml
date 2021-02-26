@@ -1,14 +1,18 @@
 description: |-
   Run a user defined python step. Parameters are passed to python.
   To make a python step work, make sure that the python libraries of DPPP are
-  in the python path.
+  in the python path, e.g. by setting
+
+  .. code-block:: sh
+
+      export PYTHONPATH=/path/to/dp3/lib64/python3.6/site-packages:$PYTHONPATH
 
   The example below shows a minimal example of a python step.
 
   .. include:: ../../DPPP/test/unit/mock/mockpystep.py
      :code: python
 
-  **Note**: :code:`import dppp` currently does not work from a python interpreter directly, it only works if the python code is run by DPPP.
+  **Note**: :code:`import dppp` does not work from a python interpreter directly, it only works if the python code is run by DPPP.
 
    For a complete list of DPPP functions available in python see the source code of pydppp.cc
 
@@ -18,7 +22,7 @@ inputs:
     doc: Case-insensitive step type; must be :code:`python` or :code:`pythondppp` `.`
   python.module:
     type: string
-    doc: Name of the module where the python code lives. Typically this is the file name of the python code, which should be in the python path. E.g. if your code is in :code:`mockpystep.py` in the working directory, put :code:`module` to :code:`mockpystep`.
+    doc: Name of the module where the python code lives. Typically this is the file name of the python code, which should be in the python path. E.g. if your code is in :code:`mockpystep.py` in the working directory, set :code:`module` to :code:`mockpystep`.
   python.class:
     type: string
     doc: Name of the python class that subclasses the DPStep. In the example above, this should be :code:`MockPyStep`.

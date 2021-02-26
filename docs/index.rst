@@ -269,8 +269,8 @@ For example:
   mystep2.type = mystep.stepb
 
   defines two user steps. Both step implementations reside in library libmystep.so.
-  A description and example of a dynamically loaded step can be found in the LOFAR
-  source code repository in DPPP/TestDynDPPP.
+  A description and example of a dynamically loaded step can be found in the source
+  code repository in DPPP/TestDynDPPP.
 
 Python defined step
 ---------------------
