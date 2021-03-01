@@ -9,7 +9,7 @@ inputs:
     type: string
     doc: Case-insensitive step type; must be 'preflagger' (or 'preflag') `.`
     default: preflagger
-  count.save:
+  count&#46;save:
     default: false
     type: boolean
     doc: >-
@@ -17,7 +17,7 @@ inputs:
       extension ``.flagfreq`` and percentages per station to a table with extension
       ``.flagstat``. The basename of the table is the MS name (without extension)
       followed by the stepname and extension.
-  count.path:
+  count&#46;path:
     type: string?
     doc: >-
       The directory where to create the flag percentages table. If empty, the
