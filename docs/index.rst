@@ -269,16 +269,13 @@ For example:
   mystep2.type = mystep.stepb
 
   defines two user steps. Both step implementations reside in library libmystep.so.
-  A description and example of a dynamically loaded step can be found in the LOFAR
-  source code repository in LOFAR/CEP/DPPP/TestDyDPPP.
+  A description and example of a dynamically loaded step can be found in the source
+  code repository in DPPP/TestDynDPPP.
 
 Python defined step
 ---------------------
 The mechanism described above is used to make it possible to implement a user
-step in Python. The step type has to be `pythoDPPP` and the name of the Python module and class containing the code have to be given. DPPP will load the library `libdppp_pythonDPPP.so`, which 
-will start an embedded Python shell, load the module, and instantiate an object of the class.
-A `detailed description <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:pythonstep>`__ is available.
-
+step in Python. The step type has to be `pythondppp` and the name of the Python module and class containing the code have to be given. DPPP will start an embedded Python shell, load the module, and instantiate an object of the class. See the documention of :ref:`PythonStep`.
 
 ParSet File
 ---------------------
