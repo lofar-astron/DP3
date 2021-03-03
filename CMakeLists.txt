@@ -32,6 +32,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 add_compile_options(-Wall -O3)
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
+option(PORTABLE "Generate portable code" OFF)
 if(NOT PORTABLE)
   add_compile_options(-march=native)
 endif()
@@ -89,6 +90,12 @@ else() # Use old, deprecated means of detecting python.
 endif()
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
+
+if(BUILD_PACKAGES)
+  set(PYTHON_INSTALL_DIR lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/dist-packages)
+else()
+  set(PYTHON_INSTALL_DIR lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages)
+endif()
 
 #Boost depends on python, since we use ${BOOSTPY} here.
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
@@ -178,6 +185,12 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 # Add cmake information to headers
 configure_file(DPPP/Version.h.in DPPP/Version.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/DPPP)
+
+# Add CPack directory if user want to generate Debian packages
+option(BUILD_PACKAGES "Build Debian packages" OFF)
+if(BUILD_PACKAGES)
+  add_subdirectory(CPack)
+endif()
 
 # Object libraries (which are just file groups, not actual libraries) are made in order
 # to avoid compiling everything multiple times for multiple executables.

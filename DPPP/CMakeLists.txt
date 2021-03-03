@@ -1,8 +1,6 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-include(PythonInstall)
-
 add_executable(DPPP DPPP.cc ${DPPP_OBJECTS})
 target_link_libraries(DPPP ${DPPP_LIBRARIES})
 add_dependencies(DPPP schaapcommon)
@@ -19,8 +17,8 @@ install(
 # lofar_add_bin_scripts(taqlflagger)
 
 # Python modules.
-python_install(
+INSTALL(FILES
   __init__.py
-  DESTINATION lofar/dppp)
+  DESTINATION ${PYTHON_INSTALL_DIR}/lofar/dppp)
 
 add_subdirectory(test/integration)
