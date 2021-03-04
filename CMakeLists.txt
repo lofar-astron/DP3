@@ -11,7 +11,7 @@ if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.1")
 endif()
 
 # Set version number and project name.
-set(DP3_VERSION 5.0.0)
+set(DP3_VERSION 5.1.0)
 if(DP3_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")
   set(DP3_VERSION_MAJOR "${CMAKE_MATCH_1}")
   set(DP3_VERSION_MINOR "${CMAKE_MATCH_2}")
