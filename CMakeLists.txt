@@ -80,6 +80,8 @@ else() # Use old, deprecated means of detecting python.
   find_package(PythonLibs 3 REQUIRED)
   set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
   set(Python3_VERSION ${PYTHON_VERSION_STRING})
+  set(Python3_VERSION_MAJOR ${PYTHON_VERSION_MAJOR})
+  set(Python3_VERSION_MINOR ${PYTHON_VERSION_MINOR})
   set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
   set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
 
@@ -92,9 +94,9 @@ message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
 
 if(BUILD_PACKAGES)
-  set(PYTHON_INSTALL_DIR lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/dist-packages)
+  set(PYTHON_INSTALL_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/dist-packages)
 else()
-  set(PYTHON_INSTALL_DIR lib/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages)
+  set(PYTHON_INSTALL_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
 endif()
 
 #Boost depends on python, since we use ${BOOSTPY} here.
