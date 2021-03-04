@@ -6,6 +6,7 @@
 #include "LSMRSolver.h"
 #include "QRSolver.h"
 #include "SVDSolver.h"
+#include "NormalEquationsSolver.h"
 
 #include <boost/make_unique.hpp>
 
@@ -28,6 +29,8 @@ std::unique_ptr<LLSSolver> LLSSolver::Make(LLSSolverType lss_type, int m, int n,
       return boost::make_unique<SVDSolver>(m, n, nrhs);
     case LLSSolverType::QR:
       return boost::make_unique<QRSolver>(m, n, nrhs);
+    case LLSSolverType::NORMAL_EQUATIONS:
+      return boost::make_unique<NormalEquationsSolver>(m, n, nrhs);
   }
   return nullptr;
 }

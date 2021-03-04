@@ -52,6 +52,8 @@ class LSMRSolver final : public LLSSolver {
   thread_local static complex* LSMR_Matrix_A;
 
   double tolerance_;
+
+  std::vector<complex> x_;
 };
 
 }  // namespace DPPP

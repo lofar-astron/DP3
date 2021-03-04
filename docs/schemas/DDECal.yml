@@ -139,7 +139,7 @@ inputs:
   llssolver:
     default: qr
     type: string
-    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd`` or ``lsmr`` `.`
+    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd``, ``normalequations``, or ``lsmr`` `.`
   llstolerance:
      default: 1.0E-7
      type: double
