@@ -16,7 +16,7 @@ namespace DPPP {
 thread_local complex* LSMRSolver::LSMR_Matrix_A;
 
 LSMRSolver::LSMRSolver(int m, int n, int nrhs)
-    : LLSSolver(m, n, nrhs), tolerance_(1.0E-7) {}
+    : LLSSolver(m, n, nrhs), tolerance_(1.0E-7), x_(n) {}
 
 void LSMRSolver::Aprod1(int* m, int* n, complex* x, complex* y) {
   // compute y:= y + A x
@@ -64,15 +64,16 @@ bool LSMRSolver::Solve(complex* a, complex* b, double atolerance,
   float normAr;
   float normx;
 
-  std::vector<complex> x(n_);
-
   __clsmrmodule_MOD_clsmr(&m_, &n_, Aprod1, Aprod2, b, &damp, &atol, &btol,
-                          &conlim, &itnlim, &localSize, &nout, x.data(), &istop,
-                          &itn, &normA, &condA, &normr, &normAr, &normx);
+                          &conlim, &itnlim, &localSize, &nout, x_.data(),
+                          &istop, &itn, &normA, &condA, &normr, &normAr,
+                          &normx);
 
-  for (int i = 0; i < n_; ++i) {
-    b[i] = x[i];
-  }
+  std::copy_n(x_.data(), n_, b);
+
+  //  for (int i = 0; i < n_; ++i) {
+  //    b[i] = x_[i];
+  // }
 
   return itn < itnlim;
 }

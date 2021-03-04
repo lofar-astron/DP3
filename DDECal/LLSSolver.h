@@ -17,7 +17,7 @@ namespace DPPP {
 /**
  * Linear least-squares solver to use.
  */
-enum class LLSSolverType { QR, SVD, LSMR };
+enum class LLSSolverType { QR, SVD, LSMR, NORMAL_EQUATIONS };
 
 /**
  * Base class for linear least-square solvers. These are used by
@@ -49,6 +49,8 @@ class LLSSolver {
       return LLSSolverType::SVD;
     } else if (boost::algorithm::to_lower_copy(solver) == "qr") {
       return LLSSolverType::QR;
+    } else if (boost::algorithm::to_lower_copy(solver) == "normalequations") {
+      return LLSSolverType::NORMAL_EQUATIONS;
     } else {
       throw std::runtime_error("Unknown least squares solver requested: " +
                                solver);
