@@ -8,6 +8,20 @@ project(DP3_DOC NONE)
 
 find_package(Doxygen)
 
+if(NOT DP3_VERSION)
+  # Building docs standalone, get version from top level CMakelists
+  FILE(READ "../CMakeLists.txt" TOPLEVEL_CMAKELISTS)
+  set(DP3_VERSION_REGEX ".*set\\(DP3_VERSION ([0-9]+)\\.([0-9]+)\\.([0-9]+).*\\)")
+  if ("${TOPLEVEL_CMAKELISTS}" MATCHES ${DP3_VERSION_REGEX})
+    set(DP3_VERSION_MAJOR "${CMAKE_MATCH_1}")
+    set(DP3_VERSION_MINOR "${CMAKE_MATCH_2}")
+    set(DP3_VERSION_PATCH "${CMAKE_MATCH_3}")
+  else()
+    message(FATAL_ERROR "Failed to parse DP3_VERSION from top level CMakeLists.txt")
+  endif()
+endif()
+  
+
 if(DOXYGEN_FOUND)
   configure_file(${CMAKE_CURRENT_LIST_DIR}/doxygen/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
   add_custom_target(doc
