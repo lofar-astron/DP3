@@ -27,6 +27,8 @@ if(USE_LSMR)
   enable_language(Fortran)
 endif()
 
+option(BUILD_PACKAGES "Build Debian packages" OFF)
+
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
@@ -34,7 +36,19 @@ string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 option(PORTABLE "Generate portable code" OFF)
 if(NOT PORTABLE)
-  add_compile_options(-march=native)
+  if(ENABLE_AVX512F)
+    add_compile_options(-mavx512f)
+  elseif(ENABLE_AVX2)
+    add_compile_options(-mavx2)
+  elseif(ENABLE_AVX)
+    add_compile_options(-mavx)
+  else()
+    add_compile_options(-march=native)
+  endif()
+else()
+  if(ENABLE_AVX512F OR ENABLE_AVX2 OR ENABLE_AVX)
+    message(FATAL_ERROR "Cannot enable AVX features when building portable code.")
+  endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -188,8 +202,6 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 configure_file(DPPP/Version.h.in DPPP/Version.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/DPPP)
 
-# Add CPack directory if user want to generate Debian packages
-option(BUILD_PACKAGES "Build Debian packages" OFF)
 if(BUILD_PACKAGES)
   add_subdirectory(CPack)
 endif()
