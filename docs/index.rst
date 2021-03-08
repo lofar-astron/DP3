@@ -1,7 +1,7 @@
 DPPP 
 ================
 
-`Go to source documentation <doxygen/index.html>`_.
+`Go to source documentation <https://www.astron.nl/citt/DP3/doxygen/index.html>`_.
 
 DPPP (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing Pipeline) is the LOFAR data pipelined processing program. It can be used to do all kind of operations on the data in a pipelined way, so the data are read and written only once.
 
@@ -18,7 +18,6 @@ DPPP comes with quite some predefined steps, but it is possible to plugin arbitr
   :hidden:
 
   self
-  commands
 
 .. toctree::
   :maxdepth: 2

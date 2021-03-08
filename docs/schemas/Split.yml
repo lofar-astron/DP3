@@ -13,5 +13,4 @@ inputs:
     type: array of strings
     doc: >-
       A list of key names that are different for each of the next steps. The keys that are specified in this list should themselves be given as a list of parameters. E.g., for ``split.replaceparms = [average.timestep, msout.name]``, the average.timestep and msout.name should now be specified as arrays, e.g. ``average.timestep=[1, 4]``.
-      
       The number of streams that the input is split into is determined from the keywords that are specified by split.replaceparms. For example, there will be two stream in the above example because average.timestep (as should all other specified keywords) lists two values `.`
