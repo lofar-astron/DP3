@@ -16,14 +16,11 @@ the option ``PORTABLE`` to ``TRUE``. In that case, all cached
 get_cmake_property(_cache_variables CACHE_VARIABLES)
 foreach(_var ${_cache_variables})
   if(_var MATCHES "^USE_AVX")
-    message("Checking variable '${_var}'")
     if(PORTABLE)
       # We're building portable code, remove cached USE_AVX* variable
-      message(STATUS "Removing '${_var}' from the cache")
       unset(${_var} CACHE)
     elseif(${_var})
       # AVX-features were already determined or set explicitly. Bail out
-      message(STATUS "Flag '${_var} was enabled. Bailing out")
       return()
     endif()
   endif()
