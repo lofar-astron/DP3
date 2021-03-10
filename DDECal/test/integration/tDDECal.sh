@@ -140,6 +140,7 @@ $cmd
 
 echo "Check tec and phase"
 cmd="$dpppexe checkparset=1 msin=tDDECal.MS msout=. numthreads=4\
+  msin.baseline='!CS001HBA0'\
   steps=[ddecal]\
     ddecal.sourcedb=tDDECal.MS/sky\
     ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]\

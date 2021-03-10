@@ -500,6 +500,13 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     antennaPos[i][2] = pos.getValue()[2];
   }
 
+  // Prepare positions for only used antennas, to be used for constraints
+  std::vector<std::array<double, 3>> usedAntennaPositions(
+      info().antennaUsed().size());
+  for (size_t i = 0; i < info().antennaUsed().size(); ++i) {
+    usedAntennaPositions[i] = antennaPos[info().antennaUsed()[i]];
+  }
+
   itsH5Parm.AddAntennas(antennaNames, antennaPos);
 
   std::vector<std::pair<double, double>> sourcePositions(itsDirections.size());
@@ -551,7 +558,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (unsigned int i = 0; i < itsConstraints.size(); ++i) {
     // Initialize the constraint with some common metadata
     itsConstraints[i]->InitializeDimensions(
-        info().antennaNames().size(), itsDirections.size(), nChannelBlocks);
+        info().antennaUsed().size(), itsDirections.size(), nChannelBlocks);
 
     // Different constraints need different information. Determine if the
     // constraint is of a type that needs more information, and if so initialize
@@ -562,16 +569,18 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       if (itsAntennaConstraint.empty()) {
         // Set the antenna constraint to all stations within certain distance
         // specified by 'coreconstraint' parameter.
-        // Take antenna with index 0 as reference station
-        double refX = antennaPos[0][0], refY = antennaPos[0][1],
-               refZ = antennaPos[0][2];
+        // Take the first used station as reference station
+        const double refX = usedAntennaPositions[0][0],
+                     refY = usedAntennaPositions[0][1],
+                     refZ = usedAntennaPositions[0][2];
         std::vector<std::set<size_t>> antConstraintList(1);
         std::set<size_t>& coreAntennaIndices = antConstraintList.front();
         const double coreDistSq = itsCoreConstraint * itsCoreConstraint;
-        for (size_t ant = 0; ant != antennaPos.size(); ++ant) {
-          double dx = refX - antennaPos[ant][0], dy = refY - antennaPos[ant][1],
-                 dz = refZ - antennaPos[ant][2],
-                 distSq = dx * dx + dy * dy + dz * dz;
+        for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
+          const double dx = refX - usedAntennaPositions[ant][0],
+                       dy = refY - usedAntennaPositions[ant][1],
+                       dz = refZ - usedAntennaPositions[ant][2],
+                       distSq = dx * dx + dy * dy + dz * dz;
           if (distSq <= coreDistSq) coreAntennaIndices.insert(ant);
         }
         antConstraint->initialize(std::move(antConstraintList));
@@ -607,19 +616,21 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
         dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
     if (screenConstraint != 0) {
       screenConstraint->initialize(&(itsChanBlockFreqs[0]));
-      screenConstraint->setAntennaPositions(antennaPos);
+      screenConstraint->setAntennaPositions(usedAntennaPositions);
       screenConstraint->setDirections(sourcePositions);
       screenConstraint->initPiercePoints();
-      double refX = antennaPos[i][0], refY = antennaPos[i][1],
-             refZ = antennaPos[i][2];
+      const double refX = usedAntennaPositions[i][0],
+                   refY = usedAntennaPositions[i][1],
+                   refZ = usedAntennaPositions[i][2];
       std::vector<size_t> coreAntennaIndices;
       std::vector<size_t> otherAntennaIndices;
       const double coreDistSq =
           itsScreenCoreConstraint * itsScreenCoreConstraint;
-      for (size_t ant = 0; ant != antennaPos.size(); ++ant) {
-        double dx = refX - antennaPos[ant][0], dy = refY - antennaPos[ant][1],
-               dz = refZ - antennaPos[ant][2],
-               distSq = dx * dx + dy * dy + dz * dz;
+      for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
+        const double dx = refX - usedAntennaPositions[ant][0],
+                     dy = refY - usedAntennaPositions[ant][1],
+                     dz = refZ - usedAntennaPositions[ant][2],
+                     distSq = dx * dx + dy * dy + dz * dz;
         if (distSq <= coreDistSq)
           coreAntennaIndices.emplace_back(info().antennaMap()[ant]);
         else
@@ -641,15 +652,18 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       // If no smoothness reference distance is specified, the smoothing is made
       // independent of the distance
       if (itsSmoothnessRefDistance == 0.0) {
-        distanceFactors.assign(antennaPos.size(), 1.0);
+        distanceFactors.assign(usedAntennaPositions.size(), 1.0);
       } else {
         // Make a list of factors such that more distant antennas apply a
         // smaller smoothing kernel.
-        distanceFactors.reserve(antennaPos.size());
-        for (size_t i = 1; i != antennaPos.size(); ++i) {
-          const double dx = antennaPos[0][0] - antennaPos[i][0];
-          const double dy = antennaPos[0][1] - antennaPos[i][1];
-          const double dz = antennaPos[0][2] - antennaPos[i][2];
+        distanceFactors.reserve(usedAntennaPositions.size());
+        for (size_t i = 1; i != usedAntennaPositions.size(); ++i) {
+          const double dx =
+              usedAntennaPositions[0][0] - usedAntennaPositions[i][0];
+          const double dy =
+              usedAntennaPositions[0][1] - usedAntennaPositions[i][1];
+          const double dz =
+              usedAntennaPositions[0][2] - usedAntennaPositions[i][2];
           const double factor =
               itsSmoothnessRefDistance / std::sqrt(dx * dx + dy * dy + dz * dz);
           distanceFactors.push_back(factor);
