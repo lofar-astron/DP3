@@ -135,6 +135,28 @@ build-doc:
   rules:
     - <<: *if_astron_repo
 
+build-package:
+  stage: build
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  script:
+    - mkdir dp3_package
+    - mkdir build && cd build
+    - git fetch --unshallow # We need to unshallow for the tags (setting GIT_DEPTH is not good enough)
+    - cmake -DUSE_LSMR=True -DBUILD_PACKAGES=On ..
+    - make -j4
+    - make package
+    - mv $(ls -1 *.deb) ../dp3_package/
+  artifacts:
+    paths:
+    - dp3_package/
+  rules:
+    # The package is built only during a merge_request_event, a merge to master,
+    # or when the pipeline is triggered by a tag event.
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_TAG'
+    - if: '$UPLOAD_PACKAGE'
+
 linting:
   stage: linting
   extends: .failable
@@ -220,6 +242,25 @@ publish-doc:
     - <<: *if_not_astron_repo
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
+
+deploy-package:
+  stage: publish
+  needs: ["build-package"]
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  script:
+    - pip3 install aptly-api-client
+    - chmod -R 700 external/schaap-packaging
+    - cd dp3_package
+    - export FILES=$(ls -1 $PWD/*.deb)
+    - echo UPLOADING files $FILES
+    # The following example command must be executed first or else the update will fail because there is no repository
+    # create_repo.py -a amd64 -c testing -d bionic --gpg-key ${GPG_KEY} --gpg-passphrase ${GPG_PASS} schaap
+    - ../external/schaap-packaging/update_repo.py --cleanup -d bionic --gpg-key ${GPG_KEY} --gpg-passphrase ${GPG_PASS} schaap ${FILES}
+  rules:
+    # Only run on master because GPG_KEY and GPG_PASS are protected and therefore only available on protected branches.
+    - if: '$CI_COMMIT_BRANCH != "master"'
+      when: never
+    - if: '$UPLOAD_PACKAGE'
 
 pages:
   stage: pages
