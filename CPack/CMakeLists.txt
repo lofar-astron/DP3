@@ -11,8 +11,7 @@ if(Git_FOUND)
     COMMAND bash -c "${GIT_EXECUTABLE} describe --tags --dirty"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE VERSION_STRING
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET)
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
   # Strip leading non-numeric characters, like "v"
   string(REGEX REPLACE "^[^[0-9]]*" "" VERSION_STRING ${VERSION_STRING})
 endif()
