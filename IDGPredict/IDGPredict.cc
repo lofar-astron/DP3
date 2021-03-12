@@ -141,7 +141,6 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
                                          const size_t full_height) {
   const double kShiftL = 0.0;
   const double kShiftM = 0.0;
-  const bool kOriginAtZero = false;
   const double kPadding = 1.0;
   const size_t kAlign = 4;
   const bool kMakeSquare = true;  // Only necessary for IDG.
@@ -150,8 +149,8 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
   std::vector<Facet> facets = facet_file.Read();
   for (Facet& facet : facets) {
     facet.CalculatePixels(ra, dec, pixel_size_x, pixel_size_y, full_width,
-                          full_height, kShiftL, kShiftM, kOriginAtZero,
-                          kPadding, kAlign, kMakeSquare);
+                          full_height, kShiftL, kShiftM, kPadding, kAlign,
+                          kMakeSquare);
   }
   std::cout << "Read " << facets.size() << " facet definitions.\n";
   return facets;
