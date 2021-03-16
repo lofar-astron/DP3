@@ -9,7 +9,7 @@
 #include "Constraint.h"
 #include "PieceWisePhaseFitter.h"
 
-#include "../DPPP/PhaseFitter.h"
+#include "../../DPPP/PhaseFitter.h"
 
 #include <vector>
 #include <ostream>

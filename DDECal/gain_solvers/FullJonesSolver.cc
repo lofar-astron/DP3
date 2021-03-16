@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "FullJonesSolver.h"
-#include "QRSolver.h"
+
+#include "../linear_solvers/QRSolver.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>

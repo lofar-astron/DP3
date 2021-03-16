@@ -7,12 +7,13 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>
 
-#include "../../ScalarSolver.h"
-#include "../../DiagonalSolver.h"
-#include "../../FullJonesSolver.h"
-#include "../../LSMRSolver.h"
-#include "../../NormalEquationsSolver.h"
-#include "../../IterativeDiagonalSolver.h"
+#include "../../gain_solvers/DiagonalSolver.h"
+#include "../../gain_solvers/FullJonesSolver.h"
+#include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "../../gain_solvers/ScalarSolver.h"
+
+#include "../../linear_solvers/LSMRSolver.h"
+#include "../../linear_solvers/NormalEquationsSolver.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

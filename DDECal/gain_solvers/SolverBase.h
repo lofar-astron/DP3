@@ -4,9 +4,11 @@
 #ifndef DDE_SOLVER_BASE_H
 #define DDE_SOLVER_BASE_H
 
-#include "Constraint.h"
+#include "../constraints/Constraint.h"
+
 #include "SolverBuffer.h"
-#include "LLSSolver.h"
+
+#include "../linear_solvers/LLSSolver.h"
 
 #include <boost/algorithm/string.hpp>
 

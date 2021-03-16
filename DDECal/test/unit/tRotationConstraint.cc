@@ -6,8 +6,8 @@
 #include <vector>
 #include <complex>
 
-#include "../../RotationConstraint.h"
-#include "../../RotationAndDiagonalConstraint.h"
+#include "../../constraints/RotationConstraint.h"
+#include "../../constraints/RotationAndDiagonalConstraint.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

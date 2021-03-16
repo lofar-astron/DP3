@@ -4,13 +4,13 @@
 #ifndef SCREEN_CONSTRAINT_H
 #define SCREEN_CONSTRAINT_H
 
-#include "../DPPP/PhaseFitter.h"
+#include "../../DPPP/PhaseFitter.h"
 
 #include "Constraint.h"
 #include "PiercePoint.h"
 #include "KLFitter.h"
 
-#include "../Common/ParameterSet.h"
+#include "../../Common/ParameterSet.h"
 
 #include <cmath>
 #include <complex>

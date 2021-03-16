@@ -20,12 +20,13 @@
 #include "../DPPP/ApplyBeam.h"
 #include "../DPPP/SolutionInterval.h"
 
-#include "SolverBase.h"
-#include "Constraint.h"
+#include "gain_solvers/SolverBase.h"
 
-#include <schaapcommon/h5parm/h5parm.h>
+#include "constraints/Constraint.h"
 
 #include "../ParmDB/Parm.h"
+
+#include <schaapcommon/h5parm/h5parm.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
