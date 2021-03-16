@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file screenfitter.h Implements TEC model screen filter @ref ScreenFitter.
+ * @file ScreenFitter.h Implements TEC model screen filter @ref ScreenFitter.
  * @author Maaijke Mevius
  * @date 2017-02-01
  */

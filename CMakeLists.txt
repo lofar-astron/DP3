@@ -66,9 +66,9 @@ if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   include_directories(${ARMADILLO_INCLUDE_DIRS})
   set(DDE_ARMADILLO_FILES
-    DDECal/KLFitter.cc
-    DDECal/PiercePoint.cc
-    DDECal/ScreenConstraint.cc)
+    DDECal/constraints/KLFitter.cc
+    DDECal/constraints/PiercePoint.cc
+    DDECal/constraints/ScreenConstraint.cc)
 else()
   message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
   set(DDE_ARMADILLO_FILES)
@@ -88,7 +88,6 @@ include_directories(${CFITSIO_INCLUDE_DIRS})
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
   find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
   find_package(Python3 COMPONENTS NumPy)
-  set(BOOSTPY ${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
 else() # Use old, deprecated means of detecting python.
   find_package(PythonInterp 3 REQUIRED)
   find_package(PythonLibs 3 REQUIRED)
@@ -113,10 +112,9 @@ else()
   set(PYTHON_INSTALL_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
 endif()
 
-#Boost depends on python, since we use ${BOOSTPY} here.
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem program_options system unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS filesystem program_options system unit_test_framework REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(Threads REQUIRED)
@@ -263,20 +261,19 @@ add_library(Common OBJECT
 )
 
 add_library(DDECal OBJECT
-  DDECal/Constraint.cc
   DDECal/DDECal.cc
-  DDECal/DiagonalSolver.cc
-  DDECal/FullJonesSolver.cc
-  DDECal/IterativeDiagonalSolver.cc
-  DDECal/LSMRSolver.cc
-  DDECal/LLSSolver.cc
-  DDECal/RotationAndDiagonalConstraint.cc
-  DDECal/RotationConstraint.cc
-  DDECal/ScalarSolver.cc
-  DDECal/SmoothnessConstraint.cc
-  DDECal/SolverBase.cc
-  DDECal/Stopwatch.cc
-  DDECal/TECConstraint.cc
+  DDECal/constraints/Constraint.cc
+  DDECal/constraints/RotationAndDiagonalConstraint.cc
+  DDECal/constraints/RotationConstraint.cc
+  DDECal/constraints/SmoothnessConstraint.cc
+  DDECal/constraints/TECConstraint.cc
+  DDECal/gain_solvers/DiagonalSolver.cc
+  DDECal/gain_solvers/FullJonesSolver.cc
+  DDECal/gain_solvers/IterativeDiagonalSolver.cc
+  DDECal/gain_solvers/ScalarSolver.cc
+  DDECal/gain_solvers/SolverBase.cc
+  DDECal/linear_solvers/LSMRSolver.cc
+  DDECal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
 add_library(DPPP_OBJ OBJECT

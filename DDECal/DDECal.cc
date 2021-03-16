@@ -18,22 +18,24 @@
 
 #include "../IDGPredict/IDGPredict.h"
 
-#include "DiagonalSolver.h"
-#include "FullJonesSolver.h"
-#include "IterativeDiagonalSolver.h"
-#include "LLSSolver.h"
-#include "RotationConstraint.h"
-#include "RotationAndDiagonalConstraint.h"
-#include "ScalarSolver.h"
-#include "SmoothnessConstraint.h"
-#include "TECConstraint.h"
+#include "gain_solvers/DiagonalSolver.h"
+#include "gain_solvers/FullJonesSolver.h"
+#include "gain_solvers/IterativeDiagonalSolver.h"
+#include "gain_solvers/ScalarSolver.h"
+
+#include "linear_solvers/LLSSolver.h"
+
+#include "constraints/RotationConstraint.h"
+#include "constraints/RotationAndDiagonalConstraint.h"
+#include "constraints/SmoothnessConstraint.h"
+#include "constraints/TECConstraint.h"
 
 #include <schaapcommon/facets/facet.h>
 
 #include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_ARMADILLO
-#include "ScreenConstraint.h"
+#include "constraints/ScreenConstraint.h"
 #endif
 
 #include "../ParmDB/ParmDB.h"
