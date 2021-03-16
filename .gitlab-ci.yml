@@ -235,9 +235,9 @@ publish-doc:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - ssh-keyscan -H dop288 > ~/.ssh/known_hosts
+    - ssh-keyscan -H dop810 > ~/.ssh/known_hosts
   script:
-    - scp -r build/docs/* citt@dop288:DP3/
+    - scp -r build/docs/* citt@dop810:DP3/
   rules:
     - <<: *if_not_astron_repo
       when: never
