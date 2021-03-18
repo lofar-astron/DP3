@@ -22,6 +22,7 @@
 #include "Filter.h"
 #include "GainCal.h"
 #include "H5ParmPredict.h"
+#include "IDGPredict.h"
 #include "Interpolate.h"
 #include "MedFlagger.h"
 #include "MSBDAWriter.h"
@@ -47,8 +48,6 @@
 #include "../AOFlaggerStep/AOFlaggerStep.h"
 
 #include "../DDECal/DDECal.h"
-
-#include "../IDGPredict/IDGPredict.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>

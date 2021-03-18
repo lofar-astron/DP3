@@ -1,11 +1,11 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../IDGPredict.h"
 #include "../../../Common/ParameterSet.h"
-#include "../../../DPPP/DPBuffer.h"
-#include "../../../DPPP/DPInput.h"
-#include "../../../DPPP/test/unit/mock/MockInput.h"
+#include "../../DPBuffer.h"
+#include "../../DPInput.h"
+#include "../../IDGPredict.h"
+#include "mock/MockInput.h"
 
 #include <schaapcommon/facets/facet.h>
 

@@ -301,6 +301,7 @@ add_library(DPPP_OBJ OBJECT
   DPPP/GainCalAlgorithm.cc
   DPPP/GaussianSource.cc
   DPPP/H5ParmPredict.cc
+  DPPP/IDGPredict.cc
   DPPP/Interpolate.cc
   DPPP/MedFlagger.cc
   DPPP/ModelComponent.cc
@@ -341,10 +342,6 @@ add_library(DPPP_OBJ OBJECT
   DPPP/DemixWorker.cc
 )
 
-add_library(IDGPredict OBJECT
-  IDGPredict/IDGPredict.cc
-)
-
 add_library(ParmDB OBJECT
   ParmDB/Axis.cc
   ParmDB/AxisMapping.cc
@@ -375,7 +372,7 @@ add_library(PythonDPPP OBJECT
 )
 
 # dppp_testdyndppp requires using position independent code.
-set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ IDGPredict ParmDB PythonDPPP
+set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ ParmDB PythonDPPP
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(USE_LSMR)
@@ -389,7 +386,6 @@ set(DPPP_OBJECTS
   $<TARGET_OBJECTS:Common>
   $<TARGET_OBJECTS:DDECal>
   $<TARGET_OBJECTS:DPPP_OBJ>
-  $<TARGET_OBJECTS:IDGPredict>
   $<TARGET_OBJECTS:ParmDB>
   $<TARGET_OBJECTS:PythonDPPP>)
 
@@ -507,7 +503,7 @@ if (BUILD_TESTING)
       DPPP/test/unit/tMSBDAWriter.cc
       DPPP/test/unit/tScaleDataBDA.cc)
     if(HAVE_IDG)
-      list(APPEND TEST_FILENAMES IDGPredict/test/unit/tIDGPredict.cc)
+      list(APPEND TEST_FILENAMES DPPP/test/unit/tIDGPredict.cc)
     endif()
   else()
     message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
@@ -526,11 +522,11 @@ if (BUILD_TESTING)
 
   add_custom_target(extract_test_resources
     COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tIDGPredict.sources.tgz
     COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
     COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tOSKAR.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
   )
 
   add_test(

@@ -9,14 +9,13 @@
 #include "../DPPP/DPBuffer.h"
 #include "../DPPP/DPInfo.h"
 #include "../DPPP/DPLogger.h"
+#include "../DPPP/IDGPredict.h"
 #include "../DPPP/MSReader.h"
 #include "../DPPP/Simulate.h"
 #include "../DPPP/SourceDBUtil.h"
 #include "../DPPP/Version.h"
 #include "../DPPP/ColumnReader.h"
 #include "../DPPP/DPRun.h"
-
-#include "../IDGPredict/IDGPredict.h"
 
 #include "gain_solvers/DiagonalSolver.h"
 #include "gain_solvers/FullJonesSolver.h"
