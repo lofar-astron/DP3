@@ -22,6 +22,8 @@ endif()
 
 project(DP3 VERSION ${DP3_VERSION})
 
+option(BUILD_TESTING "" OFF)
+
 option(USE_LSMR "use LSMR solver instead of QR solver" OFF)
 if(USE_LSMR)
   enable_language(Fortran)
@@ -54,9 +56,6 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-include(CTest)
-
 
 # === Load external packages ===
 
@@ -434,181 +433,149 @@ target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
 add_executable(showsourcedb ParmDB/showsourcedb.cc ${SOURCEDB_OBJECTS})
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(OS_SPECIFIC_TESTS) # No specific tests for Apple
-else()
-  # These run only on Linux
-  set(OS_SPECIFIC_TESTS
-#    TestDynDPPP/test/tDynStep.cc # This test still fails
-  )
-  add_library(dppp_testdyndppp SHARED
-    TestDynDPPP/TestDynStep.cc ${DPPP_OBJECTS}
-  )
-  target_link_libraries(dppp_testdyndppp ${DPPP_LIBRARIES})
-  add_dependencies(dppp_testdyndppp schaapcommon)
-endif()
-
-# I'm avoiding cmake's test commands, because they build executable tests by default
-# which makes the compilation process more expensive.
-set(TEST_FILENAMES
-  Common/test/unit/tProximityClustering.cc
-  DPPP/test/runtests.cc
-  DPPP/test/unit/mock/MockInput.cc
-  DPPP/test/unit/mock/MockStep.cc
-  DPPP/test/unit/fixtures/fDirectory.cc
-  DPPP/test/unit/tApplyCal.cc
-  DPPP/test/unit/tApplyCalH5.cc
-  DPPP/test/unit/tAverager.cc
-  DPPP/test/unit/tBaselineSelection.cc
-  DPPP/test/unit/tBDABuffer.cc
-  DPPP/test/unit/tBDAIntervalBuffer.cc
-  # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
-  DPPP/test/unit/tFilter.cc
-  DPPP/test/unit/tInterpolate.cc
-  DPPP/test/unit/tMedFlagger.cc
-  DPPP/test/unit/tDPPP.cc
-  DPPP/test/unit/tMirror.cc
-  DPPP/test/unit/tMSReader.cc
-  DPPP/test/unit/tPreFlagger.cc
-  DPPP/test/unit/tPhaseShift.cc
-  DPPP/test/unit/tUpsample.cc
-  DPPP/test/unit/tUVWFlagger.cc
-  DPPP/test/unit/tPSet.cc
-  DPPP/test/unit/tScaleData.cc
-  DPPP/test/unit/tSolutionInterval.cc
-  DPPP/test/unit/tSourceDBUtil.cc
-  DPPP/test/unit/tStationAdder.cc
-  DDECal/test/unit/tRotationConstraint.cc
-)
-if(${Python3_NumPy_FOUND})
-   list(APPEND TEST_FILENAMES "DPPP/test/unit/tPyDPStep.cc")
-else(${Python3_NumPy_FOUND})
-   message(WARNING "NumPy not found on machine, tPyDPStep test is excluded from tests.")
-endif()
-
-set(TEST_SOLVER_FILENAMES
-  DPPP/test/runtests.cc
-  DDECal/test/unit/tSolvers.cc
-)
-
-# Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
-if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
-  list(APPEND TEST_FILENAMES
-    Common/test/unit/tMemory.cc
-    Common/test/unit/tStringUtil.cc
-    DPPP/test/unit/tBDAAverager.cc
-    DPPP/test/unit/tDPInfo.cc
-    DPPP/test/unit/tDPInput.cc
-    DPPP/test/unit/tMSBDAReader.cc
-    DPPP/test/unit/tMSBDAWriter.cc
-    DPPP/test/unit/tScaleDataBDA.cc)
-  if(HAVE_IDG)
-    list(APPEND TEST_FILENAMES IDGPredict/test/unit/tIDGPredict.cc)
-  endif()
-else()
-  message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
-endif()
-
-# Add boost dynamic link flag for all test files.
-# https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
-# Without this flag, linking is incorrect and boost performs duplicate delete()
-# calls after running all tests, in the cleanup phase.
-set_source_files_properties(
-  ${TEST_FILENAMES} ${TEST_SOLVER_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
-)
-
-add_test(
-  NAME extract_applycal
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tApplyCal_tmp.parmdb.tgz
-)
-set_tests_properties(
-  extract_applycal
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_test(
-  NAME extract_NDPPP
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP.in_MS.tgz
-)
-set_tests_properties(
-  extract_NDPPP
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_test(
-  NAME extract_NDPPP_BDA
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tNDPPP_bda.in_MS.tgz
-)
-set_tests_properties(
-  extract_NDPPP_BDA
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_test(
-  NAME extract_NDPPP_generic
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/integration/tNDPPP-generic.MS.tgz
-)
-set_tests_properties(
-  extract_NDPPP_generic
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_test(
-  NAME extract_OSKAR
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/DPPP/test/resources/tOSKAR.in_MS.tgz
-)
-set_tests_properties(
-  extract_OSKAR
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_test(
-  NAME extract_IDG
-  COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
-)
-set_tests_properties(
-  extract_IDG
-  PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} FIXTURES_SETUP extract_resources
-)
-
-add_executable(
-  unittests EXCLUDE_FROM_ALL
-  ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
-)
-set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
-target_link_libraries(unittests ${DPPP_LIBRARIES})
-add_dependencies(unittests schaapcommon)
-
-add_executable(
-  unittest_solver EXCLUDE_FROM_ALL
-  ${TEST_SOLVER_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
-)
-target_link_libraries(unittest_solver ${DPPP_LIBRARIES})
-
-add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests unittest_solver)
-set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
-add_subdirectory(DDECal/test/integration)
-
-# unittests.sh adjusts the PYTHONPATH to make tPyDPStep working.
-configure_file(unittests.sh.in unittests.sh)
-add_test(
-  NAME unittests
-  COMMAND unittests.sh -f JUNIT -k unittests.xml --catch_system_error=yes
-)
-set_tests_properties(
-  unittests PROPERTIES LABELS unit
-  FIXTURES_REQUIRED "unittests;extract_resources"
-)
-
-add_test(
-  NAME unittest_solver
-  COMMAND unittest_solver -f JUNIT -k unittest_solver.xml --catch_system_error=yes
-)
-set_tests_properties(
-  unittest_solver PROPERTIES LABELS unit
-  FIXTURES_REQUIRED "unittests"
-)
-
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 include(docs/CMakeLists.txt)
+
+if (BUILD_TESTING)
+  include(CTest)
+
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(OS_SPECIFIC_TESTS) # No specific tests for Apple
+  else()
+    # These run only on Linux
+    set(OS_SPECIFIC_TESTS
+    # TestDynDPPP/test/tDynStep.cc # This test still fails
+    )
+    add_library(dppp_testdyndppp SHARED
+      TestDynDPPP/TestDynStep.cc ${DPPP_OBJECTS}
+    )
+    target_link_libraries(dppp_testdyndppp ${DPPP_LIBRARIES})
+    add_dependencies(dppp_testdyndppp schaapcommon)
+  endif()
+
+  set(TEST_FILENAMES
+    Common/test/unit/tProximityClustering.cc
+    DPPP/test/runtests.cc
+    DPPP/test/unit/mock/MockInput.cc
+    DPPP/test/unit/mock/MockStep.cc
+    DPPP/test/unit/fixtures/fDirectory.cc
+    DPPP/test/unit/tApplyCal.cc
+    DPPP/test/unit/tApplyCalH5.cc
+    DPPP/test/unit/tAverager.cc
+    DPPP/test/unit/tBaselineSelection.cc
+    DPPP/test/unit/tBDABuffer.cc
+    DPPP/test/unit/tBDAIntervalBuffer.cc
+    # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
+    DPPP/test/unit/tFilter.cc
+    DPPP/test/unit/tInterpolate.cc
+    DPPP/test/unit/tMedFlagger.cc
+    DPPP/test/unit/tDPPP.cc
+    DPPP/test/unit/tMirror.cc
+    DPPP/test/unit/tMSReader.cc
+    DPPP/test/unit/tPreFlagger.cc
+    DPPP/test/unit/tPhaseShift.cc
+    DPPP/test/unit/tUpsample.cc
+    DPPP/test/unit/tUVWFlagger.cc
+    DPPP/test/unit/tPSet.cc
+    DPPP/test/unit/tScaleData.cc
+    DPPP/test/unit/tSolutionInterval.cc
+    DPPP/test/unit/tSourceDBUtil.cc
+    DPPP/test/unit/tStationAdder.cc
+    DDECal/test/unit/tRotationConstraint.cc
+  )
+  if(${Python3_NumPy_FOUND})
+     list(APPEND TEST_FILENAMES "DPPP/test/unit/tPyDPStep.cc")
+  else(${Python3_NumPy_FOUND})
+     message(WARNING "NumPy not found on machine, tPyDPStep test is excluded from tests.")
+  endif()
+
+  set(TEST_SOLVER_FILENAMES
+    DPPP/test/runtests.cc
+    DDECal/test/unit/tSolvers.cc
+  )
+
+  # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
+  if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
+    list(APPEND TEST_FILENAMES
+      Common/test/unit/tMemory.cc
+      Common/test/unit/tStringUtil.cc
+      DPPP/test/unit/tBDAAverager.cc
+      DPPP/test/unit/tDPInfo.cc
+      DPPP/test/unit/tDPInput.cc
+      DPPP/test/unit/tMSBDAReader.cc
+      DPPP/test/unit/tMSBDAWriter.cc
+      DPPP/test/unit/tScaleDataBDA.cc)
+    if(HAVE_IDG)
+      list(APPEND TEST_FILENAMES IDGPredict/test/unit/tIDGPredict.cc)
+    endif()
+  else()
+    message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
+  endif()
+
+  # Add boost dynamic link flag for all test files.
+  # https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
+  # Without this flag, linking is incorrect and boost performs duplicate delete()
+  # calls after running all tests, in the cleanup phase.
+  set_source_files_properties(
+    ${TEST_FILENAMES} ${TEST_SOLVER_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
+  )
+
+  set(DPPP_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/DPPP/test/resources)
+  set(EXTRACT_CMD ${CMAKE_COMMAND} -E tar xzf)
+
+  add_custom_target(extract_test_resources
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tOSKAR.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${CMAKE_SOURCE_DIR}/IDGPredict/test/resources/sources.tgz
+  )
+
+  add_test(
+    NAME extract_resources
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target extract_test_resources
+  )
+  set_tests_properties(extract_resources PROPERTIES FIXTURES_SETUP extract_resources)
+
+  add_executable(
+    unittests
+    ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
+  )
+  set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
+  target_link_libraries(unittests ${DPPP_LIBRARIES})
+  add_dependencies(unittests schaapcommon)
+
+  add_executable(
+    unittest_solver
+    ${TEST_SOLVER_FILENAMES} ${DPPP_OBJECTS}
+  )
+  target_link_libraries(unittest_solver ${DPPP_LIBRARIES})
+
+  # Automatically (re)build the unit tests on every ctest run.
+  add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests unittest_solver)
+  set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
+
+  # unittests.sh adjusts the PYTHONPATH to make tPyDPStep working.
+  configure_file(unittests.sh.in unittests.sh)
+  add_test(
+    NAME unittests
+    COMMAND unittests.sh -f JUNIT -k unittests.xml --catch_system_error=yes
+  )
+  set_tests_properties(
+    unittests PROPERTIES LABELS unit
+    FIXTURES_REQUIRED "unittests;extract_resources"
+  )
+
+  add_test(
+    NAME unittest_solver
+    COMMAND unittest_solver -f JUNIT -k unittest_solver.xml --catch_system_error=yes
+  )
+  set_tests_properties(
+    unittest_solver PROPERTIES LABELS unit
+    FIXTURES_REQUIRED "unittests"
+  )
+
+  add_subdirectory(DDECal/test/integration)
+endif() # BUILD_TESTING
