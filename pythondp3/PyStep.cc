@@ -70,12 +70,11 @@ bool PyStepImpl::process(const DPBuffer& bufin) {
 }
 
 void PyStepImpl::updateInfo(const DPInfo& dpinfo) {
-  PYBIND11_OVERLOAD_NAME(
-      void,        /* Return type */
-      StepWrapper, /* Parent class */
-      "update_info",
-      updateInfo, /* Name of function in C++ (must match Python name) */
-      dpinfo      /* Argument(s) */
+  PYBIND11_OVERLOAD_NAME(void,          /* Return type */
+                         StepWrapper,   /* Parent class */
+                         "update_info", /* Name of function in Python  */
+                         updateInfo,    /* Name of function in C++  */
+                         dpinfo         /* Argument(s) */
   );
 }
 
@@ -83,6 +82,8 @@ void PyStepImpl::hold() {
   m_py_object.reset(
       new pybind11::object(pybind11::cast(static_cast<Step*>(this))));
 }
+
+void PyStepImpl::release() { m_py_object.reset(); }
 
 Step::ShPtr PyStep::create_instance(InputStep* input,
                                     const common::ParameterSet& parset,
@@ -97,8 +98,15 @@ Step::ShPtr PyStep::create_instance(InputStep* input,
 
   auto pydpstep_instance =
       mydpstep_module.attr(class_name.c_str())(parset, prefix);
-  auto pydpstep_instance_ptr =
-      pydpstep_instance.cast<std::shared_ptr<PyStepImpl>>();
+
+  // Create a shared_ptr from the raw pointer
+  // Note that the python side uses another smart pointer as holder type
+  // The deleter of the shared_ptr here will only release the python object
+  // If there are no other references at the python side this will trigger
+  // a delete of the C++ object
+  auto pydpstep_instance_ptr = std::shared_ptr<PyStepImpl>(
+      pydpstep_instance.cast<PyStepImpl*>(), std::mem_fn(&PyStepImpl::release));
+
   pydpstep_instance_ptr->hold();
   pydpstep_instance_ptr->set_input(input);
 

@@ -75,6 +75,7 @@ class PyStepImpl final : public StepWrapper {
   void finish() override;
 
   void hold();
+  void release();
 
  private:
   // See the comment above near the forward declaration of pybind11::object.
