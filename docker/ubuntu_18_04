@@ -48,7 +48,7 @@ ADD . /src
 
 # Build DPPP
 RUN mkdir /build && cd /build \
-    && cmake -G Ninja ../src \
+    && cmake -G Ninja -DBUILD_TESTING=On ../src \
     && ninja install \
     && DPPP \
     && rm -r /src /build
