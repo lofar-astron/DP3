@@ -135,10 +135,10 @@ void Execute(const Step::ShPtr& step1) {
 
 // Test simple python step
 void test(int ntime, int nbl, int nchan, int ncorr) {
-  // Weak pointer to monitor lifetime of steps
+  // Weak pointer that will be used to monitor the lifetime of the last step
   // Because of the complicated ownership across the Python-C++ boundary
   // we need to check whether the steps are destroyed at the right time
-  std::weak_ptr<Step> step_weak_ptr;
+  std::weak_ptr<Step> step3_weak_ptr;
 
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
@@ -157,7 +157,7 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
       Step::ShPtr step3(new TestOutput(nbl, nchan, ncorr));
 
       // Monitor lifetime of output step
-      step_weak_ptr = std::weak_ptr<Step>(step3);
+      step3_weak_ptr = std::weak_ptr<Step>(step3);
 
       step1->setNextStep(step2);
       step2->setNextStep(step3);
@@ -175,11 +175,11 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
     // step3 went out of scope here, but is still reachable following
     // the chain of getNextStep() calls from step1, and thus should
     // still be alive
-    BOOST_TEST(!step_weak_ptr.expired());
+    BOOST_TEST(!step3_weak_ptr.expired());
   }
   // step1 went out of scope here
   // step3 should also no longer be alive now
-  BOOST_TEST(step_weak_ptr.expired());
+  BOOST_TEST(step3_weak_ptr.expired());
 }
 
 BOOST_AUTO_TEST_CASE(testpystep) { test(10, 3, 32, 4); }
