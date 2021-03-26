@@ -65,9 +65,9 @@ if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   include_directories(${ARMADILLO_INCLUDE_DIRS})
   set(DDE_ARMADILLO_FILES
-    DDECal/constraints/KLFitter.cc
-    DDECal/constraints/PiercePoint.cc
-    DDECal/constraints/ScreenConstraint.cc)
+    ddecal/constraints/KLFitter.cc
+    ddecal/constraints/PiercePoint.cc
+    ddecal/constraints/ScreenConstraint.cc)
 else()
   message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
   set(DDE_ARMADILLO_FILES)
@@ -196,19 +196,12 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
 # Add cmake information to headers
-configure_file(DPPP/Version.h.in DPPP/Version.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/DPPP)
+configure_file(base/Version.h.in base/Version.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/base)
 
 if(BUILD_PACKAGES)
   add_subdirectory(CPack)
 endif()
-
-# Object libraries (which are just file groups, not actual libraries) are made in order
-# to avoid compiling everything multiple times for multiple executables.
-add_library(AOFlaggerStep OBJECT
-  AOFlaggerStep/AOFlaggerStep.cc
-  AOFlaggerStep/Register.cc
-)
 
 if (USE_LSMR)
   add_definitions(-DUSE_LSMR)
@@ -229,171 +222,170 @@ add_library(LSMR OBJECT
 endif()
 
 add_library(Blob OBJECT
-  Blob/BlobAipsIO.cc
-  Blob/BlobArray.cc
-  Blob/BlobHeader.cc
-  Blob/BlobIBufStream.cc
-  Blob/BlobIStream.cc
-  Blob/BlobOBufStream.cc
-  Blob/BlobOStream.cc
+  blob/BlobAipsIO.cc
+  blob/BlobArray.cc
+  blob/BlobHeader.cc
+  blob/BlobIBufStream.cc
+  blob/BlobIStream.cc
+  blob/BlobOBufStream.cc
+  blob/BlobOStream.cc
 )
 
 add_library(Common OBJECT
-  Common/BaselineSelect.cc
-  Common/ClusterDesc.cc
-  Common/DataConvert.cc
-  Common/Memory.cc
-  Common/NodeDesc.cc
-  Common/ParameterHandler.cc
-  Common/ParameterRecord.cc
-  Common/ParameterSet.cc
-  Common/ParameterSetImpl.cc
-  Common/ParameterValue.cc
-  Common/PrettyUnits.cc
-  Common/ProximityClustering.cc
-  Common/StringUtil.cc
-  Common/Timer.cc
-  Common/TypeNames.cc
-  Common/VdsDesc.cc
-  Common/VdsMaker.cc
-  Common/VdsPartDesc.cc
+  common/BaselineSelect.cc
+  common/ClusterDesc.cc
+  common/DataConvert.cc
+  common/Memory.cc
+  common/NodeDesc.cc
+  common/ParameterHandler.cc
+  common/ParameterRecord.cc
+  common/ParameterSet.cc
+  common/ParameterSetImpl.cc
+  common/ParameterValue.cc
+  common/PrettyUnits.cc
+  common/ProximityClustering.cc
+  common/StringTools.cc
+  common/Timer.cc
+  common/TypeNames.cc
+  common/VdsDesc.cc
+  common/VdsMaker.cc
+  common/VdsPartDesc.cc
 )
 
 add_library(DDECal OBJECT
-  DDECal/DDECal.cc
-  DDECal/constraints/Constraint.cc
-  DDECal/constraints/RotationAndDiagonalConstraint.cc
-  DDECal/constraints/RotationConstraint.cc
-  DDECal/constraints/SmoothnessConstraint.cc
-  DDECal/constraints/TECConstraint.cc
-  DDECal/gain_solvers/DiagonalSolver.cc
-  DDECal/gain_solvers/FullJonesSolver.cc
-  DDECal/gain_solvers/IterativeDiagonalSolver.cc
-  DDECal/gain_solvers/ScalarSolver.cc
-  DDECal/gain_solvers/SolverBase.cc
-  DDECal/linear_solvers/LSMRSolver.cc
-  DDECal/linear_solvers/LLSSolver.cc
+  steps/DDECal.cc
+  ddecal/constraints/Constraint.cc
+  ddecal/constraints/RotationAndDiagonalConstraint.cc
+  ddecal/constraints/RotationConstraint.cc
+  ddecal/constraints/SmoothnessConstraint.cc
+  ddecal/constraints/TECConstraint.cc
+  ddecal/gain_solvers/DiagonalSolver.cc
+  ddecal/gain_solvers/FullJonesSolver.cc
+  ddecal/gain_solvers/IterativeDiagonalSolver.cc
+  ddecal/gain_solvers/ScalarSolver.cc
+  ddecal/gain_solvers/SolverBase.cc
+  ddecal/linear_solvers/LSMRSolver.cc
+  ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
-add_library(DPPP_OBJ OBJECT
-  DPPP/Apply.cc
-  DPPP/ApplyCal.cc
-  DPPP/Averager.cc
-  DPPP/BaselineSelection.cc
-  DPPP/BDAAverager.cc
-  DPPP/BDABuffer.cc
-  DPPP/BDAIntervalBuffer.cc
-  DPPP/ColumnReader.cc
-  DPPP/Counter.cc
-  DPPP/Demixer.cc
-  DPPP/DPBuffer.cc
-  DPPP/DPInfo.cc
-  DPPP/DPInput.cc
-  DPPP/DPLogger.cc
-  DPPP/DPRun.cc
-  DPPP/DPStep.cc
-  DPPP/DummyStep.cc
-  DPPP/EstimateMixed.cc
-  DPPP/EstimateNew.cc
-  DPPP/Filter.cc
-  DPPP/FlagCounter.cc
-  DPPP/GainCal.cc
-  DPPP/GainCalAlgorithm.cc
-  DPPP/GaussianSource.cc
-  DPPP/H5ParmPredict.cc
-  DPPP/IDGPredict.cc
-  DPPP/Interpolate.cc
-  DPPP/MedFlagger.cc
-  DPPP/ModelComponent.cc
-  DPPP/ModelComponentVisitor.cc
-  DPPP/MS.cc
-  DPPP/MSBDAReader.cc
-  DPPP/MSBDAWriter.cc
-  DPPP/MSReader.cc
-  DPPP/MSUpdater.cc
-  DPPP/MSWriter.cc
-  DPPP/MultiMSReader.cc
-  DPPP/OneApplyCal.cc
-  DPPP/Patch.cc
-  DPPP/PhaseFitter.cc
-  DPPP/PhaseShift.cc
-  DPPP/PointSource.cc
-  DPPP/Position.cc
-  DPPP/Predict.cc
-  DPPP/PreFlagger.cc
-  DPPP/ProgressMeter.cc
-  DPPP/ScaleData.cc
-  DPPP/SetBeam.cc
-  DPPP/Simulate.cc
-  DPPP/Simulator.cc
-  DPPP/SolutionInterval.cc
-  DPPP/SourceDBUtil.cc
-  DPPP/Split.cc
-  DPPP/StationAdder.cc
-  DPPP/Stokes.cc
-  DPPP/SubtractMixed.cc
-  DPPP/SubtractNew.cc
-  DPPP/Upsample.cc
-  DPPP/UVWCalculator.cc
-  DPPP/UVWFlagger.cc
-  DPPP/ApplyBeam.cc
-  DPPP/DemixerNew.cc
-  DPPP/DemixInfo.cc
-  DPPP/DemixWorker.cc
+add_library(DP3_OBJ OBJECT
+  base/Apply.cc
+  base/BaselineSelection.cc
+  base/BDABuffer.cc
+  base/BDAIntervalBuffer.cc
+  base/DemixInfo.cc
+  base/DemixWorker.cc
+  base/DPBuffer.cc
+  base/DPInfo.cc
+  base/DPLogger.cc
+  base/DP3.cc
+  base/EstimateMixed.cc
+  base/EstimateNew.cc
+  base/FlagCounter.cc
+  base/GainCalAlgorithm.cc
+  base/GaussianSource.cc
+  base/ModelComponent.cc
+  base/ModelComponentVisitor.cc
+  base/MS.cc
+  base/Patch.cc
+  base/PhaseFitter.cc
+  base/PointSource.cc
+  base/Position.cc
+  base/ProgressMeter.cc
+  base/Simulate.cc
+  base/Simulator.cc
+  base/SolutionInterval.cc
+  base/SourceDBUtil.cc
+  base/Stokes.cc
+  base/SubtractMixed.cc
+  base/SubtractNew.cc
+  base/UVWCalculator.cc
+  steps/AOFlaggerStep.cc
+  steps/ApplyCal.cc
+  steps/Averager.cc
+  steps/BDAAverager.cc
+  steps/ColumnReader.cc
+  steps/Counter.cc
+  steps/Demixer.cc
+  steps/DummyStep.cc
+  steps/Filter.cc
+  steps/GainCal.cc
+  steps/H5ParmPredict.cc
+  steps/IDGPredict.cc
+  steps/InputStep.cc
+  steps/Interpolate.cc
+  steps/MedFlagger.cc
+  steps/MSBDAReader.cc
+  steps/MSBDAWriter.cc
+  steps/MSReader.cc
+  steps/MSUpdater.cc
+  steps/MSWriter.cc
+  steps/MultiMSReader.cc
+  steps/OneApplyCal.cc
+  steps/PhaseShift.cc
+  steps/Predict.cc
+  steps/PreFlagger.cc
+  steps/ScaleData.cc
+  steps/SetBeam.cc
+  steps/Split.cc
+  steps/StationAdder.cc
+  steps/Step.cc
+  steps/Upsample.cc
+  steps/UVWFlagger.cc
+  steps/ApplyBeam.cc
+  steps/DemixerNew.cc
 )
 
 add_library(ParmDB OBJECT
-  ParmDB/Axis.cc
-  ParmDB/AxisMapping.cc
-  ParmDB/Box.cc
-  ParmDB/Grid.cc
-  ParmDB/Parm.cc
-  ParmDB/ParmCache.cc
-  ParmDB/ParmDB.cc
-  ParmDB/ParmDBBlob.cc
-  ParmDB/ParmDBCasa.cc
-  ParmDB/ParmDBLocker.cc
-  ParmDB/ParmDBMeta.cc
-  ParmDB/ParmFacade.cc
-  ParmDB/ParmFacadeLocal.cc
-  ParmDB/ParmFacadeRep.cc
-  ParmDB/ParmSet.cc
-  ParmDB/ParmValue.cc
-  ParmDB/PatchInfo.cc
-  ParmDB/SourceData.cc
-  ParmDB/SourceDB.cc
-  ParmDB/SourceDBBlob.cc
-  ParmDB/SourceDBCasa.cc
-  ParmDB/SourceInfo.cc
+  parmdb/Axis.cc
+  parmdb/AxisMapping.cc
+  parmdb/Box.cc
+  parmdb/Grid.cc
+  parmdb/Parm.cc
+  parmdb/ParmCache.cc
+  parmdb/ParmDB.cc
+  parmdb/ParmDBBlob.cc
+  parmdb/ParmDBCasa.cc
+  parmdb/ParmDBLocker.cc
+  parmdb/ParmDBMeta.cc
+  parmdb/ParmFacade.cc
+  parmdb/ParmFacadeLocal.cc
+  parmdb/ParmFacadeRep.cc
+  parmdb/ParmSet.cc
+  parmdb/ParmValue.cc
+  parmdb/PatchInfo.cc
+  parmdb/SourceData.cc
+  parmdb/SourceDB.cc
+  parmdb/SourceDBBlob.cc
+  parmdb/SourceDBCasa.cc
+  parmdb/SourceInfo.cc
 )
 
-add_library(PythonDPPP OBJECT
-  PythonDPPP/PyDPStep.cc
+add_library(PythonDP3 OBJECT
+  pythondp3/PyStep.cc
 )
 
-# dppp_testdyndppp requires using position independent code.
-set_property(TARGET AOFlaggerStep Blob Common DDECal DPPP_OBJ ParmDB PythonDPPP
+# dp3_testdyndp3 requires using position independent code.
+set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB PythonDP3
              PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 if(USE_LSMR)
 set_property(TARGET LSMR
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
-set(DPPP_OBJECTS
-  $<TARGET_OBJECTS:AOFlaggerStep>
+set(DP3_OBJECTS
   $<TARGET_OBJECTS:Blob>
   $<TARGET_OBJECTS:Common>
   $<TARGET_OBJECTS:DDECal>
-  $<TARGET_OBJECTS:DPPP_OBJ>
+  $<TARGET_OBJECTS:DP3_OBJ>
   $<TARGET_OBJECTS:ParmDB>
-  $<TARGET_OBJECTS:PythonDPPP>)
+  $<TARGET_OBJECTS:PythonDP3>)
 
 if(USE_LSMR)
-  list(APPEND DPPP_OBJECTS $<TARGET_OBJECTS:LSMR>)
+  list(APPEND DP3_OBJECTS $<TARGET_OBJECTS:LSMR>)
 endif()
 
-set(DPPP_LIBRARIES
+set(DP3_LIBRARIES
   ${AOFLAGGER_LIB}
   ${ARMADILLO_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -407,9 +399,10 @@ set(DPPP_LIBRARIES
   Threads::Threads
   pybind11::embed)
 
-add_subdirectory(DPPP)
+add_subdirectory(base)
+
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  add_subdirectory(PythonDPPP)
+  add_subdirectory(pythondp3)
 endif()
 # SPW Combine has dependencies to LOFAR
 #add_subdirectory(SPWCombine)
@@ -423,13 +416,16 @@ set(SOURCEDB_LIBRARIES
   ${CASACORE_LIBRARIES}
   ${Boost_SYSTEM_LIBRARY})
 
-add_executable(makesourcedb ParmDB/makesourcedb.cc ${SOURCEDB_OBJECTS})
+add_executable(makesourcedb parmdb/makesourcedb.cc ${SOURCEDB_OBJECTS})
 target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
 
-add_executable(showsourcedb ParmDB/showsourcedb.cc ${SOURCEDB_OBJECTS})
+add_executable(showsourcedb parmdb/showsourcedb.cc ${SOURCEDB_OBJECTS})
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
+
+# Install a script that warns users that DP3 is the new name of the executable
+install(PROGRAMS scripts/DPPP-deprecation.sh DESTINATION bin RENAME DPPP)
 
 include(docs/CMakeLists.txt)
 
@@ -441,69 +437,70 @@ if (BUILD_TESTING)
   else()
     # These run only on Linux
     set(OS_SPECIFIC_TESTS
-    # TestDynDPPP/test/tDynStep.cc # This test still fails
+    # steps/dynamic_test_step/test/tDynamicTestStep.cc # This test still fails
     )
-    add_library(dppp_testdyndppp SHARED
-      TestDynDPPP/TestDynStep.cc ${DPPP_OBJECTS}
+    add_library(dp3_testdyndp3 SHARED
+      steps/dynamic_test_step/DynamicTestStep.cc ${DP3_OBJECTS}
     )
-    target_link_libraries(dppp_testdyndppp ${DPPP_LIBRARIES})
-    add_dependencies(dppp_testdyndppp schaapcommon)
+    target_link_libraries(dp3_testdyndp3 ${DP3_LIBRARIES})
+    add_dependencies(dp3_testdyndp3 schaapcommon)
   endif()
 
   set(TEST_FILENAMES
-    Common/test/unit/tProximityClustering.cc
-    DPPP/test/runtests.cc
-    DPPP/test/unit/mock/MockInput.cc
-    DPPP/test/unit/mock/MockStep.cc
-    DPPP/test/unit/fixtures/fDirectory.cc
-    DPPP/test/unit/tApplyCal.cc
-    DPPP/test/unit/tApplyCalH5.cc
-    DPPP/test/unit/tAverager.cc
-    DPPP/test/unit/tBaselineSelection.cc
-    DPPP/test/unit/tBDABuffer.cc
-    DPPP/test/unit/tBDAIntervalBuffer.cc
-    # DPPP/test/unit/tDemixer.cc # Parset is no longer valid in this test
-    DPPP/test/unit/tFilter.cc
-    DPPP/test/unit/tInterpolate.cc
-    DPPP/test/unit/tMedFlagger.cc
-    DPPP/test/unit/tDPPP.cc
-    DPPP/test/unit/tMirror.cc
-    DPPP/test/unit/tMSReader.cc
-    DPPP/test/unit/tPreFlagger.cc
-    DPPP/test/unit/tPhaseShift.cc
-    DPPP/test/unit/tUpsample.cc
-    DPPP/test/unit/tUVWFlagger.cc
-    DPPP/test/unit/tPSet.cc
-    DPPP/test/unit/tScaleData.cc
-    DPPP/test/unit/tSolutionInterval.cc
-    DPPP/test/unit/tSourceDBUtil.cc
-    DPPP/test/unit/tStationAdder.cc
-    DDECal/test/unit/tRotationConstraint.cc
+    common/test/unit/tProximityClustering.cc
+    base/test/runtests.cc
+    base/test/unit/tBaselineSelection.cc
+    base/test/unit/tBDABuffer.cc
+    base/test/unit/tBDAIntervalBuffer.cc
+    # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
+    base/test/unit/tDP3.cc
+    base/test/unit/tMirror.cc
+    base/test/unit/tSolutionInterval.cc
+    base/test/unit/tSourceDBUtil.cc
+    ddecal/test/unit/tRotationConstraint.cc
+    steps/test/unit/mock/MockInput.cc
+    steps/test/unit/mock/MockStep.cc
+    steps/test/unit/fixtures/fDirectory.cc
+    steps/test/unit/tAOFlaggerStep.cc
+    steps/test/unit/tApplyCal.cc
+    steps/test/unit/tApplyCalH5.cc
+    steps/test/unit/tAverager.cc
+    steps/test/unit/tFilter.cc
+    steps/test/unit/tInterpolate.cc
+    steps/test/unit/tMedFlagger.cc
+    steps/test/unit/tMSReader.cc
+    steps/test/unit/tPreFlagger.cc
+    steps/test/unit/tPhaseShift.cc
+    steps/test/unit/tUpsample.cc
+    steps/test/unit/tUVWFlagger.cc
+    steps/test/unit/tPSet.cc
+    steps/test/unit/tScaleData.cc
+    steps/test/unit/tStationAdder.cc
   )
   if(${Python3_NumPy_FOUND})
-     list(APPEND TEST_FILENAMES "DPPP/test/unit/tPyDPStep.cc")
+     list(APPEND TEST_FILENAMES "steps/test/unit/tPyStep.cc")
   else(${Python3_NumPy_FOUND})
-     message(WARNING "NumPy not found on machine, tPyDPStep test is excluded from tests.")
+     message(WARNING "NumPy not found on machine, tPyStep test is excluded from tests.")
   endif()
 
   set(TEST_SOLVER_FILENAMES
-    DPPP/test/runtests.cc
-    DDECal/test/unit/tSolvers.cc
+    base/test/runtests.cc
+    ddecal/test/unit/tSolvers.cc
   )
 
   # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
   if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
     list(APPEND TEST_FILENAMES
-      Common/test/unit/tMemory.cc
-      Common/test/unit/tStringUtil.cc
-      DPPP/test/unit/tBDAAverager.cc
-      DPPP/test/unit/tDPInfo.cc
-      DPPP/test/unit/tDPInput.cc
-      DPPP/test/unit/tMSBDAReader.cc
-      DPPP/test/unit/tMSBDAWriter.cc
-      DPPP/test/unit/tScaleDataBDA.cc)
+      common/test/unit/tMemory.cc
+      common/test/unit/tStringTools.cc
+      base/test/unit/tDPInfo.cc
+      steps/test/unit/tBDAAverager.cc
+      steps/test/unit/tDPInput.cc
+      steps/test/unit/tMSBDAReader.cc
+      steps/test/unit/tMSBDAWriter.cc
+      steps/test/unit/tScaleDataBDA.cc)
     if(HAVE_IDG)
-      list(APPEND TEST_FILENAMES DPPP/test/unit/tIDGPredict.cc)
+      list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
     endif()
   else()
     message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
@@ -517,16 +514,16 @@ if (BUILD_TESTING)
     ${TEST_FILENAMES} ${TEST_SOLVER_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
   )
 
-  set(DPPP_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/DPPP/test/resources)
+  set(DP3_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resources)
   set(EXTRACT_CMD ${CMAKE_COMMAND} -E tar xzf)
 
   add_custom_target(extract_test_resources
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tIDGPredict.sources.tgz
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DPPP_RESOURCE_DIR}/tOSKAR.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tIDGPredict.sources.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
   )
 
   add_test(
@@ -537,24 +534,24 @@ if (BUILD_TESTING)
 
   add_executable(
     unittests
-    ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DPPP_OBJECTS}
+    ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DP3_OBJECTS}
   )
   set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
-  target_link_libraries(unittests ${DPPP_LIBRARIES})
+  target_link_libraries(unittests ${DP3_LIBRARIES})
   add_dependencies(unittests schaapcommon)
 
   add_executable(
     unittest_solver
-    ${TEST_SOLVER_FILENAMES} ${DPPP_OBJECTS}
+    ${TEST_SOLVER_FILENAMES} ${DP3_OBJECTS}
   )
-  target_link_libraries(unittest_solver ${DPPP_LIBRARIES})
+  target_link_libraries(unittest_solver ${DP3_LIBRARIES})
 
   # Automatically (re)build the unit tests on every ctest run.
   add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests unittest_solver)
   set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 
-  # unittests.sh adjusts the PYTHONPATH to make tPyDPStep working.
-  configure_file(unittests.sh.in unittests.sh)
+  # unittests.sh adjusts the PYTHONPATH to make tPyStep working.
+  configure_file(scripts/unittests.sh.in unittests.sh)
   add_test(
     NAME unittests
     COMMAND unittests.sh -f JUNIT -k unittests.xml --catch_system_error=yes
@@ -573,5 +570,6 @@ if (BUILD_TESTING)
     FIXTURES_REQUIRED "unittests"
   )
 
-  add_subdirectory(DDECal/test/integration)
+  add_subdirectory(steps/test/integration)
+  add_subdirectory(ddecal/test/integration)
 endif() # BUILD_TESTING

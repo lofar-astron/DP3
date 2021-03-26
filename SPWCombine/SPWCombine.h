@@ -15,8 +15,8 @@
 #include <tables/Tables/TableIter.h>
 
 namespace LOFAR {
-namespace CS1 {
-using namespace casa;
+namespace spwcombine {
+using namespace casacore;
 
 class SPWCombine {
  private:
@@ -38,6 +38,6 @@ class SPWCombine {
   void Combine(vector<MeasurementSet*> inMS, MeasurementSet& myMS,
                std::string Data);
 };
-}  // namespace CS1
+}  // namespace spwcombine
 };  // namespace LOFAR
 #endif
