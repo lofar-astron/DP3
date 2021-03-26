@@ -10,12 +10,13 @@
 #include <Common/ParameterSet.h>
 #include <vector>
 
-namespace casa {
+namespace casacore {
 class MeasurementSet;  // foreward declaration
 }
 
-namespace DP3 {
-namespace CS1 {
+namespace dp3 {
+namespace spwcombine {
+
 class SPWCombine;  // foreward declaration
 
 class CombinerProcessControl : public DP3ACC::PLC::ProcessControl {
@@ -62,7 +63,7 @@ class CombinerProcessControl : public DP3ACC::PLC::ProcessControl {
   std::string askInfo(const std::string&);
 
 };  // class CombinerProcessControl
-}  // namespace CS1
-};  // namespace DP3
+}  // namespace spwcombine
+};  // namespace dp3
 
 #endif

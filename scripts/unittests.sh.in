@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#PythonDP3 tests requires setting PYTHONPATH.
+export PYTHONPATH=@CMAKE_SOURCE_DIR@/steps/test/unit/mock:@CMAKE_BINARY_DIR@/pythondp3:$PYTHONPATH
+
+./unittests "$@"

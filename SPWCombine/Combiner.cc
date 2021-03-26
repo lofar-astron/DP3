@@ -3,17 +3,15 @@
 //
 // @author Adriaan Renting
 
-#include "../Common/SystemUtil.h"
+#include "../common/SystemUtil.h"
 
-#include "../DPPP/Exceptions.h"
+#include "../base/Exceptions.h"
 
 #include <PLC/ACCmain.h>
 
 #include "CombinerProcessControl.h"
 
 #include <iostream>
-
-using namespace LOFAR;
 
 // Use a terminate handler that can produce a backtrace.
 // Exception::TerminateHandler t(Exception::terminate);

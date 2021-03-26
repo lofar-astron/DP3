@@ -22,9 +22,10 @@
 // 0.21 Fixed calculation of REF_FREQUENCY
 // 0.22 Added handing of Measurementsets with different numbers of timesamples
 
-namespace DP3 {
-namespace CS1 {
-using namespace casa;
+namespace dp3 {
+namespace spwcombine {
+
+using namespace casacore;
 //===============>>> CombinerProcessControl::CombinerProcessControl
 //<<<===============
 CombinerProcessControl::CombinerProcessControl() : ProcessControl() {
@@ -245,5 +246,6 @@ std::string CombinerProcessControl::askInfo(const std::string&) {
 //===============>>> CombinerProcessControl::snapshot
 //<<<============================
 tribool CombinerProcessControl::snapshot(const std::string&) { return false; }
-}  // namespace CS1
-};  // namespace DP3
+
+}  // namespace spwcombine
+};  // namespace dp3

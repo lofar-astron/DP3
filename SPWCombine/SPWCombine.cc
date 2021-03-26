@@ -6,9 +6,9 @@
 #include <lofar_config.h>
 #include <SPWCombine/SPWCombine.h>
 
-namespace DP3 {
-namespace CS1 {
-using namespace casa;
+namespace dp3 {
+namespace spwcombine {
+using namespace casacore;
 
 //===============>>>  SPWCombine::SPWCombine  <<<===============
 
@@ -133,5 +133,5 @@ void SPWCombine::Combine(vector<MeasurementSet*> inMS, MeasurementSet& myMS,
     }
   }
 }
-}  // namespace CS1
-};  // namespace DP3
+}  // namespace spwcombine
+};  // namespace dp3
