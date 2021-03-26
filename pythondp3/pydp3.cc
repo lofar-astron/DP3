@@ -83,9 +83,7 @@ PYBIND11_MODULE(pydp3, m) {
   py::class_<ostream_wrapper>(m, "ostream")
       .def("write", &ostream_wrapper::write);
 
-  py::class_<StepWrapper,
-             std::shared_ptr<StepWrapper>,  // holder type
-             PyStepImpl                     /* <--- trampoline*/
+  py::class_<StepWrapper, PyStepImpl /* <--- trampoline*/
              >(m, "Step")
       .def(py::init<>())
       .def("show", &StepWrapper::show,

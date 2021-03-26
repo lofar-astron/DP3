@@ -1,4 +1,4 @@
-// tPyDPStep.cc: Test program for the python Step
+// tPyStep.cc: Test program for the python Step
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -135,29 +135,51 @@ void Execute(const Step::ShPtr& step1) {
 
 // Test simple python step
 void test(int ntime, int nbl, int nchan, int ncorr) {
+  // Weak pointer that will be used to monitor the lifetime of the last step
+  // Because of the complicated ownership across the Python-C++ boundary
+  // we need to check whether the steps are destroyed at the right time
+  std::weak_ptr<Step> step3_weak_ptr;
+
   // Create the steps.
   TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
-  Step::ShPtr step1(in);
-  // Requires mockpystep to be on the PYTHONPATH!
-  ParameterSet parset;
-  parset.add("python.module", "mockpystep");
-  parset.add("python.class", "MockPyStep");
-  parset.add("datafactor", "2");
-  parset.add("weightsfactor", "0.5");
-  // Step 2 is the python step
-  Step::ShPtr step2 = PyStep::create_instance(in, parset, "");
-  Step::ShPtr step3(new TestOutput(nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
 
-  // Check whether print statements in show() method are
-  // indeed redirected to output stream
-  std::ostringstream output_stream_step;
-  step2->show(output_stream_step);
-  BOOST_TEST(output_stream_step.str() ==
-             "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
+  {
+    Step::ShPtr step1(in);
+    // Requires mockpystep to be on the PYTHONPATH!
+    ParameterSet parset;
+    parset.add("python.module", "mockpystep");
+    parset.add("python.class", "MockPyStep");
+    parset.add("datafactor", "2");
+    parset.add("weightsfactor", "0.5");
+    {
+      // Step 2 is the python step
+      Step::ShPtr step2 = PyStep::create_instance(in, parset, "");
+      Step::ShPtr step3(new TestOutput(nbl, nchan, ncorr));
 
-  Execute(step1);
+      // Monitor lifetime of output step
+      step3_weak_ptr = std::weak_ptr<Step>(step3);
+
+      step1->setNextStep(step2);
+      step2->setNextStep(step3);
+
+      // Check whether print statements in show() method are
+      // indeed redirected to output stream
+      std::ostringstream output_stream_step;
+      step2->show(output_stream_step);
+      BOOST_TEST(
+          output_stream_step.str() ==
+          "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
+
+      Execute(step1);
+    }
+    // step3 went out of scope here, but is still reachable following
+    // the chain of getNextStep() calls from step1, and thus should
+    // still be alive
+    BOOST_TEST(!step3_weak_ptr.expired());
+  }
+  // step1 went out of scope here
+  // step3 should also no longer be alive now
+  BOOST_TEST(step3_weak_ptr.expired());
 }
 
 BOOST_AUTO_TEST_CASE(testpystep) { test(10, 3, 32, 4); }
