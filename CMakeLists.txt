@@ -205,20 +205,20 @@ endif()
 
 if (USE_LSMR)
   add_definitions(-DUSE_LSMR)
-add_library(LSMR OBJECT
- clsmr/lsmrblas.f90
- clsmr/lsmrblasInterface.f90
- clsmr/lsmrCheckModule.f90
- clsmr/lsmrDataModule.f90
- clsmr/lsmrModule.f90
- clsmr/lsmrReadMtxModule.f90
- clsmr/mm_io.f90
- clsmr/mm_ioModule.f90
- clsmr/clsmrblas.f90
- clsmr/clsmrblasInterface.f90
- clsmr/clsmrDataModule.f90
- clsmr/clsmrModule.f90
-)
+  add_library(LSMR OBJECT
+    external/clsmr/lsmrblas.f90
+    external/clsmr/lsmrblasInterface.f90
+    external/clsmr/lsmrCheckModule.f90
+    external/clsmr/lsmrDataModule.f90
+    external/clsmr/lsmrModule.f90
+    external/clsmr/lsmrReadMtxModule.f90
+    external/clsmr/mm_io.f90
+    external/clsmr/mm_ioModule.f90
+    external/clsmr/clsmrblas.f90
+    external/clsmr/clsmrblasInterface.f90
+    external/clsmr/clsmrDataModule.f90
+    external/clsmr/clsmrModule.f90
+  )
 endif()
 
 add_library(Blob OBJECT
