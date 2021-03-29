@@ -10,6 +10,7 @@
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/ScalarSolver.h"
 
 #include "../../linear_solvers/LSMRSolver.h"
@@ -285,6 +286,34 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver, SolverTester) {
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(iterative_scalar_solver, SolverTester) {
+  IterativeScalarSolver solver;
+  solver.SetMaxIterations(max_iter);
+  solver.SetAccuracy(1e-8);
+  solver.SetStepSize(0.2);
+  solver.SetNThreads(1);
+  solver.SetPhaseOnly(false);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  SetScalarSolutions();
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-values as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant, 1.0);
+  }
+
+  // Call the solver
+  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
+                        nullptr);
+
+  CheckScalarResults(solutions, 1.0e-3);
 }
 
 BOOST_FIXTURE_TEST_CASE(scalar_solver_normaleq, SolverTester) {

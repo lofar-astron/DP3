@@ -22,6 +22,7 @@
 #include "../ddecal/gain_solvers/DiagonalSolver.h"
 #include "../ddecal/gain_solvers/FullJonesSolver.h"
 #include "../ddecal/gain_solvers/IterativeDiagonalSolver.h"
+#include "../ddecal/gain_solvers/IterativeScalarSolver.h"
 #include "../ddecal/gain_solvers/ScalarSolver.h"
 
 #include "../ddecal/linear_solvers/LLSSolver.h"
@@ -199,30 +200,39 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       parset.getDouble(prefix + "llsstarttolerance", llsEndTolerance);
   const std::pair<double, double> llsTolerances =
       LLSSolver::ParseTolerances(llsEndTolerance, llsStartTolerance);
-  if (itsIterateDirections && itsMode != GainCal::DIAGONAL &&
-      itsMode != GainCal::DIAGONALPHASE &&
-      itsMode != GainCal::DIAGONALAMPLITUDE) {
+  if (itsIterateDirections &&
+      (itsMode == GainCal::FULLJONES || itsMode == GainCal::ROTATION ||
+       itsMode == GainCal::ROTATIONANDDIAGONAL)) {
     throw std::runtime_error(
         "The direction-iterating algorithm is currently only available for "
         "diagonal solving modes");
   }
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
-      itsSolver = boost::make_unique<base::ScalarSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARPHASE:
-      itsSolver = boost::make_unique<base::ScalarSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsSolver->SetPhaseOnly(true);
       itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARAMPLITUDE:
-      itsSolver = boost::make_unique<base::ScalarSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsSolver->SetPhaseOnly(false);
@@ -264,7 +274,10 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       break;
     case GainCal::TEC:
     case GainCal::TECANDPHASE: {
-      itsSolver = boost::make_unique<base::ScalarSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
       const auto tecMode = (itsMode == GainCal::TEC)
                                ? TECConstraint::TECOnlyMode
@@ -293,7 +306,10 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
     }
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
-      itsSolver = boost::make_unique<base::ScalarSolver>();
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
       itsConstraints.push_back(
           boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
       itsSolver->SetPhaseOnly(true);
