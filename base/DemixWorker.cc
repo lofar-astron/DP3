@@ -752,28 +752,15 @@ void DemixWorker::applyBeam(double time, const Position& pos, bool apply,
                                  &(itsBeamValues[nchan * st]));
   }
   // Apply the beam values of both stations to the predicted data.
-  dcomplex tmp[4];
   for (size_t bl = 0; bl < itsMix->nbl(); ++bl) {
-    const everybeam::matrix22c_t* left =
-        &(itsBeamValues[nchan * itsMix->getAnt1()[bl]]);
-    const everybeam::matrix22c_t* right =
-        &(itsBeamValues[nchan * itsMix->getAnt2()[bl]]);
     for (size_t ch = 0; ch < nchan; ++ch) {
-      dcomplex l[] = {left[ch][0][0], left[ch][0][1], left[ch][1][0],
-                      left[ch][1][1]};
-      // Form transposed conjugate of right.
-      dcomplex r[] = {conj(right[ch][0][0]), conj(right[ch][1][0]),
-                      conj(right[ch][0][1]), conj(right[ch][1][1])};
-      // left*data
-      tmp[0] = l[0] * data[0] + l[1] * data[2];
-      tmp[1] = l[0] * data[1] + l[1] * data[3];
-      tmp[2] = l[2] * data[0] + l[3] * data[2];
-      tmp[3] = l[2] * data[1] + l[3] * data[3];
-      // data*conj(right)
-      data[0] = tmp[0] * r[0] + tmp[1] * r[2];
-      data[1] = tmp[0] * r[1] + tmp[1] * r[3];
-      data[2] = tmp[2] * r[0] + tmp[3] * r[2];
-      data[3] = tmp[2] * r[1] + tmp[3] * r[3];
+      const aocommon::MC2x2 mat(data);
+      const aocommon::MC2x2 left(
+          itsBeamValues[nchan * itsMix->getAnt1()[bl] + ch]);
+      const aocommon::MC2x2 right(
+          itsBeamValues[nchan * itsMix->getAnt2()[bl] + ch]);
+      const aocommon::MC2x2 result = left.HermThenMultiply(mat).Multiply(right);
+      result.AssignTo(data);
       data += 4;
     }
   }

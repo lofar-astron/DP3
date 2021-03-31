@@ -21,6 +21,7 @@
 #include "../parmdb/ParmDB.h"
 
 #include <EveryBeam/station.h>
+#include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Quanta/Quantum.h>
@@ -231,7 +232,7 @@ class DemixWorker {
   /// Variables for conversion of directions to ITRF.
   casacore::MeasFrame itsMeasFrame;
   casacore::MDirection::Convert itsMeasConverter;
-  std::vector<everybeam::matrix22c_t> itsBeamValues;  ///< [nst,nch]
+  std::vector<aocommon::MC2x2> itsBeamValues;  ///< [nst,nch]
 
   /// Indices telling which Ateam sources to use.
   std::vector<unsigned int> itsSrcSet;

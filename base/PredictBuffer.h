@@ -8,6 +8,8 @@
 #include <complex>
 #include <vector>
 
+#include <aocommon/matrix2x2.h>
+
 #include <casacore/casa/Arrays/Cube.h>
 
 namespace dp3 {
@@ -48,7 +50,7 @@ class PredictBuffer {
     return patch_model_visibilities_[threadIndex];
   }
 
-  std::vector<everybeam::matrix22c_t>& GetFullBeamValues(size_t threadIndex) {
+  std::vector<aocommon::MC2x2>& GetFullBeamValues(size_t threadIndex) {
     return full_beam_values_[threadIndex];
   }
 
@@ -63,7 +65,7 @@ class PredictBuffer {
  private:
   std::vector<casacore::Cube<dcomplex>> model_visibilities_;
   std::vector<casacore::Cube<dcomplex>> patch_model_visibilities_;
-  std::vector<std::vector<everybeam::matrix22c_t>> full_beam_values_;
+  std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
   std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
   std::vector<std::shared_ptr<everybeam::Station>> station_list_;
 };
