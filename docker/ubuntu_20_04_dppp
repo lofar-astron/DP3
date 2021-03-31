@@ -3,10 +3,10 @@ FROM $BASE_TAG
 
 ADD . /src
 
-# Build DPPP
+# Build DP3
 RUN mkdir /build && cd /build \
     && cmake ../src -DUSE_LSMR=True \
     && make -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
     && make install -j$(($(nproc) / 2 > 0 ? $(nproc) / 2:1)) \
-    && DPPP \
+    && DP3 \
     && rm -r /src /build
