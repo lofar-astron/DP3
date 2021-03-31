@@ -265,6 +265,7 @@ add_library(DDECal OBJECT
   ddecal/gain_solvers/IterativeScalarSolver.cc
   ddecal/gain_solvers/ScalarSolver.cc
   ddecal/gain_solvers/SolverBase.cc
+  ddecal/gain_solvers/SolverBuffer.cc
   ddecal/linear_solvers/LSMRSolver.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
