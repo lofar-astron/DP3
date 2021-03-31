@@ -27,6 +27,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/Measures/MeasConvert.h>
 
+#include <aocommon/matrix2x2diag.h>
+
 #include <stddef.h>
 #include <string>
 #include <sstream>
@@ -275,9 +277,8 @@ void ApplyBeam::applyBeam(
     const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
     const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-    bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights) {
-  using dcomplex = std::complex<double>;
+    std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
+    base::BeamCorrectionMode mode, bool doUpdateWeights) {
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
@@ -285,7 +286,7 @@ void ApplyBeam::applyBeam(
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
-  everybeam::diag22c_t af_tmp;
+  aocommon::MC2x2Diag af_tmp;
 
   double reffreq = info.refFreq();
 
@@ -302,7 +303,7 @@ void ApplyBeam::applyBeam(
           beamValues[nCh * st + ch] = antBeamInfo[st]->Response(
               time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir);
           if (invert) {
-            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+            beamValues[nCh * st + ch].Invert();
           }
         }
         break;
@@ -311,15 +312,15 @@ void ApplyBeam::applyBeam(
         for (size_t st = 0; st < nSt; ++st) {
           af_tmp = antBeamInfo[st]->ArrayFactor(
               time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir);
-          beamValues[nCh * st + ch][0][1] = 0.;
-          beamValues[nCh * st + ch][1][0] = 0.;
+          beamValues[nCh * st + ch][1] = 0.;
+          beamValues[nCh * st + ch][2] = 0.;
 
           if (invert) {
-            beamValues[nCh * st + ch][0][0] = 1. / af_tmp[0];
-            beamValues[nCh * st + ch][1][1] = 1. / af_tmp[1];
+            beamValues[nCh * st + ch][0] = 1. / af_tmp[0];
+            beamValues[nCh * st + ch][3] = 1. / af_tmp[1];
           } else {
-            beamValues[nCh * st + ch][0][0] = af_tmp[0];
-            beamValues[nCh * st + ch][1][1] = af_tmp[1];
+            beamValues[nCh * st + ch][0] = af_tmp[0];
+            beamValues[nCh * st + ch][3] = af_tmp[1];
           }
         }
         break;
@@ -329,16 +330,13 @@ void ApplyBeam::applyBeam(
           beamValues[nCh * st + ch] = antBeamInfo[st]->ComputeElementResponse(
               time, info.chanFreqs()[ch], srcdir);
           if (invert) {
-            ApplyCal::invert((dcomplex*)(&(beamValues[nCh * st + ch])));
+            beamValues[nCh * st + ch].Invert();
           }
         }
         break;
       case base::NoBeamCorrection:  // this should not happen
         for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch][0] =
-              std::array<std::complex<double>, 2>({1.0, 0.0});
-          beamValues[nCh * st + ch][1] =
-              std::array<std::complex<double>, 2>({0.0, 1.0});
+          beamValues[nCh * st + ch] = aocommon::MC2x2::Unity();
         }
         break;
     }
@@ -348,31 +346,17 @@ void ApplyBeam::applyBeam(
     // that r and l are diagonal
     for (size_t bl = 0; bl < nBl; ++bl) {
       T* data = data0 + bl * 4 * nCh + ch * 4;
-      everybeam::matrix22c_t* left = &(beamValues[nCh * info.getAnt1()[bl]]);
-      everybeam::matrix22c_t* right = &(beamValues[nCh * info.getAnt2()[bl]]);
-      casacore::Complex l[] = {
-          casacore::Complex(left[ch][0][0]), casacore::Complex(left[ch][0][1]),
-          casacore::Complex(left[ch][1][0]), casacore::Complex(left[ch][1][1])};
-      // Form transposed conjugate of right.
-      casacore::Complex r[] = {std::conj(casacore::Complex(right[ch][0][0])),
-                               std::conj(casacore::Complex(right[ch][1][0])),
-                               std::conj(casacore::Complex(right[ch][0][1])),
-                               std::conj(casacore::Complex(right[ch][1][1]))};
-      // left*data
-      std::complex<float> tmp[4] = {
-          l[0] * casacore::Complex(data[0]) + l[1] * casacore::Complex(data[2]),
-          l[0] * casacore::Complex(data[1]) + l[1] * casacore::Complex(data[3]),
-          l[2] * casacore::Complex(data[0]) + l[3] * casacore::Complex(data[2]),
-          l[2] * casacore::Complex(data[1]) +
-              l[3] * casacore::Complex(data[3])};
-      // data*conj(right)
-      data[0] = tmp[0] * r[0] + tmp[1] * r[2];
-      data[1] = tmp[0] * r[1] + tmp[1] * r[3];
-      data[2] = tmp[2] * r[0] + tmp[3] * r[2];
-      data[3] = tmp[2] * r[1] + tmp[3] * r[3];
-
+      const aocommon::MC2x2F mat(data);
+      //
+      const aocommon::MC2x2F left(
+          beamValues[nCh * info.getAnt1()[bl] + ch].Data());
+      const aocommon::MC2x2F right(
+          beamValues[nCh * info.getAnt2()[bl] + ch].Data());
+      const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
+      result.AssignTo(data);
       if (doUpdateWeights) {
-        ApplyCal::applyWeights(l, r, weight0 + bl * 4 * nCh + ch * 4);
+        ApplyCal::applyWeights(left.Data(), right.Data(),
+                               weight0 + bl * 4 * nCh + ch * 4);
       }
     }
   }
@@ -383,8 +367,8 @@ template void ApplyBeam::applyBeam(
     float* weight0, const everybeam::vector3r_t& srcdir,
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-    bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights);
+    std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
+    base::BeamCorrectionMode mode, bool doUpdateWeights);
 
 template <typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -402,7 +386,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
 
   // Store array factor in diagonal matrix (in other modes this variable
   // is not used).
-  everybeam::diag22c_t af_tmp;
+  aocommon::MC2x2Diag af_tmp;
 
   double reffreq = info.refFreq();
 

@@ -15,7 +15,7 @@
 #include "../base/Position.h"
 
 #include <EveryBeam/station.h>
-#include <EveryBeam/common/types.h>
+#include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -75,10 +75,8 @@ class ApplyBeam : public Step {
       const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
       const everybeam::vector3r_t& tiledir,
       const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-      std::vector<everybeam::matrix22c_t>& beamValues, bool useChannelFreq,
-      bool invert, base::BeamCorrectionMode mode,
-      // everybeam::ElementResponseModel element_reponse_model,
-      bool doUpdateWeights = false);
+      std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq,
+      bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights = false);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -120,7 +118,7 @@ class ApplyBeam : public Step {
   std::vector<std::vector<std::shared_ptr<everybeam::Station>>> itsAntBeamInfo;
   std::vector<casacore::MeasFrame> itsMeasFrames;
   std::vector<casacore::MDirection::Convert> itsMeasConverters;
-  std::vector<std::vector<everybeam::matrix22c_t>> itsBeamValues;
+  std::vector<std::vector<aocommon::MC2x2>> itsBeamValues;
   ///@}
 
   common::NSTimer itsTimer;
