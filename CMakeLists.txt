@@ -406,8 +406,6 @@ add_subdirectory(base)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_subdirectory(pythondp3)
 endif()
-# SPW Combine has dependencies to LOFAR
-#add_subdirectory(SPWCombine)
 
 set(SOURCEDB_OBJECTS
   $<TARGET_OBJECTS:Blob>
