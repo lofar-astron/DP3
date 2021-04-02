@@ -276,9 +276,9 @@ pages:
     - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
     - cp ../build/unittests.xml build/reports/unit-tests.xml
     # Create and upload GitLab badges
-    - chmod -R 700 ../CI
-    - python3 ../CI/.produce-ci-metrics.py build/reports > ci-metrics.json
-    - sh ../CI/ci-badges-func.sh
+    - chmod -R 700 ../ci
+    - python3 ../ci/.produce-ci-metrics.py build/reports > ci-metrics.json
+    - sh ../ci/ci-badges-func.sh
     - cd ..
     - mv .public public
   artifacts:
