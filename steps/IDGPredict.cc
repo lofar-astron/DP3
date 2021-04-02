@@ -336,6 +336,7 @@ void IDGPredict::StartIDG() {
       if (term == 0) {
         subgrid_size = bs.get_subgridsize();
       } else {
+        (void)subgrid_size;  // Avoid unused variable warning.
         assert(bs.get_subgridsize() == subgrid_size);
       }
     }

@@ -114,6 +114,7 @@ void SourceData::writeSource(blob::BlobOStream& bos) const {
 
 void SourceData::readSource(blob::BlobIStream& bis) {
   int version = bis.getStart("source");
+  (void)version;  // Avoid unused variable warning.
   assert(version == 1);
   itsInfo.read(bis);
   bis >> itsPatchName >> itsRa >> itsDec >> itsI >> itsQ >> itsU >> itsV;
