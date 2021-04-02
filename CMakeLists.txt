@@ -29,33 +29,36 @@ if(USE_LSMR)
   enable_language(Fortran)
 endif()
 
-option(BUILD_PACKAGES "Build Debian packages" OFF)
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 
 option(PORTABLE "Generate portable code" OFF)
-if(NOT PORTABLE)
-  if(USE_AVX512F)
-    add_compile_options(-mavx512f)
-  elseif(USE_AVX2)
-    add_compile_options(-mavx2)
-  elseif(USE_AVX)
-    add_compile_options(-mavx)
-  else()
-    add_compile_options(-march=native)
+if(PORTABLE)
+  if(DEFINED TARGET_CPU)
+    message(WARNING "You have selected to build PORTABLE binaries. "
+                    "TARGET_CPU settings will be ignored.")
+    unset(TARGET_CPU CACHE)
   endif()
 else()
-  if(USE_AVX512F OR USE_AVX2 OR USE_AVX)
-    message(FATAL_ERROR "Cannot enable AVX features when building portable code.")
+  if(DEFINED TARGET_CPU)
+    add_compile_options(-march=${TARGET_CPU})
+  else()
+    add_compile_options(-march=native)
   endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Add CPack directory if user want to generate Debian packages
+option(BUILD_PACKAGES "Build Debian packages" OFF)
+if(BUILD_PACKAGES)
+  add_subdirectory(CPack)
+endif()
+
 
 # === Load external packages ===
 
@@ -198,10 +201,6 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 # Add cmake information to headers
 configure_file(base/Version.h.in base/Version.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/base)
-
-if(BUILD_PACKAGES)
-  add_subdirectory(CPack)
-endif()
 
 if (USE_LSMR)
   add_definitions(-DUSE_LSMR)

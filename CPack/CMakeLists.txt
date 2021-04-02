@@ -21,19 +21,13 @@ if(NOT VERSION_STRING)
                   "using ${VERSION_STRING} instead.")
 endif()
 
-# Determine which AVX-feature flags are enabled, if any.
-include(${CMAKE_CURRENT_SOURCE_DIR}/DetermineEnabledAVXFeatures.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/DetermineTargetCPU.cmake)
 
-# Set package name: encode "highest" AVX-feature, if any, in package name.
-set(CPACK_PACKAGE_NAME "DP3")
-if(USE_AVX)
-  set(CPACK_PACKAGE_NAME "DP3-avx")
-endif()
-if(USE_AVX2)
-  set(CPACK_PACKAGE_NAME "DP3-avx2")
-endif()
-if(USE_AVX512F)
-  set(CPACK_PACKAGE_NAME "DP3-avx512f")
+# Set package name: encode target CPU, if defined, in package name.
+if(DEFINED IDENTIFIED_TARGET_CPU)
+  set(CPACK_PACKAGE_NAME "dp3-${IDENTIFIED_TARGET_CPU}")
+else()
+  set(CPACK_PACKAGE_NAME "dp3")
 endif()
 
 set(CPACK_PACKAGE_VENDOR "ASTRON")
@@ -49,10 +43,31 @@ set(CPACK_SOURCE_GENERATOR "TGZ")
 
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "aoflagger (>=3.0.1), everybeam (>=0.1.1), idg-api (>=0.8)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS 
+"aoflagger (>= 3.0.1),\
+ everybeam (>= 0.2), everybeam (<< 0.3),\
+ idg-api (>= 0.8)")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "deb-packages@astron.nl")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+
+# Determine list of conflicting package names.
+# Packages not built for current target CPU always conflict.
+if(DEFINED IDENTIFIED_TARGET_CPU)
+  set(_conflicts dp3)
+else()
+  set(_conflicts)
+endif()
+foreach(_cpu ${KNOWN_TARGET_CPUS})
+  if(NOT "${_cpu}" STREQUAL "${IDENTIFIED_TARGET_CPU}")
+    if("${_conflicts}" STREQUAL "")
+      set(_conflicts "dp3-${_cpu}")
+    else()
+      set(_conflicts "${_conflicts}, dp3-${_cpu}")
+    endif()
+  endif()
+endforeach()
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS "${_conflicts}")
 
 include(CPack)
 
