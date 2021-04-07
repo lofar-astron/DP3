@@ -94,9 +94,8 @@ void GridRep::setup(const std::vector<Box>& domains) {
   }
   for (unsigned int j = 1; j < ny; ++j) {
     for (unsigned int i = 0; i < nx; ++i) {
-      unsigned int inx = j * nx + i;
-      assert(casacore::near(xaxisStart[i], domains[inx].lowerX()));
-      assert(casacore::near(xaxisEnd[i], domains[inx].upperX()));
+      assert(casacore::near(xaxisStart[i], domains[j * nx + i].lowerX()));
+      assert(casacore::near(xaxisEnd[i], domains[j * nx + i].upperX()));
     }
   }
   // Determine the start/end for Y and if it is regular.
@@ -119,9 +118,8 @@ void GridRep::setup(const std::vector<Box>& domains) {
   }
   for (unsigned int j = 0; j < ny; ++j) {
     for (unsigned int i = 1; i < nx; ++i) {
-      unsigned int inx = j * nx + i;
-      assert(casacore::near(yaxisStart[j], domains[inx].lowerY()));
-      assert(casacore::near(yaxisEnd[j], domains[inx].upperY()));
+      assert(casacore::near(yaxisStart[j], domains[j * nx + i].lowerY()));
+      assert(casacore::near(yaxisEnd[j], domains[j * nx + i].upperY()));
     }
   }
   // Create the (ir)regular axis.
@@ -158,15 +156,13 @@ void GridRep::setup(const std::vector<Grid>& grids) {
   Axis::ShPtr xaxis = grids[0].getAxis(0);
   for (unsigned int j = 1; j < ny; ++j) {
     for (unsigned int i = 0; i < nx; ++i) {
-      unsigned int inx = j * nx + i;
-      assert(*grids[i].getAxis(0) == *grids[inx].getAxis(0));
+      assert(*grids[i].getAxis(0) == *grids[j * nx + i].getAxis(0));
     }
   }
   // Check if the y axis is the same for all x-s.
   for (unsigned int j = 0; j < ny; ++j) {
-    unsigned int inx = j * nx;
     for (unsigned int i = 1; i < nx; ++i) {
-      assert(*grids[inx].getAxis(1) == *grids[inx + i].getAxis(1));
+      assert(*grids[j * nx].getAxis(1) == *grids[j * nx + i].getAxis(1));
     }
   }
 }

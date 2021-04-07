@@ -114,7 +114,9 @@ void SourceData::writeSource(blob::BlobOStream& bos) const {
 
 void SourceData::readSource(blob::BlobIStream& bis) {
   int version = bis.getStart("source");
-  assert(version == 1);
+  if (version != 1) {
+    throw std::domain_error("Unsupported source version");
+  }
   itsInfo.read(bis);
   bis >> itsPatchName >> itsRa >> itsDec >> itsI >> itsQ >> itsU >> itsV;
   if (itsInfo.getType() == SourceInfo::GAUSSIAN) {

@@ -335,8 +335,8 @@ void IDGPredict::StartIDG() {
       // GetSubgridCount assumes that the subgrid size is equal for all terms.
       if (term == 0) {
         subgrid_size = bs.get_subgridsize();
-      } else {
-        assert(bs.get_subgridsize() == subgrid_size);
+      } else if (bs.get_subgridsize() != subgrid_size) {
+        throw std::runtime_error("IDG subgrid sizes do not match");
       }
     }
 
