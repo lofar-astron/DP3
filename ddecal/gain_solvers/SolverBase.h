@@ -19,6 +19,8 @@
 namespace dp3 {
 namespace base {
 
+class DPBuffer;
+
 class SolverBase {
  public:
   typedef std::complex<double> DComplex;
@@ -62,23 +64,22 @@ class SolverBase {
    * and the (multi-directional) model data, and solves the optimization
    * problem that minimizes the norm of the differences.
    *
-   * @param data are the measured data, such that data [i] is a pointer to the
-   * data for timestep i. Those data are then ordered as they are in the MS (bl,
-   * chan, pol).
-   * @param mdata are the model data, such that mdata[i] is a pointer for
-   * timestep i to arrays of ndir model data pointers. Each of these pointers is
-   * in the same order as the data. Because the model data is large
-   * (e.g. tens of GB in extensive slow gain solves), the data is not
-   * copied but moved into this structure, and weighted in place.
-   * @param solutions are the per-channel and per-antenna solutions.
+   * @param unweighted_data_buffers The measured data.
+   * unweighted_data_buffers[i] holds the data for timestep i.
+   * @param model_buffers The model data. model_buffers[i] is a vector for
+   * timestep i with ndir buffers with model data. These
+   * buffers have in the same structure as the data. Because the model data is
+   * large* (e.g. tens of GB in extensive slow gain solves), the data is not
+   * copied but weighted in place.
+   * @param solutions The per-channel and per-antenna solutions.
    * solutions[ch] is a pointer for channelblock ch to antenna x directions x
    * pol solutions.
    */
-  virtual SolveResult Solve(const std::vector<Complex*>& data,
-                            const std::vector<float*>& weights,
-                            std::vector<std::vector<Complex*>>&& model_data,
-                            std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) = 0;
+  virtual SolveResult Solve(
+      const std::vector<DPBuffer>& unweighted_data_buffers,
+      const std::vector<std::vector<DPBuffer*>>& model_buffers,
+      std::vector<std::vector<DComplex>>& solutions, double time,
+      std::ostream* statStream) = 0;
 
   void AddConstraint(Constraint& constraint) {
     constraints_.push_back(&constraint);

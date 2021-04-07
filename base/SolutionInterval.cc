@@ -21,14 +21,11 @@ SolutionInterval::SolutionInterval(InputStep* input,
       input_(input),
       buffer_index_(0),
       buffers_(buffer_size),
-      data_ptrs_(buffer_size),
-      weight_ptrs_(buffer_size),
       original_flags_(buffer_size),
       original_weights_(buffer_size),
-      model_data_ptrs_(buffer_size),
-      model_data_(buffer_size) {
+      model_buffers_(buffer_size) {
   for (std::size_t t = 0; t < buffer_size_; ++t) {
-    model_data_ptrs_[t].resize(n_dir);
+    model_buffers_[t].resize(n_dir);
   }
 }
 
@@ -47,8 +44,6 @@ void SolutionInterval::CopyBuffer(const DPBuffer& buffer) {
 
   original_flags_[buffer_index_].assign(buffer.getFlags());
   original_weights_[buffer_index_].assign(buffer.getWeights());
-  data_ptrs_[buffer_index_] = buffers_[buffer_index_].getData().data();
-  weight_ptrs_[buffer_index_] = buffers_[buffer_index_].getWeights().data();
 
   ++buffer_index_;
 }
@@ -60,11 +55,6 @@ void SolutionInterval::RestoreFlagsAndWeights() {
   }
 }
 
-void SolutionInterval::Fit() {
-  data_ptrs_.resize(buffer_index_);
-  weight_ptrs_.resize(buffer_index_);
-  model_data_.resize(buffer_index_);
-  model_data_ptrs_.resize(buffer_index_);
-}
+void SolutionInterval::Fit() { model_buffers_.resize(buffer_index_); }
 }  // namespace base
 }  // namespace dp3

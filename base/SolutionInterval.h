@@ -19,6 +19,8 @@
 namespace dp3 {
 namespace base {
 
+class DPBuffer;
+
 class SolutionInterval {
  public:
   SolutionInterval(steps::InputStep* input, const std::size_t n_solution,
@@ -43,14 +45,10 @@ class SolutionInterval {
    */
   /**@{*/
   const std::size_t NSolution() const { return n_solution_; }
-  std::vector<casacore::Cube<casacore::Complex>>& ModelData() {
-    return model_data_;
-  }
-  std::vector<std::vector<casacore::Complex*>>& ModelDataPtrs() {
-    return model_data_ptrs_;
+  std::vector<DPBuffer>& DataBuffers() { return buffers_; }
+  std::vector<std::vector<DPBuffer*>>& ModelBuffers() {
+    return model_buffers_;
   };
-  std::vector<float*>& WeightPtrs() { return weight_ptrs_; }
-  std::vector<casacore::Complex*>& DataPtrs() { return data_ptrs_; }
   /**@}*/
 
   /**
@@ -70,14 +68,12 @@ class SolutionInterval {
   std::size_t buffer_index_;  ///< Current index where to insert the next buffer
   std::vector<DPBuffer> buffers_;  ///< Vector of DPBuffer copies
 
-  std::vector<casacore::Complex*> data_ptrs_;
-  std::vector<float*> weight_ptrs_;
   std::vector<casacore::Cube<bool>> original_flags_;
   std::vector<casacore::Cube<float>> original_weights_;
 
-  /// For each timeslot, a vector of nDir buffers, each of size nbl x nch x npol
-  std::vector<std::vector<casacore::Complex*>> model_data_ptrs_;
-  std::vector<casacore::Cube<casacore::Complex>> model_data_;
+  /// For each timeslot, a vector of nDir buffer pointers.
+  /// These buffers contain the model data.
+  std::vector<std::vector<DPBuffer*>> model_buffers_;
 };
 
 }  // namespace base

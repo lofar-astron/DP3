@@ -3,6 +3,7 @@
 
 #include "FullJonesSolver.h"
 
+#include "../../base/DPBuffer.h"
 #include "../linear_solvers/QRSolver.h"
 
 #include <aocommon/matrix2x2.h>
@@ -17,10 +18,9 @@ namespace dp3 {
 namespace base {
 
 SolverBase::SolveResult FullJonesSolver::Solve(
-    const std::vector<Complex*>& unweighted_data,
-    const std::vector<float*>& weights,
-    std::vector<std::vector<Complex*> >&& unweighted_model_data,
-    std::vector<std::vector<DComplex> >& solutions, double time,
+    const std::vector<DPBuffer>& unweighted_data_buffers,
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
   // This algorithm is basically the same as the scalar algorithm,
   // but visibility values are extended to 2x2 matrices and concatenated
@@ -52,15 +52,13 @@ SolverBase::SolveResult FullJonesSolver::Solve(
   // With dimensions:
   //   [ 2N x 2D ] [ 2D x 2 ] = [ 2N x 2 ]
 
-  const size_t n_times = unweighted_data.size();
-
-  buffer_.AssignAndWeight(unweighted_data, weights,
-                          std::move(unweighted_model_data));
+  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
+  const size_t n_times = buffer_.Data().size();
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);
 
-  std::vector<std::vector<DComplex> > next_solutions(n_channel_blocks_);
+  std::vector<std::vector<DComplex>> next_solutions(n_channel_blocks_);
 
   SolveResult result;
 #ifndef NDEBUG
@@ -76,8 +74,8 @@ SolverBase::SolveResult FullJonesSolver::Solve(
   // Dimensions for each channelblock:
   // Model matrix ant x [2N x 2D] and visibility matrix ant x [2N x 2],
   // The following loop allocates all structures
-  std::vector<std::vector<Matrix> > g_times_cs(n_channel_blocks_);
-  std::vector<std::vector<Matrix> > vs(n_channel_blocks_);
+  std::vector<std::vector<Matrix>> g_times_cs(n_channel_blocks_);
+  std::vector<std::vector<Matrix>> vs(n_channel_blocks_);
   for (size_t ch_block = 0; ch_block != n_channel_blocks_; ++ch_block) {
     next_solutions[ch_block].resize(n_directions_ * n_antennas_ * 4);
     const size_t channelIndexStart = ch_block * n_channels_ / n_channel_blocks_,
@@ -113,7 +111,7 @@ SolverBase::SolveResult FullJonesSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(chBlock, g_times_cs[chBlock], vs[chBlock],
+      PerformIteration(model_buffers, chBlock, g_times_cs[chBlock], vs[chBlock],
                        solutions[chBlock], next_solutions[chBlock]);
     });
 
@@ -163,11 +161,11 @@ SolverBase::SolveResult FullJonesSolver::Solve(
   return result;
 }
 
-void FullJonesSolver::PerformIteration(size_t channelBlockIndex,
-                                       std::vector<Matrix>& g_times_cs,
-                                       std::vector<Matrix>& vs,
-                                       const std::vector<DComplex>& solutions,
-                                       std::vector<DComplex>& next_solutions) {
+void FullJonesSolver::PerformIteration(
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    size_t channelBlockIndex, std::vector<Matrix>& g_times_cs,
+    std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
+    std::vector<DComplex>& next_solutions) {
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
@@ -203,11 +201,11 @@ void FullJonesSolver::PerformIteration(size_t channelBlockIndex,
         Matrix& g_times_c2 = g_times_cs[antenna2];
         Matrix& v1 = vs[antenna1];
         Matrix& v2 = vs[antenna2];
-        for (size_t d = 0; d != n_directions_; ++d)
-          model_ptrs[d] =
-              &buffer_.ModelData()[timeIndex][d][(channel_index_start +
-                                                  baseline * n_channels_) *
-                                                 4];
+        for (size_t d = 0; d != n_directions_; ++d) {
+          model_ptrs[d] = &model_buffers[timeIndex][d]->getData()(
+              0, channel_index_start, baseline);
+        }
+
         const Complex* dataPtr =
             &buffer_.Data()[timeIndex]
                            [(channel_index_start + baseline * n_channels_) * 4];

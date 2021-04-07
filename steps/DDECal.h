@@ -118,7 +118,7 @@ class DDECal : public Step {
   std::vector<std::string> getDirectionNames();
 
   void storeModelData(
-      const std::vector<std::vector<std::complex<float>*>>& input_model_data);
+      const std::vector<std::vector<base::DPBuffer*>>& input_model_buffers);
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
 
   InputStep* itsInput;

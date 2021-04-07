@@ -134,11 +134,11 @@ BOOST_AUTO_TEST_CASE(restore) {
   SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
   solInt.CopyBuffer(buffer);
 
-  // Overwrite some values in the buffer
+  // Overwrite the values in the buffer
   casacore::Complex new_data(42.0f, -42.0f);
-  *solInt.DataPtrs()[0] = new_data;
+  solInt.DataBuffers()[0].getData() = new_data;
   float new_weight = 0.5;
-  *solInt.WeightPtrs()[0] = new_weight;
+  solInt.DataBuffers()[0].getWeights() = new_weight;
 
   BOOST_TEST(solInt[0].getData().tovector() != buffer.getData().tovector());
   BOOST_TEST(solInt[0].getWeights().tovector() !=
@@ -162,18 +162,14 @@ BOOST_AUTO_TEST_CASE(fit) {
 
   SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
   BOOST_TEST(solInt.Size() == 0U);
+  BOOST_TEST(solInt.DataBuffers().size() == 2U);
+  BOOST_TEST(solInt.ModelBuffers().size() == 2U);
   solInt.CopyBuffer(buffer);
   solInt.Fit();
 
   BOOST_TEST(solInt.Size() == 1U);
-  BOOST_TEST(solInt.ModelData().size() == 1U);
-  BOOST_TEST(solInt.ModelData().capacity() == 2U);
-  BOOST_TEST(solInt.DataPtrs().size() == 1U);
-  BOOST_TEST(solInt.DataPtrs().capacity() == 2U);
-  BOOST_TEST(solInt.ModelDataPtrs().size() == 1U);
-  BOOST_TEST(solInt.ModelDataPtrs().capacity() == 2U);
-  BOOST_TEST(solInt.WeightPtrs().size() == 1U);
-  BOOST_TEST(solInt.WeightPtrs().capacity() == 2U);
+  BOOST_TEST(solInt.DataBuffers().size() == 2U);
+  BOOST_TEST(solInt.ModelBuffers().size() == 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
