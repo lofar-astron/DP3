@@ -292,8 +292,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 
     // Perform LSQ iteration.
     casacore::uInt rank;
-    bool status = solver.solveLoop(rank, unknowns, true);
-    (void)status;  // Avoid unused variable warning.
+    [[maybe_unused]] bool status = solver.solveLoop(rank, unknowns, true);
     assert(status);
     if (sh) {
       cout << "solution=[";
