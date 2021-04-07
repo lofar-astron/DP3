@@ -3,6 +3,7 @@
 
 #include "DiagonalSolver.h"
 
+#include "../../base/DPBuffer.h"
 #include "../linear_solvers/LLSSolver.h"
 
 #include <aocommon/matrix2x2.h>
@@ -17,15 +18,12 @@ namespace dp3 {
 namespace base {
 
 DiagonalSolver::SolveResult DiagonalSolver::Solve(
-    const std::vector<Complex*>& unweighted_data,
-    const std::vector<float*>& weights,
-    std::vector<std::vector<Complex*>>&& unweighted_model_data,
+    const std::vector<DPBuffer>& unweighted_data_buffers,
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
-  const size_t nTimes = unweighted_data.size();
-
-  buffer_.AssignAndWeight(unweighted_data, weights,
-                          std::move(unweighted_model_data));
+  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
+  const size_t n_times = buffer_.Data().size();
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);
@@ -64,8 +62,8 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
       // Also space for the auto correlation is reserved, but they will be set
       // to 0.
       // X and Y polarizations are treated as two different antennas.
-      size_t m = (n_antennas_ * 2) * nTimes * cur_channel_block_size,
-             n = n_directions_;
+      size_t m = (n_antennas_ * 2) * n_times * cur_channel_block_size;
+      size_t n = n_directions_;
       g_times_cs[chBlock][ant] = Matrix(m, n);
       vs[chBlock][ant].resize(std::max(m, n));
     }
@@ -88,7 +86,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(chBlock, g_times_cs[chBlock], vs[chBlock],
+      PerformIteration(model_buffers, chBlock, g_times_cs[chBlock], vs[chBlock],
                        solutions[chBlock], next_solutions[chBlock],
                        (double)(iteration + 1) / max_iterations_,
                        avg_squared_diff);
@@ -143,13 +141,13 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   return result;
 }
 
-void DiagonalSolver::PerformIteration(size_t channel_block_index,
-                                      std::vector<Matrix>& g_times_cs,
-                                      std::vector<std::vector<Complex>>& vs,
-                                      const std::vector<DComplex>& solutions,
-                                      std::vector<DComplex>& next_solutions,
-                                      double iterationfraction,
-                                      double solverprecision) {
+void DiagonalSolver::PerformIteration(
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    size_t channel_block_index, std::vector<Matrix>& g_times_cs,
+    std::vector<std::vector<Complex>>& vs,
+    const std::vector<DComplex>& solutions,
+    std::vector<DComplex>& next_solutions, double iterationfraction,
+    double solverprecision) {
   for (size_t ant = 0; ant != n_antennas_ * 2; ++ant) {
     g_times_cs[ant].SetZero();
     std::fill(vs[ant].begin(), vs[ant].end(), 0.0);
@@ -159,8 +157,8 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
       channel_block_index * n_channels_ / n_channel_blocks_;
   const size_t channel_index_end =
       (channel_block_index + 1) * n_channels_ / n_channel_blocks_;
-  const size_t cur_channel_block_size = channel_index_end - channel_index_start,
-               n_times = buffer_.Data().size();
+  const size_t cur_channel_block_size = channel_index_end - channel_index_start;
+  const size_t n_times = buffer_.Data().size();
 
   // The following loop fills the matrices for all antennas
   std::vector<const Complex*> model_ptrs(n_directions_);
@@ -170,10 +168,8 @@ void DiagonalSolver::PerformIteration(size_t channel_block_index,
       size_t antenna2 = ant2_[baseline];
       if (antenna1 != antenna2) {
         for (size_t d = 0; d != n_directions_; ++d) {
-          model_ptrs[d] =
-              &buffer_.ModelData()[time_index][d][(channel_index_start +
-                                                   baseline * n_channels_) *
-                                                  4];
+          model_ptrs[d] = &model_buffers[time_index][d]->getData()(
+              0, channel_index_start, baseline);
         }
         const Complex* data_ptr =
             &buffer_.Data()[time_index]

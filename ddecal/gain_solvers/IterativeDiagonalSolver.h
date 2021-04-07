@@ -16,24 +16,26 @@ class IterativeDiagonalSolver final : public SolverBase {
  public:
   IterativeDiagonalSolver() : SolverBase() {}
 
-  SolveResult Solve(const std::vector<Complex*>& unweighted_data,
-                    const std::vector<float*>& weights,
-                    std::vector<std::vector<Complex*>>&& unweighted_model_data,
+  SolveResult Solve(const std::vector<DPBuffer>& unweighted_data_buffers,
+                    const std::vector<std::vector<DPBuffer*>>& model_buffers,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
  private:
-  void PerformIteration(size_t channelBlockIndex,
-                        std::vector<std::vector<Complex>>& v_residual,
-                        const std::vector<DComplex>& solutions,
-                        std::vector<DComplex>& nextSolutions);
+  void PerformIteration(
+      const std::vector<std::vector<DPBuffer*>>& model_buffers,
+      size_t channelBlockIndex, std::vector<std::vector<Complex>>& v_residual,
+      const std::vector<DComplex>& solutions,
+      std::vector<DComplex>& nextSolutions);
 
   template <bool Add>
-  void SubtractDirection(std::vector<std::vector<Complex>>& v_residual,
-                         size_t channel_block_index, size_t direction,
-                         const std::vector<DComplex>& solutions);
+  void AddOrSubtractDirection(
+      const std::vector<std::vector<DPBuffer*>>& model_buffers,
+      std::vector<std::vector<Complex>>& v_residual, size_t channel_block_index,
+      size_t direction, const std::vector<DComplex>& solutions);
 
-  void SolveDirection(size_t channel_block_index,
+  void SolveDirection(const std::vector<std::vector<DPBuffer*>>& model_buffers,
+                      size_t channel_block_index,
                       const std::vector<std::vector<Complex>>& v_residual,
                       size_t direction, const std::vector<DComplex>& solutions,
                       std::vector<DComplex>& next_solutions);

@@ -3,6 +3,7 @@
 
 #include "ScalarSolver.h"
 
+#include "../../base/DPBuffer.h"
 #include "../linear_solvers/LLSSolver.h"
 
 #include <aocommon/matrix2x2.h>
@@ -18,20 +19,17 @@ namespace dp3 {
 namespace base {
 
 ScalarSolver::SolveResult ScalarSolver::Solve(
-    const std::vector<Complex*>& unweighted_data,
-    const std::vector<float*>& weights,
-    std::vector<std::vector<Complex*> >&& unweighted_model_data,
-    std::vector<std::vector<DComplex> >& solutions, double time,
+    const std::vector<DPBuffer>& unweighted_data_buffers,
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
-  const size_t n_times = unweighted_data.size();
-
-  buffer_.AssignAndWeight(unweighted_data, weights,
-                          std::move(unweighted_model_data));
+  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
+  const size_t n_times = buffer_.Data().size();
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);
 
-  std::vector<std::vector<DComplex> > next_solutions(n_channel_blocks_);
+  std::vector<std::vector<DComplex>> next_solutions(n_channel_blocks_);
 
   SolveResult result;
 #ifndef NDEBUG
@@ -47,8 +45,8 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   // Model matrix ant x [N x D] and visibility vector ant x [N x 1],
   // for each channelblock
   // The following loop allocates all structures
-  std::vector<std::vector<Matrix> > g_times_cs(n_channel_blocks_);
-  std::vector<std::vector<Matrix> > vs(n_channel_blocks_);
+  std::vector<std::vector<Matrix>> g_times_cs(n_channel_blocks_);
+  std::vector<std::vector<Matrix>> vs(n_channel_blocks_);
   for (size_t chBlock = 0; chBlock != n_channel_blocks_; ++chBlock) {
     next_solutions[chBlock].resize(n_directions_ * n_antennas_);
     const size_t channel_index_start =
@@ -88,7 +86,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(chBlock, g_times_cs[chBlock], vs[chBlock],
+      PerformIteration(model_buffers, chBlock, g_times_cs[chBlock], vs[chBlock],
                        solutions[chBlock], next_solutions[chBlock],
                        (double)(iteration + 1) / max_iterations_,
                        avg_squared_diff);
@@ -144,13 +142,12 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   return result;
 }
 
-void ScalarSolver::PerformIteration(size_t channel_block_index,
-                                    std::vector<Matrix>& g_times_cs,
-                                    std::vector<Matrix>& vs,
-                                    const std::vector<DComplex>& solutions,
-                                    std::vector<DComplex>& next_solutions,
-                                    double iterationfraction,
-                                    double solverprecision) {
+void ScalarSolver::PerformIteration(
+    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    size_t channel_block_index, std::vector<Matrix>& g_times_cs,
+    std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
+    std::vector<DComplex>& next_solutions, double iterationfraction,
+    double solverprecision) {
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
@@ -175,10 +172,8 @@ void ScalarSolver::PerformIteration(size_t channel_block_index,
         Matrix& g_times_c2 = g_times_cs[antenna2];
         Matrix& v2 = vs[antenna2];
         for (size_t d = 0; d != n_directions_; ++d) {
-          model_ptrs[d] =
-              &buffer_.ModelData()[time_index][d][(channel_index_start +
-                                                   baseline * n_channels_) *
-                                                  4];
+          model_ptrs[d] = &model_buffers[time_index][d]->getData()(
+              0, channel_index_start, baseline);
         }
         const Complex* data_ptr =
             &buffer_.Data()[time_index]

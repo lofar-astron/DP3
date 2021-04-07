@@ -874,8 +874,8 @@ std::vector<std::string> DDECal::getDirectionNames() {
 }
 
 void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
-  const size_t nBl = info().nbaselines(), nCh = info().nchan(),
-               nChanBlocks = itsChanBlockFreqs.size();
+  const size_t nBl = info().nbaselines();
+  const size_t nChanBlocks = itsChanBlockFreqs.size();
   // Set the antenna-based weights to zero
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t ant1 = info().antennaMap()[info().getAnt1()[bl]];
@@ -887,13 +887,11 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
     }
   }
   // Set the visibility weights to zero
-  for (size_t step = 0; step != sol_ints_[bufferIndex].Size(); ++step) {
+  for (DPBuffer& buffer : sol_ints_[bufferIndex].DataBuffers()) {
     for (size_t bl = 0; bl < nBl; ++bl) {
-      for (size_t chcr = itsChanBlockStart[cbIndex] * 4;
-           chcr != itsChanBlockStart[cbIndex + 1] * 4; ++chcr) {
-        const size_t index = bl * nCh * 4 + chcr;
-        sol_ints_[bufferIndex].WeightPtrs()[step][index] = 0;
-      }
+      float* begin = &buffer.getWeights()(0, itsChanBlockStart[cbIndex], bl);
+      float* end = &buffer.getWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
+      std::fill(begin, end, 0.0f);
     }
   }
 }
@@ -913,12 +911,12 @@ void DDECal::doSolve() {
       s->flush();
       itsTimerPredict.stop();
     }
-    for (size_t i = 0; i < itsResultSteps[dir].get()->size(); ++i) {
+    for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
       const size_t sol_int = i / itsSolInt;
       const size_t timestep = i % itsSolInt;
 
-      sol_ints_[sol_int].ModelDataPtrs()[timestep][dir] =
-          itsResultSteps[dir]->get()[i].getData().data();
+      sol_ints_[sol_int].ModelBuffers()[timestep][dir] =
+          &itsResultSteps[dir]->get()[i];
     }
   }
 
@@ -928,7 +926,7 @@ void DDECal::doSolve() {
     // This is done conditionally to prevent using memory when it is
     // not required (the model data can be large).
     if (itsSubtract || itsOnlyPredict) {
-      storeModelData(sol_ints_[i].ModelDataPtrs());
+      storeModelData(sol_ints_[i].ModelBuffers());
     }
 
     base::SolverBase::SolveResult solveResult;
@@ -964,10 +962,9 @@ void DDECal::doSolve() {
           }
         }
 
-        solveResult =
-            itsSolver->Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-                             std::move(sol_ints_[i].ModelDataPtrs()), diagonals,
-                             itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsSolver->Solve(
+            sol_ints_[i].DataBuffers(), sol_ints_[i].ModelBuffers(), diagonals,
+            itsAvgTime / itsSolInt, itsStatStream.get());
 
         // Temporary fix: extend solutions from diagonal to full Jones matrices
         for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
@@ -979,11 +976,10 @@ void DDECal::doSolve() {
           }
         }
       } else {
-        solveResult =
-            itsSolver->Solve(sol_ints_[i].DataPtrs(), sol_ints_[i].WeightPtrs(),
-                             std::move(sol_ints_[i].ModelDataPtrs()),
-                             itsSols[sol_ints_[i].NSolution()],
-                             itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsSolver->Solve(
+            sol_ints_[i].DataBuffers(), sol_ints_[i].ModelBuffers(),
+            itsSols[sol_ints_[i].NSolution()], itsAvgTime / itsSolInt,
+            itsStatStream.get());
       }
       itsTimerSolve.stop();
 
@@ -1127,14 +1123,14 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
         chanblock++;
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
-        const size_t index = (bl * nCh + ch) * nCr + cr;
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (bufin.getFlags().data()[index]) {
+        if (bufin.getFlags()(cr, ch, bl)) {
           // Flagged points: set weight to 0
-          sol_ints_[sol_int].WeightPtrs()[step][index] = 0;
+          DPBuffer& buf_sol = sol_ints_[sol_int].DataBuffers()[step];
+          buf_sol.getWeights()(cr, ch, bl) = 0;
         } else {
           // Add this weight to both involved antennas
-          double weight = bufin.getWeights().data()[index];
+          double weight = bufin.getWeights()(cr, ch, bl);
           itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
           itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
           if (weight != 0.0) {
@@ -1464,20 +1460,19 @@ void DDECal::finish() {
 }
 
 void DDECal::storeModelData(
-    const std::vector<std::vector<std::complex<float>*>>& input_model_data) {
-  const size_t n_times = input_model_data.size();
+    const std::vector<std::vector<DPBuffer*>>& input_model_buffers) {
+  const size_t n_times = input_model_buffers.size();
   const size_t n_directions = itsSteps.size();
-  const size_t n_visibilities =
-      info().nbaselines() * info().nchan() * info().ncorr();
   // The model data might already have data in it. By using resize(),
   // reallocation between timesteps is avoided.
   itsModelData.resize(n_times);
   for (size_t timestep = 0; timestep != n_times; ++timestep) {
     itsModelData[timestep].resize(n_directions);
     for (size_t dir = 0; dir < n_directions; ++dir) {
-      itsModelData[timestep][dir].assign(
-          input_model_data[timestep][dir],
-          input_model_data[timestep][dir] + n_visibilities);
+      const casacore::Cube<std::complex<float>>& input_model_data =
+          input_model_buffers[timestep][dir]->getData();
+      itsModelData[timestep][dir].assign(input_model_data.begin(),
+                                         input_model_data.end());
     }
   }
 }
@@ -1491,9 +1486,9 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
-  for (size_t time = 0; time != sol_ints_[bufferIndex].DataPtrs().size();
+  for (size_t time = 0; time != sol_ints_[bufferIndex].DataBuffers().size();
        ++time) {
-    std::complex<float>* data = sol_ints_[bufferIndex].DataPtrs()[time];
+    DPBuffer& data_buffer = sol_ints_[bufferIndex].DataBuffers()[time];
     const std::vector<std::vector<std::complex<float>>>& modelData =
         itsModelData[time];
     for (size_t bl = 0; bl < nBl; ++bl) {
@@ -1505,14 +1500,16 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
         if (ch == itsChanBlockStart[chanblock + 1]) {
           chanblock++;
         }
-        const size_t index = (bl * nCh + ch) * 4;
+
+        std::complex<float>* data = &data_buffer.getData()(0, ch, bl);
+        const size_t index = data - data_buffer.getData().data();
         if (itsOnlyPredict) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 
           for (size_t dir = 0; dir != nDir; ++dir)
             value += aocommon::MC2x2(&modelData[dir][index]);
 
-          for (size_t cr = 0; cr < 4; ++cr) data[index + cr] = value[cr];
+          for (size_t cr = 0; cr < 4; ++cr) data[cr] = value[cr];
         } else {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
@@ -1531,7 +1528,7 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
                              std::complex<double>(modelData[dir][index + cr]);
             }
           }
-          for (size_t cr = 0; cr < 4; ++cr) data[index + cr] -= value[cr];
+          for (size_t cr = 0; cr < 4; ++cr) data[cr] -= value[cr];
         }
       }  // channel loop
     }    // bl loop

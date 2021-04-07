@@ -7,6 +7,8 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/uvector.h>
 
+#include "../../../base/DPBuffer.h"
+
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
@@ -26,7 +28,7 @@ class SolverTester {
  public:
   SolverTester()
       : input_solutions(n_ant * n_dir * 2),
-        model_data_store(n_times),
+        model_buffer_store(n_times),
         data_store(n_times),
         weight_store(n_times) {
     for (size_t a1 = 0; a1 != n_ant; ++a1) {
@@ -41,19 +43,22 @@ class SolverTester {
     std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
     std::mt19937 mt(0);
     for (size_t timestep = 0; timestep != n_times; ++timestep) {
-      aocommon::UVector<cf>& time_data = data_store[timestep];
-      time_data.assign(n_pol * n_chan * nBl, 0);
-      aocommon::UVector<float>& time_weights = weight_store[timestep];
-      time_weights.assign(n_pol * n_chan * nBl, 0);
-      // modelTimeData has dimensions [direction][pol x ch x bl]
-      std::vector<aocommon::UVector<cf>>& model_time_data =
-          model_data_store[timestep];
+      data_buffers.emplace_back();
+      data_buffers.back().setData(casacore::Cube<cf>(n_pol, n_chan, n_bl, 0));
+      data_buffers.back().setWeights(
+          casacore::Cube<float>(n_pol, n_chan, n_bl, 0));
+
+      casacore::Cube<cf>& time_data = data_buffers.back().getData();
+      casacore::Cube<float> time_weights = data_buffers.back().getWeights();
+      std::vector<DPBuffer>& model_time_buffers = model_buffer_store[timestep];
 
       for (size_t d = 0; d != n_dir; ++d) {
-        model_time_data.emplace_back(n_pol * n_chan * nBl);
-        aocommon::UVector<cf>& this_direction = model_time_data[d];
+        model_time_buffers.emplace_back();
+        model_time_buffers.back().setData(
+            casacore::Cube<cf>(n_pol, n_chan, n_bl));
+        cf* this_direction = model_time_buffers.back().getData().data();
 
-        for (size_t bl = 0; bl != nBl; ++bl) {
+        for (size_t bl = 0; bl != n_bl; ++bl) {
           for (size_t ch = 0; ch != n_chan; ++ch) {
             const size_t matrix_index = (bl * n_chan + ch) * 4;
             this_direction[matrix_index + 0] =
@@ -74,7 +79,7 @@ class SolverTester {
             MC2x2 perturbed_model = MC2x2::Zero();
             for (size_t d = 0; d != n_dir; ++d) {
               MC2x2 val(
-                  &model_time_data[d][(baseline_index * n_chan + ch) * 4]);
+                  &model_time_buffers[d].getData()(0, ch, baseline_index));
               MC2x2 left(input_solutions[(a1 * n_dir + d) * 2 + 0], 0.0, 0.0,
                          input_solutions[(a1 * n_dir + d) * 2 + 1]);
               MC2x2 right(input_solutions[(a2 * n_dir + d) * 2 + 0], 0.0, 0.0,
@@ -86,22 +91,18 @@ class SolverTester {
               perturbed_model += left;
             }
             for (size_t p = 0; p != 4; ++p) {
-              time_data[(baseline_index * n_chan + ch) * 4 + p] =
-                  perturbed_model[p];
-              time_weights[(baseline_index * n_chan + ch) * 4 + p] = 1.0;
+              time_data(p, ch, baseline_index) = perturbed_model[p];
+              time_weights(p, ch, baseline_index) = 1.0;
             }
           }
           ++baseline_index;
         }
       }
 
-      data.push_back(time_data.data());
-      weights.push_back(time_weights.data());
-      std::vector<cf*> model_ptrs;
-      model_ptrs.reserve(model_data.size());
-      for (aocommon::UVector<cf>& model_dir : model_time_data)
-        model_ptrs.push_back(model_dir.data());
-      model_data.push_back(model_ptrs);
+      model_buffers.emplace_back();
+      model_buffers.back().reserve(model_time_buffers.size());
+      for (DPBuffer& buffer : model_time_buffers)
+        model_buffers.back().push_back(&buffer);
     }
   }
 
@@ -183,13 +184,12 @@ class SolverTester {
 
   typedef std::complex<float> cf;
   size_t n_pol = 4, n_ant = 50, n_dir = 3, n_chan = 10, n_chan_blocks = 4,
-         n_times = 50, nBl = n_ant * (n_ant - 1) / 2, max_iter = 100;
+         n_times = 50, n_bl = n_ant * (n_ant - 1) / 2, max_iter = 100;
   std::vector<int> ant1s, ant2s;
   std::vector<cf> input_solutions;
-  std::vector<cf*> data;
-  std::vector<float*> weights;
-  std::vector<std::vector<cf*>> model_data;
-  std::vector<std::vector<aocommon::UVector<cf>>> model_data_store;
+  std::vector<DPBuffer> data_buffers;
+  std::vector<std::vector<DPBuffer*>> model_buffers;
+  std::vector<std::vector<DPBuffer>> model_buffer_store;
   std::vector<aocommon::UVector<cf>> data_store;
   std::vector<aocommon::UVector<float>> weight_store;
 };
@@ -234,9 +234,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_lsmr, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -280,9 +278,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -309,9 +305,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_solver, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0e-3);
 }
@@ -339,9 +333,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_normaleq, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -385,9 +377,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver_lsmr, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 2e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -429,9 +419,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 2e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -472,9 +460,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_solver, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 1e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -521,9 +507,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones_solver, SolverTester) {
     }
   }
 
-  // Call the solver
-  result = solver.Solve(data, weights, std::move(model_data), solutions, 0.0,
-                        nullptr);
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>> diagonals(solutions);
