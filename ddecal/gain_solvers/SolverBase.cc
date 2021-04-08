@@ -38,7 +38,6 @@ void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
   n_channel_blocks_ = n_channel_blocks;
   ant1_ = ant1;
   ant2_ = ant2;
-  buffer_.SetDirectionCount(n_directions);
 }
 
 bool SolverBase::DetectStall(size_t iteration,

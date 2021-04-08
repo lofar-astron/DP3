@@ -20,22 +20,28 @@ namespace base {
 
 void SolverBuffer::AssignAndWeight(
     const std::vector<DPBuffer>& unweighted_data_buffers,
-    const std::vector<std::vector<DPBuffer*>>& model_buffers) {
+    std::vector<std::vector<DPBuffer>>&& model_buffers) {
   const size_t n_times = model_buffers.size();
   data_.resize(n_times);
+  model_buffers_ = std::move(model_buffers);
 
   for (size_t timestep = 0; timestep != n_times; ++timestep) {
     const casacore::Cube<std::complex<float>>& unweighted_data =
         unweighted_data_buffers[timestep].getData();
     const casacore::Cube<float>& weights =
         unweighted_data_buffers[timestep].getWeights();
-    const size_t n_baselines = unweighted_data.shape()[2];
-    const size_t n_channels = unweighted_data.shape()[1];
+    assert(unweighted_data.shape() == weights.shape());
+    assert(timestep == 0 ||
+           unweighted_data.shape() ==
+               unweighted_data_buffers.front().getData().shape());
+
+    n_baselines_ = unweighted_data.shape()[2];
+    n_channels_ = unweighted_data.shape()[1];
     assert(kNCorrelations == unweighted_data.shape()[0]);
 
     data_[timestep].resize(unweighted_data.size());
-    for (size_t bl = 0; bl < n_baselines; ++bl) {
-      for (size_t ch = 0; ch < n_channels; ++ch) {
+    for (size_t bl = 0; bl < n_baselines_; ++bl) {
+      for (size_t ch = 0; ch < n_channels_; ++ch) {
         const size_t index =
             &unweighted_data(0, ch, bl) - unweighted_data.data();
         bool is_flagged = false;
@@ -54,8 +60,8 @@ void SolverBuffer::AssignAndWeight(
 
         // Weigh the model data. This is done in a separate loop to loop
         // over the data contiguously in memory.
-        for (size_t dir = 0; dir < n_directions_; ++dir) {
-          Complex* model_ptr = model_buffers[timestep][dir]->getData().data();
+        for (DPBuffer& model_buffer : model_buffers_[timestep]) {
+          Complex* model_ptr = model_buffer.getData().data();
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             is_flagged = is_flagged || !IsFinite(model_ptr[index + cr]);
             model_ptr[index + cr] *= w_sqrt[cr];
@@ -68,8 +74,8 @@ void SolverBuffer::AssignAndWeight(
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             data_[timestep][index + cr] = 0.0;
           }
-          for (size_t dir = 0; dir < n_directions_; ++dir) {
-            Complex* model_ptr = model_buffers[timestep][dir]->getData().data();
+          for (DPBuffer& model_buffer : model_buffers_[timestep]) {
+            Complex* model_ptr = model_buffer.getData().data();
             for (size_t cr = 0; cr < kNCorrelations; ++cr) {
               model_ptr[index + cr] = 0.0;
             }
@@ -77,6 +83,34 @@ void SolverBuffer::AssignAndWeight(
         }
       }
     }
+  }
+}
+
+const std::complex<float>* SolverBuffer::DataPointer(size_t time_index,
+                                                     size_t baseline,
+                                                     size_t channel) const {
+  return &data_[time_index]
+               [(baseline * n_channels_ + channel) * kNCorrelations];
+}
+
+const std::complex<float>* SolverBuffer::ModelDataPointer(
+    size_t time_index, size_t direction, size_t baseline,
+    size_t channel) const {
+  const DPBuffer& buffer = model_buffers_[time_index][direction];
+  return &buffer.getData()(0, channel, baseline);
+}
+
+void SolverBuffer::CopyDataChannels(size_t time_index, size_t channel_begin,
+                                    size_t channel_end,
+                                    std::complex<float>* destination) const {
+  const size_t baseline_size = n_channels_ * kNCorrelations;
+  const size_t channels_size = (channel_end - channel_begin) * kNCorrelations;
+
+  const std::complex<float>* data = DataPointer(time_index, 0, channel_begin);
+  for (size_t bl = 0; bl < n_baselines_; ++bl) {
+    std::copy_n(data, channels_size, destination);
+    data += baseline_size;
+    destination += channels_size;
   }
 }
 

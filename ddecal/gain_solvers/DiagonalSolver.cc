@@ -3,6 +3,8 @@
 
 #include "DiagonalSolver.h"
 
+#include "SolverBuffer.h"
+
 #include "../../base/DPBuffer.h"
 #include "../linear_solvers/LLSSolver.h"
 
@@ -18,12 +20,10 @@ namespace dp3 {
 namespace base {
 
 DiagonalSolver::SolveResult DiagonalSolver::Solve(
-    const std::vector<DPBuffer>& unweighted_data_buffers,
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    const SolverBuffer& solver_buffer,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
-  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);
@@ -86,7 +86,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(model_buffers, chBlock, g_times_cs[chBlock], vs[chBlock],
+      PerformIteration(solver_buffer, chBlock, g_times_cs[chBlock], vs[chBlock],
                        solutions[chBlock], next_solutions[chBlock],
                        (double)(iteration + 1) / max_iterations_,
                        avg_squared_diff);
@@ -138,13 +138,14 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   return result;
 }
 
-void DiagonalSolver::PerformIteration(
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
-    size_t channel_block_index, std::vector<Matrix>& g_times_cs,
-    std::vector<std::vector<Complex>>& vs,
-    const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions, double iterationfraction,
-    double solverprecision) {
+void DiagonalSolver::PerformIteration(const SolverBuffer& solver_buffer,
+                                      size_t channel_block_index,
+                                      std::vector<Matrix>& g_times_cs,
+                                      std::vector<std::vector<Complex>>& vs,
+                                      const std::vector<DComplex>& solutions,
+                                      std::vector<DComplex>& next_solutions,
+                                      double iterationfraction,
+                                      double solverprecision) {
   for (size_t ant = 0; ant != n_antennas_ * 2; ++ant) {
     g_times_cs[ant].SetZero();
     std::fill(vs[ant].begin(), vs[ant].end(), 0.0);
@@ -155,7 +156,7 @@ void DiagonalSolver::PerformIteration(
   const size_t channel_index_end =
       (channel_block_index + 1) * n_channels_ / n_channel_blocks_;
   const size_t cur_channel_block_size = channel_index_end - channel_index_start;
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   // The following loop fills the matrices for all antennas
   std::vector<const Complex*> model_ptrs(n_directions_);
@@ -165,12 +166,11 @@ void DiagonalSolver::PerformIteration(
       size_t antenna2 = ant2_[baseline];
       if (antenna1 != antenna2) {
         for (size_t d = 0; d != n_directions_; ++d) {
-          model_ptrs[d] = &model_buffers[time_index][d]->getData()(
-              0, channel_index_start, baseline);
+          model_ptrs[d] = solver_buffer.ModelDataPointer(
+              time_index, d, baseline, channel_index_start);
         }
-        const Complex* data_ptr =
-            &buffer_.Data()[time_index]
-                           [(channel_index_start + baseline * n_channels_) * 4];
+        const Complex* data_ptr = solver_buffer.DataPointer(
+            time_index, baseline, channel_index_start);
         for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
           for (size_t p = 0; p != 4; ++p) {
             size_t p1 = p / 2;

@@ -3,6 +3,8 @@
 
 #include "FullJonesSolver.h"
 
+#include "SolverBuffer.h"
+
 #include "../../base/DPBuffer.h"
 #include "../linear_solvers/QRSolver.h"
 
@@ -18,8 +20,7 @@ namespace dp3 {
 namespace base {
 
 SolverBase::SolveResult FullJonesSolver::Solve(
-    const std::vector<DPBuffer>& unweighted_data_buffers,
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    const SolverBuffer& solver_buffer,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
   // This algorithm is basically the same as the scalar algorithm,
@@ -52,8 +53,7 @@ SolverBase::SolveResult FullJonesSolver::Solve(
   // With dimensions:
   //   [ 2N x 2D ] [ 2D x 2 ] = [ 2N x 2 ]
 
-  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   for (size_t i = 0; i != constraints_.size(); ++i)
     constraints_[i]->PrepareIteration(false, 0, false);
@@ -111,7 +111,7 @@ SolverBase::SolveResult FullJonesSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(model_buffers, chBlock, g_times_cs[chBlock], vs[chBlock],
+      PerformIteration(solver_buffer, chBlock, g_times_cs[chBlock], vs[chBlock],
                        solutions[chBlock], next_solutions[chBlock]);
     });
 
@@ -158,22 +158,23 @@ SolverBase::SolveResult FullJonesSolver::Solve(
   return result;
 }
 
-void FullJonesSolver::PerformIteration(
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
-    size_t channelBlockIndex, std::vector<Matrix>& g_times_cs,
-    std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions) {
+void FullJonesSolver::PerformIteration(const SolverBuffer& solver_buffer,
+                                       size_t channelBlockIndex,
+                                       std::vector<Matrix>& g_times_cs,
+                                       std::vector<Matrix>& vs,
+                                       const std::vector<DComplex>& solutions,
+                                       std::vector<DComplex>& next_solutions) {
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
   }
 
   const size_t channel_index_start =
-                   channelBlockIndex * n_channels_ / n_channel_blocks_,
-               channel_index_end =
-                   (channelBlockIndex + 1) * n_channels_ / n_channel_blocks_,
-               cur_channel_block_size = channel_index_end - channel_index_start,
-               n_times = buffer_.Data().size();
+      channelBlockIndex * n_channels_ / n_channel_blocks_;
+  const size_t channel_index_end =
+      (channelBlockIndex + 1) * n_channels_ / n_channel_blocks_;
+  const size_t cur_channel_block_size = channel_index_end - channel_index_start;
+  const size_t n_times = solver_buffer.NTimes();
 
   // The following loop fills the matrices for all antennas
   for (size_t timeIndex = 0; timeIndex != n_times; ++timeIndex) {
@@ -199,13 +200,12 @@ void FullJonesSolver::PerformIteration(
         Matrix& v1 = vs[antenna1];
         Matrix& v2 = vs[antenna2];
         for (size_t d = 0; d != n_directions_; ++d) {
-          model_ptrs[d] = &model_buffers[timeIndex][d]->getData()(
-              0, channel_index_start, baseline);
+          model_ptrs[d] = solver_buffer.ModelDataPointer(timeIndex, d, baseline,
+                                                         channel_index_start);
         }
 
         const Complex* dataPtr =
-            &buffer_.Data()[timeIndex]
-                           [(channel_index_start + baseline * n_channels_) * 4];
+            solver_buffer.DataPointer(timeIndex, baseline, channel_index_start);
         for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
           const size_t data_index1 = 2 * (ch - channel_index_start +
                                           (timeIndex + antenna1 * n_times) *

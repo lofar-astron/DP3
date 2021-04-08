@@ -72,7 +72,10 @@ BOOST_AUTO_TEST_CASE(insertion) {
   DPBuffer buffer = InitBuffer();
 
   SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
+  BOOST_TEST(solInt.Size() == 0U);
+
   solInt.CopyBuffer(buffer);
+  BOOST_TEST_REQUIRE(solInt.Size() == 1U);
 
   BOOST_TEST(&solInt[0] != &buffer);
   BOOST_TEST(solInt.NSolution() == n_solution);
@@ -149,27 +152,6 @@ BOOST_AUTO_TEST_CASE(restore) {
   BOOST_TEST(solInt[0].getData().tovector() != buffer.getData().tovector());
   BOOST_TEST(solInt[0].getWeights().tovector() ==
              buffer.getWeights().tovector());
-}
-
-/// Test if Fit resized the arrays
-BOOST_AUTO_TEST_CASE(fit) {
-  MSReader input;
-  NSTimer timer;
-  size_t n_solution = 0;
-  size_t buffer_size = 2;
-  size_t n_dirs = 3;
-  DPBuffer buffer = InitBuffer();
-
-  SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
-  BOOST_TEST(solInt.Size() == 0U);
-  BOOST_TEST(solInt.DataBuffers().size() == 2U);
-  BOOST_TEST(solInt.ModelBuffers().size() == 2U);
-  solInt.CopyBuffer(buffer);
-  solInt.Fit();
-
-  BOOST_TEST(solInt.Size() == 1U);
-  BOOST_TEST(solInt.DataBuffers().size() == 2U);
-  BOOST_TEST(solInt.ModelBuffers().size() == 1U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

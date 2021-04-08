@@ -34,9 +34,6 @@ class SolutionInterval {
   /// Restore the flags and weights of added buffers to the original values
   void RestoreFlagsAndWeights();
 
-  /// Resizes the pointer arrays so they only contain filled data.
-  void Fit();
-
   /// Return the number of added buffers.
   const std::size_t Size() const { return buffer_index_; };
 
@@ -46,9 +43,6 @@ class SolutionInterval {
   /**@{*/
   const std::size_t NSolution() const { return n_solution_; }
   std::vector<DPBuffer>& DataBuffers() { return buffers_; }
-  std::vector<std::vector<DPBuffer*>>& ModelBuffers() {
-    return model_buffers_;
-  };
   /**@}*/
 
   /**
@@ -70,10 +64,6 @@ class SolutionInterval {
 
   std::vector<casacore::Cube<bool>> original_flags_;
   std::vector<casacore::Cube<float>> original_weights_;
-
-  /// For each timeslot, a vector of nDir buffer pointers.
-  /// These buffers contain the model data.
-  std::vector<std::vector<DPBuffer*>> model_buffers_;
 };
 
 }  // namespace base
