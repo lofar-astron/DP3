@@ -457,6 +457,7 @@ if (BUILD_TESTING)
     base/test/unit/tMirror.cc
     base/test/unit/tSolutionInterval.cc
     base/test/unit/tSourceDBUtil.cc
+    ddecal/test/unit/tLLSSolver.cc
     ddecal/test/unit/tRotationConstraint.cc
     steps/test/unit/mock/MockInput.cc
     steps/test/unit/mock/MockStep.cc

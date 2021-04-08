@@ -1,11 +1,10 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef LSTSQ_SOLVER_H
-#define LSTSQ_SOLVER_H
+#ifndef DDECAL_LLS_SOLVER_H
+#define DDECAL_LLS_SOLVER_H
 
-#include <boost/algorithm/string/case_conv.hpp>
-
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <vector>
@@ -43,13 +42,17 @@ class LLSSolver {
                                          int nrhs);
 
   static LLSSolverType ParseType(const std::string& solver) {
-    if (boost::algorithm::to_lower_copy(solver) == "lsmr") {
+    std::string solver_lowercase = solver;
+    std::transform(solver.begin(), solver.end(), solver_lowercase.begin(),
+                   [](char c) { return std::tolower(c); });
+
+    if (solver_lowercase == "lsmr") {
       return LLSSolverType::LSMR;
-    } else if (boost::algorithm::to_lower_copy(solver) == "svd") {
+    } else if (solver_lowercase == "svd") {
       return LLSSolverType::SVD;
-    } else if (boost::algorithm::to_lower_copy(solver) == "qr") {
+    } else if (solver_lowercase == "qr") {
       return LLSSolverType::QR;
-    } else if (boost::algorithm::to_lower_copy(solver) == "normalequations") {
+    } else if (solver_lowercase == "normalequations") {
       return LLSSolverType::NORMAL_EQUATIONS;
     } else {
       throw std::runtime_error("Unknown least squares solver requested: " +
