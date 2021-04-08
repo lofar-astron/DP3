@@ -523,4 +523,31 @@ BOOST_FIXTURE_TEST_CASE(full_jones_solver, SolverTester) {
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
 }
 
+BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester) {
+  IterativeScalarSolver solver;
+  solver.SetMaxIterations(max_iter);
+  solver.SetMinIterations(10);
+  // very large tolerance on purpose to stop directly once min iters are reached
+  solver.SetAccuracy(1e8);
+  solver.SetStepSize(0.2);
+  solver.SetNThreads(1);
+  solver.SetPhaseOnly(false);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  SetScalarSolutions();
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-values as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant, 1.0);
+  }
+
+  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  BOOST_CHECK_EQUAL(result.iterations, 10);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
