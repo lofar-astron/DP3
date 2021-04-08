@@ -17,6 +17,7 @@ SolverBase::SolverBase()
       n_directions_(0),
       n_channels_(0),
       n_channel_blocks_(0),
+      min_iterations_(0),
       max_iterations_(100),
       accuracy_(1e-5),
       constraint_accuracy_(1e-4),

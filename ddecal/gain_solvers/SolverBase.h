@@ -93,12 +93,22 @@ class SolverBase {
   void SetPhaseOnly(bool phase_only) { phase_only_ = phase_only; }
 
   /**
-   * Max nr of iterations stopping criterion.
+   * Max nr of iterations (stopping criterion).
    * @{
    */
   size_t GetMaxIterations() const { return max_iterations_; }
   void SetMaxIterations(size_t max_iterations) {
     max_iterations_ = max_iterations;
+  }
+  /** @} */
+
+  /**
+   * Min nr of iterations before stopping.
+   * @{
+   */
+  size_t GetMinIterations() const { return min_iterations_; }
+  void SetMinIterations(size_t min_iterations) {
+    min_iterations_ = min_iterations;
   }
   /** @} */
 
@@ -184,6 +194,19 @@ class SolverBase {
   double calculateLLSTolerance(double iteration_fraction,
                                double solver_precision) const;
 
+  bool ReachedStoppingCriterion(
+      size_t iteration, bool has_converged, bool constraints_satisfied,
+      const std::vector<double>& step_magnitudes) const {
+    bool has_stalled = false;
+    if (detect_stalling_ && constraints_satisfied)
+      has_stalled = DetectStall(iteration, step_magnitudes);
+
+    const bool is_ready = iteration >= max_iterations_ ||
+                          (has_converged && constraints_satisfied) ||
+                          has_stalled;
+    return iteration >= min_iterations_ && is_ready;
+  }
+
   size_t n_antennas_;
   size_t n_directions_;
   size_t n_channels_;
@@ -195,6 +218,7 @@ class SolverBase {
    * Calibration setup
    * @{
    */
+  size_t min_iterations_;
   size_t max_iterations_;
   size_t n_threads_;
   double accuracy_;

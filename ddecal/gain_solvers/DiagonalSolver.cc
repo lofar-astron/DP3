@@ -125,11 +125,8 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
     has_previously_converged = has_converged || has_previously_converged;
 
-    if (detect_stalling_ && constraints_satisfied)
-      has_stalled = DetectStall(iteration, step_magnitudes);
-
-  } while (iteration < max_iterations_ &&
-           (!has_converged || !constraints_satisfied) && !has_stalled);
+  } while (!ReachedStoppingCriterion(iteration, has_converged,
+                                     constraints_satisfied, step_magnitudes));
 
   // When we have not converged yet, we set the nr of iterations to the max+1,
   // so that non-converged iterations can be distinguished from converged ones.
