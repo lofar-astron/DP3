@@ -108,8 +108,14 @@ class DPBuffer {
   /// The copy constructor uses reference copies.
   DPBuffer(const DPBuffer&);
 
-  /// Assignment uses reference copies.
+  /// The move constructor moves all data without using reference semantics.
+  DPBuffer(DPBuffer&&);
+
+  /// Copy assignment uses reference copies.
   DPBuffer& operator=(const DPBuffer&);
+
+  /// Move assignment moves all data without using reference semantics.
+  DPBuffer& operator=(DPBuffer&&);
 
   /// Make a deep copy of all arrays in that to this.
   void copy(const DPBuffer& that);

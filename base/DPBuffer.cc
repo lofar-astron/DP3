@@ -6,7 +6,14 @@
 
 #include "DPBuffer.h"
 
-using namespace casacore;
+#include <casacore/casa/version.h>
+
+// Casacore < 3.4 does not support move semantics for casacore::Array
+// and uses reference semantics in the copy constructor.
+#if CASACORE_MAJOR_VERSION > 3 || \
+    (CASACORE_MAJOR_VERSION == 3 && CASACORE_MINOR_VERSION >= 4)
+#define USE_CASACORE_MOVE_SEMANTICS
+#endif
 
 namespace dp3 {
 namespace base {
@@ -14,6 +21,27 @@ namespace base {
 DPBuffer::DPBuffer() : itsTime(0), itsExposure(0) {}
 
 DPBuffer::DPBuffer(const DPBuffer& that) { operator=(that); }
+
+DPBuffer::DPBuffer(DPBuffer&& that)
+    : itsTime(that.itsTime),
+      itsExposure(that.itsExposure),
+      itsRowNrs(std::move(that.itsRowNrs)),
+      itsData(std::move(that.itsData)),
+      itsFlags(std::move(that.itsFlags)),
+      itsUVW(std::move(that.itsUVW)),
+      itsWeights(std::move(that.itsWeights)),
+      itsFullResFlags(std::move(that.itsFullResFlags)) {
+#ifndef USE_CASACORE_MOVE_SEMANTICS
+  // The copy constructor for casacore::Array creates references. Since
+  // moving a buffer does not have reference semantics, clear 'that'.
+  that.itsRowNrs.assign(decltype(that.itsRowNrs)());
+  that.itsData.assign(decltype(that.itsData)());
+  that.itsFlags.assign(decltype(that.itsFlags)());
+  that.itsUVW.assign(decltype(that.itsUVW)());
+  that.itsWeights.assign(decltype(that.itsWeights)());
+  that.itsFullResFlags.assign(decltype(that.itsFullResFlags)());
+#endif
+}
 
 DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
   if (this != &that) {
@@ -25,6 +53,39 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     itsWeights.reference(that.itsWeights);
     itsUVW.reference(that.itsUVW);
     itsFullResFlags.reference(that.itsFullResFlags);
+  }
+  return *this;
+}
+
+DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
+  if (this != &that) {
+    itsTime = that.itsTime;
+    itsExposure = that.itsExposure;
+    // Casacore < 3.4.0 does not support move semantics for casacore::Array.
+    // The copy assignment operator for casacore::Array then creates copies.
+#ifdef USE_CASACORE_MOVE_SEMANTICS
+    itsRowNrs = std::move(that.itsRowNrs);
+    itsData = std::move(that.itsData);
+    itsFlags = std::move(that.itsFlags);
+    itsWeights = std::move(that.itsWeights);
+    itsUVW = std::move(that.itsUVW);
+    itsFullResFlags = std::move(that.itsFullResFlags);
+#else
+    // Create references. Since move assignment does not use reference
+    // semantics, clear 'that'.
+    itsRowNrs.reference(that.itsRowNrs);
+    itsData.reference(that.itsData);
+    itsFlags.reference(that.itsFlags);
+    itsWeights.reference(that.itsWeights);
+    itsUVW.reference(that.itsUVW);
+    itsFullResFlags.reference(that.itsFullResFlags);
+    that.itsRowNrs.assign(decltype(that.itsRowNrs)());
+    that.itsData.assign(decltype(that.itsData)());
+    that.itsFlags.assign(decltype(that.itsFlags)());
+    that.itsUVW.assign(decltype(that.itsUVW)());
+    that.itsWeights.assign(decltype(that.itsWeights)());
+    that.itsFullResFlags.assign(decltype(that.itsFullResFlags)());
+#endif
   }
   return *this;
 }
@@ -75,13 +136,13 @@ void DPBuffer::referenceFilled(const DPBuffer& that) {
   }
 }
 
-void DPBuffer::mergeFullResFlags(Cube<bool>& fullResFlags,
-                                 const Cube<bool>& flags) {
+void DPBuffer::mergeFullResFlags(casacore::Cube<bool>& fullResFlags,
+                                 const casacore::Cube<bool>& flags) {
   // Flag shape is [ncorr, newnchan, nbl].
   // FullRes shape is [orignchan, navgtime, nbl]
   // where orignchan = navgchan * newnchan.
-  const IPosition& fullResShape = fullResFlags.shape();
-  const IPosition& flagShape = flags.shape();
+  const casacore::IPosition& fullResShape = fullResFlags.shape();
+  const casacore::IPosition& flagShape = flags.shape();
   int orignchan = fullResShape[0];
   int newnchan = flagShape[1];
   int navgchan = orignchan / newnchan;

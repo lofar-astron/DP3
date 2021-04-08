@@ -24,6 +24,7 @@
 #include "../ddecal/gain_solvers/IterativeDiagonalSolver.h"
 #include "../ddecal/gain_solvers/IterativeScalarSolver.h"
 #include "../ddecal/gain_solvers/ScalarSolver.h"
+#include "../ddecal/gain_solvers/SolverBuffer.h"
 
 #include "../ddecal/linear_solvers/LLSSolver.h"
 
@@ -905,7 +906,16 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
-  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+  std::vector<std::vector<std::vector<DPBuffer>>> model_buffers(
+      sol_ints_.size());
+  for (size_t i = 0; i < sol_ints_.size(); ++i) {
+    model_buffers[i].resize(sol_ints_[i].Size());
+    for (std::vector<DPBuffer>& dir_buffers : model_buffers[i]) {
+      dir_buffers.reserve(itsDirections.size());
+    }
+  }
+
+  for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
     if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
       itsTimerPredict.start();
       s->flush();
@@ -914,11 +924,13 @@ void DDECal::doSolve() {
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
       const size_t sol_int = i / itsSolInt;
       const size_t timestep = i % itsSolInt;
-
-      sol_ints_[sol_int].ModelBuffers()[timestep][dir] =
-          &itsResultSteps[dir]->get()[i];
+      model_buffers[sol_int][timestep].emplace_back(
+          std::move(itsResultSteps[dir]->get()[i]));
     }
   }
+
+  // Declare solver_buffer outside the loop, so it can reuse its memory.
+  base::SolverBuffer solver_buffer;
 
   for (size_t i = 0; i < sol_ints_.size(); ++i) {
     // When the model data is subtracted after calibration, the model data
@@ -926,8 +938,11 @@ void DDECal::doSolve() {
     // This is done conditionally to prevent using memory when it is
     // not required (the model data can be large).
     if (itsSubtract || itsOnlyPredict) {
-      storeModelData(sol_ints_[i].ModelBuffers());
+      storeModelData(model_buffers[i]);
     }
+
+    solver_buffer.AssignAndWeight(sol_ints_[i].DataBuffers(),
+                                  std::move(model_buffers[i]));
 
     base::SolverBase::SolveResult solveResult;
     if (!itsOnlyPredict) {
@@ -962,9 +977,9 @@ void DDECal::doSolve() {
           }
         }
 
-        solveResult = itsSolver->Solve(
-            sol_ints_[i].DataBuffers(), sol_ints_[i].ModelBuffers(), diagonals,
-            itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult =
+            itsSolver->Solve(solver_buffer, diagonals, itsAvgTime / itsSolInt,
+                             itsStatStream.get());
 
         // Temporary fix: extend solutions from diagonal to full Jones matrices
         for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
@@ -976,10 +991,9 @@ void DDECal::doSolve() {
           }
         }
       } else {
-        solveResult = itsSolver->Solve(
-            sol_ints_[i].DataBuffers(), sol_ints_[i].ModelBuffers(),
-            itsSols[sol_ints_[i].NSolution()], itsAvgTime / itsSolInt,
-            itsStatStream.get());
+        solveResult =
+            itsSolver->Solve(solver_buffer, itsSols[sol_ints_[i].NSolution()],
+                             itsAvgTime / itsSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 
@@ -1442,10 +1456,6 @@ void DDECal::writeSolutions() {
 void DDECal::finish() {
   itsTimer.start();
 
-  if (itsStepInSolInt > 0) {
-    sol_ints_[itsBufferedSolInts].Fit();
-  }
-
   if (sol_ints_.size() > 0) {
     doSolve();
   }
@@ -1460,7 +1470,7 @@ void DDECal::finish() {
 }
 
 void DDECal::storeModelData(
-    const std::vector<std::vector<DPBuffer*>>& input_model_buffers) {
+    const std::vector<std::vector<DPBuffer>>& input_model_buffers) {
   const size_t n_times = input_model_buffers.size();
   const size_t n_directions = itsSteps.size();
   // The model data might already have data in it. By using resize(),
@@ -1470,7 +1480,7 @@ void DDECal::storeModelData(
     itsModelData[timestep].resize(n_directions);
     for (size_t dir = 0; dir < n_directions; ++dir) {
       const casacore::Cube<std::complex<float>>& input_model_data =
-          input_model_buffers[timestep][dir]->getData();
+          input_model_buffers[timestep][dir].getData();
       itsModelData[timestep][dir].assign(input_model_data.begin(),
                                          input_model_data.end());
     }

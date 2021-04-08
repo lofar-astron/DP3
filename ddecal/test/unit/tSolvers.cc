@@ -14,6 +14,7 @@
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
 #include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/ScalarSolver.h"
+#include "../../gain_solvers/SolverBuffer.h"
 
 #include "../../linear_solvers/LSMRSolver.h"
 #include "../../linear_solvers/NormalEquationsSolver.h"
@@ -28,9 +29,9 @@ class SolverTester {
  public:
   SolverTester()
       : input_solutions(n_ant * n_dir * 2),
-        model_buffer_store(n_times),
         data_store(n_times),
-        weight_store(n_times) {
+        weight_store(n_times),
+        solver_buffer() {
     for (size_t a1 = 0; a1 != n_ant; ++a1) {
       for (size_t a2 = a1 + 1; a2 != n_ant; ++a2) {
         ant1s.push_back(a1);
@@ -42,6 +43,8 @@ class SolverTester {
   void FillData() {
     std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
     std::mt19937 mt(0);
+    std::vector<std::vector<DPBuffer>> model_buffers;
+
     for (size_t timestep = 0; timestep != n_times; ++timestep) {
       data_buffers.emplace_back();
       data_buffers.back().setData(casacore::Cube<cf>(n_pol, n_chan, n_bl, 0));
@@ -50,7 +53,9 @@ class SolverTester {
 
       casacore::Cube<cf>& time_data = data_buffers.back().getData();
       casacore::Cube<float> time_weights = data_buffers.back().getWeights();
-      std::vector<DPBuffer>& model_time_buffers = model_buffer_store[timestep];
+
+      model_buffers.emplace_back();
+      std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
 
       for (size_t d = 0; d != n_dir; ++d) {
         model_time_buffers.emplace_back();
@@ -98,12 +103,9 @@ class SolverTester {
           ++baseline_index;
         }
       }
-
-      model_buffers.emplace_back();
-      model_buffers.back().reserve(model_time_buffers.size());
-      for (DPBuffer& buffer : model_time_buffers)
-        model_buffers.back().push_back(&buffer);
     }
+
+    solver_buffer.AssignAndWeight(data_buffers, std::move(model_buffers));
   }
 
   void CheckScalarResults(
@@ -188,10 +190,10 @@ class SolverTester {
   std::vector<int> ant1s, ant2s;
   std::vector<cf> input_solutions;
   std::vector<DPBuffer> data_buffers;
-  std::vector<std::vector<DPBuffer*>> model_buffers;
   std::vector<std::vector<DPBuffer>> model_buffer_store;
   std::vector<aocommon::UVector<cf>> data_store;
   std::vector<aocommon::UVector<float>> weight_store;
+  dp3::base::SolverBuffer solver_buffer;
 };
 
 BOOST_AUTO_TEST_SUITE(solvers)
@@ -234,7 +236,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_lsmr, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -278,7 +280,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -305,7 +307,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_solver, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0e-3);
 }
@@ -333,7 +335,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_normaleq, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckScalarResults(solutions, 1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -377,7 +379,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver_lsmr, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 2e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -419,7 +421,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 2e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -460,7 +462,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_solver, SolverTester) {
     vec.assign(n_dir * n_ant * 2, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   CheckDiagonalResults(solutions, 1e-2);
   BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
@@ -507,7 +509,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones_solver, SolverTester) {
     }
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>> diagonals(solutions);
@@ -546,8 +548,8 @@ BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester) {
     vec.assign(n_dir * n_ant, 1.0);
   }
 
-  result = solver.Solve(data_buffers, model_buffers, solutions, 0.0, nullptr);
-  BOOST_CHECK_EQUAL(result.iterations, 10);
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
+  BOOST_CHECK_EQUAL(result.iterations, 10U);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

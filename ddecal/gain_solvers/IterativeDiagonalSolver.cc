@@ -3,6 +3,8 @@
 
 #include "IterativeDiagonalSolver.h"
 
+#include "SolverBuffer.h"
+
 #include "../../base/DPBuffer.h"
 
 #include <aocommon/matrix2x2.h>
@@ -19,12 +21,10 @@ namespace dp3 {
 namespace base {
 
 IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
-    const std::vector<DPBuffer>& unweighted_data_buffers,
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    const SolverBuffer& solver_buffer,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
-  buffer_.AssignAndWeight(unweighted_data_buffers, model_buffers);
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   for (Constraint* constraint : constraints_)
     constraint->PrepareIteration(false, 0, false);
@@ -78,7 +78,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
 
     ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-      PerformIteration(model_buffers, chBlock, v_residual[chBlock],
+      PerformIteration(solver_buffer, chBlock, v_residual[chBlock],
                        solutions[chBlock], next_solutions[chBlock]);
     });
 
@@ -124,33 +124,26 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
 }
 
 void IterativeDiagonalSolver::PerformIteration(
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
-    size_t channel_block_index, std::vector<std::vector<Complex>>& v_residual,
+    const SolverBuffer& solver_buffer, size_t channel_block_index,
+    std::vector<std::vector<Complex>>& v_residual,
     const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
   const size_t channel_index_start =
       channel_block_index * n_channels_ / n_channel_blocks_;
   const size_t channel_index_end =
       (channel_block_index + 1) * n_channels_ / n_channel_blocks_;
-  const size_t cur_channel_block_size = channel_index_end - channel_index_start;
-  const size_t n_times = buffer_.Data().size();
-  constexpr size_t n_correlations = 4;
+  const size_t n_times = solver_buffer.NTimes();
 
   // Fill v_residual
   for (size_t time_index = 0; time_index != n_times; ++time_index) {
-    Complex* dest = v_residual[time_index].data();
-    const Complex* source = buffer_.Data()[time_index].data() +
-                            channel_index_start * n_correlations;
-    for (size_t baseline = 0; baseline != ant1_.size(); ++baseline) {
-      std::copy_n(source, cur_channel_block_size * n_correlations, dest);
-      dest += cur_channel_block_size * n_correlations;
-      source += n_channels_ * n_correlations;
-    }
+    solver_buffer.CopyDataChannels(time_index, channel_index_start,
+                                   channel_index_end,
+                                   v_residual[time_index].data());
   }
 
   // Subtract all directions with their current solutions
   for (size_t d = 0; d != n_directions_; ++d)
-    AddOrSubtractDirection<false>(model_buffers, v_residual,
+    AddOrSubtractDirection<false>(solver_buffer, v_residual,
                                   channel_block_index, d, solutions);
 
   const std::vector<std::vector<Complex>> v_copy = v_residual;
@@ -160,17 +153,16 @@ void IterativeDiagonalSolver::PerformIteration(
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
     if (direction != 0) v_residual = v_copy;
-    AddOrSubtractDirection<true>(model_buffers, v_residual, channel_block_index,
+    AddOrSubtractDirection<true>(solver_buffer, v_residual, channel_block_index,
                                  direction, solutions);
 
-    SolveDirection(model_buffers, channel_block_index, v_residual, direction,
+    SolveDirection(solver_buffer, channel_block_index, v_residual, direction,
                    solutions, next_solutions);
   }
 }
 
 void IterativeDiagonalSolver::SolveDirection(
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
-    size_t channel_block_index,
+    const SolverBuffer& solver_buffer, size_t channel_block_index,
     const std::vector<std::vector<Complex>>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
@@ -178,7 +170,7 @@ void IterativeDiagonalSolver::SolveDirection(
       channel_block_index * n_channels_ / n_channel_blocks_;
   const size_t channel_index_end =
       (channel_block_index + 1) * n_channels_ / n_channel_blocks_;
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   // Now calculate this equation, given ant a:
   //
@@ -201,9 +193,8 @@ void IterativeDiagonalSolver::SolveDirection(
             &solutions[(antenna1 * n_directions_ + direction) * 2];
         const DComplex* solution_ant2 =
             &solutions[(antenna2 * n_directions_ + direction) * 2];
-        const Complex* model_ptr =
-            &model_buffers[time_index][direction]->getData()(
-                0, channel_index_start, baseline);
+        const Complex* model_ptr = solver_buffer.ModelDataPointer(
+            time_index, direction, baseline, channel_index_start);
         for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
           // Calculate the contribution of this baseline for antenna1
           const aocommon::MC2x2 data(data_ptr);
@@ -263,23 +254,22 @@ void IterativeDiagonalSolver::SolveDirection(
 
 template <bool Add>
 void IterativeDiagonalSolver::AddOrSubtractDirection(
-    const std::vector<std::vector<DPBuffer*>>& model_buffers,
+    const SolverBuffer& solver_buffer,
     std::vector<std::vector<Complex>>& v_residual, size_t channel_block_index,
     size_t direction, const std::vector<DComplex>& solutions) {
   const size_t channel_index_start =
       channel_block_index * n_channels_ / n_channel_blocks_;
   const size_t channel_index_end =
       (channel_block_index + 1) * n_channels_ / n_channel_blocks_;
-  const size_t n_times = buffer_.Data().size();
+  const size_t n_times = solver_buffer.NTimes();
 
   for (size_t time_index = 0; time_index != n_times; ++time_index) {
     Complex* data_ptr = v_residual[time_index].data();
     for (size_t baseline = 0; baseline != ant1_.size(); ++baseline) {
       const size_t antenna1 = ant1_[baseline];
       const size_t antenna2 = ant2_[baseline];
-      const Complex* model_ptr =
-          &model_buffers[time_index][direction]->getData()(
-              0, channel_index_start, baseline);
+      const Complex* model_ptr = solver_buffer.ModelDataPointer(
+          time_index, direction, baseline, channel_index_start);
       for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
         const DComplex* solution1 =
             &solutions[(antenna1 * n_directions_ + direction) * 2];

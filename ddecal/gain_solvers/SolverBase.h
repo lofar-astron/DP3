@@ -6,8 +6,6 @@
 
 #include "../constraints/Constraint.h"
 
-#include "SolverBuffer.h"
-
 #include "../linear_solvers/LLSSolver.h"
 
 #include <boost/algorithm/string.hpp>
@@ -20,6 +18,7 @@ namespace dp3 {
 namespace base {
 
 class DPBuffer;
+class SolverBuffer;
 
 class SolverBase {
  public:
@@ -75,11 +74,9 @@ class SolverBase {
    * solutions[ch] is a pointer for channelblock ch to antenna x directions x
    * pol solutions.
    */
-  virtual SolveResult Solve(
-      const std::vector<DPBuffer>& unweighted_data_buffers,
-      const std::vector<std::vector<DPBuffer*>>& model_buffers,
-      std::vector<std::vector<DComplex>>& solutions, double time,
-      std::ostream* statStream) = 0;
+  virtual SolveResult Solve(const SolverBuffer& solver_buffer,
+                            std::vector<std::vector<DComplex>>& solutions,
+                            double time, std::ostream* statStream) = 0;
 
   void AddConstraint(Constraint& constraint) {
     constraints_.push_back(&constraint);
@@ -212,7 +209,6 @@ class SolverBase {
   size_t n_channels_;
   size_t n_channel_blocks_;
   std::vector<int> ant1_, ant2_;
-  SolverBuffer buffer_;
 
   /**
    * Calibration setup

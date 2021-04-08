@@ -22,12 +22,7 @@ SolutionInterval::SolutionInterval(InputStep* input,
       buffer_index_(0),
       buffers_(buffer_size),
       original_flags_(buffer_size),
-      original_weights_(buffer_size),
-      model_buffers_(buffer_size) {
-  for (std::size_t t = 0; t < buffer_size_; ++t) {
-    model_buffers_[t].resize(n_dir);
-  }
-}
+      original_weights_(buffer_size) {}
 
 SolutionInterval::~SolutionInterval() {}
 
@@ -55,6 +50,5 @@ void SolutionInterval::RestoreFlagsAndWeights() {
   }
 }
 
-void SolutionInterval::Fit() { model_buffers_.resize(buffer_index_); }
 }  // namespace base
 }  // namespace dp3
