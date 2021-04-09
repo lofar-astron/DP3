@@ -4,11 +4,11 @@
 #ifndef NORMALEQ_SOLVER_H
 #define NORMALEQ_SOLVER_H
 
+#include "LLSSolver.h"
+
+#include <algorithm>
 #include <complex>
 #include <vector>
-#include <cmath>
-
-#include "LLSSolver.h"
 
 namespace dp3 {
 namespace base {

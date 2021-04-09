@@ -1,15 +1,13 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef LSTSQ_SOLVER_H
-#define LSTSQ_SOLVER_H
+#ifndef DDECAL_LLS_SOLVER_H
+#define DDECAL_LLS_SOLVER_H
 
-#include <boost/algorithm/string/case_conv.hpp>
-
-#include <cmath>
 #include <complex>
-#include <vector>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace dp3 {
 namespace base {
@@ -42,20 +40,7 @@ class LLSSolver {
   static std::unique_ptr<LLSSolver> Make(LLSSolverType lss_type, int m, int n,
                                          int nrhs);
 
-  static LLSSolverType ParseType(const std::string& solver) {
-    if (boost::algorithm::to_lower_copy(solver) == "lsmr") {
-      return LLSSolverType::LSMR;
-    } else if (boost::algorithm::to_lower_copy(solver) == "svd") {
-      return LLSSolverType::SVD;
-    } else if (boost::algorithm::to_lower_copy(solver) == "qr") {
-      return LLSSolverType::QR;
-    } else if (boost::algorithm::to_lower_copy(solver) == "normalequations") {
-      return LLSSolverType::NORMAL_EQUATIONS;
-    } else {
-      throw std::runtime_error("Unknown least squares solver requested: " +
-                               solver);
-    }
-  }
+  static LLSSolverType ParseType(const std::string& solver);
 
   static std::pair<double, double> ParseTolerances(double min_tolerance,
                                                    double max_tolerance) {

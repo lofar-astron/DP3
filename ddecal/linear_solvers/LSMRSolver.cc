@@ -5,6 +5,7 @@
 
 #include "LSMRSolver.h"
 
+#include <algorithm>
 #include <complex>
 #include <vector>
 #include <cmath>
@@ -32,7 +33,7 @@ void LSMRSolver::Aprod2(int* m, int* n, complex* x, complex* y) {
   complex* A = LSMR_Matrix_A;
   for (int np = 0; np < *n; ++np) {
     for (int mp = 0; mp < *m; ++mp) {
-      x[np] += conj(A[np * *m + mp]) * y[mp];
+      x[np] += std::conj(A[np * *m + mp]) * y[mp];
     }
   }
 }
