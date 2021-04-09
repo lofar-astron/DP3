@@ -4,11 +4,10 @@
 #ifndef DDECAL_LLS_SOLVER_H
 #define DDECAL_LLS_SOLVER_H
 
-#include <algorithm>
-#include <cmath>
 #include <complex>
-#include <vector>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace dp3 {
 namespace base {
@@ -41,24 +40,7 @@ class LLSSolver {
   static std::unique_ptr<LLSSolver> Make(LLSSolverType lss_type, int m, int n,
                                          int nrhs);
 
-  static LLSSolverType ParseType(const std::string& solver) {
-    std::string solver_lowercase = solver;
-    std::transform(solver.begin(), solver.end(), solver_lowercase.begin(),
-                   [](char c) { return std::tolower(c); });
-
-    if (solver_lowercase == "lsmr") {
-      return LLSSolverType::LSMR;
-    } else if (solver_lowercase == "svd") {
-      return LLSSolverType::SVD;
-    } else if (solver_lowercase == "qr") {
-      return LLSSolverType::QR;
-    } else if (solver_lowercase == "normalequations") {
-      return LLSSolverType::NORMAL_EQUATIONS;
-    } else {
-      throw std::runtime_error("Unknown least squares solver requested: " +
-                               solver);
-    }
-  }
+  static LLSSolverType ParseType(const std::string& solver);
 
   static std::pair<double, double> ParseTolerances(double min_tolerance,
                                                    double max_tolerance) {
