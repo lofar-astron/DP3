@@ -244,10 +244,8 @@ void SolverBase::MakeSolutionsFinite4Pol(
 }
 
 void SolverBase::GetTimings(std::ostream& os, double duration) const {
-  if (!constraints_.empty()) {
-    for (auto& constraint : constraints_) {
-      constraint->GetTimings(os, duration);
-    }
+  for (Constraint* constraint : constraints_) {
+    constraint->GetTimings(os, duration);
   }
 }
 
@@ -258,19 +256,22 @@ void SolverBase::SetLLSSolverType(const LLSSolverType solver,
   lls_max_tolerance_ = tolerances.second;
 }
 
-double SolverBase::calculateLLSTolerance(const double iteration_fraction,
-                                         const double solver_precision) const {
-  double result;
-  if (lls_max_tolerance_ == lls_min_tolerance_) {
-    result = lls_max_tolerance_;
-  } else {
-    result = std::min(
-        solver_precision / 10.0,
-        std::min(lls_max_tolerance_,
-                 lls_min_tolerance_ / (iteration_fraction * iteration_fraction *
-                                       iteration_fraction)));
+std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(
+    const size_t m, const size_t n, const size_t nrhs,
+    const double iteration_fraction, const double solver_precision) const {
+  std::unique_ptr<LLSSolver> solver =
+      LLSSolver::Make(lls_solver_type_, m, n, nrhs);
+
+  double tolerance = lls_max_tolerance_;
+  if (lls_max_tolerance_ != lls_min_tolerance_) {
+    const double iteration_fraction3 =
+        iteration_fraction * iteration_fraction * iteration_fraction;
+    tolerance = std::min({solver_precision / 10.0, lls_max_tolerance_,
+                          lls_min_tolerance_ / iteration_fraction3});
   }
-  return result;
+  solver->SetTolerance(tolerance);
+
+  return solver;
 }
 
 }  // namespace base
