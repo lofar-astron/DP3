@@ -212,13 +212,12 @@ void DiagonalSolver::PerformIteration(const SolverBuffer& solver_buffer,
 
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  const size_t m = n_antennas_ * 2 * n_times * cur_channel_block_size;
-  const size_t n = n_directions_;
+  const size_t m = NAntennas() * n_times * cur_channel_block_size * 2;
+  const size_t n = NDirections();
   const size_t nrhs = 1;
   std::unique_ptr<LLSSolver> solver =
-      LLSSolver::Make(lls_solver_type_, m, n, nrhs);
-  solver->SetTolerance(
-      calculateLLSTolerance(iterationfraction, solverprecision));
+      CreateLLSSolver(m, n, nrhs, iterationfraction, solverprecision);
+
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
       // solve x^H in [g C] x^H  = v

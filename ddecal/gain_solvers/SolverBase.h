@@ -25,17 +25,19 @@ class SolverBase {
   typedef std::complex<double> DComplex;
   typedef std::complex<float> Complex;
 
-  class Matrix : public std::vector<Complex> {
+  class Matrix final {
    public:
-    Matrix() : columns_(0) {}
+    Matrix() : data_(), columns_(0) {}
     Matrix(size_t columns, size_t rows)
-        : std::vector<Complex>(columns * rows, 0.0), columns_(columns) {}
-    void SetZero() { assign(size(), Complex(0.0, 0.0)); }
+        : data_(columns * rows, 0.0), columns_(columns) {}
+    void SetZero() { data_.assign(data_.size(), Complex(0.0, 0.0)); }
     Complex& operator()(size_t column, size_t row) {
-      return (*this)[column + row * columns_];
+      return data_[column + row * columns_];
     }
+    Complex* data() { return data_.data(); }
 
    private:
+    std::vector<Complex> data_;
     size_t columns_;
   };
 
@@ -148,6 +150,7 @@ class SolverBase {
    * The solving is parallelized over channel blocks.
    */
   void SetNThreads(size_t n_threads) { n_threads_ = n_threads; }
+  size_t GetNThreads() const { return n_threads_; }
 
   /**
    * Output timing information to a stream.
@@ -188,9 +191,6 @@ class SolverBase {
     return std::isfinite(val.real()) && std::isfinite(val.imag());
   }
 
-  double calculateLLSTolerance(double iteration_fraction,
-                               double solver_precision) const;
-
   bool ReachedStoppingCriterion(
       size_t iteration, bool has_converged, bool constraints_satisfied,
       const std::vector<double>& step_magnitudes) const {
@@ -203,6 +203,33 @@ class SolverBase {
                           has_stalled;
     return iteration >= min_iterations_ && is_ready;
   }
+
+  size_t NAntennas() const { return n_antennas_; }
+  size_t NDirections() const { return n_directions_; }
+  size_t NChannels() const { return n_channels_; }
+  size_t NChannelBlocks() const { return n_channel_blocks_; }
+  size_t NBaselines() const { return ant1_.size(); }
+  int AntennaIndex1(size_t baseline) const { return ant1_[baseline]; }
+  int AntennaIndex2(size_t baseline) const { return ant2_[baseline]; }
+  const std::vector<Constraint*>& GetConstraints() const {
+    return constraints_;
+  }
+
+  /**
+   * @param block A channel block index, less than NChannelBlocks().
+   * @return The index of the first channel in the given channel block.
+   */
+  size_t FirstChannel(size_t block) const {
+    return block * n_channels_ / n_channel_blocks_;
+  }
+
+  /**
+   * Create an LLSSolver with the given matrix dimensions.
+   * Set the tolerance using 'iteration_fraction' and 'solver_precision'.
+   */
+  std::unique_ptr<LLSSolver> CreateLLSSolver(size_t m, size_t n, size_t nrhs,
+                                             double iteration_fraction,
+                                             double solver_precision) const;
 
   size_t n_antennas_;
   size_t n_directions_;
@@ -224,6 +251,7 @@ class SolverBase {
   bool phase_only_;
   std::vector<Constraint*>
       constraints_;  // Does not own the Constraint objects.
+ private:
   LLSSolverType lls_solver_type_;
   double lls_min_tolerance_;
   double lls_max_tolerance_;
