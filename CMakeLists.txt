@@ -258,6 +258,7 @@ add_library(DDECal OBJECT
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
+  ddecal/gain_solvers/BDASolverBuffer.cc
   ddecal/gain_solvers/DiagonalSolver.cc
   ddecal/gain_solvers/FullJonesSolver.cc
   ddecal/gain_solvers/IterativeDiagonalSolver.cc
