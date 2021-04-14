@@ -76,6 +76,47 @@ BDABuffer::BDABuffer(const BDABuffer& other)
   }
 }
 
+BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
+    : data_(),
+      flags_(),
+      weights_(),
+      full_res_flags_(),
+      rows_(),
+      original_capacity_(other.original_capacity_ - other.remaining_capacity_),
+      remaining_capacity_(0) {
+  if (fields.data_) data_ = other.data_;
+  if (fields.flags_) flags_ = other.flags_;
+  if (fields.weights_) weights_ = other.weights_;
+  if (fields.full_res_flags_) full_res_flags_ = other.full_res_flags_;
+
+  // Copy rows but set their pointers to the new memory pools.
+  rows_.reserve(other.rows_.size());
+  for (const BDABuffer::Row& other_row : other.rows_) {
+    std::complex<float>* row_data = nullptr;
+    bool* row_flags = nullptr;
+    float* row_weights = nullptr;
+    bool* row_full_res_flags = nullptr;
+
+    if (fields.data_ && !data_.empty())
+      row_data = data_.data() + (other_row.data - other.data_.data());
+    if (fields.flags_ && !flags_.empty())
+      row_flags = flags_.data() + (other_row.flags - other.flags_.data());
+    if (fields.weights_ && !weights_.empty())
+      row_weights =
+          weights_.data() + (other_row.weights - other.weights_.data());
+    if (fields.full_res_flags_ && !full_res_flags_.empty())
+      row_full_res_flags =
+          full_res_flags_.data() +
+          (other_row.full_res_flags - other.full_res_flags_.data());
+
+    rows_.emplace_back(other_row.time, other_row.interval, other_row.exposure,
+                       other_row.row_nr, other_row.baseline_nr,
+                       other_row.n_channels, other_row.n_correlations, row_data,
+                       row_flags, row_weights, row_full_res_flags,
+                       other_row.uvw);
+  }
+}
+
 void BDABuffer::Clear() {
   data_.clear();
   flags_.clear();

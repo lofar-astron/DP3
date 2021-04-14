@@ -63,14 +63,27 @@ class BDABuffer {
    * @param fields The fields that should be enabled in this buffer.
    */
   explicit BDABuffer(std::size_t pool_size, const Fields& fields = Fields());
+
   /**
    * Copy constructor.
    * This constructor sets the memory pool size of the new buffer to the
    * actual memory usage of the other buffer.
    * Adding new rows to the new buffer is not possible.
    * @param other An existing BDABuffer.
+   * @param fields The fields that should be copied. By default, copy all
+   *        available fields.
    */
   explicit BDABuffer(const BDABuffer& other);
+
+  /**
+   * Copy constructor that can omit fields from the result.
+   * This constructor sets the memory pool size of the new buffer to the
+   * actual memory usage of the other buffer.
+   * Adding new rows to the new buffer is not possible.
+   * @param other An existing BDABuffer.
+   * @param fields The fields that should be copied.
+   */
+  BDABuffer(const BDABuffer& other, const Fields& fields);
 
   /**
    * Add a measurement line to the buffer.

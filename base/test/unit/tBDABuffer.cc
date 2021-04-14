@@ -5,11 +5,47 @@
 /// @brief Unit tests for the BDABuffer class.
 /// @author Lars Krombeen & Maik Nijhuis
 
+#include "tBDABuffer.h"
+
 #include "../../BDABuffer.h"
 
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
+
+// Implementatation of tBDABuffer.h
+namespace dp3 {
+namespace base {
+namespace test {
+
+void CheckBDARowMetaData(const BDABuffer& left, const BDABuffer& right) {
+  BOOST_REQUIRE(left.GetRows().size() == right.GetRows().size());
+  auto left_row = left.GetRows().begin();
+  auto right_row = right.GetRows().begin();
+  while (left_row != left.GetRows().end()) {
+    BOOST_CHECK_EQUAL(left_row->time, right_row->time);
+    BOOST_CHECK_EQUAL(left_row->interval, right_row->interval);
+    BOOST_CHECK_EQUAL(left_row->exposure, right_row->exposure);
+    BOOST_CHECK_EQUAL(left_row->row_nr, right_row->row_nr);
+    BOOST_CHECK_EQUAL(left_row->baseline_nr, right_row->baseline_nr);
+    BOOST_CHECK_EQUAL(left_row->n_channels, right_row->n_channels);
+    BOOST_CHECK_EQUAL(left_row->n_correlations, right_row->n_correlations);
+    BOOST_CHECK_EQUAL(left_row->GetDataSize(), right_row->GetDataSize());
+    for (std::size_t i = 0; i < 3; ++i) {
+      if (std::isnan(left_row->uvw[i])) {
+        BOOST_CHECK(std::isnan(right_row->uvw[i]));
+      } else {
+        BOOST_CHECK_EQUAL(left_row->uvw[i], right_row->uvw[i]);
+      }
+    }
+    ++left_row;
+    ++right_row;
+  }
+}
+
+}  // namespace test
+}  // namespace base
+}  // namespace dp3
 
 namespace {
 const double kTime = {0.0};
@@ -20,6 +56,7 @@ const std::size_t kBaselineNr{42};
 const std::size_t kNChannels{2};
 const std::size_t kNCorrelations{3};
 const std::size_t kDataSize{kNChannels * kNCorrelations};
+const std::size_t kUnusedSpace{42};
 const std::size_t k1Channel{1};
 const std::size_t k1Correlation{1};
 const std::size_t k1DataSize{k1Channel * k1Correlation};
@@ -52,7 +89,7 @@ BOOST_AUTO_TEST_CASE(copy) {
   const float kWeights2[kDataSize]{31, 32, 33, 34, 35, 36};
   const double kUvw[3]{41, 42, 43};
 
-  BDABuffer buffer{kNCorrelations * kDataSize};
+  BDABuffer buffer(2 * kDataSize + kUnusedSpace);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations, kData1, nullptr,
                             kWeights1, kFlags, kUvw));
@@ -84,34 +121,72 @@ BOOST_AUTO_TEST_CASE(copy) {
   }
 
   // Verify the copied rows.
-  const auto& rows_copy = buffer_copy.GetRows();
-  BOOST_CHECK_EQUAL(rows_copy.size(), 2u);
-  BOOST_CHECK_EQUAL(rows_copy[0].time, kTime);
-  BOOST_CHECK_EQUAL(rows_copy[0].interval, kInterval);
-  BOOST_CHECK_EQUAL(rows_copy[0].exposure, kExposure);
-  BOOST_CHECK_EQUAL(rows_copy[0].row_nr, kBaseRowNr);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[0].n_correlations, kNCorrelations);
-  BOOST_CHECK_EQUAL(rows_copy[0].baseline_nr, kBaselineNr);
-  BOOST_CHECK_EQUAL(rows_copy[0].GetDataSize(), kDataSize);
-
-  BOOST_CHECK_EQUAL(rows_copy[1].time, kTime + 1.);
-  BOOST_CHECK_EQUAL(rows_copy[1].interval, kInterval + 1.);
-  BOOST_CHECK_EQUAL(rows_copy[1].exposure, kExposure + 1.);
-  BOOST_CHECK_EQUAL(rows_copy[1].row_nr, kBaseRowNr + 1);
-  BOOST_CHECK_EQUAL(rows_copy[1].baseline_nr, kBaselineNr + 1);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_channels, kNChannels);
-  BOOST_CHECK_EQUAL(rows_copy[1].n_correlations, kNCorrelations);
-  BOOST_CHECK_EQUAL(rows_copy[1].GetDataSize(), kDataSize);
-
-  for (std::size_t i = 0; i < 3; ++i) {
-    BOOST_CHECK_EQUAL(rows_copy[0].uvw[i], kUvw[i]);
-    BOOST_CHECK_EQUAL(rows_copy[1].uvw[i], kUvw[i]);
-  }
+  dp3::base::test::CheckBDARowMetaData(buffer, buffer_copy);
 
   // Verify that the original has remaining capacity, but the copy doesn't.
-  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kDataSize);
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kUnusedSpace);
   BOOST_CHECK_EQUAL(buffer_copy.GetRemainingCapacity(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(copy_omit_fields) {
+  const std::complex<float> kData[kDataSize]{{1, 1}, {2, 2}, {3, 3},
+                                             {4, 4}, {5, 5}, {6, 6}};
+  const bool kFlags[kDataSize]{true, true, false, false, true, true};
+  const float kWeights[kDataSize]{21, 22, 23, 24, 25, 26};
+  const bool kFullResFlags[kDataSize]{true, false, true, false, true, false};
+  const double kUvw[3]{41, 42, 43};
+
+  BDABuffer buffer(kDataSize + kUnusedSpace);
+  buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr, kNChannels,
+                kNCorrelations, kData, kFlags, kWeights, kFullResFlags, kUvw);
+  buffer.SetBaseRowNr(kBaseRowNr);
+
+  BDABuffer::Fields fields;
+  fields.data_ = false;
+  fields.flags_ = false;
+  const BDABuffer without_data_flags{buffer, fields};
+
+  fields = BDABuffer::Fields();
+  fields.weights_ = false;
+  fields.full_res_flags_ = false;
+  const BDABuffer without_weighs_frf{buffer, fields};
+
+  // Verify the memory pool data in the copies.
+  BOOST_CHECK(without_data_flags.GetData() == nullptr);
+  BOOST_CHECK(without_data_flags.GetFlags() == nullptr);
+  BOOST_CHECK(without_data_flags.GetWeights() != nullptr);
+  BOOST_CHECK(without_data_flags.GetFullResFlags() != nullptr);
+  BOOST_CHECK(without_data_flags.GetWeights() != buffer.GetWeights());
+  BOOST_CHECK(without_data_flags.GetFullResFlags() != buffer.GetFullResFlags());
+
+  BOOST_CHECK(without_weighs_frf.GetData() != nullptr);
+  BOOST_CHECK(without_weighs_frf.GetFlags() != nullptr);
+  BOOST_CHECK(without_weighs_frf.GetWeights() == nullptr);
+  BOOST_CHECK(without_weighs_frf.GetFullResFlags() == nullptr);
+  BOOST_CHECK(without_weighs_frf.GetData() != buffer.GetData());
+  BOOST_CHECK(without_weighs_frf.GetFlags() != buffer.GetFlags());
+
+  BOOST_REQUIRE_EQUAL(buffer.GetNumberOfElements(),
+                      without_data_flags.GetNumberOfElements());
+  BOOST_REQUIRE_EQUAL(buffer.GetNumberOfElements(),
+                      without_weighs_frf.GetNumberOfElements());
+  for (std::size_t i = 0; i < buffer.GetNumberOfElements(); ++i) {
+    BOOST_CHECK_EQUAL(buffer.GetData()[i], without_weighs_frf.GetData()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetFlags()[i], without_weighs_frf.GetFlags()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetWeights()[i],
+                      without_data_flags.GetWeights()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetFullResFlags()[i],
+                      without_data_flags.GetFullResFlags()[i]);
+  }
+
+  // Verify the copied rows.
+  dp3::base::test::CheckBDARowMetaData(buffer, without_data_flags);
+  dp3::base::test::CheckBDARowMetaData(buffer, without_weighs_frf);
+
+  // Verify that the original has remaining capacity, but the copies don't.
+  BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kUnusedSpace);
+  BOOST_CHECK_EQUAL(without_data_flags.GetRemainingCapacity(), 0u);
+  BOOST_CHECK_EQUAL(without_weighs_frf.GetRemainingCapacity(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(add_all_fields) {
@@ -125,7 +200,7 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
   const double kUvw1[3]{31, 32, 33};
   const double kUvw2[3]{41, 42, 43};
 
-  BDABuffer buffer{kDataSize + k1DataSize};
+  BDABuffer buffer(kDataSize + k1DataSize);
 
   // Add rows and verify that the capacity is reached at the third row.
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
@@ -201,7 +276,7 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(add_no_fields) {
-  BDABuffer buffer{kDataSize};
+  BDABuffer buffer(kDataSize);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations));
   buffer.SetBaseRowNr(kBaseRowNr);
@@ -252,7 +327,7 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   fields.weights_ = false;
   fields.full_res_flags_ = false;
 
-  BDABuffer buffer{kDataSize, fields};
+  BDABuffer buffer(kDataSize, fields);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations, kData, kFlags, kWeights,
                             kFlags, kUvw));
@@ -284,7 +359,7 @@ BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
   const double kTime2 = 0.0;
   const double kInterval2 = 3.0;
 
-  BDABuffer buffer{2 * kDataSize};
+  BDABuffer buffer(2 * kDataSize);
 
   BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kInterval1, kBaselineNr,
                             kNChannels, kNCorrelations));
@@ -302,7 +377,7 @@ BOOST_AUTO_TEST_CASE(add_overlap) {
   const double kTimeFullOverlap = 1.0;
   const double kIntervalFullOverlap = 10.0;
 
-  BDABuffer buffer{3 * kDataSize};
+  BDABuffer buffer(3 * kDataSize);
 
   BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kInterval1, kBaselineNr,
                             kNChannels, kNCorrelations));
@@ -317,7 +392,7 @@ BOOST_AUTO_TEST_CASE(add_overlap) {
 }
 
 BOOST_AUTO_TEST_CASE(clear) {
-  BDABuffer buffer{3 * kDataSize};
+  BDABuffer buffer(3 * kDataSize);
 
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations));
