@@ -23,11 +23,17 @@ void BDASolverBuffer::AssignAndWeight(
     std::vector<std::vector<BDABuffer>>&& model_buffers) {
   const size_t n_buffers = model_buffers.front().size();
   data_.reserve(n_buffers);
-  model_buffers_ = std::move(model_buffers);
+  model_data_ = std::move(model_buffers);
+
+  BDABuffer::Fields bda_fields;
+  bda_fields.data_ = true;
+  bda_fields.flags_ = false;
+  bda_fields.weights_ = false;
+  bda_fields.full_res_flags_ = false;
 
   for (size_t buffer = 0; buffer < n_buffers; ++buffer) {
     // Copy all unweighted data to data_.
-    data_.push_back(data_buffers[buffer]);
+    data_.emplace_back(data_buffers[buffer], bda_fields);
     BDABuffer& data_buffer = data_.back();
 
     const size_t n_rows = data_buffer.GetRows().size();
@@ -38,7 +44,7 @@ void BDASolverBuffer::AssignAndWeight(
       for (size_t ch = 0; ch < data_row.n_channels; ++ch) {
         bool is_flagged = false;
         const size_t index = ch * kNCorrelations;
-        const float* weights_ptr = data_row.weights + index;
+        const float* weights_ptr = data_buffers[buffer].GetWeights(row) + index;
         const std::array<float, kNCorrelations> w_sqrt{
             std::sqrt(weights_ptr[0]), std::sqrt(weights_ptr[1]),
             std::sqrt(weights_ptr[2]), std::sqrt(weights_ptr[3])};
@@ -51,7 +57,7 @@ void BDASolverBuffer::AssignAndWeight(
         }
 
         // Weigh the model data.
-        for (std::vector<BDABuffer>& direction_buffers : model_buffers_) {
+        for (std::vector<BDABuffer>& direction_buffers : model_data_) {
           BDABuffer& model_buffer = direction_buffers[buffer];
           std::complex<float>* model_ptr = model_buffer.GetData(row) + index;
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
@@ -66,7 +72,7 @@ void BDASolverBuffer::AssignAndWeight(
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             data_ptr[cr] = 0.0;
           }
-          for (std::vector<BDABuffer>& direction_buffers : model_buffers_) {
+          for (std::vector<BDABuffer>& direction_buffers : model_data_) {
             BDABuffer& model_buffer = direction_buffers[buffer];
             std::complex<float>* model_ptr = model_buffer.GetData(row) + index;
             for (size_t cr = 0; cr < kNCorrelations; ++cr) {
