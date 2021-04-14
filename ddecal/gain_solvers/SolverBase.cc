@@ -9,6 +9,13 @@
 
 using aocommon::ParallelFor;
 
+namespace {
+template <typename T>
+bool IsFinite(const std::complex<T>& val) {
+  return std::isfinite(val.real()) && std::isfinite(val.imag());
+}
+}  // namespace
+
 namespace dp3 {
 namespace base {
 
@@ -80,6 +87,38 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
   });
 }
 
+void SolverBase::PrepareConstraints() {
+  for (std::unique_ptr<Constraint>& c : constraints_)
+    c->PrepareIteration(false, 0, false);
+}
+
+bool SolverBase::ApplyConstraints(
+    size_t iteration, double time, bool has_previously_converged,
+    SolveResult& result, std::vector<std::vector<DComplex>>& next_solutions,
+    std::ostream* stat_stream) const {
+  bool constraints_satisfied = true;
+
+  result.results.resize(constraints_.size());
+  auto result_iterator = result.results.begin();
+
+  for (const std::unique_ptr<Constraint>& c : constraints_) {
+    // PrepareIteration() might change Satisfied(), and since we always want
+    // to iterate at least once more when a constraint is not yet satisfied,
+    // we evaluate Satisfied() before preparing.
+    constraints_satisfied = c->Satisfied() && constraints_satisfied;
+    c->PrepareIteration(has_previously_converged, iteration,
+                        iteration + 1 >= GetMaxIterations());
+    *result_iterator = c->Apply(next_solutions, time, stat_stream);
+    ++result_iterator;
+  }
+
+  // If still not satisfied, at least iteration+1 constrained iterations
+  // were required.
+  if (!constraints_satisfied) result.constraint_iterations = iteration + 1;
+
+  return constraints_satisfied;
+}
+
 bool SolverBase::AssignSolutions(
     std::vector<std::vector<DComplex>>& solutions,
     const std::vector<std::vector<DComplex>>& newSolutions,
@@ -111,7 +150,7 @@ bool SolverBase::AssignSolutions(
       } else if (nPol == 2) {
         DComplex s[2] = {solutions[chBlock][i], solutions[chBlock][i + 1]};
         DComplex sInv[2] = {1.0 / s[0], 1.0 / s[1]};
-        if (Isfinite(sInv[0]) && Isfinite(sInv[1])) {
+        if (IsFinite(sInv[0]) && IsFinite(sInv[1])) {
           DComplex ns[2] = {newSolutions[chBlock][i],
                             newSolutions[chBlock][i + 1]};
           ns[0] = (ns[0] - s[0]) * sInv[0];
@@ -169,7 +208,7 @@ void SolverBase::MakeSolutionsFinite1Pol(
     size_t count = 0;
     double average = 0.0;
     for (const std::complex<double>& solution : solVector) {
-      if (Isfinite(solution)) {
+      if (IsFinite(solution)) {
         average += std::abs(solution);
         ++count;
       }
@@ -180,7 +219,7 @@ void SolverBase::MakeSolutionsFinite1Pol(
     else
       average /= count;
     for (std::complex<double>& solution : solVector) {
-      if (!Isfinite(solution)) solution = average;
+      if (!IsFinite(solution)) solution = average;
     }
   }
 }
@@ -193,7 +232,7 @@ void SolverBase::MakeSolutionsFinite2Pol(
     double average[2] = {0.0, 0.0};
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 2) {
-      if (Isfinite(*iter) && Isfinite(*(iter + 1))) {
+      if (IsFinite(*iter) && IsFinite(*(iter + 1))) {
         for (size_t p = 0; p != 2; ++p) average[p] += std::abs(iter[0]);
         ++count;
       }
@@ -206,7 +245,7 @@ void SolverBase::MakeSolutionsFinite2Pol(
     }
     for (std::vector<DComplex>::iterator iter = solVector.begin();
          iter != solVector.end(); iter += 2) {
-      if (!Isfinite(*iter) || !Isfinite(*(iter + 1))) {
+      if (!IsFinite(*iter) || !IsFinite(*(iter + 1))) {
         for (size_t p = 0; p != 2; ++p) iter[p] = average[p];
       }
     }
@@ -244,16 +283,16 @@ void SolverBase::MakeSolutionsFinite4Pol(
 }
 
 void SolverBase::GetTimings(std::ostream& os, double duration) const {
-  for (Constraint* constraint : constraints_) {
+  for (const std::unique_ptr<Constraint>& constraint : constraints_) {
     constraint->GetTimings(os, duration);
   }
 }
 
-void SolverBase::SetLLSSolverType(const LLSSolverType solver,
-                                  const std::pair<double, double> tolerances) {
-  lls_solver_type_ = solver;
-  lls_min_tolerance_ = tolerances.first;
-  lls_max_tolerance_ = tolerances.second;
+void SolverBase::SetLLSSolverType(const LLSSolverType solver_type,
+                                  double min_tolerance, double max_tolerance) {
+  lls_solver_type_ = solver_type;
+  lls_min_tolerance_ = min_tolerance;
+  lls_max_tolerance_ = max_tolerance;
 }
 
 std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(

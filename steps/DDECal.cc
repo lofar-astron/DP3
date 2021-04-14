@@ -163,14 +163,6 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
 
   initializeSolver(parset, prefix);
 
-  itsSolver->SetMaxIterations(parset.getInt(prefix + "maxiter", 50));
-  double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
-  itsSolver->SetAccuracy(tolerance);
-  itsSolver->SetConstraintAccuracy(
-      parset.getDouble(prefix + "approxtolerance", tolerance * 10.0));
-  itsSolver->SetStepSize(parset.getDouble(prefix + "stepsize", 0.2));
-  itsSolver->SetDetectStalling(parset.getBool(prefix + "detectstalling", true));
-
   // Initialize steps
   initializeColumnReaders(parset, prefix);
   initializeIDG(parset, prefix);
@@ -186,66 +178,32 @@ DDECal::~DDECal() {}
 
 void DDECal::initializeSolver(const common::ParameterSet& parset,
                               const string& prefix) {
-  if (itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
-    itsConstraints.push_back(boost::make_unique<AntennaConstraint>());
-  }
-  if (itsSmoothnessConstraint != 0.0) {
-    itsConstraints.emplace_back(new SmoothnessConstraint(
-        itsSmoothnessConstraint, itsSmoothnessRefFrequencyHz));
-  }
-  const LLSSolverType llsSolver =
-      LLSSolver::ParseType(parset.getString(prefix + "llssolver", "qr"));
-  const double llsEndTolerance =
-      parset.getDouble(prefix + "llstolerance", 1.0E-7);
-  const double llsStartTolerance =
-      parset.getDouble(prefix + "llsstarttolerance", llsEndTolerance);
-  const std::pair<double, double> llsTolerances =
-      LLSSolver::ParseTolerances(llsEndTolerance, llsStartTolerance);
-  if (itsIterateDirections &&
-      (itsMode == GainCal::FULLJONES || itsMode == GainCal::ROTATION ||
-       itsMode == GainCal::ROTATIONANDDIAGONAL)) {
-    throw std::runtime_error(
-        "The direction-iterating algorithm is currently only available for "
-        "diagonal solving modes");
-  }
   switch (itsMode) {
     case GainCal::SCALARCOMPLEXGAIN:
-      if (itsIterateDirections)
-        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
-      else
-        itsSolver = boost::make_unique<base::ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
-      // no constraints
-      itsSolver->SetPhaseOnly(false);
-      itsPolsInSolutions = 1;
-      break;
-    case GainCal::SCALARPHASE:
-      if (itsIterateDirections)
-        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
-      else
-        itsSolver = boost::make_unique<base::ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
-      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
-      itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 1;
-      break;
     case GainCal::SCALARAMPLITUDE:
       if (itsIterateDirections)
         itsSolver = boost::make_unique<base::IterativeScalarSolver>();
       else
         itsSolver = boost::make_unique<base::ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
-      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 1;
       break;
+    case GainCal::SCALARPHASE:
+    case GainCal::TEC:
+    case GainCal::TECANDPHASE:
+      if (itsIterateDirections)
+        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
+      else
+        itsSolver = boost::make_unique<base::ScalarSolver>();
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 1;
+      break;
     case GainCal::DIAGONAL:
+    case GainCal::DIAGONALAMPLITUDE:
       if (itsIterateDirections)
         itsSolver = boost::make_unique<base::IterativeDiagonalSolver>();
       else
         itsSolver = boost::make_unique<base::DiagonalSolver>();
-      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
-      // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 2;
       break;
@@ -254,36 +212,93 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
         itsSolver = boost::make_unique<base::IterativeDiagonalSolver>();
       else
         itsSolver = boost::make_unique<base::DiagonalSolver>();
-      itsConstraints.push_back(boost::make_unique<PhaseOnlyConstraint>());
       itsSolver->SetPhaseOnly(true);
       itsPolsInSolutions = 2;
       break;
-    case GainCal::DIAGONALAMPLITUDE:
-      if (itsIterateDirections)
-        itsSolver = boost::make_unique<base::IterativeDiagonalSolver>();
-      else
-        itsSolver = boost::make_unique<base::DiagonalSolver>();
-      itsConstraints.push_back(boost::make_unique<AmplitudeOnlyConstraint>());
-      itsSolver->SetPhaseOnly(false);
-      itsPolsInSolutions = 2;
-      break;
     case GainCal::FULLJONES:
+    case GainCal::ROTATIONANDDIAGONAL:
+    case GainCal::ROTATION:
+      if (itsIterateDirections) {
+        throw std::runtime_error(
+            "The direction-iterating algorithm is not available for the "
+            "solving mode: " +
+            GainCal::calTypeToString(itsMode));
+      }
       itsSolver = boost::make_unique<base::FullJonesSolver>();
-      // no constraints
       itsSolver->SetPhaseOnly(false);
       itsPolsInSolutions = 4;
       break;
-    case GainCal::TEC:
-    case GainCal::TECANDPHASE: {
+    case GainCal::TECSCREEN:
+#ifdef HAVE_ARMADILLO
       if (itsIterateDirections)
         itsSolver = boost::make_unique<base::IterativeScalarSolver>();
       else
         itsSolver = boost::make_unique<base::ScalarSolver>();
-      itsSolver->SetLLSSolverType(llsSolver, llsTolerances);
+      itsSolver->SetPhaseOnly(true);
+      itsPolsInSolutions = 1;
+#else
+      throw std::runtime_error(
+          "Can not use TEC screen: Armadillo is not available. Recompile DP3 "
+          "with Armadillo.");
+#endif
+      break;
+    default:
+      throw std::runtime_error("Unexpected solving mode: " +
+                               GainCal::calTypeToString(itsMode));
+  }
+
+  InitializeConstraints(parset, prefix);
+
+  const LLSSolverType lls_solver_type =
+      LLSSolver::ParseType(parset.getString(prefix + "llssolver", "qr"));
+  const double lls_max_tolerance =
+      parset.getDouble(prefix + "llstolerance", 1.0E-7);
+  const double lls_min_tolerance =
+      parset.getDouble(prefix + "llsstarttolerance", lls_max_tolerance);
+  itsSolver->SetLLSSolverType(lls_solver_type, lls_min_tolerance,
+                              std::max(lls_min_tolerance, lls_max_tolerance));
+
+  itsSolver->SetMaxIterations(parset.getInt(prefix + "maxiter", 50));
+  const double tolerance = parset.getDouble(prefix + "tolerance", 1.e-4);
+  itsSolver->SetAccuracy(tolerance);
+  itsSolver->SetConstraintAccuracy(
+      parset.getDouble(prefix + "approxtolerance", tolerance * 10.0));
+  itsSolver->SetStepSize(parset.getDouble(prefix + "stepsize", 0.2));
+  itsSolver->SetDetectStalling(parset.getBool(prefix + "detectstalling", true));
+}
+
+void DDECal::InitializeConstraints(const common::ParameterSet& parset,
+                                   const string& prefix) {
+  assert(itsSolver);
+
+  if (itsCoreConstraint != 0.0 || !itsAntennaConstraint.empty()) {
+    itsSolver->AddConstraint(boost::make_unique<AntennaConstraint>());
+  }
+  if (itsSmoothnessConstraint != 0.0) {
+    itsSolver->AddConstraint(boost::make_unique<SmoothnessConstraint>(
+        itsSmoothnessConstraint, itsSmoothnessRefFrequencyHz));
+  }
+
+  switch (itsMode) {
+    case GainCal::SCALARCOMPLEXGAIN:
+    case GainCal::DIAGONAL:
+    case GainCal::FULLJONES:
+      // no extra constraints
+      break;
+    case GainCal::SCALARPHASE:
+    case GainCal::DIAGONALPHASE:
+      itsSolver->AddConstraint(boost::make_unique<PhaseOnlyConstraint>());
+      break;
+    case GainCal::SCALARAMPLITUDE:
+    case GainCal::DIAGONALAMPLITUDE:
+      itsSolver->AddConstraint(boost::make_unique<AmplitudeOnlyConstraint>());
+      break;
+    case GainCal::TEC:
+    case GainCal::TECANDPHASE: {
       const auto tecMode = (itsMode == GainCal::TEC)
                                ? TECConstraint::TECOnlyMode
                                : TECConstraint::TECAndCommonScalarMode;
-      std::unique_ptr<TECConstraint> constraintPtr;
+      std::unique_ptr<TECConstraint> constraint;
 
       itsApproximateTEC = parset.getBool(prefix + "approximatetec", false);
       if (itsApproximateTEC) {
@@ -294,49 +309,33 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
             boost::make_unique<ApproximateTECConstraint>(tecMode);
         approxConstraint->SetMaxApproximatingIterations(iters);
         approxConstraint->SetFittingChunkSize(chunksize);
-        constraintPtr = std::move(approxConstraint);
+        constraint = std::move(approxConstraint);
       } else {
-        constraintPtr = boost::make_unique<TECConstraint>(tecMode);
+        constraint = boost::make_unique<TECConstraint>(tecMode);
       }
-      constraintPtr->setDoPhaseReference(
+      constraint->setDoPhaseReference(
           parset.getBool(prefix + "phasereference", true));
-      itsConstraints.push_back(std::move(constraintPtr));
-      itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 1;
+      itsSolver->AddConstraint(std::move(constraint));
       break;
     }
-    case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
-      if (itsIterateDirections)
-        itsSolver = boost::make_unique<base::IterativeScalarSolver>();
-      else
-        itsSolver = boost::make_unique<base::ScalarSolver>();
-      itsConstraints.push_back(
+    case GainCal::TECSCREEN:
+      itsSolver->AddConstraint(
           boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
-      itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 1;
-#else
-      throw std::runtime_error(
-          "Can not use TEC screen: Armadillo is not available. Recompile DP3 "
-          "with Armadillo.");
-#endif
       break;
+#endif
     case GainCal::ROTATIONANDDIAGONAL: {
-      itsSolver = boost::make_unique<base::FullJonesSolver>();
-      auto constraintPtr = boost::make_unique<RotationAndDiagonalConstraint>();
-      constraintPtr->SetDoRotationReference(
+      auto constraint = boost::make_unique<RotationAndDiagonalConstraint>();
+      constraint->SetDoRotationReference(
           parset.getBool(prefix + "rotationreference", false));
-      itsConstraints.push_back(std::move(constraintPtr));
-      itsPolsInSolutions = 4;
+      itsSolver->AddConstraint(std::move(constraint));
       break;
     }
     case GainCal::ROTATION:
-      itsSolver = boost::make_unique<base::FullJonesSolver>();
-      itsConstraints.push_back(boost::make_unique<RotationConstraint>());
-      itsPolsInSolutions = 4;
+      itsSolver->AddConstraint(boost::make_unique<RotationConstraint>());
       break;
     default:
-      throw std::runtime_error("Unexpected mode: " +
+      throw std::runtime_error("Unexpected solving mode: " +
                                GainCal::calTypeToString(itsMode));
   }
 }
@@ -483,11 +482,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsSolInt = info().ntime();
   }
 
-  for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
-    constraint->SetNThreads(getInfo().nThreads());
-    itsSolver->AddConstraint(*constraint);
-  }
-
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
@@ -586,16 +580,17 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
-  for (unsigned int i = 0; i < itsConstraints.size(); ++i) {
+  for (size_t i = 0; i < itsSolver->GetConstraints().size(); ++i) {
+    Constraint& constraint = *itsSolver->GetConstraints()[i];
     // Initialize the constraint with some common metadata
-    itsConstraints[i]->InitializeDimensions(
-        info().antennaUsed().size(), itsDirections.size(), nChannelBlocks);
+    constraint.InitializeDimensions(info().antennaUsed().size(),
+                                    itsDirections.size(), nChannelBlocks);
 
     // Different constraints need different information. Determine if the
     // constraint is of a type that needs more information, and if so initialize
     // the constraint.
     AntennaConstraint* antConstraint =
-        dynamic_cast<AntennaConstraint*>(itsConstraints[i].get());
+        dynamic_cast<AntennaConstraint*>(&constraint);
     if (antConstraint != nullptr) {
       if (itsAntennaConstraint.empty()) {
         // Set the antenna constraint to all stations within certain distance
@@ -644,7 +639,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
 #ifdef HAVE_ARMADILLO
     ScreenConstraint* screenConstraint =
-        dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
+        dynamic_cast<ScreenConstraint*>(&constraint);
     if (screenConstraint != 0) {
       screenConstraint->initialize(&(itsChanBlockFreqs[0]));
       screenConstraint->setAntennaPositions(usedAntennaPositions);
@@ -673,9 +668,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 #endif
 
     TECConstraintBase* tecConstraint =
-        dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
+        dynamic_cast<TECConstraintBase*>(&constraint);
     SmoothnessConstraint* sConstraint =
-        dynamic_cast<SmoothnessConstraint*>(itsConstraints[i].get());
+        dynamic_cast<SmoothnessConstraint*>(&constraint);
     if (tecConstraint != nullptr) {
       tecConstraint->initialize(&itsChanBlockFreqs[0]);
     } else if (sConstraint != nullptr) {
@@ -948,7 +943,8 @@ void DDECal::doSolve() {
     if (!itsOnlyPredict) {
       checkMinimumVisibilities(i);
 
-      for (std::unique_ptr<Constraint>& constraint : itsConstraints) {
+      for (const std::unique_ptr<Constraint>& constraint :
+           itsSolver->GetConstraints()) {
         constraint->SetWeights(itsWeightsPerAntenna);
       }
 
