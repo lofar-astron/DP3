@@ -30,13 +30,11 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
     std::ostream* stat_stream) {
   const size_t n_times = solver_buffer.NTimes();
 
-  for (Constraint* constraint : constraints_)
-    constraint->PrepareIteration(false, 0, false);
+  PrepareConstraints();
 
   std::vector<std::vector<DComplex>> next_solutions(n_channel_blocks_);
 
   SolveResult result;
-  result.results.resize(constraints_.size());
 
   // Visibility vector chblock x time x [bl * chan * ncor]
   constexpr size_t n_solution_pols = 1;
@@ -61,11 +59,9 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
   /// Start iterating
   ///
   size_t iteration = 0;
-  size_t constrained_iterations = 0;
   bool has_converged = false;
   bool has_previously_converged = false;
   bool constraints_satisfied = false;
-  bool has_stalled = false;
 
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(max_iterations_);
@@ -81,23 +77,9 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 
     Step(solutions, next_solutions);
 
-    constraints_satisfied = true;
-
-    for (size_t i = 0; i != constraints_.size(); ++i) {
-      // PrepareIteration() might change Satisfied(), and since we always want
-      // to iterate at least once more when a constraint is not yet satisfied,
-      // we evaluate Satisfied() before preparing.
-      constraints_satisfied =
-          constraints_[i]->Satisfied() && constraints_satisfied;
-      constraints_[i]->PrepareIteration(has_previously_converged, iteration,
-                                        iteration + 1 >= max_iterations_);
-      result.results[i] =
-          constraints_[i]->Apply(next_solutions, time, stat_stream);
-    }
-
-    // If still not satisfied, at least iteration+1 constrained iterations
-    // were required.
-    if (!constraints_satisfied) constrained_iterations = iteration + 1;
+    constraints_satisfied =
+        ApplyConstraints(iteration, time, has_previously_converged, result,
+                         next_solutions, stat_stream);
 
     double avg_squared_diff;
     has_converged =
@@ -112,11 +94,10 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 
   // When we have not converged yet, we set the nr of iterations to the max+1,
   // so that non-converged iterations can be distinguished from converged ones.
-  if ((!has_converged || !constraints_satisfied) && !has_stalled)
-    result.iterations = iteration + 1;
-  else
+  if (has_converged && constraints_satisfied)
     result.iterations = iteration;
-  result.constraint_iterations = constrained_iterations;
+  else
+    result.iterations = iteration + 1;
   return result;
 }
 

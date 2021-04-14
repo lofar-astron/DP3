@@ -28,12 +28,11 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   const size_t n_times = solver_buffer.NTimes();
 
-  for (Constraint* c : GetConstraints()) c->PrepareIteration(false, 0, false);
+  PrepareConstraints();
 
   std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
 
   SolveResult result;
-  result.results.resize(GetConstraints().size());
 
   // Model matrix ant x [N x D] and visibility vector ant x [N x 1],
   // for each channelblock
@@ -65,11 +64,9 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   /// Start iterating
   ///
   size_t iteration = 0;
-  size_t constrained_iterations = 0;
   bool has_converged = false;
   bool has_previously_converged = false;
   bool constraints_satisfied = false;
-  bool has_stalled = false;
 
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
@@ -93,20 +90,9 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
       (*stat_stream) << iteration << '\t';
     }
 
-    constraints_satisfied = true;
-
-    for (size_t i = 0; i != GetConstraints().size(); ++i) {
-      Constraint* c = GetConstraints()[i];
-      // PrepareIteration() might change Satisfied(), and since we always want
-      // to iterate at least once more when a constraint is not yet satisfied,
-      // we evaluate Satisfied() before preparing.
-      constraints_satisfied = c->Satisfied() && constraints_satisfied;
-      c->PrepareIteration(has_previously_converged, iteration,
-                          iteration + 1 >= GetMaxIterations());
-      result.results[i] = c->Apply(next_solutions, time, stat_stream);
-    }
-
-    if (!constraints_satisfied) constrained_iterations = iteration + 1;
+    constraints_satisfied =
+        ApplyConstraints(iteration, time, has_previously_converged, result,
+                         next_solutions, stat_stream);
 
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
@@ -125,11 +111,10 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   // When we have not converged yet, we set the nr of iterations to the max+1,
   // so that non-converged iterations can be distinguished from converged ones.
-  if ((!has_converged || !constraints_satisfied) && !has_stalled)
-    result.iterations = iteration + 1;
-  else
+  if (has_converged && constraints_satisfied)
     result.iterations = iteration;
-  result.constraint_iterations = constrained_iterations;
+  else
+    result.iterations = iteration + 1;
   return result;
 }
 

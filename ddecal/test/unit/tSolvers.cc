@@ -19,6 +19,7 @@
 #include "../../linear_solvers/LSMRSolver.h"
 #include "../../linear_solvers/NormalEquationsSolver.h"
 
+#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
@@ -220,8 +221,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_lsmr, SolverTester) {
   solver.SetStepSize(0.2);
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
-  solver.SetLLSSolverType(LLSSolverType::LSMR,
-                          std::pair<double, double>(1.0E-2, 1.0E-2));
+  solver.SetLLSSolverType(LLSSolverType::LSMR, 1.0E-2, 1.0E-2);
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
 
   SetScalarSolutions();
@@ -259,8 +259,7 @@ BOOST_AUTO_TEST_CASE(normaleq_solver) {
 
 BOOST_FIXTURE_TEST_CASE(scalar_solver, SolverTester) {
   ScalarSolver solver;
-  solver.SetLLSSolverType(LLSSolverType::QR,
-                          std::pair<double, double>(0.0, 0.0));
+  solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
   solver.SetMaxIterations(max_iter);
   solver.SetAccuracy(1e-8);
   solver.SetStepSize(0.2);
@@ -314,8 +313,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_solver, SolverTester) {
 
 BOOST_FIXTURE_TEST_CASE(scalar_solver_normaleq, SolverTester) {
   ScalarSolver solver;
-  solver.SetLLSSolverType(LLSSolverType::NORMAL_EQUATIONS,
-                          std::pair<double, double>(0.0, 0.0));
+  solver.SetLLSSolverType(LLSSolverType::NORMAL_EQUATIONS, 0.0, 0.0);
   solver.SetMaxIterations(max_iter);
   solver.SetAccuracy(1e-8);
   solver.SetStepSize(0.2);
@@ -350,8 +348,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_solver_lsmr, SolverTester) {
   solver.SetStepSize(0.2);
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
-  solver.SetLLSSolverType(LLSSolverType::LSMR,
-                          std::pair<double, double>(1.0E-7, 1.0E-2));
+  solver.SetLLSSolverType(LLSSolverType::LSMR, 1.0E-7, 1.0E-2);
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
 
   std::mt19937 mt;
@@ -477,8 +474,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones_solver, SolverTester) {
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
-  DiagonalConstraint diagonal_constraint(4);
-  solver.AddConstraint(diagonal_constraint);
+  solver.AddConstraint(boost::make_unique<DiagonalConstraint>(4));
 
   std::mt19937 mt(0);
   std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);

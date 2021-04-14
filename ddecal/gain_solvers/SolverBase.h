@@ -80,8 +80,25 @@ class SolverBase {
                             std::vector<std::vector<DComplex>>& solutions,
                             double time, std::ostream* statStream) = 0;
 
-  void AddConstraint(Constraint& constraint) {
-    constraints_.push_back(&constraint);
+  /**
+   * Add a constraint to the solver.
+   * @param constraint A valid constraint pointer.
+   * @throw std::runtime_error If the constraint is invalid.
+   */
+  void AddConstraint(std::unique_ptr<Constraint> constraint) {
+    if (!constraint) {
+      throw std::runtime_error("Solver constraint is empty.");
+    }
+    constraints_.push_back(std::move(constraint));
+  }
+
+  /**
+   * Get the constraints for the solver.
+   * @return A non-modifyable list of modifyable Constraints. All pointers in
+   *         the list are valid.
+   */
+  const std::vector<std::unique_ptr<Constraint>>& GetConstraints() {
+    return constraints_;
   }
 
   /**
@@ -149,7 +166,12 @@ class SolverBase {
    * Number of threads to use in parts that can be parallelized.
    * The solving is parallelized over channel blocks.
    */
-  void SetNThreads(size_t n_threads) { n_threads_ = n_threads; }
+  void SetNThreads(size_t n_threads) {
+    n_threads_ = n_threads;
+    for (std::unique_ptr<Constraint>& constraint : constraints_) {
+      constraint->SetNThreads(n_threads);
+    }
+  }
   size_t GetNThreads() const { return n_threads_; }
 
   /**
@@ -157,8 +179,8 @@ class SolverBase {
    */
   void GetTimings(std::ostream& os, double duration) const;
 
-  void SetLLSSolverType(LLSSolverType solver,
-                        std::pair<double, double> tolerances);
+  void SetLLSSolverType(LLSSolverType solver_type, double min_tolerance,
+                        double max_tolerance);
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
@@ -176,6 +198,13 @@ class SolverBase {
   static void MakeSolutionsFinite4Pol(
       std::vector<std::vector<DComplex>>& solutions);
 
+  void PrepareConstraints();
+
+  bool ApplyConstraints(size_t iteration, double time,
+                        bool has_previously_converged, SolveResult& result,
+                        std::vector<std::vector<DComplex>>& next_solutions,
+                        std::ostream* stat_stream) const;
+
   /**
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have converged. Appends the current step
@@ -185,11 +214,6 @@ class SolverBase {
                        const std::vector<std::vector<DComplex>>& new_solutions,
                        bool use_constraint_accuracy, double& avg_abs_diff,
                        std::vector<double>& step_magnitudes, size_t nPol) const;
-
-  template <typename T>
-  static bool Isfinite(const std::complex<T>& val) {
-    return std::isfinite(val.real()) && std::isfinite(val.imag());
-  }
 
   bool ReachedStoppingCriterion(
       size_t iteration, bool has_converged, bool constraints_satisfied,
@@ -211,9 +235,6 @@ class SolverBase {
   size_t NBaselines() const { return ant1_.size(); }
   int AntennaIndex1(size_t baseline) const { return ant1_[baseline]; }
   int AntennaIndex2(size_t baseline) const { return ant2_[baseline]; }
-  const std::vector<Constraint*>& GetConstraints() const {
-    return constraints_;
-  }
 
   /**
    * @param block A channel block index, less than NChannelBlocks().
@@ -248,10 +269,11 @@ class SolverBase {
   double constraint_accuracy_;
   double step_size_;
   bool detect_stalling_;
-  bool phase_only_;
-  std::vector<Constraint*>
-      constraints_;  // Does not own the Constraint objects.
+
  private:
+  bool phase_only_;
+  std::vector<std::unique_ptr<Constraint>> constraints_;
+
   LLSSolverType lls_solver_type_;
   double lls_min_tolerance_;
   double lls_max_tolerance_;

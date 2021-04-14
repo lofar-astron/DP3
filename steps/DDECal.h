@@ -96,6 +96,8 @@ class DDECal : public Step {
  private:
   void initializeSolver(const common::ParameterSet& parset,
                         const string& prefix);
+  void InitializeConstraints(const common::ParameterSet& parset,
+                             const string& prefix);
   void initializeColumnReaders(const common::ParameterSet&,
                                const string& prefix);
   void initializeIDG(const common::ParameterSet& parset, const string& prefix);
@@ -167,7 +169,6 @@ class DDECal : public Step {
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
   std::vector<std::vector<string>> itsDirections;
-  std::vector<std::unique_ptr<Constraint>> itsConstraints;
   /// Normally, the solver takes the model data and modifies it, thereby
   /// destroying the original model data. This model data is used to store
   /// the result of the predictions when they are still required after
