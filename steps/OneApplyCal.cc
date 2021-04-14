@@ -27,10 +27,14 @@
 #include <iomanip>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/make_unique.hpp>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
+typedef JonesParameters::CorrectType CorrectType;
+
+using casacore::Array;
 using std::vector;
 
 namespace dp3 {
@@ -58,6 +62,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
               ? parset.getBool(prefix + "updateweights")
               : parset.getBool(defaultPrefix + "updateweights", false)),
       itsCount(0),
+      itsJonesParameters(nullptr),
       itsTimeStep(0),
       itsNCorr(0),
       itsTimeInterval(-1),
@@ -80,9 +85,9 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
              ? parset.getString(prefix + "interpolation")
              : parset.getString(prefix + "interpolation", "nearest"));
     if (interpolationStr == "nearest") {
-      itsInterpolationType = InterpolationType::NEAREST;
+      itsInterpolationType = JonesParameters::InterpolationType::NEAREST;
     } else if (interpolationStr == "linear") {
-      itsInterpolationType = InterpolationType::LINEAR;
+      itsInterpolationType = JonesParameters::InterpolationType::LINEAR;
     } else {
       throw std::runtime_error("Unsupported interpolation mode: " +
                                interpolationStr);
@@ -111,16 +116,16 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
       itsSolTabName =
           solTabs[0] + ", " +
           solTabs[1];  // this is only so that show() shows these tables
-      itsCorrectType = FULLJONES;
+      itsCorrectType = CorrectType::FULLJONES;
     } else {
       itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
       itsCorrectType = stringToCorrectType(itsSolTab.GetType());
     }
-    if (itsCorrectType == PHASE && nPol("") == 1) {
-      itsCorrectType = SCALARPHASE;
+    if (itsCorrectType == CorrectType::PHASE && nPol("") == 1) {
+      itsCorrectType = CorrectType::SCALARPHASE;
     }
-    if (itsCorrectType == AMPLITUDE && nPol("") == 1) {
-      itsCorrectType = SCALARAMPLITUDE;
+    if (itsCorrectType == CorrectType::AMPLITUDE && nPol("") == 1) {
+      itsCorrectType = CorrectType::SCALARAMPLITUDE;
     }
     itsDirection = 0;
     if (directionStr == "") {
@@ -144,7 +149,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
     itsCorrectType = stringToCorrectType(correctTypeStr);
   }
 
-  if (itsCorrectType == FULLJONES && itsUpdateWeights) {
+  if (itsCorrectType == CorrectType::FULLJONES && itsUpdateWeights) {
     if (!itsInvert)
       throw Exception(
           "Updating weights has not been implemented for invert=false and "
@@ -152,38 +157,58 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
   }
 }
 
-string OneApplyCal::correctTypeToString(CorrectType ct) {
-  if (ct == GAIN) return "gain";
-  if (ct == FULLJONES) return "fulljones";
-  if (ct == TEC) return "tec";
-  if (ct == CLOCK) return "clock";
-  if (ct == SCALARPHASE) return "scalarphase";
-  if (ct == SCALARAMPLITUDE) return "scalaramplitude";
-  if (ct == ROTATIONANGLE) return "rotationangle";
-  if (ct == ROTATIONMEASURE) return "rotationmeasure";
-  if (ct == PHASE) return "phase";
-  if (ct == AMPLITUDE) return "amplitude";
-  throw Exception("Unknown correction type: " + std::to_string(ct));
+string OneApplyCal::correctTypeToString(JonesParameters::CorrectType ct) {
+  if (ct == CorrectType::GAIN)
+    return "gain";
+  else if (ct == CorrectType::FULLJONES)
+    return "fulljones";
+  else if (ct == CorrectType::TEC)
+    return "tec";
+  else if (ct == CorrectType::CLOCK)
+    return "clock";
+  else if (ct == CorrectType::SCALARPHASE)
+    return "scalarphase";
+  else if (ct == CorrectType::SCALARAMPLITUDE)
+    return "scalaramplitude";
+  else if (ct == CorrectType::ROTATIONANGLE)
+    return "rotationangle";
+  else if (ct == CorrectType::ROTATIONMEASURE)
+    return "rotationmeasure";
+  else if (ct == CorrectType::PHASE)
+    return "phase";
+  else if (ct == CorrectType::AMPLITUDE)
+    return "amplitude";
+  else
+    throw Exception("Unknown correction type: " + std::to_string(ct));
   return "";
 }
 
-OneApplyCal::CorrectType OneApplyCal::stringToCorrectType(const string& ctStr) {
-  if (ctStr == "gain") return GAIN;
-  if (ctStr == "fulljones") return FULLJONES;
-  if (ctStr == "tec") return TEC;
-  if (ctStr == "clock") return CLOCK;
-  if (ctStr == "scalarphase" || ctStr == "commonscalarphase")
-    return SCALARPHASE;
-  if (ctStr == "scalaramplitude" || ctStr == "commonscalaramplitude")
-    return SCALARAMPLITUDE;
-  if (ctStr == "phase") return PHASE;
-  if (ctStr == "amplitude") return AMPLITUDE;
-  if (ctStr == "rotationangle" || ctStr == "commonrotationangle" ||
-      ctStr == "rotation")
-    return ROTATIONANGLE;
-  if (ctStr == "rotationmeasure") return ROTATIONMEASURE;
-  throw Exception("Unknown correction type: " + ctStr);
-  return GAIN;
+JonesParameters::CorrectType OneApplyCal::stringToCorrectType(
+    const string& ctStr) {
+  if (ctStr == "gain")
+    return CorrectType::GAIN;
+  else if (ctStr == "fulljones")
+    return CorrectType::FULLJONES;
+  else if (ctStr == "tec")
+    return CorrectType::TEC;
+  else if (ctStr == "clock")
+    return CorrectType::CLOCK;
+  else if (ctStr == "scalarphase" || ctStr == "commonscalarphase")
+    return CorrectType::SCALARPHASE;
+  else if (ctStr == "scalaramplitude" || ctStr == "commonscalaramplitude")
+    return CorrectType::SCALARAMPLITUDE;
+  else if (ctStr == "phase")
+    return CorrectType::PHASE;
+  else if (ctStr == "amplitude")
+    return CorrectType::AMPLITUDE;
+  else if (ctStr == "rotationangle" || ctStr == "commonrotationangle" ||
+           ctStr == "rotation")
+    return CorrectType::ROTATIONANGLE;
+  else if (ctStr == "rotationmeasure")
+    return CorrectType::ROTATIONMEASURE;
+  else
+    throw Exception("Unknown correction type: " + ctStr);
+  return CorrectType::GAIN;
 }
 
 OneApplyCal::~OneApplyCal() {}
@@ -210,15 +235,17 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
 
   // Detect if full jones solutions are present
   if (!itsUseH5Parm &&
-      (itsCorrectType == GAIN || itsCorrectType == FULLJONES) &&
+      (itsCorrectType == CorrectType::GAIN ||
+       itsCorrectType == CorrectType::FULLJONES) &&
       (itsParmDB->getNames("Gain:0:1:*").size() +
            itsParmDB->getDefNames("Gain:0:1:*").size() >
        0)) {
-    itsCorrectType = FULLJONES;
+    itsCorrectType = CorrectType::FULLJONES;
   }
 
   // Detect if solutions are saved as Real/Imag or Ampl/Phase
-  if (itsCorrectType == GAIN || itsCorrectType == FULLJONES) {
+  if (itsCorrectType == CorrectType::GAIN ||
+      itsCorrectType == CorrectType::FULLJONES) {
     if (itsUseH5Parm) {
       // H5Parm uses amplitude / phase by definition
       itsUseAP = true;
@@ -244,7 +271,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  if (itsCorrectType == GAIN) {
+  if (itsCorrectType == CorrectType::GAIN) {
     if (itsUseAP) {
       itsParmExprs.push_back("Gain:0:0:Ampl");
       itsParmExprs.push_back("Gain:0:0:Phase");
@@ -256,7 +283,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
       itsParmExprs.push_back("Gain:1:1:Real");
       itsParmExprs.push_back("Gain:1:1:Imag");
     }
-  } else if (itsCorrectType == FULLJONES) {
+  } else if (itsCorrectType == CorrectType::FULLJONES) {
     if (itsUseAP) {
       itsParmExprs.push_back("Gain:0:0:Ampl");
       itsParmExprs.push_back("Gain:0:0:Phase");
@@ -276,34 +303,34 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
       itsParmExprs.push_back("Gain:1:1:Real");
       itsParmExprs.push_back("Gain:1:1:Imag");
     }
-  } else if (itsCorrectType == TEC) {
+  } else if (itsCorrectType == CorrectType::TEC) {
     if (nPol("TEC") == 1) {
       itsParmExprs.push_back("TEC");
     } else {
       itsParmExprs.push_back("TEC:0");
       itsParmExprs.push_back("TEC:1");
     }
-  } else if (itsCorrectType == CLOCK) {
+  } else if (itsCorrectType == CorrectType::CLOCK) {
     if (nPol("Clock") == 1) {
       itsParmExprs.push_back("Clock");
     } else {
       itsParmExprs.push_back("Clock:0");
       itsParmExprs.push_back("Clock:1");
     }
-  } else if (itsCorrectType == ROTATIONANGLE) {
+  } else if (itsCorrectType == CorrectType::ROTATIONANGLE) {
     itsParmExprs.push_back("{Common,}RotationAngle");
-  } else if (itsCorrectType == SCALARPHASE) {
+  } else if (itsCorrectType == CorrectType::SCALARPHASE) {
     itsParmExprs.push_back("{Common,}ScalarPhase");
-  } else if (itsCorrectType == ROTATIONMEASURE) {
+  } else if (itsCorrectType == CorrectType::ROTATIONMEASURE) {
     itsParmExprs.push_back("RotationMeasure");
-  } else if (itsCorrectType == SCALARAMPLITUDE) {
+  } else if (itsCorrectType == CorrectType::SCALARAMPLITUDE) {
     itsParmExprs.push_back("{Common,}ScalarAmplitude");
-  } else if (itsCorrectType == PHASE) {
+  } else if (itsCorrectType == CorrectType::PHASE) {
     if (!itsUseH5Parm)
       throw std::runtime_error("A H5Parm is required for phase correction");
     itsParmExprs.push_back("Phase:0");
     itsParmExprs.push_back("Phase:1");
-  } else if (itsCorrectType == AMPLITUDE) {
+  } else if (itsCorrectType == CorrectType::AMPLITUDE) {
     if (!itsUseH5Parm)
       throw std::runtime_error("A H5Parm is required for amplitude correction");
     itsParmExprs.push_back("Amplitude:0");
@@ -313,7 +340,6 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
                     " is unknown");
   }
 
-  initDataArrays();
   itsFlagCounter.init(getInfo());
 
   // Check that channels are evenly spaced
@@ -330,14 +356,16 @@ void OneApplyCal::show(std::ostream& os) const {
     os << "    SolTab:       " << itsSolTabName << '\n';
     os << "  Direction:      " << itsDirection << '\n';
     os << "  Interpolation:  "
-       << (itsInterpolationType == InterpolationType::NEAREST ? "nearest"
-                                                              : "linear")
+       << (itsInterpolationType == JonesParameters::InterpolationType::NEAREST
+               ? "nearest"
+               : "linear")
        << '\n';
   } else {
     os << "  Parmdb:         " << itsParmDBName << '\n';
   }
   os << "  Correction:     " << correctTypeToString(itsCorrectType) << '\n';
-  if (itsCorrectType == GAIN || itsCorrectType == FULLJONES) {
+  if (itsCorrectType == CorrectType::GAIN ||
+      itsCorrectType == CorrectType::FULLJONES) {
     os << "    Ampl/Phase:   " << std::boolalpha << itsUseAP << '\n';
   }
   os << "  Update weights: " << std::boolalpha << itsUpdateWeights << '\n';
@@ -359,7 +387,12 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   itsBuffer.copy(bufin);
 
   if (bufin.getTime() > itsLastTime) {
-    updateParms(bufin.getTime());
+    if (itsUseH5Parm) {
+      updateParmsH5(bufin.getTime());
+    } else {
+      updateParmsParmDB(bufin.getTime());
+    }
+
     itsTimeStep = 0;
   } else {
     itsTimeStep++;
@@ -383,20 +416,22 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
       unsigned int timeFreqOffset = (itsTimeStep * info().nchan()) + chan;
       unsigned int antA = info().getAnt1()[bl];
       unsigned int antB = info().getAnt2()[bl];
-      if (itsParms.shape()[0] > 2) {
-        ApplyCal::applyFull(&itsParms(0, antA, timeFreqOffset),
-                            &itsParms(0, antB, timeFreqOffset),
-                            &data[bl * itsNCorr * nchan + chan * itsNCorr],
-                            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
-                            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl,
-                            chan, itsUpdateWeights, itsFlagCounter);
+      if (itsJonesParameters->GetParms().shape()[0] > 2) {
+        ApplyCal::applyFull(
+            &itsJonesParameters->GetParms()(0, antA, timeFreqOffset),
+            &itsJonesParameters->GetParms()(0, antB, timeFreqOffset),
+            &data[bl * itsNCorr * nchan + chan * itsNCorr],
+            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
+            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl, chan,
+            itsUpdateWeights, itsFlagCounter);
       } else {
-        ApplyCal::applyDiag(&itsParms(0, antA, timeFreqOffset),
-                            &itsParms(0, antB, timeFreqOffset),
-                            &data[bl * itsNCorr * nchan + chan * itsNCorr],
-                            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
-                            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl,
-                            chan, itsUpdateWeights, itsFlagCounter);
+        ApplyCal::applyDiag(
+            &itsJonesParameters->GetParms()(0, antA, timeFreqOffset),
+            &itsJonesParameters->GetParms()(0, antB, timeFreqOffset),
+            &data[bl * itsNCorr * nchan + chan * itsNCorr],
+            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
+            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl, chan,
+            itsUpdateWeights, itsFlagCounter);
       }
     }
   });
@@ -413,21 +448,38 @@ void OneApplyCal::finish() {
   getNextStep()->finish();
 }
 
-void OneApplyCal::applyFlags(vector<double>& values,
-                             const vector<double>& weights) {
-  assert(values.size() == weights.size());
-  vector<double>::iterator values_it = values.begin();
-  vector<double>::const_iterator weights_it = weights.begin();
+void OneApplyCal::updateParmsH5(const double bufStartTime) {
+  itsLastTime = bufStartTime - 0.5 * itsTimeInterval +
+                itsTimeSlotsPerParmUpdate * itsTimeInterval;
 
-  for (; values_it != values.end(); ++values_it) {
-    if (*weights_it == 0.) {
-      *values_it = std::numeric_limits<float>::quiet_NaN();
-    }
-    weights_it++;
+  const double lastMSTime =
+      info().startTime() + info().ntime() * itsTimeInterval;
+  if (itsLastTime > lastMSTime &&
+      !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
+    itsLastTime = lastMSTime;
   }
+
+  std::lock_guard<std::mutex> lock(theirHDF5Mutex);
+
+  // Figure out whether time or frequency is first axis
+  if (itsSolTab.HasAxis("freq") && itsSolTab.HasAxis("time") &&
+      itsSolTab.GetAxisIndex("freq") < itsSolTab.GetAxisIndex("time")) {
+    throw std::runtime_error("Fastest varying axis should be freq");
+  }
+
+  vector<double> times(info().ntime());
+  for (size_t t = 0; t < times.size(); ++t) {
+    // time centroids
+    times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+  }
+
+  itsJonesParameters = boost::make_unique<JonesParameters>(
+      info().chanFreqs(), times, info().antennaNames(), itsCorrectType,
+      itsInterpolationType, itsDirection, &itsSolTab, &itsSolTab2, itsInvert,
+      itsSigmaMMSE, itsParmExprs.size());
 }
 
-void OneApplyCal::updateParms(const double bufStartTime) {
+void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
   unsigned int numAnts = info().antennaNames().size();
 
   vector<vector<vector<double> > > parmvalues;
@@ -459,134 +511,73 @@ void OneApplyCal::updateParms(const double bufStartTime) {
 
   unsigned int tfDomainSize = numTimes * numFreqs;
 
-  // Fill parmvalues here, get raw data from H5Parm or ParmDB
-  if (itsUseH5Parm) {
-    std::lock_guard<std::mutex> lock(theirHDF5Mutex);
+  for (unsigned int parmExprNum = 0; parmExprNum < itsParmExprs.size();
+       ++parmExprNum) {
+    // parmMap contains parameter values for all antennas
+    parmMap = itsParmDB->getValuesMap(
+        itsParmExprs[parmExprNum] + "{:phase_center,}*", minFreq, maxFreq,
+        freqInterval, bufStartTime - 0.5 * itsTimeInterval, itsLastTime,
+        itsTimeInterval, true);
 
-    // TODO: understand polarization etc.
-    //  assert(itsParmExprs.size()==1 || itsParmExprs.size()==2);
+    string parmExpr = itsParmExprs[parmExprNum];
 
-    // Figure out whether time or frequency is first axis
-    bool freqvariesfastest = true;
-    if (itsSolTab.HasAxis("freq") && itsSolTab.HasAxis("time") &&
-        itsSolTab.GetAxisIndex("freq") < itsSolTab.GetAxisIndex("time")) {
-      freqvariesfastest = false;
-    }
-    if (!freqvariesfastest)
-      throw std::runtime_error("Fastest varying axis should be freq");
-
-    vector<double> times(info().ntime());
-    for (unsigned int t = 0; t < times.size(); ++t) {
-      // time centroids
-      times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
-    }
-    vector<double> freqs(info().chanFreqs().size());
-    for (unsigned int ch = 0; ch < info().chanFreqs().size(); ++ch) {
-      freqs[ch] = info().chanFreqs()[ch];
+    // Resolve {Common,}Bla to CommonBla or Bla
+    if (!parmMap.empty() && parmExpr.find("{Common,}") != string::npos) {
+      // Take the name of the first parm, e.g. Bla:CS001, and remove the
+      // antenna name
+      unsigned int colonPos = (parmMap.begin()->first).find(":");
+      parmExpr = (parmMap.begin()->first).substr(0, colonPos);
     }
 
-    vector<double> weights;
+    string name_postfix = "";
+    // Remove :phase_center postfix
+    if (!parmMap.empty()) {
+      // Take the name of the first parm, e.g. Bla:CS001, and remove the
+      // antenna name If necessary, append :phase_center
+      if ((parmMap.begin()->first).find(":phase_center") != string::npos) {
+        name_postfix = ":phase_center";
+      }
+    }
+
     for (unsigned int ant = 0; ant < numAnts; ++ant) {
-      if (itsCorrectType == FULLJONES) {
-        for (unsigned int pol = 0; pol < 4; ++pol) {
-          // Place amplitude in even and phase in odd elements
-          parmvalues[pol * 2][ant] = itsSolTab.GetValuesOrWeights(
-              "val", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab.GetValuesOrWeights(
-              "weight", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          applyFlags(parmvalues[pol * 2][ant], weights);
-          parmvalues[pol * 2 + 1][ant] = itsSolTab2.GetValuesOrWeights(
-              "val", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab2.GetValuesOrWeights(
-              "weight", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          applyFlags(parmvalues[pol * 2 + 1][ant], weights);
-        }
-      } else {
-        for (unsigned int pol = 0; pol < itsParmExprs.size(); ++pol) {
-          parmvalues[pol][ant] = itsSolTab.GetValuesOrWeights(
-              "val", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          weights = itsSolTab.GetValuesOrWeights(
-              "weight", info().antennaNames()[ant], times, freqs, pol,
-              itsDirection, itsInterpolationType == InterpolationType::NEAREST);
-          applyFlags(parmvalues[pol][ant], weights);
-        }
-      }
-    }
-  } else {  // Use ParmDB
-    for (unsigned int parmExprNum = 0; parmExprNum < itsParmExprs.size();
-         ++parmExprNum) {
-      // parmMap contains parameter values for all antennas
-      parmMap = itsParmDB->getValuesMap(
-          itsParmExprs[parmExprNum] + "{:phase_center,}*", minFreq, maxFreq,
-          freqInterval, bufStartTime - 0.5 * itsTimeInterval, itsLastTime,
-          itsTimeInterval, true);
-
-      string parmExpr = itsParmExprs[parmExprNum];
-
-      // Resolve {Common,}Bla to CommonBla or Bla
-      if (!parmMap.empty() && parmExpr.find("{Common,}") != string::npos) {
-        // Take the name of the first parm, e.g. Bla:CS001, and remove the
-        // antenna name
-        unsigned int colonPos = (parmMap.begin()->first).find(":");
-        parmExpr = (parmMap.begin()->first).substr(0, colonPos);
-      }
-
-      string name_postfix = "";
-      // Remove :phase_center postfix
-      if (!parmMap.empty()) {
-        // Take the name of the first parm, e.g. Bla:CS001, and remove the
-        // antenna name If necessary, append :phase_center
-        if ((parmMap.begin()->first).find(":phase_center") != string::npos) {
-          name_postfix = ":phase_center";
-        }
-      }
-
-      for (unsigned int ant = 0; ant < numAnts; ++ant) {
-        parmIt = parmMap.find(
-            parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix);
-
-        if (parmIt != parmMap.end()) {
-          parmvalues[parmExprNum][ant].swap(parmIt->second);
-          if (parmvalues[parmExprNum][ant].size() != tfDomainSize)
-            throw std::runtime_error("Size of parmvalue != tfDomainSize");
-        } else {  // No value found, try default
-          casacore::Array<double> defValues;
-          double defValue;
-
-          string defParmNameAntenna = parmExpr + ":" +
-                                      string(info().antennaNames()[ant]) +
-                                      name_postfix;
-          if (itsParmDB->getDefValues(defParmNameAntenna).size() ==
-              1) {  // Default for antenna
-            itsParmDB->getDefValues(defParmNameAntenna).get(0, defValues);
-            if (defValues.size() != 1)
-              throw std::runtime_error(
-                  "Multiple default values found in parmdb for " +
-                  defParmNameAntenna + ". " +
-                  "Did you unintentially overwrite an existing parmdb?");
-            defValue = defValues.data()[0];
-          } else if (itsParmDB->getDefValues(parmExpr).size() ==
-                     1) {  // Default value
-            itsParmDB->getDefValues(parmExpr).get(0, defValues);
-            if (defValues.size() != 1)
-              throw std::runtime_error("Size of defValues != 1");
-            defValue = defValues.data()[0];
-          } else if (parmExpr.substr(0, 5) == "Gain:") {
-            defValue = 0.;
-          } else {
-            throw Exception("No parameter value found for " + parmExpr + ":" +
+      parmIt = parmMap.find(parmExpr + ":" +
                             string(info().antennaNames()[ant]) + name_postfix);
-          }
 
-          parmvalues[parmExprNum][ant].resize(tfDomainSize);
-          for (unsigned int tf = 0; tf < tfDomainSize; ++tf) {
-            parmvalues[parmExprNum][ant][tf] = defValue;
-          }
+      if (parmIt != parmMap.end()) {
+        parmvalues[parmExprNum][ant].swap(parmIt->second);
+        if (parmvalues[parmExprNum][ant].size() != tfDomainSize)
+          throw std::runtime_error("Size of parmvalue != tfDomainSize");
+      } else {  // No value found, try default
+        Array<double> defValues;
+        double defValue;
+
+        string defParmNameAntenna =
+            parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix;
+        if (itsParmDB->getDefValues(defParmNameAntenna).size() ==
+            1) {  // Default for antenna
+          itsParmDB->getDefValues(defParmNameAntenna).get(0, defValues);
+          if (defValues.size() != 1)
+            throw std::runtime_error(
+                "Multiple default values found in parmdb for " +
+                defParmNameAntenna + ". " +
+                "Did you unintentially overwrite an existing parmdb?");
+          defValue = defValues.data()[0];
+        } else if (itsParmDB->getDefValues(parmExpr).size() ==
+                   1) {  // Default value
+          itsParmDB->getDefValues(parmExpr).get(0, defValues);
+          if (defValues.size() != 1)
+            throw std::runtime_error("Size of defValues != 1");
+          defValue = defValues.data()[0];
+        } else if (parmExpr.substr(0, 5) == "Gain:") {
+          defValue = 0.;
+        } else {
+          throw Exception("No parameter value found for " + parmExpr + ":" +
+                          string(info().antennaNames()[ant]) + name_postfix);
+        }
+
+        parmvalues[parmExprNum][ant].resize(tfDomainSize);
+        for (unsigned int tf = 0; tf < tfDomainSize; ++tf) {
+          parmvalues[parmExprNum][ant][tf] = defValue;
         }
       }
     }
@@ -595,122 +586,24 @@ void OneApplyCal::updateParms(const double bufStartTime) {
   if (parmvalues[0][0].size() > tfDomainSize)  // Catches multiple matches
     throw std::runtime_error("Parameter was found multiple times in ParmDB");
 
-  double freq;
-
   // Make parameters complex
-  for (unsigned int tf = 0; tf < tfDomainSize; ++tf) {
-    for (unsigned int ant = 0; ant < numAnts; ++ant) {
-      freq = info().chanFreqs()[tf % numFreqs];
-
-      if (itsCorrectType == GAIN) {
-        if (itsUseAP) {  // Data as Amplitude / Phase
-          itsParms(0, ant, tf) =
-              std::polar(parmvalues[0][ant][tf], parmvalues[1][ant][tf]);
-          itsParms(1, ant, tf) =
-              std::polar(parmvalues[2][ant][tf], parmvalues[3][ant][tf]);
-        } else {  // Data as Real / Imaginary
-          itsParms(0, ant, tf) = casacore::DComplex(parmvalues[0][ant][tf],
-                                                    parmvalues[1][ant][tf]);
-          itsParms(1, ant, tf) = casacore::DComplex(parmvalues[2][ant][tf],
-                                                    parmvalues[3][ant][tf]);
-        }
-      } else if (itsCorrectType == FULLJONES) {
-        if (itsUseAP) {  // Data as Amplitude / Phase
-          itsParms(0, ant, tf) =
-              std::polar(parmvalues[0][ant][tf], parmvalues[1][ant][tf]);
-          itsParms(1, ant, tf) =
-              std::polar(parmvalues[2][ant][tf], parmvalues[3][ant][tf]);
-          itsParms(2, ant, tf) =
-              std::polar(parmvalues[4][ant][tf], parmvalues[5][ant][tf]);
-          itsParms(3, ant, tf) =
-              std::polar(parmvalues[6][ant][tf], parmvalues[7][ant][tf]);
-        } else {  // Data as Real / Imaginary
-          itsParms(0, ant, tf) = casacore::DComplex(parmvalues[0][ant][tf],
-                                                    parmvalues[1][ant][tf]);
-          itsParms(1, ant, tf) = casacore::DComplex(parmvalues[2][ant][tf],
-                                                    parmvalues[3][ant][tf]);
-          itsParms(2, ant, tf) = casacore::DComplex(parmvalues[4][ant][tf],
-                                                    parmvalues[5][ant][tf]);
-          itsParms(3, ant, tf) = casacore::DComplex(parmvalues[6][ant][tf],
-                                                    parmvalues[7][ant][tf]);
-        }
-      } else if (itsCorrectType == TEC) {
-        itsParms(0, ant, tf) =
-            std::polar(1., parmvalues[0][ant][tf] * -8.44797245e9 / freq);
-        if (itsParmExprs.size() == 1) {  // No TEC:0, only TEC:
-          itsParms(1, ant, tf) =
-              std::polar(1., parmvalues[0][ant][tf] * -8.44797245e9 / freq);
-        } else {  // TEC:0 and TEC:1
-          itsParms(1, ant, tf) =
-              std::polar(1., parmvalues[1][ant][tf] * -8.44797245e9 / freq);
-        }
-      } else if (itsCorrectType == CLOCK) {
-        itsParms(0, ant, tf) =
-            std::polar(1., parmvalues[0][ant][tf] * freq * casacore::C::_2pi);
-        if (itsParmExprs.size() == 1) {  // No Clock:0, only Clock:
-          itsParms(1, ant, tf) =
-              std::polar(1., parmvalues[0][ant][tf] * freq * casacore::C::_2pi);
-        } else {  // Clock:0 and Clock:1
-          itsParms(1, ant, tf) =
-              std::polar(1., parmvalues[1][ant][tf] * freq * casacore::C::_2pi);
-        }
-      } else if (itsCorrectType == ROTATIONANGLE) {
-        double phi = parmvalues[0][ant][tf];
-        if (itsInvert) {
-          phi = -phi;
-        }
-        double sinv = sin(phi);
-        double cosv = cos(phi);
-        itsParms(0, ant, tf) = cosv;
-        itsParms(1, ant, tf) = -sinv;
-        itsParms(2, ant, tf) = sinv;
-        itsParms(3, ant, tf) = cosv;
-      } else if (itsCorrectType == ROTATIONMEASURE) {
-        double lambda2 = casacore::C::c / freq;
-        lambda2 *= lambda2;
-        double chi = parmvalues[0][ant][tf] * lambda2;
-        if (itsInvert) {
-          chi = -chi;
-        }
-        double sinv = sin(chi);
-        double cosv = cos(chi);
-        itsParms(0, ant, tf) = cosv;
-        itsParms(1, ant, tf) = -sinv;
-        itsParms(2, ant, tf) = sinv;
-        itsParms(3, ant, tf) = cosv;
-      } else if (itsCorrectType == PHASE || itsCorrectType == SCALARPHASE) {
-        itsParms(0, ant, tf) = std::polar(1., parmvalues[0][ant][tf]);
-        if (itsCorrectType == SCALARPHASE) {  // Same value for x and y
-          itsParms(1, ant, tf) = std::polar(1., parmvalues[0][ant][tf]);
-        } else {  // Different value for x and y
-          itsParms(1, ant, tf) = std::polar(1., parmvalues[1][ant][tf]);
-        }
-      } else if (itsCorrectType == AMPLITUDE ||
-                 itsCorrectType == SCALARAMPLITUDE) {
-        itsParms(0, ant, tf) = parmvalues[0][ant][tf];
-        if (itsCorrectType == SCALARAMPLITUDE) {  // Same value for x and y
-          itsParms(1, ant, tf) = parmvalues[0][ant][tf];
-        } else {  // Different value for x and y
-          itsParms(1, ant, tf) = parmvalues[1][ant][tf];
-        }
-      }
-
-      // Invert
-      if (itsInvert) {
-        if (itsParms.shape()[0] == 2) {
-          itsParms(0, ant, tf) = 1.0f / itsParms(0, ant, tf);
-          itsParms(1, ant, tf) = 1.0f / itsParms(1, ant, tf);
-        } else if (itsCorrectType == FULLJONES) {
-          ApplyCal::invert(&itsParms(0, ant, tf), float(itsSigmaMMSE));
-        } else if (itsCorrectType == ROTATIONMEASURE ||
-                   itsCorrectType == ROTATIONANGLE) {
-          // rotationmeasure and commonrotationangle are already inverted above
-        } else {
-          throw std::runtime_error("Invalid correction type");
-        }
-      }
-    }
+  JonesParameters::CorrectType ct = itsCorrectType;
+  if (itsCorrectType == CorrectType::GAIN && !itsUseAP) {
+    ct = CorrectType::GAIN_RE_IM;
+  } else if (itsCorrectType == CorrectType::FULLJONES && !itsUseAP) {
+    ct = CorrectType::FULLJONES_RE_IM;
   }
+
+  vector<double> times(info().ntime());
+  for (size_t t = 0; t < times.size(); ++t) {
+    // time centroids
+    times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+  }
+
+  itsJonesParameters = boost::make_unique<JonesParameters>(
+      info().chanFreqs(), times, info().antennaNames(), ct,
+      itsInterpolationType, itsDirection, std::move(parmvalues), itsInvert,
+      itsSigmaMMSE);
 }
 
 unsigned int OneApplyCal::nPol(const string& parmName) {
@@ -728,22 +621,6 @@ unsigned int OneApplyCal::nPol(const string& parmName) {
       return 2;
     }
   }
-}
-
-void OneApplyCal::initDataArrays() {
-  unsigned int numAnts = info().antennaNames().size();
-  unsigned int tfDomainSize =
-      itsTimeSlotsPerParmUpdate * info().chanFreqs().size();
-
-  unsigned int numParms;
-  if (itsCorrectType == FULLJONES || itsCorrectType == ROTATIONANGLE ||
-      itsCorrectType == ROTATIONMEASURE) {
-    numParms = 4;
-  } else {
-    numParms = 2;
-  }
-
-  itsParms.resize(numParms, numAnts, tfDomainSize);
 }
 
 void OneApplyCal::showCounts(std::ostream& os) const {
