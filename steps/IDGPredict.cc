@@ -595,7 +595,8 @@ void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
   }
 }
 
-const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
+std::pair<double, double> IDGPredict::GetFirstDirection() const {
+  // We can take the front element of an IDG step since it only contains 1.
   return directions_.front();
 }
 
@@ -665,10 +666,9 @@ bool IDGPredict::IsStarted() const {
   return false;
 }
 
-const std::pair<double, double>& IDGPredict::GetFirstDirection() const {
+std::pair<double, double> IDGPredict::GetFirstDirection() const {
   notCompiled();
-  static std::pair<double, double> ret;
-  return ret;
+  return std::pair<double, double>();
 }
 
 void IDGPredict::flush() { notCompiled(); }

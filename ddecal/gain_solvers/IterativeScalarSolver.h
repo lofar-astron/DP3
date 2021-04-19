@@ -33,6 +33,8 @@ class IterativeScalarSolver final : public SolverBase {
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
+  size_t NSolutionPolarizations() const override { return 1; }
+
  private:
   void PerformIteration(const SolverBuffer& solver_buffer,
                         size_t channelBlockIndex,

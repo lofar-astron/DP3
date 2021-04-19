@@ -29,7 +29,7 @@
 namespace dp3 {
 namespace steps {
 
-class IDGPredict : public Step {
+class IDGPredict : public ModelDataStep {
  public:
   IDGPredict(InputStep& input, const common::ParameterSet& parset,
              const string& prefix,
@@ -66,7 +66,7 @@ class IDGPredict : public Step {
 
   bool IsStarted() const;
 
-  const std::pair<double, double>& GetFirstDirection() const;
+  std::pair<double, double> GetFirstDirection() const override;
 
   void SetBufferSize(size_t nTimesteps);
   size_t GetBufferSize() const;

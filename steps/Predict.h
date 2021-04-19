@@ -48,7 +48,7 @@ typedef std::pair<base::ModelComponent::ConstPtr, base::Patch::ConstPtr> Source;
 typedef std::complex<double> dcomplex;
 
 /// @brief DPPP step class to predict visibilities from a source model
-class Predict : public Step {
+class Predict : public ModelDataStep {
  public:
   typedef std::shared_ptr<Predict> ShPtr;
 
@@ -111,7 +111,7 @@ class Predict : public Step {
   void setSources(const std::vector<string>& sourcePatterns);
 
   /// Return the direction of the first patch
-  std::pair<double, double> getFirstDirection() const;
+  std::pair<double, double> GetFirstDirection() const override;
 
  private:
   void initializeThreadData();
