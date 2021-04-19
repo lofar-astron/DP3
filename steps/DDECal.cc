@@ -58,7 +58,6 @@
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/OS/File.h>
 
@@ -75,9 +74,6 @@
 #include <vector>
 
 using aocommon::FitsReader;
-
-using casacore::MDirection;
-using casacore::Quantum;
 
 using schaapcommon::facets::Facet;
 using schaapcommon::h5parm::SolTab;
@@ -107,7 +103,6 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(input, parset, prefix),
-      itsPolsInSolutions(1),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
     itsStatStream =
@@ -139,7 +134,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       else
         itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetPhaseOnly(false);
-      itsPolsInSolutions = 1;
       break;
     case GainCal::SCALARPHASE:
     case GainCal::TEC:
@@ -149,7 +143,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       else
         itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 1;
       break;
     case GainCal::DIAGONAL:
     case GainCal::DIAGONALAMPLITUDE:
@@ -158,7 +151,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       else
         itsSolver = boost::make_unique<base::DiagonalSolver>();
       itsSolver->SetPhaseOnly(false);
-      itsPolsInSolutions = 2;
       break;
     case GainCal::DIAGONALPHASE:
       if (itsSettings.iterate_directions)
@@ -166,7 +158,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       else
         itsSolver = boost::make_unique<base::DiagonalSolver>();
       itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 2;
       break;
     case GainCal::FULLJONES:
     case GainCal::ROTATIONANDDIAGONAL:
@@ -179,7 +170,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       }
       itsSolver = boost::make_unique<base::FullJonesSolver>();
       itsSolver->SetPhaseOnly(false);
-      itsPolsInSolutions = 4;
       break;
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
@@ -188,7 +178,6 @@ void DDECal::initializeSolver(const common::ParameterSet& parset,
       else
         itsSolver = boost::make_unique<base::ScalarSolver>();
       itsSolver->SetPhaseOnly(true);
-      itsPolsInSolutions = 1;
 #else
       throw std::runtime_error(
           "Can not use TEC screen: Armadillo is not available. Recompile DP3 "
@@ -375,8 +364,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   info().setNeedVisData();
   if (itsSettings.subtract) info().setWriteData();
 
-  const size_t nDir = itsDirections.size();
-
   itsUVWFlagStep.updateInfo(infoIn);
   itsThreadPool =
       boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
@@ -455,23 +442,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsH5Parm.AddAntennas(antennaNames, antennaPos);
 
-  std::vector<std::pair<double, double>> sourcePositions(itsDirections.size());
-
-  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
-    if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[i])) {
-      sourcePositions[i] = s->getFirstDirection();
-    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[i])) {
-      // We can take the front element of an IDG step since it only contains 1.
-      sourcePositions[i] = s->GetFirstDirection();
-    } else if (auto s = std::dynamic_pointer_cast<ColumnReader>(itsSteps[i])) {
-      MDirection dirJ2000(
-          MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-      Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-      sourcePositions[i] = std::pair<double, double>(angles.getBaseValue()[0],
-                                                     angles.getBaseValue()[1]);
-    }
+  std::vector<std::pair<double, double>> sourcePositions;
+  sourcePositions.reserve(itsDirections.size());
+  for (std::shared_ptr<ModelDataStep>& s : itsSteps) {
+    sourcePositions.push_back(s->GetFirstDirection());
   }
-
   itsH5Parm.AddSources(getDirectionNames(), sourcePositions);
 
   size_t nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
@@ -484,19 +459,18 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsChanBlockStart.resize(nChannelBlocks + 1);
   itsChanBlockFreqs.resize(nChannelBlocks);
+  itsChanBlockStart.front() = 0;
   for (size_t chBlock = 0; chBlock != nChannelBlocks; ++chBlock) {
-    const size_t channelIndexStart = chBlock * info().nchan() / nChannelBlocks,
-                 channelIndexEnd =
-                     (chBlock + 1) * info().nchan() / nChannelBlocks,
-                 curChannelBlockSize = channelIndexEnd - channelIndexStart;
-    double meanfreq =
-        std::accumulate(info().chanFreqs().data() + channelIndexStart,
-                        info().chanFreqs().data() + channelIndexEnd, 0.0) /
-        curChannelBlockSize;
-    itsChanBlockStart[chBlock] = channelIndexStart;
-    itsChanBlockFreqs[chBlock] = meanfreq;
+    itsChanBlockStart[chBlock + 1] =
+        (chBlock + 1) * info().nchan() / nChannelBlocks;
+    const size_t blockSize =
+        itsChanBlockStart[chBlock + 1] - itsChanBlockStart[chBlock];
+    const double* freqStart =
+        info().chanFreqs().data() + itsChanBlockStart[chBlock];
+    const double meanFreq =
+        std::accumulate(freqStart, freqStart + blockSize, 0.0) / blockSize;
+    itsChanBlockFreqs[chBlock] = meanFreq;
   }
-  itsChanBlockStart.back() = info().nchan();
 
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
@@ -621,7 +595,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   unsigned int nSt = info().antennaUsed().size();
   // Give renumbered antennas to multidirsolver
 
-  itsSolver->Initialize(nSt, nDir, info().nchan(), nChannelBlocks, ant1, ant2);
+  itsSolver->Initialize(nSt, itsDirections.size(), info().nchan(),
+                        nChannelBlocks, ant1, ant2);
 
   for (unsigned int i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
@@ -869,7 +844,8 @@ void DDECal::doSolve() {
         constraint->SetWeights(itsWeightsPerAntenna);
       }
 
-      if (itsPolsInSolutions == 2 || itsPolsInSolutions == 4)
+      const size_t n_polarizations = itsSolver->NSolutionPolarizations();
+      if (n_polarizations == 2 || n_polarizations == 4)
         initializeFullMatrixSolutions(i);
       else
         initializeScalarSolutions(i);
@@ -920,7 +896,7 @@ void DDECal::doSolve() {
     }
 
     if (itsSettings.subtract || itsSettings.only_predict) {
-      subtractCorrectedModel(itsPolsInSolutions != 1, i);
+      subtractCorrectedModel(itsSolver->NSolutionPolarizations() != 1, i);
     }
 
     // Check for nonconvergence and flag if desired. Unconverged solutions are

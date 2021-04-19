@@ -81,6 +81,11 @@ class SolverBase {
                             double time, std::ostream* statStream) = 0;
 
   /**
+   * @return The number of polarizations in the solution.
+   */
+  virtual size_t NSolutionPolarizations() const = 0;
+
+  /**
    * Add a constraint to the solver.
    * @param constraint A valid constraint pointer.
    * @throw std::runtime_error If the constraint is invalid.

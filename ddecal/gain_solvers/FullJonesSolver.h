@@ -27,6 +27,8 @@ class FullJonesSolver final : public SolverBase {
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
+  size_t NSolutionPolarizations() const override { return 4; }
+
  private:
   void PerformIteration(const SolverBuffer& solver_buffer,
                         size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,

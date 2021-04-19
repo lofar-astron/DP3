@@ -262,12 +262,9 @@ void Predict::updateInfo(const DPInfo& infoIn) {
   }
 }
 
-std::pair<double, double> Predict::getFirstDirection() const {
-  std::pair<double, double> res;
-
-  res.first = itsPatchList[0]->position()[0];
-  res.second = itsPatchList[0]->position()[1];
-  return res;
+std::pair<double, double> Predict::GetFirstDirection() const {
+  return std::make_pair(itsPatchList.front()->position()[0],
+                        itsPatchList.front()->position()[1]);
 }
 
 void Predict::setOperation(const std::string& operation) {

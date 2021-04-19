@@ -233,6 +233,13 @@ class MultiResultStep : public Step {
   size_t itsSize;
 };
 
+/// Common interface for steps that produce model data.
+class ModelDataStep : public Step {
+ public:
+  /// @return The direction of the first patch.
+  virtual std::pair<double, double> GetFirstDirection() const = 0;
+};
+
 }  // namespace steps
 }  // namespace dp3
 

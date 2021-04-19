@@ -16,7 +16,7 @@
 namespace dp3 {
 namespace steps {
 
-class ColumnReader : public Step {
+class ColumnReader : public ModelDataStep {
  public:
   ColumnReader(InputStep& input, const common::ParameterSet&,
                const string& prefix, const string& column = "MODEL_DATA");
@@ -33,6 +33,8 @@ class ColumnReader : public Step {
   void show(std::ostream&) const override;
 
   void showTimings(std::ostream& os, double duration) const override;
+
+  std::pair<double, double> GetFirstDirection() const override;
 
  private:
   InputStep& input_;         ///< Input MS to read the column from

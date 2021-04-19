@@ -17,6 +17,8 @@ class DiagonalSolver final : public SolverBase {
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
+  size_t NSolutionPolarizations() const override { return 2; }
+
  private:
   void PerformIteration(const SolverBuffer& solver_buffer,
                         size_t channelBlockIndex, std::vector<Matrix>& gTimesCs,

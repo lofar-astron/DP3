@@ -171,7 +171,7 @@ class DDECal : public Step {
   UVWFlagger itsUVWFlagStep;
   /// Result step for data after UV-flagging
   ResultStep::ShPtr itsDataResultStep;
-  std::vector<std::shared_ptr<Step>> itsSteps;
+  std::vector<std::shared_ptr<ModelDataStep>> itsSteps;
   /// For each directions, a multiresultstep with all times.
   std::vector<MultiResultStep::ShPtr> itsResultSteps;
 
@@ -181,7 +181,6 @@ class DDECal : public Step {
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
   std::unique_ptr<base::SolverBase> itsSolver;
-  size_t itsPolsInSolutions;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };
