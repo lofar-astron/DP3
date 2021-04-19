@@ -12,39 +12,38 @@ SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz,
       _bandwidth(bandwidthHz),
       _bandwidthRefFrequencyHz(bandwidthRefFrequencyHz) {}
 
-void SmoothnessConstraint::Initialize(
-    const double* frequencies, std::vector<double> antennaDistanceFactors) {
-  _frequencies.assign(frequencies, frequencies + _nChannelBlocks);
-  _antennaDistanceFactors = std::move(antennaDistanceFactors);
-  if (!_loop) {
-    _loop = boost::make_unique<aocommon::ParallelFor<size_t>>(_nThreads);
-  }
-  for (size_t i = 0; i != _nThreads; ++i)
-    _fitData.emplace_back(_frequencies.data(), _frequencies.size(), _kernelType,
-                          _bandwidth, _bandwidthRefFrequencyHz);
+void SmoothnessConstraint::Initialize(size_t nAntennas, size_t nDirections,
+                                      const std::vector<double>& frequencies) {
+  Constraint::Initialize(nAntennas, nDirections, frequencies);
+  _frequencies = frequencies;
 }
 
-void SmoothnessConstraint::InitializeDimensions(size_t nAntennas,
-                                                size_t nDirections,
-                                                size_t nChannelBlocks) {
-  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
+void SmoothnessConstraint::SetDistanceFactors(
+    std::vector<double>&& antennaDistanceFactors) {
+  _antennaDistanceFactors = std::move(antennaDistanceFactors);
+  if (!_loop) {
+    _loop = boost::make_unique<aocommon::ParallelFor<size_t>>(NThreads());
+  }
+  for (size_t i = 0; i != NThreads(); ++i)
+    _fitData.emplace_back(_frequencies, _kernelType, _bandwidth,
+                          _bandwidthRefFrequencyHz);
 }
 
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex>>& solutions, double, std::ostream*) {
-  const size_t nPol = solutions.front().size() / (_nAntennas * _nDirections);
+  const size_t nPol = solutions.front().size() / (NAntennas() * NDirections());
 
   _loop->Run(
-      0, _nAntennas * _nDirections, [&](size_t antDirIndex, size_t thread) {
-        size_t antIndex = antDirIndex / _nDirections;
+      0, NAntennas() * NDirections(), [&](size_t antDirIndex, size_t thread) {
+        size_t antIndex = antDirIndex / NDirections();
         for (size_t pol = 0; pol != nPol; ++pol) {
           size_t solutionIndex = antDirIndex * nPol + pol;
-          for (size_t ch = 0; ch != _nChannelBlocks; ++ch) {
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             // Flag channels where calibration yielded inf or nan
             if (isfinite(solutions[ch][solutionIndex])) {
               _fitData[thread].data[ch] = solutions[ch][solutionIndex];
               _fitData[thread].weight[ch] =
-                  _weights[antIndex * _nChannelBlocks + ch];
+                  _weights[antIndex * NChannelBlocks() + ch];
             } else {
               _fitData[thread].data[ch] = 0.0;
               _fitData[thread].weight[ch] = 0.0;
@@ -55,7 +54,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
                                            _fitData[thread].weight.data(),
                                            _antennaDistanceFactors[antIndex]);
 
-          for (size_t ch = 0; ch != _nChannelBlocks; ++ch) {
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             solutions[ch][solutionIndex] = _fitData[thread].data[ch];
           }
         }

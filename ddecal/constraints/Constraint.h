@@ -31,7 +31,7 @@ class Constraint {
   };
 
   Constraint()
-      : _nAntennas(0), _nDirections(0), _nChannelBlocks(0), _nThreads(0) {}
+      : n_antennas_(0), n_directions_(0), n_channel_blocks_(0), n_threads_(0) {}
 
   virtual ~Constraint() {}
 
@@ -76,14 +76,15 @@ class Constraint {
       std::ostream* statStream) = 0;
 
   /**
-   * Initialize the dimensions for the constraint. Should be overridden when
+   * Perform common constraint initialization. Should be overridden when
    * something more than assigning dimensions is needed (e.g. resizing vectors).
+   * @param frequencies For each channel block, the mean frequency.
    */
-  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
-                                    size_t nChannelBlocks) {
-    _nAntennas = nAntennas;
-    _nDirections = nDirections;
-    _nChannelBlocks = nChannelBlocks;
+  virtual void Initialize(size_t nAntennas, size_t nDirections,
+                          const std::vector<double>& frequencies) {
+    n_antennas_ = nAntennas;
+    n_directions_ = nDirections;
+    n_channel_blocks_ = frequencies.size();
   }
 
   /**
@@ -93,17 +94,23 @@ class Constraint {
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }
 
-  void SetNThreads(size_t nThreads) { _nThreads = nThreads; }
+  void SetNThreads(size_t n_threads) { n_threads_ = n_threads; }
 
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
                           [[maybe_unused]] double duration) const {}
 
  protected:
-  size_t _nAntennas, _nDirections, _nChannelBlocks, _nThreads;
+  size_t NAntennas() const { return n_antennas_; }
+  size_t NDirections() const { return n_directions_; }
+  size_t NChannelBlocks() const { return n_channel_blocks_; }
+  size_t NThreads() const { return n_threads_; }
 
   static bool isfinite(const dcomplex& value) {
     return std::isfinite(value.real()) && std::isfinite(value.imag());
   }
+
+ private:
+  size_t n_antennas_, n_directions_, n_channel_blocks_, n_threads_;
 };
 
 /**
@@ -159,8 +166,8 @@ class AntennaConstraint : public Constraint {
  public:
   AntennaConstraint() {}
 
-  void initialize(std::vector<std::set<size_t>>&& antennaSets) {
-    _antennaSets = std::move(antennaSets);
+  void SetAntennaSets(std::vector<std::set<size_t>>&& antenna_sets) {
+    antenna_sets_ = std::move(antenna_sets);
   }
 
   virtual std::vector<Result> Apply(
@@ -168,7 +175,7 @@ class AntennaConstraint : public Constraint {
       std::ostream* statStream) final override;
 
  private:
-  std::vector<std::set<size_t>> _antennaSets;
+  std::vector<std::set<size_t>> antenna_sets_;
 };
 
 #endif

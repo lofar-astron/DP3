@@ -25,10 +25,8 @@ class TECConstraintBase : public Constraint {
 
   TECConstraintBase(Mode mode);
 
-  /** Initialize metadata with frequencies, resize some members.
-   * Should be called after InitializeDimensions.
-   */
-  void initialize(const double* frequencies);
+  void Initialize(size_t nAntennas, size_t nDirections,
+                  const std::vector<double>& frequencies) override;
 
   /** Propagate weights to the phase fitters */
   virtual void SetWeights(const std::vector<double>& weights) final override;

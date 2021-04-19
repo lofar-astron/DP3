@@ -32,15 +32,15 @@ class PieceWisePhaseFitter {
     }
   }
 
-  static size_t CalculateChunkSize(double startFrequencyHz,
-                                   double endFrequencyHz, size_t channelCount) {
+  static size_t CalculateChunkSize(const std::vector<double>& frequencies) {
     /// it seems that 10 chunks per octave seems reasonable
-    double nOctaves = (log(endFrequencyHz) - log(startFrequencyHz)) / M_LN2;
+    const double nOctaves =
+        (log(frequencies.back()) - log(frequencies.front())) / M_LN2;
     if (nOctaves > 0.0)
-      return std::min<size_t>(channelCount,
-                              ceil(channelCount / (10.0 * nOctaves)));
+      return std::min<size_t>(frequencies.size(), std::ceil(frequencies.size() /
+                                                            (10.0 * nOctaves)));
     else
-      return channelCount;
+      return frequencies.size();
   }
 
   /**

@@ -19,8 +19,8 @@ class RotationAndDiagonalConstraint : public Constraint {
       std::vector<std::vector<dcomplex> >& solutions, double time,
       std::ostream* statStream);
 
-  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
-                                    size_t nChannelBlocks);
+  void Initialize(size_t nAntennas, size_t nDirections,
+                  const std::vector<double>& frequencies) override;
 
   virtual void SetWeights(const std::vector<double>& weights);
 

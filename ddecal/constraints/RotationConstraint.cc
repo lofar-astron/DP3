@@ -10,22 +10,21 @@ using namespace std;
 
 namespace dp3 {
 
-void RotationConstraint::InitializeDimensions(size_t nAntennas,
-                                              size_t nDirections,
-                                              size_t nChannelBlocks) {
-  Constraint::InitializeDimensions(nAntennas, nDirections, nChannelBlocks);
+void RotationConstraint::Initialize(size_t nAntennas, size_t nDirections,
+                                    const std::vector<double>& frequencies) {
+  Constraint::Initialize(nAntennas, nDirections, frequencies);
 
-  if (_nDirections != 1)  // TODO directions!
+  if (NDirections() != 1)  // TODO directions!
     throw std::runtime_error(
         "RotationConstraint can't handle multiple directions yet");
 
   _res.resize(1);
-  _res[0].vals.resize(_nAntennas * _nChannelBlocks);
+  _res[0].vals.resize(NAntennas() * NChannelBlocks());
   _res[0].axes = "ant,dir,freq";
   _res[0].dims.resize(3);
-  _res[0].dims[0] = _nAntennas;
-  _res[0].dims[1] = _nDirections;
-  _res[0].dims[2] = _nChannelBlocks;
+  _res[0].dims[0] = NAntennas();
+  _res[0].dims[1] = NDirections();
+  _res[0].dims[2] = NChannelBlocks();
   _res[0].name = "rotation";
 }
 
@@ -47,12 +46,12 @@ double RotationConstraint::get_rotation(std::complex<double>* data) {
 vector<Constraint::Result> RotationConstraint::Apply(
     vector<vector<dcomplex> >& solutions, double,
     std::ostream* /*statStream*/) {
-  for (unsigned int ch = 0; ch < _nChannelBlocks; ++ch) {
-    for (unsigned int ant = 0; ant < _nAntennas; ++ant) {
+  for (unsigned int ch = 0; ch < NChannelBlocks(); ++ch) {
+    for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
       // Compute rotation
       complex<double>* data = &(solutions[ch][4 * ant]);
       double angle = get_rotation(data);
-      _res[0].vals[ant * _nChannelBlocks + ch] = angle;  // TODO directions!
+      _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
 
       // Constrain the data
       data[0] = cos(angle);

@@ -32,10 +32,8 @@ class ScreenConstraint : public Constraint {
  public:
   ScreenConstraint(const common::ParameterSet& parset, const string& prefix);
 
-  /** Initialize metadata with frequencies, resize some members.
-   * Should be called after InitializeDimensions.
-   */
-  void initialize(const double* frequencies);
+  void Initialize(size_t nAntennas, size_t nDirections,
+                  const std::vector<double>& frequencies) override;
   virtual std::vector<Constraint::Result> Apply(
       std::vector<std::vector<DComplex> >& solutions, double time,
       std::ostream* statStream);
@@ -49,7 +47,7 @@ class ScreenConstraint : public Constraint {
   void setCoreAntennas(const std::vector<size_t>& coreAntennas) {
     _coreAntennas = coreAntennas;
     if (itsMode == "csfull")
-      _screenFitters.resize(_nAntennas - _coreAntennas.size() + 1);
+      _screenFitters.resize(NAntennas() - _coreAntennas.size() + 1);
   }
   void setOtherAntennas(const std::vector<size_t>& otherAntennas) {
     _otherAntennas = otherAntennas;

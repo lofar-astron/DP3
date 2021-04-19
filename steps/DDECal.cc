@@ -583,8 +583,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   for (size_t i = 0; i < itsSolver->GetConstraints().size(); ++i) {
     Constraint& constraint = *itsSolver->GetConstraints()[i];
     // Initialize the constraint with some common metadata
-    constraint.InitializeDimensions(info().antennaUsed().size(),
-                                    itsDirections.size(), nChannelBlocks);
+    constraint.Initialize(info().antennaUsed().size(), itsDirections.size(),
+                          itsChanBlockFreqs);
 
     // Different constraints need different information. Determine if the
     // constraint is of a type that needs more information, and if so initialize
@@ -609,7 +609,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                        distSq = dx * dx + dy * dy + dz * dz;
           if (distSq <= coreDistSq) coreAntennaIndices.insert(ant);
         }
-        antConstraint->initialize(std::move(antConstraintList));
+        antConstraint->SetAntennaSets(std::move(antConstraintList));
       } else {
         // Set the antenna constraint to a list of stations indices that
         // are to be kept the same during the solve.
@@ -633,7 +633,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
             throw std::runtime_error(
                 "Error in antenna constraint: at least two antennas expected");
         }
-        antConstraint->initialize(std::move(constraintList));
+        antConstraint->SetAntennaSets(std::move(constraintList));
       }
     }
 
@@ -641,7 +641,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     ScreenConstraint* screenConstraint =
         dynamic_cast<ScreenConstraint*>(&constraint);
     if (screenConstraint != 0) {
-      screenConstraint->initialize(&(itsChanBlockFreqs[0]));
       screenConstraint->setAntennaPositions(usedAntennaPositions);
       screenConstraint->setDirections(sourcePositions);
       screenConstraint->initPiercePoints();
@@ -667,13 +666,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
 #endif
 
-    TECConstraintBase* tecConstraint =
-        dynamic_cast<TECConstraintBase*>(&constraint);
     SmoothnessConstraint* sConstraint =
         dynamic_cast<SmoothnessConstraint*>(&constraint);
-    if (tecConstraint != nullptr) {
-      tecConstraint->initialize(&itsChanBlockFreqs[0]);
-    } else if (sConstraint != nullptr) {
+    if (sConstraint) {
       std::vector<double> distanceFactors;
       // If no smoothness reference distance is specified, the smoothing is made
       // independent of the distance
@@ -697,7 +692,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
           if (i == 1) distanceFactors.push_back(factor);
         }
       }
-      sConstraint->Initialize(&itsChanBlockFreqs[0], distanceFactors);
+      sConstraint->SetDistanceFactors(std::move(distanceFactors));
     }
   }
 
