@@ -29,11 +29,15 @@ class BDABuffer {
      * See
      * https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
      */
-    Fields() {}
-    bool data_ = true;            ///< Enable/Disable visibilities.
-    bool flags_ = true;           ///< Enable/Disable flags.
-    bool weights_ = true;         ///< Enable/Disable weights.
-    bool full_res_flags_ = true;  ///< Enable/Disable full res flags.
+    explicit Fields(bool default_value = true)
+        : data_(default_value),
+          flags_(default_value),
+          weights_(default_value),
+          full_res_flags_(default_value) {}
+    bool data_;            ///< Enable/Disable visibilities.
+    bool flags_;           ///< Enable/Disable flags.
+    bool weights_;         ///< Enable/Disable weights.
+    bool full_res_flags_;  ///< Enable/Disable full res flags.
   };
 
   struct Row {
