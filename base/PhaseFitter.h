@@ -55,14 +55,17 @@ class PhaseFitter {
         _fittingAccuracy(1e-6) {}
 
   /**
-   * Change the number of channels to be fitted. All phase, weight and frequency
-   * data is discarded.
-   * @param channelCount New number of channels
+   * - Change the number of channels to be fitted.
+   * - Set the frequency data.
+   * - Discard the phase and weight data.
+   * @param frequencies The new frequencies, such that frequencies[ch] is the
+   * frequency corresponding to the phase value PhaseData()[ch].
+   * The number of channels becomes the length of this vector.
    */
-  void SetChannelCount(size_t channelCount) {
-    _phases.assign(channelCount, 0.0);
-    _frequencies.assign(channelCount, 0.0);
-    _weights.assign(channelCount, 1.0);
+  void Initialize(const std::vector<double>& frequencies) {
+    _phases.assign(frequencies.size(), 0.0);
+    _frequencies = frequencies;
+    _weights.assign(frequencies.size(), 1.0);
   }
 
   /**
@@ -137,19 +140,10 @@ class PhaseFitter {
   const double* PhaseData() const { return _phases.data(); }
 
   /**
-   * Get a pointer to the array of frequency values. This array should be set to
-   * the frequency values of the channels, such that FrequencyData()[ch] is the
-   * frequency corresponding to the phase value PhaseData()[ch]. The fitter will
-   * not change this array.
-   * @returns Array of @ref Size() doubles with the frequencies in Hz.
+   * Get the frequency values.
+   * @return Vector of @ref Size() doubles with the frequencies in Hz.
    */
-  double* FrequencyData() { return _frequencies.data(); }
-
-  /**
-   * Constant frequency data.
-   * @returns Constant array of @ref Size() doubles with the frequencies in Hz.
-   */
-  const double* FrequencyData() const { return _frequencies.data(); }
+  const std::vector<double>& GetFrequencies() const { return _frequencies; }
 
   /**
    * This array should be filled with the weights

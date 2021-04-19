@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_SUITE(rotationconstraint)
 
 BOOST_AUTO_TEST_CASE(test_rotation) {
   RotationConstraint constraint;
-  constraint.InitializeDimensions(1, 1, 1);
+  constraint.Initialize(1, 1, {42e6});
 
   vector<vector<complex<double> > > onesolution(1);
   onesolution[0].resize(4);
@@ -53,7 +53,7 @@ BOOST_DATA_TEST_CASE(test_rotation_and_diagonal,
                      boost::unit_test::data::make({true, false}),
                      doRotationReference) {
   RotationAndDiagonalConstraint constraint;
-  constraint.InitializeDimensions(1, 1, 1);
+  constraint.Initialize(1, 1, {42e6});
   constraint.SetDoRotationReference(doRotationReference);
 
   vector<vector<complex<double> > > onesolution(1);

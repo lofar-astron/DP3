@@ -288,12 +288,8 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
     unsigned int nSt = info().antennaUsed().size();
     for (unsigned int st = 0; st < nSt; ++st) {
-      itsPhaseFitters.push_back(
-          std::unique_ptr<PhaseFitter>(new PhaseFitter(itsNFreqCells)));
-      double* nu = itsPhaseFitters[st]->FrequencyData();
-      for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-        nu[freqCell] = itsFreqData[freqCell];
-      }
+      itsPhaseFitters.push_back(boost::make_unique<PhaseFitter>());
+      itsPhaseFitters[st]->Initialize(itsFreqData);
     }
   }
 

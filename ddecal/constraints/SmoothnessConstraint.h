@@ -28,27 +28,25 @@ class SmoothnessConstraint : public Constraint {
     _weights = weights;
   }
 
+  void Initialize(size_t nAntennas, size_t nDirections,
+                  const std::vector<double>& frequencies) final override;
+
   /**
-   * Should be called after constructing.
-   * @param frequencies list of channel frequencies in Hz
+   * Should be called after calling @ref Initialize().
    * @param antennaDistances vector where each element is a distance correction
    * factor for each antenna. A higher correction factor will perform stronger
    * smoothing in frequency direction.
    */
-  void Initialize(const double* frequencies,
-                  std::vector<double> antennaDistanceFactors);
-
-  virtual void InitializeDimensions(size_t nAntennas, size_t nDirections,
-                                    size_t nChannelBlocks) final override;
+  void SetDistanceFactors(std::vector<double>&& antennaDistanceFactors);
 
   struct FitData {
-    FitData(const double* frequencies, size_t n,
+    FitData(const std::vector<double>& frequencies,
             Smoother::KernelType kernelType, double kernelBandwidth,
             double bandwidthRefFrequencyHz)
-        : smoother(frequencies, n, kernelType, kernelBandwidth,
+        : smoother(frequencies, kernelType, kernelBandwidth,
                    bandwidthRefFrequencyHz),
-          data(n),
-          weight(n) {}
+          data(frequencies.size()),
+          weight(frequencies.size()) {}
 
     Smoother smoother;
     std::vector<dcomplex> data;

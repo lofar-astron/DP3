@@ -43,10 +43,10 @@ class KernelSmoother {
    * @param kernelBandwidth size of the kernel (smoothing strength) in frequency
    * units (Hz). May be 0.0 to disable frequency correction of the kernel size.
    */
-  KernelSmoother(const NumType* frequencies, size_t n, KernelType kernelType,
+  KernelSmoother(const std::vector<NumType>& frequencies, KernelType kernelType,
                  NumType kernelBandwidth, NumType bandwidthRefFrequency)
-      : _frequencies(frequencies, frequencies + n),
-        _scratch(n),
+      : _frequencies(frequencies),
+        _scratch(frequencies.size()),
         _kernelType(kernelType),
         _bandwidth(kernelBandwidth),
         _bandwidthRefFrequency(bandwidthRefFrequency) {}
