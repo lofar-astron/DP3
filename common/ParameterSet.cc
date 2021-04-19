@@ -12,14 +12,6 @@ namespace dp3 {
 namespace common {
 
 //-------------------------- creation and destroy ---------------------------
-
-ParameterSet* globalParameterSet() {
-  static ParameterSet ps;
-
-  return &ps;
-}
-
-//-------------------------- creation and destroy ---------------------------
 //
 // Default constructor
 //

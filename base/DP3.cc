@@ -244,7 +244,8 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
 
 InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
   InputStep::ShPtr inputStep = InputStep::CreateReader(parset, "");
-  Step::ShPtr step = makeStepsFromParset(parset, "", inputStep.get(), false);
+  Step::ShPtr step =
+      makeStepsFromParset(parset, "", "steps", inputStep.get(), false);
   if (step) inputStep->setNextStep(step);
 
   // Calculate needsOutputStep to be true if one of the steps changes
@@ -281,11 +282,12 @@ InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
 
 Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
                                      const std::string& prefix,
+                                     const std::string& step_names_key,
                                      InputStep* inputStep,
                                      bool terminateChain) {
   std::string msName;
   const std::vector<string> stepNames =
-      parset.getStringVector(prefix + "steps");
+      parset.getStringVector(prefix + step_names_key);
 
   Step::ShPtr firstStep;
   Step::ShPtr lastStep;

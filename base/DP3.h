@@ -51,9 +51,11 @@ class DP3 {
   /// Create a chain of step objects that are connected together.
   /// Unlike makeMainSteps(), this does neither add a writer nor
   /// terminate the chain with a NullStep.
+  /// @param step_names_key Parset key for getting the step names.
   static steps::Step::ShPtr makeStepsFromParset(
       const common::ParameterSet& parset, const std::string& prefix,
-      steps::InputStep* inputStep, bool terminateChain);
+      const std::string& step_names_key, steps::InputStep* inputStep,
+      bool terminateChain);
 
   static steps::Step::ShPtr makeSingleStep(const std::string& type,
                                            steps::InputStep* inputStep,

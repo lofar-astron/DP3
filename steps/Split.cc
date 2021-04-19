@@ -65,8 +65,8 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
     for (size_t j = 0; j != numParameters; ++j) {
       parsetCopy.replace(itsReplaceParms[j], replaceParmValues[j][i]);
     }
-    Step::ShPtr firstStep =
-        base::DP3::makeStepsFromParset(parsetCopy, prefix, input, true);
+    Step::ShPtr firstStep = base::DP3::makeStepsFromParset(
+        parsetCopy, prefix, "steps", input, true);
     firstStep->setPrevStep(this);
 
     itsSubsteps.push_back(std::move(firstStep));

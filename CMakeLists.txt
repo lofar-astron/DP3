@@ -253,6 +253,7 @@ add_library(Common OBJECT
 
 add_library(DDECal OBJECT
   steps/DDECal.cc
+  ddecal/Settings.cc
   ddecal/constraints/Constraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc

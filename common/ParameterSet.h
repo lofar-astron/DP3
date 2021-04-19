@@ -338,9 +338,6 @@ class ParameterSet {
   std::shared_ptr<ParameterSetImpl> itsSet;
 };
 
-/// Make one instance of the parameterSet globally accessable.
-ParameterSet* globalParameterSet();
-
 //
 // ---------- inline functions ----------
 //

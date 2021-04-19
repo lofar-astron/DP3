@@ -9,21 +9,21 @@
 #ifndef DPPP_DDECAL_H
 #define DPPP_DDECAL_H
 
+#include "ApplyBeam.h"
+#include "GainCal.h"
+#include "InputStep.h"
+#include "Predict.h"
+#include "UVWFlagger.h"
+
 #include "../base/DPBuffer.h"
 #include "../base/BaselineSelection.h"
 #include "../base/Patch.h"
 #include "../base/SourceDBUtil.h"
 #include "../base/SolutionInterval.h"
 
-#include "../steps/InputStep.h"
-#include "../steps/GainCal.h"
-#include "../steps/UVWFlagger.h"
-#include "../steps/Predict.h"
-#include "../steps/ApplyBeam.h"
-
-#include "../ddecal/gain_solvers/SolverBase.h"
-
+#include "../ddecal/Settings.h"
 #include "../ddecal/constraints/Constraint.h"
+#include "../ddecal/gain_solvers/SolverBase.h"
 
 #include "../parmdb/Parm.h"
 
@@ -34,7 +34,6 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-#include <set>
 #include <string>
 #include <vector>
 
@@ -89,8 +88,8 @@ class DDECal : public Step {
 
   virtual void showTimings(std::ostream&, double duration) const;
 
-  virtual bool modifiesData() const override {
-    return itsSubtract || itsOnlyPredict;
+  bool modifiesData() const override {
+    return itsSettings.subtract || itsSettings.only_predict;
   }
 
  private:
@@ -104,9 +103,9 @@ class DDECal : public Step {
   void initializePredictSteps(const common::ParameterSet& parset,
                               const string& prefix);
 
-  void setModelNextSteps(std::shared_ptr<Step>, const std::string direction,
+  void setModelNextSteps(Step&, const std::string& direction,
                          const common::ParameterSet& parset,
-                         const string prefix);
+                         const string& prefix) const;
 
   void doPrepare(const base::DPBuffer& bufin, size_t sol_int, size_t step);
 
@@ -124,9 +123,10 @@ class DDECal : public Step {
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
 
   InputStep* itsInput;
-  std::string itsName;
+  const ddecal::Settings itsSettings;
+
   /// The solution intervals that are buffered, limited by solintcount
-  std::vector<base::SolutionInterval> sol_ints_;
+  std::vector<base::SolutionInterval> itsSolInts;
 
   /// The time of the current buffer (in case of solint, average time)
   double itsAvgTime;
@@ -141,24 +141,15 @@ class DDECal : public Step {
   /// phase)
   std::vector<std::vector<std::vector<Constraint::Result>>> itsConstraintSols;
 
-  std::string itsH5ParmName;
   schaapcommon::h5parm::H5Parm itsH5Parm;
-  std::string itsParsetString;  ///< Parset, for logging in H5Parm
 
-  GainCal::CalType itsMode;
-  bool itsPropagateSolutions;
-  bool itsPropagateConvergedOnly;
-  bool itsFlagUnconverged;
-  bool itsFlagDivergedOnly;
-  bool itsOnlyPredict;
   size_t itsTimeStep;
   size_t itsSolInt;  ///< Number of timeslots to store per solution interval
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
   size_t itsNSolInts;     ///< Total number of created solution intervals
-  double itsMinVisRatio;
   /// The current amount of timeslots on the solution interval
   size_t itsStepInSolInt;
-  /// The current amount of solution intervals in sol_ints_
+  /// The current amount of solution intervals in itsSolInts
   size_t itsBufferedSolInts;
   size_t itsNChan;
   /// For each channel block, the nr of unflagged vis and the total nr of vis.
@@ -189,18 +180,8 @@ class DDECal : public Step {
   common::NSTimer itsTimerSolve;
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
-  double itsCoreConstraint;
-  std::vector<std::set<std::string>> itsAntennaConstraint;
-  double itsSmoothnessConstraint;
-  double itsSmoothnessRefFrequencyHz;
-  double itsSmoothnessRefDistance;
-  double itsScreenCoreConstraint;
   std::unique_ptr<base::SolverBase> itsSolver;
   size_t itsPolsInSolutions;
-  bool itsApproximateTEC;
-  bool itsSubtract;
-  bool itsIterateDirections;
-  std::string itsStatFilename;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };
