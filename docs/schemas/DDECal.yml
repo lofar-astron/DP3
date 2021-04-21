@@ -42,7 +42,7 @@ inputs:
   mode:
     default: diagonal
     type: string
-    doc: Type of constraint to apply. Options are scalarcomplexgain, scalarphase, scalaramplitude, tec, tecandphase. Modes in development are fulljones, diagonal, phaseonly, amplitudeonly, rotation, rotation+diagonal `.`
+    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation and rotation+diagonal `.`
   tolerance:
     default: 1e-5
     type: double
