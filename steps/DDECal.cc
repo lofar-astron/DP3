@@ -676,7 +676,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   }
 
   os << "Iterations taken: [";
-  for (unsigned int i = 0; i < itsNIter.size() - 1; ++i) {
+  for (size_t i = 0; i < itsNIter.size() - 1; ++i) {
     os << itsNIter[i];
     if (itsNApproxIter[i] != 0) os << '|' << itsNApproxIter[i];
     os << ",";

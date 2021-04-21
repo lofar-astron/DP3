@@ -91,11 +91,11 @@ class KernelSmoother {
 
     size_t bandLeft = 0;
     /// find right-most kernel value corresponding to the first element of data
-    size_t bandRight =
+    const size_t lbound =
         std::lower_bound(_frequencies.begin(), _frequencies.end(),
                          _frequencies[0] + _bandwidth * 0.5) -
-        _frequencies.begin() + 1;
-
+        _frequencies.begin();
+    size_t bandRight = std::min(lbound + 1u, n);
     for (size_t i = 0; i != n; ++i) {
       const NumType localBandwidth =
           _bandwidthRefFrequency == 0.0
