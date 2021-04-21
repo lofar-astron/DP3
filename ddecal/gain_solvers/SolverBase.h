@@ -42,8 +42,8 @@ class SolverBase {
   };
 
   struct SolveResult {
-    size_t iterations;
-    size_t constraint_iterations;
+    size_t iterations = 0;
+    size_t constraint_iterations = 0;
     std::vector<std::vector<Constraint::Result>> results;
   };
 
