@@ -154,7 +154,7 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
   // Scalar modes
   else if (modestr == "scalar" || modestr == "scalarcomplexgain" ||
            modestr == "scalarcomplex")
-    return SCALARCOMPLEXGAIN;
+    return SCALAR;
   else if (modestr == "scalaramplitude")
     return SCALARAMPLITUDE;
   else if (modestr == "scalarphase")
@@ -180,7 +180,7 @@ string GainCal::calTypeToString(GainCal::CalType caltype) {
   switch (caltype) {
     case DIAGONAL:
       return "diagonal";
-    case SCALARCOMPLEXGAIN:
+    case SCALAR:
       return "scalarcomplexgain";
     case FULLJONES:
       return "fulljones";
@@ -1115,7 +1115,7 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
                                         std::vector<AxisInfo>& axes) {
   unsigned int numsols = 1;
   // For [scalar]complexgain, store two soltabs: phase and amplitude
-  if (caltype == GainCal::DIAGONAL || caltype == GainCal::SCALARCOMPLEXGAIN ||
+  if (caltype == GainCal::DIAGONAL || caltype == GainCal::SCALAR ||
       caltype == GainCal::TECANDPHASE || caltype == GainCal::FULLJONES) {
     numsols = 2;
   }
@@ -1129,7 +1129,7 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
         solTabName = "phase000";
         soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         break;
-      case GainCal::SCALARCOMPLEXGAIN:
+      case GainCal::SCALAR:
       case GainCal::DIAGONAL:
       case GainCal::FULLJONES:
         if (solnum == 0) {

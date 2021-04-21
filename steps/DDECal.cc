@@ -127,7 +127,7 @@ DDECal::~DDECal() {}
 void DDECal::initializeSolver(const common::ParameterSet& parset,
                               const string& prefix) {
   switch (itsSettings.mode) {
-    case GainCal::SCALARCOMPLEXGAIN:
+    case GainCal::SCALAR:
     case GainCal::SCALARAMPLITUDE:
       if (itsSettings.iterate_directions)
         itsSolver = boost::make_unique<base::IterativeScalarSolver>();
@@ -216,7 +216,7 @@ void DDECal::InitializeConstraints(const common::ParameterSet& parset,
   }
 
   switch (itsSettings.mode) {
-    case GainCal::SCALARCOMPLEXGAIN:
+    case GainCal::SCALAR:
     case GainCal::DIAGONAL:
     case GainCal::FULLJONES:
       // no extra constraints
@@ -1142,7 +1142,7 @@ void DDECal::writeSolutions() {
     unsigned int numsols = 1;
     // For [scalar]complexgain, store two soltabs: phase and amplitude
     if (itsSettings.mode == GainCal::DIAGONAL ||
-        itsSettings.mode == GainCal::SCALARCOMPLEXGAIN ||
+        itsSettings.mode == GainCal::SCALAR ||
         itsSettings.mode == GainCal::FULLJONES) {
       numsols = 2;
     }
@@ -1165,7 +1165,7 @@ void DDECal::writeSolutions() {
                                     historyString);
           }
           break;
-        case GainCal::SCALARCOMPLEXGAIN:
+        case GainCal::SCALAR:
         case GainCal::DIAGONAL:
           if (solnum == 0) {
             solTabName = "phase000";
