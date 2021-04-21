@@ -60,13 +60,13 @@ typedef std::pair<size_t, size_t> Baseline;
 class GainCal final : public Step {
  public:
   enum CalType {
-    DIAGONAL,
-    SCALARCOMPLEXGAIN,
-    FULLJONES,
-    DIAGONALPHASE,
-    SCALARPHASE,
-    DIAGONALAMPLITUDE,
+    SCALAR,
     SCALARAMPLITUDE,
+    SCALARPHASE,
+    DIAGONAL,
+    DIAGONALAMPLITUDE,
+    DIAGONALPHASE,
+    FULLJONES,
     TECANDPHASE,
     TEC,
     TECSCREEN,
