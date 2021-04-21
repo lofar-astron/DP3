@@ -152,7 +152,8 @@ GainCal::CalType GainCal::stringToCalType(const string& modestr) {
   else if (modestr == "diagonalamplitude" || modestr == "amplitudeonly")
     return DIAGONALAMPLITUDE;
   // Scalar modes
-  else if (modestr == "scalarcomplexgain" || modestr == "scalarcomplex")
+  else if (modestr == "scalar" || modestr == "scalarcomplexgain" ||
+           modestr == "scalarcomplex")
     return SCALARCOMPLEXGAIN;
   else if (modestr == "scalaramplitude")
     return SCALARAMPLITUDE;
