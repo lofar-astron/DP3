@@ -8,12 +8,13 @@
 
 #include <Version.h>
 
+#include "../base/CalType.h"
+#include "../base/DP3.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
 #include "../base/Simulate.h"
 #include "../base/SourceDBUtil.h"
-#include "../base/DP3.h"
 
 #include "../steps/IDGPredict.h"
 #include "../steps/MSReader.h"
@@ -79,6 +80,7 @@ using aocommon::FitsReader;
 using schaapcommon::facets::Facet;
 using schaapcommon::h5parm::SolTab;
 
+using dp3::base::CalType;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
@@ -188,33 +190,33 @@ std::unique_ptr<base::RegularSolverBase> DDECal::initializeSolver(
     ddecal::SolverAlgorithm algorithm) const {
   std::unique_ptr<base::RegularSolverBase> solver;
   switch (itsSettings.mode) {
-    case GainCal::SCALAR:
-    case GainCal::SCALARAMPLITUDE:
+    case CalType::kScalar:
+    case CalType::kScalarAmplitude:
       solver = makeScalarSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
-    case GainCal::SCALARPHASE:
-    case GainCal::TEC:
-    case GainCal::TECANDPHASE:
+    case CalType::kScalarPhase:
+    case CalType::kTec:
+    case CalType::kTecAndPhase:
       solver = makeScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
-    case GainCal::DIAGONAL:
-    case GainCal::DIAGONALAMPLITUDE:
+    case CalType::kDiagonal:
+    case CalType::kDiagonalAmplitude:
       solver = makeDiagonalSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
-    case GainCal::DIAGONALPHASE:
+    case CalType::kDiagonalPhase:
       solver = makeDiagonalSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
-    case GainCal::FULLJONES:
-    case GainCal::ROTATIONANDDIAGONAL:
-    case GainCal::ROTATION:
+    case CalType::kFullJones:
+    case CalType::kRotationAndDiagonal:
+    case CalType::kRotation:
       solver = makeFullJonesSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
-    case GainCal::TECSCREEN:
+    case CalType::kTecScreen:
 #ifdef HAVE_ARMADILLO
       solver = makeScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
@@ -226,7 +228,7 @@ std::unique_ptr<base::RegularSolverBase> DDECal::initializeSolver(
       break;
     default:
       throw std::runtime_error("Unexpected solving mode: " +
-                               GainCal::calTypeToString(itsSettings.mode));
+                               CalTypeToString(itsSettings.mode));
   }
 
   InitializeConstraints(*solver, parset, prefix);
@@ -256,22 +258,22 @@ void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
   }
 
   switch (itsSettings.mode) {
-    case GainCal::SCALAR:
-    case GainCal::DIAGONAL:
-    case GainCal::FULLJONES:
+    case CalType::kScalar:
+    case CalType::kDiagonal:
+    case CalType::kFullJones:
       // no extra constraints
       break;
-    case GainCal::SCALARPHASE:
-    case GainCal::DIAGONALPHASE:
+    case CalType::kScalarPhase:
+    case CalType::kDiagonalPhase:
       solver.AddConstraint(boost::make_unique<PhaseOnlyConstraint>());
       break;
-    case GainCal::SCALARAMPLITUDE:
-    case GainCal::DIAGONALAMPLITUDE:
+    case CalType::kScalarAmplitude:
+    case CalType::kDiagonalAmplitude:
       solver.AddConstraint(boost::make_unique<AmplitudeOnlyConstraint>());
       break;
-    case GainCal::TEC:
-    case GainCal::TECANDPHASE: {
-      const auto tec_mode = (itsSettings.mode == GainCal::TEC)
+    case CalType::kTec:
+    case CalType::kTecAndPhase: {
+      const auto tec_mode = (itsSettings.mode == CalType::kTec)
                                 ? TECConstraint::TECOnlyMode
                                 : TECConstraint::TECAndCommonScalarMode;
       std::unique_ptr<TECConstraint> constraint;
@@ -291,23 +293,23 @@ void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
       break;
     }
 #ifdef HAVE_ARMADILLO
-    case GainCal::TECSCREEN:
+    case CalType::kTecScreen:
       solver.AddConstraint(
           boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
       break;
 #endif
-    case GainCal::ROTATIONANDDIAGONAL: {
+    case CalType::kRotationAndDiagonal: {
       auto constraint = boost::make_unique<RotationAndDiagonalConstraint>();
       constraint->SetDoRotationReference(itsSettings.rotation_reference);
       solver.AddConstraint(std::move(constraint));
       break;
     }
-    case GainCal::ROTATION:
+    case CalType::kRotation:
       solver.AddConstraint(boost::make_unique<RotationConstraint>());
       break;
     default:
       throw std::runtime_error("Unexpected solving mode: " +
-                               GainCal::calTypeToString(itsSettings.mode));
+                               CalTypeToString(itsSettings.mode));
   }
 }
 
@@ -649,8 +651,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
 void DDECal::show(std::ostream& os) const {
   os << "DDECal " << itsSettings.name << '\n'
-     << "  mode (constraints):  " << GainCal::calTypeToString(itsSettings.mode)
-     << '\n'
+     << "  mode (constraints):  " << CalTypeToString(itsSettings.mode) << '\n'
      << "  algorithm:           "
      << ddecal::ToString(itsSettings.solver_algorithm) << '\n'
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
@@ -1124,13 +1125,13 @@ void DDECal::writeSolutions() {
     unsigned int nPol;
 
     std::vector<string> polarizations;
-    if (itsSettings.mode == GainCal::DIAGONAL ||
-        itsSettings.mode == GainCal::DIAGONALPHASE ||
-        itsSettings.mode == GainCal::DIAGONALAMPLITUDE) {
+    if (itsSettings.mode == CalType::kDiagonal ||
+        itsSettings.mode == CalType::kDiagonalPhase ||
+        itsSettings.mode == CalType::kDiagonalAmplitude) {
       nPol = 2;
       polarizations.emplace_back("XX");
       polarizations.emplace_back("YY");
-    } else if (itsSettings.mode == GainCal::FULLJONES) {
+    } else if (itsSettings.mode == CalType::kFullJones) {
       polarizations.emplace_back("XX");
       polarizations.emplace_back("XY");
       polarizations.emplace_back("YX");
@@ -1151,7 +1152,7 @@ void DDECal::writeSolutions() {
     // For nPol=1, loop over pol runs just once
     // For nPol=2, it runs over values 0 and 2 (picking diagonal elements from 4
     // pols) For nPol=4, it runs over 0, 1, 2, 3
-    unsigned int polIncr = (itsSettings.mode == GainCal::FULLJONES ? 1 : 3);
+    unsigned int polIncr = (itsSettings.mode == CalType::kFullJones ? 1 : 3);
     unsigned int maxPol = (nPol > 1 ? 4 : 1);
     // Put solutions in a contiguous piece of memory
     for (unsigned int time = 0; time < nSolTimes; ++time) {
@@ -1189,18 +1190,18 @@ void DDECal::writeSolutions() {
                            itsSettings.parset_string;
     unsigned int numsols = 1;
     // For [scalar]complexgain, store two soltabs: phase and amplitude
-    if (itsSettings.mode == GainCal::DIAGONAL ||
-        itsSettings.mode == GainCal::SCALAR ||
-        itsSettings.mode == GainCal::FULLJONES) {
+    if (itsSettings.mode == CalType::kDiagonal ||
+        itsSettings.mode == CalType::kScalar ||
+        itsSettings.mode == CalType::kFullJones) {
       numsols = 2;
     }
     for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
       string solTabName;
       schaapcommon::h5parm::SolTab soltab;
       switch (itsSettings.mode) {
-        case GainCal::SCALARPHASE:
-        case GainCal::DIAGONALPHASE:
-        case GainCal::FULLJONES:
+        case CalType::kScalarPhase:
+        case CalType::kDiagonalPhase:
+        case CalType::kFullJones:
           if (solnum == 0) {
             solTabName = "phase000";
             soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
@@ -1213,8 +1214,8 @@ void DDECal::writeSolutions() {
                                     historyString);
           }
           break;
-        case GainCal::SCALAR:
-        case GainCal::DIAGONAL:
+        case CalType::kScalar:
+        case CalType::kDiagonal:
           if (solnum == 0) {
             solTabName = "phase000";
             soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
@@ -1227,8 +1228,8 @@ void DDECal::writeSolutions() {
                                     historyString);
           }
           break;
-        case GainCal::SCALARAMPLITUDE:
-        case GainCal::DIAGONALAMPLITUDE:
+        case CalType::kScalarAmplitude:
+        case CalType::kDiagonalAmplitude:
           solTabName = "amplitude000";
           soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
           soltab.SetComplexValues(sols, std::vector<double>(), true,

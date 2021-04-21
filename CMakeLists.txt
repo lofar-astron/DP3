@@ -279,6 +279,7 @@ add_library(DP3_OBJ OBJECT
   base/Apply.cc
   base/BaselineSelection.cc
   base/BDABuffer.cc
+  base/CalType.cc
   base/DemixInfo.cc
   base/DemixWorker.cc
   base/DPBuffer.cc
