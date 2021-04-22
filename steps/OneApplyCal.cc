@@ -43,14 +43,15 @@ namespace steps {
 std::mutex OneApplyCal::theirHDF5Mutex;
 
 OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
-                         const string& prefix, const string& defaultPrefix,
-                         bool substep, string predictDirection)
+                         const std::string& prefix,
+                         const std::string& defaultPrefix, bool substep,
+                         std::string predictDirection)
     : itsInput(input),
       itsName(prefix),
       itsParmDBName(parset.isDefined(prefix + "parmdb")
                         ? parset.getString(prefix + "parmdb")
                         : parset.getString(defaultPrefix + "parmdb")),
-      itsUseH5Parm(itsParmDBName.find(".h5") != string::npos),
+      itsUseH5Parm(itsParmDBName.find(".h5") != std::string::npos),
       itsSolSetName(parset.isDefined(prefix + "solset")
                         ? parset.getString(prefix + "solset")
                         : parset.getString(defaultPrefix + "solset", "")),
@@ -80,7 +81,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
   }
 
   if (itsUseH5Parm) {
-    string interpolationStr =
+    const std::string interpolationStr =
         (parset.isDefined(prefix + "interpolation")
              ? parset.getString(prefix + "interpolation")
              : parset.getString(prefix + "interpolation", "nearest"));
@@ -93,8 +94,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
                                interpolationStr);
     }
     itsTimeSlotsPerParmUpdate = 0;
-    string directionStr;
-    directionStr =
+    const std::string directionStr =
         (parset.isDefined(prefix + "direction")
              ? parset.getString(prefix + "direction")
              : parset.getString(defaultPrefix + "direction", predictDirection));
@@ -104,6 +104,13 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
     itsSolTabName = (parset.isDefined(prefix + "correction")
                          ? parset.getString(prefix + "correction")
                          : parset.getString(defaultPrefix + "correction"));
+    const std::string missingAntennaBehaviorStr =
+        (parset.isDefined(prefix + "missingantennabehavior")
+             ? parset.getString("missingantennabehavior")
+             : parset.getString(defaultPrefix + "missingantennabehavior",
+                                "error"));
+    itsMissingAntennaBehavior = JonesParameters::StringToMissingAntennaBehavior(
+        missingAntennaBehaviorStr);
     if (itsSolTabName == "fulljones") {
       std::vector<string> solTabs = parset.getStringVector(
           prefix + "soltab", std::vector<string>{"amplitude000", "phase000"});
@@ -138,11 +145,12 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
       itsDirection = itsSolTab.GetDirIndex(directionStr);
     }
   } else {
+    itsMissingAntennaBehavior = JonesParameters::MissingAntennaBehavior::kError;
     itsTimeSlotsPerParmUpdate =
         parset.isDefined(prefix + "timeslotsperparmupdate")
             ? parset.getInt(prefix + "timeslotsperparmupdate")
             : parset.getInt(defaultPrefix + "timeslotsperparmupdate", 500);
-    string correctTypeStr = boost::to_lower_copy(
+    const std::string correctTypeStr = boost::to_lower_copy(
         parset.isDefined(prefix + "correction")
             ? parset.getString(prefix + "correction")
             : parset.getString(defaultPrefix + "correction", "gain"));
@@ -184,7 +192,7 @@ string OneApplyCal::correctTypeToString(JonesParameters::CorrectType ct) {
 }
 
 JonesParameters::CorrectType OneApplyCal::stringToCorrectType(
-    const string& ctStr) {
+    const std::string& ctStr) {
   if (ctStr == "gain")
     return CorrectType::GAIN;
   else if (ctStr == "fulljones")
@@ -360,16 +368,20 @@ void OneApplyCal::show(std::ostream& os) const {
                ? "nearest"
                : "linear")
        << '\n';
+    os << "  Missing antennas: "
+       << JonesParameters::MissingAntennaBehaviorToString(
+              itsMissingAntennaBehavior)
+       << '\n';
   } else {
     os << "  Parmdb:         " << itsParmDBName << '\n';
   }
-  os << "  Correction:     " << correctTypeToString(itsCorrectType) << '\n';
+  os << "  Correction:       " << correctTypeToString(itsCorrectType) << '\n';
   if (itsCorrectType == CorrectType::GAIN ||
       itsCorrectType == CorrectType::FULLJONES) {
     os << "    Ampl/Phase:   " << std::boolalpha << itsUseAP << '\n';
   }
-  os << "  Update weights: " << std::boolalpha << itsUpdateWeights << '\n';
-  os << "  Invert:         " << std::boolalpha << itsInvert << '\n';
+  os << "  Update weights:   " << std::boolalpha << itsUpdateWeights << '\n';
+  os << "  Invert:           " << std::boolalpha << itsInvert << '\n';
   if (itsInvert) {
     os << "    SigmaMMSE:    " << itsSigmaMMSE << '\n';
   }
@@ -476,7 +488,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
   itsJonesParameters = boost::make_unique<JonesParameters>(
       info().chanFreqs(), times, info().antennaNames(), itsCorrectType,
       itsInterpolationType, itsDirection, &itsSolTab, &itsSolTab2, itsInvert,
-      itsSigmaMMSE, itsParmExprs.size());
+      itsSigmaMMSE, itsParmExprs.size(), itsMissingAntennaBehavior);
 }
 
 void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
@@ -519,29 +531,30 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         freqInterval, bufStartTime - 0.5 * itsTimeInterval, itsLastTime,
         itsTimeInterval, true);
 
-    string parmExpr = itsParmExprs[parmExprNum];
+    std::string parmExpr = itsParmExprs[parmExprNum];
 
     // Resolve {Common,}Bla to CommonBla or Bla
-    if (!parmMap.empty() && parmExpr.find("{Common,}") != string::npos) {
+    if (!parmMap.empty() && parmExpr.find("{Common,}") != std::string::npos) {
       // Take the name of the first parm, e.g. Bla:CS001, and remove the
       // antenna name
       unsigned int colonPos = (parmMap.begin()->first).find(":");
       parmExpr = (parmMap.begin()->first).substr(0, colonPos);
     }
 
-    string name_postfix = "";
+    std::string name_postfix = "";
     // Remove :phase_center postfix
     if (!parmMap.empty()) {
       // Take the name of the first parm, e.g. Bla:CS001, and remove the
       // antenna name If necessary, append :phase_center
-      if ((parmMap.begin()->first).find(":phase_center") != string::npos) {
+      if ((parmMap.begin()->first).find(":phase_center") != std::string::npos) {
         name_postfix = ":phase_center";
       }
     }
 
     for (unsigned int ant = 0; ant < numAnts; ++ant) {
-      parmIt = parmMap.find(parmExpr + ":" +
-                            string(info().antennaNames()[ant]) + name_postfix);
+      parmIt =
+          parmMap.find(parmExpr + ":" +
+                       std::string(info().antennaNames()[ant]) + name_postfix);
 
       if (parmIt != parmMap.end()) {
         parmvalues[parmExprNum][ant].swap(parmIt->second);
@@ -551,8 +564,9 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         Array<double> defValues;
         double defValue;
 
-        string defParmNameAntenna =
-            parmExpr + ":" + string(info().antennaNames()[ant]) + name_postfix;
+        std::string defParmNameAntenna =
+            parmExpr + ":" + std::string(info().antennaNames()[ant]) +
+            name_postfix;
         if (itsParmDB->getDefValues(defParmNameAntenna).size() ==
             1) {  // Default for antenna
           itsParmDB->getDefValues(defParmNameAntenna).get(0, defValues);
@@ -572,7 +586,8 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
           defValue = 0.;
         } else {
           throw Exception("No parameter value found for " + parmExpr + ":" +
-                          string(info().antennaNames()[ant]) + name_postfix);
+                          std::string(info().antennaNames()[ant]) +
+                          name_postfix);
         }
 
         parmvalues[parmExprNum][ant].resize(tfDomainSize);
@@ -606,7 +621,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
       itsSigmaMMSE);
 }
 
-unsigned int OneApplyCal::nPol(const string& parmName) {
+unsigned int OneApplyCal::nPol(const std::string& parmName) {
   if (itsUseH5Parm) {
     if (!itsSolTab.HasAxis("pol")) {
       return 1;

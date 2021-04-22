@@ -89,17 +89,18 @@ class OneApplyCal : public Step {
                          const std::vector<double>& weights);
 
   static std::string correctTypeToString(JonesParameters::CorrectType);
-  static JonesParameters::CorrectType stringToCorrectType(const string&);
+  static JonesParameters::CorrectType stringToCorrectType(const std::string&);
 
   InputStep* itsInput;
   base::DPBuffer itsBuffer;
-  string itsName;
-  string itsParmDBName;
+  std::string itsName;
+  std::string itsParmDBName;
   bool itsUseH5Parm;
-  string itsSolSetName;
+  std::string itsSolSetName;
   std::shared_ptr<parmdb::ParmFacade> itsParmDB;
   schaapcommon::h5parm::H5Parm itsH5Parm;
-  string itsSolTabName;
+  std::string itsSolTabName;
+  JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
   schaapcommon::h5parm::SolTab itsSolTab;
   schaapcommon::h5parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp
                                             ///< and phase table need to be open
