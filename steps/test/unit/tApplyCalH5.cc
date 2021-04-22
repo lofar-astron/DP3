@@ -12,6 +12,7 @@
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/soltab.h>
 
+#include "../../Step.h"
 #include "../../ApplyCal.h"
 #include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
@@ -163,11 +164,12 @@ class TestOutput : public Step {
     WeightsNotChanged = 1,
     DataNotChanged = 2,
     DataChanged = 4,
-    DataEquals = 8,
-    WeightEquals = 16
+    WeightEquals = 8
   };
   TestOutput(int ntime, int nchan, int doTest, bool solsHadFreqAxis = true,
-             bool solsHadTimeAxis = true)
+             bool solsHadTimeAxis = true,
+             JonesParameters::MissingAntennaBehavior missingAntennaBehavior =
+                 JonesParameters::MissingAntennaBehavior::kError)
       : itsCount(0),
         itsTimeStep(0),
         itsNTime(ntime),
@@ -177,7 +179,8 @@ class TestOutput : public Step {
         itsTimeInterval(5.),
         itsDoTest(doTest),
         itsSolsHadFreqAxis(solsHadFreqAxis),
-        itsSolsHadTimeAxis(solsHadTimeAxis) {}
+        itsSolsHadTimeAxis(solsHadTimeAxis),
+        itsMissingAntennaBehavior(missingAntennaBehavior) {}
 
  private:
   virtual bool process(const DPBuffer& buf) {
@@ -214,9 +217,10 @@ class TestOutput : public Step {
 
     if (itsDoTest) {
       for (unsigned int bl = 0; bl < info().nbaselines(); ++bl) {
+        unsigned int ant1 = info().getAnt1()[bl];
+        unsigned int ant2 = info().getAnt2()[bl];
+
         for (int chan = 0; chan < itsNChan; ++chan) {
-          unsigned int ant1 = info().getAnt1()[bl];
-          unsigned int ant2 = info().getAnt2()[bl];
           // Square root of autocorrelation for first antenna
           complex<float> val = sqrt(
               buf.getData().data()[bl * itsNCorr * itsNChan + chan * itsNCorr]);
@@ -226,17 +230,30 @@ class TestOutput : public Step {
           if ((ant1 == 1 || ant2 == 1) && rightTimes[itsTimeStep] == 2 &&
               rightFreqs[chan] == 2) {
             BOOST_CHECK(flag);
+          } else if (itsMissingAntennaBehavior ==
+                         JonesParameters::MissingAntennaBehavior::kFlag &&
+                     (ant1 == 2 || ant2 == 2)) {
+            BOOST_CHECK(flag);
+          } else if (itsMissingAntennaBehavior ==
+                     JonesParameters::MissingAntennaBehavior::kUnit) {
+            BOOST_CHECK(!flag);
+            if (ant1 == 2 && ant2 == 2) {
+              BOOST_CHECK_CLOSE(1., val, 1.e-3);
+            } else if (ant1 != 2 && ant2 != 2) {
+              BOOST_CHECK_CLOSE(
+                  rightTimes[itsTimeStep] * 100 + rightFreqs[chan], val, 1.e-3);
+            } else {
+              BOOST_CHECK_CLOSE(
+                  rightTimes[itsTimeStep] * 100 + rightFreqs[chan], val * val,
+                  1.e-3);
+            }
           } else {
             BOOST_CHECK(!flag);
-            BOOST_CHECK(casacore::near(
-                rightTimes[itsTimeStep] * 100 + rightFreqs[chan], val));
+            BOOST_CHECK_CLOSE(rightTimes[itsTimeStep] * 100 + rightFreqs[chan],
+                              val, 1.e-3);
           }
         }
       }
-    }
-
-    if (itsDoTest & DataEquals) {
-      BOOST_CHECK(allNear(buf.getData(), data, 1.e-7));
     }
 
     if (itsDoTest & DataNotChanged) {
@@ -268,6 +285,7 @@ class TestOutput : public Step {
   int itsTimeStep;
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsTimeInterval, itsDoTest;
   bool itsSolsHadFreqAxis, itsSolsHadTimeAxis;
+  JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
 };
 
 // Execute steps.
@@ -301,15 +319,47 @@ void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis) {
   execute(step1);
 }
 
+// Test with missing antenna option
+void testmissingant(int ntime, int nchan, string missingant,
+                    bool solshadfreqaxis = false,
+                    bool solshadtimeaxis = false) {
+  TestInput* in = new TestInput(ntime, nchan);
+  Step::ShPtr step1(in);
+
+  ParameterSet parset;
+  parset.add("correction", "myampl");
+  parset.add("parmdb", "tApplyCalH5_tmp.h5");
+  parset.add("missingantennabehavior", missingant);
+
+  Step::ShPtr step2(new ApplyCal(in, parset, ""));
+  Step::ShPtr step3(new TestOutput(
+      ntime, nchan, TestOutput::WeightsNotChanged, solshadfreqaxis,
+      solshadtimeaxis,
+      JonesParameters::StringToMissingAntennaBehavior(missingant)));
+
+  step1->setNextStep(step2);
+  step2->setNextStep(step3);
+
+  std::vector<std::string> unusedKeys = parset.unusedKeys();
+  BOOST_CHECK(unusedKeys.empty());
+
+  execute(step1);
+}
+
 // Write a temporary H5Parm
-void createH5Parm(vector<double> times, vector<double> freqs) {
+void createH5Parm(vector<double> times, vector<double> freqs,
+                  bool missingAnt = false) {
   H5Parm h5parm("tApplyCalH5_tmp.h5", true);
 
   // Add antenna metadata
   std::vector<std::string> antNames;
+  size_t nAntennas = 3;
+  if (missingAnt) {
+    nAntennas = 2;
+  }
   std::vector<std::array<double, 3>> antPositions;
   const std::array<double, 3> oneAntPos{42.0};
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (unsigned int i = 0; i < nAntennas; ++i) {
     std::stringstream antNameStr;
     antNameStr << "ant" << (i + 1);
     antNames.push_back(antNameStr.str());
@@ -318,7 +368,7 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
   h5parm.AddAntennas(antNames, antPositions);
 
   vector<schaapcommon::h5parm::AxisInfo> axes;
-  axes.push_back(schaapcommon::h5parm::AxisInfo("ant", 3));
+  axes.push_back(schaapcommon::h5parm::AxisInfo("ant", nAntennas));
   if (!times.empty()) {
     axes.push_back(schaapcommon::h5parm::AxisInfo("time", times.size()));
   }
@@ -335,9 +385,9 @@ void createH5Parm(vector<double> times, vector<double> freqs) {
 
   unsigned int ntimes = max(times.size(), 1);
   unsigned int nfreqs = max(freqs.size(), 1);
-  vector<double> values(ntimes * nfreqs * 3);
-  vector<double> weights(ntimes * nfreqs * 3);
-  for (unsigned int ant = 0; ant < 3; ++ant) {
+  vector<double> values(ntimes * nfreqs * nAntennas);
+  vector<double> weights(ntimes * nfreqs * nAntennas);
+  for (unsigned int ant = 0; ant < nAntennas; ++ant) {
     for (unsigned int t = 0; t < ntimes; ++t) {
       for (unsigned int f = 0; f < nfreqs; ++f) {
         values[ant * ntimes * nfreqs + t * nfreqs + f] =
@@ -384,6 +434,43 @@ BOOST_AUTO_TEST_CASE(testampl4) {
 BOOST_AUTO_TEST_CASE(testampl5) {
   createH5Parm(vector<double>(), vector<double>());
   testampl(9, 2, false, false);
+}
+
+// Check an exception message starts with a given string
+bool checkMissingAntError(const std::exception& ex) {
+  BOOST_CHECK_EQUAL(ex.what(),
+                    std::string("SolTab has no element ant3 in ant"));
+  return true;
+}
+BOOST_AUTO_TEST_CASE(testmissingant_error) {
+  createH5Parm(vector<double>(), vector<double>(), true);
+  BOOST_CHECK_EXCEPTION(testmissingant(9, 2, "error"), std::exception,
+                        checkMissingAntError);
+}
+
+bool checkWrongArgError(const std::exception& ex) {
+  BOOST_CHECK_EQUAL(
+      ex.what(), std::string("missingantennabehavior should be one of 'error', "
+                             "'flag' or 'unit', not 'wrongargument'"));
+  return true;
+}
+BOOST_AUTO_TEST_CASE(testmissingant_wrongarg) {
+  createH5Parm(vector<double>(), vector<double>(), true);
+  BOOST_CHECK_EXCEPTION(testmissingant(9, 2, "wrongargument"), std::exception,
+                        checkWrongArgError);
+}
+
+BOOST_AUTO_TEST_CASE(testmissingant_flag) {
+  createH5Parm(vector<double>(), vector<double>(), true);
+  testmissingant(9, 2, "flag");
+}
+
+BOOST_AUTO_TEST_CASE(testmissingant_unit) {
+  const vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
+                             4472025748.0, 4472025762.0};
+  const vector<double> freqs{90.e6, 139.e6, 170.e6};
+  createH5Parm(times, freqs, true);
+  testmissingant(9, 2, "unit", true, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

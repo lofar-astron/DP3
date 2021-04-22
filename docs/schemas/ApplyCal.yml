@@ -71,3 +71,8 @@ inputs:
       Their parameters can be specified through e.g. 
       ``<step>.myApplyCal1.correction=tec``. If a parameter is not given for 
       the substep, it takes the value from ``<step>``.
+  missingantennabehavior:
+    default: "error"
+    type: string
+    doc: >-
+      (new in version 5.2) What to do if an antenna is not in the H5Parm. Possible values are ``error`` (stop the program), ``flag`` (flag all data involving this antenna) and ``unit`` (treat the solutions for this antenna as 1, e.g. no correction for this antenna).

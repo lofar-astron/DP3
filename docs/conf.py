@@ -63,7 +63,7 @@ copyright = '2021, Astron'
 author = 'Astron'
 
 # The version info for the project you're documenting.
-cmd = 'git describe --tags'.split()
+cmd = 'git describe --tags --always'.split()
 version = subprocess.check_output(cmd).decode().strip().split('-')[0]
 major, minor, patch, *_ = re.sub("^[^0-9]", "", version).split('.') + [0,0,0]
 # The short X.Y version.

@@ -9,7 +9,7 @@ description: |-
 
   The example below shows a minimal example of a python step.
 
-  .. include:: ../../DPPP/test/unit/mock/mockpystep.py
+  .. include:: ../../steps/test/unit/mock/mockpystep.py
      :code: python
 
   **Note**: :code:`import dppp` does not work from a python interpreter directly, it only works if the python code is run by DPPP.
