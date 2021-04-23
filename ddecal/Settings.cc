@@ -11,6 +11,9 @@
 
 using dp3::steps::GainCal;
 
+namespace dp3 {
+namespace ddecal {
+
 namespace {
 std::string CreateParsetString(const dp3::common::ParameterSet& parset) {
   std::stringstream ss;
@@ -18,10 +21,19 @@ std::string CreateParsetString(const dp3::common::ParameterSet& parset) {
   return ss.str();
 }
 
-}  // namespace
+SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
+  const std::string lowercase = boost::to_lower_copy(str);
+  if (lowercase == "directionsolve")
+    return SolverAlgorithm::kDirectionSolve;
+  else if (lowercase == "directioniterative")
+    return SolverAlgorithm::kDirectionIterative;
+  else if (lowercase == "hybrid")
+    return SolverAlgorithm::kHybrid;
+  else
+    throw std::runtime_error("Unknown solver algorithm specified: " + str);
+}
 
-namespace dp3 {
-namespace ddecal {
+}  // namespace
 
 Settings::Settings(const common::ParameterSet& _parset,
                    const std::string& _prefix)
@@ -39,7 +51,8 @@ Settings::Settings(const common::ParameterSet& _parset,
       flag_diverged_only(GetBool("flagdivergedonly", false)),
       only_predict(GetBool("onlypredict", false)),
       subtract(GetBool("subtract", false)),
-      iterate_directions(GetBool("iteratedirections", false)),
+      solver_algorithm(
+          ParseSolverAlgorithm(GetString("solveralgorithm", "directionsolve"))),
       solution_interval(GetUint("solint", 1)),
       min_vis_ratio(GetDouble("minvisratio", 0.0)),
       n_channels(GetUint("nchan", 1)),

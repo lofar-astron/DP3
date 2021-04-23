@@ -262,6 +262,7 @@ add_library(DDECal OBJECT
   ddecal/gain_solvers/BDASolverBuffer.cc
   ddecal/gain_solvers/DiagonalSolver.cc
   ddecal/gain_solvers/FullJonesSolver.cc
+  ddecal/gain_solvers/HybridSolver.cc
   ddecal/gain_solvers/IterativeDiagonalSolver.cc
   ddecal/gain_solvers/IterativeScalarSolver.cc
   ddecal/gain_solvers/ScalarSolver.cc
