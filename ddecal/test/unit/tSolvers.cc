@@ -11,6 +11,7 @@
 
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
+#include "../../gain_solvers/HybridSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
 #include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/ScalarSolver.h"
@@ -432,6 +433,59 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_solver, SolverTester) {
   solver.SetStepSize(0.2);
   solver.SetNThreads(4);
   solver.SetPhaseOnly(false);
+  solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
+
+  std::mt19937 mt;
+  std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);
+  for (size_t a = 0; a != n_ant; ++a) {
+    for (size_t p = 0; p != 2; ++p) {
+      for (size_t d = 0; d != n_dir; ++d) {
+        if (d == 0)
+          input_solutions[(a * n_dir + d) * 2 + p] =
+              cf(uniform_sols(mt), uniform_sols(mt));
+        else
+          input_solutions[(a * n_dir + d) * 2 + p] =
+              cf(uniform_sols(mt) * 0.5, uniform_sols(mt) * 0.5);
+      }
+    }
+  }
+
+  FillData();
+
+  DiagonalSolver::SolveResult result;
+  std::vector<std::vector<std::complex<double>>> solutions(n_chan_blocks);
+
+  // Initialize unit-matrices as initial values
+  for (auto& vec : solutions) {
+    vec.assign(n_dir * n_ant * 2, 1.0);
+  }
+
+  result = solver.Solve(solver_buffer, solutions, 0.0, nullptr);
+
+  CheckDiagonalResults(solutions, 1e-2);
+  BOOST_CHECK_EQUAL(result.iterations, max_iter + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(hybrid_solver, SolverTester) {
+  typedef std::complex<float> cf;
+  HybridSolver solver;
+  std::unique_ptr<DiagonalSolver> direction_solver(new DiagonalSolver());
+  direction_solver->SetMaxIterations(max_iter / 10);
+  std::unique_ptr<IterativeDiagonalSolver> iterative_solver(
+      new IterativeDiagonalSolver());
+  iterative_solver->SetMaxIterations(max_iter);
+  auto set_defaults = [](SolverBase& solver) {
+    solver.SetAccuracy(1e-8);
+    solver.SetStepSize(0.2);
+    solver.SetNThreads(4);
+    solver.SetPhaseOnly(false);
+  };
+  set_defaults(solver);
+  set_defaults(*iterative_solver);
+  set_defaults(*direction_solver);
+  solver.AddSolver(std::move(iterative_solver));
+  solver.AddSolver(std::move(direction_solver));
+  solver.SetMaxIterations(max_iter);
   solver.Initialize(n_ant, n_dir, n_chan, n_chan_blocks, ant1s, ant2s);
 
   std::mt19937 mt;

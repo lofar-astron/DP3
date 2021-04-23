@@ -56,9 +56,10 @@ class SolverBase {
    * and antenna mapping.
    * The antenna arrays map the data provided in @Solve to the antennas.
    */
-  void Initialize(size_t nAntennas, size_t nDirections, size_t nChannels,
-                  size_t nChannelBlocks, const std::vector<int>& ant1,
-                  const std::vector<int>& ant2);
+  virtual void Initialize(size_t nAntennas, size_t nDirections,
+                          size_t nChannels, size_t nChannelBlocks,
+                          const std::vector<int>& ant1,
+                          const std::vector<int>& ant2);
 
   /**
    * Solves multi-directional Jones matrices. Takes the (single) measured data
@@ -171,7 +172,7 @@ class SolverBase {
    * Number of threads to use in parts that can be parallelized.
    * The solving is parallelized over channel blocks.
    */
-  void SetNThreads(size_t n_threads) {
+  virtual void SetNThreads(size_t n_threads) {
     n_threads_ = n_threads;
     for (std::unique_ptr<Constraint>& constraint : constraints_) {
       constraint->SetNThreads(n_threads);

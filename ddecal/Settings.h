@@ -18,6 +18,8 @@ class ParameterSet;
 
 namespace ddecal {
 
+enum class SolverAlgorithm { kDirectionSolve, kDirectionIterative, kHybrid };
+
 /// @brief This struct parses the DDECal parset settings and stores them.
 struct Settings {
  public:
@@ -35,7 +37,7 @@ struct Settings {
   bool GetBool(const std::string& key, bool default_value) const;
 
   /**
-   * Retrieve an optional unsingned integer from the parset.
+   * Retrieve an optional unsigned integer from the parset.
    */
   unsigned int GetUint(const std::string& key,
                        unsigned int default_value) const;
@@ -82,7 +84,7 @@ struct Settings {
   const bool flag_diverged_only;
   const bool only_predict;
   const bool subtract;
-  const bool iterate_directions;
+  const SolverAlgorithm solver_algorithm;
 
   const size_t solution_interval;
   const double min_vis_ratio;
