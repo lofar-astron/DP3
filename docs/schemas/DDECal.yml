@@ -100,7 +100,7 @@ inputs:
   smoothnessconstraint:
     default: 0.0
     type: double
-    doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point where the kernel is cut off `.`
+    doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point from the centre where the kernel is cut off. For example, with a kernel size of 2 MHz and with 1 MHz channels, the kernel will cover 2 channels on both side from the centre, and therefore 5 channels in total `.`
   smoothnessreffrequency:
     default: 0.0
     type: double
