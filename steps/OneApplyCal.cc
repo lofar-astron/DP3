@@ -106,7 +106,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
                          : parset.getString(defaultPrefix + "correction"));
     const std::string missingAntennaBehaviorStr =
         (parset.isDefined(prefix + "missingantennabehavior")
-             ? parset.getString("missingantennabehavior")
+             ? parset.getString(prefix + "missingantennabehavior")
              : parset.getString(defaultPrefix + "missingantennabehavior",
                                 "error"));
     itsMissingAntennaBehavior = JonesParameters::StringToMissingAntennaBehavior(
