@@ -327,11 +327,11 @@ void testmissingant(int ntime, int nchan, string missingant,
   Step::ShPtr step1(in);
 
   ParameterSet parset;
-  parset.add("correction", "myampl");
-  parset.add("parmdb", "tApplyCalH5_tmp.h5");
-  parset.add("missingantennabehavior", missingant);
+  parset.add("myapplycal.correction", "myampl");
+  parset.add("myapplycal.parmdb", "tApplyCalH5_tmp.h5");
+  parset.add("myapplycal.missingantennabehavior", missingant);
 
-  Step::ShPtr step2(new ApplyCal(in, parset, ""));
+  Step::ShPtr step2(new ApplyCal(in, parset, "myapplycal."));
   Step::ShPtr step3(new TestOutput(
       ntime, nchan, TestOutput::WeightsNotChanged, solshadfreqaxis,
       solshadtimeaxis,
