@@ -37,16 +37,16 @@ BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
       rows_(),
       original_capacity_(pool_size),
       remaining_capacity_(pool_size) {
-  if (fields.data_) {
+  if (fields.data) {
     data_.reserve(remaining_capacity_);
   }
-  if (fields.flags_) {
+  if (fields.flags) {
     flags_.reserve(remaining_capacity_);
   }
-  if (fields.weights_) {
+  if (fields.weights) {
     weights_.reserve(remaining_capacity_);
   }
-  if (fields.full_res_flags_) {
+  if (fields.full_res_flags) {
     full_res_flags_.reserve(remaining_capacity_);
   }
 }
@@ -84,10 +84,10 @@ BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
       rows_(),
       original_capacity_(other.original_capacity_ - other.remaining_capacity_),
       remaining_capacity_(0) {
-  if (fields.data_) data_ = other.data_;
-  if (fields.flags_) flags_ = other.flags_;
-  if (fields.weights_) weights_ = other.weights_;
-  if (fields.full_res_flags_) full_res_flags_ = other.full_res_flags_;
+  if (fields.data) data_ = other.data_;
+  if (fields.flags) flags_ = other.flags_;
+  if (fields.weights) weights_ = other.weights_;
+  if (fields.full_res_flags) full_res_flags_ = other.full_res_flags_;
 
   // Copy rows but set their pointers to the new memory pools.
   rows_.reserve(other.rows_.size());
@@ -97,14 +97,14 @@ BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
     float* row_weights = nullptr;
     bool* row_full_res_flags = nullptr;
 
-    if (fields.data_ && !data_.empty())
+    if (fields.data && !data_.empty())
       row_data = data_.data() + (other_row.data - other.data_.data());
-    if (fields.flags_ && !flags_.empty())
+    if (fields.flags && !flags_.empty())
       row_flags = flags_.data() + (other_row.flags - other.flags_.data());
-    if (fields.weights_ && !weights_.empty())
+    if (fields.weights && !weights_.empty())
       row_weights =
           weights_.data() + (other_row.weights - other.weights_.data());
-    if (fields.full_res_flags_ && !full_res_flags_.empty())
+    if (fields.full_res_flags && !full_res_flags_.empty())
       row_full_res_flags =
           full_res_flags_.data() +
           (other_row.full_res_flags - other.full_res_flags_.data());
