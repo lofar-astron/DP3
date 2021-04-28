@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cassert>
 
+using std::size_t;
+
 namespace dp3 {
 namespace common {
 

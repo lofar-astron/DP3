@@ -22,16 +22,16 @@ class ProximityClustering {
   using Coordinate = std::pair<NumType, NumType>;
 
   ProximityClustering(const std::vector<Coordinate> &coordinates);
-  std::vector<std::vector<size_t>> Group(NumType max_distance);
+  std::vector<std::vector<std::size_t>> Group(NumType max_distance);
 
  private:
-  Coordinate GetCoordinate(size_t i) const;
-  NumType ClusterDistance(size_t i, size_t j) const;
-  void GroupSource(size_t source_index, NumType max_distance);
-  Coordinate Centroid(size_t i) const;
+  Coordinate GetCoordinate(std::size_t i) const;
+  NumType ClusterDistance(std::size_t i, std::size_t j) const;
+  void GroupSource(std::size_t source_index, NumType max_distance);
+  Coordinate Centroid(std::size_t i) const;
   static NumType EuclidDistance(Coordinate x1, Coordinate x2);
 
-  std::vector<std::vector<size_t>> clusters_;
+  std::vector<std::vector<std::size_t>> clusters_;
   const std::vector<Coordinate> &coordinates_;
 };
 
