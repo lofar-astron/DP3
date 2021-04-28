@@ -142,13 +142,13 @@ BOOST_AUTO_TEST_CASE(copy_omit_fields) {
   buffer.SetBaseRowNr(kBaseRowNr);
 
   BDABuffer::Fields fields;
-  fields.data_ = false;
-  fields.flags_ = false;
+  fields.data = false;
+  fields.flags = false;
   const BDABuffer without_data_flags{buffer, fields};
 
   fields = BDABuffer::Fields();
-  fields.weights_ = false;
-  fields.full_res_flags_ = false;
+  fields.weights = false;
+  fields.full_res_flags = false;
   const BDABuffer without_weighs_frf{buffer, fields};
 
   // Verify the memory pool data in the copies.
@@ -321,13 +321,7 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   const float kWeights[kDataSize]{42};
   const double kUvw[3]{42};
 
-  BDABuffer::Fields fields;
-  fields.data_ = false;
-  fields.flags_ = false;
-  fields.weights_ = false;
-  fields.full_res_flags_ = false;
-
-  BDABuffer buffer(kDataSize, fields);
+  BDABuffer buffer(kDataSize, BDABuffer::Fields(false));
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations, kData, kFlags, kWeights,
                             kFlags, kUvw));

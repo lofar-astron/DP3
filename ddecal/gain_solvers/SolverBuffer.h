@@ -24,11 +24,14 @@ class SolverBuffer {
    * them.
    *
    * @param data_buffers A vector with one buffer for each timestep. Each buffer
-   *        should contain unweighted data and the corresponding weight values.
+   * should contain unweighted data and the corresponding weight values.
    * @param model_buffers Buffers with model data such that
-   *        model_buffers[time][direction] holds the unweighted model data for
-   *        the given time step and direction.
-   *        The SolverBuffer takes ownership of the model buffers.
+   * model_buffers[time][direction] holds the unweighted model data for the
+   * given time step and direction.
+   * These buffers have in the same structure as the data.
+   * Because the model data is large (e.g. tens of GB in extensive slow gain
+   * solves), the data is not copied: The SolverBuffer takes ownership of the
+   * model buffers and weights the data in place.
    */
   void AssignAndWeight(const std::vector<DPBuffer>& data_buffers,
                        std::vector<std::vector<DPBuffer>>&& model_buffers);

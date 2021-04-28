@@ -137,7 +137,7 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
     assert(success);
 
     // Adjust weights if the row partially overlaps the interval.
-    if (fields.weights_ && row->weights &&
+    if (fields.weights && row->weights &&
         BDABuffer::TimeIsLess(row_interval, interval_) &&
         BDABuffer::TimeIsLess(row_interval, row->interval)) {
       const double weight_factor = row_interval / row->interval;

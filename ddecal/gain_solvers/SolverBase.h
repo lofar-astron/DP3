@@ -66,16 +66,11 @@ class SolverBase {
    * and the (multi-directional) model data, and solves the optimization
    * problem that minimizes the norm of the differences.
    *
-   * @param unweighted_data_buffers The measured data.
-   * unweighted_data_buffers[i] holds the data for timestep i.
-   * @param model_buffers The model data. model_buffers[i] is a vector for
-   * timestep i with ndir buffers with model data. These
-   * buffers have in the same structure as the data. Because the model data is
-   * large* (e.g. tens of GB in extensive slow gain solves), the data is not
-   * copied but weighted in place.
+   * @param solver_buffer Buffer with unweighted data, weights and model data.
    * @param solutions The per-channel and per-antenna solutions.
    * solutions[ch] is a pointer for channelblock ch to antenna x directions x
    * pol solutions.
+   * @param statStream Optional pointer to a stream for displaying statistics.
    */
   virtual SolveResult Solve(const SolverBuffer& solver_buffer,
                             std::vector<std::vector<DComplex>>& solutions,
