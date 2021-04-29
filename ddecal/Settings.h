@@ -20,6 +20,8 @@ namespace ddecal {
 
 enum class SolverAlgorithm { kDirectionSolve, kDirectionIterative, kHybrid };
 
+std::string ToString(SolverAlgorithm algorithm);
+
 /// @brief This struct parses the DDECal parset settings and stores them.
 struct Settings {
  public:

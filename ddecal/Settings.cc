@@ -35,6 +35,18 @@ SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
 
 }  // namespace
 
+std::string ToString(SolverAlgorithm algorithm) {
+  switch (algorithm) {
+    case SolverAlgorithm::kDirectionSolve:
+      return "directionsolve";
+    case SolverAlgorithm::kDirectionIterative:
+      return "directioniterative";
+    case SolverAlgorithm::kHybrid:
+      return "hybrid";
+  }
+  return "invalid algorithm";
+}
+
 Settings::Settings(const common::ParameterSet& _parset,
                    const std::string& _prefix)
     : parset(&_parset),

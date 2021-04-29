@@ -163,6 +163,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
     std::unique_ptr<base::SolverBase> b = initializeSolver(
         parset, prefix, ddecal::SolverAlgorithm::kDirectionIterative);
     itsSolver = boost::make_unique<base::HybridSolver>();
+    itsSolver->SetMaxIterations(itsSettings.max_iterations);
     static_cast<base::HybridSolver&>(*itsSolver).AddSolver(std::move(a));
     static_cast<base::HybridSolver&>(*itsSolver).AddSolver(std::move(b));
   } else {
@@ -195,27 +196,27 @@ std::unique_ptr<base::SolverBase> DDECal::initializeSolver(
     case GainCal::SCALARPHASE:
     case GainCal::TEC:
     case GainCal::TECANDPHASE:
-      solver = makeScalarSolver(itsSettings.solver_algorithm);
+      solver = makeScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case GainCal::DIAGONAL:
     case GainCal::DIAGONALAMPLITUDE:
-      solver = makeDiagonalSolver(itsSettings.solver_algorithm);
+      solver = makeDiagonalSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case GainCal::DIAGONALPHASE:
-      solver = makeDiagonalSolver(itsSettings.solver_algorithm);
+      solver = makeDiagonalSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case GainCal::FULLJONES:
     case GainCal::ROTATIONANDDIAGONAL:
     case GainCal::ROTATION:
-      solver = makeFullJonesSolver(itsSettings.solver_algorithm);
+      solver = makeFullJonesSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case GainCal::TECSCREEN:
 #ifdef HAVE_ARMADILLO
-      solver = makeScalarSolver(itsSettings.solver_algorithm);
+      solver = makeScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
 #else
       throw std::runtime_error(
@@ -514,136 +515,144 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
-  for (size_t i = 0; i < itsSolver->GetConstraints().size(); ++i) {
-    Constraint& constraint = *itsSolver->GetConstraints()[i];
-    // Initialize the constraint with some common metadata
-    constraint.Initialize(info().antennaUsed().size(), itsDirections.size(),
-                          itsChanBlockFreqs);
+  std::vector<base::SolverBase*> solvers = itsSolver->ConstraintSolvers();
+  for (base::SolverBase* solver : solvers) {
+    for (const std::unique_ptr<Constraint>& constraint :
+         solver->GetConstraints()) {
+      // Initialize the constraint with some common metadata
+      constraint->Initialize(info().antennaUsed().size(), itsDirections.size(),
+                             itsChanBlockFreqs);
 
-    // Different constraints need different information. Determine if the
-    // constraint is of a type that needs more information, and if so initialize
-    // the constraint.
-    AntennaConstraint* antConstraint =
-        dynamic_cast<AntennaConstraint*>(&constraint);
-    if (antConstraint != nullptr) {
-      if (itsSettings.antenna_constraint.empty()) {
-        // Set the antenna constraint to all stations within certain distance
-        // specified by 'coreconstraint' parameter.
-        // Take the first used station as reference station
-        const double refX = usedAntennaPositions[0][0],
-                     refY = usedAntennaPositions[0][1],
-                     refZ = usedAntennaPositions[0][2];
-        std::vector<std::set<size_t>> antConstraintList(1);
-        std::set<size_t>& coreAntennaIndices = antConstraintList.front();
-        const double coreDistSq =
-            itsSettings.core_constraint * itsSettings.core_constraint;
+      // Different constraints need different information. Determine if the
+      // constraint is of a type that needs more information, and if so
+      // initialize the constraint.
+      AntennaConstraint* antConstraint =
+          dynamic_cast<AntennaConstraint*>(constraint.get());
+      if (antConstraint != nullptr) {
+        if (itsSettings.antenna_constraint.empty()) {
+          // Set the antenna constraint to all stations within certain distance
+          // specified by 'coreconstraint' parameter.
+          // Take the first used station as reference station
+          const double refX = usedAntennaPositions[0][0],
+                       refY = usedAntennaPositions[0][1],
+                       refZ = usedAntennaPositions[0][2];
+          std::vector<std::set<size_t>> antConstraintList(1);
+          std::set<size_t>& coreAntennaIndices = antConstraintList.front();
+          const double coreDistSq =
+              itsSettings.core_constraint * itsSettings.core_constraint;
+          for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
+            const double dx = refX - usedAntennaPositions[ant][0],
+                         dy = refY - usedAntennaPositions[ant][1],
+                         dz = refZ - usedAntennaPositions[ant][2],
+                         distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq <= coreDistSq) coreAntennaIndices.insert(ant);
+          }
+          antConstraint->SetAntennaSets(std::move(antConstraintList));
+        } else {
+          // Set the antenna constraint to a list of stations indices that
+          // are to be kept the same during the solve.
+          const casacore::Vector<casacore::String>& antNames =
+              info().antennaNames();
+          std::vector<std::string> antNamesStl(
+              antNames.begin(),
+              antNames.end());  // casacore vector doesn't support find properly
+          std::vector<std::set<size_t>> constraintList;
+          for (const std::set<std::string>& constraintNameSet :
+               itsSettings.antenna_constraint) {
+            constraintList.emplace_back();
+            for (const std::string& constraintName : constraintNameSet) {
+              auto iter = std::find(antNamesStl.begin(), antNamesStl.end(),
+                                    constraintName);
+              if (iter != antNamesStl.end())
+                constraintList.back().insert(
+                    info().antennaMap()[iter - antNamesStl.begin()]);
+            }
+            if (constraintList.back().size() <= 1)
+              throw std::runtime_error(
+                  "Error in antenna constraint: at least two antennas "
+                  "expected");
+          }
+          antConstraint->SetAntennaSets(std::move(constraintList));
+        }
+      }
+
+#ifdef HAVE_ARMADILLO
+      ScreenConstraint* screenConstraint =
+          dynamic_cast<ScreenConstraint*>(constraint.get());
+      if (screenConstraint != 0) {
+        screenConstraint->setAntennaPositions(usedAntennaPositions);
+        screenConstraint->setDirections(sourcePositions);
+        screenConstraint->initPiercePoints();
+        const size_t ref_antenna = 0;
+        const double refX = usedAntennaPositions[ref_antenna][0],
+                     refY = usedAntennaPositions[ref_antenna][1],
+                     refZ = usedAntennaPositions[ref_antenna][2];
+        std::vector<size_t> coreAntennaIndices;
+        std::vector<size_t> otherAntennaIndices;
+        const double coreDistSq = itsSettings.screen_core_constraint *
+                                  itsSettings.screen_core_constraint;
         for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
           const double dx = refX - usedAntennaPositions[ant][0],
                        dy = refY - usedAntennaPositions[ant][1],
                        dz = refZ - usedAntennaPositions[ant][2],
                        distSq = dx * dx + dy * dy + dz * dz;
-          if (distSq <= coreDistSq) coreAntennaIndices.insert(ant);
+          if (distSq <= coreDistSq)
+            coreAntennaIndices.emplace_back(info().antennaMap()[ant]);
+          else
+            otherAntennaIndices.emplace_back(info().antennaMap()[ant]);
         }
-        antConstraint->SetAntennaSets(std::move(antConstraintList));
-      } else {
-        // Set the antenna constraint to a list of stations indices that
-        // are to be kept the same during the solve.
-        const casacore::Vector<casacore::String>& antNames =
-            info().antennaNames();
-        std::vector<std::string> antNamesStl(
-            antNames.begin(),
-            antNames.end());  // casacore vector doesn't support find properly
-        std::vector<std::set<size_t>> constraintList;
-        for (const std::set<std::string>& constraintNameSet :
-             itsSettings.antenna_constraint) {
-          constraintList.emplace_back();
-          for (const std::string& constraintName : constraintNameSet) {
-            auto iter = std::find(antNamesStl.begin(), antNamesStl.end(),
-                                  constraintName);
-            if (iter != antNamesStl.end())
-              constraintList.back().insert(
-                  info().antennaMap()[iter - antNamesStl.begin()]);
-          }
-          if (constraintList.back().size() <= 1)
-            throw std::runtime_error(
-                "Error in antenna constraint: at least two antennas expected");
-        }
-        antConstraint->SetAntennaSets(std::move(constraintList));
+        screenConstraint->setCoreAntennas(coreAntennaIndices);
+        screenConstraint->setOtherAntennas(otherAntennaIndices);
       }
-    }
-
-#ifdef HAVE_ARMADILLO
-    ScreenConstraint* screenConstraint =
-        dynamic_cast<ScreenConstraint*>(&constraint);
-    if (screenConstraint != 0) {
-      screenConstraint->setAntennaPositions(usedAntennaPositions);
-      screenConstraint->setDirections(sourcePositions);
-      screenConstraint->initPiercePoints();
-      const double refX = usedAntennaPositions[i][0],
-                   refY = usedAntennaPositions[i][1],
-                   refZ = usedAntennaPositions[i][2];
-      std::vector<size_t> coreAntennaIndices;
-      std::vector<size_t> otherAntennaIndices;
-      const double coreDistSq = itsSettings.screen_core_constraint *
-                                itsSettings.screen_core_constraint;
-      for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
-        const double dx = refX - usedAntennaPositions[ant][0],
-                     dy = refY - usedAntennaPositions[ant][1],
-                     dz = refZ - usedAntennaPositions[ant][2],
-                     distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq <= coreDistSq)
-          coreAntennaIndices.emplace_back(info().antennaMap()[ant]);
-        else
-          otherAntennaIndices.emplace_back(info().antennaMap()[ant]);
-      }
-      screenConstraint->setCoreAntennas(coreAntennaIndices);
-      screenConstraint->setOtherAntennas(otherAntennaIndices);
-    }
 #endif
 
-    SmoothnessConstraint* sConstraint =
-        dynamic_cast<SmoothnessConstraint*>(&constraint);
-    if (sConstraint) {
-      std::vector<double> distanceFactors;
-      // If no smoothness reference distance is specified, the smoothing is made
-      // independent of the distance
-      if (itsSettings.smoothness_ref_distance == 0.0) {
-        distanceFactors.assign(usedAntennaPositions.size(), 1.0);
-      } else {
-        // Make a list of factors such that more distant antennas apply a
-        // smaller smoothing kernel.
-        distanceFactors.reserve(usedAntennaPositions.size());
-        for (size_t i = 1; i != usedAntennaPositions.size(); ++i) {
-          const double dx =
-              usedAntennaPositions[0][0] - usedAntennaPositions[i][0];
-          const double dy =
-              usedAntennaPositions[0][1] - usedAntennaPositions[i][1];
-          const double dz =
-              usedAntennaPositions[0][2] - usedAntennaPositions[i][2];
-          const double factor = itsSettings.smoothness_ref_distance /
-                                std::sqrt(dx * dx + dy * dy + dz * dz);
-          distanceFactors.push_back(factor);
-          // For antenna 0, the distance of antenna 1 is used:
-          if (i == 1) distanceFactors.push_back(factor);
+      SmoothnessConstraint* sConstraint =
+          dynamic_cast<SmoothnessConstraint*>(constraint.get());
+      if (sConstraint) {
+        std::vector<double> distanceFactors;
+        // If no smoothness reference distance is specified, the smoothing is
+        // made independent of the distance
+        if (itsSettings.smoothness_ref_distance == 0.0) {
+          distanceFactors.assign(usedAntennaPositions.size(), 1.0);
+        } else {
+          // Make a list of factors such that more distant antennas apply a
+          // smaller smoothing kernel.
+          distanceFactors.reserve(usedAntennaPositions.size());
+          for (size_t i = 1; i != usedAntennaPositions.size(); ++i) {
+            const double dx =
+                usedAntennaPositions[0][0] - usedAntennaPositions[i][0];
+            const double dy =
+                usedAntennaPositions[0][1] - usedAntennaPositions[i][1];
+            const double dz =
+                usedAntennaPositions[0][2] - usedAntennaPositions[i][2];
+            const double factor = itsSettings.smoothness_ref_distance /
+                                  std::sqrt(dx * dx + dy * dy + dz * dz);
+            distanceFactors.push_back(factor);
+            // For antenna 0, the distance of antenna 1 is used:
+            if (i == 1) distanceFactors.push_back(factor);
+          }
         }
+        sConstraint->SetDistanceFactors(std::move(distanceFactors));
       }
-      sConstraint->SetDistanceFactors(std::move(distanceFactors));
     }
   }
 
-  unsigned int nSt = info().antennaUsed().size();
-  // Give renumbered antennas to multidirsolver
-
+  size_t nSt = info().antennaUsed().size();
+  // Give renumbered antennas to solver
   itsSolver->Initialize(nSt, itsDirections.size(), info().nchan(),
                         nChannelBlocks, ant1, ant2);
 
-  for (unsigned int i = 0; i < nSolTimes; ++i) {
+  for (size_t i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
   }
 }
 
 void DDECal::show(std::ostream& os) const {
   os << "DDECal " << itsSettings.name << '\n'
+     << "  mode (constraints):  " << GainCal::calTypeToString(itsSettings.mode)
+     << '\n'
+     << "  algorithm:           "
+     << ddecal::ToString(itsSettings.solver_algorithm) << '\n'
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
      << "  solint:              " << itsSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
@@ -663,9 +672,7 @@ void DDECal::show(std::ostream& os) const {
      << itsSettings.propagate_converged_only << '\n'
      << "  detect stalling:     " << std::boolalpha
      << itsSolver->GetDetectStalling() << '\n'
-     << "  step size:           " << itsSolver->GetStepSize() << '\n'
-     << "  mode (constraints):  " << GainCal::calTypeToString(itsSettings.mode)
-     << '\n';
+     << "  step size:           " << itsSolver->GetStepSize() << '\n';
   if (!itsSettings.antenna_constraint.empty())
     os << "  antennaconstraint:   " << itsSettings.antenna_constraint << '\n';
   if (itsSettings.core_constraint != 0.0)
@@ -859,6 +866,7 @@ void DDECal::doSolve() {
     }
   }
 
+  std::vector<base::SolverBase*> solvers = itsSolver->ConstraintSolvers();
   // Declare solver_buffer outside the loop, so it can reuse its memory.
   base::SolverBuffer solver_buffer;
 
@@ -878,22 +886,23 @@ void DDECal::doSolve() {
     if (!itsSettings.only_predict) {
       checkMinimumVisibilities(i);
 
-      for (const std::unique_ptr<Constraint>& constraint :
-           itsSolver->GetConstraints()) {
-        constraint->SetWeights(itsWeightsPerAntenna);
+      for (base::SolverBase* solver : solvers) {
+        for (const std::unique_ptr<Constraint>& constraint :
+             solver->GetConstraints()) {
+          constraint->SetWeights(itsWeightsPerAntenna);
+        }
       }
 
-      const size_t n_polarizations = itsSolver->NSolutionPolarizations();
-      if (n_polarizations == 2 || n_polarizations == 4)
-        initializeFullMatrixSolutions(i);
-      else
+      const size_t n_solution_polarizations =
+          itsSolver->NSolutionPolarizations();
+      if (n_solution_polarizations == 1)
         initializeScalarSolutions(i);
+      else
+        initializeFullMatrixSolutions(i);
 
       itsTimerSolve.start();
 
-      // TODO to be done polymorphically once the solvers have been refactored
-      if (dynamic_cast<base::DiagonalSolver*>(itsSolver.get()) ||
-          dynamic_cast<base::IterativeDiagonalSolver*>(itsSolver.get())) {
+      if (n_solution_polarizations == 2) {
         // Temporary fix: convert solutions from full Jones matrices to diagonal
         std::vector<std::vector<casacore::DComplex>>& full_solutions =
             itsSols[itsSolInts[i].NSolution()];

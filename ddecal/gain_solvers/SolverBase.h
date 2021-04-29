@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <cassert>
 #include <complex>
 #include <vector>
 #include <memory>
@@ -83,13 +84,10 @@ class SolverBase {
 
   /**
    * Add a constraint to the solver.
-   * @param constraint A valid constraint pointer.
-   * @throw std::runtime_error If the constraint is invalid.
+   * @param constraint A valid constraint pointer, must not be nullptr.
    */
   void AddConstraint(std::unique_ptr<Constraint> constraint) {
-    if (!constraint) {
-      throw std::runtime_error("Solver constraint is empty.");
-    }
+    assert(constraint);
     constraints_.push_back(std::move(constraint));
   }
 
@@ -182,6 +180,14 @@ class SolverBase {
 
   void SetLLSSolverType(LLSSolverType solver_type, double min_tolerance,
                         double max_tolerance);
+
+  /**
+   * Returns a list of solvers that this solver uses and for which
+   * constraints should be set up. The @ref HybridSolver overrides
+   * this function to make it possible to initialize the solvers it
+   * combines.
+   */
+  virtual std::vector<base::SolverBase*> ConstraintSolvers() { return {this}; }
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
