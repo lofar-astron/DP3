@@ -127,7 +127,7 @@ inputs:
   idg&#46;images:
     default: "[]"
     type: list
-    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://sourceforge.net/p/wsclean/wiki/ComponentList/>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
+    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://wsclean.readthedocs.io/en/latest/component_list.html#file-format>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
   idg&#46;regions:
     default: "\"\""
     type: string
@@ -148,10 +148,10 @@ inputs:
      default: equal to llstolerance
      type: double
      doc: Used to decrease the linear least-squares solver tolerance in each solver iteration. If this variable is set, llstolerance is the final tolerance, reached after maxiter iterations, and llsstarttolerance the (larger) initial tolerance, used in the first iteration. If this variable is not set, a constant linear least-squares tolerance is used `.`
-  iteratedirections:
-    default: false
-    type: bool
-    doc: Setting this to true will enable the direction iterating algorithm for solving the DD solutions. This avoids doing the linear least-squares step which is particularly expensive when the number of direction is high. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster. The downside might be that it is less stable and/or less accurate, which is still to be tested. Currently, only scalar and diagonal solves are supported; setting iteratedirections to true in full Jones mode will result in an error `.`
+  solveralgorithm:
+    default: directionsolve
+    type: string
+    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative`` and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. Currently, only scalar and diagonal solves are supported; setting solveralgorithm to directioniterative in full Jones mode will result in an error. The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating. This is still experimental `.`
   savefacets:
     default: false
     type: bool

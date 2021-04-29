@@ -28,7 +28,27 @@ class HybridSolver final : public SolverBase {
                             : solvers_.front().first->NSolutionPolarizations();
   }
 
+  void SetNThreads(size_t n_threads) override {
+    SolverBase::SetNThreads(n_threads);
+    for (std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
+         solvers_) {
+      solver_info.first->SetNThreads(n_threads);
+    }
+  }
+
   void AddSolver(std::unique_ptr<SolverBase> solver);
+
+  /**
+   * List of solvers that need constraint initialization. This
+   * list does not include the Hybrid solver, i.e., it does
+   * not contain the "this" pointer.
+   */
+  std::vector<base::SolverBase*> ConstraintSolvers() override {
+    std::vector<base::SolverBase*> solvers;
+    for (const auto& solverinfo : solvers_)
+      solvers.emplace_back(solverinfo.first.get());
+    return solvers;
+  }
 
   void SetStopOnConvergence(bool stop_on_convergence) {
     stop_on_convergence_ = stop_on_convergence;
