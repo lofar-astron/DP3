@@ -236,7 +236,8 @@ void Predict::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
   info().setWriteData();
-  info().setBeamCorrectionMode(base::NoBeamCorrection);
+  if (itsOperation == "replace")
+    info().setBeamCorrectionMode(base::NoBeamCorrection);
 
   const size_t nBl = info().nbaselines();
   for (size_t i = 0; i != nBl; ++i) {
