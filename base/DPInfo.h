@@ -50,7 +50,9 @@ inline const char* BeamCorrectionModeToString(BeamCorrectionMode mode) {
 
 inline BeamCorrectionMode StringToBeamCorrectionMode(const std::string& str) {
   string mode = boost::to_lower_copy(str);
-  if (mode == "default" || mode == "full") {
+  if (mode == "none") {
+    return NoBeamCorrection;
+  } else if (mode == "default" || mode == "full") {
     return FullBeamCorrection;
   } else if (mode == "array_factor") {
     return ArrayFactorBeamCorrection;
@@ -58,7 +60,7 @@ inline BeamCorrectionMode StringToBeamCorrectionMode(const std::string& str) {
     return ElementBeamCorrection;
   } else {
     throw std::runtime_error(
-        "Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
+        "Beammode should be NONE, DEFAULT, ARRAY_FACTOR or ELEMENT");
   }
 }
 
