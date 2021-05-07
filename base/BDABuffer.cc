@@ -54,28 +54,6 @@ BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
 // When copying the memory pools in this copy-constructor, the capacity
 // of the new memory pools will equal their size. There is therefore
 // no remaining capacity in the new copy.
-BDABuffer::BDABuffer(const BDABuffer& other)
-    : data_(other.data_),
-      flags_(other.flags_),
-      weights_(other.weights_),
-      full_res_flags_(other.full_res_flags_),
-      rows_(),
-      original_capacity_(other.original_capacity_ - other.remaining_capacity_),
-      remaining_capacity_(0) {
-  // Copy rows but set their pointers to the new memory pools.
-  rows_.reserve(other.rows_.size());
-  for (const BDABuffer::Row& row : other.rows_) {
-    rows_.emplace_back(row.time, row.interval, row.exposure, row.row_nr,
-                       row.baseline_nr, row.n_channels, row.n_correlations,
-                       data_.data() + (row.data - other.data_.data()),
-                       flags_.data() + (row.flags - other.flags_.data()),
-                       weights_.data() + (row.weights - other.weights_.data()),
-                       full_res_flags_.data() +
-                           (row.full_res_flags - other.full_res_flags_.data()),
-                       row.uvw);
-  }
-}
-
 BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
     : data_(),
       flags_(),

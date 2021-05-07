@@ -69,21 +69,19 @@ class BDABuffer {
   explicit BDABuffer(std::size_t pool_size, const Fields& fields = Fields());
 
   /**
-   * Copy constructor.
-   * This constructor sets the memory pool size of the new buffer to the
-   * actual memory usage of the other buffer.
-   * Adding new rows to the new buffer is not possible.
-   * @param other An existing BDABuffer.
-   * @param fields The fields that should be copied. By default, copy all
-   *        available fields.
+   * Disabling the default copy constructor and copy assignment operator avoids
+   * expensive implicit copies.
+   * @{
    */
-  explicit BDABuffer(const BDABuffer& other);
+  BDABuffer(const BDABuffer& other) = delete;
+  BDABuffer& operator=(const BDABuffer& other) = delete;
+  /** @} */
 
   /**
-   * Copy constructor that can omit fields from the result.
+   * Custom copy constructor that can omit fields from the result.
    * This constructor sets the memory pool size of the new buffer to the
    * actual memory usage of the other buffer.
-   * Adding new rows to the new buffer is not possible.
+   * Adding new rows to the new buffer is therefore not possible.
    * @param other An existing BDABuffer.
    * @param fields The fields that should be copied.
    */
