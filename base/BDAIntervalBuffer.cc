@@ -22,7 +22,7 @@ BDAIntervalBuffer::BDAIntervalBuffer(const double time, const double interval,
 
 void BDAIntervalBuffer::AddBuffer(const BDABuffer& buffer) {
   if (!buffer.GetRows().empty()) {
-    buffers_.emplace_back(buffer);
+    buffers_.emplace_back(buffer, BDABuffer::Fields(true));
 
     for (const BDABuffer::Row& row : buffers_.back().GetRows()) {
       if (BDABuffer::TimeIsLess(max_row_interval_, row.interval)) {

@@ -84,7 +84,9 @@ class BDASolverBuffer {
   /**
    * @return The weighted data buffers.
    */
-  const std::vector<BDABuffer>& GetData() const { return data_; }
+  const std::vector<std::unique_ptr<BDABuffer>>& GetData() const {
+    return data_;
+  }
 
   /**
    * Get the data for the current solution interval.
@@ -120,7 +122,7 @@ class BDASolverBuffer {
    * If half the vector is unused, it will move all items to the front, resize,
    * the vector and set 'first' to 0.
    */
-  std::vector<BDABuffer> data_;
+  std::vector<std::unique_ptr<BDABuffer>> data_;
   /**
    * For each direction, a FIFO queue with model data.
    * These queues are managed the same as data_.

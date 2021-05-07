@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   BOOST_REQUIRE(buffer.GetModelData(1).size() == data.size());
 
   for (size_t b = 0; b < data.size(); ++b) {
-    const BDABuffer& data_buffer = buffer.GetData()[b];
+    const BDABuffer& data_buffer = *buffer.GetData()[b];
     const BDABuffer& model_buffer1 = *buffer.GetModelData(0)[b];
     const BDABuffer& model_buffer2 = *buffer.GetModelData(1)[b];
 

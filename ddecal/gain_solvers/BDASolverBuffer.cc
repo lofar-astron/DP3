@@ -3,6 +3,8 @@
 
 #include "BDASolverBuffer.h"
 
+#include <boost/make_unique.hpp>
+
 #include <cassert>
 
 namespace {
@@ -29,8 +31,8 @@ void BDASolverBuffer::AppendAndWeight(
   bda_fields.data = true;
 
   // Copy all unweighted data to data_.
-  data_.emplace_back(input_data_buffer, bda_fields);
-  BDABuffer& data_buffer = data_.back();
+  data_.push_back(boost::make_unique<BDABuffer>(input_data_buffer, bda_fields));
+  BDABuffer& data_buffer = *data_.back();
 
   const size_t n_rows = data_buffer.GetRows().size();
   for (size_t row = 0; row < n_rows; ++row) {

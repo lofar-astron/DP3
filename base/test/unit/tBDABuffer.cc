@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(initialization) {
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(copy) {
+BOOST_AUTO_TEST_CASE(copy_all_fields) {
   const std::complex<float> kData1[kDataSize]{{1, 1}, {2, 2}, {3, 3},
                                               {4, 4}, {5, 5}, {6, 6}};
   const std::complex<float> kData2[kDataSize]{{-1, -1}, {-2, -2}, {-3, -3},
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(copy) {
                             kBaselineNr + 1, kNChannels, kNCorrelations, kData2,
                             kFlags, kWeights2, nullptr, kUvw));
 
-  BDABuffer buffer_copy{buffer};
+  BDABuffer buffer_copy{buffer, BDABuffer::Fields(true)};
 
   // Verify the memory pool data in the copy.
   BOOST_CHECK(buffer.GetData() != buffer_copy.GetData());
