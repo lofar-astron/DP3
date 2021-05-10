@@ -8,7 +8,7 @@
 namespace dp3 {
 namespace base {
 
-SolverBase::SolveResult HybridSolver::Solve(
+RegularSolverBase::SolveResult HybridSolver::Solve(
     const SolverBuffer& solver_buffer,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
@@ -16,8 +16,8 @@ SolverBase::SolveResult HybridSolver::Solve(
   size_t available_iterations = GetMaxIterations();
   SolveResult result;
   bool is_converged = false;
-  for (const std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
-       solvers_) {
+  for (const std::pair<std::unique_ptr<RegularSolverBase>, size_t>&
+           solver_info : solvers_) {
     solver_info.first->SetMaxIterations(solver_info.second);
     is_converged = RunSolver(*solver_info.first, available_iterations, result,
                              solver_buffer, solutions, time, stat_stream);
@@ -31,16 +31,16 @@ void HybridSolver::Initialize(size_t nAntennas, size_t nDirections,
                               size_t nChannels, size_t nChannelBlocks,
                               const std::vector<int>& ant1,
                               const std::vector<int>& ant2) {
-  SolverBase::Initialize(nAntennas, nDirections, nChannels, nChannelBlocks,
-                         ant1, ant2);
-  for (const std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
-       solvers_) {
+  RegularSolverBase::Initialize(nAntennas, nDirections, nChannels,
+                                nChannelBlocks, ant1, ant2);
+  for (const std::pair<std::unique_ptr<RegularSolverBase>, size_t>&
+           solver_info : solvers_) {
     solver_info.first->Initialize(nAntennas, nDirections, nChannels,
                                   nChannelBlocks, ant1, ant2);
   }
 }
 
-void HybridSolver::AddSolver(std::unique_ptr<SolverBase> solver) {
+void HybridSolver::AddSolver(std::unique_ptr<RegularSolverBase> solver) {
   if (!solvers_.empty()) {
     if (solver->NSolutionPolarizations() !=
         solvers_.front().first->NSolutionPolarizations())
@@ -52,8 +52,8 @@ void HybridSolver::AddSolver(std::unique_ptr<SolverBase> solver) {
   solvers_.emplace_back(std::move(solver), iter);
 }
 
-bool HybridSolver::RunSolver(SolverBase& solver, size_t& available_iterations,
-                             SolveResult& result,
+bool HybridSolver::RunSolver(RegularSolverBase& solver,
+                             size_t& available_iterations, SolveResult& result,
                              const SolverBuffer& solver_buffer,
                              std::vector<std::vector<DComplex>>& solutions,
                              double time, std::ostream* stat_stream) {

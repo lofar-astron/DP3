@@ -19,7 +19,7 @@ using aocommon::ParallelFor;
 namespace dp3 {
 namespace base {
 
-SolverBase::SolveResult FullJonesSolver::Solve(
+RegularSolverBase::SolveResult FullJonesSolver::Solve(
     const SolverBuffer& solver_buffer,
     std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {

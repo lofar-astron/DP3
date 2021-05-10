@@ -23,7 +23,7 @@
 
 #include "../ddecal/Settings.h"
 #include "../ddecal/constraints/Constraint.h"
-#include "../ddecal/gain_solvers/SolverBase.h"
+#include "../ddecal/gain_solvers/RegularSolverBase.h"
 
 #include "../parmdb/Parm.h"
 
@@ -93,10 +93,10 @@ class DDECal : public Step {
   }
 
  private:
-  std::unique_ptr<base::SolverBase> initializeSolver(
+  std::unique_ptr<base::RegularSolverBase> initializeSolver(
       const common::ParameterSet& parset, const string& prefix,
       ddecal::SolverAlgorithm algorithm) const;
-  void InitializeConstraints(base::SolverBase& solver,
+  void InitializeConstraints(base::RegularSolverBase& solver,
                              const common::ParameterSet& parset,
                              const string& prefix) const;
   void initializeColumnReaders(const common::ParameterSet&,
@@ -182,7 +182,7 @@ class DDECal : public Step {
   common::NSTimer itsTimerSolve;
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
-  std::unique_ptr<base::SolverBase> itsSolver;
+  std::unique_ptr<base::RegularSolverBase> itsSolver;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };

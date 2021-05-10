@@ -3,7 +3,8 @@
 
 #include "SolverTester.h"
 
-#include "../../../ddecal/gain_solvers/SolverBase.h"
+#include "../../../ddecal/gain_solvers/RegularSolverBase.h"
+#include "../../../ddecal/gain_solvers/BdaSolverBase.h"
 
 #include <aocommon/matrix2x2.h>
 
@@ -209,7 +210,7 @@ const BDASolverBuffer& SolverTester::FillBDAData() {
             const size_t ant1_index = (ant1 * kNDirections + dir) * 2;
             const size_t ant2_index = (ant2 * kNDirections + dir) * 2;
 
-            MC2x2 val(bda_model_buffers_[dir]->GetRows().back().data);
+            MC2x2 val(&bda_model_buffers_[dir]->GetRows().back().data[ch * 4]);
             MC2x2 left(input_solutions_[ant1_index], 0.0, 0.0,
                        input_solutions_[ant1_index + 1]);
             MC2x2 right(input_solutions_[ant2_index], 0.0, 0.0,
@@ -237,7 +238,8 @@ const BDASolverBuffer& SolverTester::FillBDAData() {
   return bda_solver_buffer_;
 }
 
-void SolverTester::InitializeSolver(dp3::base::SolverBase& solver) const {
+void SolverTester::InitializeSolver(
+    dp3::base::RegularSolverBase& solver) const {
   solver.SetMaxIterations(kMaxIterations);
   solver.SetAccuracy(kAccuracy);
   solver.SetStepSize(kStepSize);
@@ -245,6 +247,15 @@ void SolverTester::InitializeSolver(dp3::base::SolverBase& solver) const {
   solver.SetPhaseOnly(kPhaseOnly);
   solver.Initialize(kNAntennas, kNDirections, kNChannels, kNChannelBlocks,
                     antennas1_, antennas2_);
+}
+
+void SolverTester::InitializeSolver(dp3::base::BdaSolverBase& solver) const {
+  solver.SetMaxIterations(kMaxIterations);
+  solver.SetAccuracy(kAccuracy);
+  solver.SetStepSize(kStepSize);
+  solver.SetNThreads(kNThreads);
+  solver.SetPhaseOnly(kPhaseOnly);
+  solver.Initialize(kNAntennas, kNDirections, kNChannelBlocks);
 }
 
 void SolverTester::SetScalarSolutions() {

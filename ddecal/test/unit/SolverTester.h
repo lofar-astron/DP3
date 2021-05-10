@@ -15,7 +15,8 @@
 
 namespace dp3 {
 namespace base {
-class SolverBase;
+class RegularSolverBase;
+class BdaSolverBase;
 
 namespace test {
 
@@ -43,7 +44,8 @@ class SolverTester {
    * Initializes a solver using default values. After using this function, a
    * test can adjust the default values.
    */
-  void InitializeSolver(dp3::base::SolverBase& solver) const;
+  void InitializeSolver(dp3::base::RegularSolverBase& solver) const;
+  void InitializeSolver(dp3::base::BdaSolverBase& solver) const;
 
   /**
    * Initializes input solutions and solver solutions.
@@ -96,6 +98,9 @@ class SolverTester {
   const double kStepSize = 0.2;
   const size_t kNThreads = 4;
   const bool kPhaseOnly = false;
+
+  const std::vector<int>& Antennas1() const { return antennas1_; }
+  const std::vector<int>& Antennas2() const { return antennas2_; }
 
  private:
   std::vector<int> antennas1_;
