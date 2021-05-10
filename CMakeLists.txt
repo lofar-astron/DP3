@@ -460,10 +460,12 @@ if (BUILD_TESTING)
     base/test/unit/tMirror.cc
     base/test/unit/tSolutionInterval.cc
     base/test/unit/tSourceDBUtil.cc
+    ddecal/test/unit/SolverTester.cc
     ddecal/test/unit/tBDASolverBuffer.cc
     ddecal/test/unit/tLLSSolver.cc
     ddecal/test/unit/tRotationConstraint.cc
     ddecal/test/unit/tSmoothnessConstraint.cc
+    ddecal/test/unit/tSolvers.cc
     steps/test/unit/mock/MockInput.cc
     steps/test/unit/mock/MockStep.cc
     steps/test/unit/fixtures/fDirectory.cc
@@ -490,11 +492,6 @@ if (BUILD_TESTING)
      message(WARNING "NumPy not found on machine, tPyStep test is excluded from tests.")
   endif()
 
-  set(TEST_SOLVER_FILENAMES
-    base/test/runtests.cc
-    ddecal/test/unit/tSolvers.cc
-  )
-
   # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
   if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
     list(APPEND TEST_FILENAMES
@@ -518,7 +515,7 @@ if (BUILD_TESTING)
   # Without this flag, linking is incorrect and boost performs duplicate delete()
   # calls after running all tests, in the cleanup phase.
   set_source_files_properties(
-    ${TEST_FILENAMES} ${TEST_SOLVER_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
+    ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
   )
 
   set(DP3_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resources)
@@ -547,35 +544,58 @@ if (BUILD_TESTING)
   target_link_libraries(unittests ${DP3_LIBRARIES})
   add_dependencies(unittests schaapcommon)
 
-  add_executable(
-    unittest_solver
-    ${TEST_SOLVER_FILENAMES} ${DP3_OBJECTS}
-  )
-  target_link_libraries(unittest_solver ${DP3_LIBRARIES})
-
   # Automatically (re)build the unit tests on every ctest run.
-  add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests unittest_solver)
+  add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
   set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 
   # unittests.sh adjusts the PYTHONPATH to make tPyStep working.
   configure_file(scripts/unittests.sh.in unittests.sh)
   add_test(
     NAME unittests
-    COMMAND unittests.sh -f JUNIT -k unittests.xml --catch_system_error=yes
+    COMMAND unittests.sh  -t !@slow -f JUNIT -k unittests.xml --catch_system_error=yes
   )
   set_tests_properties(
     unittests PROPERTIES LABELS unit
     FIXTURES_REQUIRED "unittests;extract_resources"
   )
 
-  add_test(
-    NAME unittest_solver
-    COMMAND unittest_solver -f JUNIT -k unittest_solver.xml --catch_system_error=yes
+  # Long running tests are labeled 'slow' and use a separate add_test call,
+  # so ctest can run them in parallel.
+  # Unfortunately there is no easy means of retreiving a list of all slow tests.
+  set(SLOW_TESTS
+    idgpredict/process
+    idgpredict/process_beam
+    msbdawriter/process_simple
+    msbdawriter/create_default_subtables
+    msbdawriter/different_bda_intervals
+    solvers/scalar_solver
+    solvers/iterative_scalar_solver
+    solvers/scalar_solver_normaleq
+    solvers/bda_scalar_solver
+    solvers/diagonal_solver
+    solvers/iterative_diagonal_solver
+    solvers/hybrid_solver
+    solvers/full_jones_solver
+    solvers/min_iterations
   )
-  set_tests_properties(
-    unittest_solver PROPERTIES LABELS unit
-    FIXTURES_REQUIRED "unittests"
-  )
+  if(USE_LSMR)
+    list(APPEND SLOW_TESTS
+      solvers/scalar_solver_lsmr
+      solvers/diagonal_solver_lsmr
+    )
+  endif()
+
+  foreach(TEST ${SLOW_TESTS})
+    string(REPLACE "/" "_" XMLNAME ${TEST})
+    set(XMLNAME "unittest_${XMLNAME}.xml")
+    add_test(
+      NAME ${TEST}
+      COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME} --catch_system_error=yes
+    )
+    set_tests_properties(
+      ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED "unittests"
+    )
+  endforeach()
 
   add_subdirectory(steps/test/integration)
   add_subdirectory(ddecal/test/integration)

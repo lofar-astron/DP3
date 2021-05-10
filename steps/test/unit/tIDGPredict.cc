@@ -248,7 +248,8 @@ BOOST_AUTO_TEST_CASE(update_info) {
   BOOST_TEST(predict.GetBufferSize() > 0u);
 }
 
-BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f)) {
+BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
+                                  boost::unit_test::label("slow")) {
   const dp3::common::ParameterSet parset = CreateParset();
 
   IDGPredict predict(mock_input, parset, "");
@@ -276,7 +277,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f)) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f)) {
+BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
+                                       boost::unit_test::label("slow")) {
   dp3::common::ParameterSet parset = CreateParset();
   parset.add("msin", "tNDPPP-generic.MS");
   parset.add("aterms", "beam");

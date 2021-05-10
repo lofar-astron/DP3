@@ -12,6 +12,9 @@
 
 namespace dp3 {
 namespace base {
+namespace test {
+class SolverTester;
+}
 
 class BDASolverBuffer {
  public:
@@ -71,6 +74,7 @@ class BDASolverBuffer {
 
   /**
    * Clears all internal buffers.
+   * Does not affect the solution interval and the number of directions.
    */
   void Clear() {
     data_.clear();
@@ -108,13 +112,46 @@ class BDASolverBuffer {
   /**
    * Get the model data rows for the current solution interval.
    * @param direction Direction index.
-   * @return Modifyable rows with weighted model data.
+   * @return Non-modifyable rows with weighted model data.
    */
-  const std::vector<const BDABuffer::Row*>& GetModelDataRows(size_t direction) {
+  const std::vector<const BDABuffer::Row*>& GetModelDataRows(
+      size_t direction) const {
     return current_model_rows_[direction];
   }
 
  private:
+  friend class test::SolverTester;
+
+  /**
+   * For testing: Set the row pointers that GetDataRows() should return.
+   * @param buffer GetDataRows will return all rows for this buffer.
+   */
+  void SetDataRows(const BDABuffer& buffer) {
+    current_data_rows_ = CreateRows(buffer);
+  }
+
+  /**
+   * For testing: Set the row pointers that GetModelDataRows() should return.
+   * @param buffers A BDABuffer for each direction. GetModelDataRows will return
+   *                all rows for these buffers.
+   */
+  void SetModelDataRows(
+      const std::vector<std::unique_ptr<BDABuffer>>& buffers) {
+    current_model_rows_.clear();
+    current_model_rows_.reserve(buffers.size());
+    for (const std::unique_ptr<BDABuffer>& buffer : buffers) {
+      current_model_rows_.push_back(CreateRows(*buffer));
+    }
+  }
+
+  static std::vector<const BDABuffer::Row*> CreateRows(
+      const BDABuffer& buffer) {
+    std::vector<const BDABuffer::Row*> rows;
+    rows.reserve(buffer.GetRows().size());
+    for (const BDABuffer::Row& row : buffer.GetRows()) rows.push_back(&row);
+    return rows;
+  }
+
   /**
    * data_ is a FIFO queue with weighted input data.
    * AppendAndWeight appends items at the end.
