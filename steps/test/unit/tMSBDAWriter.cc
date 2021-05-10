@@ -33,7 +33,8 @@ const std::string prefix = "msout.";
 BOOST_AUTO_TEST_SUITE(msbdawriter)
 
 // Test that the output measurementset is correct for simple data.
-BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
+BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
+                        *boost::unit_test::label("slow")) {
   const unsigned int ncorr(1);
   const unsigned int nchan(1);
   const double kTime(3.0);
@@ -168,7 +169,8 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
 
 // Test that empty default subtables are created when there is no reader data
 // available.
-BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
+BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
+                        *boost::unit_test::label("slow")) {
   DPInfo info;
   info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
@@ -193,7 +195,8 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
 }
 
 // Test BDA_TIME_AXIS for different max and min intervals.
-BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
+BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
+                        *boost::unit_test::label("slow")) {
   // Setup test
   const std::string msOutName = "bda_multiple_ms_out.MS";
   const double timeInterval = 1;

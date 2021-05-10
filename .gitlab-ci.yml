@@ -184,9 +184,9 @@ unit-test:
     paths:
       # This will give a warning which is ok
       - build/run-unit.json
-      - build/unittests.xml
+      - build/unittest*.xml
     reports:
-      junit: build/unittests.xml
+      junit: build/unittest*.xml
       cobertura: build/coverage.xml
 
 integration-test:
