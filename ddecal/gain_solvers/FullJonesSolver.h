@@ -4,7 +4,7 @@
 #ifndef DDECAL_FULL_JONES_SOLVER_H
 #define DDECAL_FULL_JONES_SOLVER_H
 
-#include "SolverBase.h"
+#include "RegularSolverBase.h"
 
 #include <complex>
 #include <vector>
@@ -12,13 +12,13 @@
 namespace dp3 {
 namespace base {
 
-class FullJonesSolver final : public SolverBase {
+class FullJonesSolver final : public RegularSolverBase {
  public:
-  FullJonesSolver() : SolverBase() {}
+  FullJonesSolver() : RegularSolverBase() {}
 
   /**
    * Solves full Jones matrices.
-   * @param solver_buffer as in @ref SolverBase::Solve()
+   * @param solver_buffer as in @ref RegularSolverBase::Solve()
    * @param solutions An array, where @c solutions[ch] is a pointer to
    * channelblock @c ch, that points to antenna x directions solutions. Each
    * solution consists of 4 complex values forming the full Jones matrix.

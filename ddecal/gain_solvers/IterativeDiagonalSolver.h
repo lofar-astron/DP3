@@ -4,7 +4,7 @@
 #ifndef DDECAL_ITERATIVE_DIAGONAL_SOLVER_H
 #define DDECAL_ITERATIVE_DIAGONAL_SOLVER_H
 
-#include "SolverBase.h"
+#include "RegularSolverBase.h"
 
 #include <complex>
 #include <vector>
@@ -12,9 +12,9 @@
 namespace dp3 {
 namespace base {
 
-class IterativeDiagonalSolver final : public SolverBase {
+class IterativeDiagonalSolver final : public RegularSolverBase {
  public:
-  IterativeDiagonalSolver() : SolverBase() {}
+  IterativeDiagonalSolver() : RegularSolverBase() {}
 
   SolveResult Solve(const SolverBuffer& solver_buffer,
                     std::vector<std::vector<DComplex>>& solutions, double time,

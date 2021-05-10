@@ -11,9 +11,9 @@
 namespace dp3 {
 namespace base {
 
-class HybridSolver final : public SolverBase {
+class HybridSolver final : public RegularSolverBase {
  public:
-  HybridSolver() : SolverBase(), stop_on_convergence_(false) {}
+  HybridSolver() : RegularSolverBase(), stop_on_convergence_(false) {}
 
   SolveResult Solve(const SolverBuffer& solver_buffer,
                     std::vector<std::vector<DComplex>>& solutions, double time,
@@ -29,14 +29,14 @@ class HybridSolver final : public SolverBase {
   }
 
   void SetNThreads(size_t n_threads) override {
-    SolverBase::SetNThreads(n_threads);
-    for (std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
+    RegularSolverBase::SetNThreads(n_threads);
+    for (std::pair<std::unique_ptr<RegularSolverBase>, size_t>& solver_info :
          solvers_) {
       solver_info.first->SetNThreads(n_threads);
     }
   }
 
-  void AddSolver(std::unique_ptr<SolverBase> solver);
+  void AddSolver(std::unique_ptr<RegularSolverBase> solver);
 
   /**
    * List of solvers that need constraint initialization. This
@@ -56,10 +56,10 @@ class HybridSolver final : public SolverBase {
 
  private:
   // List of solvers with their maximum number of iterations
-  std::vector<std::pair<std::unique_ptr<SolverBase>, size_t>> solvers_;
+  std::vector<std::pair<std::unique_ptr<RegularSolverBase>, size_t>> solvers_;
   bool stop_on_convergence_;
 
-  static bool RunSolver(SolverBase& solver, size_t& available_iterations,
+  static bool RunSolver(RegularSolverBase& solver, size_t& available_iterations,
                         SolveResult& result, const SolverBuffer& solver_buffer,
                         std::vector<std::vector<DComplex>>& solutions,
                         double time, std::ostream* stat_stream);

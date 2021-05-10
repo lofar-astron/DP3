@@ -57,25 +57,7 @@ class SolverBase {
    * and antenna mapping.
    * The antenna arrays map the data provided in @Solve to the antennas.
    */
-  virtual void Initialize(size_t nAntennas, size_t nDirections,
-                          size_t nChannels, size_t nChannelBlocks,
-                          const std::vector<int>& ant1,
-                          const std::vector<int>& ant2);
-
-  /**
-   * Solves multi-directional Jones matrices. Takes the (single) measured data
-   * and the (multi-directional) model data, and solves the optimization
-   * problem that minimizes the norm of the differences.
-   *
-   * @param solver_buffer Buffer with unweighted data, weights and model data.
-   * @param solutions The per-channel and per-antenna solutions.
-   * solutions[ch] is a pointer for channelblock ch to antenna x directions x
-   * pol solutions.
-   * @param statStream Optional pointer to a stream for displaying statistics.
-   */
-  virtual SolveResult Solve(const SolverBuffer& solver_buffer,
-                            std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) = 0;
+  void Initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks);
 
   /**
    * @return The number of polarizations in the solution.
@@ -237,19 +219,7 @@ class SolverBase {
 
   size_t NAntennas() const { return n_antennas_; }
   size_t NDirections() const { return n_directions_; }
-  size_t NChannels() const { return n_channels_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
-  size_t NBaselines() const { return ant1_.size(); }
-  int AntennaIndex1(size_t baseline) const { return ant1_[baseline]; }
-  int AntennaIndex2(size_t baseline) const { return ant2_[baseline]; }
-
-  /**
-   * @param block A channel block index, less than NChannelBlocks().
-   * @return The index of the first channel in the given channel block.
-   */
-  size_t FirstChannel(size_t block) const {
-    return block * n_channels_ / n_channel_blocks_;
-  }
 
   /**
    * Create an LLSSolver with the given matrix dimensions.
@@ -261,9 +231,7 @@ class SolverBase {
 
   size_t n_antennas_;
   size_t n_directions_;
-  size_t n_channels_;
   size_t n_channel_blocks_;
-  std::vector<int> ant1_, ant2_;
 
   /**
    * Calibration setup

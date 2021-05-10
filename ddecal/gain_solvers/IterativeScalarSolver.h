@@ -4,7 +4,7 @@
 #ifndef DDECAL_ITERATIVE_SCALAR_SOLVER_H
 #define DDECAL_ITERATIVE_SCALAR_SOLVER_H
 
-#include "SolverBase.h"
+#include "RegularSolverBase.h"
 
 #include <complex>
 #include <vector>
@@ -25,9 +25,9 @@ namespace base {
  * It is a counterpart of @ref ScalarSolver, but faster, possibly at the expense
  * of stability, but this has not been properly compared.
  */
-class IterativeScalarSolver final : public SolverBase {
+class IterativeScalarSolver final : public RegularSolverBase {
  public:
-  IterativeScalarSolver() : SolverBase() {}
+  IterativeScalarSolver() : RegularSolverBase() {}
 
   SolveResult Solve(const SolverBuffer& solver_buffer,
                     std::vector<std::vector<DComplex>>& solutions, double time,

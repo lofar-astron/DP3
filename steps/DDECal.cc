@@ -90,7 +90,7 @@ namespace dp3 {
 namespace steps {
 
 namespace {
-std::unique_ptr<base::SolverBase> makeScalarSolver(
+std::unique_ptr<base::RegularSolverBase> makeScalarSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
@@ -103,7 +103,7 @@ std::unique_ptr<base::SolverBase> makeScalarSolver(
   return nullptr;
 }
 
-std::unique_ptr<base::SolverBase> makeDiagonalSolver(
+std::unique_ptr<base::RegularSolverBase> makeDiagonalSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
@@ -116,7 +116,7 @@ std::unique_ptr<base::SolverBase> makeDiagonalSolver(
   return nullptr;
 }
 
-std::unique_ptr<base::SolverBase> makeFullJonesSolver(
+std::unique_ptr<base::RegularSolverBase> makeFullJonesSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
@@ -155,12 +155,12 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
   }
 
   if (itsSettings.solver_algorithm == ddecal::SolverAlgorithm::kHybrid) {
-    std::unique_ptr<base::SolverBase> a = initializeSolver(
+    std::unique_ptr<base::RegularSolverBase> a = initializeSolver(
         parset, prefix, ddecal::SolverAlgorithm::kDirectionSolve);
     // The max_iterations is divided by 6 to use at most 1/6th of the iterations
     // in the first solver.
     a->SetMaxIterations(std::max<size_t>(1u, itsSettings.max_iterations / 6u));
-    std::unique_ptr<base::SolverBase> b = initializeSolver(
+    std::unique_ptr<base::RegularSolverBase> b = initializeSolver(
         parset, prefix, ddecal::SolverAlgorithm::kDirectionIterative);
     itsSolver = boost::make_unique<base::HybridSolver>();
     itsSolver->SetMaxIterations(itsSettings.max_iterations);
@@ -183,10 +183,10 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
 
 DDECal::~DDECal() {}
 
-std::unique_ptr<base::SolverBase> DDECal::initializeSolver(
+std::unique_ptr<base::RegularSolverBase> DDECal::initializeSolver(
     const common::ParameterSet& parset, const string& prefix,
     ddecal::SolverAlgorithm algorithm) const {
-  std::unique_ptr<base::SolverBase> solver;
+  std::unique_ptr<base::RegularSolverBase> solver;
   switch (itsSettings.mode) {
     case GainCal::SCALAR:
     case GainCal::SCALARAMPLITUDE:
@@ -242,7 +242,7 @@ std::unique_ptr<base::SolverBase> DDECal::initializeSolver(
   return solver;
 }
 
-void DDECal::InitializeConstraints(base::SolverBase& solver,
+void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
                                    const common::ParameterSet& parset,
                                    const string& prefix) const {
   if (itsSettings.core_constraint != 0.0 ||
@@ -882,7 +882,7 @@ void DDECal::doSolve() {
     solver_buffer.AssignAndWeight(itsSolInts[i].DataBuffers(),
                                   std::move(model_buffers[i]));
 
-    base::SolverBase::SolveResult solveResult;
+    base::RegularSolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
       checkMinimumVisibilities(i);
 

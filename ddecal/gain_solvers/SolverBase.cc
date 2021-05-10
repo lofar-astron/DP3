@@ -22,7 +22,6 @@ namespace base {
 SolverBase::SolverBase()
     : n_antennas_(0),
       n_directions_(0),
-      n_channels_(0),
       n_channel_blocks_(0),
       min_iterations_(0),
       max_iterations_(100),
@@ -36,15 +35,10 @@ SolverBase::SolverBase()
       lls_max_tolerance_(1.0E-2) {}
 
 void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
-                            size_t n_channels, size_t n_channel_blocks,
-                            const std::vector<int>& ant1,
-                            const std::vector<int>& ant2) {
+                            size_t n_channel_blocks) {
   n_antennas_ = n_antennas;
   n_directions_ = n_directions;
-  n_channels_ = n_channels;
   n_channel_blocks_ = n_channel_blocks;
-  ant1_ = ant1;
-  ant2_ = ant2;
 }
 
 bool SolverBase::DetectStall(size_t iteration,

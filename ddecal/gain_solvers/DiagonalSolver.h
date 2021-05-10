@@ -4,14 +4,14 @@
 #ifndef DDECAL_DIAGONAL_SOLVER_H
 #define DDECAL_DIAGONAL_SOLVER_H
 
-#include "SolverBase.h"
+#include "RegularSolverBase.h"
 
 namespace dp3 {
 namespace base {
 
-class DiagonalSolver final : public SolverBase {
+class DiagonalSolver final : public RegularSolverBase {
  public:
-  DiagonalSolver() : SolverBase() {}
+  DiagonalSolver() : RegularSolverBase() {}
 
   SolveResult Solve(const SolverBuffer& solver_buffer,
                     std::vector<std::vector<DComplex>>& solutions, double time,

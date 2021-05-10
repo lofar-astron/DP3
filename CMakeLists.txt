@@ -260,12 +260,15 @@ add_library(DDECal OBJECT
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
   ddecal/gain_solvers/BDASolverBuffer.cc
+  ddecal/gain_solvers/BdaScalarSolver.cc
   ddecal/gain_solvers/DiagonalSolver.cc
   ddecal/gain_solvers/FullJonesSolver.cc
   ddecal/gain_solvers/HybridSolver.cc
   ddecal/gain_solvers/IterativeDiagonalSolver.cc
   ddecal/gain_solvers/IterativeScalarSolver.cc
+  ddecal/gain_solvers/RegularSolverBase.cc
   ddecal/gain_solvers/ScalarSolver.cc
+  ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverBuffer.cc
   ddecal/linear_solvers/LSMRSolver.cc
