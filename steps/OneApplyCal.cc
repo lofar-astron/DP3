@@ -126,7 +126,8 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
       itsCorrectType = CorrectType::FULLJONES;
     } else {
       itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
-      itsCorrectType = stringToCorrectType(itsSolTab.GetType());
+      itsCorrectType =
+          JonesParameters::StringToCorrectType(itsSolTab.GetType());
     }
     if (itsCorrectType == CorrectType::PHASE && nPol("") == 1) {
       itsCorrectType = CorrectType::SCALARPHASE;
@@ -154,7 +155,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
         parset.isDefined(prefix + "correction")
             ? parset.getString(prefix + "correction")
             : parset.getString(defaultPrefix + "correction", "gain"));
-    itsCorrectType = stringToCorrectType(correctTypeStr);
+    itsCorrectType = JonesParameters::StringToCorrectType(correctTypeStr);
   }
 
   if (itsCorrectType == CorrectType::FULLJONES && itsUpdateWeights) {
@@ -163,60 +164,6 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
           "Updating weights has not been implemented for invert=false and "
           "fulljones");
   }
-}
-
-string OneApplyCal::correctTypeToString(JonesParameters::CorrectType ct) {
-  if (ct == CorrectType::GAIN)
-    return "gain";
-  else if (ct == CorrectType::FULLJONES)
-    return "fulljones";
-  else if (ct == CorrectType::TEC)
-    return "tec";
-  else if (ct == CorrectType::CLOCK)
-    return "clock";
-  else if (ct == CorrectType::SCALARPHASE)
-    return "scalarphase";
-  else if (ct == CorrectType::SCALARAMPLITUDE)
-    return "scalaramplitude";
-  else if (ct == CorrectType::ROTATIONANGLE)
-    return "rotationangle";
-  else if (ct == CorrectType::ROTATIONMEASURE)
-    return "rotationmeasure";
-  else if (ct == CorrectType::PHASE)
-    return "phase";
-  else if (ct == CorrectType::AMPLITUDE)
-    return "amplitude";
-  else
-    throw Exception("Unknown correction type: " + std::to_string(ct));
-  return "";
-}
-
-JonesParameters::CorrectType OneApplyCal::stringToCorrectType(
-    const std::string& ctStr) {
-  if (ctStr == "gain")
-    return CorrectType::GAIN;
-  else if (ctStr == "fulljones")
-    return CorrectType::FULLJONES;
-  else if (ctStr == "tec")
-    return CorrectType::TEC;
-  else if (ctStr == "clock")
-    return CorrectType::CLOCK;
-  else if (ctStr == "scalarphase" || ctStr == "commonscalarphase")
-    return CorrectType::SCALARPHASE;
-  else if (ctStr == "scalaramplitude" || ctStr == "commonscalaramplitude")
-    return CorrectType::SCALARAMPLITUDE;
-  else if (ctStr == "phase")
-    return CorrectType::PHASE;
-  else if (ctStr == "amplitude")
-    return CorrectType::AMPLITUDE;
-  else if (ctStr == "rotationangle" || ctStr == "commonrotationangle" ||
-           ctStr == "rotation")
-    return CorrectType::ROTATIONANGLE;
-  else if (ctStr == "rotationmeasure")
-    return CorrectType::ROTATIONMEASURE;
-  else
-    throw Exception("Unknown correction type: " + ctStr);
-  return CorrectType::GAIN;
 }
 
 OneApplyCal::~OneApplyCal() {}
@@ -344,7 +291,8 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
     itsParmExprs.push_back("Amplitude:0");
     itsParmExprs.push_back("Amplitude:1");
   } else {
-    throw Exception("Correction type " + correctTypeToString(itsCorrectType) +
+    throw Exception("Correction type " +
+                    JonesParameters::CorrectTypeToString(itsCorrectType) +
                     " is unknown");
   }
 
@@ -375,7 +323,8 @@ void OneApplyCal::show(std::ostream& os) const {
   } else {
     os << "  Parmdb:         " << itsParmDBName << '\n';
   }
-  os << "  Correction:       " << correctTypeToString(itsCorrectType) << '\n';
+  os << "  Correction:       "
+     << JonesParameters::CorrectTypeToString(itsCorrectType) << '\n';
   if (itsCorrectType == CorrectType::GAIN ||
       itsCorrectType == CorrectType::FULLJONES) {
     os << "    Ampl/Phase:   " << std::boolalpha << itsUseAP << '\n';
@@ -485,8 +434,13 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
     times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
   }
 
+  std::vector<std::string> ant_names;
+  for (const std::string& name : info().antennaNames()) {
+    ant_names.push_back(name);
+  }
+
   itsJonesParameters = boost::make_unique<JonesParameters>(
-      info().chanFreqs(), times, info().antennaNames(), itsCorrectType,
+      info().chanFreqs(), times, ant_names, itsCorrectType,
       itsInterpolationType, itsDirection, &itsSolTab, &itsSolTab2, itsInvert,
       itsSigmaMMSE, itsParmExprs.size(), itsMissingAntennaBehavior);
 }
@@ -615,10 +569,14 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
   }
 
+  std::vector<std::string> ant_names;
+  for (const std::string& name : info().antennaNames()) {
+    ant_names.push_back(name);
+  }
+
   itsJonesParameters = boost::make_unique<JonesParameters>(
-      info().chanFreqs(), times, info().antennaNames(), ct,
-      itsInterpolationType, itsDirection, std::move(parmvalues), itsInvert,
-      itsSigmaMMSE);
+      info().chanFreqs(), times, ant_names, ct, itsInterpolationType,
+      itsDirection, std::move(parmvalues), itsInvert, itsSigmaMMSE);
 }
 
 unsigned int OneApplyCal::nPol(const std::string& parmName) {

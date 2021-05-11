@@ -88,9 +88,6 @@ class OneApplyCal : public Step {
   static void applyFlags(std::vector<double>& values,
                          const std::vector<double>& weights);
 
-  static std::string correctTypeToString(JonesParameters::CorrectType);
-  static JonesParameters::CorrectType stringToCorrectType(const std::string&);
-
   InputStep* itsInput;
   base::DPBuffer itsBuffer;
   std::string itsName;
