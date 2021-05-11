@@ -52,12 +52,15 @@ BOOST_AUTO_TEST_CASE(set_info) {
   MSBDAReader reader(kMSName, parset, kPrefix);
 
   reader.setInfo(info);
+  const double start_time =
+      4472025740;  // conversion of start time for tNDPPP_bda_tmp.MS
+                   // (2000/08/03/13:22:20) into seconds
 
   info = reader.getInfo();
   BOOST_TEST(reader.table().tableName().compare(
                  reader.table().tableName().length() - kMSName.length(),
                  kMSName.length(), kMSName) == 0);
-  BOOST_TEST(reader.spectralWindow() == -1U);
+  BOOST_TEST(reader.spectralWindow() == 0);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
   // With BDA we approximate this amount of buffers to be streamed.
@@ -66,7 +69,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
   BOOST_TEST(info.hasBDAChannels());
   BOOST_TEST(info.nbaselines() == 6U);
   BOOST_TEST(info.startchan() == 0U);
-  BOOST_TEST(info.startTime() == 0U);
+  BOOST_TEST(info.startTime() == start_time);
   BOOST_TEST(info.timeInterval() == 30U);
 }
 

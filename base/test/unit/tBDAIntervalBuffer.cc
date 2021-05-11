@@ -35,6 +35,7 @@ void AddRow(BDABuffer& buffer, double time, double interval,
             float weight) {
   const bool flags[kDataSize]{flag};
 
+  time = time + interval / 2;
   BOOST_CHECK(buffer.AddRow(time, interval, kExposure, baseline_nr, kNChannels,
                             kNCorrelations, nullptr, flags, nullptr, flags));
 
@@ -163,7 +164,7 @@ BOOST_AUTO_TEST_CASE(initialization) {
 }
 
 BOOST_AUTO_TEST_CASE(add_single) {
-  BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{kTime + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer = boost::make_unique<BDABuffer>(kDataSize);
   AddShortRow(*buffer, kTime, 42, false);
@@ -174,7 +175,7 @@ BOOST_AUTO_TEST_CASE(add_single) {
 }
 
 BOOST_AUTO_TEST_CASE(add_multiple) {
-  BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{kTime + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize);
   auto buffer2 = boost::make_unique<BDABuffer>(kDataSize);
@@ -197,7 +198,7 @@ BOOST_AUTO_TEST_CASE(add_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(add_cross_boundary_single) {
-  BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{kTime + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer = boost::make_unique<BDABuffer>(kDataSize * 12);
   AddShortRow(*buffer, kTime + 1.0, kRowNr + 0, false);
@@ -219,7 +220,7 @@ BOOST_AUTO_TEST_CASE(add_cross_boundary_single) {
 }
 
 BOOST_AUTO_TEST_CASE(add_cross_boundary_multiple) {
-  BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{kTime + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize * 3);
   AddShortRow(*buffer1, kTime + 1.0, kRowNr + 0, false);
@@ -253,7 +254,7 @@ BOOST_AUTO_TEST_CASE(add_longer_than_interval) {
       kInterval;                     // Overlap in the second BDA interval.
   const double kRowInterval3 = 5.0;  // Overlap in the third BDA interval.
 
-  BDAIntervalBuffer interval{0.0, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{0.0 + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer = boost::make_unique<BDABuffer>(kDataSize);
   AddRow(*buffer, 9.0, kRowInterval, kRowNr, kBaselineNr, true, kWeight);
@@ -293,14 +294,14 @@ BOOST_AUTO_TEST_CASE(add_max_interval) {
       kMaxRowInterval + 0.01,         // Set a too high interval.
       kRowNr, kBaselineNr, true, kWeight);
 
-  BDAIntervalBuffer interval{0.0, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{0.0 + kInterval / 2, kInterval, kMaxRowInterval};
   BOOST_CHECK_NO_THROW(interval.AddBuffer(*buffer_max));
   BOOST_CHECK_THROW(interval.AddBuffer(*buffer_over_max),
                     std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(is_complete) {
-  BDAIntervalBuffer interval{kTime, kInterval, kMaxRowInterval};
+  BDAIntervalBuffer interval{kTime + kInterval / 2, kInterval, kMaxRowInterval};
 
   auto buffer1 = boost::make_unique<BDABuffer>(kDataSize);
   auto buffer2 = boost::make_unique<BDABuffer>(kDataSize);

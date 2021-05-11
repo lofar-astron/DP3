@@ -18,6 +18,7 @@
 #include "../steps/ApplyCal.h"
 #include "../steps/Averager.h"
 #include "../steps/BDAAverager.h"
+#include "../steps/BDAExpander.h"
 #include "../steps/ColumnReader.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
@@ -54,6 +55,8 @@
 #include <casacore/casa/OS/Timer.h>
 #include <casacore/casa/OS/DynLib.h>
 #include <casacore/casa/Utilities/Regex.h>
+
+#include <iostream>
 
 using dp3::steps::InputStep;
 using dp3::steps::MSBDAWriter;
@@ -339,6 +342,8 @@ Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
     return std::make_shared<steps::Averager>(inputStep, parset, prefix);
   } else if (type == "bdaaverager") {
     return std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
+  } else if (type == "bdaexpander") {
+    return std::make_shared<steps::BDAExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
     return std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {

@@ -31,8 +31,10 @@ void BDAIntervalBuffer::AddBuffer(const BDABuffer& buffer) {
       }
       // Add row to current_rows if it overlaps the current interval
       // (it isn't completely before or after the current interval).
-      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval, time_) &&
-          !BDABuffer::TimeIsLessEqual(time_ + interval_, row.time)) {
+      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval / 2,
+                                      time_ - interval_ / 2) &&
+          !BDABuffer::TimeIsLessEqual(time_ + interval_ / 2,
+                                      row.time - row.interval / 2)) {
         current_rows_.push_back(&row);
       }
     }
@@ -60,9 +62,11 @@ void BDAIntervalBuffer::Advance(const double interval) {
       // If row_end <= bda start, it does not overlap and is old -> Ignore.
       // If bda_end <= row start, it does not overlap and is new.
       // In all other cases, it overlaps and is added to current_rows_.
-      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval, time_)) {
+      if (!BDABuffer::TimeIsLessEqual(row.time + row.interval / 2,
+                                      time_ - interval_ / 2)) {
         buffer_is_old = false;
-        if (!BDABuffer::TimeIsLessEqual(time_ + interval_, row.time)) {
+        if (!BDABuffer::TimeIsLessEqual(time_ + interval_ / 2,
+                                        row.time - row.interval / 2)) {
           current_rows_.push_back(&row);
         }
       }
@@ -80,7 +84,7 @@ bool BDAIntervalBuffer::IsComplete() const {
   if (Completeness::kUnknown != completeness_) {
     return Completeness::kComplete == completeness_;
   }
-  const double time_complete = time_ + interval_ + max_row_interval_;
+  const double time_complete = time_ + interval_ / 2 + max_row_interval_;
   // Evaluate the rows in the BDABuffers backwards.
   //
   // If a row starts at/after time_complete, the interval is complete:
@@ -126,9 +130,12 @@ std::unique_ptr<BDABuffer> BDAIntervalBuffer::GetBuffer(
   // Create the result buffer and fill it.
   auto result = boost::make_unique<BDABuffer>(pool_size, fields);
   for (const BDABuffer::Row* row : current_rows_) {
-    const double row_time = std::max(row->time, time_);
+    double row_time =
+        std::max(row->time - row->interval / 2, time_ - interval_ / 2);
     const double row_interval =
-        std::min(row->time + row->interval, time_ + interval_) - row_time;
+        std::min(row->time + row->interval / 2, time_ + interval_ / 2) -
+        row_time;
+    row_time = row_time + row_interval / 2;
     const bool success =
         result->AddRow(row_time, row_interval, row->exposure, row->baseline_nr,
                        row->n_channels, row->n_correlations, row->data,

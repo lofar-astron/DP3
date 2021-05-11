@@ -257,6 +257,10 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
   DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
+  const double averaged_interval = 2 * kInterval;
+  const double averaged_start_time = kStartTime - kInterval / 2;
+  const double averaged_centroid_time =
+      averaged_start_time + averaged_interval / 2;
 
   dp3::common::ParameterSet parset;
   InitParset(parset, baseline_length * kFactor);
@@ -274,8 +278,8 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
       CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
                    kChannelCounts, 2000.0);
   std::unique_ptr<DPBuffer> average01 =
-      CreateBuffer(kStartTime, 2.0 * kInterval, kNBaselines, kChannelCounts,
-                   0.0 + 1000.0, 2.0);
+      CreateBuffer(averaged_centroid_time, averaged_interval, kNBaselines,
+                   kChannelCounts, 0.0 + 1000.0, 2.0);
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
@@ -364,8 +368,13 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
       CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
                    kInputChannelCounts, 2000.0);
 
+  const double averaged_interval = 2 * kInterval;
+  const double averaged_start_time = kStartTime - kInterval / 2;
+  const double averaged_centroid_time_01 =
+      averaged_start_time + averaged_interval / 2;
+
   std::unique_ptr<DPBuffer> average01 =
-      CreateBuffer(kStartTime, kInterval * 2.0, kNBaselines,
+      CreateBuffer(averaged_centroid_time_01, averaged_interval, kNBaselines,
                    kOutputChannelCounts, 0.0 + 1000.0, 2.0);
   std::unique_ptr<DPBuffer> average2 =
       CreateBuffer(kStartTime + 2.0 * kInterval, kInterval, kNBaselines,
@@ -418,12 +427,13 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   // Create the expected output data for the second baseline. The third buffer
   // is written out after the finish() call and is thus not averaged.
   std::vector<std::unique_ptr<DPBuffer>> expected_second;
-  expected_second.push_back(CreateBuffer(kStartTime + 0 * kInterval,
-                                         2 * kInterval, 1, kChannelCounts,
-                                         100.0 + 1100.0, 2.0));
-  expected_second.push_back(CreateBuffer(kStartTime + 2 * kInterval,
-                                         2 * kInterval, 1, kChannelCounts,
-                                         2100.0 + 3100.0, 2.0));
+
+  expected_second.push_back(
+      CreateBuffer(kStartTime - kInterval / 2 + 2 * kInterval / 2,
+                   2 * kInterval, 1, kChannelCounts, 100.0 + 1100.0, 2.0));
+  expected_second.push_back(CreateBuffer(
+      kStartTime - kInterval / 2 + 2 * kInterval + 2 * kInterval / 2,
+      2 * kInterval, 1, kChannelCounts, 2100.0 + 3100.0, 2.0));
   expected_second.push_back(CreateBuffer(kStartTime + 4 * kInterval, kInterval,
                                          1, kChannelCounts, 4100.0, 1.0));
 
@@ -431,12 +441,12 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   // The second buffer is written out after the finish() call and thus
   // contains the average of two input buffers instead of three.
   std::vector<std::unique_ptr<DPBuffer>> expected_third;
-  expected_third.push_back(CreateBuffer(kStartTime, 3 * kInterval, 1,
-                                        kChannelCounts, 200.0 + 1200.0 + 2200.0,
-                                        3.0));
-  expected_third.push_back(CreateBuffer(kStartTime + 3 * kInterval,
-                                        2 * kInterval, 1, kChannelCounts,
-                                        3200.0 + 4200.0, 2.0));
+  expected_third.push_back(CreateBuffer(
+      kStartTime - kInterval / 2 + (3 * kInterval) / 2, 3 * kInterval, 1,
+      kChannelCounts, 200.0 + 1200.0 + 2200.0, 3.0));
+  expected_third.push_back(CreateBuffer(
+      kStartTime - kInterval / 2 + 3 * kInterval + 2 * kInterval / 2,
+      2 * kInterval, 1, kChannelCounts, 3200.0 + 4200.0, 2.0));
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);

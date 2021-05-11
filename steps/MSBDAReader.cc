@@ -28,6 +28,7 @@
 #include <casacore/ms/MSSel/MSAntennaParse.h>
 #include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
 #include <casacore/casa/version.h>
+#include <casacore/tables/TaQL/TableParse.h>
 
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -49,6 +50,8 @@ using casacore::RefRows;
 using casacore::ScalarColumn;
 using casacore::ScalarMeasColumn;
 using casacore::Table;
+using casacore::TableColumn;
+using casacore::TableDesc;
 using casacore::TableLock;
 
 using dp3::base::DPBuffer;
@@ -66,8 +69,11 @@ MSBDAReader::MSBDAReader()
       data_col_name_(),
       weight_col_name_(),
       read_vis_data_(false),
+      first_time_(0),
       last_ms_time_(0),
+      last_ms_interval_(0),
       interval_(0),
+      is_interval_integer_(false),
       spw_(0),
       nread_(0),
       timer_(),
@@ -85,14 +91,23 @@ MSBDAReader::MSBDAReader(const std::string& msName,
       weight_col_name_(parset.getString(prefix + "weightcolumn",
                                         MS::columnName(MS::WEIGHT_SPECTRUM))),
       read_vis_data_(false),
+      first_time_(0),
       last_ms_time_(0),
+      last_ms_interval_(0),
       interval_(0),
-      spw_(parset.getInt(prefix + "band", -1)),
       nread_(0),
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      bl_to_id_() {}
+      bl_to_id_() {
+  int spwInt = parset.getInt(prefix + "band", -1);
+  if (spwInt > 0) {
+    throw std::invalid_argument(
+        "BDA in combination with multiple spectral windows is not implemented");
+  } else {
+    spw_ = 0;
+  }
+}
 
 MSBDAReader::~MSBDAReader() {}
 
@@ -135,11 +150,11 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   unsigned int start_chan = 0;
   // this ntime must only be used for DP3 progress
   unsigned int ntime = std::ceil(ms_.nrow() / (float)info().nbaselines());
-  double start_time = 0;
 
   // FillInfoMetaData already set the number of channels via DPInfo::set.
-  info().init(ncorr, start_chan, info().nchan(), ntime, start_time, interval_,
+  info().init(ncorr, start_chan, info().nchan(), ntime, first_time_, interval_,
               msName(), antenna_set);
+  info().setIsBDAIntervalFactorInteger(is_interval_integer_);
   info().setDataColName(data_col_name_);
   info().setWeightColName(weight_col_name_);
 }
@@ -180,8 +195,9 @@ bool MSBDAReader::process(const DPBuffer&) {
   unsigned i = 0;
   while (nread_ < ms_.nrow() && i < info().nbaselines()) {
     const double ms_time = time[i];
+    const double ms_interval = interval[i];
 
-    if (ms_time < last_ms_time_) {
+    if (ms_time + ms_interval / 2 < last_ms_time_ + last_ms_interval_ / 2) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
       ++i;
@@ -207,6 +223,7 @@ bool MSBDAReader::process(const DPBuffer&) {
     assert(success);  // The buffer should always be large enough.
 
     last_ms_time_ = ms_time;
+    last_ms_interval_ = ms_interval;
     ++i;
     ++nread_;
   }
@@ -228,15 +245,26 @@ void MSBDAReader::FillInfoMetaData() {
   Table spw = ms_.keywordSet().asTable(base::DP3MS::kSpectralWindowTable);
 
   interval_ = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
+  is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
   unsigned int nbl = factors.nrow();
 
   // Required columns to read
   ScalarColumn<int> factor_col(factors, base::DP3MS::kFactor);
+  ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<int> ant1_col(factors, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(factors, MS::columnName(MS::ANTENNA2));
   ScalarColumn<int> ids_col(factors, base::DP3MS::kSpectralWindowId);
   ArrayColumn<double> freqs_col(spw, MS_SPW::columnName(MS_SPW::CHAN_FREQ));
   ArrayColumn<double> widths_col(spw, MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
+
+  string query =
+      "select gmin(TIME) as first_time, gmax(TIME) as last_time from $1";
+  casacore::TaQLResult result = casacore::tableCommand(query, ms_);
+  auto result_table = result.table();
+  ScalarColumn<double> first_time_col(result_table, "first_time");
+  ScalarColumn<double> last_time_col(result_table, "last_time");
+  first_time_ = first_time_col(0);
+  last_time_ = last_time_col(0);
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl);
@@ -274,7 +302,7 @@ void MSBDAReader::FillInfoMetaData() {
 }
 
 void MSBDAReader::show(std::ostream& os) const {
-  os << "MSReader\n";
+  os << "MSBDAReader\n";
   os << "  input MS:       " << ms_name_ << '\n';
   if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
@@ -284,10 +312,10 @@ void MSBDAReader::show(std::ostream& os) const {
     os << "  nchan:          " << getInfo().nchan() << '\n';
     os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
     os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
-    os << "  first time:     " << MVTime::Format(MVTime::YMD) << MVTime(0)
-       << '\n';
+    os << "  first time:     " << MVTime::Format(MVTime::YMD)
+       << MVTime(first_time_ / (24 * 3600.)) << '\n';
     os << "  last time:      " << MVTime::Format(MVTime::YMD)
-       << MVTime(last_ms_time_ / (24 * 3600.)) << '\n';
+       << MVTime(last_time_ / (24 * 3600.)) << '\n';
     os << "  ntimes:         " << getInfo().ntime() << '\n';
     os << "  time interval:  " << getInfo().timeInterval() << '\n';
     os << "  DATA column:    " << data_col_name_;

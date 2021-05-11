@@ -62,7 +62,7 @@ class BDAAverager : public Step {
     const std::size_t time_factor;  ///< Time averaging factor.
     /// Input channel start and end index for each output channel.
     std::vector<std::size_t> input_channel_indices;
-    double time;
+    double starttime;
     double interval;
     double exposure;
     std::vector<std::complex<float>> data;
