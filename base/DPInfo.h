@@ -82,6 +82,10 @@ class DPInfo {
             unsigned int ntime, double startTime, double timeInterval,
             const string& msName, const string& antennaSet);
 
+  void setIsBDAIntervalFactorInteger(bool isIntervalInteger) {
+    itsBDAIntervalFactorInteger = isIntervalInteger;
+  }
+
   /// Set nr of channels.
   void setNChan(unsigned int nchan) { itsNChan = nchan; }
 
@@ -176,6 +180,9 @@ class DPInfo {
   const std::vector<unsigned int>& ntimeAvgs() const { return itsTimeAvg; }
   double startTime() const { return itsStartTime; }
   double timeInterval() const { return itsTimeInterval; }
+  bool isBDAIntervalFactorInteger() const {
+    return itsBDAIntervalFactorInteger;
+  }
   const std::vector<std::size_t>& getAnt1() const { return itsAnt1; }
   const std::vector<std::size_t>& getAnt2() const { return itsAnt2; }
   const casacore::Vector<casacore::String>& antennaNames() const {
@@ -318,6 +325,8 @@ class DPInfo {
   std::vector<unsigned int> itsTimeAvg;
   double itsStartTime;
   double itsTimeInterval;
+  bool itsBDAIntervalFactorInteger;  // INTEGER_INTERVAL_FACTORS in
+                                     // [BDA_TIME_AXIS}
   casacore::MDirection itsPhaseCenter;
   bool itsPhaseCenterIsOriginal;
   casacore::MDirection itsDelayCenter;

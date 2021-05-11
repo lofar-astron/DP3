@@ -115,7 +115,9 @@ bool BDABuffer::AddRow(double time, double interval, double exposure,
                        const bool* const flags, const float* const weights,
                        const bool* const full_res_flags,
                        const double* const uvw) {
-  if (!rows_.empty() && TimeIsLessEqual(time + interval, rows_.back().time)) {
+  if (!rows_.empty() &&
+      TimeIsLessEqual(time + interval / 2,
+                      rows_.back().time - rows_.back().interval / 2)) {
     throw std::invalid_argument("Rows are not properly ordered");
   }
   const std::size_t n_elements = n_channels * n_correlations;

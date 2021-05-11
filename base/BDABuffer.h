@@ -46,7 +46,7 @@ class BDABuffer {
         std::size_t n_correlations, std::complex<float>* data, bool* flags,
         float* weights, bool* fullResFlags, const double* uvw);
     std::size_t GetDataSize() const { return n_channels * n_correlations; }
-    const double time;      ///< Start time for the measurements in MJD seconds.
+    const double time;  ///< Centroid time for the measurements in MJD seconds.
     const double interval;  ///< Duration time for the measurements in seconds.
     const double exposure;  ///< Exposure time for the measurements in seconds.
     common::rownr_t row_nr;

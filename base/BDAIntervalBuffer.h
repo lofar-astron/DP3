@@ -80,7 +80,7 @@ class BDAIntervalBuffer : private boost::noncopyable {
   enum class Completeness { kUnknown, kComplete, kIncomplete };
   mutable Completeness completeness_;  ///< Cached completeness status.
 
-  double time_;                    ///< Start time of current interval.
+  double time_;                    ///< Centroid time of current interval.
   double interval_;                ///< Duration of current interval.
   const double max_row_interval_;  ///< Maximum duration of a BDA row.
 

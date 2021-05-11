@@ -24,7 +24,7 @@ class MockStep : public Step {
    *        is called. Use nullptr when the mock does not expect these calls.
    */
   explicit MockStep(
-      std::function<void(const base::DPBuffer&)>* check_buffer = nullptr);
+      std::function<void(const base::DPBuffer &)> *check_buffer = nullptr);
 
   ~MockStep() override;
 
@@ -33,7 +33,7 @@ class MockStep : public Step {
    * If no check_buffer function was set, the unit test fails.
    * Otherwise, this function forwards the buffer to the check_buffer function.
    */
-  bool process(const base::DPBuffer&) override;
+  bool process(const base::DPBuffer &) override;
 
   /**
    * Mocked process() function for bda buffers.
@@ -51,10 +51,14 @@ class MockStep : public Step {
   /**
    * Mocked show() function. The unit test fails if it is called.
    */
-  void show(std::ostream&) const override;
+  void show(std::ostream &) const override;
 
-  const std::vector<std::unique_ptr<base::BDABuffer>>& GetBdaBuffers() const {
+  const std::vector<std::unique_ptr<base::BDABuffer>> &GetBdaBuffers() const {
     return bda_buffers_;
+  }
+
+  const std::vector<base::DPBuffer> &GetRegularBuffers() const {
+    return regular_buffers_;
   }
 
   void ClearBdaBuffers();
@@ -64,8 +68,9 @@ class MockStep : public Step {
   std::size_t TotalRowCount() const;
 
  private:
-  std::function<void(const base::DPBuffer&)>* check_buffer_;
+  std::function<void(const base::DPBuffer &)> *check_buffer_;
   std::vector<std::unique_ptr<base::BDABuffer>> bda_buffers_;
+  std::vector<base::DPBuffer> regular_buffers_;
   std::size_t finish_count_;
 };
 

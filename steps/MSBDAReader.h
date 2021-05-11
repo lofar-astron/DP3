@@ -145,6 +145,17 @@ class MSBDAReader : public InputStep {
   /// Get the selected spectral window.
   unsigned int spectralWindow() const override { return spw_; }
 
+  /// Get the nr of averaged full resolution channels.
+  unsigned int nchanAvgFullRes() const override { return 1; }
+
+  /// Get the nr of averaged full resolution timeslots.
+  unsigned int ntimeAvgFullRes() const override { return 1; }
+
+  /// Get the time information: cetroid of first and last time slots in the
+  /// measurement set
+  double firstTime() const override { return first_time_; }
+  double lastTime() const override { return last_time_; }
+
  private:
   /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
@@ -155,7 +166,9 @@ class MSBDAReader : public InputStep {
   std::string weight_col_name_;
   bool read_vis_data_;  ///< read visibility data?
   double last_ms_time_;
-  double interval_;     ///< original interval of the MS
+  double last_ms_interval_;
+  double interval_;  ///< original interval of the MS
+  bool is_interval_integer_;
   unsigned int spw_;    ///< spw (band) to use (<0 no select)
   unsigned int nread_;  ///< nr of time slots read from MS
   common::NSTimer timer_;
@@ -165,6 +178,9 @@ class MSBDAReader : public InputStep {
       desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel count.
   std::map<std::pair<int, int>, unsigned int>
       bl_to_id_;  ///< Maps a baseline(antenna pair) to a baseline index.
+
+  double first_time_;
+  double last_time_;
 };
 
 }  // namespace steps

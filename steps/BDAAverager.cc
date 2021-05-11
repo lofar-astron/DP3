@@ -28,7 +28,7 @@ BDAAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
     : times_added(0),
       time_factor(_time_factor),
       input_channel_indices(),
-      time(0.0),
+      starttime(0.0),
       interval(0.0),
       exposure(0.0),
       data(n_output_channels * n_correlations, {0.0f, 0.0f}),
@@ -49,7 +49,7 @@ BDAAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
 
 void BDAAverager::BaselineBuffer::Clear() {
   times_added = 0;
-  time = 0.0;
+  starttime = 0.0;
   interval = 0.0;
   exposure = 0.0;
   std::fill(data.begin(), data.end(), std::complex<float>{0.0f, 0.0f});
@@ -187,7 +187,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     ++bb.times_added;
 
     if (1 == bb.times_added) {
-      bb.time = buffer.getTime();
+      bb.starttime = buffer.getTime() - info().timeInterval() / 2;
     }
     bb.interval += info().timeInterval();
     bb.exposure += buffer.getExposure();
@@ -280,9 +280,9 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
   }
 
-  bda_buffer_->AddRow(bb.time, bb.interval, bb.exposure, baseline_nr, nchan,
-                      info().ncorr(), bb.data.data(), nullptr,
-                      bb.weights.data(), nullptr, bb.uvw);
+  bda_buffer_->AddRow(bb.starttime + bb.interval / 2, bb.interval, bb.exposure,
+                      baseline_nr, nchan, info().ncorr(), bb.data.data(),
+                      nullptr, bb.weights.data(), nullptr, bb.uvw);
 }
 
 void BDAAverager::show(std::ostream& os) const {

@@ -348,9 +348,9 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
-  const double kTime1 = 3.0;
+  const double kTime1 = 4.5;
   const double kInterval1 = 3.0;
-  const double kTime2 = 0.0;
+  const double kTime2 = 1.5;
   const double kInterval2 = 3.0;
 
   BDABuffer buffer(2 * kDataSize);
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
 BOOST_AUTO_TEST_CASE(add_overlap) {
   const double kTime1 = 3.0;
   const double kInterval1 = 3.0;
-  const double kTimePartialOverlap = 2.0;
+  const double kTimePartialOverlap = 3.5;
   const double kIntervalPartialOverlap = 2.0;
   const double kTimeFullOverlap = 1.0;
   const double kIntervalFullOverlap = 10.0;
