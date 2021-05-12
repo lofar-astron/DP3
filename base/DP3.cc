@@ -57,7 +57,6 @@
 #include <casacore/casa/OS/DynLib.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-#include <iostream>
 
 using dp3::steps::InputStep;
 using dp3::steps::MSBDAWriter;
