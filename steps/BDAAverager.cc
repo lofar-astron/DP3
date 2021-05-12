@@ -214,9 +214,9 @@ bool BDAAverager::process(const DPBuffer& buffer) {
       bb_weights += info().ncorr();
     }
 
-    bb.uvw[0] += uvw(0, b) * total_weight;
-    bb.uvw[1] += uvw(1, b) * total_weight;
-    bb.uvw[2] += uvw(2, b) * total_weight;
+    bb.uvw[0] += uvw(0, b);
+    bb.uvw[1] += uvw(1, b);
+    bb.uvw[2] += uvw(2, b);
 
     if (bb.times_added == bb.time_factor) {
       AddBaseline(b);  // BaselineBuffer is complete: Add it.
@@ -269,7 +269,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   }
 
   if (total_weight > 0) {
-    const double factor = 1.0 / total_weight;
+    const double factor = 1.0 / bb.times_added;
     bb.uvw[0] *= factor;
     bb.uvw[1] *= factor;
     bb.uvw[2] *= factor;
