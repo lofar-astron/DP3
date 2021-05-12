@@ -15,6 +15,7 @@ endif()
 set(INTEGRATION_TESTS
   tApplyBeam
   tApplyCal2
+  tBDAPredict
   tDemix
   tGainCal
   tGainCalH5Parm
