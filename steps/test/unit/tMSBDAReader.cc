@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
   BOOST_TEST(reader.table().tableName().compare(
                  reader.table().tableName().length() - kMSName.length(),
                  kMSName.length(), kMSName) == 0);
-  BOOST_TEST(reader.spectralWindow() == 0);
+  BOOST_TEST(reader.spectralWindow() == 0U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
   // With BDA we approximate this amount of buffers to be streamed.

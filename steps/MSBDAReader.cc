@@ -69,7 +69,6 @@ MSBDAReader::MSBDAReader()
       data_col_name_(),
       weight_col_name_(),
       read_vis_data_(false),
-      first_time_(0),
       last_ms_time_(0),
       last_ms_interval_(0),
       interval_(0),
@@ -79,7 +78,9 @@ MSBDAReader::MSBDAReader()
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      bl_to_id_() {}
+      bl_to_id_(),
+      first_time_(0),
+      last_time_(0) {}
 
 MSBDAReader::MSBDAReader(const std::string& msName,
                          const common::ParameterSet& parset,
@@ -91,7 +92,6 @@ MSBDAReader::MSBDAReader(const std::string& msName,
       weight_col_name_(parset.getString(prefix + "weightcolumn",
                                         MS::columnName(MS::WEIGHT_SPECTRUM))),
       read_vis_data_(false),
-      first_time_(0),
       last_ms_time_(0),
       last_ms_interval_(0),
       interval_(0),
@@ -99,7 +99,9 @@ MSBDAReader::MSBDAReader(const std::string& msName,
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      bl_to_id_() {
+      bl_to_id_(),
+      first_time_(0),
+      last_time_(0) {
   int spwInt = parset.getInt(prefix + "band", -1);
   if (spwInt > 0) {
     throw std::invalid_argument(
