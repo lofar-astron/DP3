@@ -311,6 +311,7 @@ add_library(DP3_OBJ OBJECT
   steps/Averager.cc
   steps/BDAAverager.cc
   steps/BDAExpander.cc
+  steps/BdaPredict.cc
   steps/ColumnReader.cc
   steps/Counter.cc
   steps/Demixer.cc
@@ -331,7 +332,6 @@ add_library(DP3_OBJ OBJECT
   steps/OneApplyCal.cc
   steps/PhaseShift.cc
   steps/Predict.cc
-  steps/BDAPredict.cc
   steps/PreFlagger.cc
   steps/ScaleData.cc
   steps/SetBeam.cc
