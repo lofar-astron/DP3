@@ -7,8 +7,6 @@
 
 #include "tBDABuffer.h"
 
-#include "../../BDABuffer.h"
-
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
@@ -18,26 +16,31 @@ namespace dp3 {
 namespace base {
 namespace test {
 
+void CheckBDARowMetaData(const BDABuffer::Row& left,
+                         const BDABuffer::Row& right) {
+  BOOST_CHECK_EQUAL(left.time, right.time);
+  BOOST_CHECK_EQUAL(left.interval, right.interval);
+  BOOST_CHECK_EQUAL(left.exposure, right.exposure);
+  BOOST_CHECK_EQUAL(left.row_nr, right.row_nr);
+  BOOST_CHECK_EQUAL(left.baseline_nr, right.baseline_nr);
+  BOOST_CHECK_EQUAL(left.n_channels, right.n_channels);
+  BOOST_CHECK_EQUAL(left.n_correlations, right.n_correlations);
+  BOOST_CHECK_EQUAL(left.GetDataSize(), right.GetDataSize());
+  for (std::size_t i = 0; i < 3; ++i) {
+    if (std::isnan(left.uvw[i])) {
+      BOOST_CHECK(std::isnan(right.uvw[i]));
+    } else {
+      BOOST_CHECK_EQUAL(left.uvw[i], right.uvw[i]);
+    }
+  }
+}
+
 void CheckBDARowMetaData(const BDABuffer& left, const BDABuffer& right) {
   BOOST_REQUIRE(left.GetRows().size() == right.GetRows().size());
   auto left_row = left.GetRows().begin();
   auto right_row = right.GetRows().begin();
   while (left_row != left.GetRows().end()) {
-    BOOST_CHECK_EQUAL(left_row->time, right_row->time);
-    BOOST_CHECK_EQUAL(left_row->interval, right_row->interval);
-    BOOST_CHECK_EQUAL(left_row->exposure, right_row->exposure);
-    BOOST_CHECK_EQUAL(left_row->row_nr, right_row->row_nr);
-    BOOST_CHECK_EQUAL(left_row->baseline_nr, right_row->baseline_nr);
-    BOOST_CHECK_EQUAL(left_row->n_channels, right_row->n_channels);
-    BOOST_CHECK_EQUAL(left_row->n_correlations, right_row->n_correlations);
-    BOOST_CHECK_EQUAL(left_row->GetDataSize(), right_row->GetDataSize());
-    for (std::size_t i = 0; i < 3; ++i) {
-      if (std::isnan(left_row->uvw[i])) {
-        BOOST_CHECK(std::isnan(right_row->uvw[i]));
-      } else {
-        BOOST_CHECK_EQUAL(left_row->uvw[i], right_row->uvw[i]);
-      }
-    }
+    CheckBDARowMetaData(*left_row, *right_row);
     ++left_row;
     ++right_row;
   }
