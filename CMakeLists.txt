@@ -279,7 +279,6 @@ add_library(DP3_OBJ OBJECT
   base/Apply.cc
   base/BaselineSelection.cc
   base/BDABuffer.cc
-  base/BDAIntervalBuffer.cc
   base/DemixInfo.cc
   base/DemixWorker.cc
   base/DPBuffer.cc
@@ -458,7 +457,6 @@ if (BUILD_TESTING)
     base/test/runtests.cc
     base/test/unit/tBaselineSelection.cc
     base/test/unit/tBDABuffer.cc
-    base/test/unit/tBDAIntervalBuffer.cc
     base/test/unit/tDPBuffer.cc
     # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
     base/test/unit/tDP3.cc
