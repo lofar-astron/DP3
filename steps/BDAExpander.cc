@@ -147,8 +147,6 @@ void BDAExpander::finish() {
   getNextStep()->finish();
 }
 
-bool BDAExpander::accepts(Step::MSType dt) const { return dt == BDA; }
-
 void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
                            unsigned int current_bl) {
   casacore::Cube<casacore::Complex> &data = buf_out.getData();

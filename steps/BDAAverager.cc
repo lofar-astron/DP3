@@ -295,7 +295,5 @@ void BDAAverager::show(std::ostream& os) const {
   os << "  max freq factor: " << maxfreqfactor_ << '\n';
 }
 
-Step::MSType BDAAverager::outputs() const { return BDA; };
-
 }  // namespace steps
 }  // namespace dp3

@@ -117,7 +117,7 @@ class MSBDAReader : public InputStep {
   void finish() override;
 
   /// Return which datatype this step outputs.
-  MSType outputs() const override;
+  MsType outputs() const override { return MsType::kBda; };
 
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;

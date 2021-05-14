@@ -53,7 +53,7 @@ class Step {
   typedef std::shared_ptr<Step> ShPtr;
 
   /// To check compatibility between steps before running.
-  enum MSType { REGULAR, BDA };
+  enum class MsType { kRegular, kBda };
 
   /// Constructor to initialize.
   Step() : itsPrevStep(0) {}
@@ -117,10 +117,10 @@ class Step {
   const Step::ShPtr& getNextStep() const { return itsNextStep; }
 
   /// Return which datatype this step outputs.
-  virtual MSType outputs() const { return REGULAR; }
+  virtual MsType outputs() const { return MsType::kRegular; }
 
   /// Boolean if this step can process this type of data.
-  virtual bool accepts(MSType dt) const { return dt == REGULAR; }
+  virtual bool accepts(MsType dt) const { return dt == MsType::kRegular; }
 
   /// True when the step modifies any data (or flags, meta data, etc)
   /// and therefore requires the step to be followed by a write step.

@@ -62,7 +62,7 @@ class DP3 {
                                            const common::ParameterSet& parset,
                                            const std::string& prefix,
                                            std::string& msName,
-                                           steps::Step::MSType inputType);
+                                           steps::Step::MsType inputType);
 
  private:
   /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
@@ -79,7 +79,7 @@ class DP3 {
                                            const common::ParameterSet& parset,
                                            const std::string& prefix,
                                            std::string& currentMSName,
-                                           const bool& isBDA);
+                                           steps::Step::MsType inputType);
 
   /// The map to create a step object from its type name.
   static std::map<std::string, StepCtor*> theirStepMap;
