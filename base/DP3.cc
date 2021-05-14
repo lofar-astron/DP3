@@ -19,7 +19,7 @@
 #include "../steps/Averager.h"
 #include "../steps/BDAAverager.h"
 #include "../steps/BDAExpander.h"
-#include "../steps/BDAPredict.h"
+#include "../steps/BdaPredict.h"
 #include "../steps/ColumnReader.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
@@ -373,7 +373,7 @@ Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
     return std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
   } else if (type == "predict") {
     if (inputType == Step::MSType::BDA) {
-      return std::make_shared<steps::BDAPredict>(inputStep, parset, prefix);
+      return std::make_shared<steps::BdaPredict>(inputStep, parset, prefix);
     } else {
       return std::make_shared<steps::Predict>(inputStep, parset, prefix);
     }

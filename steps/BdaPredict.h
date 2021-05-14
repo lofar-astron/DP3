@@ -1,4 +1,4 @@
-// BDAPredict.h: class to directly predict baseline dependent averaged (BDA)
+// BdaPredict.h: class to directly predict baseline dependent averaged (BDA)
 // visibilities from a source model
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -28,13 +28,13 @@ namespace steps {
 /// @brief DP3 step class to predict BDA visibilities from a source model
 /// @author Sebastiaan van der Tol
 
-class BDAPredict : public Step {
+class BdaPredict : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  BDAPredict(InputStep*, const common::ParameterSet&, const string& prefix);
+  BdaPredict(InputStep*, const common::ParameterSet&, const string& prefix);
 
-  virtual ~BDAPredict();
+  virtual ~BdaPredict();
 
   /// Process the data.
   /// Incoming BDABuffers are buffered in a queue

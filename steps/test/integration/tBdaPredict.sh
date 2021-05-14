@@ -21,7 +21,7 @@ EOF
 
 $makesourcedbexe in=test.skymodel out=test.sourcedb append=false
 
-echo; echo "Test BDAPredict"; echo
+echo; echo "Test BdaPredict"; echo
 
 bda_args="bdaaverager.timebase=20000 bdaaverager.frequencybase=20000 bdaaverager.maxinterval=61"
 
@@ -41,4 +41,3 @@ taqlcmd='select ANTENNA1, ANTENNA2 from bdapredict0.MS t1, bdapredict1.MS t2 whe
 echo $taqlcmd
 $taqlexe -noph $taqlcmd > taql.out
 diff taql.out taql.ref  ||  exit 1
-

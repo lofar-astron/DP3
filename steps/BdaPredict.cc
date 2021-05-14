@@ -1,10 +1,10 @@
-// BDAPredict.cc: DP3 step class to BDAPredict visibilities
+// BdaPredict.cc: DP3 step class that predicts BDA'd visibilities.
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Sebastiaan van der Tol
 
-#include "BDAPredict.h"
+#include "BdaPredict.h"
 #include "Predict.h"
 
 #include <iostream>
@@ -26,7 +26,7 @@ namespace steps {
 
 /// class representing a group of baselines that have the same averaging / data
 /// shape
-class BDAPredict::BaselineGroup {
+class BdaPredict::BaselineGroup {
  public:
   /// Add a baseline given by its index bl to this group
   void AddBaseline(std::size_t bl) { baselines_.push_back(bl); }
@@ -143,13 +143,13 @@ class BDAPredict::BaselineGroup {
   std::size_t nr_baselines_requested_;
 };
 
-BDAPredict::BDAPredict(InputStep *input, const common::ParameterSet &parset,
+BdaPredict::BdaPredict(InputStep *input, const common::ParameterSet &parset,
                        const string &prefix)
     : input_(input), parset_(parset), name_(prefix) {}
 
-BDAPredict::~BDAPredict() {}
+BdaPredict::~BdaPredict() {}
 
-void BDAPredict::updateInfo(const DPInfo &infoIn) {
+void BdaPredict::updateInfo(const DPInfo &infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
   info().setWriteData();
@@ -175,20 +175,20 @@ void BDAPredict::updateInfo(const DPInfo &infoIn) {
   }
 }
 
-void BDAPredict::show(std::ostream &os) const {
-  os << "BDAPredict " << name_ << '\n';
+void BdaPredict::show(std::ostream &os) const {
+  os << "BdaPredict " << name_ << '\n';
   os << "Using a regular predict per baseline group";
   os << "Predict for first baseline group";
   averaging_to_baseline_group_map_.begin()->second.Show(os);
 }
 
-void BDAPredict::showTimings(std::ostream &os, double duration) const {
+void BdaPredict::showTimings(std::ostream &os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
-  os << " BDAPredict " << name_ << '\n';
+  os << " BdaPredict " << name_ << '\n';
 }
 
-bool BDAPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
+bool BdaPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
   timer_.start();
 
   buffers_.push({std::move(buffer), 0});
@@ -212,11 +212,11 @@ bool BDAPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
   return false;
 }
 
-void BDAPredict::finish() {
+void BdaPredict::finish() {
   // Let the next steps finish.
   if (!buffers_.empty()) {
     throw std::runtime_error(
-        "Incomplete data: missing baselines in BDAPredict::finish().");
+        "Incomplete data: missing baselines in BdaPredict::finish().");
   }
   getNextStep()->finish();
 }
