@@ -598,7 +598,7 @@ if (BUILD_TESTING)
       COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME} --catch_system_error=yes
     )
     set_tests_properties(
-      ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED "unittests"
+      ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED "unittests;extract_resources"
     )
   endforeach()
 
