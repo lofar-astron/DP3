@@ -7,15 +7,22 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "../../BDABuffer.h"
+
 namespace dp3 {
 namespace base {
-
-class BDABuffer;
-
 namespace test {
 
 /**
- * Verify that the rows of two BDABuffers have equal metadata.
+ * Verify that two BDA rows have equal metadata.
+ * @param left The first BDA row in the comparison.
+ * @param right The second BDA row in the comparison.
+ */
+void CheckBDARowMetaData(const BDABuffer::Row& left,
+                         const BDABuffer::Row& right);
+
+/**
+ * Verify that all rows of two BDABuffers have equal metadata.
  * @param left The first BDABuffer in the comparison.
  * @param right The second BDABuffer in the comparison.
  */

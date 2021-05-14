@@ -114,8 +114,6 @@ class SolverTester {
   std::vector<aocommon::UVector<float>> weight_store_;
   SolverBuffer solver_buffer_;
 
-  std::unique_ptr<BDABuffer> bda_data_buffer_;
-  std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers_;
   BDASolverBuffer bda_solver_buffer_;
 };
 

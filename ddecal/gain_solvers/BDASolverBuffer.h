@@ -6,6 +6,8 @@
 
 #include "../../base/BDABuffer.h"
 
+#include <aocommon/queue.h>
+
 #include <complex>
 #include <memory>
 #include <vector>
@@ -18,55 +20,32 @@ class SolverTester;
 
 class BDASolverBuffer {
  public:
-  BDASolverBuffer()
-      : data_(), model_data_(), time_start_(0.0), time_interval_(0.0) {}
-
   /**
-   * Set the number of directions.
-   * @pre Only call this function when the solver buffer is empty.
-   * @param directions The number of directions.
-   * @throw std::logic_error If the solver buffer is not empty.
-   */
-  void SetDirections(size_t directions) {
-    if (!data_.empty())
-      throw std::logic_error(
-          "Buffer is not empty while setting number of directions.");
-
-    model_data_.resize(directions);
-    current_model_rows_.resize(directions);
-    future_model_rows_.resize(directions);
-  }
-
-  /**
-   * Set the (first) time interval for the solver buffer.
-   * @pre Only call this function when the solver buffer is empty.
+   * Constructor.
+   * @param n_directions The number of directions.
    * @param start Start time of the first solution interval.
-   * @param interval Length of a solution interval.
-   * @throw std::invalid_argument If the solution interval is <= 0.0.
-   * @throw std::logic_error If the solver buffer is not empty.
+   * @param interval Length of a solution interval. Should be > 0.0.
    */
-  void SetInterval(double start, double interval) {
-    if (interval <= 0.0)
-      throw std::invalid_argument("Invalid solution interval: " +
-                                  std::to_string(interval));
-    if (!data_.empty())
-      throw std::logic_error(
-          "Buffer is not empty while setting solution interval.");
-
-    time_start_ = start;
-    time_interval_ = interval;
+  BDASolverBuffer(size_t n_directions, double start, double interval)
+      : data_(),
+        model_data_(n_directions),
+        time_start_(start),
+        time_interval_(interval),
+        last_complete_interval_(-1),
+        data_rows_(),
+        model_rows_(n_directions) {
+    assert(interval >= 0.0);
+    AddInterval();  // Ensure that the current solution interval is valid.
   }
 
   /**
    * This function takes a buffer with unweighted data and the corresponding
    * weights, and a buffer with model data. It weights these data buffers
    * and stores the result internally.
-   * @pre Only call this function after setting the solution interval.
    * @param data_buffer A buffer with unweighted data and weights.
    * @param model_buffers A vector with model_buffers for each direction.
    * The BDA layout of these buffers should match the layout of the data_buffer.
    * The BDASolverBuffer takes ownership of the model buffers.
-   * @throw std::logic_error If the solution interval is not set.
    * @throw std::invalid_argument If model_buffers has an invalid size.
    */
   void AppendAndWeight(const BDABuffer& data_buffer,
@@ -76,37 +55,36 @@ class BDASolverBuffer {
    * Clears all internal buffers.
    * Does not affect the solution interval and the number of directions.
    */
-  void Clear() {
-    data_.clear();
-    current_data_rows_.clear();
-    future_data_rows_.clear();
-    for (auto& buffers : model_data_) buffers.clear();
-    for (auto& rows : current_model_rows_) rows.clear();
-    for (auto& rows : future_model_rows_) rows.clear();
-  }
+  void Clear();
 
   /**
-   * @return The weighted data buffers.
+   * @return True if the current solution interval is complete. An interval
+   * is complete if the solver buffer contains a BDA row with a start time
+   * greater or equal to the end time of the current solution interval.
    */
-  const std::vector<std::unique_ptr<BDABuffer>>& GetData() const {
-    return data_;
-  }
+  bool IntervalIsComplete() const { return last_complete_interval_ >= 0; }
+
+  /**
+   * Advances the current solution interval to the next interval.
+   * Releases all internal buffers that only hold data for previous solution
+   * intervals.
+   */
+  void AdvanceInterval();
+
+  /**
+   * Get the number of active buffers, which is the number of AppendAndWeight()
+   * calls minus the number of buffers that AdvanceInterval() released.
+   * This function mainly exists for testing AdvanceInterval().
+   * @return The number of active buffers.
+   */
+  size_t BufferCount() const { return data_.Size(); }
 
   /**
    * Get the data for the current solution interval.
    * @return Non-modifyable rows with weighted visibilities.
    */
   const std::vector<const BDABuffer::Row*>& GetDataRows() const {
-    return current_data_rows_;
-  }
-
-  /**
-   * @param direction Direction index.
-   * @return The weighted model buffers for the given direction.
-   */
-  const std::vector<std::unique_ptr<BDABuffer>>& GetModelData(
-      size_t direction) {
-    return model_data_[direction];
+    return data_rows_[0];
   }
 
   /**
@@ -116,70 +94,36 @@ class BDASolverBuffer {
    */
   const std::vector<const BDABuffer::Row*>& GetModelDataRows(
       size_t direction) const {
-    return current_model_rows_[direction];
+    return model_rows_[direction][0];
   }
 
  private:
-  friend class test::SolverTester;
-
-  /**
-   * For testing: Set the row pointers that GetDataRows() should return.
-   * @param buffer GetDataRows will return all rows for this buffer.
-   */
-  void SetDataRows(const BDABuffer& buffer) {
-    current_data_rows_ = CreateRows(buffer);
-  }
-
-  /**
-   * For testing: Set the row pointers that GetModelDataRows() should return.
-   * @param buffers A BDABuffer for each direction. GetModelDataRows will return
-   *                all rows for these buffers.
-   */
-  void SetModelDataRows(
-      const std::vector<std::unique_ptr<BDABuffer>>& buffers) {
-    current_model_rows_.clear();
-    current_model_rows_.reserve(buffers.size());
-    for (const std::unique_ptr<BDABuffer>& buffer : buffers) {
-      current_model_rows_.push_back(CreateRows(*buffer));
-    }
-  }
-
-  static std::vector<const BDABuffer::Row*> CreateRows(
-      const BDABuffer& buffer) {
-    std::vector<const BDABuffer::Row*> rows;
-    rows.reserve(buffer.GetRows().size());
-    for (const BDABuffer::Row& row : buffer.GetRows()) rows.push_back(&row);
-    return rows;
-  }
+  void AddInterval();
 
   /**
    * data_ is a FIFO queue with weighted input data.
    * AppendAndWeight appends items at the end.
-   * Advance() may remove items at the front and then update 'first'.
-   * If half the vector is unused, it will move all items to the front, resize,
-   * the vector and set 'first' to 0.
    */
-  std::vector<std::unique_ptr<BDABuffer>> data_;
+  aocommon::Queue<std::unique_ptr<BDABuffer>> data_;
   /**
    * For each direction, a FIFO queue with model data.
    * These queues are managed the same as data_.
    */
-  std::vector<std::vector<std::unique_ptr<BDABuffer>>> model_data_;
-  size_t
-      first;  ///< Index of the first item in data_ and model_data_[direction].
+  std::vector<aocommon::Queue<std::unique_ptr<BDABuffer>>> model_data_;
 
   double time_start_;  ///< Start time of current solution interval (seconds).
   double time_interval_;  ///< Solution interval length (seconds).
+  /// Index of the last complete solution interval. The value is negative if no
+  /// interval is complete.
+  int last_complete_interval_;
 
-  /// The data rows for the current solution interval.
-  std::vector<const BDABuffer::Row*> current_data_rows_;
-  /// The data rows for future solution intervals.
-  std::vector<const BDABuffer::Row*> future_data_rows_;
+  /// The data rows for the current and future solution intervals.
+  /// The queue always contains one element for the current solution interval.
+  aocommon::Queue<std::vector<const BDABuffer::Row*>> data_rows_;
 
-  /// For each direction, the model data rows for the current solution interval.
-  std::vector<std::vector<const BDABuffer::Row*>> current_model_rows_;
-  /// For each direction, the model data rows for future solution intervals.
-  std::vector<std::vector<const BDABuffer::Row*>> future_model_rows_;
+  /// For each direction, the model data rows for each solution interval.
+  /// The queues always contain one element for the current solution interval.
+  std::vector<aocommon::Queue<std::vector<const BDABuffer::Row*>>> model_rows_;
 };
 
 }  // namespace base
