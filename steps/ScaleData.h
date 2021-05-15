@@ -69,11 +69,11 @@ class ScaleData : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
-  /// Return which datatype this step outputs.
-  MSType outputs() const override;
+  bool accepts(MsType dt) const override {
+    return dt == MsType::kRegular || dt == MsType::kBda;
+  }
 
-  /// Boolean if this step can process this type of data.
-  bool accepts(MSType dt) const override;
+  MsType outputs() const override { return getPrevStep()->outputs(); }
 
  private:
   /// Fill the scale factors for stations having different nr of tiles.

@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(step_output_is_bda) {
   ParameterSet parset;
   MSBDAReader reader("does_not_exist.MS", parset, kPrefix);
 
-  BOOST_TEST(reader.outputs() == dp3::steps::Step::MSType::BDA);
+  BOOST_TEST((reader.outputs() == dp3::steps::Step::MsType::kBda));
 }
 
 BOOST_AUTO_TEST_CASE(empty_input) {

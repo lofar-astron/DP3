@@ -269,9 +269,8 @@ InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
     const std::string msOutName = parset.getString("msout");
     if (needsOutputStep || !msOutName.empty()) {
       std::string msName = casacore::Path(inputStep->msName()).absoluteName();
-      Step::ShPtr outputStep =
-          makeOutputStep(inputStep.get(), parset, "msout.", msName,
-                         step->outputs() == Step::MSType::BDA);
+      Step::ShPtr outputStep = makeOutputStep(inputStep.get(), parset, "msout.",
+                                              msName, step->outputs());
       step->setNextStep(outputStep);
       step = outputStep;
     }
@@ -305,7 +304,8 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
     std::string type = parset.getString(prefix + "type", defaultType);
     boost::algorithm::to_lower(type);
 
-    Step::MSType inputType = lastStep ? lastStep->outputs() : Step::REGULAR;
+    Step::MsType inputType =
+        lastStep ? lastStep->outputs() : Step::MsType::kRegular;
     Step::ShPtr step =
         makeSingleStep(type, inputStep, parset, prefix, msName, inputType);
 
@@ -334,7 +334,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
 Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
                                 const common::ParameterSet& parset,
                                 const std::string& prefix, std::string& msName,
-                                Step::MSType inputType) {
+                                Step::MsType inputType) {
   if (type == "aoflagger" || type == "aoflag") {
     return std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
@@ -372,7 +372,7 @@ Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
   } else if (type == "applycal" || type == "correct") {
     return std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
   } else if (type == "predict") {
-    if (inputType == Step::MSType::BDA) {
+    if (inputType == Step::MsType::kBda) {
       return std::make_shared<steps::BdaPredict>(inputStep, parset, prefix);
     } else {
       return std::make_shared<steps::Predict>(inputStep, parset, prefix);
@@ -394,8 +394,7 @@ Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
   } else if (type == "out" || type == "output" || type == "msout") {
     if (msName.empty())
       msName = casacore::Path(inputStep->msName()).absoluteName();
-    return makeOutputStep(inputStep, parset, prefix, msName,
-                          inputType == Step::MSType::BDA);
+    return makeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
     return pythondp3::PyStep::create_instance(inputStep, parset, prefix);
   } else {
@@ -407,7 +406,8 @@ Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
 Step::ShPtr DP3::makeOutputStep(InputStep* reader,
                                 const common::ParameterSet& parset,
                                 const std::string& prefix,
-                                std::string& currentMSName, const bool& isBDA) {
+                                std::string& currentMSName,
+                                Step::MsType inputType) {
   Step::ShPtr step;
   std::string outName;
   bool doUpdate = false;
@@ -433,24 +433,28 @@ Step::ShPtr DP3::makeOutputStep(InputStep* reader,
       doUpdate = true;
     }
   }
-  if (isBDA) {
-    if (doUpdate) {
-      throw std::invalid_argument("No updater for BDA data.");
-    } else {
-      step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
-      reader->setReadVisData(true);
-    }
-  } else {
-    if (doUpdate) {
-      // Create MSUpdater.
-      // Take care the history is not written twice.
-      // Note that if there is nothing to write, the updater won't do anything.
-      step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
-                                         outName != currentMSName);
-    } else {
-      step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
-      reader->setReadVisData(true);
-    }
+  switch (inputType) {
+    case Step::MsType::kBda:
+      if (doUpdate) {
+        throw std::invalid_argument("No updater for BDA data.");
+      } else {
+        step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
+        reader->setReadVisData(true);
+      }
+      break;
+    case Step::MsType::kRegular:
+      if (doUpdate) {
+        // Create MSUpdater.
+        // Take care the history is not written twice.
+        // Note that if there is nothing to write, the updater won't do
+        // anything.
+        step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                           outName != currentMSName);
+      } else {
+        step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
+        reader->setReadVisData(true);
+      }
+      break;
   }
   casacore::Path pathOut(outName);
   currentMSName = pathOut.absoluteName();

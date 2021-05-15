@@ -258,11 +258,5 @@ void ScaleData::fillSizeScaleFactors(unsigned int nNominal,
   }
 }
 
-Step::MSType ScaleData::outputs() const { return getPrevStep()->outputs(); }
-
-bool ScaleData::accepts(Step::MSType dt) const {
-  return dt == REGULAR || dt == BDA;
-}
-
 }  // namespace steps
 }  // namespace dp3

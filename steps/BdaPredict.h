@@ -57,10 +57,10 @@ class BdaPredict : public Step {
   void showTimings(std::ostream&, double duration) const override;
 
   /// Boolean if this step can process this type of data.
-  bool accepts(MSType dt) const override { return dt == BDA; }
+  bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
   /// Return which datatype this step outputs.
-  MSType outputs() const override { return BDA; }
+  MsType outputs() const override { return MsType::kBda; }
 
  private:
   InputStep* input_;

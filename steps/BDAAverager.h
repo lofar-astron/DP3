@@ -49,8 +49,9 @@ class BDAAverager : public Step {
 
   void updateInfo(const base::DPInfo&) override;
 
-  /// Return which datatype this step outputs.
-  MSType outputs() const override;
+  bool accepts(MsType t) const override { return t == MsType::kRegular; }
+
+  MsType outputs() const override { return MsType::kBda; };
 
  private:
   struct BaselineBuffer {

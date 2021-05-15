@@ -113,8 +113,6 @@ MSBDAReader::MSBDAReader(const std::string& msName,
 
 MSBDAReader::~MSBDAReader() {}
 
-Step::MSType MSBDAReader::outputs() const { return BDA; };
-
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   InputStep::updateInfo(dpInfo);
 

@@ -55,7 +55,7 @@ class BDAExpander : public Step {
 
   void showTimings(std::ostream &, double duration) const override;
 
-  bool accepts(MSType dt) const override;
+  bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
  private:
   /// Helper function to copy the data from BDABuffer to DPBuffer
