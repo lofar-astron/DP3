@@ -18,7 +18,7 @@ using aocommon::ParallelFor;
 #include <iostream>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 namespace {
 constexpr size_t kNCorrelations = 4;
@@ -249,5 +249,5 @@ void IterativeScalarSolver::AddOrSubtractDirection(
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

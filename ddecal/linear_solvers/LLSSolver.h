@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 /**
  * Linear least-squares solver to use.
@@ -58,7 +58,7 @@ class LLSSolver {
   int nrhs_;  // number of columns in vector b
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

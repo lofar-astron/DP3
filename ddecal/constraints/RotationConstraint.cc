@@ -6,9 +6,8 @@
 #include <cmath>
 #include <assert.h>
 
-using namespace std;
-
 namespace dp3 {
+namespace ddecal {
 
 void RotationConstraint::Initialize(size_t nAntennas, size_t nDirections,
                                     const std::vector<double>& frequencies) {
@@ -28,28 +27,28 @@ void RotationConstraint::Initialize(size_t nAntennas, size_t nDirections,
   _res[0].name = "rotation";
 }
 
-void RotationConstraint::SetWeights(const vector<double>& weights) {
+void RotationConstraint::SetWeights(const std::vector<double>& weights) {
   _res[0].weights = weights;  // TODO directions!
 }
 
 double RotationConstraint::get_rotation(std::complex<double>* data) {
   // Convert to circular
-  complex<double> i(0, 1.);
+  dcomplex i(0, 1.);
 
-  complex<double> ll = data[0] + data[3] - i * data[1] + i * data[2];
-  complex<double> rr = data[0] + data[3] + i * data[1] - i * data[2];
+  dcomplex ll = data[0] + data[3] - i * data[1] + i * data[2];
+  dcomplex rr = data[0] + data[3] + i * data[1] - i * data[2];
   double angle = 0.5 * (arg(ll) - arg(rr));
 
   return angle;
 }
 
-vector<Constraint::Result> RotationConstraint::Apply(
-    vector<vector<dcomplex> >& solutions, double,
+std::vector<Constraint::Result> RotationConstraint::Apply(
+    std::vector<std::vector<dcomplex> >& solutions, double,
     std::ostream* /*statStream*/) {
   for (unsigned int ch = 0; ch < NChannelBlocks(); ++ch) {
     for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
       // Compute rotation
-      complex<double>* data = &(solutions[ch][4 * ant]);
+      dcomplex* data = &(solutions[ch][4 * ant]);
       double angle = get_rotation(data);
       _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
 
@@ -64,4 +63,5 @@ vector<Constraint::Result> RotationConstraint::Apply(
   return _res;
 }
 
+}  // namespace ddecal
 }  // namespace dp3

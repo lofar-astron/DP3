@@ -18,7 +18,7 @@
 #include <memory>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class SolveData;
 
@@ -40,7 +40,7 @@ class BdaSolverBase : public SolverBase {
                             double time, std::ostream* statStream) = 0;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

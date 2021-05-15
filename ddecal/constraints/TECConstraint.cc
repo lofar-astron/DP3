@@ -5,6 +5,9 @@
 
 #include <aocommon/parallelfor.h>
 
+namespace dp3 {
+namespace ddecal {
+
 TECConstraintBase::TECConstraintBase(Mode mode)
     : _mode(mode), _doPhaseReference(true), _phaseFitters() {}
 
@@ -193,3 +196,6 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
     return std::vector<Constraint::Result>();
   }
 }
+
+}  // namespace ddecal
+}  // namespace dp3

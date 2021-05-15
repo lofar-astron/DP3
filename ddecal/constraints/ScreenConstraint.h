@@ -23,6 +23,8 @@ namespace common {
 class ParameterSet;
 }
 
+namespace ddecal {
+
 class ScreenConstraint : public Constraint {
   using DComplex = std::complex<double>;
   static const double phtoTEC;  //=1./8.4479745e9;
@@ -79,5 +81,8 @@ class ScreenConstraint : public Constraint {
   int itsDebugMode;
   size_t itsIter;
 };
+
+}  // namespace ddecal
 }  // namespace dp3
+
 #endif

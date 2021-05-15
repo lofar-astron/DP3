@@ -14,6 +14,9 @@
 #include <vector>
 #include <ostream>
 
+namespace dp3 {
+namespace ddecal {
+
 class TECConstraintBase : public Constraint {
  public:
   enum Mode {
@@ -104,5 +107,8 @@ class ApproximateTECConstraint : public TECConstraint {
   std::vector<std::vector<double> > _threadWeights;
   size_t _fittingChunkSize, _maxApproxIters;
 };
+
+}  // namespace ddecal
+}  // namespace dp3
 
 #endif

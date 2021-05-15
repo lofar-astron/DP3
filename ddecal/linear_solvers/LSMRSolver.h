@@ -13,7 +13,7 @@
 using complex = std::complex<float>;
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 /* zLSMR prototype */
 extern "C" void __clsmrmodule_MOD_clsmr(
@@ -56,7 +56,7 @@ class LSMRSolver final : public LLSSolver {
   std::vector<complex> x_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

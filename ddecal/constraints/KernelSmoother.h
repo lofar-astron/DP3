@@ -10,6 +10,9 @@
 #include <vector>
 #include <limits>
 
+namespace dp3 {
+namespace ddecal {
+
 /**
  * \brief Smooths a series of possibly irregularly gridded values by a
  * given kernel.
@@ -146,5 +149,8 @@ class KernelSmoother {
   NumType _bandwidth;
   NumType _bandwidthRefFrequency;
 };
+
+}  // namespace ddecal
+}  // namespace dp3
 
 #endif

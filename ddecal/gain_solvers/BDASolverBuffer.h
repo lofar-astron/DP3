@@ -14,10 +14,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
-namespace test {
-class SolverTester;
-}
+namespace ddecal {
 
 class BDASolverBuffer {
  public:
@@ -50,8 +47,9 @@ class BDASolverBuffer {
    * The BDASolverBuffer takes ownership of the model buffers.
    * @throw std::invalid_argument If model_buffers has an invalid size.
    */
-  void AppendAndWeight(const BDABuffer& data_buffer,
-                       std::vector<std::unique_ptr<BDABuffer>>&& model_buffers);
+  void AppendAndWeight(
+      const base::BDABuffer& data_buffer,
+      std::vector<std::unique_ptr<base::BDABuffer>>&& model_buffers);
 
   /**
    * Clears all internal buffers.
@@ -85,7 +83,7 @@ class BDASolverBuffer {
    * Get the data for the current solution interval.
    * @return Non-modifyable rows with weighted visibilities.
    */
-  const std::vector<const BDABuffer::Row*>& GetDataRows() const {
+  const std::vector<const base::BDABuffer::Row*>& GetDataRows() const {
     return data_rows_[0];
   }
 
@@ -94,7 +92,7 @@ class BDASolverBuffer {
    * @param direction Direction index.
    * @return Non-modifyable rows with weighted model data.
    */
-  const std::vector<const BDABuffer::Row*>& GetModelDataRows(
+  const std::vector<const base::BDABuffer::Row*>& GetModelDataRows(
       size_t direction) const {
     return model_rows_[direction][0];
   }
@@ -111,11 +109,11 @@ class BDASolverBuffer {
   }
 
   /// A FIFO queue with weighted input data. AppendAndWeight appends items.
-  aocommon::Queue<std::unique_ptr<BDABuffer>> data_;
+  aocommon::Queue<std::unique_ptr<base::BDABuffer>> data_;
 
   /// For each direction, a FIFO queue with model data.
   /// These queues are managed the same as data_.
-  std::vector<aocommon::Queue<std::unique_ptr<BDABuffer>>> model_data_;
+  std::vector<aocommon::Queue<std::unique_ptr<base::BDABuffer>>> model_data_;
 
   /// Start time of the first solution interval (seconds).
   const double time_start_;
@@ -128,14 +126,15 @@ class BDASolverBuffer {
 
   /// The data rows for the current and future solution intervals.
   /// The queue always contains one element for the current solution interval.
-  aocommon::Queue<std::vector<const BDABuffer::Row*>> data_rows_;
+  aocommon::Queue<std::vector<const base::BDABuffer::Row*>> data_rows_;
 
   /// For each direction, the model data rows for each solution interval.
   /// The queues always contain one element for the current solution interval.
-  std::vector<aocommon::Queue<std::vector<const BDABuffer::Row*>>> model_rows_;
+  std::vector<aocommon::Queue<std::vector<const base::BDABuffer::Row*>>>
+      model_rows_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_BDA_SOLVER_BUFFER_H

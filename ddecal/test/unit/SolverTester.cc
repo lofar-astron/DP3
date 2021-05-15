@@ -15,9 +15,11 @@
 #include <utility>
 
 using aocommon::MC2x2;
+using dp3::base::BDABuffer;
+using dp3::base::DPBuffer;
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 namespace test {
 
 namespace {
@@ -242,8 +244,7 @@ const BDASolverBuffer& SolverTester::FillBDAData() {
   return bda_solver_buffer_;
 }
 
-void SolverTester::InitializeSolver(
-    dp3::base::RegularSolverBase& solver) const {
+void SolverTester::InitializeSolver(RegularSolverBase& solver) const {
   solver.SetMaxIterations(kMaxIterations);
   solver.SetAccuracy(kAccuracy);
   solver.SetStepSize(kStepSize);
@@ -253,7 +254,7 @@ void SolverTester::InitializeSolver(
                     antennas1_, antennas2_);
 }
 
-void SolverTester::InitializeSolver(dp3::base::BdaSolverBase& solver) const {
+void SolverTester::InitializeSolver(BdaSolverBase& solver) const {
   solver.SetMaxIterations(kMaxIterations);
   solver.SetAccuracy(kAccuracy);
   solver.SetStepSize(kStepSize);
@@ -359,5 +360,5 @@ void SolverTester::CheckDiagonalResults(double tolerance) {
 }
 
 }  // namespace test
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

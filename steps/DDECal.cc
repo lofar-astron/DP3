@@ -84,51 +84,51 @@ using dp3::base::CalType;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
-using dp3::base::LLSSolver;
-using dp3::base::LLSSolverType;
+using dp3::ddecal::LLSSolver;
+using dp3::ddecal::LLSSolverType;
 using dp3::common::operator<<;
 
 namespace dp3 {
 namespace steps {
 
 namespace {
-std::unique_ptr<base::RegularSolverBase> makeScalarSolver(
+std::unique_ptr<ddecal::RegularSolverBase> makeScalarSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<base::ScalarSolver>();
+      return boost::make_unique<ddecal::ScalarSolver>();
     case ddecal::SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<base::IterativeScalarSolver>();
+      return boost::make_unique<ddecal::IterativeScalarSolver>();
     case ddecal::SolverAlgorithm::kHybrid:
-      return boost::make_unique<base::HybridSolver>();
+      return boost::make_unique<ddecal::HybridSolver>();
   }
   return nullptr;
 }
 
-std::unique_ptr<base::RegularSolverBase> makeDiagonalSolver(
+std::unique_ptr<ddecal::RegularSolverBase> makeDiagonalSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<base::DiagonalSolver>();
+      return boost::make_unique<ddecal::DiagonalSolver>();
     case ddecal::SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<base::IterativeDiagonalSolver>();
+      return boost::make_unique<ddecal::IterativeDiagonalSolver>();
     case ddecal::SolverAlgorithm::kHybrid:
-      return boost::make_unique<base::HybridSolver>();
+      return boost::make_unique<ddecal::HybridSolver>();
   }
   return nullptr;
 }
 
-std::unique_ptr<base::RegularSolverBase> makeFullJonesSolver(
+std::unique_ptr<ddecal::RegularSolverBase> makeFullJonesSolver(
     ddecal::SolverAlgorithm algorithm) {
   switch (algorithm) {
     case ddecal::SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<base::FullJonesSolver>();
+      return boost::make_unique<ddecal::FullJonesSolver>();
     case ddecal::SolverAlgorithm::kDirectionIterative:
       throw std::runtime_error(
           "The direction-iterating algorithm is not available for the "
           "specified solving mode");
     case ddecal::SolverAlgorithm::kHybrid:
-      return boost::make_unique<base::HybridSolver>();
+      return boost::make_unique<ddecal::HybridSolver>();
   }
   return nullptr;
 }
@@ -157,17 +157,17 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
   }
 
   if (itsSettings.solver_algorithm == ddecal::SolverAlgorithm::kHybrid) {
-    std::unique_ptr<base::RegularSolverBase> a = initializeSolver(
+    std::unique_ptr<ddecal::RegularSolverBase> a = initializeSolver(
         parset, prefix, ddecal::SolverAlgorithm::kDirectionSolve);
     // The max_iterations is divided by 6 to use at most 1/6th of the iterations
     // in the first solver.
     a->SetMaxIterations(std::max<size_t>(1u, itsSettings.max_iterations / 6u));
-    std::unique_ptr<base::RegularSolverBase> b = initializeSolver(
+    std::unique_ptr<ddecal::RegularSolverBase> b = initializeSolver(
         parset, prefix, ddecal::SolverAlgorithm::kDirectionIterative);
-    itsSolver = boost::make_unique<base::HybridSolver>();
+    itsSolver = boost::make_unique<ddecal::HybridSolver>();
     itsSolver->SetMaxIterations(itsSettings.max_iterations);
-    static_cast<base::HybridSolver&>(*itsSolver).AddSolver(std::move(a));
-    static_cast<base::HybridSolver&>(*itsSolver).AddSolver(std::move(b));
+    static_cast<ddecal::HybridSolver&>(*itsSolver).AddSolver(std::move(a));
+    static_cast<ddecal::HybridSolver&>(*itsSolver).AddSolver(std::move(b));
   } else {
     itsSolver = initializeSolver(parset, prefix, itsSettings.solver_algorithm);
   }
@@ -185,10 +185,10 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
 
 DDECal::~DDECal() {}
 
-std::unique_ptr<base::RegularSolverBase> DDECal::initializeSolver(
+std::unique_ptr<ddecal::RegularSolverBase> DDECal::initializeSolver(
     const common::ParameterSet& parset, const string& prefix,
     ddecal::SolverAlgorithm algorithm) const {
-  std::unique_ptr<base::RegularSolverBase> solver;
+  std::unique_ptr<ddecal::RegularSolverBase> solver;
   switch (itsSettings.mode) {
     case CalType::kScalar:
     case CalType::kScalarAmplitude:
@@ -244,15 +244,15 @@ std::unique_ptr<base::RegularSolverBase> DDECal::initializeSolver(
   return solver;
 }
 
-void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
+void DDECal::InitializeConstraints(ddecal::RegularSolverBase& solver,
                                    const common::ParameterSet& parset,
                                    const string& prefix) const {
   if (itsSettings.core_constraint != 0.0 ||
       !itsSettings.antenna_constraint.empty()) {
-    solver.AddConstraint(boost::make_unique<AntennaConstraint>());
+    solver.AddConstraint(boost::make_unique<ddecal::AntennaConstraint>());
   }
   if (itsSettings.smoothness_constraint != 0.0) {
-    solver.AddConstraint(boost::make_unique<SmoothnessConstraint>(
+    solver.AddConstraint(boost::make_unique<ddecal::SmoothnessConstraint>(
         itsSettings.smoothness_constraint,
         itsSettings.smoothness_ref_frequency));
   }
@@ -265,28 +265,29 @@ void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
       break;
     case CalType::kScalarPhase:
     case CalType::kDiagonalPhase:
-      solver.AddConstraint(boost::make_unique<PhaseOnlyConstraint>());
+      solver.AddConstraint(boost::make_unique<ddecal::PhaseOnlyConstraint>());
       break;
     case CalType::kScalarAmplitude:
     case CalType::kDiagonalAmplitude:
-      solver.AddConstraint(boost::make_unique<AmplitudeOnlyConstraint>());
+      solver.AddConstraint(
+          boost::make_unique<ddecal::AmplitudeOnlyConstraint>());
       break;
     case CalType::kTec:
     case CalType::kTecAndPhase: {
       const auto tec_mode = (itsSettings.mode == CalType::kTec)
-                                ? TECConstraint::TECOnlyMode
-                                : TECConstraint::TECAndCommonScalarMode;
-      std::unique_ptr<TECConstraint> constraint;
+                                ? ddecal::TECConstraint::TECOnlyMode
+                                : ddecal::TECConstraint::TECAndCommonScalarMode;
+      std::unique_ptr<ddecal::TECConstraint> constraint;
 
       if (itsSettings.approximate_tec) {
         auto approxConstraint =
-            boost::make_unique<ApproximateTECConstraint>(tec_mode);
+            boost::make_unique<ddecal::ApproximateTECConstraint>(tec_mode);
         approxConstraint->SetMaxApproximatingIterations(
             itsSettings.max_approx_iterations);
         approxConstraint->SetFittingChunkSize(itsSettings.approx_chunk_size);
         constraint = std::move(approxConstraint);
       } else {
-        constraint = boost::make_unique<TECConstraint>(tec_mode);
+        constraint = boost::make_unique<ddecal::TECConstraint>(tec_mode);
       }
       constraint->setDoPhaseReference(itsSettings.phase_reference);
       solver.AddConstraint(std::move(constraint));
@@ -294,18 +295,19 @@ void DDECal::InitializeConstraints(base::RegularSolverBase& solver,
     }
 #ifdef HAVE_ARMADILLO
     case CalType::kTecScreen:
-      solver.AddConstraint(
-          boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
+      solver.AddConstraint(boost::make_unique<ddecal::ScreenConstraint>(
+          parset, prefix + "tecscreen."));
       break;
 #endif
     case CalType::kRotationAndDiagonal: {
-      auto constraint = boost::make_unique<RotationAndDiagonalConstraint>();
+      auto constraint =
+          boost::make_unique<ddecal::RotationAndDiagonalConstraint>();
       constraint->SetDoRotationReference(itsSettings.rotation_reference);
       solver.AddConstraint(std::move(constraint));
       break;
     }
     case CalType::kRotation:
-      solver.AddConstraint(boost::make_unique<RotationConstraint>());
+      solver.AddConstraint(boost::make_unique<ddecal::RotationConstraint>());
       break;
     default:
       throw std::runtime_error("Unexpected solving mode: " +
@@ -517,9 +519,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
-  std::vector<base::SolverBase*> solvers = itsSolver->ConstraintSolvers();
-  for (base::SolverBase* solver : solvers) {
-    for (const std::unique_ptr<Constraint>& constraint :
+  std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
+  for (ddecal::SolverBase* solver : solvers) {
+    for (const std::unique_ptr<ddecal::Constraint>& constraint :
          solver->GetConstraints()) {
       // Initialize the constraint with some common metadata
       constraint->Initialize(info().antennaUsed().size(), itsDirections.size(),
@@ -528,8 +530,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       // Different constraints need different information. Determine if the
       // constraint is of a type that needs more information, and if so
       // initialize the constraint.
-      AntennaConstraint* antConstraint =
-          dynamic_cast<AntennaConstraint*>(constraint.get());
+      ddecal::AntennaConstraint* antConstraint =
+          dynamic_cast<ddecal::AntennaConstraint*>(constraint.get());
       if (antConstraint != nullptr) {
         if (itsSettings.antenna_constraint.empty()) {
           // Set the antenna constraint to all stations within certain distance
@@ -579,8 +581,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       }
 
 #ifdef HAVE_ARMADILLO
-      ScreenConstraint* screenConstraint =
-          dynamic_cast<ScreenConstraint*>(constraint.get());
+      ddecal::ScreenConstraint* screenConstraint =
+          dynamic_cast<ddecal::ScreenConstraint*>(constraint.get());
       if (screenConstraint != 0) {
         screenConstraint->setAntennaPositions(usedAntennaPositions);
         screenConstraint->setDirections(sourcePositions);
@@ -608,8 +610,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       }
 #endif
 
-      SmoothnessConstraint* sConstraint =
-          dynamic_cast<SmoothnessConstraint*>(constraint.get());
+      ddecal::SmoothnessConstraint* sConstraint =
+          dynamic_cast<ddecal::SmoothnessConstraint*>(constraint.get());
       if (sConstraint) {
         std::vector<double> distanceFactors;
         // If no smoothness reference distance is specified, the smoothing is
@@ -867,9 +869,9 @@ void DDECal::doSolve() {
     }
   }
 
-  std::vector<base::SolverBase*> solvers = itsSolver->ConstraintSolvers();
+  std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
   // Declare solver_buffer outside the loop, so it can reuse its memory.
-  base::SolverBuffer solver_buffer;
+  ddecal::SolverBuffer solver_buffer;
 
   for (size_t i = 0; i < itsSolInts.size(); ++i) {
     // When the model data is subtracted after calibration, the model data
@@ -883,12 +885,12 @@ void DDECal::doSolve() {
     solver_buffer.AssignAndWeight(itsSolInts[i].DataBuffers(),
                                   std::move(model_buffers[i]));
 
-    base::RegularSolverBase::SolveResult solveResult;
+    ddecal::RegularSolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
       checkMinimumVisibilities(i);
 
-      for (base::SolverBase* solver : solvers) {
-        for (const std::unique_ptr<Constraint>& constraint :
+      for (ddecal::SolverBase* solver : solvers) {
+        for (const std::unique_ptr<ddecal::Constraint>& constraint :
              solver->GetConstraints()) {
           constraint->SetWeights(itsWeightsPerAntenna);
         }
@@ -1266,7 +1268,7 @@ void DDECal::writeSolutions() {
       for (unsigned int solNameNum = 0; solNameNum < nSolNames; ++solNameNum) {
         // Get the result of the constraint solution at first time to get
         // metadata
-        Constraint::Result firstResult =
+        ddecal::Constraint::Result firstResult =
             itsConstraintSols[0][constraintNum][solNameNum];
 
         std::vector<hsize_t> dims(firstResult.dims.size() +

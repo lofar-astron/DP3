@@ -7,6 +7,8 @@
 
 #include <cassert>
 
+using dp3::base::DPBuffer;
+
 namespace {
 const size_t kNCorrelations = 4;
 
@@ -16,7 +18,7 @@ bool IsFinite(std::complex<float> c) {
 }  // namespace
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 void SolverBuffer::AssignAndWeight(
     const std::vector<DPBuffer>& unweighted_data_buffers,
@@ -114,5 +116,5 @@ void SolverBuffer::CopyDataChannels(size_t time_index, size_t channel_begin,
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

@@ -12,7 +12,7 @@
 #include <iostream>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 thread_local complex* LSMRSolver::LSMR_Matrix_A;
 
@@ -117,7 +117,7 @@ bool LSMRSolver::Solve(complex* a, complex* b, complex* x) {
   return success;
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

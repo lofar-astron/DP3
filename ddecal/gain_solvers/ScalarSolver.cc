@@ -18,7 +18,7 @@ using aocommon::ParallelFor;
 #include <boost/make_unique.hpp>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 ScalarSolver::SolveResult ScalarSolver::Solve(
     const SolverBuffer& solver_buffer,
@@ -211,5 +211,5 @@ void ScalarSolver::PerformIteration(const SolverBuffer& solver_buffer,
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

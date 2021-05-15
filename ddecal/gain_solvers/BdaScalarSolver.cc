@@ -16,7 +16,7 @@ using aocommon::ParallelFor;
 #include <boost/make_unique.hpp>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 BdaScalarSolver::SolveResult BdaScalarSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
@@ -204,5 +204,5 @@ void BdaScalarSolver::PerformIteration(
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

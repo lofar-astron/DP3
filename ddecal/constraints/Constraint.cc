@@ -3,6 +3,9 @@
 
 #include "Constraint.h"
 
+namespace dp3 {
+namespace ddecal {
+
 std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
     std::vector<std::vector<dcomplex> >& solutions, double,
     std::ostream* statStream) {
@@ -79,3 +82,6 @@ std::vector<Constraint::Result> AntennaConstraint::Apply(
   }
   return std::vector<Constraint::Result>();
 }
+
+}  // namespace ddecal
+}  // namespace dp3

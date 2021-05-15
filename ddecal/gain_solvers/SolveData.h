@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class BDASolverBuffer;
 
@@ -77,7 +77,7 @@ class SolveData {
   std::vector<ChannelBlockData> channel_blocks_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

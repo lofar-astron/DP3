@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class FullJonesSolver final : public RegularSolverBase {
  public:
@@ -37,7 +37,7 @@ class FullJonesSolver final : public RegularSolverBase {
                         std::vector<DComplex>& nextSolutions);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_FULL_JONES_SOLVER_H

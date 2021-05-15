@@ -10,6 +10,7 @@
 #include <ostream>
 
 namespace dp3 {
+namespace ddecal {
 
 class RotationConstraint : public Constraint {
  public:
@@ -31,6 +32,7 @@ class RotationConstraint : public Constraint {
   std::vector<Constraint::Result> _res;
 };
 
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

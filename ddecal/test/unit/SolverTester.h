@@ -14,7 +14,8 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
+
 class RegularSolverBase;
 class BdaSolverBase;
 
@@ -32,20 +33,20 @@ class SolverTester {
    * Creates regular data, for testing regular solvers.
    * @return The internal solver buffer that contains the data.
    */
-  const SolverBuffer& FillData();
+  const ddecal::SolverBuffer& FillData();
 
   /**
    * Creates BDA data, for testing BDA solvers.
    * @return The internal solver buffer that contains the data.
    */
-  const BDASolverBuffer& FillBDAData();
+  const ddecal::BDASolverBuffer& FillBDAData();
 
   /**
    * Initializes a solver using default values. After using this function, a
    * test can adjust the default values.
    */
-  void InitializeSolver(dp3::base::RegularSolverBase& solver) const;
-  void InitializeSolver(dp3::base::BdaSolverBase& solver) const;
+  void InitializeSolver(dp3::ddecal::RegularSolverBase& solver) const;
+  void InitializeSolver(dp3::ddecal::BdaSolverBase& solver) const;
 
   /**
    * Initializes input solutions and solver solutions.
@@ -108,8 +109,8 @@ class SolverTester {
   std::vector<std::complex<float>> input_solutions_;
   std::vector<std::vector<std::complex<double>>> solver_solutions_;
 
-  std::vector<DPBuffer> data_buffers_;
-  std::vector<std::vector<DPBuffer>> model_buffer_store_;
+  std::vector<base::DPBuffer> data_buffers_;
+  std::vector<std::vector<base::DPBuffer>> model_buffer_store_;
   std::vector<aocommon::UVector<std::complex<float>>> data_store_;
   std::vector<aocommon::UVector<float>> weight_store_;
   SolverBuffer solver_buffer_;
@@ -118,7 +119,7 @@ class SolverTester {
 };
 
 }  // namespace test
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DP3_DDECAL_SOLVER_TESTER_H

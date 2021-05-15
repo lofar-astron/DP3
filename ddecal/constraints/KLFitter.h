@@ -11,6 +11,7 @@
 #include "PiercePoint.h"
 
 namespace dp3 {
+namespace ddecal {
 
 /// \brief Creates KH base and fits screens from collection of PiercePoints.
 class KLFitter {
@@ -43,5 +44,8 @@ class KLFitter {
   arma::Mat<double> itsTECFitWhite;
   arma::Col<double> itsPar;
 };
+
+}  // namespace ddecal
 }  // namespace dp3
+
 #endif

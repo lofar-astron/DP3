@@ -103,7 +103,7 @@ struct Settings {
   const double screen_core_constraint;
 
   // Solver settings.
-  const base::LLSSolverType lls_solver_type;
+  const ddecal::LLSSolverType lls_solver_type;
   const double lls_max_tolerance;
   const double lls_min_tolerance;
   const size_t max_iterations;

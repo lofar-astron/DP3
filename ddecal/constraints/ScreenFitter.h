@@ -10,9 +10,12 @@
 
 #ifndef SCREEN_FITTER_H
 #define SCREEN_FITTER_H
+
 #include <armadillo>
 #include <vector>
-using namespace arma;
+
+namespace dp3 {
+namespace ddecal {
 
 /// \brief Class to perform screen fitting
 class ScreenFitter {
@@ -22,6 +25,10 @@ class ScreenFitter {
 
  private:
   std::vector<double> _phases, _frequencies, _weights;
-  mat _corrmatrix;  ///< correlation matrix
+  arma::mat _corrmatrix;  ///< correlation matrix
 };
+
+}  // namespace ddecal
+}  // namespace dp3
+
 #endif

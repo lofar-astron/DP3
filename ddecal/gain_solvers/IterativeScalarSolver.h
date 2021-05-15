@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 /**
  * Implementation of a direction-dependent antenna scalar gain solver. It works
@@ -55,7 +55,7 @@ class IterativeScalarSolver final : public RegularSolverBase {
                       std::vector<DComplex>& next_solutions);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_ITERATIVE_SCALAR_SOLVER_H

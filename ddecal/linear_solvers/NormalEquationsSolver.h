@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 /* CGELSD prototype */
 extern "C" void cposv_(char* uplo, int* n, int* nrhs, std::complex<float>* a,
@@ -68,7 +68,7 @@ class NormalEquationsSolver final : public LLSSolver {
   std::vector<std::complex<float>> adaggerb_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

@@ -7,7 +7,7 @@
 #include "SolverBase.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class RegularSolverBase : public SolverBase {
  public:
@@ -57,7 +57,7 @@ class RegularSolverBase : public SolverBase {
   size_t n_channels_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

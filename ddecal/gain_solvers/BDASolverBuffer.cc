@@ -8,6 +8,8 @@
 #include <cassert>
 #include <limits>
 
+using dp3::base::BDABuffer;
+
 namespace {
 const size_t kNCorrelations = 4;
 
@@ -17,7 +19,7 @@ bool IsFinite(std::complex<float> c) {
 }  // namespace
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 void BDASolverBuffer::AppendAndWeight(
     const BDABuffer& input_data_buffer,
@@ -155,5 +157,5 @@ void BDASolverBuffer::AddInterval() {
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

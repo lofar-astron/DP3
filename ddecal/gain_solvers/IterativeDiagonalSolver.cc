@@ -18,7 +18,7 @@ using aocommon::ParallelFor;
 #include <iostream>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
     const SolverBuffer& solver_buffer,
@@ -286,5 +286,5 @@ void IterativeDiagonalSolver::AddOrSubtractDirection(
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

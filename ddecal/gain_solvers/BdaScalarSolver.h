@@ -8,7 +8,7 @@
 #include "SolveData.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class BdaScalarSolver final : public BdaSolverBase {
  public:
@@ -29,7 +29,7 @@ class BdaScalarSolver final : public BdaSolverBase {
                         double iteration_fraction, double solver_precision);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_SCALAR_SOLVER_H

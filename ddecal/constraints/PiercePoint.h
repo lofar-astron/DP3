@@ -16,6 +16,7 @@
 #include <vector>
 
 namespace dp3 {
+namespace ddecal {
 
 class PiercePoint {
   /// default height in meter (300000)
@@ -52,6 +53,7 @@ class PiercePoint {
   arma::Col<double> itsValue;  ///< PiercePoint in ITRF coordinates
 };
 
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

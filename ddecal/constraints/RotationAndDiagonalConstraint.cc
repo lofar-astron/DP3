@@ -19,6 +19,7 @@ bool dataIsValid(const std::complex<double>* const data,
 }  // namespace
 
 namespace dp3 {
+namespace ddecal {
 
 RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
     : _res(), _doRotationReference(false) {}
@@ -219,4 +220,5 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
   return _res;
 }
 
+}  // namespace ddecal
 }  // namespace dp3

@@ -78,7 +78,8 @@ Settings::Settings(const common::ParameterSet& _parset,
           GetDouble("tecslls_solver_type,creen.coreconstraint", 0.0)),
 
       // Solver settings
-      lls_solver_type(base::LLSSolver::ParseType(GetString("llssolver", "qr"))),
+      lls_solver_type(
+          ddecal::LLSSolver::ParseType(GetString("llssolver", "qr"))),
       lls_max_tolerance(GetDouble("llstolerance", 1.0E-7)),
       lls_min_tolerance(GetDouble("llsstarttolerance", lls_max_tolerance)),
       max_iterations(GetUint("maxiter", 50)),

@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class IterativeDiagonalSolver final : public RegularSolverBase {
  public:
@@ -42,7 +42,7 @@ class IterativeDiagonalSolver final : public RegularSolverBase {
                       std::vector<DComplex>& next_solutions);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_ITERATIVE_DIAGONAL_SOLVER_H
