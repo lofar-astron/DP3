@@ -82,16 +82,15 @@ void BDASolverBuffer::AppendAndWeight(
     }
 
     // Add row pointers to the correct solution interval.
-    assert(data_row.time > time_start_);
-    const size_t interval_index =
-        (data_row.time - time_start_) / time_interval_;
+    const int queue_index = RelativeIndex(data_row.time);
+    assert(queue_index >= 0);
 
     // Add new solution intervals if needed.
-    while (interval_index >= data_rows_.Size()) AddInterval();
+    while (size_t(queue_index) >= data_rows_.Size()) AddInterval();
 
-    data_rows_[interval_index].push_back(&data_row);
+    data_rows_[queue_index].push_back(&data_row);
     for (size_t dir = 0; dir < n_directions; ++dir) {
-      model_rows_[dir][interval_index].push_back(
+      model_rows_[dir][queue_index].push_back(
           &model_buffers[dir]->GetRows()[row]);
     }
 
@@ -104,7 +103,7 @@ void BDASolverBuffer::AppendAndWeight(
   }
 
   // Update last_complete_interval_.
-  int max_start_interval = (max_start - time_start_) / time_interval_;
+  int max_start_interval = RelativeIndex(max_start);
   assert(max_start_interval > last_complete_interval_);
   last_complete_interval_ = max_start_interval - 1;
 }
@@ -128,14 +127,14 @@ void BDASolverBuffer::AdvanceInterval() {
 
   if (data_rows_.Empty()) AddInterval();
 
-  time_start_ += time_interval_;
+  ++current_interval_;
   --last_complete_interval_;
 
   // Remove old BDABuffers.
   while (!data_.Empty()) {
     bool all_rows_are_old = true;
     for (const BDABuffer::Row& row : data_[0]->GetRows()) {
-      if (BDABuffer::TimeIsGreaterEqual(row.time, time_start_)) {
+      if (RelativeIndex(row.time) >= 0) {
         all_rows_are_old = false;
         break;
       }

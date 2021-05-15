@@ -8,6 +8,7 @@
 
 #include <aocommon/queue.h>
 
+#include <cmath>
 #include <complex>
 #include <memory>
 #include <vector>
@@ -31,6 +32,7 @@ class BDASolverBuffer {
         model_data_(n_directions),
         time_start_(start),
         time_interval_(interval),
+        current_interval_(0),
         last_complete_interval_(-1),
         data_rows_(),
         model_rows_(n_directions) {
@@ -101,20 +103,27 @@ class BDASolverBuffer {
   void AddInterval();
 
   /**
-   * data_ is a FIFO queue with weighted input data.
-   * AppendAndWeight appends items at the end.
+   * @return The relative solution interval index for a given time.
    */
+  int RelativeIndex(double time) const {
+    return int(std::floor((time - time_start_) / time_interval_)) -
+           current_interval_;
+  }
+
+  /// A FIFO queue with weighted input data. AppendAndWeight appends items.
   aocommon::Queue<std::unique_ptr<BDABuffer>> data_;
-  /**
-   * For each direction, a FIFO queue with model data.
-   * These queues are managed the same as data_.
-   */
+
+  /// For each direction, a FIFO queue with model data.
+  /// These queues are managed the same as data_.
   std::vector<aocommon::Queue<std::unique_ptr<BDABuffer>>> model_data_;
 
-  double time_start_;  ///< Start time of current solution interval (seconds).
-  double time_interval_;  ///< Solution interval length (seconds).
-  /// Index of the last complete solution interval. The value is negative if no
-  /// interval is complete.
+  /// Start time of the first solution interval (seconds).
+  const double time_start_;
+  const double time_interval_;  ///< Solution interval length (seconds).
+  int current_interval_;  ///< Absolute index of the current solution interval.
+
+  /// Index of the last complete solution interval, relative to the current
+  /// solution interval. The value is negative if no interval is complete.
   int last_complete_interval_;
 
   /// The data rows for the current and future solution intervals.
