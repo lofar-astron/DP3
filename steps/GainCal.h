@@ -46,6 +46,9 @@
 #include <H5Cpp.h>
 
 namespace dp3 {
+namespace base {
+enum class CalType;
+}
 namespace common {
 class ParameterSet;
 }
@@ -59,21 +62,6 @@ typedef std::pair<size_t, size_t> Baseline;
 /// gains.
 class GainCal final : public Step {
  public:
-  enum CalType {
-    SCALAR,
-    SCALARAMPLITUDE,
-    SCALARPHASE,
-    DIAGONAL,
-    DIAGONALAMPLITUDE,
-    DIAGONALPHASE,
-    FULLJONES,
-    TECANDPHASE,
-    TEC,
-    TECSCREEN,
-    ROTATIONANDDIAGONAL,
-    ROTATION
-  };
-
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   GainCal(InputStep*, const common::ParameterSet&, const std::string& prefix);
@@ -94,15 +82,9 @@ class GainCal final : public Step {
 
   virtual bool modifiesData() const override { return itsApplySolution; }
 
-  /// Convert string to a CalType
-  static CalType stringToCalType(const std::string& mode);
-
-  /// Convert CalType to a string
-  static std::string calTypeToString(CalType caltype);
-
   /// Make a soltab with the given type
   static std::vector<schaapcommon::h5parm::SolTab> makeSolTab(
-      schaapcommon::h5parm::H5Parm& h5parm, CalType caltype,
+      schaapcommon::h5parm::H5Parm& h5parm, base::CalType caltype,
       std::vector<schaapcommon::h5parm::AxisInfo>& axes);
 
  private:
@@ -110,10 +92,10 @@ class GainCal final : public Step {
   void calibrate();
 
   /// Check for scalar mode
-  static bool scalarMode(CalType caltype);
+  static bool scalarMode(base::CalType caltype);
 
   /// Check for diagonal mode
-  static bool diagonalMode(CalType caltype);
+  static bool diagonalMode(base::CalType caltype);
 
   /// Apply the solution
   void applySolution(base::DPBuffer& buf,
@@ -154,7 +136,7 @@ class GainCal final : public Step {
   std::shared_ptr<parmdb::ParmDB> itsParmDB;
   std::string itsParsetString;  ///< Parset, for logging in H5Parm
 
-  CalType itsMode;
+  base::CalType itsMode;
 
   unsigned int itsDebugLevel;
   bool itsDetectStalling;

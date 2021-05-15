@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Settings.h"
+#include "../base/CalType.h"
 #include "../common/ParameterSet.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/make_unique.hpp>
 #include <sstream>
 
-using dp3::steps::GainCal;
+using dp3::base::CalType;
 
 namespace dp3 {
 namespace ddecal {
@@ -55,7 +56,7 @@ Settings::Settings(const common::ParameterSet& _parset,
           GetString("h5parm", parset->getString("msin") + "/instrument.h5")),
       stat_filename(GetString("statfilename", "")),
       parset_string(CreateParsetString(_parset)),
-      mode(GainCal::stringToCalType(
+      mode(dp3::base::StringToCalType(
           boost::to_lower_copy(GetString("mode", "complexgain")))),
       propagate_solutions(GetBool("propagatesolutions", false)),
       propagate_converged_only(GetBool("propagateconvergedonly", false)),
@@ -86,10 +87,10 @@ Settings::Settings(const common::ParameterSet& _parset,
       detect_stalling(GetBool("detectstalling", true)),
       // Only read these settings when needed: If it is defined, but not used,
       // the application will give a warning.
-      approximate_tec((mode == GainCal::TEC || mode == GainCal::TECANDPHASE)
+      approximate_tec((mode == CalType::kTec || mode == CalType::kTecAndPhase)
                           ? GetBool("approximatetec", false)
                           : false),
-      phase_reference((mode == GainCal::TEC || mode == GainCal::TECANDPHASE)
+      phase_reference((mode == CalType::kTec || mode == CalType::kTecAndPhase)
                           ? GetBool("phasereference", true)
                           : false),
       approx_tolerance(approximate_tec
@@ -98,7 +99,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       max_approx_iterations(
           approximate_tec ? GetUint("maxapproxiter", max_iterations / 2) : 0),
       approx_chunk_size(approximate_tec ? GetUint("approxchunksize", 0) : 0),
-      rotation_reference((mode == GainCal::ROTATIONANDDIAGONAL)
+      rotation_reference((mode == CalType::kRotationAndDiagonal)
                              ? GetBool("rotationreference", false)
                              : false),
 

@@ -4,7 +4,6 @@
 #ifndef DP3_DDECAL_SETTINGS_H
 #define DP3_DDECAL_SETTINGS_H
 
-#include "../steps/GainCal.h"
 #include "linear_solvers/LLSSolver.h"
 
 #include <set>
@@ -12,6 +11,9 @@
 #include <vector>
 
 namespace dp3 {
+namespace base {
+enum class CalType;
+}
 namespace common {
 class ParameterSet;
 }
@@ -79,7 +81,7 @@ struct Settings {
   const std::string stat_filename;
   const std::string parset_string;
 
-  const steps::GainCal::CalType mode;
+  const base::CalType mode;
   const bool propagate_solutions;
   const bool propagate_converged_only;
   const bool flag_unconverged;
@@ -120,7 +122,7 @@ struct Settings {
   const std::string idg_region_filename;
   const std::vector<std::string> idg_image_filenames;
 
-  const std::vector<string> directions;
+  const std::vector<std::string> directions;
   const std::string source_db;
 };
 

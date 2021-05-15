@@ -12,6 +12,7 @@
 
 #include "../base/Simulate.h"
 #include "../base/PhaseFitter.h"
+#include "../base/CalType.h"
 #include "../base/CursorUtilCasa.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
@@ -52,6 +53,7 @@ using casacore::IPosition;
 using casacore::Matrix;
 using casacore::Table;
 
+using dp3::base::CalType;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
@@ -132,80 +134,16 @@ GainCal::GainCal(InputStep* input, const common::ParameterSet& parset,
   }
 
   string modestr = parset.getString(prefix + "caltype");
-  itsMode = stringToCalType(modestr);
+  itsMode = base::StringToCalType(modestr);
   unsigned int defaultNChan = 0;
-  if (itsMode == TECANDPHASE || itsMode == TEC) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     defaultNChan = 1;
-  } else if (itsMode == TECSCREEN)
+  } else if (itsMode == CalType::kTecScreen)
     throw std::runtime_error("Can't solve with mode TECSCREEN");
   itsNChan = parset.getInt(prefix + "nchan", defaultNChan);
 }
 
 GainCal::~GainCal() {}
-
-GainCal::CalType GainCal::stringToCalType(const string& modestr) {
-  // Diagonal modes
-  if (modestr == "diagonal" || modestr == "complexgain")
-    return DIAGONAL;
-  else if (modestr == "diagonalphase" || modestr == "phaseonly")
-    return DIAGONALPHASE;
-  else if (modestr == "diagonalamplitude" || modestr == "amplitudeonly")
-    return DIAGONALAMPLITUDE;
-  // Scalar modes
-  else if (modestr == "scalar" || modestr == "scalarcomplexgain" ||
-           modestr == "scalarcomplex")
-    return SCALAR;
-  else if (modestr == "scalaramplitude")
-    return SCALARAMPLITUDE;
-  else if (modestr == "scalarphase")
-    return SCALARPHASE;
-  // Other modes
-  else if (modestr == "tecandphase")
-    return TECANDPHASE;
-  else if (modestr == "tec")
-    return TEC;
-  else if (modestr == "tecscreen")
-    return TECSCREEN;
-  // Full jones
-  else if (modestr == "fulljones")
-    return FULLJONES;
-  else if (modestr == "rotation+diagonal")
-    return ROTATIONANDDIAGONAL;
-  else if (modestr == "rotation")
-    return ROTATION;
-  throw Exception("Unknown mode: " + modestr);
-}
-
-string GainCal::calTypeToString(GainCal::CalType caltype) {
-  switch (caltype) {
-    case DIAGONAL:
-      return "diagonal";
-    case SCALAR:
-      return "scalarcomplexgain";
-    case FULLJONES:
-      return "fulljones";
-    case DIAGONALPHASE:
-      return "diagonalphase";
-    case SCALARPHASE:
-      return "scalarphase";
-    case DIAGONALAMPLITUDE:
-      return "diagonalamplitude";
-    case SCALARAMPLITUDE:
-      return "scalaramplitude";
-    case TECANDPHASE:
-      return "tecandphase";
-    case TEC:
-      return "tec";
-    case TECSCREEN:
-      return "tecscreen";
-    case ROTATION:
-      return "rotation";
-    case ROTATIONANDDIAGONAL:
-      return "rotation+diagonal";
-    default:
-      throw Exception("Unknown caltype: " + std::to_string(caltype));
-  }
-}
 
 void GainCal::setAntennaUsed() {
   Matrix<bool> selbl(itsBaselineSelection.apply(info()));
@@ -281,7 +219,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   }
 
   // Initialize phase fitters, set their frequency data
-  if (itsMode == TECANDPHASE || itsMode == TEC) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     itsTECSols.reserve(itsTimeSlotsPerParmUpdate);
 
     itsPhaseFitters.reserve(
@@ -304,20 +242,20 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
     GainCalAlgorithm::Mode smode;
     switch (itsMode) {
-      case DIAGONAL:
+      case CalType::kDiagonal:
         smode = GainCalAlgorithm::DEFAULT;
         break;
-      case FULLJONES:
+      case CalType::kFullJones:
         smode = GainCalAlgorithm::FULLJONES;
         break;
-      case SCALARPHASE:
-      case DIAGONALPHASE:
-      case TEC:
-      case TECANDPHASE:
+      case CalType::kScalarPhase:
+      case CalType::kDiagonalPhase:
+      case CalType::kTec:
+      case CalType::kTecAndPhase:
         smode = GainCalAlgorithm::PHASEONLY;
         break;
-      case DIAGONALAMPLITUDE:
-      case SCALARAMPLITUDE:
+      case CalType::kDiagonalAmplitude:
+      case CalType::kScalarAmplitude:
         smode = GainCalAlgorithm::AMPLITUDEONLY;
         break;
       default:
@@ -337,10 +275,10 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     if (getInfo().nThreads() != 1)
       throw std::runtime_error("nthreads should be 1 in debug mode");
     assert(itsTimeSlotsPerParmUpdate >= info().ntime());
-    itsAllSolutions.resize(
-        IPosition(6, iS[0].numCorrelations(), info().antennaUsed().size(),
-                  (itsMode == TEC || itsMode == TECANDPHASE ? 2 : 1),
-                  itsNFreqCells, itsMaxIter, info().ntime()));
+    itsAllSolutions.resize(IPosition(
+        6, iS[0].numCorrelations(), info().antennaUsed().size(),
+        (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) ? 2 : 1,
+        itsNFreqCells, itsMaxIter, info().ntime()));
   }
 }
 
@@ -361,7 +299,7 @@ void GainCal::show(std::ostream& os) const {
   os << "  nchan:               " << itsNChan << '\n';
   os << "  max iter:            " << itsMaxIter << '\n';
   os << "  tolerance:           " << itsTolerance << '\n';
-  os << "  caltype:             " << calTypeToString(itsMode) << '\n';
+  os << "  caltype:             " << CalTypeToString(itsMode) << '\n';
   os << "  apply solution:      " << std::boolalpha << itsApplySolution << '\n';
   os << "  propagate solutions: " << std::boolalpha << itsPropagateSolutions
      << '\n';
@@ -399,7 +337,7 @@ void GainCal::showTimings(std::ostream& os, double duration) const {
   FlagCounter::showPerc1(os, itsTimerSolve.getElapsed(), totaltime);
   os << " of it spent in estimating gains and computing residuals" << '\n';
 
-  if (itsMode == TEC || itsMode == TECANDPHASE) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     os << "          ";
     FlagCounter::showPerc1(os, itsTimerPhaseFit.getElapsed(), totaltime);
     os << " of it spent in fitting phases" << '\n';
@@ -612,7 +550,7 @@ void GainCal::fillMatrices(casacore::Complex* model, casacore::Complex* data,
           continue;
         }
 
-        if (itsMode == TEC || itsMode == TECANDPHASE) {
+        if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
           iS[ch / itsNChan].incrementWeight(weight[bl * nCr * nCh + ch * nCr]);
         }
 
@@ -649,13 +587,14 @@ void GainCal::fillMatrices(casacore::Complex* model, casacore::Complex* data,
 }
 
 bool GainCal::scalarMode(CalType caltype) {
-  return (caltype == TECANDPHASE || caltype == TEC || caltype == SCALARPHASE ||
-          caltype == SCALARAMPLITUDE);
+  return (caltype == CalType::kTecAndPhase || caltype == CalType::kTec ||
+          caltype == CalType::kScalarPhase ||
+          caltype == CalType::kScalarAmplitude);
 }
 
 bool GainCal::diagonalMode(CalType caltype) {
-  return (caltype == DIAGONAL || caltype == DIAGONALPHASE ||
-          caltype == DIAGONALAMPLITUDE);
+  return (caltype == CalType::kDiagonal || caltype == CalType::kDiagonalPhase ||
+          caltype == CalType::kDiagonalAmplitude);
 }
 
 void GainCal::calibrate() {
@@ -671,7 +610,7 @@ void GainCal::calibrate() {
 
   unsigned int iter = 0;
 
-  casacore::Matrix<double> tecsol(itsMode == TECANDPHASE ? 2 : 1,
+  casacore::Matrix<double> tecsol(itsMode == CalType::kTecAndPhase ? 2 : 1,
                                   info().antennaUsed().size(), 0);
 
   std::vector<GainCalAlgorithm::Status> converged(
@@ -702,7 +641,7 @@ void GainCal::calibrate() {
       }
     }
 
-    if (itsMode == TEC || itsMode == TECANDPHASE) {
+    if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
       itsTimerSolve.stop();
       itsTimerPhaseFit.start();
       casacore::Matrix<casacore::DComplex> sols_f(itsNFreqCells,
@@ -758,10 +697,10 @@ void GainCal::calibrate() {
         if (numpoints > 1) {  // TODO: limit should be higher
           // cout<<"tecsol(0,"<<st<<")="<<tecsol(0,st)<<",
           // tecsol(1,"<<st<<")="<<tecsol(1,st)<<'\n';
-          if (itsMode == TECANDPHASE) {
+          if (itsMode == CalType::kTecAndPhase) {
             itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st),
                                                     tecsol(1, st));
-          } else {  // itsMode==TEC
+          } else {  // itsMode==kTec
             itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
           }
           // Update solution in GainCalAlgorithm object
@@ -773,7 +712,7 @@ void GainCal::calibrate() {
           }
         } else {
           tecsol(0, st) = 0;  // std::numeric_limits<double>::quiet_NaN();
-          if (itsMode == TECANDPHASE) {
+          if (itsMode == CalType::kTecAndPhase) {
             tecsol(1, st) = 0;  // std::numeric_limits<double>::quiet_NaN();
           }
         }
@@ -845,8 +784,9 @@ void GainCal::calibrate() {
                                     [cr];  // Conjugate transpose ! (only for
                                            // numCorrelations = 4)
         sol(crt, st, freqCell) = conj(tmpsol(st, cr));  // Conjugate transpose
-        if (itsMode == DIAGONAL || itsMode == DIAGONALPHASE ||
-            itsMode == DIAGONALAMPLITUDE) {
+        if (itsMode == CalType::kDiagonal ||
+            itsMode == CalType::kDiagonalPhase ||
+            itsMode == CalType::kDiagonalAmplitude) {
           sol(crt + 1, st, freqCell) =
               conj(tmpsol(st + nSt, cr));  // Conjugate transpose
         }
@@ -854,7 +794,7 @@ void GainCal::calibrate() {
     }
   }
   itsSols.push_back(sol);
-  if (itsMode == TEC || itsMode == TECANDPHASE) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     itsTECSols.push_back(tecsol);
   }
 
@@ -900,7 +840,7 @@ void GainCal::initParmDB() {
   parmdb::ParmMap parmset;
 
   // Write out default amplitudes
-  if (itsMode == DIAGONALPHASE || itsMode == SCALARPHASE) {
+  if (itsMode == CalType::kDiagonalPhase || itsMode == CalType::kScalarPhase) {
     itsParmDB->getDefValues(parmset, "Gain:0:0:Ampl");
     if (parmset.empty()) {
       parmdb::ParmValueSet pvset(parmdb::ParmValue(1.0));
@@ -910,7 +850,8 @@ void GainCal::initParmDB() {
   }
 
   // Write out default phases
-  if (itsMode == DIAGONALAMPLITUDE || itsMode == SCALARAMPLITUDE) {
+  if (itsMode == CalType::kDiagonalAmplitude ||
+      itsMode == CalType::kScalarAmplitude) {
     itsParmDB->getDefValues(parmset, "Gain:0:0:Phase");
     if (parmset.empty()) {
       parmdb::ParmValueSet pvset(parmdb::ParmValue(0.0));
@@ -920,7 +861,7 @@ void GainCal::initParmDB() {
   }
 
   // Write out default gains
-  if (itsMode == DIAGONAL || itsMode == FULLJONES) {
+  if (itsMode == CalType::kDiagonal || itsMode == CalType::kFullJones) {
     itsParmDB->getDefValues(parmset, "Gain:0:0:Real");
     if (parmset.empty()) {
       parmdb::ParmValueSet pvset(parmdb::ParmValue(1.0));
@@ -930,18 +871,17 @@ void GainCal::initParmDB() {
   }
 }
 
-string GainCal::parmName() {
-  string name;
-  if (itsMode == SCALARPHASE) {
-    name = string("CommonScalarPhase:");
-  } else if (itsMode == SCALARAMPLITUDE) {
-    name = string("CommonScalarAmplitude:");
-  } else if (itsMode == TEC || itsMode == TECANDPHASE) {
-    name = string("TEC:");
+std::string GainCal::parmName() {
+  std::string name;
+  if (itsMode == CalType::kScalarPhase) {
+    name = "CommonScalarPhase:";
+  } else if (itsMode == CalType::kScalarAmplitude) {
+    name = "CommonScalarAmplitude:";
+  } else if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
+    name = "TEC:";
   } else {
-    name = string("Gain:");
+    name = "Gain:";
   }
-
   return name;
 }
 
@@ -982,7 +922,7 @@ void GainCal::writeSolutionsH5Parm(double) {
     polarizations.push_back("XX");
     polarizations.push_back("YY");
   } else {
-    assert(itsMode == FULLJONES);
+    assert(itsMode == CalType::kFullJones);
     polarizations.push_back("XX");
     polarizations.push_back("XY");
     polarizations.push_back("YX");
@@ -1001,7 +941,7 @@ void GainCal::writeSolutionsH5Parm(double) {
 
   // Construct frequency axis
   unsigned int nSolFreqs;
-  if (itsMode == TEC || itsMode == TECANDPHASE) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     nSolFreqs = 1;
   } else {
     nSolFreqs = itsNFreqCells;
@@ -1028,7 +968,7 @@ void GainCal::writeSolutionsH5Parm(double) {
     if (nPol > 1) {
       (*soltabiter).SetPolarizations(polarizations);
     }
-    if (itsMode == TEC || itsMode == TECANDPHASE) {
+    if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
       // Set channel to frequency of middle channel
       // TODO: fix this for nchan
       std::vector<double> oneFreq(1);
@@ -1044,13 +984,13 @@ void GainCal::writeSolutionsH5Parm(double) {
   string historyString = "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
                          "step " + itsName + " in parset: \n" + itsParsetString;
 
-  if (itsMode == TEC || itsMode == TECANDPHASE) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     std::vector<double> tecsols(nSolFreqs * antennaUsedNames.size() *
                                 nSolTimes * nPol);
     std::vector<double> weights(
         nSolFreqs * antennaUsedNames.size() * nSolTimes * nPol, 1.);
     std::vector<double> phasesols;
-    if (itsMode == TECANDPHASE) {
+    if (itsMode == CalType::kTecAndPhase) {
       phasesols.resize(nSolFreqs * antennaUsedNames.size() * nSolTimes * nPol);
     }
     size_t i = 0;
@@ -1063,7 +1003,7 @@ void GainCal::writeSolutionsH5Parm(double) {
             if (!std::isfinite(tecsols[i])) {
               weights[i] = 0.;
             }
-            if (itsMode == TECANDPHASE) {
+            if (itsMode == CalType::kTecAndPhase) {
               phasesols[i] = -itsTECSols[time](0, ant);
             }
             ++i;
@@ -1072,7 +1012,7 @@ void GainCal::writeSolutionsH5Parm(double) {
       }
     }
     soltabs[0].SetValues(tecsols, weights, historyString);
-    if (itsMode == TECANDPHASE) {
+    if (itsMode == CalType::kTecAndPhase) {
       soltabs[1].SetValues(phasesols, weights, historyString);
     }
   } else {
@@ -1096,7 +1036,7 @@ void GainCal::writeSolutionsH5Parm(double) {
       }
     }
 
-    if (itsMode != DIAGONALAMPLITUDE) {
+    if (itsMode != CalType::kDiagonalAmplitude) {
       soltabs[0].SetComplexValues(sols, weights, false, historyString);
     } else {
       soltabs[0].SetComplexValues(sols, weights, true, historyString);
@@ -1115,8 +1055,8 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
                                         std::vector<AxisInfo>& axes) {
   unsigned int numsols = 1;
   // For [scalar]complexgain, store two soltabs: phase and amplitude
-  if (caltype == GainCal::DIAGONAL || caltype == GainCal::SCALAR ||
-      caltype == GainCal::TECANDPHASE || caltype == GainCal::FULLJONES) {
+  if (caltype == CalType::kDiagonal || caltype == CalType::kScalar ||
+      caltype == CalType::kTecAndPhase || caltype == CalType::kFullJones) {
     numsols = 2;
   }
   std::vector<SolTab> soltabs;
@@ -1124,14 +1064,14 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
     string solTabName;
     SolTab soltab;
     switch (caltype) {
-      case GainCal::SCALARPHASE:
-      case GainCal::DIAGONALPHASE:
+      case CalType::kScalarPhase:
+      case CalType::kDiagonalPhase:
         solTabName = "phase000";
         soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
         break;
-      case GainCal::SCALAR:
-      case GainCal::DIAGONAL:
-      case GainCal::FULLJONES:
+      case CalType::kScalar:
+      case CalType::kDiagonal:
+      case CalType::kFullJones:
         if (solnum == 0) {
           solTabName = "phase000";
           soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
@@ -1140,13 +1080,13 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
           soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
         }
         break;
-      case GainCal::SCALARAMPLITUDE:
-      case GainCal::DIAGONALAMPLITUDE:
+      case CalType::kScalarAmplitude:
+      case CalType::kDiagonalAmplitude:
         solTabName = "amplitude000";
         soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
         break;
-      case GainCal::TEC:
-      case GainCal::TECANDPHASE:
+      case CalType::kTec:
+      case CalType::kTecAndPhase:
         if (solnum == 0) {
           solTabName = "tec000";
           soltab = h5parm.CreateSolTab(solTabName, "tec", axes);
@@ -1157,7 +1097,7 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
         break;
       default:
         throw Exception("Unhandled mode in writing H5Parm output: " +
-                        calTypeToString(caltype));
+                        CalTypeToString(caltype));
     }
     soltabs.push_back(soltab);
   }
@@ -1176,7 +1116,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
 
   unsigned int ntime = itsSols.size();
   unsigned int nchan, nfreqs;
-  if (itsMode == TEC || itsMode == TECANDPHASE) {
+  if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     nfreqs = 1;
     nchan = info().nchan();
   } else {
@@ -1240,30 +1180,30 @@ void GainCal::writeSolutionsParmDB(double startTime) {
       } else if (diagonalMode(itsMode) && (pol == 1 || pol == 2)) {
         continue;
       }
-      int realimmax;  // For tecandphase, this functions as dummy between tec
-                      // and commonscalarphase
-      if (itsMode == DIAGONALPHASE || itsMode == SCALARPHASE ||
-          itsMode == DIAGONALAMPLITUDE || itsMode == SCALARAMPLITUDE ||
-          itsMode == TEC) {
+      int realimmax = 2;  // For tecandphase, this functions as dummy between
+                          // tec and commonscalarphase
+      if (itsMode == CalType::kDiagonalPhase ||
+          itsMode == CalType::kScalarPhase ||
+          itsMode == CalType::kDiagonalAmplitude ||
+          itsMode == CalType::kScalarAmplitude || itsMode == CalType::kTec) {
         realimmax = 1;
-      } else {
-        realimmax = 2;
       }
       for (int realim = 0; realim < realimmax;
            ++realim) {  // For real and imaginary
         string name = parmName();
 
-        if (itsMode != SCALARPHASE && itsMode != SCALARAMPLITUDE) {
+        if (itsMode != CalType::kScalarPhase &&
+            itsMode != CalType::kScalarAmplitude) {
           name += str0101[pol];
-          if (itsMode == DIAGONALPHASE) {
+          if (itsMode == CalType::kDiagonalPhase) {
             name = name + "Phase:";
-          } else if (itsMode == DIAGONALAMPLITUDE) {
+          } else if (itsMode == CalType::kDiagonalAmplitude) {
             name = name + "Ampl:";
           } else {
             name = name + strri[realim];
           }
         }
-        if (itsMode == TECANDPHASE || itsMode == TEC) {
+        if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
           if (realim == 0) {
             name = "TEC:";
           } else {
@@ -1277,24 +1217,26 @@ void GainCal::writeSolutionsParmDB(double startTime) {
         // array.
         for (unsigned int ts = 0; ts < ntime; ++ts) {
           for (unsigned int freqCell = 0; freqCell < nfreqs; ++freqCell) {
-            if (itsMode == FULLJONES) {
+            if (itsMode == CalType::kFullJones) {
               if (realim == 0) {
                 values(freqCell, ts) = real(itsSols[ts](pol, st, freqCell));
               } else {
                 values(freqCell, ts) = imag(itsSols[ts](pol, st, freqCell));
               }
-            } else if (itsMode == DIAGONAL) {
+            } else if (itsMode == CalType::kDiagonal) {
               if (realim == 0) {
                 values(freqCell, ts) = real(itsSols[ts](pol / 3, st, freqCell));
               } else {
                 values(freqCell, ts) = imag(itsSols[ts](pol / 3, st, freqCell));
               }
-            } else if (itsMode == SCALARPHASE || itsMode == DIAGONALPHASE) {
+            } else if (itsMode == CalType::kScalarPhase ||
+                       itsMode == CalType::kDiagonalPhase) {
               values(freqCell, ts) = arg(itsSols[ts](pol / 3, st, freqCell));
-            } else if (itsMode == SCALARAMPLITUDE ||
-                       itsMode == DIAGONALAMPLITUDE) {
+            } else if (itsMode == CalType::kScalarAmplitude ||
+                       itsMode == CalType::kDiagonalAmplitude) {
               values(freqCell, ts) = abs(itsSols[ts](pol / 3, st, freqCell));
-            } else if (itsMode == TEC || itsMode == TECANDPHASE) {
+            } else if (itsMode == CalType::kTec ||
+                       itsMode == CalType::kTecAndPhase) {
               if (realim == 0) {
                 values(freqCell, ts) =
                     itsTECSols[ts](realim, st) / 8.44797245e9;
