@@ -6,7 +6,7 @@
 #include <cassert>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 RegularSolverBase::SolveResult HybridSolver::Solve(
     const SolverBuffer& solver_buffer,
@@ -73,5 +73,5 @@ bool HybridSolver::RunSolver(RegularSolverBase& solver,
   return is_converged;
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

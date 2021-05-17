@@ -6,6 +6,7 @@
 using namespace arma;
 
 namespace dp3 {
+namespace ddecal {
 
 const double PiercePoint::IONOheight = 300000.;
 const double PiercePoint::EarthRadius = 6371000.;
@@ -55,4 +56,6 @@ void PiercePoint::evaluate(casacore::MEpoch time) {
   double alpha = (-B + sqrt(B * B - A * itsC)) / A;
   for (uword i = 0; i < 3; i++) itsValue(i) = mPos(i) + alpha * mDir(i);
 };
+
+}  // namespace ddecal
 }  // namespace dp3

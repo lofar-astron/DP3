@@ -17,7 +17,7 @@ bool IsFinite(const std::complex<T>& val) {
 }  // namespace
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 SolverBase::SolverBase()
     : n_antennas_(0),
@@ -307,5 +307,5 @@ std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(
   return solver;
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

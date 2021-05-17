@@ -9,7 +9,7 @@
 #include "IterativeDiagonalSolver.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class HybridSolver final : public RegularSolverBase {
  public:
@@ -43,8 +43,8 @@ class HybridSolver final : public RegularSolverBase {
    * list does not include the Hybrid solver, i.e., it does
    * not contain the "this" pointer.
    */
-  std::vector<base::SolverBase*> ConstraintSolvers() override {
-    std::vector<base::SolverBase*> solvers;
+  std::vector<SolverBase*> ConstraintSolvers() override {
+    std::vector<SolverBase*> solvers;
     for (const auto& solverinfo : solvers_)
       solvers.emplace_back(solverinfo.first.get());
     return solvers;
@@ -65,7 +65,7 @@ class HybridSolver final : public RegularSolverBase {
                         double time, std::ostream* stat_stream);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_HYBRID_SOLVER_H

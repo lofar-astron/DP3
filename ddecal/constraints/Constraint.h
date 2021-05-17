@@ -10,6 +10,9 @@
 #include <vector>
 #include <ostream>
 
+namespace dp3 {
+namespace ddecal {
+
 /**
  * \brief This class is the base class for classes that implement a constraint
  * on calibration solutions. Constraints are used to increase the converge of
@@ -177,5 +180,8 @@ class AntennaConstraint : public Constraint {
  private:
   std::vector<std::set<size_t>> antenna_sets_;
 };
+
+}  // namespace ddecal
+}  // namespace dp3
 
 #endif

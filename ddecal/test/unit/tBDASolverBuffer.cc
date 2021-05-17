@@ -10,7 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
-using dp3::base::BDASolverBuffer;
+using dp3::ddecal::BDASolverBuffer;
 
 namespace {
 const size_t kNBaselines = 3;

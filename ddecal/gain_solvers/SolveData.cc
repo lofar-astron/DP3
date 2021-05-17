@@ -2,8 +2,10 @@
 
 #include "BDASolverBuffer.h"
 
+using dp3::base::BDABuffer;
+
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 SolveData::SolveData(const BDASolverBuffer& buffer, size_t n_channel_blocks,
                      size_t n_directions, size_t n_antennas,
@@ -88,5 +90,5 @@ SolveData::SolveData(const BDASolverBuffer& buffer, size_t n_channel_blocks,
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

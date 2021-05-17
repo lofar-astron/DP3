@@ -17,8 +17,10 @@
 
 namespace dp3 {
 namespace base {
-
 class DPBuffer;
+}
+namespace ddecal {
+
 class SolverBuffer;
 
 class SolverBase {
@@ -169,7 +171,7 @@ class SolverBase {
    * this function to make it possible to initialize the solvers it
    * combines.
    */
-  virtual std::vector<base::SolverBase*> ConstraintSolvers() { return {this}; }
+  virtual std::vector<SolverBase*> ConstraintSolvers() { return {this}; }
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
@@ -255,7 +257,7 @@ class SolverBase {
   /** @} */
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

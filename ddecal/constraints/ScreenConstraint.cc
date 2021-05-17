@@ -10,6 +10,7 @@
 #include <iostream>
 
 namespace dp3 {
+namespace ddecal {
 
 const double ScreenConstraint::phtoTEC = 1. / 8.4479745e9;
 const double ScreenConstraint::TECtoph = 8.4479745e9;
@@ -400,4 +401,5 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
   return res;
 }
 
+}  // namespace ddecal
 }  // namespace dp3

@@ -93,10 +93,10 @@ class DDECal : public Step {
   }
 
  private:
-  std::unique_ptr<base::RegularSolverBase> initializeSolver(
+  std::unique_ptr<ddecal::RegularSolverBase> initializeSolver(
       const common::ParameterSet& parset, const string& prefix,
       ddecal::SolverAlgorithm algorithm) const;
-  void InitializeConstraints(base::RegularSolverBase& solver,
+  void InitializeConstraints(ddecal::RegularSolverBase& solver,
                              const common::ParameterSet& parset,
                              const string& prefix) const;
   void initializeColumnReaders(const common::ParameterSet&,
@@ -141,7 +141,8 @@ class DDECal : public Step {
 
   /// For each time, for each constraint, a vector of results (e.g. tec and
   /// phase)
-  std::vector<std::vector<std::vector<Constraint::Result>>> itsConstraintSols;
+  std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
+      itsConstraintSols;
 
   schaapcommon::h5parm::H5Parm itsH5Parm;
 
@@ -182,7 +183,7 @@ class DDECal : public Step {
   common::NSTimer itsTimerSolve;
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
-  std::unique_ptr<base::RegularSolverBase> itsSolver;
+  std::unique_ptr<ddecal::RegularSolverBase> itsSolver;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };

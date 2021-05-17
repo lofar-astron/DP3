@@ -6,6 +6,9 @@
 #include <aocommon/parallelfor.h>
 #include <boost/make_unique.hpp>
 
+namespace dp3 {
+namespace ddecal {
+
 SmoothnessConstraint::SmoothnessConstraint(double bandwidthHz,
                                            double bandwidthRefFrequencyHz)
     : _kernelType(Smoother::GaussianKernel),
@@ -62,3 +65,6 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
 
   return std::vector<Constraint::Result>();
 }
+
+}  // namespace ddecal
+}  // namespace dp3

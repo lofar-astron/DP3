@@ -17,7 +17,7 @@ using aocommon::ParallelFor;
 #include <iostream>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 RegularSolverBase::SolveResult FullJonesSolver::Solve(
     const SolverBuffer& solver_buffer,
@@ -258,5 +258,5 @@ void FullJonesSolver::PerformIteration(const SolverBuffer& solver_buffer,
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

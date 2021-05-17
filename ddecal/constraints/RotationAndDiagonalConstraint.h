@@ -10,6 +10,7 @@
 #include <ostream>
 
 namespace dp3 {
+namespace ddecal {
 
 class RotationAndDiagonalConstraint : public Constraint {
  public:
@@ -31,6 +32,7 @@ class RotationAndDiagonalConstraint : public Constraint {
   bool _doRotationReference;
 };
 
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif

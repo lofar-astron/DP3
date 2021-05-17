@@ -7,7 +7,7 @@
 #include "RegularSolverBase.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 class DiagonalSolver final : public RegularSolverBase {
  public:
@@ -28,7 +28,7 @@ class DiagonalSolver final : public RegularSolverBase {
                         double iterationfraction, double solverprecision);
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_DIAGONAL_SOLVER_H

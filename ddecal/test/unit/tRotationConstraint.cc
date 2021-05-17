@@ -13,8 +13,9 @@
 #include <boost/test/data/test_case.hpp>
 
 using casacore::near;
-using dp3::RotationAndDiagonalConstraint;
-using dp3::RotationConstraint;
+using dp3::ddecal::Constraint;
+using dp3::ddecal::RotationAndDiagonalConstraint;
+using dp3::ddecal::RotationConstraint;
 using std::complex;
 using std::vector;
 

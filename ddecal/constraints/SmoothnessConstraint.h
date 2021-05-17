@@ -9,6 +9,9 @@
 #ifndef SMOOTHNESS_CONSTRAINT_H
 #define SMOOTHNESS_CONSTRAINT_H
 
+namespace dp3 {
+namespace ddecal {
+
 class SmoothnessConstraint : public Constraint {
  public:
   typedef std::complex<double> dcomplex;
@@ -61,5 +64,8 @@ class SmoothnessConstraint : public Constraint {
   double _bandwidthRefFrequencyHz;
   std::unique_ptr<aocommon::ParallelFor<size_t>> _loop;
 };
+
+}  // namespace ddecal
+}  // namespace dp3
 
 #endif

@@ -9,8 +9,10 @@
 
 namespace dp3 {
 namespace base {
-
 class DPBuffer;
+}
+
+namespace ddecal {
 
 class SolverBuffer {
  public:
@@ -33,8 +35,9 @@ class SolverBuffer {
    * solves), the data is not copied: The SolverBuffer takes ownership of the
    * model buffers and weights the data in place.
    */
-  void AssignAndWeight(const std::vector<DPBuffer>& data_buffers,
-                       std::vector<std::vector<DPBuffer>>&& model_buffers);
+  void AssignAndWeight(
+      const std::vector<base::DPBuffer>& data_buffers,
+      std::vector<std::vector<base::DPBuffer>>&& model_buffers);
 
   /**
    * @return The number of time steps in the buffer.
@@ -79,10 +82,10 @@ class SolverBuffer {
   size_t n_baselines_;
   size_t n_channels_;
   std::vector<std::vector<Complex>> data_;
-  std::vector<std::vector<DPBuffer>> model_buffers_;
+  std::vector<std::vector<base::DPBuffer>> model_buffers_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif  // DDECAL_SOLVER_BUFFER_H

@@ -9,6 +9,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+using dp3::ddecal::SmoothnessConstraint;
+
 namespace {
 // We use slightly more than 2 MHz as bandwidth, to make sure the kernel
 // is at least 2 MHz wide (and thus covers 5 channels).

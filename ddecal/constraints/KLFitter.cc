@@ -6,6 +6,8 @@
 using namespace arma;
 
 namespace dp3 {
+namespace ddecal {
+
 KLFitter::KLFitter(double r0, double beta, int order)
     : itsOrder(order), itsR0(r0), itsBeta(beta) {}
 
@@ -62,4 +64,6 @@ void KLFitter::doFit() {
 
   _phases = itsCorrMatrix * itsTECFitWhite;
 }
+
+}  // namespace ddecal
 }  // namespace dp3

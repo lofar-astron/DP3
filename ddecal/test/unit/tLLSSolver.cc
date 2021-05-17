@@ -5,8 +5,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-using dp3::base::LLSSolver;
-using dp3::base::LLSSolverType;
+using dp3::ddecal::LLSSolver;
+using dp3::ddecal::LLSSolverType;
 
 BOOST_AUTO_TEST_SUITE(lls_solver)
 

@@ -12,7 +12,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 std::unique_ptr<LLSSolver> LLSSolver::Make(LLSSolverType lss_type, int m, int n,
                                            int nrhs) {
@@ -53,5 +53,5 @@ LLSSolverType LLSSolver::ParseType(const std::string& solver) {
   }
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

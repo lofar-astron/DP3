@@ -8,6 +8,9 @@
 #include <iterator>
 #include <cmath>
 
+namespace dp3 {
+namespace ddecal {
+
 class PieceWisePhaseFitter {
  public:
   PieceWisePhaseFitter() : _chunkSize(0) {}
@@ -397,5 +400,8 @@ class PieceWisePhaseFitter {
       return false;
   }
 };
+
+}  // namespace ddecal
+}  // namespace dp3
 
 #endif

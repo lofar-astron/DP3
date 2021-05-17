@@ -1,7 +1,7 @@
 #include "RegularSolverBase.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 void RegularSolverBase::Initialize(size_t n_antennas, size_t n_directions,
                                    size_t n_channels, size_t n_channel_blocks,
@@ -13,5 +13,5 @@ void RegularSolverBase::Initialize(size_t n_antennas, size_t n_directions,
   ant2_ = ant2;
 }
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3

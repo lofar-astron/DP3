@@ -11,7 +11,7 @@
 #include "LLSSolver.h"
 
 namespace dp3 {
-namespace base {
+namespace ddecal {
 
 using complex = std::complex<float>;
 
@@ -59,7 +59,7 @@ class SVDSolver final : public LLSSolver {
   std::vector<complex> work_;
 };
 
-}  // namespace base
+}  // namespace ddecal
 }  // namespace dp3
 
 #endif
