@@ -18,7 +18,7 @@ class SolverBuffer {
  public:
   typedef std::complex<float> Complex;
 
-  SolverBuffer() : n_baselines_(0), n_channels_(0), data_(), model_buffers_() {}
+  SolverBuffer();
 
   /**
    * This function takes (unweighted) data and model data, as well as a

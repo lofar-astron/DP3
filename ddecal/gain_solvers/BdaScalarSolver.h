@@ -12,8 +12,6 @@ namespace ddecal {
 
 class BdaScalarSolver final : public BdaSolverBase {
  public:
-  BdaScalarSolver() : BdaSolverBase() {}
-
   SolveResult Solve(const SolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
