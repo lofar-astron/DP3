@@ -20,6 +20,9 @@ bool IsFinite(std::complex<float> c) {
 namespace dp3 {
 namespace ddecal {
 
+SolverBuffer::SolverBuffer()
+    : n_baselines_(0), n_channels_(0), data_(), model_buffers_() {}
+
 void SolverBuffer::AssignAndWeight(
     const std::vector<DPBuffer>& unweighted_data_buffers,
     std::vector<std::vector<DPBuffer>>&& model_buffers) {

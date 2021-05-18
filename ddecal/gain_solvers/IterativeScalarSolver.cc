@@ -14,8 +14,6 @@
 using aocommon::ParallelFor;
 
 #include <algorithm>
-#include <iomanip>
-#include <iostream>
 
 namespace dp3 {
 namespace ddecal {

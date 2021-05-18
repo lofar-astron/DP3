@@ -9,6 +9,8 @@
 namespace dp3 {
 namespace ddecal {
 
+class SolverBuffer;
+
 class RegularSolverBase : public SolverBase {
  public:
   RegularSolverBase() : n_channels_(0) {}

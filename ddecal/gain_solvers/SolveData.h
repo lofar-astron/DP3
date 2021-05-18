@@ -22,6 +22,8 @@ class SolveData {
  public:
   class ChannelBlockData {
    public:
+    using const_iterator = std::vector<aocommon::MC2x2F>::const_iterator;
+
     void Resize(size_t n_visibilities, size_t n_directions) {
       data_.resize(n_visibilities);
       model_data_.resize(n_directions);
@@ -47,9 +49,17 @@ class SolveData {
     const aocommon::MC2x2F& Visibility(size_t index) const {
       return data_[index];
     }
-    const aocommon::MC2x2F& ModelVisibility(size_t dir, size_t index) const {
-      return model_data_[dir][index];
+    const aocommon::MC2x2F& ModelVisibility(size_t direction,
+                                            size_t index) const {
+      return model_data_[direction][index];
     }
+    const std::vector<aocommon::MC2x2F>& ModelVisibilityVector(
+        size_t direction) const {
+      return model_data_[direction];
+    }
+
+    const_iterator DataBegin() const { return data_.begin(); }
+    const_iterator DataEnd() const { return data_.end(); }
 
    private:
     friend class SolveData;

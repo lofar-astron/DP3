@@ -16,12 +16,7 @@
 #include <memory>
 
 namespace dp3 {
-namespace base {
-class DPBuffer;
-}
 namespace ddecal {
-
-class SolverBuffer;
 
 class SolverBase {
  public:

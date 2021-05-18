@@ -3,7 +3,6 @@
 
 #include "SolverTester.h"
 
-#include "../../gain_solvers/BdaScalarSolver.h"
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"
@@ -135,25 +134,6 @@ BOOST_FIXTURE_TEST_CASE(scalar_solver_normaleq, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(solver_buffer, GetSolverSolutions(), 0.0, nullptr);
-
-  CheckScalarResults(1.0E-2);
-  BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
-}
-
-BOOST_FIXTURE_TEST_CASE(bda_scalar_solver, SolverTester,
-                        *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaScalarSolver solver;
-  InitializeSolver(solver);
-  solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
-
-  SetScalarSolutions();
-
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
-
-  dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
   CheckScalarResults(1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
