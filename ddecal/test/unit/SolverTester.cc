@@ -245,22 +245,30 @@ const BDASolverBuffer& SolverTester::FillBDAData() {
 }
 
 void SolverTester::InitializeSolver(RegularSolverBase& solver) const {
-  solver.SetMaxIterations(kMaxIterations);
-  solver.SetAccuracy(kAccuracy);
-  solver.SetStepSize(kStepSize);
-  solver.SetNThreads(kNThreads);
-  solver.SetPhaseOnly(kPhaseOnly);
+  InitializeSolverSettings(solver);
   solver.Initialize(kNAntennas, kNDirections, kNChannels, kNChannelBlocks,
                     antennas1_, antennas2_);
 }
 
 void SolverTester::InitializeSolver(BdaSolverBase& solver) const {
-  solver.SetMaxIterations(kMaxIterations);
-  solver.SetAccuracy(kAccuracy);
-  solver.SetStepSize(kStepSize);
-  solver.SetNThreads(kNThreads);
-  solver.SetPhaseOnly(kPhaseOnly);
+  InitializeSolverSettings(solver);
   solver.Initialize(kNAntennas, kNDirections, kNChannelBlocks);
+}
+
+void SolverTester::InitializeSolverSettings(SolverBase& solver) const {
+  std::vector<SolverBase*> solvers = solver.ConstraintSolvers();
+  // If this is a hybrid solver, it won't list itself, so add it manually
+  if (std::find(solvers.begin(), solvers.end(), &solver) == solvers.end())
+    solvers.push_back(&solver);
+  for (SolverBase* s : solvers) {
+    s->SetAccuracy(kAccuracy);
+    s->SetStepSize(kStepSize);
+    s->SetNThreads(kNThreads);
+    s->SetPhaseOnly(kPhaseOnly);
+  }
+  // Because the maximum number of iterations need to be set before adding
+  // solvers to a hybrid solver, we only set the max of the hybrid solver:
+  solver.SetMaxIterations(kMaxIterations);
 }
 
 void SolverTester::SetScalarSolutions() {

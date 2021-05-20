@@ -16,8 +16,9 @@
 namespace dp3 {
 namespace ddecal {
 
-class RegularSolverBase;
 class BdaSolverBase;
+class RegularSolverBase;
+class SolverBase;
 
 namespace test {
 
@@ -104,6 +105,8 @@ class SolverTester {
   const std::vector<int>& Antennas2() const { return antennas2_; }
 
  private:
+  void InitializeSolverSettings(dp3::ddecal::SolverBase& solver) const;
+
   std::vector<int> antennas1_;
   std::vector<int> antennas2_;
   std::vector<std::complex<float>> input_solutions_;

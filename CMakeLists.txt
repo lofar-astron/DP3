@@ -570,8 +570,9 @@ if (BUILD_TESTING)
   # so ctest can run them in parallel.
   # Unfortunately there is no easy means of retreiving a list of all slow tests.
   set(SLOW_TESTS
-    bda_solvers/scalar
+    bda_solvers/hybrid
     bda_solvers/iterative_scalar
+    bda_solvers/scalar
     idgpredict/process
     idgpredict/process_beam
     msbdawriter/process_simple
