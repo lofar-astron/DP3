@@ -205,12 +205,11 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_solver, SolverTester,
 BOOST_FIXTURE_TEST_CASE(hybrid_solver, SolverTester,
                         *boost::unit_test::label("slow")) {
   auto direction_solver = boost::make_unique<dp3::ddecal::DiagonalSolver>();
-  InitializeSolver(*direction_solver);
   direction_solver->SetMaxIterations(kMaxIterations / 10);
 
   auto iterative_solver =
       boost::make_unique<dp3::ddecal::IterativeDiagonalSolver>();
-  InitializeSolver(*iterative_solver);
+  iterative_solver->SetMaxIterations(kMaxIterations);
 
   dp3::ddecal::HybridSolver solver;
   solver.AddSolver(std::move(iterative_solver));

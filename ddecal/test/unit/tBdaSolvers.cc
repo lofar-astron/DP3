@@ -3,11 +3,13 @@
 
 #include "SolverTester.h"
 
+#include "../../gain_solvers/BdaHybridSolver.h"
 #include "../../gain_solvers/BdaIterativeScalarSolver.h"
 #include "../../gain_solvers/BdaScalarSolver.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+#include <boost/make_unique.hpp>
 
 using dp3::ddecal::LLSSolverType;
 using dp3::ddecal::test::SolverTester;
@@ -62,6 +64,38 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
   // The iterative solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  auto direction_solver = boost::make_unique<dp3::ddecal::BdaScalarSolver>();
+  direction_solver->SetMaxIterations(kMaxIterations / 10);
+
+  auto iterative_solver =
+      boost::make_unique<dp3::ddecal::BdaIterativeScalarSolver>();
+  iterative_solver->SetMaxIterations(kMaxIterations);
+
+  dp3::ddecal::BdaHybridSolver solver;
+  solver.AddSolver(std::move(iterative_solver));
+  solver.AddSolver(std::move(direction_solver));
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 1u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 2u);
+  BOOST_CHECK_NE(solver.ConstraintSolvers()[0], &solver);
+  BOOST_CHECK_NE(solver.ConstraintSolvers()[1], &solver);
+
+  SetScalarSolutions();
+
+  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
+                              kNAntennas, Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckScalarResults(1.0E-2);
+  BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

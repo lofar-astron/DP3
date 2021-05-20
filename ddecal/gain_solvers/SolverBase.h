@@ -54,7 +54,8 @@ class SolverBase {
    * and antenna mapping.
    * The antenna arrays map the data provided in @Solve to the antennas.
    */
-  void Initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks);
+  virtual void Initialize(size_t n_antennas, size_t n_directions,
+                          size_t n_channel_blocks);
 
   /**
    * @return The number of polarizations in the solution.
