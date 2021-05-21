@@ -45,7 +45,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   std::vector<std::vector<std::vector<Complex>>> v_residual(n_channel_blocks_);
   // The following loop allocates all structures
   for (size_t chBlock = 0; chBlock != n_channel_blocks_; ++chBlock) {
-    next_solutions[chBlock].resize(n_directions_ * n_antennas_ *
+    next_solutions[chBlock].resize(NDirections() * NAntennas() *
                                    n_solution_pols);
     const size_t channel_index_start =
                      chBlock * n_channels_ / n_channel_blocks_,
@@ -125,13 +125,13 @@ void IterativeDiagonalSolver::PerformIteration(
   }
 
   // Subtract all directions with their current solutions
-  for (size_t d = 0; d != n_directions_; ++d)
+  for (size_t d = 0; d != NDirections(); ++d)
     AddOrSubtractDirection<false>(solver_buffer, v_residual,
                                   channel_block_index, d, solutions);
 
   const std::vector<std::vector<Complex>> v_copy = v_residual;
 
-  for (size_t direction = 0; direction != n_directions_; ++direction) {
+  for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
@@ -161,9 +161,9 @@ void IterativeDiagonalSolver::SolveDirection(
   // sol_a =  ----------------------------------------
   //             sum_b norm(model_ab * solutions_b)
 
-  std::vector<aocommon::MC2x2Diag> numerator(n_antennas_,
+  std::vector<aocommon::MC2x2Diag> numerator(NAntennas(),
                                              aocommon::MC2x2Diag::Zero());
-  std::vector<double> denominator(n_antennas_ * 2, 0.0);
+  std::vector<double> denominator(NAntennas() * 2, 0.0);
 
   // Iterate over all data
   for (size_t time_index = 0; time_index != n_times; ++time_index) {
@@ -173,16 +173,16 @@ void IterativeDiagonalSolver::SolveDirection(
       const size_t antenna2 = ant2_[baseline];
       if (antenna1 != antenna2) {
         const DComplex* solution_ant1 =
-            &solutions[(antenna1 * n_directions_ + direction) * 2];
+            &solutions[(antenna1 * NDirections() + direction) * 2];
         const DComplex* solution_ant2 =
-            &solutions[(antenna2 * n_directions_ + direction) * 2];
+            &solutions[(antenna2 * NDirections() + direction) * 2];
         const Complex* model_ptr = solver_buffer.ModelDataPointer(
             time_index, direction, baseline, channel_index_start);
         for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
           // Calculate the contribution of this baseline for antenna1
           const aocommon::MC2x2 data(data_ptr);
-          const aocommon::MC2x2Diag solution1(Complex{solution_ant2[0]},
-                                              Complex{solution_ant2[1]});
+          const aocommon::MC2x2Diag solution1(solution_ant2[0],
+                                              solution_ant2[1]);
           const aocommon::MC2x2 cor_model_transp1(
               solution1 * HermTranspose(aocommon::MC2x2(model_ptr)));
           numerator[antenna1] += Diagonal(data * cor_model_transp1);
@@ -199,8 +199,8 @@ void IterativeDiagonalSolver::SolveDirection(
           // become:
           // - num = data_ab^H * solutions_a * model_ab
           // - den = norm(model_ab^H * solutions_a)
-          const aocommon::MC2x2Diag solution2(Complex{solution_ant1[0]},
-                                              Complex{solution_ant1[1]});
+          const aocommon::MC2x2Diag solution2(solution_ant1[0],
+                                              solution_ant1[1]);
           const aocommon::MC2x2 cor_model2(solution2 *
                                            aocommon::MC2x2(model_ptr));
 
@@ -219,17 +219,17 @@ void IterativeDiagonalSolver::SolveDirection(
       }
     }
   }
-  for (size_t ant = 0; ant != n_antennas_; ++ant) {
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
     DComplex* destination =
-        &next_solutions[(ant * n_directions_ + direction) * 2];
+        &next_solutions[(ant * NDirections() + direction) * 2];
 
     if (denominator[ant * 2] == 0.0)
-      destination[0] = std::numeric_limits<float>::quiet_NaN();
+      destination[0] = std::numeric_limits<double>::quiet_NaN();
     else
       destination[0] = numerator[ant][0] / denominator[ant * 2];
 
     if (denominator[ant * 2 + 1] == 0.0)
-      destination[1] = std::numeric_limits<float>::quiet_NaN();
+      destination[1] = std::numeric_limits<double>::quiet_NaN();
     else
       destination[1] = numerator[ant][1] / denominator[ant * 2 + 1];
   }
@@ -255,9 +255,9 @@ void IterativeDiagonalSolver::AddOrSubtractDirection(
           time_index, direction, baseline, channel_index_start);
       for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
         const DComplex* solution1 =
-            &solutions[(antenna1 * n_directions_ + direction) * 2];
+            &solutions[(antenna1 * NDirections() + direction) * 2];
         const DComplex* solution2 =
-            &solutions[(antenna2 * n_directions_ + direction) * 2];
+            &solutions[(antenna2 * NDirections() + direction) * 2];
 
         if (Add) {
           data_ptr[0] += Complex(solution1[0]) * model_ptr[0] *
