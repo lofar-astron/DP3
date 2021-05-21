@@ -260,6 +260,7 @@ add_library(DDECal OBJECT
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
   ddecal/gain_solvers/BDASolverBuffer.cc
+  ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
   ddecal/gain_solvers/BdaIterativeScalarSolver.cc
   ddecal/gain_solvers/BdaScalarSolver.cc
   ddecal/gain_solvers/DiagonalSolver.cc
@@ -571,6 +572,7 @@ if (BUILD_TESTING)
   # Unfortunately there is no easy means of retreiving a list of all slow tests.
   set(SLOW_TESTS
     bda_solvers/hybrid
+    bda_solvers/iterative_diagonal
     bda_solvers/iterative_scalar
     bda_solvers/scalar
     idgpredict/process
