@@ -3,6 +3,7 @@
 
 #include "SolverTester.h"
 
+#include "../../gain_solvers/BdaDiagonalSolver.h"
 #include "../../gain_solvers/BdaHybridSolver.h"
 #include "../../gain_solvers/BdaIterativeDiagonalSolver.h"
 #include "../../gain_solvers/BdaIterativeScalarSolver.h"
@@ -18,6 +19,25 @@ using dp3::ddecal::test::SolverTester;
 // The BDA solvers test suite also contains tests that run using a separate
 // ctest test, since they take much time. These tests have the 'slow' label.
 BOOST_AUTO_TEST_SUITE(bda_solvers)
+
+BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  dp3::ddecal::BdaDiagonalSolver solver;
+  InitializeSolver(solver);
+  solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
+
+  SetDiagonalSolutions();
+
+  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
+                              kNAntennas, Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckDiagonalResults(2.0E-2);
+  BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
+}
 
 BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
                         *boost::unit_test::label("slow")) {

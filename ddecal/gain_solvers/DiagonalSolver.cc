@@ -38,7 +38,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   }
 #endif
 
-  // Model matrix ant x [N x D] and visibility vector ant x [N x 1],
+  // Model matrix 2 x ant x [2N x D] and visibility vector 2 x ant x [2N x 1],
   // for each channelblock
   // The following loop allocates all structures
   std::vector<std::vector<Matrix>> g_times_cs(n_channel_blocks_);
@@ -55,7 +55,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
     vs[chBlock].resize(n_antennas_ * 2);
 
     for (size_t ant = 0; ant != n_antennas_ * 2; ++ant) {
-      // Model matrix [N x D] and visibility vector [N x 1]
+      // Model matrix [2N x D] and visibility vector [2N x 1]
       // Also space for the auto correlation is reserved, but they will be set
       // to 0.
       // X and Y polarizations are treated as two different antennas.
@@ -203,10 +203,10 @@ void DiagonalSolver::PerformIteration(const SolverBuffer& solver_buffer,
   std::unique_ptr<LLSSolver> solver =
       CreateLLSSolver(m, n, nrhs, iterationfraction, solverprecision);
 
+  std::vector<Complex> x0(n_directions_);
   for (size_t ant = 0; ant != n_antennas_; ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
       // solve x^H in [g C] x^H  = v
-      std::vector<Complex> x0(n_directions_);
       for (size_t d = 0; d != n_directions_; ++d) {
         x0[d] = solutions[(ant * n_directions_ + d) * 2 + pol];
       }
