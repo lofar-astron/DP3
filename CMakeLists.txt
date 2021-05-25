@@ -259,6 +259,7 @@ add_library(DDECal OBJECT
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
+  ddecal/gain_solvers/BdaDiagonalSolver.cc
   ddecal/gain_solvers/BDASolverBuffer.cc
   ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
   ddecal/gain_solvers/BdaIterativeScalarSolver.cc
@@ -571,6 +572,7 @@ if (BUILD_TESTING)
   # so ctest can run them in parallel.
   # Unfortunately there is no easy means of retreiving a list of all slow tests.
   set(SLOW_TESTS
+    bda_solvers/diagonal
     bda_solvers/hybrid
     bda_solvers/iterative_diagonal
     bda_solvers/iterative_scalar
