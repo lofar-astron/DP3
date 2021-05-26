@@ -23,15 +23,29 @@ namespace base {
 
 typedef std::complex<double> dcomplex;
 
-/// @brief Compute visibilities for different model components types
-/// (implementation of ModelComponentVisitor).
+/// @brief Simulator for different kinds of model components
 class Simulator : public ModelComponentVisitor {
  public:
-  Simulator(const Position& reference, size_t nStation, size_t nBaseline,
-            size_t nChannel, const casacore::Vector<Baseline>& baselines,
+  /**
+   * @brief Construct a new Simulator object
+   *
+   * @param reference An existing BDABuffer.
+   * @param baselines Vector of Baselines
+   * @param freq Channel frequencies (Hz)
+   * @param chanWidths Channel widths (Hz)
+   * @param stationUVW Station UVW coordinates
+   * @param buffer Output buffer, should be of shape (nCor, nFreq, nBaselines),
+   * where nCor should be 1 if stokesIOnly is true, else 4
+   * @param correctFreqSmearing Correct for frequency smearing
+   * @param stokesIOnly Stokes I only, to avoid a loop over correlations
+   */
+  Simulator(const Position& reference, size_t nStation,
+            const std::vector<Baseline>& baselines,
             const casacore::Vector<double>& freq,
-            const casacore::Matrix<double>& uvw,
-            casacore::Cube<dcomplex>& buffer, bool stokesIOnly = false);
+            const casacore::Vector<double>& chanWidths,
+            const casacore::Matrix<double>& stationUVW,
+            casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
+            bool stokesIOnly);
 
   template <typename T>
   class Matrix {
@@ -44,6 +58,9 @@ class Simulator : public ModelComponentVisitor {
       itsNRows = nrows;
       itsData.resize(nrows * ncols);
     }
+
+    size_t nRows() { return itsNRows; }
+    size_t nCols() { return itsData.size() / itsNRows; }
 
     T& operator()(size_t row, size_t col) {
       return itsData[col * itsNRows + row];
@@ -65,12 +82,15 @@ class Simulator : public ModelComponentVisitor {
  private:
   Position itsReference;
   size_t itsNStation, itsNBaseline, itsNChannel;
+  bool itsCorrectFreqSmearing;
   bool itsStokesIOnly;
-  const casacore::Vector<Baseline> itsBaselines;
+  const std::vector<Baseline> itsBaselines;
   const casacore::Vector<double> itsFreq;
-  const casacore::Matrix<double> itsUVW;
+  const casacore::Vector<double> itsChanWidths;
+  const casacore::Matrix<double> itsStationUVW;
   casacore::Cube<dcomplex> itsBuffer;
   Matrix<dcomplex> itsShiftBuffer;
+  std::vector<double> itsStationPhases;
   Matrix<dcomplex> itsSpectrumBuffer;
 };
 

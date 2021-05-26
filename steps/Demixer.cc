@@ -879,9 +879,9 @@ void Demixer::demix() {
                       itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
       /// cout<<"uvw"<<dr<<'='<<storage.uvw<<'\n';
 
-      base::Simulator simulator(itsPatchList[dr]->position(), nSt, nBl, nCh,
-                                itsBaselines, itsFreqDemix, storage.uvw,
-                                storage.model[dr]);
+      base::Simulator simulator(itsPatchList[dr]->position(), nSt, itsBaselines,
+                                itsFreqDemix, casacore::Vector<double>(),
+                                storage.uvw, storage.model[dr], false, false);
       for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
@@ -960,9 +960,10 @@ void Demixer::demix() {
           cr_model_subtr = base::cursor<dcomplex>(storage.model_subtr.data(), 3,
                                                   stride_model_subtr);
 
-          base::Simulator simulator(itsPatchList[dr]->position(), nSt, nBl,
-                                    nChSubtr, itsBaselines, itsFreqSubtr,
-                                    storage.uvw, storage.model_subtr);
+          base::Simulator simulator(itsPatchList[dr]->position(), nSt,
+                                    itsBaselines, itsFreqSubtr,
+                                    casacore::Vector<double>(), storage.uvw,
+                                    storage.model_subtr, false, false);
           for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
             simulator.simulate(itsPatchList[dr]->component(i));
           }

@@ -82,6 +82,8 @@ void Predict::init(InputStep* input, const common::ParameterSet& parset,
   itsInput = input;
   itsName = prefix;
   itsSourceDBName = parset.getString(prefix + "sourcedb");
+  itsCorrectFreqSmearing =
+      parset.getBool(prefix + "correctfreqsmearing", false);
   setOperation(parset.getString(prefix + "operation", "replace"));
   itsApplyBeam = parset.getBool(prefix + "usebeammodel", false);
   itsDebugLevel = parset.getInt(prefix + "debuglevel", 0);
@@ -200,7 +202,7 @@ void Predict::initializeThreadData() {
   const size_t nCr = itsStokesIOnly ? 1 : info().ncorr();
   const size_t nThreads = getInfo().nThreads();
 
-  itsUVW.resize(3, nSt);
+  itsStationUVW.resize(3, nSt);
   itsUVWSplitIndex = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
                                           info().getAnt2());
 
@@ -282,6 +284,8 @@ void Predict::show(std::ostream& os) const {
   os << "   number of patches: " << itsPatchList.size() << '\n';
   os << "   number of sources: " << itsSourceList.size() << '\n';
   os << "   all unpolarized:   " << std::boolalpha << itsStokesIOnly << '\n';
+  os << "   correct freq smearing: " << std::boolalpha << itsCorrectFreqSmearing
+     << '\n';
   os << "  apply beam:         " << std::boolalpha << itsApplyBeam << '\n';
   if (itsApplyBeam) {
     os << "   mode:              ";
@@ -328,7 +332,8 @@ bool Predict::process(const DPBuffer& bufin) {
 
   itsTimerPredict.start();
 
-  base::nsplitUVW(itsUVWSplitIndex, itsBaselines, tempBuffer.getUVW(), itsUVW);
+  base::nsplitUVW(itsUVWSplitIndex, itsBaselines, tempBuffer.getUVW(),
+                  itsStationUVW);
 
   double time = tempBuffer.getTime();
   // Set up directions for beam evaluation
@@ -384,9 +389,9 @@ bool Predict::process(const DPBuffer& bufin) {
     Cube<dcomplex>& simulatedest =
         (itsApplyBeam ? itsPredictBuffer->GetPatchModel(thread)
                       : itsPredictBuffer->GetModel(thread));
-    simulators.emplace_back(itsPhaseRef, nSt, nBl, nCh, itsBaselines,
-                            info().chanFreqs(), itsUVW, simulatedest,
-                            itsStokesIOnly);
+    simulators.emplace_back(itsPhaseRef, nSt, itsBaselines, info().chanFreqs(),
+                            info().chanWidths(), itsStationUVW, simulatedest,
+                            itsCorrectFreqSmearing, itsStokesIOnly);
   }
   std::vector<base::Patch::ConstPtr> curPatches(pool->NThreads());
 

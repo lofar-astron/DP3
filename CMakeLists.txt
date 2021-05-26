@@ -506,6 +506,7 @@ if (BUILD_TESTING)
       common/test/unit/tMemory.cc
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
+      base/test/unit/tSimulator.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBDAExpander.cc
       steps/test/unit/tDPInput.cc

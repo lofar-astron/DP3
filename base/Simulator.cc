@@ -12,7 +12,7 @@
 
 #include <casacore/casa/BasicSL/Constants.h>
 
-#include "../common/StreamUtil.h"  ///
+#include "../common/StreamUtil.h"
 
 namespace dp3 {
 namespace base {
@@ -30,10 +30,29 @@ namespace {
 void radec2lmn(const Position& reference, const Position& position,
                double* lmn);
 
+/**
+ * Compute station phase shifts.
+ *
+ * \f[ \mathrm{stationphases}(p) = \frac{2\pi}{c}((u_p, v_p, w_p) \cdot (\ell,
+ * m, n)) \f]
+ *
+ * \f[ \mathrm{phases}(p) = e^{\mathrm{stationphases}(p)} \f]
+ *
+ * @param nStation Number of stations
+ * @param nChannel Number of channels
+ * @param lmn LMN coordinates of source, should be length 3
+ * @param uvw Station UVW coordinates, matrix of shape (3, nSt)
+ * @param freq Channel frequencies, should be length nChannel
+ * @param shift Output matrix, shift per station, matrix of shape (3, nSt)
+ * @param stationPhases Output vector, store per station \f$(x_1,y_1)\f$
+ */
 void phases(size_t nStation, size_t nChannel, const double* lmn,
             const casacore::Matrix<double>& uvw,
             const casacore::Vector<double>& freq,
-            Simulator::Matrix<dcomplex>& shift);
+            Simulator::Matrix<dcomplex>& shift,
+            std::vector<double>& stationPhases);
+
+float computeSmearterm(double uvw, double halfwidth);
 
 void spectrum(const PointSource& component, size_t nChannel,
               const casacore::Vector<double>& freq,
@@ -41,27 +60,31 @@ void spectrum(const PointSource& component, size_t nChannel,
 }  // Unnamed namespace.
 
 Simulator::Simulator(const Position& reference, size_t nStation,
-                     size_t nBaseline, size_t nChannel,
-                     const casacore::Vector<Baseline>& baselines,
+                     const std::vector<Baseline>& baselines,
                      const casacore::Vector<double>& freq,
-                     const casacore::Matrix<double>& uvw,
-                     casacore::Cube<dcomplex>& buffer, bool stokesIOnly)
+                     const casacore::Vector<double>& chanWidths,
+                     const casacore::Matrix<double>& stationUVW,
+                     casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
+                     bool stokesIOnly)
     : itsReference(reference),
       itsNStation(nStation),
-      itsNBaseline(nBaseline),
-      itsNChannel(nChannel),
+      itsNBaseline(baselines.size()),
+      itsNChannel(freq.size()),
+      itsCorrectFreqSmearing(correctFreqSmearing),
       itsStokesIOnly(stokesIOnly),
       itsBaselines(baselines),
       itsFreq(freq),
-      itsUVW(uvw),
+      itsChanWidths(chanWidths),
+      itsStationUVW(stationUVW),
       itsBuffer(buffer),
       itsShiftBuffer(),
       itsSpectrumBuffer() {
-  itsShiftBuffer.resize(nChannel, nStation);
+  itsShiftBuffer.resize(itsNChannel, nStation);
+  itsStationPhases.resize(nStation);
   if (stokesIOnly) {
-    itsSpectrumBuffer.resize(1, nChannel);
+    itsSpectrumBuffer.resize(1, itsNChannel);
   } else {
-    itsSpectrumBuffer.resize(4, nChannel);
+    itsSpectrumBuffer.resize(4, itsNChannel);
   }
 }
 
@@ -75,7 +98,8 @@ void Simulator::visit(const PointSource& component) {
   radec2lmn(itsReference, component.position(), lmn);
 
   // Compute station phase shifts.
-  phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
+  phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
+         itsStationPhases);
 
   // Compute component spectrum.
   spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
@@ -105,19 +129,29 @@ void Simulator::visit(const PointSource& component) {
       const dcomplex* shiftP = &(itsShiftBuffer(0, p));
       const dcomplex* shiftQ = &(itsShiftBuffer(0, q));
       const dcomplex* spectrum = itsSpectrumBuffer.data();
+      double smearterm = 1.0;
 
       if (itsStokesIOnly) {
         for (size_t ch = 0; ch < itsNChannel; ++ch) {
+          if (itsCorrectFreqSmearing) {
+            smearterm =
+                computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
+                                 itsChanWidths[ch] / 2);
+          }
           // Compute baseline phase shift.
           // Compute visibilities.
-          *buffer++ += (*shiftQ) * conj(*shiftP) * (*spectrum++);
+          *buffer++ += (*shiftQ) * conj(*shiftP) * (*spectrum++) * smearterm;
           ++shiftP;
           ++shiftQ;
         }  // Channels.
       } else {
         for (size_t ch = 0; ch < itsNChannel; ++ch) {
+          if (itsCorrectFreqSmearing)
+            smearterm =
+                computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
+                                 itsChanWidths[ch] / 2);
           // Compute baseline phase shift.
-          const dcomplex blShift = (*shiftQ) * conj(*shiftP);
+          const dcomplex blShift = (*shiftQ) * conj(*shiftP) * smearterm;
           ++shiftP;
           ++shiftQ;
 
@@ -138,7 +172,8 @@ void Simulator::visit(const GaussianSource& component) {
   radec2lmn(itsReference, component.position(), lmn);
 
   // Compute station phase shifts.
-  phases(itsNStation, itsNChannel, lmn, itsUVW, itsFreq, itsShiftBuffer);
+  phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
+         itsStationPhases);
 
   // Compute component spectrum.
   spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
@@ -173,11 +208,11 @@ void Simulator::visit(const GaussianSource& component) {
     if (p == q) {
       buffer += itsNChannel * nCorr;
     } else {
-      double u = itsUVW(0, q);
-      double v = itsUVW(1, q);
+      double u = itsStationUVW(0, q);
+      double v = itsStationUVW(1, q);
 
-      u -= itsUVW(0, p);
-      v -= itsUVW(1, p);
+      u -= itsStationUVW(0, p);
+      v -= itsStationUVW(1, p);
 
       // Rotate (u, v) by the position angle and scale with the major
       // and minor axis lengths (FWHM in rad).
@@ -202,6 +237,10 @@ void Simulator::visit(const GaussianSource& component) {
 
           const double ampl = exp((itsFreq[ch] * itsFreq[ch]) /
                                   (casacore::C::c * casacore::C::c) * uvPrime);
+          if (itsCorrectFreqSmearing)
+            blShift *=
+                computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
+                                 itsChanWidths[ch] / 2);
 
           blShift *= ampl;
 
@@ -217,6 +256,11 @@ void Simulator::visit(const GaussianSource& component) {
 
           const double ampl = exp((itsFreq[ch] * itsFreq[ch]) /
                                   (casacore::C::c * casacore::C::c) * uvPrime);
+
+          if (itsCorrectFreqSmearing)
+            blShift *=
+                computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
+                                 itsChanWidths[ch] / 2);
 
           blShift *= ampl;
 
@@ -247,19 +291,29 @@ inline void radec2lmn(const Position& reference, const Position& position,
   lmn[2] = sqrt(1.0 - l * l - m * m);
 }
 
+inline float computeSmearterm(double uvw, double halfwidth) {
+  float smearterm = uvw * halfwidth;
+  return (smearterm == 0.0f) ? 1.0f
+                             : std::fabs(std::sin(smearterm) / smearterm);
+}
+
 // Compute station phase shifts.
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const casacore::Matrix<double>& uvw,
                    const casacore::Vector<double>& freq,
-                   Simulator::Matrix<dcomplex>& shift) {
+                   Simulator::Matrix<dcomplex>& shift,
+                   std::vector<double>& stationPhases) {
   dcomplex* shiftdata = shift.data();
+  const double cinv = 1 / casacore::C::c;
   for (size_t st = 0; st < nStation; ++st) {
-    const double phase =
-        casacore::C::_2pi * (uvw(0, st) * lmn[0] + uvw(1, st) * lmn[1] +
-                             uvw(2, st) * (lmn[2] - 1.0));
+    const double phase = casacore::C::_2pi * cinv *
+                         (uvw(0, st) * lmn[0] + uvw(1, st) * lmn[1] +
+                          uvw(2, st) * (lmn[2] - 1.0));
+
+    stationPhases[st] = phase;
 
     for (size_t ch = 0; ch < nChannel; ++ch) {
-      const double chPhase = phase * freq[ch] / casacore::C::c;
+      const double chPhase = stationPhases[st] * freq[ch];
       *shiftdata = dcomplex(cos(chPhase), sin(chPhase));
       ++shiftdata;
     }  // Channels.

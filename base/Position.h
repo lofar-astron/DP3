@@ -17,6 +17,13 @@ namespace base {
 class Position {
  public:
   Position();
+
+  /**
+   * @brief Construct a new Position object
+   *
+   * @param alpha Hour angle in radians
+   * @param delta Declination in radians
+   */
   Position(double alpha, double delta);
 
   const double &operator[](size_t i) const;

@@ -54,19 +54,19 @@ class Predict : public ModelDataStep {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Predict(InputStep*, const common::ParameterSet&, const string& prefix);
+  Predict(InputStep*, const common::ParameterSet&, const std::string& prefix);
 
   /// Constructor with explicit sourcelist
-  Predict(InputStep*, const common::ParameterSet&, const string& prefix,
+  Predict(InputStep*, const common::ParameterSet&, const std::string& prefix,
           const std::vector<string>& sourcePatterns);
 
   /// The actual constructor
-  void init(InputStep*, const common::ParameterSet&, const string& prefix,
+  void init(InputStep*, const common::ParameterSet&, const std::string& prefix,
             const std::vector<string>& sourcePatterns);
 
   /// Set the applycal substep
   void setApplyCal(InputStep*, const common::ParameterSet&,
-                   const string& prefix);
+                   const std::string& prefix);
 
   /// Set the operation type
   void setOperation(const std::string& type);
@@ -122,10 +122,11 @@ class Predict : public ModelDataStep {
                      const everybeam::vector3r_t& tiledir, size_t thread,
                      size_t nBeamValues, dcomplex* data0, bool stokesIOnly);
   InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DPBuffer itsBuffer;
-  string itsSourceDBName;
-  string itsOperation;
+  std::string itsSourceDBName;
+  bool itsCorrectFreqSmearing;
+  std::string itsOperation;
   bool itsApplyBeam;
   bool itsUseChannelFreq;
   bool itsOneBeamPerPatch;
@@ -150,7 +151,7 @@ class Predict : public ModelDataStep {
   std::vector<int> itsUVWSplitIndex;
 
   /// UVW coordinates per station (3 coordinates per station)
-  casacore::Matrix<double> itsUVW;
+  casacore::Matrix<double> itsStationUVW;
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<base::PredictBuffer> itsPredictBuffer;
