@@ -10,6 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
+using std::abs;
 
 // Implementatation of tBDABuffer.h
 namespace dp3 {

@@ -432,9 +432,10 @@ void DemixWorker::predictTarget(const std::vector<Patch::ConstPtr>& patchList,
   for (unsigned int j = 0; j < ntime; ++j) {
     for (unsigned int dr = 0; dr < patchList.size(); ++dr) {
       itsPredictVis = dcomplex();
-      Simulator simulator(itsMix->phaseRef(), itsMix->nstation(), itsMix->nbl(),
-                          itsMix->freqDemix().size(), itsMix->baselines(),
-                          itsMix->freqDemix(), uvwiter.matrix(), itsPredictVis);
+      Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
+                          itsMix->baselines(), itsMix->freqDemix(),
+                          casacore::Vector<double>(), uvwiter.matrix(),
+                          itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
         simulator.simulate(patchList[dr]->component(i));
       }
@@ -476,9 +477,10 @@ void DemixWorker::predictAteam(const std::vector<Patch::ConstPtr>& patchList,
     double t = time;
     for (unsigned int j = 0; j < ntime; ++j) {
       itsPredictVis = dcomplex();
-      Simulator simulator(itsMix->phaseRef(), itsMix->nstation(), itsMix->nbl(),
-                          itsMix->freqDemix().size(), itsMix->baselines(),
-                          itsMix->freqDemix(), uvwiter.matrix(), itsPredictVis);
+      Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
+                          itsMix->baselines(), itsMix->freqDemix(),
+                          casacore::Vector<double>(), uvwiter.matrix(),
+                          itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
         simulator.simulate(patchList[dr]->component(i));
       }
@@ -1081,9 +1083,9 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
         // To each of them the beam must be applied.
         for (unsigned int i = 0; i < itsMix->targetDemixList().size(); ++i) {
           itsPredictVis = dcomplex();
-          Simulator simulator(itsMix->phaseRef(), nSt, nBl, nCh,
-                              itsMix->baselines(), itsMix->freqDemix(), itsUVW,
-                              itsPredictVis);
+          Simulator simulator(itsMix->phaseRef(), nSt, itsMix->baselines(),
+                              itsMix->freqDemix(), casacore::Vector<double>(),
+                              itsUVW, itsPredictVis, false, false);
           for (size_t j = 0; j < itsMix->targetDemixList()[i]->nComponents();
                ++j) {
             simulator.simulate(itsMix->targetDemixList()[i]->component(j));
@@ -1094,9 +1096,10 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
         }
       } else {
         itsModelVisDemix[dr] = dcomplex();
-        Simulator simulator(itsDemixList[dr]->position(), nSt, nBl, nCh,
-                            itsMix->baselines(), itsMix->freqDemix(), itsUVW,
-                            itsModelVisDemix[dr]);
+        Simulator simulator(itsDemixList[dr]->position(), nSt,
+                            itsMix->baselines(), itsMix->freqDemix(),
+                            casacore::Vector<double>(), itsUVW,
+                            itsModelVisDemix[dr], false, false);
         for (size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i) {
           simulator.simulate(itsDemixList[dr]->component(i));
         }
@@ -1199,9 +1202,9 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
                                               stride_model_subtr);
 
             Simulator simulator(itsMix->ateamList()[drOrig]->position(), nSt,
-                                nBl, nChSubtr, itsMix->baselines(),
-                                itsMix->freqSubtr(), itsUVW,
-                                itsModelVisSubtr[0]);
+                                itsMix->baselines(), itsMix->freqSubtr(),
+                                casacore::Vector<double>(), itsUVW,
+                                itsModelVisSubtr[0], false, false);
             for (size_t i = 0; i < itsMix->ateamList()[drOrig]->nComponents();
                  ++i) {
               simulator.simulate(itsMix->ateamList()[drOrig]->component(i));
