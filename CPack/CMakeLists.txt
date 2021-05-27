@@ -43,16 +43,16 @@ set(CPACK_SOURCE_GENERATOR "TGZ")
 
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS 
-"aoflagger (>= 3.0.1),\
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "aoflagger (>= 3.0.1),\
  everybeam (>= 0.2), everybeam (<< 0.3),\
  idg-api (>= 0.8)")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "deb-packages@astron.nl")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
-# Determine list of conflicting package names.
-# Packages not built for current target CPU always conflict.
+# Determine list of conflicting package names. Packages not built for current
+# target CPU always conflict.
 if(DEFINED IDENTIFIED_TARGET_CPU)
   set(_conflicts dp3)
 else()
@@ -73,4 +73,3 @@ include(CPack)
 
 message(STATUS "Package name: ${CPACK_PACKAGE_NAME}")
 message(STATUS "Package version: ${CPACK_PACKAGE_VERSION}")
-
