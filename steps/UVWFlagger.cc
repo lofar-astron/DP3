@@ -19,10 +19,11 @@
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Utilities/GenSort.h>
 
-#include <iostream>
-#include <algorithm>
-
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/make_unique.hpp>
+
+#include <algorithm>
+#include <iostream>
 
 using casacore::Cube;
 using casacore::IPosition;
@@ -43,23 +44,27 @@ UVWFlagger::UVWFlagger(InputStep* input, const common::ParameterSet& parset,
     : itsInput(input),
       itsName(prefix),
       itsNTimes(0),
-      itsFlagCounter(input->msName(), parset, prefix + "count.") {
-  itsRangeUVm = fillUVW(parset, prefix, "uvm", true);
-  itsRangeUm = fillUVW(parset, prefix, "um", false);
-  itsRangeVm = fillUVW(parset, prefix, "vm", false);
-  itsRangeWm = fillUVW(parset, prefix, "wm", false);
-  itsRangeUVl = fillUVW(parset, prefix, "uvlambda", false);
-  itsRangeUl = fillUVW(parset, prefix, "ulambda", false);
-  itsRangeVl = fillUVW(parset, prefix, "vlambda", false);
-  itsRangeWl = fillUVW(parset, prefix, "wlambda", false);
-  itsIsDegenerate = itsRangeUVm.size() + itsRangeUVl.size() +
-                        itsRangeUm.size() + itsRangeVm.size() +
-                        itsRangeWm.size() + itsRangeUl.size() +
-                        itsRangeVl.size() + itsRangeWl.size() ==
-                    0;
-  itsCenter =
-      parset.getStringVector(prefix + "phasecenter", std::vector<string>());
-}
+      itsRecWavel(),
+
+      itsRangeUVm(fillUVW(parset, prefix, "uvm", true)),
+      itsRangeUm(fillUVW(parset, prefix, "um", false)),
+      itsRangeVm(fillUVW(parset, prefix, "vm", false)),
+      itsRangeWm(fillUVW(parset, prefix, "wm", false)),
+      itsRangeUVl(fillUVW(parset, prefix, "uvlambda", false)),
+      itsRangeUl(fillUVW(parset, prefix, "ulambda", false)),
+      itsRangeVl(fillUVW(parset, prefix, "vlambda", false)),
+      itsRangeWl(fillUVW(parset, prefix, "wlambda", false)),
+      itsIsDegenerate(itsRangeUVm.size() + itsRangeUVl.size() +
+                          itsRangeUm.size() + itsRangeVm.size() +
+                          itsRangeWm.size() + itsRangeUl.size() +
+                          itsRangeVl.size() + itsRangeWl.size() ==
+                      0),
+      itsUVWCalc(),
+      itsCenter(parset.getStringVector(prefix + "phasecenter",
+                                       std::vector<string>())),
+      itsTimer(),
+      itsUVWTimer(),
+      itsFlagCounter(input->msName(), parset, prefix + "count.") {}
 
 UVWFlagger::~UVWFlagger() {}
 
@@ -157,8 +162,8 @@ bool UVWFlagger::process(const DPBuffer& buf) {
     if (!itsCenter.empty()) {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-      uvw = itsUVWCalc.getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
-                              buf.getTime());
+      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
+                               buf.getTime());
       uvwPtr = uvw.data();
       /// cout << "uvw = " << uvw << '\n';
     }
@@ -339,8 +344,8 @@ void UVWFlagger::handleCenter() {
     phaseCenter = MDirection(q0, q1, type);
   }
   // Create the UVW calculator.
-  itsUVWCalc = base::UVWCalculator(phaseCenter, getInfo().arrayPos(),
-                                   getInfo().antennaPos());
+  itsUVWCalc = boost::make_unique<base::UVWCalculator>(
+      phaseCenter, getInfo().arrayPos(), getInfo().antennaPos());
 }
 
 }  // namespace steps

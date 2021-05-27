@@ -34,9 +34,6 @@ namespace base {
 
 class UVWCalculator {
  public:
-  /// The default constructor creates an empty object.
-  UVWCalculator();
-
   /// Construct the object for the given phase direction, array position,
   /// and station positions.
   UVWCalculator(const casacore::MDirection& phaseDir,

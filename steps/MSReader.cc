@@ -38,6 +38,8 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
+#include <boost/make_unique.hpp>
+
 #include <iostream>
 
 using casacore::ArrayColumn;
@@ -685,7 +687,8 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   }
   info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
   // Create the UVW calculator.
-  itsUVWCalc = base::UVWCalculator(phaseCenter, arrayPos, antPos);
+  itsUVWCalc =
+      boost::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
 }
 
 void MSReader::prepare2() {
@@ -775,7 +778,7 @@ void MSReader::calcUVW(double time, DPBuffer& buf) {
   const casacore::Vector<int>& ant1 = getInfo().getAnt1();
   const casacore::Vector<int>& ant2 = getInfo().getAnt2();
   for (unsigned int i = 0; i < itsNrBl; ++i) {
-    uvws.column(i) = itsUVWCalc.getUVW(ant1[i], ant2[i], time);
+    uvws.column(i) = itsUVWCalc->getUVW(ant1[i], ant2[i], time);
   }
 }
 
