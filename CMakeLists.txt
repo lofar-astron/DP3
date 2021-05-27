@@ -490,6 +490,7 @@ if(BUILD_TESTING)
       base/test/unit/tMirror.cc
       base/test/unit/tSolutionInterval.cc
       base/test/unit/tSourceDBUtil.cc
+      base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tBDASolverBuffer.cc
       ddecal/test/unit/tLLSSolver.cc
