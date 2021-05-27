@@ -1,12 +1,11 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires
-# CMake 3.9.
+# FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
 cmake_minimum_required(VERSION 3.9)
 
 # CMake >= 3.19.1 gives a warning when this policy is not 'NEW'.
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.1")
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.1")
   cmake_policy(SET CMP0074 NEW)
 endif()
 
@@ -59,7 +58,6 @@ if(BUILD_PACKAGES)
   add_subdirectory(CPack)
 endif()
 
-
 # === Load external packages ===
 
 # DDECal dependencies
@@ -68,27 +66,36 @@ if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   include_directories(${ARMADILLO_INCLUDE_DIRS})
   set(DDE_ARMADILLO_FILES
-    ddecal/constraints/KLFitter.cc
-    ddecal/constraints/PiercePoint.cc
-    ddecal/constraints/ScreenConstraint.cc)
+      ddecal/constraints/KLFitter.cc ddecal/constraints/PiercePoint.cc
+      ddecal/constraints/ScreenConstraint.cc)
 else()
-  message(WARNING "Armadillo was not found, not including screenfitter inside DDECal")
+  message(
+    WARNING "Armadillo was not found, not including screenfitter inside DDECal")
   set(DDE_ARMADILLO_FILES)
 endif()
 
 # Casacore depends on HDF5 -> First load HDF5.
-find_package(HDF5 COMPONENTS C CXX REQUIRED)
+find_package(
+  HDF5
+  COMPONENTS C CXX
+  REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
 
-find_package(Casacore COMPONENTS casa ms tables fits REQUIRED)
+find_package(
+  Casacore
+  COMPONENTS casa ms tables fits
+  REQUIRED)
 include_directories(${CASACORE_INCLUDE_DIR})
 
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
 
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
-  find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
+  find_package(
+    Python3
+    COMPONENTS Interpreter Development
+    REQUIRED)
   find_package(Python3 COMPONENTS NumPy)
 else() # Use old, deprecated means of detecting python.
   find_package(PythonInterp 3 REQUIRED)
@@ -109,44 +116,56 @@ message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
 
 if(BUILD_PACKAGES)
-  set(PYTHON_INSTALL_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/dist-packages)
+  set(PYTHON_INSTALL_DIR
+      lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/dist-packages)
 else()
-  set(PYTHON_INSTALL_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
+  set(PYTHON_INSTALL_DIR
+      lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
 endif()
 
-#Prevent accidentally finding old BoostConfig.cmake file from casapy
+# Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS filesystem program_options system unit_test_framework REQUIRED)
+find_package(
+  Boost
+  COMPONENTS filesystem program_options system unit_test_framework
+  REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(Threads REQUIRED)
-
 
 # === Load astron packages ===
 
 find_package(AOFlagger 3.0.1 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
-# We could use find_package(EveryBeam 0.1.1 REQUIRED),
-# however conditions below make it somewhat more explicit
+# We could use find_package(EveryBeam 0.1.1 REQUIRED), however conditions below
+# make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.0" OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.3.0")
-    message(FATAL_ERROR "DP3 needs EveryBeam version 0.2.x - with x >= 0 - but found version ${EveryBeam_VERSION}")
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.0" OR ${EVERYBEAM_VERSION}
+                                                  VERSION_GREATER_EQUAL "0.3.0")
+    message(
+      FATAL_ERROR
+        "DP3 needs EveryBeam version 0.2.x - with x >= 0 - but found version ${EveryBeam_VERSION}"
+    )
   endif()
-include_directories(${EVERYBEAM_INCLUDE_DIR})
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
 else(${EVERYBEAM_FOUND})
-  message(FATAL_ERROR "DP3 requires EveryBeam, but EveryBeam was not found. "
-    "Please install https://git.astron.nl/RD/EveryBeam and make sure that "
-    "EveryBeam is added to the CMAKE_PREFIX_PATH")
+  message(
+    FATAL_ERROR
+      "DP3 requires EveryBeam, but EveryBeam was not found. "
+      "Please install https://git.astron.nl/RD/EveryBeam and make sure that "
+      "EveryBeam is added to the CMAKE_PREFIX_PATH")
 endif(${EVERYBEAM_FOUND})
 
 find_package(IDGAPI NO_MODULE QUIET)
 if(IDGAPI_FOUND)
   # Throw error if IDG version < 0.8 or version not provided at all
   if((IDGAPI_VERSION VERSION_LESS "0.8") OR (NOT DEFINED IDGAPI_VERSION))
-    message(FATAL_ERROR "IDGAPI was found, but DP3 requires IDGAPI to have version >= 0.8. "
-    "Please compile IDG repository at a version >= 0.8")
+    message(
+      FATAL_ERROR
+        "IDGAPI was found, but DP3 requires IDGAPI to have version >= 0.8. "
+        "Please compile IDG repository at a version >= 0.8")
   endif()
 endif()
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
@@ -156,9 +175,11 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   message(STATUS "Image domain gridder API libraries found.")
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES "")
-  message(WARNING "Image domain gridder API libraries NOT found. IDG prediction will not be available.")
+  message(
+    WARNING
+      "Image domain gridder API libraries NOT found. IDG prediction will not be available."
+  )
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-
 
 # === Load internal submodule packages. ===
 
@@ -169,19 +190,27 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   if(GIT_SUBMODULE)
     message(STATUS "Syncing submodules")
     # Account for potential changes in git repo URL's
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule sync --recursive
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} submodule sync --recursive
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(FATAL_ERROR "Syncing submodules did not succeed"
-              "command '${GIT_EXECUTABLE} submodule sync --recursive' failed with exit code ${GIT_SUBMOD_RESULT}")
+      message(
+        FATAL_ERROR
+          "Syncing submodules did not succeed"
+          "command '${GIT_EXECUTABLE} submodule sync --recursive' failed with exit code ${GIT_SUBMOD_RESULT}"
+      )
     endif()
     message(STATUS "Updating submodules")
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+      message(
+        FATAL_ERROR
+          "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules"
+      )
     endif()
   endif()
 endif()
@@ -202,9 +231,10 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 configure_file(base/Version.h.in base/Version.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/base)
 
-if (USE_LSMR)
+if(USE_LSMR)
   add_definitions(-DUSE_LSMR)
-  add_library(LSMR OBJECT
+  add_library(
+    LSMR OBJECT
     external/clsmr/lsmrblas.f90
     external/clsmr/lsmrblasInterface.f90
     external/clsmr/lsmrCheckModule.f90
@@ -216,21 +246,21 @@ if (USE_LSMR)
     external/clsmr/clsmrblas.f90
     external/clsmr/clsmrblasInterface.f90
     external/clsmr/clsmrDataModule.f90
-    external/clsmr/clsmrModule.f90
-  )
+    external/clsmr/clsmrModule.f90)
 endif()
 
-add_library(Blob OBJECT
+add_library(
+  Blob OBJECT
   blob/BlobAipsIO.cc
   blob/BlobArray.cc
   blob/BlobHeader.cc
   blob/BlobIBufStream.cc
   blob/BlobIStream.cc
   blob/BlobOBufStream.cc
-  blob/BlobOStream.cc
-)
+  blob/BlobOStream.cc)
 
-add_library(Common OBJECT
+add_library(
+  Common OBJECT
   common/BaselineSelect.cc
   common/ClusterDesc.cc
   common/DataConvert.cc
@@ -248,10 +278,10 @@ add_library(Common OBJECT
   common/TypeNames.cc
   common/VdsDesc.cc
   common/VdsMaker.cc
-  common/VdsPartDesc.cc
-)
+  common/VdsPartDesc.cc)
 
-add_library(DDECal OBJECT
+add_library(
+  DDECal OBJECT
   steps/DDECal.cc
   ddecal/Settings.cc
   ddecal/constraints/Constraint.cc
@@ -278,7 +308,8 @@ add_library(DDECal OBJECT
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
-add_library(DP3_OBJ OBJECT
+add_library(
+  DP3_OBJ OBJECT
   base/Apply.cc
   base/BaselineSelection.cc
   base/BDABuffer.cc
@@ -345,10 +376,10 @@ add_library(DP3_OBJ OBJECT
   steps/Upsample.cc
   steps/UVWFlagger.cc
   steps/ApplyBeam.cc
-  steps/DemixerNew.cc
-)
+  steps/DemixerNew.cc)
 
-add_library(ParmDB OBJECT
+add_library(
+  ParmDB OBJECT
   parmdb/Axis.cc
   parmdb/AxisMapping.cc
   parmdb/Box.cc
@@ -370,46 +401,40 @@ add_library(ParmDB OBJECT
   parmdb/SourceDB.cc
   parmdb/SourceDBBlob.cc
   parmdb/SourceDBCasa.cc
-  parmdb/SourceInfo.cc
-)
+  parmdb/SourceInfo.cc)
 
-add_library(PythonDP3 OBJECT
-  pythondp3/PyStep.cc
-)
+add_library(PythonDP3 OBJECT pythondp3/PyStep.cc)
 
 # dp3_testdyndp3 requires using position independent code.
 set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB PythonDP3
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 if(USE_LSMR)
-set_property(TARGET LSMR
-             PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_property(TARGET LSMR PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
 set(DP3_OBJECTS
-  $<TARGET_OBJECTS:Blob>
-  $<TARGET_OBJECTS:Common>
-  $<TARGET_OBJECTS:DDECal>
-  $<TARGET_OBJECTS:DP3_OBJ>
-  $<TARGET_OBJECTS:ParmDB>
-  $<TARGET_OBJECTS:PythonDP3>)
+    $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common> $<TARGET_OBJECTS:DDECal>
+    $<TARGET_OBJECTS:DP3_OBJ> $<TARGET_OBJECTS:ParmDB>
+    $<TARGET_OBJECTS:PythonDP3>)
 
 if(USE_LSMR)
   list(APPEND DP3_OBJECTS $<TARGET_OBJECTS:LSMR>)
 endif()
 
 set(DP3_LIBRARIES
-  ${AOFLAGGER_LIB}
-  ${ARMADILLO_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${CASACORE_LIBRARIES}
-  ${CFITSIO_LIBRARY}
-  ${EVERYBEAM_LIB}
-  ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES}
-  ${IDGAPI_LIBRARIES}
-  ${Python3_LIBRARIES}
-  schaapcommon
-  Threads::Threads
-  pybind11::embed)
+    ${AOFLAGGER_LIB}
+    ${ARMADILLO_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${CASACORE_LIBRARIES}
+    ${CFITSIO_LIBRARY}
+    ${EVERYBEAM_LIB}
+    ${HDF5_LIBRARIES}
+    ${HDF5_CXX_LIBRARIES}
+    ${IDGAPI_LIBRARIES}
+    ${Python3_LIBRARIES}
+    schaapcommon
+    Threads::Threads
+    pybind11::embed)
 
 add_subdirectory(base)
 
@@ -417,14 +442,10 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_subdirectory(pythondp3)
 endif()
 
-set(SOURCEDB_OBJECTS
-  $<TARGET_OBJECTS:Blob>
-  $<TARGET_OBJECTS:Common>
-  $<TARGET_OBJECTS:ParmDB>)
+set(SOURCEDB_OBJECTS $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common>
+                     $<TARGET_OBJECTS:ParmDB>)
 
-set(SOURCEDB_LIBRARIES
-  ${CASACORE_LIBRARIES}
-  ${Boost_SYSTEM_LIBRARY})
+set(SOURCEDB_LIBRARIES ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
 add_executable(makesourcedb parmdb/makesourcedb.cc ${SOURCEDB_OBJECTS})
 target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
@@ -435,74 +456,79 @@ target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
 # Install a script that warns users that DP3 is the new name of the executable
-install(PROGRAMS scripts/DPPP-deprecation.sh DESTINATION bin RENAME DPPP)
+install(
+  PROGRAMS scripts/DPPP-deprecation.sh
+  DESTINATION bin
+  RENAME DPPP)
 
 include(docs/CMakeLists.txt)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
   include(CTest)
 
   if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(OS_SPECIFIC_TESTS) # No specific tests for Apple
   else()
     # These run only on Linux
-    set(OS_SPECIFIC_TESTS
-    # steps/dynamic_test_step/test/tDynamicTestStep.cc # This test still fails
+    set(OS_SPECIFIC_TESTS # steps/dynamic_test_step/test/tDynamicTestStep.cc #
+                          # This test still fails
     )
-    add_library(dp3_testdyndp3 SHARED
-      steps/dynamic_test_step/DynamicTestStep.cc ${DP3_OBJECTS}
-    )
+    add_library(dp3_testdyndp3 SHARED steps/dynamic_test_step/DynamicTestStep.cc
+                                      ${DP3_OBJECTS})
     target_link_libraries(dp3_testdyndp3 ${DP3_LIBRARIES})
     add_dependencies(dp3_testdyndp3 schaapcommon)
   endif()
 
   set(TEST_FILENAMES
-    common/test/unit/tProximityClustering.cc
-    base/test/runtests.cc
-    base/test/unit/tBaselineSelection.cc
-    base/test/unit/tBDABuffer.cc
-    base/test/unit/tDPBuffer.cc
-    # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
-    base/test/unit/tDP3.cc
-    base/test/unit/tMirror.cc
-    base/test/unit/tSolutionInterval.cc
-    base/test/unit/tSourceDBUtil.cc
-    ddecal/test/unit/SolverTester.cc
-    ddecal/test/unit/tBDASolverBuffer.cc
-    ddecal/test/unit/tLLSSolver.cc
-    ddecal/test/unit/tRotationConstraint.cc
-    ddecal/test/unit/tSmoothnessConstraint.cc
-    ddecal/test/unit/tSolvers.cc
-    ddecal/test/unit/tBdaSolvers.cc
-    steps/test/unit/mock/MockInput.cc
-    steps/test/unit/mock/MockStep.cc
-    steps/test/unit/fixtures/fDirectory.cc
-    steps/test/unit/tAOFlaggerStep.cc
-    steps/test/unit/tApplyCal.cc
-    steps/test/unit/tApplyCalH5.cc
-    steps/test/unit/tAverager.cc
-    steps/test/unit/tBDAResultStep.cc
-    steps/test/unit/tFilter.cc
-    steps/test/unit/tInterpolate.cc
-    steps/test/unit/tMedFlagger.cc
-    steps/test/unit/tMSReader.cc
-    steps/test/unit/tPreFlagger.cc
-    steps/test/unit/tPhaseShift.cc
-    steps/test/unit/tUpsample.cc
-    steps/test/unit/tUVWFlagger.cc
-    steps/test/unit/tPSet.cc
-    steps/test/unit/tScaleData.cc
-    steps/test/unit/tStationAdder.cc
-  )
+      common/test/unit/tProximityClustering.cc
+      base/test/runtests.cc
+      base/test/unit/tBaselineSelection.cc
+      base/test/unit/tBDABuffer.cc
+      base/test/unit/tDPBuffer.cc
+      # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
+      base/test/unit/tDP3.cc
+      base/test/unit/tMirror.cc
+      base/test/unit/tSolutionInterval.cc
+      base/test/unit/tSourceDBUtil.cc
+      ddecal/test/unit/SolverTester.cc
+      ddecal/test/unit/tBDASolverBuffer.cc
+      ddecal/test/unit/tLLSSolver.cc
+      ddecal/test/unit/tRotationConstraint.cc
+      ddecal/test/unit/tSmoothnessConstraint.cc
+      ddecal/test/unit/tSolvers.cc
+      ddecal/test/unit/tBdaSolvers.cc
+      steps/test/unit/mock/MockInput.cc
+      steps/test/unit/mock/MockStep.cc
+      steps/test/unit/fixtures/fDirectory.cc
+      steps/test/unit/tAOFlaggerStep.cc
+      steps/test/unit/tApplyCal.cc
+      steps/test/unit/tApplyCalH5.cc
+      steps/test/unit/tAverager.cc
+      steps/test/unit/tBDAResultStep.cc
+      steps/test/unit/tFilter.cc
+      steps/test/unit/tInterpolate.cc
+      steps/test/unit/tMedFlagger.cc
+      steps/test/unit/tMSReader.cc
+      steps/test/unit/tPreFlagger.cc
+      steps/test/unit/tPhaseShift.cc
+      steps/test/unit/tUpsample.cc
+      steps/test/unit/tUVWFlagger.cc
+      steps/test/unit/tPSet.cc
+      steps/test/unit/tScaleData.cc
+      steps/test/unit/tStationAdder.cc)
   if(${Python3_NumPy_FOUND})
-     list(APPEND TEST_FILENAMES "steps/test/unit/tPyStep.cc")
+    list(APPEND TEST_FILENAMES "steps/test/unit/tPyStep.cc")
   else(${Python3_NumPy_FOUND})
-     message(WARNING "NumPy not found on machine, tPyStep test is excluded from tests.")
+    message(
+      WARNING "NumPy not found on machine, tPyStep test is excluded from tests."
+    )
   endif()
 
   # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
   if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
-    list(APPEND TEST_FILENAMES
+    list(
+      APPEND
+      TEST_FILENAMES
       common/test/unit/tMemory.cc
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
@@ -522,93 +548,82 @@ if (BUILD_TESTING)
 
   # Add boost dynamic link flag for all test files.
   # https://www.boost.org/doc/libs/1_66_0/libs/test/doc/html/boost_test/usage_variants.html
-  # Without this flag, linking is incorrect and boost performs duplicate delete()
-  # calls after running all tests, in the cleanup phase.
+  # Without this flag, linking is incorrect and boost performs duplicate
+  # delete() calls after running all tests, in the cleanup phase.
   set_source_files_properties(
-    ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK"
-  )
+    ${TEST_FILENAMES} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK")
 
   set(DP3_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resources)
   set(EXTRACT_CMD ${CMAKE_COMMAND} -E tar xzf)
 
-  add_custom_target(extract_test_resources
+  add_custom_target(
+    extract_test_resources
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tIDGPredict.sources.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
-  )
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz)
 
-  add_test(
-    NAME extract_resources
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target extract_test_resources
-  )
-  set_tests_properties(extract_resources PROPERTIES FIXTURES_SETUP extract_resources)
+  add_test(NAME extract_resources
+           COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
+                   extract_test_resources)
+  set_tests_properties(extract_resources PROPERTIES FIXTURES_SETUP
+                                                    extract_resources)
 
-  add_executable(
-    unittests
-    ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS} ${DP3_OBJECTS}
-  )
+  add_executable(unittests ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
+                           ${DP3_OBJECTS})
   set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
   target_link_libraries(unittests ${DP3_LIBRARIES})
   add_dependencies(unittests schaapcommon)
 
   # Automatically (re)build the unit tests on every ctest run.
-  add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target unittests)
+  add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
+           unittests)
   set_tests_properties(buildunittests PROPERTIES FIXTURES_SETUP unittests)
 
   # unittests.sh adjusts the PYTHONPATH to make tPyStep working.
   configure_file(scripts/unittests.sh.in unittests.sh)
-  add_test(
-    NAME unittests
-    COMMAND unittests.sh  -t !@slow -f JUNIT -k unittests.xml --catch_system_error=yes
-  )
-  set_tests_properties(
-    unittests PROPERTIES LABELS unit
-    FIXTURES_REQUIRED "unittests;extract_resources"
-  )
+  add_test(NAME unittests COMMAND unittests.sh -t !@slow -f JUNIT -k
+                                  unittests.xml --catch_system_error=yes)
+  set_tests_properties(unittests PROPERTIES LABELS unit FIXTURES_REQUIRED
+                                            "unittests;extract_resources")
 
-  # Long running tests are labeled 'slow' and use a separate add_test call,
-  # so ctest can run them in parallel.
-  # Unfortunately there is no easy means of retreiving a list of all slow tests.
+  # Long running tests are labeled 'slow' and use a separate add_test call, so
+  # ctest can run them in parallel. Unfortunately there is no easy means of
+  # retreiving a list of all slow tests.
   set(SLOW_TESTS
-    bda_solvers/diagonal
-    bda_solvers/hybrid
-    bda_solvers/iterative_diagonal
-    bda_solvers/iterative_scalar
-    bda_solvers/scalar
-    idgpredict/process
-    idgpredict/process_beam
-    msbdawriter/process_simple
-    msbdawriter/create_default_subtables
-    msbdawriter/different_bda_intervals
-    solvers/scalar_solver
-    solvers/iterative_scalar_solver
-    solvers/scalar_solver_normaleq
-    solvers/diagonal_solver
-    solvers/iterative_diagonal_solver
-    solvers/hybrid_solver
-    solvers/full_jones_solver
-    solvers/min_iterations
-  )
+      bda_solvers/diagonal
+      bda_solvers/hybrid
+      bda_solvers/iterative_diagonal
+      bda_solvers/iterative_scalar
+      bda_solvers/scalar
+      idgpredict/process
+      idgpredict/process_beam
+      msbdawriter/process_simple
+      msbdawriter/create_default_subtables
+      msbdawriter/different_bda_intervals
+      solvers/scalar_solver
+      solvers/iterative_scalar_solver
+      solvers/scalar_solver_normaleq
+      solvers/diagonal_solver
+      solvers/iterative_diagonal_solver
+      solvers/hybrid_solver
+      solvers/full_jones_solver
+      solvers/min_iterations)
   if(USE_LSMR)
-    list(APPEND SLOW_TESTS
-      solvers/scalar_solver_lsmr
-      solvers/diagonal_solver_lsmr
-    )
+    list(APPEND SLOW_TESTS solvers/scalar_solver_lsmr
+         solvers/diagonal_solver_lsmr)
   endif()
 
   foreach(TEST ${SLOW_TESTS})
     string(REPLACE "/" "_" XMLNAME ${TEST})
     set(XMLNAME "unittest_${XMLNAME}.xml")
-    add_test(
-      NAME ${TEST}
-      COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME} --catch_system_error=yes
-    )
+    add_test(NAME ${TEST} COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME}
+                                  --catch_system_error=yes)
     set_tests_properties(
-      ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED "unittests;extract_resources"
-    )
+      ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED
+                         "unittests;extract_resources")
   endforeach()
 
   add_subdirectory(steps/test/integration)

@@ -160,9 +160,10 @@ build-package:
 linting:
   stage: linting
   extends: .failable
+  needs: ["build-base"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
-    - ./scripts/run-clang-format.sh
+    - ./scripts/run-format.sh
 
 unit-test:
   stage: test

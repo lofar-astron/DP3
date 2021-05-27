@@ -2,6 +2,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Logger configuration
-install(FILES
-  DPPP.log_prop
-  DESTINATION etc)
+install(FILES DPPP.log_prop DESTINATION etc)
