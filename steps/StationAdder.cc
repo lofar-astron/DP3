@@ -25,6 +25,9 @@
 #include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/casa/Utilities/Regex.h>
+
+#include <boost/make_unique.hpp>
+
 #include <iostream>
 #include <iomanip>
 
@@ -53,7 +56,9 @@ StationAdder::StationAdder(InputStep* input, const common::ParameterSet& parset,
       itsMakeAutoCorr(parset.getBool(prefix + "autocorr", false)),
       itsSumAutoCorr(parset.getBool(prefix + "sumauto", true)),
       itsDoAverage(parset.getBool(prefix + "average", true)),
-      itsUseWeight(parset.getBool(prefix + "useweights", true)) {}
+      itsUseWeight(parset.getBool(prefix + "useweights", true)),
+      itsUVWCalc(),
+      itsTimer() {}
 
 StationAdder::~StationAdder() {}
 
@@ -244,8 +249,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // Set the new info.
   info().set(antennaNames, antennaDiam, antennaPos, ant1, ant2);
   // Setup the UVW calculator (for new baselines).
-  itsUVWCalc =
-      base::UVWCalculator(infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
+  itsUVWCalc = boost::make_unique<base::UVWCalculator>(
+      infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
   // Size the buffer to cater for the new baselines.
   IPosition dataShp(3, getInfo().ncorr(), getInfo().nchan(),
                     getInfo().nbaselines());
@@ -455,7 +460,7 @@ bool StationAdder::process(const DPBuffer& buf) {
       }
     } else {
       unsigned int blnr = nrOldBL + i;
-      casacore::Vector<double> uvws = itsUVWCalc.getUVW(
+      casacore::Vector<double> uvws = itsUVWCalc->getUVW(
           getInfo().getAnt1()[blnr], getInfo().getAnt2()[blnr], buf.getTime());
       uvwPtr[0] = uvws[0];
       uvwPtr[1] = uvws[1];

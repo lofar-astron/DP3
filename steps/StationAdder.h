@@ -101,7 +101,7 @@ class StationAdder : public Step {
   bool itsSumAutoCorr;        ///< sum auto- or cross-correlations?
   bool itsDoAverage;          ///< average or sum?
   bool itsUseWeight;          ///< false = use weight 1 per station
-  base::UVWCalculator itsUVWCalc;
+  std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   common::NSTimer itsTimer;
 };
 

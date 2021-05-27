@@ -289,7 +289,7 @@ class MSReader : public InputStep {
   unsigned int itsFullResNChanAvg;
   unsigned int itsFullResNTimeAvg;
   base::DPBuffer itsBuffer;
-  base::UVWCalculator itsUVWCalc;
+  std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   casacore::Vector<common::rownr_t>
       itsBaseRowNrs;  ///< rownrs for meta of missing times
   base::FlagCounter itsFlagCounter;

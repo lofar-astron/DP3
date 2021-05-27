@@ -16,8 +16,6 @@ using namespace casacore;
 namespace dp3 {
 namespace base {
 
-UVWCalculator::UVWCalculator() {}
-
 UVWCalculator::UVWCalculator(const MDirection& phaseDir,
                              const MPosition& arrayPos,
                              const vector<MPosition>& stationPositions) {

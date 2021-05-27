@@ -92,20 +92,22 @@ class UVWFlagger : public Step {
   base::DPBuffer itsBuffer;
   unsigned int itsNTimes;
 
-  /// If nothing is filled in, this step just passes through data
-  bool itsIsDegenerate;
+  std::vector<double> itsRecWavel;        ///< reciprokes of wavelengths
+  const std::vector<double> itsRangeUVm;  ///< UV ranges (in m) to be flagged
+  const std::vector<double> itsRangeUm;   ///< U  ranges (in m) to be flagged
+  const std::vector<double> itsRangeVm;   ///< V  ranges (in m) to be flagged
+  const std::vector<double> itsRangeWm;   ///< W  ranges (in m) to be flagged
+  const std::vector<double>
+      itsRangeUVl;                       ///< UV ranges (in wavel) to be flagged
+  const std::vector<double> itsRangeUl;  ///< U  ranges (in wavel) to be flagged
+  const std::vector<double> itsRangeVl;  ///< V  ranges (in wavel) to be flagged
+  const std::vector<double> itsRangeWl;  ///< W  ranges (in wavel) to be flagged
 
-  std::vector<double> itsRecWavel;  ///< reciprokes of wavelengths
-  std::vector<double> itsRangeUVm;  ///< UV ranges (in m) to be flagged
-  std::vector<double> itsRangeUm;   ///< U  ranges (in m) to be flagged
-  std::vector<double> itsRangeVm;   ///< V  ranges (in m) to be flagged
-  std::vector<double> itsRangeWm;   ///< W  ranges (in m) to be flagged
-  std::vector<double> itsRangeUVl;  ///< UV ranges (in wavel) to be flagged
-  std::vector<double> itsRangeUl;   ///< U  ranges (in wavel) to be flagged
-  std::vector<double> itsRangeVl;   ///< V  ranges (in wavel) to be flagged
-  std::vector<double> itsRangeWl;   ///< W  ranges (in wavel) to be flagged
-  base::UVWCalculator itsUVWCalc;
-  std::vector<string> itsCenter;
+  /// If nothing is filled in, this step just passes through data
+  const bool itsIsDegenerate;
+
+  std::unique_ptr<base::UVWCalculator> itsUVWCalc;
+  const std::vector<string> itsCenter;
   common::NSTimer itsTimer;
   common::NSTimer itsUVWTimer;
   base::FlagCounter itsFlagCounter;
