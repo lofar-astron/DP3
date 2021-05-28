@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(insertion) {
   size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
   BOOST_TEST(solInt.Size() == 0U);
 
   solInt.CopyBuffer(buffer);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(limit) {
   size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
 
   solInt.CopyBuffer(buffer);
   BOOST_CHECK_THROW(solInt.CopyBuffer(buffer), std::runtime_error);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(copy) {
   size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
   solInt.CopyBuffer(buffer);
 
   BOOST_TEST(&solInt[0] != &buffer);
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(restore) {
   size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(&input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
   solInt.CopyBuffer(buffer);
 
   // Overwrite the values in the buffer

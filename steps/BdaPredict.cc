@@ -36,7 +36,7 @@ class BdaPredict::BaselineGroup {
 
   /// Create the predict and result step for this group
   /// to be called afer all baselines have been added
-  void MakeSteps(InputStep *input, base::DPInfo &info_in,
+  void MakeSteps(InputStep &input, base::DPInfo &info_in,
                  const common::ParameterSet &parset, std::string &prefix) {
     predict_step_ = std::make_shared<Predict>(input, parset, prefix);
     result_step_ = std::make_shared<ResultStep>();
@@ -111,7 +111,7 @@ class BdaPredict::BaselineGroup {
   // Execute the predict step, processing all baselines in group at once
   // Results are copied back the the BDA Buffer
   void Flush() {
-    // Send data to the (regular) Predict step
+    // Send data to the OnePredict step
     predict_step_->process(dpbuffer_);
 
     // Get the result out of the Result step
@@ -130,6 +130,10 @@ class BdaPredict::BaselineGroup {
     nr_baselines_requested_ = 0;
   }
 
+  std::pair<double, double> GetFirstDirection() const {
+    return predict_step_->GetFirstDirection();
+  }
+
  private:
   std::vector<std::size_t> baselines_;
   std::shared_ptr<Predict> predict_step_;
@@ -143,7 +147,7 @@ class BdaPredict::BaselineGroup {
   std::size_t nr_baselines_requested_;
 };
 
-BdaPredict::BdaPredict(InputStep *input, const common::ParameterSet &parset,
+BdaPredict::BdaPredict(InputStep &input, const common::ParameterSet &parset,
                        const string &prefix)
     : input_(input), parset_(parset), name_(prefix) {}
 
@@ -173,6 +177,13 @@ void BdaPredict::updateInfo(const DPInfo &infoIn) {
     BaselineGroup &blg = entry.second;
     blg.MakeSteps(input_, info(), parset_, name_);
   }
+}
+
+std::pair<double, double> BdaPredict::GetFirstDirection() const {
+  if (index_to_baseline_group_map_.empty()) {
+    throw std::runtime_error("BdaPredict is not initialized");
+  }
+  return index_to_baseline_group_map_.front().first->GetFirstDirection();
 }
 
 void BdaPredict::show(std::ostream &os) const {

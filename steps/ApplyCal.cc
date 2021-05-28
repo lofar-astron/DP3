@@ -63,8 +63,8 @@ ApplyCal::ApplyCal(InputStep* input, const common::ParameterSet& parset,
 }
 
 void ApplyCal::setNextStep(Step::ShPtr nextStep) {
-  Step::setNextStep(itsApplyCals[0]);
-  itsApplyCals[itsApplyCals.size() - 1]->setNextStep(nextStep);
+  Step::setNextStep(itsApplyCals.front());
+  itsApplyCals.back()->setNextStep(nextStep);
 }
 
 void ApplyCal::show(std::ostream& os) const {

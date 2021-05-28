@@ -15,6 +15,8 @@
 #include "Predict.h"
 
 #include "../base/DPBuffer.h"
+#include "../base/ModelComponent.h"
+#include "../base/Patch.h"
 #include "../base/PredictBuffer.h"
 
 #include <aocommon/threadpool.h>

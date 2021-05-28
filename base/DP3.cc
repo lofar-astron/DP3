@@ -247,7 +247,7 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
 InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
   InputStep::ShPtr inputStep = InputStep::CreateReader(parset, "");
   Step::ShPtr step =
-      makeStepsFromParset(parset, "", "steps", inputStep.get(), false);
+      makeStepsFromParset(parset, "", "steps", *inputStep, false);
   if (step) inputStep->setNextStep(step);
 
   // Calculate needsOutputStep to be true if one of the steps changes
@@ -284,7 +284,7 @@ InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
 Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
                                      const std::string& prefix,
                                      const std::string& step_names_key,
-                                     InputStep* inputStep,
+                                     InputStep& inputStep,
                                      bool terminateChain) {
   std::string msName;
   const std::vector<string> stepNames =
@@ -307,7 +307,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
     Step::MsType inputType =
         lastStep ? lastStep->outputs() : Step::MsType::kRegular;
     Step::ShPtr step =
-        makeSingleStep(type, inputStep, parset, prefix, msName, inputType);
+        makeSingleStep(type, &inputStep, parset, prefix, msName, inputType);
 
     if (lastStep) {
       if (!step->accepts(lastStep->outputs())) {
@@ -331,84 +331,91 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
   return firstStep;
 }
 
-Step::ShPtr DP3::makeSingleStep(const std::string& type, InputStep* inputStep,
-                                const common::ParameterSet& parset,
-                                const std::string& prefix, std::string& msName,
-                                Step::MsType inputType) {
+std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
+                                          InputStep* inputStep,
+                                          const common::ParameterSet& parset,
+                                          const std::string& prefix,
+                                          std::string& msName,
+                                          Step::MsType inputType) {
+  std::shared_ptr<Step> step;
   if (type == "aoflagger" || type == "aoflag") {
-    return std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
+    step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
-    return std::make_shared<steps::Averager>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Averager>(inputStep, parset, prefix);
   } else if (type == "bdaaverager") {
-    return std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
   } else if (type == "bdaexpander") {
-    return std::make_shared<steps::BDAExpander>(prefix);
+    step = std::make_shared<steps::BDAExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
-    return std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
+    step = std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
-    return std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
+    step = std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
-    return std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix);
+    step = std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix);
   } else if (type == "columnreader") {
-    return std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
   } else if (type == "counter" || type == "count") {
-    return std::make_shared<steps::Counter>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Counter>(inputStep, parset, prefix);
   } else if (type == "phaseshifter" || type == "phaseshift") {
-    return std::make_shared<steps::PhaseShift>(inputStep, parset, prefix);
+    step = std::make_shared<steps::PhaseShift>(inputStep, parset, prefix);
   } else if (type == "demixer" || type == "demix") {
-    return std::make_shared<steps::Demixer>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Demixer>(inputStep, parset, prefix);
   } else if (type == "smartdemixer" || type == "smartdemix") {
-    return std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
+    step = std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
   } else if (type == "applybeam") {
-    return std::make_shared<steps::ApplyBeam>(inputStep, parset, prefix);
+    step = std::make_shared<steps::ApplyBeam>(inputStep, parset, prefix);
   } else if (type == "stationadder" || type == "stationadd") {
-    return std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
+    step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
   } else if (type == "scaledata") {
-    return std::make_shared<steps::ScaleData>(inputStep, parset, prefix);
+    step = std::make_shared<steps::ScaleData>(inputStep, parset, prefix);
   } else if (type == "setbeam") {
-    return std::make_shared<steps::SetBeam>(inputStep, parset, prefix);
+    step = std::make_shared<steps::SetBeam>(inputStep, parset, prefix);
   } else if (type == "filter") {
-    return std::make_shared<steps::Filter>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Filter>(inputStep, parset, prefix);
   } else if (type == "applycal" || type == "correct") {
-    return std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
+    step = std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
   } else if (type == "predict") {
-    if (inputType == Step::MsType::kBda) {
-      return std::make_shared<steps::BdaPredict>(inputStep, parset, prefix);
-    } else {
-      return std::make_shared<steps::Predict>(inputStep, parset, prefix);
+    if (inputType == Step::MsType::kRegular) {
+      step = std::make_shared<steps::Predict>(*inputStep, parset, prefix);
+    } else if (inputType == Step::MsType::kBda) {
+      step = std::make_shared<steps::BdaPredict>(*inputStep, parset, prefix);
     }
   } else if (type == "idgpredict") {
-    return std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);
   } else if (type == "h5parmpredict") {
-    return std::make_shared<steps::H5ParmPredict>(inputStep, parset, prefix);
+    step = std::make_shared<steps::H5ParmPredict>(inputStep, parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
-    return std::make_shared<steps::GainCal>(inputStep, parset, prefix);
+    step = std::make_shared<steps::GainCal>(inputStep, parset, prefix);
   } else if (type == "upsample") {
-    return std::make_shared<steps::Upsample>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Upsample>(inputStep, parset, prefix);
   } else if (type == "split" || type == "explode") {
-    return std::make_shared<steps::Split>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Split>(inputStep, parset, prefix);
   } else if (type == "ddecal") {
-    return std::make_shared<steps::DDECal>(inputStep, parset, prefix);
+    step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
   } else if (type == "interpolate") {
-    return std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
   } else if (type == "out" || type == "output" || type == "msout") {
     if (msName.empty())
       msName = casacore::Path(inputStep->msName()).absoluteName();
-    return makeOutputStep(inputStep, parset, prefix, msName, inputType);
+    step = makeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
-    return pythondp3::PyStep::create_instance(inputStep, parset, prefix);
+    step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
   } else {
     // Maybe the step is defined in a dynamic library.
-    return findStepCtor(type)(inputStep, parset, prefix);
+    step = findStepCtor(type)(inputStep, parset, prefix);
   }
+  if (!step) {
+    throw std::runtime_error("Could not create step of type '" + type + "'");
+  }
+  return step;
 }
 
-Step::ShPtr DP3::makeOutputStep(InputStep* reader,
-                                const common::ParameterSet& parset,
-                                const std::string& prefix,
-                                std::string& currentMSName,
-                                Step::MsType inputType) {
-  Step::ShPtr step;
+std::shared_ptr<Step> DP3::makeOutputStep(InputStep* reader,
+                                          const common::ParameterSet& parset,
+                                          const std::string& prefix,
+                                          std::string& currentMSName,
+                                          Step::MsType inputType) {
+  std::shared_ptr<Step> step;
   std::string outName;
   bool doUpdate = false;
   if (prefix == "msout.") {
