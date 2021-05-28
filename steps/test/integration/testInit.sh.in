@@ -6,8 +6,8 @@
 
 # Set common environment for scripts. CMake configures these variables.
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
-resourcedir=@CMAKE_CURRENT_SOURCE_DIR@/../../../resources
-dp3exe=@CMAKE_CURRENT_BINARY_DIR@/../../../DP3
+resourcedir=@CMAKE_SOURCE_DIR@/resources
+dp3exe=@CMAKE_BINARY_DIR@/DP3
 makesourcedbexe=@CMAKE_BINARY_DIR@/makesourcedb
 taqlexe=@TAQL_EXECUTABLE@
 
