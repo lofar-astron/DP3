@@ -59,8 +59,8 @@ UVWCalculator::UVWCalculator(const MDirection& phaseDir,
   itsUvwFilled = false;
 }
 
-Vector<double> UVWCalculator::getUVW(unsigned int ant1, unsigned int ant2,
-                                     double time) {
+std::array<double, 3> UVWCalculator::getUVW(unsigned int ant1,
+                                            unsigned int ant2, double time) {
   // If a different time, we have to calculate the UVWs.
   if (time != itsLastTime) {
     itsLastTime = time;
@@ -82,13 +82,17 @@ Vector<double> UVWCalculator::getUVW(unsigned int ant1, unsigned int ant2,
       MBaseline::Convert mcvt(mbl, MBaseline::J2000);
       MVBaseline bas = mcvt().getValue();
       MVuvw jvguvw(bas, itsPhaseDir.getValue());
-      itsAntUvw[ant] = Muvw(jvguvw, Muvw::J2000).getValue().getVector();
+      const casacore::Vector<double>& uvw =
+          Muvw(jvguvw, Muvw::J2000).getValue().getVector();
+      std::copy_n(uvw.data(), itsAntUvw[ant].size(), itsAntUvw[ant].data());
       itsUvwFilled[ant] = true;
     }
     ant = ant2;
   }
   // The UVW of the baseline is the difference of the antennae.
-  return itsAntUvw[ant2] - itsAntUvw[ant1];
+  return {itsAntUvw[ant2][0] - itsAntUvw[ant1][0],
+          itsAntUvw[ant2][1] - itsAntUvw[ant1][1],
+          itsAntUvw[ant2][2] - itsAntUvw[ant1][2]};
 }
 
 }  // namespace base

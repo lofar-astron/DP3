@@ -134,11 +134,11 @@ class TestOutput : public dp3::steps::Step {
       // For the other baselines, check that Upsample set the UVW correctly.
       dp3::base::UVWCalculator calc(info().phaseCenter(), info().arrayPos(),
                                     info().antennaPos());
-      const casacore::Vector<double> uvw_0_2 = calc.getUVW(0, 2, buf.getTime());
+      const std::array<double, 3> uvw_0_2 = calc.getUVW(0, 2, buf.getTime());
       BOOST_CHECK_CLOSE(buf_uvw(0, 1), uvw_0_2[0], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(1, 1), uvw_0_2[1], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(2, 1), uvw_0_2[2], 1.0e-6);
-      const casacore::Vector<double> uvw_1_2 = calc.getUVW(1, 2, buf.getTime());
+      const std::array<double, 3> uvw_1_2 = calc.getUVW(1, 2, buf.getTime());
       BOOST_CHECK_CLOSE(buf_uvw(0, 2), uvw_1_2[0], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(1, 2), uvw_1_2[1], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(2, 2), uvw_1_2[2], 1.0e-6);
