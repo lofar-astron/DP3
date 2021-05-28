@@ -387,7 +387,7 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   } else if (type == "gaincal" || type == "calibrate") {
     step = std::make_shared<steps::GainCal>(inputStep, parset, prefix);
   } else if (type == "upsample") {
-    step = std::make_shared<steps::Upsample>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "split" || type == "explode") {
     step = std::make_shared<steps::Split>(inputStep, parset, prefix);
   } else if (type == "ddecal") {
