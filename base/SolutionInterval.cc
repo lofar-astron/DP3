@@ -10,7 +10,7 @@ using dp3::steps::InputStep;
 namespace dp3 {
 namespace base {
 
-SolutionInterval::SolutionInterval(InputStep* input,
+SolutionInterval::SolutionInterval(InputStep& input,
                                    const std::size_t n_solution,
                                    const std::size_t buffer_size,
                                    const std::size_t n_dir,
@@ -31,9 +31,9 @@ void SolutionInterval::CopyBuffer(const DPBuffer& buffer) {
     throw std::runtime_error("SolutionInterval exceeds buffer size");
   }
 
-  input_->fetchUVW(buffer, buffers_[buffer_index_], timer_);
-  input_->fetchWeights(buffer, buffers_[buffer_index_], timer_);
-  input_->fetchFullResFlags(buffer, buffers_[buffer_index_], timer_);
+  input_.fetchUVW(buffer, buffers_[buffer_index_], timer_);
+  input_.fetchWeights(buffer, buffers_[buffer_index_], timer_);
+  input_.fetchFullResFlags(buffer, buffers_[buffer_index_], timer_);
 
   buffers_[buffer_index_].copy(buffer);
 

@@ -124,7 +124,7 @@ class DDECal : public Step {
       const std::vector<std::vector<base::DPBuffer>>& input_model_buffers);
   void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
 
-  InputStep* itsInput;
+  InputStep& itsInput;
   const ddecal::Settings itsSettings;
 
   /// The solution intervals that are buffered, limited by solintcount

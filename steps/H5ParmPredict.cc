@@ -84,15 +84,15 @@ H5ParmPredict::H5ParmPredict(InputStep* input,
     directionVec = common::stringtools::tokenize(
         directionStr.substr(1, directionStr.size() - 2), ",");
     auto predictStep =
-        std::make_shared<Predict>(input, parset, prefix, directionVec);
+        std::make_shared<Predict>(*input, parset, prefix, directionVec);
 
     if (operation == "replace" && i > 0) {
-      predictStep->setOperation("add");
+      predictStep->SetOperation("add");
     } else {
-      predictStep->setOperation(operation);
+      predictStep->SetOperation(operation);
     }
-    predictStep->setThreadData(itsThreadPool, nullptr);
-    predictStep->setPredictBuffer(itsPredictBuffer);
+    predictStep->SetThreadData(itsThreadPool, nullptr);
+    predictStep->SetPredictBuffer(itsPredictBuffer);
 
     if (!itsPredictSteps.empty()) {
       itsPredictSteps.back()->setNextStep(predictStep);
@@ -111,17 +111,17 @@ void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
   info().setNeedVisData();
   info().setWriteData();
 
-  for (Predict::ShPtr& predictstep : itsPredictSteps) {
-    predictstep->updateInfo(infoIn);
-  }
+  itsPredictSteps.front()->setInfo(infoIn);
 }
 
 void H5ParmPredict::show(std::ostream& os) const {
   os << "H5ParmPredict " << itsName << '\n';
   os << "  H5Parm:     " << itsH5ParmName << '\n';
   os << "  directions: " << itsDirections << '\n';
-  for (unsigned int dir = 0; dir < itsPredictSteps.size(); ++dir) {
-    itsPredictSteps[dir]->show(os);
+
+  for (std::shared_ptr<Step> step = itsPredictSteps.front(); step;
+       step = step->getNextStep()) {
+    step->show(os);
   }
 }
 
@@ -139,7 +139,7 @@ bool H5ParmPredict::process(const DPBuffer& bufin) {
   itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
   itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
 
-  itsPredictSteps[0]->process(itsBuffer);
+  itsPredictSteps.front()->process(itsBuffer);
   itsBuffer = itsResultStep->get();
 
   itsTimer.stop();
@@ -149,7 +149,7 @@ bool H5ParmPredict::process(const DPBuffer& bufin) {
 
 void H5ParmPredict::finish() {
   // Let the next steps finish.
-  itsPredictSteps[0]->finish();
+  itsPredictSteps.front()->finish();
   getNextStep()->finish();
 }
 }  // namespace steps

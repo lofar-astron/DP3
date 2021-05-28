@@ -28,45 +28,41 @@ namespace steps {
 /// @brief DP3 step class to predict BDA visibilities from a source model
 /// @author Sebastiaan van der Tol
 
-class BdaPredict : public Step {
+class BdaPredict : public ModelDataStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  BdaPredict(InputStep*, const common::ParameterSet&, const string& prefix);
+  BdaPredict(InputStep&, const common::ParameterSet&, const string& prefix);
 
   virtual ~BdaPredict();
 
-  /// Process the data.
-  /// Incoming BDABuffers are buffered in a queue
-  /// and send to the the next step when all baseline groups are complete.
+  /// Processes the data.
+  /// Buffers incoming BDABuffers in a queue and sends them to the the next step
+  /// when all baseline groups are complete.
   /// This is necessary because baseline groups may overlap multiple BDABuffers,
-  /// while the predict is done by calls to the (regular) Predict step, which
-  /// needs the baseline groups to be complete
+  /// while the predict is done by calls to the Predict step, which needs
+  /// complete baseline groups.
   bool process(std::unique_ptr<base::BDABuffer>) override;
 
-  /// Finish the processing of this step and subsequent steps.
   void finish() override;
 
-  /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
 
-  /// Show the step parameters.
   void show(std::ostream&) const override;
 
-  /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
-  /// Boolean if this step can process this type of data.
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
-  /// Return which datatype this step outputs.
   MsType outputs() const override { return MsType::kBda; }
 
- private:
-  InputStep* input_;
+  std::pair<double, double> GetFirstDirection() const override;
 
-  // Need to store a reference to the parset to create the Predict substeps in
-  // updateInfo()
+ private:
+  InputStep& input_;
+
+  // Need to store a reference to the parset to create the OnePredict
+  // substeps in updateInfo()
   const common::ParameterSet& parset_;
   std::string name_;
 

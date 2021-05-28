@@ -368,6 +368,7 @@ add_library(
   steps/PhaseShift.cc
   steps/Predict.cc
   steps/PreFlagger.cc
+  steps/OnePredict.cc
   steps/ScaleData.cc
   steps/SetBeam.cc
   steps/Split.cc
@@ -505,6 +506,7 @@ if(BUILD_TESTING)
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
+      steps/test/unit/tBdaPredict.cc
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
@@ -512,6 +514,7 @@ if(BUILD_TESTING)
       steps/test/unit/tMSReader.cc
       steps/test/unit/tPreFlagger.cc
       steps/test/unit/tPhaseShift.cc
+      steps/test/unit/tOnePredict.cc
       steps/test/unit/tUpsample.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tPSet.cc

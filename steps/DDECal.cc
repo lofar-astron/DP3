@@ -137,7 +137,7 @@ std::unique_ptr<ddecal::RegularSolverBase> makeFullJonesSolver(
 
 DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
                const string& prefix)
-    : itsInput(input),
+    : itsInput(*input),
       itsSettings(parset, prefix),
       itsAvgTime(0),
       itsSols(),
@@ -324,7 +324,7 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
       itsDirections.emplace_back(1, col);
     }
     itsSteps.push_back(
-        std::make_shared<ColumnReader>(*itsInput, parset, prefix, col));
+        std::make_shared<ColumnReader>(itsInput, parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
   }
 }
@@ -353,7 +353,7 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
     itsDirections.emplace_back(1, dir_name);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
-        *itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
+        itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
     setModelNextSteps(*itsSteps.back(), facets[i].Direction(), parset, prefix);
   }
 }
@@ -417,7 +417,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsSteps[dir]->setInfo(infoIn);
 
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
-      s->setThreadData(*itsThreadPool, &itsMeasuresMutex);
+      s->SetThreadData(*itsThreadPool, &itsMeasuresMutex);
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
       itsSolIntCount = std::max(
           itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);

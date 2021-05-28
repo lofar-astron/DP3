@@ -112,7 +112,7 @@ GainCal::GainCal(InputStep* input, const common::ParameterSet& parset,
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    itsPredictStep = boost::make_unique<Predict>(input, parset, prefix);
+    itsPredictStep = boost::make_unique<Predict>(*input, parset, prefix);
     itsResultStep = std::make_shared<ResultStep>();
     itsPredictStep->setNextStep(itsResultStep);
   } else {
@@ -173,8 +173,8 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
       itsApplyBeamStep.updateInfo(infoIn);
     }
   } else {
-    itsPredictStep->updateInfo(infoIn);
-    itsPredictStep->setThreadData(*itsThreadPool, nullptr);
+    itsPredictStep->setInfo(infoIn);
+    itsPredictStep->SetThreadData(*itsThreadPool, nullptr);
   }
   if (itsApplySolution) {
     info().setWriteData();
