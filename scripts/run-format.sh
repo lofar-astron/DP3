@@ -21,4 +21,4 @@ CMAKE_SOURCES=(CMakeLists.txt *.cmake)
 #End script configuration.
 
 #The common formatting script has further documentation.
-source $(dirname "$0")/format.sh
+source $(dirname "$0")/../external/aocommon/scripts/format.sh
