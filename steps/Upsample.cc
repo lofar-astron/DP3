@@ -8,10 +8,13 @@
 
 #include <iostream>
 
+#include "../base/UVWCalculator.h"
 #include "../common/ParameterSet.h"
 
 #include <casacore/casa/BasicMath/Math.h>       // nearAbs
 #include <casacore/casa/Arrays/ArrayLogical.h>  // anyTrue
+
+#include <boost/make_unique.hpp>
 
 #include <iomanip>
 #include <stddef.h>
@@ -26,100 +29,121 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-Upsample::Upsample(InputStep*, const common::ParameterSet& parset,
-                   const string& prefix)
-    : itsOldTimeInterval(0),
-      itsTimeStep(parset.getInt(prefix + "timestep")),
-      itsFirstToFlush(0) {
-  itsBuffers.resize(itsTimeStep);
-}
+Upsample::Upsample(const common::ParameterSet& parset, const string& prefix)
+    : name_(prefix),
+      old_time_interval_(0),
+      time_step_(parset.getInt(prefix + "timestep")),
+      update_uvw_(parset.getBool(prefix + "updateuvw", false)),
+      prev_buffers_(),
+      buffers_(time_step_),
+      first_to_flush_(0),
+      uvw_calculator_(),
+      timer_() {}
 
 Upsample::~Upsample() {}
 
-void Upsample::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+void Upsample::updateInfo(const DPInfo& info_in) {
+  Step::updateInfo(info_in);
   info().setNeedVisData();
   info().setWriteData();
 
-  itsOldTimeInterval = info().timeInterval();
-  info().setTimeInterval(itsOldTimeInterval / itsTimeStep);
+  old_time_interval_ = info().timeInterval();
+  info().setTimeInterval(old_time_interval_ / time_step_);
 
   info().setMetaChanged();
+  if (update_uvw_) {
+    uvw_calculator_ = boost::make_unique<base::UVWCalculator>(
+        info().phaseCenter(), info().arrayPos(), info().antennaPos());
+  }
 }
 
 void Upsample::show(std::ostream& os) const {
-  os << "Upsample " << itsName << '\n';
-  os << "  time step : " << itsTimeStep << '\n';
+  os << "Upsample " << name_ << '\n';
+  os << "  time step : " << time_step_ << '\n';
 }
 
 bool Upsample::process(const DPBuffer& bufin) {
-  double time0 = bufin.getTime() - 0.5 * itsOldTimeInterval;
-  double exposure = bufin.getExposure() / itsTimeStep;
+  double time0 = bufin.getTime() - 0.5 * old_time_interval_;
+  double exposure = bufin.getExposure() / time_step_;
 
-  // Duplicate the input buffer itsTimeStep times
-  for (unsigned int i = 0; i < itsTimeStep; ++i) {
-    itsBuffers[i].copy(bufin);
+  // Duplicate the input buffer time_step_ times
+  for (unsigned int i = 0; i < time_step_; ++i) {
+    buffers_[i].copy(bufin);
     // Update the time centroid and time exposure
-    itsBuffers[i].setTime(time0 + info().timeInterval() * (i + 0.5));
-    itsBuffers[i].setExposure(exposure);
+    const double time = time0 + info().timeInterval() * (i + 0.5);
+    buffers_[i].setTime(time);
+    buffers_[i].setExposure(exposure);
+
+    if (update_uvw_) {
+      casacore::Matrix<double>& buffer_uvw = buffers_[i].getUVW();
+      if (!buffer_uvw.empty()) {
+        assert(buffer_uvw.size() == 3 * info().nbaselines());
+        double* uvw_ptr = buffer_uvw.data();
+        for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+          const casacore::Vector<double> uvw = uvw_calculator_->getUVW(
+              info().getAnt1()[bl], info().getAnt2()[bl], time);
+          std::copy_n(uvw.data(), 3, uvw_ptr);
+          uvw_ptr += 3;
+        }
+      }
+    }
   }
 
-  if (itsPrevBuffers.empty()) {
+  if (prev_buffers_.empty()) {
     // First time slot, ask for next time slot first
-    itsPrevBuffers.resize(itsTimeStep);
-    for (unsigned int i = 0; i < itsTimeStep; ++i) {
-      itsPrevBuffers[i].copy(itsBuffers[i]);  // No shallow copy
+    prev_buffers_.resize(time_step_);
+    for (unsigned int i = 0; i < time_step_; ++i) {
+      prev_buffers_[i].copy(buffers_[i]);  // No shallow copy
     }
     return false;
   }
 
-  // Flush the itsPrevBuffers. Skip parts at the beginning as determined
+  // Flush the prev_buffers_. Skip parts at the beginning as determined
   // in the previous call to process. Skip parts at the end as determined
   // now. Also, determine at which step the next buffer should start to
   // flush in the next call of process.
   unsigned int curIndex = 0;  // Index in the current buffers
-  for (unsigned int prevIndex = itsFirstToFlush; prevIndex < itsTimeStep;
+  for (unsigned int prevIndex = first_to_flush_; prevIndex < time_step_;
        prevIndex++) {
-    itsFirstToFlush = 0;  // reset for next use
+    first_to_flush_ = 0;  // reset for next use
     // Advance curIndex until
     // buffers[curIndex].time >= prevBuffers[prevIndex].time
-    while (itsPrevBuffers[prevIndex].getTime() >
-               itsBuffers[curIndex].getTime() &&
-           !casacore::nearAbs(itsPrevBuffers[prevIndex].getTime(),
-                              itsBuffers[curIndex].getTime(),
+    while (prev_buffers_[prevIndex].getTime() > buffers_[curIndex].getTime() &&
+           !casacore::nearAbs(prev_buffers_[prevIndex].getTime(),
+                              buffers_[curIndex].getTime(),
                               0.4 * info().timeInterval())) {
       curIndex++;
     }
-    if (casacore::nearAbs(itsPrevBuffers[prevIndex].getTime(),
-                          itsBuffers[curIndex].getTime(),
+    if (casacore::nearAbs(prev_buffers_[prevIndex].getTime(),
+                          buffers_[curIndex].getTime(),
                           0.4 * info().timeInterval())) {
       // Found double buffer, choose which one to use
       // If both totally flagged, prefer prevbuffer
-      if (allTrue(itsBuffers[curIndex].getFlags())) {
+      if (allTrue(buffers_[curIndex].getFlags())) {
         // Use prevBuffer
-        itsFirstToFlush = curIndex + 1;
-        getNextStep()->process(itsPrevBuffers[prevIndex]);
+        first_to_flush_ = curIndex + 1;
+        getNextStep()->process(prev_buffers_[prevIndex]);
       } else {
         // Use next buffer; stop processing prevbuffer.
         // This will uncorrectly give flagged if data has been flagged
-        // and a time slot has been inserted and itsTimeStep > 2.
+        // and a time slot has been inserted and time_step_ > 2.
         break;
       }
     } else {
       // No double buffer, just flush the prevbuffer
-      getNextStep()->process(itsPrevBuffers[prevIndex]);
+      getNextStep()->process(prev_buffers_[prevIndex]);
     }
   }
 
-  itsPrevBuffers.swap(itsBuffers);  // itsBuffers will be overwritten later
+  prev_buffers_.swap(buffers_);  // buffers_ will be overwritten later
 
   return false;
 }
 
 void Upsample::finish() {
-  // Flush itsPrevBuffers
-  for (unsigned int i = itsFirstToFlush; i < itsTimeStep; ++i) {
-    getNextStep()->process(itsPrevBuffers[i]);
+  // Flush prev_buffers_
+  for (unsigned int i = first_to_flush_; i < time_step_; ++i) {
+    getNextStep()->process(prev_buffers_[i]);
   }
 
   // Let the next steps finish.

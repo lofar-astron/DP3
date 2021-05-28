@@ -16,20 +16,21 @@
 #include <utility>
 
 namespace dp3 {
+namespace base {
+class UVWCalculator;
+}
 namespace common {
 class ParameterSet;
 }
 
 namespace steps {
+
 /// @brief DPPP step class to Upsample visibilities
-
-/// This class is an empty Step subclass to use as implementation template
-
 class Upsample : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Upsample(InputStep*, const common::ParameterSet&, const string& prefix);
+  Upsample(const common::ParameterSet&, const string& prefix);
 
   virtual ~Upsample();
 
@@ -48,15 +49,17 @@ class Upsample : public Step {
   virtual void show(std::ostream&) const;
 
  private:
-  string itsName;
-  double itsOldTimeInterval;
-  unsigned int itsTimeStep;
+  const std::string name_;
+  double old_time_interval_;
+  const unsigned int time_step_;
+  const bool update_uvw_;
 
-  std::vector<base::DPBuffer> itsPrevBuffers;
-  std::vector<base::DPBuffer> itsBuffers;
-  unsigned int itsFirstToFlush;
+  std::vector<base::DPBuffer> prev_buffers_;
+  std::vector<base::DPBuffer> buffers_;
+  unsigned int first_to_flush_;
+  std::unique_ptr<base::UVWCalculator> uvw_calculator_;
 
-  common::NSTimer itsTimer;
+  common::NSTimer timer_;
 };
 
 }  // namespace steps
