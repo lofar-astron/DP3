@@ -79,6 +79,17 @@ class BDAExpander : public Step {
   std::map<double, RegularBufferElement> RB_elements;
 
   std::vector<RegularBufferElement> regular_buffer_;
+
+  /**
+   * This variable has size nbaselines x nchan (without averaging). For each
+   * baseline and each non-averaged output channel index, it contains the
+   * corresponding BDA input channel index. Examples, when nchan is 4:
+   * - No frequency averaging: [0 1 2 3]
+   * - Two channels averaged: [0 0 1 1]
+   * - All four channels averaged: [0 0 0 0]
+   */
+  std::vector<std::vector<int>> channels_mapping_;
+
   double next_time_slot_to_process_;
 
   common::NSTimer timer_;

@@ -50,6 +50,53 @@ void BDAExpander::updateInfo(const DPInfo &_info) {
                                 " is not possible because meta data changes");
   }
   next_time_slot_to_process_ = info().startTime();
+
+  // Update frequency intervals
+  std::vector<std::vector<double>> freqs(info().nbaselines());
+  std::vector<std::vector<double>> widths(info().nbaselines());
+  channels_mapping_.resize(info().nbaselines());
+
+  for (unsigned int k = 0; k < info().nbaselines(); k++) {
+    int next_chan = 0;
+    freqs[k].reserve(info().nchan());
+    widths[k].reserve(info().nchan());
+
+    // Calculate single channel non-averaged BW
+    const std::vector<double> &chan_widths = info().chanWidths(k);
+    const double total_bw =
+        std::accumulate(chan_widths.begin(), chan_widths.end(), 0.0);
+
+    double single_channel_bw = total_bw / info().nchan();
+
+    // Define center frequencies and widths
+    // Store the mapping between averaged and non averaged channels in the
+    // variable channels_mapping_
+    for (size_t i = 0; i < info().chanWidths(k).size(); i++) {
+      const int n_averaged_channels =
+          std::round(info().chanWidths(k)[i] / single_channel_bw);
+      if (n_averaged_channels == 1) {
+        // non-bda-averaged channel
+        freqs[k].push_back(info().chanFreqs(k)[i]);
+        widths[k].push_back(single_channel_bw);
+        channels_mapping_[k].push_back(next_chan);
+
+      } else {
+        // bda-averaged channels
+        for (int p = 0; p < n_averaged_channels; p++) {
+          freqs[k].push_back(info().chanFreqs(k)[i] -
+                             (info().chanWidths(k)[i] / 2) +
+                             (p * single_channel_bw + single_channel_bw / 2));
+          widths[k].push_back(single_channel_bw);
+          // The same bda-averaged channel will be copied over multiple channels
+          // in the regular output
+          channels_mapping_[k].push_back(next_chan);
+        }
+      }
+      next_chan++;
+    }
+  }
+
+  info().set(std::move(freqs), std::move(widths));
 }
 
 void BDAExpander::show(std::ostream &os) const {
@@ -158,15 +205,21 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
   const float *pointer_to_weights = bda_row.weights;
   const bool *pointer_to_flags = bda_row.flags;
 
+  int current_channel = -1;
   for (unsigned int chan = 0; chan < info().nchan(); ++chan) {
     for (unsigned int corr = 0; corr < info().ncorr(); ++corr) {
       data(corr, chan, current_bl) = *pointer_to_data;
       weights(corr, chan, current_bl) = *pointer_to_weights;
       flags(corr, chan, current_bl) = *pointer_to_flags;
+
+      if (channels_mapping_[current_bl][chan] != current_channel) {
+        ++pointer_to_data;
+        ++pointer_to_weights;
+        ++pointer_to_flags;
+      }
+
+      current_channel = channels_mapping_[current_bl][chan];
     }
-    pointer_to_data++;
-    pointer_to_weights++;
-    pointer_to_flags++;
   }
 
   uwv(0, current_bl) = bda_row.uvw[0];
