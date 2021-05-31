@@ -158,7 +158,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   bool* flagPtr = flags.data();
   const bool* origPtr = buf.getFlags().data();
   for (unsigned int i = 0; i < nrbl; ++i) {
-    casacore::Vector<double> uvw;
+    std::array<double, 3> uvw{0.0, 0.0, 0.0};
     if (!itsCenter.empty()) {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);

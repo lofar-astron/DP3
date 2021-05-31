@@ -41,8 +41,8 @@ class UVWCalculator {
                 const std::vector<casacore::MPosition>& stationPositions);
 
   /// get the UVW coordinates for the given baseline and time.
-  casacore::Vector<double> getUVW(unsigned int ant1, unsigned int ant2,
-                                  double time);
+  std::array<double, 3> getUVW(unsigned int ant1, unsigned int ant2,
+                               double time);
 
  private:
   casacore::MDirection itsPhaseDir;
@@ -51,7 +51,7 @@ class UVWCalculator {
   casacore::MBaseline::Convert itsBLToJ2000;    ///< convert ITRF to J2000
   casacore::MeasFrame itsFrame;
   std::vector<casacore::MBaseline> itsAntMB;
-  std::vector<casacore::Vector<double> > itsAntUvw;
+  std::vector<std::array<double, 3>> itsAntUvw;
   casacore::Block<bool> itsUvwFilled;
   double itsLastTime;
 };

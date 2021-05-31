@@ -460,7 +460,7 @@ bool StationAdder::process(const DPBuffer& buf) {
       }
     } else {
       unsigned int blnr = nrOldBL + i;
-      casacore::Vector<double> uvws = itsUVWCalc->getUVW(
+      const std::array<double, 3> uvws = itsUVWCalc->getUVW(
           getInfo().getAnt1()[blnr], getInfo().getAnt2()[blnr], buf.getTime());
       uvwPtr[0] = uvws[0];
       uvwPtr[1] = uvws[1];

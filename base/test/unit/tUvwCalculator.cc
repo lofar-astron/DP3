@@ -10,18 +10,14 @@
 using dp3::base::UVWCalculator;
 
 namespace {
-casacore::Vector<double> GetUvw(UVWCalculator& calc, unsigned int ant1,
-                                unsigned int ant2) {
+std::array<double, 3> GetUvw(UVWCalculator& calc, unsigned int ant1,
+                             unsigned int ant2) {
   const double kTime = 44362.42;
-  const casacore::Vector<double> forward = calc.getUVW(ant1, ant2, kTime);
-  const casacore::Vector<double> backward = calc.getUVW(ant2, ant1, kTime);
-  BOOST_REQUIRE_EQUAL(forward.size(), 3u);
-  BOOST_REQUIRE_EQUAL(backward.size(), 3u);
-
+  const std::array<double, 3> forward = calc.getUVW(ant1, ant2, kTime);
+  const std::array<double, 3> backward = calc.getUVW(ant2, ant1, kTime);
   BOOST_CHECK_CLOSE(forward[0], -backward[0], 1.0e-6);
   BOOST_CHECK_CLOSE(forward[1], -backward[1], 1.0e-6);
   BOOST_CHECK_CLOSE(forward[2], -backward[2], 1.0e-6);
-
   return forward;
 }
 
@@ -46,9 +42,9 @@ void TestRelativeUvw(const casacore::MDirection& phase_direction) {
   }
 
   UVWCalculator calc(phase_direction, array_position, station_positions);
-  const casacore::Vector<double> uvw_0_1 = GetUvw(calc, 0, 1);
-  const casacore::Vector<double> uvw_1_2 = GetUvw(calc, 1, 2);
-  const casacore::Vector<double> uvw_0_2 = GetUvw(calc, 0, 2);
+  const std::array<double, 3> uvw_0_1 = GetUvw(calc, 0, 1);
+  const std::array<double, 3> uvw_1_2 = GetUvw(calc, 1, 2);
+  const std::array<double, 3> uvw_0_2 = GetUvw(calc, 0, 2);
 
   BOOST_CHECK_CLOSE(uvw_0_1[0] + uvw_1_2[0], uvw_0_2[0], 1.0e-6);
   BOOST_CHECK_CLOSE(uvw_0_1[1] + uvw_1_2[1], uvw_0_2[1], 1.0e-6);

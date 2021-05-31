@@ -80,10 +80,10 @@ bool Upsample::process(const DPBuffer& bufin) {
         assert(buffer_uvw.size() == 3 * info().nbaselines());
         double* uvw_ptr = buffer_uvw.data();
         for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
-          const casacore::Vector<double> uvw = uvw_calculator_->getUVW(
+          const std::array<double, 3> uvw = uvw_calculator_->getUVW(
               info().getAnt1()[bl], info().getAnt2()[bl], time);
-          std::copy_n(uvw.data(), 3, uvw_ptr);
-          uvw_ptr += 3;
+          std::copy_n(uvw.data(), uvw.size(), uvw_ptr);
+          uvw_ptr += uvw.size();
         }
       }
     }

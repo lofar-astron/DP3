@@ -777,8 +777,12 @@ void MSReader::calcUVW(double time, DPBuffer& buf) {
   uvws.resize(3, itsNrBl);
   const casacore::Vector<int>& ant1 = getInfo().getAnt1();
   const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+  double* uvw_ptr = uvws.data();
   for (unsigned int i = 0; i < itsNrBl; ++i) {
-    uvws.column(i) = itsUVWCalc->getUVW(ant1[i], ant2[i], time);
+    const std::array<double, 3> uvw =
+        itsUVWCalc->getUVW(ant1[i], ant2[i], time);
+    std::copy_n(uvw.data(), uvw.size(), uvw_ptr);
+    uvw_ptr += uvw.size();
   }
 }
 
