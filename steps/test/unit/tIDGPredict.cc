@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(getfacets) {
 
   const std::vector<schaapcommon::facets::Pixel>& p0 = facets[0].GetPixels();
   BOOST_TEST_REQUIRE(p0.size() == 4u);
-  BOOST_TEST(p0[0].x == 379);
+  BOOST_TEST(p0[0].x == 378);
   BOOST_TEST(p0[0].y == 0);
   BOOST_TEST(p0[1].x == 377);
   BOOST_TEST(p0[1].y == 91);
