@@ -32,3 +32,21 @@ foreach(TEST ${INTEGRATION_TESTS})
   add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
+
+# Example pytest integration tests
+# Notes:
+# - python / pytest testing script probably will replace the bash integration tests
+# - python tests have the post-fix "Py", since ctest prohibits re-using test names
+# - the collection of python-based integration tests can be invoked with ctest -L pyintegration
+# - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
+set(PYINTEGRATION_TESTS tPredict)
+
+foreach(TEST ${PYINTEGRATION_TESTS})
+  add_test(
+    NAME "${TEST}Py"
+    COMMAND
+      pytest --exitfirst -v
+      --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
+      "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
+  set_tests_properties(${TEST}Py PROPERTIES LABELS "pyintegration")
+endforeach()
