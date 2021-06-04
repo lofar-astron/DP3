@@ -41,10 +41,10 @@ class Averager : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Averager(InputStep*, const common::ParameterSet&, const string& prefix);
+  Averager(InputStep&, const common::ParameterSet&, const string& prefix);
 
   /// Construct the object using the given parameters.
-  Averager(InputStep*, const string& stepname, unsigned int nchanAvg,
+  Averager(InputStep&, const string& stepname, unsigned int nchanAvg,
            unsigned int ntimeAvg);
 
   virtual ~Averager();
@@ -80,8 +80,8 @@ class Averager : public Step {
   /// omitted it defaults to Hertz
   double getFreqHz(const string& freqstr);
 
-  InputStep* itsInput;
-  string itsName;
+  InputStep& itsInput;
+  std::string itsName;
   base::DPBuffer itsBuf;
   base::DPBuffer itsBufTmp;
   base::DPBuffer itsBufOut;

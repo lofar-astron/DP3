@@ -192,10 +192,10 @@ class DemixWorker {
   std::vector<steps::Step::ShPtr> itsFirstSteps;
   steps::Step::ShPtr itsAvgStepSubtr;
   steps::Filter itsFilter;
-  steps::Filter* itsFilterSubtr;
+  std::shared_ptr<steps::Filter> itsFilterSubtr;
   /// Result of averaging the target at the subtract resolution.
-  steps::MultiResultStep* itsAvgResultFull;
-  steps::MultiResultStep* itsAvgResultSubtr;
+  std::shared_ptr<steps::MultiResultStep> itsAvgResultFull;
+  std::shared_ptr<steps::MultiResultStep> itsAvgResultSubtr;
   /// The sources to demix (excluding target).
   std::vector<Patch::ConstPtr> itsDemixList;
   /// The info needed to calculate the station beams.
