@@ -16,5 +16,5 @@ inputs:
       Number of times into which each timestep will be expanded `.`
   updateuvw:
     type: bool
-    doc: (Re)calculate UVW values using the upsampled time values.
+    doc: (Re)calculate UVW values using the upsampled time values `.`
     default: false

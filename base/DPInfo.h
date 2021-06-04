@@ -89,8 +89,11 @@ class DPInfo {
   /// Set nr of channels.
   void setNChan(unsigned int nchan) { itsNChan = nchan; }
 
-  /// Set time interval
-  void setTimeInterval(double timeInterval) { itsTimeInterval = timeInterval; }
+  /// Set the time interval and the number of time steps.
+  void setTimeIntervalAndSteps(double timeInterval, unsigned int ntime) {
+    itsTimeInterval = timeInterval;
+    itsNTime = ntime;
+  }
 
   /// Set the frequency info.
   /// An empty resolutions or effectiveBW is default to chanWidths.

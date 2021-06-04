@@ -32,6 +32,9 @@ class Upsample : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   Upsample(const common::ParameterSet&, const string& prefix);
 
+  /// Constructor that gets the settings directly.
+  Upsample(const std::string& name, unsigned int time_step, bool update_uvw);
+
   virtual ~Upsample();
 
   /// Process the data.
@@ -50,7 +53,6 @@ class Upsample : public Step {
 
  private:
   const std::string name_;
-  double old_time_interval_;
   const unsigned int time_step_;
   const bool update_uvw_;
 
