@@ -63,9 +63,11 @@ class TestInput : public dp3::steps::InputStep {
     buf.setFlags(flags);
     buf.setExposure(time_interval_);
 
-    casacore::Matrix<double> uvw(3, kNBaselines);
-    indgen(uvw, uvws_[time_step_]);
-    buf.setUVW(uvw);
+    if (!uvws_.empty()) {
+      casacore::Matrix<double> uvw(3, kNBaselines);
+      indgen(uvw, uvws_[time_step_]);
+      buf.setUVW(uvw);
+    }
     getNextStep()->process(buf);
     ++time_step_;
     return true;
@@ -120,8 +122,8 @@ class TestOutput : public dp3::steps::Step {
         update_uvw_(update_uvw) {}
 
   bool process(const DPBuffer& buf) override {
-    BOOST_CHECK(casacore::nearAbs(buf.getTime(), times_[time_step_],
-                                  time_interval_ * 0.01));
+    BOOST_CHECK_SMALL(buf.getTime() - times_[time_step_],
+                      time_interval_ * 0.01);
     BOOST_CHECK(allTrue(buf.getFlags()) == flags_[time_step_]);
 
     const casacore::Matrix<double>& buf_uvw = buf.getUVW();
@@ -176,7 +178,11 @@ void TestUpsample(bool update_uvw) {
   const std::vector<double> times{5020763030.74, 5020763032.75, 5020763034.76,
                                   5020763035.77, 5020763037.78, 5020763039.8};
   const std::vector<bool> flags{false, false, true, false, false, false};
-  const std::vector<double> uvws{4100, 4200, 4300, 4400, 4500, 4600};
+  std::vector<double> uvws{4100, 4200, 4300, 4400, 4500, 4600};
+  if (update_uvw) {
+    // Test that Upsample sets UVW values even if the input has no UVW values.
+    uvws.clear();
+  }
   auto in_step = std::make_shared<TestInput>(times, flags, uvws, kTimeInterval);
 
   ParameterSet parset;

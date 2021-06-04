@@ -29,16 +29,26 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-Upsample::Upsample(const common::ParameterSet& parset, const string& prefix)
-    : name_(prefix),
-      old_time_interval_(0),
-      time_step_(parset.getInt(prefix + "timestep")),
-      update_uvw_(parset.getBool(prefix + "updateuvw", false)),
+Upsample::Upsample(const common::ParameterSet& parset,
+                   const std::string& prefix)
+    : Upsample(prefix, parset.getUint(prefix + "timestep"),
+               parset.getBool(prefix + "updateuvw", false)) {}
+
+Upsample::Upsample(const std::string& name, unsigned int time_step,
+                   bool update_uvw)
+    : name_(name),
+      time_step_(time_step),
+      update_uvw_(update_uvw),
       prev_buffers_(),
-      buffers_(time_step_),
+      buffers_(time_step),
       first_to_flush_(0),
       uvw_calculator_(),
-      timer_() {}
+      timer_() {
+  if (time_step_ <= 1) {
+    throw std::invalid_argument("Upsample: Invalid time step value: " +
+                                std::to_string(time_step_));
+  }
+}
 
 Upsample::~Upsample() {}
 
@@ -46,11 +56,10 @@ void Upsample::updateInfo(const DPInfo& info_in) {
   Step::updateInfo(info_in);
   info().setNeedVisData();
   info().setWriteData();
-
-  old_time_interval_ = info().timeInterval();
-  info().setTimeInterval(old_time_interval_ / time_step_);
-
+  info().setTimeIntervalAndSteps(info().timeInterval() / time_step_,
+                                 info().ntime() * time_step_);
   info().setMetaChanged();
+
   if (update_uvw_) {
     uvw_calculator_ = boost::make_unique<base::UVWCalculator>(
         info().phaseCenter(), info().arrayPos(), info().antennaPos());
@@ -59,11 +68,12 @@ void Upsample::updateInfo(const DPInfo& info_in) {
 
 void Upsample::show(std::ostream& os) const {
   os << "Upsample " << name_ << '\n';
-  os << "  time step : " << time_step_ << '\n';
+  os << "  time step   : " << time_step_ << '\n';
+  os << "  update UVW  : " << std::boolalpha << update_uvw_ << '\n';
 }
 
 bool Upsample::process(const DPBuffer& bufin) {
-  double time0 = bufin.getTime() - 0.5 * old_time_interval_;
+  double time0 = bufin.getTime() - 0.5 * info().timeInterval() * time_step_;
   double exposure = bufin.getExposure() / time_step_;
 
   // Duplicate the input buffer time_step_ times
@@ -75,16 +85,13 @@ bool Upsample::process(const DPBuffer& bufin) {
     buffers_[i].setExposure(exposure);
 
     if (update_uvw_) {
-      casacore::Matrix<double>& buffer_uvw = buffers_[i].getUVW();
-      if (!buffer_uvw.empty()) {
-        assert(buffer_uvw.size() == 3 * info().nbaselines());
-        double* uvw_ptr = buffer_uvw.data();
-        for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
-          const std::array<double, 3> uvw = uvw_calculator_->getUVW(
-              info().getAnt1()[bl], info().getAnt2()[bl], time);
-          std::copy_n(uvw.data(), uvw.size(), uvw_ptr);
-          uvw_ptr += uvw.size();
-        }
+      buffers_[i].getUVW().resize(3, info().nbaselines());
+      double* uvw_ptr = buffers_[i].getUVW().data();
+      for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+        const std::array<double, 3> uvw = uvw_calculator_->getUVW(
+            info().getAnt1()[bl], info().getAnt2()[bl], time);
+        std::copy_n(uvw.data(), 3, uvw_ptr);
+        uvw_ptr += 3;
       }
     }
   }
