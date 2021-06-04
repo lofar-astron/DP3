@@ -140,35 +140,36 @@ DemixWorker::DemixWorker(steps::InputStep* input, const string& prefix,
                        prefix + itsMix->sourceNames()[i] + '.', sourceVec);
     itsOrigFirstSteps.push_back(Step::ShPtr(step1));
     itsOrigPhaseShifts.push_back(step1);
-    Step::ShPtr step2(
-        new Averager(input, prefix, itsMix->nchanAvg(), itsMix->ntimeAvg()));
+    auto step2 = std::make_shared<Averager>(*input, prefix, itsMix->nchanAvg(),
+                                            itsMix->ntimeAvg());
     step1->setNextStep(step2);
-    MultiResultStep* step3 = new MultiResultStep(itsMix->ntimeOut());
-    step2->setNextStep(Step::ShPtr(step3));
+    auto step3 = std::make_shared<MultiResultStep>(itsMix->ntimeOut());
+    step2->setNextStep(step3);
     // There is a single demix factor step which needs to get all results.
-    itsAvgResults.push_back(step3);
+    itsAvgResults.push_back(step3.get());
   }
 
   // Now create the step to average the data themselves.
-  Step::ShPtr targetAvg(
-      new Averager(input, prefix, itsMix->nchanAvg(), itsMix->ntimeAvg()));
+  auto targetAvg = std::make_shared<Averager>(
+      *input, prefix, itsMix->nchanAvg(), itsMix->ntimeAvg());
   itsOrigFirstSteps.push_back(targetAvg);
-  MultiResultStep* targetAvgRes = new MultiResultStep(itsMix->ntimeOut());
-  targetAvg->setNextStep(Step::ShPtr(targetAvgRes));
-  itsAvgResults.push_back(targetAvgRes);
+  auto targetAvgRes = std::make_shared<MultiResultStep>(itsMix->ntimeOut());
+  targetAvg->setNextStep(targetAvgRes);
+  itsAvgResults.push_back(targetAvgRes.get());
 
   // Create the data average step for the subtract.
   // The entire average result is needed for the next NDPPP step.
   // Only the selected baselines need to be subtracted, so add a
   // filter step as the last one.
   itsAvgStepSubtr = std::make_shared<Averager>(
-      input, prefix, itsMix->nchanAvgSubtr(), itsMix->ntimeAvgSubtr());
-  itsAvgResultFull = new MultiResultStep(itsMix->ntimeOutSubtr());
-  itsFilterSubtr = new Filter(input, itsMix->selBL());
-  itsAvgResultSubtr = new MultiResultStep(itsMix->ntimeOutSubtr());
-  itsAvgStepSubtr->setNextStep(Step::ShPtr(itsAvgResultFull));
-  itsAvgResultFull->setNextStep(Step::ShPtr(itsFilterSubtr));
-  itsFilterSubtr->setNextStep(Step::ShPtr(itsAvgResultSubtr));
+      *input, prefix, itsMix->nchanAvgSubtr(), itsMix->ntimeAvgSubtr());
+  itsAvgResultFull = std::make_shared<MultiResultStep>(itsMix->ntimeOutSubtr());
+  itsFilterSubtr = std::make_shared<Filter>(input, itsMix->selBL());
+  itsAvgResultSubtr =
+      std::make_shared<MultiResultStep>(itsMix->ntimeOutSubtr());
+  itsAvgStepSubtr->setNextStep(itsAvgResultFull);
+  itsAvgResultFull->setNextStep(itsFilterSubtr);
+  itsFilterSubtr->setNextStep(itsAvgResultSubtr);
 
   // Let the internal steps update their data.
   itsFilter.setInfo(info);

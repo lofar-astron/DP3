@@ -341,7 +341,7 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   if (type == "aoflagger" || type == "aoflag") {
     step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
-    step = std::make_shared<steps::Averager>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
   } else if (type == "bdaaverager") {
     step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
   } else if (type == "bdaexpander") {

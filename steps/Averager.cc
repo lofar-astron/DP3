@@ -31,7 +31,7 @@ using casacore::IPosition;
 namespace dp3 {
 namespace steps {
 
-Averager::Averager(InputStep* input, const common::ParameterSet& parset,
+Averager::Averager(InputStep& input, const common::ParameterSet& parset,
                    const string& prefix)
     : itsInput(input),
       itsName(prefix),
@@ -57,27 +57,24 @@ Averager::Averager(InputStep* input, const common::ParameterSet& parset,
   }
 }
 
-Averager::Averager(InputStep* input, const string& stepName,
+Averager::Averager(InputStep& input, const string& stepName,
                    unsigned int nchanAvg, unsigned int ntimeAvg)
     : itsInput(input),
       itsName(stepName),
       itsFreqResolution(0),
       itsTimeResolution(0),
-      itsNChanAvg(nchanAvg),
-      itsNTimeAvg(ntimeAvg),
+      itsNChanAvg(nchanAvg == 0 ? 1 : nchanAvg),
+      itsNTimeAvg(ntimeAvg == 0 ? 1 : ntimeAvg),
       itsMinNPoint(1),
       itsMinPerc(0),
       itsNTimes(0),
-      itsTimeInterval(0) {
-  if (itsNChanAvg <= 0) itsNChanAvg = 1;
-  if (itsNTimeAvg <= 0) itsNTimeAvg = 1;
-  itsNoAvg = (itsNChanAvg == 1 && itsNTimeAvg == 1);
-}
+      itsTimeInterval(0),
+      itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
 Averager::~Averager() {}
 
 void Averager::updateInfo(const base::DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
   info().setNeedVisData();
   info().setWriteData();
   info().setWriteFlags();
@@ -144,8 +141,8 @@ bool Averager::process(const base::DPBuffer& buf) {
     // and adding thereafter.
     itsBuf.getData().assign(buf.getData());
     itsBuf.getFlags().assign(buf.getFlags());
-    itsBuf.getUVW().assign(itsInput->fetchUVW(buf, itsBuf, itsTimer));
-    itsBuf.getWeights().assign(itsInput->fetchWeights(buf, itsBuf, itsTimer));
+    itsBuf.getUVW().assign(itsInput.fetchUVW(buf, itsBuf, itsTimer));
+    itsBuf.getWeights().assign(itsInput.fetchWeights(buf, itsBuf, itsTimer));
     IPosition shapeIn = buf.getData().shape();
     itsNPoints.resize(shapeIn);
     itsAvgAll.reference(buf.getData() * itsBuf.getWeights());
@@ -154,7 +151,7 @@ bool Averager::process(const base::DPBuffer& buf) {
     // Take care of the fullRes flags.
     // We have to shape the output array and copy to a part of it.
     const Cube<bool>& fullResFlags =
-        itsInput->fetchFullResFlags(buf, itsBufTmp, itsTimer);
+        itsInput.fetchFullResFlags(buf, itsBufTmp, itsTimer);
     IPosition ofShape = fullResFlags.shape();
     ofShape[1] *= itsNTimeAvg;  // more time entries, same chan and bl
     itsBuf.getFullResFlags().resize(ofShape);
@@ -197,11 +194,11 @@ bool Averager::process(const base::DPBuffer& buf) {
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
     itsBufTmp.referenceFilled(buf);
-    itsBuf.getUVW() += itsInput->fetchUVW(buf, itsBufTmp, itsTimer);
-    copyFullResFlags(itsInput->fetchFullResFlags(buf, itsBufTmp, itsTimer),
+    itsBuf.getUVW() += itsInput.fetchUVW(buf, itsBufTmp, itsTimer);
+    copyFullResFlags(itsInput.fetchFullResFlags(buf, itsBufTmp, itsTimer),
                      buf.getFlags(), itsNTimes);
     const Cube<float>& weights =
-        itsInput->fetchWeights(buf, itsBufTmp, itsTimer);
+        itsInput.fetchWeights(buf, itsBufTmp, itsTimer);
     // Ignore flagged points.
     casacore::Array<casacore::Complex>::const_contiter indIter =
         buf.getData().cbegin();

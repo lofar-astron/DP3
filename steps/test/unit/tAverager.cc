@@ -440,14 +440,13 @@ void execute(const Step::ShPtr& step1) {
 void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
            bool flag) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
-  Step::ShPtr step2(new Averager(in, parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
+  auto step2 = std::make_shared<Averager>(*step1, parset, "");
+  auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
+                                            navgchan, flag);
   step1->setNextStep(step2);
   step2->setNextStep(step3);
   execute(step1);
@@ -457,12 +456,11 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
 void test1resolution(int ntime, int nbl, int nchan, int ncorr,
                      double timeresolution, double freqresolution,
                      string frequnit, bool flag) {
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqresolution", std::to_string(freqresolution) + frequnit);
   parset.add("timeresolution", std::to_string(timeresolution));
-  Step::ShPtr step2(new Averager(in, parset, ""));
+  auto step2 = std::make_shared<Averager>(*step1, parset, "");
 
   if (!frequnit.empty()) {
     casacore::Quantity q(freqresolution, frequnit);
@@ -472,8 +470,8 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
   int navgchan = std::max(1, int(freqresolution / 100000 + 0.5));
   int navgtime = std::max(1, int(timeresolution / 5. + 0.5));
 
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
+  auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
+                                            navgchan, flag);
   step1->setNextStep(step2);
   step2->setNextStep(step3);
   execute(step1);
@@ -482,14 +480,14 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
 // Like test1, but the averaging is done in two steps.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset1, parset2;
   parset1.add("freqstep", "4");
   parset2.add("timestep", "2");
-  Step::ShPtr step2a(new Averager(in, parset1, ""));
-  Step::ShPtr step2b(new Averager(in, parset2, ""));
-  Step::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, 2, 4, flag));
+  auto step2a = std::make_shared<Averager>(*step1, parset1, "");
+  auto step2b = std::make_shared<Averager>(*step1, parset2, "");
+  auto step3 =
+      std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, 2, 4, flag);
   step1->setNextStep(step2a);
   step2a->setNextStep(step2b);
   step2b->setNextStep(step3);
@@ -500,29 +498,27 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
 void test3(int nrbl, int nrcorr) {
   {
     // Create the steps.
-    TestInput3* in = new TestInput3(2, nrbl, 2, nrcorr);
-    Step::ShPtr step1(in);
+    auto step1 = std::make_shared<TestInput3>(2, nrbl, 2, nrcorr);
     ParameterSet parset1;
     parset1.add("freqstep", "2");
     parset1.add("timestep", "2");
-    Step::ShPtr step2a(new Averager(in, parset1, ""));
-    Step::ShPtr step3(new TestOutput3(2, nrbl, 2, nrcorr));
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step3);
+    auto step2 = std::make_shared<Averager>(*step1, parset1, "");
+    auto step3 = std::make_shared<TestOutput3>(2, nrbl, 2, nrcorr);
+    step1->setNextStep(step2);
+    step2->setNextStep(step3);
     execute(step1);
   }
   {
     // Create the steps.
-    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
-    Step::ShPtr step1(in);
+    auto step1 = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
     ParameterSet parset1, parset2;
     parset1.add("freqstep", "4");
     parset1.add("timestep", "2");
     parset2.add("freqstep", "2");
     parset2.add("timestep", "2");
-    Step::ShPtr step2a(new Averager(in, parset1, ""));
-    Step::ShPtr step2b(new Averager(in, parset2, ""));
-    Step::ShPtr step3(new TestOutput3(4, nrbl, 8, nrcorr));
+    auto step2a = std::make_shared<Averager>(*step1, parset1, "");
+    auto step2b = std::make_shared<Averager>(*step1, parset2, "");
+    auto step3 = std::make_shared<TestOutput3>(4, nrbl, 8, nrcorr);
     step1->setNextStep(step2a);
     step2a->setNextStep(step2b);
     step2b->setNextStep(step3);
@@ -535,17 +531,16 @@ void test3(int nrbl, int nrcorr) {
 void test4(int nrbl, int nrcorr, int flagstep) {
   {
     // Create the steps.
-    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
-    Step::ShPtr step1(in);
+    auto step1 = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
     ParameterSet parset1, parset2;
     parset1.add("freqstep", "2");
     parset1.add("timestep", "2");
     parset2.add("freqstep", "4");
     parset2.add("timestep", "2");
-    Step::ShPtr step2a(new Averager(in, parset1, ""));
-    Step::ShPtr step2b(new TestFlagger(flagstep));
-    Step::ShPtr step2c(new Averager(in, parset2, ""));
-    Step::ShPtr step3(new TestOutput4(4, nrbl, 8, nrcorr, flagstep));
+    auto step2a = std::make_shared<Averager>(*step1, parset1, "");
+    auto step2b = std::make_shared<TestFlagger>(flagstep);
+    auto step2c = std::make_shared<Averager>(*step1, parset2, "");
+    auto step3 = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
     step1->setNextStep(step2a);
     step2a->setNextStep(step2b);
     step2b->setNextStep(step2c);
