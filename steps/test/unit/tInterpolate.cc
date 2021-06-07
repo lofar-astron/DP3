@@ -6,6 +6,7 @@
 
 #include "../../Interpolate.h"
 
+#include "tStepCommon.h"
 #include "../../InputStep.h"
 #include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
@@ -174,17 +175,6 @@ class TestOutput : public Step {
   int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set the info in each step.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 BOOST_AUTO_TEST_CASE(test1) {
   const int kNTime = 10;
   const int kNAnt = 2;
@@ -199,9 +189,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   auto step2 =
       std::make_shared<dp3::steps::Interpolate>(step1.get(), parset, "");
   auto step3 = std::make_shared<TestOutput>(kNTime, kNAnt, kNChan, kNCorr);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_SUITE_END()

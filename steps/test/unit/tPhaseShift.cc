@@ -6,6 +6,8 @@
 
 #include "../../PhaseShift.h"
 
+#include "tStepCommon.h"
+
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 
@@ -253,17 +255,6 @@ class TestOutput1 : public Step {
   bool itsFlag;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test with a shift to the original center.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   // Create the steps.
@@ -274,9 +265,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   parset.add("phasecenter", "[45deg, 30deg]");
   Step::ShPtr step2(new PhaseShift(in, parset, ""));
   Step::ShPtr step3(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test with a shift to another and then to the original phase center.
@@ -293,11 +282,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   Step::ShPtr step3(new TestOutput1(in, ntime, nbl, nchan, ncorr, flag));
   Step::ShPtr step4(new PhaseShift(in, parset1, ""));
   Step::ShPtr step5(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  step3->setNextStep(step4);
-  step4->setNextStep(step5);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3, step4, step5});
 }
 
 BOOST_AUTO_TEST_CASE(test1a) { test1(10, 3, 32, 4, false); }

@@ -9,6 +9,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../PreFlagger.h"
 #include "../../Counter.h"
 #include "../../InputStep.h"
@@ -27,21 +28,6 @@ using dp3::steps::Step;
 using std::vector;
 
 BOOST_AUTO_TEST_SUITE(preflagger)
-
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  Step::ShPtr step = step1;
-  while (step) {
-    step = step->getNextStep();
-  }
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -250,10 +236,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
   Step::ShPtr step3(new Counter(in, parset, "cnt"));
   Step::ShPtr step4(
       new TestOutput(ntime, nbl, nchan, ncorr, flag, clear, useComplement));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  step3->setNextStep(step4);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3, step4});
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test2.
@@ -315,9 +298,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
   Step::ShPtr step2(new PreFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test flagging a few antennae or freqs by using multiple steps.
@@ -333,9 +314,7 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   Step::ShPtr step2(new PreFlagger(in, parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, flag, false, false));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test4.
@@ -400,9 +379,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   parset.add("s2.corrtype", "cross");
   Step::ShPtr step2(new PreFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 typedef bool CheckFunc(casacore::Complex value, double time, int ant1, int ant2,
@@ -455,9 +432,7 @@ void test5(const string& key, const string& value, CheckFunc* cfunc) {
   parset.add(key, value);
   Step::ShPtr step2(new PreFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput5(cfunc));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test flagging on multiple parameters.
@@ -471,9 +446,7 @@ void test6(const string& key1, const string& value1, const string& key2,
   parset.add(key2, value2);
   Step::ShPtr step2(new PreFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput5(cfunc));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 bool checkBL(casacore::Complex, double, int a1, int a2, const double*) {

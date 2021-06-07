@@ -10,6 +10,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../Filter.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -244,17 +245,6 @@ class TestOutput : public Step {
   bool itsFlag;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test filtering of channels only.
 void test1(int ntime, int nbl, int nchan, int ncorr, int startchan,
            int nchanout, bool flag) {
@@ -267,9 +257,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int startchan,
   Step::ShPtr step2(new Filter(in, parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, nbl, startchan, nchanout, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test filtering of baselines and channels.
@@ -288,9 +276,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr, int startchan,
   Step::ShPtr step2(new Filter(in, parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, 2, startchan, nchanout, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_CASE(test_filter1) { test1(10, 3, 32, 4, 2, 24, false); }

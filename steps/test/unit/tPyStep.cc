@@ -11,6 +11,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../../pythondp3/PyStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -122,17 +123,6 @@ class TestOutput final : public Step {
   int nblines_, nchan_, ncorr_;
 };
 
-// Execute steps.
-void Execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test simple python step
 void test(int ntime, int nbl, int nchan, int ncorr) {
   // Weak pointer that will be used to monitor the lifetime of the last step
@@ -159,9 +149,6 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
       // Monitor lifetime of output step
       step3_weak_ptr = std::weak_ptr<Step>(step3);
 
-      step1->setNextStep(step2);
-      step2->setNextStep(step3);
-
       // Check whether print statements in show() method are
       // indeed redirected to output stream
       std::ostringstream output_stream_step;
@@ -170,7 +157,7 @@ void test(int ntime, int nbl, int nchan, int ncorr) {
           output_stream_step.str() ==
           "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
 
-      Execute(step1);
+      dp3::steps::test::Execute({step1, step2, step3});
     }
     // step3 went out of scope here, but is still reachable following
     // the chain of getNextStep() calls from step1, and thus should

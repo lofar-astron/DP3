@@ -4,6 +4,8 @@
 //
 // @author Ger van Diepen
 
+#include "tStepCommon.h"
+
 #include "../../UVWFlagger.h"
 #include "../../InputStep.h"
 
@@ -310,17 +312,6 @@ class TestOutput3 : public Step {
   int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test flagging a few baselines on UV in m.
 void test1(int ntime, int nbl, int nchan, int ncorr) {
   // Create the steps.
@@ -334,9 +325,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("wmmin", "3.5");
   Step::ShPtr step2(new dp3::steps::UVWFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test flagging a few baselines on UV in wavelengths.
@@ -352,9 +341,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("wlambdamin", "0.12");
   Step::ShPtr step2(new dp3::steps::UVWFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test flagging a few baselines on UV in m with a different phase center.
@@ -371,21 +358,7 @@ void test3(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("phasecenter", "[-1.92653768rad, 1.09220917rad, j2000]");
   Step::ShPtr step2(new dp3::steps::UVWFlagger(in, parset, ""));
   Step::ShPtr step3(new TestOutput3(ntime, nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
-}
-
-// Test constructing with the Sun as phase center.
-void test4() {
-  // Create the steps.
-  TestInput* in = new TestInput(1, 1, 1, 1);
-  Step::ShPtr step1(in);
-  dp3::common::ParameterSet parset;
-  parset.add("uvmrange", "[5.5..8.5]");
-  parset.add("phasecenter", "Sun");
-  BOOST_CHECK_NO_THROW(
-      std::make_shared<dp3::steps::UVWFlagger>(in, parset, ""));
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 }  // namespace
@@ -406,6 +379,13 @@ BOOST_AUTO_TEST_CASE(testuvwflagger6) { test2(100, 105, 32, 4); }
 
 BOOST_AUTO_TEST_CASE(testuvwflagger7) { test3(2, 16, 32, 4); }
 
-BOOST_AUTO_TEST_CASE(testuvwflagger8) { test4(); }
+BOOST_AUTO_TEST_CASE(sun_as_phase_center) {
+  auto in = std::make_shared<TestInput>(1, 1, 1, 1);
+  dp3::common::ParameterSet parset;
+  parset.add("uvmrange", "[5.5..8.5]");
+  parset.add("phasecenter", "Sun");
+  BOOST_CHECK_NO_THROW(
+      std::make_shared<dp3::steps::UVWFlagger>(in.get(), parset, ""));
+}
 
 BOOST_AUTO_TEST_SUITE_END()

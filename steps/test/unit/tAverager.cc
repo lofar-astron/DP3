@@ -11,6 +11,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../Averager.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -425,17 +426,6 @@ class TestOutput4 : public Step {
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test simple averaging without flagged points.
 void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
            bool flag) {
@@ -447,9 +437,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   auto step2 = std::make_shared<Averager>(*step1, parset, "");
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
                                             navgchan, flag);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Like test 1, but specify target resolution
@@ -472,9 +460,7 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
 
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
                                             navgchan, flag);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Like test1, but the averaging is done in two steps.
@@ -488,10 +474,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   auto step2b = std::make_shared<Averager>(*step1, parset2, "");
   auto step3 =
       std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, 2, 4, flag);
-  step1->setNextStep(step2a);
-  step2a->setNextStep(step2b);
-  step2b->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2a, step2b, step3});
 }
 
 // Do tests with weighting and some flagged points.
@@ -504,9 +487,7 @@ void test3(int nrbl, int nrcorr) {
     parset1.add("timestep", "2");
     auto step2 = std::make_shared<Averager>(*step1, parset1, "");
     auto step3 = std::make_shared<TestOutput3>(2, nrbl, 2, nrcorr);
-    step1->setNextStep(step2);
-    step2->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2, step3});
   }
   {
     // Create the steps.
@@ -519,10 +500,7 @@ void test3(int nrbl, int nrcorr) {
     auto step2a = std::make_shared<Averager>(*step1, parset1, "");
     auto step2b = std::make_shared<Averager>(*step1, parset2, "");
     auto step3 = std::make_shared<TestOutput3>(4, nrbl, 8, nrcorr);
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step2b);
-    step2b->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2a, step2b, step3});
   }
 }
 
@@ -541,11 +519,7 @@ void test4(int nrbl, int nrcorr, int flagstep) {
     auto step2b = std::make_shared<TestFlagger>(flagstep);
     auto step2c = std::make_shared<Averager>(*step1, parset2, "");
     auto step3 = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step2b);
-    step2b->setNextStep(step2c);
-    step2c->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2a, step2b, step2c, step3});
   }
 }
 
