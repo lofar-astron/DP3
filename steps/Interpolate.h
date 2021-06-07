@@ -45,10 +45,6 @@ class Interpolate : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
-  static Step::ShPtr makeStep(InputStep* input,
-                              const common::ParameterSet& parset,
-                              const std::string& prefix);
-
  private:
   void interpolateTimestep(size_t index);
   void interpolateSample(size_t timestep, size_t baseline, size_t channel,

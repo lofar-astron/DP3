@@ -61,10 +61,6 @@ class AOFlaggerStep : public Step {
 
   virtual ~AOFlaggerStep();
 
-  /// Create an AOFlaggerStep object using the given parset.
-  static Step::ShPtr makeStep(InputStep*, const common::ParameterSet&,
-                              const std::string&);
-
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);

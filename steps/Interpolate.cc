@@ -50,12 +50,6 @@ Interpolate::Interpolate(InputStep* /*input*/,
   }
 }
 
-Step::ShPtr Interpolate::makeStep(InputStep* input,
-                                  const common::ParameterSet& parset,
-                                  const std::string& prefix) {
-  return std::make_shared<Interpolate>(input, parset, prefix);
-}
-
 void Interpolate::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
