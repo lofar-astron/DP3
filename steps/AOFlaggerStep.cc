@@ -62,12 +62,6 @@ AOFlaggerStep::AOFlaggerStep(InputStep* input,
 
 AOFlaggerStep::~AOFlaggerStep() {}
 
-Step::ShPtr AOFlaggerStep::makeStep(InputStep* input,
-                                    const common::ParameterSet& parset,
-                                    const std::string& prefix) {
-  return std::make_shared<AOFlaggerStep>(input, parset, prefix);
-}
-
 void AOFlaggerStep::show(std::ostream& os) const {
   os << "AOFlaggerStep " << name_ << '\n';
   os << "  strategy:       " << strategy_name_ << '\n';
