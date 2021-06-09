@@ -661,13 +661,12 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   Table fldtab(itsMS.keywordSet().asTable("FIELD"));
   if (fldtab.nrow() != 1)
     throw std::runtime_error("Multiple entries in FIELD table");
-  MDirection phaseCenter, delayCenter, tileBeamDir;
   ArrayMeasColumn<MDirection> fldcol1(fldtab, "PHASE_DIR");
   ArrayMeasColumn<MDirection> fldcol2(fldtab, "DELAY_DIR");
-  phaseCenter = *(fldcol1(0).data());
-  delayCenter = *(fldcol2(0).data());
+  const MDirection phaseCenter = *(fldcol1(0).data());
+  const MDirection delayCenter = *(fldcol2(0).data());
 
-  MDirection tile_beam_dir;
+  MDirection tileBeamDir;
   try {
     tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
   } catch (const std::runtime_error& error) {

@@ -15,7 +15,9 @@ class ParameterSet;
 }
 
 namespace steps {
+class Averager;
 class OnePredict;
+class Upsample;
 
 /**
  * @brief DP3 step class that predicts visibilities from a source model.
@@ -67,7 +69,16 @@ class Predict : public ModelDataStep {
   void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predict_buffer);
 
  private:
+  /**
+   * Common part of the constructors.
+   * Parses parset arguments and sets up upsample_step_ and averager_step_.
+   */
+  void Initialize(InputStep& input_step, const common::ParameterSet& parset,
+                  const string& prefix);
+
+  std::shared_ptr<Upsample> upsample_step_;
   std::shared_ptr<OnePredict> predict_step_;
+  std::shared_ptr<Averager> averager_step_;
 };
 
 }  // namespace steps
