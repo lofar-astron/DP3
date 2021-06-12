@@ -1,0 +1,9 @@
+# Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+SRCDIR = "@CMAKE_CURRENT_SOURCE_DIR@"
+BINDIR = "@CMAKE_BINARY_DIR@"
+RESOURCEDIR = "@CMAKE_SOURCE_DIR@/resources"
+DP3EXE = "@CMAKE_BINARY_DIR@/DP3"
+MAKESOURCEDBEXE = "@CMAKE_BINARY_DIR@/makesourcedb"
+TAQLEXE = "@TAQL_EXECUTABLE@"

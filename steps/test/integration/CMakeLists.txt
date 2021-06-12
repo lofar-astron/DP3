@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 configure_file(testInit.sh.in testInit.sh)
+configure_file(testconfig.py.in testconfig.py)
 
 # The 'source' symbolic link simplifies running the tests manually inside
 # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead of
@@ -15,7 +16,6 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
 endif()
 
 set(INTEGRATION_TESTS
-    tApplyBeam
     tApplyCal2
     tBdaPredict
     tDemix
@@ -34,18 +34,17 @@ endforeach()
 
 # Example pytest integration tests
 # Notes:
-# - python / pytest testing script probably will replace the bash integration tests
-# - python tests have the post-fix "Py", since ctest prohibits re-using test names
+# - python / pytest testing script will replace the bash integration tests
 # - the collection of python-based integration tests can be invoked with ctest -L pyintegration
 # - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
-set(PYINTEGRATION_TESTS tPredict)
+set(PYINTEGRATION_TESTS tApplyBeam tPredict)
 
 foreach(TEST ${PYINTEGRATION_TESTS})
   add_test(
-    NAME "${TEST}Py"
+    NAME ${TEST}
     COMMAND
       pytest --exitfirst -v
       --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
       "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
-  set_tests_properties(${TEST}Py PROPERTIES LABELS "pyintegration")
+  set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration")
 endforeach()
