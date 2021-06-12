@@ -12,7 +12,9 @@ dp3exe=@CMAKE_BINARY_DIR@/DP3
 makesourcedbexe=@CMAKE_BINARY_DIR@/makesourcedb
 taqlexe=@TAQL_EXECUTABLE@
 
-# Create and initialize temp directory.
+# Create and initialize temp directory
+# FIXME: can be removed once all integration tests are converted
+# to pytest
 TMP_DIR=$(basename $0)_tmp
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
