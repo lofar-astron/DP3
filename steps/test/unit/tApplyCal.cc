@@ -9,6 +9,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../ApplyCal.h"
 #include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
@@ -265,18 +266,6 @@ class TestOutput : public Step {
   int itsNTime, itsNBl, itsNChan, itsNCorr, itsTimeInterval, itsDoTest;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test clock + tec, and test two ApplyCals in sequence
 void testclocktec(int ntime, int nchan) {
   // Create the steps.
@@ -307,35 +296,27 @@ void testclocktec(int ntime, int nchan) {
   Step::ShPtr step5(new TestOutput(
       ntime, nchan, TestOutput::DataChanged | TestOutput::WeightsNotChanged));
 
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  step3->setNextStep(step4);
-  step4->setNextStep(step5);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3, step4, step5});
 }
 
-// Test gain
-void testgain(int ntime, int nchan) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nchan);
-  Step::ShPtr step1(in);
+void TestGain(int ntime, int nchan) {
+  auto step1 = std::make_shared<TestInput>(ntime, nchan);
 
   dp3::common::ParameterSet parset1;
   parset1.add("correction", "gain");
   parset1.add("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add("timeslotsperparmupdate", "5");
   parset1.add("updateweights", "true");
-  Step::ShPtr step2(new ApplyCal(in, parset1, ""));
+  auto step2 = std::make_shared<ApplyCal>(step1.get(), parset1, "");
 
-  Step::ShPtr step3(new TestOutput(ntime, nchan, TestOutput::DataEquals));
+  auto step3 =
+      std::make_shared<TestOutput>(ntime, nchan, TestOutput::DataEquals);
 
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_CASE(test_clock_and_tec) { testclocktec(10, 32); }
 
-BOOST_AUTO_TEST_CASE(test_gain) { testgain(10, 32); }
+BOOST_AUTO_TEST_CASE(test_gain) { TestGain(10, 32); }
 
 BOOST_AUTO_TEST_SUITE_END()

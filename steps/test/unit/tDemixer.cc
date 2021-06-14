@@ -172,38 +172,18 @@ class TestOutput : public Step {
   bool itsFlag;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  DPInfo info;
-  Step::ShPtr step = step1;
-  while (step) {
-    step->setInfo(info);
-    step = step->getNextStep();
-  }
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test simple averaging without flagged points.
 void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
            bool flag) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
   parset.add("sources", "CasA");
-  Step::ShPtr step2(new Demixer(in, parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  auto step2 = std::make_shared<Demixer>(in, parset, "");
+  auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
+                                            navgchan, flag);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_CASE(test_demixer1) { test1(10, 3, 32, 4, 2, 4, false); }

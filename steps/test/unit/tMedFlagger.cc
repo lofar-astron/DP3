@@ -11,6 +11,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include "tStepCommon.h"
 #include "../../MedFlagger.h"
 #include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
@@ -203,21 +204,6 @@ class TestOutput : public Step {
   bool itsFlag, itsUseAutoCorr, itsShortBL;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-  Step::ShPtr step = step1;
-  while (step) {
-    step = step->getNextStep();
-  }
-}
-
 // Test simple flagging with or without preflagged points.
 void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
            bool shortbl) {
@@ -235,9 +221,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   Step::ShPtr step2(new MedFlagger(in, parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nant, nchan, ncorr, flag, false, shortbl));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test applyautocorr flagging with or without preflagged points.
@@ -257,9 +241,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   Step::ShPtr step2(new MedFlagger(in, parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nant, nchan, ncorr, flag, true, shortbl));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_DATA_TEST_CASE(test_medflagger_1,

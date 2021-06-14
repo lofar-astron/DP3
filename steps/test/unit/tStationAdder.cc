@@ -11,6 +11,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include "tStepCommon.h"
 #include "../../StationAdder.h"
 #include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
@@ -481,17 +482,6 @@ class TestOutput4 : public Step {
   int itsNTime, itsNBl, itsNChan;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 BOOST_DATA_TEST_CASE(test_add_three_stations,
                      boost::unit_test::data::make({true, false}), sumauto) {
   // Test must be done with with 16 baselines.
@@ -512,10 +502,7 @@ BOOST_DATA_TEST_CASE(test_add_three_stations,
   auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
   auto step3 =
       std::make_shared<TestOutput>(kNTime, kNBl, kNChan, kNCorr, sumauto);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_CASE(test_add_two_groups_of_two_stations) {
@@ -532,10 +519,7 @@ BOOST_AUTO_TEST_CASE(test_add_two_groups_of_two_stations) {
   parset.add("average", "false");
   auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
   auto step3 = std::make_shared<TestOutput2>(kNTime, kNBl, kNChan, kNCorr);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_DATA_TEST_CASE(
@@ -558,9 +542,8 @@ BOOST_DATA_TEST_CASE(
   parset.add("average", "false");
   auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
   auto step3 = std::make_shared<ThrowStep>();
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  BOOST_CHECK_THROW(execute(step1), std::exception);
+  BOOST_CHECK_THROW(dp3::steps::test::Execute({step1, step2, step3}),
+                    std::exception);
 }
 
 // Test making a superstation out of nonexisting stations (should do nothing).
@@ -575,9 +558,7 @@ BOOST_AUTO_TEST_CASE(test_superstation_of_nonexisting_stations) {
   parset.add("stations", "{ns1:nonexistingstationpattern}");
   auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
   auto step3 = std::make_shared<TestOutput4>(kNTime, kNBl, kNChan, kNCorr);
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 BOOST_AUTO_TEST_SUITE_END()

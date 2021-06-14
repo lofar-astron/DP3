@@ -9,6 +9,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
 #include "../../ScaleData.h"
 #include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
@@ -132,7 +133,7 @@ class TestInput : public InputStep {
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
-// Class to check result of TestInput run by test1.
+// Class to check result of TestInput run by TestScaling.
 class TestOutput : public Step {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
@@ -215,37 +216,21 @@ class TestOutput : public Step {
   int itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
-// Test scaling.
-void test1(int ntime, int nbl, int nchan, int ncorr) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr);
-  Step::ShPtr step1(in);
+void TestScaling(int ntime, int nbl, int nchan, int ncorr) {
+  auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr);
   ParameterSet parset;
   parset.add("stations", "[rs01.s01, *]");
   parset.add("coeffs", "[[2,0.5],[3,2,1]]");
   parset.add("scalesize", "false");
-  Step::ShPtr step2(new ScaleData(in, parset, ""));
-  Step::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  auto step2 = std::make_shared<ScaleData>(step1.get(), parset, "");
+  auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
-BOOST_AUTO_TEST_CASE(test_scale_data1) { test1(2, 4, 4, 1); }
+BOOST_AUTO_TEST_CASE(test_scale_data1) { TestScaling(2, 4, 4, 1); }
 
-BOOST_AUTO_TEST_CASE(test_scale_data2) { test1(10, 16, 32, 4); }
+BOOST_AUTO_TEST_CASE(test_scale_data2) { TestScaling(10, 16, 32, 4); }
 
-BOOST_AUTO_TEST_CASE(test_scale_data3) { test1(10, 12, 16, 2); }
+BOOST_AUTO_TEST_CASE(test_scale_data3) { TestScaling(10, 12, 16, 2); }
 
 BOOST_AUTO_TEST_SUITE_END()

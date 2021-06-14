@@ -519,7 +519,8 @@ if(BUILD_TESTING)
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tPSet.cc
       steps/test/unit/tScaleData.cc
-      steps/test/unit/tStationAdder.cc)
+      steps/test/unit/tStationAdder.cc
+      steps/test/unit/tStepCommon.cc)
   if(${Python3_NumPy_FOUND})
     list(APPEND TEST_FILENAMES "steps/test/unit/tPyStep.cc")
   else(${Python3_NumPy_FOUND})

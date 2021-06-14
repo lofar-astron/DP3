@@ -8,6 +8,7 @@
 // Only the way the average steps are created is different.
 // Average is used underneath TestDynStep.
 
+#include "tStepCommon.h"
 #include "../../base/DPBuffer.h"
 #include "../../base/DPInfo.h"
 #include "../../base/InputStep.h"
@@ -434,17 +435,6 @@ class TestOutput4 : public Step {
   int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test simple averaging without flagged points.
 void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
            bool flag) {
@@ -460,9 +450,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   Step::ShPtr step2 = DPRun::findStepCtor("TestDynDPPP")(in, parset, "");
   Step::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Like test1, but the averaging is done in two steps.
@@ -479,10 +467,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
   Step::ShPtr step2b = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
   Step::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, 2, 4, flag));
-  step1->setNextStep(step2a);
-  step2a->setNextStep(step2b);
-  step2b->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2a, step2b, step3});
 }
 
 // Do tests with weighting and some flagged points.
@@ -499,9 +484,7 @@ void test3(int nrbl, int nrcorr) {
     parset1.add("timestep", "2");
     Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
     Step::ShPtr step3(new TestOutput3(2, nrbl, 2, nrcorr));
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2a, step3});
   }
   {
     cout << "test3: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
@@ -518,10 +501,7 @@ void test3(int nrbl, int nrcorr) {
     Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
     Step::ShPtr step2b = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
     Step::ShPtr step3(new TestOutput3(4, nrbl, 8, nrcorr));
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step2b);
-    step2b->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2a step2b, step3});
   }
 }
 
@@ -545,11 +525,7 @@ void test4(int nrbl, int nrcorr, int flagstep) {
     Step::ShPtr step2b(new TestFlagger(flagstep));
     Step::ShPtr step2c = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
     Step::ShPtr step3(new TestOutput4(4, nrbl, 8, nrcorr, flagstep));
-    step1->setNextStep(step2a);
-    step2a->setNextStep(step2b);
-    step2b->setNextStep(step2c);
-    step2c->setNextStep(step3);
-    execute(step1);
+    dp3::steps::test::Execute({step1, step2a, step2b, step2c});
   }
 }
 

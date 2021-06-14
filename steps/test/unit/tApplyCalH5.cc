@@ -12,6 +12,7 @@
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/soltab.h>
 
+#include "tStepCommon.h"
 #include "../../Step.h"
 #include "../../ApplyCal.h"
 #include "../../InputStep.h"
@@ -288,18 +289,6 @@ class TestOutput : public Step {
   JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
 };
 
-// Execute steps.
-void execute(const Step::ShPtr& step1) {
-  // Set DPInfo.
-  step1->setInfo(DPInfo());
-
-  // Execute the steps.
-  DPBuffer buf;
-  while (step1->process(buf))
-    ;
-  step1->finish();
-}
-
 // Test amplitude correction
 void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis) {
   // Create the steps.
@@ -314,9 +303,7 @@ void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis) {
   Step::ShPtr step3(new TestOutput(ntime, nchan, TestOutput::WeightsNotChanged,
                                    freqaxis, timeaxis));
 
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Test with missing antenna option
@@ -337,13 +324,10 @@ void testmissingant(int ntime, int nchan, string missingant,
       solshadtimeaxis,
       JonesParameters::StringToMissingAntennaBehavior(missingant)));
 
-  step1->setNextStep(step2);
-  step2->setNextStep(step3);
-
   std::vector<std::string> unusedKeys = parset.unusedKeys();
   BOOST_CHECK(unusedKeys.empty());
 
-  execute(step1);
+  dp3::steps::test::Execute({step1, step2, step3});
 }
 
 // Write a temporary H5Parm
