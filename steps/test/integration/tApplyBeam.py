@@ -19,7 +19,7 @@ from utils import assert_taql, untar_ms
 Tests for applying the beam model.
 
 Script can be invoked in two ways:
-- as standalone from the build/steps/tests/integration directory,
+- as standalone from the build/steps/test/integration directory,
   using `pytest source/tApplyBeam.py` (extended with pytest options of your choice)
 - using ctest, see DP3/steps/test/integration/CMakeLists.txt
 """
