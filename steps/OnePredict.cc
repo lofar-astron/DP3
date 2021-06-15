@@ -301,7 +301,8 @@ void OnePredict::show(std::ostream& os) const {
        << '\n';
     os << "   one beam per patch:" << std::boolalpha << itsOneBeamPerPatch
        << '\n';
-    os << "   beam proximity lim:" << itsBeamProximityLimit << '\n';
+    os << "   beam proximity lim:"
+       << (itsBeamProximityLimit * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
   }
   os << "  operation:          " << itsOperation << '\n';
   os << "  threads:            " << getInfo().nThreads() << '\n';
