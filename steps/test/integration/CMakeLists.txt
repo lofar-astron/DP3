@@ -15,15 +15,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
     SYMBOLIC)
 endif()
 
-set(INTEGRATION_TESTS
-    tApplyCal2
-    tBdaPredict
-    tDemix
-    tGainCal
-    tGainCalH5Parm
-    tMultiApplyCal
-    tReadOnly
-    tSplit)
+set(INTEGRATION_TESTS tApplyCal2 tBdaPredict tDemix tGainCal tGainCalH5Parm)
 
 foreach(TEST ${INTEGRATION_TESTS})
   # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
@@ -37,7 +29,7 @@ endforeach()
 # - python / pytest testing script will replace the bash integration tests
 # - the collection of python-based integration tests can be invoked with ctest -L pyintegration
 # - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
-set(PYINTEGRATION_TESTS tApplyBeam tPredict)
+set(PYINTEGRATION_TESTS tApplyBeam tMultiApplyCal tPredict tReadOnly tSplit)
 
 foreach(TEST ${PYINTEGRATION_TESTS})
   add_test(
