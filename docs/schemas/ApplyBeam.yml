@@ -12,8 +12,8 @@ inputs:
   direction:
     type: string?
     doc: >-
-      A RA/Dec value specifying in what direction to correct the beam. See ``phaseshift.phasecenter`` for syntax. 
-      If empty, the beam is corrected in the direction of the current phase center. 
+      A RA/Dec value specifying in what direction to correct the beam. See ``phaseshift.phasecenter`` for syntax.
+      If empty, the beam is corrected in the direction of the current phase center.
   beamproximitylimit:
     type: float
     default: 60
@@ -26,22 +26,24 @@ inputs:
       h5parmpredict, etc. This parameter has been introduced in Dec 2020 `.`
   onebeamperpatch:
     type: string?
+    default: false
     doc: >-
       Deprecated: use beamproximitylimit instead.
-      When true, computes the beam only for the center of each patch
-      (saves computation time, but you should set this to false for large
-      patches). 
-      In the ApplyBeam step, this setting does not make sense 
+      When ``true``, computes the beam only for the center of each patch
+      (saves computation time, but you should set this to ``false`` for large
+      patches).
+      In the ApplyBeam step, this setting does not make sense
       (but it does if the applybeam is part of predict, ddecal, gaincal,
-      h5parmpredict, etc.). 
-      Generally, FALSE is the right setting for this option. 
+      h5parmpredict, etc.).
+      Generally, ``false`` is the right setting for this option.
       The default has changed to false in Nov 2018 `.`
   usechannelfreq:
     type: boolean?
+    default: true
     doc: >-
       Compute the beam for each channel of the measurement set separately.
       This is useful for merged / concatenated measurement sets.
-      For raw LOFAR data you should set it to false,
+      For raw LOFAR data you should set it to ``false``,
       so that the beam will be formed as in the station hardware.
       Also, setting it to false is faster `.`
   updateweights:
@@ -49,16 +51,19 @@ inputs:
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
-      (e.g. if 'autoweights' was used before).
+      (e.g. if 'autoweights' was used before) `.`
   invert:
     type: boolean?
+    default: true
     doc: >-
-      Invert the corrections, to correct the data. Default is true.
-      If you want to corrupt the data, set it to ``false``.
+      Invert the corrections, to correct the data. Default is ``true``.
+      If you want to corrupt the data, set it to ``false`` `.`
   beammode:
     type: enum
-    symbols: array_factor, element, default
+    symbols: array_factor, element, full, default
+    default: default
     doc: >-
-      Beam mode to apply, can be “array_factor”, “element” or “default”.
-      Default is to apply both the element beam and the array factor `.` 
+      Beam mode to apply, can be ``array_factor``, ``element``, ``full``, or
+      ``default`` (same as ``full``). The mode ``full`` applies both the element
+      beam and the array factor `.`
 
