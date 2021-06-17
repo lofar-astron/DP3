@@ -48,7 +48,6 @@ def source_env():
     os.chdir(CWD)
     shutil.rmtree(tmpdir)
 
-    
 
 @pytest.mark.parametrize("updateweights", [False, True])
 def test_with_and_without_weights_update(updateweights):
@@ -62,18 +61,22 @@ def test_with_and_without_weights_update(updateweights):
             f"steps=[applycal]",
             f"applycal.parmdb={PARMDB}",
             f"showcounts=false",
-            f"applycal.updateweights={updateweights}"
+            f"applycal.updateweights={updateweights}",
         ]
     )
 
-    if updateweights : 
-        taql_commands = [ f"select from {MSIN} where not(all(WEIGHTS_NEW~=81*WEIGHT_SPECTRUM))"]
-    else : 
-        taql_commands = [ f"select from {MSIN} where not(all(DATA~=9*DATA3))", f"select from {MSIN} where not(all(WEIGHTS_NEW~=WEIGHT_SPECTRUM))"]
+    if updateweights:
+        taql_commands = [
+            f"select from {MSIN} where not(all(WEIGHTS_NEW~=81*WEIGHT_SPECTRUM))"
+        ]
+    else:
+        taql_commands = [
+            f"select from {MSIN} where not(all(DATA~=9*DATA3))",
+            f"select from {MSIN} where not(all(WEIGHTS_NEW~=WEIGHT_SPECTRUM))",
+        ]
 
     for taql_command in taql_commands:
         assert_taql(taql_command)
-
 
 
 def test_common_scalar_phase():
@@ -86,7 +89,7 @@ def test_common_scalar_phase():
             f"steps=[applycal]",
             f"applycal.parmdb={PARMDB}",
             f"applycal.correction=commonscalarphase",
-            f"showcounts=false"
+            f"showcounts=false",
         ]
     )
     taql_command = f"select from {MSIN} where not(all(DATA~=DATA3))"
@@ -103,7 +106,7 @@ def test_scalar_amplitude_values():
             f"steps=[applycal]",
             f"applycal.parmdb={PARMDB}",
             f"applycal.correction=scalaramplitude",
-            f"showcounts=false"
+            f"showcounts=false",
         ]
     )
     taql_command = f"select from {MSIN} where not(all(DATA~=9*DATA3))"
@@ -120,6 +123,6 @@ def test_rotation_angle():
             f"steps=[applycal]",
             f"applycal.parmdb=tApplyCal.parmdb",
             f"applycal.correction=rotationmeasure",
-            f"showcounts=false"
+            f"showcounts=false",
         ]
     )
