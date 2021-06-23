@@ -14,11 +14,27 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
     SYMBOLIC)
 endif()
 
-set(INTEGRATION_TESTS tDDECal tIDGPredict)
+set(INTEGRATION_TESTS tIDGPredict)
 
 foreach(TEST ${INTEGRATION_TESTS})
   # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
   # support symbolic links.
   add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
+endforeach()
+
+# Notes:
+# - python / pytest testing script will replace the bash integration tests
+# - the collection of python-based integration tests can be invoked with ctest -L pyintegration
+# - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
+set(PYINTEGRATION_TESTS tDDECal)
+
+foreach(TEST ${PYINTEGRATION_TESTS})
+  add_test(
+    NAME ${TEST}
+    COMMAND
+      pytest --exitfirst -v
+      --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
+      "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
+  set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration")
 endforeach()
