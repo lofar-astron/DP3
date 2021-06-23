@@ -633,4 +633,17 @@ if(BUILD_TESTING)
 
   add_subdirectory(steps/test/integration)
   add_subdirectory(ddecal/test/integration)
+
+  # Copy files for integration tests in the "steps" folder
+  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
+                 ${CMAKE_BINARY_DIR}/steps/test/integration/testconfig.py)
+  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
+                 ${CMAKE_BINARY_DIR}/steps/test/integration/utils.py)
+
+  # Copy files for integration tests in the "ddecal" folder
+  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
+                 ${CMAKE_BINARY_DIR}/ddecal/test/integration/testconfig.py)
+  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
+                 ${CMAKE_BINARY_DIR}/ddecal/test/integration/utils.py)
+
 endif() # BUILD_TESTING

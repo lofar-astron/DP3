@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 configure_file(testInit.sh.in testInit.sh)
-configure_file(testconfig.py.in testconfig.py)
 
 # The 'source' symbolic link simplifies running the tests manually inside
 # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead of
