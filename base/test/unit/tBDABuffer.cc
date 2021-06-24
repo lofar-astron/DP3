@@ -37,7 +37,7 @@ void CheckBDARowMetaData(const BDABuffer::Row& left,
 }
 
 void CheckBDARowMetaData(const BDABuffer& left, const BDABuffer& right) {
-  BOOST_REQUIRE(left.GetRows().size() == right.GetRows().size());
+  BOOST_REQUIRE_EQUAL(left.GetRows().size(), right.GetRows().size());
   auto left_row = left.GetRows().begin();
   auto right_row = right.GetRows().begin();
   while (left_row != left.GetRows().end()) {
@@ -68,6 +68,18 @@ const std::size_t k1DataSize{k1Channel * k1Correlation};
 const double kTimeEpsilon = 1.0e-8;
 const double kHalfEpsilon = kTimeEpsilon / 2;
 const double kTwoEpsilon = 2.0 * kTimeEpsilon;
+
+void AddBasicRow(BDABuffer& buffer) {
+  const std::complex<float> kData[kDataSize]{{1, 1}, {2, 2}, {3, 3},
+                                             {4, 4}, {5, 5}, {6, 6}};
+  const bool kFlags[kDataSize]{true, true, false, false, true, true};
+  const float kWeights[kDataSize]{21, 22, 23, 24, 25, 26};
+  const bool kFullResFlags[kDataSize]{true, false, true, false, true, false};
+  const double kUvw[3]{41, 42, 43};
+  buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr, kNChannels,
+                kNCorrelations, kData, kFlags, kWeights, kFullResFlags, kUvw);
+}
+
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(bdabuffer)
@@ -133,16 +145,8 @@ BOOST_AUTO_TEST_CASE(copy_all_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(copy_omit_fields) {
-  const std::complex<float> kData[kDataSize]{{1, 1}, {2, 2}, {3, 3},
-                                             {4, 4}, {5, 5}, {6, 6}};
-  const bool kFlags[kDataSize]{true, true, false, false, true, true};
-  const float kWeights[kDataSize]{21, 22, 23, 24, 25, 26};
-  const bool kFullResFlags[kDataSize]{true, false, true, false, true, false};
-  const double kUvw[3]{41, 42, 43};
-
   BDABuffer buffer(kDataSize + kUnusedSpace);
-  buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr, kNChannels,
-                kNCorrelations, kData, kFlags, kWeights, kFullResFlags, kUvw);
+  AddBasicRow(buffer);
   buffer.SetBaseRowNr(kBaseRowNr);
 
   BDABuffer::Fields fields;
@@ -191,6 +195,66 @@ BOOST_AUTO_TEST_CASE(copy_omit_fields) {
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kUnusedSpace);
   BOOST_CHECK_EQUAL(without_data_flags.GetRemainingCapacity(), 0u);
   BOOST_CHECK_EQUAL(without_weighs_frf.GetRemainingCapacity(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(copy_add_weights_frf) {
+  BDABuffer::Fields fields;
+  fields.data = false;
+  fields.flags = false;
+  BDABuffer without_data_flags(kDataSize + kUnusedSpace, fields);
+  AddBasicRow(without_data_flags);
+  BOOST_CHECK(!without_data_flags.GetData());
+  BOOST_CHECK(!without_data_flags.GetFlags());
+
+  const BDABuffer copy(without_data_flags, BDABuffer::Fields());
+  BOOST_CHECK(copy.GetData());
+  BOOST_CHECK(copy.GetFlags());
+  BOOST_CHECK_EQUAL(copy.GetRemainingCapacity(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(copy_add_data_flags) {
+  BDABuffer::Fields fields;
+  fields.weights = false;
+  fields.full_res_flags = false;
+  BDABuffer without_weighs_frf{kDataSize + kUnusedSpace, fields};
+  AddBasicRow(without_weighs_frf);
+  BOOST_CHECK(!without_weighs_frf.GetWeights());
+  BOOST_CHECK(!without_weighs_frf.GetFullResFlags());
+
+  const BDABuffer copy(without_weighs_frf, BDABuffer::Fields());
+  BOOST_CHECK(copy.GetWeights());
+  BOOST_CHECK(copy.GetFullResFlags());
+  BOOST_CHECK_EQUAL(copy.GetRemainingCapacity(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(set_fields) {
+  BDABuffer buffer(kDataSize);
+  AddBasicRow(buffer);
+  const BDABuffer copy(buffer, BDABuffer::Fields(false));
+  dp3::base::test::CheckBDARowMetaData(buffer, copy);
+
+  BOOST_CHECK(buffer.GetData() && buffer.GetData(0));
+  BOOST_CHECK(buffer.GetFlags() && buffer.GetFlags(0));
+  BOOST_CHECK(buffer.GetWeights() && buffer.GetWeights(0));
+  BOOST_CHECK(buffer.GetFullResFlags() && buffer.GetFullResFlags(0));
+
+  BDABuffer::Fields data_and_weights(false);
+  data_and_weights.data = data_and_weights.weights = true;
+  buffer.SetFields(data_and_weights);
+  BOOST_CHECK(buffer.GetData() && buffer.GetData(0));
+  BOOST_CHECK(!buffer.GetFlags() && !buffer.GetFlags(0));
+  BOOST_CHECK(buffer.GetWeights() && buffer.GetWeights(0));
+  BOOST_CHECK(!buffer.GetFullResFlags() && !buffer.GetFullResFlags(0));
+
+  BDABuffer::Fields flags_and_frf(false);
+  flags_and_frf.flags = flags_and_frf.full_res_flags = true;
+  buffer.SetFields(flags_and_frf);
+  BOOST_CHECK(!buffer.GetData() && !buffer.GetData(0));
+  BOOST_CHECK(buffer.GetFlags() && buffer.GetFlags(0));
+  BOOST_CHECK(!buffer.GetWeights() && !buffer.GetWeights(0));
+  BOOST_CHECK(buffer.GetFullResFlags() && buffer.GetFullResFlags(0));
+
+  dp3::base::test::CheckBDARowMetaData(buffer, copy);
 }
 
 BOOST_AUTO_TEST_CASE(add_all_fields) {
@@ -320,15 +384,8 @@ BOOST_AUTO_TEST_CASE(add_no_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(disabled_fields) {
-  const std::complex<float> kData[kDataSize]{{1, 2}};
-  const bool kFlags[kDataSize]{true};
-  const float kWeights[kDataSize]{42};
-  const double kUvw[3]{42};
-
   BDABuffer buffer(kDataSize, BDABuffer::Fields(false));
-  BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
-                            kNChannels, kNCorrelations, kData, kFlags, kWeights,
-                            kFlags, kUvw));
+  AddBasicRow(buffer);
 
   // Verify the data pointers from buffer.Get*().
   BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
