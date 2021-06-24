@@ -78,14 +78,28 @@ class BDABuffer {
   /** @} */
 
   /**
-   * Custom copy constructor that can omit fields from the result.
+   * Custom copy constructor.
    * This constructor sets the memory pool size of the new buffer to the
    * actual memory usage of the other buffer.
    * Adding new rows to the new buffer is therefore not possible.
    * @param other An existing BDABuffer.
-   * @param fields The fields that should be copied.
+   * @param fields The fields that are enabled in the new buffer.
+   * If 'other' does not have the field, memory is allocated for the field but
+   * the content are not initialized.
+   * @param copy_fields The fields that are copied to the new buffer.
+   * Fields that are not enabled or are never copied.
+   * For enabled, but not copied fields, the memory is allocated but not
+   * initialized.
    */
-  BDABuffer(const BDABuffer& other, const Fields& fields);
+  BDABuffer(const BDABuffer& other, const Fields& fields,
+            const Fields& copy_fields = Fields());
+
+  /**
+   * Sets the fields that are enabled in this buffer.
+   * Allocates memory for fields that are added, but does not initialize it.
+   * @param fields The fields that should be enabled in the buffer.
+   */
+  void SetFields(const Fields& fields);
 
   /**
    * Add a measurement line to the buffer.
@@ -188,6 +202,12 @@ class BDABuffer {
   }
 
  private:
+  /**
+   * Copy rows but set their pointers to the current memory pools.
+   * @param existing_rows Existing rows, which may reference rows_.
+   */
+  void CopyRows(const std::vector<BDABuffer::Row>& existing_rows);
+
   static constexpr double kTimeEpsilon =
       1.0e-8;  // For comparing measurement timestamps.
 

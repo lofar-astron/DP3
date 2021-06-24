@@ -54,7 +54,8 @@ BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
 // When copying the memory pools in this copy-constructor, the capacity
 // of the new memory pools will equal their size. There is therefore
 // no remaining capacity in the new copy.
-BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
+BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields,
+                     const Fields& copy_fields)
     : data_(),
       flags_(),
       weights_(),
@@ -62,37 +63,82 @@ BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields)
       rows_(),
       original_capacity_(other.original_capacity_ - other.remaining_capacity_),
       remaining_capacity_(0) {
-  if (fields.data) data_ = other.data_;
-  if (fields.flags) flags_ = other.flags_;
-  if (fields.weights) weights_ = other.weights_;
-  if (fields.full_res_flags) full_res_flags_ = other.full_res_flags_;
-
-  // Copy rows but set their pointers to the new memory pools.
-  rows_.reserve(other.rows_.size());
-  for (const BDABuffer::Row& other_row : other.rows_) {
-    std::complex<float>* row_data = nullptr;
-    bool* row_flags = nullptr;
-    float* row_weights = nullptr;
-    bool* row_full_res_flags = nullptr;
-
-    if (fields.data && !data_.empty())
-      row_data = data_.data() + (other_row.data - other.data_.data());
-    if (fields.flags && !flags_.empty())
-      row_flags = flags_.data() + (other_row.flags - other.flags_.data());
-    if (fields.weights && !weights_.empty())
-      row_weights =
-          weights_.data() + (other_row.weights - other.weights_.data());
-    if (fields.full_res_flags && !full_res_flags_.empty())
-      row_full_res_flags =
-          full_res_flags_.data() +
-          (other_row.full_res_flags - other.full_res_flags_.data());
-
-    rows_.emplace_back(other_row.time, other_row.interval, other_row.exposure,
-                       other_row.row_nr, other_row.baseline_nr,
-                       other_row.n_channels, other_row.n_correlations, row_data,
-                       row_flags, row_weights, row_full_res_flags,
-                       other_row.uvw);
+  if (fields.data) {
+    if (copy_fields.data) data_ = other.data_;
+    data_.resize(original_capacity_);
   }
+  if (fields.flags) {
+    if (copy_fields.flags) flags_ = other.flags_;
+    flags_.resize(original_capacity_);
+  }
+  if (fields.weights) {
+    if (copy_fields.weights) weights_ = other.weights_;
+    weights_.resize(original_capacity_);
+  }
+  if (fields.full_res_flags) {
+    if (copy_fields.full_res_flags) full_res_flags_ = other.full_res_flags_;
+    full_res_flags_.resize(original_capacity_);
+  }
+  CopyRows(other.rows_);
+}
+
+void BDABuffer::CopyRows(const std::vector<BDABuffer::Row>& existing_rows) {
+  std::complex<float>* row_data = data_.empty() ? nullptr : data_.data();
+  bool* row_flags = flags_.empty() ? nullptr : flags_.data();
+  float* row_weights = weights_.empty() ? nullptr : weights_.data();
+  bool* row_full_res_flags =
+      full_res_flags_.empty() ? nullptr : full_res_flags_.data();
+
+  // Note: 'existing_rows' can reference 'rows_' !
+  std::vector<Row> new_rows;
+  new_rows.reserve(existing_rows.size());
+  for (const Row& row : existing_rows) {
+    new_rows.emplace_back(row.time, row.interval, row.exposure, row.row_nr,
+                          row.baseline_nr, row.n_channels, row.n_correlations,
+                          row_data, row_flags, row_weights, row_full_res_flags,
+                          row.uvw);
+    const std::size_t row_size = row.GetDataSize();
+    if (row_data) row_data += row_size;
+    if (row_flags) row_flags += row_size;
+    if (row_weights) row_weights += row_size;
+    if (row_full_res_flags) row_full_res_flags += row_size;
+  }
+  rows_ = std::move(new_rows);
+}
+
+void BDABuffer::SetFields(const Fields& fields) {
+  if ((fields.data == !data_.empty()) && (fields.flags == !flags_.empty()) &&
+      (fields.weights == !weights_.empty()) &&
+      (fields.full_res_flags == !full_res_flags_.empty())) {
+    return;
+  }
+
+  if (fields.data) {
+    data_.resize(original_capacity_);
+  } else {
+    data_.clear();
+    data_.shrink_to_fit();
+  }
+  if (fields.flags) {
+    flags_.resize(original_capacity_);
+  } else {
+    flags_.clear();
+    flags_.shrink_to_fit();
+  }
+  if (fields.weights) {
+    weights_.resize(original_capacity_);
+  } else {
+    weights_.clear();
+    weights_.shrink_to_fit();
+  }
+  if (fields.full_res_flags) {
+    full_res_flags_.resize(original_capacity_);
+  } else {
+    full_res_flags_.clear();
+    full_res_flags_.shrink_to_fit();
+  }
+
+  CopyRows(rows_);
 }
 
 void BDABuffer::Clear() {
