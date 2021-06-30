@@ -55,7 +55,7 @@ class DP3 {
   static steps::Step::ShPtr makeStepsFromParset(
       const common::ParameterSet& parset, const std::string& prefix,
       const std::string& step_names_key, steps::InputStep& inputStep,
-      bool terminateChain);
+      bool terminateChain, steps::Step::MsType initial_step_output);
 
   static steps::Step::ShPtr makeSingleStep(const std::string& type,
                                            steps::InputStep* inputStep,

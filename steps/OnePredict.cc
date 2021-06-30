@@ -63,17 +63,15 @@ namespace dp3 {
 namespace steps {
 
 OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
-    : itsThreadPool(nullptr), itsMeasuresMutex(nullptr) {
-  init(input, parset, prefix,
-       parset.getStringVector(prefix + "sources", std::vector<string>()));
-}
-
-OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
                        const string& prefix,
-                       const std::vector<string>& sourcePatterns)
+                       const std::vector<string>& source_patterns)
     : itsThreadPool(nullptr), itsMeasuresMutex(nullptr) {
-  init(input, parset, prefix, sourcePatterns);
+  std::vector<std::string> copied_patterns = source_patterns;
+  if (source_patterns.empty()) {
+    copied_patterns =
+        parset.getStringVector(prefix + "sources", std::vector<std::string>());
+  }
+  init(input, parset, prefix, copied_patterns);
 }
 
 void OnePredict::init(InputStep* input, const common::ParameterSet& parset,

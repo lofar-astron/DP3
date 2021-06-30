@@ -27,7 +27,7 @@ endforeach()
 # - python / pytest testing script will replace the bash integration tests
 # - the collection of python-based integration tests can be invoked with ctest -L pyintegration
 # - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
-set(PYINTEGRATION_TESTS tDDECal)
+set(PYINTEGRATION_TESTS tBdaDdeCal tDDECal)
 
 foreach(TEST ${PYINTEGRATION_TESTS})
   add_test(

@@ -157,7 +157,7 @@ void MSBDAWriter::addToMS(const std::string&) {
 }
 
 void MSBDAWriter::show(std::ostream& os) const {
-  os << "MSWriter " << prefix_ << '\n';
+  os << "MSBDAWriter " << prefix_ << '\n';
   os << "  output MS:      " << ms_.tableName() << '\n';
   os << "  ncorrelations:  " << ncorr_ << '\n';
   os << "  nbaselines:     " << nbl_ << '\n';
