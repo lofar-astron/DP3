@@ -46,14 +46,15 @@ namespace steps {
 /// data with different regular shapes.
 class OnePredict : public ModelDataStep {
  public:
-  /// Construct the object.
-  /// Parameters are obtained from the parset using the given prefix.
-  OnePredict(InputStep*, const common::ParameterSet&,
-             const std::string& prefix);
-
-  /// Constructor with explicit sourcelist
+  /**
+   * Constructs the object.
+   * @param input_step Input step, for reading extra data.
+   * @param parset Parameter set with settings for the step.
+   * @param prefix Prefix for reading settings from 'parset'.
+   * @param sourceList Direction names. If empty, obtain sources from the parset
+   */
   OnePredict(InputStep*, const common::ParameterSet&, const std::string& prefix,
-             const std::vector<std::string>& sourcePatterns);
+             const std::vector<std::string>& source_patterns);
 
   virtual ~OnePredict();
 

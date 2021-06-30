@@ -17,7 +17,8 @@ class OnePredictFixture {
   OnePredictFixture() : input_(), predict_() {
     dp3::common::ParameterSet parset;
     parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
-    predict_ = std::make_shared<OnePredict>(&input_, parset, "");
+    predict_ = std::make_shared<OnePredict>(&input_, parset, "",
+                                            std::vector<std::string>());
   }
 
   void SetInfo() {

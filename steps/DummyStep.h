@@ -31,24 +31,27 @@ class DummyStep : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   DummyStep(InputStep*, const common::ParameterSet&, const string& prefix);
 
-  virtual ~DummyStep();
+  ~DummyStep() override;
 
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
+
+  /// Process BDA data. The dummy step forwards the data to its next step.
+  bool process(std::unique_ptr<base::BDABuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
  private:
   InputStep* itsInput;

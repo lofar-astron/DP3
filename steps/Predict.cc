@@ -18,7 +18,8 @@ namespace steps {
 Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
                  const string& prefix)
     : upsample_step_(),
-      predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix)),
+      predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix,
+                                                 std::vector<std::string>())),
       averager_step_() {
   Initialize(input_step, parset, prefix);
 }

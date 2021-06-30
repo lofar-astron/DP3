@@ -282,6 +282,7 @@ add_library(
 
 add_library(
   DDECal OBJECT
+  steps/BdaDdeCal.cc
   steps/DDECal.cc
   ddecal/Settings.cc
   ddecal/constraints/Constraint.cc

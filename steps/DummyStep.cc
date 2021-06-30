@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include "../base/BDABuffer.h"
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 
@@ -54,6 +55,10 @@ bool DummyStep::process(const DPBuffer& bufin) {
   itsTimer.stop();
   getNextStep()->process(itsBuffer);
   return false;
+}
+
+bool DummyStep::process(std::unique_ptr<base::BDABuffer> buffer) {
+  return getNextStep()->process(std::move(buffer));
 }
 
 void DummyStep::finish() {

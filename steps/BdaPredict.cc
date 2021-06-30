@@ -37,8 +37,10 @@ class BdaPredict::BaselineGroup {
   /// Create the predict and result step for this group
   /// to be called afer all baselines have been added
   void MakeSteps(InputStep &input, base::DPInfo &info_in,
-                 const common::ParameterSet &parset, std::string &prefix) {
-    predict_step_ = std::make_shared<Predict>(input, parset, prefix);
+                 const common::ParameterSet &parset, std::string &prefix,
+                 std::vector<std::string> source_patterns) {
+    predict_step_ =
+        std::make_shared<Predict>(input, parset, prefix, source_patterns);
     result_step_ = std::make_shared<ResultStep>();
 
     predict_step_->setNextStep(result_step_);
@@ -72,7 +74,12 @@ class BdaPredict::BaselineGroup {
 
   /// Write information on the predict step for this baseline group to the
   /// output stream os
-  void Show(std::ostream &os) const { predict_step_->show(os); }
+  void Show(std::ostream &os) const {
+    Step::ShPtr step = predict_step_;
+    do {
+      step->show(os);
+    } while (step = step->getNextStep());
+  }
 
   /// Process one row if BDA data
   /// requests are buffered until the baseline group is complete
@@ -89,14 +96,7 @@ class BdaPredict::BaselineGroup {
 
     // Copy data from BDA buffer row into the (regular) buffer for this baseline
     // group
-    std::size_t nr_elements = row.n_channels * row.n_correlations;
     std::copy(row.uvw, row.uvw + 3, dpbuffer_.getUVW()[bl_idx].begin());
-    std::copy(row.data, row.data + nr_elements,
-              dpbuffer_.getData()[bl_idx].begin());
-    std::copy(row.weights, row.weights + nr_elements,
-              dpbuffer_.getWeights()[bl_idx].begin());
-    std::copy(row.flags, row.flags + nr_elements,
-              dpbuffer_.getFlags()[bl_idx].begin());
 
     write_back_info_[bl_idx] = {row.data, &row_counter};
     dpbuffer_.setTime(time);
@@ -151,6 +151,14 @@ BdaPredict::BdaPredict(InputStep &input, const common::ParameterSet &parset,
                        const string &prefix)
     : input_(input), parset_(parset), name_(prefix) {}
 
+BdaPredict::BdaPredict(InputStep &input, const common::ParameterSet &parset,
+                       const string &prefix,
+                       const std::vector<std::string> &source_patterns)
+    : input_(input),
+      parset_(parset),
+      name_(prefix),
+      source_patterns_(source_patterns) {}
+
 BdaPredict::~BdaPredict() {}
 
 void BdaPredict::updateInfo(const DPInfo &infoIn) {
@@ -175,7 +183,7 @@ void BdaPredict::updateInfo(const DPInfo &infoIn) {
 
   for (auto &entry : averaging_to_baseline_group_map_) {
     BaselineGroup &blg = entry.second;
-    blg.MakeSteps(input_, info(), parset_, name_);
+    blg.MakeSteps(input_, info(), parset_, name_, source_patterns_);
   }
 }
 
@@ -188,8 +196,8 @@ std::pair<double, double> BdaPredict::GetFirstDirection() const {
 
 void BdaPredict::show(std::ostream &os) const {
   os << "BdaPredict " << name_ << '\n';
-  os << "Using a regular predict per baseline group";
-  os << "Predict for first baseline group";
+  os << "Using a regular predict per baseline group\n";
+  os << "Predict for first baseline group\n";
   averaging_to_baseline_group_map_.begin()->second.Show(os);
 }
 

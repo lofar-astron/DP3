@@ -34,6 +34,16 @@ class BdaPredict : public ModelDataStep {
   /// Parameters are obtained from the parset using the given prefix.
   BdaPredict(InputStep&, const common::ParameterSet&, const string& prefix);
 
+  /**
+   * Constructs the object with explicit source patterns.
+   * @param input_step Input step, for reading extra data.
+   * @param parset Parameter set with settings for the step.
+   * @param prefix Prefix for reading settings from 'parset'.
+   * @param source_patterns Source patterns.
+   */
+  BdaPredict(InputStep&, const common::ParameterSet&, const string& prefix,
+             const std::vector<std::string>& source_patterns);
+
   virtual ~BdaPredict();
 
   /// Processes the data.
@@ -74,6 +84,8 @@ class BdaPredict : public ModelDataStep {
 
   /// queue buffering the incoming BDABuffers
   std::queue<BufferInfo> buffers_;
+
+  std::vector<std::string> source_patterns_;
 
   /// class representing a group of baselines with the same averaging parameters
   class BaselineGroup;

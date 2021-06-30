@@ -23,6 +23,7 @@
 #include "../steps/ColumnReader.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
+#include "../steps/BdaDdeCal.h"
 #include "../steps/Demixer.h"
 #include "../steps/DemixerNew.h"
 #include "../steps/Filter.h"
@@ -246,8 +247,8 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
 
 InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
   InputStep::ShPtr inputStep = InputStep::CreateReader(parset, "");
-  Step::ShPtr step =
-      makeStepsFromParset(parset, "", "steps", *inputStep, false);
+  Step::ShPtr step = makeStepsFromParset(parset, "", "steps", *inputStep, false,
+                                         inputStep->outputs());
   if (step) inputStep->setNextStep(step);
 
   // Calculate needsOutputStep to be true if one of the steps changes
@@ -284,8 +285,8 @@ InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
 Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
                                      const std::string& prefix,
                                      const std::string& step_names_key,
-                                     InputStep& inputStep,
-                                     bool terminateChain) {
+                                     InputStep& inputStep, bool terminateChain,
+                                     Step::MsType initial_step_output) {
   std::string msName;
   const std::vector<string> stepNames =
       parset.getStringVector(prefix + step_names_key);
@@ -305,7 +306,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
     boost::algorithm::to_lower(type);
 
     Step::MsType inputType =
-        lastStep ? lastStep->outputs() : Step::MsType::kRegular;
+        lastStep ? lastStep->outputs() : initial_step_output;
     Step::ShPtr step =
         makeSingleStep(type, &inputStep, parset, prefix, msName, inputType);
 
@@ -342,7 +343,7 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
     step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
     step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
-  } else if (type == "bdaaverager") {
+  } else if (type == "bdaaverage" || type == "bdaaverager") {
     step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
   } else if (type == "bdaexpander") {
     step = std::make_shared<steps::BDAExpander>(prefix);
@@ -391,7 +392,11 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   } else if (type == "split" || type == "explode") {
     step = std::make_shared<steps::Split>(inputStep, parset, prefix);
   } else if (type == "ddecal") {
-    step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
+    if (inputType == Step::MsType::kRegular) {
+      step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
+    } else if (inputType == Step::MsType::kBda) {
+      step = std::make_shared<steps::BdaDdeCal>(inputStep, parset, prefix);
+    }
   } else if (type == "interpolate") {
     step = std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
   } else if (type == "out" || type == "output" || type == "msout") {
