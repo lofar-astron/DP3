@@ -135,7 +135,6 @@ void PhaseFitter::FitTEC1ModelParameters(double& alpha) const {
   alpha = ternarySearchTEC1ModelAlpha(lowerAlpha, upperAlpha);
 }
 
-#include <iostream>
 void PhaseFitter::bruteForceSearchTEC1Model(double& lowerAlpha,
                                             double& upperAlpha) const {
   double minCost = std::numeric_limits<double>::max();
