@@ -465,6 +465,26 @@ install(
 
 include(docs/CMakeLists.txt)
 
+# The following section will set the "rpath" correctly, so that
+# LD_LIBRARY_PATH doesn't have to be set.
+
+# Include GNUInstallDirs for CMAKE_INSTALL_FULL_LIBDIR
+include(GNUInstallDirs)
+# Use, i.e. don't skip the full RPATH for the build tree.
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+# When building, don't use the install RPATH already
+# (but later on when installing).
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+# Add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH.
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# The RPATH to be used when installing, but only if it's not a system directory.
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
+     "${CMAKE_INSTALL_FULL_LIBDIR}" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+endif("${isSystemDir}" STREQUAL "-1")
+
 if(BUILD_TESTING)
   include(CTest)
 
