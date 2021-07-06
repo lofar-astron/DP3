@@ -76,7 +76,7 @@ class BDAExpander : public Step {
     dp3::base::DPBuffer regular_buffer;
   };
 
-  std::map<double, RegularBufferElement> RB_elements;
+  std::map<unsigned int, RegularBufferElement> RB_elements;
 
   std::vector<RegularBufferElement> regular_buffer_;
 
@@ -90,7 +90,7 @@ class BDAExpander : public Step {
    */
   std::vector<std::vector<int>> channels_mapping_;
 
-  double next_time_slot_to_process_;
+  unsigned int next_time_slot_to_process_;
 
   common::NSTimer timer_;
   std::string step_name_;
