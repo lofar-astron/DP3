@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(set_info) {
 
   reader.setInfo(info);
   const double start_time =
-      4472025740;  // conversion of start time for tNDPPP_bda_tmp.MS
-                   // (2000/08/03/13:22:20) into seconds
+      4472025725;  // conversion of start time for tNDPPP_bda_tmp.MS
+                   // (2000/08/03 13h22m05.000) into seconds
 
   info = reader.getInfo();
   BOOST_TEST(reader.table().tableName().compare(

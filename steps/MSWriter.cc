@@ -12,6 +12,7 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
+#include "../base/MS.h"
 
 #include "../common/VdsMaker.h"
 #include "../common/ParameterSet.h"
@@ -432,7 +433,14 @@ void MSWriter::createMS(const string& outName, const DPInfo& info,
   DPLOG_INFO(" copying info and subtables ...", false);
   // Copy the info and subtables.
   TableCopy::copyInfo(itsMS, temptable);
-  TableCopy::copySubTables(itsMS, temptable);
+  TableRecord& keyset = itsMS.rwKeywordSet();
+  if (keyset.isDefined(base::DP3MS::kBDAFactorsTable)) {
+    keyset.removeField(base::DP3MS::kBDAFactorsTable);
+  }
+  casacore::Block<casacore::String> omitted_subtables(2);
+  omitted_subtables[0] = base::DP3MS::kBDATimeAxisTable;
+  omitted_subtables[1] = base::DP3MS::kBDAFactorsTable;
+  TableCopy::copySubTables(itsMS, temptable, false, omitted_subtables);
   // Adjust the SPECTRAL_WINDOW and DATA_DESCRIPTION table as needed.
   updateSpw(outName, info);
   // Adjust the OBSERVATION table as needed.
@@ -651,8 +659,11 @@ void MSWriter::writeFullResFlags(Table& out, const DPBuffer& buf) {
       itsReader->fetchFullResFlags(buf, itsBuffer, itsTimer);
   const IPosition& ofShape = flags.shape();
   if ((unsigned int)(ofShape[0]) != itsNChanAvg * itsNrChan)
-    throw Exception(std::to_string(ofShape[0]) + std::to_string(itsNChanAvg) +
-                    '*' + std::to_string(itsNrChan));
+    throw Exception(
+        "Full Res Flags size " + std::to_string(ofShape[0]) +
+        " does not equal " + std::to_string(itsNChanAvg) + "*" +
+        std::to_string(itsNrChan) +
+        ".\nTry setting \"msout.writefullresflag=false\" in input parset");
   if ((unsigned int)(ofShape[1]) != itsNTimeAvg)
     throw Exception(std::to_string(ofShape[1]) + std::to_string(itsNTimeAvg));
   // Convert the bools to unsigned char bits.
