@@ -89,8 +89,8 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
     }
   }
 
-  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time, kInterval,
-            kMsName, kAntennaSet);
+  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time - kInterval / 2,
+            kInterval, kMsName, kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
   info.set(std::move(chan_freqs), std::move(chan_widths));
@@ -197,8 +197,8 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
       // Baseline 1: channels are not averaged
       {10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0}};
 
-  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time, kInterval,
-            kMsName, kAntennaSet);
+  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time - kInterval / 2,
+            kInterval, kMsName, kAntennaSet);
 
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);

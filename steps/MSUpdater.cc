@@ -195,6 +195,13 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   itsWriteFlags = getInfo().writeFlags();
 
+  if (itsReader->outputs() != this->outputs()) {
+    throw Exception(
+        "Update step is not possible because input/output types are "
+        "incompatible (BDA buffer - Regular buffer).\nSpecify a name in the "
+        "parset for \"msout\"");
+  }
+
   std::string origDataColName = getInfo().getDataColName();
   if (itsDataColName.empty()) {
     itsDataColName = origDataColName;

@@ -23,7 +23,7 @@ Script can be invoked in two ways:
 - using ctest, see DP3/ddecal/test/integration/CMakeLists.txt
 """
 
-MSINTGZ = "tNDPPP_bda.in_MS.tgz"
+MSIN_TGZ = "tNDPPP_bda.in_MS.tgz"
 MSIN = "tNDPPP_bda_tmp.MS"
 CWD = os.getcwd()
 
@@ -35,7 +35,7 @@ def source_env():
     os.mkdir(tmpdir)
     os.chdir(tmpdir)
 
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
+    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN_TGZ}")
 
     # Tests are executed here
     yield

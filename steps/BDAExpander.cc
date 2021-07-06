@@ -49,7 +49,7 @@ void BDAExpander::updateInfo(const DPInfo &_info) {
     throw std::invalid_argument("Update step " + step_name_ +
                                 " is not possible because meta data changes");
   }
-  next_time_slot_to_process_ = info().startTime();
+  next_time_slot_to_process_ = info().startTime() + info().timeInterval() / 2;
 
   // Update frequency intervals
   std::vector<std::vector<double>> freqs(info().nbaselines());
@@ -162,23 +162,25 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
 
   // checks if the DPBuffer for the next time slot has data for each baseline
   // If true, sends the DPBuffer to the next processing step
-  bool bufferIsReady = true;
-  while (bufferIsReady && (RB_elements.size() > 0)) {
-    auto it =
-        find(RB_elements[next_time_slot_to_process_].baseline_.begin(),
-             RB_elements[next_time_slot_to_process_].baseline_.end(), false);
-    if (it == RB_elements[next_time_slot_to_process_].baseline_.end()) {
-      getNextStep()->process(
-          std::move(RB_elements[next_time_slot_to_process_].regular_buffer));
 
-      RB_elements.erase(next_time_slot_to_process_);
-      next_time_slot_to_process_ =
-          next_time_slot_to_process_ + info().timeInterval();
-    } else {
-      bufferIsReady = false;
+  if (RB_elements.find(next_time_slot_to_process_) != RB_elements.end()) {
+    bool bufferIsReady = true;
+    while (bufferIsReady && (RB_elements.size() > 0)) {
+      auto it =
+          find(RB_elements[next_time_slot_to_process_].baseline_.begin(),
+               RB_elements[next_time_slot_to_process_].baseline_.end(), false);
+      if (it == RB_elements[next_time_slot_to_process_].baseline_.end()) {
+        getNextStep()->process(
+            std::move(RB_elements[next_time_slot_to_process_].regular_buffer));
+
+        RB_elements.erase(next_time_slot_to_process_);
+        next_time_slot_to_process_ =
+            next_time_slot_to_process_ + info().timeInterval();
+      } else {
+        bufferIsReady = false;
+      }
     }
   }
-
   timer_.stop();
 
   return false;
@@ -199,7 +201,7 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
   casacore::Cube<casacore::Complex> &data = buf_out.getData();
   casacore::Cube<float> &weights = buf_out.getWeights();
   casacore::Cube<bool> &flags = buf_out.getFlags();
-  casacore::Matrix<double> &uwv = buf_out.getUVW();
+  casacore::Matrix<double> &uvw = buf_out.getUVW();
 
   const std::complex<float> *pointer_to_data = bda_row.data;
   const float *pointer_to_weights = bda_row.weights;
@@ -222,9 +224,9 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
     }
   }
 
-  uwv(0, current_bl) = bda_row.uvw[0];
-  uwv(1, current_bl) = bda_row.uvw[1];
-  uwv(2, current_bl) = bda_row.uvw[2];
+  uvw(0, current_bl) = bda_row.uvw[0];
+  uvw(1, current_bl) = bda_row.uvw[1];
+  uvw(2, current_bl) = bda_row.uvw[2];
 }
 
 BDAExpander::RegularBufferElement::RegularBufferElement(

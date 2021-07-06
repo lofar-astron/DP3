@@ -31,6 +31,7 @@ endforeach()
 set(PYINTEGRATION_TESTS
     tApplyBeam
     tApplyCal2
+    tBdaExpander
     tGainCalH5Parm
     tMultiApplyCal
     tPredict

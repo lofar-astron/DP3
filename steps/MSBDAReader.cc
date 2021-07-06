@@ -148,12 +148,16 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // TODO: Read actual values from the metadata.
   unsigned int start_chan = 0;
-  // this ntime must only be used for DP3 progress
-  unsigned int ntime = std::ceil(ms_.nrow() / (float)info().nbaselines());
+  // Calculate ntime (amount of timeslots)
+  // The 1.5 comes from a) rounding (0.5) + b) (last_time_ - first_time_) gives
+  // the distance between the centroids of the first and last time slot. We need
+  // to add 0.5 interval at the beginning and 0.5 interval at the end to obtain
+  // the entire time span.
+  unsigned int ntime = unsigned((last_time_ - first_time_) / interval_ + 1.5);
 
   // FillInfoMetaData already set the number of channels via DPInfo::set.
-  info().init(ncorr, start_chan, info().nchan(), ntime, first_time_, interval_,
-              msName(), antenna_set);
+  info().init(ncorr, start_chan, info().nchan(), ntime,
+              first_time_ - interval_ / 2, interval_, msName(), antenna_set);
   info().setIsBDAIntervalFactorInteger(is_interval_integer_);
   info().setDataColName(data_col_name_);
   info().setWeightColName(weight_col_name_);
@@ -258,7 +262,9 @@ void MSBDAReader::FillInfoMetaData() {
   ArrayColumn<double> widths_col(spw, MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
 
   string query =
-      "select gmin(TIME) as first_time, gmax(TIME) as last_time from $1";
+      "select gmin(TIME_CENTROID) as first_time, "
+      "gmax(TIME_CENTROID) as last_time "
+      "from $1";
   casacore::TaQLResult result = casacore::tableCommand(query, ms_);
   auto result_table = result.table();
   ScalarColumn<double> first_time_col(result_table, "first_time");
