@@ -49,7 +49,8 @@ void BDAExpander::updateInfo(const DPInfo &_info) {
     throw std::invalid_argument("Update step " + step_name_ +
                                 " is not possible because meta data changes");
   }
-  next_time_slot_to_process_ = info().startTime() + info().timeInterval() / 2;
+
+  next_time_slot_to_process_ = 0;
 
   // Update frequency intervals
   std::vector<std::vector<double>> freqs(info().nbaselines());
@@ -116,7 +117,11 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
 
   for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
     double current_interval = rows[row_nr].interval;
-    double current_time_centroid = rows[row_nr].time;
+    double current_timeslot_centroid = rows[row_nr].time;
+    double current_timeslot_start =
+        current_timeslot_centroid - current_interval / 2;
+    unsigned int current_timeslot_index = static_cast<unsigned int>(round(
+        (current_timeslot_start - info().startTime()) / info().timeInterval()));
     double current_exposure = rows[row_nr].exposure;
     unsigned int current_bl = rows[row_nr].baseline_nr;
 
@@ -125,24 +130,24 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
     // Check should not happen for averaged data -> these are treated
     // differently
     if (casacore::near(current_interval, info().timeInterval())) {
-      auto it = RB_elements.find(current_time_centroid);
+      auto it = RB_elements.find(current_timeslot_index);
       if (it == RB_elements.end()) {
         // create new element if a RegularBufferElement for the
         // current_time_centroid does not exist yet
         RegularBufferElement RB = RegularBufferElement(
             info().nbaselines(), info().ncorr(), info().nchan(),
-            current_time_centroid, current_exposure);
-        RB_elements.insert(
-            std::pair<double, RegularBufferElement>(current_time_centroid, RB));
+            current_timeslot_centroid, current_exposure);
+        RB_elements.insert(std::pair<unsigned int, RegularBufferElement>(
+            current_timeslot_index, RB));
       }
     }
 
     if (casacore::near(current_interval, info().timeInterval())) {
       // if time interval is equal to the smallest time interval, the data is
       // not averaged -> add data "as is" to the right DPBuffer
-      RB_elements[current_time_centroid].baseline_[rows[row_nr].baseline_nr] =
+      RB_elements[current_timeslot_index].baseline_[rows[row_nr].baseline_nr] =
           true;
-      CopyData(rows[row_nr], RB_elements[current_time_centroid].regular_buffer,
+      CopyData(rows[row_nr], RB_elements[current_timeslot_index].regular_buffer,
                current_bl);
     } else {
       // If time interval is different than original, the data is averaged ->
@@ -150,11 +155,16 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
       // interval and spread across the number of slots allowed
       double slots_to_fill = current_interval / info().timeInterval();
       for (double i = 0; i < slots_to_fill; i++) {
-        double t_center = (current_time_centroid - current_interval / 2) +
-                          i * info().timeInterval() + info().timeInterval() / 2;
+        double timeslot_center =
+            (current_timeslot_centroid - current_interval / 2) +
+            i * info().timeInterval() + info().timeInterval() / 2;
 
-        RB_elements[t_center].baseline_[rows[row_nr].baseline_nr] = true;
-        CopyData(rows[row_nr], RB_elements[t_center].regular_buffer,
+        double timeslot_start = timeslot_center - info().timeInterval() / 2;
+        unsigned int timeslot_index = static_cast<unsigned int>(round(
+            (timeslot_start - info().startTime()) / info().timeInterval()));
+
+        RB_elements[timeslot_index].baseline_[rows[row_nr].baseline_nr] = true;
+        CopyData(rows[row_nr], RB_elements[timeslot_index].regular_buffer,
                  current_bl);
       }
     }
@@ -174,8 +184,7 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
             std::move(RB_elements[next_time_slot_to_process_].regular_buffer));
 
         RB_elements.erase(next_time_slot_to_process_);
-        next_time_slot_to_process_ =
-            next_time_slot_to_process_ + info().timeInterval();
+        next_time_slot_to_process_++;
       } else {
         bufferIsReady = false;
       }
