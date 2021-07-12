@@ -59,10 +59,10 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
   const size_t data_size = buffer->GetNumberOfElements();
 
-  BDABuffer::Fields fields(false);
-  fields.data = true;
-  fields.weights = true;
-  const BDABuffer::Fields copyfields(false);
+  BDABuffer::Fields fields(true);
+  BDABuffer::Fields copyfields(false);
+  copyfields.full_res_flags = true;
+  copyfields.flags = true;
 
   // Feed metadata-only copies of the buffer to the steps.
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
@@ -70,39 +70,51 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
   }
 
   // Combine the results from all steps.
-  std::vector<std::unique_ptr<BDABuffer>> model_buffers;
+  std::vector<std::vector<std::unique_ptr<BDABuffer>>> model_buffers;
   model_buffers.reserve(result_steps_.size());
-  for (std::shared_ptr<BDAResultStep>& result_step : result_steps_) {
-    std::vector<std::unique_ptr<BDABuffer>> results = result_step->Extract();
-
-    // Each step should produce a single output buffer with the same shape as
-    // the input buffer.
-    assert(results.size() == 1);
-    assert(results.front()->GetNumberOfElements() == data_size);
-    model_buffers.push_back(std::move(results.front()));
-  }
-
-  if (settings_.only_predict) {
-    // Add all model_buffers and use that as the result.
-    std::complex<float> restrict* data = buffer->GetData();
-    std::copy_n(model_buffers.front()->GetData(), data_size, data);
-
-    for (size_t i = 1; i < model_buffers.size(); ++i) {
-      const std::complex<float> restrict* other_data =
-          model_buffers[i]->GetData();
-      for (size_t j = 0; j < data_size; ++j) data[j] += other_data[j];
+  for (size_t i = 0; i < result_steps_.size(); i++) {
+    std::vector<std::unique_ptr<BDABuffer>> results =
+        result_steps_[i]->Extract();
+    // Check that the results per each direction have the same shape
+    if (results.empty()) {
+      assert(i == 0 || model_buffers.empty());
+    } else {
+      assert(i == 0 || results.size() == model_buffers.front().size());
+      // The output shape of the BdaPredict sub-steps can differ from the input
+      // shape, since BdaPredict waits until all baselines for a given
+      // BaselineGroup are available. For the same reason, BdaPredict::process()
+      // does not always output a BDABuffer
+      model_buffers.push_back(std::move(results));
     }
-  } else {
-    throw std::runtime_error("BdaDdeCal does not support solving yet.");
-    // solver_buffer_.AppendAndWeight(*buffer, std::move(model_buffers));
-
-    // if (solver_buffer_.HasCompleteInterval()) {
-    // TODO: solver_.Solve(solver_buffer_);
-    //  solver_buffer.AdvanceInterval();
-    //}
   }
 
-  getNextStep()->process(std::move(buffer));
+  if (!model_buffers.empty()) {
+    if (settings_.only_predict) {
+      // Add all model_buffers and use that as the result: the outer dimension
+      // of model_buffers is the direction, the inner dimension is the BdaBuffer
+      // index in that direction
+      for (size_t k = 0; k < model_buffers.front().size(); k++) {
+        std::complex<float> restrict* data =
+            model_buffers.front()[k]->GetData();
+        for (size_t i = 1; i < model_buffers.size(); ++i) {
+          const std::complex<float> restrict* other_data =
+              model_buffers[i][k]->GetData();
+          for (size_t j = 0; j < data_size; ++j) data[j] += other_data[j];
+        }
+        getNextStep()->process(std::move(model_buffers.front()[k]));
+      }
+
+    } else {
+      throw std::runtime_error("BdaDdeCal does not support solving yet.");
+      // solver_buffer_.AppendAndWeight(*buffer, std::move(model_buffers));
+
+      // if (solver_buffer_.HasCompleteInterval()) {
+      // TODO: solver_.Solve(solver_buffer_);
+      //  solver_buffer.AdvanceInterval();
+      //}
+      getNextStep()->process(std::move(buffer));
+    }
+  }
   return true;
 }
 
