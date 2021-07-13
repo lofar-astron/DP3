@@ -116,17 +116,8 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
         parset.getDouble(prefix + "beamproximitylimit", 60.0) *
         (M_PI / (180.0 * 60.0 * 60.0));
 
-    string mode =
-        boost::to_lower_copy(parset.getString(prefix + "beammode", "default"));
-    if (mode == "default") {
-      itsBeamMode = base::FullBeamCorrection;
-    } else if (mode == "array_factor") {
-      itsBeamMode = base::ArrayFactorBeamCorrection;
-    } else if (mode == "element") {
-      itsBeamMode = base::ElementBeamCorrection;
-    } else {
-      throw Exception("Beammode should be DEFAULT, ARRAY_FACTOR or ELEMENT");
-    }
+    itsBeamMode = everybeam::ParseCorrectionMode(
+        parset.getString(prefix + "beammode", "default"));
 
     string element_model = boost::to_lower_copy(
         parset.getString(prefix + "elementmodel", "hamaker"));
@@ -171,7 +162,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
 
   // Determine whether any sources are polarized. If not, enable Stokes-I-
   // only mode (note that this mode cannot be used with itsApplyBeam)
-  if (itsApplyBeam && itsBeamMode != base::ArrayFactorBeamCorrection) {
+  if (itsApplyBeam && itsBeamMode != everybeam::CorrectionMode::kArrayFactor) {
     itsStokesIOnly = false;
   } else {
     itsStokesIOnly =
@@ -238,7 +229,7 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   info().setNeedVisData();
   info().setWriteData();
   if (itsOperation == "replace")
-    info().setBeamCorrectionMode(base::NoBeamCorrection);
+    info().setBeamCorrectionMode(everybeam::CorrectionMode::kNone);
 
   const size_t nBl = info().nbaselines();
   for (size_t i = 0; i != nBl; ++i) {
@@ -287,13 +278,7 @@ void OnePredict::show(std::ostream& os) const {
      << '\n';
   os << "  apply beam:         " << std::boolalpha << itsApplyBeam << '\n';
   if (itsApplyBeam) {
-    os << "   mode:              ";
-    if (itsBeamMode == base::FullBeamCorrection)
-      os << "default";
-    else if (itsBeamMode == base::ArrayFactorBeamCorrection)
-      os << "array_factor";
-    else
-      os << "element";
+    os << "   mode:              " << everybeam::ToString(itsBeamMode);
     os << '\n';
     os << "   use channelfreq:   " << std::boolalpha << itsUseChannelFreq
        << '\n';

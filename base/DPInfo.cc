@@ -42,7 +42,7 @@ DPInfo::DPInfo()
       itsStartTime(0),
       itsTimeInterval(0),
       itsPhaseCenterIsOriginal(true),
-      itsBeamCorrectionMode(NoBeamCorrection),
+      itsBeamCorrectionMode(everybeam::CorrectionMode::kNone),
       itsNThreads(aocommon::ThreadPool::NCPUs()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,

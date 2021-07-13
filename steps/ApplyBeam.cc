@@ -4,8 +4,6 @@
 //
 // @author Tammo Jan Dijkema
 
-#include <iostream>
-
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
@@ -29,6 +27,8 @@
 
 #include <aocommon/matrix2x2diag.h>
 
+#include <cassert>
+#include <ostream>
 #include <stddef.h>
 #include <string>
 #include <sstream>
@@ -56,9 +56,9 @@ ApplyBeam::ApplyBeam(InputStep* input, const common::ParameterSet& parset,
       itsDirectionStr(parset.getStringVector(prefix + "direction",
                                              std::vector<std::string>())),
       itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
-      itsMode(base::StringToBeamCorrectionMode(
+      itsMode(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))),
-      itsModeAtStart(base::NoBeamCorrection),
+      itsModeAtStart(everybeam::CorrectionMode::kNone),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)) {
   // only read 'invert' parset key if it is a separate step
   // if applybeam is called from gaincal/predict, the invert key should always
@@ -123,7 +123,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     info().setBeamCorrectionMode(itsMode);
     info().setBeamCorrectionDir(itsDirection);
   } else {
-    if (info().beamCorrectionMode() == base::NoBeamCorrection)
+    if (info().beamCorrectionMode() == everybeam::CorrectionMode::kNone)
       throw std::runtime_error(
           "In applying the beam (with invert=false): the metadata of this "
           "observation indicate that the beam has not yet been applied");
@@ -131,8 +131,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
       throw std::runtime_error(
           std::string("applybeam step with invert=false has incorrect mode: "
                       "input has ") +
-          BeamCorrectionModeToString(info().beamCorrectionMode()) +
-          ", requested to correct for " + BeamCorrectionModeToString(itsMode));
+          everybeam::ToString(info().beamCorrectionMode()) +
+          ", requested to correct for " + everybeam::ToString(itsMode));
     double ra1 = info().beamCorrectionDir().getValue().getValue()[0],
            dec1 = info().beamCorrectionDir().getValue().getValue()[1],
            ra2 = itsDirection.getValue().getValue()[0],
@@ -145,7 +145,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
           << info().beamCorrectionDir() << ", output is for " << itsDirection;
       throw std::runtime_error(str.str());
     }
-    info().setBeamCorrectionMode(base::NoBeamCorrection);
+    info().setBeamCorrectionMode(everybeam::CorrectionMode::kNone);
   }
 
   const size_t nSt = info().nantenna();
@@ -175,13 +175,13 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
 
 void ApplyBeam::show(std::ostream& os) const {
   os << "ApplyBeam " << itsName << '\n'
-     << "  mode:              " << BeamCorrectionModeToString(itsMode) << '\n'
+     << "  mode:              " << everybeam::ToString(itsMode) << '\n'
      << "  use channelfreq:   " << std::boolalpha << itsUseChannelFreq << '\n'
      << "  direction:         " << itsDirectionStr << '\n'
      << "  invert:            " << std::boolalpha << itsInvert << '\n'
      << "  update weights:    " << std::boolalpha << itsUpdateWeights << '\n';
   if (itsInvert) {
-    if (itsModeAtStart != base::NoBeamCorrection)
+    if (itsModeAtStart != everybeam::CorrectionMode::kNone)
       os << "  input data has already a beam correction applied: will be "
             "undone.\n";
     else
@@ -219,7 +219,8 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
    * condition... ???
    * André, 2018-10-07
    */
-  bool undoInputBeam = itsInvert && itsModeAtStart != base::NoBeamCorrection;
+  bool undoInputBeam =
+      itsInvert && itsModeAtStart != everybeam::CorrectionMode::kNone;
   for (size_t threadIter = 0; threadIter < getInfo().nThreads(); ++threadIter) {
     itsMeasFrames[threadIter].resetEpoch(
         MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
@@ -278,7 +279,7 @@ void ApplyBeam::applyBeam(
     const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
-    base::BeamCorrectionMode mode, bool doUpdateWeights) {
+    everybeam::CorrectionMode mode, bool doUpdateWeights) {
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
   unsigned int nSt = beamValues.size() / nCh;
@@ -297,7 +298,7 @@ void ApplyBeam::applyBeam(
     }
 
     switch (mode) {
-      case base::FullBeamCorrection:
+      case everybeam::CorrectionMode::kFull:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
           beamValues[nCh * st + ch] = antBeamInfo[st]->Response(
@@ -307,7 +308,7 @@ void ApplyBeam::applyBeam(
           }
         }
         break;
-      case base::ArrayFactorBeamCorrection:
+      case everybeam::CorrectionMode::kArrayFactor:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
           af_tmp = antBeamInfo[st]->ArrayFactor(
@@ -324,7 +325,7 @@ void ApplyBeam::applyBeam(
           }
         }
         break;
-      case base::ElementBeamCorrection:
+      case everybeam::CorrectionMode::kElement:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
           beamValues[nCh * st + ch] = antBeamInfo[st]->ComputeElementResponse(
@@ -334,7 +335,7 @@ void ApplyBeam::applyBeam(
           }
         }
         break;
-      case base::NoBeamCorrection:  // this should not happen
+      case everybeam::CorrectionMode::kNone:  // this should not happen
         for (size_t st = 0; st < nSt; ++st) {
           beamValues[nCh * st + ch] = aocommon::MC2x2::Unity();
         }
@@ -368,7 +369,7 @@ template void ApplyBeam::applyBeam(
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
-    base::BeamCorrectionMode mode, bool doUpdateWeights);
+    everybeam::CorrectionMode mode, bool doUpdateWeights);
 
 template <typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -377,7 +378,8 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-    bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights) {
+    bool invert, everybeam::CorrectionMode mode, bool doUpdateWeights) {
+  assert(mode == everybeam::CorrectionMode::kArrayFactor);
   using dcomplex = std::complex<double>;
   // Get the beam values for each station.
   unsigned int nCh = info.chanFreqs().size();
@@ -425,7 +427,7 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
     const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
     std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-    bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights);
+    bool invert, everybeam::CorrectionMode mode, bool doUpdateWeights);
 
 }  // namespace steps
 }  // namespace dp3

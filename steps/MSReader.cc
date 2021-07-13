@@ -537,18 +537,10 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
     // Read beam keywords of input datacolumn
     ArrayColumn<casacore::Complex> dataCol(itsMS, itsDataColName);
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
-      std::string mode =
-          dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE");
-      if (mode == "None")
-        info().setBeamCorrectionMode(base::NoBeamCorrection);
-      else {
-        if (mode == "Element")
-          info().setBeamCorrectionMode(base::ElementBeamCorrection);
-        else if (mode == "ArrayFactor")
-          info().setBeamCorrectionMode(base::ArrayFactorBeamCorrection);
-        else if (mode == "Full")
-          info().setBeamCorrectionMode(base::FullBeamCorrection);
-
+      const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
+          dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
+      info().setBeamCorrectionMode(mode);
+      if (mode != everybeam::CorrectionMode::kNone) {
         casacore::String error;
         MeasureHolder mHolder;
         if (!mHolder.fromRecord(
