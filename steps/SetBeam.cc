@@ -25,7 +25,7 @@ SetBeam::SetBeam(InputStep*, const common::ParameterSet& parset,
     : _name(prefix),
       _directionStr(parset.getStringVector(prefix + "direction",
                                            std::vector<std::string>())),
-      _mode(base::StringToBeamCorrectionMode(
+      _mode(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))) {}
 
 void SetBeam::updateInfo(const DPInfo& dpInfo) {
@@ -58,7 +58,7 @@ void SetBeam::updateInfo(const DPInfo& dpInfo) {
 
 void SetBeam::show(std::ostream& os) const {
   os << "SetBeam " << _name << '\n'
-     << "  mode:              " << BeamCorrectionModeToString(_mode) << '\n'
+     << "  mode:              " << everybeam::ToString(_mode) << '\n'
      << "  direction:         " << _directionStr << '\n';
 }
 

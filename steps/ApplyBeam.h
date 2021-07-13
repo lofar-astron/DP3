@@ -76,7 +76,8 @@ class ApplyBeam : public Step {
       const everybeam::vector3r_t& tiledir,
       const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
       std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq,
-      bool invert, base::BeamCorrectionMode mode, bool doUpdateWeights = false);
+      bool invert, everybeam::CorrectionMode mode,
+      bool doUpdateWeights = false);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -85,7 +86,7 @@ class ApplyBeam : public Step {
       const everybeam::vector3r_t& tiledir,
       const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
       std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-      bool invert, base::BeamCorrectionMode mode,
+      bool invert, everybeam::CorrectionMode mode,
       // everybeam::ElementResponseModel element_reponse_model,
       bool doUpdateWeights = false);
 
@@ -101,14 +102,14 @@ class ApplyBeam : public Step {
   std::vector<string> itsDirectionStr;
   casacore::MDirection itsDirection;
   bool itsUseChannelFreq;
-  base::BeamCorrectionMode itsMode;
+  everybeam::CorrectionMode itsMode;
   everybeam::ElementResponseModel itsElementResponseModel;
 
   /// If a beam had already been applied before running this step, that beam
   /// needs to undone; hence we register that beam info here:
   ///@{
   casacore::MDirection itsDirectionAtStart;
-  base::BeamCorrectionMode itsModeAtStart;
+  everybeam::CorrectionMode itsModeAtStart;
   ///@}
 
   unsigned int itsDebugLevel;

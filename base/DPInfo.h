@@ -20,49 +20,14 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <EveryBeam/correctionmode.h>
+
 namespace dp3 {
 namespace steps {
 class InputStep;
 }
 
 namespace base {
-
-enum BeamCorrectionMode {
-  NoBeamCorrection = 0,
-  FullBeamCorrection = 1,
-  ArrayFactorBeamCorrection = 2,
-  ElementBeamCorrection = 3
-};
-
-inline const char* BeamCorrectionModeToString(BeamCorrectionMode mode) {
-  switch (mode) {
-    default:
-    case NoBeamCorrection:
-      return "none";
-    case FullBeamCorrection:
-      return "full";
-    case ArrayFactorBeamCorrection:
-      return "array_factor";
-    case ElementBeamCorrection:
-      return "element";
-  }
-}
-
-inline BeamCorrectionMode StringToBeamCorrectionMode(const std::string& str) {
-  string mode = boost::to_lower_copy(str);
-  if (mode == "none") {
-    return NoBeamCorrection;
-  } else if (mode == "default" || mode == "full") {
-    return FullBeamCorrection;
-  } else if (mode == "array_factor") {
-    return ArrayFactorBeamCorrection;
-  } else if (mode == "element") {
-    return ElementBeamCorrection;
-  } else {
-    throw std::runtime_error(
-        "Beammode should be NONE, DEFAULT, ARRAY_FACTOR or ELEMENT");
-  }
-}
 
 /// @brief General info about DPPP data processing attributes like averaging
 
@@ -285,10 +250,10 @@ class DPInfo {
   /// It is possible that only a few fields are defined in the record.
   void fromRecord(const casacore::Record& rec);
 
-  enum BeamCorrectionMode beamCorrectionMode() const {
+  everybeam::CorrectionMode beamCorrectionMode() const {
     return itsBeamCorrectionMode;
   };
-  void setBeamCorrectionMode(enum BeamCorrectionMode mode) {
+  void setBeamCorrectionMode(everybeam::CorrectionMode mode) {
     itsBeamCorrectionMode = mode;
   }
 
@@ -334,7 +299,7 @@ class DPInfo {
   bool itsPhaseCenterIsOriginal;
   casacore::MDirection itsDelayCenter;
   casacore::MDirection itsTileBeamDir;
-  enum BeamCorrectionMode itsBeamCorrectionMode;
+  everybeam::CorrectionMode itsBeamCorrectionMode;
   casacore::MDirection itsBeamCorrectionDir;
   casacore::MPosition itsArrayPos;
   /// Channels may differ between baselines when using BDA.

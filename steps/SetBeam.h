@@ -40,7 +40,7 @@ class SetBeam final : public Step {
   string _name;
   std::vector<string> _directionStr;
   casacore::MDirection _direction;
-  base::BeamCorrectionMode _mode;
+  everybeam::CorrectionMode _mode;
 };
 
 }  // namespace steps

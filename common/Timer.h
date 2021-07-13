@@ -8,7 +8,7 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <iosfwd>
+#include <iostream>
 #include <sstream>
 
 #if defined __ia64__ && defined __INTEL_COMPILER
