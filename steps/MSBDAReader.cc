@@ -109,6 +109,25 @@ MSBDAReader::MSBDAReader(const std::string& msName,
   } else {
     spw_ = 0;
   }
+
+  const unsigned int nchan = parset.getInt(prefix + "nchan", 0);
+  if (nchan > 0) {
+    throw std::invalid_argument(
+        "BDA in combination with channel filtering is not implemented. Remove "
+        "'nchan' from input parset");
+  }
+  const unsigned int start_chan = parset.getInt(prefix + "startchan", 0);
+  if (start_chan > 0) {
+    throw std::invalid_argument(
+        "BDA in combination with channel filtering is not implemented. Remove "
+        "'startchan' from input parset");
+  }
+  const unsigned int ntimes = parset.getInt(prefix + "ntimes", 0);
+  if (ntimes > 0) {
+    throw std::invalid_argument(
+        "BDA in combination with time filtering is not implemented. Remove "
+        "'ntimes' from input parset");
+  }
 }
 
 MSBDAReader::~MSBDAReader() {}
@@ -146,14 +165,14 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
         obstab, base::DP3MS::kLofarAntennaSet)(0);
   }
 
-  // TODO: Read actual values from the metadata.
-  unsigned int start_chan = 0;
   // Calculate ntime (amount of timeslots)
   // The 1.5 comes from a) rounding (0.5) + b) (last_time_ - first_time_) gives
   // the distance between the centroids of the first and last time slot. We need
   // to add 0.5 interval at the beginning and 0.5 interval at the end to obtain
   // the entire time span.
   unsigned int ntime = unsigned((last_time_ - first_time_) / interval_ + 1.5);
+
+  unsigned int start_chan = 0;
 
   // FillInfoMetaData already set the number of channels via DPInfo::set.
   info().init(ncorr, start_chan, info().nchan(), ntime,

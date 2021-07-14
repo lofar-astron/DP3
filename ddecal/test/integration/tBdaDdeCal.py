@@ -116,5 +116,7 @@ def test_only_predict(create_skymodel):
             ]
         )
 
-    taql_command = "select from(select gsumsqr(abs(t_all.DATA[isnan(t_all.DATA)]-(t_1.DATA[isnan(t_1.DATA)]+t_2.DATA[isnan(t_2.DATA)]+t_3.DATA[isnan(t_3.DATA)]))) as diff from BDADDECal_onlypredict.MS t_all, PREDICT_DIR_1.MS t_1,  PREDICT_DIR_2.MS t_2,  PREDICT_DIR_3.MS t_3) where diff>1.e-6"
-    assert_taql(taql_command)
+    taql_check_visibilities = "select from(select gsumsqr(abs(t_all.DATA[isnan(t_all.DATA)]-(t_1.DATA[isnan(t_1.DATA)]+t_2.DATA[isnan(t_2.DATA)]+t_3.DATA[isnan(t_3.DATA)]))) as diff from BDADDECal_onlypredict.MS t_all, PREDICT_DIR_1.MS t_1,  PREDICT_DIR_2.MS t_2,  PREDICT_DIR_3.MS t_3) where diff>1.e-6"
+    assert_taql(taql_check_visibilities)
+	
+
