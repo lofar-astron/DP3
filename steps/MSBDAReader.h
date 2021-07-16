@@ -14,6 +14,8 @@
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
@@ -160,7 +162,7 @@ class MSBDAReader : public InputStep {
   /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
 
-  casacore::Table ms_;
+  casacore::MeasurementSet ms_;
   std::string ms_name_;
   std::string data_col_name_;
   std::string weight_col_name_;

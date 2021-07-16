@@ -57,8 +57,6 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 }
 
 bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
-  const size_t data_size = buffer->GetNumberOfElements();
-
   BDABuffer::Fields fields(true);
   BDABuffer::Fields copyfields(false);
   copyfields.full_res_flags = true;
@@ -96,6 +94,8 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
       for (size_t k = 0; k < model_buffers.front().size(); k++) {
         std::complex<float> restrict* data =
             model_buffers.front()[k]->GetData();
+        const size_t data_size =
+            model_buffers.front()[k]->GetNumberOfElements();
         for (size_t i = 1; i < model_buffers.size(); ++i) {
           const std::complex<float> restrict* other_data =
               model_buffers[i][k]->GetData();
