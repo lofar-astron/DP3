@@ -13,7 +13,7 @@
 #include <boost/make_unique.hpp>
 
 using dp3::base::BDABuffer;
-using dp3::ddecal::BDASolverBuffer;
+using dp3::ddecal::BdaSolverBuffer;
 using dp3::steps::BdaPredict;
 using dp3::common::operator<<;
 using dp3::base::DPInfo;

@@ -311,7 +311,7 @@ add_library(
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
   ddecal/gain_solvers/BdaDiagonalSolver.cc
-  ddecal/gain_solvers/BDASolverBuffer.cc
+  ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
   ddecal/gain_solvers/BdaIterativeScalarSolver.cc
   ddecal/gain_solvers/BdaScalarSolver.cc
@@ -514,7 +514,7 @@ if(BUILD_TESTING)
       base/test/unit/tSourceDBUtil.cc
       base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
-      ddecal/test/unit/tBDASolverBuffer.cc
+      ddecal/test/unit/tBdaSolverBuffer.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc

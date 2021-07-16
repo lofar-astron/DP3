@@ -5,7 +5,7 @@
 #define DP3_DDECAL_SOLVER_TESTER_H
 
 #include "../../../base/DPBuffer.h"
-#include "../../../ddecal/gain_solvers/BDASolverBuffer.h"
+#include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
 #include "../../../ddecal/gain_solvers/SolverBuffer.h"
 
 #include <aocommon/uvector.h>
@@ -40,7 +40,7 @@ class SolverTester {
    * Creates BDA data, for testing BDA solvers.
    * @return The internal solver buffer that contains the data.
    */
-  const ddecal::BDASolverBuffer& FillBDAData();
+  const ddecal::BdaSolverBuffer& FillBDAData();
 
   /**
    * Initializes a solver using default values. After using this function, a
@@ -118,7 +118,7 @@ class SolverTester {
   std::vector<aocommon::UVector<float>> weight_store_;
   SolverBuffer solver_buffer_;
 
-  BDASolverBuffer bda_solver_buffer_;
+  BdaSolverBuffer bda_solver_buffer_;
 };
 
 }  // namespace test

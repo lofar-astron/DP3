@@ -28,7 +28,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 
   SetDiagonalSolutions();
 
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
                               kNAntennas, Antennas1(), Antennas2());
 
@@ -51,7 +51,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
   SetScalarSolutions();
 
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
                               kNAntennas, Antennas1(), Antennas2());
 
@@ -74,7 +74,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
 
   SetScalarSolutions();
 
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
                               kNAntennas, Antennas1(), Antennas2());
 
@@ -108,7 +108,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
 
   SetScalarSolutions();
 
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
                               kNAntennas, Antennas1(), Antennas2());
 
@@ -131,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
 
   SetDiagonalSolutions();
 
-  const dp3::ddecal::BDASolverBuffer& solver_buffer = FillBDAData();
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
                               kNAntennas, Antennas1(), Antennas2());
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../gain_solvers/BDASolverBuffer.h"
+#include "../../gain_solvers/BdaSolverBuffer.h"
 
 #include "../../../base/BDABuffer.h"
 #include "../../../base/test/unit/tBDABuffer.h"
@@ -10,7 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
-using dp3::ddecal::BDASolverBuffer;
+using dp3::ddecal::BdaSolverBuffer;
 
 namespace {
 const size_t kNBaselines = 3;
@@ -89,7 +89,7 @@ void CheckComplex(const std::complex<float>& left,
 /**
  * Compares a data row and the first model row against a reference row.
  */
-void CheckRow(const BDASolverBuffer& solver_buffer, size_t row_index,
+void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
               const BDABuffer::Row& reference_row) {
   // Get the row from the solver buffer.
   const std::vector<const BDABuffer::Row*>& data_rows =
@@ -115,7 +115,7 @@ void CheckRow(const BDASolverBuffer& solver_buffer, size_t row_index,
 BOOST_AUTO_TEST_SUITE(bdasolverbuffer)
 
 BOOST_AUTO_TEST_CASE(constructor) {
-  const BDASolverBuffer buffer(1, 0.0, 1.0);
+  const BdaSolverBuffer buffer(1, 0.0, 1.0);
   BOOST_CHECK_EQUAL(buffer.BufferCount(), 0u);
   BOOST_CHECK(buffer.GetDataRows().empty());
   BOOST_CHECK(buffer.GetModelDataRows(0).empty());
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
       CreateBDABuffers(kFirstDataValue + 2.0f * kModelDataDiff, kModelWeight);
 
   // All bda rows are in the first interval.
-  BDASolverBuffer buffer(2, 0.0, 100.0);
+  BdaSolverBuffer buffer(2, 0.0, 100.0);
   for (size_t i = 0; i < data.size(); ++i) {
     std::vector<std::unique_ptr<BDABuffer>> model_buffers;
     model_buffers.push_back(std::move(model_data1[i]));
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
   std::vector<std::unique_ptr<BDABuffer>> data =
       CreateBDABuffers(kFirstDataValue, kWeight);
 
-  BDASolverBuffer buffer(0, kFirstTime - kInterval / 2, kInterval * 2.0);
+  BdaSolverBuffer buffer(0, kFirstTime - kInterval / 2, kInterval * 2.0);
   for (size_t i = 0; i < data.size(); ++i) {
     buffer.AppendAndWeight(*data[i], {});
     BOOST_CHECK_EQUAL(buffer.BufferCount(), i + 1);
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
     model_value[0] += kDataIncrement;
   }
 
-  BDASolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
+  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
                                 kSolutionInterval);
   std::vector<std::unique_ptr<BDABuffer>> model_buffers;
   model_buffers.push_back(std::move(model_buffer));
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
                                                               kModelDataDiff};
   const std::array<float, kNCorrelations> kWeight{1.0};
 
-  BDASolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
+  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
                                 kSolutionInterval);
 
   double time = kFirstTime;

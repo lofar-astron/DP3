@@ -1,13 +1,13 @@
 #include "SolveData.h"
 
-#include "BDASolverBuffer.h"
+#include "BdaSolverBuffer.h"
 
 using dp3::base::BDABuffer;
 
 namespace dp3 {
 namespace ddecal {
 
-SolveData::SolveData(const BDASolverBuffer& buffer, size_t n_channel_blocks,
+SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
                      size_t n_directions, size_t n_antennas,
                      const std::vector<int>& ant1, const std::vector<int>& ant2)
     : channel_blocks_(n_channel_blocks) {
