@@ -20,6 +20,7 @@
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/measures/Measures/MeasTable.h>
+#include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -35,13 +36,18 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
+#include <EveryBeam/msreadutils.h>
+
 #include <iostream>
 #include <boost/make_unique.hpp>
 
 using casacore::ArrayColumn;
+using casacore::ArrayMeasColumn;
 using casacore::Complex;
 using casacore::Cube;
 using casacore::IPosition;
+using casacore::MDirection;
+using casacore::MeasTable;
 using casacore::MeasurementSet;
 using casacore::MPosition;
 using casacore::MS;
@@ -262,10 +268,12 @@ void MSBDAReader::finish() { getNextStep()->finish(); }
 void MSBDAReader::FillInfoMetaData() {
   using MS_Ant = casacore::MSAntenna;
   using MS_SPW = casacore::MSSpectralWindow;
+  using MS_Field = casacore::MSField;
+  using MS_Obs = casacore::MSObservation;
 
   Table factors = ms_.keywordSet().asTable(base::DP3MS::kBDAFactorsTable);
   Table axis = ms_.keywordSet().asTable(base::DP3MS::kBDATimeAxisTable);
-  Table spw = ms_.keywordSet().asTable(base::DP3MS::kSpectralWindowTable);
+  Table spw = ms_.spectralWindow();
 
   interval_ = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
   is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
@@ -321,6 +329,45 @@ void MSBDAReader::FillInfoMetaData() {
   // Set antenna/baseline info.
   info().set(name_col.getColumn(), diam_col.getColumn(), antPos,
              ant1_col.getColumn(), ant2_col.getColumn());
+
+  const MS_Field& field = ms_.field();
+  if (field.nrow() != 1)
+    throw std::runtime_error("Multiple entries in FIELD table");
+
+  ArrayMeasColumn<MDirection> col_phase_dir(
+      field, MS_Field::columnName(MS_Field::PHASE_DIR));
+  ArrayMeasColumn<MDirection> col_delay_dir(
+      field, MS_Field::columnName(MS_Field::DELAY_DIR));
+
+  if (col_phase_dir(0).empty() || col_delay_dir(0).empty())
+    throw std::runtime_error("PHASE_DIR, DELAY_DIR are undefined");
+
+  const MDirection phase_center = *(col_phase_dir(0).data());
+  const MDirection delay_center = *(col_delay_dir(0).data());
+
+  MDirection tile_beam_dir;
+  try {
+    tile_beam_dir = everybeam::ReadTileBeamDirection(ms_);
+  } catch (const std::runtime_error& error) {
+    // everybeam throws an exception error if telescope != [LOFAR, AARTFAAC]
+    // in that case, default back to "DELAY_DIR"
+    tile_beam_dir = delay_center;
+  }
+
+  // Get the array position using the telescope name from the OBSERVATION
+  // subtable.
+  MS_Obs observation = ms_.observation();
+
+  const ScalarColumn<casacore::String> col_telescope_name(
+      observation, MS_Obs::columnName(MS_Obs::TELESCOPE_NAME));
+  MPosition array_pos;
+  if (observation.nrow() == 0 ||
+      !MeasTable::Observatory(array_pos, col_telescope_name(0))) {
+    // If not found, use the position of the middle antenna.
+    array_pos = antPos[antPos.size() / 2];
+  }
+
+  info().set(array_pos, phase_center, delay_center, tile_beam_dir);
 
   info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));
