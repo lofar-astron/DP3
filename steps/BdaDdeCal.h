@@ -6,7 +6,7 @@
 
 #include "Step.h"
 #include "../ddecal/Settings.h"
-#include "../ddecal/gain_solvers/BDASolverBuffer.h"
+#include "../ddecal/gain_solvers/BdaSolverBuffer.h"
 
 namespace dp3 {
 namespace steps {
@@ -31,12 +31,12 @@ class ModelDataStep;
  * 3.1. In only-predict mode, BdaDdeCal sums the predicted visibilities and
  *      sends them in a BDABuffer to the next step. Processing is complete.
  * 3.2. Otherwise, BdaDdeCal appends the received visibilities and weights and
- *      the predictions from the BDAResultSteps into a BDASolverBuffer.
- * 4. When the BDASolverBuffer has a complete solution interval, BdaDdeCal
+ *      the predictions from the BDAResultSteps into a BdaSolverBuffer.
+ * 4. When the BdaSolverBuffer has a complete solution interval, BdaDdeCal
  *    runs the solver on this interval.
  * 5. When subtracting is enabled, the solver applies the solutions to the
  *    predicted visibilities for each direction.
- * 6. When the BDASolverBuffer has a complete BDABuffer:
+ * 6. When the BdaSolverBuffer has a complete BDABuffer:
  * 6.1. If subtracting is enabled, BdaDdeCal subtracts the predicted
  *      visibilities for all directions from the input data.
  * 6.2. BdaDdeCal passes the input data buffer to its next step.
@@ -44,10 +44,10 @@ class ModelDataStep;
  * The BDABuffer structure/metadata remains equal for all BDABuffers that are
  * involved in one iteration.
  *
- * The BDASolverBuffer provides the functionality for solution intervals:
- * - BDASolverBuffer detects when a solution interval is complete.
- * - BDASolverBuffer only exposes the BDA rows in the interval to the solver.
- * - BDASolverBuffer detects when a BDABuffer is fully processed.
+ * The BdaSolverBuffer provides the functionality for solution intervals:
+ * - BdaSolverBuffer detects when a solution interval is complete.
+ * - BdaSolverBuffer only exposes the BDA rows in the interval to the solver.
+ * - BdaSolverBuffer detects when a BDABuffer is fully processed.
  */
 class BdaDdeCal : public Step {
  public:
@@ -99,7 +99,7 @@ class BdaDdeCal : public Step {
    * removes old BDABuffers from the solver buffer.
    * This variable is not used when only_predict is true.
    */
-  ddecal::BDASolverBuffer solver_buffer_;
+  ddecal::BdaSolverBuffer solver_buffer_;
 };
 
 }  // namespace steps

@@ -16,7 +16,7 @@
 namespace dp3 {
 namespace ddecal {
 
-class BDASolverBuffer {
+class BdaSolverBuffer {
  public:
   /**
    * Constructor.
@@ -24,7 +24,7 @@ class BDASolverBuffer {
    * @param start Start time of the first solution interval.
    * @param interval Length of a solution interval. Should be > 0.0.
    */
-  BDASolverBuffer(size_t n_directions, double start, double interval)
+  BdaSolverBuffer(size_t n_directions, double start, double interval)
       : data_(),
         model_data_(n_directions),
         time_start_(start),
@@ -44,7 +44,7 @@ class BDASolverBuffer {
    * @param data_buffer A buffer with unweighted data and weights.
    * @param model_buffers A vector with model_buffers for each direction.
    * The BDA layout of these buffers should match the layout of the data_buffer.
-   * The BDASolverBuffer takes ownership of the model buffers.
+   * The BdaSolverBuffer takes ownership of the model buffers.
    * @throw std::invalid_argument If model_buffers has an invalid size.
    */
   void AppendAndWeight(

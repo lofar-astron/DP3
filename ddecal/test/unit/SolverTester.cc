@@ -156,7 +156,7 @@ const SolverBuffer& SolverTester::FillData() {
   return solver_buffer_;
 }
 
-const BDASolverBuffer& SolverTester::FillBDAData() {
+const BdaSolverBuffer& SolverTester::FillBDAData() {
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
 

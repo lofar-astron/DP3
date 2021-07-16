@@ -11,7 +11,7 @@
 namespace dp3 {
 namespace ddecal {
 
-class BDASolverBuffer;
+class BdaSolverBuffer;
 
 /**
  * Contains exactly the data required for solving: (weighted) data, model_data
@@ -72,7 +72,7 @@ class SolveData {
     std::vector<size_t> antenna_visibility_counts_;
   };
 
-  SolveData(const BDASolverBuffer& buffer, size_t n_channel_blocks,
+  SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
             size_t n_directions, size_t n_antennas,
             const std::vector<int>& ant1, const std::vector<int>& ant2);
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BDASolverBuffer.h"
+#include "BdaSolverBuffer.h"
 
 #include <boost/make_unique.hpp>
 
@@ -21,7 +21,7 @@ bool IsFinite(std::complex<float> c) {
 namespace dp3 {
 namespace ddecal {
 
-void BDASolverBuffer::AppendAndWeight(
+void BdaSolverBuffer::AppendAndWeight(
     const BDABuffer& input_data_buffer,
     std::vector<std::unique_ptr<BDABuffer>>&& model_buffers) {
   const size_t n_directions = model_data_.size();
@@ -110,7 +110,7 @@ void BDASolverBuffer::AppendAndWeight(
   last_complete_interval_ = max_start_interval - 1;
 }
 
-void BDASolverBuffer::Clear() {
+void BdaSolverBuffer::Clear() {
   data_.Clear();
   data_rows_.Clear();
 
@@ -121,7 +121,7 @@ void BDASolverBuffer::Clear() {
   AddInterval();
 }
 
-void BDASolverBuffer::AdvanceInterval() {
+void BdaSolverBuffer::AdvanceInterval() {
   assert(!data_rows_.Empty());
 
   data_rows_.PopFront();
@@ -150,7 +150,7 @@ void BDASolverBuffer::AdvanceInterval() {
   }
 }
 
-void BDASolverBuffer::AddInterval() {
+void BdaSolverBuffer::AddInterval() {
   data_rows_.PushBack(std::vector<const BDABuffer::Row*>());
   for (auto& model_row_queue : model_rows_) {
     model_row_queue.PushBack(std::vector<const BDABuffer::Row*>());
