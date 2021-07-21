@@ -365,7 +365,7 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
   // Default directions are all patches
   if (itsSettings.directions.empty() && !itsSettings.source_db.empty()) {
     parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSettings.source_db),
-                              false);
+                              true, false);
     std::vector<string> patchNames =
         base::makePatchList(sourceDB, std::vector<string>());
     for (const string& patch : patchNames) {

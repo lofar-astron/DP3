@@ -120,7 +120,8 @@ void DemixInfo::makeTargetDemixList() {
   // Get all A-team models for demixing.
   // Note that in the constructor only some sources were read.
   // First open the SourceDB.
-  parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), itsDemixModelName));
+  parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), itsDemixModelName), false,
+                       false);
   sdb.lock();
   vector<Patch::ConstPtr> patchList =
       makePatchList(itsDemixModelName, vector<string>());
@@ -321,7 +322,7 @@ void DemixInfo::show(ostream& os) const {
 vector<Patch::ConstPtr> DemixInfo::makePatchList(
     const string& sdbName, const vector<string>& patchNames) {
   // Open the SourceDB.
-  parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), sdbName));
+  parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), sdbName), false, false);
   sdb.lock();
   // Get all patches from it.
   vector<string> names(sdb.getPatches());

@@ -30,7 +30,8 @@ using namespace casacore;
 
 void show(const string& name, const string& mode, const string& patt) {
   // Open the input SourceDB.
-  dp3::parmdb::SourceDB in((dp3::parmdb::ParmDBMeta(string(), name)));
+  dp3::parmdb::SourceDB in(dp3::parmdb::ParmDBMeta(string(), name), false,
+                           false);
   // Read all patches from the SourceDB and write them.
   vector<dp3::parmdb::PatchInfo> patch(in.getPatchInfo(-1, patt));
   for (size_t i = 0; i < patch.size(); ++i) {

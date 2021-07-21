@@ -153,7 +153,11 @@ class SourceDB {
  public:
   /// Create the SourceDB object for the given database type.
   /// It gets added to the map of open sourceDBs.
-  explicit SourceDB(const ParmDBMeta& ptm, bool forceNew = false);
+  /// @param mustExist if true and the file does not exist, an exception will be
+  /// thrown
+  /// @param forceNew if true, an empty file will be created even if the file
+  /// exists.
+  explicit SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew);
 
   /// Copy contructor has reference semantics.
   SourceDB(const SourceDB&);
