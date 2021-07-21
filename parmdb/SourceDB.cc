@@ -10,9 +10,6 @@
 
 #include <casacore/casa/OS/File.h>
 
-using namespace std;
-using namespace casacore;
-
 namespace dp3 {
 namespace parmdb {
 
@@ -25,7 +22,11 @@ void SourceDBRep::lock(bool) {}
 
 void SourceDBRep::unlock() {}
 
-SourceDB::SourceDB(const ParmDBMeta& ptm, bool forceNew) {
+SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew) {
+  if (mustExist && !casacore::File(ptm.getTableName()).exists())
+    throw std::runtime_error("The sourcedb '" + ptm.getTableName() +
+                             "' does not exist");
+
   ParmDBMeta pm(ptm);
   // Determine type if not given.
   // Default is casa, but an existing regular file is blob.
@@ -34,7 +35,7 @@ SourceDB::SourceDB(const ParmDBMeta& ptm, bool forceNew) {
     if (!forceNew) {
       // Check if an existing DB is stored as a file (thus as SourceDBBlob).
       // This is for compatibility reasons.
-      File file(ptm.getTableName());
+      casacore::File file(ptm.getTableName());
       if (file.exists() && file.isRegular()) {
         pm = ParmDBMeta("blob", pm.getTableName());
       }

@@ -87,9 +87,8 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   itsDebugLevel = parset.getInt(prefix + "debuglevel", 0);
   itsPatchList = std::vector<base::Patch::ConstPtr>();
 
-  if (!casacore::File(itsSourceDBName).exists())
-    throw std::runtime_error("Specified source DB name does not exist");
-  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSourceDBName), false);
+  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSourceDBName), true,
+                            false);
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;

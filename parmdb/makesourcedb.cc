@@ -1023,7 +1023,7 @@ void make(const std::string& in, const std::string& out,
   SdbFormat sdbf = getFormat(format);
   // Create/open the sourcedb and lock it for write.
   ParmDBMeta ptm(outType, out);
-  SourceDB pdb(ptm, !append);
+  SourceDB pdb(ptm, false, !append);
   pdb.lock(true);
   int nrpatch = 0;
   int nrsource = 0;

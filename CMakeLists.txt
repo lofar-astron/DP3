@@ -559,6 +559,7 @@ if(BUILD_TESTING)
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
       base/test/unit/tSimulator.cc
+      parmdb/test/unit/tSourceDB.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBDAExpander.cc
       steps/test/unit/tDPInput.cc
