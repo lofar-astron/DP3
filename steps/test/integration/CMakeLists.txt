@@ -43,7 +43,7 @@ foreach(TEST ${PYINTEGRATION_TESTS})
   add_test(
     NAME ${TEST}
     COMMAND
-      pytest --exitfirst -v
+      python3 -m pytest --exitfirst -v
       --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
       "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
   set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration")
