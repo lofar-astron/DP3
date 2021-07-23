@@ -169,7 +169,8 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
   BDABuffer::Fields bda_fields(false);
   bda_fields.data = true;
   bda_fields.weights = true;
-  BDABuffer bda_data_buffer(kBDABufferSize, bda_fields);
+  auto bda_data_buffer =
+      boost::make_unique<BDABuffer>(kBDABufferSize, bda_fields);
   std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
   bda_model_buffers.reserve(kNDirections);
   bda_fields.weights = false;
@@ -228,7 +229,7 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
             data.emplace_back(perturbed_model[p]);
           }
         }
-        BOOST_REQUIRE(bda_data_buffer.AddRow(
+        BOOST_REQUIRE(bda_data_buffer->AddRow(
             time, averaging_factors.first, n_averaged_times, bl,
             n_averaged_channels, kNPolarizations, data.data(), nullptr,
             weights.data()));
@@ -236,10 +237,11 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
     }
   }
 
-  bda_solver_buffer_.AppendAndWeight(bda_data_buffer,
+  const size_t bda_data_buffer_rows = bda_data_buffer->GetRows().size();
+  bda_solver_buffer_.AppendAndWeight(std::move(bda_data_buffer),
                                      std::move(bda_model_buffers));
   BOOST_REQUIRE_EQUAL(bda_solver_buffer_.GetDataRows().size(),
-                      bda_data_buffer.GetRows().size());
+                      bda_data_buffer_rows);
 
   return bda_solver_buffer_;
 }

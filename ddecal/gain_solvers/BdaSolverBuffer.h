@@ -26,15 +26,14 @@ class BdaSolverBuffer {
    */
   BdaSolverBuffer(size_t n_directions, double start, double interval)
       : data_(),
-        model_data_(n_directions),
         time_start_(start),
         time_interval_(interval),
         current_interval_(0),
         last_complete_interval_(-1),
-        data_rows_(),
-        model_rows_(n_directions) {
+        data_rows_() {
     assert(interval >= 0.0);
-    AddInterval();  // Ensure that the current solution interval is valid.
+    AddInterval(
+        n_directions);  // Ensure that the current solution interval is valid.
   }
 
   /**
@@ -48,7 +47,7 @@ class BdaSolverBuffer {
    * @throw std::invalid_argument If model_buffers has an invalid size.
    */
   void AppendAndWeight(
-      const base::BDABuffer& data_buffer,
+      std::unique_ptr<base::BDABuffer> data_buffer,
       std::vector<std::unique_ptr<base::BDABuffer>>&& model_buffers);
 
   /**
@@ -84,21 +83,32 @@ class BdaSolverBuffer {
    * @return Non-modifyable rows with weighted visibilities.
    */
   const std::vector<const base::BDABuffer::Row*>& GetDataRows() const {
-    return data_rows_[0];
+    return data_rows_[0].weighted;
   }
 
   /**
    * Get the model data rows for the current solution interval.
    * @param direction Direction index.
-   * @return Non-modifyable rows with weighted model data.
+   * @return Rows with weighted model data.
    */
   const std::vector<const base::BDABuffer::Row*>& GetModelDataRows(
       size_t direction) const {
-    return model_rows_[direction][0];
+    return data_rows_[0].model[direction];
+  }
+
+  void SubtractCorrectedModel(
+      const std::vector<std::vector<std::complex<float>>>& solutions,
+      size_t n_channel_blocks, bool full_jones, const std::vector<int>& ant1,
+      const std::vector<int>& ant2);
+
+  std::vector<std::unique_ptr<base::BDABuffer>> GetDone() {
+    std::vector<std::unique_ptr<base::BDABuffer>> result;
+    result.swap(done_);
+    return result;
   }
 
  private:
-  void AddInterval();
+  void AddInterval(size_t n_directions);
 
   /**
    * @return The relative solution interval index for a given time.
@@ -108,12 +118,31 @@ class BdaSolverBuffer {
            current_interval_;
   }
 
-  /// A FIFO queue with weighted input data. AppendAndWeight appends items.
-  aocommon::Queue<std::unique_ptr<base::BDABuffer>> data_;
+  /**
+   * The BDASolverBuffer is the owner of both the unweighted and the weighted
+   * input data. The data flow is:
+   * 1. AppendAndWeight receives unweighted data, weights it, and stores both
+   *    the unweighted and the corresponding weighted data in data_.
+   * 2. A Solver accesses the weighted data via GetDataRows and
+   *    GetModelDataRows, via a SolveData structure.
+   * 3. SubtractCorrectedModel() applies the solutions to the model data and
+   *    subtracts them from the unweighted data.
+   * 4. When a BDA buffer is no longer needed, AdvanceInterval deletes the
+   *    weighted data and moves the unweighted data to done_.
+   * 5. GetDone() extracts the buffers from done_.
+   */
+  struct InputData {
+    std::unique_ptr<base::BDABuffer> unweighted;
+    std::unique_ptr<base::BDABuffer> weighted;
+    /// Model data buffer for each direction.
+    std::vector<std::unique_ptr<base::BDABuffer>> model;
+  };
 
-  /// For each direction, a FIFO queue with model data.
-  /// These queues are managed the same as data_.
-  std::vector<aocommon::Queue<std::unique_ptr<base::BDABuffer>>> model_data_;
+  /// A FIFO queue with input data. AppendAndWeight appends items.
+  aocommon::Queue<InputData> data_;
+
+  /// Fully processed input buffers.
+  std::vector<std::unique_ptr<base::BDABuffer>> done_;
 
   /// Start time of the first solution interval (seconds).
   const double time_start_;
@@ -124,14 +153,15 @@ class BdaSolverBuffer {
   /// solution interval. The value is negative if no interval is complete.
   int last_complete_interval_;
 
+  struct IntervalRows {
+    std::vector<base::BDABuffer::Row*> unweighted;
+    std::vector<const base::BDABuffer::Row*> weighted;
+    std::vector<std::vector<const base::BDABuffer::Row*>> model;
+  };
+
   /// The data rows for the current and future solution intervals.
   /// The queue always contains one element for the current solution interval.
-  aocommon::Queue<std::vector<const base::BDABuffer::Row*>> data_rows_;
-
-  /// For each direction, the model data rows for each solution interval.
-  /// The queues always contain one element for the current solution interval.
-  std::vector<aocommon::Queue<std::vector<const base::BDABuffer::Row*>>>
-      model_rows_;
+  aocommon::Queue<IntervalRows> data_rows_;
 };
 
 }  // namespace ddecal
