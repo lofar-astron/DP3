@@ -185,6 +185,7 @@ class BDABuffer {
     return rows_[row].full_res_flags;
   }
   bool* GetFullResFlags(std::size_t row) { return rows_[row].full_res_flags; }
+  std::vector<Row>& GetRows() { return rows_; }
   const std::vector<Row>& GetRows() const { return rows_; }
 
   static constexpr bool TimeIsLess(double x, double y) {
