@@ -128,7 +128,7 @@ class DDECal : public Step {
   const ddecal::Settings itsSettings;
 
   /// The solution intervals that are buffered, limited by solintcount
-  std::vector<base::SolutionInterval> itsSolInts;
+  std::vector<base::SolutionInterval> itsSolIntBuffers;
 
   /// The time of the current buffer (in case of solint, average time)
   double itsAvgTime;
@@ -147,11 +147,11 @@ class DDECal : public Step {
   schaapcommon::h5parm::H5Parm itsH5Parm;
 
   size_t itsTimeStep;
-  size_t itsSolInt;  ///< Number of timeslots to store per solution interval
+  /// Number of timeslots to store per solution interval as requested
+  /// by the user in the parset.
+  size_t itsRequestedSolInt;
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
   size_t itsNSolInts;     ///< Total number of created solution intervals
-  /// The current amount of timeslots on the solution interval
-  size_t itsStepInSolInt;
   /// The current amount of solution intervals in itsSolInts
   size_t itsBufferedSolInts;
   size_t itsNChan;

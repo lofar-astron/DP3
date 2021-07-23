@@ -143,10 +143,9 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsSols(),
       itsH5Parm(itsSettings.h5parm_name, true),
       itsTimeStep(0),
-      itsSolInt(itsSettings.solution_interval),
+      itsRequestedSolInt(itsSettings.solution_interval),
       itsSolIntCount(1),
       itsNSolInts(0),
-      itsStepInSolInt(0),
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(input, parset, prefix),
@@ -420,10 +419,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
       s->SetThreadData(*itsThreadPool, &itsMeasuresMutex);
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
-      itsSolIntCount = std::max(
-          itsSolIntCount, s->GetBufferSize() / itsSteps.size() / itsSolInt);
+      itsSolIntCount =
+          std::max(itsSolIntCount,
+                   s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
       // We increment by one so the IDGPredict will not flush in its process
-      s->SetBufferSize(itsSolInt * itsSolIntCount + 1);
+      s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
     } else if (!std::dynamic_pointer_cast<ColumnReader>(itsSteps[dir])) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }
@@ -431,8 +431,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsSolver->SetNThreads(getInfo().nThreads());
 
-  if (itsSolInt == 0) {
-    itsSolInt = info().ntime();
+  if (itsRequestedSolInt == 0) {
+    itsRequestedSolInt = info().ntime();
   }
 
   itsDataResultStep = std::make_shared<ResultStep>();
@@ -442,7 +442,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsResultSteps.resize(itsSteps.size());
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
     itsResultSteps[dir] =
-        std::make_shared<MultiResultStep>(itsSolInt * itsSolIntCount);
+        std::make_shared<MultiResultStep>(itsRequestedSolInt * itsSolIntCount);
 
     // Add the resultstep to the end of the model next steps
     std::shared_ptr<Step> step = itsSteps[dir];
@@ -494,7 +494,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
   itsH5Parm.AddSources(getDirectionNames(), sourcePositions);
 
-  size_t nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
+  size_t nSolTimes =
+      (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
   size_t nChannelBlocks = info().nchan() / itsNChan;
   itsSols.resize(nSolTimes);
   itsNIter.resize(nSolTimes);
@@ -658,7 +659,7 @@ void DDECal::show(std::ostream& os) const {
      << "  algorithm:           "
      << ddecal::ToString(itsSettings.solver_algorithm) << '\n'
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
-     << "  solint:              " << itsSolInt << '\n'
+     << "  solint:              " << itsRequestedSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
      << "  directions:          " << itsDirections << '\n';
   if (itsSettings.min_vis_ratio != 0.0) {
@@ -738,42 +739,42 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
 }
 
 void DDECal::initializeScalarSolutions(size_t bufferIndex) {
-  if (itsSolInts[bufferIndex].NSolution() > 0 &&
+  if (itsSolIntBuffers[bufferIndex].NSolution() > 0 &&
       itsSettings.propagate_solutions) {
-    if (itsNIter[itsSolInts[bufferIndex].NSolution() - 1] >
+    if (itsNIter[itsSolIntBuffers[bufferIndex].NSolution() - 1] >
             itsSolver->GetMaxIterations() &&
         itsSettings.propagate_converged_only) {
       // initialize solutions with 1.
       size_t n = itsDirections.size() * info().antennaUsed().size();
       for (std::vector<casacore::DComplex>& solvec :
-           itsSols[itsSolInts[bufferIndex].NSolution()]) {
+           itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
         solvec.assign(n, 1.0);
       }
     } else {
       // initialize solutions with those of the previous step
-      itsSols[itsSolInts[bufferIndex].NSolution()] =
-          itsSols[itsSolInts[bufferIndex].NSolution() - 1];
+      itsSols[itsSolIntBuffers[bufferIndex].NSolution()] =
+          itsSols[itsSolIntBuffers[bufferIndex].NSolution() - 1];
     }
   } else {
     // initialize solutions with 1.
     size_t n = itsDirections.size() * info().antennaUsed().size();
     for (std::vector<casacore::DComplex>& solvec :
-         itsSols[itsSolInts[bufferIndex].NSolution()]) {
+         itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
       solvec.assign(n, 1.0);
     }
   }
 }
 
 void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
-  if (itsSolInts[bufferIndex].NSolution() > 0 &&
+  if (itsSolIntBuffers[bufferIndex].NSolution() > 0 &&
       itsSettings.propagate_solutions) {
-    if (itsNIter[itsSolInts[bufferIndex].NSolution() - 1] >
+    if (itsNIter[itsSolIntBuffers[bufferIndex].NSolution() - 1] >
             itsSolver->GetMaxIterations() &&
         itsSettings.propagate_converged_only) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
       size_t n = itsDirections.size() * info().antennaUsed().size();
       for (std::vector<casacore::DComplex>& solvec :
-           itsSols[itsSolInts[bufferIndex].NSolution()]) {
+           itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
         solvec.resize(n * 4);
         for (size_t i = 0; i != n; ++i) {
           solvec[i * 4 + 0] = 1.0;
@@ -784,14 +785,14 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
       }
     } else {
       // initialize solutions with those of the previous step
-      itsSols[itsSolInts[bufferIndex].NSolution()] =
-          itsSols[itsSolInts[bufferIndex].NSolution() - 1];
+      itsSols[itsSolIntBuffers[bufferIndex].NSolution()] =
+          itsSols[itsSolIntBuffers[bufferIndex].NSolution() - 1];
     }
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
     size_t n = itsDirections.size() * info().antennaUsed().size();
     for (std::vector<casacore::DComplex>& solvec :
-         itsSols[itsSolInts[bufferIndex].NSolution()]) {
+         itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
       solvec.resize(n * 4);
       for (size_t i = 0; i != n; ++i) {
         solvec[i * 4 + 0] = 1.0;
@@ -829,7 +830,7 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
     }
   }
   // Set the visibility weights to zero
-  for (DPBuffer& buffer : itsSolInts[bufferIndex].DataBuffers()) {
+  for (DPBuffer& buffer : itsSolIntBuffers[bufferIndex].DataBuffers()) {
     for (size_t bl = 0; bl < nBl; ++bl) {
       float* begin = &buffer.getWeights()(0, itsChanBlockStart[cbIndex], bl);
       float* end = &buffer.getWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
@@ -848,9 +849,9 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 
 void DDECal::doSolve() {
   std::vector<std::vector<std::vector<DPBuffer>>> model_buffers(
-      itsSolInts.size());
-  for (size_t i = 0; i < itsSolInts.size(); ++i) {
-    model_buffers[i].resize(itsSolInts[i].Size());
+      itsSolIntBuffers.size());
+  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
+    model_buffers[i].resize(itsSolIntBuffers[i].Size());
     for (std::vector<DPBuffer>& dir_buffers : model_buffers[i]) {
       dir_buffers.reserve(itsDirections.size());
     }
@@ -863,8 +864,8 @@ void DDECal::doSolve() {
       itsTimerPredict.stop();
     }
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
-      const size_t sol_int = i / itsSolInt;
-      const size_t timestep = i % itsSolInt;
+      const size_t sol_int = i / itsRequestedSolInt;
+      const size_t timestep = i % itsRequestedSolInt;
       model_buffers[sol_int][timestep].emplace_back(
           std::move(itsResultSteps[dir]->get()[i]));
     }
@@ -874,7 +875,7 @@ void DDECal::doSolve() {
   // Declare solver_buffer outside the loop, so it can reuse its memory.
   ddecal::SolverBuffer solver_buffer;
 
-  for (size_t i = 0; i < itsSolInts.size(); ++i) {
+  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
     // When the model data is subtracted after calibration, the model data
     // needs to be stored before solving, because the solver modifies it.
     // This is done conditionally to prevent using memory when it is
@@ -883,7 +884,7 @@ void DDECal::doSolve() {
       storeModelData(model_buffers[i]);
     }
 
-    solver_buffer.AssignAndWeight(itsSolInts[i].DataBuffers(),
+    solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
                                   std::move(model_buffers[i]));
 
     ddecal::RegularSolverBase::SolveResult solveResult;
@@ -909,22 +910,22 @@ void DDECal::doSolve() {
       if (n_solution_polarizations == 2) {
         // Temporary fix: convert solutions from full Jones matrices to diagonal
         std::vector<std::vector<casacore::DComplex>>& full_solutions =
-            itsSols[itsSolInts[i].NSolution()];
+            itsSols[itsSolIntBuffers[i].NSolution()];
         std::vector<std::vector<std::complex<double>>> diagonals(
             full_solutions.size());
         for (size_t ch_block = 0; ch_block != diagonals.size(); ++ch_block) {
           diagonals[ch_block].reserve(full_solutions[ch_block].size() / 2);
           for (size_t s = 0; s != full_solutions[ch_block].size() / 4; ++s) {
             diagonals[ch_block].push_back(
-                itsSols[itsSolInts[i].NSolution()][ch_block][s * 4]);
+                itsSols[itsSolIntBuffers[i].NSolution()][ch_block][s * 4]);
             diagonals[ch_block].push_back(
-                itsSols[itsSolInts[i].NSolution()][ch_block][s * 4 + 3]);
+                itsSols[itsSolIntBuffers[i].NSolution()][ch_block][s * 4 + 3]);
           }
         }
 
-        solveResult =
-            itsSolver->Solve(solver_buffer, diagonals, itsAvgTime / itsSolInt,
-                             itsStatStream.get());
+        solveResult = itsSolver->Solve(solver_buffer, diagonals,
+                                       itsAvgTime / itsRequestedSolInt,
+                                       itsStatStream.get());
 
         // Temporary fix: extend solutions from diagonal to full Jones matrices
         for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
@@ -936,14 +937,14 @@ void DDECal::doSolve() {
           }
         }
       } else {
-        solveResult =
-            itsSolver->Solve(solver_buffer, itsSols[itsSolInts[i].NSolution()],
-                             itsAvgTime / itsSolInt, itsStatStream.get());
+        solveResult = itsSolver->Solve(
+            solver_buffer, itsSols[itsSolIntBuffers[i].NSolution()],
+            itsAvgTime / itsRequestedSolInt, itsStatStream.get());
       }
       itsTimerSolve.stop();
 
-      itsNIter[itsSolInts[i].NSolution()] = solveResult.iterations;
-      itsNApproxIter[itsSolInts[i].NSolution()] =
+      itsNIter[itsSolIntBuffers[i].NSolution()] = solveResult.iterations;
+      itsNApproxIter[itsSolIntBuffers[i].NSolution()] =
           solveResult.constraint_iterations;
     }
 
@@ -993,17 +994,17 @@ void DDECal::doSolve() {
       }
     }
     if (someConstraintHasResult) {
-      itsConstraintSols[itsSolInts[i].NSolution()] = solveResult.results;
+      itsConstraintSols[itsSolIntBuffers[i].NSolution()] = solveResult.results;
     }
   }
 
   itsTimer.stop();
 
-  for (size_t i = 0; i < itsSolInts.size(); ++i) {
-    itsSolInts[i].RestoreFlagsAndWeights();
-    for (size_t step = 0; step < itsSolInts[i].Size(); ++step) {
+  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
+    itsSolIntBuffers[i].RestoreFlagsAndWeights();
+    for (size_t step = 0; step < itsSolIntBuffers[i].Size(); ++step) {
       // Push data (possibly changed) to next step
-      getNextStep()->process(itsSolInts[i][step]);
+      getNextStep()->process(itsSolIntBuffers[i][step]);
     }
   }
 
@@ -1014,19 +1015,18 @@ bool DDECal::process(const DPBuffer& bufin) {
   itsTimer.start();
 
   // Create a new solution interval if needed
-  if (itsStepInSolInt == 0) {
-    itsSolInts.emplace_back(itsInput, itsNSolInts, itsSolInt,
-                            itsDirections.size(), itsTimer);
+  if (itsSolIntBuffers.empty() ||
+      itsSolIntBuffers.back().Size() == itsRequestedSolInt) {
+    itsSolIntBuffers.emplace_back(itsInput, itsNSolInts, itsRequestedSolInt,
+                                  itsDirections.size(), itsTimer);
   }
 
-  itsSolInts[itsBufferedSolInts].CopyBuffer(bufin);
-  doPrepare(itsSolInts.back()[itsStepInSolInt], itsBufferedSolInts,
-            itsStepInSolInt);
+  const size_t currentIntervalIndex = itsSolIntBuffers.back().Size();
+  itsSolIntBuffers[itsBufferedSolInts].PushBack(bufin);
+  doPrepare(itsSolIntBuffers.back()[currentIntervalIndex], itsBufferedSolInts,
+            currentIntervalIndex);
 
-  ++itsStepInSolInt;
-
-  if (itsStepInSolInt == itsSolInt) {
-    itsStepInSolInt = 0;
+  if (currentIntervalIndex + 1 == itsRequestedSolInt) {
     ++itsBufferedSolInts;
     ++itsNSolInts;
   }
@@ -1044,7 +1044,7 @@ bool DDECal::process(const DPBuffer& bufin) {
     for (size_t dir = 0; dir < itsResultSteps.size(); ++dir) {
       itsResultSteps[dir]->clear();
     }
-    itsSolInts.clear();
+    itsSolIntBuffers.clear();
   }
 
   ++itsTimeStep;
@@ -1072,7 +1072,7 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   size_t nchanblocks = itsChanBlockFreqs.size();
 
   double weightFactor =
-      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsSolInt);
+      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsRequestedSolInt);
 
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
@@ -1085,7 +1085,7 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
         itsVisInInterval[chanblock].second++;  // total nr of vis
         if (bufin.getFlags()(cr, ch, bl)) {
           // Flagged points: set weight to 0
-          DPBuffer& buf_sol = itsSolInts[sol_int].DataBuffers()[step];
+          DPBuffer& buf_sol = itsSolIntBuffers[sol_int].DataBuffers()[step];
           buf_sol.getWeights()(cr, ch, bl) = 0;
         } else {
           // Add this weight to both involved antennas
@@ -1113,13 +1113,15 @@ void DDECal::writeSolutions() {
   itsTimer.start();
   itsTimerWrite.start();
 
-  unsigned int nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
+  unsigned int nSolTimes =
+      (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
   unsigned int nDir = itsDirections.size();
   assert(nSolTimes == itsSols.size());
   std::vector<double> solTimes(nSolTimes);
   double starttime = info().startTime();
   for (unsigned int t = 0; t < nSolTimes; ++t) {
-    solTimes[t] = starttime + (t + 0.5) * info().timeInterval() * itsSolInt;
+    solTimes[t] =
+        starttime + (t + 0.5) * info().timeInterval() * itsRequestedSolInt;
   }
 
   if (itsConstraintSols[0].empty()) {
@@ -1403,13 +1405,13 @@ void DDECal::writeSolutions() {
 void DDECal::finish() {
   itsTimer.start();
 
-  if (itsSolInts.size() > 0) {
+  if (itsSolIntBuffers.size() > 0) {
     doSolve();
   }
 
   if (!itsSettings.only_predict) writeSolutions();
 
-  itsSolInts.clear();
+  itsSolIntBuffers.clear();
   itsTimer.stop();
 
   // Let the next steps finish.
@@ -1439,13 +1441,12 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
   // doesn't change those). Here we apply the solutions to all the model data
   // directions and subtract them from the data.
   std::vector<std::vector<casacore::DComplex>>& solutions =
-      itsSols[itsSolInts[bufferIndex].NSolution()];
+      itsSols[itsSolIntBuffers[bufferIndex].NSolution()];
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
-  for (size_t time = 0; time != itsSolInts[bufferIndex].DataBuffers().size();
-       ++time) {
-    DPBuffer& data_buffer = itsSolInts[bufferIndex].DataBuffers()[time];
+  for (size_t time = 0; time != itsSolIntBuffers[bufferIndex].Size(); ++time) {
+    DPBuffer& data_buffer = itsSolIntBuffers[bufferIndex].DataBuffers()[time];
     const std::vector<std::vector<std::complex<float>>>& modelData =
         itsModelData[time];
     for (size_t bl = 0; bl < nBl; ++bl) {

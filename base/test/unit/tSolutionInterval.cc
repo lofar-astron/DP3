@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(insertion) {
   SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
   BOOST_TEST(solInt.Size() == 0U);
 
-  solInt.CopyBuffer(buffer);
+  solInt.PushBack(buffer);
   BOOST_TEST_REQUIRE(solInt.Size() == 1U);
 
   BOOST_TEST(&solInt[0] != &buffer);
@@ -99,8 +99,8 @@ BOOST_AUTO_TEST_CASE(limit) {
 
   SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
 
-  solInt.CopyBuffer(buffer);
-  BOOST_CHECK_THROW(solInt.CopyBuffer(buffer), std::runtime_error);
+  solInt.PushBack(buffer);
+  BOOST_CHECK_THROW(solInt.PushBack(buffer), std::runtime_error);
 }
 
 /// Test if buffer is a copy and can be changed
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(copy) {
   DPBuffer buffer = InitBuffer();
 
   SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
-  solInt.CopyBuffer(buffer);
+  solInt.PushBack(buffer);
 
   BOOST_TEST(&solInt[0] != &buffer);
   BOOST_TEST(solInt[0].getData().tovector() == buffer.getData().tovector());
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(restore) {
   DPBuffer buffer = InitBuffer();
 
   SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
-  solInt.CopyBuffer(buffer);
+  solInt.PushBack(buffer);
 
   // Overwrite the values in the buffer
   casacore::Complex new_data(42.0f, -42.0f);

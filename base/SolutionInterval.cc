@@ -26,8 +26,8 @@ SolutionInterval::SolutionInterval(InputStep& input,
 
 SolutionInterval::~SolutionInterval() {}
 
-void SolutionInterval::CopyBuffer(const DPBuffer& buffer) {
-  if (buffer_index_ >= buffers_.capacity()) {
+void SolutionInterval::PushBack(const DPBuffer& buffer) {
+  if (buffer_index_ >= buffers_.size()) {
     throw std::runtime_error("SolutionInterval exceeds buffer size");
   }
 
