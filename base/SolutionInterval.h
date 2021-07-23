@@ -28,8 +28,8 @@ class SolutionInterval {
                    common::NSTimer timer);
   ~SolutionInterval();
 
-  // Copy a buffer to the Solution Interval.
-  void CopyBuffer(const DPBuffer&);
+  // Copy a buffer and append it to the Solution Interval.
+  void PushBack(const DPBuffer&);
 
   /// Restore the flags and weights of added buffers to the original values
   void RestoreFlagsAndWeights();
