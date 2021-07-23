@@ -84,8 +84,11 @@ class SolverBase {
    * If enabled, the solver will perform steps along the complex
    * circle, instead of moving freely through complex space.
    * See the implementation of @ref MakeStep().
+   *{
    */
+  bool GetPhaseOnly() const { return phase_only_; }
   void SetPhaseOnly(bool phase_only) { phase_only_ = phase_only; }
+  /** @} */
 
   /**
    * Max nr of iterations (stopping criterion).
@@ -117,10 +120,13 @@ class SolverBase {
 
   /**
    * Required relative accuracy for the constraints to finish.
+   * @{
    */
   void SetConstraintAccuracy(double constraint_accuracy) {
     constraint_accuracy_ = constraint_accuracy;
   }
+  double GetConstraintAccuracy() const { return constraint_accuracy_; }
+  /** @} */
 
   /**
    * The step size taken each iteration. Higher values might
@@ -160,6 +166,10 @@ class SolverBase {
 
   void SetLLSSolverType(LLSSolverType solver_type, double min_tolerance,
                         double max_tolerance);
+  LLSSolverType GetLLSSolverType() const { return lls_solver_type_; }
+  std::pair<double, double> GetLLSSolverTolerance() const {
+    return std::make_pair(lls_min_tolerance_, lls_max_tolerance_);
+  }
 
   /**
    * Returns a list of solvers that this solver uses and for which
