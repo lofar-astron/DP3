@@ -37,7 +37,7 @@ CalType StringToCalType(const std::string& modestr) {
   throw std::runtime_error("Unknown mode: " + modestr);
 }
 
-std::string CalTypeToString(CalType caltype) {
+std::string ToString(CalType caltype) {
   switch (caltype) {
     case CalType::kDiagonal:
       return "diagonal";

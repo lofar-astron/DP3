@@ -299,7 +299,7 @@ void GainCal::show(std::ostream& os) const {
   os << "  nchan:               " << itsNChan << '\n';
   os << "  max iter:            " << itsMaxIter << '\n';
   os << "  tolerance:           " << itsTolerance << '\n';
-  os << "  caltype:             " << CalTypeToString(itsMode) << '\n';
+  os << "  caltype:             " << ToString(itsMode) << '\n';
   os << "  apply solution:      " << std::boolalpha << itsApplySolution << '\n';
   os << "  propagate solutions: " << std::boolalpha << itsPropagateSolutions
      << '\n';
@@ -1097,7 +1097,7 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
         break;
       default:
         throw Exception("Unhandled mode in writing H5Parm output: " +
-                        CalTypeToString(caltype));
+                        ToString(caltype));
     }
     soltabs.push_back(soltab);
   }

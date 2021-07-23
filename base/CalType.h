@@ -28,7 +28,7 @@ enum class CalType {
 CalType StringToCalType(const std::string& mode);
 
 /// Convert CalType to a string
-std::string CalTypeToString(CalType caltype);
+std::string ToString(CalType caltype);
 
 }  // namespace base
 }  // namespace dp3

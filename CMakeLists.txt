@@ -305,6 +305,7 @@ add_library(
   steps/BdaDdeCal.cc
   steps/DDECal.cc
   ddecal/Settings.cc
+  ddecal/SolverFactory.cc
   ddecal/constraints/Constraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
@@ -515,11 +516,12 @@ if(BUILD_TESTING)
       base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
+      ddecal/test/unit/tBdaSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
+      ddecal/test/unit/tSolverFactory.cc
       ddecal/test/unit/tSolvers.cc
-      ddecal/test/unit/tBdaSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/fixtures/fDirectory.cc
