@@ -98,8 +98,8 @@ class BdaSolverBuffer {
 
   void SubtractCorrectedModel(
       const std::vector<std::vector<std::complex<float>>>& solutions,
-      size_t n_channel_blocks, bool full_jones, const std::vector<int>& ant1,
-      const std::vector<int>& ant2);
+      size_t n_channel_blocks, size_t n_polarizations,
+      const std::vector<int>& ant1, const std::vector<int>& ant2);
 
   std::vector<std::unique_ptr<base::BDABuffer>> GetDone() {
     std::vector<std::unique_ptr<base::BDABuffer>> result;
