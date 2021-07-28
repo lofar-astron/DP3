@@ -377,9 +377,10 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
 
 BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   // Test full jones subtraction on the first row,
-  // test scalar subtraction on the second row,
-  // and test that the third row remains intact.
-  const size_t kNRows = 3;
+  // test diagonal subtraction on the second row,
+  // test scalar subtraction on the third row,
+  // and test that the fourth row remains intact.
+  const size_t kNRows = 4;
   const aocommon::MC2x2F kDataValue({10, 20}, {11, 21}, {12, 22}, {13, 23});
   const aocommon::MC2x2F kModelValue({1, 10}, {2, 20}, {3, 30}, {4, 40});
   const std::array<float, kNCorrelations> kWeight{1, 1, 1, 1};
@@ -393,6 +394,16 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const aocommon::MC2x2F kFullJonesResult(
       kDataValue[0] - kSolvedFullJones[0], kDataValue[1] - kSolvedFullJones[1],
       kDataValue[2] - kSolvedFullJones[2], kDataValue[3] - kSolvedFullJones[3]);
+
+  const aocommon::MC2x2F kDiagonalSolution1(kSolutions.front()[0], 0.0f, 0.0f,
+                                            kSolutions.front()[1]);
+  const aocommon::MC2x2F kDiagonalSolution2(kSolutions.front()[2], 0.0f, 0.0f,
+                                            kSolutions.front()[3]);
+  const aocommon::MC2x2F kSolvedDiagonal =
+      kDiagonalSolution1.Multiply(kModelValue).MultiplyHerm(kDiagonalSolution2);
+  const aocommon::MC2x2F kDiagonalResult(
+      kDataValue[0] - kSolvedDiagonal[0], kDataValue[1] - kSolvedDiagonal[1],
+      kDataValue[2] - kSolvedDiagonal[2], kDataValue[3] - kSolvedDiagonal[3]);
 
   const std::complex<float> kScalarFactor =
       kSolutions.front()[0] * std::conj(kSolutions.front()[1]);
@@ -421,20 +432,24 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2, kInterval);
   DoAppendAndWeight(solver_buffer, std::move(data_buffer),
                     std::move(model_buffer));
-  solver_buffer.SubtractCorrectedModel(kSolutions, 1, true, kAnt1, kAnt2);
+  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 4, kAnt1, kAnt2);
   solver_buffer.AdvanceInterval();
-  solver_buffer.SubtractCorrectedModel(kSolutions, 1, false, kAnt1, kAnt2);
+  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 2, kAnt1, kAnt2);
+  solver_buffer.AdvanceInterval();
+  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 1, kAnt1, kAnt2);
   solver_buffer.AdvanceInterval();
   solver_buffer.AdvanceInterval();
 
   std::vector<std::unique_ptr<BDABuffer>> data_out = solver_buffer.GetDone();
   BOOST_REQUIRE_EQUAL(data_out.size(), 1u);
-  BOOST_REQUIRE_EQUAL(data_out.front()->GetRows().size(), 3u);
+  BOOST_REQUIRE_EQUAL(data_out.front()->GetRows().size(), kNRows);
   const std::complex<float>* data_fulljones = data_out.front()->GetData(0);
-  const std::complex<float>* data_scalar = data_out.front()->GetData(1);
-  const std::complex<float>* data_uncorrected = data_out.front()->GetData(2);
+  const std::complex<float>* data_diagonal = data_out.front()->GetData(1);
+  const std::complex<float>* data_scalar = data_out.front()->GetData(2);
+  const std::complex<float>* data_uncorrected = data_out.front()->GetData(3);
   for (size_t c = 0; c < kNCorrelations; ++c) {
     CheckComplex(data_fulljones[c], kFullJonesResult.Data()[c]);
+    CheckComplex(data_diagonal[c], kDiagonalResult.Data()[c]);
     CheckComplex(data_scalar[c], kScalarResult[c]);
     BOOST_CHECK_EQUAL(data_uncorrected[c], kDataValue.Data()[c]);
   }

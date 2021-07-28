@@ -166,8 +166,8 @@ void BdaSolverBuffer::AddInterval(size_t n_directions) {
 
 void BdaSolverBuffer::SubtractCorrectedModel(
     const std::vector<std::vector<std::complex<float>>>& solutions,
-    size_t n_channel_blocks, bool full_jones, const std::vector<int>& antennas1,
-    const std::vector<int>& antennas2) {
+    size_t n_channel_blocks, size_t n_polarizations,
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2) {
   // data_ and data_rows_ still hold the original unweighted input data, since
   // the Solver doesn't change those. Here we apply the solutions to all the
   // model data directions and subtract them from the unweighted input data.
@@ -204,25 +204,42 @@ void BdaSolverBuffer::SubtractCorrectedModel(
         if (ch == chan_block_end[chan_block]) ++chan_block;
         const std::vector<std::complex<float>>& sol_block =
             solutions[chan_block];
+        assert((sol1_index + 1) * n_polarizations <= sol_block.size());
+        assert((sol2_index + 1) * n_polarizations <= sol_block.size());
 
-        if (full_jones) {
-          assert((sol1_index + 1) * kNCorrelations <= sol_block.size());
-          assert((sol2_index + 1) * kNCorrelations <= sol_block.size());
-          const aocommon::MC2x2 sol1(&sol_block[sol1_index * kNCorrelations]);
-          const aocommon::MC2x2 sol2(&sol_block[sol2_index * kNCorrelations]);
-          const aocommon::MC2x2 solved =
-              sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
-          for (size_t corr = 0; corr < kNCorrelations; ++corr) {
-            unweighted_data[corr] -= solved[corr];
+        switch (n_polarizations) {
+          case 4: {
+            const aocommon::MC2x2 sol1(&sol_block[sol1_index * 4]);
+            const aocommon::MC2x2 sol2(&sol_block[sol2_index * 4]);
+            const aocommon::MC2x2 solved =
+                sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
+            for (size_t corr = 0; corr < kNCorrelations; ++corr) {
+              unweighted_data[corr] -= solved[corr];
+            }
+            break;
           }
-        } else {
-          assert(sol1_index < sol_block.size());
-          assert(sol2_index < sol_block.size());
-          const std::complex<float> sol_factor =
-              sol_block[sol1_index] * std::conj(sol_block[sol2_index]);
-          for (size_t corr = 0; corr < kNCorrelations; ++corr) {
-            unweighted_data[corr] -= sol_factor * model_data[corr];
+          case 2: {
+            const aocommon::MC2x2 sol1(sol_block[sol1_index * 2], 0.0, 0.0,
+                                       sol_block[sol1_index * 2 + 1]);
+            const aocommon::MC2x2 sol2(sol_block[sol2_index * 2], 0.0, 0.0,
+                                       sol_block[sol2_index * 2 + 1]);
+            const aocommon::MC2x2 solved =
+                sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
+            for (size_t corr = 0; corr < kNCorrelations; ++corr) {
+              unweighted_data[corr] -= solved[corr];
+            }
+            break;
           }
+          case 1: {
+            const std::complex<float> sol_factor =
+                sol_block[sol1_index] * std::conj(sol_block[sol2_index]);
+            for (size_t corr = 0; corr < kNCorrelations; ++corr) {
+              unweighted_data[corr] -= sol_factor * model_data[corr];
+            }
+            break;
+          }
+          default:
+            assert(false);
         }
 
         unweighted_data += kNCorrelations;
