@@ -61,12 +61,6 @@ template <typename ITER>
 void print(std::ostream& os, ITER begin, ITER end, const char* separator = ",",
            const char* prefix = "[", const char* postfix = "]");
 
-/// Write a vector to an ostream with a given separator, prefix and postfix.
-template <class T>
-void writeVector(std::ostream& os, const std::vector<T>& vec,
-                 const char* separator = ",", const char* prefix = "[",
-                 const char* postfix = "]");
-
 /// Print the contents of a vector enclosed in square brackets, using a comma
 /// as separator.
 /// \note operator<<() must be defined for type \c T.
@@ -107,20 +101,12 @@ inline void print(std::ostream& os, ITER begin, ITER end, const char* separator,
   os << postfix;
 }
 
-/// Write a vector to an ostream with a given separator, prefix and postfix.
-template <class T>
-inline void writeVector(std::ostream& os, const std::vector<T>& vec,
-                        const char* separator, const char* prefix,
-                        const char* postfix) {
-  print(os, vec.begin(), vec.end(), separator, prefix, postfix);
-}
-
 /// Print the contents of a vector enclosed in square brackets, using a comma
 /// as separator.
 /// \note operator<<() must be defined for type \c T.
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
-  writeVector<T>(os, v, ",", "[", "]");
+  print(os, v.begin(), v.end(), ",", "[", "]");
   return os;
 }
 
