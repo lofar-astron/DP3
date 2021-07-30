@@ -112,7 +112,7 @@ class DDECal : public Step {
   void doPrepare(const base::DPBuffer& bufin, size_t sol_int, size_t step);
 
   /// Initialize solutions
-  void initializeScalarSolutions(size_t);
+  void InitializeScalarOrDiagonalSolutions(size_t);
 
   void initializeFullMatrixSolutions(size_t);
 
@@ -122,7 +122,7 @@ class DDECal : public Step {
 
   void storeModelData(
       const std::vector<std::vector<base::DPBuffer>>& input_model_buffers);
-  void subtractCorrectedModel(bool fullJones, size_t bufferIndex);
+  void subtractCorrectedModel(size_t bufferIndex);
 
   InputStep& itsInput;
   const ddecal::Settings itsSettings;

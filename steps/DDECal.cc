@@ -538,14 +538,15 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "]" << '\n';
 }
 
-void DDECal::initializeScalarSolutions(size_t bufferIndex) {
+void DDECal::InitializeScalarOrDiagonalSolutions(size_t bufferIndex) {
   if (itsSolIntBuffers[bufferIndex].NSolution() > 0 &&
       itsSettings.propagate_solutions) {
     if (itsNIter[itsSolIntBuffers[bufferIndex].NSolution() - 1] >
             itsSolver->GetMaxIterations() &&
         itsSettings.propagate_converged_only) {
       // initialize solutions with 1.
-      size_t n = itsDirections.size() * info().antennaUsed().size();
+      const size_t n = itsDirections.size() * info().antennaUsed().size() *
+                       itsSolver->NSolutionPolarizations();
       for (std::vector<casacore::DComplex>& solvec :
            itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
         solvec.assign(n, 1.0);
@@ -557,7 +558,8 @@ void DDECal::initializeScalarSolutions(size_t bufferIndex) {
     }
   } else {
     // initialize solutions with 1.
-    size_t n = itsDirections.size() * info().antennaUsed().size();
+    const size_t n = itsDirections.size() * info().antennaUsed().size() *
+                     itsSolver->NSolutionPolarizations();
     for (std::vector<casacore::DComplex>& solvec :
          itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
       solvec.assign(n, 1.0);
@@ -698,49 +700,17 @@ void DDECal::doSolve() {
         }
       }
 
-      const size_t n_solution_polarizations =
-          itsSolver->NSolutionPolarizations();
-      if (n_solution_polarizations == 1)
-        initializeScalarSolutions(i);
-      else
+      if (itsSolver->NSolutionPolarizations() == 4)
         initializeFullMatrixSolutions(i);
+      else
+        InitializeScalarOrDiagonalSolutions(i);
 
       itsTimerSolve.start();
 
-      if (n_solution_polarizations == 2) {
-        // Temporary fix: convert solutions from full Jones matrices to diagonal
-        std::vector<std::vector<casacore::DComplex>>& full_solutions =
-            itsSols[itsSolIntBuffers[i].NSolution()];
-        std::vector<std::vector<std::complex<double>>> diagonals(
-            full_solutions.size());
-        for (size_t ch_block = 0; ch_block != diagonals.size(); ++ch_block) {
-          diagonals[ch_block].reserve(full_solutions[ch_block].size() / 2);
-          for (size_t s = 0; s != full_solutions[ch_block].size() / 4; ++s) {
-            diagonals[ch_block].push_back(
-                itsSols[itsSolIntBuffers[i].NSolution()][ch_block][s * 4]);
-            diagonals[ch_block].push_back(
-                itsSols[itsSolIntBuffers[i].NSolution()][ch_block][s * 4 + 3]);
-          }
-        }
+      solveResult = itsSolver->Solve(
+          solver_buffer, itsSols[itsSolIntBuffers[i].NSolution()],
+          itsAvgTime / itsRequestedSolInt, itsStatStream.get());
 
-        solveResult = itsSolver->Solve(solver_buffer, diagonals,
-                                       itsAvgTime / itsRequestedSolInt,
-                                       itsStatStream.get());
-
-        // Temporary fix: extend solutions from diagonal to full Jones matrices
-        for (size_t chBlock = 0; chBlock != full_solutions.size(); ++chBlock) {
-          for (size_t s = 0; s != full_solutions[chBlock].size() / 4; ++s) {
-            full_solutions[chBlock][s * 4] = diagonals[chBlock][s * 2];
-            full_solutions[chBlock][s * 4 + 1] = 0.0;
-            full_solutions[chBlock][s * 4 + 2] = 0.0;
-            full_solutions[chBlock][s * 4 + 3] = diagonals[chBlock][s * 2 + 1];
-          }
-        }
-      } else {
-        solveResult = itsSolver->Solve(
-            solver_buffer, itsSols[itsSolIntBuffers[i].NSolution()],
-            itsAvgTime / itsRequestedSolInt, itsStatStream.get());
-      }
       itsTimerSolve.stop();
 
       itsNIter[itsSolIntBuffers[i].NSolution()] = solveResult.iterations;
@@ -749,7 +719,7 @@ void DDECal::doSolve() {
     }
 
     if (itsSettings.subtract || itsSettings.only_predict) {
-      subtractCorrectedModel(itsSolver->NSolutionPolarizations() != 1, i);
+      subtractCorrectedModel(i);
     }
 
     // Check for nonconvergence and flag if desired. Unconverged solutions are
@@ -949,37 +919,18 @@ void DDECal::writeSolutions() {
     unsigned int nSolChan = itsSols[0].size();
     assert(nSolChan == itsChanBlockFreqs.size());
 
-    size_t nSt = info().antennaUsed().size();
-    std::vector<casacore::DComplex> sols(nSolChan * nSt * nSolTimes * nDir *
-                                         nPol);
-    size_t i = 0;
-
-    // For nPol=1, loop over pol runs just once
-    // For nPol=2, it runs over values 0 and 2 (picking diagonal elements from 4
-    // pols) For nPol=4, it runs over 0, 1, 2, 3
-    unsigned int polIncr = (itsSettings.mode == CalType::kFullJones ? 1 : 3);
-    unsigned int maxPol = (nPol > 1 ? 4 : 1);
     // Put solutions in a contiguous piece of memory
-    for (unsigned int time = 0; time < nSolTimes; ++time) {
-      for (unsigned int chan = 0; chan < nSolChan; ++chan) {
-        for (unsigned int ant = 0; ant < nSt; ++ant) {
-          for (unsigned int dir = 0; dir < nDir; ++dir) {
-            for (unsigned int pol = 0; pol < maxPol; pol += polIncr) {
-              assert(!itsSols[time].empty());
-              assert(!itsSols[time][chan].empty());
-              assert(time < itsSols.size());
-              assert(chan < itsSols[time].size());
-              assert(ant * nDir * maxPol + dir * maxPol + pol <
-                     itsSols[time][chan].size());
-              assert(i < sols.size());
-              sols[i] =
-                  itsSols[time][chan][ant * nDir * maxPol + dir * maxPol + pol];
-              ++i;
-            }
-          }
-        }
+    size_t nSt = info().antennaUsed().size();
+    assert(nPol == itsSolver->NSolutionPolarizations());
+    std::vector<casacore::DComplex> sols;
+    sols.reserve(nSolTimes * nSolChan * nSt * nDir * nPol);
+    for (const auto& time_solution : itsSols) {
+      for (const auto& block_solution : time_solution) {
+        sols.insert(sols.end(), block_solution.begin(), block_solution.end());
       }
     }
+    assert(sols.size() == nSolTimes * nSolChan * nSt * nDir * nPol);
+
     std::vector<schaapcommon::h5parm::AxisInfo> axes;
     axes.emplace_back(schaapcommon::h5parm::AxisInfo("time", itsSols.size()));
     axes.emplace_back(schaapcommon::h5parm::AxisInfo("freq", nSolChan));
@@ -1001,48 +952,32 @@ void DDECal::writeSolutions() {
       numsols = 2;
     }
     for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
-      string solTabName;
-      schaapcommon::h5parm::SolTab soltab;
+      bool store_phase = true;  // false means store amplitude.
       switch (itsSettings.mode) {
-        case CalType::kScalarPhase:
-        case CalType::kDiagonalPhase:
-        case CalType::kFullJones:
-          if (solnum == 0) {
-            solTabName = "phase000";
-            soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
-            soltab.SetComplexValues(sols, std::vector<double>(), false,
-                                    historyString);
-          } else {
-            solTabName = "amplitude000";
-            soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
-            soltab.SetComplexValues(sols, std::vector<double>(), true,
-                                    historyString);
-          }
-          break;
         case CalType::kScalar:
         case CalType::kDiagonal:
-          if (solnum == 0) {
-            solTabName = "phase000";
-            soltab = itsH5Parm.CreateSolTab(solTabName, "phase", axes);
-            soltab.SetComplexValues(sols, std::vector<double>(), false,
-                                    historyString);
-          } else {
-            solTabName = "amplitude000";
-            soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
-            soltab.SetComplexValues(sols, std::vector<double>(), true,
-                                    historyString);
-          }
+        case CalType::kFullJones:
+          store_phase = solnum == 0;
+          break;
+        case CalType::kScalarPhase:
+        case CalType::kDiagonalPhase:
+          store_phase = true;
           break;
         case CalType::kScalarAmplitude:
         case CalType::kDiagonalAmplitude:
-          solTabName = "amplitude000";
-          soltab = itsH5Parm.CreateSolTab(solTabName, "amplitude", axes);
-          soltab.SetComplexValues(sols, std::vector<double>(), true,
-                                  historyString);
+          store_phase = false;
           break;
         default:
           throw std::runtime_error("Constraint should have produced output");
       }
+
+      schaapcommon::h5parm::SolTab& soltab =
+          store_phase
+              ? itsH5Parm.CreateSolTab("phase000", "phase", axes)
+              : itsH5Parm.CreateSolTab("amplitude000", "amplitude", axes);
+
+      soltab.SetComplexValues(sols, std::vector<double>(), !store_phase,
+                              historyString);
 
       // Tell H5Parm which antennas were used
       std::vector<std::string> antennaUsedNames(info().antennaUsed().size());
@@ -1236,7 +1171,7 @@ void DDECal::storeModelData(
   }
 }
 
-void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
+void DDECal::subtractCorrectedModel(size_t bufferIndex) {
   // The original data is still in the data buffers (the solver
   // doesn't change those). Here we apply the solutions to all the model data
   // directions and subtract them from the data.
@@ -1271,10 +1206,20 @@ void DDECal::subtractCorrectedModel(bool fullJones, size_t bufferIndex) {
         } else {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
-            if (fullJones) {
-              aocommon::MC2x2 sol1(
-                  &solutions[chanblock][(ant1 * nDir + dir) * 4]),
-                  sol2(&solutions[chanblock][(ant2 * nDir + dir) * 4]);
+            if (itsSolver->NSolutionPolarizations() == 4) {
+              const aocommon::MC2x2 sol1(
+                  &solutions[chanblock][(ant1 * nDir + dir) * 4]);
+              const aocommon::MC2x2 sol2(
+                  &solutions[chanblock][(ant2 * nDir + dir) * 4]);
+              value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
+                           .MultiplyHerm(sol2);
+            } else if (itsSolver->NSolutionPolarizations() == 2) {
+              const aocommon::MC2x2 sol1(
+                  solutions[chanblock][(ant1 * nDir + dir) * 2 + 0], 0.0, 0.0,
+                  solutions[chanblock][(ant1 * nDir + dir) * 2 + 1]);
+              const aocommon::MC2x2 sol2(
+                  solutions[chanblock][(ant2 * nDir + dir) * 2 + 0], 0.0, 0.0,
+                  solutions[chanblock][(ant2 * nDir + dir) * 2 + 1]);
               value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
                            .MultiplyHerm(sol2);
             } else {
