@@ -23,18 +23,7 @@ foreach(TEST ${INTEGRATION_TESTS})
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
 
-# Notes:
-# - python / pytest testing script will replace the bash integration tests
-# - the collection of python-based integration tests can be invoked with ctest -L pyintegration
-# - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
-set(PYINTEGRATION_TESTS tBdaDdeCal tDDECal)
+add_sequential_pyintegrationtests(tBdaDdeCal)
 
-foreach(TEST ${PYINTEGRATION_TESTS})
-  add_test(
-    NAME ${TEST}
-    COMMAND
-      python3 -m pytest --exitfirst -v
-      --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
-      "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
-  set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration")
-endforeach()
+# tDDECal supports parallel execution since since each subtest uses its own directory.
+add_parallel_pyintegrationtests(tDDECal)

@@ -615,8 +615,9 @@ if(BUILD_TESTING)
   configure_file(scripts/unittests.sh.in unittests.sh)
   add_test(NAME unittests COMMAND unittests.sh -t !@slow -f JUNIT -k
                                   unittests.xml --catch_system_error=yes)
-  set_tests_properties(unittests PROPERTIES LABELS unit FIXTURES_REQUIRED
-                                            "unittests;extract_resources")
+  set_tests_properties(
+    unittests PROPERTIES LABELS unit FIXTURES_REQUIRED
+                         "unittests;extract_resources" COST 1)
 
   # Long running tests are labeled 'slow' and use a separate add_test call, so
   # ctest can run them in parallel. Unfortunately there is no easy means of
@@ -650,10 +651,50 @@ if(BUILD_TESTING)
     set(XMLNAME "unittest_${XMLNAME}.xml")
     add_test(NAME ${TEST} COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME}
                                   --catch_system_error=yes)
+    set(COST $<IF:${TEST} MATCHES solver,10,1>)
     set_tests_properties(
       ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED
-                         "unittests;extract_resources")
+                         "unittests;extract_resources" COST ${COST})
   endforeach()
+
+  # Notes:
+  # - the collection of python-based integration tests can be invoked with ctest -L pyintegration
+  # - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
+  function(add_sequential_pyintegrationtests)
+    foreach(TEST ${ARGN})
+      add_test(
+        NAME ${TEST}
+        COMMAND
+          python3 -m pytest --exitfirst -v
+          --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
+          "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
+      set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration" COST 2)
+    endforeach()
+  endfunction()
+
+  #Supports running pytest with multiple workers
+  #Use #cores / 4 workers for each test, with a minimum of 1.
+  include(ProcessorCount)
+  ProcessorCount(PYTEST_WORKERS)
+  math(EXPR PYTEST_WORKERS ${PYTEST_WORKERS}/4)
+  if(PYTEST_WORKERS EQUAL 0)
+    set(PYTEST_WORKERS 1)
+  endif()
+
+  #Since the parallel tests are slow (otherwise they would run sequentially),
+  #and use many cores, assign a high COST value to this test type.
+  function(add_parallel_pyintegrationtests)
+    foreach(TEST ${ARGN})
+      add_test(
+        NAME ${TEST}
+        COMMAND
+          python3 -m pytest --exitfirst -v --workers ${PYTEST_WORKERS}
+          --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
+          "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
+      set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration" PROCESSORS
+                                              ${PYTEST_WORKERS} COST 10)
+    endforeach()
+  endfunction()
 
   add_subdirectory(steps/test/integration)
   add_subdirectory(ddecal/test/integration)
