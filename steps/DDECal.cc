@@ -880,7 +880,7 @@ void DDECal::WriteSolutions() {
     used_antenna_names.emplace_back(info().antennaNames()[used_antenna]);
   }
 
-  const std::string history = "CREATE by " + DPPPVersion::AsString() + "\n" +
+  const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
                               "step " + itsSettings.name + " in parset: \n" +
                               itsSettings.parset_string;
 

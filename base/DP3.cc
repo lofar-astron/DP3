@@ -178,24 +178,20 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   // Process until the end.
   unsigned int ntodo = firstStep->getInfo().ntime();
   DPLOG_INFO_STR("Processing " << ntodo << " time slots ...");
-  {
-    ProgressMeter* progress = 0;
-    if (showProgress) {
-      progress = new ProgressMeter(0.0, ntodo, "NDPPP", "Time slots processed",
-                                   "", "", true, 1);
-    }
+  if (showProgress) {
     double ndone = 0;
-    if (showProgress && ntodo > 0) {
-      progress->update(ndone, true);
-    }
+    ProgressMeter progress(ndone, ntodo, "DP3", "Time slots processed", "", "",
+                           true, 1);
+    if (ntodo > 0) progress.update(ndone, true);
     DPBuffer buf;
     while (firstStep->process(buf)) {
       ++ndone;
-      if (showProgress && ntodo > 0) {
-        progress->update(ndone, true);
-      }
+      if (ntodo > 0) progress.update(ndone, true);
     }
-    delete progress;
+  } else {
+    DPBuffer buf;
+    while (firstStep->process(buf)) {
+    }
   }
   // Finish the processing.
   DPLOG_INFO_STR("Finishing processing ...");
