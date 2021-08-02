@@ -22,6 +22,7 @@
 #include "../base/SolutionInterval.h"
 
 #include "../ddecal/Settings.h"
+#include "../ddecal/SolutionWriter.h"
 #include "../ddecal/constraints/Constraint.h"
 #include "../ddecal/gain_solvers/RegularSolverBase.h"
 
@@ -73,12 +74,6 @@ class DDECal : public Step {
   /// Call the actual solver (called once per solution interval)
   void doSolve();
 
-  /// Initialize H5parm-file
-  void initH5parm();
-
-  /// Write out the solutions
-  void writeSolutions();
-
   /// Finish the processing of this step and subsequent steps.
   virtual void finish();
 
@@ -116,9 +111,10 @@ class DDECal : public Step {
 
   void initializeFullMatrixSolutions(size_t);
 
-  /// Convert itsDirections to a vector of strings like "[Patch1, Patch2]"
-  /// Used for setting source names.
-  std::vector<std::string> getDirectionNames();
+  std::vector<std::pair<double, double>> GetSourcePositions() const;
+
+  /// Write all solutions to an H5Parm file using itsSolutionWriter.
+  void WriteSolutions();
 
   void storeModelData(
       const std::vector<std::vector<base::DPBuffer>>& input_model_buffers);
@@ -144,7 +140,7 @@ class DDECal : public Step {
   std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
       itsConstraintSols;
 
-  schaapcommon::h5parm::H5Parm itsH5Parm;
+  ddecal::SolutionWriter itsSolutionWriter;
 
   size_t itsTimeStep;
   /// Number of timeslots to store per solution interval as requested
