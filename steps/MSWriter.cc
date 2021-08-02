@@ -578,9 +578,9 @@ void MSWriter::writeHistory(Table& ms, const common::ParameterSet& parset) {
   time.put(rownr, casacore::Time().modifiedJulianDay() * 24. * 3600.);
   obsId.put(rownr, 0);
   message.put(rownr, "parameters");
-  application.put(rownr, "NDPPP");
+  application.put(rownr, "DP3");
   priority.put(rownr, "NORMAL");
-  origin.put(rownr, DPPPVersion::AsString());
+  origin.put(rownr, DP3Version::AsString());
   parms.put(rownr, appvec);
   cli.put(rownr, clivec);
 }

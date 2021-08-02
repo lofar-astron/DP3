@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         showUsage();
         return 0;
       } else if (param == "-v" || param == "--version") {
-        std::cout << DPPPVersion::AsString() << '\n';
+        std::cout << DP3Version::AsString() << '\n';
         return 0;
       }
     }

@@ -981,7 +981,7 @@ void GainCal::writeSolutionsH5Parm(double) {
   }
 
   // Put solutions in a contiguous piece of memory
-  string historyString = "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
+  string historyString = "CREATE by " + DP3Version::AsString() + "\n" +
                          "step " + itsName + " in parset: \n" + itsParsetString;
 
   if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
