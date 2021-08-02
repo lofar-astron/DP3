@@ -305,6 +305,7 @@ add_library(
   steps/BdaDdeCal.cc
   steps/DDECal.cc
   ddecal/Settings.cc
+  ddecal/SolutionWriter.cc
   ddecal/SolverFactory.cc
   ddecal/constraints/Constraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc

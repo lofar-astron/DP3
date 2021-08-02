@@ -86,7 +86,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsSettings(parset, prefix),
       itsAvgTime(0),
       itsSols(),
-      itsH5Parm(itsSettings.h5parm_name, true),
+      itsSolutionWriter(itsSettings.h5parm_name),
       itsTimeStep(0),
       itsRequestedSolInt(itsSettings.solution_interval),
       itsSolIntCount(1),
@@ -278,21 +278,14 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     antennaPos[i][2] = pos.getValue()[2];
   }
 
+  itsSolutionWriter.AddAntennas(antennaNames, antennaPos);
+
   // Prepare positions for only used antennas, to be used for constraints
   std::vector<std::array<double, 3>> usedAntennaPositions(
       info().antennaUsed().size());
   for (size_t i = 0; i < info().antennaUsed().size(); ++i) {
     usedAntennaPositions[i] = antennaPos[info().antennaUsed()[i]];
   }
-
-  itsH5Parm.AddAntennas(antennaNames, antennaPos);
-
-  std::vector<std::pair<double, double>> sourcePositions;
-  sourcePositions.reserve(itsDirections.size());
-  for (std::shared_ptr<ModelDataStep>& s : itsSteps) {
-    sourcePositions.push_back(s->GetFirstDirection());
-  }
-  itsH5Parm.AddSources(getDirectionNames(), sourcePositions);
 
   size_t nSolTimes =
       (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
@@ -387,7 +380,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
           dynamic_cast<ddecal::ScreenConstraint*>(constraint.get());
       if (screenConstraint != 0) {
         screenConstraint->setAntennaPositions(usedAntennaPositions);
-        screenConstraint->setDirections(sourcePositions);
+        screenConstraint->setDirections(GetSourcePositions());
         screenConstraint->initPiercePoints();
         const size_t ref_antenna = 0;
         const double refX = usedAntennaPositions[ref_antenna][0],
@@ -604,18 +597,6 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
       }
     }
   }
-}
-
-std::vector<std::string> DDECal::getDirectionNames() {
-  std::vector<std::string> res;
-
-  for (const std::vector<std::string>& dir : itsDirections) {
-    std::stringstream ss;
-    ss << dir;
-    res.emplace_back(ss.str());
-  }
-
-  return res;
 }
 
 void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
@@ -879,259 +860,35 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   itsAvgTime += itsAvgTime + bufin.getTime();
 }
 
-void DDECal::writeSolutions() {
+std::vector<std::pair<double, double>> DDECal::GetSourcePositions() const {
+  std::vector<std::pair<double, double>> source_positions;
+  source_positions.reserve(itsSteps.size());
+  for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
+    source_positions.push_back(s->GetFirstDirection());
+  }
+  return source_positions;
+}
+
+void DDECal::WriteSolutions() {
   itsTimer.start();
   itsTimerWrite.start();
 
-  unsigned int nSolTimes =
-      (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
-  unsigned int nDir = itsDirections.size();
-  assert(nSolTimes == itsSols.size());
-  std::vector<double> solTimes(nSolTimes);
-  double starttime = info().startTime();
-  for (unsigned int t = 0; t < nSolTimes; ++t) {
-    solTimes[t] =
-        starttime + (t + 0.5) * info().timeInterval() * itsRequestedSolInt;
+  // Create antenna info for H5Parm, used antennas only.
+  std::vector<std::string> used_antenna_names;
+  used_antenna_names.reserve(info().antennaUsed().size());
+  for (size_t used_antenna : info().antennaUsed()) {
+    used_antenna_names.emplace_back(info().antennaNames()[used_antenna]);
   }
 
-  if (itsConstraintSols[0].empty()) {
-    // Record the actual iterands of the solver, not constraint results
+  const std::string history = "CREATE by " + DPPPVersion::AsString() + "\n" +
+                              "step " + itsSettings.name + " in parset: \n" +
+                              itsSettings.parset_string;
 
-    unsigned int nPol;
-
-    std::vector<string> polarizations;
-    if (itsSettings.mode == CalType::kDiagonal ||
-        itsSettings.mode == CalType::kDiagonalPhase ||
-        itsSettings.mode == CalType::kDiagonalAmplitude) {
-      nPol = 2;
-      polarizations.emplace_back("XX");
-      polarizations.emplace_back("YY");
-    } else if (itsSettings.mode == CalType::kFullJones) {
-      polarizations.emplace_back("XX");
-      polarizations.emplace_back("XY");
-      polarizations.emplace_back("YX");
-      polarizations.emplace_back("YY");
-      nPol = 4;
-    } else {
-      nPol = 1;
-    }
-
-    unsigned int nSolChan = itsSols[0].size();
-    assert(nSolChan == itsChanBlockFreqs.size());
-
-    // Put solutions in a contiguous piece of memory
-    size_t nSt = info().antennaUsed().size();
-    assert(nPol == itsSolver->NSolutionPolarizations());
-    std::vector<casacore::DComplex> sols;
-    sols.reserve(nSolTimes * nSolChan * nSt * nDir * nPol);
-    for (const auto& time_solution : itsSols) {
-      for (const auto& block_solution : time_solution) {
-        sols.insert(sols.end(), block_solution.begin(), block_solution.end());
-      }
-    }
-    assert(sols.size() == nSolTimes * nSolChan * nSt * nDir * nPol);
-
-    std::vector<schaapcommon::h5parm::AxisInfo> axes;
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("time", itsSols.size()));
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("freq", nSolChan));
-    axes.emplace_back(
-        schaapcommon::h5parm::AxisInfo("ant", info().antennaUsed().size()));
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("dir", nDir));
-    if (nPol > 1) {
-      axes.emplace_back(schaapcommon::h5parm::AxisInfo("pol", nPol));
-    }
-
-    string historyString = "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
-                           "step " + itsSettings.name + " in parset: \n" +
-                           itsSettings.parset_string;
-    unsigned int numsols = 1;
-    // For [scalar]complexgain, store two soltabs: phase and amplitude
-    if (itsSettings.mode == CalType::kDiagonal ||
-        itsSettings.mode == CalType::kScalar ||
-        itsSettings.mode == CalType::kFullJones) {
-      numsols = 2;
-    }
-    for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
-      bool store_phase = true;  // false means store amplitude.
-      switch (itsSettings.mode) {
-        case CalType::kScalar:
-        case CalType::kDiagonal:
-        case CalType::kFullJones:
-          store_phase = solnum == 0;
-          break;
-        case CalType::kScalarPhase:
-        case CalType::kDiagonalPhase:
-          store_phase = true;
-          break;
-        case CalType::kScalarAmplitude:
-        case CalType::kDiagonalAmplitude:
-          store_phase = false;
-          break;
-        default:
-          throw std::runtime_error("Constraint should have produced output");
-      }
-
-      schaapcommon::h5parm::SolTab& soltab =
-          store_phase
-              ? itsH5Parm.CreateSolTab("phase000", "phase", axes)
-              : itsH5Parm.CreateSolTab("amplitude000", "amplitude", axes);
-
-      soltab.SetComplexValues(sols, std::vector<double>(), !store_phase,
-                              historyString);
-
-      // Tell H5Parm which antennas were used
-      std::vector<std::string> antennaUsedNames(info().antennaUsed().size());
-      for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
-        antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
-      }
-      soltab.SetAntennas(antennaUsedNames);
-      soltab.SetSources(getDirectionNames());
-
-      if (nPol > 1) {
-        soltab.SetPolarizations(polarizations);
-      }
-
-      soltab.SetFreqs(itsChanBlockFreqs);
-      soltab.SetTimes(solTimes);
-    }  // solnums loop
-  } else {
-    // Record the Constraint::Result in the H5Parm
-
-    unsigned int nConstraints = itsConstraintSols[0].size();
-
-    for (unsigned int constraintNum = 0; constraintNum < nConstraints;
-         ++constraintNum) {
-      // Number of solution names, e.g. 2 for "TEC" and "ScalarPhase"
-      unsigned int nSolNames = itsConstraintSols[0][constraintNum].size();
-      for (unsigned int solNameNum = 0; solNameNum < nSolNames; ++solNameNum) {
-        // Get the result of the constraint solution at first time to get
-        // metadata
-        ddecal::Constraint::Result firstResult =
-            itsConstraintSols[0][constraintNum][solNameNum];
-
-        std::vector<hsize_t> dims(firstResult.dims.size() +
-                                  1);        // Add time dimension at beginning
-        dims[0] = itsConstraintSols.size();  // Number of times
-        size_t numSols = dims[0];
-        for (unsigned int i = 1; i < dims.size(); ++i) {
-          dims[i] = firstResult.dims[i - 1];
-          numSols *= dims[i];
-        }
-
-        std::vector<string> firstaxesnames =
-            common::stringtools::tokenize(firstResult.axes, ",");
-
-        std::vector<schaapcommon::h5parm::AxisInfo> axes;
-        axes.emplace_back(
-            schaapcommon::h5parm::AxisInfo("time", itsConstraintSols.size()));
-        for (size_t axisNum = 0; axisNum < firstaxesnames.size(); ++axisNum) {
-          axes.emplace_back(schaapcommon::h5parm::AxisInfo(
-              firstaxesnames[axisNum], firstResult.dims[axisNum]));
-        }
-
-        // Put solutions in a contiguous piece of memory
-        std::vector<double> sols(numSols);
-        std::vector<double>::iterator nextpos = sols.begin();
-        for (unsigned int time = 0; time < itsSols.size(); ++time) {
-          if (itsConstraintSols[time].size() != itsConstraintSols[0].size())
-            throw std::runtime_error(
-                "Constraint " + std::to_string(constraintNum) +
-                " did not produce a correct output at time step " +
-                std::to_string(time) + ": got " +
-                std::to_string(itsConstraintSols[time].size()) +
-                " results, expecting " +
-                std::to_string(itsConstraintSols[0].size()));
-          nextpos = std::copy(
-              itsConstraintSols[time][constraintNum][solNameNum].vals.begin(),
-              itsConstraintSols[time][constraintNum][solNameNum].vals.end(),
-              nextpos);
-        }
-
-        // Put solution weights in a contiguous piece of memory
-        std::vector<double> weights;
-        if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
-          weights.resize(numSols);
-          std::vector<double>::iterator nextpos = weights.begin();
-          for (unsigned int time = 0; time < itsSols.size(); ++time) {
-            nextpos =
-                std::copy(itsConstraintSols[time][constraintNum][solNameNum]
-                              .weights.begin(),
-                          itsConstraintSols[time][constraintNum][solNameNum]
-                              .weights.end(),
-                          nextpos);
-          }
-        }
-
-        string solTabName = firstResult.name + "000";
-        schaapcommon::h5parm::SolTab soltab =
-            itsH5Parm.CreateSolTab(solTabName, firstResult.name, axes);
-        soltab.SetValues(sols, weights,
-                         "CREATE by DPPP\n" + DPPPVersion::AsString() + "\n" +
-                             "step " + itsSettings.name + " in parset: \n" +
-                             itsSettings.parset_string);
-
-        // Tell H5Parm which antennas were used
-        std::vector<std::string> antennaUsedNames(info().antennaUsed().size());
-        for (unsigned int i = 0; i < info().antennaUsed().size(); ++i) {
-          antennaUsedNames[i] = info().antennaNames()[info().antennaUsed()[i]];
-        }
-        soltab.SetAntennas(antennaUsedNames);
-
-        soltab.SetSources(getDirectionNames());
-
-        if (soltab.HasAxis("pol")) {
-          std::vector<string> polarizations;
-          switch (soltab.GetAxis("pol").size) {
-            case 2:
-              polarizations.emplace_back("XX");
-              polarizations.emplace_back("YY");
-              break;
-            case 4:
-              polarizations.emplace_back("XX");
-              polarizations.emplace_back("XY");
-              polarizations.emplace_back("YX");
-              polarizations.emplace_back("YY");
-              break;
-            default:
-              throw std::runtime_error(
-                  "No metadata for numpolarizations = " +
-                  std::to_string(soltab.GetAxis("pol").size));
-          }
-
-          soltab.SetPolarizations(polarizations);
-        }
-
-        // Set channel to frequencies
-        // Do not use itsChanBlockFreqs, because constraint may have changed
-        // size
-        unsigned int nChannelBlocks = 1;
-        if (soltab.HasAxis("freq")) {
-          nChannelBlocks = soltab.GetAxis("freq").size;
-        }
-        std::vector<double> chanBlockFreqs;
-
-        chanBlockFreqs.resize(nChannelBlocks);
-        for (size_t chBlock = 0; chBlock != nChannelBlocks; ++chBlock) {
-          const size_t channelIndexStart =
-                           chBlock * info().nchan() / nChannelBlocks,
-                       channelIndexEnd =
-                           (chBlock + 1) * info().nchan() / nChannelBlocks,
-                       curChannelBlockSize =
-                           channelIndexEnd - channelIndexStart;
-          double meanfreq =
-              std::accumulate(info().chanFreqs().data() + channelIndexStart,
-                              info().chanFreqs().data() + channelIndexEnd,
-                              0.0) /
-              curChannelBlockSize;
-          chanBlockFreqs[chBlock] = meanfreq;
-        }
-
-        soltab.SetFreqs(chanBlockFreqs);
-
-        soltab.SetTimes(solTimes);
-      }
-    }
-  }
+  itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
+                          info().timeInterval() * itsSettings.solution_interval,
+                          itsSettings.mode, used_antenna_names,
+                          GetSourcePositions(), itsDirections,
+                          info().chanFreqs(), itsChanBlockFreqs, history);
 
   itsTimerWrite.stop();
   itsTimer.stop();
@@ -1144,7 +901,7 @@ void DDECal::finish() {
     doSolve();
   }
 
-  if (!itsSettings.only_predict) writeSolutions();
+  if (!itsSettings.only_predict) WriteSolutions();
 
   itsSolIntBuffers.clear();
   itsTimer.stop();
