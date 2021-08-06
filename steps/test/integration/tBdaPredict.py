@@ -156,4 +156,4 @@ def test_predicted_values_bda_input(create_skymodel_in_phase_center):
         "  and all(near(abs(DATA[,2]), 0,1e-6))"
         "  and all(near(abs(DATA[,3]),10,1e-6))"
     )
-    assert_taql(taql_command, 153)
+    assert_taql(taql_command, 159)

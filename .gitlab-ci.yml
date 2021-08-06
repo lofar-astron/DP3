@@ -196,7 +196,7 @@ integration-test:
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
-    - pip3 install pytest
+    - pip3 install pytest h5py
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
     - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out

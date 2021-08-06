@@ -6,7 +6,9 @@
 
 #include "Step.h"
 #include "../ddecal/Settings.h"
+#include "../ddecal/SolutionWriter.h"
 #include "../ddecal/gain_solvers/BdaSolverBuffer.h"
+#include "../ddecal/gain_solvers/BdaSolverBase.h"
 
 namespace dp3 {
 namespace steps {
@@ -77,20 +79,46 @@ class BdaDdeCal : public Step {
                               const common::ParameterSet& parset,
                               const string& prefix);
 
+  /// Initialize chan_block_start_freqs_.
+  void DetermineChannelBlocks();
+
+  /// Extracts results from all sub-steps and appends them to model_buffers_.
+  void ExtractResults();
+
+  /// Processes the data for the directions where all sub-steps gave results.
+  void ProcessCompleteDirections();
+
+  /// Solve the current solution interval using the BdaSolverBuffer
+  /// and advance to the next solution interval.
+  void SolveCurrentInterval();
+
+  void InitializeCurrentSolutions();
+
+  void WriteSolutions();
+
  private:
   ddecal::Settings settings_;
+  std::unique_ptr<ddecal::SolutionWriter> solution_writer_;
 
   /// For each direction, the first step of that direction.
   std::vector<std::shared_ptr<ModelDataStep>> steps_;
   /// For each direction, a result step.
   std::vector<std::shared_ptr<BDAResultStep>> result_steps_;
+  /// For each direction, a list of patch names.
+  std::vector<std::vector<std::string>> patches_;
 
   /**
    * Stores the data buffers received from the process() function.
-   * When a buffer is fully processed, it sends it to the next step.
    * This member is not used when only_predict is true.
    */
-  // std::deque<std::unique_ptr<base::BDABuffer>> data_buffers;
+  std::deque<std::unique_ptr<base::BDABuffer>> data_buffers_;
+
+  /**
+   * Stores the result buffers from the sub steps. Each queue item holds
+   * a vector of results for the directions.
+   * When all directions ina queue item are valid, further processing can start.
+   */
+  std::deque<std::vector<std::unique_ptr<base::BDABuffer>>> model_buffers_;
 
   /**
    * Solver buffer.
@@ -99,7 +127,39 @@ class BdaDdeCal : public Step {
    * removes old BDABuffers from the solver buffer.
    * This variable is not used when only_predict is true.
    */
-  ddecal::BdaSolverBuffer solver_buffer_;
+  std::unique_ptr<ddecal::BdaSolverBuffer> solver_buffer_;
+
+  std::unique_ptr<ddecal::BdaSolverBase> solver_;
+
+  /** The solution interval, in seconds. */
+  double solution_interval_;
+
+  /**
+   * For each channel block, the start and end frequencies. The start and end
+   * frequencies for channel block 'cb' are at indices 'cb' and 'cb + 1'.
+   */
+  std::vector<double> chan_block_start_freqs_;
+
+  /**
+   * Antenna lists, which contain the used antenna index for each baseline.
+   * @{
+   */
+  std::vector<int> antennas1_;
+  std::vector<int> antennas2_;
+  /** @} */
+
+  /// For each time, for each channel block, a vector of size nAntennas *
+  /// nDirections
+  std::vector<std::vector<std::vector<casacore::DComplex>>> solutions_;
+
+  /// For each solution interval, the amount the solver iterations.
+  std::vector<size_t> iterations_;
+  std::vector<size_t> approx_iterations_;
+
+  /// For each time, for each constraint, a vector of results (e.g. tec and
+  /// phase)
+  std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
+      constraint_solutions_;
 };
 
 }  // namespace steps

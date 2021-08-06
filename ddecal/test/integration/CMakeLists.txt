@@ -23,7 +23,5 @@ foreach(TEST ${INTEGRATION_TESTS})
   set_tests_properties(${TEST} PROPERTIES LABELS "integration")
 endforeach()
 
-add_sequential_pyintegrationtests(tBdaDdeCal)
-
-# tDDECal supports parallel execution since since each subtest uses its own directory.
-add_parallel_pyintegrationtests(tDDECal)
+# Parallel execution works since since each subtest uses its own directory.
+add_parallel_pyintegrationtests(tBdaDdeCal tDDECal)

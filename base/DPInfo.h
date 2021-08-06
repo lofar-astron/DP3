@@ -182,6 +182,9 @@ class DPInfo {
   const std::vector<double>& chanFreqs(std::size_t baseline = 0) const {
     return itsChanFreqs[baseline];
   }
+  const std::vector<std::vector<double>>& BdaChanFreqs() const {
+    return itsChanFreqs;
+  }
   const std::vector<double>& chanWidths(std::size_t baseline = 0) const {
     return itsChanWidths[baseline];
   }
