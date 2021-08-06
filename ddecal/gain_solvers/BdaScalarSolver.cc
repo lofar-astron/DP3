@@ -9,11 +9,9 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
 
-using aocommon::ParallelFor;
-
-#include <iomanip>
-#include <iostream>
 #include <boost/make_unique.hpp>
+
+#include <iostream>
 
 namespace dp3 {
 namespace ddecal {
@@ -68,7 +66,7 @@ BdaScalarSolver::SolveResult BdaScalarSolver::Solve(
   do {
     MakeSolutionsFinite1Pol(solutions);
 
-    ParallelFor<size_t> loop(GetNThreads());
+    aocommon::ParallelFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(), [&](size_t chBlock, size_t /*thread*/) {
       const SolveData::ChannelBlockData& channelBlock =
           data.ChannelBlock(chBlock);

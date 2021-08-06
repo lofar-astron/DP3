@@ -6,7 +6,11 @@
 #include "../../Settings.h"
 #include "../../constraints/RotationAndDiagonalConstraint.h"
 #include "../../constraints/RotationConstraint.h"
+
+#ifdef HAVE_ARMADILLO
 #include "../../constraints/ScreenConstraint.h"
+#endif
+
 #include "../../constraints/SmoothnessConstraint.h"
 #include "../../constraints/TECConstraint.h"
 #include "../../gain_solvers/BdaDiagonalSolver.h"

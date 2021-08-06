@@ -384,7 +384,7 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const aocommon::MC2x2F kDataValue({10, 20}, {11, 21}, {12, 22}, {13, 23});
   const aocommon::MC2x2F kModelValue({1, 10}, {2, 20}, {3, 30}, {4, 40});
   const std::array<float, kNCorrelations> kWeight{1, 1, 1, 1};
-  const std::vector<std::vector<std::complex<float>>> kSolutions{
+  const std::vector<std::vector<std::complex<double>>> kSolutions{
       {{1, 2}, {2, 2}, {3, 4}, {4, 4}, {5, 2}, {6, 2}, {7, 1}, {8, 1}}};
 
   const aocommon::MC2x2F kSolution1(kSolutions.front().data());
@@ -395,10 +395,12 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
       kDataValue[0] - kSolvedFullJones[0], kDataValue[1] - kSolvedFullJones[1],
       kDataValue[2] - kSolvedFullJones[2], kDataValue[3] - kSolvedFullJones[3]);
 
-  const aocommon::MC2x2F kDiagonalSolution1(kSolutions.front()[0], 0.0f, 0.0f,
-                                            kSolutions.front()[1]);
-  const aocommon::MC2x2F kDiagonalSolution2(kSolutions.front()[2], 0.0f, 0.0f,
-                                            kSolutions.front()[3]);
+  const aocommon::MC2x2F kDiagonalSolution1(
+      std::complex<float>(kSolutions.front()[0]), 0.0f, 0.0f,
+      std::complex<float>(kSolutions.front()[1]));
+  const aocommon::MC2x2F kDiagonalSolution2(
+      std::complex<float>(kSolutions.front()[2]), 0.0f, 0.0f,
+      std::complex<float>(kSolutions.front()[3]));
   const aocommon::MC2x2F kSolvedDiagonal =
       kDiagonalSolution1.Multiply(kModelValue).MultiplyHerm(kDiagonalSolution2);
   const aocommon::MC2x2F kDiagonalResult(
@@ -406,13 +408,16 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
       kDataValue[2] - kSolvedDiagonal[2], kDataValue[3] - kSolvedDiagonal[3]);
 
   const std::complex<float> kScalarFactor =
-      kSolutions.front()[0] * std::conj(kSolutions.front()[1]);
+      std::complex<float>(kSolutions.front()[0]) *
+      std::conj(std::complex<float>(kSolutions.front()[1]));
   const std::array<std::complex<float>, kNCorrelations> kScalarResult{
       kDataValue[0] - kScalarFactor * kModelValue[0],
       kDataValue[1] - kScalarFactor * kModelValue[1],
       kDataValue[2] - kScalarFactor * kModelValue[2],
       kDataValue[3] - kScalarFactor * kModelValue[3]};
 
+  const std::vector<double> kStartFreqs{100, 200};
+  const std::vector<std::vector<double>> kChanFreqs{{150}};
   const std::vector<int> kAnt1{0};
   const std::vector<int> kAnt2{1};
 
@@ -432,11 +437,14 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2, kInterval);
   DoAppendAndWeight(solver_buffer, std::move(data_buffer),
                     std::move(model_buffer));
-  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 4, kAnt1, kAnt2);
+  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 4, kAnt1, kAnt2,
+                                       kChanFreqs);
   solver_buffer.AdvanceInterval();
-  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 2, kAnt1, kAnt2);
+  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 2, kAnt1, kAnt2,
+                                       kChanFreqs);
   solver_buffer.AdvanceInterval();
-  solver_buffer.SubtractCorrectedModel(kSolutions, 1, 1, kAnt1, kAnt2);
+  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 1, kAnt1, kAnt2,
+                                       kChanFreqs);
   solver_buffer.AdvanceInterval();
   solver_buffer.AdvanceInterval();
 

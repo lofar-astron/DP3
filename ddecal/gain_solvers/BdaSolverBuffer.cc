@@ -46,6 +46,13 @@ void BdaSolverBuffer::AppendAndWeight(
 
   for (size_t row = 0; row < n_rows; ++row) {
     const BDABuffer::Row& weighted_row = weighted_buffer->GetRows()[row];
+
+    if (weighted_row.interval > time_interval_) {
+      throw std::runtime_error(
+          "Using BDA rows that are longer than the solution interval is not "
+          "supported. Use less BDA time averaging or a larger solution "
+          "interval.");
+    }
     assert(kNCorrelations == weighted_row.n_correlations);
 
     for (size_t ch = 0; ch < weighted_row.n_channels; ++ch) {
@@ -165,9 +172,10 @@ void BdaSolverBuffer::AddInterval(size_t n_directions) {
 }
 
 void BdaSolverBuffer::SubtractCorrectedModel(
-    const std::vector<std::vector<std::complex<float>>>& solutions,
-    size_t n_channel_blocks, size_t n_polarizations,
-    const std::vector<int>& antennas1, const std::vector<int>& antennas2) {
+    const std::vector<std::vector<std::complex<double>>>& solutions,
+    const std::vector<double>& chan_block_start_freqs, size_t n_polarizations,
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2,
+    const std::vector<std::vector<double>>& chan_freqs) {
   // data_ and data_rows_ still hold the original unweighted input data, since
   // the Solver doesn't change those. Here we apply the solutions to all the
   // model data directions and subtract them from the unweighted input data.
@@ -177,12 +185,17 @@ void BdaSolverBuffer::SubtractCorrectedModel(
   for (size_t row = 0; row < data_rows_[0].unweighted.size(); ++row) {
     BDABuffer::Row* unweighted_row = data_rows_[0].unweighted[row];
 
-    // Determine channel block endings for this row.
-    std::vector<size_t> chan_block_end;
-    chan_block_end.reserve(n_channel_blocks);
-    for (size_t b = 0; b < n_channel_blocks; ++b) {
-      chan_block_end.push_back((b + 1) * unweighted_row->n_channels /
-                               n_channel_blocks);
+    // Map each (averaged) channel to a channel block.
+    assert(chan_freqs[unweighted_row->baseline_nr].size() ==
+           unweighted_row->n_channels);
+    std::vector<size_t> channel_blocks;
+    channel_blocks.reserve(unweighted_row->n_channels);
+    size_t block = 0;
+    for (const double freq : chan_freqs[unweighted_row->baseline_nr]) {
+      assert(freq > chan_block_start_freqs[block] &&
+             freq < chan_block_start_freqs.back());
+      while (chan_block_start_freqs[block + 1] < freq) ++block;
+      channel_blocks.push_back(block);
     }
 
     const size_t ant1_index =
@@ -197,13 +210,11 @@ void BdaSolverBuffer::SubtractCorrectedModel(
       const size_t sol1_index = ant1_index + dir;
       const size_t sol2_index = ant2_index + dir;
 
-      size_t chan_block = 0;
       std::complex<float>* unweighted_data = unweighted_row->data;
       const std::complex<float>* model_data = model_row->data;
       for (size_t ch = 0; ch < unweighted_row->n_channels; ++ch) {
-        if (ch == chan_block_end[chan_block]) ++chan_block;
-        const std::vector<std::complex<float>>& sol_block =
-            solutions[chan_block];
+        const std::vector<std::complex<double>>& sol_block =
+            solutions[channel_blocks[ch]];
         assert((sol1_index + 1) * n_polarizations <= sol_block.size());
         assert((sol2_index + 1) * n_polarizations <= sol_block.size());
 
@@ -231,10 +242,11 @@ void BdaSolverBuffer::SubtractCorrectedModel(
             break;
           }
           case 1: {
-            const std::complex<float> sol_factor =
+            const std::complex<double> sol_factor =
                 sol_block[sol1_index] * std::conj(sol_block[sol2_index]);
             for (size_t corr = 0; corr < kNCorrelations; ++corr) {
-              unweighted_data[corr] -= sol_factor * model_data[corr];
+              unweighted_data[corr] -=
+                  sol_factor * std::complex<double>(model_data[corr]);
             }
             break;
           }
