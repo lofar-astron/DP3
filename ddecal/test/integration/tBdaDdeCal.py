@@ -218,3 +218,33 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype, nchan):
         0.,
         decimal=5
     )
+
+def test_subtract(create_skymodel, create_corrupted_data):
+    """Test subtraction"""
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin=corrupted.MS",
+            "msout=out.MS",
+            "steps=[ddecal]",
+            "ddecal.directions=[[center], [ra_off], [radec_off]]",
+            "ddecal.h5parm=solutions.h5",
+            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.mode=diagonal",
+            "ddecal.solint=2",
+            "ddecal.nchan=3",
+            "ddecal.subtract=true",
+            "bda=true",
+        ]
+    )
+
+    residual = float(check_output(
+        [
+            tcf.TAQLEXE,
+            "-nopr",
+            "-noph",
+            "select gmax(abs(DATA)) from out.MS"
+        ]
+    ))
+
+    assert residual < 0.01

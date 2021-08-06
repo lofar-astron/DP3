@@ -305,7 +305,7 @@ void BdaDdeCal::SolveCurrentInterval() {
   if (settings_.subtract) {
     solver_buffer_->SubtractCorrectedModel(
         solutions_.back(), chan_block_start_freqs_,
-        solver_->NSolutionPolarizations() != 1, antennas1_, antennas2_,
+        solver_->NSolutionPolarizations(), antennas1_, antennas2_,
         info().BdaChanFreqs());
   }
 
@@ -462,6 +462,8 @@ void BdaDdeCal::show(std::ostream& stream) const {
     stream << "  solver algorithm:    "
            << ddecal::ToString(settings_.solver_algorithm) << '\n'
            << "  H5Parm:              " << settings_.h5parm_name << '\n'
+           << "  subtract model:      " << std::boolalpha << settings_.subtract
+           << '\n'
            << "  solution interval:   " << solution_interval_ << " s\n"
            << "  #channels/block:     " << nchan << '\n'
            << "  #channel blocks:     " << chan_block_start_freqs_.size() - 1
