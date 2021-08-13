@@ -36,7 +36,9 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
+#include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
+#include <EveryBeam/telescope/phasedarray.h>
 
 #include <iostream>
 #include <boost/make_unique.hpp>
@@ -226,7 +228,7 @@ bool MSBDAReader::process(const DPBuffer&) {
     const double ms_time = time[i];
     const double ms_interval = interval[i];
 
-    if (ms_time + ms_interval / 2 < last_ms_time_ + last_ms_interval_ / 2) {
+    if (ms_time + ms_interval / 2 < last_ms_time_ + last_ms_interval_ / 2 - 0.001) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
       ++i;
@@ -401,6 +403,43 @@ void MSBDAReader::showTimings(std::ostream& os, double duration) const {
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
   os << " MSBDAReader" << '\n';
 }
+
+void MSBDAReader::fillBeamInfo(
+    std::vector<std::shared_ptr<everybeam::Station>>& vec,
+    const casacore::Vector<casacore::String>& antNames,
+    const everybeam::ElementResponseModel element_response_model) const {
+  // Load telescope, containing all stations in MS
+  everybeam::Options options;
+  options.element_response_model = element_response_model;
+  std::unique_ptr<everybeam::telescope::Telescope> telescope =
+      everybeam::Load(ms_, options);
+
+  const everybeam::telescope::PhasedArray* phased_array =
+      dynamic_cast<const everybeam::telescope::PhasedArray*>(telescope.get());
+
+  if (phased_array == nullptr) {
+    throw Exception(
+        "Currently, only PhasedArray telescopes accepted as input, i.e. "
+        "OSKAR or LOFAR");
+  }
+
+  // Copy only those stations for which the name matches.
+  // Note: the order of the station names in both vectors match.
+  vec.resize(antNames.size());
+  unsigned int ant = 0;
+  for (unsigned int i = 0; i < phased_array->GetNrStations(); ++i) {
+    if (ant < antNames.size() &&
+        casacore::String(phased_array->GetStation(i)->GetName()) ==
+            antNames[ant]) {
+      vec[ant] = phased_array->GetStation(i);
+      ant++;
+    }
+  }
+  if (ant != vec.size())
+    throw Exception(
+        "MSReader::fillBeamInfo -"
+        " some stations miss the beam info");
+  }
 
 }  // namespace steps
 }  // namespace dp3
