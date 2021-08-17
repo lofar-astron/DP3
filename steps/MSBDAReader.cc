@@ -228,7 +228,8 @@ bool MSBDAReader::process(const DPBuffer&) {
     const double ms_time = time[i];
     const double ms_interval = interval[i];
 
-    if (ms_time + ms_interval / 2 < last_ms_time_ + last_ms_interval_ / 2 - 0.001) {
+    if (ms_time + ms_interval / 2 <
+        last_ms_time_ + last_ms_interval_ / 2 - 0.001) {
       DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
                      msName() + " is less than previous time slot");
       ++i;
@@ -439,7 +440,7 @@ void MSBDAReader::fillBeamInfo(
     throw Exception(
         "MSReader::fillBeamInfo -"
         " some stations miss the beam info");
-  }
+}
 
 }  // namespace steps
 }  // namespace dp3

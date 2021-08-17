@@ -173,7 +173,8 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
           RB_elements.insert(std::pair<unsigned int, RegularBufferElement>(
               timeslot_index, RB));
         }
-        RB_elements.at(timeslot_index).baseline_[rows[row_nr].baseline_nr] = true;
+        RB_elements.at(timeslot_index).baseline_[rows[row_nr].baseline_nr] =
+            true;
         CopyData(rows[row_nr], RB_elements[timeslot_index].regular_buffer,
                  current_bl);
       }
