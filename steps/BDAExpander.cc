@@ -163,7 +163,18 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
         unsigned int timeslot_index = static_cast<unsigned int>(round(
             (timeslot_start - info().startTime()) / info().timeInterval()));
 
-        RB_elements[timeslot_index].baseline_[rows[row_nr].baseline_nr] = true;
+        auto it = RB_elements.find(timeslot_index);
+        if (it == RB_elements.end()) {
+          // create new element if a RegularBufferElement for the
+          // current_time_centroid does not exist yet
+          RegularBufferElement RB = RegularBufferElement(
+              info().nbaselines(), info().ncorr(), info().nchan(),
+              timeslot_center, info().timeInterval());
+          RB_elements.insert(std::pair<unsigned int, RegularBufferElement>(
+              timeslot_index, RB));
+        }
+        RB_elements.at(timeslot_index).baseline_[rows[row_nr].baseline_nr] =
+            true;
         CopyData(rows[row_nr], RB_elements[timeslot_index].regular_buffer,
                  current_bl);
       }

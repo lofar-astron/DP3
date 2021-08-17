@@ -67,7 +67,9 @@ class BDAExpander : public Step {
 
   class RegularBufferElement {
    public:
-    RegularBufferElement() {}
+    RegularBufferElement() {
+      throw std::runtime_error("Default constructor should not be called");
+    }
     RegularBufferElement(int n_baseline, unsigned int n_corr,
                          unsigned int n_chan, double current_time,
                          double current_exposure);

@@ -153,6 +153,13 @@ class MSBDAReader : public InputStep {
   /// Get the nr of averaged full resolution timeslots.
   unsigned int ntimeAvgFullRes() const override { return 1; }
 
+  /// Fill the vector with station beam info from the input MS.
+  /// Only fill it for the given station names.
+  virtual void fillBeamInfo(
+      std::vector<std::shared_ptr<everybeam::Station>>&,
+      const casacore::Vector<casacore::String>& antNames,
+      const everybeam::ElementResponseModel element_reponse_model) const;
+
   /// Get the time information: cetroid of first and last time slots in the
   /// measurement set
   double firstTime() const override { return first_time_; }
