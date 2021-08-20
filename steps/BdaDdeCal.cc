@@ -45,7 +45,11 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       solutions_(),
       iterations_(),
       approx_iterations_(),
-      constraint_solutions_() {
+      constraint_solutions_(),
+      timer_(),
+      predict_timer_(),
+      solve_timer_(),
+      write_timer_() {
   if (settings_.directions.empty()) {
     throw std::invalid_argument(
         "Invalid info in input parset: direction(s) must be specified");
@@ -178,15 +182,19 @@ void BdaDdeCal::DetermineChannelBlocks() {
 }
 
 bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
+  timer_.start();
+
   BDABuffer::Fields fields(true);
   BDABuffer::Fields copyfields(false);
   copyfields.full_res_flags = true;
   copyfields.flags = true;
 
   // Feed metadata-only copies of the buffer to the steps.
+  predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
     step->process(boost::make_unique<BDABuffer>(*buffer, fields, copyfields));
   }
+  predict_timer_.stop();
 
   if (!settings_.only_predict) {
     // Store the input buffer. When all predict sub-steps have completed a model
@@ -196,6 +204,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
 
   ExtractResults();
 
+  timer_.stop();
   ProcessCompleteDirections();
 
   return true;
@@ -248,7 +257,6 @@ void BdaDdeCal::ProcessCompleteDirections() {
         for (size_t j = 0; j < data_size; ++j) data[j] += other_data[j];
         direction_buffers[dir].reset();
       }
-
       getNextStep()->process(std::move(direction_buffers.front()));
     } else {
       // Send data buffer and model_buffers to solver_buffer_.
@@ -273,6 +281,8 @@ void BdaDdeCal::ProcessCompleteDirections() {
 }
 
 void BdaDdeCal::SolveCurrentInterval() {
+  timer_.start();
+  solve_timer_.start();
   const size_t n_channel_blocks = chan_block_start_freqs_.size() - 1;
   const size_t n_antennas = info().antennaUsed().size();
 
@@ -355,6 +365,9 @@ void BdaDdeCal::SolveCurrentInterval() {
     constraint_solutions_.emplace_back();
   }
   assert(solutions_.size() == constraint_solutions_.size());
+
+  solve_timer_.stop();
+  timer_.stop();
 }
 
 void BdaDdeCal::InitializeCurrentSolutions() {
@@ -399,9 +412,13 @@ void BdaDdeCal::InitializeCurrentSolutions() {
 }
 
 void BdaDdeCal::finish() {
+  timer_.start();
+  predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
     step->finish();
   }
+  predict_timer_.stop();
+  timer_.stop();
 
   ExtractResults();
   ProcessCompleteDirections();
@@ -422,6 +439,8 @@ void BdaDdeCal::finish() {
 }
 
 void BdaDdeCal::WriteSolutions() {
+  timer_.start();
+  write_timer_.start();
   // Create antenna info for H5Parm, used antennas only.
   std::vector<std::string> used_antenna_names;
   used_antenna_names.reserve(info().antennaUsed().size());
@@ -450,6 +469,9 @@ void BdaDdeCal::WriteSolutions() {
                           solution_interval_, settings_.mode,
                           used_antenna_names, source_positions, patches_,
                           info().chanFreqs(), chan_block_freqs, history);
+
+  write_timer_.stop();
+  timer_.stop();
 }
 
 void BdaDdeCal::show(std::ostream& stream) const {
@@ -490,6 +512,29 @@ void BdaDdeCal::show(std::ostream& stream) const {
       step->show(stream);
     }
     stream << '\n';
+  }
+}
+
+void BdaDdeCal::showTimings(std::ostream& os, double duration) const {
+  os << "  ";
+  base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " BdaDdeCal \n";
+
+  const double total_time = timer_.getElapsed();
+  os << "          ";
+  base::FlagCounter::showPerc1(os, predict_timer_.getElapsed(), total_time);
+  os << " of it spent in predict\n";
+
+  if (!settings_.only_predict) {
+    os << "          ";
+    base::FlagCounter::showPerc1(os, solve_timer_.getElapsed(), total_time);
+    os << " of it spent in estimating gains and computing residuals\n";
+
+    solver_->GetTimings(os, solve_timer_.getElapsed());
+
+    os << "          ";
+    base::FlagCounter::showPerc1(os, write_timer_.getElapsed(), total_time);
+    os << " of it spent in writing gain solutions to disk\n";
   }
 }
 

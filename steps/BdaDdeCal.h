@@ -68,6 +68,8 @@ class BdaDdeCal : public Step {
 
   void show(std::ostream&) const override;
 
+  void showTimings(std::ostream&, double duration) const override;
+
   void updateInfo(const base::DPInfo&) override;
 
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
@@ -160,6 +162,11 @@ class BdaDdeCal : public Step {
   /// phase)
   std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
       constraint_solutions_;
+
+  common::NSTimer timer_;
+  common::NSTimer predict_timer_;
+  common::NSTimer solve_timer_;
+  common::NSTimer write_timer_;
 };
 
 }  // namespace steps
