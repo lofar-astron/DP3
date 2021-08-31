@@ -199,8 +199,8 @@ void OnePredict::initializeThreadData() {
     itsPredictBuffer = std::make_shared<base::PredictBuffer>();
   }
   if (itsApplyBeam && itsPredictBuffer->GetStationList().empty()) {
-    itsInput->fillBeamInfo(itsPredictBuffer->GetStationList(),
-                           info().antennaNames(), itsElementResponseModel);
+    telescope_ =
+        itsInput->GetTelescope(itsElementResponseModel, itsUseChannelFreq);
   }
   itsPredictBuffer->resize(nThreads, nCr, nCh, nBl, nSt, itsApplyBeam);
   // Create the Measure ITRF conversion info given the array position.
@@ -387,7 +387,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
         curPatch != itsSourceList[sourceIndex].second && curPatch != nullptr;
     if (itsApplyBeam && patchIsFinished) {
       // Apply the beam and add PatchModel to Model
-      addBeamToData(curPatch, time, refdir, tiledir, thread, nBeamValues,
+      addBeamToData(curPatch, time, thread, nBeamValues,
                     itsPredictBuffer->GetPatchModel(thread).data(),
                     itsStokesIOnly);
       // Initialize patchmodel to zero for the next patch
@@ -403,9 +403,9 @@ bool OnePredict::process(const DPBuffer& bufin) {
   if (itsApplyBeam) {
     pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
       if (curPatches[thread] != nullptr) {
-        addBeamToData(
-            curPatches[thread], time, refdir, tiledir, thread, nBeamValues,
-            itsPredictBuffer->GetPatchModel(thread).data(), itsStokesIOnly);
+        addBeamToData(curPatches[thread], time, thread, nBeamValues,
+                      itsPredictBuffer->GetPatchModel(thread).data(),
+                      itsStokesIOnly);
       }
     });
   }
@@ -468,8 +468,6 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
 }
 
 void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
-                               const everybeam::vector3r_t& refdir,
-                               const everybeam::vector3r_t& tiledir,
                                size_t thread, size_t nBeamValues,
                                dcomplex* data0, bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
@@ -479,16 +477,15 @@ void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
 
   if (stokesIOnly) {
     ApplyBeam::applyBeamStokesIArrayFactor(
-        info(), time, data0, srcdir, refdir, tiledir,
-        itsPredictBuffer->GetStationList(),
-        itsPredictBuffer->GetScalarBeamValues(thread), itsUseChannelFreq, false,
-        itsBeamMode);
+        info(), time, data0, srcdir, telescope_.get(),
+        itsPredictBuffer->GetScalarBeamValues(thread), false, itsBeamMode,
+        &mutex_);
   } else {
     float* dummyweight = nullptr;
-    ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
-                         tiledir, itsPredictBuffer->GetStationList(),
-                         itsPredictBuffer->GetFullBeamValues(thread),
-                         itsUseChannelFreq, false, itsBeamMode);
+    ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir,
+                         telescope_.get(),
+                         itsPredictBuffer->GetFullBeamValues(thread), false,
+                         itsBeamMode, false, &mutex_);
   }
 
   // Add temporary buffer to Model

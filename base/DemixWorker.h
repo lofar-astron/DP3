@@ -198,8 +198,8 @@ class DemixWorker {
   std::shared_ptr<steps::MultiResultStep> itsAvgResultSubtr;
   /// The sources to demix (excluding target).
   std::vector<Patch::ConstPtr> itsDemixList;
-  /// The info needed to calculate the station beams.
-  std::vector<std::shared_ptr<everybeam::Station>> itsAntBeamInfo;
+  // TODO: unique_ptr?
+  std::shared_ptr<everybeam::telescope::Telescope> telescope_;
   /// Measure objects unique to this worker (thread).
   /// This is needed because they are not thread-safe.
   casacore::MPosition itsArrayPos;

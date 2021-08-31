@@ -7,7 +7,7 @@
 #include "../../../common/ParameterSet.h"
 
 #include <EveryBeam/load.h>
-#include <EveryBeam/station.h>
+#include <EveryBeam/telescope/phasedarray.h>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <vector>
@@ -22,7 +22,6 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
   dp3::common::ParameterSet parset;
   MSReader msreader(msname, parset, "");
 
-  std::vector<std::shared_ptr<everybeam::Station>> stations;
   std::vector<std::string> ant_vec = {"CS001HBA0", "CS002HBA0"};
   casacore::Vector<casacore::String> ant_names(ant_vec.size());
 
@@ -30,11 +29,16 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
     ant_names[i] = ant_vec[i];
   }
 
-  msreader.fillBeamInfo(stations, ant_names,
-                        everybeam::ElementResponseModel::kHamaker);
+  std::unique_ptr<everybeam::telescope::Telescope> telescope =
+      msreader.GetTelescope(everybeam::ElementResponseModel::kHamaker, false);
+  const std::vector<size_t> station_indices =
+      MSReader::SelectStationIndices(telescope.get(), ant_names);
+  const everybeam::telescope::PhasedArray& phasedarray =
+      static_cast<const everybeam::telescope::PhasedArray&>(*telescope);
 
-  for (size_t i = 0; i < stations.size(); ++i) {
-    BOOST_CHECK_EQUAL(stations[i]->GetName(), ant_vec[i]);
+  for (size_t i = 0; i < station_indices.size(); ++i) {
+    BOOST_CHECK_EQUAL(phasedarray.GetStation(station_indices[i])->GetName(),
+                      ant_vec[i]);
   }
 }
 
@@ -44,7 +48,6 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
   dp3::common::ParameterSet parset;
   MSReader msreader(msname, parset, "");
 
-  std::vector<std::shared_ptr<everybeam::Station>> stations;
   std::vector<std::string> ant_vec = {"s0012", "s0013", "s0015"};
   casacore::Vector<casacore::String> ant_names(ant_vec.size());
 
@@ -52,11 +55,17 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
     ant_names[i] = ant_vec[i];
   }
 
-  msreader.fillBeamInfo(stations, ant_names,
-                        everybeam::ElementResponseModel::kOSKARSphericalWave);
+  std::unique_ptr<everybeam::telescope::Telescope> telescope =
+      msreader.GetTelescope(
+          everybeam::ElementResponseModel::kOSKARSphericalWave, false);
+  const everybeam::telescope::PhasedArray& phasedarray =
+      static_cast<const everybeam::telescope::PhasedArray&>(*telescope);
+  std::vector<size_t> station_indices =
+      MSReader::SelectStationIndices(telescope.get(), ant_names);
 
-  for (size_t i = 0; i < stations.size(); ++i) {
-    BOOST_CHECK_EQUAL(stations[i]->GetName(), ant_vec[i]);
+  for (size_t i = 0; i < station_indices.size(); ++i) {
+    BOOST_CHECK_EQUAL(phasedarray.GetStation(station_indices[i])->GetName(),
+                      ant_vec[i]);
   }
 }
 

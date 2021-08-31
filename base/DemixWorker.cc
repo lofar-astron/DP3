@@ -42,6 +42,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/Measures/MeasureHolder.h>
 
+#include <EveryBeam/pointresponse/pointresponse.h>
+
 #include <sstream>
 #include <iomanip>
 
@@ -60,6 +62,7 @@ using dp3::common::operator<<;
 
 using dp3::steps::Averager;
 using dp3::steps::Filter;
+using dp3::steps::InputStep;
 using dp3::steps::MultiResultStep;
 using dp3::steps::PhaseShift;
 using dp3::steps::Step;
@@ -105,8 +108,12 @@ DemixWorker::DemixWorker(steps::InputStep* input, const string& prefix,
   // previously, this was implicit in the call to everybeam::ReadStations
   everybeam::ElementResponseModel element_response_model =
       everybeam::ElementResponseModel::kHamaker;
-  input->fillBeamInfo(itsAntBeamInfo, itsMix->antennaNames(),
-                      element_response_model);
+
+  // UseChannelFrequency = false here, only raw data is typically  used for
+  // demixing
+  const bool use_channel_frequency = false;
+  telescope_ =
+      input->GetTelescope(element_response_model, use_channel_frequency);
 
   // Create the solve and subtract steps for the sources to be removed.
   // Solving consists of the following steps:
@@ -743,17 +750,24 @@ void DemixWorker::applyBeam(double time, const Position& pos, bool apply,
   }
   // Convert the directions to ITRF for the given time.
   itsMeasFrame.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
-  everybeam::vector3r_t refdir = dir2Itrf(itsDelayCenter);
-  everybeam::vector3r_t tiledir = dir2Itrf(itsTileBeamDir);
   MDirection dir(casacore::MVDirection(pos[0], pos[1]), MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir);
+
+  const std::vector<size_t> station_indices =
+      InputStep::SelectStationIndices(telescope_.get(), itsMix->antennaNames());
+
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope_->GetPointResponse(time);
+
   // Get the beam values for each station.
-  unsigned int nchan = chanFreqs.size();
-  for (size_t st = 0; st < itsMix->nstation(); ++st) {
-    itsAntBeamInfo[st]->Response(nchan, time, chanFreqs.cbegin(), srcdir,
-                                 itsMix->getInfo().refFreq(), refdir, tiledir,
-                                 &(itsBeamValues[nchan * st]));
+  const size_t nchan = chanFreqs.size();
+  for (size_t ch = 0; ch < nchan; ++ch) {
+    for (size_t st = 0; st < itsMix->nstation(); ++st) {
+      itsBeamValues[nchan * st + ch] =
+          point_response->FullBeam(station_indices[st], chanFreqs[ch], srcdir);
+    }
   }
+
   // Apply the beam values of both stations to the predicted data.
   for (size_t bl = 0; bl < itsMix->nbl(); ++bl) {
     for (size_t ch = 0; ch < nchan; ++ch) {
