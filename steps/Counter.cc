@@ -11,6 +11,7 @@
 #include "../common/ParameterSet.h"
 
 #include <iostream>
+#include <fstream>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -22,6 +23,9 @@ Counter::Counter(InputStep* input, const common::ParameterSet& parset,
                  const string& prefix)
     : itsName(prefix),
       itsCount(0),
+      itsSaveToJson(parset.getBool(prefix + "savetojson", false)),
+      itsJsonFilename(parset.getString(prefix + "jsonfilename",
+                                       "FlagPercentagePerStation.JSON")),
       itsFlagCounter(input->msName(), parset, prefix) {
   itsFlagData = parset.getBool(prefix + "flagdata", false);
 }
@@ -37,6 +41,15 @@ void Counter::showCounts(std::ostream& os) const {
   os << "\n=================================\n";
   itsFlagCounter.showBaseline(os, itsCount);
   itsFlagCounter.showChannel(os, itsCount);
+  if (itsSaveToJson) {
+    os << "\nSaving counts to JSON file " << itsJsonFilename << "\n";
+
+    std::ostringstream percentagePerStation;
+    itsFlagCounter.showStation(percentagePerStation, itsCount);
+    std::ofstream jsonfile(itsJsonFilename);
+    jsonfile << percentagePerStation.str();
+    jsonfile.close();
+  }
 }
 
 void Counter::updateInfo(const base::DPInfo& infoIn) {

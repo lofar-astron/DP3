@@ -96,38 +96,90 @@ void FlagCounter::add(const FlagCounter& that) {
                  std::plus<int64_t>());
 }
 
+void FlagCounter::showStation(std::ostream& os, int64_t ntimes) const {
+  const Vector<Int>& ant1 = itsInfo->getAnt1();
+  const Vector<Int>& ant2 = itsInfo->getAnt2();
+  const Vector<String>& antNames = itsInfo->antennaNames();
+
+  const int64_t nPoints = ntimes * itsChanCounts.size();
+  const size_t nrAnt = antNames.size();
+
+  // Collect counts per antenna.
+  std::vector<size_t> nUsedAnt(nrAnt, 0);
+  std::vector<size_t> countAnt(nrAnt, 0);
+
+  // Collect ratio of flagged visibilities per antenna
+  std::vector<double> flagRatiosPerAntenna(nrAnt, 0);
+
+  for (size_t i = 0; i < itsBLCounts.size(); ++i) {
+    countAnt[ant1[i]] += itsBLCounts[i];
+    nUsedAnt[ant1[i]]++;
+    if (ant1[i] != ant2[i]) {
+      countAnt[ant2[i]] += itsBLCounts[i];
+      nUsedAnt[ant2[i]]++;
+    }
+  }
+
+  // Determine nr of antennae used.
+  int nrused = 0;
+  for (size_t i = 0; i < nrAnt; ++i) {
+    if (nUsedAnt[i] > 0) {
+      nrused++;
+    }
+  }
+
+  // Calculate the flag ratios per antenna.
+  for (size_t ant = 0; ant != nrAnt; ++ant) {
+    if (nUsedAnt[ant] > 0) {
+      flagRatiosPerAntenna[ant] =
+          double(countAnt[ant]) / double(nUsedAnt[ant] * nPoints);
+    }
+  }
+
+  // Print antenna names and ratios
+  os << "{\"flagged_fraction_dict\": \"{";
+  for (size_t i = 0; i < antNames.size(); i++) {
+    if (i > 0) {
+      os << ", ";
+    }
+    os << "'" << antNames[i] << "': ";
+    os << flagRatiosPerAntenna[i];
+  }
+  os << "}\"}";
+}
+
 void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
   const Vector<Int>& ant1 = itsInfo->getAnt1();
   const Vector<Int>& ant2 = itsInfo->getAnt2();
   const Vector<String>& antNames = itsInfo->antennaNames();
   // Keep track of fully flagged baselines.
   std::vector<std::pair<int, int> > fullyFlagged;
-  int64_t npoints = ntimes * itsChanCounts.size();
+  int64_t nPoints = ntimes * itsChanCounts.size();
   os << std::endl
      << "Percentage of visibilities flagged per baseline"
         " (antenna pair):";
-  unsigned int nrant = 1 + std::max(max(ant1), max(ant2));
+  unsigned int nrAnt = 1 + std::max(max(ant1), max(ant2));
   // Collect counts per baseline and antenna.
-  Vector<int64_t> nusedAnt(nrant, 0);
-  Vector<int64_t> countAnt(nrant, 0);
-  Matrix<int64_t> nusedBL(nrant, nrant, 0);
-  Matrix<int64_t> countBL(nrant, nrant, 0);
+  Vector<int64_t> nUsedAnt(nrAnt, 0);
+  Vector<int64_t> countAnt(nrAnt, 0);
+  Matrix<int64_t> nusedBL(nrAnt, nrAnt, 0);
+  Matrix<int64_t> countBL(nrAnt, nrAnt, 0);
   for (unsigned int i = 0; i < itsBLCounts.size(); ++i) {
     countBL(ant1[i], ant2[i]) += itsBLCounts[i];
     nusedBL(ant1[i], ant2[i])++;
     countAnt[ant1[i]] += itsBLCounts[i];
-    nusedAnt[ant1[i]]++;
+    nUsedAnt[ant1[i]]++;
     if (ant1[i] != ant2[i]) {
       countBL(ant2[i], ant1[i]) += itsBLCounts[i];
       nusedBL(ant2[i], ant1[i])++;
       countAnt[ant2[i]] += itsBLCounts[i];
-      nusedAnt[ant2[i]]++;
+      nUsedAnt[ant2[i]]++;
     }
   }
   // Determine nr of antennae used.
   int nrused = 0;
-  for (unsigned int i = 0; i < nrant; ++i) {
-    if (nusedAnt[i] > 0) {
+  for (unsigned int i = 0; i < nrAnt; ++i) {
+    if (nUsedAnt[i] > 0) {
       nrused++;
     }
   }
@@ -138,13 +190,13 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
   // Loop over nr of lines needed for the antennae.
   for (int i = 0; i < nrl; ++i) {
     int oldant = ant;
-    // Determine nrant per line
+    // Determine nrAnt per line
     int nra = std::min(nantpl, nrused - i * nantpl);
     // Print the header for the antennae being used.
     // It also updates ant for the next iteration.
     os << std::endl << " ant";
     for (int j = 0; j < nra;) {
-      if (nusedAnt[ant] > 0) {
+      if (nUsedAnt[ant] > 0) {
         os << std::setw(5) << ant;
         j++;
       }
@@ -152,21 +204,21 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
     }
     os << std::endl;
     // Print the percentages per antenna pair.
-    for (unsigned int k = 0; k < nrant; ++k) {
-      if (nusedAnt[k] > 0) {
+    for (unsigned int k = 0; k < nrAnt; ++k) {
+      if (nUsedAnt[k] > 0) {
         os << std::setw(4) << k << " ";
         int ia = oldant;
         for (int j = 0; j < nra;) {
-          if (nusedAnt[ia] > 0) {
+          if (nUsedAnt[ia] > 0) {
             if (nusedBL(k, ia) > 0) {
               os << std::setw(4)
-                 << int((100. * countBL(k, ia)) / (nusedBL(k, ia) * npoints) +
+                 << int((100. * countBL(k, ia)) / (nusedBL(k, ia) * nPoints) +
                         0.5)
                  << '%';
               // Determine if baseline is fully flagged.
               // Do it only for ANT1<=ANT2
               if (int(k) <= ia) {
-                if (countBL(k, ia) == nusedBL(k, ia) * npoints) {
+                if (countBL(k, ia) == nusedBL(k, ia) * nPoints) {
                   fullyFlagged.push_back(std::pair<int, int>(k, ia));
                 }
               }
@@ -184,8 +236,8 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
     os << "TOTAL";
     int ia = oldant;
     for (int j = 0; j < nra;) {
-      if (nusedAnt[ia] > 0) {
-        double perc = 100. * countAnt[ia] / (nusedAnt[ia] * npoints);
+      if (nUsedAnt[ia] > 0) {
+        double perc = 100. * countAnt[ia] / (nUsedAnt[ia] * nPoints);
         os << std::setw(4) << int(perc + 0.5) << '%';
         j++;
       }
@@ -194,9 +246,9 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
     os << std::endl;
   }
   if (itsWarnPerc > 0) {
-    for (unsigned int i = 0; i < nrant; ++i) {
-      if (nusedAnt[i] > 0) {
-        double perc = (100. * countAnt[i]) / (nusedAnt[i] * npoints);
+    for (unsigned int i = 0; i < nrAnt; ++i) {
+      if (nUsedAnt[i] > 0) {
+        double perc = (100. * countAnt[i]) / (nUsedAnt[i] * nPoints);
         if (perc >= itsWarnPerc) {
           os << "** NOTE: ";
           showPerc1(os, perc, 100);
@@ -215,16 +267,16 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
     os << std::endl;
   }
   if (!itsSaveName.empty()) {
-    saveStation(npoints, nusedAnt, countAnt);
+    saveStation(nPoints, nUsedAnt, countAnt);
   }
 }
 
 void FlagCounter::showChannel(std::ostream& os, int64_t ntimes) const {
-  int64_t npoints = ntimes * itsBLCounts.size();
+  int64_t nPoints = ntimes * itsBLCounts.size();
   int64_t nflagged = 0;
   os << std::endl
      << "Percentage of visibilities flagged per channel:" << std::endl;
-  if (npoints == 0) {
+  if (nPoints == 0) {
     return;
   }
   // Print 10 channels per line.
@@ -241,24 +293,24 @@ void FlagCounter::showChannel(std::ostream& os, int64_t ntimes) const {
     os << std::setw(4) << ch << '-' << std::setw(4) << ch + nrc - 1 << ":    ";
     for (int j = 0; j < nrc; ++j) {
       nflagged += itsChanCounts[ch];
-      os << std::setw(4) << int((100. * itsChanCounts[ch]) / npoints + 0.5)
+      os << std::setw(4) << int((100. * itsChanCounts[ch]) / nPoints + 0.5)
          << '%';
       ch++;
     }
     os << std::endl;
   }
-  int64_t totalnpoints = npoints * itsChanCounts.size();
+  int64_t totalnPoints = nPoints * itsChanCounts.size();
   // Prevent division by zero
-  if (totalnpoints == 0) {
-    totalnpoints = 1;
+  if (totalnPoints == 0) {
+    totalnPoints = 1;
   }
   os << "Total flagged: ";
-  showPerc3(os, nflagged, totalnpoints);
-  os << "   (" << nflagged << " out of " << totalnpoints << " visibilities)"
+  showPerc3(os, nflagged, totalnPoints);
+  os << "   (" << nflagged << " out of " << totalnPoints << " visibilities)"
      << std::endl;
   if (itsWarnPerc > 0) {
     for (unsigned int i = 0; i < itsChanCounts.size(); ++i) {
-      double perc = (100. * itsChanCounts[i]) / npoints;
+      double perc = (100. * itsChanCounts[i]) / nPoints;
       if (perc >= itsWarnPerc) {
         os << "** NOTE: ";
         showPerc1(os, perc, 100);
@@ -267,7 +319,7 @@ void FlagCounter::showChannel(std::ostream& os, int64_t ntimes) const {
     }
   }
   if (!itsSaveName.empty()) {
-    saveChannel(npoints, itsChanCounts);
+    saveChannel(nPoints, itsChanCounts);
   }
 }
 
@@ -304,7 +356,7 @@ void FlagCounter::showPerc3(ostream& os, double value, double total) {
   os.fill(prev);
 }
 
-void FlagCounter::saveStation(int64_t npoints, const Vector<int64_t>& nused,
+void FlagCounter::saveStation(int64_t nPoints, const Vector<int64_t>& nused,
                               const Vector<int64_t>& count) const {
   // Create the table.
   TableDesc td;
@@ -324,12 +376,12 @@ void FlagCounter::saveStation(int64_t npoints, const Vector<int64_t>& nused,
       tab.addRow();
       statCol.put(rownr, i);
       nameCol.put(rownr, antNames[i]);
-      percCol.put(rownr, (100. * count[i]) / (nused[i] * npoints));
+      percCol.put(rownr, (100. * count[i]) / (nused[i] * nPoints));
     }
   }
 }
 
-void FlagCounter::saveChannel(int64_t npoints,
+void FlagCounter::saveChannel(int64_t nPoints,
                               const Vector<int64_t>& count) const {
   // Create the table.
   TableDesc td;
@@ -345,7 +397,7 @@ void FlagCounter::saveChannel(int64_t npoints,
     int rownr = tab.nrow();
     tab.addRow();
     freqCol.put(rownr, chanFreqs[i]);
-    percCol.put(rownr, (100. * count[i]) / npoints);
+    percCol.put(rownr, (100. * count[i]) / nPoints);
   }
 }
 

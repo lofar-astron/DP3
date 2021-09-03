@@ -72,6 +72,9 @@ class FlagCounter {
   void showChannel(std::ostream& os, int64_t ntimes) const;
   void showCorrelation(std::ostream& os, int64_t ntimes) const;
 
+  //// Print ratio of flagged visibilities per antenna.
+  void showStation(std::ostream& os, int64_t ntimes) const;
+
   /// Show percentage with 1 decimal.
   static void showPerc1(std::ostream&, double value, double total);
 
