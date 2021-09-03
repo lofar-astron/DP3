@@ -565,6 +565,7 @@ if(BUILD_TESTING)
       parmdb/test/unit/tSourceDB.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBDAExpander.cc
+      steps/test/unit/tCounter.cc
       steps/test/unit/tDPInput.cc
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc

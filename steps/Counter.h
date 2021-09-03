@@ -57,6 +57,8 @@ class Counter : public Step {
   std::string itsName;
   bool itsFlagData;
   unsigned int itsCount;
+  bool itsSaveToJson;
+  std::string itsJsonFilename;
   base::FlagCounter itsFlagCounter;
 };
 

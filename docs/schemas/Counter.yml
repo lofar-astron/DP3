@@ -32,3 +32,13 @@ inputs:
     type: bool
     doc: >-
       If COUNT is the only step in an DPPP run, the data won't be read, so unflagged invalid data (NaN. infinite) won't be noticed and counted as flagged. Setting this flag forces DPPP to read and check the data `.`
+  savetojson:
+    default: false
+    type: bool
+    doc: >-
+      If true, the flag ratios per antenna are saved as a JSON file `.`
+  jsonfilename:
+    default: "FlagPercentagePerStation.JSON"
+    type: string
+    doc: >-
+      Filename for the JSON output `.`
