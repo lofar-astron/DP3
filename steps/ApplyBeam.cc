@@ -133,11 +133,12 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
                       "input has ") +
           everybeam::ToString(info().beamCorrectionMode()) +
           ", requested to correct for " + everybeam::ToString(itsMode));
-    double ra1 = info().beamCorrectionDir().getValue().getValue()[0],
-           dec1 = info().beamCorrectionDir().getValue().getValue()[1],
-           ra2 = itsDirection.getValue().getValue()[0],
-           dec2 = itsDirection.getValue().getValue()[1];
-    double raDist = std::fabs(ra1 - ra2), decDist = std::fabs(dec1 - dec2);
+    const double ra1 = info().beamCorrectionDir().getValue().getValue()[0];
+    const double dec1 = info().beamCorrectionDir().getValue().getValue()[1];
+    const double ra2 = itsDirection.getValue().getValue()[0];
+    const double dec2 = itsDirection.getValue().getValue()[1];
+    const double raDist = std::fabs(ra1 - ra2);
+    const double decDist = std::fabs(dec1 - dec2);
     if (raDist > 1e-9 || decDist > 1e-9) {
       std::ostringstream str;
       str << "applybeam step with invert=false has incorrect direction: input "
@@ -205,7 +206,7 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
   }
   float* weight = itsBuffer.getWeights().data();
 
-  double time = itsBuffer.getTime();
+  const double time = itsBuffer.getTime();
 
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir, srcdir;
@@ -258,11 +259,7 @@ everybeam::vector3r_t ApplyBeam::dir2Itrf(const MDirection& dir,
                                           MDirection::Convert& measConverter) {
   const MDirection& itrfDir = measConverter(dir);
   const casacore::Vector<double>& itrf = itrfDir.getValue().getValue();
-  everybeam::vector3r_t vec;
-  vec[0] = itrf[0];
-  vec[1] = itrf[1];
-  vec[2] = itrf[2];
-  return vec;
+  return {itrf[0], itrf[1], itrf[2]};
 }
 
 void ApplyBeam::finish() {
@@ -281,13 +278,9 @@ void ApplyBeam::applyBeam(
     std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
     everybeam::CorrectionMode mode, bool doUpdateWeights) {
   // Get the beam values for each station.
-  unsigned int nCh = info.chanFreqs().size();
-  unsigned int nSt = beamValues.size() / nCh;
-  unsigned int nBl = info.nbaselines();
-
-  // Store array factor in diagonal matrix (in other modes this variable
-  // is not used).
-  aocommon::MC2x2Diag af_tmp;
+  const size_t nCh = info.chanFreqs().size();
+  const size_t nSt = beamValues.size() / nCh;
+  const size_t nBl = info.nbaselines();
 
   double reffreq = info.refFreq();
 
@@ -308,23 +301,21 @@ void ApplyBeam::applyBeam(
           }
         }
         break;
-      case everybeam::CorrectionMode::kArrayFactor:
+      case everybeam::CorrectionMode::kArrayFactor: {
+        aocommon::MC2x2Diag af_tmp;
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
           af_tmp = antBeamInfo[st]->ArrayFactor(
               time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir);
-          beamValues[nCh * st + ch][1] = 0.;
-          beamValues[nCh * st + ch][2] = 0.;
 
           if (invert) {
-            beamValues[nCh * st + ch][0] = 1. / af_tmp[0];
-            beamValues[nCh * st + ch][3] = 1. / af_tmp[1];
-          } else {
-            beamValues[nCh * st + ch][0] = af_tmp[0];
-            beamValues[nCh * st + ch][3] = af_tmp[1];
+            af_tmp[0] = 1. / af_tmp[0];
+            af_tmp[1] = 1. / af_tmp[1];
           }
+          beamValues[nCh * st + ch] = aocommon::MC2x2(af_tmp);
         }
         break;
+      }
       case everybeam::CorrectionMode::kElement:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
@@ -380,15 +371,10 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
     bool invert, everybeam::CorrectionMode mode, bool doUpdateWeights) {
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
-  using dcomplex = std::complex<double>;
   // Get the beam values for each station.
-  unsigned int nCh = info.chanFreqs().size();
-  unsigned int nSt = beamValues.size() / nCh;
-  unsigned int nBl = info.nbaselines();
-
-  // Store array factor in diagonal matrix (in other modes this variable
-  // is not used).
-  aocommon::MC2x2Diag af_tmp;
+  const size_t nCh = info.chanFreqs().size();
+  const size_t nSt = beamValues.size() / nCh;
+  const size_t nBl = info.nbaselines();
 
   double reffreq = info.refFreq();
 
@@ -400,12 +386,10 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
 
     // Fill beamValues for channel ch
     for (size_t st = 0; st < nSt; ++st) {
-      af_tmp = antBeamInfo[st]->ArrayFactor(time, info.chanFreqs()[ch], srcdir,
-                                            reffreq, refdir, tiledir);
+      beamValues[nCh * st + ch] = antBeamInfo[st]->ArrayFactor(
+          time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir)[0];
       if (invert) {
-        beamValues[nCh * st + ch] = 1. / af_tmp[0];
-      } else {
-        beamValues[nCh * st + ch] = af_tmp[0];
+        beamValues[nCh * st + ch] = 1. / beamValues[nCh * st + ch];
       }
     }
 
@@ -414,7 +398,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
       T* data = data0 + bl * nCh + ch;
       everybeam::complex_t* left = &(beamValues[nCh * info.getAnt1()[bl]]);
       everybeam::complex_t* right = &(beamValues[nCh * info.getAnt2()[bl]]);
-      data[0] = left[ch] * dcomplex(data[0]) * conj(right[ch]);
+      data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
 
       // TODO: update weights?
     }
