@@ -190,13 +190,18 @@ void BdaIterativeDiagonalSolver::AddOrSubtractDirection(
         &solutions[(antenna1 * NDirections() + direction) * 2];
     const DComplex* solution2 =
         &solutions[(antenna2 * NDirections() + direction) * 2];
+    const Complex solution1_0(solution1[0]);
+    const Complex solution1_1(solution1[1]);
+    const Complex solution2_0_conj(std::conj(solution2[0]));
+    const Complex solution2_1_conj(std::conj(solution2[1]));
+
     aocommon::MC2x2F& data = v_residual[vis_index];
     const aocommon::MC2x2F& model = model_vector[vis_index];
     const aocommon::MC2x2F contribution(
-        Complex(solution1[0]) * model[0] * std::conj(Complex(solution2[0])),
-        Complex(solution1[0]) * model[1] * std::conj(Complex(solution2[1])),
-        Complex(solution1[1]) * model[2] * std::conj(Complex(solution2[0])),
-        Complex(solution1[1]) * model[3] * std::conj(Complex(solution2[1])));
+        solution1_0 * model[0] * solution2_0_conj,
+        solution1_0 * model[1] * solution2_1_conj,
+        solution1_1 * model[2] * solution2_0_conj,
+        solution1_1 * model[3] * solution2_1_conj);
     if (Add)
       data += contribution;
     else

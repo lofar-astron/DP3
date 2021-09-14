@@ -769,7 +769,7 @@ bool DDECal::process(const DPBuffer& bufin) {
   if (itsSolIntBuffers.empty() ||
       itsSolIntBuffers.back().Size() == itsRequestedSolInt) {
     itsSolIntBuffers.emplace_back(itsInput, itsNSolInts, itsRequestedSolInt,
-                                  itsDirections.size(), itsTimer);
+                                  itsTimer);
   }
 
   const size_t currentIntervalIndex = itsSolIntBuffers.back().Size();

@@ -58,7 +58,8 @@ void ColumnReader::show(std::ostream& os) const {
   os << "  operation:   " << operation_ << '\n';
 }
 
-void ColumnReader::showTimings(std::ostream& os, double duration) const {
+void ColumnReader::showTimings(std::ostream& os,
+                               [[maybe_unused]] double duration) const {
   os << " ColumnReader " << name_ << '\n';
 }
 

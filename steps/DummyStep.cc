@@ -24,8 +24,9 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-DummyStep::DummyStep(InputStep* input, const common::ParameterSet& parset,
-                     const string& prefix)
+DummyStep::DummyStep(InputStep* input,
+                     [[maybe_unused]] const common::ParameterSet& parset,
+                     [[maybe_unused]] const string& prefix)
     : itsInput(input) {}
 
 DummyStep::~DummyStep() {}

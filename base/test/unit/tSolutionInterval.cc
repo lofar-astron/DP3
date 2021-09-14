@@ -68,10 +68,9 @@ BOOST_AUTO_TEST_CASE(insertion) {
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
-  size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, timer);
   BOOST_TEST(solInt.Size() == 0U);
 
   solInt.PushBack(buffer);
@@ -94,10 +93,9 @@ BOOST_AUTO_TEST_CASE(limit) {
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
-  size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, timer);
 
   solInt.PushBack(buffer);
   BOOST_CHECK_THROW(solInt.PushBack(buffer), std::runtime_error);
@@ -109,10 +107,9 @@ BOOST_AUTO_TEST_CASE(copy) {
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
-  size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, timer);
   solInt.PushBack(buffer);
 
   BOOST_TEST(&solInt[0] != &buffer);
@@ -131,10 +128,9 @@ BOOST_AUTO_TEST_CASE(restore) {
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
-  size_t n_dirs = 3;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(input, n_solution, buffer_size, n_dirs, timer);
+  SolutionInterval solInt(input, n_solution, buffer_size, timer);
   solInt.PushBack(buffer);
 
   // Overwrite the values in the buffer

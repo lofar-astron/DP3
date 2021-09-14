@@ -89,8 +89,8 @@ std::unique_ptr<RegularSolverBase> CreateFullJonesSolver(
 }
 
 template <>
-std::unique_ptr<BdaSolverBase> CreateFullJonesSolver(
-    ddecal::SolverAlgorithm algorithm) {
+std::unique_ptr<BdaSolverBase> CreateFullJonesSolver([
+    [maybe_unused]] ddecal::SolverAlgorithm algorithm) {
   throw std::runtime_error(
       "FullJones calibration not implemented in combination with BDA");
 }
@@ -175,10 +175,9 @@ void InitializeSolver(SolverBase& solver, const Settings& settings) {
 }
 
 template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
-                                             const common::ParameterSet& parset,
-                                             const std::string& prefix,
-                                             SolverAlgorithm algorithm) {
+std::unique_ptr<SolverBaseType> CreateSolver(
+    const Settings& settings, const common::ParameterSet& parset,
+    const std::string& prefix, [[maybe_unused]] SolverAlgorithm algorithm) {
   std::unique_ptr<SolverBaseType> solver;
   switch (settings.mode) {
     case base::CalType::kScalar:

@@ -198,8 +198,7 @@ class TestOutput : public Step {
 };
 
 // Test simple flagging with or without preflagged points.
-void test1(int ntime, int nant, int nchan, int ncorr, bool flag,
-           int threshold) {
+void test1(int ntime, int nant, int nchan, int ncorr, bool flag) {
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   Step::ShPtr step1(in);
@@ -211,8 +210,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag,
 }
 
 // Test applyautocorr flagging with or without preflagged points.
-void test2(int ntime, int nant, int nchan, int ncorr, bool flag,
-           int threshold) {
+void test2(int ntime, int nant, int nchan, int ncorr, bool flag) {
   // Create the steps.
   TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
   Step::ShPtr step1(in);
@@ -226,17 +224,17 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag,
 
 BOOST_AUTO_TEST_CASE(legacy_test1) {
   for (unsigned int i = 0; i < 2; ++i) {
-    test1(10, 2, 32, 4, false, 1);
-    test1(10, 5, 32, 4, true, 1);
+    test1(10, 2, 32, 4, false);
+    test1(10, 5, 32, 4, true);
   }
 }
 
 BOOST_AUTO_TEST_CASE(legacy_test2) {
   for (unsigned int i = 0; i < 2; ++i) {
-    test2(4, 2, 8, 4, false, 100);
-    test2(10, 5, 32, 4, true, 1);
-    test2(8, 2, 8, 4, false, 100);
-    test2(14, 2, 8, 4, false, 100);
+    test2(4, 2, 8, 4, false);
+    test2(10, 5, 32, 4, true);
+    test2(8, 2, 8, 4, false);
+    test2(14, 2, 8, 4, false);
   }
 }
 

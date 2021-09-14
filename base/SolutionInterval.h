@@ -23,9 +23,8 @@ class DPBuffer;
 
 class SolutionInterval {
  public:
-  SolutionInterval(steps::InputStep& input, const std::size_t n_solution,
-                   const std::size_t buffer_size, const std::size_t n_dir,
-                   common::NSTimer timer);
+  SolutionInterval(steps::InputStep& input, std::size_t n_solution,
+                   std::size_t buffer_size, common::NSTimer timer);
   ~SolutionInterval();
 
   // Copy a buffer and append it to the Solution Interval.
@@ -35,13 +34,13 @@ class SolutionInterval {
   void RestoreFlagsAndWeights();
 
   /// Return the number of added buffers.
-  const std::size_t Size() const { return buffer_index_; };
+  std::size_t Size() const { return buffer_index_; };
 
   /**
    * \defgroup Getters
    */
   /**@{*/
-  const std::size_t NSolution() const { return n_solution_; }
+  std::size_t NSolution() const { return n_solution_; }
   std::vector<DPBuffer>& DataBuffers() { return buffers_; }
   /**@}*/
 

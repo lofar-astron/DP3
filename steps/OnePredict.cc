@@ -477,19 +477,18 @@ void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
 
-  float* dummyweight = 0;
-
   if (stokesIOnly) {
     ApplyBeam::applyBeamStokesIArrayFactor(
-        info(), time, data0, dummyweight, srcdir, refdir, tiledir,
+        info(), time, data0, srcdir, refdir, tiledir,
         itsPredictBuffer->GetStationList(),
         itsPredictBuffer->GetScalarBeamValues(thread), itsUseChannelFreq, false,
-        itsBeamMode, false);
+        itsBeamMode);
   } else {
+    float* dummyweight = nullptr;
     ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir, refdir,
                          tiledir, itsPredictBuffer->GetStationList(),
                          itsPredictBuffer->GetFullBeamValues(thread),
-                         itsUseChannelFreq, false, itsBeamMode, false);
+                         itsUseChannelFreq, false, itsBeamMode);
   }
 
   // Add temporary buffer to Model
