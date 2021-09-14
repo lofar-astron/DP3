@@ -402,7 +402,7 @@ std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
   std::vector<DPBuffer> result =
       ComputeVisibilities(direction, uvws, term_data.data());
 
-  CorrectVisibilities(uvws, result, term_data.data(), direction);
+  CorrectVisibilities(result, term_data.data());
 
   timer_.stop();
   return result;
@@ -544,10 +544,8 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
   }
 }
 
-void IDGPredict::CorrectVisibilities(const std::vector<const double*>& uvws,
-                                     std::vector<DPBuffer>& result,
-                                     const std::complex<float>* term_data,
-                                     size_t direction) {
+void IDGPredict::CorrectVisibilities(std::vector<DPBuffer>& result,
+                                     const std::complex<float>* term_data) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
   const size_t baseline_size = info().nchan() * info().ncorr();

@@ -88,15 +88,15 @@ class NSTimer {
   void print_time(std::ostream&, const char* which, double time) const;
 
   union {
-    long long total_time;
+    long long full;
     struct {
 #if defined __PPC__
-      int total_time_high, total_time_low;
+      int high, low;
 #else
-      int total_time_low, total_time_high;
+      int low, high;
 #endif
-    };
-  };
+    } parts;
+  } total_time;
 
 #if defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
   union {
@@ -119,7 +119,7 @@ class NSTimer {
 };
 
 inline void NSTimer::reset() {
-  total_time = 0;
+  total_time.full = 0;
   count = 0;
 }
 
@@ -128,7 +128,7 @@ inline double NSTimer::getAverage() const { return getElapsed() / getCount(); }
 inline unsigned long long NSTimer::getCount() const { return count; }
 
 inline NSTimer& NSTimer::operator+=(const NSTimer& other) {
-  total_time += other.total_time;
+  total_time.full += other.total_time.full;
   count += other.count;
 
   return *this;
@@ -164,7 +164,7 @@ inline void NSTimer::start() {
       "shlq $32,%%rdx\n\t"
       "leaq (%%rax,%%rdx),%%rax\n\t"
       "lock;subq %%rax,%0"
-      : "+m"(total_time)
+      : "+m"(total_time.full)
       :
       : "rax", "rdx");
 #elif defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
@@ -172,7 +172,7 @@ inline void NSTimer::start() {
       "rdtsc\n\t"
       "lock;subl %%eax,%0\n\t"
       "lock;sbbl %%edx,%1"
-      : "+m"(total_time_low), "+m"(total_time_high)
+      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
       :
       : "eax", "edx");
 #elif (defined __i386__ || defined __x86_64__) && \
@@ -181,7 +181,7 @@ inline void NSTimer::start() {
       "rdtsc\n\t"
       "subl %%eax, %0\n\t"
       "sbbl %%edx, %1"
-      : "+m"(total_time_low), "+m"(total_time_high)
+      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
       :
       : "eax", "edx");
 #elif (defined __i386__ || defined __x86_64__) && defined __PATHSCALE__
@@ -189,13 +189,13 @@ inline void NSTimer::start() {
 
   asm volatile("rdtsc" : "=a"(eax), "=d"(edx));
 
-  total_time -= ((unsigned long long)edx << 32) + eax;
+  total_time.full -= ((unsigned long long)edx << 32) + eax;
 #elif defined __ia64__ && defined __INTEL_COMPILER
-  total_time -= __getReg(_IA64_REG_AR_ITC);
+  total_time.full -= __getReg(_IA64_REG_AR_ITC);
 #elif defined __ia64__ && defined __GNUC__
   long long time;
   asm volatile("mov %0=ar.itc" : "=r"(time));
-  total_time -= time;
+  total_time.full -= time;
 #elif defined __PPC__ && (defined __GNUC__ || defined __xlC__)
   int high, low, retry;
 
@@ -207,9 +207,9 @@ inline void NSTimer::start() {
       "bne 0b\n\t"
       "subfc %3,%1,%3\n\t"
       "subfe %4,%0,%4"
-      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time_low),
-        "=r"(total_time_high)
-      : "3"(total_time_low), "4"(total_time_high)
+      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time.parts.low),
+        "=r"(total_time.parts.high)
+      : "3"(total_time.parts.low), "4"(total_time.parts.high)
       : "cc");
 #endif
 }
@@ -221,7 +221,7 @@ inline void NSTimer::stop() {
       "shlq $32,%%rdx\n\t"
       "leaq (%%rax,%%rdx),%%rax\n\t"
       "lock;addq %%rax,%0"
-      : "+m"(total_time)
+      : "+m"(total_time.full)
       :
       : "rax", "rdx");
 #elif defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
@@ -229,7 +229,7 @@ inline void NSTimer::stop() {
       "rdtsc\n\t"
       "lock;addl %%eax, %0\n\t"
       "lock;adcl %%edx, %1"
-      : "+m"(total_time_low), "+m"(total_time_high)
+      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
       :
       : "eax", "edx");
 #elif (defined __i386__ || defined __x86_64__) && \
@@ -238,20 +238,20 @@ inline void NSTimer::stop() {
       "rdtsc\n\t"
       "addl %%eax, %0\n\t"
       "adcl %%edx, %1"
-      : "+m"(total_time_low), "+m"(total_time_high)
+      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
       :
       : "eax", "edx");
 #elif (defined __i386__ || defined __x86_64__) && defined __PATHSCALE__
   unsigned eax, edx;
 
   asm volatile("rdtsc\n\t" : "=a"(eax), "=d"(edx));
-  total_time += ((unsigned long long)edx << 32) + eax;
+  total_time.full += ((unsigned long long)edx << 32) + eax;
 #elif defined __ia64__ && defined __INTEL_COMPILER
-  total_time += __getReg(_IA64_REG_AR_ITC);
+  total_time.full += __getReg(_IA64_REG_AR_ITC);
 #elif defined __ia64__ && defined __GNUC__
   long long time;
   asm volatile("mov %0=ar.itc" : "=r"(time));
-  total_time += time;
+  total_time.full += time;
 #elif defined __PPC__ && (defined __GNUC__ || defined __xlC__)
   int high, low, retry;
 
@@ -263,9 +263,9 @@ inline void NSTimer::stop() {
       "bne 0b\n\t"
       "addc %3,%3,%1\n\t"
       "adde %4,%4,%0"
-      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time_low),
-        "=r"(total_time_high)
-      : "3"(total_time_low), "4"(total_time_high)
+      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time.parts.low),
+        "=r"(total_time.parts.high)
+      : "3"(total_time.parts.low), "4"(total_time.parts.high)
       : "cc");
 #endif
 

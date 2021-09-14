@@ -120,14 +120,10 @@ class IDGPredict : public ModelDataStep {
 
   /// Applies phase shift and polynomial term corrections to computed
   /// visibilities.
-  /// @param uvws uvw pointers from InitializeUVWs.
   /// @param result Result buffer, as computed by ComputeVisibilities().
   /// @param term_data Buffer that has results for non-first terms.
-  /// @param direction Direction index.
-  void CorrectVisibilities(const std::vector<const double*>& uvws,
-                           std::vector<base::DPBuffer>& result,
-                           const std::complex<float>* term_data,
-                           size_t direction);
+  void CorrectVisibilities(std::vector<base::DPBuffer>& result,
+                           const std::complex<float>* term_data);
 
   /// Returns the amount of buffers that can be used by this step.
   /// If multiple IDG predicts have to run simultaneously, you can update the

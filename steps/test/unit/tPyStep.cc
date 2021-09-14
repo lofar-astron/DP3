@@ -117,7 +117,7 @@ class TestOutput final : public Step {
 
   void finish() override {}
   void show(std::ostream&) const override {}
-  void updateInfo(const DPInfo& info) override {}
+  void updateInfo(const DPInfo&) override {}
 
   int count_;
   int nblines_, nchan_, ncorr_;

@@ -58,7 +58,7 @@ double NSTimer::get_CPU_speed_in_MHz() {
 }
 
 double NSTimer::getElapsed() const {
-  double time = total_time / 1e6;
+  double time = total_time.full / 1e6;
   if (CPU_speed_in_MHz > 0) {
     time /= CPU_speed_in_MHz;
   }
@@ -74,10 +74,10 @@ ostream &NSTimer::print(ostream &str) const {
   if (count == 0) {
     str << "not used";
   } else {
-    double total = static_cast<double>(total_time);
+    double total = static_cast<double>(total_time.full);
     if (CPU_speed_in_MHz == 0) {
       str << "avg = " << total / static_cast<double>(count);
-      str << ", total = " << total_time << " cycles";
+      str << ", total = " << total_time.full << " cycles";
     } else {
       total /= 1e6 * CPU_speed_in_MHz;
       str << "avg = " << PrettyTime(total / static_cast<double>(count))

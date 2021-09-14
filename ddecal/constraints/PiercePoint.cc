@@ -22,13 +22,13 @@ PiercePoint::PiercePoint(const casacore::MPosition &ant,
                          const double height)
     : itsValue(3) {
   init(ant, source, height);
-};
+}
 
 PiercePoint::PiercePoint(const casacore::MPosition &ant,
                          const casacore::MDirection &source)
     : itsValue(3) {
   init(ant, source, PiercePoint::IONOheight);
-};
+}
 
 void PiercePoint::init(const casacore::MPosition &ant,
                        const casacore::MDirection &source,
@@ -55,7 +55,7 @@ void PiercePoint::evaluate(casacore::MEpoch time) {
   double B = mDir(0) * mPos(0) + mDir(1) * mPos(1) + mDir(2) * mPos(2);
   double alpha = (-B + sqrt(B * B - A * itsC)) / A;
   for (uword i = 0; i < 3; i++) itsValue(i) = mPos(i) + alpha * mDir(i);
-};
+}
 
 }  // namespace ddecal
 }  // namespace dp3

@@ -80,15 +80,19 @@ void CheckConstraintType(const dp3::common::ParameterSet& parset) {
 
 BOOST_AUTO_TEST_SUITE(solverfactory)
 
+#ifndef HAVE_ARMADILLO
 BOOST_DATA_TEST_CASE(scalar_type,
                      boost::unit_test::data::make({"scalar", "scalaramplitude",
                                                    "scalarphase", "tec",
-#ifndef HAVE_ARMADILLO
                                                    "tecandphase"}),
-#else
-                                                   "tecandphase", "tecscreen"}),
-#endif
                      mode) {
+#else
+BOOST_DATA_TEST_CASE(scalar_type,
+                     boost::unit_test::data::make({"scalar", "scalaramplitude",
+                                                   "scalarphase", "tec",
+                                                   "tecandphase", "tecscreen"}),
+                     mode) {
+#endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   CheckRegularSolverType<dp3::ddecal::ScalarSolver>(parset);
   CheckBdaSolverType<dp3::ddecal::BdaScalarSolver>(parset);
@@ -160,15 +164,19 @@ BOOST_DATA_TEST_CASE(no_phase_only_bda,
   BOOST_CHECK(!bda_solver->GetPhaseOnly());
 }
 
+#ifndef HAVE_ARMADILLO
 BOOST_DATA_TEST_CASE(phase_only,
                      boost::unit_test::data::make({"scalarphase",
                                                    "diagonalphase", "tec",
-#ifndef HAVE_ARMADILLO
                                                    "tecandphase"}),
-#else
-                                                   "tecandphase", "tecscreen"}),
-#endif
                      mode) {
+#else
+BOOST_DATA_TEST_CASE(phase_only,
+                     boost::unit_test::data::make({"scalarphase",
+                                                   "diagonalphase", "tec",
+                                                   "tecandphase", "tecscreen"}),
+                     mode) {
+#endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
 

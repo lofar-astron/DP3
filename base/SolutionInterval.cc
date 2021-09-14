@@ -13,7 +13,6 @@ namespace base {
 SolutionInterval::SolutionInterval(InputStep& input,
                                    const std::size_t n_solution,
                                    const std::size_t buffer_size,
-                                   const std::size_t n_dir,
                                    common::NSTimer timer)
     : buffer_size_(buffer_size),
       n_solution_(n_solution),

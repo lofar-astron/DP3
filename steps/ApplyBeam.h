@@ -81,14 +81,12 @@ class ApplyBeam : public Step {
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
-      const base::DPInfo& info, double time, T* data0, float* weight0,
+      const base::DPInfo& info, double time, T* data0,
       const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
       const everybeam::vector3r_t& tiledir,
       const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
       std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-      bool invert, everybeam::CorrectionMode mode,
-      // everybeam::ElementResponseModel element_reponse_model,
-      bool doUpdateWeights = false);
+      bool invert, everybeam::CorrectionMode mode);
 
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,

@@ -51,7 +51,7 @@ class TestOutput : public Step {
   }
   virtual void finish() {}
   virtual void show(std::ostream&) const {}
-  virtual void updateInfo(const DPInfo& infoIn) {}
+  virtual void updateInfo(const DPInfo&) {}
 
  private:
   int count_;

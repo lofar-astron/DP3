@@ -206,8 +206,7 @@ void DPInfo::setAntUsed() {
   itsAntMap.resize(itsAntNames.size());
   std::fill(itsAntMap.begin(), itsAntMap.end(), -1);
   for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-    if (!(itsAnt1[i] >= 0 && itsAnt1[i] < itsAntMap.size() && itsAnt2[i] >= 0 &&
-          itsAnt2[i] < itsAntMap.size()))
+    if (itsAnt1[i] >= itsAntMap.size() || itsAnt2[i] >= itsAntMap.size())
       throw std::runtime_error("Antenna map has an inconsistent size");
     itsAntMap[itsAnt1[i]] = 0;
     itsAntMap[itsAnt2[i]] = 0;
