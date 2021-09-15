@@ -89,8 +89,8 @@ std::unique_ptr<RegularSolverBase> CreateFullJonesSolver(
 }
 
 template <>
-std::unique_ptr<BdaSolverBase> CreateFullJonesSolver([
-    [maybe_unused]] ddecal::SolverAlgorithm algorithm) {
+std::unique_ptr<BdaSolverBase> CreateFullJonesSolver(
+    [[maybe_unused]] ddecal::SolverAlgorithm algorithm) {
   throw std::runtime_error(
       "FullJones calibration not implemented in combination with BDA");
 }

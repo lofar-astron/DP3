@@ -17,7 +17,10 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libgtkmm-3.0-dev git libfftw3-dev \
     gfortran flex bison wcslib-dev \
     liblua5.3-dev \
-    casacore-dev casacore-tools pybind11-dev python3-pip doxygen ninja-build \
+    casacore-dev casacore-tools pybind11-dev python3-pip \
+    doxygen ninja-build clang-format-12 \
+# The formatter needs a binary named 'clang-format', not 'clang-format-12'
+    && ln -sf clang-format-12 /usr/bin/clang-format \
 # Build aoflagger3
     && mkdir /aoflagger && cd /aoflagger \
     && git clone https://gitlab.com/aroffringa/aoflagger.git src \
@@ -50,6 +53,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     && tar xfz /WSRT_Measures.ztar \
     && rm /WSRT_Measures.ztar \
 # Install pip dependencies
-    && pip3 install gcovr clang-format==9.0.0 cmake-format h5py pytest-parallel \
+    && pip3 install gcovr cmake-format h5py pytest-parallel \
     # build-doc dependencies
     autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
