@@ -68,6 +68,7 @@ class PredictBuffer {
   std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
   std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
   std::vector<std::shared_ptr<everybeam::Station>> station_list_;
+  std::shared_ptr<everybeam::telescope::Telescope> telescope_;
 };
 
 }  // namespace base

@@ -17,6 +17,9 @@
 #include "../base/FlagCounter.h"
 #include "../base/Position.h"
 
+#include <EveryBeam/telescope/phasedarray.h>
+#include <EveryBeam/pointresponse/pointresponse.h>
+
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Quanta/MVAngle.h>
@@ -159,7 +162,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   // The time and direction are filled in later.
   itsMeasConverters.resize(nThreads);
   itsMeasFrames.resize(nThreads);
-  itsAntBeamInfo.resize(nThreads);
+  telescopes_.resize(nThreads);
 
   for (size_t thread = 0; thread < nThreads; ++thread) {
     itsBeamValues[thread].resize(nSt * nCh);
@@ -169,8 +172,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsMeasConverters[thread].set(
         MDirection::J2000,
         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    itsInput->fillBeamInfo(itsAntBeamInfo[thread], info().antennaNames(),
-                           itsElementResponseModel);
+    telescopes_[thread] =
+        itsInput->GetTelescope(itsElementResponseModel, itsUseChannelFreq);
   }
 }
 
@@ -209,7 +212,7 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
   const double time = itsBuffer.getTime();
 
   // Set up directions for beam evaluation
-  everybeam::vector3r_t refdir, tiledir, srcdir;
+  everybeam::vector3r_t srcdir;
 
   /**
    * I'm not sure this is correct the way it is. These loops
@@ -227,8 +230,6 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
         MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
     // Do a conversion on all threads, because converters are not
     // thread safe and apparently need to be used at least once
-    refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[threadIter]);
-    tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[threadIter]);
     if (undoInputBeam)
       srcdir = dir2Itrf(itsDirectionAtStart, itsMeasConverters[threadIter]);
     else
@@ -240,15 +241,13 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
     // was asked this time. 'Undo' applying the input beam.
     // TODO itsElementResponseModel should be read from the measurement set
     // instead of assumed to be the same from the target beam.
-    applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
-              itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq,
-              false, itsModeAtStart, itsUpdateWeights);
+    applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
+              itsBeamValues[thread], false, itsModeAtStart, itsUpdateWeights);
     srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
   }
 
-  applyBeam(info(), time, data, weight, srcdir, refdir, tiledir,
-            itsAntBeamInfo[thread], itsBeamValues[thread], itsUseChannelFreq,
-            itsInvert, itsMode, itsUpdateWeights);
+  applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
+            itsBeamValues[thread], itsInvert, itsMode, itsUpdateWeights);
 
   itsTimer.stop();
   getNextStep()->process(itsBuffer);
@@ -270,32 +269,31 @@ void ApplyBeam::finish() {
 // applyBeam is templated on the type of the data, could be complex<double> or
 // complex<float>
 template <typename T>
-void ApplyBeam::applyBeam(
-    const DPInfo& info, double time, T* data0, float* weight0,
-    const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
-    const everybeam::vector3r_t& tiledir,
-    const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights) {
+void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
+                          float* weight0, const everybeam::vector3r_t& srcdir,
+                          const everybeam::telescope::Telescope* telescope,
+                          std::vector<aocommon::MC2x2>& beamValues, bool invert,
+                          everybeam::CorrectionMode mode, bool doUpdateWeights,
+                          std::mutex* mutex) {
   // Get the beam values for each station.
   const size_t nCh = info.chanFreqs().size();
   const size_t nSt = beamValues.size() / nCh;
   const size_t nBl = info.nbaselines();
 
-  double reffreq = info.refFreq();
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope->GetPointResponse(time);
+
+  const std::vector<size_t> station_indices =
+      InputStep::SelectStationIndices(telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   for (size_t ch = 0; ch < nCh; ++ch) {
-    if (useChannelFreq) {
-      reffreq = info.chanFreqs()[ch];
-    }
-
     switch (mode) {
       case everybeam::CorrectionMode::kFull:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = antBeamInfo[st]->Response(
-              time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir);
+          beamValues[nCh * st + ch] = point_response->FullBeam(
+              station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
           if (invert) {
             beamValues[nCh * st + ch].Invert();
           }
@@ -305,8 +303,8 @@ void ApplyBeam::applyBeam(
         aocommon::MC2x2Diag af_tmp;
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          af_tmp = antBeamInfo[st]->ArrayFactor(
-              time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir);
+          af_tmp = point_response->ArrayFactor(
+              station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
 
           if (invert) {
             af_tmp[0] = 1. / af_tmp[0];
@@ -319,8 +317,8 @@ void ApplyBeam::applyBeam(
       case everybeam::CorrectionMode::kElement:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = antBeamInfo[st]->ComputeElementResponse(
-              time, info.chanFreqs()[ch], srcdir);
+          beamValues[nCh * st + ch] =
+              point_response->ElementResponse(st, info.chanFreqs()[ch], srcdir);
           if (invert) {
             beamValues[nCh * st + ch].Invert();
           }
@@ -357,37 +355,35 @@ void ApplyBeam::applyBeam(
 template void ApplyBeam::applyBeam(
     const DPInfo& info, double time, std::complex<double>* data0,
     float* weight0, const everybeam::vector3r_t& srcdir,
-    const everybeam::vector3r_t& refdir, const everybeam::vector3r_t& tiledir,
-    const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights);
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<aocommon::MC2x2>& beamValues, bool invert,
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
 
 template <typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, T* data0,
-    const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
-    const everybeam::vector3r_t& tiledir,
-    const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-    bool invert, everybeam::CorrectionMode mode) {
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<everybeam::complex_t>& beamValues, bool invert,
+    everybeam::CorrectionMode mode, std::mutex* mutex) {
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
   // Get the beam values for each station.
   const size_t nCh = info.chanFreqs().size();
   const size_t nSt = beamValues.size() / nCh;
   const size_t nBl = info.nbaselines();
 
-  double reffreq = info.refFreq();
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope->GetPointResponse(time);
+
+  const std::vector<size_t> station_indices =
+      InputStep::SelectStationIndices(telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   for (size_t ch = 0; ch < nCh; ++ch) {
-    if (useChannelFreq) {
-      reffreq = info.chanFreqs()[ch];
-    }
-
     // Fill beamValues for channel ch
     for (size_t st = 0; st < nSt; ++st) {
-      beamValues[nCh * st + ch] = antBeamInfo[st]->ArrayFactor(
-          time, info.chanFreqs()[ch], srcdir, reffreq, refdir, tiledir)[0];
+      beamValues[nCh * st + ch] = point_response->ArrayFactor(
+          station_indices[st], info.chanFreqs()[ch], srcdir, mutex)[0];
       if (invert) {
         beamValues[nCh * st + ch] = 1. / beamValues[nCh * st + ch];
       }
@@ -407,11 +403,10 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
 
 template void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, std::complex<double>* data0,
-    const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
-    const everybeam::vector3r_t& tiledir,
-    const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-    std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-    bool invert, everybeam::CorrectionMode mode);
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<everybeam::complex_t>& beamValues, bool invert,
+    everybeam::CorrectionMode mode, std::mutex* mutex);
 
 }  // namespace steps
 }  // namespace dp3

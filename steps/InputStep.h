@@ -14,7 +14,7 @@
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 
-#include <EveryBeam/station.h>
+#include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/elementresponse.h>
 
 #include <casacore/tables/Tables/TableIter.h>
@@ -80,13 +80,17 @@ class InputStep : public Step {
   /// The default implementation returns an empty string.
   virtual std::string msName() const;
 
-  /// Fill the vector with station beam info from the input source (MS).
-  /// Only fill it for the given station names.
-  /// The default implementation throws an exception.
-  virtual void fillBeamInfo(
-      std::vector<std::shared_ptr<everybeam::Station>>&,
-      const casacore::Vector<casacore::String>& antNames,
-      const everybeam::ElementResponseModel element_reponse_model) const;
+  /// Retrieve the everybeam telescope from the input source (MS).
+  /// Default implementation throws an exception.
+  virtual std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
+      const everybeam::ElementResponseModel element_response_model,
+      bool use_channel_frequency) const;
+
+  /// Select station indices that match the input vector of antenna(aka station)
+  /// names from a telescope pointer.
+  static std::vector<size_t> SelectStationIndices(
+      const everybeam::telescope::Telescope* telescope,
+      const casacore::Vector<casacore::String>& station_names);
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.

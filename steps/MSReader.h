@@ -167,12 +167,9 @@ class MSReader : public InputStep {
   virtual void getModelData(const casacore::RefRows& rowNrs,
                             casacore::Cube<casacore::Complex>&);
 
-  /// Fill the vector with station beam info from the input MS.
-  /// Only fill it for the given station names.
-  virtual void fillBeamInfo(
-      std::vector<std::shared_ptr<everybeam::Station>>&,
-      const casacore::Vector<casacore::String>& antNames,
-      const everybeam::ElementResponseModel element_reponse_model) const;
+  std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
+      const everybeam::ElementResponseModel element_response_model,
+      bool use_channel_frequency) const final override;
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.

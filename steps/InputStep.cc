@@ -116,10 +116,45 @@ void InputStep::getModelData(const RefRows&, Cube<casacore::Complex>&) {
   throw Exception("InputStep::getModelData not implemented");
 }
 
-void InputStep::fillBeamInfo(std::vector<std::shared_ptr<everybeam::Station>>&,
-                             const casacore::Vector<casacore::String>&,
-                             const everybeam::ElementResponseModel) const {
-  throw Exception("InputStep::fillBeamInfo not implemented");
+std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
+    const everybeam::ElementResponseModel element_response_model,
+    bool use_channel_frequency) const {
+  throw Exception("InputStep::GetTelescope not implemented");
+}
+
+std::vector<size_t> InputStep::SelectStationIndices(
+    const everybeam::telescope::Telescope* telescope,
+    const casacore::Vector<casacore::String>& station_names) {
+  const everybeam::telescope::PhasedArray* phased_array =
+      dynamic_cast<const everybeam::telescope::PhasedArray*>(telescope);
+  if (phased_array == nullptr) {
+    throw Exception(
+        "Currently, only PhasedArray telescopes accepted as input, i.e. "
+        "OSKAR or LOFAR. Support for other telescope may become available "
+        "soon.");
+  }
+
+  // Copy only those stations for which the name matches.
+  // Note: the order of the station names in both vectors match,
+  // thus avoiding a nested loop.
+  std::vector<size_t> station_to_msindex;
+  station_to_msindex.reserve(station_names.size());
+  size_t station_idx = 0;
+  for (size_t i = 0; i < phased_array->GetNrStations(); ++i) {
+    if (station_idx < station_names.size() &&
+        casacore::String(phased_array->GetStation(i)->GetName()) ==
+            station_names[station_idx]) {
+      station_to_msindex.push_back(i);
+      station_idx++;
+    }
+  }
+
+  if (station_idx != station_names.size()) {
+    throw Exception(
+        "InputStep::SelectStationIndices -"
+        " some stations miss the beam info");
+  }
+  return station_to_msindex;
 }
 
 void InputStep::setReadVisData(bool) {

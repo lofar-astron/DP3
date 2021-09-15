@@ -14,7 +14,7 @@
 #include "../base/DPBuffer.h"
 #include "../base/Position.h"
 
-#include <EveryBeam/station.h>
+#include <EveryBeam/telescope/telescope.h>
 #include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>
@@ -70,23 +70,21 @@ class ApplyBeam : public Step {
   bool invert() { return itsInvert; }
 
   template <typename T>
-  static void applyBeam(
-      const base::DPInfo& info, double time, T* data0, float* weight0,
-      const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
-      const everybeam::vector3r_t& tiledir,
-      const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-      std::vector<aocommon::MC2x2>& beamValues, bool useChannelFreq,
-      bool invert, everybeam::CorrectionMode mode,
-      bool doUpdateWeights = false);
+  static void applyBeam(const base::DPInfo& info, double time, T* data0,
+                        float* weight0, const everybeam::vector3r_t& srcdir,
+                        const everybeam::telescope::Telescope* telescope,
+                        std::vector<aocommon::MC2x2>& beamValues, bool invert,
+                        everybeam::CorrectionMode mode,
+                        bool doUpdateWeights = false,
+                        std::mutex* mutex = nullptr);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
       const base::DPInfo& info, double time, T* data0,
-      const everybeam::vector3r_t& srcdir, const everybeam::vector3r_t& refdir,
-      const everybeam::vector3r_t& tiledir,
-      const std::vector<std::shared_ptr<everybeam::Station>>& antBeamInfo,
-      std::vector<everybeam::complex_t>& beamValues, bool useChannelFreq,
-      bool invert, everybeam::CorrectionMode mode);
+      const everybeam::vector3r_t& srcdir,
+      const everybeam::telescope::Telescope* telescope,
+      std::vector<everybeam::complex_t>& beamValues, bool invert,
+      everybeam::CorrectionMode mode, std::mutex* mutex = nullptr);
 
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
@@ -114,7 +112,10 @@ class ApplyBeam : public Step {
 
   /// The info needed to calculate the station beams.
   ///@{
-  std::vector<std::vector<std::shared_ptr<everybeam::Station>>> itsAntBeamInfo;
+  // TODO: a copy initialization (?) somewhere is preventing a unique_ptr to
+  // work
+  std::vector<std::shared_ptr<everybeam::telescope::Telescope>> telescopes_;
+  std::vector<size_t> ant_to_msindex_;
   std::vector<casacore::MeasFrame> itsMeasFrames;
   std::vector<casacore::MDirection::Convert> itsMeasConverters;
   std::vector<std::vector<aocommon::MC2x2>> itsBeamValues;
