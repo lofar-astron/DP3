@@ -47,23 +47,25 @@ class FlagCounter {
   void init(const DPInfo& info);
 
   /// Increment the count per baseline.
-  void incrBaseline(unsigned int bl) { itsBLCounts[bl]++; }
+  void incrBaseline(unsigned int bl) { base_line_counts_[bl]++; }
 
   /// Increment the count per channel.
-  void incrChannel(unsigned int chan) { itsChanCounts[chan]++; }
+  void incrChannel(unsigned int chan) { channel_counts_[chan]++; }
 
   /// Increment the count per correlation.
-  void incrCorrelation(unsigned int corr) { itsCorrCounts[corr]++; }
+  void incrCorrelation(unsigned int corr) { correlation_counts_[corr]++; }
 
   /// Add the contents of that to this.
   void add(const FlagCounter& that);
 
   /// Get the counts.
   ///@{
-  const std::vector<int64_t>& baselineCounts() const { return itsBLCounts; }
-  const std::vector<int64_t>& channelCounts() const { return itsChanCounts; }
+  const std::vector<int64_t>& baselineCounts() const {
+    return base_line_counts_;
+  }
+  const std::vector<int64_t>& channelCounts() const { return channel_counts_; }
   const std::vector<int64_t>& correlationCounts() const {
-    return itsCorrCounts;
+    return correlation_counts_;
   }
   ///@}
 
@@ -90,13 +92,13 @@ class FlagCounter {
   void saveChannel(int64_t npoints,
                    const casacore::Vector<int64_t>& count) const;
 
-  const DPInfo* itsInfo;
-  std::string itsSaveName;
-  double itsWarnPerc;
-  bool itsShowFF;
-  std::vector<int64_t> itsBLCounts;
-  std::vector<int64_t> itsChanCounts;
-  std::vector<int64_t> itsCorrCounts;
+  const DPInfo* info_;
+  std::string save_filename_;
+  double warning_percentage_;
+  bool show_fully_flagged_;
+  std::vector<int64_t> base_line_counts_;
+  std::vector<int64_t> channel_counts_;
+  std::vector<int64_t> correlation_counts_;
 };
 
 }  // namespace base
