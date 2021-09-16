@@ -538,8 +538,10 @@ if(BUILD_TESTING)
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
+      steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBdaPredict.cc
       steps/test/unit/tBDAResultStep.cc
+      steps/test/unit/tDDECal.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc
@@ -602,7 +604,9 @@ if(BUILD_TESTING)
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz)
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
+    COMMAND ${EXTRACT_CMD}
+            ${CMAKE_SOURCE_DIR}/ddecal/test/integration/tDDECal.in_MS.tgz)
 
   add_test(NAME extract_resources
            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
