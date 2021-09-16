@@ -73,6 +73,157 @@ namespace base {
 // Initialize the statics.
 std::map<std::string, DP3::StepCtor*> DP3::theirStepMap;
 
+/// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
+/// If no data are modified (for example if only count was done),
+/// still an MSUpdater is created, but it will not write anything.
+/// It reads the output name from the parset. If the prefix is "", it
+/// reads msout or msout.name, otherwise it reads name from the output step
+/// Create an updater step if an input MS was given; otherwise a writer.
+/// Create an updater step only if needed (e.g. not if only count is done).
+/// If the user specified an output MS name, a writer or updater is always
+/// created If there is a writer, the reader needs to read the visibility
+/// data. reader should be the original reader
+static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
+                                            const common::ParameterSet& parset,
+                                            const std::string& prefix,
+                                            std::string& currentMSName,
+                                            Step::MsType inputType) {
+  std::shared_ptr<Step> step;
+  std::string outName;
+  bool doUpdate = false;
+  if (prefix == "msout.") {
+    // The last output step.
+    outName = parset.getString("msout.name", "");
+    if (outName.empty()) {
+      outName = parset.getString("msout", "");
+    }
+  } else {
+    // An intermediate output step.
+    outName = parset.getString(prefix + "name");
+  }
+
+  // A name equal to . or the last name means an update of the last MS.
+  if (outName.empty() || outName == ".") {
+    outName = currentMSName;
+    doUpdate = true;
+  } else {
+    casacore::Path pathOut(outName);
+    if (currentMSName == std::string(pathOut.absoluteName())) {
+      outName = currentMSName;
+      doUpdate = true;
+    }
+  }
+  switch (inputType) {
+    case Step::MsType::kBda:
+      if (doUpdate) {
+        throw std::invalid_argument("No updater for BDA data.");
+      } else {
+        step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
+        reader->setReadVisData(true);
+      }
+      break;
+    case Step::MsType::kRegular:
+      if (doUpdate) {
+        // Create MSUpdater.
+        // Take care the history is not written twice.
+        // Note that if there is nothing to write, the updater won't do
+        // anything.
+        step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+                                           outName != currentMSName);
+      } else {
+        step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
+        reader->setReadVisData(true);
+      }
+      break;
+  }
+  casacore::Path pathOut(outName);
+  currentMSName = pathOut.absoluteName();
+  return step;
+}
+
+static std::shared_ptr<Step> makeSingleStep(const std::string& type,
+                                            InputStep* inputStep,
+                                            const common::ParameterSet& parset,
+                                            const std::string& prefix,
+                                            std::string& msName,
+                                            Step::MsType inputType) {
+  std::shared_ptr<Step> step;
+  if (type == "aoflagger" || type == "aoflag") {
+    step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
+  } else if (type == "averager" || type == "average" || type == "squash") {
+    step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
+  } else if (type == "bdaaverage" || type == "bdaaverager") {
+    step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
+  } else if (type == "bdaexpander") {
+    step = std::make_shared<steps::BDAExpander>(prefix);
+  } else if (type == "madflagger" || type == "madflag") {
+    step = std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
+  } else if (type == "preflagger" || type == "preflag") {
+    step = std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
+  } else if (type == "uvwflagger" || type == "uvwflag") {
+    step = std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix);
+  } else if (type == "columnreader") {
+    step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
+  } else if (type == "counter" || type == "count") {
+    step = std::make_shared<steps::Counter>(inputStep, parset, prefix);
+  } else if (type == "phaseshifter" || type == "phaseshift") {
+    step = std::make_shared<steps::PhaseShift>(inputStep, parset, prefix);
+  } else if (type == "demixer" || type == "demix") {
+    step = std::make_shared<steps::Demixer>(inputStep, parset, prefix);
+  } else if (type == "smartdemixer" || type == "smartdemix") {
+    step = std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
+  } else if (type == "applybeam") {
+    step = std::make_shared<steps::ApplyBeam>(inputStep, parset, prefix);
+  } else if (type == "stationadder" || type == "stationadd") {
+    step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
+  } else if (type == "scaledata") {
+    step = std::make_shared<steps::ScaleData>(inputStep, parset, prefix,
+                                              inputType);
+  } else if (type == "setbeam") {
+    step = std::make_shared<steps::SetBeam>(inputStep, parset, prefix);
+  } else if (type == "filter") {
+    step = std::make_shared<steps::Filter>(inputStep, parset, prefix);
+  } else if (type == "applycal" || type == "correct") {
+    step = std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
+  } else if (type == "predict") {
+    step =
+        std::make_shared<steps::Predict>(*inputStep, parset, prefix, inputType);
+  } else if (type == "grouppredict") {
+    step = std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
+  } else if (type == "idgpredict") {
+    step = std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);
+  } else if (type == "h5parmpredict") {
+    step = std::make_shared<steps::H5ParmPredict>(inputStep, parset, prefix);
+  } else if (type == "gaincal" || type == "calibrate") {
+    step = std::make_shared<steps::GainCal>(*inputStep, parset, prefix);
+  } else if (type == "upsample") {
+    step = std::make_shared<steps::Upsample>(parset, prefix);
+  } else if (type == "split" || type == "explode") {
+    step = std::make_shared<steps::Split>(inputStep, parset, prefix);
+  } else if (type == "ddecal") {
+    if (inputType == Step::MsType::kRegular) {
+      step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
+    } else if (inputType == Step::MsType::kBda) {
+      step = std::make_shared<steps::BdaDdeCal>(inputStep, parset, prefix);
+    }
+  } else if (type == "interpolate") {
+    step = std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
+  } else if (type == "out" || type == "output" || type == "msout") {
+    if (msName.empty())
+      msName = casacore::Path(inputStep->msName()).absoluteName();
+    step = makeOutputStep(inputStep, parset, prefix, msName, inputType);
+  } else if (type == "python" || type == "pythondppp") {
+    step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
+  } else {
+    // Maybe the step is defined in a dynamic library.
+    step = DP3::findStepCtor(type)(inputStep, parset, prefix);
+  }
+  if (!step) {
+    throw std::runtime_error("Could not create step of type '" + type + "'");
+  }
+  return step;
+}
+
 void DP3::registerStepCtor(const std::string& type, StepCtor* func) {
   theirStepMap[type] = func;
 }
@@ -328,147 +479,6 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
   }
 
   return firstStep;
-}
-
-std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
-                                          InputStep* inputStep,
-                                          const common::ParameterSet& parset,
-                                          const std::string& prefix,
-                                          std::string& msName,
-                                          Step::MsType inputType) {
-  std::shared_ptr<Step> step;
-  if (type == "aoflagger" || type == "aoflag") {
-    step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
-  } else if (type == "averager" || type == "average" || type == "squash") {
-    step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
-  } else if (type == "bdaaverage" || type == "bdaaverager") {
-    step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
-  } else if (type == "bdaexpander") {
-    step = std::make_shared<steps::BDAExpander>(prefix);
-  } else if (type == "madflagger" || type == "madflag") {
-    step = std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
-  } else if (type == "preflagger" || type == "preflag") {
-    step = std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
-  } else if (type == "uvwflagger" || type == "uvwflag") {
-    step = std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix);
-  } else if (type == "columnreader") {
-    step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
-  } else if (type == "counter" || type == "count") {
-    step = std::make_shared<steps::Counter>(inputStep, parset, prefix);
-  } else if (type == "phaseshifter" || type == "phaseshift") {
-    step = std::make_shared<steps::PhaseShift>(inputStep, parset, prefix);
-  } else if (type == "demixer" || type == "demix") {
-    step = std::make_shared<steps::Demixer>(inputStep, parset, prefix);
-  } else if (type == "smartdemixer" || type == "smartdemix") {
-    step = std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
-  } else if (type == "applybeam") {
-    step = std::make_shared<steps::ApplyBeam>(inputStep, parset, prefix);
-  } else if (type == "stationadder" || type == "stationadd") {
-    step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
-  } else if (type == "scaledata") {
-    step = std::make_shared<steps::ScaleData>(inputStep, parset, prefix,
-                                              inputType);
-  } else if (type == "setbeam") {
-    step = std::make_shared<steps::SetBeam>(inputStep, parset, prefix);
-  } else if (type == "filter") {
-    step = std::make_shared<steps::Filter>(inputStep, parset, prefix);
-  } else if (type == "applycal" || type == "correct") {
-    step = std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
-  } else if (type == "predict") {
-    step =
-        std::make_shared<steps::Predict>(*inputStep, parset, prefix, inputType);
-  } else if (type == "grouppredict") {
-    step = std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
-  } else if (type == "idgpredict") {
-    step = std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);
-  } else if (type == "h5parmpredict") {
-    step = std::make_shared<steps::H5ParmPredict>(inputStep, parset, prefix);
-  } else if (type == "gaincal" || type == "calibrate") {
-    step = std::make_shared<steps::GainCal>(*inputStep, parset, prefix);
-  } else if (type == "upsample") {
-    step = std::make_shared<steps::Upsample>(parset, prefix);
-  } else if (type == "split" || type == "explode") {
-    step = std::make_shared<steps::Split>(inputStep, parset, prefix);
-  } else if (type == "ddecal") {
-    if (inputType == Step::MsType::kRegular) {
-      step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
-    } else if (inputType == Step::MsType::kBda) {
-      step = std::make_shared<steps::BdaDdeCal>(inputStep, parset, prefix);
-    }
-  } else if (type == "interpolate") {
-    step = std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
-  } else if (type == "out" || type == "output" || type == "msout") {
-    if (msName.empty())
-      msName = casacore::Path(inputStep->msName()).absoluteName();
-    step = makeOutputStep(inputStep, parset, prefix, msName, inputType);
-  } else if (type == "python" || type == "pythondppp") {
-    step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
-  } else {
-    // Maybe the step is defined in a dynamic library.
-    step = findStepCtor(type)(inputStep, parset, prefix);
-  }
-  if (!step) {
-    throw std::runtime_error("Could not create step of type '" + type + "'");
-  }
-  return step;
-}
-
-std::shared_ptr<Step> DP3::makeOutputStep(InputStep* reader,
-                                          const common::ParameterSet& parset,
-                                          const std::string& prefix,
-                                          std::string& currentMSName,
-                                          Step::MsType inputType) {
-  std::shared_ptr<Step> step;
-  std::string outName;
-  bool doUpdate = false;
-  if (prefix == "msout.") {
-    // The last output step.
-    outName = parset.getString("msout.name", "");
-    if (outName.empty()) {
-      outName = parset.getString("msout", "");
-    }
-  } else {
-    // An intermediate output step.
-    outName = parset.getString(prefix + "name");
-  }
-
-  // A name equal to . or the last name means an update of the last MS.
-  if (outName.empty() || outName == ".") {
-    outName = currentMSName;
-    doUpdate = true;
-  } else {
-    casacore::Path pathOut(outName);
-    if (currentMSName == std::string(pathOut.absoluteName())) {
-      outName = currentMSName;
-      doUpdate = true;
-    }
-  }
-  switch (inputType) {
-    case Step::MsType::kBda:
-      if (doUpdate) {
-        throw std::invalid_argument("No updater for BDA data.");
-      } else {
-        step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
-        reader->setReadVisData(true);
-      }
-      break;
-    case Step::MsType::kRegular:
-      if (doUpdate) {
-        // Create MSUpdater.
-        // Take care the history is not written twice.
-        // Note that if there is nothing to write, the updater won't do
-        // anything.
-        step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
-                                           outName != currentMSName);
-      } else {
-        step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
-        reader->setReadVisData(true);
-      }
-      break;
-  }
-  casacore::Path pathOut(outName);
-  currentMSName = pathOut.absoluteName();
-  return step;
 }
 
 }  // namespace base

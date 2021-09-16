@@ -57,30 +57,7 @@ class DP3 {
       const std::string& step_names_key, steps::InputStep& inputStep,
       bool terminateChain, steps::Step::MsType initial_step_output);
 
-  static steps::Step::ShPtr makeSingleStep(const std::string& type,
-                                           steps::InputStep* inputStep,
-                                           const common::ParameterSet& parset,
-                                           const std::string& prefix,
-                                           std::string& msName,
-                                           steps::Step::MsType inputType);
-
  private:
-  /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
-  /// If no data are modified (for example if only count was done),
-  /// still an MSUpdater is created, but it will not write anything.
-  /// It reads the output name from the parset. If the prefix is "", it
-  /// reads msout or msout.name, otherwise it reads name from the output step
-  /// Create an updater step if an input MS was given; otherwise a writer.
-  /// Create an updater step only if needed (e.g. not if only count is done).
-  /// If the user specified an output MS name, a writer or updater is always
-  /// created If there is a writer, the reader needs to read the visibility
-  /// data. reader should be the original reader
-  static steps::Step::ShPtr makeOutputStep(steps::InputStep* reader,
-                                           const common::ParameterSet& parset,
-                                           const std::string& prefix,
-                                           std::string& currentMSName,
-                                           steps::Step::MsType inputType);
-
   /// The map to create a step object from its type name.
   static std::map<std::string, StepCtor*> theirStepMap;
 };
