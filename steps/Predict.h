@@ -6,6 +6,12 @@
 
 #include "Step.h"
 
+#include <mutex>
+
+namespace aocommon {
+class ThreadPool;
+}
+
 namespace dp3 {
 namespace base {
 class PredictBuffer;

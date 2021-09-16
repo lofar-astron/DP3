@@ -15,9 +15,6 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
 
-// Include appears unused
-#include <aocommon/threadpool.h>
-
 #include <boost/algorithm/string/case_conv.hpp>
 
 #include <EveryBeam/correctionmode.h>

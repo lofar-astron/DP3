@@ -17,6 +17,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/BasicSL/STLIO.h>
 
+#include <aocommon/threadpool.h>
+
 #include <algorithm>
 #include <cmath>
 #include <numeric>
