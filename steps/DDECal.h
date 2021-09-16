@@ -88,12 +88,6 @@ class DDECal : public Step {
   }
 
  private:
-  std::unique_ptr<ddecal::RegularSolverBase> initializeSolver(
-      const common::ParameterSet& parset, const string& prefix,
-      ddecal::SolverAlgorithm algorithm) const;
-  void InitializeConstraints(ddecal::RegularSolverBase& solver,
-                             const common::ParameterSet& parset,
-                             const string& prefix) const;
   void initializeColumnReaders(const common::ParameterSet&,
                                const string& prefix);
   void initializeIDG(const common::ParameterSet& parset, const string& prefix);
