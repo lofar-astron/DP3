@@ -33,41 +33,41 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace base {
 
-FlagCounter::FlagCounter() : info_(0), show_fully_flagged_(false) {}
+static std::string MakeSaveFilename(std::string path,
+                                    const std::string& ms_name,
+                                    std::string suffix) {
+  // Use the step name (without dot) as a name suffix.
+  string::size_type pos = suffix.find('.');
+  if (pos != string::npos) {
+    suffix.resize(pos);
+  }
+  // If no path is given, use the path of the name (use . if no path).
+  pos = ms_name.rfind('/');
+  if (path.empty()) {
+    if (pos == string::npos) {
+      path = '.';
+    } else {
+      path = ms_name.substr(0, pos);
+    }
+  }
+  std::string name = ms_name.substr(pos + 1);
+  pos = name.find('.');
+  if (pos != string::npos) {
+    name = name.substr(0, pos);
+  }
+  return path + '/' + name + '_' + suffix + ".flag";
+}
 
 FlagCounter::FlagCounter(const string& msName,
                          const common::ParameterSet& parset,
-                         const string& prefix) {
-  warning_percentage_ = parset.getDouble(prefix + "warnperc", 0);
-  show_fully_flagged_ = parset.getBool(prefix + "showfullyflagged", false);
+                         const string& prefix)
+    : warning_percentage_(parset.getDouble(prefix + "warnperc", 0)),
+      show_fully_flagged_(parset.getBool(prefix + "showfullyflagged", false)) {
   bool save = parset.getBool(prefix + "save", false);
-  if (save) {
+  if (save)
     // Percentages have to be saved, so form the table name to use.
-    string path = parset.getString(prefix + "path", "");
-    // Use the step name (without dot) as a name suffix.
-    string suffix = prefix;
-    string::size_type pos = suffix.find('.');
-    if (pos != string::npos) {
-      suffix = suffix.substr(0, pos);
-    }
-    // Use the MS name as the name.
-    // If no path is given, use the path of the MS (use . if no path).
-    string name = msName;
-    pos = name.rfind('/');
-    if (path.empty()) {
-      if (pos == string::npos) {
-        path = '.';
-      } else {
-        path = name.substr(0, pos);
-      }
-    }
-    name = name.substr(pos + 1);
-    pos = name.find('.');
-    if (pos != string::npos) {
-      name = name.substr(0, pos);
-    }
-    save_filename_ = path + '/' + name + '_' + suffix + ".flag";
-  }
+    save_filename_ =
+        MakeSaveFilename(parset.getString(prefix + "path", ""), msName, prefix);
 }
 
 void FlagCounter::init(const DPInfo& info) {

@@ -35,7 +35,7 @@ class DPInfo;
 class FlagCounter {
  public:
   /// The default constructor creates an empty object. It does not save.
-  FlagCounter();
+  FlagCounter() = default;
 
   /// This constructor creates an empty object.
   /// It reads info from the parset to see if percentages have to be saved.
@@ -92,13 +92,13 @@ class FlagCounter {
   void saveChannel(int64_t npoints,
                    const casacore::Vector<int64_t>& count) const;
 
-  const DPInfo* info_;
-  std::string save_filename_;
-  double warning_percentage_;
-  bool show_fully_flagged_;
-  std::vector<int64_t> base_line_counts_;
-  std::vector<int64_t> channel_counts_;
-  std::vector<int64_t> correlation_counts_;
+  const DPInfo* info_{nullptr};
+  std::string save_filename_{};
+  double warning_percentage_{0.0};
+  bool show_fully_flagged_{false};
+  std::vector<int64_t> base_line_counts_{};
+  std::vector<int64_t> channel_counts_{};
+  std::vector<int64_t> correlation_counts_{};
 };
 
 }  // namespace base
