@@ -126,6 +126,9 @@ struct Settings {
   const std::string source_db;
 };
 
+/** Writes the relevant constraints of the @a settings to the @a output. */
+void showConstraints(std::ostream& output, const Settings& settings);
+
 }  // namespace ddecal
 }  // namespace dp3
 

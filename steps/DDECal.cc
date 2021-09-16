@@ -364,13 +364,7 @@ void DDECal::show(std::ostream& os) const {
      << "  detect stalling:     " << std::boolalpha
      << itsSolver->GetDetectStalling() << '\n'
      << "  step size:           " << itsSolver->GetStepSize() << '\n';
-  if (!itsSettings.antenna_constraint.empty())
-    os << "  antennaconstraint:   " << itsSettings.antenna_constraint << '\n';
-  if (itsSettings.core_constraint != 0.0)
-    os << "  coreconstraint:      " << itsSettings.core_constraint << '\n';
-  if (itsSettings.smoothness_constraint != 0.0)
-    os << "  smoothnessconstraint:" << itsSettings.smoothness_constraint
-       << '\n';
+  showConstraints(os, itsSettings);
   os << "  approximate fitter:  " << itsSettings.approximate_tec << '\n'
      << "  only predict:        " << itsSettings.only_predict << '\n'
      << "  subtract model:      " << itsSettings.subtract << '\n';
