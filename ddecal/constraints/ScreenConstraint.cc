@@ -68,6 +68,24 @@ void ScreenConstraint::setAntennaPositions(
   itsAntennaPos = std::move(antenna_pos);
 }
 
+void ScreenConstraint::setCoreAntennas(const std::set<size_t>& core_antennas) {
+  _coreAntennas.clear();
+  _otherAntennas.clear();
+  auto set_iter = core_antennas.begin();
+  for (size_t ant = 0; ant < NAntennas(); ++ant) {
+    if ((set_iter != core_antennas.end()) && (*set_iter == ant)) {
+      _coreAntennas.push_back(ant);
+      ++set_iter;
+    } else {
+      _otherAntennas.push_back(ant);
+    }
+  }
+
+  if (itsMode == "csfull") {
+    _screenFitters.resize(NAntennas() - _coreAntennas.size() + 1);
+  }
+}
+
 void ScreenConstraint::setDirections(
     const std::vector<std::pair<double, double> > source_pos) {
   for (unsigned int i = 0; i < source_pos.size(); i++) {
