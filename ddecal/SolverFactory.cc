@@ -56,7 +56,7 @@ struct SolverTypes<BdaSolverBase> {
 
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateScalarSolver(SolverAlgorithm algorithm) {
-  if (ddecal::SolverAlgorithm::kDirectionIterative == algorithm)
+  if (SolverAlgorithm::kDirectionIterative == algorithm)
     return boost::make_unique<
         typename SolverTypes<SolverBaseType>::IterativeScalar>();
   else
@@ -66,7 +66,7 @@ std::unique_ptr<SolverBaseType> CreateScalarSolver(SolverAlgorithm algorithm) {
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateDiagonalSolver(
     SolverAlgorithm algorithm) {
-  if (ddecal::SolverAlgorithm::kDirectionIterative == algorithm)
+  if (SolverAlgorithm::kDirectionIterative == algorithm)
     return boost::make_unique<
         typename SolverTypes<SolverBaseType>::IterativeDiagonal>();
   else
@@ -79,8 +79,8 @@ std::unique_ptr<SolverBaseType> CreateFullJonesSolver(
 
 template <>
 std::unique_ptr<RegularSolverBase> CreateFullJonesSolver(
-    ddecal::SolverAlgorithm algorithm) {
-  if (ddecal::SolverAlgorithm::kDirectionIterative == algorithm)
+    SolverAlgorithm algorithm) {
+  if (SolverAlgorithm::kDirectionIterative == algorithm)
     throw std::runtime_error(
         "The direction-iterating algorithm is not available for the "
         "specified solving mode");
@@ -90,7 +90,7 @@ std::unique_ptr<RegularSolverBase> CreateFullJonesSolver(
 
 template <>
 std::unique_ptr<BdaSolverBase> CreateFullJonesSolver(
-    [[maybe_unused]] ddecal::SolverAlgorithm algorithm) {
+    [[maybe_unused]] SolverAlgorithm algorithm) {
   throw std::runtime_error(
       "FullJones calibration not implemented in combination with BDA");
 }
@@ -114,12 +114,11 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kDiagonalPhase:
-      solver.AddConstraint(boost::make_unique<ddecal::PhaseOnlyConstraint>());
+      solver.AddConstraint(boost::make_unique<PhaseOnlyConstraint>());
       break;
     case base::CalType::kScalarAmplitude:
     case base::CalType::kDiagonalAmplitude:
-      solver.AddConstraint(
-          boost::make_unique<ddecal::AmplitudeOnlyConstraint>());
+      solver.AddConstraint(boost::make_unique<AmplitudeOnlyConstraint>());
       break;
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase: {
@@ -256,6 +255,113 @@ std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
   return solver;
 }
 
+/**
+ * Find all antennas / stations within certain distance.
+ * @param core_constraint Maximum distance for core antennas.
+ * @param positions Positions of the antennas. The function uses the
+ * the first antenna as reference antenna.
+ * @return The indices of the antennas that are within the maximum distance
+ * of the reference station.
+ */
+std::set<size_t> DetermineCoreAntennas(
+    double core_constraint,
+    const std::vector<std::array<double, 3>>& positions) {
+  std::set<size_t> core_indices;
+  if (!positions.empty()) {
+    const double refx = positions[0][0];
+    const double refy = positions[0][1];
+    const double refz = positions[0][2];
+    const double core_dist_squared = core_constraint * core_constraint;
+    for (size_t ant = 0; ant != positions.size(); ++ant) {
+      const double dx = refx - positions[ant][0];
+      const double dy = refy - positions[ant][1];
+      const double dz = refz - positions[ant][2];
+      const double dist_squared = dx * dx + dy * dy + dz * dz;
+      if (dist_squared <= core_dist_squared) {
+        core_indices.insert(core_indices.end(), ant);
+      }
+    }
+  }
+  return core_indices;
+}
+
+void InitializeAntennaCoreConstraint(
+    AntennaConstraint& constraint, double core_constraint,
+    const std::vector<std::array<double, 3>>& antenna_positions) {
+  std::vector<std::set<size_t>> constraint_list;
+  constraint_list.push_back(
+      DetermineCoreAntennas(core_constraint, antenna_positions));
+  constraint.SetAntennaSets(std::move(constraint_list));
+}
+
+void InitializeAntennaConstraint(
+    AntennaConstraint& constraint,
+    const std::vector<std::set<std::string>>& constraint_name_groups,
+    const std::vector<std::string>& antenna_names) {
+  // Set the antenna constraint to a list of stations indices that
+  // are to be kept the same during the solve.
+  std::vector<std::set<size_t>> constraint_list;
+  for (const std::set<std::string>& constraint_name_set :
+       constraint_name_groups) {
+    if (constraint_name_set.size() <= 1) {
+      throw std::runtime_error(
+          "Error in antenna constraint: at least two antennas expected");
+    }
+
+    constraint_list.emplace_back();
+    for (const std::string& constraint_name : constraint_name_set) {
+      const auto iter = std::find(antenna_names.begin(), antenna_names.end(),
+                                  constraint_name);
+      if (iter == antenna_names.end()) {
+        throw std::runtime_error("Error in antenna constraint: Antenna '" +
+                                 constraint_name + "' not found.");
+      }
+      constraint_list.back().insert(constraint_list.back().end(),
+                                    iter - antenna_names.begin());
+    }
+  }
+  constraint.SetAntennaSets(std::move(constraint_list));
+}
+
+#ifdef HAVE_ARMADILLO
+void InitializeScreenConstraint(
+    ScreenConstraint& constraint, double core_constraint,
+    const std::vector<std::array<double, 3>>& antenna_positions,
+    const std::vector<std::pair<double, double>>& source_positions) {
+  constraint.setAntennaPositions(antenna_positions);
+  constraint.setDirections(source_positions);
+  constraint.initPiercePoints();
+  constraint.setCoreAntennas(
+      DetermineCoreAntennas(core_constraint, antenna_positions));
+}
+#endif
+
+void InitializeSmoothnessConstraint(
+    SmoothnessConstraint& constraint, double ref_distance,
+    const std::vector<std::array<double, 3>>& antenna_positions) {
+  std::vector<double> distance_factors;
+  // If no smoothness reference distance is specified, the smoothing is
+  // made independent of the distance
+  if (ref_distance == 0.0) {
+    distance_factors.assign(antenna_positions.size(), 1.0);
+  } else {
+    // Make a list of factors such that more distant antennas apply a
+    // smaller smoothing kernel.
+    distance_factors.reserve(antenna_positions.size());
+    for (size_t i = 1; i != antenna_positions.size(); ++i) {
+      const double dx = antenna_positions[0][0] - antenna_positions[i][0];
+      const double dy = antenna_positions[0][1] - antenna_positions[i][1];
+      const double dz = antenna_positions[0][2] - antenna_positions[i][2];
+      const double factor =
+          ref_distance / std::sqrt(dx * dx + dy * dy + dz * dz);
+      distance_factors.push_back(factor);
+      // For antenna 0, the distance of antenna 1 is used:
+      if (i == 1) distance_factors.push_back(factor);
+    }
+  }
+  constraint.SetDistanceFactors(std::move(distance_factors));
+}
+
 }  // namespace
 
 std::unique_ptr<RegularSolverBase> CreateRegularSolver(
@@ -268,6 +374,53 @@ std::unique_ptr<BdaSolverBase> CreateBdaSolver(
     const Settings& settings, const common::ParameterSet& parset,
     const std::string& prefix) {
   return CreateSolver<BdaSolverBase>(settings, parset, prefix);
+}
+
+void InitializeSolverConstraints(
+    SolverBase& solver, const Settings& settings,
+    const std::vector<std::array<double, 3>>& antenna_positions,
+    const std::vector<std::string>& antenna_names,
+    const std::vector<std::pair<double, double>>& source_positions,
+    const std::vector<double>& frequencies) {
+  for (const std::unique_ptr<Constraint>& constraint :
+       solver.GetConstraints()) {
+    // Initialize the constraint with some common metadata.
+    constraint->Initialize(antenna_positions.size(), source_positions.size(),
+                           frequencies);
+
+    // Different constraints need different information. Determine if the
+    // constraint is of a type that needs more information, and if so
+    // initialize the constraint.
+    AntennaConstraint* antenna_constraint =
+        dynamic_cast<AntennaConstraint*>(constraint.get());
+    if (antenna_constraint) {
+      if (settings.antenna_constraint.empty()) {
+        InitializeAntennaCoreConstraint(
+            *antenna_constraint, settings.core_constraint, antenna_positions);
+      } else {
+        InitializeAntennaConstraint(*antenna_constraint,
+                                    settings.antenna_constraint, antenna_names);
+      }
+    }
+
+#ifdef HAVE_ARMADILLO
+    ScreenConstraint* screen_constraint =
+        dynamic_cast<ScreenConstraint*>(constraint.get());
+    if (screen_constraint) {
+      InitializeScreenConstraint(*screen_constraint,
+                                 settings.screen_core_constraint,
+                                 antenna_positions, source_positions);
+    }
+#endif
+
+    SmoothnessConstraint* smoothness_constraint =
+        dynamic_cast<SmoothnessConstraint*>(constraint.get());
+    if (smoothness_constraint) {
+      InitializeSmoothnessConstraint(*smoothness_constraint,
+                                     settings.smoothness_ref_distance,
+                                     antenna_positions);
+    }
+  }
 }
 
 }  // namespace ddecal

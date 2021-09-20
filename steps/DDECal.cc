@@ -280,13 +280,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsSolutionWriter.AddAntennas(antennaNames, antennaPos);
 
-  // Prepare positions for only used antennas, to be used for constraints
-  std::vector<std::array<double, 3>> usedAntennaPositions(
-      info().antennaUsed().size());
-  for (size_t i = 0; i < info().antennaUsed().size(); ++i) {
-    usedAntennaPositions[i] = antennaPos[info().antennaUsed()[i]];
-  }
-
   size_t nSolTimes =
       (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
   size_t nChannelBlocks = info().nchan() / itsNChan;
@@ -314,126 +307,26 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
-  std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
-  for (ddecal::SolverBase* solver : solvers) {
-    for (const std::unique_ptr<ddecal::Constraint>& constraint :
-         solver->GetConstraints()) {
-      // Initialize the constraint with some common metadata
-      constraint->Initialize(info().antennaUsed().size(), itsDirections.size(),
-                             itsChanBlockFreqs);
+  itsSourcePositions.reserve(itsSteps.size());
+  for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
+    itsSourcePositions.push_back(s->GetFirstDirection());
+  }
 
-      // Different constraints need different information. Determine if the
-      // constraint is of a type that needs more information, and if so
-      // initialize the constraint.
-      ddecal::AntennaConstraint* antConstraint =
-          dynamic_cast<ddecal::AntennaConstraint*>(constraint.get());
-      if (antConstraint != nullptr) {
-        if (itsSettings.antenna_constraint.empty()) {
-          // Set the antenna constraint to all stations within certain distance
-          // specified by 'coreconstraint' parameter.
-          // Take the first used station as reference station
-          const double refX = usedAntennaPositions[0][0],
-                       refY = usedAntennaPositions[0][1],
-                       refZ = usedAntennaPositions[0][2];
-          std::vector<std::set<size_t>> antConstraintList(1);
-          std::set<size_t>& coreAntennaIndices = antConstraintList.front();
-          const double coreDistSq =
-              itsSettings.core_constraint * itsSettings.core_constraint;
-          for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
-            const double dx = refX - usedAntennaPositions[ant][0],
-                         dy = refY - usedAntennaPositions[ant][1],
-                         dz = refZ - usedAntennaPositions[ant][2],
-                         distSq = dx * dx + dy * dy + dz * dz;
-            if (distSq <= coreDistSq) coreAntennaIndices.insert(ant);
-          }
-          antConstraint->SetAntennaSets(std::move(antConstraintList));
-        } else {
-          // Set the antenna constraint to a list of stations indices that
-          // are to be kept the same during the solve.
-          const casacore::Vector<casacore::String>& antNames =
-              info().antennaNames();
-          std::vector<std::string> antNamesStl(
-              antNames.begin(),
-              antNames.end());  // casacore vector doesn't support find properly
-          std::vector<std::set<size_t>> constraintList;
-          for (const std::set<std::string>& constraintNameSet :
-               itsSettings.antenna_constraint) {
-            constraintList.emplace_back();
-            for (const std::string& constraintName : constraintNameSet) {
-              auto iter = std::find(antNamesStl.begin(), antNamesStl.end(),
-                                    constraintName);
-              if (iter != antNamesStl.end())
-                constraintList.back().insert(
-                    info().antennaMap()[iter - antNamesStl.begin()]);
-            }
-            if (constraintList.back().size() <= 1)
-              throw std::runtime_error(
-                  "Error in antenna constraint: at least two antennas "
-                  "expected");
-          }
-          antConstraint->SetAntennaSets(std::move(constraintList));
-        }
-      }
+  // Prepare positions and names for the used antennas only.
+  std::vector<std::string> used_antenna_names;
+  std::vector<std::array<double, 3>> used_antenna_positions;
+  used_antenna_names.reserve(info().antennaUsed().size());
+  used_antenna_positions.reserve(info().antennaUsed().size());
+  for (size_t i = 0; i < info().antennaUsed().size(); ++i) {
+    const int ant = info().antennaUsed()[i];
+    used_antenna_names.push_back(info().antennaNames()[ant]);
+    used_antenna_positions.push_back(antennaPos[i]);
+  }
 
-#ifdef HAVE_ARMADILLO
-      ddecal::ScreenConstraint* screenConstraint =
-          dynamic_cast<ddecal::ScreenConstraint*>(constraint.get());
-      if (screenConstraint != 0) {
-        screenConstraint->setAntennaPositions(usedAntennaPositions);
-        screenConstraint->setDirections(GetSourcePositions());
-        screenConstraint->initPiercePoints();
-        const size_t ref_antenna = 0;
-        const double refX = usedAntennaPositions[ref_antenna][0],
-                     refY = usedAntennaPositions[ref_antenna][1],
-                     refZ = usedAntennaPositions[ref_antenna][2];
-        std::vector<size_t> coreAntennaIndices;
-        std::vector<size_t> otherAntennaIndices;
-        const double coreDistSq = itsSettings.screen_core_constraint *
-                                  itsSettings.screen_core_constraint;
-        for (size_t ant = 0; ant != usedAntennaPositions.size(); ++ant) {
-          const double dx = refX - usedAntennaPositions[ant][0],
-                       dy = refY - usedAntennaPositions[ant][1],
-                       dz = refZ - usedAntennaPositions[ant][2],
-                       distSq = dx * dx + dy * dy + dz * dz;
-          if (distSq <= coreDistSq)
-            coreAntennaIndices.emplace_back(info().antennaMap()[ant]);
-          else
-            otherAntennaIndices.emplace_back(info().antennaMap()[ant]);
-        }
-        screenConstraint->setCoreAntennas(coreAntennaIndices);
-        screenConstraint->setOtherAntennas(otherAntennaIndices);
-      }
-#endif
-
-      ddecal::SmoothnessConstraint* sConstraint =
-          dynamic_cast<ddecal::SmoothnessConstraint*>(constraint.get());
-      if (sConstraint) {
-        std::vector<double> distanceFactors;
-        // If no smoothness reference distance is specified, the smoothing is
-        // made independent of the distance
-        if (itsSettings.smoothness_ref_distance == 0.0) {
-          distanceFactors.assign(usedAntennaPositions.size(), 1.0);
-        } else {
-          // Make a list of factors such that more distant antennas apply a
-          // smaller smoothing kernel.
-          distanceFactors.reserve(usedAntennaPositions.size());
-          for (size_t i = 1; i != usedAntennaPositions.size(); ++i) {
-            const double dx =
-                usedAntennaPositions[0][0] - usedAntennaPositions[i][0];
-            const double dy =
-                usedAntennaPositions[0][1] - usedAntennaPositions[i][1];
-            const double dz =
-                usedAntennaPositions[0][2] - usedAntennaPositions[i][2];
-            const double factor = itsSettings.smoothness_ref_distance /
-                                  std::sqrt(dx * dx + dy * dy + dz * dz);
-            distanceFactors.push_back(factor);
-            // For antenna 0, the distance of antenna 1 is used:
-            if (i == 1) distanceFactors.push_back(factor);
-          }
-        }
-        sConstraint->SetDistanceFactors(std::move(distanceFactors));
-      }
-    }
+  for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
+    InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
+                                used_antenna_names, itsSourcePositions,
+                                itsChanBlockFreqs);
   }
 
   size_t nSt = info().antennaUsed().size();
@@ -859,16 +752,6 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
 
   itsAvgTime += itsAvgTime + bufin.getTime();
 }
-
-std::vector<std::pair<double, double>> DDECal::GetSourcePositions() const {
-  std::vector<std::pair<double, double>> source_positions;
-  source_positions.reserve(itsSteps.size());
-  for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
-    source_positions.push_back(s->GetFirstDirection());
-  }
-  return source_positions;
-}
-
 void DDECal::WriteSolutions() {
   itsTimer.start();
   itsTimerWrite.start();
@@ -887,8 +770,8 @@ void DDECal::WriteSolutions() {
   itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
                           info().timeInterval() * itsSettings.solution_interval,
                           itsSettings.mode, used_antenna_names,
-                          GetSourcePositions(), itsDirections,
-                          info().chanFreqs(), itsChanBlockFreqs, history);
+                          itsSourcePositions, itsDirections, info().chanFreqs(),
+                          itsChanBlockFreqs, history);
 
   itsTimerWrite.stop();
   itsTimer.stop();

@@ -43,17 +43,10 @@ class ScreenConstraint : public Constraint {
 
   void setAntennaPositions(
       const std::vector<std::array<double, 3> > antenna_pos);
+  void setCoreAntennas(const std::set<size_t>& coreAntennas);
   void setDirections(const std::vector<std::pair<double, double> > source_pos);
   void setTime(double time);
   void initPiercePoints();
-  void setCoreAntennas(const std::vector<size_t>& coreAntennas) {
-    _coreAntennas = coreAntennas;
-    if (itsMode == "csfull")
-      _screenFitters.resize(NAntennas() - _coreAntennas.size() + 1);
-  }
-  void setOtherAntennas(const std::vector<size_t>& otherAntennas) {
-    _otherAntennas = otherAntennas;
-  }
   void getPPValue(std::vector<std::vector<std::complex<double> > >&, size_t,
                   size_t, double&, double&) const;
 

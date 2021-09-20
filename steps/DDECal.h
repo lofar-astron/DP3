@@ -105,8 +105,6 @@ class DDECal : public Step {
 
   void initializeFullMatrixSolutions(size_t);
 
-  std::vector<std::pair<double, double>> GetSourcePositions() const;
-
   /// Write all solutions to an H5Parm file using itsSolutionWriter.
   void WriteSolutions();
 
@@ -152,7 +150,9 @@ class DDECal : public Step {
   std::vector<size_t> itsChanBlockStart;
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
-  std::vector<std::vector<string>> itsDirections;
+  std::vector<std::vector<std::string>> itsDirections;
+  /// For each direction, the source positions.
+  std::vector<std::pair<double, double>> itsSourcePositions;
   /// Normally, the solver takes the model data and modifies it, thereby
   /// destroying the original model data. This model data is used to store
   /// the result of the predictions when they are still required after
