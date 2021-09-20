@@ -8,6 +8,8 @@
 
 #include <Version.h>
 
+#include <aocommon/checkblas.h>
+
 #include <boost/filesystem/operations.hpp>
 
 #include <iostream>
@@ -35,6 +37,8 @@ void showUsage() {
 
 int main(int argc, char* argv[]) {
   try {
+    check_openblas_multithreading();
+
     // Get the name of the parset file.
     if (argc > 1) {
       string param = argv[1];
