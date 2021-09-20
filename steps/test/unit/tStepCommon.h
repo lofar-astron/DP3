@@ -3,6 +3,9 @@
 
 /// This file has generic helper routines for testing steps.
 
+#ifndef DPPP_STEPS_TEST_UNIT_TSTEPCOMMON_H
+#define DPPP_STEPS_TEST_UNIT_TSTEPCOMMON_H
+
 #include "../../Step.h"
 #include <vector>
 
@@ -16,3 +19,5 @@ void Execute(const std::vector<std::shared_ptr<Step>>& steps);
 }  // namespace test
 }  // namespace steps
 }  // namespace dp3
+
+#endif
