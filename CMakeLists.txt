@@ -21,6 +21,8 @@ endif()
 
 project(DP3 VERSION ${DP3_VERSION})
 
+include(CheckCXXCompilerFlag)
+
 option(BUILD_TESTING "" OFF)
 
 option(USE_LSMR "use LSMR solver instead of QR solver" OFF)
@@ -44,7 +46,13 @@ else()
   if(DEFINED TARGET_CPU)
     add_compile_options(-march=${TARGET_CPU})
   else()
-    add_compile_options(-march=native)
+    check_cxx_compiler_flag("-march=native" COMPILER_HAS_MARCH_NATIVE)
+    if(COMPILER_HAS_MARCH_NATIVE)
+      add_compile_options(-march=native)
+    else()
+      message(
+        WARNING "The compiler doesn't support -march=native for your CPU.")
+    endif()
   endif()
 endif()
 
