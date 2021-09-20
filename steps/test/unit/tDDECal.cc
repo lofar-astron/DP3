@@ -81,6 +81,9 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   step size:           0.2
   coreconstraint:      45.123
   smoothnessconstraint:46.123
+  smoothnessreffrequency:47.123
+  smoothnessrefdistance:48.123
+  tecscreen.coreconstraint:49.123
   approximate fitter:  false
   only predict:        true
   subtract model:      true
@@ -113,6 +116,9 @@ OnePredict prefix.
        {"prefix.nchan", "44"},
        {"prefix.coreconstraint", "45.123"},
        {"prefix.smoothnessconstraint", "46.123"},
+       {"prefix.smoothnessreffrequency", "47.123"},
+       {"prefix.smoothnessrefdistance", "48.123"},
+       {"prefix.tecscreen.coreconstraint", "49.123"},
        {"prefix.maxiter", "49"}});
 }
 

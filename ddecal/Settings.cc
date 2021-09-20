@@ -187,6 +187,15 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
   if (settings.smoothness_constraint != 0.0)
     output << "  smoothnessconstraint:" << settings.smoothness_constraint
            << '\n';
+  if (settings.smoothness_ref_frequency != 0.0)
+    output << "  smoothnessreffrequency:" << settings.smoothness_ref_frequency
+           << '\n';
+  if (settings.smoothness_ref_distance != 0.0)
+    output << "  smoothnessrefdistance:" << settings.smoothness_ref_distance
+           << '\n';
+  if (settings.screen_core_constraint != 0.0)
+    output << "  tecscreen.coreconstraint:" << settings.screen_core_constraint
+           << '\n';
 }
 }  // namespace ddecal
 }  // namespace dp3
