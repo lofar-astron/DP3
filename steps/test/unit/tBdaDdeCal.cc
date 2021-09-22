@@ -10,11 +10,16 @@
 BOOST_AUTO_TEST_SUITE(bdaddecal)
 
 /// Helper forwarder to improve test failure output.
-void TestShow(std::string expected,
-              std::vector<std::pair<std::string, std::string>> parameters) {
+static void TestShow(
+    std::string expected,
+    std::vector<std::pair<std::string, std::string>> parameters) {
+  const dp3::common::ParameterSet parset =
+      dp3::steps::test::CreateParameterSet(parameters);
   BOOST_CHECK_EQUAL(expected,
-                    dp3::steps::test::Show<dp3::steps::BdaDdeCal>(
-                        dp3::steps::test::CreateParameterSet(parameters)));
+                    dp3::steps::test::Show<dp3::steps::BdaDdeCal>(parset));
+
+  BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
+                      "Not all keys are used, is there a typo?");
 }
 
 BOOST_AUTO_TEST_CASE(show_default) {
