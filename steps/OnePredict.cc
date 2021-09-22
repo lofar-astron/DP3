@@ -64,7 +64,7 @@ namespace steps {
 OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
                        const string& prefix,
                        const std::vector<string>& source_patterns)
-    : itsThreadPool(nullptr), itsMeasuresMutex(nullptr) {
+    : thread_pool_(nullptr), measures_mutex_(nullptr) {
   std::vector<std::string> copied_patterns = source_patterns;
   if (source_patterns.empty()) {
     copied_patterns =
@@ -76,30 +76,30 @@ OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
 void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
                       const string& prefix,
                       const std::vector<string>& sourcePatterns) {
-  itsInput = input;
-  itsName = prefix;
-  itsSourceDBName = parset.getString(prefix + "sourcedb");
-  itsCorrectFreqSmearing =
+  input_ = input;
+  name_ = prefix;
+  source_db_name_ = parset.getString(prefix + "sourcedb");
+  correct_freq_smearing_ =
       parset.getBool(prefix + "correctfreqsmearing", false);
   SetOperation(parset.getString(prefix + "operation", "replace"));
-  itsApplyBeam = parset.getBool(prefix + "usebeammodel", false);
-  itsDebugLevel = parset.getInt(prefix + "debuglevel", 0);
-  itsPatchList = std::vector<base::Patch::ConstPtr>();
+  apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
+  debug_level_ = parset.getInt(prefix + "debuglevel", 0);
+  patch_list_ = std::vector<base::Patch::ConstPtr>();
 
-  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSourceDBName), true,
+  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", source_db_name_), true,
                             false);
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;
   ss << sourcePatterns;
-  itsDirectionsStr = ss.str();
+  direction_str_ = ss.str();
 
   std::vector<string> patchNames;
   try {
     patchNames = base::makePatchList(sourceDB, sourcePatterns);
-    itsPatchList = base::makePatches(sourceDB, patchNames, patchNames.size());
-    if (itsPatchList.empty()) {
-      throw Exception("Couldn't find patch for direction " + itsDirectionsStr);
+    patch_list_ = base::makePatches(sourceDB, patchNames, patchNames.size());
+    if (patch_list_.empty()) {
+      throw Exception("Couldn't find patch for direction " + direction_str_);
     }
   } catch (std::exception& exception) {
     throw std::runtime_error(std::string("Something went wrong while reading "
@@ -107,27 +107,27 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
                              exception.what());
   }
 
-  if (itsApplyBeam) {
-    itsUseChannelFreq = parset.getBool(prefix + "usechannelfreq", true);
-    itsOneBeamPerPatch = parset.getBool(prefix + "onebeamperpatch", false);
-    itsBeamProximityLimit =
+  if (apply_beam_) {
+    use_channel_freq_ = parset.getBool(prefix + "usechannelfreq", true);
+    one_beam_per_patch_ = parset.getBool(prefix + "onebeamperpatch", false);
+    beam_proximity_limit_ =
         parset.getDouble(prefix + "beamproximitylimit", 60.0) *
         (M_PI / (180.0 * 60.0 * 60.0));
 
-    itsBeamMode = everybeam::ParseCorrectionMode(
+    beam_mode_ = everybeam::ParseCorrectionMode(
         parset.getString(prefix + "beammode", "default"));
 
     string element_model = boost::to_lower_copy(
         parset.getString(prefix + "elementmodel", "hamaker"));
     if (element_model == "hamaker") {
-      itsElementResponseModel = everybeam::ElementResponseModel::kHamaker;
+      element_response_model_ = everybeam::ElementResponseModel::kHamaker;
     } else if (element_model == "lobes") {
-      itsElementResponseModel = everybeam::ElementResponseModel::kLOBES;
+      element_response_model_ = everybeam::ElementResponseModel::kLOBES;
     } else if (element_model == "oskar") {
-      itsElementResponseModel =
+      element_response_model_ =
           everybeam::ElementResponseModel::kOSKARSphericalWave;
     } else if (element_model == "oskardipole") {
-      itsElementResponseModel = everybeam::ElementResponseModel::kOSKARDipole;
+      element_response_model_ = everybeam::ElementResponseModel::kOSKARDipole;
     } else {
       throw Exception(
           "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
@@ -135,14 +135,14 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
 
     // By default, a source model has each direction in one patch. Therefore,
     // if one-beam-per-patch is requested, we don't have to do anything.
-    if (!itsOneBeamPerPatch) {
-      if (itsBeamProximityLimit > 0.0) {
+    if (!one_beam_per_patch_) {
+      if (beam_proximity_limit_ > 0.0) {
         // Rework patch list to cluster proximate sources
-        itsPatchList =
-            clusterProximateSources(itsPatchList, itsBeamProximityLimit);
+        patch_list_ =
+            clusterProximateSources(patch_list_, beam_proximity_limit_);
       } else {
         // Rework patch list to contain a patch for every source
-        itsPatchList = makeOnePatchPerComponent(itsPatchList);
+        patch_list_ = makeOnePatchPerComponent(patch_list_);
       }
     }
   }
@@ -153,17 +153,17 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
       parset.isDefined(prefix + "applycal.steps")) {
     SetApplyCal(input, parset, prefix + "applycal.");
   } else {
-    itsDoApplyCal = false;
+    do_apply_cal_ = false;
   }
 
-  itsSourceList = makeSourceList(itsPatchList);
+  source_list_ = makeSourceList(patch_list_);
 
   // Determine whether any sources are polarized. If not, enable Stokes-I-
-  // only mode (note that this mode cannot be used with itsApplyBeam)
-  if (itsApplyBeam && itsBeamMode != everybeam::CorrectionMode::kArrayFactor) {
-    itsStokesIOnly = false;
+  // only mode (note that this mode cannot be used with apply_beam_)
+  if (apply_beam_ && beam_mode_ != everybeam::CorrectionMode::kArrayFactor) {
+    stokes_i_only_ = false;
   } else {
-    itsStokesIOnly =
+    stokes_i_only_ =
         !base::checkPolarized(sourceDB, patchNames, patchNames.size());
   }
 }
@@ -171,14 +171,14 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
 void OnePredict::SetApplyCal(InputStep* input,
                              const common::ParameterSet& parset,
                              const string& prefix) {
-  itsDoApplyCal = true;
-  itsApplyCalStep = ApplyCal(input, parset, prefix, true, itsDirectionsStr);
-  if (itsOperation != "replace" &&
+  do_apply_cal_ = true;
+  apply_cal_step_ = ApplyCal(input, parset, prefix, true, direction_str_);
+  if (operation_ != "replace" &&
       parset.getBool(prefix + "applycal.updateweights", false))
     throw std::invalid_argument(
         "Weights cannot be updated when operation is not replace");
-  itsResultStep = std::make_shared<ResultStep>();
-  itsApplyCalStep.setNextStep(itsResultStep);
+  result_step_ = std::make_shared<ResultStep>();
+  apply_cal_step_.setNextStep(result_step_);
 }
 
 OnePredict::~OnePredict() {}
@@ -187,10 +187,10 @@ void OnePredict::initializeThreadData() {
   const size_t nBl = info().nbaselines();
   const size_t nSt = info().nantenna();
   const size_t nCh = info().nchan();
-  const size_t nCr = itsStokesIOnly ? 1 : info().ncorr();
+  const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
   const size_t nThreads = getInfo().nThreads();
 
-  itsStationUVW.resize(3, nSt);
+  station_uwv_.resize(3, nSt);
 
   std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
@@ -201,33 +201,32 @@ void OnePredict::initializeThreadData() {
     antenna_pos[i][2] = pos.getValue()[2];
   }
 
-  itsUVWSplitIndex = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
+  uvw_split_index_ = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
                                           info().getAnt2(), antenna_pos);
 
-  if (!itsPredictBuffer) {
-    itsPredictBuffer = std::make_shared<base::PredictBuffer>();
+  if (!predict_buffer_) {
+    predict_buffer_ = std::make_shared<base::PredictBuffer>();
   }
-  if (itsApplyBeam && itsPredictBuffer->GetStationList().empty()) {
+  if (apply_beam_ && predict_buffer_->GetStationList().empty()) {
     telescope_ =
-        itsInput->GetTelescope(itsElementResponseModel, itsUseChannelFreq);
+        input_->GetTelescope(element_response_model_, use_channel_freq_);
   }
-  itsPredictBuffer->resize(nThreads, nCr, nCh, nBl, nSt, itsApplyBeam);
+  predict_buffer_->resize(nThreads, nCr, nCh, nBl, nSt, apply_beam_);
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
-  itsMeasConverters.resize(nThreads);
-  itsMeasFrames.resize(nThreads);
+  meas_convertors_.resize(nThreads);
+  meas_frame_.resize(nThreads);
 
   for (size_t thread = 0; thread < nThreads; ++thread) {
-    bool needMeasConverters = itsMovingPhaseRef;
-    needMeasConverters = needMeasConverters || itsApplyBeam;
-    if (needMeasConverters) {
+    const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
+    if (need_meas_converters) {
       // Prepare measures converters
-      itsMeasFrames[thread].set(info().arrayPosCopy());
-      itsMeasFrames[thread].set(
+      meas_frame_[thread].set(info().arrayPosCopy());
+      meas_frame_[thread].set(
           MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
-      itsMeasConverters[thread].set(
+      meas_convertors_[thread].set(
           MDirection::J2000,
-          MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
+          MDirection::Ref(MDirection::ITRF, meas_frame_[thread]));
     }
   }
 }
@@ -236,130 +235,129 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
   info().setWriteData();
-  if (itsOperation == "replace")
+  if (operation_ == "replace")
     info().setBeamCorrectionMode(everybeam::CorrectionMode::kNone);
 
   const size_t nBl = info().nbaselines();
   for (size_t i = 0; i != nBl; ++i) {
-    itsBaselines.emplace_back(info().getAnt1()[i], info().getAnt2()[i]);
+    baselines_.emplace_back(info().getAnt1()[i], info().getAnt2()[i]);
   }
 
   try {
     MDirection dirJ2000(
         MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
     Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-    itsMovingPhaseRef = false;
-    itsPhaseRef =
+    moving_phase_ref_ = false;
+    phase_ref_ =
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   } catch (casacore::AipsError&) {
     // Phase direction (in J2000) is time dependent
-    itsMovingPhaseRef = true;
+    moving_phase_ref_ = true;
   }
 
   initializeThreadData();
 
-  if (itsDoApplyCal) {
-    info() = itsApplyCalStep.setInfo(info());
+  if (do_apply_cal_) {
+    info() = apply_cal_step_.setInfo(info());
   }
 }
 
 base::Direction OnePredict::GetFirstDirection() const {
-  return itsPatchList.front()->direction();
+  return patch_list_.front()->direction();
 }
 
 void OnePredict::SetOperation(const std::string& operation) {
-  itsOperation = operation;
-  if (itsOperation != "replace" && itsOperation != "add" &&
-      itsOperation != "subtract")
+  operation_ = operation;
+  if (operation_ != "replace" && operation_ != "add" &&
+      operation_ != "subtract")
     throw std::invalid_argument(
         "Operation must be 'replace', 'add' or 'subtract'.");
 }
 
 void OnePredict::show(std::ostream& os) const {
-  os << "OnePredict " << itsName << '\n';
-  os << "  sourcedb:           " << itsSourceDBName << '\n';
-  os << "   number of patches: " << itsPatchList.size() << '\n';
-  os << "   number of sources: " << itsSourceList.size() << '\n';
-  os << "   all unpolarized:   " << std::boolalpha << itsStokesIOnly << '\n';
-  os << "   correct freq smearing: " << std::boolalpha << itsCorrectFreqSmearing
+  os << "OnePredict " << name_ << '\n';
+  os << "  sourcedb:           " << source_db_name_ << '\n';
+  os << "   number of patches: " << patch_list_.size() << '\n';
+  os << "   number of sources: " << source_list_.size() << '\n';
+  os << "   all unpolarized:   " << std::boolalpha << stokes_i_only_ << '\n';
+  os << "   correct freq smearing: " << std::boolalpha << correct_freq_smearing_
      << '\n';
-  os << "  apply beam:         " << std::boolalpha << itsApplyBeam << '\n';
-  if (itsApplyBeam) {
-    os << "   mode:              " << everybeam::ToString(itsBeamMode);
+  os << "  apply beam:         " << std::boolalpha << apply_beam_ << '\n';
+  if (apply_beam_) {
+    os << "   mode:              " << everybeam::ToString(beam_mode_);
     os << '\n';
-    os << "   use channelfreq:   " << std::boolalpha << itsUseChannelFreq
+    os << "   use channelfreq:   " << std::boolalpha << use_channel_freq_
        << '\n';
-    os << "   one beam per patch:" << std::boolalpha << itsOneBeamPerPatch
+    os << "   one beam per patch:" << std::boolalpha << one_beam_per_patch_
        << '\n';
     os << "   beam proximity lim:"
-       << (itsBeamProximityLimit * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
+       << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
   }
-  os << "  operation:          " << itsOperation << '\n';
+  os << "  operation:          " << operation_ << '\n';
   os << "  threads:            " << getInfo().nThreads() << '\n';
-  if (itsDoApplyCal) {
-    itsApplyCalStep.show(os);
+  if (do_apply_cal_) {
+    apply_cal_step_.show(os);
   }
 }
 
 void OnePredict::showTimings(std::ostream& os, double duration) const {
   os << "  ";
-  base::FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
-  os << " OnePredict " << itsName << '\n';
+  base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " OnePredict " << name_ << '\n';
 }
 
 bool OnePredict::process(const DPBuffer& bufin) {
-  itsTimer.start();
-  DPBuffer tempBuffer;
-  tempBuffer.copy(bufin);
-  itsInput->fetchUVW(bufin, tempBuffer, itsTimer);
-  itsInput->fetchWeights(bufin, tempBuffer, itsTimer);
+  timer_.start();
+  DPBuffer scratch_buffer;
+  scratch_buffer.copy(bufin);
+  input_->fetchUVW(bufin, scratch_buffer, timer_);
+  input_->fetchWeights(bufin, scratch_buffer, timer_);
 
   // Determine the various sizes.
-  // const size_t nDr = itsPatchList.size();
+  // const size_t nDr = patch_list_.size();
   const size_t nSt = info().nantenna();
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
-  const size_t nBeamValues = itsStokesIOnly ? nBl * nCh : nBl * nCh * nCr;
+  const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
-  itsTimerPredict.start();
+  timer_predict_.start();
 
-  base::nsplitUVW(itsUVWSplitIndex, itsBaselines, tempBuffer.getUVW(),
-                  itsStationUVW);
+  base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.getUVW(),
+                  station_uwv_);
 
-  double time = tempBuffer.getTime();
+  double time = scratch_buffer.getTime();
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir;
 
-  bool needMeasConverters = itsMovingPhaseRef;
-  needMeasConverters = needMeasConverters || itsApplyBeam;
-  if (needMeasConverters) {
+  const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
+  if (need_meas_converters) {
     // Because multiple predict steps might be predicting simultaneously, and
     // Casacore is not thread safe, this needs synchronization.
     std::unique_lock<std::mutex> lock;
-    if (itsMeasuresMutex != nullptr)
-      lock = std::unique_lock<std::mutex>(*itsMeasuresMutex);
+    if (measures_mutex_ != nullptr)
+      lock = std::unique_lock<std::mutex>(*measures_mutex_);
     for (size_t thread = 0; thread != getInfo().nThreads(); ++thread) {
-      itsMeasFrames[thread].resetEpoch(
+      meas_frame_[thread].resetEpoch(
           MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
       // Do a conversion on all threads
-      refdir = dir2Itrf(info().delayCenter(), itsMeasConverters[thread]);
-      tiledir = dir2Itrf(info().tileBeamDir(), itsMeasConverters[thread]);
+      refdir = dir2Itrf(info().delayCenter(), meas_convertors_[thread]);
+      tiledir = dir2Itrf(info().tileBeamDir(), meas_convertors_[thread]);
     }
   }
 
-  if (itsMovingPhaseRef) {
+  if (moving_phase_ref_) {
     // Convert phase reference to J2000
     MDirection dirJ2000(MDirection::Convert(
         info().phaseCenter(),
-        MDirection::Ref(MDirection::J2000, itsMeasFrames[0]))());
+        MDirection::Ref(MDirection::J2000, meas_frame_[0]))());
     Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-    itsPhaseRef =
+    phase_ref_ =
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }
 
   std::unique_ptr<aocommon::ThreadPool> localThreadPool;
-  aocommon::ThreadPool* pool = itsThreadPool;
+  aocommon::ThreadPool* pool = thread_pool_;
   if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
     // for executation of this part.
@@ -374,93 +372,93 @@ bool OnePredict::process(const DPBuffer& bufin) {
   std::vector<base::Simulator> simulators;
   simulators.reserve(pool->NThreads());
   for (size_t thread = 0; thread != pool->NThreads(); ++thread) {
-    itsPredictBuffer->GetModel(thread) = dcomplex();
-    if (itsApplyBeam) itsPredictBuffer->GetPatchModel(thread) = dcomplex();
+    predict_buffer_->GetModel(thread) = dcomplex();
+    if (apply_beam_) predict_buffer_->GetPatchModel(thread) = dcomplex();
 
     // When applying beam, simulate into patch vector
     Cube<dcomplex>& simulatedest =
-        (itsApplyBeam ? itsPredictBuffer->GetPatchModel(thread)
-                      : itsPredictBuffer->GetModel(thread));
-    simulators.emplace_back(itsPhaseRef, nSt, itsBaselines, info().chanFreqs(),
-                            info().chanWidths(), itsStationUVW, simulatedest,
-                            itsCorrectFreqSmearing, itsStokesIOnly);
+        (apply_beam_ ? predict_buffer_->GetPatchModel(thread)
+                     : predict_buffer_->GetModel(thread));
+    simulators.emplace_back(phase_ref_, nSt, baselines_, info().chanFreqs(),
+                            info().chanWidths(), station_uwv_, simulatedest,
+                            correct_freq_smearing_, stokes_i_only_);
   }
   std::vector<base::Patch::ConstPtr> curPatches(pool->NThreads());
 
-  pool->For(0, itsSourceList.size(), [&](size_t sourceIndex, size_t thread) {
+  pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
     // OnePredict the source model and apply beam when an entire patch is
     // done
     base::Patch::ConstPtr& curPatch = curPatches[thread];
     const bool patchIsFinished =
-        curPatch != itsSourceList[sourceIndex].second && curPatch != nullptr;
-    if (itsApplyBeam && patchIsFinished) {
+        curPatch != source_list_[source_index].second && curPatch != nullptr;
+    if (apply_beam_ && patchIsFinished) {
       // Apply the beam and add PatchModel to Model
       addBeamToData(curPatch, time, thread, nBeamValues,
-                    itsPredictBuffer->GetPatchModel(thread).data(),
-                    itsStokesIOnly);
+                    predict_buffer_->GetPatchModel(thread).data(),
+                    stokes_i_only_);
       // Initialize patchmodel to zero for the next patch
-      itsPredictBuffer->GetPatchModel(thread) = dcomplex();
+      predict_buffer_->GetPatchModel(thread) = dcomplex();
     }
-    // Depending on itsApplyBeam, the following call will add to either
+    // Depending on apply_beam_, the following call will add to either
     // the Model or the PatchModel of the predict buffer
-    simulators[thread].simulate(itsSourceList[sourceIndex].first);
+    simulators[thread].simulate(source_list_[source_index].first);
 
-    curPatch = itsSourceList[sourceIndex].second;
+    curPatch = source_list_[source_index].second;
   });
   // Apply beam to the last patch
-  if (itsApplyBeam) {
+  if (apply_beam_) {
     pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
       if (curPatches[thread] != nullptr) {
         addBeamToData(curPatches[thread], time, thread, nBeamValues,
-                      itsPredictBuffer->GetPatchModel(thread).data(),
-                      itsStokesIOnly);
+                      predict_buffer_->GetPatchModel(thread).data(),
+                      stokes_i_only_);
       }
     });
   }
 
   // Add all thread model data to one buffer
-  tempBuffer.getData() = casacore::Complex();
-  casacore::Complex* tdata = tempBuffer.getData().data();
+  scratch_buffer.getData() = casacore::Complex();
+  casacore::Complex* tdata = scratch_buffer.getData().data();
   const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < pool->NThreads(); ++thread) {
-    if (itsStokesIOnly) {
+    if (stokes_i_only_) {
       for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
-        tdata[i] += itsPredictBuffer->GetModel(thread).data()[j];
-        tdata[i + nCr - 1] += itsPredictBuffer->GetModel(thread).data()[j];
+        tdata[i] += predict_buffer_->GetModel(thread).data()[j];
+        tdata[i + nCr - 1] += predict_buffer_->GetModel(thread).data()[j];
       }
     } else {
       std::transform(tdata, tdata + nVisibilities,
-                     itsPredictBuffer->GetModel(thread).data(), tdata,
+                     predict_buffer_->GetModel(thread).data(), tdata,
                      std::plus<dcomplex>());
     }
   }
 
   // Call ApplyCal step
-  if (itsDoApplyCal) {
-    itsApplyCalStep.process(tempBuffer);
-    tempBuffer = itsResultStep->get();
-    tdata = tempBuffer.getData().data();
+  if (do_apply_cal_) {
+    apply_cal_step_.process(scratch_buffer);
+    scratch_buffer = result_step_->get();
+    tdata = scratch_buffer.getData().data();
   }
 
   // Put predict result from temp buffer into the 'real' buffer
-  if (itsOperation == "replace") {
-    itsBuffer = tempBuffer;
+  if (operation_ == "replace") {
+    buffer_ = scratch_buffer;
   } else {
-    itsBuffer.copy(bufin);
-    casacore::Complex* data = itsBuffer.getData().data();
-    if (itsOperation == "add") {
+    buffer_.copy(bufin);
+    casacore::Complex* data = buffer_.getData().data();
+    if (operation_ == "add") {
       std::transform(data, data + nVisibilities, tdata, data,
                      std::plus<dcomplex>());
-    } else if (itsOperation == "subtract") {
+    } else if (operation_ == "subtract") {
       std::transform(data, data + nVisibilities, tdata, data,
                      std::minus<dcomplex>());
     }
   }
 
-  itsTimerPredict.stop();
+  timer_predict_.stop();
 
-  itsTimer.stop();
-  getNextStep()->process(itsBuffer);
+  timer_.stop();
+  getNextStep()->process(buffer_);
   return false;
 }
 
@@ -481,25 +479,25 @@ void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
                  MDirection::J2000);
-  everybeam::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
+  everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
   if (stokesIOnly) {
     ApplyBeam::applyBeamStokesIArrayFactor(
         info(), time, data0, srcdir, telescope_.get(),
-        itsPredictBuffer->GetScalarBeamValues(thread), false, itsBeamMode,
+        predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
         &mutex_);
   } else {
     float* dummyweight = nullptr;
     ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir,
                          telescope_.get(),
-                         itsPredictBuffer->GetFullBeamValues(thread), false,
-                         itsBeamMode, false, &mutex_);
+                         predict_buffer_->GetFullBeamValues(thread), false,
+                         beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model
-  std::transform(itsPredictBuffer->GetModel(thread).data(),
-                 itsPredictBuffer->GetModel(thread).data() + nBeamValues, data0,
-                 itsPredictBuffer->GetModel(thread).data(),
+  std::transform(predict_buffer_->GetModel(thread).data(),
+                 predict_buffer_->GetModel(thread).data() + nBeamValues, data0,
+                 predict_buffer_->GetModel(thread).data(),
                  std::plus<dcomplex>());
 }
 
