@@ -16,7 +16,7 @@ void TestShow(std::string expected,
                     dp3::steps::test::Show<dp3::steps::BdaDdeCal>(parameters));
 }
 
-void TestShowDefault() {
+BOOST_AUTO_TEST_CASE(show_default) {
   TestShow(
       R"(BdaDdeCal prefix.
   mode (constraints):  diagonal
@@ -44,7 +44,7 @@ Using a regular predict per baseline group
           {"msin", "tDDECal.MS"}, {"prefix.directions", "[[center]]"}});
 }
 
-void TestShowModified() {
+BOOST_AUTO_TEST_CASE(show_modified) {
   TestShow(
       R"(BdaDdeCal prefix.
   mode (constraints):  diagonal
@@ -81,8 +81,4 @@ Using a regular predict per baseline group
           {"prefix.maxiter", "49"}});
 }
 
-BOOST_AUTO_TEST_CASE(test_show) {
-  TestShowDefault();
-  TestShowModified();
-}
 BOOST_AUTO_TEST_SUITE_END()

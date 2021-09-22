@@ -16,7 +16,7 @@ void TestShow(std::string expected,
                     dp3::steps::test::Show<dp3::steps::DDECal>(parameters));
 }
 
-void TestShowDefault() {
+BOOST_AUTO_TEST_CASE(show_default) {
   TestShow(
       R"(DDECal prefix.
   mode (constraints):  diagonal
@@ -56,7 +56,7 @@ OnePredict prefix.
           {"prefix.sourcedb", "tDDECal.MS/sky"}});
 }
 
-void TestShowModified() {
+BOOST_AUTO_TEST_CASE(show_modified) {
   TestShow(
       R"(DDECal prefix.
   mode (constraints):  diagonal
@@ -110,11 +110,6 @@ OnePredict prefix.
           {"prefix.coreconstraint", "45.123"},
           {"prefix.smoothnessconstraint", "46.123"},
           {"prefix.maxiter", "49"}});
-}
-
-BOOST_AUTO_TEST_CASE(test_show) {
-  TestShowDefault();
-  TestShowModified();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
