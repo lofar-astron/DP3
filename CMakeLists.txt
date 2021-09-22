@@ -377,7 +377,7 @@ add_library(
   steps/Averager.cc
   steps/BDAAverager.cc
   steps/BDAExpander.cc
-  steps/BdaPredict.cc
+  steps/BdaGroupPredict.cc
   steps/ColumnReader.cc
   steps/Counter.cc
   steps/Demixer.cc

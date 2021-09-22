@@ -4,7 +4,7 @@
 #include "BdaDdeCal.h"
 
 #include "BDAResultStep.h"
-#include "BdaPredict.h"
+#include "BdaGroupPredict.h"
 #include "Version.h"
 
 #include "../base/DPInfo.h"
@@ -20,7 +20,7 @@
 using dp3::base::BDABuffer;
 using dp3::ddecal::BdaSolverBuffer;
 using dp3::ddecal::SolveData;
-using dp3::steps::BdaPredict;
+using dp3::steps::BdaGroupPredict;
 using dp3::common::operator<<;
 using dp3::base::DPInfo;
 
@@ -77,8 +77,8 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
     const std::vector<std::string> source_patterns =
         common::ParameterValue(direction).getStringVector();
 
-    steps_.push_back(
-        std::make_shared<BdaPredict>(*input, parset, prefix, source_patterns));
+    steps_.push_back(std::make_shared<BdaGroupPredict>(*input, parset, prefix,
+                                                       source_patterns));
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());
 

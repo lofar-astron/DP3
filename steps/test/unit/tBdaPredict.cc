@@ -2,21 +2,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "tPredict.h"
-#include "../../BdaPredict.h"
+#include "../../BdaGroupPredict.h"
 #include "../../../common/ParameterSet.h"
 
 #include "mock/MockInput.h"
 
 #include <boost/test/unit_test.hpp>
 
-using dp3::steps::BdaPredict;
+using dp3::steps::BdaGroupPredict;
 
 namespace {
 class BdaPredictFixture {
  public:
   BdaPredictFixture() : input_(), parset_(), predict_() {
     parset_.add("sourcedb", dp3::steps::test::kPredictSourceDB);
-    predict_ = std::make_shared<BdaPredict>(input_, parset_, "");
+    predict_ = std::make_shared<BdaGroupPredict>(input_, parset_, "");
   }
 
   void SetInfo() {
@@ -42,7 +42,7 @@ class BdaPredictFixture {
  protected:
   dp3::steps::MockInput input_;
   dp3::common::ParameterSet parset_;
-  std::shared_ptr<dp3::steps::BdaPredict> predict_;
+  std::shared_ptr<dp3::steps::BdaGroupPredict> predict_;
 };
 }  // namespace
 
