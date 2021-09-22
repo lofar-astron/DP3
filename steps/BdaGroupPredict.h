@@ -1,15 +1,14 @@
-// BdaPredict.h: class to directly predict baseline dependent averaged (BDA)
-// visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
-// SPDX-License-Identifier: GPL-3.0-or-later
+// BdaGroupPredict.h: class to directly predict baseline dependent averaged
+// (BDA) visibilities from a source model Copyright (C) 2020 ASTRON (Netherlands
+// Institute for Radio Astronomy) SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief class to directly predict baseline dependent averaged (BDA)
 /// visibilities from a source model
 /// @author Sebastiaan van der Tol
 
-#ifndef DP3_BDAPREDICT_H
-#define DP3_BDAPREDICT_H
+#ifndef DP3_BDAGROUPPREDICT_H
+#define DP3_BDAGROUPPREDICT_H
 
 #include "InputStep.h"
 
@@ -29,11 +28,12 @@ namespace steps {
 /// @brief DP3 step class to predict BDA visibilities from a source model
 /// @author Sebastiaan van der Tol
 
-class BdaPredict : public ModelDataStep {
+class BdaGroupPredict : public ModelDataStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  BdaPredict(InputStep&, const common::ParameterSet&, const string& prefix);
+  BdaGroupPredict(InputStep&, const common::ParameterSet&,
+                  const string& prefix);
 
   /**
    * Constructs the object with explicit source patterns.
@@ -42,10 +42,10 @@ class BdaPredict : public ModelDataStep {
    * @param prefix Prefix for reading settings from 'parset'.
    * @param source_patterns Source patterns.
    */
-  BdaPredict(InputStep&, const common::ParameterSet&, const string& prefix,
-             const std::vector<std::string>& source_patterns);
+  BdaGroupPredict(InputStep&, const common::ParameterSet&, const string& prefix,
+                  const std::vector<std::string>& source_patterns);
 
-  virtual ~BdaPredict();
+  virtual ~BdaGroupPredict();
 
   /// Processes the data.
   /// Buffers incoming BDABuffers in a queue and sends them to the the next step

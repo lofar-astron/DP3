@@ -19,7 +19,7 @@
 #include "../steps/Averager.h"
 #include "../steps/BDAAverager.h"
 #include "../steps/BDAExpander.h"
-#include "../steps/BdaPredict.h"
+#include "../steps/BdaGroupPredict.h"
 #include "../steps/ColumnReader.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
@@ -375,7 +375,8 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
     if (inputType == Step::MsType::kRegular) {
       step = std::make_shared<steps::Predict>(*inputStep, parset, prefix);
     } else if (inputType == Step::MsType::kBda) {
-      step = std::make_shared<steps::BdaPredict>(*inputStep, parset, prefix);
+      step =
+          std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
     }
   } else if (type == "idgpredict") {
     step = std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);

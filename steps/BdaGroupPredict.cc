@@ -1,10 +1,10 @@
-// BdaPredict.cc: DP3 step class that predicts BDA'd visibilities.
+// BdaGroupPredict.cc: DP3 step class that predicts BDA'd visibilities.
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Sebastiaan van der Tol
 
-#include "BdaPredict.h"
+#include "BdaGroupPredict.h"
 #include "Predict.h"
 
 #include <iostream>
@@ -26,7 +26,7 @@ namespace steps {
 
 /// class representing a group of baselines that have the same averaging / data
 /// shape
-class BdaPredict::BaselineGroup {
+class BdaGroupPredict::BaselineGroup {
  public:
   /// Add a baseline given by its index bl to this group
   void AddBaseline(std::size_t bl) { baselines_.push_back(bl); }
@@ -147,21 +147,22 @@ class BdaPredict::BaselineGroup {
   std::size_t nr_baselines_requested_;
 };
 
-BdaPredict::BdaPredict(InputStep &input, const common::ParameterSet &parset,
-                       const string &prefix)
+BdaGroupPredict::BdaGroupPredict(InputStep &input,
+                                 const common::ParameterSet &parset,
+                                 const string &prefix)
     : input_(input), parset_(parset), name_(prefix) {}
 
-BdaPredict::BdaPredict(InputStep &input, const common::ParameterSet &parset,
-                       const string &prefix,
-                       const std::vector<std::string> &source_patterns)
+BdaGroupPredict::BdaGroupPredict(
+    InputStep &input, const common::ParameterSet &parset, const string &prefix,
+    const std::vector<std::string> &source_patterns)
     : input_(input),
       parset_(parset),
       name_(prefix),
       source_patterns_(source_patterns) {}
 
-BdaPredict::~BdaPredict() {}
+BdaGroupPredict::~BdaGroupPredict() {}
 
-void BdaPredict::updateInfo(const DPInfo &infoIn) {
+void BdaGroupPredict::updateInfo(const DPInfo &infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
   info().setWriteData();
@@ -187,27 +188,27 @@ void BdaPredict::updateInfo(const DPInfo &infoIn) {
   }
 }
 
-std::pair<double, double> BdaPredict::GetFirstDirection() const {
+std::pair<double, double> BdaGroupPredict::GetFirstDirection() const {
   if (index_to_baseline_group_map_.empty()) {
-    throw std::runtime_error("BdaPredict is not initialized");
+    throw std::runtime_error("BdaGroupPredict is not initialized");
   }
   return index_to_baseline_group_map_.front().first->GetFirstDirection();
 }
 
-void BdaPredict::show(std::ostream &os) const {
-  os << "BdaPredict " << name_ << '\n';
+void BdaGroupPredict::show(std::ostream &os) const {
+  os << "BdaGroupPredict " << name_ << '\n';
   os << "Using a regular predict per baseline group\n";
   os << "Predict for first baseline group\n";
   averaging_to_baseline_group_map_.begin()->second.Show(os);
 }
 
-void BdaPredict::showTimings(std::ostream &os, double duration) const {
+void BdaGroupPredict::showTimings(std::ostream &os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
-  os << " BdaPredict " << name_ << '\n';
+  os << " BdaGroupPredict " << name_ << '\n';
 }
 
-bool BdaPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
+bool BdaGroupPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
   timer_.start();
 
   buffers_.push({std::move(buffer), 0});
@@ -231,11 +232,11 @@ bool BdaPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
   return false;
 }
 
-void BdaPredict::finish() {
+void BdaGroupPredict::finish() {
   // Let the next steps finish.
   if (!buffers_.empty()) {
     throw std::runtime_error(
-        "Incomplete data: missing baselines in BdaPredict::finish().");
+        "Incomplete data: missing baselines in BdaGroupPredict::finish().");
   }
   getNextStep()->finish();
 }
