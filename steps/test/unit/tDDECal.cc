@@ -13,7 +13,8 @@ BOOST_AUTO_TEST_SUITE(ddecal)
 void TestShow(std::string expected,
               std::vector<std::pair<std::string, std::string>> parameters) {
   BOOST_CHECK_EQUAL(expected,
-                    dp3::steps::test::Show<dp3::steps::DDECal>(parameters));
+                    dp3::steps::test::Show<dp3::steps::DDECal>(
+                        dp3::steps::test::CreateParameterSet(parameters)));
 }
 
 BOOST_AUTO_TEST_CASE(show_default) {
@@ -50,10 +51,9 @@ OnePredict prefix.
           std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
 
 )",
-      std::vector<std::pair<std::string, std::string>>{
-          {"msin", "tDDECal.MS"},
-          {"prefix.directions", "[[center]]"},
-          {"prefix.sourcedb", "tDDECal.MS/sky"}});
+      {{"msin", "tDDECal.MS"},
+       {"prefix.directions", "[[center]]"},
+       {"prefix.sourcedb", "tDDECal.MS/sky"}});
 }
 
 BOOST_AUTO_TEST_CASE(show_modified) {
@@ -93,23 +93,22 @@ OnePredict prefix.
           std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
 
 )",
-      std::vector<std::pair<std::string, std::string>>{
-          {"msin", "tDDECal.MS"},
-          {"prefix.directions", "[[center]]"},
-          {"prefix.sourcedb", "tDDECal.MS/sky"},
-          {"prefix.propagatesolutions", "true"},
-          {"prefix.propagateconvergedonly", "true"},
-          {"prefix.flagunconverged", "true"},
-          {"prefix.flagdivergedonly", "true"},
-          {"prefix.onlypredict", "true"},
-          {"prefix.subtract", "true"},
-          {"prefix.solveralgorithm", "hybrid"},
-          {"prefix.solint", "42"},
-          {"prefix.minvisratio", "43.123"},
-          {"prefix.nchan", "44"},
-          {"prefix.coreconstraint", "45.123"},
-          {"prefix.smoothnessconstraint", "46.123"},
-          {"prefix.maxiter", "49"}});
+      {{"msin", "tDDECal.MS"},
+       {"prefix.directions", "[[center]]"},
+       {"prefix.sourcedb", "tDDECal.MS/sky"},
+       {"prefix.propagatesolutions", "true"},
+       {"prefix.propagateconvergedonly", "true"},
+       {"prefix.flagunconverged", "true"},
+       {"prefix.flagdivergedonly", "true"},
+       {"prefix.onlypredict", "true"},
+       {"prefix.subtract", "true"},
+       {"prefix.solveralgorithm", "hybrid"},
+       {"prefix.solint", "42"},
+       {"prefix.minvisratio", "43.123"},
+       {"prefix.nchan", "44"},
+       {"prefix.coreconstraint", "45.123"},
+       {"prefix.smoothnessconstraint", "46.123"},
+       {"prefix.maxiter", "49"}});
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -13,7 +13,8 @@ BOOST_AUTO_TEST_SUITE(bdaddecal)
 void TestShow(std::string expected,
               std::vector<std::pair<std::string, std::string>> parameters) {
   BOOST_CHECK_EQUAL(expected,
-                    dp3::steps::test::Show<dp3::steps::BdaDdeCal>(parameters));
+                    dp3::steps::test::Show<dp3::steps::BdaDdeCal>(
+                        dp3::steps::test::CreateParameterSet(parameters)));
 }
 
 BOOST_AUTO_TEST_CASE(show_default) {
@@ -40,8 +41,7 @@ BdaPredict prefix.
 Using a regular predict per baseline group
 
 )",
-      std::vector<std::pair<std::string, std::string>>{
-          {"msin", "tDDECal.MS"}, {"prefix.directions", "[[center]]"}});
+      {{"msin", "tDDECal.MS"}, {"prefix.directions", "[[center]]"}});
 }
 
 BOOST_AUTO_TEST_CASE(show_modified) {
@@ -68,17 +68,16 @@ BdaPredict prefix.
 Using a regular predict per baseline group
 
 )",
-      std::vector<std::pair<std::string, std::string>>{
-          {"msin", "tDDECal.MS"},
-          {"prefix.directions", "[[center]]"},
-          {"prefix.propagatesolutions", "true"},
-          {"prefix.propagateconvergedonly", "true"},
-          {"prefix.flagunconverged", "true"},
-          {"prefix.flagdivergedonly", "true"},
-          {"prefix.subtract", "true"},
-          {"prefix.solveralgorithm", "hybrid"},
-          {"prefix.nchan", "44"},
-          {"prefix.maxiter", "49"}});
+      {{"msin", "tDDECal.MS"},
+       {"prefix.directions", "[[center]]"},
+       {"prefix.propagatesolutions", "true"},
+       {"prefix.propagateconvergedonly", "true"},
+       {"prefix.flagunconverged", "true"},
+       {"prefix.flagdivergedonly", "true"},
+       {"prefix.subtract", "true"},
+       {"prefix.solveralgorithm", "hybrid"},
+       {"prefix.nchan", "44"},
+       {"prefix.maxiter", "49"}});
 }
 
 BOOST_AUTO_TEST_SUITE_END()
