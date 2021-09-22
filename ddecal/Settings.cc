@@ -75,7 +75,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),
       smoothness_ref_frequency(GetDouble("smoothnessreffrequency", 0.0)),
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
-      screen_core_constraint(GetDouble("tecscreen.coreconstrain", 0.0)),
+      screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 
       // Solver settings
       lls_solver_type(
