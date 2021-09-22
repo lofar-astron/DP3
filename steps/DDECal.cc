@@ -364,7 +364,7 @@ void DDECal::show(std::ostream& os) const {
      << "  detect stalling:     " << std::boolalpha
      << itsSolver->GetDetectStalling() << '\n'
      << "  step size:           " << itsSolver->GetStepSize() << '\n';
-  showConstraints(os, itsSettings);
+  ShowConstraints(os, itsSettings);
   os << "  approximate fitter:  " << itsSettings.approximate_tec << '\n'
      << "  only predict:        " << itsSettings.only_predict << '\n'
      << "  subtract model:      " << itsSettings.subtract << '\n';

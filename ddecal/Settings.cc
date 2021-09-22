@@ -178,7 +178,7 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   return columns;
 }
 
-void showConstraints(std::ostream& output, const Settings& settings) {
+void ShowConstraints(std::ostream& output, const Settings& settings) {
   using dp3::common::operator<<;
   if (!settings.antenna_constraint.empty())
     output << "  antennaconstraint:   " << settings.antenna_constraint << '\n';
