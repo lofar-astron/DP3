@@ -605,8 +605,7 @@ if(BUILD_TESTING)
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
-    COMMAND ${EXTRACT_CMD}
-            ${CMAKE_SOURCE_DIR}/ddecal/test/integration/tDDECal.in_MS.tgz)
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tDDECal.in_MS.tgz)
 
   add_test(NAME extract_resources
            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target

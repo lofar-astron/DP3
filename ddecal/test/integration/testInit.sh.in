@@ -6,6 +6,7 @@
 
 # Set common environment for scripts. CMake configures these variables.
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+resourcedir=@DP3_RESOURCE_DIR@
 dp3exe=@CMAKE_CURRENT_BINARY_DIR@/../../../DP3
 taqlexe=@TAQL_EXECUTABLE@
 
@@ -14,4 +15,4 @@ TMP_DIR=$(basename $0)_tmp
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
 cd $TMP_DIR
-tar xfz $srcdir/tDDECal.in_MS.tgz
+tar xfz $resourcedir/tDDECal.in_MS.tgz
