@@ -11,8 +11,8 @@ BOOST_AUTO_TEST_SUITE(ddecal)
 
 /// Helper forwarder to improve test failure output.
 static void TestShow(
-    std::string expected,
-    std::vector<std::pair<std::string, std::string>> parameters) {
+    const std::string& expected,
+    const std::vector<std::pair<std::string, std::string>>& parameters) {
   const dp3::common::ParameterSet parset =
       dp3::steps::test::CreateParameterSet(parameters);
   BOOST_CHECK_EQUAL(expected,
