@@ -127,7 +127,7 @@ struct Settings {
 };
 
 /** Writes the relevant constraints of the @a settings to the @a output. */
-void ShowConstraints(std::ostream& output, const Settings& settings);
+void ShowConstraintSettings(std::ostream& output, const Settings& settings);
 
 }  // namespace ddecal
 }  // namespace dp3
