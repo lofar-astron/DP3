@@ -53,6 +53,10 @@ class BDAAverager : public Step {
 
   MsType outputs() const override { return MsType::kBda; };
 
+  void set_averaging_params(std::vector<unsigned int> baseline_factors,
+                            std::vector<std::vector<double>> freqs,
+                            std::vector<std::vector<double>> widths);
+
  private:
   struct BaselineBuffer {
     BaselineBuffer(std::size_t time_factor, std::size_t n_input_channels,
@@ -98,6 +102,16 @@ class BDAAverager : public Step {
   std::vector<BaselineBuffer> baseline_buffers_;
 
   casacore::IPosition expected_input_shape_;
+
+  /// Time averaging factors per baseline (temporarily used to store the
+  /// arguments of set_averaging_params())
+  std::vector<unsigned int> baseline_factors_;
+  /// Center frequency per channel per baseline (temporarily used to store the
+  /// arguments of set_averaging_params())
+  std::vector<std::vector<double>> freqs_;
+  /// Channel width per channel per baseline (temporarily used to store the
+  /// arguments of set_averaging_params())
+  std::vector<std::vector<double>> widths_;
 };
 
 }  // namespace steps
