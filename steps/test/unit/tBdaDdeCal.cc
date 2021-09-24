@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(show_default) {
   detect stalling:     true
   step size:           0.2
 Model steps for direction [center]
-BdaPredict prefix.
+BdaGroupPredict prefix.
 Using a regular predict per baseline group
 
 )",
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   detect stalling:     true
   step size:           0.2
 Model steps for direction [center]
-BdaPredict prefix.
+BdaGroupPredict prefix.
 Using a regular predict per baseline group
 
 )",
