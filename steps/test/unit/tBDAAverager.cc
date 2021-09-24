@@ -74,15 +74,22 @@ void InitInfo(DPInfo& info, const std::vector<int>& ant1,
   info.set(std::move(chan_freqs), std::move(chan_widths));
 }
 
-void CheckInfo(const DPInfo& info,
-               const std::vector<std::vector<double>>& chan_freqs,
-               const std::vector<std::vector<double>>& chan_widths) {
+void CheckInfo(
+    const DPInfo& info, const std::vector<std::vector<double>>& chan_freqs,
+    const std::vector<std::vector<double>>& chan_widths,
+    const std::vector<unsigned int>& time_avg = std::vector<unsigned int>()) {
   BOOST_TEST(info.needVisData());
   BOOST_TEST_REQUIRE(info.hasBDAChannels());
   BOOST_TEST_REQUIRE(info.nbaselines() == chan_freqs.size());
+  if (!time_avg.empty()) {
+    BOOST_TEST_REQUIRE(info.nbaselines() == time_avg.size());
+  }
   for (std::size_t bl = 0; bl < info.nbaselines(); ++bl) {
     BOOST_TEST(info.chanFreqs(bl) == chan_freqs[bl]);
     BOOST_TEST(info.chanWidths(bl) == chan_widths[bl]);
+    if (!time_avg.empty()) {
+      BOOST_TEST(info.ntimeAvg(bl) == time_avg[bl]);
+    }
   }
 }
 
@@ -211,6 +218,60 @@ dp3::steps::MockInput mock_input;
 
 BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
                                         boost::unit_test::tolerance(0.001f))
+
+BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
+  dp3::common::ParameterSet parset;
+  BDAAverager averager(mock_input, parset, "");
+
+  std::vector<unsigned int> time_avg{2};
+  std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
+  std::vector<std::vector<double>> widths{{5000, 10000, 10000}};
+
+  BOOST_REQUIRE_THROW(
+      averager.set_averaging_params(std::vector<unsigned int>(), freqs, widths),
+      std::invalid_argument);
+  BOOST_REQUIRE_THROW(averager.set_averaging_params(
+                          time_avg, std::vector<std::vector<double>>(), widths),
+                      std::invalid_argument);
+  BOOST_REQUIRE_THROW(averager.set_averaging_params(
+                          time_avg, freqs, std::vector<std::vector<double>>()),
+                      std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+
+  dp3::common::ParameterSet parset;
+  BDAAverager averager(mock_input, parset, "");
+
+  std::vector<unsigned int> time_avg{2};
+  // Define an unsupported frequency averaging scheme (2-2-1)
+  std::vector<std::vector<double>> freqs{{5000, 25000, 40000}};
+  std::vector<std::vector<double>> widths{{10000, 10000, 5000}};
+
+  BOOST_REQUIRE_NO_THROW(
+      averager.set_averaging_params(time_avg, freqs, widths));
+  BOOST_REQUIRE_THROW(averager.updateInfo(info), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(set_averaging_params) {
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+
+  dp3::common::ParameterSet parset;
+  BDAAverager averager(mock_input, parset, "");
+
+  std::vector<unsigned int> time_avg{2};
+  // Define a supported frequency averaging scheme (1-2-2)
+  std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
+  std::vector<std::vector<double>> widths{{5000, 10000, 10000}};
+
+  BOOST_REQUIRE_NO_THROW(
+      averager.set_averaging_params(time_avg, freqs, widths));
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), freqs, widths, time_avg);
+}
 
 BOOST_AUTO_TEST_CASE(no_averaging) {
   const std::size_t kNBaselines = 1;

@@ -5,6 +5,7 @@
 #include "InputStep.h"
 
 #include "../base/BDABuffer.h"
+#include "../common/Epsilon.h"
 #include "../common/ParameterSet.h"
 
 #include <boost/make_unique.hpp>
@@ -76,10 +77,31 @@ BDAAverager::BDAAverager(InputStep& input, const common::ParameterSet& parset,
 
 BDAAverager::~BDAAverager() {}
 
+void BDAAverager::set_averaging_params(
+    std::vector<unsigned int> baseline_factors,
+    std::vector<std::vector<double>> freqs,
+    std::vector<std::vector<double>> widths) {
+  if (baseline_factors.empty() || freqs.empty() || widths.empty()) {
+    throw std::invalid_argument(
+        "One or more empty arguments while setting bda averaging parameters");
+  }
+  baseline_factors_ = std::move(baseline_factors);
+  freqs_ = std::move(freqs);
+  widths_ = std::move(widths);
+}
+
 void BDAAverager::updateInfo(const DPInfo& _info) {
   if (_info.nchan() != _info.chanFreqs().size() ||
       !_info.channelsAreRegular()) {
     throw std::invalid_argument("Invalid info in BDA averager");
+  }
+  if (!baseline_factors_.empty()) {
+    if ((baseline_factors_.size() != _info.nbaselines()) ||
+        (freqs_.size() != _info.nbaselines()) ||
+        (widths_.size() != _info.nbaselines())) {
+      throw std::invalid_argument(
+          "Invalid averaging parameters in BDA averager");
+    }
   }
 
   Step::updateInfo(_info);
@@ -106,31 +128,37 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   // Apply the length thresholds to all baselines.
   baseline_buffers_.clear();
   baseline_buffers_.reserve(_info.nbaselines());
+
   for (std::size_t i = 0; i < _info.nbaselines(); ++i) {
-    // Determine the time averaging factor. Ignore max_interval_ if it is 0.0.
-    std::size_t factor_time =
-        std::floor(bl_threshold_time_ / std::max(lengths[i], 0.1));
-    if (max_interval_ > 0.0 &&
-        factor_time * _info.timeInterval() > max_interval_) {
-      factor_time = std::floor(max_interval_ / _info.timeInterval());
-    }
-    factor_time = std::max(factor_time, std::size_t{1});
+    std::size_t factor_time;
+    std::size_t nchan;
 
-    if (factor_time > maxtimefactor_) {
-      maxtimefactor_ = factor_time;
-    }
-
-    // Determine the number of channels in the output.
-    std::size_t nchan = _info.nchan();
-    if (bl_threshold_channel_ > 0.0) {
-      nchan = std::ceil(lengths[i] / bl_threshold_channel_ * double(nchan));
-      if (nchan > _info.nchan()) {
-        nchan = _info.nchan();
-      } else if (nchan < min_channels_) {
-        nchan = min_channels_;
+    if (baseline_factors_.empty()) {
+      // Determine the time averaging factor. Ignore max_interval_ if it is
+      // 0.0.
+      factor_time = std::floor(bl_threshold_time_ / std::max(lengths[i], 0.1));
+      if (max_interval_ > 0.0 &&
+          factor_time * _info.timeInterval() > max_interval_) {
+        factor_time = std::floor(max_interval_ / _info.timeInterval());
       }
-    }
+      factor_time = std::max(factor_time, std::size_t{1});
 
+      maxtimefactor_ = std::max(maxtimefactor_, factor_time);
+
+      // Determine the number of channels in the output.
+      nchan = _info.nchan();
+      if (bl_threshold_channel_ > 0.0) {
+        nchan = std::ceil(lengths[i] / bl_threshold_channel_ * double(nchan));
+        if (nchan > _info.nchan()) {
+          nchan = _info.nchan();
+        } else if (nchan < min_channels_) {
+          nchan = min_channels_;
+        }
+      }
+    } else {
+      factor_time = baseline_factors_[i];
+      nchan = widths_[i].size();
+    }
     baseline_factors.emplace_back(factor_time);
     baseline_buffers_.emplace_back(factor_time, _info.nchan(), nchan,
                                    _info.ncorr());
@@ -156,10 +184,23 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
     }
   }
 
+  if (!baseline_factors_.empty()) {
+    for (size_t i = 0; i < freqs_.size(); i++) {
+      if (!common::EpsilonEqual(freqs_[i], freqs[i], 1.0e-3) ||
+          !common::EpsilonEqual(widths_[i], widths[i], 1.0e-3)) {
+        throw std::runtime_error(
+            "Frequency averaging specified is not supported");
+      }
+    }
+    freqs_.clear();
+    widths_.clear();
+  }
+
   std::size_t bda_channels = std::ceil(relative_channels);
   bda_channels = std::max(bda_channels, max_channels);
 
   bda_pool_size_ = _info.ncorr() * bda_channels;
+
   bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
 
   info().update(std::move(baseline_factors));
