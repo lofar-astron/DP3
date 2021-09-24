@@ -37,7 +37,7 @@ def source_env():
     os.mkdir(tmpdir)
     os.chdir(tmpdir)
 
-    untar_ms(f"{tcf.RESOURCEDIR_DDECAL}/{MSINTGZ}")
+    untar_ms(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
 
     # Tests are executed here
     yield

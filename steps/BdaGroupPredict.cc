@@ -198,8 +198,10 @@ std::pair<double, double> BdaGroupPredict::GetFirstDirection() const {
 void BdaGroupPredict::show(std::ostream &os) const {
   os << "BdaGroupPredict " << name_ << '\n';
   os << "Using a regular predict per baseline group\n";
-  os << "Predict for first baseline group\n";
-  averaging_to_baseline_group_map_.begin()->second.Show(os);
+  if (!averaging_to_baseline_group_map_.empty()) {
+    os << "Predict for first baseline group\n";
+    averaging_to_baseline_group_map_.begin()->second.Show(os);
+  }
 }
 
 void BdaGroupPredict::showTimings(std::ostream &os, double duration) const {

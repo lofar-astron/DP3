@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Helper script that describes how tDDECal.in_MS.tgz was generated.
+# The script is called manually.
+
 cat << EOF > tDDECal_tmp.skymodel
 FORMAT = Name, Type, Ra, Dec, I
 

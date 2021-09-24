@@ -28,6 +28,14 @@ void Execute(const std::vector<std::shared_ptr<Step>>& steps) {
   steps.front()->finish();
 }
 
+dp3::common::ParameterSet CreateParameterSet(
+    const std::vector<std::pair<std::string, std::string>>& parameters) {
+  dp3::common::ParameterSet result;
+  for (const auto& parameter : parameters)
+    result.add(parameter.first, parameter.second);
+  return result;
+}
+
 }  // namespace test
 }  // namespace steps
 }  // namespace dp3

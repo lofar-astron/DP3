@@ -5,6 +5,7 @@
 #include "Settings.h"
 #include "../base/CalType.h"
 #include "../common/ParameterSet.h"
+#include "../common/StreamUtil.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/make_unique.hpp>
@@ -74,8 +75,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),
       smoothness_ref_frequency(GetDouble("smoothnessreffrequency", 0.0)),
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
-      screen_core_constraint(
-          GetDouble("tecslls_solver_type,creen.coreconstraint", 0.0)),
+      screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 
       // Solver settings
       lls_solver_type(
@@ -178,5 +178,15 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   return columns;
 }
 
+void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
+  using dp3::common::operator<<;
+  if (!settings.antenna_constraint.empty())
+    output << "  antennaconstraint:   " << settings.antenna_constraint << '\n';
+  if (settings.core_constraint != 0.0)
+    output << "  coreconstraint:      " << settings.core_constraint << '\n';
+  if (settings.smoothness_constraint != 0.0)
+    output << "  smoothnessconstraint:" << settings.smoothness_constraint
+           << '\n';
+}
 }  // namespace ddecal
 }  // namespace dp3
