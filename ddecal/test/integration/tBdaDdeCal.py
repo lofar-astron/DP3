@@ -164,8 +164,8 @@ def test_only_predict(create_skymodel):
         "diagonal",
         "diagonalphase",
         "diagonalamplitude",
-        # "tec",
-        # "tecandphase",
+        "tec",
+        "tecandphase",
         # "tecscreen", # Requires Armadillo
         # "fulljones", # not implemented for BDA
         # "rotation", # part of fulljones -> not implemented
@@ -219,6 +219,14 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype, nchan):
             0.,
             decimal=5
         )
+
+    if caltype in ["tec", "tecandphase"]:
+        tec = h5['sol000/tec000/val']
+        assert tec.attrs['AXES'] == b'time,ant,dir,freq'
+
+    if caltype in ["tecandphase"]:
+        phase = h5['sol000/phase000/val']
+        assert phase.attrs['AXES'] == b'time,ant,dir,freq'
 
 def test_subtract(create_skymodel, create_corrupted_data):
     """Test subtraction"""
