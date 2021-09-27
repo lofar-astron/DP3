@@ -529,6 +529,7 @@ void BdaDdeCal::show(std::ostream& stream) const {
            << "  detect stalling:     " << std::boolalpha
            << solver_->GetDetectStalling() << '\n'
            << "  step size:           " << solver_->GetStepSize() << '\n';
+    ShowConstraintSettings(stream, settings_);
   }
 
   for (size_t dir = 0; dir < steps_.size(); ++dir) {
