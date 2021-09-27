@@ -158,18 +158,16 @@ def test_only_predict(create_skymodel):
 @pytest.mark.parametrize(
     "caltype",
     [
-        # Since constraints are not implemented for BDA, most types are disabled.
-        # "tec", #
-        # "tecscreen", # Requires Armadillo
         "scalar",
-        # "scalarphase",
-        # "scalaramplitude",
+        "scalarphase",
+        "scalaramplitude",
         "diagonal",
-        # "diagonalphase",
-        # "diagonalamplitude",
-        # "fulljones", # not implemented for BDA
+        "diagonalphase",
+        "diagonalamplitude",
+        # "tec",
         # "tecandphase",
-        # "scalarcomplex",
+        # "tecscreen", # Requires Armadillo
+        # "fulljones", # not implemented for BDA
         # "rotation", # part of fulljones -> not implemented
         # "rotation+diagonal", # part of fulljones -> not implemented
     ],
@@ -195,29 +193,32 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype, nchan):
 
     h5 = h5py.File("solutions.h5", "r")
 
-    amplitude_solutions = h5['sol000/amplitude000/val']
+    if caltype in ["scalar", "diagonal", "scalaramplitude", "diagonalamplitude" ]:
+        amplitude_solutions = h5['sol000/amplitude000/val']
 
-    if caltype == 'scalar':
-        assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir'
-    else:
-        assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir,pol'
+        if caltype.startswith('scalar'):
+            assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir'
+        else:
+            assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir,pol'
 
-    if nchan == 0:
-        assert amplitude_solutions.shape[1] == 1
-    else:
-        assert amplitude_solutions.shape[1] == 8 // nchan
+        if nchan == 0:
+            assert amplitude_solutions.shape[1] == 1
+        else:
+            assert amplitude_solutions.shape[1] == 8 // nchan
 
-    for corruption_num in range(3):
+        for corruption_num in range(3):
+            np.testing.assert_array_almost_equal(
+                amplitude_solutions[:,:,:,corruption_num],
+                CORRUPTIONS[corruption_num],
+                decimal=3
+            )
+
+    if caltype in ["scalar", "diagonal", "scalarphase", "diagonalphase"]:
         np.testing.assert_array_almost_equal(
-            amplitude_solutions[:,:,:,corruption_num],
-            CORRUPTIONS[corruption_num],
-            decimal=3
+            h5['sol000/phase000/val'][:,:,:,:],
+            0.,
+            decimal=5
         )
-    np.testing.assert_array_almost_equal(
-        h5['sol000/phase000/val'][:,:,:,:],
-        0.,
-        decimal=5
-    )
 
 def test_subtract(create_skymodel, create_corrupted_data):
     """Test subtraction"""

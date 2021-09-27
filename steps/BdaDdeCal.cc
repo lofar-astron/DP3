@@ -58,13 +58,6 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
 
   if (!settings_.only_predict) {
     solver_ = ddecal::CreateBdaSolver(settings_, parset, prefix);
-    for (ddecal::SolverBase* constraint_solver : solver_->ConstraintSolvers()) {
-      if (!constraint_solver->GetConstraints().empty()) {
-        throw std::runtime_error(
-            "BDA Solver constraints are not implemented in BdaDdeCal. "
-            "Use a solver without constraints (scalar or diagonal).");
-      }
-    }
     solution_writer_ =
         boost::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
@@ -94,6 +87,19 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     steps_[i]->setInfo(_info);
   }
 
+  // Convert antenna positions from Casacore to STL, if necessary.
+  std::vector<std::array<double, 3>> antenna_pos;
+  if (!settings_.only_predict || solution_writer_) {
+    antenna_pos.resize(info().antennaPos().size());
+    for (size_t i = 0; i < info().antennaPos().size(); ++i) {
+      casacore::Quantum<casacore::Vector<double>> pos =
+          info().antennaPos()[i].get("m");
+      antenna_pos[i][0] = pos.getValue()[0];
+      antenna_pos[i][1] = pos.getValue()[1];
+      antenna_pos[i][2] = pos.getValue()[2];
+    }
+  }
+
   if (!settings_.only_predict) {
     solution_interval_ = _info.timeInterval() * info().ntime();
     size_t n_solution_intervals = 1;
@@ -118,7 +124,27 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
       antennas2_[i] = info().antennaMap()[info().getAnt2()[i]];
     }
 
+    std::vector<std::string> used_antenna_names;
+    std::vector<std::array<double, 3>> used_antenna_positions;
+    used_antenna_names.reserve(info().antennaUsed().size());
+    used_antenna_positions.reserve(info().antennaUsed().size());
+    for (const int& ant : info().antennaUsed()) {
+      used_antenna_names.push_back(info().antennaNames()[ant]);
+      used_antenna_positions.push_back(antenna_pos[ant]);
+    }
+
     solver_->SetNThreads(info().nThreads());
+
+    const std::vector<std::pair<double, double>> source_positions =
+        GetSourcePositions();
+    const std::vector<double> channel_block_frequencies =
+        GetChannelBlockFrequencies();
+    for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
+      InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
+                                  used_antenna_names, source_positions,
+                                  channel_block_frequencies);
+    }
+
     solver_->Initialize(info().antennaUsed().size(),
                         settings_.directions.size(),
                         chan_block_start_freqs_.size() - 1);
@@ -133,16 +159,6 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     // SolutionWriter.
     const std::vector<std::string> antenna_names(info().antennaNames().begin(),
                                                  info().antennaNames().end());
-
-    std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
-    for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
-      casacore::Quantum<casacore::Vector<double>> pos =
-          info().antennaPos()[i].get("m");
-      antenna_pos[i][0] = pos.getValue()[0];
-      antenna_pos[i][1] = pos.getValue()[1];
-      antenna_pos[i][2] = pos.getValue()[2];
-    }
-
     solution_writer_->AddAntennas(antenna_names, antenna_pos);
   }
 }
@@ -179,6 +195,29 @@ void BdaDdeCal::DetermineChannelBlocks() {
     start_index = next_index;
     start_freq = next_freq;
   }
+}
+
+std::vector<std::pair<double, double>> BdaDdeCal::GetSourcePositions() const {
+  std::vector<std::pair<double, double>> source_positions;
+  source_positions.reserve(steps_.size());
+  for (const std::shared_ptr<ModelDataStep>& s : steps_) {
+    source_positions.push_back(s->GetFirstDirection());
+  }
+  return source_positions;
+}
+
+std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
+  std::vector<double> frequencies;
+  if (chan_block_start_freqs_.empty()) {
+    assert(false);
+  } else {
+    frequencies.reserve(chan_block_start_freqs_.size() - 1);
+    for (size_t i = 0; i < chan_block_start_freqs_.size() - 1; ++i) {
+      frequencies.push_back(
+          (chan_block_start_freqs_[i] + chan_block_start_freqs_[i + 1]) * 0.5);
+    }
+  }
+  return frequencies;
 }
 
 bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
@@ -448,27 +487,14 @@ void BdaDdeCal::WriteSolutions() {
     used_antenna_names.emplace_back(info().antennaNames()[used_antenna]);
   }
 
-  std::vector<std::pair<double, double>> source_positions;
-  source_positions.reserve(steps_.size());
-  for (const std::shared_ptr<ModelDataStep>& s : steps_) {
-    source_positions.push_back(s->GetFirstDirection());
-  }
-
-  std::vector<double> chan_block_freqs;
-  chan_block_freqs.reserve(chan_block_start_freqs_.size() - 1);
-  for (size_t i = 0; i < chan_block_start_freqs_.size() - 1; ++i) {
-    chan_block_freqs.push_back(
-        (chan_block_start_freqs_[i] + chan_block_start_freqs_[i + 1]) * 0.5);
-  }
-
   const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
                               "step " + settings_.name + " in parset: \n" +
                               settings_.parset_string;
 
-  solution_writer_->Write(solutions_, constraint_solutions_, info().startTime(),
-                          solution_interval_, settings_.mode,
-                          used_antenna_names, source_positions, patches_,
-                          info().chanFreqs(), chan_block_freqs, history);
+  solution_writer_->Write(
+      solutions_, constraint_solutions_, info().startTime(), solution_interval_,
+      settings_.mode, used_antenna_names, GetSourcePositions(), patches_,
+      info().chanFreqs(), GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();
   timer_.stop();

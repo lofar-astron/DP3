@@ -84,6 +84,12 @@ class BdaDdeCal : public Step {
   /// Initialize chan_block_start_freqs_.
   void DetermineChannelBlocks();
 
+  /// @return A list with the first direction of each sub-step.
+  std::vector<std::pair<double, double>> GetSourcePositions() const;
+
+  /// @return A list with the center frequency for each channel block.
+  std::vector<double> GetChannelBlockFrequencies() const;
+
   /// Extracts results from all sub-steps and appends them to model_buffers_.
   void ExtractResults();
 

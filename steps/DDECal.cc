@@ -317,10 +317,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   std::vector<std::array<double, 3>> used_antenna_positions;
   used_antenna_names.reserve(info().antennaUsed().size());
   used_antenna_positions.reserve(info().antennaUsed().size());
-  for (size_t i = 0; i < info().antennaUsed().size(); ++i) {
-    const int ant = info().antennaUsed()[i];
+  for (const int& ant : info().antennaUsed()) {
     used_antenna_names.push_back(info().antennaNames()[ant]);
-    used_antenna_positions.push_back(antennaPos[i]);
+    used_antenna_positions.push_back(antennaPos[ant]);
   }
 
   for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
