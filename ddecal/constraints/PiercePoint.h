@@ -39,6 +39,7 @@ class PiercePoint {
   arma::Col<double> getValue() const { return itsValue; }
   casacore::MPosition getPos() const { return itsPosition; }
   casacore::MDirection getDir() const { return itsDirection; }
+  double getHeight() const { return itsIonoHeight; }
 
  private:
   /// Station position.

@@ -36,30 +36,34 @@ class ScreenConstraint : public Constraint {
 
   void Initialize(size_t nAntennas, size_t nDirections,
                   const std::vector<double>& frequencies) override;
-  virtual std::vector<Constraint::Result> Apply(
-      std::vector<std::vector<DComplex> >& solutions, double time,
-      std::ostream* statStream);
-  virtual void CalculatePiercepoints();
+  std::vector<Constraint::Result> Apply(
+      std::vector<std::vector<DComplex>>& solutions, double time,
+      std::ostream* statStream) override;
 
-  void setAntennaPositions(
-      const std::vector<std::array<double, 3> > antenna_pos);
-  void setCoreAntennas(const std::set<size_t>& coreAntennas);
-  void setDirections(const std::vector<std::pair<double, double> > source_pos);
-  void setTime(double time);
-  void initPiercePoints();
-  void getPPValue(std::vector<std::vector<std::complex<double> > >&, size_t,
-                  size_t, double&, double&) const;
+  void SetCoreAntennas(const std::set<size_t>& core_antennas);
+  void InitPiercePoints(
+      const std::vector<std::array<double, 3>>& antenna_pos,
+      const std::vector<std::pair<double, double>>& source_pos);
+
+  const std::vector<size_t>& GetCoreAntennas() const { return _coreAntennas; }
+  const std::vector<std::vector<PiercePoint>>& GetPiercePoints() const {
+    return itsPiercePoints;
+  }
 
  private:
-  std::vector<std::array<double, 3> > itsAntennaPos;
-  std::vector<std::vector<double> > itsSourcePos;
+  void SetTime(double time);
+  void CalculatePiercepoints();
+  void GetPpValue(const std::vector<std::vector<std::complex<double>>>&,
+                  size_t solution_index, size_t direction_index,
+                  double& avg_tec, double& error) const;
+
   std::vector<double> itsFrequencies;
   std::vector<double> itsprevsol;
   std::vector<double> _iterphases;
   /// antenna positions
   /// source positions
   /// measures instance ofzo
-  std::vector<std::vector<PiercePoint> >
+  std::vector<std::vector<PiercePoint>>
       itsPiercePoints;  // temporary hold calculated piercepoints per antenna
   std::vector<KLFitter> _screenFitters;
   std::vector<size_t> _coreAntennas;
