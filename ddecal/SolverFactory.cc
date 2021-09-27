@@ -328,10 +328,8 @@ void InitializeScreenConstraint(
     ScreenConstraint& constraint, double core_constraint,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::pair<double, double>>& source_positions) {
-  constraint.setAntennaPositions(antenna_positions);
-  constraint.setDirections(source_positions);
-  constraint.initPiercePoints();
-  constraint.setCoreAntennas(
+  constraint.InitPiercePoints(antenna_positions, source_positions);
+  constraint.SetCoreAntennas(
       DetermineCoreAntennas(core_constraint, antenna_positions));
 }
 #endif

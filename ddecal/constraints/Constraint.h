@@ -34,7 +34,7 @@ class Constraint {
   };
 
   Constraint()
-      : n_antennas_(0), n_directions_(0), n_channel_blocks_(0), n_threads_(0) {}
+      : n_antennas_(0), n_directions_(0), n_channel_blocks_(0), n_threads_(1) {}
 
   virtual ~Constraint() {}
 
@@ -97,12 +97,17 @@ class Constraint {
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }
 
-  void SetNThreads(size_t n_threads) { n_threads_ = n_threads; }
+  /**
+   * Set the number of threads for parallel loops etc.
+   * @param n_threads Desired number of threads. If it is zero, it becomes one.
+   */
+  void SetNThreads(size_t n_threads) {
+    n_threads_ = std::min(n_threads, size_t(1));
+  }
 
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
                           [[maybe_unused]] double duration) const {}
 
- protected:
   size_t NAntennas() const { return n_antennas_; }
   size_t NDirections() const { return n_directions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
@@ -171,6 +176,10 @@ class AntennaConstraint : public Constraint {
 
   void SetAntennaSets(std::vector<std::set<size_t>>&& antenna_sets) {
     antenna_sets_ = std::move(antenna_sets);
+  }
+
+  const std::vector<std::set<size_t>>& GetAntennaSets() const {
+    return antenna_sets_;
   }
 
   virtual std::vector<Result> Apply(

@@ -42,6 +42,10 @@ class SmoothnessConstraint : public Constraint {
    */
   void SetDistanceFactors(std::vector<double>&& antennaDistanceFactors);
 
+  const std::vector<double>& GetDistanceFactors() const {
+    return _antennaDistanceFactors;
+  }
+
   struct FitData {
     FitData(const std::vector<double>& frequencies,
             Smoother::KernelType kernelType, double kernelBandwidth,

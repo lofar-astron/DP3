@@ -35,11 +35,6 @@ void ScreenConstraint::Initialize(size_t nAntennas, size_t nDirections,
   Constraint::Initialize(nAntennas, nDirections, frequencies);
   itsFrequencies = frequencies;
   itsprevsol.assign(NDirections() * NAntennas(), -999.);
-  itsAntennaPos.resize(NAntennas());
-  itsSourcePos.resize(NDirections());
-  itsPiercePoints.resize(NAntennas());
-  for (size_t i = 0; i < itsPiercePoints.size(); i++)
-    itsPiercePoints[i].resize(NDirections());
 
   if (itsMode == "station")
     _screenFitters.resize(NAntennas());
@@ -63,12 +58,7 @@ void ScreenConstraint::Initialize(size_t nAntennas, size_t nDirections,
   }
 }
 
-void ScreenConstraint::setAntennaPositions(
-    const std::vector<std::array<double, 3> > antenna_pos) {
-  itsAntennaPos = std::move(antenna_pos);
-}
-
-void ScreenConstraint::setCoreAntennas(const std::set<size_t>& core_antennas) {
+void ScreenConstraint::SetCoreAntennas(const std::set<size_t>& core_antennas) {
   _coreAntennas.clear();
   _otherAntennas.clear();
   auto set_iter = core_antennas.begin();
@@ -86,32 +76,28 @@ void ScreenConstraint::setCoreAntennas(const std::set<size_t>& core_antennas) {
   }
 }
 
-void ScreenConstraint::setDirections(
-    const std::vector<std::pair<double, double> > source_pos) {
-  for (unsigned int i = 0; i < source_pos.size(); i++) {
-    itsSourcePos[i].resize(2);
-    itsSourcePos[i][0] = source_pos[i].first;
-    itsSourcePos[i][1] = source_pos[i].second;
-  }
-}
-
-void ScreenConstraint::initPiercePoints() {
-  for (unsigned int ipos = 0; ipos < itsAntennaPos.size(); ipos++) {
+void ScreenConstraint::InitPiercePoints(
+    const std::vector<std::array<double, 3>>& antenna_pos,
+    const std::vector<std::pair<double, double>>& source_pos) {
+  assert(antenna_pos.size() == NAntennas());
+  assert(source_pos.size() == NDirections());
+  itsPiercePoints.resize(NAntennas());
+  for (unsigned int ipos = 0; ipos < antenna_pos.size(); ipos++) {
+    itsPiercePoints[ipos].clear();
     casacore::MPosition ant(
-        casacore::MVPosition(itsAntennaPos[ipos][0], itsAntennaPos[ipos][1],
-                             itsAntennaPos[ipos][2]),
+        casacore::MVPosition(antenna_pos[ipos][0], antenna_pos[ipos][1],
+                             antenna_pos[ipos][2]),
         casacore::MPosition::ITRF);
-    for (unsigned int isrc = 0; isrc < itsSourcePos.size(); isrc++) {
+    for (const auto& direction : source_pos) {
       casacore::MDirection src(
-          casacore::MVDirection(itsSourcePos[isrc][0], itsSourcePos[isrc][1]),
+          casacore::MVDirection(direction.first, direction.second),
           casacore::MDirection::J2000);
-
-      itsPiercePoints[ipos][isrc] = PiercePoint(ant, src, itsHeight);
+      itsPiercePoints[ipos].emplace_back(ant, src, itsHeight);
     }
   }
 }
 
-void ScreenConstraint::setTime(double time) {
+void ScreenConstraint::SetTime(double time) {
   if (itsCurrentTime != time) {
     itsCurrentTime = time;
     itsIter = 0;
@@ -139,8 +125,7 @@ void ScreenConstraint::setTime(double time) {
       }
       _screenFitters[0].calculateCorrMatrix(tmpV);
     } else if (itsMode == "csfull") {
-      std::vector<PiercePoint*> tmpV(_coreAntennas.size() *
-                                     itsSourcePos.size());
+      std::vector<PiercePoint*> tmpV(_coreAntennas.size() * NDirections());
       for (size_t iant = 0; iant < _coreAntennas.size(); iant++) {
         size_t ipos = _coreAntennas[iant];
         for (size_t idir = 0; idir < NDirections(); idir++)
@@ -166,8 +151,8 @@ void ScreenConstraint::CalculatePiercepoints() {
       itsPiercePoints[i][j].evaluate(time);
 }
 
-void ScreenConstraint::getPPValue(
-    std::vector<std::vector<DComplex> >& solutions, size_t solutionIndex,
+void ScreenConstraint::GetPpValue(
+    const std::vector<std::vector<DComplex>>& solutions, size_t solutionIndex,
     size_t dirIndex, double& avgTEC, double& error) const {
   if (itsAVGMode == "simple") {
     avgTEC = 0;
@@ -222,10 +207,10 @@ void ScreenConstraint::getPPValue(
 }
 
 std::vector<Constraint::Result> ScreenConstraint::Apply(
-    std::vector<std::vector<DComplex> >& solutions, double time,
+    std::vector<std::vector<DComplex>>& solutions, double time,
     [[maybe_unused]] std::ostream* statStream) {
   // check if we need to reinitialize piercepoints
-  setTime(time);
+  SetTime(time);
   size_t nrresults = 4;
   if (itsDebugMode > 0) nrresults = 5;
   std::vector<Result> res(nrresults);
@@ -303,7 +288,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
                       itsIter] = std::arg(solutions[ch][solutionIndex]);
         }
       }
-      getPPValue(solutions, solutionIndex, dirIndex, avgTEC, error);
+      GetPpValue(solutions, solutionIndex, dirIndex, avgTEC, error);
       if (error <= 0) error = 1;
       if (itsMode == "station") {
         _screenFitters[antIndex].PhaseData()[dirIndex] = avgTEC;
