@@ -177,15 +177,17 @@ unit-test:
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
+    - mkdir coverage-unit
     # The line below will show the coverage in the logs which are used in the gitlab coverage. Common is included in this coverage report.
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
-    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json run-unit.json --xml coverage.xml --html-details coverage-unit/coverage.html
     - gcovr --add-tracefile run-unit.json
+    - tar cfz coverage-unit.tar.gz coverage-unit/
   artifacts:
     paths:
       # This will give a warning which is ok
       - build/run-unit.json
       - build/unittest*.xml
+      - build/coverage-unit.tar.gz
     reports:
       junit: build/unittest*.xml
       cobertura: build/coverage.xml
