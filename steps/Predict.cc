@@ -4,51 +4,79 @@
 #include "Predict.h"
 
 #include "Averager.h"
+#include "BDAAverager.h"
+#include "BDAExpander.h"
 #include "OnePredict.h"
 #include "Upsample.h"
+
+#include "../base/BDABuffer.h"
 
 #include "../common/ParameterSet.h"
 
 #include <ostream>
 #include <string>
 
+using dp3::base::BDABuffer;
+
 namespace dp3 {
 namespace steps {
 
 Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
-                 const string& prefix)
-    : upsample_step_(),
+                 const string& prefix, MsType input_type)
+    : ms_type_(input_type),
       predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix,
-                                                 std::vector<std::string>())),
-      averager_step_() {
-  Initialize(input_step, parset, prefix);
+                                                 std::vector<std::string>())) {
+  Initialize(input_step, parset, prefix, input_type);
 }
 
 Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
                  const string& prefix,
-                 const std::vector<std::string>& source_patterns)
-    : upsample_step_(),
+                 const std::vector<std::string>& source_patterns,
+                 MsType input_type)
+    : ms_type_(input_type),
       predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix,
-                                                 source_patterns)),
-      averager_step_() {
-  Initialize(input_step, parset, prefix);
+                                                 source_patterns)) {
+  Initialize(input_step, parset, prefix, input_type);
 }
 
 void Predict::Initialize(InputStep& input_step,
                          const common::ParameterSet& parset,
-                         const string& prefix) {
+                         const string& prefix, MsType input_type) {
+  if (input_type == MsType::kBda) {
+    steps_before_predict_.push_back(std::make_shared<BDAExpander>(prefix));
+  }
+
   const unsigned int time_smearing_factor =
       parset.getUint(prefix + "correcttimesmearing", 1);
   if (time_smearing_factor > 1) {
-    upsample_step_ = std::make_shared<Upsample>(prefix + "upsample",
-                                                time_smearing_factor, true);
-    averager_step_ = std::make_shared<Averager>(input_step, prefix + "averager",
-                                                1, time_smearing_factor);
-    Step::setNextStep(upsample_step_);
-    upsample_step_->setNextStep(predict_step_);
-    predict_step_->setNextStep(averager_step_);
+    steps_before_predict_.push_back(std::make_shared<Upsample>(
+        prefix + "upsample", time_smearing_factor, true));
+    steps_after_predict_.push_back(std::make_shared<Averager>(
+        input_step, prefix + "averager", 1, time_smearing_factor));
+  }
+
+  if (input_type == MsType::kBda) {
+    steps_after_predict_.push_back(
+        std::make_shared<BDAAverager>(input_step, parset, prefix));
+  }
+
+  if (!steps_before_predict_.empty()) {
+    Step::setNextStep(steps_before_predict_.front());
+
+    steps_before_predict_.push_back(predict_step_);
+
+    for (size_t i = 1; i < steps_before_predict_.size(); ++i) {
+      steps_before_predict_[i - 1]->setNextStep(steps_before_predict_[i]);
+    }
+
+    steps_before_predict_.back()->setNextStep(steps_after_predict_.front());
+
+    for (size_t i = 1; i < steps_after_predict_.size(); ++i) {
+      steps_after_predict_[i - 1]->setNextStep(steps_after_predict_[i]);
+    }
+
   } else {
-    // Without time smearing, upsampling and averaging is not needed.
+    // Without time smearing or bda, extra steps are not needed.
     Step::setNextStep(predict_step_);
   }
 }
@@ -58,10 +86,11 @@ std::pair<double, double> Predict::GetFirstDirection() const {
 }
 
 void Predict::setNextStep(std::shared_ptr<Step> next_step) {
-  if (averager_step_)
-    averager_step_->setNextStep(next_step);
-  else
+  if (!steps_after_predict_.empty()) {
+    steps_after_predict_.back()->setNextStep(next_step);
+  } else {
     predict_step_->setNextStep(next_step);
+  }
 }
 
 void Predict::SetOperation(const std::string& operation) {
@@ -81,6 +110,10 @@ void Predict::show(std::ostream& os) const { os << "Predict" << '\n'; }
 
 bool Predict::process(const base::DPBuffer& buffer) {
   return getNextStep()->process(buffer);
+}
+
+bool Predict::process(std::unique_ptr<BDABuffer> bda_buffer) {
+  return getNextStep()->process(std::move(bda_buffer));
 }
 
 void Predict::finish() { getNextStep()->finish(); }

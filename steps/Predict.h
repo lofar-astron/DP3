@@ -37,9 +37,10 @@ class Predict : public ModelDataStep {
    * @param input_step Input step, for reading extra data.
    * @param parset Parameter set with settings for the step.
    * @param prefix Prefix for reading settings from 'parset'.
+   * @param input_type Input type, Regular (default) or Bda.
    */
   Predict(InputStep& input_step, const common::ParameterSet& parset,
-          const std::string& prefix);
+          const std::string& prefix, MsType input_type = MsType::kRegular);
 
   /**
    * Constructs the object with explicit source patterns.
@@ -47,14 +48,18 @@ class Predict : public ModelDataStep {
    * @param parset Parameter set with settings for the step.
    * @param prefix Prefix for reading settings from 'parset'.
    * @param source_patterns Source patterns.
+   * @param input_type Input type, Regular (default) or Bda.
    */
   Predict(InputStep& input_step, const common::ParameterSet& parset,
           const std::string& prefix,
-          const std::vector<std::string>& source_patterns);
+          const std::vector<std::string>& source_patterns,
+          MsType input_type = MsType::kRegular);
 
   virtual ~Predict() {}
 
   bool process(const base::DPBuffer& buffer) override;
+
+  bool process(std::unique_ptr<base::BDABuffer>) override;
 
   void finish() override;
 
@@ -65,6 +70,10 @@ class Predict : public ModelDataStep {
   std::pair<double, double> GetFirstDirection() const override;
 
   void SetOperation(const std::string& operation);
+
+  bool accepts(MsType dt) const override { return dt == ms_type_; }
+
+  MsType outputs() const override { return ms_type_; }
 
   /**
    * Forwards thread synchronization structures to its predict sub-step.
@@ -77,14 +86,17 @@ class Predict : public ModelDataStep {
  private:
   /**
    * Common part of the constructors.
-   * Parses parset arguments and sets up upsample_step_ and averager_step_.
+   * Parses parset arguments and sets up first_step_ and last_step_.
    */
   void Initialize(InputStep& input_step, const common::ParameterSet& parset,
-                  const string& prefix);
+                  const string& prefix, MsType input_type);
 
-  std::shared_ptr<Upsample> upsample_step_;
+  /// Input and output measurement set type: Regular (default) or Bda
+  const MsType ms_type_;
+
+  std::vector<std::shared_ptr<Step>> steps_before_predict_;
   std::shared_ptr<OnePredict> predict_step_;
-  std::shared_ptr<Averager> averager_step_;
+  std::vector<std::shared_ptr<Step>> steps_after_predict_;
 };
 
 }  // namespace steps
