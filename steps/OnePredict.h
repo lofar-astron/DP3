@@ -103,7 +103,7 @@ class OnePredict : public ModelDataStep {
   void setSources(const std::vector<string>& sourcePatterns);
 
   /// Return the direction of the first patch
-  std::pair<double, double> GetFirstDirection() const override;
+  base::Direction GetFirstDirection() const override;
 
  private:
   /// The actual constructor
@@ -130,7 +130,7 @@ class OnePredict : public ModelDataStep {
   /// group.
   double itsBeamProximityLimit;
   bool itsStokesIOnly;
-  base::Position itsPhaseRef;
+  base::Direction itsPhaseRef;
   bool itsMovingPhaseRef;
 
   bool itsDoApplyCal;

@@ -20,8 +20,8 @@ class GaussianSource : public PointSource {
   typedef std::shared_ptr<GaussianSource> Ptr;
   typedef std::shared_ptr<const GaussianSource> ConstPtr;
 
-  GaussianSource(const Position &position);
-  GaussianSource(const Position &position, const Stokes &stokes);
+  GaussianSource(const Direction &direction);
+  GaussianSource(const Direction &direction, const Stokes &stokes);
 
   /// Set position angle in radians. The position angle is the smallest angle
   /// between the major axis and North, measured positively North over East.

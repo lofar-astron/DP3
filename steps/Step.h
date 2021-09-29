@@ -11,6 +11,7 @@
 
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
+#include "../base/Direction.h"
 
 #include "../common/Timer.h"
 
@@ -237,7 +238,7 @@ class MultiResultStep : public Step {
 class ModelDataStep : public Step {
  public:
   /// @return The direction of the first patch.
-  virtual std::pair<double, double> GetFirstDirection() const = 0;
+  virtual base::Direction GetFirstDirection() const = 0;
 };
 
 }  // namespace steps

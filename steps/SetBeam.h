@@ -10,7 +10,7 @@
 #include "InputStep.h"
 
 #include "../base/DPBuffer.h"
-#include "../base/Position.h"
+#include "../base/Direction.h"
 
 #include <casacore/measures/Measures/MDirection.h>
 

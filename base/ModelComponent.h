@@ -12,7 +12,7 @@ namespace dp3 {
 namespace base {
 
 class ModelComponentVisitor;
-class Position;
+struct Direction;
 
 /// \brief Base class for model components.
 
@@ -24,7 +24,7 @@ class ModelComponent {
   typedef std::shared_ptr<const ModelComponent> ConstPtr;
 
   virtual ~ModelComponent();
-  virtual const Position &position() const = 0;
+  virtual const Direction &direction() const = 0;
   virtual void accept(ModelComponentVisitor &) const = 0;
 };
 

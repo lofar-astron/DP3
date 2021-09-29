@@ -81,7 +81,7 @@ void Predict::Initialize(InputStep& input_step,
   }
 }
 
-std::pair<double, double> Predict::GetFirstDirection() const {
+base::Direction Predict::GetFirstDirection() const {
   return predict_step_->GetFirstDirection();
 }
 

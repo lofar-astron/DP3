@@ -14,25 +14,25 @@
 namespace dp3 {
 namespace base {
 
-void Patch::computePosition() {
-  itsPosition = Position();
+void Patch::computeDirection() {
+  itsDirection = Direction();
 
   if (!itsComponents.empty()) {
     double x = 0.0, y = 0.0, z = 0.0;
-    for (const_iterator it = begin(), it_end = end(); it != it_end; ++it) {
-      const Position &position = (*it)->position();
-      double cosDec = cos(position[1]);
-      x += cos(position[0]) * cosDec;
-      y += sin(position[0]) * cosDec;
-      z += sin(position[1]);
+    for (const auto& component : itsComponents) {
+      const Direction& direction = component->direction();
+      const double cos_dec = cos(direction.dec);
+      x += cos(direction.ra) * cos_dec;
+      y += sin(direction.ra) * cos_dec;
+      z += sin(direction.dec);
     }
 
     x /= itsComponents.size();
     y /= itsComponents.size();
     z /= itsComponents.size();
 
-    itsPosition[0] = atan2(y, x);
-    itsPosition[1] = asin(z);
+    itsDirection.ra = atan2(y, x);
+    itsDirection.dec = asin(z);
   }
 }
 

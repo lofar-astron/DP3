@@ -307,9 +307,9 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsWeightsPerAntenna.assign(
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
-  itsSourcePositions.reserve(itsSteps.size());
+  itsSourceDirections.reserve(itsSteps.size());
   for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
-    itsSourcePositions.push_back(s->GetFirstDirection());
+    itsSourceDirections.push_back(s->GetFirstDirection());
   }
 
   // Prepare positions and names for the used antennas only.
@@ -324,7 +324,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
     InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
-                                used_antenna_names, itsSourcePositions,
+                                used_antenna_names, itsSourceDirections,
                                 itsChanBlockFreqs);
   }
 
@@ -763,8 +763,8 @@ void DDECal::WriteSolutions() {
   itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
                           info().timeInterval() * itsSettings.solution_interval,
                           itsSettings.mode, used_antenna_names,
-                          itsSourcePositions, itsDirections, info().chanFreqs(),
-                          itsChanBlockFreqs, history);
+                          itsSourceDirections, itsDirections,
+                          info().chanFreqs(), itsChanBlockFreqs, history);
 
   itsTimerWrite.stop();
   itsTimer.stop();

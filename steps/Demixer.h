@@ -171,7 +171,7 @@ class Demixer : public Step {
   std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
 
   PatchList itsPatchList;
-  base::Position itsPhaseRef;
+  base::Direction itsPhaseRef;
   std::vector<base::Baseline> itsBaselines;
   std::vector<int> itsUVWSplitIndex;
   casacore::Vector<double> itsFreqDemix;

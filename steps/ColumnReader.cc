@@ -63,13 +63,13 @@ void ColumnReader::showTimings(std::ostream& os,
   os << " ColumnReader " << name_ << '\n';
 }
 
-std::pair<double, double> ColumnReader::GetFirstDirection() const {
+base::Direction ColumnReader::GetFirstDirection() const {
   using casacore::MDirection;
   const MDirection dirJ2000(
       MDirection::Convert(getInfo().phaseCenter(), MDirection::J2000)());
   const casacore::Quantum<casacore::Vector<double>> angles =
       dirJ2000.getAngle();
-  return std::make_pair(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+  return {angles.getBaseValue()[0], angles.getBaseValue()[1]};
 }
 
 }  // namespace steps

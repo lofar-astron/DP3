@@ -16,8 +16,8 @@
 namespace dp3 {
 namespace base {
 
-PointSource::PointSource(const Position &position)
-    : itsPosition(position),
+PointSource::PointSource(const Direction &position)
+    : itsDirection(position),
       itsRefFreq(0.0),
       itsPolarizedFraction(0.0),
       itsPolarizationAngle(0.0),
@@ -25,8 +25,8 @@ PointSource::PointSource(const Position &position)
       itsHasRotationMeasure(false),
       itsHasLogarithmicSI(true) {}
 
-PointSource::PointSource(const Position &position, const Stokes &stokes)
-    : itsPosition(position),
+PointSource::PointSource(const Direction &position, const Stokes &stokes)
+    : itsDirection(position),
       itsStokes(stokes),
       itsRefFreq(0.0),
       itsPolarizedFraction(0.0),
@@ -35,8 +35,8 @@ PointSource::PointSource(const Position &position, const Stokes &stokes)
       itsHasRotationMeasure(false),
       itsHasLogarithmicSI(true) {}
 
-void PointSource::setPosition(const Position &position) {
-  itsPosition = position;
+void PointSource::setDirection(const Direction &direction) {
+  itsDirection = direction;
 }
 
 void PointSource::setStokes(const Stokes &stokes) { itsStokes = stokes; }

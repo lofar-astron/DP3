@@ -116,12 +116,12 @@ void nsplitUVW(const std::vector<int>& blindex,
   }
 }
 
-void rotateUVW(const Position& from, const Position& to, size_t nUVW,
+void rotateUVW(const Direction& from, const Direction& to, size_t nUVW,
                double* uvw) {
   casacore::Matrix<double> oldUVW(3, 3);
   casacore::Matrix<double> newUVW(3, 3);
-  PhaseShift::fillTransMatrix(oldUVW, from[0], from[1]);
-  PhaseShift::fillTransMatrix(newUVW, to[0], to[1]);
+  PhaseShift::fillTransMatrix(oldUVW, from);
+  PhaseShift::fillTransMatrix(newUVW, to);
 
   casacore::Matrix<double> tmp(
       casacore::product(casacore::transpose(newUVW), oldUVW));

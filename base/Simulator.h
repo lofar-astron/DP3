@@ -10,7 +10,7 @@
 #include "Baseline.h"
 #include "ModelComponent.h"
 #include "ModelComponentVisitor.h"
-#include "Position.h"
+#include "Direction.h"
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>
@@ -39,7 +39,7 @@ class Simulator : public ModelComponentVisitor {
    * @param correctFreqSmearing Correct for frequency smearing
    * @param stokesIOnly Stokes I only, to avoid a loop over correlations
    */
-  Simulator(const Position& reference, size_t nStation,
+  Simulator(const Direction& reference, size_t nStation,
             const std::vector<Baseline>& baselines,
             const casacore::Vector<double>& freq,
             const casacore::Vector<double>& chanWidths,
@@ -80,7 +80,7 @@ class Simulator : public ModelComponentVisitor {
   virtual void visit(const GaussianSource& component);
 
  private:
-  Position itsReference;
+  Direction itsReference;
   size_t itsNStation, itsNBaseline, itsNChannel;
   bool itsCorrectFreqSmearing;
   bool itsStokesIOnly;

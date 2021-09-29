@@ -59,13 +59,12 @@ BOOST_FIXTURE_TEST_CASE(getfirstdirection_noinfo, BdaPredictFixture) {
 BOOST_FIXTURE_TEST_CASE(getfirstdirection, BdaPredictFixture) {
   SetInfo();
 
-  const std::pair<double, double> first_direction =
-      predict_->GetFirstDirection();
+  const dp3::base::Direction first_direction = predict_->GetFirstDirection();
 
-  BOOST_CHECK_CLOSE(first_direction.first,
-                    dp3::steps::test::kExpectedFirstDirection.first, 1.0e-3);
-  BOOST_CHECK_CLOSE(first_direction.second,
-                    dp3::steps::test::kExpectedFirstDirection.second, 1.0e-3);
+  BOOST_CHECK_CLOSE(first_direction.ra,
+                    dp3::steps::test::kExpectedFirstDirection.ra, 1.0e-3);
+  BOOST_CHECK_CLOSE(first_direction.dec,
+                    dp3::steps::test::kExpectedFirstDirection.dec, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

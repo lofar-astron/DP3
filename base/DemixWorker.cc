@@ -140,8 +140,8 @@ DemixWorker::DemixWorker(steps::InputStep* input, const string& prefix,
     // The phasecenter can be given in a parameter. Its name is the default.
     // Look up the source direction in the patch table.
     // If found, turn it into a vector of strings.
-    sourceVec[0] = toString(patchList[i]->position()[0]);
-    sourceVec[1] = toString(patchList[i]->position()[1]);
+    sourceVec[0] = toString(patchList[i]->direction().ra);
+    sourceVec[1] = toString(patchList[i]->direction().dec);
     PhaseShift* step1 =
         new PhaseShift(input, common::ParameterSet(),
                        prefix + itsMix->sourceNames()[i] + '.', sourceVec);
@@ -448,7 +448,7 @@ void DemixWorker::predictTarget(const std::vector<Patch::ConstPtr>& patchList,
         simulator.simulate(patchList[dr]->component(i));
       }
       // Get and apply beam for target patch.
-      applyBeam(t, patchList[dr]->position(), true);
+      applyBeam(t, patchList[dr]->direction(), true);
       addStokesI(miter.matrix());
     }
     miter.next();
@@ -493,7 +493,7 @@ void DemixWorker::predictAteam(const std::vector<Patch::ConstPtr>& patchList,
         simulator.simulate(patchList[dr]->component(i));
       }
       // Get and apply beam.
-      applyBeam(t, patchList[dr]->position(), true);
+      applyBeam(t, patchList[dr]->direction(), true);
       // Keep the StokesI ampl ((XX+YY)/2).
       addStokesI(miter.matrix());
       miter.next();
@@ -735,12 +735,13 @@ void DemixWorker::setupDemix(unsigned int chunkNr) {
   }
 }
 
-void DemixWorker::applyBeam(double time, const Position& pos, bool apply) {
+void DemixWorker::applyBeam(double time, const Direction& direction,
+                            bool apply) {
   // Get the beam for demix resolution and apply to itsPredictVis.
-  applyBeam(time, pos, apply, itsMix->freqDemix(), itsPredictVis.data());
+  applyBeam(time, direction, apply, itsMix->freqDemix(), itsPredictVis.data());
 }
 
-void DemixWorker::applyBeam(double time, const Position& pos, bool apply,
+void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
                             const casacore::Vector<double>& chanFreqs,
                             dcomplex* data) {
   // For test purposes applying the beam can be defeated.
@@ -750,7 +751,8 @@ void DemixWorker::applyBeam(double time, const Position& pos, bool apply,
   }
   // Convert the directions to ITRF for the given time.
   itsMeasFrame.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
-  MDirection dir(casacore::MVDirection(pos[0], pos[1]), MDirection::J2000);
+  MDirection dir(casacore::MVDirection(direction.ra, direction.dec),
+                 MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir);
 
   const std::vector<size_t> station_indices =
@@ -1105,20 +1107,20 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
                ++j) {
             simulator.simulate(itsMix->targetDemixList()[i]->component(j));
           }
-          applyBeam(time, itsMix->targetDemixList()[i]->position(),
+          applyBeam(time, itsMix->targetDemixList()[i]->direction(),
                     itsMix->applyBeam());
           itsModelVisDemix[dr] += itsPredictVis;
         }
       } else {
         itsModelVisDemix[dr] = dcomplex();
-        Simulator simulator(itsDemixList[dr]->position(), nSt,
+        Simulator simulator(itsDemixList[dr]->direction(), nSt,
                             itsMix->baselines(), itsMix->freqDemix(),
                             casacore::Vector<double>(), itsUVW,
                             itsModelVisDemix[dr], false, false);
         for (size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i) {
           simulator.simulate(itsDemixList[dr]->component(i));
         }
-        applyBeam(time, itsMix->ateamDemixList()[drOrig]->position(),
+        applyBeam(time, itsMix->ateamDemixList()[drOrig]->direction(),
                   itsMix->applyBeam(), itsMix->freqDemix(),
                   itsModelVisDemix[dr].data());
       }
@@ -1206,7 +1208,7 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
             // resolution of the residual is equal to the resolution at
             // which the Jones matrices were estimated, of course).
             rotateUVW(itsMix->phaseRef(),
-                      itsMix->ateamList()[drOrig]->position(), nSt,
+                      itsMix->ateamList()[drOrig]->direction(), nSt,
                       itsUVW.data());
             // Initialize the visibility buffer.
             std::fill(itsModelVisSubtr.begin(), itsModelVisSubtr.end(),
@@ -1216,7 +1218,7 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
             cr_model_subtr = cursor<dcomplex>(itsModelVisSubtr[0].data(), 3,
                                               stride_model_subtr);
 
-            Simulator simulator(itsMix->ateamList()[drOrig]->position(), nSt,
+            Simulator simulator(itsMix->ateamList()[drOrig]->direction(), nSt,
                                 itsMix->baselines(), itsMix->freqSubtr(),
                                 casacore::Vector<double>(), itsUVW,
                                 itsModelVisSubtr[0], false, false);
@@ -1225,7 +1227,7 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
               simulator.simulate(itsMix->ateamList()[drOrig]->component(i));
             }
 
-            applyBeam(subtrTime, itsMix->ateamDemixList()[drOrig]->position(),
+            applyBeam(subtrTime, itsMix->ateamDemixList()[drOrig]->direction(),
                       itsMix->applyBeam(), itsMix->freqSubtr(),
                       itsModelVisSubtr[0].data());
           }

@@ -102,16 +102,16 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
   assert(itsAteamList.size() == itsAteamDemixList.size());
   for (size_t i = 0; i < itsAteamList.size(); ++i) {
     assert(itsAteamList[i]->name() == itsAteamDemixList[i]->name());
-    if (!testAngDist(itsAteamDemixList[i]->position()[0],
-                     itsAteamDemixList[i]->position()[1],
-                     itsAteamList[i]->position()[0],
-                     itsAteamList[i]->position()[1], itsCosTargetDelta))
-      throw Exception("Position mismatch of source " + itsAteamList[i]->name() +
-                      " in A-team SourceDBs ([" +
-                      itsAteamDemixList[i]->position()[0] + ", " +
-                      itsAteamDemixList[i]->position()[1] + "] and [" +
-                      itsAteamList[i]->position()[0] + ", " +
-                      itsAteamList[i]->position()[1] + "])");
+    if (!testAngDist(itsAteamDemixList[i]->direction().ra,
+                     itsAteamDemixList[i]->direction().dec,
+                     itsAteamList[i]->direction().ra,
+                     itsAteamList[i]->direction().dec, itsCosTargetDelta))
+      throw Exception("Direction mismatch of source " +
+                      itsAteamList[i]->name() + " in A-team SourceDBs ([" +
+                      itsAteamDemixList[i]->direction().ra + ", " +
+                      itsAteamDemixList[i]->direction().dec + "] and [" +
+                      itsAteamList[i]->direction().ra + ", " +
+                      itsAteamList[i]->direction().dec + "])");
   }
   makeTargetDemixList();
 }
@@ -136,10 +136,10 @@ void DemixInfo::makeTargetDemixList() {
     ncomponent += itsTargetList[i]->nComponents();
     // Look if an A-team source matches this target source.
     for (size_t j = 0; j < patchList.size(); ++j) {
-      if (testAngDist(itsTargetList[i]->position()[0],
-                      itsTargetList[i]->position()[1],
-                      patchList[j]->position()[0], patchList[j]->position()[1],
-                      itsCosTargetDelta)) {
+      if (testAngDist(itsTargetList[i]->direction().ra,
+                      itsTargetList[i]->direction().dec,
+                      patchList[j]->direction().ra,
+                      patchList[j]->direction().dec, itsCosTargetDelta)) {
         // Match, so use the detailed A-team model.
         itsTargetDemixList[i] = patchList[j];
         ncomponent +=
@@ -147,10 +147,11 @@ void DemixInfo::makeTargetDemixList() {
         itsTargetReplaced.push_back(patchList[j]->name());
         // A-source is in target, so remove from A-team models (if in there).
         for (size_t k = 0; k < itsAteamList.size(); ++k) {
-          if (testAngDist(itsTargetDemixList[i]->position()[0],
-                          itsTargetDemixList[i]->position()[1],
-                          itsAteamList[k]->position()[0],
-                          itsAteamList[k]->position()[1], itsCosTargetDelta)) {
+          if (testAngDist(itsTargetDemixList[i]->direction().ra,
+                          itsTargetDemixList[i]->direction().dec,
+                          itsAteamList[k]->direction().ra,
+                          itsAteamList[k]->direction().dec,
+                          itsCosTargetDelta)) {
             itsAteamRemoved.push_back(itsAteamList[k]->name());
             itsAteamList.erase(itsAteamList.begin() + k);
             itsAteamDemixList.erase(itsAteamDemixList.begin() + k);
@@ -247,19 +248,19 @@ void DemixInfo::update(const DPInfo& infoSel, DPInfo& info, size_t nThreads) {
   itsFreqDemix = infoDemix.chanFreqs();
   itsFreqSubtr = info.chanFreqs();
 
-  // Store phase center position in J2000.
+  // Store phase center direction in J2000.
   MDirection dirJ2000(
       MDirection::Convert(infoSel.phaseCenter(), MDirection::J2000)());
   Quantum<Vector<Double> > angles = dirJ2000.getAngle();
-  itsPhaseRef = Position(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+  itsPhaseRef = Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 
   // Determine if the minimum distance (scaled with freq) of A-sources
   // to target is within the threshold.
-  // First get the target position (average of its patches).
+  // First get the target direction (average of its patches).
   parmdb::PatchSumInfo sumInfo(0);
   for (size_t i = 0; i < itsTargetList.size(); ++i) {
-    sumInfo.add(itsTargetList[i]->position()[0],
-                itsTargetList[i]->position()[1], 1.);
+    sumInfo.add(itsTargetList[i]->direction().ra,
+                itsTargetList[i]->direction().dec, 1.);
   }
   double targetRa = sumInfo.getRa();
   double targetDec = sumInfo.getDec();
@@ -267,8 +268,8 @@ void DemixInfo::update(const DPInfo& infoSel, DPInfo& info, size_t nThreads) {
   double minDist = 1e30;
   double freqRatio = info.refFreq() / itsAngdistRefFreq;
   for (size_t i = 0; i < itsAteamList.size(); ++i) {
-    double dist = acos(getCosAngDist(itsAteamList[i]->position()[0],
-                                     itsAteamList[i]->position()[1], targetRa,
+    double dist = acos(getCosAngDist(itsAteamList[i]->direction().ra,
+                                     itsAteamList[i]->direction().dec, targetRa,
                                      targetDec));
     dist *= freqRatio;
     if (verbose() > 10) {
@@ -346,11 +347,9 @@ vector<Patch::ConstPtr> DemixInfo::makePatchList(
     for (vector<parmdb::SourceData>::const_iterator iter = patch.begin();
          iter != patch.end(); ++iter) {
       const parmdb::SourceData& src = *iter;
-      // Fetch position.
+      // Fetch direction.
       assert(src.getInfo().getRefType() == "J2000");
-      Position position;
-      position[0] = src.getRa();
-      position[1] = src.getDec();
+      const Direction direction(src.getRa(), src.getDec());
 
       // Fetch stokes vector.
       Stokes stokes;
@@ -364,10 +363,10 @@ vector<Patch::ConstPtr> DemixInfo::makePatchList(
       PointSource::Ptr source;
       switch (src.getInfo().getType()) {
         case parmdb::SourceInfo::POINT: {
-          source = PointSource::Ptr(new PointSource(position, stokes));
+          source = PointSource::Ptr(new PointSource(direction, stokes));
         } break;
         case parmdb::SourceInfo::GAUSSIAN: {
-          GaussianSource::Ptr gauss(new GaussianSource(position, stokes));
+          GaussianSource::Ptr gauss(new GaussianSource(direction, stokes));
           const double deg2rad = (casacore::C::pi / 180.0);
           gauss->setPositionAngle(src.getOrientation() * deg2rad);
           const double arcsec2rad = (casacore::C::pi / 3600.0) / 180.0;
@@ -402,17 +401,15 @@ vector<Patch::ConstPtr> DemixInfo::makePatchList(
     }
 
     // Add the component list as a patch to the list of patches.
-    Patch::Ptr ppatch(
-        new Patch(*pnamesIter, componentList.begin(), componentList.end()));
-    vector<parmdb::PatchInfo> patchInfo(sdb.getPatchInfo(-1, *pnamesIter));
+    auto ppatch = std::make_shared<Patch>(*pnamesIter, componentList.begin(),
+                                          componentList.end());
+    std::vector<parmdb::PatchInfo> patchInfo(sdb.getPatchInfo(-1, *pnamesIter));
     assert(patchInfo.size() == 1);
-    // Set the position and apparent flux of the patch.
-    Position patchPosition;
-    patchPosition[0] = patchInfo[0].getRa();
-    patchPosition[1] = patchInfo[0].getDec();
-    ppatch->setPosition(patchPosition);
+    // Set the direction and apparent flux of the patch.
+    const Direction patchDirection(patchInfo[0].getRa(), patchInfo[0].getDec());
+    ppatch->setDirection(patchDirection);
     ppatch->setBrightness(patchInfo[0].apparentBrightness());
-    patchList.push_back(ppatch);
+    patchList.push_back(std::move(ppatch));
   }
   return patchList;
 }

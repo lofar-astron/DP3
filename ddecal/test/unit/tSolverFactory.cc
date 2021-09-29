@@ -231,7 +231,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   // For this test, only the size of these vectors matters.
   const std::vector<std::array<double, 3>> kAntennaPositions(5);
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
-  const std::vector<std::pair<double, double>> kSourcePositions(4);
+  const std::vector<dp3::base::Direction> kSourceDirections(4);
   const std::vector<double> kFrequencies(10);
 
   dp3::common::ParameterSet parset = ParsetForMode(mode);
@@ -241,14 +241,14 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     const Settings settings(parset, "");
     auto solver = CreateRegularSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                                kAntennaNames, kSourcePositions, kFrequencies);
+                                kAntennaNames, kSourceDirections, kFrequencies);
 
     const Constraint& constraint =
         CheckConstraintType<dp3::ddecal::TECConstraint>(*solver);
     BOOST_CHECK(!dynamic_cast<dp3::ddecal::ApproximateTECConstraint*>(
         solver->GetConstraints()[0].get()));
     BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-    BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+    BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
     BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   }
 
@@ -258,12 +258,12 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     const Settings settings(parset, "");
     auto solver = CreateBdaSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                                kAntennaNames, kSourcePositions, kFrequencies);
+                                kAntennaNames, kSourceDirections, kFrequencies);
 
     const Constraint& constraint =
         CheckConstraintType<dp3::ddecal::ApproximateTECConstraint>(*solver);
     BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-    BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+    BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
     BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   }
 }
@@ -276,8 +276,8 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
   const std::vector<std::array<double, 3>> kAntennaPositions{
       {1.0, 1.0, 1.0}, {100.0, 1.0, 1.0}, {1.0, 1.0, 2.0}};
   const std::vector<std::string> kAntennaNames(3);
-  const std::vector<std::pair<double, double>> kSourcePositions{{0.1, 0.1},
-                                                                {0.3, 0.3}};
+  const std::vector<dp3::base::Direction> kSourceDirections{{0.1, 0.1},
+                                                            {0.3, 0.3}};
   const std::vector<double> kFrequencies{42.0, 43.0, 44.0, 45.0};
   const double kHeight = 42.0e3;
   const std::vector<std::size_t> kExpectedCoreAntennas{0, 2};
@@ -289,12 +289,12 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
 
   auto solver = CreateBdaSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourcePositions, kFrequencies);
+                              kAntennaNames, kSourceDirections, kFrequencies);
 
   const ScreenConstraint& constraint =
       CheckConstraintType<ScreenConstraint>(*solver);
   BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
       constraint.GetCoreAntennas().begin(), constraint.GetCoreAntennas().end(),
@@ -303,16 +303,16 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
       constraint.GetPiercePoints();
   BOOST_REQUIRE_EQUAL(pierce_points.size(), kAntennaPositions.size());
   for (size_t ant = 0; ant < kAntennaPositions.size(); ++ant) {
-    BOOST_REQUIRE_EQUAL(pierce_points[ant].size(), kSourcePositions.size());
-    for (size_t dir = 0; dir < kSourcePositions.size(); ++dir) {
+    BOOST_REQUIRE_EQUAL(pierce_points[ant].size(), kSourceDirections.size());
+    for (size_t dir = 0; dir < kSourceDirections.size(); ++dir) {
       const PiercePoint& pp = pierce_points[ant][dir];
       BOOST_CHECK_EQUAL(pp.getPos().getValue(),
                         casacore::MVPosition(kAntennaPositions[ant][0],
                                              kAntennaPositions[ant][1],
                                              kAntennaPositions[ant][2]));
       BOOST_CHECK_EQUAL(pp.getDir().getValue(),
-                        casacore::MVDirection(kSourcePositions[dir].first,
-                                              kSourcePositions[dir].second));
+                        casacore::MVDirection(kSourceDirections[dir].ra,
+                                              kSourceDirections[dir].dec));
       BOOST_CHECK_EQUAL(pp.getHeight(), kHeight);
     }
   }
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
       {1.0, 1.0, 1.0}, {100.0, 1.0, 1.0}, {1.0, 1.0, 2.0}};
   const std::vector<std::set<size_t>> kExpectedAntennaSets{{0, 2}};
   const std::vector<std::string> kAntennaNames(3);
-  const std::vector<std::pair<double, double>> kSourcePositions(5);
+  const std::vector<dp3::base::Direction> kSourceDirections(5);
   const std::vector<double> kFrequencies{42.0, 43.0, 44.0, 45.0};
 
   dp3::common::ParameterSet parset = ParsetForMode("diagonal");
@@ -350,12 +350,12 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
 
   auto solver = CreateRegularSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourcePositions, kFrequencies);
+                              kAntennaNames, kSourceDirections, kFrequencies);
 
   const AntennaConstraint& constraint =
       CheckConstraintType<AntennaConstraint>(*solver);
   BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK(constraint.GetAntennaSets() == kExpectedAntennaSets);
 }
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
                                                "bar", "Piet", "7TiMeS6"};
   const std::vector<std::set<size_t>> kExpectedAntennaSets{
       {1, 3, 5}, {1, 4}, {0, 3}};
-  const std::vector<std::pair<double, double>> kSourcePositions(5);
+  const std::vector<dp3::base::Direction> kSourceDirections(5);
   const std::vector<double> kFrequencies{42.0};
 
   dp3::common::ParameterSet parset = ParsetForMode("scalar");
@@ -375,12 +375,12 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
 
   auto solver = CreateBdaSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourcePositions, kFrequencies);
+                              kAntennaNames, kSourceDirections, kFrequencies);
 
   const AntennaConstraint& constraint =
       CheckConstraintType<AntennaConstraint>(*solver);
   BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK(constraint.GetAntennaSets() == kExpectedAntennaSets);
 }
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
 BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
   const std::vector<std::array<double, 3>> kAntennaPositions(2);
   const std::vector<std::string> kAntennaNames{"foo", "bar"};
-  const std::vector<std::pair<double, double>> kSourcePositions(5);
+  const std::vector<dp3::base::Direction> kSourceDirections(5);
   const std::vector<double> kFrequencies{42.0};
 
   // Settings::ReadAntennaConstraint already catches syntax errors in the parset
@@ -402,7 +402,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
 
   BOOST_CHECK_THROW(InitializeSolverConstraints(
                         *solver, settings, kAntennaPositions, kAntennaNames,
-                        kSourcePositions, kFrequencies),
+                        kSourceDirections, kFrequencies),
                     std::runtime_error);
 }
 
@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
   const std::vector<std::array<double, 3>> kAntennaPositions{
       {1, 1, 1}, {2, 1, 1}, {1, 3, 1}, {1, 1, 4}};
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
-  const std::vector<std::pair<double, double>> kSourcePositions(1);
+  const std::vector<dp3::base::Direction> kSourceDirections(1);
   const std::vector<double> kFrequencies{42.0};
   const std::vector<double> kExpectedDistanceFactors(kAntennaPositions.size(),
                                                      1.0);
@@ -422,12 +422,12 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
 
   auto solver = CreateRegularSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourcePositions, kFrequencies);
+                              kAntennaNames, kSourceDirections, kFrequencies);
 
   const SmoothnessConstraint& constraint =
       CheckConstraintType<SmoothnessConstraint>(*solver);
   BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK(constraint.GetDistanceFactors() == kExpectedDistanceFactors);
 }
@@ -436,7 +436,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
   const std::vector<std::array<double, 3>> kAntennaPositions{
       {1, 1, 1}, {2, 1, 1}, {1, 7, 1}, {1, 1, 8}};
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
-  const std::vector<std::pair<double, double>> kSourcePositions(1);
+  const std::vector<dp3::base::Direction> kSourceDirections(1);
   const std::vector<double> kFrequencies{142.0};
   const std::vector<double> kExpectedDistanceFactors{42, 42, 7, 6};
 
@@ -448,12 +448,12 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
 
   auto solver = CreateBdaSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourcePositions, kFrequencies);
+                              kAntennaNames, kSourceDirections, kFrequencies);
 
   const SmoothnessConstraint& constraint =
       CheckConstraintType<SmoothnessConstraint>(*solver);
   BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());
-  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourcePositions.size());
+  BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK(constraint.GetDistanceFactors() == kExpectedDistanceFactors);
 }

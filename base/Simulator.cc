@@ -18,16 +18,16 @@ namespace dp3 {
 namespace base {
 
 namespace {
-// Compute LMN coordinates of \p position relative to \p reference.
+// Compute LMN coordinates of \p direction relative to \p reference.
 //
 // \param[in]   reference
-// Reference position on the celestial sphere.
-// \param[in]   position
-// Position of interest on the celestial sphere.
+// Reference direction on the celestial sphere.
+// \param[in]   direction
+// Direction of interest on the celestial sphere.
 // \param[in]   lmn
 // Pointer to a buffer of (at least) length three into which the computed LMN
 // coordinates will be written.
-void radec2lmn(const Position& reference, const Position& position,
+void radec2lmn(const Direction& reference, const Direction& direction,
                double* lmn);
 
 /**
@@ -59,7 +59,7 @@ void spectrum(const PointSource& component, size_t nChannel,
               Simulator::Matrix<dcomplex>& spectrum, bool stokesIOnly);
 }  // Unnamed namespace.
 
-Simulator::Simulator(const Position& reference, size_t nStation,
+Simulator::Simulator(const Direction& reference, size_t nStation,
                      const std::vector<Baseline>& baselines,
                      const casacore::Vector<double>& freq,
                      const casacore::Vector<double>& chanWidths,
@@ -95,7 +95,7 @@ void Simulator::simulate(const ModelComponent::ConstPtr& component) {
 void Simulator::visit(const PointSource& component) {
   // Compute LMN coordinates.
   double lmn[3];
-  radec2lmn(itsReference, component.position(), lmn);
+  radec2lmn(itsReference, component.direction(), lmn);
 
   // Compute station phase shifts.
   phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
@@ -169,7 +169,7 @@ void Simulator::visit(const PointSource& component) {
 void Simulator::visit(const GaussianSource& component) {
   // Compute LMN coordinates.
   double lmn[3];
-  radec2lmn(itsReference, component.position(), lmn);
+  radec2lmn(itsReference, component.direction(), lmn);
 
   // Compute station phase shifts.
   phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
@@ -276,11 +276,11 @@ void Simulator::visit(const GaussianSource& component) {
 }
 
 namespace {
-inline void radec2lmn(const Position& reference, const Position& position,
+inline void radec2lmn(const Direction& reference, const Direction& direction,
                       double* lmn) {
-  const double dRA = position[0] - reference[0];
-  const double pDEC = position[1];
-  const double rDEC = reference[1];
+  const double dRA = direction.ra - reference.ra;
+  const double pDEC = direction.dec;
+  const double rDEC = reference.dec;
   const double cDEC = cos(pDEC);
 
   const double l = cDEC * sin(dRA);

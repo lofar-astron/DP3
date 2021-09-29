@@ -206,8 +206,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
     // If found, turn it into a vector of strings.
     std::vector<std::string> sourceVec(1, itsAllSources[i]);
     if (i < itsNModel) {
-      sourceVec[0] = toString(itsPatchList[i]->position()[0]);
-      sourceVec.push_back(toString(itsPatchList[i]->position()[1]));
+      sourceVec[0] = toString(itsPatchList[i]->direction().ra);
+      sourceVec.push_back(toString(itsPatchList[i]->direction().dec));
     }
     auto step1 = std::make_shared<PhaseShift>(
         input, parset, prefix + itsAllSources[i] + '.', sourceVec);
@@ -323,12 +323,12 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   itsFreqDemix = infoDemix.chanFreqs();
   itsFreqSubtr = getInfo().chanFreqs();
 
-  // Store phase center position in J2000.
+  // Store phase center direction in J2000.
   MDirection dirJ2000(
       MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
   Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
   itsPhaseRef =
-      base::Position(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+      base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 
   // Intialize the unknowns.
   itsUnknowns.resize(itsNTimeDemix * itsNModel * itsNStation * 8);
@@ -879,9 +879,10 @@ void Demixer::demix() {
                       itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
       /// cout<<"uvw"<<dr<<'='<<storage.uvw<<'\n';
 
-      base::Simulator simulator(itsPatchList[dr]->position(), nSt, itsBaselines,
-                                itsFreqDemix, casacore::Vector<double>(),
-                                storage.uvw, storage.model[dr], false, false);
+      base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
+                                itsBaselines, itsFreqDemix,
+                                casacore::Vector<double>(), storage.uvw,
+                                storage.model[dr], false, false);
       for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
@@ -949,7 +950,7 @@ void Demixer::demix() {
           // directions other than the target are unavailable (unless the
           // resolution of the residual is equal to the resolution at which
           // the Jones matrices were estimated, of course).
-          rotateUVW(itsPhaseRef, itsPatchList[dr]->position(), nSt,
+          rotateUVW(itsPhaseRef, itsPatchList[dr]->direction(), nSt,
                     storage.uvw.data());
 
           // Zero the visibility buffer.
@@ -960,7 +961,7 @@ void Demixer::demix() {
           cr_model_subtr = base::cursor<dcomplex>(storage.model_subtr.data(), 3,
                                                   stride_model_subtr);
 
-          base::Simulator simulator(itsPatchList[dr]->position(), nSt,
+          base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
                                     itsBaselines, itsFreqSubtr,
                                     casacore::Vector<double>(), storage.uvw,
                                     storage.model_subtr, false, false);
