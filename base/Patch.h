@@ -8,7 +8,7 @@
 #define DPPP_PATCH_H
 
 #include "ModelComponent.h"
-#include "Position.h"
+#include "Direction.h"
 
 #include <memory>
 #include <string>
@@ -32,9 +32,9 @@ class Patch {
   Patch(const std::string &name, T first, T last);
 
   const std::string &name() const;
-  const Position &position() const;
+  const Direction &direction() const;
   double brightness() const;
-  void setPosition(const Position &);
+  void setDirection(const Direction &);
   void setBrightness(double);
 
   size_t nComponents() const;
@@ -43,12 +43,12 @@ class Patch {
   const_iterator begin() const;
   const_iterator end() const;
 
-  /// Compute the position as the average of the positions of the components.
-  void computePosition();
+  /// Compute the direction as the average of the positions of the components.
+  void computeDirection();
 
  private:
   std::string itsName;
-  Position itsPosition;
+  Direction itsDirection;
   double itsBrightness;
   std::vector<ModelComponent::ConstPtr> itsComponents;
 };
@@ -62,16 +62,16 @@ class Patch {
 template <typename T>
 Patch::Patch(const std::string &name, T first, T last)
     : itsName(name), itsComponents(first, last) {
-  computePosition();
+  computeDirection();
 }
 
 inline const std::string &Patch::name() const { return itsName; }
 
-inline const Position &Patch::position() const { return itsPosition; }
+inline const Direction &Patch::direction() const { return itsDirection; }
 
 inline double Patch::brightness() const { return itsBrightness; }
 
-inline void Patch::setPosition(const Position &pos) { itsPosition = pos; }
+inline void Patch::setDirection(const Direction &pos) { itsDirection = pos; }
 
 inline void Patch::setBrightness(double brightness) {
   itsBrightness = brightness;

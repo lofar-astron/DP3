@@ -362,7 +362,6 @@ add_library(
   base/Patch.cc
   base/PhaseFitter.cc
   base/PointSource.cc
-  base/Position.cc
   base/ProgressMeter.cc
   base/Simulate.cc
   base/Simulator.cc

@@ -11,14 +11,14 @@
 namespace dp3 {
 namespace base {
 
-GaussianSource::GaussianSource(const Position &position)
-    : PointSource(position),
+GaussianSource::GaussianSource(const Direction &direction)
+    : PointSource(direction),
       itsPositionAngle(0.0),
       itsMajorAxis(0.0),
       itsMinorAxis(0.0) {}
 
-GaussianSource::GaussianSource(const Position &position, const Stokes &stokes)
-    : PointSource(position, stokes),
+GaussianSource::GaussianSource(const Direction &direction, const Stokes &stokes)
+    : PointSource(direction, stokes),
       itsPositionAngle(0.0),
       itsMajorAxis(0.0),
       itsMinorAxis(0.0) {}

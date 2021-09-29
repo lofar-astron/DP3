@@ -5,8 +5,8 @@
 /// @file
 /// @author Ger van Diepen
 
-#ifndef DPPP_PHASESHIFT_H
-#define DPPP_PHASESHIFT_H
+#ifndef DP3_PHASESHIFT_H
+#define DP3_PHASESHIFT_H
 
 #include "InputStep.h"
 
@@ -15,6 +15,10 @@
 #include <casacore/casa/Arrays/Matrix.h>
 
 namespace dp3 {
+namespace base {
+struct Direction;
+}
+
 namespace common {
 class ParameterSet;
 }
@@ -62,8 +66,8 @@ class PhaseShift : public Step {
   virtual void showTimings(std::ostream&, double duration) const;
 
   /// Fill the transformation matrix for given ra/dec.
-  static void fillTransMatrix(casacore::Matrix<double>& mat, double ra,
-                              double dec);
+  static void fillTransMatrix(casacore::Matrix<double>& mat,
+                              const base::Direction& direction);
 
   /// Get the phasors resulting from the last process step.
   /// This is used in the Demixer.

@@ -12,7 +12,6 @@
 #include "InputStep.h"
 
 #include "../base/DPBuffer.h"
-#include "../base/Position.h"
 
 #include <EveryBeam/telescope/telescope.h>
 #include <aocommon/matrix2x2.h>

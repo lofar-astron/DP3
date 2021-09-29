@@ -6,6 +6,7 @@
 
 #include "PhaseShift.h"
 
+#include "../base/Direction.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/Exceptions.h"
@@ -67,14 +68,14 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
     newDir = handleCenter();
     original = false;
   }
-  double newRa = newDir.getValue().get()[0];
-  double newDec = newDir.getValue().get()[1];
-  double oldRa = infoIn.phaseCenter().getValue().get()[0];
-  double oldDec = infoIn.phaseCenter().getValue().get()[1];
+  const base::Direction new_direction(newDir.getValue().get()[0],
+                                      newDir.getValue().get()[1]);
+  const base::Direction old_direction(infoIn.phaseCenter().getValue().get()[0],
+                                      infoIn.phaseCenter().getValue().get()[1]);
   Matrix<double> oldUVW(3, 3);
   Matrix<double> newUVW(3, 3);
-  fillTransMatrix(oldUVW, oldRa, oldDec);
-  fillTransMatrix(newUVW, newRa, newDec);
+  fillTransMatrix(oldUVW, old_direction);
+  fillTransMatrix(newUVW, new_direction);
 
   itsMat1.reference(product(transpose(newUVW), oldUVW));
   Matrix<double> wold(oldUVW(IPosition(2, 0, 2), IPosition(2, 2, 2)));
@@ -199,11 +200,12 @@ MDirection PhaseShift::handleCenter() {
   return MDirection(q0, q1, type);
 }
 
-void PhaseShift::fillTransMatrix(Matrix<double>& mat, double ra, double dec) {
-  double sinra = sin(ra);
-  double cosra = cos(ra);
-  double sindec = sin(dec);
-  double cosdec = cos(dec);
+void PhaseShift::fillTransMatrix(Matrix<double>& mat,
+                                 const base::Direction& direction) {
+  double sinra = sin(direction.ra);
+  double cosra = cos(direction.ra);
+  double sindec = sin(direction.dec);
+  double cosdec = cos(direction.dec);
   mat(0, 0) = cosra;
   mat(1, 0) = -sinra;
   mat(2, 0) = 0;

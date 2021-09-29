@@ -77,7 +77,7 @@ class DemixInfo {
   const string& demixModelName() const { return itsDemixModelName; }
   const string& targetModelName() const { return itsTargetModelName; }
   const std::vector<string>& sourceNames() const { return itsSourceNames; }
-  const Position& phaseRef() const { return itsPhaseRef; }
+  const Direction& phaseRef() const { return itsPhaseRef; }
   const std::vector<Baseline>& baselines() const { return itsBaselines; }
   const casacore::Vector<bool> selTarget() const { return itsSelTarget; }
   const casacore::Vector<double>& freqDemix() const { return itsFreqDemix; }
@@ -168,7 +168,7 @@ class DemixInfo {
   unsigned int itsChunkSize;      ///< predict time step
   unsigned int itsNTimeChunk;     ///< nr chunks in parallel
   double itsTimeIntervalAvg;
-  Position itsPhaseRef;  ///< original phaseref
+  Direction itsPhaseRef;  ///< original phaseref
   std::vector<Baseline> itsBaselines;
   casacore::Vector<bool> itsSelTarget;  ///< baselines in target estimate
   casacore::Vector<double> itsFreqDemix;

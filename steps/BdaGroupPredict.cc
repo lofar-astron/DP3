@@ -130,7 +130,7 @@ class BdaGroupPredict::BaselineGroup {
     nr_baselines_requested_ = 0;
   }
 
-  std::pair<double, double> GetFirstDirection() const {
+  base::Direction GetFirstDirection() const {
     return predict_step_->GetFirstDirection();
   }
 
@@ -188,7 +188,7 @@ void BdaGroupPredict::updateInfo(const DPInfo &infoIn) {
   }
 }
 
-std::pair<double, double> BdaGroupPredict::GetFirstDirection() const {
+base::Direction BdaGroupPredict::GetFirstDirection() const {
   if (index_to_baseline_group_map_.empty()) {
     throw std::runtime_error("BdaGroupPredict is not initialized");
   }

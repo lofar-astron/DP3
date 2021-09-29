@@ -327,8 +327,8 @@ void InitializeAntennaConstraint(
 void InitializeScreenConstraint(
     ScreenConstraint& constraint, double core_constraint,
     const std::vector<std::array<double, 3>>& antenna_positions,
-    const std::vector<std::pair<double, double>>& source_positions) {
-  constraint.InitPiercePoints(antenna_positions, source_positions);
+    const std::vector<base::Direction>& source_directions) {
+  constraint.InitPiercePoints(antenna_positions, source_directions);
   constraint.SetCoreAntennas(
       DetermineCoreAntennas(core_constraint, antenna_positions));
 }
@@ -378,12 +378,12 @@ void InitializeSolverConstraints(
     SolverBase& solver, const Settings& settings,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::string>& antenna_names,
-    const std::vector<std::pair<double, double>>& source_positions,
+    const std::vector<base::Direction>& source_directions,
     const std::vector<double>& frequencies) {
   for (const std::unique_ptr<Constraint>& constraint :
        solver.GetConstraints()) {
     // Initialize the constraint with some common metadata.
-    constraint->Initialize(antenna_positions.size(), source_positions.size(),
+    constraint->Initialize(antenna_positions.size(), source_directions.size(),
                            frequencies);
 
     // Different constraints need different information. Determine if the
@@ -407,7 +407,7 @@ void InitializeSolverConstraints(
     if (screen_constraint) {
       InitializeScreenConstraint(*screen_constraint,
                                  settings.screen_core_constraint,
-                                 antenna_positions, source_positions);
+                                 antenna_positions, source_directions);
     }
 #endif
 

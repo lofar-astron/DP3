@@ -48,7 +48,7 @@ void SolutionWriter::Write(
     const double start_time, const double solution_interval,
     const base::CalType mode,
     const std::vector<std::string>& used_antenna_names,
-    const std::vector<std::pair<double, double>>& source_positions,
+    const std::vector<base::Direction>& source_directions,
     const std::vector<std::vector<std::string>>& directions,
     const std::vector<double>& chan_freqs,
     const std::vector<double>& chan_block_freqs, const std::string& history) {
@@ -59,7 +59,12 @@ void SolutionWriter::Write(
   const std::vector<std::string> direction_names =
       GetDirectionNames(directions);
 
-  h5parm_.AddSources(direction_names, source_positions);
+  std::vector<std::pair<double, double>> h5_source_directions;
+  h5_source_directions.reserve(source_directions.size());
+  for (const base::Direction& direction : source_directions) {
+    h5_source_directions.emplace_back(direction.ra, direction.dec);
+  }
+  h5parm_.AddSources(direction_names, h5_source_directions);
 
   std::vector<double> sol_times(n_times);
   for (size_t t = 0; t < n_times; ++t) {

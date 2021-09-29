@@ -67,7 +67,7 @@ class Predict : public ModelDataStep {
 
   void setNextStep(std::shared_ptr<Step> next_step) override;
 
-  std::pair<double, double> GetFirstDirection() const override;
+  base::Direction GetFirstDirection() const override;
 
   void SetOperation(const std::string& operation);
 

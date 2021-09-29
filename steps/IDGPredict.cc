@@ -593,9 +593,9 @@ void IDGPredict::CorrectVisibilities(std::vector<DPBuffer>& result,
   }
 }
 
-std::pair<double, double> IDGPredict::GetFirstDirection() const {
+base::Direction IDGPredict::GetFirstDirection() const {
   // We can take the front element of an IDG step since it only contains 1.
-  return directions_.front();
+  return {directions_.front().first, directions_.front().second};
 }
 
 void IDGPredict::SetBufferSize(size_t n_timesteps) {
@@ -664,9 +664,9 @@ bool IDGPredict::IsStarted() const {
   return false;
 }
 
-std::pair<double, double> IDGPredict::GetFirstDirection() const {
+base::Direction IDGPredict::GetFirstDirection() const {
   notCompiled();
-  return std::pair<double, double>();
+  return base::Direction();
 }
 
 void IDGPredict::flush() { notCompiled(); }

@@ -151,8 +151,8 @@ class DDECal : public Step {
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
   std::vector<std::vector<std::string>> itsDirections;
-  /// For each direction, the source positions.
-  std::vector<std::pair<double, double>> itsSourcePositions;
+  /// Maps direction indices to the cluster central direction.
+  std::vector<base::Direction> itsSourceDirections;
   /// Normally, the solver takes the model data and modifies it, thereby
   /// destroying the original model data. This model data is used to store
   /// the result of the predictions when they are still required after

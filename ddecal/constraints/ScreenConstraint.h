@@ -5,6 +5,7 @@
 #define SCREEN_CONSTRAINT_H
 
 #include "../../base/PhaseFitter.h"
+#include "../../base/Direction.h"
 
 #include "Constraint.h"
 #include "PiercePoint.h"
@@ -41,9 +42,8 @@ class ScreenConstraint : public Constraint {
       std::ostream* statStream) override;
 
   void SetCoreAntennas(const std::set<size_t>& core_antennas);
-  void InitPiercePoints(
-      const std::vector<std::array<double, 3>>& antenna_pos,
-      const std::vector<std::pair<double, double>>& source_pos);
+  void InitPiercePoints(const std::vector<std::array<double, 3>>& antenna_pos,
+                        const std::vector<base::Direction>& source_directions);
 
   const std::vector<size_t>& GetCoreAntennas() const { return _coreAntennas; }
   const std::vector<std::vector<PiercePoint>>& GetPiercePoints() const {

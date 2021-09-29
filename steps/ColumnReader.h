@@ -34,7 +34,7 @@ class ColumnReader : public ModelDataStep {
 
   void showTimings(std::ostream& os, double duration) const override;
 
-  std::pair<double, double> GetFirstDirection() const override;
+  base::Direction GetFirstDirection() const override;
 
  private:
   InputStep& input_;         ///< Input MS to read the column from

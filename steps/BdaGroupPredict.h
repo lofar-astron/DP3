@@ -67,7 +67,7 @@ class BdaGroupPredict : public ModelDataStep {
 
   MsType outputs() const override { return MsType::kBda; }
 
-  std::pair<double, double> GetFirstDirection() const override;
+  base::Direction GetFirstDirection() const override;
 
  private:
   InputStep& input_;

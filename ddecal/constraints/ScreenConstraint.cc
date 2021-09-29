@@ -78,9 +78,9 @@ void ScreenConstraint::SetCoreAntennas(const std::set<size_t>& core_antennas) {
 
 void ScreenConstraint::InitPiercePoints(
     const std::vector<std::array<double, 3>>& antenna_pos,
-    const std::vector<std::pair<double, double>>& source_pos) {
+    const std::vector<base::Direction>& source_directions) {
   assert(antenna_pos.size() == NAntennas());
-  assert(source_pos.size() == NDirections());
+  assert(source_directions.size() == NDirections());
   itsPiercePoints.resize(NAntennas());
   for (unsigned int ipos = 0; ipos < antenna_pos.size(); ipos++) {
     itsPiercePoints[ipos].clear();
@@ -88,9 +88,9 @@ void ScreenConstraint::InitPiercePoints(
         casacore::MVPosition(antenna_pos[ipos][0], antenna_pos[ipos][1],
                              antenna_pos[ipos][2]),
         casacore::MPosition::ITRF);
-    for (const auto& direction : source_pos) {
+    for (const auto& direction : source_directions) {
       casacore::MDirection src(
-          casacore::MVDirection(direction.first, direction.second),
+          casacore::MVDirection(direction.ra, direction.dec),
           casacore::MDirection::J2000);
       itsPiercePoints[ipos].emplace_back(ant, src, itsHeight);
     }

@@ -5,7 +5,7 @@
 
 #include "../../Simulator.h"
 #include "../../Stokes.h"
-#include "../../Position.h"
+#include "../../Direction.h"
 #include "../../PointSource.h"
 
 #include <sstream>
@@ -17,9 +17,9 @@ namespace base {
 namespace test {
 BOOST_AUTO_TEST_SUITE(tsimulator)
 
-const Position kReference(0.5, 0.1);
+const Direction kReference(0.5, 0.1);
 // Offset 1/2 deg in radians in RA and DEC
-const Position kOffsetSource(kReference[0] + 0.02, kReference[1] + 0.02);
+const Direction kOffsetSource(kReference.ra + 0.02, kReference.dec + 0.02);
 const size_t kNStations = 4;
 const size_t kNChan = 2;
 

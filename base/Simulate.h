@@ -15,7 +15,7 @@
 #include "Baseline.h"
 #include "Cursor.h"
 #include "Patch.h"
-#include "Position.h"
+#include "Direction.h"
 
 namespace dp3 {
 namespace base {
@@ -70,7 +70,7 @@ void splitUVW(size_t nStation, size_t nBaseline,
 /// The number of UVW coordinates to transform.
 /// \param[in]   uvw
 /// A 2-D buffer of UVW coordinates of shape (\p UVW, 3).
-void rotateUVW(const Position& from, const Position& to, size_t nUVW,
+void rotateUVW(const Direction& from, const Direction& to, size_t nUVW,
                double* uvw);
 
 /// Simulate visibilities for a patch of sources. The computed visibilities are
@@ -96,7 +96,7 @@ void rotateUVW(const Position& from, const Position& to, size_t nUVW,
 /// \param[in]   buffer
 /// A cursor for a 3-D buffer of shape (\p nBaseline, \p nChannel, 4) into which
 /// the simulated visibilities will be written.
-void simulate(const Position& reference, const Patch::ConstPtr& patch,
+void simulate(const Direction& reference, const Patch::ConstPtr& patch,
               size_t nStation, size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, const_cursor<double> freq,
               const_cursor<double> uvw, cursor<dcomplex> buffer);

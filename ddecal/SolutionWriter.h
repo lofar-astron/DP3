@@ -7,6 +7,7 @@
 #include "constraints/Constraint.h"
 
 #include "../base/CalType.h"
+#include "../base/Direction.h"
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -38,7 +39,7 @@ class SolutionWriter {
           constraint_solutions,
       double start_time, double solution_interval, base::CalType mode,
       const std::vector<std::string>& used_antenna_names,
-      const std::vector<std::pair<double, double>>& source_positions,
+      const std::vector<base::Direction>& source_directions,
       const std::vector<std::vector<std::string>>& directions,
       const std::vector<double>& chan_freqs,
       const std::vector<double>& chan_block_freqs, const std::string& history);

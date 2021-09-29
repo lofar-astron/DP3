@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "ModelComponent.h"
-#include "Position.h"
+#include "Direction.h"
 #include "Stokes.h"
 
 #include <memory>
@@ -28,11 +28,11 @@ class PointSource : public ModelComponent {
   typedef std::shared_ptr<PointSource> Ptr;
   typedef std::shared_ptr<const PointSource> ConstPtr;
 
-  PointSource(const Position &position);
-  PointSource(const Position &position, const Stokes &stokes);
+  PointSource(const Direction &position);
+  PointSource(const Direction &position, const Stokes &stokes);
 
-  virtual const Position &position() const;
-  void setPosition(const Position &position);
+  const Direction &direction() const override { return itsDirection; }
+  void setDirection(const Direction &position);
 
   void setStokes(const Stokes &stokes);
 
@@ -49,7 +49,7 @@ class PointSource : public ModelComponent {
   bool hasSpectralTerms() const;
   bool hasRotationMeasure() const;
 
-  Position itsPosition;
+  Direction itsDirection;
   Stokes itsStokes;
   double itsRefFreq;
   std::vector<double> itsSpectralTerms;
@@ -74,8 +74,6 @@ void PointSource::setSpectralTerms(double refFreq, bool isLogarithmic, T first,
   itsSpectralTerms.clear();
   itsSpectralTerms.insert(itsSpectralTerms.begin(), first, last);
 }
-
-inline const Position &PointSource::position() const { return itsPosition; }
 
 }  // namespace base
 }  // namespace dp3

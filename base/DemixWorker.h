@@ -132,12 +132,12 @@ class DemixWorker {
 
   /// Calculate the beam for demix resolution and apply to itsPredictVis.
   /// If apply==False, nothing is done.
-  void applyBeam(double time, const Position& pos, bool apply);
+  void applyBeam(double time, const Direction& direction, bool apply);
 
   /// Calculate the beam for the given sky direction and frequencies.
   /// Apply it to the data.
   /// If apply==False, nothing is done.
-  void applyBeam(double time, const Position& pos, bool apply,
+  void applyBeam(double time, const Direction& direction, bool apply,
                  const casacore::Vector<double>& chanFreqs, dcomplex* data);
 
   /// Convert a direction to ITRF.

@@ -85,7 +85,7 @@ class BdaDdeCal : public Step {
   void DetermineChannelBlocks();
 
   /// @return A list with the first direction of each sub-step.
-  std::vector<std::pair<double, double>> GetSourcePositions() const;
+  std::vector<base::Direction> GetSourceDirections() const;
 
   /// @return A list with the center frequency for each channel block.
   std::vector<double> GetChannelBlockFrequencies() const;

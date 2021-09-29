@@ -16,8 +16,8 @@
 
 #include "../common/ProximityClustering.h"
 
-#include <sstream>
 #include <set>
+#include <vector>
 
 namespace dp3 {
 namespace base {
@@ -40,12 +40,10 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB& sourceDB,
     // Use the source if its patch matches a patch name.
     for (unsigned int i = 0; i < nModel; ++i) {
       if (src.getPatchName() == patchNames[i]) {
-        // Fetch position.
+        // Fetch direction.
         if (src.getInfo().getRefType() != "J2000")
           throw std::runtime_error("Reference type should be J2000");
-        Position position;
-        position[0] = src.getRa();
-        position[1] = src.getDec();
+        const Direction direction(src.getRa(), src.getDec());
 
         // Fetch stokes vector.
         Stokes stokes;
@@ -59,11 +57,11 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB& sourceDB,
         PointSource::Ptr source;
         switch (src.getInfo().getType()) {
           case SourceInfo::POINT: {
-            source = PointSource::Ptr(new PointSource(position, stokes));
+            source = PointSource::Ptr(new PointSource(direction, stokes));
           } break;
 
           case SourceInfo::GAUSSIAN: {
-            GaussianSource::Ptr gauss(new GaussianSource(position, stokes));
+            GaussianSource::Ptr gauss(new GaussianSource(direction, stokes));
 
             const double deg2rad = (casacore::C::pi / 180.0);
             gauss->setPositionAngle(src.getOrientation() * deg2rad);
@@ -108,21 +106,19 @@ std::vector<Patch::ConstPtr> makePatches(SourceDB& sourceDB,
   for (unsigned int i = 0; i < componentsList.size(); ++i) {
     if (componentsList[i].empty())
       throw Exception("No sources found for patch " + patchNames[i]);
-    Patch::Ptr ppatch(new Patch(patchNames[i], componentsList[i].begin(),
-                                componentsList[i].end()));
+    auto ppatch = std::make_shared<Patch>(
+        patchNames[i], componentsList[i].begin(), componentsList[i].end());
     std::vector<parmdb::PatchInfo> patchInfo(
         sourceDB.getPatchInfo(-1, patchNames[i]));
     if (patchInfo.size() != 1)
       throw std::runtime_error("Patch \"" + patchNames[i] +
                                "\" defined more than once in SourceDB");
-    // Set the position and apparent flux of the patch.
-    Position patchPosition;
-    patchPosition[0] = patchInfo[0].getRa();
-    patchPosition[1] = patchInfo[0].getDec();
-    ppatch->setPosition(patchPosition);
+    // Set the direction and apparent flux of the patch.
+    const Direction patchDirection(patchInfo[0].getRa(), patchInfo[0].getDec());
+    ppatch->setDirection(patchDirection);
     ppatch->setBrightness(patchInfo[0].apparentBrightness());
-    ///    ppatch->computePosition();
-    patchList.push_back(ppatch);
+    ///    ppatch->computeDirection();
+    patchList.push_back(std::move(ppatch));
   }
   return patchList;
 }
@@ -169,7 +165,7 @@ std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
     for (auto compIt = patch->begin(); compIt != patch->end(); ++compIt) {
       Patch::Ptr ppatch(new Patch(patch->name() + "_" + std::to_string(compNum),
                                   compIt, compIt + 1));
-      ppatch->setPosition((*compIt)->position());
+      ppatch->setDirection((*compIt)->direction());
       largePatchList.push_back(std::move(ppatch));
       compNum++;
     }
@@ -188,7 +184,7 @@ std::vector<Patch::ConstPtr> clusterProximateSources(
   for (const auto& patch : patch_list) {
     size_t compIndex = 0;
     for (const auto& comp : *patch) {
-      sources.emplace_back(comp->position()[0], comp->position()[1]);
+      sources.emplace_back(comp->direction().ra, comp->direction().dec);
       lookup_table.emplace_back(patchIndex, compIndex);
       ++compIndex;
     }
@@ -210,15 +206,16 @@ std::vector<Patch::ConstPtr> clusterProximateSources(
       const auto& patch = patch_list[lookupIndices.first];
       const ModelComponent::ConstPtr& comp =
           *(patch->begin() + lookupIndices.second);
-      alpha += comp->position()[0];
-      delta += comp->position()[1];
+      alpha += comp->direction().ra;
+      delta += comp->direction().dec;
       componentsInPatch.emplace_back(comp);
     }
     const auto& firstPatch = patch_list[lookup_table[groups.front()].first];
     Patch::Ptr ppatch(new Patch(
         firstPatch->name() + "_" + std::to_string(clusteredPatchList.size()),
         componentsInPatch.begin(), componentsInPatch.end()));
-    ppatch->setPosition(Position(alpha / groups.size(), delta / groups.size()));
+    ppatch->setDirection(
+        Direction(alpha / groups.size(), delta / groups.size()));
     clusteredPatchList.push_back(std::move(ppatch));
   }
 

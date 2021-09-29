@@ -19,7 +19,6 @@
 #include "../base/DPInfo.h"
 #include "../base/Exceptions.h"
 #include "../base/FlagCounter.h"
-#include "../base/Position.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
 #include "../base/Stokes.h"
@@ -241,7 +240,7 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
     Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
     itsMovingPhaseRef = false;
     itsPhaseRef =
-        base::Position(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+        base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   } catch (casacore::AipsError&) {
     // Phase direction (in J2000) is time dependent
     itsMovingPhaseRef = true;
@@ -254,9 +253,8 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   }
 }
 
-std::pair<double, double> OnePredict::GetFirstDirection() const {
-  return std::make_pair(itsPatchList.front()->position()[0],
-                        itsPatchList.front()->position()[1]);
+base::Direction OnePredict::GetFirstDirection() const {
+  return itsPatchList.front()->direction();
 }
 
 void OnePredict::SetOperation(const std::string& operation) {
@@ -347,7 +345,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
         MDirection::Ref(MDirection::J2000, itsMeasFrames[0]))());
     Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
     itsPhaseRef =
-        base::Position(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+        base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }
 
   std::unique_ptr<aocommon::ThreadPool> localThreadPool;
@@ -471,7 +469,7 @@ void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
                                size_t thread, size_t nBeamValues,
                                dcomplex* data0, bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch->position()[0], patch->position()[1]),
+  MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, itsMeasConverters[thread]);
 

@@ -135,13 +135,13 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 
     solver_->SetNThreads(info().nThreads());
 
-    const std::vector<std::pair<double, double>> source_positions =
-        GetSourcePositions();
+    const std::vector<base::Direction> source_directions =
+        GetSourceDirections();
     const std::vector<double> channel_block_frequencies =
         GetChannelBlockFrequencies();
     for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
       InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
-                                  used_antenna_names, source_positions,
+                                  used_antenna_names, source_directions,
                                   channel_block_frequencies);
     }
 
@@ -197,13 +197,13 @@ void BdaDdeCal::DetermineChannelBlocks() {
   }
 }
 
-std::vector<std::pair<double, double>> BdaDdeCal::GetSourcePositions() const {
-  std::vector<std::pair<double, double>> source_positions;
-  source_positions.reserve(steps_.size());
+std::vector<base::Direction> BdaDdeCal::GetSourceDirections() const {
+  std::vector<base::Direction> source_directions;
+  source_directions.reserve(steps_.size());
   for (const std::shared_ptr<ModelDataStep>& s : steps_) {
-    source_positions.push_back(s->GetFirstDirection());
+    source_directions.push_back(s->GetFirstDirection());
   }
-  return source_positions;
+  return source_directions;
 }
 
 std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
@@ -493,7 +493,7 @@ void BdaDdeCal::WriteSolutions() {
 
   solution_writer_->Write(
       solutions_, constraint_solutions_, info().startTime(), solution_interval_,
-      settings_.mode, used_antenna_names, GetSourcePositions(), patches_,
+      settings_.mode, used_antenna_names, GetSourceDirections(), patches_,
       info().chanFreqs(), GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();

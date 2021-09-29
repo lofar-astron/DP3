@@ -15,7 +15,6 @@
 #include "../base/DPInfo.h"
 #include "../base/Exceptions.h"
 #include "../base/FlagCounter.h"
-#include "../base/Position.h"
 
 #include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
