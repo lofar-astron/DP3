@@ -191,8 +191,18 @@ void OnePredict::initializeThreadData() {
   const size_t nThreads = getInfo().nThreads();
 
   itsStationUVW.resize(3, nSt);
+
+  std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
+  for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
+    casacore::Quantum<casacore::Vector<double>> pos =
+        info().antennaPos()[i].get("m");
+    antenna_pos[i][0] = pos.getValue()[0];
+    antenna_pos[i][1] = pos.getValue()[1];
+    antenna_pos[i][2] = pos.getValue()[2];
+  }
+
   itsUVWSplitIndex = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
-                                          info().getAnt2());
+                                          info().getAnt2(), antenna_pos);
 
   if (!itsPredictBuffer) {
     itsPredictBuffer = std::make_shared<base::PredictBuffer>();
@@ -237,7 +247,7 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   try {
     MDirection dirJ2000(
         MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-    Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
+    Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
     itsMovingPhaseRef = false;
     itsPhaseRef =
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
@@ -343,7 +353,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
     MDirection dirJ2000(MDirection::Convert(
         info().phaseCenter(),
         MDirection::Ref(MDirection::J2000, itsMeasFrames[0]))());
-    Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
+    Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
     itsPhaseRef =
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }

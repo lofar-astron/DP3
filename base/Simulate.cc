@@ -82,6 +82,102 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const Vector<int>& ant1,
   return uvwbl;
 }
 
+std::vector<int> nsetupSplitUVW(
+    unsigned int nant, const Vector<int>& antennas1,
+    const Vector<int>& antennas2,
+    const std::vector<std::array<double, 3>>& antenna_positions) {
+  // sort baselines by length
+  std::vector<double> baseline_length_squared(antennas1.size());
+  for (size_t i = 0; i < baseline_length_squared.size(); ++i) {
+    int ant1 = antennas1[i];
+    int ant2 = antennas2[i];
+    double u = antenna_positions[ant2][0] - antenna_positions[ant1][0];
+    double v = antenna_positions[ant2][1] - antenna_positions[ant1][1];
+    double w = antenna_positions[ant2][2] - antenna_positions[ant1][2];
+    baseline_length_squared[i] = u * u + v * v + w * w;
+  }
+
+  auto compare_by_length = [&baseline_length_squared](size_t bl1, size_t bl2) {
+    return baseline_length_squared[bl1] > baseline_length_squared[bl2];
+  };
+
+  std::vector<size_t> bl_idx_sorted(antennas1.size());
+  std::iota(bl_idx_sorted.begin(), bl_idx_sorted.end(), 0);
+  std::sort(bl_idx_sorted.begin(), bl_idx_sorted.end(), compare_by_length);
+
+  // Initialize data structure to keep track of which baselines are selected,
+  // to which group an antenna belongs and which antennas are in a group
+  std::vector<size_t> bl_selection;
+  std::vector<int> ant_to_group_id_map(nant, -1);
+  std::vector<std::vector<int>> groups;
+
+  for (size_t bl : bl_idx_sorted) {
+    int ant1 = antennas1[bl];
+    int ant2 = antennas2[bl];
+    if (ant_to_group_id_map[ant1] == ant_to_group_id_map[ant2]) {
+      if (ant_to_group_id_map[ant1] == -1) {
+        // both antennas are unkown
+        // add both to a new group
+        ant_to_group_id_map[ant1] = groups.size();
+        ant_to_group_id_map[ant2] = groups.size();
+        groups.push_back({ant1, ant2});
+      } else {
+        // both antennas are known, and in the same group
+        // this baseline adds no new information
+        continue;
+      }
+    } else {
+      if (ant_to_group_id_map[ant1] == -1) {
+        // ant1 is unknown, add it to the group of ant2
+        ant_to_group_id_map[ant1] = ant_to_group_id_map[ant2];
+        groups[ant_to_group_id_map[ant1]].push_back(ant1);
+      } else if (ant_to_group_id_map[ant2] == -1) {
+        // ant2 is unknown, add it to the group of ant1
+        ant_to_group_id_map[ant2] = ant_to_group_id_map[ant1];
+        groups[ant_to_group_id_map[ant2]].push_back(ant2);
+      } else {
+        // both antennas are known, but in different groups
+        // Add the group of ant2 to the group of ant1
+        for (int ant : groups[ant_to_group_id_map[ant2]]) {
+          ant_to_group_id_map[ant] = ant_to_group_id_map[ant1];
+        }
+        groups[ant_to_group_id_map[ant1]].insert(
+            groups[ant_to_group_id_map[ant1]].end(),
+            groups[ant_to_group_id_map[ant2]].begin(),
+            groups[ant_to_group_id_map[ant2]].end());
+        groups[ant_to_group_id_map[ant2]].clear();
+      }
+    }
+    // Add baseline to selection
+    bl_selection.push_back(bl);
+    // Exit early if selected baselines already form a single spanning tree
+    if (bl_selection.size() == size_t(nant - 1)) break;
+  }
+
+  // Select the entries from vectors antenna1 and antenna2 that correspons to
+  // selected baselines
+  std::vector<int> antennas1_bl_selection;
+  std::transform(bl_selection.begin(), bl_selection.end(),
+                 std::back_inserter(antennas1_bl_selection),
+                 [&antennas1](size_t bl) -> int { return antennas1[bl]; });
+  std::vector<int> antennas2_bl_selection;
+  std::transform(bl_selection.begin(), bl_selection.end(),
+                 std::back_inserter(antennas2_bl_selection),
+                 [&antennas2](size_t bl) -> int { return antennas2[bl]; });
+
+  // Compute the indices for the selected baselines
+  std::vector<int> bl_idx =
+      nsetupSplitUVW(nant, antennas1_bl_selection, antennas2_bl_selection);
+
+  // Map the indices in the selection to indices in the original baselines
+  std::transform(bl_idx.begin(), bl_idx.end(), bl_idx.begin(),
+                 [&bl_selection](int bl) -> int {
+                   return bl >= 0 ? bl_selection[bl]
+                                  : -bl_selection[-bl - 1] - 1;
+                 });
+  return bl_idx;
+}
+
 void nsplitUVW(const std::vector<int>& blindex,
                const std::vector<Baseline>& baselines,
                const Matrix<double>& uvwbl, Matrix<double>& uvwant) {
