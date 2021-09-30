@@ -30,36 +30,36 @@ namespace dp3 {
 namespace base {
 
 DPInfo::DPInfo()
-    : itsNeedVisData(false),
-      itsWriteData(false),
-      itsWriteFlags(false),
-      itsWriteWeights(false),
-      itsMetaChanged(false),
-      itsNCorr(0),
-      itsStartChan(0),
-      itsNChan(0),
-      itsChanAvg(1),
-      itsNTime(0),
-      itsTimeAvg({1}),
-      itsStartTime(0),
-      itsTimeInterval(0),
-      itsPhaseCenterIsOriginal(true),
-      itsBeamCorrectionMode(everybeam::CorrectionMode::kNone),
-      itsNThreads(aocommon::ThreadPool::NCPUs()) {}
+    : need_data_(false),
+      write_data_(false),
+      write_flags_(false),
+      write_weights_(false),
+      meta_changed_(false),
+      n_correlations_(0),
+      start_channel_(0),
+      n_channels_(0),
+      channel_averaging_factor_(1),
+      n_times_(0),
+      time_averaging_factors_({1}),
+      start_time_(0),
+      time_interval_(0),
+      phase_center_is_original_(true),
+      beam_correction_mode_(everybeam::CorrectionMode::kNone),
+      n_threads_(aocommon::ThreadPool::NCPUs()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,
                   unsigned int nchan, unsigned int ntime, double startTime,
                   double timeInterval, const string& msName,
                   const string& antennaSet) {
-  itsNCorr = ncorr;
-  itsStartChan = startChan;
-  itsNChan = nchan;
-  itsOrigNChan = nchan;
-  itsNTime = ntime;
-  itsStartTime = startTime;
-  itsTimeInterval = timeInterval;
-  itsMSName = msName;
-  itsAntennaSet = antennaSet;
+  n_correlations_ = ncorr;
+  start_channel_ = startChan;
+  n_channels_ = nchan;
+  original_n_channels_ = nchan;
+  n_times_ = ntime;
+  start_time_ = startTime;
+  time_interval_ = timeInterval;
+  ms_name_ = msName;
+  antenna_set_ = antennaSet;
 }
 
 void DPInfo::set(std::vector<double>&& chan_freqs,
@@ -79,19 +79,19 @@ void DPInfo::set(std::vector<double>&& chan_freqs,
     ref_freq = 0.5 * (chan_freqs[(n - 1) / 2] + chan_freqs[n / 2]);
   }
 
-  itsChanFreqs.clear();
-  itsChanWidths.clear();
-  itsResolutions.clear();
-  itsEffectiveBW.clear();
+  channel_frequencies_.clear();
+  channel_widths_.clear();
+  resolutions_.clear();
+  effective_bandwidth_.clear();
 
-  itsChanFreqs.push_back(std::move(chan_freqs));
-  itsChanWidths.push_back(std::move(chan_widths));
-  itsResolutions.push_back(std::move(resolutions));
-  itsEffectiveBW.push_back(std::move(effective_bw));
+  channel_frequencies_.push_back(std::move(chan_freqs));
+  channel_widths_.push_back(std::move(chan_widths));
+  resolutions_.push_back(std::move(resolutions));
+  effective_bandwidth_.push_back(std::move(effective_bw));
 
-  itsTotalBW = std::accumulate(itsEffectiveBW.front().begin(),
-                               itsEffectiveBW.front().end(), 0.0);
-  itsRefFreq = ref_freq;
+  total_bandwidth_ = std::accumulate(effective_bandwidth_.front().begin(),
+                                     effective_bandwidth_.front().end(), 0.0);
+  reference_frequency_ = ref_freq;
 }
 
 void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
@@ -125,44 +125,44 @@ void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
     return left.size() < right.size();
   };
   auto it = std::max_element(chan_freqs.begin(), chan_freqs.end(), comp);
-  itsNChan = it->size();
+  n_channels_ = it->size();
 
   if (ref_freq == 0) {
     // Takes mean of middle elements if n is even; takes middle if odd.
-    ref_freq = 0.5 * ((*it)[(itsNChan - 1) / 2] + (*it)[itsNChan / 2]);
+    ref_freq = 0.5 * ((*it)[(n_channels_ - 1) / 2] + (*it)[n_channels_ / 2]);
   }
 
-  itsChanFreqs = std::move(chan_freqs);
-  itsChanWidths = std::move(chan_widths);
-  itsResolutions = std::move(resolutions);
-  itsEffectiveBW = std::move(effective_bw);
-  itsTotalBW = total_bw;
-  itsRefFreq = ref_freq;
+  channel_frequencies_ = std::move(chan_freqs);
+  channel_widths_ = std::move(chan_widths);
+  resolutions_ = std::move(resolutions);
+  effective_bandwidth_ = std::move(effective_bw);
+  total_bandwidth_ = total_bw;
+  reference_frequency_ = ref_freq;
 }
 
 bool DPInfo::channelsAreRegular() const {
-  if (itsChanFreqs.empty()) {
+  if (channel_frequencies_.empty()) {
     return true;
   }
 
   // Check that all baselines have equal channel layouts.
   const double kTolerance = 1.0;  // Hz
-  for (std::size_t bl = 1; bl < itsChanFreqs.size(); ++bl) {
-    if (!common::EpsilonEqual(itsChanFreqs.front(), itsChanFreqs[bl],
+  for (std::size_t bl = 1; bl < channel_frequencies_.size(); ++bl) {
+    if (!common::EpsilonEqual(channel_frequencies_.front(),
+                              channel_frequencies_[bl], kTolerance) ||
+        !common::EpsilonEqual(channel_widths_.front(), channel_widths_[bl],
                               kTolerance) ||
-        !common::EpsilonEqual(itsChanWidths.front(), itsChanWidths[bl],
+        !common::EpsilonEqual(resolutions_.front(), resolutions_[bl],
                               kTolerance) ||
-        !common::EpsilonEqual(itsResolutions.front(), itsResolutions[bl],
-                              kTolerance) ||
-        !common::EpsilonEqual(itsEffectiveBW.front(), itsEffectiveBW[bl],
-                              kTolerance)) {
+        !common::EpsilonEqual(effective_bandwidth_.front(),
+                              effective_bandwidth_[bl], kTolerance)) {
       return false;
     }
   }
 
   // Check that channels are evenly spaced.
-  const std::vector<double>& freqs = itsChanFreqs.front();
-  const std::vector<double>& widths = itsChanWidths.front();
+  const std::vector<double>& freqs = channel_frequencies_.front();
+  const std::vector<double>& widths = channel_widths_.front();
   if (freqs.size() > 1) {
     const double freqstep0 = freqs[1] - freqs[0];
     const double kTolerance = 1.e3;  // Compare up to 1kHz accuracy.
@@ -179,10 +179,10 @@ bool DPInfo::channelsAreRegular() const {
 
 void DPInfo::set(const MPosition& arrayPos, const MDirection& phaseCenter,
                  const MDirection& delayCenter, const MDirection& tileBeamDir) {
-  itsArrayPos = arrayPos;
-  itsPhaseCenter = phaseCenter;
-  itsDelayCenter = delayCenter;
-  itsTileBeamDir = tileBeamDir;
+  array_position_ = arrayPos;
+  phase_center_ = phaseCenter;
+  delay_center_ = delayCenter;
+  tile_beam_direction_ = tileBeamDir;
 }
 
 void DPInfo::set(const Vector<casacore::String>& antNames,
@@ -194,30 +194,31 @@ void DPInfo::set(const Vector<casacore::String>& antNames,
   if (ant1.size() != ant2.size())
     throw std::invalid_argument(
         "The ant1 and ant2 arrays are not of the same size");
-  itsAntNames.reference(antNames);
-  itsAntDiam.reference(antDiam);
-  itsAntPos = antPos;
-  itsAnt1 = std::vector<std::size_t>(ant1.begin(), ant1.end());
-  itsAnt2 = std::vector<std::size_t>(ant2.begin(), ant2.end());
+  antenna_names_.reference(antNames);
+  antenna_diameters_.reference(antDiam);
+  antenna_positions_ = antPos;
+  antenna1_ = std::vector<std::size_t>(ant1.begin(), ant1.end());
+  antenna2_ = std::vector<std::size_t>(ant2.begin(), ant2.end());
   // Set which antennae are used.
   setAntUsed();
 }
 
 void DPInfo::setAntUsed() {
-  itsAntUsed.clear();
-  itsAntMap.resize(itsAntNames.size());
-  std::fill(itsAntMap.begin(), itsAntMap.end(), -1);
-  for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-    if (itsAnt1[i] >= itsAntMap.size() || itsAnt2[i] >= itsAntMap.size())
+  antennas_used_.clear();
+  antenna_map_.resize(antenna_names_.size());
+  std::fill(antenna_map_.begin(), antenna_map_.end(), -1);
+  for (unsigned int i = 0; i < antenna1_.size(); ++i) {
+    if (antenna1_[i] >= antenna_map_.size() ||
+        antenna2_[i] >= antenna_map_.size())
       throw std::runtime_error("Antenna map has an inconsistent size");
-    itsAntMap[itsAnt1[i]] = 0;
-    itsAntMap[itsAnt2[i]] = 0;
+    antenna_map_[antenna1_[i]] = 0;
+    antenna_map_[antenna2_[i]] = 0;
   }
-  itsAntUsed.reserve(itsAntNames.size());
-  for (unsigned int i = 0; i < itsAntMap.size(); ++i) {
-    if (itsAntMap[i] == 0) {
-      itsAntMap[i] = itsAntUsed.size();
-      itsAntUsed.push_back(i);
+  antennas_used_.reserve(antenna_names_.size());
+  for (unsigned int i = 0; i < antenna_map_.size(); ++i) {
+    if (antenna_map_[i] == 0) {
+      antenna_map_[i] = antennas_used_.size();
+      antennas_used_.push_back(i);
     }
   }
 }
@@ -234,84 +235,85 @@ MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
 }
 
 unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
-  if (itsChanFreqs.size() != 1) {
+  if (channel_frequencies_.size() != 1) {
     throw Exception("Averaging does not support BDA");
   }
 
-  if (chanAvg > itsNChan) {
-    chanAvg = itsNChan;
+  if (chanAvg > n_channels_) {
+    chanAvg = n_channels_;
   }
-  if (timeAvg > itsNTime) {
-    timeAvg = itsNTime;
+  if (timeAvg > n_times_) {
+    timeAvg = n_times_;
   }
-  if (itsNChan % chanAvg != 0)
+  if (n_channels_ % chanAvg != 0)
     throw Exception(
         "When averaging, nr of channels must divide integrally; "
-        "itsNChan=" +
-        std::to_string(itsNChan) + " chanAvg=" + std::to_string(chanAvg));
-  itsChanAvg *= chanAvg;
-  itsNChan = (itsNChan + chanAvg - 1) / chanAvg;
-  itsTimeAvg.front() *= timeAvg;
-  itsNTime = (itsNTime + timeAvg - 1) / timeAvg;
-  itsTimeInterval *= timeAvg;
-  std::vector<double> freqs(itsNChan);
-  std::vector<double> widths(itsNChan, 0.);
-  std::vector<double> resols(itsNChan, 0.);
-  std::vector<double> effBWs(itsNChan, 0.);
+        "nr of channels = " +
+        std::to_string(n_channels_) +
+        " averaging factor = " + std::to_string(chanAvg));
+  channel_averaging_factor_ *= chanAvg;
+  n_channels_ = (n_channels_ + chanAvg - 1) / chanAvg;
+  time_averaging_factors_.front() *= timeAvg;
+  n_times_ = (n_times_ + timeAvg - 1) / timeAvg;
+  time_interval_ *= timeAvg;
+  std::vector<double> freqs(n_channels_);
+  std::vector<double> widths(n_channels_, 0.);
+  std::vector<double> resols(n_channels_, 0.);
+  std::vector<double> effBWs(n_channels_, 0.);
   double totBW = 0;
-  for (unsigned int i = 0; i < itsNChan; ++i) {
-    freqs[i] = 0.5 * (itsChanFreqs.front()[i * chanAvg] +
-                      itsChanFreqs.front()[(i + 1) * chanAvg - 1]);
+  for (unsigned int i = 0; i < n_channels_; ++i) {
+    freqs[i] = 0.5 * (channel_frequencies_.front()[i * chanAvg] +
+                      channel_frequencies_.front()[(i + 1) * chanAvg - 1]);
     for (unsigned int j = 0; j < chanAvg; ++j) {
-      widths[i] += itsChanWidths.front()[i * chanAvg + j];
-      resols[i] += itsResolutions.front()[i * chanAvg + j];
-      effBWs[i] += itsEffectiveBW.front()[i * chanAvg + j];
+      widths[i] += channel_widths_.front()[i * chanAvg + j];
+      resols[i] += resolutions_.front()[i * chanAvg + j];
+      effBWs[i] += effective_bandwidth_.front()[i * chanAvg + j];
     }
     totBW += effBWs[i];
   }
-  itsChanFreqs.front() = std::move(freqs);
-  itsChanWidths.front() = std::move(widths);
-  itsResolutions.front() = std::move(resols);
-  itsEffectiveBW.front() = std::move(effBWs);
-  itsTotalBW = totBW;
+  channel_frequencies_.front() = std::move(freqs);
+  channel_widths_.front() = std::move(widths);
+  resolutions_.front() = std::move(resols);
+  effective_bandwidth_.front() = std::move(effBWs);
+  total_bandwidth_ = totBW;
   return chanAvg;
 }
 
 void DPInfo::update(std::vector<unsigned int>&& timeAvg) {
-  itsTimeAvg = std::move(timeAvg);
+  time_averaging_factors_ = std::move(timeAvg);
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
                     const vector<unsigned int>& baselines, bool removeAnt) {
-  if (itsChanFreqs.size() != 1) {
+  if (channel_frequencies_.size() != 1) {
     throw Exception("Channel selection does not support BDA");
   }
-  itsStartChan = startChan;
-  auto freqs_begin = itsChanFreqs.front().begin() + startChan;
-  auto widths_begin = itsChanWidths.front().begin() + startChan;
-  auto resol_begin = itsResolutions.front().begin() + startChan;
-  auto effbw_begin = itsEffectiveBW.front().begin() + startChan;
-  itsChanFreqs.front() = std::vector<double>(freqs_begin, freqs_begin + nchan);
-  itsChanWidths.front() =
+  start_channel_ = startChan;
+  auto freqs_begin = channel_frequencies_.front().begin() + startChan;
+  auto widths_begin = channel_widths_.front().begin() + startChan;
+  auto resol_begin = resolutions_.front().begin() + startChan;
+  auto effbw_begin = effective_bandwidth_.front().begin() + startChan;
+  channel_frequencies_.front() =
+      std::vector<double>(freqs_begin, freqs_begin + nchan);
+  channel_widths_.front() =
       std::vector<double>(widths_begin, widths_begin + nchan);
-  itsResolutions.front() =
-      std::vector<double>(resol_begin, resol_begin + nchan);
-  itsEffectiveBW.front() =
+  resolutions_.front() = std::vector<double>(resol_begin, resol_begin + nchan);
+  effective_bandwidth_.front() =
       std::vector<double>(effbw_begin, effbw_begin + nchan);
-  itsNChan = nchan;
+  n_channels_ = nchan;
   // Keep only selected baselines.
   if (!baselines.empty()) {
     std::vector<std::size_t> ant1(baselines.size());
     std::vector<std::size_t> ant2(baselines.size());
     for (unsigned int i = 0; i < baselines.size(); ++i) {
-      ant1[i] = itsAnt1[baselines[i]];
-      ant2[i] = itsAnt2[baselines[i]];
+      ant1[i] = antenna1_[baselines[i]];
+      ant2[i] = antenna2_[baselines[i]];
     }
-    itsAnt1 = std::move(ant1);
-    itsAnt2 = std::move(ant2);
+    antenna1_ = std::move(ant1);
+    antenna2_ = std::move(ant2);
     // Clear; they'll be recalculated if needed.
-    itsBLength.resize(0);
-    itsAutoCorrIndex.resize(0);
+    baseline_lengths_.clear();
+    auto_correlation_indices_.clear();
   }
   setAntUsed();
   // If needed, remove the stations and renumber the baselines.
@@ -321,37 +323,37 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
 }
 
 void DPInfo::removeUnusedAnt() {
-  if (itsAntUsed.size() < itsAntMap.size()) {
+  if (antennas_used_.size() < antenna_map_.size()) {
     // First remove stations.
-    Vector<casacore::String> antNames(itsAntUsed.size());
-    Vector<Double> antDiam(itsAntUsed.size());
-    vector<MPosition> antPos;
-    antPos.reserve(itsAntUsed.size());
-    for (unsigned int i = 0; i < itsAntUsed.size(); ++i) {
-      antNames[i] = itsAntNames[itsAntUsed[i]];
-      antDiam[i] = itsAntDiam[itsAntUsed[i]];
-      antPos.push_back(itsAntPos[itsAntUsed[i]]);
+    Vector<casacore::String> names(antennas_used_.size());
+    Vector<Double> diameters(antennas_used_.size());
+    vector<MPosition> positions;
+    positions.reserve(antennas_used_.size());
+    for (unsigned int i = 0; i < antennas_used_.size(); ++i) {
+      names[i] = antenna_names_[antennas_used_[i]];
+      diameters[i] = antenna_diameters_[antennas_used_[i]];
+      positions.push_back(antenna_positions_[antennas_used_[i]]);
     }
     // Use the new vectors.
-    itsAntNames.reference(antNames);
-    itsAntDiam.reference(antDiam);
-    itsAntPos.swap(antPos);
+    antenna_names_.reference(names);
+    antenna_diameters_.reference(diameters);
+    antenna_positions_.swap(positions);
     // Renumber the baselines.
-    for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-      itsAnt1[i] = itsAntMap[itsAnt1[i]];
-      itsAnt2[i] = itsAntMap[itsAnt2[i]];
+    for (unsigned int i = 0; i < antenna1_.size(); ++i) {
+      antenna1_[i] = antenna_map_[antenna1_[i]];
+      antenna2_[i] = antenna_map_[antenna2_[i]];
     }
-    // Now fill the itsAntUsed and itsAntMap vectors again.
+    // Now fill the antennas_used_ and antenna_map_ vectors again.
     setAntUsed();
     // Clear; they'll be recalculated if needed.
-    itsBLength.resize(0);
-    itsAutoCorrIndex.resize(0);
+    baseline_lengths_.clear();
+    auto_correlation_indices_.clear();
   }
 }
 
 const vector<double>& DPInfo::getBaselineLengths() const {
   // Calculate the baseline lengths if not done yet.
-  if (itsBLength.empty()) {
+  if (baseline_lengths_.empty()) {
     // First get the antenna positions.
     const vector<MPosition>& antPos = antennaPos();
     vector<Vector<double>> antVec;
@@ -364,162 +366,166 @@ const vector<double>& DPInfo::getBaselineLengths() const {
     }
     // Fill in the length of each baseline.
     vector<double> blength;
-    itsBLength.reserve(itsAnt1.size());
-    for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-      Array<double> diff(antVec[itsAnt2[i]] - antVec[itsAnt1[i]]);
-      itsBLength.push_back(sqrt(sum(diff * diff)));
+    baseline_lengths_.reserve(antenna1_.size());
+    for (unsigned int i = 0; i < antenna1_.size(); ++i) {
+      Array<double> diff(antVec[antenna2_[i]] - antVec[antenna1_[i]]);
+      baseline_lengths_.push_back(sqrt(sum(diff * diff)));
     }
   }
-  return itsBLength;
+  return baseline_lengths_;
 }
 
 const vector<int>& DPInfo::getAutoCorrIndex() const {
-  if (itsAutoCorrIndex.empty()) {
-    int nant = 1 + std::max(*std::max_element(itsAnt1.begin(), itsAnt1.end()),
-                            *std::max_element(itsAnt2.begin(), itsAnt2.end()));
-    itsAutoCorrIndex.resize(nant);
-    std::fill(itsAutoCorrIndex.begin(), itsAutoCorrIndex.end(), -1);
+  if (auto_correlation_indices_.empty()) {
+    int nant =
+        1 + std::max(*std::max_element(antenna1_.begin(), antenna1_.end()),
+                     *std::max_element(antenna2_.begin(), antenna2_.end()));
+    auto_correlation_indices_.resize(nant);
+    std::fill(auto_correlation_indices_.begin(),
+              auto_correlation_indices_.end(), -1);
     // Keep the baseline table index for the autocorrelations.
-    for (unsigned int i = 0; i < itsAnt1.size(); ++i) {
-      if (itsAnt1[i] == itsAnt2[i]) {
-        itsAutoCorrIndex[itsAnt1[i]] = i;
+    for (unsigned int i = 0; i < antenna1_.size(); ++i) {
+      if (antenna1_[i] == antenna2_[i]) {
+        auto_correlation_indices_[antenna1_[i]] = i;
       }
     }
   }
-  return itsAutoCorrIndex;
+  return auto_correlation_indices_;
 }
 
 Record DPInfo::toRecord() const {
   Record rec;
-  rec.define("NeedVisData", itsNeedVisData);
-  rec.define("WriteData", itsWriteData);
-  rec.define("WriteFlags", itsWriteFlags);
-  rec.define("WriteWeights", itsWriteWeights);
-  rec.define("MetaChanged", itsMetaChanged);
-  rec.define("MSName", itsMSName);
-  rec.define("AntennaSet", itsAntennaSet);
-  rec.define("NCorr", itsNCorr);
-  rec.define("StartChan", itsStartChan);
-  rec.define("OrigNChan", itsOrigNChan);
-  rec.define("NChan", itsNChan);
-  rec.define("ChanAvg", itsChanAvg);
-  rec.define("NTime", itsNTime);
-  rec.define("TimeAvg", itsTimeAvg.front());
-  rec.define("StartTime", itsStartTime);
-  rec.define("TimeInterval", itsTimeInterval);
-  rec.define("ChanFreqs", casacore::Vector<double>(itsChanFreqs.front()));
-  rec.define("ChanWidths", casacore::Vector<double>(itsChanWidths.front()));
-  rec.define("Resolutions", casacore::Vector<double>(itsResolutions.front()));
-  rec.define("EffectiveBW", casacore::Vector<double>(itsEffectiveBW.front()));
-  rec.define("TotalBW", itsTotalBW);
-  rec.define("RefFreq", itsRefFreq);
-  rec.define("AntNames", itsAntNames);
-  rec.define("AntDiam", itsAntDiam);
-  rec.define("AntUsed", Vector<int>(itsAntUsed));
-  rec.define("AntMap", Vector<int>(itsAntMap));
-  rec.define("Ant1", Vector<int>(itsAnt1));
-  rec.define("Ant2", Vector<int>(itsAnt2));
-  rec.define("BLength", Vector<double>(itsBLength));
-  rec.define("AutoCorrIndex", Vector<int>(itsAutoCorrIndex));
+  rec.define("NeedVisData", need_data_);
+  rec.define("WriteData", write_data_);
+  rec.define("WriteFlags", write_flags_);
+  rec.define("WriteWeights", write_weights_);
+  rec.define("MetaChanged", meta_changed_);
+  rec.define("MSName", ms_name_);
+  rec.define("AntennaSet", antenna_set_);
+  rec.define("NCorr", n_correlations_);
+  rec.define("StartChan", start_channel_);
+  rec.define("OrigNChan", original_n_channels_);
+  rec.define("NChan", n_channels_);
+  rec.define("ChanAvg", channel_averaging_factor_);
+  rec.define("NTime", n_times_);
+  rec.define("TimeAvg", time_averaging_factors_.front());
+  rec.define("StartTime", start_time_);
+  rec.define("TimeInterval", time_interval_);
+  rec.define("ChanFreqs",
+             casacore::Vector<double>(channel_frequencies_.front()));
+  rec.define("ChanWidths", casacore::Vector<double>(channel_widths_.front()));
+  rec.define("Resolutions", casacore::Vector<double>(resolutions_.front()));
+  rec.define("EffectiveBW",
+             casacore::Vector<double>(effective_bandwidth_.front()));
+  rec.define("TotalBW", total_bandwidth_);
+  rec.define("RefFreq", reference_frequency_);
+  rec.define("AntNames", antenna_names_);
+  rec.define("AntDiam", antenna_diameters_);
+  rec.define("AntUsed", Vector<int>(antennas_used_));
+  rec.define("AntMap", Vector<int>(antenna_map_));
+  rec.define("Ant1", Vector<int>(antenna1_));
+  rec.define("Ant2", Vector<int>(antenna2_));
+  rec.define("BLength", Vector<double>(baseline_lengths_));
+  rec.define("AutoCorrIndex", Vector<int>(auto_correlation_indices_));
   return rec;
 }
 
 void DPInfo::fromRecord(const Record& rec) {
   if (rec.isDefined("NeedVisData")) {
-    rec.get("NeedVisData", itsNeedVisData);
+    rec.get("NeedVisData", need_data_);
   }
   if (rec.isDefined("WriteData")) {
-    rec.get("WriteData", itsWriteData);
+    rec.get("WriteData", write_data_);
   }
   if (rec.isDefined("WriteFlags")) {
-    rec.get("WriteFlags", itsWriteFlags);
+    rec.get("WriteFlags", write_flags_);
   }
   if (rec.isDefined("WriteWeights")) {
-    rec.get("WriteWeights", itsWriteWeights);
+    rec.get("WriteWeights", write_weights_);
   }
   if (rec.isDefined("MetaChanged")) {
-    rec.get("MetaChanged", itsMetaChanged);
+    rec.get("MetaChanged", meta_changed_);
   }
   if (rec.isDefined("MSName")) {
-    itsMSName = rec.asString("MSName");
+    ms_name_ = rec.asString("MSName");
   }
   if (rec.isDefined("AntennaSet")) {
-    itsAntennaSet = rec.asString("AntennaSet");
+    antenna_set_ = rec.asString("AntennaSet");
   }
   if (rec.isDefined("NCorr")) {
-    rec.get("NCorr", itsNCorr);
+    rec.get("NCorr", n_correlations_);
   }
   if (rec.isDefined("StartChan")) {
-    rec.get("StartChan", itsStartChan);
+    rec.get("StartChan", start_channel_);
   }
   if (rec.isDefined("OrigNChan")) {
-    rec.get("OrigNChan", itsOrigNChan);
+    rec.get("OrigNChan", original_n_channels_);
   }
   if (rec.isDefined("NChan")) {
-    rec.get("NChan", itsNChan);
+    rec.get("NChan", n_channels_);
   }
   if (rec.isDefined("ChanAvg")) {
-    rec.get("ChanAvg", itsChanAvg);
+    rec.get("ChanAvg", channel_averaging_factor_);
   }
   if (rec.isDefined("NTime")) {
-    rec.get("NTime", itsNTime);
+    rec.get("NTime", n_times_);
   }
   if (rec.isDefined("TimeAvg")) {
-    rec.get("TimeAvg", itsTimeAvg.front());
+    rec.get("TimeAvg", time_averaging_factors_.front());
   }
   if (rec.isDefined("StartTime")) {
-    rec.get("StartTime", itsStartTime);
+    rec.get("StartTime", start_time_);
   }
   if (rec.isDefined("TimeInterval")) {
-    rec.get("TimeInterval", itsTimeInterval);
+    rec.get("TimeInterval", time_interval_);
   }
   if (rec.isDefined("ChanFreqs")) {
-    itsChanFreqs.clear();
-    itsChanFreqs.push_back(rec.toArrayDouble("ChanFreqs").tovector());
+    channel_frequencies_.clear();
+    channel_frequencies_.push_back(rec.toArrayDouble("ChanFreqs").tovector());
   }
   if (rec.isDefined("ChanWidths")) {
-    itsChanWidths.clear();
-    itsChanWidths.push_back(rec.toArrayDouble("ChanWidths").tovector());
+    channel_widths_.clear();
+    channel_widths_.push_back(rec.toArrayDouble("ChanWidths").tovector());
   }
   if (rec.isDefined("Resolutions")) {
-    itsResolutions.clear();
-    itsResolutions.push_back(rec.toArrayDouble("Resolutions").tovector());
+    resolutions_.clear();
+    resolutions_.push_back(rec.toArrayDouble("Resolutions").tovector());
   }
   if (rec.isDefined("EffectiveBW")) {
-    itsEffectiveBW.clear();
-    itsEffectiveBW.push_back(rec.toArrayDouble("EffectiveBW").tovector());
+    effective_bandwidth_.clear();
+    effective_bandwidth_.push_back(rec.toArrayDouble("EffectiveBW").tovector());
   }
   if (rec.isDefined("TotalBW")) {
-    rec.get("TotalBW", itsTotalBW);
+    rec.get("TotalBW", total_bandwidth_);
   }
   if (rec.isDefined("RefFreq")) {
-    rec.get("RefFreq", itsRefFreq);
+    rec.get("RefFreq", reference_frequency_);
   }
   if (rec.isDefined("AntNames")) {
-    rec.get("AntNames", itsAntNames);
+    rec.get("AntNames", antenna_names_);
   }
   if (rec.isDefined("AntDiam")) {
-    rec.get("AntDiam", itsAntDiam);
+    rec.get("AntDiam", antenna_diameters_);
   }
   /// if (rec.isDefined ("AntUsed")) {
-  /// itsAntUsed = rec.toArrayInt("AntUsed").tovector();
+  /// antennas_used_ = rec.toArrayInt("AntUsed").tovector();
   ///}
   /// if (rec.isDefined ("AntMap")) {
-  ///  itsAntMap = rec.toArrayInt("AntMap").tovector();
+  ///  antenna_map_ = rec.toArrayInt("AntMap").tovector();
   ///}
   if (rec.isDefined("Ant1")) {
     casacore::Vector<casacore::Int> ant1 = rec.toArrayInt("Ant1");
-    itsAnt1 = std::vector<std::size_t>(ant1.begin(), ant1.end());
+    antenna1_ = std::vector<std::size_t>(ant1.begin(), ant1.end());
   }
   if (rec.isDefined("Ant2")) {
     casacore::Vector<casacore::Int> ant2 = rec.toArrayInt("Ant2");
-    itsAnt2 = std::vector<std::size_t>(ant2.begin(), ant2.end());
+    antenna2_ = std::vector<std::size_t>(ant2.begin(), ant2.end());
   }
   /// if (rec.isDefined ("BLength")) {
-  ///  itsBLength = rec.toArrayDouble("BLength").tovector();
+  ///  baseline_lengths_ = rec.toArrayDouble("BLength").tovector();
   ///}
   /// if (rec.isDefined ("AutoCorrIndex")) {
-  ///  itsAutoCorrIndex = rec.toArrayInt("AutoCorrIndex").tovector();
+  ///  auto_correlation_indices_ = rec.toArrayInt("AutoCorrIndex").tovector();
   ///}
 }
 
